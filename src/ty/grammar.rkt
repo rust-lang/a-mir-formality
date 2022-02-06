@@ -12,13 +12,13 @@
       (ty-scalar scalar-id)
       (ty-ref maybe-mut lifetime ty)
       (ty-tuple (ty ...))
-      (ty-var var-id)
+      var-id
       )
 
   (; a lifetime (!)
    lifetime :=
             lifetime-static
-            (lifetime-var var-id))
+            var-id)
 
   (; env = environment for checking trait predicates
    env := (program-clauses hypotheses))

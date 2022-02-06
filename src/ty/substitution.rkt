@@ -8,9 +8,8 @@
   substitution-to-fresh-vars : (any ...) kinded-var-ids -> substitution
 
   [(substitution-to-fresh-vars (any ...) ((var-kind var-id) ...))
-   ((var-id parameter) ...)
+   ((var-id var-id_fresh) ...)
    (where/error (var-id_fresh ...) ,(variables-not-in (term (any ...)) (term (var-id ...))))
-   (where/error (parameter ...) ((var-kind var-id_fresh) ...))
    ]
   )
 
@@ -20,4 +19,14 @@
 
   [(apply-substitution substitution any)
    (substitute-env any substitution)]
+  )
+
+(module+ test
+  (test-equal
+   (term (apply-substitution
+          ((foo (ty-var bar)))
+          (forall (foo) (implemented (debug foo)))
+          ))
+   (term ())
+   )
   )
