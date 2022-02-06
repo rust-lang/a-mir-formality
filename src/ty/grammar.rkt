@@ -1,5 +1,5 @@
 #lang racket
-(require redex/reduction-semantics "../util.rkt")
+(require redex/reduction-semantics)
 (provide (all-defined-out))
 
 (define-language patina-ty
