@@ -2,89 +2,104 @@
 (require redex/reduction-semantics)
 (provide (all-defined-out))
 
+; Naming convention:
+;
+; * Rust keywords use the Rust keyword
+; * Nonterminals and variables use CamelCase, as do random VariantNames not part of Rust syntax,
+;   like TyAdt
+
 (define-language patina-ty
-  (tys := (ty ...))
-  (; ty = grammar for Rust types
-   ty :=
-      (ty-adt adt-ref)
-      (ty-dyn trait-ref)
-      (ty-associated-ty associated-ty-id parameters)
-      (ty-scalar scalar-id)
-      (ty-ref maybe-mut lifetime ty)
-      (ty-tuple (ty ...))
-      var-id
+  ; ty = Rust type
+  (Tys := (Ty ...))
+  (Ty :=
+      (TyAdt AdtRef)
+      (TyDyn TraitRef)
+      (TyAssociatedTy AssociatedTyId Parameters)
+      (TyScalar ScalarId)
+      (TyRef MaybeMut Lifetime Ty)
+      (TyTuple (Ty ...))
+      VarId
       )
 
-  (; a lifetime (!)
-   lifetime :=
-            lifetime-static
-            var-id)
+  ; a lifetime (!)
+  (Lifetime :=
+            static
+            VarId)
 
   (; env = environment for checking trait predicates
-   env := (program-clauses hypotheses))
+   Env := (ProgramClauses Hypotheses))
 
   (; adt-ref = reference to a struct, enum, or union
-   adt-ref := (adt-id parameters))
+   AdtRef := (AdtId Parameters))
 
   (; trait-ref = reference to a trait
-   trait-ref := (trait-id parameters))
+   TraitRef := (TraitId Parameters))
 
   (; maybe-mut = either mut or not
-   maybe-mut := () (mut) )
+   MaybeMut := () (mut) )
 
-  (substitution := ((var-id parameter) ...))
+  (Substitution := ((VarId Parameter) ...))
 
-  (kinded-var-ids := (kinded-var-id ...))
-  (kinded-var-id := (var-kind var-id))
-  (var-kind := ty-var lifetime-var)
+  (KindedVarIds := (KindedVarId ...))
+  (KindedVarId := (VarKind VarId))
+  (VarKind := TyVar LifetimeVar)
 
   (; parameters -- values for generic parameters
-   parameters := (parameter ...))
+   Parameters := (Parameter ...))
 
   (; parameter -- value for a generic parameter
-   parameter := ty lifetime)
+   Parameter := Ty Lifetime)
 
   (; predicates are the "atomic" items that we can prove and so forth
-   predicate :=
-             (implemented trait-ref)
-             (has-impl trait-ref)
-             (well-formed ty)
+   Predicate :=
+             (Implemented TraitRef)
+             (HasImpl TraitRef)
+             (WellFormed ty)
              )
 
   ;
-  (goals = (goal ...))
-  (goal :=
-        predicate
-        (all goals)
-        (any goals)
-        (implies hypotheses goal)
-        (forall kinded-var-ids goal)
-        (exists kinded-var-ids goal)
+  (Goals = (Goal ...))
+  (Goal :=
+        Predicate
+        (All Goals)
+        (Any Goals)
+        (Implies Hypotheses Goal)
+        (ForAll KindedVarIds Goal)
+        (Exists KindedVarIds Goal)
         )
 
-  (hypotheses = (hypothesis ...))
-  (hypothesis :=
-              predicate
-              (implies predicate predicate)
-              (forall kinded-var-ids hypothesis)
+  (Hypotheses = (Hypothesis ...))
+  (Hypothesis :=
+              Predicate
+              (Implies predicate predicate)
+              (ForAll kinded-var-ids hypothesis)
               )
 
-  (program-clauses := (program-clause ...))
-  (program-clause :=
-                  predicate
-                  (implies goals predicate)
-                  (forall kinded-var-ids program-clause)
-                  )
+  (ProgramClauses := (ProgramClause ...))
+  (ProgramClause :=
+                 Predicate
+                 (Implies Goals Predicate)
+                 (ForAll KindedVarIds ProgramClause)
+                 )
 
   ; ids
-  (var-ids := (var-id ...))
-  ((adt-id
-    scalar-id
-    var-id
-    trait-id
-    associated-ty-id) identifier-not-otherwise-mentioned)
+  (VarIds := (VarId ...))
+  (AdtId identifier-not-otherwise-mentioned)
+  (ScalarId identifier-not-otherwise-mentioned)
+  (VarId identifier-not-otherwise-mentioned)
+  (TraitId identifier-not-otherwise-mentioned)
+  (AssociatedTyId identifier-not-otherwise-mentioned)
 
   #:binding-forms
-  (forall ((var-kind var-id) ...) any #:refers-to (shadow var-id ...))
-  (exists ((var-kind var-id) ...) any #:refers-to (shadow var-id ...))
+  (ForAll ((VarKind VarId) ...) any #:refers-to (shadow VarId ...))
+  (Exists ((VarKind VarId) ...) any #:refers-to (shadow VarId ...))
+  )
+
+(module+ test
+  (test-match patina-ty
+              Goal
+              (term (All ())))
+  (test-match patina-ty
+              AdtId
+              (term somevar))
   )

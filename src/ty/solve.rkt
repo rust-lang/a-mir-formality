@@ -4,99 +4,99 @@
 
 (define-judgment-form patina-ty
   #:mode (prove I I)
-  #:contract (prove env goal)
+  #:contract (prove Env Goal)
 
-  [(where ((_ ... program-clause _ ... ) _) env)
-   (program-clause-proves env program-clause predicate)
-   --------------- "prove-program-clause"
-   (prove env predicate)
+  [(where ((_ ... ProgramClause _ ... ) _) Env)
+   (ProgramClause-proves Env ProgramClause Predicate)
+   --------------- "prove-ProgramClause"
+   (prove Env Predicate)
    ]
 
-  [(where (_ (_ ... hypothesis _ ... )) env)
-   (hypothesis-implies env hypothesis predicate)
-   --------------- "prove-hypothesis"
-   (prove env predicate)
+  [(where (_ (_ ... Hypothesis _ ... )) Env)
+   (Hypothesis-implies Env Hypothesis Predicate)
+   --------------- "prove-Hypothesis"
+   (prove Env Predicate)
    ]
 
-  [(prove env goal) ...
+  [(prove Env Goal) ...
    --------------- "prove-all"
-   (prove env (all (goal ...)))
+   (prove Env (All (Goal ...)))
    ]
 
-  [(prove env goal_1)
+  [(prove Env Goal_1)
    --------------- "prove-any"
-   (prove env (any (goal_0 ... goal_1 goal_2 ...)))
+   (prove Env (Any (Goal_0 ... Goal_1 Goal_2 ...)))
    ]
 
-  [(prove (program-clauses (hypothesis_0 ... hypothesis_1 ...)) goal)
+  [(prove (ProgramClauses (Hypothesis_0 ... Hypothesis_1 ...)) Goal)
    --------------- "prove-implies"
-   (prove (program-clauses (hypothesis_0 ...)) (implies (hypothesis_1 ...) goal))
+   (prove (ProgramClauses (Hypothesis_0 ...)) (Implies (Hypothesis_1 ...) Goal))
    ]
 
   [; FIXME: universes, etc
-   (where/error substitution-map (substitution-to-fresh-vars env goal kinded-var-ids))
-   (where/error goal_1 (apply-substitution substitution-map goal))
-   (prove env goal_1)
+   (where/error Substitution (substitution-to-fresh-vars Env Goal KindedVarIds))
+   (where/error Goal_1 (apply-substitution Substitution Goal))
+   (prove Env Goal_1)
    --------------- "prove-forall"
-   (prove env (forall kinded-var-ids goal))
+   (prove Env (ForAll KindedVarIds Goal))
    ]
 
   [; FIXME: unifiers
-   (prove env (all kinded-var-ids goal))
+   (prove Env (All KindedVarIds Goal))
    --------------- "prove-exists"
-   (prove env (exists kinded-var-ids goal))
+   (prove Env (Exists KindedVarIds Goal))
    ]
 
   )
 
 (define-judgment-form patina-ty
-  #:mode (program-clause-proves I I I)
-  #:contract (program-clause-proves env program-clause predicate)
+  #:mode (ProgramClause-proves I I I)
+  #:contract (ProgramClause-proves Env ProgramClause Predicate)
 
   [--------------- "pc-fact"
-   (program-clause-proves env predicate predicate)
+   (ProgramClause-proves Env Predicate Predicate)
    ]
 
-  [(prove env (all goals))
+  [(prove Env (all Goals))
    --------------- "pc-backchain"
-   (program-clause-proves env (implies goals predicate) predicate)
+   (ProgramClause-proves Env (implies Goals Predicate) Predicate)
    ]
 
   [; FIXME: unifiers
-   (where/error substitution-map (substitution-to-fresh-vars (env program-clause predicate) kinded-var-ids))
-   (where/error program-clause_1 (apply-substitution substitution-map program-clause))
-   (program-clause-proves env program-clause_1 predicate)
+   (where/error Substitution (substitution-to-fresh-vars (Env ProgramClause Predicate) KindedVarIds))
+   (where/error ProgramClause_1 (apply-substitution Substitution ProgramClause))
+   (ProgramClause-proves Env ProgramClause_1 Predicate)
    --------------- "pc-forall"
-   (program-clause-proves env (forall kinded-var-ids program-clause) predicate)
+   (ProgramClause-proves Env (forall KindedVarIds ProgramClause) Predicate)
    ]
 
   )
 
 (define-judgment-form patina-ty
-  #:mode (hypothesis-implies I I I)
-  #:contract (hypothesis-implies env hypothesis goal)
+  #:mode (Hypothesis-implies I I I)
+  #:contract (Hypothesis-implies Env Hypothesis Goal)
 
   [--------------- "hypothesized"
-   (hypothesis-implies env predicate predicate)
+   (Hypothesis-implies Env Predicate Predicate)
    ]
 
-  [(where (_ (_ ... hypothesis _ ...)) env)
-   (hypothesis-implies env hypothesis predicate_0)
+  [(where (_ (_ ... Hypothesis _ ...)) Env)
+   (Hypothesis-implies Env Hypothesis Predicate_0)
    --------------- "hypothesized-backchain"
-   (hypothesis-implies env (implies predicate_0 predicate_1) predicate_1)
+   (Hypothesis-implies Env (implies Predicate_0 Predicate_1) Predicate_1)
    ]
 
   [; FIXME: unifiers
-   (where/error substitution-map (substitution-to-fresh-vars (env hypothesis predicate) kinded-var-ids))
-   (where/error hypothesis_1 (apply-substitution substitution-map hypothesis))
-   (hypothesis-implies env hypothesis_1 predicate)
+   (where/error Substitution (substitution-to-fresh-vars (Env Hypothesis Predicate) KindedVarIds))
+   (where/error Hypothesis_1 (apply-substitution Substitution Hypothesis))
+   (Hypothesis-implies Env Hypothesis_1 Predicate)
    --------------- "hypothesized-forall"
-   (hypothesis-implies env (forall kinded-var-ids hypothesis) predicate)
+   (Hypothesis-implies Env (forall KindedVarIds Hypothesis) Predicate)
    ]
   )
 
 (module+ test
-  (test-equal (judgment-holds (prove (() ()) (all ())))
+  (test-equal (judgment-holds (prove (() ()) (All ())))
               #t
               )
   )
