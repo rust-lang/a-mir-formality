@@ -84,11 +84,11 @@
 
   ; ids
   (VarIds := (VarId ...))
-  (AdtId identifier-not-otherwise-mentioned)
-  (ScalarId identifier-not-otherwise-mentioned)
-  (VarId identifier-not-otherwise-mentioned)
-  (TraitId identifier-not-otherwise-mentioned)
-  (AssociatedTyId identifier-not-otherwise-mentioned)
+  ((AdtId
+    ScalarId
+    VarId
+    TraitId
+    AssociatedTyId) variable-not-otherwise-mentioned)
 
   #:binding-forms
   (ForAll ((VarKind VarId) ...) any #:refers-to (shadow VarId ...))
@@ -102,4 +102,7 @@
   (test-match patina-ty
               AdtId
               (term somevar))
+  (test-match patina-ty
+              Goal
+              (term (Implemented (debug (i32)))))
   )
