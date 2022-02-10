@@ -6,13 +6,13 @@
   #:mode (prove I I)
   #:contract (prove Env Goal)
 
-  [(where ((_ ... ProgramClause _ ... ) _) Env)
-   (ProgramClause-proves Env ProgramClause Predicate)
-   --------------- "prove-ProgramClause"
+  [(where (_ ... Clause _ ... ) (env-clauses Env))
+   (Clause-proves Env Clause Predicate)
+   --------------- "prove-Clause"
    (prove Env Predicate)
    ]
 
-  [(where (_ (_ ... Hypothesis _ ... )) Env)
+  [(where (_ ... Hypothesis _ ... ) (env-hypotheses Env))
    (Hypothesis-implies Env Hypothesis Predicate)
    --------------- "prove-Hypothesis"
    (prove Env Predicate)
@@ -28,9 +28,9 @@
    (prove Env (Any (Goal_0 ... Goal_1 Goal_2 ...)))
    ]
 
-  [(prove (ProgramClauses (Hypothesis_0 ... Hypothesis_1 ...)) Goal)
+  [(prove (Clauses (Hypothesis_0 ... Hypothesis_1 ...)) Goal)
    --------------- "prove-implies"
-   (prove (ProgramClauses (Hypothesis_0 ...)) (Implies (Hypothesis_1 ...) Goal))
+   (prove (Clauses (Hypothesis_0 ...)) (Implies (Hypothesis_1 ...) Goal))
    ]
 
   [; FIXME: universes, etc
@@ -50,24 +50,24 @@
   )
 
 (define-judgment-form patina-ty
-  #:mode (ProgramClause-proves I I I)
-  #:contract (ProgramClause-proves Env ProgramClause Predicate)
+  #:mode (Clause-proves I I I)
+  #:contract (Clause-proves Env Clause Predicate)
 
-  [--------------- "pc-fact"
-   (ProgramClause-proves Env Predicate Predicate)
+  [--------------- "clause-fact"
+   (Clause-proves Env Predicate Predicate)
    ]
 
   [(prove Env (all Goals))
-   --------------- "pc-backchain"
-   (ProgramClause-proves Env (implies Goals Predicate) Predicate)
+   --------------- "clause-backchain"
+   (Clause-proves Env (implies Goals Predicate) Predicate)
    ]
 
   [; FIXME: unifiers
-   (where/error Substitution (substitution-to-fresh-vars (Env ProgramClause Predicate) KindedVarIds))
-   (where/error ProgramClause_1 (apply-substitution Substitution ProgramClause))
-   (ProgramClause-proves Env ProgramClause_1 Predicate)
-   --------------- "pc-forall"
-   (ProgramClause-proves Env (forall KindedVarIds ProgramClause) Predicate)
+   (where/error Substitution (substitution-to-fresh-vars (Env Clause Predicate) KindedVarIds))
+   (where/error Clause_1 (apply-substitution Substitution Clause))
+   (Clause-proves Env Clause_1 Predicate)
+   --------------- "clause-forall"
+   (Clause-proves Env (forall KindedVarIds Clause) Predicate)
    ]
 
   )
@@ -80,7 +80,7 @@
    (Hypothesis-implies Env Predicate Predicate)
    ]
 
-  [(where (_ (_ ... Hypothesis _ ...)) Env)
+  [(where (_ ... Hypothesis _ ...) (env-hypotheses Env))
    (Hypothesis-implies Env Hypothesis Predicate_0)
    --------------- "hypothesized-backchain"
    (Hypothesis-implies Env (implies Predicate_0 Predicate_1) Predicate_1)

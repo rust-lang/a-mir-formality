@@ -22,6 +22,25 @@
    (apply-substitution ((VarId_1 any_1) ...) (substitute any_term VarId_0 any_0))]
   )
 
+(define-metafunction patina-ty
+  ; Applies the substitution to *itself* until a fixed point is reached.
+  substitution-fix : Substitution -> Substitution
+
+  [; if the result of applying substitution to itself has no change, all done
+   (substitution-fix Substitution_0)
+   Substitution_0
+   (where ((VarId_0 Parameter_0) ...) Substitution_0)
+   (where (Parameter_0 ...) (apply-substitution Substitution_0 (Parameter_0 ...)))
+   ]
+
+  [; otherwise recursively apply
+   (substitution-fix Substitution_0)
+   (substitution-fix ((VarId_0 Parameter_1) ...))
+   (where ((VarId_0 Parameter_0) ...) Substitution_0)
+   (where (Parameter_1 ...) (apply-substitution Substitution_0 (Parameter_0 ...)))
+   ]
+  )
+
 (module+ test
   (test-equal (term (apply-substitution
                      ((x x1) (y y1))
@@ -32,4 +51,12 @@
                      ((x x1) (y y1))
                      (x (ForAll (TyVar z) (x y z) y))))
               (term (x1 (ForAll (TyVar z) (x1 y1 z) y1))))
+
+  (test-equal (term (substitution-fix
+                     ((x (TyApply SomeType (y)))
+                      (y y1)
+                      (z x))))
+              (term ((x (TyApply SomeType (y1)))
+                     (y y1)
+                     (z (TyApply SomeType (y1))))))
   )
