@@ -36,6 +36,9 @@
   (; Env = environment for checking trait predicates and the like
    Env := (Universe Bindings Clauses Hypotheses))
 
+  (; Env-e = environment or error
+   Env-e := Env Error)
+
   (Bindings := (Binding ...))
   (Binding := (VarId Quantifier Universe))
   (Quantifier := ForAll Exists)
@@ -139,26 +142,38 @@
   )
 
 (define-metafunction patina-ty
-  env-with-binding : Env Binding ... -> Env
+  env-universe : Env -> Bindings
 
-  [(env-with-binding Env Binding_0 ...)
+  [(env-universe (Universe Bindings Clauses Hypotheses)) Universe]
+  )
+
+(define-metafunction patina-ty
+  env-with-fresh-binding : Env Binding ... -> Env
+
+  [(env-with-fresh-binding Env Binding_0 ...)
    (Universe (Binding_0 ... Binding ...) Clauses Hypotheses)
    (where/error (Universe (Binding ...) Clauses Hypotheses) Env)
    ]
   )
 
 (define-metafunction patina-ty
-  env-universe : Env -> Universe
+  env-with-rebound-universe : Env VarId Universe -> Env
 
-  [(env-universe (Universe Bindings Clauses Hypotheses)) Universe]
+  [(env-with-rebound-universe Env VarId Universe_new)
+   (Universe (Binding_0 ... (VarId Quantifier Universe_new Binding_1 ...) Clauses Hypotheses))
+   (where/error (Universe (Binding_0 ... (VarId Quantifier Universe_old) Binding_1 ...) Clauses Hypotheses) Env)
+   (where/error #t (universe-can-see Universe_old Universe_new))
+   ]
   )
 
 (define-metafunction patina-ty
-  env-with-universe : Env Universe -> Env
+  env-with-next-universe : Env -> (Env Universe)
 
-  [(env-with-universe Env Universe)
-   (Universe Bindings Clauses Hypotheses)
-   (where (_ Bindings Clauses Hypotheses) Env)
+  [(env-with-next-universe Env)
+   ((Universe_new Bindings Clauses Hypotheses) Universe_new)
+
+   (where/error (Universe Bindings Clauses Hypotheses) Env)
+   (where/error Universe_new (next-universe Universe))
    ]
 
   )
@@ -170,6 +185,23 @@
    (Quantifier Universe)
    (where/error (_ ... (VarId Quantifier Universe) _ ...) (env-bindings Env))]
 
+  )
+
+(define-metafunction patina-ty
+  universe-of-binding-in-env : Env VarId -> Universe
+
+  [(universe-of-binding-in-env Env VarId)
+   Universe
+   (where (_ Universe) (binding-in-env Env VarId))
+   ]
+
+  )
+
+(define-metafunction patina-ty
+  next-universe : Universe -> Universe
+
+  [(next-universe (U natural))
+   (U ,(+ 1 (term natural)))]
   )
 
 
@@ -225,6 +257,12 @@
    (U ,(apply min (term (number ...))))
    ])
 
+(define-metafunction patina-ty
+  ; True if `Universe_0` can see all values from `Universe_1`
+  universe-can-see : Universe_0 Universe_1 -> bool
+  [(universe-can-see (U number_0) (U number_1))
+   ,(>= (term number_0) (term number_1))])
+
 (module+ test
   (test-match patina-ty
               Goal
@@ -249,7 +287,7 @@
               (term (a b c y f e d g h w)))
 
   (test-equal (term (binding-in-env
-                     (env-with-binding EmptyEnv (x ForAll (U 22)))
+                     (env-with-fresh-binding EmptyEnv (x ForAll (U 22)))
                      x))
               (term (ForAll (U 22))))
 

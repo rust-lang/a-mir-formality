@@ -55,17 +55,64 @@
   )
 
 (define-metafunction patina-ty
-  ; Given a set of kinded-var-ids, creates a substituion map that maps them to
-  ; fresh names.
-  occurs-check-ok : Env VarId Parameter -> boolean
+  occurs-check : Env VarId Parameter -> Env-e
 
-  [(occurs-check-ok Env VarId Parameter)
-   true
-   (side-condition (appears-free VarId Parameter))
-   (where (Exists Universe_VarId) (var-binding-in-env Env VarId))
+  [(occurs-check Env VarId Parameter)
+   Env_1
+
+   (side-condition (not (term (appears-free VarId Parameter))))
+   (where (Exists Universe_VarId) (binding-in-env Env VarId))
+   (where/error VarIds_free (free-variables Parameter))
+   (where Env_1 (occurs-check-fold-env Env VarIds_free Universe_VarId))
    ]
+
+  [(occurs-check Env VarId Parameter)
+   Error
+   ]
+
   )
 
+(define-metafunction patina-ty
+  occurs-check-fold-env : Env VarIds Universe_new -> Env-e
+
+  [(occurs-check-fold-env Env () Universe_new)
+   Env]
+
+  [(occurs-check-fold-env Env (VarId_0 VarId_1 ...) Universe_new)
+   Error
+   (where Error (occurs-check-env Env VarId_0 Universe_new))]
+
+  [(occurs-check-fold-env Env (VarId_0 VarId_1 ...) Universe_new)
+   (occurs-check-fold-env Env_1 (VarId_1 ...) Universe_new)
+   (where Env_1 (occurs-check-env Env VarId_0 Universe_new))]
+  )
+
+(define-metafunction patina-ty
+  occurs-check-env : Env VarId Universe_new -> Env-e
+
+  [(occurs-check-env Env VarId Universe_new)
+   Env
+   (where Universe_old (universe-of-binding-in-env Env VarId))
+   (where #t (universe-can-see Universe_new Universe_old))]
+
+  [(occurs-check-env Env VarId Universe_new)
+   (env-with-rebound-universe Env Universe_new)
+   (where (Exists Universe_old) (binding-in-env Env VarId))
+   (side-condition (not (term (universe-can-see Universe_new Universe_old))))
+   ]
+
+  [(occurs-check-env Env VarId Parameter)
+   Error
+   (where (ForAll Universe_old) (binding-in-env Env VarId))
+   (side-condition (not (term (universe-can-see Universe_new Universe_old))))
+   ]
+
+  )
 
 (module+ test
+
+  (redex-let
+   ((Env (env-with-fresh-binding EmptyEnv ())))
+   )
+
   )

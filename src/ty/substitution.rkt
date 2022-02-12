@@ -1,6 +1,9 @@
 #lang racket
 (require redex/reduction-semantics "grammar.rkt")
-(provide (all-defined-out))
+(provide substitution-to-fresh-vars
+         apply-substitution
+         substitution-fix
+         )
 
 (define-metafunction patina-ty
   ; Given a set of kinded-var-ids, creates a substituion map that maps them to
