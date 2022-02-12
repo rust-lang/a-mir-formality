@@ -1,5 +1,5 @@
 #lang racket
-(require redex/reduction-semantics "grammar.rkt")
+(require redex/reduction-semantics "grammar.rkt" "substitution.rkt")
 (provide )
 
 (define-metafunction patina-ty

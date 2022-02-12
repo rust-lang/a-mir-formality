@@ -111,8 +111,10 @@
 
 (module+ test
 
-  (redex-let
-   ((Env (env-with-fresh-binding EmptyEnv ())))
+  (redex-let*
+   patina-ty
+   ((Env (term (env-with-fresh-binding EmptyEnv))))
+   (test-equal (term Env) (term Env))
    )
 
   )
