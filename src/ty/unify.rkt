@@ -120,7 +120,7 @@
   (redex-let*
    formality-ty
    ((Env (term (env-with-vars-in-current-universe EmptyEnv (T U E))))
-    ((Env_1 VarId_V) (term (instantiate-quantified EmptyEnv ForAll (TyVar V) V))))
+    ((Env_1 Ty_V) (term (instantiate-quantified EmptyEnv ForAll ((TyVar V)) V))))
    (test-equal
     (term (occurs-check Env E (TyApply i32 ())))
     (term Env))
@@ -134,11 +134,11 @@
     (term Env))
 
    (test-equal
-    (term (occurs-check Env E (TyApply VarId_V ())))
+    (term (occurs-check Env E Ty_V))
     (term Error))
 
    (test-equal
-    (term (occurs-check Env E (TyApply Vec (VarId_V))))
+    (term (occurs-check Env E (TyApply Vec (Ty_V))))
     (term Error))
    )
   )
