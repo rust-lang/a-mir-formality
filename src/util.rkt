@@ -7,14 +7,4 @@
 (define-syntax-rule (log name value) (begin (pretty-print (term ("entering" name))) (let [(v value)] (pretty-print (term ("exiting" name "with result" ,v))) v)))
 (define (partition-list f l) (let-values [((matches matches-not) (partition f l))] (list matches matches-not)))
 (define-syntax-rule (test-judgment-false j) (test-equal (judgment-holds j) #f))
-(define-syntax-rule
-  (define-metafunction/instrumented language name : (input-type ...) -> (output-type ...) clause ...)
-  (define-metafunction language
-    name : input-type ... -> output-type ...
 
-    [(name input-type ...)
-     ()
-     (side-condition (not (pretty-print (term (,(symbol->string 'name) input-type ...)))))]
-
-    clause ...
-    ))

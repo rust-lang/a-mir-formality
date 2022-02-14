@@ -5,18 +5,18 @@
          substitution-fix
          )
 
-(define-metafunction patina-ty
+(define-metafunction formality-ty
   ; Given a set of kinded-var-ids, creates a substituion map that maps them to
   ; fresh names.
-  substitution-to-fresh-vars : (any ...) KindedVarIds -> Substitution
+  substitution-to-fresh-vars : Term KindedVarIds -> Substitution
 
-  [(substitution-to-fresh-vars (any ...) ((VarKind VarId) ...))
+  [(substitution-to-fresh-vars Term ((VarKind VarId) ...))
    ((VarId VarId_fresh) ...)
-   (where/error (VarId ...) ,(variables-not-in (term (any ...)) (term (VarId ...))))
+   (where/error (VarId_fresh ...) ,(variables-not-in (term Term) (term (VarId ...))))
    ]
   )
 
-(define-metafunction patina-ty
+(define-metafunction formality-ty
   ; substitute substitution-map any ==> applies a substitution map to anything
   apply-substitution : Substitution any -> any
 
@@ -25,7 +25,7 @@
    (apply-substitution ((VarId_1 any_1) ...) (substitute any_term VarId_0 any_0))]
   )
 
-(define-metafunction patina-ty
+(define-metafunction formality-ty
   ; Applies the substitution to *itself* until a fixed point is reached.
   substitution-fix : Substitution -> Substitution
 

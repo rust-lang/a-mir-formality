@@ -2,7 +2,7 @@
 (require redex "grammar.rkt" "substitution.rkt")
 (provide prove)
 
-(define-judgment-form patina-ty
+(define-judgment-form formality-ty
   #:mode (prove I I)
   #:contract (prove Env Goal)
 
@@ -49,7 +49,7 @@
 
   )
 
-(define-judgment-form patina-ty
+(define-judgment-form formality-ty
   #:mode (Clause-proves I I I)
   #:contract (Clause-proves Env Clause Predicate)
 
@@ -72,7 +72,7 @@
 
   )
 
-(define-judgment-form patina-ty
+(define-judgment-form formality-ty
   #:mode (Hypothesis-implies I I I)
   #:contract (Hypothesis-implies Env Hypothesis Goal)
 

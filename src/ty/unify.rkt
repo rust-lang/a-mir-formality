@@ -1,10 +1,14 @@
 ; Based on "a proof procedure for "
 
 #lang racket
-(require redex/reduction-semantics "substitution.rkt" "grammar.rkt")
+(require redex/reduction-semantics
+         "grammar.rkt"
+         "instantiate.rkt"
+         "substitution.rkt"
+         )
 (provide most-general-unifier)
 
-(define-metafunction patina-ty
+(define-metafunction formality-ty
   ; Given a set of kinded-var-ids, creates a substituion map that maps them to
   ; fresh names.
   most-general-unifier : Env ParameterPairs -> Substitution-e
@@ -54,14 +58,16 @@
    ]
   )
 
-(define-metafunction patina-ty
+(define-metafunction formality-ty
   occurs-check : Env VarId Parameter -> Env-e
 
   [(occurs-check Env VarId Parameter)
    Env_1
 
    (side-condition (not (term (appears-free VarId Parameter))))
+   (side-condition (pretty-print (term ("0" Env VarId Parameter))))
    (where (Exists Universe_VarId) (binding-in-env Env VarId))
+   (side-condition (pretty-print (term ("1" Env VarId Parameter))))
    (where/error VarIds_free (free-variables Parameter))
    (where Env_1 (occurs-check-fold-env Env VarIds_free Universe_VarId))
    ]
@@ -72,7 +78,7 @@
 
   )
 
-(define-metafunction patina-ty
+(define-metafunction formality-ty
   occurs-check-fold-env : Env VarIds Universe_new -> Env-e
 
   [(occurs-check-fold-env Env () Universe_new)
@@ -87,7 +93,7 @@
    (where Env_1 (occurs-check-env Env VarId_0 Universe_new))]
   )
 
-(define-metafunction patina-ty
+(define-metafunction formality-ty
   occurs-check-env : Env VarId Universe_new -> Env-e
 
   [(occurs-check-env Env VarId Universe_new)
@@ -112,9 +118,27 @@
 (module+ test
 
   (redex-let*
-   patina-ty
-   ((Env (term (env-with-fresh-binding EmptyEnv))))
-   (test-equal (term Env) (term Env))
-   )
+   formality-ty
+   ((Env (term (env-with-vars-in-current-universe EmptyEnv (T U E))))
+    ((Env_1 VarId_V) (term (instantiate-quantified EmptyEnv ForAll (TyVar V) V))))
+   (test-equal
+    (term (occurs-check Env E (TyApply i32 ())))
+    (term Env))
 
+   (test-equal
+    (term (occurs-check Env E (TyApply Vec (E))))
+    (term Error))
+
+   (test-equal
+    (term (occurs-check Env E (TyApply Vec (i32))))
+    (term Env))
+
+   (test-equal
+    (term (occurs-check Env E (TyApply VarId_V ())))
+    (term Error))
+
+   (test-equal
+    (term (occurs-check Env E (TyApply Vec (VarId_V))))
+    (term Error))
+   )
   )

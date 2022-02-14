@@ -1,36 +1,91 @@
 #lang racket
-(require redex/reduction-semantics "grammar.rkt" "substitution.rkt")
-(provide )
+(require redex/reduction-semantics
+         "grammar.rkt"
+         "substitution.rkt"
+         "../util.rkt")
+(provide instantiate-quantified)
 
-(define-metafunction patina-ty
+(define-metafunction formality-ty
   ; Given a set of kinded-var-ids, creates a substituion map that maps them to
   ; fresh names.
-  instantiate-quantified : Env QuantifierKind KindedVarIds any_in -> (Env any_out)
+  instantiate-quantified : Env Quantifier KindedVarIds Term_0 -> (Env Term_out)
 
-  [(instantiate-quantified Env_0 ForAll KindedVarIds any_in)
-   (Env_out any_out)
+  [; Handle universal binder instantiation.
+   ;
+   ; In this case, we want to replace e.g. `for<T> Vec<T>` with
+   ; `Vec<T1<>>` for some fresh name `T1` -- i.e., `(TyApply Vec (TyApply T1 ()))`.
+   (instantiate-quantified Env_0 ForAll KindedVarIds Term_0)
+   (Env_2 Term_1)
 
-   (where/error Substitution (substitution-to-fresh-vars (Env_0 any_in) KindedVarIds))
-   (where/error ((VarId_old VarId_new) ...) Substitution)
-   (where/error (Env_1 Universe) (env-with-next-universe Env_0))
-   (where/error Env_2 (env-with-fresh-binding (VarId_new ForAll Universe) ...))
-   (where/error any_out (apply-substitution Substitution any_in))
+   ; map the `KindedVarIds` to fresh names that do not appear in the environment `Env_0`
+   ; or the input term `Term_0`
+   (where/error Substitution_new-names (substitution-to-fresh-vars (Env_0 Term_0) KindedVarIds))
+
+   ; create a new environment where the fresh names are placed in a fresh universe
+   (where/error Env_1 (env-with-incremented-universe Env_0))
+   (where/error ((_ VarId_new) ...) Substitution_new-names)
+   (where/error Env_2 (env-with-vars-in-current-universe Env_1 (VarId_new ...)))
+
+   ; map each new variable to a Parameter that uses it in placeholder role
+   (where/error (KindedVarId ...) KindedVarIds)
+   (where/error Substitution_placeholders ((placeholder-parameter Substitution_new-names KindedVarId) ...))
+
+   ; substitute the uses of bound variables in the term with their placeholders
+   (where/error Term_1 (apply-substitution Substitution_placeholders Term_0))
    ]
 
-  [(instantiate-quantified Env_0 Exists KindedVarIds any_in)
-   (Env_out any_out)
+  [; Handle existential binder instantiation.
+   ;
+   ; In this case, we want to replace e.g. `exists<T> Vec<T>` with
+   ; `Vec<T1>` for some fresh name `T1` -- i.e., `(TyApply Vec (T1))`.
+   (instantiate-quantified Env_0 Exists KindedVarIds Term_0)
+   (Env_1 Term_1)
 
-   (where/error Substitution (substitution-to-fresh-vars (Env_0 any_in) KindedVarIds))
+   ; map the `KindedVarIds` to fresh names that do not appear in the environment `Env_0`
+   ; or the input term `Term_0`
+   (where/error Substitution (substitution-to-fresh-vars (Env_0 Term_0) KindedVarIds))
+
+   ; these names will be placed in the current universe of the environment
    (where/error ((VarId_old VarId_new) ...) Substitution)
-   (where/error Universe (env-universe Env_0))
-   (where/error Env_1 (env-with-fresh-binding (VarId_new Exists Universe) ...))
-   (where/error any_out (apply-substitution Substitution any_in))
+   (where/error Env_1 (env-with-vars-in-current-universe Env_0 (VarId_new ...)))
+   (where/error Term_1 (apply-substitution Substitution Term_0))
    ]
   )
 
+(define-metafunction formality-ty
+  ;; Helper function for instantiating `ForAll` binders:
+  ;;
+  ;; Given a binder like `ForAll<type T, lifetime L>`, this function is
+  ;; invoked with a substitution `T => T1, L => L1` mapping `T` and `L`
+  ;; to fresh names, along with some element of the original binder
+  ;; like `type T` or `lifetime L`. It returns a mapping `T => (TyApply T1 ())`
+  ;; that maps from the original variable to a parameter using the new
+  ;; name in placeholder position.
+  placeholder-parameter : Substitution KindedVarId -> (VarId Parameter)
+
+  [(placeholder-parameter Substitution (TyVar VarId))
+   (VarId (TyApply VarId_new ()))
+   (where VarId_new (apply-substitution Substitution VarId))]
+
+  [(placeholder-parameter Substitution (LifetimeVar VarId))
+   (VarId (LtApply VarId_new ()))
+   (where VarId_new (apply-substitution Substitution VarId))]
+  )
+
 (module+ test
-  (test-equal (term (apply-substitution
-                     ((x x1) (y y1))
-                     (x (ForAll (TyVar x) (x y) y))))
-              (term (x1 (ForAll (TyVar x1) (x1 y1) y1))))
+
+  (redex-let*
+   formality-ty
+   []
+
+   (test-match-terms
+    formality-ty
+    (term (instantiate-quantified EmptyEnv ForAll ((TyVar V)) (TyApply Vec (V))))
+    (term (_ (TyApply Vec ((TyApply V1 ()))))))
+
+   (test-match-terms
+    formality-ty
+    (term (instantiate-quantified EmptyEnv Exists ((TyVar V)) (TyApply Vec (V))))
+    (term (_ (TyApply Vec (V1)))))
+   )
   )

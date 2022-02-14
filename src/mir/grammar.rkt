@@ -2,7 +2,7 @@
 (require redex  "../ty/grammar.rkt" "../util.rkt")
 (provide (all-defined-out))
 
-(define-extended-language patina-mir patina-ty
+(define-extended-language formality-mir formality-ty
   (basic-block-map ((basic-block-id basic-block-data) ...))
   (basic-block-data (statements terminator))
 
