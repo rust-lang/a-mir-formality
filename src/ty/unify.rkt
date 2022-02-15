@@ -1,11 +1,8 @@
-; Based on "a proof procedure for "
-
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
          "instantiate.rkt"
          "substitution.rkt"
-         "../util.rkt"
          )
 (provide most-general-unifier)
 
@@ -15,6 +12,10 @@
   ;; set such that they are equal, or yields `Error` if there is no such set.
   ;; The new environment is the same as the input environment except that some
   ;; existential variables may have been moved to a smaller universe.
+  ;;
+  ;; The algorithm is a variant of the classic unification algorithm adapted for
+  ;; universes. It is described in "A Proof Procedure for the Logic of Hereditary Harrop Formulas"
+  ;; publishd in 1992 by Gopalan Nadathur at Duke University.
   most-general-unifier : Env ParameterPairs -> (Env Substitution) or Error
 
   [; base case, nothing to be done
