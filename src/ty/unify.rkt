@@ -10,8 +10,11 @@
 (provide most-general-unifier)
 
 (define-metafunction formality-ty
-  ; Given a set of kinded-var-ids, creates a substituion map that maps them to
-  ; fresh names.
+  ;; Given an environment and a set `ParameterPairs` of `(Parameter Parameter)` pairs,
+  ;; computes a new environment and a substitution from any type variables within that
+  ;; set such that they are equal, or yields `Error` if there is no such set.
+  ;; The new environment is the same as the input environment except that some
+  ;; existential variables may have been moved to a smaller universe.
   most-general-unifier : Env ParameterPairs -> (Env Substitution) or Error
 
   [; base case, nothing to be done
