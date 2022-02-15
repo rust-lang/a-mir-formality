@@ -215,14 +215,32 @@
   )
 
 (define-metafunction formality-ty
-  ;; Returns an `Env` where `VarId` is rebound to be in the given `Universe`;
-  ;; this must be some smaller universe than it was in before.
-  env-with-rebound-universe : Env VarId Universe -> Env
+  ;; Returns an `Env` where `VarId` is guaranteed to contain only elements from
+  ;; `Universe`.
+  env-with-var-limited-to-universe : Env VarId Universe -> Env
 
-  [(env-with-rebound-universe Env VarId Universe_new)
-   (Universe (VarUniverse_0 ... (VarId Quantifier Universe_new VarUniverse_1 ...) Clauses Hypotheses))
-   (where/error (Universe (VarUniverse_0 ... (VarId Quantifier Universe_old) VarUniverse_1 ...) Clauses Hypotheses) Env)
-   (where/error #t (universe-can-see Universe_old Universe_new))
+  [(env-with-var-limited-to-universe Env VarId Universe_max)
+   (Universe (VarUniverse_0 ... (VarId Universe_new) VarUniverse_1 ...) Clauses Hypotheses)
+   (where/error (Universe (VarUniverse_0 ... (VarId Universe_old) VarUniverse_1 ...) Clauses Hypotheses) Env)
+   (where/error Universe_new (min-universe Universe_old Universe_max))
+   ]
+  )
+
+(define-metafunction formality-ty
+  ;; Returns an `Env` where each of the given `VarId`s is guaranteed to
+  ;; contain only elements from `Universe`.
+  env-with-vars-limited-to-universe : Env (VarId ...) Universe -> Env
+
+  [(env-with-vars-limited-to-universe Env () Universe_max)
+   Env]
+
+  [(env-with-vars-limited-to-universe Env (VarId_0 VarId_1 ...) Universe_max)
+   (env-with-vars-limited-to-universe Env (VarId_1 ...) Universe_max)
+   (where (UniverseId 0) (universe-of-var-in-env Env VarId_0))]
+
+  [(env-with-vars-limited-to-universe Env (VarId_0 VarId_1 ...) Universe_max)
+   (env-with-vars-limited-to-universe Env_1 (VarId_1 ...) Universe_max)
+   (where/error Env_1 (env-with-var-limited-to-universe Env VarId_0 Universe_max))
    ]
   )
 
@@ -249,11 +267,12 @@
 
   [(universe-of-var-in-env Env VarId)
    Universe
-   (where/error (_ ... (VarId Universe) _ ...) (env-var-universes Env))]
+   (where (_ ... (VarId Universe) _ ...) (env-var-universes Env))]
 
   [; Default is to consider random type names as "forall" constants in root universe
-   (universe-of-var-in-env Env VarId)
-   RootUniverse]
+   (universe-of-var-in-env Env VarId_!_1)
+   RootUniverse
+   (where ((VarId_!_1 Universe) ...) (env-var-universes Env))]
 
   )
 
@@ -286,12 +305,44 @@
   [(free-variables VarId)
    (VarId)]
 
+  [; The `c` in `(TyApply c ())` is not a variable but a constant.
+   (free-variables (TyApply _ Substitution))
+   (free-variables Substitution)]
+
+  [(free-variables (LtApply _))
+   ()]
+
   [(free-variables (any ...))
    ,(apply set-union (term (() VarIds ...)))
    (where/error (VarIds ...) ((free-variables any) ...))
    ]
 
   [(free-variables _)
+   ()]
+
+  )
+
+(define-metafunction formality-ty
+  ;; Returns the set of names that are "placeholders", i.e.,
+  ;; rigid types. For example, if you have `(TyApply Vec ((TyApply X ())))`,
+  ;; this would return `(Vec X)`.
+  placeholder-variables : Term -> (VarId ...)
+
+  [; Note that there are some other kinds of type names that are not
+   ; just a single variable. Ignore those.
+   (placeholder-variables (TyApply VarId Substitution))
+   ,(set-union (term (VarId)) (term VarIds_substitution))
+   (where/error VarIds_substitution (placeholder-variables Substitution))]
+
+  [(placeholder-variables (LtApply VarId))
+   (VarId)]
+
+  [(placeholder-variables (Term ...))
+   ,(apply set-union (term (() VarIds ...)))
+   (where/error (VarIds ...) ((placeholder-variables Term) ...))
+   ]
+
+  [(placeholder-variables _)
    ()]
 
   )
@@ -306,29 +357,35 @@
 (define-metafunction formality-ty
   ;; Boolean operator
   all? : (boolean ...) -> boolean
-  [(all? (true ...)) true]
-  [(all? _) false]
+  [(all? (#t ...)) #t]
+  [(all? _) #f]
   )
 
 (define-metafunction formality-ty
   ;; Boolean operator
   any? : (boolean ...) -> boolean
-  [(any? (_ ... true _ ...)) true]
-  [(any? _) false]
+  [(any? (_ ... #t _ ...)) #t]
+  [(any? _) #f]
   )
 
 (define-metafunction formality-ty
   ;; Returns the smallest of the various universes provided
   min-universe : Universe ... -> Universe
-  [(min-universe Universe) Universe]
   [(min-universe (UniverseId number) ...)
    (UniverseId ,(apply min (term (number ...))))
    ])
 
 (define-metafunction formality-ty
-  ;; True if `Universe_0` can see all values from `Universe_1`
-  universe-can-see : Universe_0 Universe_1 -> boolean
-  [(universe-can-see (UniverseId number_0) (UniverseId number_1))
+  ;; Returns the smallest of the various universes provided
+  max-universe : Universe ... -> Universe
+  [(max-universe (UniverseId number) ...)
+   (UniverseId ,(apply max (term (number ...))))
+   ])
+
+(define-metafunction formality-ty
+  ;; True if `Universe_0` includes all values of `Universe_1`
+  universe-includes : Universe_0 Universe_1 -> boolean
+  [(universe-includes (UniverseId number_0) (UniverseId number_1))
    ,(>= (term number_0) (term number_1))])
 
 (module+ test
@@ -359,7 +416,10 @@
                      x))
               (term (ForAll (UniverseId 22))))
 
-  (test-equal (term (min-universe (UniverseId 3) (UniverseId 5) (UniverseId 2)))
+  (test-equal (term (min-universe ((UniverseId 3) (UniverseId 5) (UniverseId 2))))
               (term (UniverseId 2)))
+
+  (test-equal (term (max-universe ((UniverseId 3) (UniverseId 5) (UniverseId 2))))
+              (term (UniverseId 5)))
 
   )

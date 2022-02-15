@@ -22,7 +22,7 @@
    ; If that errors... propagate.
    (most-general-unifier Env ((VarId Parameter) ParameterPair_1 ...))
    Error
-   (where ParameterPairs_elim (substitute (ParameterPair_1 ...) VarId Parameter))
+   (where/error ParameterPairs_elim (substitute (ParameterPair_1 ...) VarId Parameter))
    (where Error (most-general-unifier Env ParameterPairs_elim))
    ]
 
@@ -33,7 +33,8 @@
    ; This substitution is called: variable elimination.
    (most-general-unifier Env ((VarId Parameter) ParameterPair_1 ...))
    (substitution-fix Substitution_mgu)
-   (where ParameterPairs_elim (substitute (ParameterPair_1 ...) VarId Parameter))
+
+   (where/error ParameterPairs_elim (substitute (ParameterPair_1 ...) VarId Parameter))
    (where ((VarId_mgu Parameter_mgu) ...) (most-general-unifier Env ParameterPairs_elim))
    (where Substitution_mgu ((VarId Parameter) (VarId_mgu Parameter_mgu) ...))
    ]
@@ -59,58 +60,34 @@
   )
 
 (define-metafunction formality-ty
+  ;; Checks whether `VarId` can be assigned the value of `Parameter`.
+  ;;
+  ;; Fails if:
+  ;;
+  ;; * `VarId` appears in `Parameter`
+  ;; *
   occurs-check : Env VarId Parameter -> Env-e
 
   [(occurs-check Env VarId Parameter)
    Env_1
 
-   (side-condition (not (term (appears-free VarId Parameter))))
-   (side-condition (pretty-print (term ("0" Env VarId Parameter))))
-   (where (Exists Universe_VarId) (binding-in-env Env VarId))
-   (side-condition (pretty-print (term ("1" Env VarId Parameter))))
+   ; can't have X = Vec<X> or whatever, that would be infinite in size
+   (where #f (appears-free VarId Parameter))
+
+   ; find the universe of `VarId`
+   (where/error Universe_VarId (universe-of-var-in-env Env VarId))
+
+   ; can't have `X = T<>` if `X` cannot see the universe of `T`
+   (where/error (VarId_placeholder ...) (placeholder-variables Parameter))
+   (where #t (all? ((universe-includes Universe_VarId (universe-of-var-in-env Env VarId_placeholder)) ...)))
+
+   ; for each `X = ... Y ...`, adjust universe of Y so that it can see all values of X
    (where/error VarIds_free (free-variables Parameter))
-   (where Env_1 (occurs-check-fold-env Env VarIds_free Universe_VarId))
+   (where/error Env_1 (env-with-vars-limited-to-universe Env VarIds_free Universe_VarId))
    ]
 
   [(occurs-check Env VarId Parameter)
    Error
-   ]
-
-  )
-
-(define-metafunction formality-ty
-  occurs-check-fold-env : Env VarIds Universe_new -> Env-e
-
-  [(occurs-check-fold-env Env () Universe_new)
-   Env]
-
-  [(occurs-check-fold-env Env (VarId_0 VarId_1 ...) Universe_new)
-   Error
-   (where Error (occurs-check-env Env VarId_0 Universe_new))]
-
-  [(occurs-check-fold-env Env (VarId_0 VarId_1 ...) Universe_new)
-   (occurs-check-fold-env Env_1 (VarId_1 ...) Universe_new)
-   (where Env_1 (occurs-check-env Env VarId_0 Universe_new))]
-  )
-
-(define-metafunction formality-ty
-  occurs-check-env : Env VarId Universe_new -> Env-e
-
-  [(occurs-check-env Env VarId Universe_new)
-   Env
-   (where Universe_old (universe-of-binding-in-env Env VarId))
-   (where #t (universe-can-see Universe_new Universe_old))]
-
-  [(occurs-check-env Env VarId Universe_new)
-   (env-with-rebound-universe Env Universe_new)
-   (where (Exists Universe_old) (binding-in-env Env VarId))
-   (side-condition (not (term (universe-can-see Universe_new Universe_old))))
-   ]
-
-  [(occurs-check-env Env VarId Parameter)
-   Error
-   (where (ForAll Universe_old) (binding-in-env Env VarId))
-   (side-condition (not (term (universe-can-see Universe_new Universe_old))))
    ]
 
   )
@@ -119,26 +96,27 @@
 
   (redex-let*
    formality-ty
-   ((Env (term (env-with-vars-in-current-universe EmptyEnv (T U E))))
-    ((Env_1 Ty_V) (term (instantiate-quantified EmptyEnv ForAll ((TyVar V)) V))))
-   (test-equal
-    (term (occurs-check Env E (TyApply i32 ())))
-    (term Env))
+   ((Env_0 (term (env-with-vars-in-current-universe EmptyEnv (T U E))))
+    ((Env_1 Ty_V) (term (instantiate-quantified Env_0 ForAll ((TyVar V)) V))))
 
    (test-equal
-    (term (occurs-check Env E (TyApply Vec (E))))
+    (term (occurs-check Env_1 E (TyApply i32 ())))
+    (term Env_1))
+
+   (test-equal
+    (term (occurs-check Env_1 E (TyApply Vec (E))))
     (term Error))
 
    (test-equal
-    (term (occurs-check Env E (TyApply Vec (i32))))
-    (term Env))
+    (term (occurs-check Env_1 E (TyApply Vec (i32))))
+    (term Env_1))
 
    (test-equal
-    (term (occurs-check Env E Ty_V))
+    (term (occurs-check Env_1 E Ty_V))
     (term Error))
 
    (test-equal
-    (term (occurs-check Env E (TyApply Vec (Ty_V))))
+    (term (occurs-check Env_1 E (TyApply Vec (Ty_V))))
     (term Error))
    )
   )

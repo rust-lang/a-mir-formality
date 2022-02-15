@@ -1,5 +1,5 @@
 #lang racket
-(require redex  "../ty/grammar.rkt" "../util.rkt")
+(require redex  "../ty/grammar.rkt")
 (provide (all-defined-out))
 
 (define-extended-language formality-mir formality-ty
