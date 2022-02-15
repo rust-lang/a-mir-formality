@@ -5,13 +5,19 @@
          "grammar.rkt"
          "instantiate.rkt"
          "substitution.rkt"
+         "../util.rkt"
          )
 (provide most-general-unifier)
 
 (define-metafunction formality-ty
   ; Given a set of kinded-var-ids, creates a substituion map that maps them to
   ; fresh names.
-  most-general-unifier : Env ParameterPairs -> Substitution-e
+  most-general-unifier : Env ParameterPairs -> (Env Substitution) or Error
+
+  [; base case, nothing to be done
+   (most-general-unifier Env ())
+   (Env ())
+   ]
 
   [; X = X... ok.
    (most-general-unifier Env ((VarId VarId) ParameterPair_1 ...))
@@ -22,8 +28,8 @@
    ; If that errors... propagate.
    (most-general-unifier Env ((VarId Parameter) ParameterPair_1 ...))
    Error
-   (where/error ParameterPairs_elim (substitute (ParameterPair_1 ...) VarId Parameter))
-   (where Error (most-general-unifier Env ParameterPairs_elim))
+
+   (where Error (variable-elimination Env VarId Parameter (ParameterPair_1 ...)))
    ]
 
   [; X = P: Replace [X => P] and seek a solution for the remaining pairs.
@@ -32,10 +38,9 @@
    ;
    ; This substitution is called: variable elimination.
    (most-general-unifier Env ((VarId Parameter) ParameterPair_1 ...))
-   (substitution-fix Substitution_mgu)
+   (Env_mgu (substitution-fix Substitution_mgu))
 
-   (where/error ParameterPairs_elim (substitute (ParameterPair_1 ...) VarId Parameter))
-   (where ((VarId_mgu Parameter_mgu) ...) (most-general-unifier Env ParameterPairs_elim))
+   (where (Env_mgu ((VarId_mgu Parameter_mgu) ...)) (variable-elimination Env VarId Parameter (ParameterPair_1 ...)))
    (where Substitution_mgu ((VarId Parameter) (VarId_mgu Parameter_mgu) ...))
    ]
 
@@ -49,14 +54,31 @@
    (most-general-unifier Env ((Parameter_l Parameter_r) ... ParameterPair_1 ...))
    ]
 
-  [(most-general-unifier Env (((TyApply TyName_!_0 Substitution_l) (TyApply TyName_!_0 Substitution_r))
-                              ParameterPair_1 ...))
+  [(most-general-unifier Env
+                         (((TyApply TyName_!_0 Substitution_l) (TyApply TyName_!_0 Substitution_r))
+                          ParameterPair_1 ...))
    Error]
 
-  [(most-general-unifier Env (((TyApply TyName (Parameter_l ...)) (TyApply TyName (Parameter_r ...)))
-                              ParameterPair_1 ...))
-   (most-general-unifier Env ((Parameter_l Parameter_r) ... ParameterPair_1 ...))
+  )
+
+(define-metafunction formality-ty
+  variable-elimination : Env VarId Parameter ParameterPairs -> (Env Substitution) or Error
+
+  [
+   (variable-elimination Env VarId Parameter ParameterPairs)
+   Error
+
+   (where Error (occurs-check Env VarId Parameter))
    ]
+
+  [
+   (variable-elimination Env VarId Parameter ParameterPairs)
+   (most-general-unifier Env_1 ParameterPairs_elim)
+
+   (where Env_1 (occurs-check Env VarId Parameter))
+   (where/error ParameterPairs_elim (substitute ParameterPairs VarId Parameter))
+   ]
+
   )
 
 (define-metafunction formality-ty
@@ -98,30 +120,118 @@
   )
 
 (module+ test
-
+  ;; occurs-check tests
   (redex-let*
    formality-ty
-   ((Env_0 (term (env-with-vars-in-current-universe EmptyEnv (T U E))))
-    ((Env_1 Ty_V) (term (instantiate-quantified Env_0 ForAll ((TyVar V)) V))))
+   ((; T, U, and E are in U0
+     Env_0 (term (env-with-vars-in-current-universe EmptyEnv (T U E))))
+    (; V is a placeholder in U1
+     (Env_1 Ty_V) (term (instantiate-quantified Env_0 ForAll ((TyVar V)) V)))
+    (; X is in U1, too
+     Env_2 (term (env-with-vars-in-current-universe Env_1 (X)))))
 
+   ; Equating `E` with `i32` is OK
    (test-equal
     (term (occurs-check Env_1 E (TyApply i32 ())))
     (term Env_1))
 
+   ; Equating `E` with `Vec<E>` is not possible
    (test-equal
     (term (occurs-check Env_1 E (TyApply Vec (E))))
     (term Error))
 
+   ; Equating `E` with `Vec<i32>` is ok
    (test-equal
     (term (occurs-check Env_1 E (TyApply Vec (i32))))
     (term Env_1))
 
+   ; Equating `E` with `V` is not possible,
+   ; since `V` is in U1
    (test-equal
     (term (occurs-check Env_1 E Ty_V))
     (term Error))
 
+   ; Equating `X` with `V` is ok, both are in U1
+   (test-equal
+    (term (occurs-check Env_2 X Ty_V))
+    (term Env_2))
+
+   ; Equating E with `Vec<V>` is not possible,
+   ; since V is in U1
    (test-equal
     (term (occurs-check Env_1 E (TyApply Vec (Ty_V))))
     (term Error))
+
+   ; Equating X (in U1) with E (in U0) moves X to U0
+   (redex-let
+    formality-ty
+    [(Env_2 (term (occurs-check Env_2 E X)))]
+
+    (test-equal
+     (term (universe-of-var-in-env Env_2 E))
+     (term RootUniverse))
+
+    (test-equal
+     (term (universe-of-var-in-env Env_2 X))
+     (term RootUniverse))
+
+    )
    )
+
+  ;; most-general-unifier tests
+  (redex-let*
+   formality-ty
+   ((; A, B, and C are existential variables in U0
+     (Env_0 (Ty_A Ty_B Ty_C)) (term (instantiate-quantified EmptyEnv Exists ((TyVar A) (TyVar B) (TyVar C)) (A B C))))
+    (; T, U, and V are placeholders in U1
+     (Env_1 (Ty_T Ty_U Ty_V)) (term (instantiate-quantified Env_0 ForAll ((TyVar T) (TyVar U) (TyVar V)) (T U V))))
+    (; X, Y, and Z are existential variables in U1
+     (Env_2 (Ty_X Ty_Y Ty_Z)) (term (instantiate-quantified Env_1 Exists ((TyVar X) (TyVar Y) (TyVar Z)) (X Y Z)))))
+
+   ; Test [Vec<X> = Vec<T>]
+   ;
+   ; yields [X => T]
+   (redex-let*
+    formality-ty
+    (((Env_out Substitution_out) (term (most-general-unifier Env_2 (((TyApply Vec (Ty_X)) (TyApply Vec (Ty_T))))))))
+    (test-equal (term Env_out) (term Env_2))
+    (test-equal (term Substitution_out) (term ((Ty_X Ty_T))))
+    )
+
+   ; Test [Vec<A> = Vec<T>]
+   ;
+   ; yields error
+   (test-equal (term (most-general-unifier Env_2 (((TyApply Vec (Ty_A)) (TyApply Vec (Ty_T))))))
+               (term Error))
+
+   ; Test [Vec<A> = Vec<X>, Vec<X> = Vec<T>] results in an error.
+   (test-equal (term (most-general-unifier Env_2 (((TyApply Vec (Ty_A)) (TyApply Vec (Ty_X)))
+                                                  ((TyApply Vec (Ty_X)) (TyApply Vec (Ty_T))))))
+               (term Error))
+
+   ; Same as above, but reversed in order.
+   (test-equal (term (most-general-unifier Env_2 (((TyApply Vec (Ty_X)) (TyApply Vec (Ty_T)))
+                                                  ((TyApply Vec (Ty_A)) (TyApply Vec (Ty_X))))))
+               (term Error))
+
+
+   ; Test [A = X, X = Vec<Y>, Y = i32]
+   ;
+   ; yields [A = Vec<i32>, X = Vec<i32>, Y = i32] and moves A, X, and Y
+   ; into the root universe.
+   (redex-let*
+    formality-ty
+    (((Env_out Substitution_out) (term (most-general-unifier Env_2 ((Ty_A Ty_X)
+                                                                    (Ty_X (TyApply Vec (Ty_Y)))
+                                                                    (Ty_Y (TyApply i32 ()))
+                                                                    )))))
+    (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Ty_A)))
+    (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Ty_X)))
+    (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Ty_Y)))
+    (test-equal (term Substitution_out) (term ((Ty_A (TyApply Vec ((TyApply i32 ()))))
+                                               (Ty_X (TyApply Vec ((TyApply i32 ()))))
+                                               (Ty_Y (TyApply i32 ()))))))
+
+   )
+
   )
