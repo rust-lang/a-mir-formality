@@ -62,6 +62,9 @@
   )
 
 (define-metafunction formality-ty
+  ;; Presuming that `VarId => Parameter` passes the occurs check,
+  ;; substitutes `VarId => Parameter` in the remaining `ParameterPairs`
+  ;; and computes the most-general-unifier of the result.
   variable-elimination : Env VarId Parameter ParameterPairs -> (Env Substitution) or Error
 
   [
