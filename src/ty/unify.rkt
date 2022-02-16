@@ -221,14 +221,17 @@
     (test-equal (term Substitution_out) (term ((Ty_X Ty_T))))
     )
 
-   ; Test [Vec<X> = Vec<T>]
+   ; Test some random loop-y structures like (A B C) = (T U V)
    ;
    ; yields [X => T]
    (redex-let*
     formality-ty
-    (((Env_out Substitution_out) (term (most-general-unifier Env_2 (((TyApply Vec (Ty_X)) (TyApply Vec (Ty_T))))))))
+    (((Env_out Substitution_out) (term (most-general-unifier Env_2 (((Ty_X Ty_Y Ty_Z)
+                                                                     (Ty_T Ty_U Ty_V)))))))
     (test-equal (term Env_out) (term Env_2))
-    (test-equal (term Substitution_out) (term ((Ty_X Ty_T))))
+    (test-equal (term Substitution_out) (term ((Ty_X Ty_T)
+                                               (Ty_Y Ty_U)
+                                               (Ty_Z Ty_V))))
     )
 
    ; Test [Vec<A> = Vec<T>]
@@ -241,7 +244,6 @@
    (test-equal (term (most-general-unifier Env_2 (((TyApply Vec (Ty_A)) (TyApply Vec (Ty_X)))
                                                   ((TyApply Vec (Ty_X)) (TyApply Vec (Ty_T))))))
                (term Error))
-
 
    ; Test [A = X, X = Vec<Y>, Y = i32]
    ;
