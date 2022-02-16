@@ -420,10 +420,10 @@
                      (ForAll ((TyVar x) (TyVar z)) (a b c x y (d e f) g h (z w) ()))))
               (term (a b c y f e d g h w)))
 
-  (test-equal (term (min-universe ((UniverseId 3) (UniverseId 5) (UniverseId 2))))
+  (test-equal (term (min-universe (UniverseId 3) (UniverseId 5) (UniverseId 2)))
               (term (UniverseId 2)))
 
-  (test-equal (term (max-universe ((UniverseId 3) (UniverseId 5) (UniverseId 2))))
+  (test-equal (term (max-universe (UniverseId 3) (UniverseId 5) (UniverseId 2)))
               (term (UniverseId 5)))
 
   )
