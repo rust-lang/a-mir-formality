@@ -18,11 +18,11 @@
 
 (define-metafunction formality-ty
   ; substitute substitution-map any ==> applies a substitution map to anything
-  apply-substitution : Substitution any -> any
+  apply-substitution : Substitution Term -> Term
 
-  [(apply-substitution () any) any]
-  [(apply-substitution ((VarId_0 any_0) (VarId_1 any_1) ...) any_term)
-   (apply-substitution ((VarId_1 any_1) ...) (substitute any_term VarId_0 any_0))]
+  [(apply-substitution () Term) Term]
+  [(apply-substitution ((VarId_0 Term_0) (VarId_1 Term_1) ...) Term_term)
+   (apply-substitution ((VarId_1 Term_1) ...) (substitute Term_term VarId_0 Term_0))]
   )
 
 (define-metafunction formality-ty
