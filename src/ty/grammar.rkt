@@ -94,8 +94,8 @@
   (Parameter := Ty Lt)
 
   ;; Pairs of parameters
-  (ParameterPairs := (ParameterPair ...))
-  (ParameterPair := (Ty Ty) (Lt Lt))
+  (TermPairs := (TermPair ...))
+  (TermPair := (Term Term))
 
   ;; `Predicate` -- the atomic items that we can prove
   (Predicate :=

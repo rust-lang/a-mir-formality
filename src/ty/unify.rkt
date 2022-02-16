@@ -7,7 +7,7 @@
 (provide most-general-unifier)
 
 (define-metafunction formality-ty
-  ;; Given an environment and a set `ParameterPairs` of `(Parameter Parameter)` pairs,
+  ;; Given an environment and a set `TermPairs` of `(Term Term)` pairs,
   ;; computes a new environment and a substitution from any type variables within that
   ;; set such that they are equal, or yields `Error` if there is no such set.
   ;; The new environment is the same as the input environment except that some
@@ -16,76 +16,92 @@
   ;; The algorithm is a variant of the classic unification algorithm adapted for
   ;; universes. It is described in "A Proof Procedure for the Logic of Hereditary Harrop Formulas"
   ;; publishd in 1992 by Gopalan Nadathur at Duke University.
-  most-general-unifier : Env ParameterPairs -> (Env Substitution) or Error
+  most-general-unifier : Env TermPairs -> (Env Substitution) or Error
 
-  [; base case, nothing to be done
-   (most-general-unifier Env ())
-   (Env ())
-   ]
-
-  [; X = X... ok.
-   (most-general-unifier Env ((VarId VarId) ParameterPair_1 ...))
-   (most-general-unifier Env (ParameterPair_1 ...))
-   ]
-
-  [; X = P: Replace [X => P] and seek a solution for the remaining pairs.
-   ; If that errors... propagate.
-   (most-general-unifier Env ((VarId Parameter) ParameterPair_1 ...))
-   Error
-
-   (where Error (variable-elimination Env VarId Parameter (ParameterPair_1 ...)))
-   ]
-
-  [; X = P: Replace [X => P] and seek a solution for the remaining pairs.
-   ; If that succeeds, add [X => P] to the resulting substitution and then
-   ; apply it to itself until a fixed point is reached.
-   ;
-   ; This substitution is called: variable elimination.
-   (most-general-unifier Env ((VarId Parameter) ParameterPair_1 ...))
-   (Env_mgu (substitution-fix Substitution_mgu))
-
-   (where (Env_mgu ((VarId_mgu Parameter_mgu) ...)) (variable-elimination Env VarId Parameter (ParameterPair_1 ...)))
-   (where Substitution_mgu ((VarId Parameter) (VarId_mgu Parameter_mgu) ...))
-   ]
-
-  [(most-general-unifier Env ((Parameter VarId) ParameterPair_1 ...))
-   (most-general-unifier Env ((VarId Parameter) ParameterPair_1 ...))
-   ]
-
-  [(most-general-unifier Env
-                         (((TyApply TyName (Parameter_l ...)) (TyApply TyName (Parameter_r ...)))
-                          ParameterPair_1 ...))
-   (most-general-unifier Env ((Parameter_l Parameter_r) ... ParameterPair_1 ...))
-   ]
-
-  [(most-general-unifier Env
-                         (((TyApply TyName_!_0 Substitution_l) (TyApply TyName_!_0 Substitution_r))
-                          ParameterPair_1 ...))
-   Error]
-
+  [(most-general-unifier Env TermPairs) (unify-pairs Env () TermPairs)]
   )
 
 (define-metafunction formality-ty
-  ;; Presuming that `VarId => Parameter` passes the occurs check,
-  ;; substitutes `VarId => Parameter` in the remaining `ParameterPairs`
-  ;; and computes the most-general-unifier of the result.
-  variable-elimination : Env VarId Parameter ParameterPairs -> (Env Substitution) or Error
+  unify-pairs : Env Substitution TermPairs -> (Env Substitution) or Error
+  [; base case, all done, but we have to apply the substitution to itself
+   (unify-pairs Env Substitution ())
+   (Env (substitution-fix Substitution))
+   ]
 
-  [
-   (variable-elimination Env VarId Parameter ParameterPairs)
+  [; unify the first pair ===> if that is an error, fail
+   (unify-pairs Env Substitution (TermPair_first TermPair_rest ...))
+   Error
+   (where Error (unify-pair Env TermPair_first))]
+
+  [; unify the first pair ===> if that succeeds, apply resulting substitution to the rest
+   ; and recurse
+   (unify-pairs Env Substitution_in (TermPair_first TermPair_rest ...))
+   (unify-pairs Env_u Substitution_all TermPairs_all)
+
+   (where (Env_u Substitution_u (TermPair_u ...)) (unify-pair Env TermPair_first))
+   (where/error (TermPair_v ...) (apply-substitution Substitution_u (TermPair_rest ...)))
+   (where/error TermPairs_all (TermPair_u ... TermPair_v ...))
+   (where/error Substitution_all (substitution-concat-disjoint Substitution_in Substitution_u))
+   ]
+  )
+
+(define-metafunction formality-ty
+  unify-pair : Env TermPair -> (Env Substitution TermPairs) or Error
+
+  [; X = X ===> always ok
+   (unify-pair Env (VarId VarId))
+   (Env () ())
+   ]
+
+  [; X = P ===> occurs check ok, return `[X => P]`
+   (unify-pair Env (VarId Parameter))
+   (Env_out ((VarId Parameter)) ())
+
+   (where Env_out (occurs-check Env VarId Parameter))
+   ]
+
+  [; X = P ===> but occurs check fails, return Error
+   (unify-pair Env (VarId Parameter))
    Error
 
    (where Error (occurs-check Env VarId Parameter))
    ]
 
-  [
-   (variable-elimination Env VarId Parameter ParameterPairs)
-   (most-general-unifier Env_1 ParameterPairs_elim)
-
-   (where Env_1 (occurs-check Env VarId Parameter))
-   (where/error ParameterPairs_elim (substitute ParameterPairs VarId Parameter))
+  [; P = X ===> just reverse order
+   (unify-pair Env (Parameter VarId))
+   (Env () ((VarId Parameter)))
    ]
 
+  [; T<P0..Pn> = T<Q0..Qn> ===> solve Pi = Qi
+   (unify-pair Env ((TyApply TyName (Parameter_l ...))
+                    (TyApply TyName (Parameter_r ...))))
+   (Env () ((Parameter_l Parameter_r) ...))
+   ]
+
+  [; T<P0..Pn> = U<Q0..Qn>, T != 0 ===> solve Pi = Qi
+   (unify-pair Env ((TyApply TyName_!_0 _)
+                    (TyApply TyName_!_0 _)))
+   Error
+   ]
+
+  [; 'a = 'a ===> OK
+   (unify-pair Env ((LtApply LtName)
+                    (LtApply LtName)))
+   (Env () ())]
+
+  [; 'a = 'b ===> Error
+   (unify-pair Env ((LtApply LtName_!_0)
+                    (LtApply LtName_!_0)))
+   Error]
+
+  [; T = T ===> general recursion
+   (unify-pair Env (Term Term))
+   (Env () ())]
+
+  [; (L ...) = (R ...) ===> true if Li = Ri for all i
+   (unify-pair Env ((Term_l ...)
+                    (Term_r ...)))
+   (Env () ((Term_l Term_r) ...))]
   )
 
 (define-metafunction formality-ty
@@ -205,6 +221,16 @@
     (test-equal (term Substitution_out) (term ((Ty_X Ty_T))))
     )
 
+   ; Test [Vec<X> = Vec<T>]
+   ;
+   ; yields [X => T]
+   (redex-let*
+    formality-ty
+    (((Env_out Substitution_out) (term (most-general-unifier Env_2 (((TyApply Vec (Ty_X)) (TyApply Vec (Ty_T))))))))
+    (test-equal (term Env_out) (term Env_2))
+    (test-equal (term Substitution_out) (term ((Ty_X Ty_T))))
+    )
+
    ; Test [Vec<A> = Vec<T>]
    ;
    ; yields error
@@ -214,11 +240,6 @@
    ; Test [Vec<A> = Vec<X>, Vec<X> = Vec<T>] results in an error.
    (test-equal (term (most-general-unifier Env_2 (((TyApply Vec (Ty_A)) (TyApply Vec (Ty_X)))
                                                   ((TyApply Vec (Ty_X)) (TyApply Vec (Ty_T))))))
-               (term Error))
-
-   ; Same as above, but reversed in order.
-   (test-equal (term (most-general-unifier Env_2 (((TyApply Vec (Ty_X)) (TyApply Vec (Ty_T)))
-                                                  ((TyApply Vec (Ty_A)) (TyApply Vec (Ty_X))))))
                (term Error))
 
 

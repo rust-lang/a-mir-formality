@@ -3,6 +3,7 @@
 (provide substitution-to-fresh-vars
          apply-substitution
          substitution-fix
+         substitution-concat-disjoint
          )
 
 (define-metafunction formality-ty
@@ -14,6 +15,14 @@
    ((VarId VarId_fresh) ...)
    (where/error (VarId_fresh ...) ,(variables-not-in (term Term) (term (VarId ...))))
    ]
+  )
+
+(define-metafunction formality-ty
+  ;; Concatenates two substitutions that have disjoint domains.
+  substitution-concat-disjoint : Substitution Substitution -> Substitution
+
+  [(substitution-concat-disjoint ((VarId_l Parameter_l) ...) ((VarId_r Parameter_r) ...))
+   ((VarId_l Parameter_l) ... (VarId_r Parameter_r) ...)]
   )
 
 (define-metafunction formality-ty
