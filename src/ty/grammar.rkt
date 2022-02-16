@@ -215,6 +215,15 @@
   )
 
 (define-metafunction formality-ty
+  ;; Returns the hypotheses in the environment
+  env-with-hypotheses : Env Hypotheses -> Env
+
+  [(env-with-hypotheses (Universe VarUniverses Clauses (Hypothesis_0 ...)) (Hypothesis_1 ...))
+   (Universe VarUniverses Clauses (Hypothesis_0 ... Hypothesis_1 ...))
+   ]
+  )
+
+(define-metafunction formality-ty
   ;; Returns an `Env` where `VarId` is guaranteed to contain only elements from
   ;; `Universe`.
   env-with-var-limited-to-universe : Env VarId Universe -> Env

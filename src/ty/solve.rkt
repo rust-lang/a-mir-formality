@@ -1,102 +1,149 @@
 #lang racket
-(require redex "grammar.rkt" "substitution.rkt")
+(require redex
+         "grammar.rkt"
+         "substitution.rkt"
+         "instantiate.rkt"
+         "unify.rkt")
 (provide prove)
 
 (define-judgment-form formality-ty
-  #:mode (prove I I)
-  #:contract (prove Env Goal)
+  #:mode (prove I I O)
+  #:contract (prove Env Goal Env)
 
   [(where (_ ... Clause _ ... ) (env-clauses Env))
-   (Clause-proves Env Clause Predicate)
+   (Clause-proves Env Clause Predicate Env_out)
    --------------- "prove-Clause"
-   (prove Env Predicate)
+   (prove Env Predicate Env_out)
    ]
 
   [(where (_ ... Hypothesis _ ... ) (env-hypotheses Env))
-   (Hypothesis-implies Env Hypothesis Predicate)
+   (Hypothesis-implies Env Hypothesis Predicate Env_out)
    --------------- "prove-Hypothesis"
-   (prove Env Predicate)
+   (prove Env Predicate Env_out)
    ]
 
-  [(prove Env Goal) ...
+  [(prove-all Env Goals Env_out)
    --------------- "prove-all"
-   (prove Env (All (Goal ...)))
+   (prove Env (All Goals) Env_out)
    ]
 
-  [(prove Env Goal_1)
+  [(prove Env Goal_1 Env_out)
    --------------- "prove-any"
-   (prove Env (Any (Goal_0 ... Goal_1 Goal_2 ...)))
+   (prove Env (Any (Goal_0 ... Goal_1 Goal_2 ...)) Env_out)
    ]
 
-  [(prove (Clauses (Hypothesis_0 ... Hypothesis_1 ...)) Goal)
+  [(where Env_1 (env-with-hypotheses Env Hypotheses))
+   (prove Env_1 Goal Env_2)
    --------------- "prove-implies"
-   (prove (Clauses (Hypothesis_0 ...)) (Implies (Hypothesis_1 ...) Goal))
+   (prove Env (Implies Hypotheses Goal) (reset-env Env Env_2))
    ]
 
   [; FIXME: universes, etc
-   (where/error Substitution (substitution-to-fresh-vars Env Goal KindedVarIds))
-   (where/error Goal_1 (apply-substitution Substitution Goal))
-   (prove Env Goal_1)
+   (where/error (Env_1 Goal_1) (instantiate-quantified Env ForAll KindedVarIds Goal))
+   (prove Env Goal_1 Env_out)
    --------------- "prove-forall"
-   (prove Env (ForAll KindedVarIds Goal))
+   (prove Env (ForAll KindedVarIds Goal) Env_out)
    ]
 
   [; FIXME: unifiers
-   (prove Env (All KindedVarIds Goal))
+   (where/error (Env_1 Goal_1) (instantiate-quantified Env Exists KindedVarIds Goal))
+   (prove Env Goal_1 Env_out)
    --------------- "prove-exists"
-   (prove Env (Exists KindedVarIds Goal))
+   (prove Env (Exists KindedVarIds Goal) Env_out)
    ]
 
   )
 
 (define-judgment-form formality-ty
-  #:mode (Clause-proves I I I)
-  #:contract (Clause-proves Env Clause Predicate)
+  #:mode (prove-all I I O)
+  #:contract (prove-all Env Goals Env)
+
+  [----------------
+   (prove-all Env () Env)]
+
+  [(prove Env Goal_0 Env_1)
+   (prove-all Env_1 (Goal_1 ...) Env_2)
+   ----------------
+   (prove-all Env (Goal_0 Goal_1 ...) Env_2)]
+
+  )
+
+(define-judgment-form formality-ty
+  #:mode (Clause-proves I I I O)
+  #:contract (Clause-proves Env Clause Predicate Env)
 
   [--------------- "clause-fact"
-   (Clause-proves Env Predicate Predicate)
+   (Clause-proves Env Predicate Predicate Env)
    ]
 
-  [(prove Env (all Goals))
+  [(prove Env (all Goals) Env_out)
    --------------- "clause-backchain"
-   (Clause-proves Env (implies Goals Predicate) Predicate)
+   (Clause-proves Env (implies Goals Predicate) Predicate Env_out)
    ]
 
   [; FIXME: unifiers
    (where/error Substitution (substitution-to-fresh-vars (Env Clause Predicate) KindedVarIds))
    (where/error Clause_1 (apply-substitution Substitution Clause))
-   (Clause-proves Env Clause_1 Predicate)
+   (Clause-proves Env Clause_1 Predicate Env_out)
    --------------- "clause-forall"
-   (Clause-proves Env (forall KindedVarIds Clause) Predicate)
+   (Clause-proves Env (forall KindedVarIds Clause) Predicate Env_out)
    ]
 
   )
 
 (define-judgment-form formality-ty
-  #:mode (Hypothesis-implies I I I)
-  #:contract (Hypothesis-implies Env Hypothesis Goal)
+  #:mode (Hypothesis-implies I I I O)
+  #:contract (Hypothesis-implies Env Hypothesis Goal Env_out)
 
   [--------------- "hypothesized"
-   (Hypothesis-implies Env Predicate Predicate)
+   (Hypothesis-implies Env Predicate Predicate Env)
    ]
 
   [(where (_ ... Hypothesis _ ...) (env-hypotheses Env))
-   (Hypothesis-implies Env Hypothesis Predicate_0)
+   (Hypothesis-implies Env Hypothesis Predicate_0 Env_out)
    --------------- "hypothesized-backchain"
-   (Hypothesis-implies Env (implies Predicate_0 Predicate_1) Predicate_1)
+   (Hypothesis-implies Env (implies Predicate_0 Predicate_1) Predicate_1 Env_out)
    ]
 
   [; FIXME: unifiers
-   (where/error Substitution (substitution-to-fresh-vars (Env Hypothesis Predicate) KindedVarIds))
-   (where/error Hypothesis_1 (apply-substitution Substitution Hypothesis))
-   (Hypothesis-implies Env Hypothesis_1 Predicate)
+   (where/error (Env_1 Hypothesis_1) (instantiate-quantified Env ForAll KindedVarIds Hypothesis))
+   (Hypothesis-implies Env_1 Hypothesis_1 Predicate Env_out)
    --------------- "hypothesized-forall"
-   (Hypothesis-implies Env (forall KindedVarIds Hypothesis) Predicate)
+   (Hypothesis-implies Env (ForAll KindedVarIds Hypothesis) Predicate Env_out)
+   ]
+  )
+
+(define-metafunction formality-ty
+  ;; Returns the hypotheses in the environment
+  reset-env : Env_old Env_new -> Env
+
+  [(reset-env (Universe ((VarId Universe_old) ...) Clauses Hypotheses) (_ VarUniverses_new _ _))
+   (Universe ((VarId Universe_new) ...) Clauses Hypotheses)
+   (where/error ((VarId_new _) ... (VarId Universe_new) ...) VarUniverses_new)
    ]
   )
 
 (module+ test
-  (test-equal (judgment-holds (prove (() ()) (All ())))
-              #t
-              )
-  )
+  (redex-let*
+   formality-ty
+   ((; A is in U0
+     (Env_0 Ty_A) (term (instantiate-quantified EmptyEnv Exists ((TyVar A)) A)))
+    (; V is a placeholder in U1
+     (Env_1 Ty_T) (term (instantiate-quantified Env_0 ForAll ((TyVar T)) T)))
+    (; X is in U1
+     (Env_2 Ty_X) (term (instantiate-quantified Env_1 Exists ((TyVar X)) X)))
+    (; Y, Z are in U1
+     (Env_3 (Ty_Y Ty_Z)) (term (instantiate-quantified Env_2 Exists ((TyVar Y) (TyVar Z)) (Y Z))))
+    ((Env_4 Substitution_out) (term (most-general-unifier Env_3 (((TyApply Vec (Ty_A)) (TyApply Vec (Ty_X)))))))
+    (Env_5 (term (reset-env Env_2 Env_4)))
+    )
+
+   (test-equal (term (reset-env Env_0 Env_1)) (term Env_0))
+   (test-equal (term (reset-env Env_0 Env_2)) (term Env_0))
+
+   ;; check that X was originally in U1 but was reduced to U0,
+   ;; and that reduction survived the "reset-env" call
+   (test-equal (term (universe-of-var-in-env Env_2 Ty_X)) (term (next-universe RootUniverse)))
+   (test-equal (term (universe-of-var-in-env Env_4 Ty_X)) (term RootUniverse))
+   (test-equal (term (universe-of-var-in-env Env_5 Ty_X)) (term RootUniverse))
+   ))
