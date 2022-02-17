@@ -38,13 +38,13 @@
    (prove Env (Implies Hypotheses Goal) (reset Env EnvSubstitution_out))
    ]
 
-  [(where/error (Env_1 Goal_1) (instantiate-quantified Env ForAll KindedVarIds Goal))
+  [(where/error (Env_1 Goal_1 _) (instantiate-quantified Env ForAll KindedVarIds Goal))
    (prove Env Goal_1 EnvSubstitution_out)
    --------------- "prove-forall"
    (prove Env (ForAll KindedVarIds Goal) (reset Env EnvSubstitution_out))
    ]
 
-  [(where/error (Env_1 Goal_1) (instantiate-quantified Env Exists KindedVarIds Goal))
+  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env Exists KindedVarIds Goal))
    (prove Env Goal_1 EnvSubstitution_out)
    --------------- "prove-exists"
    (prove Env (Exists KindedVarIds Goal) (reset Env EnvSubstitution_out))
@@ -102,7 +102,7 @@
    (Hypothesis-implies Env (implies Predicate_0 Predicate_1) Predicate_1 EnvSubstitution_out)
    ]
 
-  [(where/error (Env_1 Hypothesis_1) (instantiate-quantified Env ForAll KindedVarIds Hypothesis))
+  [(where/error (Env_1 Hypothesis_1 _) (instantiate-quantified Env ForAll KindedVarIds Hypothesis))
    (Hypothesis-implies Env_1 Hypothesis_1 Predicate EnvSubstitution_out)
    --------------- "hypothesized-forall"
    (Hypothesis-implies Env (ForAll KindedVarIds Hypothesis) Predicate (reset Env EnvSubstitution_out))
@@ -156,13 +156,13 @@
   (redex-let*
    formality-ty
    ((; A is in U0
-     (Env_0 Ty_A) (term (instantiate-quantified EmptyEnv Exists ((TyVar A)) A)))
+     (Env_0 Ty_A _) (term (instantiate-quantified EmptyEnv Exists ((TyVar A)) A)))
     (; V is a placeholder in U1
-     (Env_1 Ty_T) (term (instantiate-quantified Env_0 ForAll ((TyVar T)) T)))
+     (Env_1 Ty_T _) (term (instantiate-quantified Env_0 ForAll ((TyVar T)) T)))
     (; X is in U1
-     (Env_2 Ty_X) (term (instantiate-quantified Env_1 Exists ((TyVar X)) X)))
+     (Env_2 Ty_X _) (term (instantiate-quantified Env_1 Exists ((TyVar X)) X)))
     (; Y, Z are in U1
-     (Env_3 (Ty_Y Ty_Z)) (term (instantiate-quantified Env_2 Exists ((TyVar Y) (TyVar Z)) (Y Z))))
+     (Env_3 (Ty_Y Ty_Z) _) (term (instantiate-quantified Env_2 Exists ((TyVar Y) (TyVar Z)) (Y Z))))
     ((Env_4 Substitution_out) (term (most-general-unifier Env_3 (((TyApply Vec (Ty_A)) (TyApply Vec (Ty_X)))))))
     (Env_5 (term (reset-env Env_2 Env_4)))
     )
@@ -177,10 +177,6 @@
    (test-equal (term (universe-of-var-in-env Env_5 Ty_X)) (term RootUniverse))
 
    (test-equal
-    (judgment-holds (prove EmptyEnv (All ()) EnvSubstitution) EnvSubstitution)
-    (term ((EmptyEnv ()))))
-
-       (test-equal
     (judgment-holds (prove EmptyEnv (All ()) EnvSubstitution) EnvSubstitution)
     (term ((EmptyEnv ()))))
    ))

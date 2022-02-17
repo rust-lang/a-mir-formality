@@ -8,14 +8,14 @@
 (define-metafunction formality-ty
   ; Given a set of kinded-var-ids, creates a substituion map that maps them to
   ; fresh names.
-  instantiate-quantified : Env Quantifier KindedVarIds Term_0 -> (Env Term_out)
+  instantiate-quantified : Env Quantifier KindedVarIds Term_0 -> (Env Term_out VarIds)
 
   [; Handle universal binder instantiation.
    ;
    ; In this case, we want to replace e.g. `for<T> Vec<T>` with
    ; `Vec<T1<>>` for some fresh name `T1` -- i.e., `(TyApply Vec (TyApply T1 ()))`.
    (instantiate-quantified Env_0 ForAll KindedVarIds Term_0)
-   (Env_2 Term_1)
+   (Env_2 Term_1 (VarId_new ...))
 
    ; map the `KindedVarIds` to fresh names that do not appear in the environment `Env_0`
    ; or the input term `Term_0`
@@ -39,7 +39,7 @@
    ; In this case, we want to replace e.g. `exists<T> Vec<T>` with
    ; `Vec<T1>` for some fresh name `T1` -- i.e., `(TyApply Vec (T1))`.
    (instantiate-quantified Env_0 Exists KindedVarIds Term_0)
-   (Env_1 Term_1)
+   (Env_1 Term_1 (VarId_new ...))
 
    ; map the `KindedVarIds` to fresh names that do not appear in the environment `Env_0`
    ; or the input term `Term_0`
@@ -81,11 +81,11 @@
    (test-match-terms
     formality-ty
     (term (instantiate-quantified EmptyEnv ForAll ((TyVar V)) (TyApply Vec (V))))
-    (term (_ (TyApply Vec ((TyApply V1 ()))))))
+    (term (_ (TyApply Vec ((TyApply V1 ()))) (V1))))
 
    (test-match-terms
     formality-ty
     (term (instantiate-quantified EmptyEnv Exists ((TyVar V)) (TyApply Vec (V))))
-    (term (_ (TyApply Vec (V1)))))
+    (term (_ (TyApply Vec (V1)) (V1))))
    )
   )

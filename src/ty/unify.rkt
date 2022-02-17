@@ -149,7 +149,7 @@
    ((; T, U, and E are in U0
      Env_0 (term (env-with-vars-in-current-universe EmptyEnv (T U E))))
     (; V is a placeholder in U1
-     (Env_1 Ty_V) (term (instantiate-quantified Env_0 ForAll ((TyVar V)) V)))
+     (Env_1 Ty_V _) (term (instantiate-quantified Env_0 ForAll ((TyVar V)) V)))
     (; X is in U1, too
      Env_2 (term (env-with-vars-in-current-universe Env_1 (X)))))
 
@@ -205,11 +205,11 @@
   (redex-let*
    formality-ty
    ((; A, B, and C are existential variables in U0
-     (Env_0 (Ty_A Ty_B Ty_C)) (term (instantiate-quantified EmptyEnv Exists ((TyVar A) (TyVar B) (TyVar C)) (A B C))))
+     (Env_0 (Ty_A Ty_B Ty_C) _) (term (instantiate-quantified EmptyEnv Exists ((TyVar A) (TyVar B) (TyVar C)) (A B C))))
     (; T, U, and V are placeholders in U1
-     (Env_1 (Ty_T Ty_U Ty_V)) (term (instantiate-quantified Env_0 ForAll ((TyVar T) (TyVar U) (TyVar V)) (T U V))))
+     (Env_1 (Ty_T Ty_U Ty_V) _) (term (instantiate-quantified Env_0 ForAll ((TyVar T) (TyVar U) (TyVar V)) (T U V))))
     (; X, Y, and Z are existential variables in U1
-     (Env_2 (Ty_X Ty_Y Ty_Z)) (term (instantiate-quantified Env_1 Exists ((TyVar X) (TyVar Y) (TyVar Z)) (X Y Z)))))
+     (Env_2 (Ty_X Ty_Y Ty_Z) _) (term (instantiate-quantified Env_1 Exists ((TyVar X) (TyVar Y) (TyVar Z)) (X Y Z)))))
 
    ; Test [Vec<X> = Vec<T>]
    ;
