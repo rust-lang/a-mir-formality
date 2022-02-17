@@ -179,4 +179,8 @@
    (test-equal
     (judgment-holds (prove EmptyEnv (All ()) EnvSubstitution) EnvSubstitution)
     (term ((EmptyEnv ()))))
+
+       (test-equal
+    (judgment-holds (prove EmptyEnv (All ()) EnvSubstitution) EnvSubstitution)
+    (term ((EmptyEnv ()))))
    ))

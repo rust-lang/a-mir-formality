@@ -16,13 +16,13 @@
   ;; The algorithm is a variant of the classic unification algorithm adapted for
   ;; universes. It is described in "A Proof Procedure for the Logic of Hereditary Harrop Formulas"
   ;; publishd in 1992 by Gopalan Nadathur at Duke University.
-  most-general-unifier : Env TermPairs -> (Env Substitution) or Error
+  most-general-unifier : Env TermPairs -> EnvSubstitution or Error
 
   [(most-general-unifier Env TermPairs) (unify-pairs Env () TermPairs)]
   )
 
 (define-metafunction formality-ty
-  unify-pairs : Env Substitution TermPairs -> (Env Substitution) or Error
+  unify-pairs : Env Substitution TermPairs -> EnvSubstitution or Error
   [; base case, all done, but we have to apply the substitution to itself
    (unify-pairs Env Substitution ())
    (Env (substitution-fix Substitution))
