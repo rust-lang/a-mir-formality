@@ -44,13 +44,13 @@
    ]
 
   [(where/error (Env_1 Goal_1 _) (instantiate-quantified Env ForAll KindedVarIds Goal))
-   (prove Env Goal_1 EnvSubstitution_out)
+   (prove Env_1 Goal_1 EnvSubstitution_out)
    --------------- "prove-forall"
    (prove Env (ForAll KindedVarIds Goal) (reset Env EnvSubstitution_out))
    ]
 
   [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env Exists KindedVarIds Goal))
-   (prove Env Goal_1 EnvSubstitution_out)
+   (prove Env_1 Goal_1 EnvSubstitution_out)
    --------------- "prove-exists"
    (prove Env (Exists KindedVarIds Goal) (subtract VarIds_new EnvSubstitution_out))
    ]
@@ -140,7 +140,7 @@
   subtract : VarIds EnvSubstitution -> EnvSubstitution
 
   [(subtract VarIds (Env Substitution))
-   (Env (substitution-without-vars VarIds Substitution))]
+   (Env (substitution-without-vars Substitution VarIds))]
   )
 
 (define-metafunction formality-ty
@@ -198,5 +198,33 @@
                            EnvSubstitution)
                     EnvSubstitution)
     (term ((EmptyEnv ()))))
+
+   (test-equal
+    (judgment-holds (prove EmptyEnv
+                           (ForAll ((TyVar T))
+                                   (Equate T X))
+                           EnvSubstitution)
+                    EnvSubstitution)
+    (term ()))
+
+   (test-equal
+    (judgment-holds (prove EmptyEnv
+                           (ForAll ((TyVar T))
+                                   (Exists ((TyVar X))
+                                           (Equate T X)))
+                           EnvSubstitution)
+                    EnvSubstitution)
+    (term ((EmptyEnv ()))))
+
+   (test-equal
+    (judgment-holds (prove EmptyEnv
+                           (All ((Equate T (TyApply Vec (U)))
+                                 (Equate U (TyApply Vec (V)))
+                                 (Equate V (TyApply i32 ()))))
+                           EnvSubstitution)
+                    EnvSubstitution)
+    (term ((EmptyEnv ((T (TyApply Vec ((TyApply Vec ((TyApply i32 ()))))))
+                      (U (TyApply Vec ((TyApply i32 ()))))
+                      (V (TyApply i32 ())))))))
 
    ))
