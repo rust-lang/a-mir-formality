@@ -7,8 +7,8 @@
          )
 
 (define-metafunction formality-ty
-  ; Given a set of kinded-var-ids, creates a substituion map that maps them to
-  ; fresh names.
+  ;; Given a set of kinded-var-ids, creates a substituion map that maps them to
+  ;; fresh names.
   substitution-to-fresh-vars : Term KindedVarIds -> Substitution
 
   [(substitution-to-fresh-vars Term ((VarKind VarId) ...))
@@ -18,15 +18,15 @@
   )
 
 (define-metafunction formality-ty
-  ;; Concatenates two substitutions that have disjoint domains.
-  substitution-concat-disjoint : Substitution Substitution -> Substitution
+  ;; Concatenates various substitutions that have disjoint domains.
+  substitution-concat-disjoint : Substitution ... -> Substitution
 
-  [(substitution-concat-disjoint ((VarId_l Parameter_l) ...) ((VarId_r Parameter_r) ...))
-   ((VarId_l Parameter_l) ... (VarId_r Parameter_r) ...)]
+  [(substitution-concat-disjoint Substitution ...)
+   ,(apply append (term (Substitution ...)))]
   )
 
 (define-metafunction formality-ty
-  ; substitute substitution-map any ==> applies a substitution map to anything
+  ;; Substitute substitution-map any ==> applies a substitution map to anything
   apply-substitution : Substitution Term -> Term
 
   [(apply-substitution () Term) Term]
@@ -35,7 +35,7 @@
   )
 
 (define-metafunction formality-ty
-  ; Applies the substitution to *itself* until a fixed point is reached.
+  ;; Applies the substitution to *itself* until a fixed point is reached.
   substitution-fix : Substitution -> Substitution
 
   [; if the result of applying substitution to itself has no change, all done
@@ -52,6 +52,7 @@
    (where (Parameter_1 ...) (apply-substitution Substitution_0 (Parameter_0 ...)))
    ]
   )
+
 
 (module+ test
   (test-equal (term (apply-substitution

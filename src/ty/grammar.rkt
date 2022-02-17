@@ -47,6 +47,10 @@
   (LtNotVar := static (LtApply LtName))
   (LtName := VarId)
 
+  ;; EnvSubstitution - pair of an environment + substitution. This is the output
+  ;; from proving things.
+  (EnvSubstitution := (Env Substitution))
+
   ;; Env: Typing environment
   ;;
   ;; * Universe -- the largest universe yet defined
@@ -78,7 +82,8 @@
   ;;
   ;; See `substitution.rkt` for helper functions
   (Substitution-e := Error Substitution)
-  (Substitution := ((VarId Parameter) ...))
+  (Substitution := (VarParameter ...))
+  (VarParameter = (VarId Parameter))
 
   ;; KindedVarId: declares a bound parameter and
   ;; its kind (type, lifetime, etc).
@@ -282,6 +287,22 @@
    (universe-of-var-in-env Env VarId_!_1)
    RootUniverse
    (where ((VarId_!_1 Universe) ...) (env-var-universes Env))]
+
+  )
+
+(define-metafunction formality-ty
+  ;; Finds the declared universe of `VarId` in the given environment.
+  ;;
+  ;; If `VarId` is not found in the `Env`, returns the root universe. This is a useful
+  ;; default for random user-given names like `i32` or `Vec`.
+  var-defined-in-env : Env VarId -> boolean
+
+  [(var-defined-in-env Env VarId)
+   #t
+   (where (_ ... (VarId Universe) _ ...) (env-var-universes Env))]
+
+  [(var-defined-in-env Env VarId)
+   #f]
 
   )
 
