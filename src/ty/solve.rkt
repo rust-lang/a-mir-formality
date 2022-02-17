@@ -22,6 +22,11 @@
    (prove Env Predicate EnvSubstitution_out)
    ]
 
+  [(where EnvSubstitution_out (most-general-unifier Env ((Term_1 Term_2))))
+   --------------- "equate"
+   (prove Env (Equate Term_1 Term_2) EnvSubstitution_out)
+   ]
+
   [(prove-all Env Goals EnvSubstitution_out)
    --------------- "prove-all"
    (prove Env (All Goals) EnvSubstitution_out)
@@ -47,7 +52,7 @@
   [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env Exists KindedVarIds Goal))
    (prove Env Goal_1 EnvSubstitution_out)
    --------------- "prove-exists"
-   (prove Env (Exists KindedVarIds Goal) (reset Env EnvSubstitution_out))
+   (prove Env (Exists KindedVarIds Goal) (subtract VarIds_new EnvSubstitution_out))
    ]
 
   )
@@ -70,8 +75,9 @@
   #:mode (Clause-proves I I I O)
   #:contract (Clause-proves Env Clause Predicate EnvSubstitution)
 
-  [--------------- "clause-fact"
-   (Clause-proves Env Predicate Predicate (Env ()))
+  [(prove Env (Equate Predicate_1 Predicate_2) EnvSubstitution)
+   --------------- "clause-fact"
+   (Clause-proves Env Predicate_1 Predicate_2 EnvSubstitution)
    ]
 
   [(prove Env (all Goals) EnvSubstitution)
@@ -92,8 +98,9 @@
   #:mode (Hypothesis-implies I I I O)
   #:contract (Hypothesis-implies Env Hypothesis Goal EnvSubstitution_out)
 
-  [--------------- "hypothesized"
-   (Hypothesis-implies Env Predicate Predicate (Env ()))
+  [(prove Env (Equate Predicate_1 Predicate_2) EnvSubstitution)
+   --------------- "hypothesized"
+   (Hypothesis-implies Env Predicate_1 Predicate_2 EnvSubstitution)
    ]
 
   [(where (_ ... Hypothesis _ ...) (env-hypotheses Env))
@@ -110,15 +117,15 @@
   )
 
 (define-metafunction formality-ty
-  ;; Returns the hypotheses in the environment
+  ;; Resets the
   reset : Env EnvSubstitution -> EnvSubstitution
 
   [(reset Env (Env_out Substitution_out))
-   ((reset-env Env Env_out) (reset-substitution Env Substitution_out))]
+   ((reset-env Env Env_out) Substitution_out)]
   )
 
 (define-metafunction formality-ty
-  ;; Returns the hypotheses in the environment
+  ;;
   reset-env : Env_old Env_new -> Env
 
   [(reset-env (Universe ((VarId Universe_old) ...) Clauses Hypotheses) (_ VarUniverses_new _ _))
@@ -128,28 +135,20 @@
   )
 
 (define-metafunction formality-ty
-  ;; Returns the hypotheses in the environment
-  reset-substitution : Env Substitution -> Substitution
+  ;; Removes the given `VarIds` from the substitution found
+  ;; in `EnvSubstitution`
+  subtract : VarIds EnvSubstitution -> EnvSubstitution
 
-  [(reset-substitution Env ()) ()]
-
-  [(reset-substitution Env ((VarId Parameter) VarParameter_in ...))
-   ((VarId Parameter) VarParameter_out ...)
-   (where #t (var-defined-in-env Env VarId))
-   (where/error (VarParameter_out ...) (reset-substitution Env (VarParameter_in ...)))]
-
-  [(reset-substitution Env ((VarId Parameter) VarParameter_in ...))
-   (reset-substitution Env (VarParameter_in ...))
-   (where #f (var-defined-in-env Env VarId))]
-
+  [(subtract VarIds (Env Substitution))
+   (Env (substitution-without-vars VarIds Substitution))]
   )
 
 (define-metafunction formality-ty
-  ;; Returns the hypotheses in the environment
+  ;; Combines the substitution bindings into the `EnvSubstitution`
   merge-substitution : Substitution EnvSubstitution -> EnvSubstitution
 
   [(merge-substitution Substitution_0 (Env Substitution_1))
-   (Env (substitution-concat-disjoint Substitution_0 Substitution_1))]
+   (Env (substitution-fix (substitution-concat-disjoint Substitution_0 Substitution_1)))]
   )
 
 (module+ test
@@ -179,4 +178,25 @@
    (test-equal
     (judgment-holds (prove EmptyEnv (All ()) EnvSubstitution) EnvSubstitution)
     (term ((EmptyEnv ()))))
+
+   (test-equal
+    (judgment-holds (prove EmptyEnv
+                           (All ((Equate T (TyApply Vec (U)))
+                                 (Equate U (TyApply Vec (V)))
+                                 (Equate V (TyApply i32 ()))))
+                           EnvSubstitution)
+                    EnvSubstitution)
+    (term ((EmptyEnv ((T (TyApply Vec ((TyApply Vec ((TyApply i32 ()))))))
+                      (U (TyApply Vec ((TyApply i32 ()))))
+                      (V (TyApply i32 ())))))))
+
+   (test-equal
+    (judgment-holds (prove EmptyEnv
+                           (ForAll ((TyVar T))
+                                   (Implies ((Implemented (Debug (T))))
+                                            (Implemented (Debug (T)))))
+                           EnvSubstitution)
+                    EnvSubstitution)
+    (term ((EmptyEnv ()))))
+
    ))

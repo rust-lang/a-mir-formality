@@ -120,6 +120,7 @@
   (Goals = (Goal ...))
   (Goal :=
         Predicate
+        (Equate Term Term)
         (All Goals)
         (Any Goals)
         (Implies Hypotheses Goal)
