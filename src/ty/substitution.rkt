@@ -4,6 +4,7 @@
          apply-substitution
          substitution-fix
          substitution-concat-disjoint
+         substitution-without-vars
          )
 
 (define-metafunction formality-ty
@@ -32,6 +33,25 @@
   [(apply-substitution () Term) Term]
   [(apply-substitution ((VarId_0 Term_0) (VarId_1 Term_1) ...) Term_term)
    (apply-substitution ((VarId_1 Term_1) ...) (substitute Term_term VarId_0 Term_0))]
+  )
+
+(define-metafunction formality-ty
+  ;; Substitute substitution-map any ==> applies a substitution map to anything
+  substitution-without-vars : Substitution VarIds -> Substitution
+
+  [(substitution-without-vars () VarIds)
+   ()
+   ]
+
+  [(substitution-without-vars ((VarId_0 Term_0) (VarId_1 Term_1) ...) VarIds)
+   (substitution-without-vars ((VarId_1 Term_1) ...) VarIds)
+   (where (_ ... VarId_0 _ ...) VarIds)
+   ]
+
+  [(substitution-without-vars ((VarId_0 Term_0) (VarId_1 Term_1) ...) VarIds)
+   ((VarId_0 Term_0) (VarId_2 Term_2) ...)
+   (where/error ((VarId_2 Term_2) ...) (substitution-without-vars ((VarId_1 Term_1) ...) VarIds))
+   ]
   )
 
 (define-metafunction formality-ty
@@ -72,4 +92,9 @@
               (term ((x (TyApply SomeType (y1)))
                      (y y1)
                      (z (TyApply SomeType (y1))))))
+
+  (test-equal (term (substitution-without-vars
+                     ((x x1) (y y1) (z z1))
+                     (y)))
+              (term ((x x1) (z z1))))
   )
