@@ -379,6 +379,14 @@
   )
 
 (define-metafunction formality-ty
+  ;; Returns the current maximum universe in the environment
+  env-with-clauses-and-hypotheses : Env Clauses Hypotheses -> Env
+
+  [(env-with-clauses-and-hypotheses (Universe VarUniverses (Clause_old ...) (Hypothesis_old ...)) (Clause_new ...) (Hypothesis_new ...))
+   (Universe VarUniverses (Clause_old ... Clause_new ...) (Hypothesis_old ... Hypothesis_new ...))]
+  )
+
+(define-metafunction formality-ty
   ;; Boolean operator
   not? : boolean -> boolean
   [(not? false) true]
