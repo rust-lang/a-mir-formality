@@ -133,8 +133,8 @@
   (Hypotheses = (Hypothesis ...))
   (Hypothesis :=
               Predicate
-              (Implies predicate predicate)
-              (ForAll kinded-var-ids hypothesis)
+              (Implies Predicate Predicate)
+              (ForAll KindedVarIds Hypothesis)
               )
 
   ;; `Clause` -- axioms. These are both built-in and derived from
