@@ -49,14 +49,30 @@
   unify-pair : Env TermPair -> (Env Substitution TermPairs) or Error
 
   [; X = X ===> always ok
-   (unify-pair Env (VarId VarId))
+   (unify-pair Env (Term Term))
    (Env () ())
+   ]
+
+  [;
+   (unify-pair Env ((! VarId_!_0) (! VarId_!_0)))
+   Error
+   ]
+
+  [(unify-pair Env (VarId _))
+   Error
+   (where #f (var-defined-in-env Env VarId))
+   ]
+
+  [(unify-pair Env (_ VarId))
+   Error
+   (where #f (var-defined-in-env Env VarId))
    ]
 
   [; X = P ===> occurs check ok, return `[X => P]`
    (unify-pair Env (VarId Parameter))
    (Env_out ((VarId Parameter)) ())
 
+   (where/error #t (var-defined-in-env Env VarId))
    (where Env_out (occurs-check Env VarId Parameter))
    ]
 
@@ -64,39 +80,16 @@
    (unify-pair Env (VarId Parameter))
    Error
 
+   (where/error #t (var-defined-in-env Env VarId))
    (where Error (occurs-check Env VarId Parameter))
    ]
 
   [; P = X ===> just reverse order
    (unify-pair Env (Parameter VarId))
-   (Env () ((VarId Parameter)))
+   (unify-pair Env (VarId Parameter))
+
+   (where/error #t (var-defined-in-env Env VarId))
    ]
-
-  [; T<P0..Pn> = T<Q0..Qn> ===> solve Pi = Qi
-   (unify-pair Env ((TyApply TyName (Parameter_l ...))
-                    (TyApply TyName (Parameter_r ...))))
-   (Env () ((Parameter_l Parameter_r) ...))
-   ]
-
-  [; T<P0..Pn> = U<Q0..Qn>, T != 0 ===> solve Pi = Qi
-   (unify-pair Env ((TyApply TyName_!_0 _)
-                    (TyApply TyName_!_0 _)))
-   Error
-   ]
-
-  [; 'a = 'a ===> OK
-   (unify-pair Env ((LtApply LtName)
-                    (LtApply LtName)))
-   (Env () ())]
-
-  [; 'a = 'b ===> Error
-   (unify-pair Env ((LtApply LtName_!_0)
-                    (LtApply LtName_!_0)))
-   Error]
-
-  [; T = T ===> general recursion
-   (unify-pair Env (Term Term))
-   (Env () ())]
 
   [; (L ...) = (R ...) ===> true if Li = Ri for all i
    (unify-pair Env ((Term_l ...)

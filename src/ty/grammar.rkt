@@ -23,13 +23,12 @@
   ;; `(TyApply T ())`.
   (Tys := (Ty ...))
   (Ty :=
-      TyNotVar        ; Everything else
-      VarId           ; Existential or bound variable
+      (TyApply TyName Parameters) ; Application type
+      VarId                       ; Bound or existential (inference) variable
+      (! VarId)                   ; Universal (placeholder) variable
       )
-  (TyNotVar := (TyApply TyName Parameters))
   (TyName :=
           AdtId           ; enum/struct/union
-          VarId           ; Universal placeholder
           TraitId         ; trait
           (TraitId AssociatedTyId) ; Associated type
           ScalarId        ; Something like i32, u32, etc
@@ -42,10 +41,10 @@
   ;; Very similar to types `Ty` in terms of how they are represented
   ;; and the meaning of `VarId`.
   (Lt :=
-      LtNotVar
-      VarId)
-  (LtNotVar := static (LtApply LtName))
-  (LtName := VarId)
+      static                      ; 'static
+      VarId                       ; Bound or existential (inference) variable
+      (! VarId)                   ; Universal (placeholder) variable
+      )
 
   ;; EnvSubstitution - pair of an environment + substitution. This is the output
   ;; from proving things.
@@ -162,7 +161,8 @@
     ScalarId
     VarId
     TraitId
-    AssociatedTyId) variable-not-otherwise-mentioned)
+    AssociatedTyId
+    AnyId) variable-not-otherwise-mentioned)
 
   ; Term -- preferred name to any that reads better :)
   (Term := any)
@@ -359,13 +359,7 @@
   ;; this would return `(Vec X)`.
   placeholder-variables : Term -> (VarId ...)
 
-  [; Note that there are some other kinds of type names that are not
-   ; just a single variable. Ignore those.
-   (placeholder-variables (TyApply VarId Substitution))
-   ,(set-union (term (VarId)) (term VarIds_substitution))
-   (where/error VarIds_substitution (placeholder-variables Substitution))]
-
-  [(placeholder-variables (LtApply VarId))
+  [(placeholder-variables (! VarId))
    (VarId)]
 
   [(placeholder-variables (Term ...))

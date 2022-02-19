@@ -19,19 +19,17 @@
 
    ; map the `KindedVarIds` to fresh names that do not appear in the environment `Env_0`
    ; or the input term `Term_0`
-   (where/error Substitution_new-names (substitution-to-fresh-vars (Env_0 Term_0) KindedVarIds))
+   (where/error ((VarId_old VarId_new) ...) (substitution-to-fresh-vars (Env_0 Term_0) KindedVarIds))
 
    ; create a new environment where the fresh names are placed in a fresh universe
    (where/error Env_1 (env-with-incremented-universe Env_0))
-   (where/error ((_ VarId_new) ...) Substitution_new-names)
    (where/error Env_2 (env-with-vars-in-current-universe Env_1 (VarId_new ...)))
 
    ; map each new variable to a Parameter that uses it in placeholder role
-   (where/error (KindedVarId ...) KindedVarIds)
-   (where/error Substitution_placeholders ((placeholder-parameter Substitution_new-names KindedVarId) ...))
+   (where/error Substitution_to_placeholders ((VarId_old (! VarId_new)) ...))
 
    ; substitute the uses of bound variables in the term with their placeholders
-   (where/error Term_1 (apply-substitution Substitution_placeholders Term_0))
+   (where/error Term_1 (apply-substitution Substitution_to_placeholders Term_0))
    ]
 
   [; Handle existential binder instantiation.
@@ -43,12 +41,14 @@
 
    ; map the `KindedVarIds` to fresh names that do not appear in the environment `Env_0`
    ; or the input term `Term_0`
-   (where/error Substitution (substitution-to-fresh-vars (Env_0 Term_0) KindedVarIds))
+   (where/error Substitution_to_inference (substitution-to-fresh-vars (Env_0 Term_0) KindedVarIds))
+
+   ; map `X => (? X)`
+   (where/error ((VarId_old VarId_new) ...) Substitution_to_inference)
 
    ; these names will be placed in the current universe of the environment
-   (where/error ((VarId_old VarId_new) ...) Substitution)
    (where/error Env_1 (env-with-vars-in-current-universe Env_0 (VarId_new ...)))
-   (where/error Term_1 (apply-substitution Substitution Term_0))
+   (where/error Term_1 (apply-substitution Substitution_to_inference Term_0))
    ]
   )
 
@@ -81,7 +81,7 @@
    (test-match-terms
     formality-ty
     (term (instantiate-quantified EmptyEnv ForAll ((TyVar V)) (TyApply Vec (V))))
-    (term (_ (TyApply Vec ((TyApply V1 ()))) (V1))))
+    (term (_ (TyApply Vec ((! V1))) (V1))))
 
    (test-match-terms
     formality-ty

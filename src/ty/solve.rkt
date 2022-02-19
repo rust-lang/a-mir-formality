@@ -179,16 +179,19 @@
     (judgment-holds (prove EmptyEnv (All ()) EnvSubstitution) EnvSubstitution)
     (term ((EmptyEnv ()))))
 
-   (test-equal
-    (judgment-holds (prove EmptyEnv
-                           (All ((Equate T (TyApply Vec (U)))
-                                 (Equate U (TyApply Vec (V)))
-                                 (Equate V (TyApply i32 ()))))
-                           EnvSubstitution)
-                    EnvSubstitution)
-    (term ((EmptyEnv ((T (TyApply Vec ((TyApply Vec ((TyApply i32 ()))))))
-                      (U (TyApply Vec ((TyApply i32 ()))))
-                      (V (TyApply i32 ())))))))
+   (redex-let*
+    formality-ty
+    ((Env (term (env-with-vars-in-current-universe EmptyEnv (T U V)))))
+    (test-equal
+     (judgment-holds (prove Env
+                            (All ((Equate T (TyApply Vec (U)))
+                                  (Equate U (TyApply Vec (V)))
+                                  (Equate V (TyApply i32 ()))))
+                            EnvSubstitution)
+                     EnvSubstitution)
+     (term ((Env ((T (TyApply Vec ((TyApply Vec ((TyApply i32 ()))))))
+                  (U (TyApply Vec ((TyApply i32 ()))))
+                  (V (TyApply i32 ()))))))))
 
    (test-equal
     (judgment-holds (prove EmptyEnv
@@ -200,7 +203,7 @@
     (term ((EmptyEnv ()))))
 
    (test-equal
-    (judgment-holds (prove EmptyEnv
+    (judgment-holds (prove (env-with-vars-in-current-universe EmptyEnv (X))
                            (ForAll ((TyVar T))
                                    (Equate T X))
                            EnvSubstitution)
@@ -216,15 +219,18 @@
                     EnvSubstitution)
     (term ((EmptyEnv ()))))
 
-   (test-equal
-    (judgment-holds (prove EmptyEnv
-                           (All ((Equate T (TyApply Vec (U)))
-                                 (Equate U (TyApply Vec (V)))
-                                 (Equate V (TyApply i32 ()))))
-                           EnvSubstitution)
-                    EnvSubstitution)
-    (term ((EmptyEnv ((T (TyApply Vec ((TyApply Vec ((TyApply i32 ()))))))
-                      (U (TyApply Vec ((TyApply i32 ()))))
-                      (V (TyApply i32 ())))))))
+   (redex-let*
+    formality-ty
+    ((Env (term (env-with-vars-in-current-universe EmptyEnv (T U V)))))
+    (test-equal
+     (judgment-holds (prove Env
+                            (All ((Equate T (TyApply Vec (U)))
+                                  (Equate U (TyApply Vec (V)))
+                                  (Equate V (TyApply i32 ()))))
+                            EnvSubstitution)
+                     EnvSubstitution)
+     (term ((Env ((T (TyApply Vec ((TyApply Vec ((TyApply i32 ()))))))
+                  (U (TyApply Vec ((TyApply i32 ()))))
+                  (V (TyApply i32 ()))))))))
 
    ))
