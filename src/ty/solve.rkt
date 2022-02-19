@@ -221,16 +221,24 @@
 
    (redex-let*
     formality-ty
-    ((Env (term (env-with-vars-in-current-universe EmptyEnv (T U V)))))
+    ((Hypothesis_PartialEq-if-Eq (term (ForAll ((TyVar T)) (Implies ((Implemented (Eq (T))))
+                                                                    (Implemented (PartialEq (T)))))))
+     (Env (term (env-with-clauses-and-hypotheses EmptyEnv
+                                                 ()
+                                                 (Hypothesis_PartialEq-if-Eq)
+                                                 ))))
+
+    (test-equal
+     (judgment-holds (prove Env (Implemented (PartialEq ((TyApply u32 ())))) EnvSubstitution)
+                     EnvSubstitution)
+     (term ()))
+
     (test-equal
      (judgment-holds (prove Env
-                            (All ((Equate T (TyApply Vec (U)))
-                                  (Equate U (TyApply Vec (V)))
-                                  (Equate V (TyApply i32 ()))))
+                            (ForAll ((TyVar T)) (Implies ((Implemented (Eq (T))))
+                                                         (Implemented (PartialEq (T)))))
                             EnvSubstitution)
                      EnvSubstitution)
-     (term ((Env ((T (TyApply Vec ((TyApply Vec ((TyApply i32 ()))))))
-                  (U (TyApply Vec ((TyApply i32 ()))))
-                  (V (TyApply i32 ()))))))))
-
+     (term ()))
+    )
    ))

@@ -238,6 +238,13 @@
                                                   ((TyApply Vec (Ty_X)) (TyApply Vec (Ty_T))))))
                (term Error))
 
+
+   ; Test (i32: Eq) != (i32: PartialEq)
+   ;
+   ; yields error
+   (test-equal (term (most-general-unifier Env_2 (((Eq ((TyApply i32 ()))) (PartialEq ((TyApply i32 ())))))))
+               (term Error))
+
    ; Test [A = X, X = Vec<Y>, Y = i32]
    ;
    ; yields [A = Vec<i32>, X = Vec<i32>, Y = i32] and moves A, X, and Y

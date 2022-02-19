@@ -132,7 +132,7 @@
   (Hypotheses = (Hypothesis ...))
   (Hypothesis :=
               Predicate
-              (Implies Predicate Predicate)
+              (Implies Hypotheses Predicate)
               (ForAll KindedVarIds Hypothesis)
               )
 
