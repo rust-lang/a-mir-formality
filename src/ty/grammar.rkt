@@ -30,7 +30,7 @@
   (TyName :=
           AdtId           ; enum/struct/union
           TraitId         ; trait
-          (TraitId AssociatedTyId) ; Associated type
+          AssociatedTy    ; Associated type
           ScalarId        ; Something like i32, u32, etc
           (Ref MaybeMut)  ; `&mut` or `&`, expects a lifetiome + type parameter
           (Tuple number)  ; tuple of given arity
@@ -72,6 +72,10 @@
   ;; TraitRef = reference to a trait
   (TraitRef := (TraitId Parameters))
 
+  ;; TraitRef = reference to a trait
+  (AssociatedTy := (TraitId AssociatedTyId))
+  (AssociatedTyApplication := (AssociatedTy Parameters))
+
   ;; MaybeMut: either mut or not
   (MaybeMut := () (mut) )
 
@@ -87,11 +91,11 @@
   ;; KindedVarId: declares a bound parameter and
   ;; its kind (type, lifetime, etc).
   (KindedVarIds := (KindedVarId ...))
-  (KindedVarId := (VarKind VarId))
+  (KindedVarId := (ParameterKind VarId))
 
-  ;; VarKind: kind for a bound variable (type,
+  ;; ParameterKind: kind for a bound variable (type,
   ;; lifetime, etc)
-  (VarKind := TyVar LtVar)
+  (ParameterKind := TyKind LtKind)
 
   ;; Parameter: value for a generic parameter
   (Parameters := (Parameter ...))
@@ -109,8 +113,8 @@
              ; that `TraitRef` is implemented, as the supertraits may not
              ; have impls.
              (HasImpl TraitRef)
-             ; the given type is well-formed.
-             (WellFormed ty)
+             ; the given type or lifetime is well-formed.
+             (WellFormed (ParameterKind Ty))
              )
 
   ;; `Goal` -- things we can prove. These consists of predicates
@@ -155,7 +159,8 @@
   ;; See the paper XXX
   (Universe := (UniverseId number))
 
-  ; Ids -- identifiers
+  ;; Identifiers -- these are all equivalent, but we give them fresh names to help
+  ;; clarify their purpose
   (VarIds := (VarId ...))
   ((AdtId
     ScalarId
@@ -168,8 +173,8 @@
   (Term := any)
 
   #:binding-forms
-  (ForAll ((VarKind VarId) ...) any #:refers-to (shadow VarId ...))
-  (Exists ((VarKind VarId) ...) any #:refers-to (shadow VarId ...))
+  (ForAll ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
+  (Exists ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   )
 
 (define-term
@@ -329,7 +334,7 @@
   ;; Returns the set of variables that appear free in the given term.
   free-variables : any -> (VarId ...)
 
-  [(free-variables (Quantifier ((VarKind VarId_bound) ...) any))
+  [(free-variables (Quantifier ((ParameterKind VarId_bound) ...) any))
    ,(set-subtract (term VarIds_free) (term (VarId_bound ...)))
    (where/error VarIds_free (free-variables any))]
 
@@ -433,15 +438,15 @@
               (term (Implemented (debug (i32)))))
 
   (test-equal (term (appears-free
-                     x (ForAll ((TyVar x)) (x y))))
+                     x (ForAll ((TyKind x)) (x y))))
               #f)
 
   (test-equal (term (appears-free
-                     y (ForAll ((TyVar x)) (x y))))
+                     y (ForAll ((TyKind x)) (x y))))
               #t)
 
   (test-equal (term (free-variables
-                     (ForAll ((TyVar x) (TyVar z)) (a b c x y (d e f) g h (z w) ()))))
+                     (ForAll ((TyKind x) (TyKind z)) (a b c x y (d e f) g h (z w) ()))))
               (term (a b c y f e d g h w)))
 
   (test-equal (term (min-universe (UniverseId 3) (UniverseId 5) (UniverseId 2)))

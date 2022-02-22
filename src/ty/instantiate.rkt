@@ -63,7 +63,7 @@
   ;; name in placeholder position.
   placeholder-parameter : Substitution KindedVarId -> (VarId Parameter)
 
-  [(placeholder-parameter Substitution (TyVar VarId))
+  [(placeholder-parameter Substitution (TyKind VarId))
    (VarId (TyApply VarId_new ()))
    (where VarId_new (apply-substitution Substitution VarId))]
 
@@ -80,12 +80,12 @@
 
    (test-match-terms
     formality-ty
-    (term (instantiate-quantified EmptyEnv ForAll ((TyVar V)) (TyApply Vec (V))))
+    (term (instantiate-quantified EmptyEnv ForAll ((TyKind V)) (TyApply Vec (V))))
     (term (_ (TyApply Vec ((! V1))) (V1))))
 
    (test-match-terms
     formality-ty
-    (term (instantiate-quantified EmptyEnv Exists ((TyVar V)) (TyApply Vec (V))))
+    (term (instantiate-quantified EmptyEnv Exists ((TyKind V)) (TyApply Vec (V))))
     (term (_ (TyApply Vec (V1)) (V1))))
    )
   )

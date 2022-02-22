@@ -155,13 +155,13 @@
   (redex-let*
    formality-ty
    ((; A is in U0
-     (Env_0 Ty_A _) (term (instantiate-quantified EmptyEnv Exists ((TyVar A)) A)))
+     (Env_0 Ty_A _) (term (instantiate-quantified EmptyEnv Exists ((TyKind A)) A)))
     (; V is a placeholder in U1
-     (Env_1 Ty_T _) (term (instantiate-quantified Env_0 ForAll ((TyVar T)) T)))
+     (Env_1 Ty_T _) (term (instantiate-quantified Env_0 ForAll ((TyKind T)) T)))
     (; X is in U1
-     (Env_2 Ty_X _) (term (instantiate-quantified Env_1 Exists ((TyVar X)) X)))
+     (Env_2 Ty_X _) (term (instantiate-quantified Env_1 Exists ((TyKind X)) X)))
     (; Y, Z are in U1
-     (Env_3 (Ty_Y Ty_Z) _) (term (instantiate-quantified Env_2 Exists ((TyVar Y) (TyVar Z)) (Y Z))))
+     (Env_3 (Ty_Y Ty_Z) _) (term (instantiate-quantified Env_2 Exists ((TyKind Y) (TyKind Z)) (Y Z))))
     ((Env_4 Substitution_out) (term (most-general-unifier Env_3 (((TyApply Vec (Ty_A)) (TyApply Vec (Ty_X)))))))
     (Env_5 (term (reset-env Env_2 Env_4)))
     )
@@ -195,7 +195,7 @@
 
    (test-equal
     (judgment-holds (prove EmptyEnv
-                           (ForAll ((TyVar T))
+                           (ForAll ((TyKind T))
                                    (Implies ((Implemented (Debug (T))))
                                             (Implemented (Debug (T)))))
                            EnvSubstitution)
@@ -204,7 +204,7 @@
 
    (test-equal
     (judgment-holds (prove (env-with-vars-in-current-universe EmptyEnv (X))
-                           (ForAll ((TyVar T))
+                           (ForAll ((TyKind T))
                                    (Equate T X))
                            EnvSubstitution)
                     EnvSubstitution)
@@ -212,8 +212,8 @@
 
    (test-equal
     (judgment-holds (prove EmptyEnv
-                           (ForAll ((TyVar T))
-                                   (Exists ((TyVar X))
+                           (ForAll ((TyKind T))
+                                   (Exists ((TyKind X))
                                            (Equate T X)))
                            EnvSubstitution)
                     EnvSubstitution)
@@ -221,8 +221,8 @@
 
    (redex-let*
     formality-ty
-    ((Hypothesis_PartialEq-if-Eq (term (ForAll ((TyVar T)) (Implies ((Implemented (Eq (T))))
-                                                                    (Implemented (PartialEq (T)))))))
+    ((Hypothesis_PartialEq-if-Eq (term (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
+                                                                     (Implemented (PartialEq (T)))))))
      (Env (term (env-with-clauses-and-hypotheses EmptyEnv
                                                  ()
                                                  (Hypothesis_PartialEq-if-Eq)
@@ -235,8 +235,8 @@
 
     (test-equal
      (judgment-holds (prove Env
-                            (ForAll ((TyVar T)) (Implies ((Implemented (Eq (T))))
-                                                         (Implemented (PartialEq (T)))))
+                            (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
+                                                          (Implemented (PartialEq (T)))))
                             EnvSubstitution)
                      EnvSubstitution)
      (term ()))

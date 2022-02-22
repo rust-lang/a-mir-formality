@@ -12,7 +12,7 @@
   ;; fresh names.
   substitution-to-fresh-vars : Term KindedVarIds -> Substitution
 
-  [(substitution-to-fresh-vars Term ((VarKind VarId) ...))
+  [(substitution-to-fresh-vars Term ((ParameterKind VarId) ...))
    ((VarId VarId_fresh) ...)
    (where/error (VarId_fresh ...) ,(variables-not-in (term Term) (term (VarId ...))))
    ]
@@ -77,13 +77,13 @@
 (module+ test
   (test-equal (term (apply-substitution
                      ((x x1) (y y1))
-                     (x (ForAll (TyVar x) (x y) y))))
-              (term (x1 (ForAll (TyVar x1) (x1 y1) y1))))
+                     (x (ForAll (TyKind x) (x y) y))))
+              (term (x1 (ForAll (TyKind x1) (x1 y1) y1))))
 
   (test-equal (term (apply-substitution
                      ((x x1) (y y1))
-                     (x (ForAll (TyVar z) (x y z) y))))
-              (term (x1 (ForAll (TyVar z) (x1 y1 z) y1))))
+                     (x (ForAll (TyKind z) (x y z) y))))
+              (term (x1 (ForAll (TyKind z) (x1 y1 z) y1))))
 
   (test-equal (term (substitution-fix
                      ((x (TyApply SomeType (y)))
