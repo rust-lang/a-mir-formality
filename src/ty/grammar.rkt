@@ -114,7 +114,7 @@
              ; have impls.
              (HasImpl TraitRef)
              ; the given type or lifetime is well-formed.
-             (WellFormed (ParameterKind Ty))
+             (WellFormed (ParameterKind Parameter))
              )
 
   ;; `Goal` -- things we can prove. These consists of predicates

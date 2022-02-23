@@ -3,13 +3,15 @@
 (provide (all-defined-out))
 
 (define-extended-language formality-decl formality-ty
-  ;; Crate declaration
+  ;; Crate declarations
   (CrateDecls := (CrateDecl ...))
-  (CrateDecl := (crate CrateId (AdtDecls TraitDecls TraitImplDecls)))
+  (CrateDecl := (CrateId CrateContents))
+  (CrateContents := (crate (CrateItemDecl ...)))
+  (CrateItemDecl := AdtDecl TraitDecl TraitImplDecl)
 
   ;; AdtDecl -- struct/enum/union declarations
-  (AdtDecls := (AdtDecl ...))
-  (AdtDecl := (AdtKind AdtId KindedVarIds WhereClauses AdtVariants))
+  (AdtDecl := (AdtId AdtContents))
+  (AdtContents := (AdtKind KindedVarIds WhereClauses AdtVariants))
   (AdtVariants := (AdtVariant ...))
   (AdtKind := struct enum union)
   (AdtVariant := (VariantId FieldDecls))
@@ -21,15 +23,16 @@
   ;; TraitDecl -- trait Foo { ... }
   ;;
   ;; Unlike in Rust, the `KindedVarIds` here always include with `(TyKind Self)` explicitly.
-  (TraitDecls := (TraitDecl ...))
-  (TraitDecl := (trait TraitId KindedVarIds WhereClauses TraitItems))
+  (TraitDecl := (TraitId TraitContents))
+  (TraitContents := (trait KindedVarIds WhereClauses TraitItems))
 
   ;; TraitItem --
   (TraitItems := (TraitItem ...))
   (TraitItem := )
 
   ;; Trait impls
-  (TraitImplDecls := (TraitImplDecl ...))
+  ;;
+  ;; Note that trait impls do not have names.
   (TraitImplDecl := (impl KindedVarIds TraitRef WhereClauses ImplItems))
 
   ;; ImplItem --
@@ -47,7 +50,9 @@
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
-  ((VariantId
+  ((CrateId
+    TraitImplId
+    VariantId
     FieldId) variable-not-otherwise-mentioned)
 
   #:binding-forms
@@ -70,4 +75,16 @@
   trait-decl-id : TraitDecl -> TraitId
 
   ((trait-decl-id (trait TraitId KindedVarIds WhereClauses TraitItems)) TraitId)
+  )
+
+(define-metafunction formality-decl
+  ;; Find the given named item amongst all the declared crates.
+  item-with-id : CrateDecls AnyId -> Term
+
+  ((item-with-id CrateDecls AnyId)
+   Term
+
+   (where (_ ... CrateDecl _ ...) CrateDecls)
+   (where (_ (crate (_ ... (AnyId Term) _ ...))) CrateDecl)
+   )
   )

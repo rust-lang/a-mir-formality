@@ -1,14 +1,17 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt")
-(provide trait-decl-with-id-from-crate)
+(provide trait-decl-with-id)
 
 (define-metafunction formality-decl
-  trait-decl-with-id-from-crate : CrateDecl TraitId -> TraitDecl
+  ;; Find the given trait amongst all the declared crates.
+  trait-decl-with-id : CrateDecls TraitId -> TraitDecl
 
-  ((trait-decl-with-id-from-crate (crate CrateId (AdtDecls TraitDecls TraitImplDecls)) TraitId)
+  ((trait-decl-with-id CrateDecls TraitId)
    TraitDecl
 
+   (where (_ ... CrateDecl _ ...) CrateDecls)
+   (where (crate CrateId (_ TraitDecls _)) CrateDecl)
    (where (_ ... TraitDecl _ ...) TraitDecls)
    (where TraitId (trait-decl-id TraitDecl))
    )
