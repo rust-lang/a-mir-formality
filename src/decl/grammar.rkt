@@ -9,7 +9,7 @@
 
   ;; AdtDecl -- struct/enum/union declarations
   (AdtDecls := (AdtDecl ...))
-  (AdtDecl := (AdtKind AdtId KindedVarDecls WhereClauses AdtVariants))
+  (AdtDecl := (AdtKind AdtId KindedVarIds WhereClauses AdtVariants))
   (AdtVariants := (AdtVariant ...))
   (AdtKind := struct enum union)
   (AdtVariant := (VariantId FieldDecls))
@@ -20,9 +20,9 @@
 
   ;; TraitDecl -- trait Foo { ... }
   ;;
-  ;; Unlike in Rust, the `KindedVarDecls` here always include with `(TyKind Self)` explicitly.
+  ;; Unlike in Rust, the `KindedVarIds` here always include with `(TyKind Self)` explicitly.
   (TraitDecls := (TraitDecl ...))
-  (TraitDecl := (trait TraitId KindedVarDecls WhereClauses TraitItems))
+  (TraitDecl := (trait TraitId KindedVarIds WhereClauses TraitItems))
 
   ;; TraitItem --
   (TraitItems := (TraitItem ...))
@@ -30,7 +30,7 @@
 
   ;; Trait impls
   (TraitImplDecls := (TraitImplDecl ...))
-  (TraitImplDecl := (impl KindedVarDecls TraitRef WhereClauses ImplItems))
+  (TraitImplDecl := (impl KindedVarIds TraitRef WhereClauses ImplItems))
 
   ;; ImplItem --
   (ImplItems := (ImplItem ...))
@@ -63,4 +63,11 @@
         TraitRef #:refers-to (shadow VarId ...)
         WhereClauses #:refers-to (shadow VarId ...)
         ImplItems #:refers-to (shadow VarId ...))
+  )
+
+
+(define-metafunction formality-decl
+  trait-decl-id : TraitDecl -> TraitId
+
+  ((trait-decl-id (trait TraitId KindedVarIds WhereClauses TraitItems)) TraitId)
   )
