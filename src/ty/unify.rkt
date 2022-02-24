@@ -53,26 +53,11 @@
    (Env () ())
    ]
 
-  [;
-   (unify-pair Env ((! VarId_!_0) (! VarId_!_0)))
-   Error
-   ]
-
-  [(unify-pair Env (VarId _))
-   Error
-   (where #f (var-defined-in-env Env VarId))
-   ]
-
-  [(unify-pair Env (_ VarId))
-   Error
-   (where #f (var-defined-in-env Env VarId))
-   ]
-
   [; X = P ===> occurs check ok, return `[X => P]`
    (unify-pair Env (VarId Parameter))
    (Env_out ((VarId Parameter)) ())
 
-   (where/error #t (var-defined-in-env Env VarId))
+   (where #t (var-defined-in-env Env VarId))
    (where Env_out (occurs-check Env VarId Parameter))
    ]
 
@@ -80,7 +65,7 @@
    (unify-pair Env (VarId Parameter))
    Error
 
-   (where/error #t (var-defined-in-env Env VarId))
+   (where #t (var-defined-in-env Env VarId))
    (where Error (occurs-check Env VarId Parameter))
    ]
 
@@ -88,13 +73,31 @@
    (unify-pair Env (Parameter VarId))
    (unify-pair Env (VarId Parameter))
 
-   (where/error #t (var-defined-in-env Env VarId))
+   (where #t (var-defined-in-env Env VarId))
    ]
 
-  [; (L ...) = (R ...) ===> true if Li = Ri for all i
-   (unify-pair Env ((Term_l ...)
-                    (Term_r ...)))
+  [; Universal placeholders like `(! X)` and `(! Y)` must
+   ; be syntactically equal to be unified.
+   ;
+   ; Note: It's important that we don't recurse and cmopare
+   ; `!` to `!`, `X` to `Y` etc, because if we did so, we would
+   ; mistake `X` and `Y` for existential variables (they are variables
+   ; defined in the environment, and the environment doesn't presently
+   ; distinguish *how* they are defined, for better or -- arguably -- worse).
+   (unify-pair Env ((! VarId_!_0) (! VarId_!_0)))
+   Error
+   ]
+
+  [; (L ...) = (R ...) ===> true if Li = Ri for all i and the lengths are the same
+   (unify-pair Env ((Term_l ..._0)
+                    (Term_r ..._0)))
    (Env () ((Term_l Term_r) ...))]
+
+  [; any other case fails to unify
+   (unify-pair Env (Term_1 Term_2))
+   Error
+   ]
+
   )
 
 (define-metafunction formality-ty

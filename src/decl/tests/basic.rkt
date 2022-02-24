@@ -1,15 +1,17 @@
 #lang racket
 (require redex/reduction-semantics
+         "../decl-to-clause.rkt"
+         "../grammar.rkt"
          "../../ty/grammar.rkt"
          "../../ty/solve.rkt"
-         "../grammar.rkt"
-         "../decl-to-clause.rkt")
+         "../../util.rkt")
 
 (module+ test
   ;; Program:
   ;;
   ;; trait Debug { }
   ;; impl Debug for i32 { }
+  (current-traced-metafunctions '())
   (redex-let*
    formality-decl
 
@@ -25,6 +27,7 @@
                                     (Implemented (Debug (i32))))
                            EnvSubstitution)
                     EnvSubstitution)
-    (term (())))
+    (term ((Env ()))))
    )
+  (current-traced-metafunctions '())
   )
