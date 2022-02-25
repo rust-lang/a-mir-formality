@@ -128,26 +128,17 @@
         (Any Goals)
         (Implies Hypotheses Goal)
         (Quantifier KindedVarIds Goal)
+        (Hypothesized Goal)
         )
-
-  ;; `Hypothesis` -- things that are assumed to be true.
-  ;; These consists of simple predicates, higher-ranked hypotheses,
-  ;; and implications. Implications are from implied bounds.
-  (Hypotheses = (Hypothesis ...))
-  (Hypothesis :=
-              Predicate
-              (Implies Hypotheses Predicate)
-              (ForAll KindedVarIds Hypothesis)
-              )
 
   ;; `Clause` -- axioms. These are both built-in and derived from
   ;; user-defined items like `trait` and `impl`.
-  (Clauses := (Clause ...))
-  (Clause :=
-          Predicate
-          (Implies Goals Predicate)
-          (ForAll KindedVarIds Clause)
-          )
+  ((Hypotheses Clauses) := (Clause ...))
+  ((Hypothesis Clause) :=
+                       Predicate
+                       (Implies Goals Predicate)
+                       (ForAll KindedVarIds Clause)
+                       )
 
   ;; `Quantifier` -- the two kinds of quantifiers.
   (Quantifier := ForAll Exists)
@@ -199,6 +190,14 @@
   env-clauses : Env -> Hypotheses
 
   [(env-clauses (Universe VarUniverses Clauses Hypotheses)) Clauses]
+  )
+
+
+(define-metafunction formality-ty
+  ;; Same environment but without any clauses (only hypotheses)
+  env-without-clauses : Env -> Env
+
+  [(env-without-clauses (Universe VarUniverses _ Hypotheses)) (Universe VarUniverses () Hypotheses)]
   )
 
 (define-metafunction formality-ty

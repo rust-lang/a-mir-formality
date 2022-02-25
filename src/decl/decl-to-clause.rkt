@@ -1,8 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
-         "../ty/grammar.rkt"
-         "../util.rkt")
+         "../ty/grammar.rkt")
 (provide env-with-crate-decl
          crate-decl-rules)
 
@@ -62,7 +61,7 @@
    ;; And the following hypotheses global to the crate C:
    ;;
    ;;     (ForAll ((TyKind T))
-   ;;         (WellFormed Ty) => (Implemented (Ord T)))
+   ;;         (Hypothesized (WellFormed Ty)) => (Implemented (Ord T)))
    (crate-item-decl-rules _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
    ((Clause) () Hypotheses)
 
@@ -74,7 +73,7 @@
                                 (WellFormed (TyKind Ty_adt)))))
    (where/error Hypotheses ((ForAll KindedVarIds
                                     (Implies
-                                     ((WellFormed (TyKind Ty_adt)))
+                                     ((Hypothesized (WellFormed (TyKind Ty_adt))))
                                      (where-clause-to-hypothesis WhereClause)))
                             ...))
    ]
@@ -99,9 +98,9 @@
    ;; We also generate the following hypotheses in any crate:
    ;;
    ;;     (ForAll ((TyKind Self) (LtKind 'a) (TyKind T))
-   ;;         (Implemented (Foo (Self T))) => (Implemented (Ord T))
-   ;;         (Implemented (Foo (Self T))) => (WellFormedTy Self)
-   ;;         (Implemented (Foo (Self T))) => (WellFormedTy T))
+   ;;         (Hypothesized (Implemented (Foo (Self T)))) => (Implemented (Ord T))
+   ;;         (Hypothesized (Implemented (Foo (Self T)))) => (WellFormedTy Self)
+   ;;         (Hypothesized (Implemented (Foo (Self T)))) => (WellFormedTy T))
    (crate-item-decl-rules _ (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
    ((Clause) (Hypothesis_wc ... Hypothesis_wf ...) ())
 
@@ -116,11 +115,11 @@
                                 (Implemented TraitRef_me))))
    (where/error (Hypothesis_wc ...) ((ForAll KindedVarIds
                                              (Implies
-                                              ((Implemented TraitRef_me))
+                                              ((Hypothesized (Implemented TraitRef_me)))
                                               (where-clause-to-hypothesis WhereClause))) ...))
    (where/error (Hypothesis_wf ...) ((ForAll KindedVarIds
                                              (Implies
-                                              ((Implemented TraitRef_me))
+                                              ((Hypothesized (Implemented TraitRef_me)))
                                               (WellFormed (ParameterKind VarId)))) ...))
    ]
 

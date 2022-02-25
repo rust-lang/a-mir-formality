@@ -12,14 +12,20 @@
 
   [(where (_ ... Clause _ ... ) (env-clauses Env))
    (Clause-proves Env Clause Predicate EnvSubstitution_out)
-   --------------- "prove-Clause"
+   --------------- "prove-clause"
    (prove Env Predicate EnvSubstitution_out)
    ]
 
   [(where (_ ... Hypothesis _ ... ) (env-hypotheses Env))
-   (Hypothesis-implies Env Hypothesis Predicate EnvSubstitution_out)
-   --------------- "prove-Hypothesis"
+   (Clause-proves Env Hypothesis Predicate EnvSubstitution_out)
+   --------------- "prove-hypothesis"
    (prove Env Predicate EnvSubstitution_out)
+   ]
+
+  [(where Env_h (env-without-clauses Env))
+   (prove Env_h Goal EnvSubstitution_out)
+   --------------- "prove-hypothesized"
+   (prove Env (Hypothesized Goal) (reset Env () EnvSubstitution_out))
    ]
 
   [(equate Env Term_1 Term_2 EnvSubstitution_out)
@@ -101,41 +107,6 @@
    (Clause-proves Env (ForAll KindedVarIds Clause) Predicate (reset Env VarIds_i EnvSubstitution))
    ]
 
-  )
-
-(define-judgment-form formality-ty
-  #:mode (Hypotheses-imply I I O)
-  #:contract (Hypotheses-imply Env Predicate EnvSubstitution_out)
-
-  [(where (_ ... Hypothesis _ ...) (env-hypotheses Env))
-   (Hypothesis-implies Env Hypothesis Predicate EnvSubstitution)
-   --------------- "hypothesized"
-   (Hypotheses-imply Env Predicate EnvSubstitution)
-   ]
-
-  )
-
-(define-judgment-form formality-ty
-  #:mode (Hypothesis-implies I I I O)
-  #:contract (Hypothesis-implies Env Hypothesis Goal EnvSubstitution_out)
-
-  [(prove Env (Equate Predicate_1 Predicate_2) EnvSubstitution)
-   --------------- "hypothesize-equate"
-   (Hypothesis-implies Env Predicate_1 Predicate_2 EnvSubstitution)
-   ]
-
-  [(equate Env Predicate_consequent Predicate_goal (Env_eq Substitution_eq))
-   (where Predicate_condition-subst (apply-substitution Substitution_eq Predicate_condition))
-   (Hypotheses-imply Env_eq Predicate_condition-subst EnvSubstitution_out)
-   --------------- "hypothesize-backchain"
-   (Hypothesis-implies Env (implies Predicate_condition Predicate_consequent) Predicate_goal EnvSubstitution_out)
-   ]
-
-  [(where/error (Env_i Hypothesis_i VarIds_i) (instantiate-quantified Env ForAll KindedVarIds Hypothesis))
-   (Hypothesis-implies Env_i Hypothesis_i Predicate EnvSubstitution_out)
-   --------------- "hypothesize-forall"
-   (Hypothesis-implies Env (ForAll KindedVarIds Hypothesis) Predicate (reset Env VarIds_i EnvSubstitution_out))
-   ]
   )
 
 (define-metafunction formality-ty
@@ -249,7 +220,7 @@
 
    (redex-let*
     formality-ty
-    ((Hypothesis_PartialEq-if-Eq (term (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
+    ((Hypothesis_PartialEq-if-Eq (term (ForAll ((TyKind T)) (Implies ((Hypothesized (Implemented (Eq (T)))))
                                                                      (Implemented (PartialEq (T)))))))
      (Env (term (env-with-clauses-and-hypotheses EmptyEnv
                                                  ()
@@ -267,6 +238,6 @@
                                                           (Implemented (PartialEq (T)))))
                             EnvSubstitution)
                      EnvSubstitution)
-     (term ()))
+     (term ((Env ()))))
     )
    ))
