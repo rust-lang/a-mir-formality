@@ -11,10 +11,13 @@
   env-with-crate-decl : Env CrateDecl -> Env
 
   [(env-with-crate-decl Env CrateDecl)
-   (env-with-clauses-and-hypotheses Env Clauses Hypotheses)
+   (env-with-clauses-and-hypotheses Env
+                                    (flatten (Clauses_c Clauses_bi))
+                                    (flatten (Hypotheses_c Hypotheses_bi)))
 
    (where (CrateId (crate _)) CrateDecl)
-   (where/error (Clauses Hypotheses) (crate-decl-rules (CrateDecl) CrateDecl CrateId))
+   (where/error (Clauses_bi Hypotheses_bi) (default-rules ()))
+   (where/error (Clauses_c Hypotheses_c) (crate-decl-rules (CrateDecl) CrateDecl CrateId))
    ]
   )
 
@@ -149,6 +152,24 @@
                                  )
                                 (HasImpl TraitRef))))
    ]
+  )
+
+(define-metafunction formality-decl
+  ;; Given a crate item, return a tuple of:
+  ;;
+  ;; * The clauses that hold in all crates due to this item
+  ;; * The hypotheses that hold in all crates due to this item
+  ;; * The hypotheses that hold only in the crate that declared this item
+  default-rules : () -> (Clauses Hypotheses)
+
+  ((default-rules ())
+   (((WellFormed (TyKind (scalar-ty i32)))
+     (WellFormed (TyKind (scalar-ty u32)))
+     (WellFormed (TyKind TyUnit))
+     )
+    ())
+   )
+
   )
 
 (define-metafunction formality-decl

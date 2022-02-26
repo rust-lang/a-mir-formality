@@ -70,7 +70,6 @@
         ImplItems #:refers-to (shadow VarId ...))
   )
 
-
 (define-metafunction formality-decl
   trait-decl-id : TraitDecl -> TraitId
 

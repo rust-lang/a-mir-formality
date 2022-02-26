@@ -150,11 +150,14 @@
   ;; See the paper XXX
   (Universe := (UniverseId number))
 
+  ;; Scalars -- numbers, booleans
+  (ScalarId := i8 u8 i16 u16 i32 u32 i64 u64 i128 u128 bool)
+
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
   (VarIds := (VarId ...))
   ((AdtId
-    ScalarId
+
     VarId
     TraitId
     AssociatedTyId
@@ -176,6 +179,11 @@
 (define-term
   EmptyEnv
   (RootUniverse () () ())
+  )
+
+(define-term
+  TyUnit
+  (TyApply (Tuple 0) ())
   )
 
 (define-metafunction formality-ty
@@ -425,6 +433,20 @@
   [(universe-includes (UniverseId number_0) (UniverseId number_1))
    ,(>= (term number_0) (term number_1))])
 
+
+(define-metafunction formality-ty
+  ;; Flatten a list of lists.
+  flatten : ((Term ...) ...) -> (Term ...)
+
+  [(flatten ((Term ...) ...)) (Term ... ...)]
+  )
+
+(define-metafunction formality-ty
+  scalar-ty : ScalarId -> Ty
+
+  ((scalar-ty ScalarId) (TyApply ScalarId ()))
+  )
+
 (module+ test
   (test-match formality-ty
               Goal
@@ -434,7 +456,7 @@
               (term somevar))
   (test-match formality-ty
               Goal
-              (term (Implemented (debug (i32)))))
+              (term (Implemented (Debug ((scalar-ty i32))))))
 
   (test-equal (term (appears-free
                      x (ForAll ((TyKind x)) (x y))))

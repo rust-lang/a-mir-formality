@@ -161,7 +161,7 @@
 
    ; Equating `E` with `Vec<i32>` is ok
    (test-equal
-    (term (occurs-check Env_1 E (TyApply Vec (i32))))
+    (term (occurs-check Env_1 E (TyApply Vec ((scalar-ty i32)))))
     (term Env_1))
 
    ; Equating `E` with `V` is not possible,

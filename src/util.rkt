@@ -12,3 +12,6 @@
 (define (partition-list f l) (let-values [((matches matches-not) (partition f l))] (list matches matches-not)))
 (define-syntax-rule (test-judgment-false j) (test-equal (judgment-holds j) #f))
 
+(define-syntax-rule (traced l a) (begin (current-traced-metafunctions l)
+                                        a
+                                        (current-traced-metafunctions '())))

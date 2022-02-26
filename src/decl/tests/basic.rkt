@@ -3,30 +3,30 @@
          "../decl-to-clause.rkt"
          "../grammar.rkt"
          "../../ty/grammar.rkt"
-         "../../ty/solve.rkt")
+         "../../ty/solve.rkt"
+         "../../util.rkt")
 
 (module+ test
   ;; Program:
   ;;
   ;; trait Debug { }
   ;; impl Debug for i32 { }
-  (current-traced-metafunctions '())
   (redex-let*
    formality-decl
 
    ((TraitDecl (term (Debug (trait ((TyKind Self)) () ()))))
-    (TraitImplDecl (term (impl () (Debug (i32)) () ())))
+    (TraitImplDecl (term (impl () (Debug ((scalar-ty i32))) () ())))
     (CrateDecl (term (TheCrate (crate (TraitDecl TraitImplDecl)))))
     (Env (term (env-with-crate-decl EmptyEnv CrateDecl)))
     )
 
-   (test-equal
-    (judgment-holds (prove Env
-                           (Implies ((WellFormed (TyKind i32)))
-                                    (Implemented (Debug (i32))))
-                           EnvSubstitution)
-                    EnvSubstitution)
-    (term ((Env ()))))
+   (traced '()
+           (test-equal
+            (judgment-holds (prove Env
+                                   (Implemented (Debug ((scalar-ty i32))))
+                                   EnvSubstitution)
+                            EnvSubstitution)
+            (term ((Env ())))))
    )
-  (current-traced-metafunctions '())
   )
+
