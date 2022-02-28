@@ -3,6 +3,7 @@
          "grammar.rkt"
          "../ty/grammar.rkt")
 (provide env-with-crate-decl
+         env-with-crate-decls
          crate-decl-rules)
 
 (define-metafunction formality-decl
@@ -11,13 +12,23 @@
   env-with-crate-decl : Env CrateDecl -> Env
 
   [(env-with-crate-decl Env CrateDecl)
-   (env-with-clauses-and-hypotheses Env
-                                    (flatten (Clauses_c Clauses_bi))
-                                    (flatten (Hypotheses_c Hypotheses_bi)))
+   (env-with-crate-decls Env (CrateDecl) CrateId)
+   (where (CrateId CrateContents) CrateDecl)
+   ]
+  )
 
-   (where (CrateId (crate _)) CrateDecl)
+(define-metafunction formality-decl
+  ;; Add the clauses/hypothesis from multiple crates
+  ;; into the environment, where CrateId names the current crate.
+  env-with-crate-decls : Env CrateDecls CrateId -> Env
+
+  [(env-with-crate-decls Env CrateDecls CrateId)
+   (env-with-clauses-and-hypotheses Env
+                                    (flatten (Clauses_c ... Clauses_bi))
+                                    (flatten (Hypotheses_c ... Hypotheses_bi)))
+   (where (CrateDecl ...) CrateDecls)
    (where/error (Clauses_bi Hypotheses_bi) (default-rules ()))
-   (where/error (Clauses_c Hypotheses_c) (crate-decl-rules (CrateDecl) CrateDecl CrateId))
+   (where/error ((Clauses_c Hypotheses_c) ...) ((crate-decl-rules CrateDecls CrateDecl CrateId) ...))
    ]
   )
 

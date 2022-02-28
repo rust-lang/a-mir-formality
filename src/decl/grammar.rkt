@@ -1,5 +1,5 @@
 #lang racket
-(require redex/reduction-semantics racket/set "../ty/grammar.rkt")
+(require redex/reduction-semantics "../ty/grammar.rkt")
 (provide (all-defined-out))
 
 (define-extended-language formality-decl formality-ty
