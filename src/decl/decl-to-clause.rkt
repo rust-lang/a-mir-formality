@@ -69,7 +69,7 @@
    ;; We generate the following clause
    ;;
    ;;     (ForAll ((TyKind T))
-   ;;         (WellFormedTy Ty) :-
+   ;;         (WellFormed (TyKind (Foo (T)))) :-
    ;;            (Implemented (Ord T)))
    ;;
    ;; And the following hypotheses global to the crate C:
