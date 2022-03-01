@@ -3,56 +3,69 @@
          "grammar.rkt"
          "substitution.rkt"
          "instantiate.rkt"
-         "unify.rkt")
-(provide prove)
+         "unify.rkt"
+         "../util.rkt")
+(provide prove
+         prove-top-level-goal)
 
 (define-judgment-form formality-ty
-  #:mode (prove I I O)
-  #:contract (prove Env Goal EnvSubstitution)
+  #:mode (prove-top-level-goal I I O)
+  #:contract (prove-top-level-goal Env Goal EnvSubstitution)
 
-  [(where (_ ... Clause _ ... ) (flatten ((env-clauses Env) (env-hypotheses Env))))
-   (Clause-proves Env Clause Predicate EnvSubstitution_out)
+  [(prove Env () Goal EnvSubstitution_out)
+   ---------------
+   (prove-top-level-goal Env Goal EnvSubstitution_out)
+   ]
+  )
+
+(define-judgment-form formality-ty
+  #:mode (prove I I I O)
+  #:contract (prove Env Predicates_stack Goal EnvSubstitution)
+
+  [(where #f (in? Predicate Predicates_stack))
+   (where (_ ... Clause _ ... ) (flatten ((env-clauses Env) (env-hypotheses Env))))
+   (Clause-proves Env Predicates_stack Clause Predicate EnvSubstitution_out)
    --------------- "prove-clause"
-   (prove Env Predicate EnvSubstitution_out)
+   (prove Env Predicates_stack Predicate EnvSubstitution_out)
    ]
 
   [(where Env_h (env-without-clauses Env))
-   (prove Env_h Goal EnvSubstitution_out)
+   (prove Env_h Predicates_stack Goal EnvSubstitution_out)
    --------------- "prove-hypothesized"
-   (prove Env (Hypothesized Goal) (reset Env () EnvSubstitution_out))
+   (prove Env Predicates_stack (Hypothesized Goal) (reset Env () EnvSubstitution_out))
    ]
 
   [(equate Env Term_1 Term_2 EnvSubstitution_out)
    --------------- "prove-equate"
-   (prove Env (Equate Term_1 Term_2) EnvSubstitution_out)
+   (prove Env Predicates_stack (Equate Term_1 Term_2) EnvSubstitution_out)
    ]
 
-  [(prove-all Env Goals EnvSubstitution_out)
+  [(prove-all Env Predicates_stack Goals EnvSubstitution_out)
    --------------- "prove-all"
-   (prove Env (All Goals) EnvSubstitution_out)
+   (prove Env Predicates_stack (All Goals) EnvSubstitution_out)
    ]
 
-  [(prove Env Goal_1 EnvSubstitution_out)
+  [(prove Env Predicates_stack Goal_1 EnvSubstitution_out)
    --------------- "prove-any"
-   (prove Env (Any (Goal_0 ... Goal_1 Goal_2 ...)) EnvSubstitution_out)
+   (prove Env Predicates_stack (Any (Goal_0 ... Goal_1 Goal_2 ...)) EnvSubstitution_out)
    ]
 
   [(where Env_1 (env-with-hypotheses Env Hypotheses))
-   (prove Env_1 Goal EnvSubstitution_out)
+   (prove Env_1 Predicates_stack Goal EnvSubstitution_out)
    --------------- "prove-implies"
-   (prove Env (Implies Hypotheses Goal) (reset Env () EnvSubstitution_out))
+   (prove Env Predicates_stack (Implies Hypotheses Goal) (reset Env () EnvSubstitution_out))
    ]
 
   [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env ForAll KindedVarIds Goal))
-   (prove Env_1 Goal_1 EnvSubstitution_out)
+   (prove Env_1 Predicates_stack Goal_1 EnvSubstitution_out)
    --------------- "prove-forall"
-   (prove Env (ForAll KindedVarIds Goal) (reset Env VarIds_new EnvSubstitution_out))
+   (prove Env Predicates_stack (ForAll KindedVarIds Goal) (reset Env VarIds_new EnvSubstitution_out))
    ]
 
   [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env Exists KindedVarIds Goal))
-   (prove Env_1 Goal_1 EnvSubstitution_out)
+   (prove Env_1 Predicates_stack Goal_1 EnvSubstitution_out)
    --------------- "prove-exists"
-   (prove Env (Exists KindedVarIds Goal) (reset Env VarIds_new EnvSubstitution_out))
+   (prove Env Predicates_stack (Exists KindedVarIds Goal) (reset Env VarIds_new EnvSubstitution_out))
    ]
 
   )
@@ -68,37 +81,41 @@
   )
 
 (define-judgment-form formality-ty
-  #:mode (prove-all I I O)
-  #:contract (prove-all Env Goals EnvSubstitution)
+  #:mode (prove-all I I I O)
+  #:contract (prove-all Env Predicates_stack Goals EnvSubstitution)
 
   [----------------
-   (prove-all Env () (Env ()))]
+   (prove-all Env Predicates_stack () (Env ()))]
 
-  [(prove Env Goal_0 (Env_1 Substitution_1))
-   (prove-all Env_1 (apply-substitution Substitution_1 (Goal_1 ...)) EnvSubstitution_out)
+  [(prove Env Predicates_stack Goal_0 (Env_1 Substitution_1))
+   (where/error (Goals_subst Predicates_subst) (apply-substitution Substitution_1 ((Goal_1 ...) Predicates_stack)))
+   (prove-all Env_1 Predicates_subst Goals_subst EnvSubstitution_out)
    ----------------
-   (prove-all Env (Goal_0 Goal_1 ...) (merge-substitution Substitution_1 EnvSubstitution_out))]
+   (prove-all Env Predicates_stack (Goal_0 Goal_1 ...) (merge-substitution Substitution_1 EnvSubstitution_out))]
 
   )
 
 (define-judgment-form formality-ty
-  #:mode (Clause-proves I I I O)
-  #:contract (Clause-proves Env Clause Predicate EnvSubstitution)
+  #:mode (Clause-proves I I I I O)
+  #:contract (Clause-proves Env Predicates_stack Clause Predicate EnvSubstitution)
 
   [(equate Env Predicate_1 Predicate_2 EnvSubstitution)
    --------------- "clause-fact"
-   (Clause-proves Env Predicate_1 Predicate_2 EnvSubstitution)
+   (Clause-proves Env Predicates_stack Predicate_1 Predicate_2 EnvSubstitution)
    ]
 
-  [(prove-all Env ((Equate Predicate_1 Predicate_2) Goal ...) EnvSubstitution)
+  [(equate Env Predicate_1 Predicate_2 (Env_eq Substitution_eq))
+   (where/error (Goals_subst Predicates_subst)
+                (apply-substitution Substitution_eq (Goals (Predicate_2 Predicate_stack ...))))
+   (prove-all Env Predicates_subst Goals_subst EnvSubstitution)
    --------------- "clause-backchain"
-   (Clause-proves Env (Implies (Goal ...) Predicate_1) Predicate_2 EnvSubstitution)
+   (Clause-proves Env (Predicate_stack ...) (Implies Goals Predicate_1) Predicate_2 EnvSubstitution)
    ]
 
   [(where/error (Env_i Clause_i VarIds_i) (instantiate-quantified Env Exists KindedVarIds Clause))
-   (Clause-proves Env_i Clause_i Predicate EnvSubstitution)
+   (Clause-proves Env_i Predicates_stack Clause_i Predicate EnvSubstitution)
    --------------- "clause-forall"
-   (Clause-proves Env (ForAll KindedVarIds Clause) Predicate (reset Env VarIds_i EnvSubstitution))
+   (Clause-proves Env Predicates_stack (ForAll KindedVarIds Clause) Predicate (reset Env VarIds_i EnvSubstitution))
    ]
 
   )
@@ -168,47 +185,52 @@
    (test-equal (term (universe-of-var-in-env Env_4 Ty_X)) (term RootUniverse))
    (test-equal (term (universe-of-var-in-env Env_5 Ty_X)) (term RootUniverse))
 
-   (test-equal
-    (judgment-holds (prove EmptyEnv (All ()) EnvSubstitution) EnvSubstitution)
-    (term ((EmptyEnv ()))))
+   (traced '()
+           (test-equal
+            (judgment-holds (prove-top-level-goal EmptyEnv (All ()) EnvSubstitution) EnvSubstitution)
+            (term ((EmptyEnv ())))))
 
    (redex-let*
     formality-ty
     ((Env (term (env-with-vars-in-current-universe EmptyEnv (T U V)))))
     (test-equal
-     (judgment-holds (prove Env
-                            (All ((Equate T (TyApply Vec (U)))
-                                  (Equate U (TyApply Vec (V)))
-                                  (Equate V (TyApply i32 ()))))
-                            EnvSubstitution)
+     (judgment-holds (prove-top-level-goal
+                      Env
+                      (All ((Equate T (TyApply Vec (U)))
+                            (Equate U (TyApply Vec (V)))
+                            (Equate V (TyApply i32 ()))))
+                      EnvSubstitution)
                      EnvSubstitution)
      (term ((Env ((T (TyApply Vec ((TyApply Vec ((TyApply i32 ()))))))
                   (U (TyApply Vec ((TyApply i32 ()))))
                   (V (TyApply i32 ()))))))))
 
    (test-equal
-    (judgment-holds (prove EmptyEnv
-                           (ForAll ((TyKind T))
-                                   (Implies ((Implemented (Debug (T))))
-                                            (Implemented (Debug (T)))))
-                           EnvSubstitution)
+    (judgment-holds (prove-top-level-goal
+                     EmptyEnv
+                     (ForAll ((TyKind T))
+                             (Implies ((Implemented (Debug (T))))
+                                      (Implemented (Debug (T)))))
+                     EnvSubstitution)
                     EnvSubstitution)
     (term ((EmptyEnv ()))))
 
    (test-equal
-    (judgment-holds (prove (env-with-vars-in-current-universe EmptyEnv (X))
-                           (ForAll ((TyKind T))
-                                   (Equate T X))
-                           EnvSubstitution)
+    (judgment-holds (prove-top-level-goal
+                     (env-with-vars-in-current-universe EmptyEnv (X))
+                     (ForAll ((TyKind T))
+                             (Equate T X))
+                     EnvSubstitution)
                     EnvSubstitution)
     (term ()))
 
    (test-equal
-    (judgment-holds (prove EmptyEnv
-                           (ForAll ((TyKind T))
-                                   (Exists ((TyKind X))
-                                           (Equate T X)))
-                           EnvSubstitution)
+    (judgment-holds (prove-top-level-goal
+                     EmptyEnv
+                     (ForAll ((TyKind T))
+                             (Exists ((TyKind X))
+                                     (Equate T X)))
+                     EnvSubstitution)
                     EnvSubstitution)
     (term ((EmptyEnv ()))))
 
@@ -222,15 +244,16 @@
                                                  ))))
 
     (test-equal
-     (judgment-holds (prove Env (Implemented (PartialEq ((TyApply u32 ())))) EnvSubstitution)
+     (judgment-holds (prove-top-level-goal Env (Implemented (PartialEq ((TyApply u32 ())))) EnvSubstitution)
                      EnvSubstitution)
      (term ()))
 
     (test-equal
-     (judgment-holds (prove Env
-                            (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
-                                                          (Implemented (PartialEq (T)))))
-                            EnvSubstitution)
+     (judgment-holds (prove-top-level-goal
+                      Env
+                      (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
+                                                    (Implemented (PartialEq (T)))))
+                      EnvSubstitution)
                      EnvSubstitution)
      (term ((Env ()))))
     )

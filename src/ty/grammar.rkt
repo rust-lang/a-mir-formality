@@ -106,6 +106,7 @@
   (TermPair := (Term Term))
 
   ;; `Predicate` -- the atomic items that we can prove
+  (Predicates := (Predicate ...))
   (Predicate :=
              ; `TraitRef` is (fully) implemented.
              (Implemented TraitRef)
@@ -410,6 +411,13 @@
   any? : (boolean ...) -> boolean
   [(any? (_ ... #t _ ...)) #t]
   [(any? _) #f]
+  )
+
+(define-metafunction formality-ty
+  ;; Boolean operator
+  in? : Term (Term ...) -> boolean
+  [(in? Term (_ ... Term _ ...)) #t]
+  [(in? _ _) #f]
   )
 
 (define-metafunction formality-ty

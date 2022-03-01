@@ -23,41 +23,45 @@
 
    (traced '()
            (test-equal
-            (judgment-holds (prove Env
-                                   (ForAll ((TyKind T))
-                                           (Implies ((Implemented (PartialEq (T))))
-                                                    (Implemented (Eq (T)))))
-                                   EnvSubstitution)
+            (judgment-holds (prove-top-level-goal
+                             Env
+                             (ForAll ((TyKind T))
+                                     (Implies ((Implemented (PartialEq (T))))
+                                              (Implemented (Eq (T)))))
+                             EnvSubstitution)
                             EnvSubstitution)
             (term ())))
 
    (traced '()
            (test-equal
-            (judgment-holds (prove Env
-                                   (ForAll ((TyKind T))
-                                           (Implies ((Implemented (Eq (T))))
-                                                    (Implemented (PartialEq (T)))))
-                                   EnvSubstitution)
+            (judgment-holds (prove-top-level-goal
+                             Env
+                             (ForAll ((TyKind T))
+                                     (Implies ((Implemented (Eq (T))))
+                                              (Implemented (PartialEq (T)))))
+                             EnvSubstitution)
                             EnvSubstitution)
             (term ((Env ())))))
 
    (traced '()
            (test-equal
-            (judgment-holds (prove Env
-                                   (ForAll ((TyKind T))
-                                           (Implies ((Implemented (Eq (T))))
-                                                    (Implemented (Eq (T)))))
-                                   EnvSubstitution)
+            (judgment-holds (prove-top-level-goal
+                             Env
+                             (ForAll ((TyKind T))
+                                     (Implies ((Implemented (Eq (T))))
+                                              (Implemented (Eq (T)))))
+                             EnvSubstitution)
                             EnvSubstitution)
             (term ((Env ())))))
 
    (traced '()
            (test-equal
-            (judgment-holds (prove Env
-                                   (ForAll ((TyKind T))
-                                           (Implies ((Implemented (Eq (T))))
-                                                    (Implemented (Debug (T)))))
-                                   EnvSubstitution)
+            (judgment-holds (prove-top-level-goal
+                             Env
+                             (ForAll ((TyKind T))
+                                     (Implies ((Implemented (Eq (T))))
+                                              (Implemented (Debug (T)))))
+                             EnvSubstitution)
                             EnvSubstitution)
             (term ())))
    )

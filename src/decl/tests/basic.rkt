@@ -22,9 +22,10 @@
 
    (traced '()
            (test-equal
-            (judgment-holds (prove Env
-                                   (Implemented (Debug ((scalar-ty i32))))
-                                   EnvSubstitution)
+            (judgment-holds (prove-top-level-goal
+                             Env
+                             (Implemented (Debug ((scalar-ty i32))))
+                             EnvSubstitution)
                             EnvSubstitution)
             (term ((Env ())))))
    )
