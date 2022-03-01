@@ -29,6 +29,11 @@
    (prove Env Predicates_stack Predicate EnvSubstitution_out)
    ]
 
+  [(where #t (in? Predicate Predicates_stack))
+   --------------- "prove-cycle"
+   (prove Env Predicates_stack Predicate (Env ()))
+   ]
+
   [(where Env_h (env-without-clauses Env))
    (prove Env_h Predicates_stack Goal EnvSubstitution_out)
    --------------- "prove-hypothesized"

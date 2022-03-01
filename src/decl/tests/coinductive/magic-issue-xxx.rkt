@@ -29,16 +29,19 @@
     (Env (term (env-with-crate-decl EmptyEnv CrateDecl)))
     )
 
-   (traced '()
+   (; Given coinductive semantics, we can prove that `i32: Magic`
+    traced '()
            (test-equal
             (judgment-holds (prove-top-level-goal
                              Env
                              (Implemented (Magic ((scalar-ty i32))))
                              EnvSubstitution)
                             EnvSubstitution)
-            (term ())))
+            (term ((Env ())))))
 
-   (traced '()
+
+   (; But we cannot prove that `i32: Copy`
+    traced '()
            (test-equal
             (judgment-holds (prove-top-level-goal
                              Env
