@@ -157,7 +157,6 @@
   ;; clarify their purpose
   (VarIds := (VarId ...))
   ((AdtId
-
     VarId
     TraitId
     AssociatedTyId

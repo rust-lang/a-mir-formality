@@ -10,15 +10,9 @@
   #:mode (prove I I O)
   #:contract (prove Env Goal EnvSubstitution)
 
-  [(where (_ ... Clause _ ... ) (env-clauses Env))
+  [(where (_ ... Clause _ ... ) (flatten ((env-clauses Env) (env-hypotheses Env))))
    (Clause-proves Env Clause Predicate EnvSubstitution_out)
    --------------- "prove-clause"
-   (prove Env Predicate EnvSubstitution_out)
-   ]
-
-  [(where (_ ... Hypothesis _ ... ) (env-hypotheses Env))
-   (Clause-proves Env Hypothesis Predicate EnvSubstitution_out)
-   --------------- "prove-hypothesis"
    (prove Env Predicate EnvSubstitution_out)
    ]
 
