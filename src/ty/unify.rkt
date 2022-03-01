@@ -25,7 +25,9 @@
   unify-pairs : Env Substitution TermPairs -> EnvSubstitution or Error
   [; base case, all done, but we have to apply the substitution to itself
    (unify-pairs Env Substitution ())
-   (Env (substitution-fix Substitution))
+   (Env_1 Substitution_1)
+   (where/error Substitution_1 (substitution-fix Substitution))
+   (where/error Env_1 (apply-substitution-to-env Substitution_1 Env))
    ]
 
   [; unify the first pair ===> if that is an error, fail
@@ -265,6 +267,22 @@
                                                (Ty_X (TyApply Vec ((TyApply i32 ()))))
                                                (Ty_Y (TyApply i32 ()))))))
 
-   )
+   (; Test that the substitution is applied to hypotheses in the environment, too
+    redex-let*
+    formality-ty
+    ((; assume that `X: Debug` (note that `X` is an existential variable)
+      Env_3 (term (env-with-hypotheses Env_2 ((Implemented (Debug (Ty_X)))))))
+     (; constrain `X = i32` to yield new substitution
+      (Env_out Substitution_out) (term (most-general-unifier Env_3 ((Ty_X (scalar-ty i32)))))))
 
+    ; concluded that `X = i32`
+    (test-equal (term Substitution_out) (term ((Ty_X (scalar-ty i32)))))
+
+    ; starts out as `X: Debug`
+    (test-equal (term (env-hypotheses Env_3)) (term ((Implemented (Debug (Ty_X))))))
+
+    ; changes to `i32: Debug` now that we know `X = i32`
+    (test-equal (term (env-hypotheses Env_out)) (term ((Implemented (Debug ((scalar-ty i32)))))))
+    )
+   )
   )

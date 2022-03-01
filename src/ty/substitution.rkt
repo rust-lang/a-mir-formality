@@ -2,6 +2,7 @@
 (require redex/reduction-semantics "grammar.rkt")
 (provide substitution-to-fresh-vars
          apply-substitution
+         apply-substitution-to-env
          substitution-fix
          substitution-concat-disjoint
          substitution-without-vars
@@ -73,6 +74,16 @@
    ]
   )
 
+(define-metafunction formality-ty
+  ;; Applies the substitution to an environment (not all parts of the
+  ;; environment ought to be substituted).
+  apply-substitution-to-env : Substitution Env  -> Env
+
+  [(apply-substitution-to-env Substitution (Universe VarUniverses Clauses Hypotheses))
+   (Universe VarUniverses (apply-substitution Substitution Clauses)
+             (apply-substitution Substitution Hypotheses))]
+
+  )
 
 (module+ test
   (test-equal (term (apply-substitution
