@@ -34,10 +34,10 @@
   copy-universes : Env_old VarIds_new Env_new -> Env
 
   [(copy-universes
-    (Universe ((VarId_old Universe_old) ...) Clauses Hypotheses)
+    (Universe ((VarId_old Universe_old) ...) EnvInferenceRules)
     (VarId_new ...)
-    (_ VarUniverses_new _ _))
-   (Universe ((VarId_old Universe_new) ...) Clauses Hypotheses)
+    (_ VarUniverses_new _))
+   (Universe ((VarId_old Universe_new) ...) EnvInferenceRules)
 
    (where/error ((VarId_new _) ... (VarId_old Universe_new) ...) VarUniverses_new)
    ]

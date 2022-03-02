@@ -62,8 +62,19 @@
   ;;   or other such constructs
   ;; * Hypotheses -- facts believed to be true, introduced by
   ;;   where clauses
-  (Env := (Universe VarUniverses Clauses Hypotheses))
+  (Env := (Universe VarUniverses EnvInferenceRules))
   (Env-e := Env Error)
+
+  ;; EnvInferenceRules: various kinds of the logical inference rules,
+  ;; each with its own purpose:
+  ;;
+  ;; * Clauses -- derived from the program declarations, collectively
+  ;;   define the predicates that are true
+  ;; * Hypotheses -- things that we are assuming to be true
+  ;; * Invariants -- implications that are implied by the clauses,
+  ;;   used to implement implied bounds (for example, `trait Eq: PartialEq`
+  ;;   would create an invariant that `forall T. (T: Eq) => (T: PartialEq)`)
+  (EnvInferenceRules := (Clauses Hypotheses))
 
   ;; VarUniverse -- maps a `VarId` to a `Universe`
   (VarUniverses := (VarUniverse ...))
@@ -180,7 +191,7 @@
 
 (define-term
   EmptyEnv
-  (RootUniverse () () ())
+  (RootUniverse () (() ()))
   )
 
 (define-term
@@ -192,14 +203,14 @@
   ;; Returns the hypotheses in the environment
   env-hypotheses : Env -> Hypotheses
 
-  [(env-hypotheses (Universe VarUniverses Clauses Hypotheses)) Hypotheses]
+  [(env-hypotheses (Universe VarUniverses (Clauses Hypotheses))) Hypotheses]
   )
 
 (define-metafunction formality-ty
   ;; Returns the program clauses in the environment
   env-clauses : Env -> Hypotheses
 
-  [(env-clauses (Universe VarUniverses Clauses Hypotheses)) Clauses]
+  [(env-clauses (Universe VarUniverses (Clauses Hypotheses))) Clauses]
   )
 
 
@@ -207,21 +218,21 @@
   ;; Same environment but without any clauses (only hypotheses)
   env-without-clauses : Env -> Env
 
-  [(env-without-clauses (Universe VarUniverses _ Hypotheses)) (Universe VarUniverses () Hypotheses)]
+  [(env-without-clauses (Universe VarUniverses (_ Hypotheses))) (Universe VarUniverses (() Hypotheses))]
   )
 
 (define-metafunction formality-ty
   ;; Returns the `VarId -> Universe` mapping from the environment
   env-var-universes : Env -> VarUniverses
 
-  [(env-var-universes (Universe VarUniverses Clauses Hypotheses)) VarUniverses]
+  [(env-var-universes (Universe VarUniverses EnvInferenceRules)) VarUniverses]
   )
 
 (define-metafunction formality-ty
   ;; Returns the current maximum universe in the environment
   env-universe : Env -> Universe
 
-  [(env-universe (Universe VarUniverses Clauses Hypotheses)) Universe]
+  [(env-universe (Universe VarUniverses EnvInferenceRules)) Universe]
   )
 
 (define-metafunction formality-ty
@@ -229,8 +240,8 @@
   env-with-vars-in-current-universe : Env VarIds -> Env
 
   [(env-with-vars-in-current-universe Env (VarId ...))
-   (Universe ((VarId Universe) ... VarUniverse ...) Clauses Hypotheses)
-   (where/error (Universe (VarUniverse ...) Clauses Hypotheses) Env)
+   (Universe ((VarId Universe) ... VarUniverse ...) EnvInferenceRules)
+   (where/error (Universe (VarUniverse ...) EnvInferenceRules) Env)
    ]
   )
 
@@ -238,8 +249,8 @@
   ;; Returns the hypotheses in the environment
   env-with-hypotheses : Env Hypotheses -> Env
 
-  [(env-with-hypotheses (Universe VarUniverses Clauses (Hypothesis_0 ...)) (Hypothesis_1 ...))
-   (Universe VarUniverses Clauses (Hypothesis_0 ... Hypothesis_1 ...))
+  [(env-with-hypotheses (Universe VarUniverses (Clauses (Hypothesis_0 ...))) (Hypothesis_1 ...))
+   (Universe VarUniverses (Clauses (Hypothesis_0 ... Hypothesis_1 ...)))
    ]
   )
 
@@ -249,8 +260,8 @@
   env-with-var-limited-to-universe : Env VarId Universe -> Env
 
   [(env-with-var-limited-to-universe Env VarId Universe_max)
-   (Universe (VarUniverse_0 ... (VarId Universe_new) VarUniverse_1 ...) Clauses Hypotheses)
-   (where/error (Universe (VarUniverse_0 ... (VarId Universe_old) VarUniverse_1 ...) Clauses Hypotheses) Env)
+   (Universe (VarUniverse_0 ... (VarId Universe_new) VarUniverse_1 ...) EnvInferenceRules)
+   (where/error (Universe (VarUniverse_0 ... (VarId Universe_old) VarUniverse_1 ...) EnvInferenceRules) Env)
    (where/error Universe_new (min-universe Universe_old Universe_max))
    ]
   )
@@ -279,9 +290,9 @@
   env-with-incremented-universe : Env -> Env
 
   [(env-with-incremented-universe Env)
-   (Universe_new VarUniverses Clauses Hypotheses)
+   (Universe_new VarUniverses EnvInferenceRules)
 
-   (where/error (Universe VarUniverses Clauses Hypotheses) Env)
+   (where/error (Universe VarUniverses EnvInferenceRules) Env)
    (where/error Universe_new (next-universe Universe))
    ]
 
@@ -390,8 +401,8 @@
   ;; Returns the current maximum universe in the environment
   env-with-clauses-and-hypotheses : Env Clauses Hypotheses -> Env
 
-  [(env-with-clauses-and-hypotheses (Universe VarUniverses (Clause_old ...) (Hypothesis_old ...)) (Clause_new ...) (Hypothesis_new ...))
-   (Universe VarUniverses (Clause_old ... Clause_new ...) (Hypothesis_old ... Hypothesis_new ...))]
+  [(env-with-clauses-and-hypotheses (Universe VarUniverses ((Clause_old ...) (Hypothesis_old ...))) (Clause_new ...) (Hypothesis_new ...))
+   (Universe VarUniverses ((Clause_old ... Clause_new ...) (Hypothesis_old ... Hypothesis_new ...)))]
   )
 
 (define-metafunction formality-ty

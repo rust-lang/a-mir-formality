@@ -79,9 +79,8 @@
   ;; environment ought to be substituted).
   apply-substitution-to-env : Substitution Env  -> Env
 
-  [(apply-substitution-to-env Substitution (Universe VarUniverses Clauses Hypotheses))
-   (Universe VarUniverses (apply-substitution Substitution Clauses)
-             (apply-substitution Substitution Hypotheses))]
+  [(apply-substitution-to-env Substitution (Universe VarUniverses EnvInferenceRules))
+   (Universe VarUniverses (apply-substitution Substitution EnvInferenceRules))]
 
   )
 
