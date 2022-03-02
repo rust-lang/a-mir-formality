@@ -132,14 +132,16 @@
         (Hypothesized Goal)
         )
 
-  ;; `Clause` -- axioms. These are both built-in and derived from
+  ;; `Clause`, `Hypothesis`, `Invariant` -- axioms. These are both built-in and derived from
   ;; user-defined items like `trait` and `impl`.
-  ((Hypotheses Clauses) := (Clause ...))
-  ((Hypothesis Clause) :=
-                       Predicate
-                       (Implies Goals Predicate)
-                       (ForAll KindedVarIds Clause)
-                       )
+  ((Hypotheses Clauses Invariants) := (Clause ...))
+  ((Hypothesis Clause Invariant) :=
+                                 Predicate
+                                 (Implies Goals Predicate)
+                                 (ForAll KindedVarIds Clause)
+                                 )
+
+
 
   ;; `Quantifier` -- the two kinds of quantifiers.
   (Quantifier := ForAll Exists)
