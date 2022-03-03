@@ -74,7 +74,7 @@
   ;; * Invariants -- implications that are implied by the clauses,
   ;;   used to implement implied bounds (for example, `trait Eq: PartialEq`
   ;;   would create an invariant that `forall T. (T: Eq) => (T: PartialEq)`)
-  (EnvInferenceRules := (Clauses Hypotheses))
+  (EnvInferenceRules := (Clauses Hypotheses Invariants))
 
   ;; VarUniverse -- maps a `VarId` to a `Universe`
   (VarUniverses := (VarUniverse ...))
@@ -140,7 +140,6 @@
         (Any Goals)
         (Implies Hypotheses Goal)
         (Quantifier KindedVarIds Goal)
-        (Hypothesized Goal)
         )
 
   ;; `Clause`, `Hypothesis`, `Invariant` -- axioms. These are both built-in and derived from
@@ -191,7 +190,7 @@
 
 (define-term
   EmptyEnv
-  (RootUniverse () (() ()))
+  (RootUniverse () (() () ()))
   )
 
 (define-term
@@ -203,16 +202,22 @@
   ;; Returns the hypotheses in the environment
   env-hypotheses : Env -> Hypotheses
 
-  [(env-hypotheses (Universe VarUniverses (Clauses Hypotheses))) Hypotheses]
+  [(env-hypotheses (Universe VarUniverses (Clauses Hypotheses Invariants))) Hypotheses]
   )
 
 (define-metafunction formality-ty
   ;; Returns the program clauses in the environment
   env-clauses : Env -> Hypotheses
 
-  [(env-clauses (Universe VarUniverses (Clauses Hypotheses))) Clauses]
+  [(env-clauses (Universe VarUniverses (Clauses Hypotheses Invariants))) Clauses]
   )
 
+(define-metafunction formality-ty
+  ;; Returns the program clauses in the environment
+  env-invariants : Env -> Hypotheses
+
+  [(env-invariants (Universe VarUniverses (Clauses Hypotheses Invariants))) Invariants]
+  )
 
 (define-metafunction formality-ty
   ;; Same environment but without any clauses (only hypotheses)
@@ -249,8 +254,8 @@
   ;; Returns the hypotheses in the environment
   env-with-hypotheses : Env Hypotheses -> Env
 
-  [(env-with-hypotheses (Universe VarUniverses (Clauses (Hypothesis_0 ...))) (Hypothesis_1 ...))
-   (Universe VarUniverses (Clauses (Hypothesis_0 ... Hypothesis_1 ...)))
+  [(env-with-hypotheses (Universe VarUniverses (Clauses (Hypothesis_0 ...) Invariants)) (Hypothesis_1 ...))
+   (Universe VarUniverses (Clauses (Hypothesis_0 ... Hypothesis_1 ...) Invariants))
    ]
   )
 
@@ -399,10 +404,17 @@
 
 (define-metafunction formality-ty
   ;; Returns the current maximum universe in the environment
-  env-with-clauses-and-hypotheses : Env Clauses Hypotheses -> Env
+  env-with-clauses-and-invariants : Env Clauses Invariants -> Env
 
-  [(env-with-clauses-and-hypotheses (Universe VarUniverses ((Clause_old ...) (Hypothesis_old ...))) (Clause_new ...) (Hypothesis_new ...))
-   (Universe VarUniverses ((Clause_old ... Clause_new ...) (Hypothesis_old ... Hypothesis_new ...)))]
+  [(env-with-clauses-and-invariants
+    (Universe VarUniverses ((Clause_old ...) Hypotheses (Invariant_old ...)))
+    (Clause_new ...)
+    (Invariant_new ...))
+   (Universe
+    VarUniverses
+    ((Clause_old ... Clause_new ...)
+     Hypotheses
+     (Invariant_old ... Invariant_new ...)))]
   )
 
 (define-metafunction formality-ty

@@ -5,6 +5,7 @@
          "../instantiate.rkt"
          "../unify.rkt"
          "../../util.rkt"
+         "hypothesize.rkt"
          "util.rkt")
 
 (provide prove prove-top-level-goal)
@@ -30,15 +31,15 @@
    (prove Env Predicates_stack Predicate EnvSubstitution_out)
    ]
 
+  [(where #f (in? Predicate Predicates_stack))
+   (Hypotheses-imply Env () Predicate EnvSubstitution_out)
+   --------------- "prove-hypotheses-imply"
+   (prove Env Predicates_stack Predicate EnvSubstitution_out)
+   ]
+
   [(where #t (in? Predicate Predicates_stack))
    --------------- "prove-cycle"
    (prove Env Predicates_stack Predicate (Env ()))
-   ]
-
-  [(where Env_h (env-without-clauses Env))
-   (prove Env_h Predicates_stack Goal EnvSubstitution_out)
-   --------------- "prove-hypothesized"
-   (prove Env Predicates_stack (Hypothesized Goal) (reset Env () EnvSubstitution_out))
    ]
 
   [(equate Env Term_1 Term_2 EnvSubstitution_out)
@@ -189,11 +190,11 @@
 
    (redex-let*
     formality-ty
-    ((Hypothesis_PartialEq-if-Eq (term (ForAll ((TyKind T)) (Implies ((Hypothesized (Implemented (Eq (T)))))
-                                                                     (Implemented (PartialEq (T)))))))
-     (Env (term (env-with-clauses-and-hypotheses EmptyEnv
+    ((Invariant_PartialEq-if-Eq (term (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
+                                                                    (Implemented (PartialEq (T)))))))
+     (Env (term (env-with-clauses-and-invariants EmptyEnv
                                                  ()
-                                                 (Hypothesis_PartialEq-if-Eq)
+                                                 (Invariant_PartialEq-if-Eq)
                                                  ))))
 
     (test-equal

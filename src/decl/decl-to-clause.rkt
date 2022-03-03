@@ -23,19 +23,19 @@
   env-with-crate-decls : Env CrateDecls CrateId -> Env
 
   [(env-with-crate-decls Env CrateDecls CrateId)
-   (env-with-clauses-and-hypotheses Env
+   (env-with-clauses-and-invariants Env
                                     (flatten (Clauses_c ... Clauses_bi))
-                                    (flatten (Hypotheses_c ... Hypotheses_bi)))
+                                    (flatten (Invariants_c ... Invariants_bi)))
    (where (CrateDecl ...) CrateDecls)
-   (where/error (Clauses_bi Hypotheses_bi) (default-rules ()))
-   (where/error ((Clauses_c Hypotheses_c) ...) ((crate-decl-rules CrateDecls CrateDecl CrateId) ...))
+   (where/error (Clauses_bi Invariants_bi) (default-rules ()))
+   (where/error ((Clauses_c Invariants_c) ...) ((crate-decl-rules CrateDecls CrateDecl CrateId) ...))
    ]
   )
 
 (define-metafunction formality-decl
   ;; Generate the complete set of rules that result from `CrateDecl`
   ;; when checking the crate `CrateId`.
-  crate-decl-rules : CrateDecls CrateDecl CrateId -> (Clauses Hypotheses)
+  crate-decl-rules : CrateDecls CrateDecl CrateId -> (Clauses Invariants)
 
   [; Rules from crate C to use internally within crate C
    (crate-decl-rules CrateDecls (CrateId (crate (CrateItemDecl ...))) CrateId)
@@ -44,7 +44,7 @@
    (where/error (((Clause ...) (Hypothesis_all ...) (Hypothesis_local ...)) ...) ((crate-item-decl-rules CrateDecls CrateItemDecl) ...))
    ]
 
-  [; Rules from crate C to use from other crates -- exclude the hypotheses, which are
+  [; Rules from crate C to use from other crates -- exclude the invariants, which are
    ; local to crate C, but keep the clauses, which are global.
    (crate-decl-rules CrateDecls (crate CrateId_0 ((CrateItemDecl ...))) CrateId_1)
    ((Clause ...) (Hypothesis_all ...))
@@ -58,9 +58,9 @@
   ;; Given a crate item, return a tuple of:
   ;;
   ;; * The clauses that hold in all crates due to this item
-  ;; * The hypotheses that hold in all crates due to this item
-  ;; * The hypotheses that hold only in the crate that declared this item
-  crate-item-decl-rules : CrateDecls CrateItemDecl -> (Clauses Hypotheses Hypotheses)
+  ;; * The invariants that hold in all crates due to this item
+  ;; * The invariants that hold only in the crate that declared this item
+  crate-item-decl-rules : CrateDecls CrateItemDecl -> (Clauses Invariants Invariants)
 
   [;; For an ADT declaration declared in the crate C, like the following:
    ;;
@@ -72,12 +72,12 @@
    ;;         (WellFormed (TyKind (Foo (T)))) :-
    ;;            (Implemented (Ord T)))
    ;;
-   ;; And the following hypotheses global to the crate C:
+   ;; And the following invariants global to the crate C:
    ;;
    ;;     (ForAll ((TyKind T))
-   ;;         (Hypothesized (WellFormed Ty)) => (Implemented (Ord T)))
+   ;;         (WellFormed Ty) => (Implemented (Ord T)))
    (crate-item-decl-rules _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
-   ((Clause) () Hypotheses)
+   ((Clause) () Invariants)
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error Ty_adt (TyApply AdtId (VarId ...)))
@@ -85,9 +85,9 @@
                                (Implies
                                 ((where-clause-to-goal WhereClause) ...)
                                 (WellFormed (TyKind Ty_adt)))))
-   (where/error Hypotheses ((ForAll KindedVarIds
+   (where/error Invariants ((ForAll KindedVarIds
                                     (Implies
-                                     ((Hypothesized (WellFormed (TyKind Ty_adt))))
+                                     ((WellFormed (TyKind Ty_adt)))
                                      (where-clause-to-hypothesis WhereClause)))
                             ...))
    ]
@@ -109,12 +109,12 @@
    ;;            (WellFormed (TyKind T)),
    ;;            (Implemented (Ord T)))
    ;;
-   ;; We also generate the following hypotheses in any crate:
+   ;; We also generate the following invariants in any crate:
    ;;
    ;;     (ForAll ((TyKind Self) (LtKind 'a) (TyKind T))
-   ;;         (Hypothesized (Implemented (Foo (Self T)))) => (Implemented (Ord T))
-   ;;         (Hypothesized (Implemented (Foo (Self T)))) => (WellFormedTy Self)
-   ;;         (Hypothesized (Implemented (Foo (Self T)))) => (WellFormedTy T))
+   ;;         (Implemented (Foo (Self T))) => (Implemented (Ord T))
+   ;;         (Implemented (Foo (Self T))) => (WellFormedTy Self)
+   ;;         (Implemented (Foo (Self T))) => (WellFormedTy T))
    (crate-item-decl-rules _ (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
    ((Clause) (Hypothesis_wc ... Hypothesis_wf ...) ())
 
@@ -129,11 +129,11 @@
                                 (Implemented TraitRef_me))))
    (where/error (Hypothesis_wc ...) ((ForAll KindedVarIds
                                              (Implies
-                                              ((Hypothesized (Implemented TraitRef_me)))
+                                              ((Implemented TraitRef_me))
                                               (where-clause-to-hypothesis WhereClause))) ...))
    (where/error (Hypothesis_wf ...) ((ForAll KindedVarIds
                                              (Implies
-                                              ((Hypothesized (Implemented TraitRef_me)))
+                                              ((Implemented TraitRef_me))
                                               (WellFormed (ParameterKind VarId)))) ...))
    ]
 
@@ -169,9 +169,9 @@
   ;; Given a crate item, return a tuple of:
   ;;
   ;; * The clauses that hold in all crates due to this item
-  ;; * The hypotheses that hold in all crates due to this item
-  ;; * The hypotheses that hold only in the crate that declared this item
-  default-rules : () -> (Clauses Hypotheses)
+  ;; * The invariants that hold in all crates due to this item
+  ;; * The invariants that hold only in the crate that declared this item
+  default-rules : () -> (Clauses Invariants)
 
   ((default-rules ())
    (((WellFormed (TyKind (scalar-ty i32)))
