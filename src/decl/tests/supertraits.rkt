@@ -3,7 +3,7 @@
          "../decl-to-clause.rkt"
          "../grammar.rkt"
          "../../ty/grammar.rkt"
-         "../../ty/solve.rkt"
+         "../../ty/dfs-solve.rkt"
          "../../util.rkt")
 
 (module+ test

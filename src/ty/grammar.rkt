@@ -131,7 +131,7 @@
 
   ;; `Goal` -- things we can prove. These consists of predicates
   ;; joined by various forms of logical operators that are built
-  ;; into the proving system (see `solve.rkt`).
+  ;; into the proving system (see `dfs-solve.rkt`).
   (Goals = (Goal ...))
   (Goal :=
         Predicate
