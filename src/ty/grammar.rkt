@@ -53,7 +53,7 @@
   ;; Env: Typing environment
   ;;
   ;; * Universe -- the largest universe yet defined
-  ;; * VarUniverses -- maps variable names to universes
+  ;; * VarBinders -- maps variable names to quantifier-kinds/universes
   ;;   * When bound variables are instantiated, their names
   ;;     are added to this list.
   ;;   * When equating (existential) variables,
@@ -62,7 +62,7 @@
   ;;   or other such constructs
   ;; * Hypotheses -- facts believed to be true, introduced by
   ;;   where clauses
-  (Env := (Universe VarUniverses EnvInferenceRules))
+  (Env := (Universe VarBinders EnvInferenceRules))
   (Env-e := Env Error)
 
   ;; EnvInferenceRules: various kinds of the logical inference rules,
@@ -76,9 +76,9 @@
   ;;   would create an invariant that `forall T. (T: Eq) => (T: PartialEq)`)
   (EnvInferenceRules := (Clauses Hypotheses Invariants))
 
-  ;; VarUniverse -- maps a `VarId` to a `Universe`
-  (VarUniverses := (VarUniverse ...))
-  (VarUniverse := (VarId Universe))
+  ;; VarBinder -- maps a `VarId` to a quantifier kind and `Universe`
+  (VarBinders := (VarBinder ...))
+  (VarBinder := (VarId Quantifier Universe))
 
   ;; TraitRef = reference to a trait
   (TraitRef := (TraitId Parameters))
@@ -202,51 +202,51 @@
   ;; Returns the hypotheses in the environment
   env-hypotheses : Env -> Hypotheses
 
-  [(env-hypotheses (Universe VarUniverses (Clauses Hypotheses Invariants))) Hypotheses]
+  [(env-hypotheses (Universe VarBinders (Clauses Hypotheses Invariants))) Hypotheses]
   )
 
 (define-metafunction formality-ty
   ;; Returns the program clauses in the environment
   env-clauses : Env -> Hypotheses
 
-  [(env-clauses (Universe VarUniverses (Clauses Hypotheses Invariants))) Clauses]
+  [(env-clauses (Universe VarBinders (Clauses Hypotheses Invariants))) Clauses]
   )
 
 (define-metafunction formality-ty
   ;; Returns the program clauses in the environment
   env-invariants : Env -> Hypotheses
 
-  [(env-invariants (Universe VarUniverses (Clauses Hypotheses Invariants))) Invariants]
+  [(env-invariants (Universe VarBinders (Clauses Hypotheses Invariants))) Invariants]
   )
 
 (define-metafunction formality-ty
   ;; Same environment but without any clauses (only hypotheses)
   env-without-clauses : Env -> Env
 
-  [(env-without-clauses (Universe VarUniverses (_ Hypotheses))) (Universe VarUniverses (() Hypotheses))]
+  [(env-without-clauses (Universe VarBinders (_ Hypotheses))) (Universe VarBinders (() Hypotheses))]
   )
 
 (define-metafunction formality-ty
   ;; Returns the `VarId -> Universe` mapping from the environment
-  env-var-universes : Env -> VarUniverses
+  env-var-binders : Env -> VarBinders
 
-  [(env-var-universes (Universe VarUniverses EnvInferenceRules)) VarUniverses]
+  [(env-var-binders (Universe VarBinders EnvInferenceRules)) VarBinders]
   )
 
 (define-metafunction formality-ty
   ;; Returns the current maximum universe in the environment
   env-universe : Env -> Universe
 
-  [(env-universe (Universe VarUniverses EnvInferenceRules)) Universe]
+  [(env-universe (Universe VarBinders EnvInferenceRules)) Universe]
   )
 
 (define-metafunction formality-ty
   ;; Extend `Env`, mapping the names in `VarIds` to the current universe
-  env-with-vars-in-current-universe : Env VarIds -> Env
+  env-with-vars-in-current-universe : Env Quantifier VarIds -> Env
 
-  [(env-with-vars-in-current-universe Env (VarId ...))
-   (Universe ((VarId Universe) ... VarUniverse ...) EnvInferenceRules)
-   (where/error (Universe (VarUniverse ...) EnvInferenceRules) Env)
+  [(env-with-vars-in-current-universe Env Quantifier (VarId ...))
+   (Universe ((VarId Quantifier Universe) ... VarBinder ...) EnvInferenceRules)
+   (where/error (Universe (VarBinder ...) EnvInferenceRules) Env)
    ]
   )
 
@@ -254,8 +254,8 @@
   ;; Returns the hypotheses in the environment
   env-with-hypotheses : Env Hypotheses -> Env
 
-  [(env-with-hypotheses (Universe VarUniverses (Clauses (Hypothesis_0 ...) Invariants)) (Hypothesis_1 ...))
-   (Universe VarUniverses (Clauses (Hypothesis_0 ... Hypothesis_1 ...) Invariants))
+  [(env-with-hypotheses (Universe VarBinders (Clauses (Hypothesis_0 ...) Invariants)) (Hypothesis_1 ...))
+   (Universe VarBinders (Clauses (Hypothesis_0 ... Hypothesis_1 ...) Invariants))
    ]
   )
 
@@ -265,8 +265,8 @@
   env-with-var-limited-to-universe : Env VarId Universe -> Env
 
   [(env-with-var-limited-to-universe Env VarId Universe_max)
-   (Universe (VarUniverse_0 ... (VarId Universe_new) VarUniverse_1 ...) EnvInferenceRules)
-   (where/error (Universe (VarUniverse_0 ... (VarId Universe_old) VarUniverse_1 ...) EnvInferenceRules) Env)
+   (Universe (VarBinder_0 ... (VarId Quantifier Universe_new) VarBinder_1 ...) EnvInferenceRules)
+   (where/error (Universe (VarBinder_0 ... (VarId Quantifier Universe_old) VarBinder_1 ...) EnvInferenceRules) Env)
    (where/error Universe_new (min-universe Universe_old Universe_max))
    ]
   )
@@ -295,9 +295,9 @@
   env-with-incremented-universe : Env -> Env
 
   [(env-with-incremented-universe Env)
-   (Universe_new VarUniverses EnvInferenceRules)
+   (Universe_new VarBinders EnvInferenceRules)
 
-   (where/error (Universe VarUniverses EnvInferenceRules) Env)
+   (where/error (Universe VarBinders EnvInferenceRules) Env)
    (where/error Universe_new (next-universe Universe))
    ]
 
@@ -312,12 +312,12 @@
 
   [(universe-of-var-in-env Env VarId)
    Universe
-   (where (_ ... (VarId Universe) _ ...) (env-var-universes Env))]
+   (where (_ ... (VarId Quantifier Universe) _ ...) (env-var-binders Env))]
 
   [; Default is to consider random type names as "forall" constants in root universe
    (universe-of-var-in-env Env VarId_!_1)
    RootUniverse
-   (where ((VarId_!_1 Universe) ...) (env-var-universes Env))]
+   (where ((VarId_!_1 _ _) ...) (env-var-binders Env))]
 
   )
 
@@ -330,7 +330,7 @@
 
   [(var-defined-in-env Env VarId)
    #t
-   (where (_ ... (VarId Universe) _ ...) (env-var-universes Env))]
+   (where (_ ... (VarId Quantifier Universe) _ ...) (env-var-binders Env))]
 
   [(var-defined-in-env Env VarId)
    #f]
@@ -407,11 +407,11 @@
   env-with-clauses-and-invariants : Env Clauses Invariants -> Env
 
   [(env-with-clauses-and-invariants
-    (Universe VarUniverses ((Clause_old ...) Hypotheses (Invariant_old ...)))
+    (Universe VarBinders ((Clause_old ...) Hypotheses (Invariant_old ...)))
     (Clause_new ...)
     (Invariant_new ...))
    (Universe
-    VarUniverses
+    VarBinders
     ((Clause_old ... Clause_new ...)
      Hypotheses
      (Invariant_old ... Invariant_new ...)))]

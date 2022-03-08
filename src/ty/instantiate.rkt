@@ -23,7 +23,7 @@
 
    ; create a new environment where the fresh names are placed in a fresh universe
    (where/error Env_1 (env-with-incremented-universe Env_0))
-   (where/error Env_2 (env-with-vars-in-current-universe Env_1 (VarId_new ...)))
+   (where/error Env_2 (env-with-vars-in-current-universe Env_1 ForAll (VarId_new ...)))
 
    ; map each new variable to a Parameter that uses it in placeholder role
    (where/error Substitution_to_placeholders ((VarId_old (! VarId_new)) ...))
@@ -47,7 +47,7 @@
    (where/error ((VarId_old VarId_new) ...) Substitution_to_inference)
 
    ; these names will be placed in the current universe of the environment
-   (where/error Env_1 (env-with-vars-in-current-universe Env_0 (VarId_new ...)))
+   (where/error Env_1 (env-with-vars-in-current-universe Env_0 Exists (VarId_new ...)))
    (where/error Term_1 (apply-substitution Substitution_to_inference Term_0))
    ]
   )

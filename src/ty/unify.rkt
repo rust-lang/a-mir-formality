@@ -3,6 +3,7 @@
          "grammar.rkt"
          "instantiate.rkt"
          "substitution.rkt"
+         "../util.rkt"
          )
 (provide most-general-unifier)
 
@@ -145,11 +146,11 @@
   (redex-let*
    formality-ty
    ((; T, U, and E are in U0
-     Env_0 (term (env-with-vars-in-current-universe EmptyEnv (T U E))))
+     Env_0 (term (env-with-vars-in-current-universe EmptyEnv Exists (T U E))))
     (; V is a placeholder in U1
      (Env_1 Ty_V _) (term (instantiate-quantified Env_0 ForAll ((TyKind V)) V)))
     (; X is in U1, too
-     Env_2 (term (env-with-vars-in-current-universe Env_1 (X)))))
+     Env_2 (term (env-with-vars-in-current-universe Env_1 Exists (X)))))
 
    ; Equating `E` with `i32` is OK
    (test-equal

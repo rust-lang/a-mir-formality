@@ -146,7 +146,7 @@
 
    (redex-let*
     formality-ty
-    ((Env (term (env-with-vars-in-current-universe EmptyEnv (T U V)))))
+    ((Env (term (env-with-vars-in-current-universe EmptyEnv Exists (T U V)))))
     (test-equal
      (judgment-holds (prove-top-level-goal
                       Env
@@ -171,7 +171,7 @@
 
    (test-equal
     (judgment-holds (prove-top-level-goal
-                     (env-with-vars-in-current-universe EmptyEnv (X))
+                     (env-with-vars-in-current-universe EmptyEnv Exists (X))
                      (ForAll ((TyKind T))
                              (Equate T X))
                      EnvSubstitution)
