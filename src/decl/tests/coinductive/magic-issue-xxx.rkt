@@ -12,7 +12,13 @@
    redex-let*
    formality-decl
 
-   ((; trait Magic: Copy { }
+   ((; struct Foo { counter: i32 }
+     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+
+    (; reference to `Foo`
+     Ty_Foo (term (TyApply Foo ())))
+
+    (; trait Magic: Copy { }
      TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))
 
     (; trait Copy { }
@@ -44,7 +50,7 @@
            (test-equal
             (judgment-holds (prove-top-level-goal
                              Env
-                             (Implemented (Magic ((scalar-ty i32))))
+                             (Implemented (Magic (Ty_Foo)))
                              EnvSubstitution)
                             EnvSubstitution)
             (term ())))
@@ -55,7 +61,7 @@
            (test-equal
             (judgment-holds (prove-top-level-goal
                              Env
-                             (Implemented (Copy ((scalar-ty i32))))
+                             (Implemented (Copy (Ty_Foo)))
                              EnvSubstitution)
                             EnvSubstitution)
             (term ())))
@@ -67,7 +73,13 @@
    redex-let*
    formality-decl
 
-   ((; trait Magic: Copy { }
+   ((; struct Foo { counter: i32 }
+     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+
+    (; reference to `Foo`
+     Ty_Foo (term (TyApply Foo ())))
+
+    (; trait Magic: Copy { }
      TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))
 
     (; trait Copy: Magic { }
@@ -97,7 +109,7 @@
            (test-equal
             (judgment-holds (prove-top-level-goal
                              Env
-                             (Implemented (Magic ((scalar-ty i32))))
+                             (Implemented (Magic (Ty_Foo)))
                              EnvSubstitution)
                             EnvSubstitution)
             (term ())))
@@ -108,7 +120,7 @@
            (test-equal
             (judgment-holds (prove-top-level-goal
                              Env
-                             (Implemented (Copy ((scalar-ty i32))))
+                             (Implemented (Copy (Ty_Foo)))
                              EnvSubstitution)
                             EnvSubstitution)
             (term ())))
@@ -120,7 +132,19 @@
    redex-let*
    formality-decl
 
-   ((; trait Magic: Copy { }
+   ((; struct Foo { counter: i32 }
+     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+
+    (; reference to `Foo`
+     Ty_Foo (term (TyApply Foo ())))
+
+    (; struct Bar { counter: i32 }
+     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+
+    (; reference to `Bar`
+     Ty_Bar (term (TyApply Bar ())))
+
+    (; trait Magic: Copy { }
      TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))
 
     (; trait Copy { }
@@ -129,8 +153,8 @@
     (; impl<T> Magic for T where T: Magic { }
      TraitImplDecl_Magic (term (impl ((TyKind T)) (Magic (T)) ((Implemented (Magic (T)))) ())))
 
-    (; impl Copy for i32 { }
-     TraitImplDecl_Copy (term (impl () (Copy ((scalar-ty i32))) () ())))
+    (; impl Copy for Foo { }
+     TraitImplDecl_Copy (term (impl () (Copy (Ty_Foo)) () ())))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
@@ -148,22 +172,22 @@
                             EnvSubstitution)
             (term ((Env ())))))
 
-   (; We can prove that `i32: Magic` because `i32: Copy` does holds
+   (; We can prove that `Foo Magic` because `Foo Copy` does holds
     traced '()
            (test-equal
             (judgment-holds (prove-top-level-goal
                              Env
-                             (Implemented (Magic ((scalar-ty i32))))
+                             (Implemented (Magic (Ty_Foo)))
                              EnvSubstitution)
                             EnvSubstitution)
             (term ())))
 
-   (; But not `u32: Magic` because `u32: Copy` does not hold
+   (; But not `Bar: Magic` because `Bar: Copy` does not hold
     traced '()
            (test-equal
             (judgment-holds (prove-top-level-goal
                              Env
-                             (Implemented (Magic ((scalar-ty u32))))
+                             (Implemented (Magic (Ty_Bar)))
                              EnvSubstitution)
                             EnvSubstitution)
             (term ())))
