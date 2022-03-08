@@ -2,7 +2,18 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "../ty/grammar.rkt")
-(provide crate-item-ok-goal)
+(provide crate-item-ok-goal crate-ok-goal)
+
+(define-metafunction formality-decl
+  ;; Given a set of crates and the decl for the current crate,
+  ;; generate the goal that proves all declarations in the current crate are
+  ;; "ok". Other crates are assumed to be "ok".
+  crate-ok-goal : CrateDecls CrateDecl -> Goal
+
+  [(crate-ok-goal CrateDecls (CrateId (crate (CrateItemDecl ...))))
+   (All ((crate-item-ok-goal CrateDecls CrateItemDecl) ...))
+   ]
+  )
 
 (define-metafunction formality-decl
   ;; Given a crate item, return a Goal that, if proven, means that the

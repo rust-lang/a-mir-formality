@@ -25,21 +25,18 @@
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
 
     (Env (term (env-with-crate-decl EmptyEnv CrateDecl)))
-
-    (Goal_MagicImpl (term (crate-item-ok-goal (CrateDecl) TraitImplDecl_Magic)))
     )
 
-   (; The impl is considered 'ok', since its where clauses allow it to locally prove
-    ; that `Self: Copy`
+   (; All decls in crate are considered 'ok'. In particular, the impl is considered 'ok',
+    ; since its where clauses allow it to locally prove that `Self: Copy`.
     traced '()
            (test-equal
             (judgment-holds (prove-top-level-goal
                              Env
-                             Goal_MagicImpl
+                             (crate-ok-goal (CrateDecl) CrateDecl)
                              EnvSubstitution)
                             EnvSubstitution)
             (term ((Env ())))))
-
 
    (; ...but when we try to use it, we cannot prove that `i32: Magic`
     ; because `i32: Copy` does not hold...
@@ -84,6 +81,16 @@
 
     (Env (term (env-with-crate-decl EmptyEnv CrateDecl)))
     )
+
+   (; All decls in crate are considered 'ok'.
+    traced '()
+           (test-equal
+            (judgment-holds (prove-top-level-goal
+                             Env
+                             (crate-ok-goal (CrateDecl) CrateDecl)
+                             EnvSubstitution)
+                            EnvSubstitution)
+            (term ((Env ())))))
 
    (; Cannot prove that `i32: Magic`
     traced '()
@@ -130,6 +137,16 @@
 
     (Env (term (env-with-crate-decl EmptyEnv CrateDecl)))
     )
+
+   (; All decls in crate are considered 'ok'.
+    traced '()
+           (test-equal
+            (judgment-holds (prove-top-level-goal
+                             Env
+                             (crate-ok-goal (CrateDecl) CrateDecl)
+                             EnvSubstitution)
+                            EnvSubstitution)
+            (term ((Env ())))))
 
    (; We can prove that `i32: Magic` because `i32: Copy` does holds
     traced '()
