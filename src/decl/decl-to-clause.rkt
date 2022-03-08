@@ -113,8 +113,9 @@
    ;;
    ;;     (ForAll ((TyKind Self) (LtKind 'a) (TyKind T))
    ;;         (Implemented (Foo (Self T))) => (Implemented (Ord T))
-   ;;         (Implemented (Foo (Self T))) => (WellFormedTy Self)
-   ;;         (Implemented (Foo (Self T))) => (WellFormedTy T))
+   ;;         (Implemented (Foo (Self T))) => (WellFormed (TyKind Self))
+   ;;         (Implemented (Foo (Self T))) => (WellFormed (LtKind 'a))
+   ;;         (Implemented (Foo (Self T))) => (WellFormed (TyKind T)))
    (crate-item-decl-rules _ (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
    ((Clause) (Hypothesis_wc ... Hypothesis_wf ...) ())
 

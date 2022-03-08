@@ -1,13 +1,15 @@
 #lang racket
 (require redex/reduction-semantics
          "../../decl-to-clause.rkt"
+         "../../decl-ok.rkt"
          "../../grammar.rkt"
          "../../../ty/grammar.rkt"
          "../../../ty/dfs-solve.rkt"
          "../../../util.rkt")
 
 (module+ test
-  (redex-let*
+  (; Magic trait, implemented in terms of itself, that extends Copy
+   redex-let*
    formality-decl
 
    ((; trait Magic: Copy { }
@@ -23,9 +25,24 @@
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
 
     (Env (term (env-with-crate-decl EmptyEnv CrateDecl)))
+
+    (Goal_MagicImpl (term (crate-item-ok-goal (CrateDecl) TraitImplDecl_Magic)))
     )
 
-   (; We cannot prove that `i32: Magic` because `i32: Copy` does not hold
+   (; The impl is considered 'ok', since its where clauses allow it to locally prove
+    ; that `Self: Copy`
+    traced '()
+           (test-equal
+            (judgment-holds (prove-top-level-goal
+                             Env
+                             Goal_MagicImpl
+                             EnvSubstitution)
+                            EnvSubstitution)
+            (term ((Env ())))))
+
+
+   (; ...but when we try to use it, we cannot prove that `i32: Magic`
+    ; because `i32: Copy` does not hold...
     traced '()
            (test-equal
             (judgment-holds (prove-top-level-goal
@@ -36,7 +53,7 @@
             (term ())))
 
 
-   (; Also cannot prove that `i32: Copy`
+   (; ...also cannot prove that `i32: Copy`, of course.
     traced '()
            (test-equal
             (judgment-holds (prove-top-level-goal
@@ -48,7 +65,9 @@
 
    )
 
-  (redex-let*
+  (; Mutual recursion between Magic and Copy, with Magic implemented in terms of itself,
+   ; but no impl of Copy
+   redex-let*
    formality-decl
 
    ((; trait Magic: Copy { }
@@ -89,7 +108,9 @@
 
    )
 
-  (redex-let*
+  (; Mutual recursion between Magic and Copy, with Magic implemented in terms of itself
+   ; *and* Copy implemented
+   redex-let*
    formality-decl
 
    ((; trait Magic: Copy { }

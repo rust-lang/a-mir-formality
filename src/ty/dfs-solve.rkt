@@ -1,4 +1,4 @@
 #lang racket
-(require "solve/prove.rkt")
+(require "dfs-solve/prove.rkt")
 
 (provide prove-top-level-goal)
