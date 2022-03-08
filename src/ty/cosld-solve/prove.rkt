@@ -11,6 +11,13 @@
 (provide prove prove-top-level-goal)
 
 (define-judgment-form formality-ty
+  ;; Prove a "top-level" goal is true in the given environment
+  ;; using the cosld solver. cosld is a basic [SLD] solving algorithm,
+  ;; enriched to handle [FOHH] predicates as well as to
+  ;; support a simple form of coinduction.
+  ;;
+  ;; [SLD]: https://en.wikipedia.org/wiki/SLD_resolution
+  ;; [FOHH]: https://en.wikipedia.org/wiki/Harrop_formula
   #:mode (prove-top-level-goal I I O)
   #:contract (prove-top-level-goal Env Goal EnvSubstitution)
 

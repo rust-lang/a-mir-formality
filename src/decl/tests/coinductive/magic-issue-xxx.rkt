@@ -4,7 +4,7 @@
          "../../decl-ok.rkt"
          "../../grammar.rkt"
          "../../../ty/grammar.rkt"
-         "../../../ty/dfs-solve.rkt"
+         "../../../ty/cosld-solve.rkt"
          "../../../util.rkt")
 
 (module+ test
