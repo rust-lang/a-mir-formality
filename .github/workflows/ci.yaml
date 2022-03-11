@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Racket
+        run: |
+          sudo add-apt-repository ppa:plt/racket
+          sudo apt install xvfb racket
+      - name: Run Tests
+        run: |
+          xvfb-run raco test .
