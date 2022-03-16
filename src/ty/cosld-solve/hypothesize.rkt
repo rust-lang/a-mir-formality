@@ -3,7 +3,8 @@
          "../grammar.rkt"
          "../substitution.rkt"
          "../instantiate.rkt"
-         "util.rkt")
+         "util.rkt"
+         "filter.rkt")
 (provide Hypotheses-imply)
 
 (define-judgment-form formality-ty
@@ -11,7 +12,7 @@
   #:contract (Hypotheses-imply Env Predicates_stack Goal EnvSubstitution)
 
   [(where #f (in? Predicate Predicates_stack))
-   (where (_ ... Hypothesis _ ... ) (flatten ((env-hypotheses Env) (env-invariants Env))))
+   (where (_ ... Hypothesis _ ... ) (filter-clauses (flatten ((env-hypotheses Env) (env-invariants Env))) Predicate))
    (Hypothesis-implies Env Predicates_stack Hypothesis Predicate EnvSubstitution_out)
    --------------- "imply-clause"
    (Hypotheses-imply Env Predicates_stack Predicate EnvSubstitution_out)

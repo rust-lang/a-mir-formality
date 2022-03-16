@@ -6,6 +6,7 @@
          "../unify.rkt"
          "../../util.rkt"
          "hypothesize.rkt"
+         "filter.rkt"
          "util.rkt")
 
 (provide prove prove-top-level-goal)
@@ -32,7 +33,7 @@
   #:contract (prove Env Predicates_stack Goal EnvSubstitution)
 
   [(where #f (in? Predicate Predicates_stack))
-   (where (_ ... Clause _ ... ) (flatten ((env-clauses Env) (env-hypotheses Env))))
+   (where (_ ... Clause _ ... ) (filter-clauses (env-clauses Env) Predicate))
    (Clause-proves Env Predicates_stack Clause Predicate EnvSubstitution_out)
    --------------- "prove-clause"
    (prove Env Predicates_stack Predicate EnvSubstitution_out)

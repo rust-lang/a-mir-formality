@@ -11,8 +11,7 @@
    TraitDecl
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (crate CrateId (_ TraitDecls _)) CrateDecl)
-   (where (_ ... TraitDecl _ ...) TraitDecls)
+   (where (CrateId (crate (_ ... TraitDecl _ ...))) CrateDecl)
    (where TraitId (trait-decl-id TraitDecl))
    )
   )

@@ -1,7 +1,8 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
-         "../ty/grammar.rkt")
+         "../ty/grammar.rkt"
+         "decl-from-crate.rkt")
 (provide crate-item-ok-goal crate-ok-goal)
 
 (define-metafunction formality-decl
@@ -35,7 +36,7 @@
    Goal_wf
 
    (where/error (KindedVarId ...) KindedVarIds)
-   (where/error ((VariantId (FieldId Ty) ...) ...) AdtVariants)
+   (where/error ((VariantId ((FieldId Ty) ...)) ...) AdtVariants)
    (where/error Goal_wf (ForAll KindedVarIds
                                 (Implies
                                  ((WellFormed KindedVarId) ... WhereClause ...)
@@ -60,12 +61,21 @@
    ;;
    ;;     impl<'a, T> Foo<'a, T> for u32 { }
    ;;
-   ;; we require that the trait is implemented.
-   (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
+   ;; we require that the trait is implemented, given that all generics are WF,
+   ;; all inputs are WF, and where-clauses are satisfied.
+   (crate-item-ok-goal CrateDecls (impl KindedVarIds_impl (TraitId (Parameter_trait ...)) WhereClauses_impl ImplItems))
    (ForAll KindedVarIds_impl
-           (Implies ((WellFormed KindedVarId_impl) ... WhereClause_impl ...)
-                    (All ((Implemented TraitRef)))))
+           (Implies
+            (; assuming all generic parameters are WF...
+             (WellFormed KindedVarId_impl) ...
+             ; ...all inputs are WF...
+             (WellFormed (ParameterKind_trait Parameter_trait)) ...
+             ; ...where-clauses are satisfied...
+             WhereClause_impl ...)
+            (; ... then the trait must be implemented
+             Implemented (TraitId (Parameter_trait ...)))))
 
+   (where/error (TraitId (trait ((ParameterKind_trait _) ...) _ _)) (trait-decl-with-id CrateDecls TraitId))
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)
    ]

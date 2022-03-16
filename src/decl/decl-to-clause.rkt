@@ -39,18 +39,18 @@
 
   [; Rules from crate C to use internally within crate C
    (crate-decl-rules CrateDecls (CrateId (crate (CrateItemDecl ...))) CrateId)
-   ((Clause ... ...) (Hypothesis_all ... ... Hypothesis_local ... ...))
+   ((Clause ... ...) (Invariant_all ... ... Invariant_local ... ...))
 
-   (where/error (((Clause ...) (Hypothesis_all ...) (Hypothesis_local ...)) ...) ((crate-item-decl-rules CrateDecls CrateItemDecl) ...))
+   (where/error (((Clause ...) (Invariant_all ...) (Invariant_local ...)) ...) ((crate-item-decl-rules CrateDecls CrateItemDecl) ...))
    ]
 
   [; Rules from crate C to use from other crates -- exclude the invariants, which are
    ; local to crate C, but keep the clauses, which are global.
-   (crate-decl-rules CrateDecls (crate CrateId_0 ((CrateItemDecl ...))) CrateId_1)
-   ((Clause ...) (Hypothesis_all ...))
+   (crate-decl-rules CrateDecls (CrateId_0 (crate (CrateItemDecl ...))) CrateId_1)
+   ((Clause ... ...) (Invariant_all ... ...))
 
    (where (CrateId_!_same CrateId_!_same) (CrateId_0 CrateId_1))
-   (where/error (((Clause ...) (Hypothesis_all ...) _)) ((crate-item-decl-rules CrateDecls CrateItemDecl) ...))
+   (where/error (((Clause ...) (Invariant_all ...) _) ...) ((crate-item-decl-rules CrateDecls CrateItemDecl) ...))
    ]
   )
 
@@ -109,15 +109,27 @@
    ;;            (WellFormed (TyKind T)),
    ;;            (Implemented (Ord T)))
    ;;
-   ;; We also generate the following invariants in any crate:
+   ;; We also generate the following invariants in the defining crate:
    ;;
    ;;     (ForAll ((TyKind Self) (LtKind 'a) (TyKind T))
-   ;;         (Implemented (Foo (Self T))) => (Implemented (Ord T))
+   ;;         (Implemented (Foo (Self T))) => (Implemented (Ord T)))
+   ;;
+   ;; In theory we could/should generate these, but they lead the cosld prover down some bad
+   ;; paths. For example, given that `WF(Foo<T>) => Implemented(T: Debug)`, if it is
+   ;; trying to show that `Implemented(Foo<T>: Debug)`, it would try to show that `WF(Foo<Foo<T>>)`
+   ;; is hypothesized, which in turn (thanks to these rules below) would lead it to wonder
+   ;; whether `Implemented(Foo<Foo<T>>: Debug)`, which starts the cycle over again.
+   ;;
+   ;;     (ForAll ((TyKind Self) (LtKind 'a) (TyKind T))
    ;;         (Implemented (Foo (Self T))) => (WellFormed (TyKind Self))
    ;;         (Implemented (Foo (Self T))) => (WellFormed (LtKind 'a))
    ;;         (Implemented (Foo (Self T))) => (WellFormed (TyKind T)))
    (crate-item-decl-rules _ (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
-   ((Clause) (Hypothesis_wc ... Hypothesis_wf ...) ())
+   ((Clause)
+    (Hypothesis_wc ...
+     ;Hypothesis_wf ...
+     )
+    ())
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error TraitRef_me (TraitId (VarId ...)))

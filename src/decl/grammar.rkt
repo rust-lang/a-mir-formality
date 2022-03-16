@@ -73,7 +73,7 @@
 (define-metafunction formality-decl
   trait-decl-id : TraitDecl -> TraitId
 
-  ((trait-decl-id (trait TraitId KindedVarIds WhereClauses TraitItems)) TraitId)
+  ((trait-decl-id (TraitId TraitContents)) TraitId)
   )
 
 (define-metafunction formality-decl
