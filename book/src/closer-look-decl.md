@@ -19,7 +19,7 @@ Basically a list of items like `(a (crate (item1 item2 item3)))` where `item{1,2
 
 ### Declaring traits in `FormalityDecl`
 
-Let's look more closely at one of those kinds of items. A trait declaration looks like this ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/grammar.rkt#L26-L27)):
+Let's look more closely at one of those kinds of items. A trait declaration looks like this:
 
 ```scheme
   (TraitDecl := (TraitId TraitContents))
@@ -31,6 +31,7 @@ Let's look more closely at one of those kinds of items. A trait declaration look
                (Implemented TraitRef)
                )
 ```
+<span class="caption">[Source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/grammar.rkt#L26-L27)</span>
 
 Here:
 
@@ -59,7 +60,7 @@ would be represented as
 
 ### Lowering crate items to clauses
 
-The next part of `formality-decl` is the metafunction `env-with-crate-decls` ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/decl-to-clause.rkt#L20-L23)):
+The next part of `formality-decl` is the metafunction `env-with-crate-decls` ([source]):
 
 ```scheme
 (define-metafunction formality-decl
@@ -69,6 +70,7 @@ The next part of `formality-decl` is the metafunction `env-with-crate-decls` ([s
   ; ...
   )
 ```
+<span class="caption">[Source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/decl-to-clause.rkt#L20-L23)</span>
 
 What this does is to convert *Rust declarations* into the *environment* from the type layer. Note that it takes:
 

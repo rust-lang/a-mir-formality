@@ -1,4 +1,4 @@
-# Layers of formality
+# Layers of Formality
 
 Formality is structured into several layers.
 These layers are meant to also map fairly closely onto 

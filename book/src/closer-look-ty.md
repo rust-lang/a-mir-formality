@@ -50,7 +50,7 @@ As I said, this defintion of types is woefully incomplete. I expect it to eventu
 * "existential" types like `dyn`
 * "forall" quantifies to cover `for<'a> ...`
 * "function" types `fn(A1...An) -> R`
-* "implication" types `where(...) T`-- these don't exist in Rust yet =)
+* "implication" types `where(...) T` (these don't exist in Rust—yet)
 
 You can also see that the definition of types is aligned to highlight their "essential" characteristics and not necessarily for convenience elsewhere. Almost every Rust type, for example, boils down to *some* kind of "application" (it's likely that we can even represent `fn` types this way).
 

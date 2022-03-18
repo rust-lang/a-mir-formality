@@ -1,6 +1,6 @@
 # Case study: Implied bounds and perfect derive
 
-The current code doesn't really model Rust as it is today.
+The [current code][] doesn't really model Rust as it is today.
 It actually models Rust extended with support for two new features:
 "implied bounds" and "perfect derive".
 
@@ -280,3 +280,4 @@ The TL;DR is something like this: "we accept all cycles but require that for any
 -->
 
 [Luke Simon et al.]: https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.102.9618&rep=rep1&type=pdf
+[current code]: https://github.com/nikomatsakis/rust-name-resolution-algorithm/tree/ccc9599e0db39afa3516cedf059e434d0810be6f

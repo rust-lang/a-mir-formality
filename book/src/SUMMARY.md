@@ -1,7 +1,6 @@
 # Summary
 
 - [Introduction](./introduction.md)
-- [PLT Redex](./redex.md)
 
 # How Formality works
 - [Layers of formality](./layers.md)
