@@ -19,29 +19,57 @@
   ;; publishd in 1992 by Gopalan Nadathur at Duke University.
   most-general-unifier : Env TermPairs -> EnvSubstitution or Error
 
-  [(most-general-unifier Env TermPairs) (unify-pairs Env () TermPairs)]
+  [(most-general-unifier Env TermPairs)
+   (unify-pairs VarIds_exists Env () TermPairs)
+
+   (where/error VarIds_exists (existential-vars-in-env Env))]
   )
 
 (define-metafunction formality-ty
-  unify-pairs : Env Substitution TermPairs -> EnvSubstitution or Error
+  ;; Returns the `VarId -> Universe` mapping from the environment
+  existential-vars-in-env : Env -> VarIds
+
+  [(existential-vars-in-env Env)
+   (existential-vars-from-binders VarBinders)
+   (where/error VarBinders (env-var-binders Env))
+   ]
+  )
+
+(define-metafunction formality-ty
+  ;; Filters out universal (ForAll) binders and returns just the VarIds of the existential ones.
+  existential-vars-from-binders : VarBinders -> VarIds
+
+  [(existential-vars-from-binders ()) ()]
+
+  [(existential-vars-from-binders ((_ ForAll _) VarBinder_2 ...))
+   (existential-vars-from-binders (VarBinder_2 ...))]
+
+  [(existential-vars-from-binders ((VarId_1 Exists _) VarBinder_2 ...))
+   (VarId_1 VarId_2 ...)
+   (where/error (VarId_2 ...) (existential-vars-from-binders (VarBinder_2 ...)))]
+
+  )
+
+(define-metafunction formality-ty
+  unify-pairs : VarIds_exists Env Substitution TermPairs -> EnvSubstitution or Error
   [; base case, all done, but we have to apply the substitution to itself
-   (unify-pairs Env Substitution ())
+   (unify-pairs VarIds_exists Env Substitution ())
    (Env_1 Substitution_1)
    (where/error Substitution_1 (substitution-fix Substitution))
    (where/error Env_1 (apply-substitution-to-env Substitution_1 Env))
    ]
 
   [; unify the first pair ===> if that is an error, fail
-   (unify-pairs Env Substitution (TermPair_first TermPair_rest ...))
+   (unify-pairs VarIds_exists Env Substitution (TermPair_first TermPair_rest ...))
    Error
-   (where Error (unify-pair Env TermPair_first))]
+   (where Error (unify-pair VarIds_exists Env TermPair_first))]
 
   [; unify the first pair ===> if that succeeds, apply resulting substitution to the rest
    ; and recurse
-   (unify-pairs Env Substitution_in (TermPair_first TermPair_rest ...))
-   (unify-pairs Env_u Substitution_all TermPairs_all)
+   (unify-pairs VarIds_exists Env Substitution_in (TermPair_first TermPair_rest ...))
+   (unify-pairs VarIds_exists Env_u Substitution_all TermPairs_all)
 
-   (where (Env_u Substitution_u (TermPair_u ...)) (unify-pair Env TermPair_first))
+   (where (Env_u Substitution_u (TermPair_u ...)) (unify-pair VarIds_exists Env TermPair_first))
    (where/error (TermPair_v ...) (apply-substitution Substitution_u (TermPair_rest ...)))
    (where/error TermPairs_all (TermPair_u ... TermPair_v ...))
    (where/error Substitution_all (substitution-concat-disjoint Substitution_in Substitution_u))
@@ -49,34 +77,34 @@
   )
 
 (define-metafunction formality-ty
-  unify-pair : Env TermPair -> (Env Substitution TermPairs) or Error
+  unify-pair : VarIds_exists Env TermPair -> (Env Substitution TermPairs) or Error
 
   [; X = X ===> always ok
-   (unify-pair Env (Term Term))
+   (unify-pair _ Env (Term Term))
    (Env () ())
    ]
 
   [; X = P ===> occurs check ok, return `[X => P]`
-   (unify-pair Env (VarId Parameter))
+   (unify-pair VarIds_exists Env (VarId Parameter))
    (Env_out ((VarId Parameter)) ())
 
-   (where #t (env-contains-existential-var Env VarId))
+   (where #t (contains-id VarIds_exists VarId))
    (where Env_out (occurs-check Env VarId Parameter))
    ]
 
   [; X = P ===> but occurs check fails, return Error
-   (unify-pair Env (VarId Parameter))
+   (unify-pair VarIds_exists Env (VarId Parameter))
    Error
 
-   (where #t (env-contains-existential-var Env VarId))
+   (where #t (contains-id VarIds_exists VarId))
    (where Error (occurs-check Env VarId Parameter))
    ]
 
   [; P = X ===> just reverse order
-   (unify-pair Env (Parameter VarId))
-   (unify-pair Env (VarId Parameter))
+   (unify-pair VarIds_exists Env (Parameter VarId))
+   (unify-pair VarIds_exists Env (VarId Parameter))
 
-   (where #t (env-contains-existential-var Env VarId))
+   (where #t (contains-id VarIds_exists VarId))
    ]
 
   [; Universal placeholders like `(! X)` and `(! Y)` must
@@ -87,20 +115,27 @@
    ; mistake `X` and `Y` for existential variables (they are variables
    ; defined in the environment, and the environment doesn't presently
    ; distinguish *how* they are defined, for better or -- arguably -- worse).
-   (unify-pair Env ((! VarId_!_0) (! VarId_!_0)))
+   (unify-pair VarIds_exists Env ((! VarId_!_0) (! VarId_!_0)))
    Error
    ]
 
   [; (L ...) = (R ...) ===> true if Li = Ri for all i and the lengths are the same
-   (unify-pair Env ((Term_l ..._0)
-                    (Term_r ..._0)))
+   (unify-pair VarIds_exists Env ((Term_l ..._0)
+                                  (Term_r ..._0)))
    (Env () ((Term_l Term_r) ...))]
 
   [; any other case fails to unify
-   (unify-pair Env (Term_1 Term_2))
+   (unify-pair VarIds_exists Env (Term_1 Term_2))
    Error
    ]
 
+  )
+
+(define-metafunction formality-ty
+  contains-id : VarIds VarId -> boolean
+
+  [(contains-id (_ ... VarId _ ...) VarId) #t]
+  [(contains-id _ _) #f]
   )
 
 (define-metafunction formality-ty
