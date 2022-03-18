@@ -142,16 +142,19 @@
         (Quantifier KindedVarIds Goal)
         )
 
-  ;; `Clause`, `Hypothesis`, `Invariant` -- axioms. These are both built-in and derived from
+  ;; `Clause`, `Hypothesis` -- axioms. These are both built-in and derived from
   ;; user-defined items like `trait` and `impl`.
-  ((Hypotheses Clauses Invariants) := (Clause ...))
-  ((Hypothesis Clause Invariant) :=
-                                 Predicate
-                                 (Implies Goals Predicate)
-                                 (ForAll KindedVarIds Clause)
-                                 )
+  ((Hypotheses Clauses) := (Clause ...))
+  ((Hypothesis Clause) :=
+                       Predicate
+                       (Implies Goals Predicate)
+                       (ForAll KindedVarIds Clause)
+                       )
 
-
+  ;; `Invariants` -- things which must be true or the type system has some bugs.
+  ;; A rather restricted form of clause.
+  (Invariants := (Invariant ...))
+  (Invariant := (ForAll KindedVarIds (Implies (Predicate) Predicate)))
 
   ;; `Quantifier` -- the two kinds of quantifiers.
   (Quantifier := ForAll Exists)
