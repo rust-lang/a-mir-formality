@@ -1,0 +1,47 @@
+# Niko's FAQ
+
+## If this is a complete model, isn't that just an implementation? 
+
+Not really. It leaves out a ton of stuff:
+
+* diagnostics
+* low-level ABI details
+* parser and concrete rust syntax
+* running C code and FFI (though you can imagine translating C code to equivalent unsafe Rust, which would be supported to some extent)
+* platform specific things, interactions with the operating system
+
+Currently, it's focusing on MIR and back, which means we can exclude a lot of things
+
+* name resolution
+* layout (we can take struct layouts as inputs)
+* 
+
+# Questions
+
+## Are there any fundamental differences to Chalk, so far?
+
+nikomatsakis: Yes. Chalk does not have the concept of invariants and handles implied bounds in a different way (`FromEnv` goals). Chalk also has one structural setup that has to be ported to formality -- it generates program clauses "on demand". This is required because actually the set of program clauses for a Rust program is potentially infinite (think of e.g. auto traits). I've been debating the best way to model this with PLT Redex and in particular whether it's important to preserve the various layers I've shown here, it might be easier if we merged everything into one.
+
+## Is this an "ideal" Rust model, or a "practical" one?
+
+- Current Rust semantics, or the one we want
+
+nikomatsakis: You're asking the right question, and it's something I wanted to discuss. Right now it's the "ideal" model in the sense that I am using it to show how some extensions to Rust would work, but I think it's important that it be the "practical" one too. It's not hard to disable the implied bounds (actually, limit them to supertraits) and remove support for cycles. What's a bit more interesting, and I'm not sure about it, is the best way to have "feature gates" so that we can show the "diff required" to support a new feature. 
+
+## Is it practical to try to develop Chalk alongside? I.e. update Chalk's rules as a-mir-formality is updated?
+
+nikomatsakis: I think so, and I think we should. This is partly why Formality's structure intentionally mirrors Chalk (and it should eventually include the solver, so that we can show "these are things the compiler should be able to prove" versus "these are things that are provable"). The idea is that we can prototype and explore more quickly in this environment, but chalk would scale up to real programs (the PLT Redex solver is way too slow for that). Also, Chalk's structure would be more optimized for performance, for giving good error messages, for dealing with low-level ABI details, and all the other fun stuff that the model does NOT include.
+
+## What about Coq?
+
+> it seems that coq is the most popular at POPL etc. How well do you think the framework you're using will integrate into other PL tools/efforts?
+
+nikomatsakis: As you can see, the notation is quite high-level, so if nothing else I think it would be easy to manually transcribe things. But I would assume people have made efforts to "export" rules and things from PLT Redex to other formats.
+
+## How would types team signoff integrate into feature process?
+
+* add a checkbox "types team signoff" for new language features
+* open an issue on formality repository
+
+
+## How/where does coercion fit in?
