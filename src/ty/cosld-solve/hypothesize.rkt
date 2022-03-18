@@ -39,13 +39,13 @@
    (Hypotheses-imply Env Predicates_stack (Implies Hypotheses Goal) (reset Env () EnvSubstitution_out))
    ]
 
-  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env ForAll KindedVarIds Goal))
+  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (ForAll KindedVarIds Goal)))
    (Hypotheses-imply Env_1 Predicates_stack Goal_1 EnvSubstitution_out)
    --------------- "prove-forall"
    (Hypotheses-imply Env Predicates_stack (ForAll KindedVarIds Goal) (reset Env VarIds_new EnvSubstitution_out))
    ]
 
-  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env Exists KindedVarIds Goal))
+  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (Exists KindedVarIds Goal)))
    (Hypotheses-imply Env_1 Predicates_stack Goal_1 EnvSubstitution_out)
    --------------- "prove-exists"
    (Hypotheses-imply Env Predicates_stack (Exists KindedVarIds Goal) (reset Env VarIds_new EnvSubstitution_out))
@@ -85,7 +85,7 @@
    (Hypothesis-implies Env (Predicate_stack ...) (Implies Goals Predicate_1) Predicate_2 EnvSubstitution)
    ]
 
-  [(where/error (Env_i Clause_i VarIds_i) (instantiate-quantified Env Exists KindedVarIds Clause))
+  [(where/error (Env_i Clause_i VarIds_i) (instantiate-quantified Env (Exists KindedVarIds Clause)))
    (Hypothesis-implies Env_i Predicates_stack Clause_i Predicate EnvSubstitution)
    --------------- "clause-forall"
    (Hypothesis-implies Env Predicates_stack (ForAll KindedVarIds Clause) Predicate (reset Env VarIds_i EnvSubstitution))

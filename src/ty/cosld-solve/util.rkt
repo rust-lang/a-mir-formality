@@ -67,13 +67,13 @@
   (redex-let*
    formality-ty
    ((; A is in U0
-     (Env_0 Ty_A (VarId_0)) (term (instantiate-quantified EmptyEnv Exists ((TyKind A)) A)))
+     (Env_0 Ty_A (VarId_0)) (term (instantiate-quantified EmptyEnv (Exists ((TyKind A)) A))))
     (; V is a placeholder in U1
-     (Env_1 Ty_T (VarId_1)) (term (instantiate-quantified Env_0 ForAll ((TyKind T)) T)))
+     (Env_1 Ty_T (VarId_1)) (term (instantiate-quantified Env_0 (ForAll ((TyKind T)) T))))
     (; X is in U1
-     (Env_2 Ty_X (VarId_2)) (term (instantiate-quantified Env_1 Exists ((TyKind X)) X)))
+     (Env_2 Ty_X (VarId_2)) (term (instantiate-quantified Env_1 (Exists ((TyKind X)) X))))
     (; Y, Z are in U1
-     (Env_3 (Ty_Y Ty_Z) VarIds_3) (term (instantiate-quantified Env_2 Exists ((TyKind Y) (TyKind Z)) (Y Z))))
+     (Env_3 (Ty_Y Ty_Z) VarIds_3) (term (instantiate-quantified Env_2 (Exists ((TyKind Y) (TyKind Z)) (Y Z)))))
     ((Env_4 Substitution_out) (term (most-general-unifier Env_3 (((TyApply Vec (Ty_A)) (TyApply Vec (Ty_X)))))))
     (Env_5 (term (copy-universes Env_2 VarIds_3 Env_4)))
     )
