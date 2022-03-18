@@ -5,7 +5,8 @@
          "substitution.rkt"
          "../util.rkt"
          )
-(provide most-general-unifier)
+(provide most-general-unifier
+         most-general-unifier/vars)
 
 (define-metafunction formality-ty
   ;; Given an environment and a set `TermPairs` of `(Term Term)` pairs,
@@ -23,6 +24,15 @@
    (unify-pairs VarIds_exists Env () TermPairs)
 
    (where/error VarIds_exists (existential-vars-in-env Env))]
+  )
+
+(define-metafunction formality-ty
+  ;; Like `most-general-unifier`, but treats `VarIds` as variables and
+  ;; everything else as fixed.
+  most-general-unifier/vars : VarIds Env TermPairs -> EnvSubstitution or Error
+
+  [(most-general-unifier/vars VarIds Env TermPairs)
+   (unify-pairs VarIds Env () TermPairs)]
   )
 
 (define-metafunction formality-ty
@@ -320,5 +330,15 @@
     ; changes to `i32: Debug` now that we know `X = i32`
     (test-equal (term (env-hypotheses Env_out)) (term ((Implemented (Debug ((scalar-ty i32)))))))
     )
+
+   ; Here we can only map X but that's fine.
+   (test-equal (term (most-general-unifier/vars (X) Env_2 ((X (scalar-ty i32))
+                                                           (X X)
+                                                           (X (scalar-ty i32)))))
+               (term (Env_2 ((X (scalar-ty i32))))))
+
+   ; Here, even though Y is a variable, we fail because we're not allowed to assign it.
+   (test-equal (term (most-general-unifier/vars (X) Env_2 ((X Y) (X (scalar-ty i32)))))
+               (term Error))
    )
   )
