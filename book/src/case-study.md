@@ -1,36 +1,60 @@
 ## Case study: Implied bounds and perfect derive
 
-The current code doesn't really model Rust as it is today. It actually models Rust extended with support for two new features, "implied bounds" and "perfect derive":
+The current code doesn't really model Rust as it is today.
+It actually models Rust extended with support for two new features:
+"implied bounds" and "perfect derive".
 
-* **Implied bounds:** Given `struct Foo<T: Ord>`, can `impl<T> Foo<T> { ... }` just know that `T: Ord`?
-    * (We actually have implied bounds today, but they are limited to supertraits (e.g., `T: Eq => T: PartialEq`), so maybe a better way to describe implied bounds would be *expanded implied bounds*.)
-* **Perfect derive:** Given `#[derive(Clone)] struct Foo<T> { x: Rc<T> }`, we "just know" that `impl<T> Clone for Foo<T>` works, and that `T: Clone` is not necessary?
-    * The idea is that `derive` would generate `impl<T> Clone for Foo<T> where Rc<T>: Clone`. Seems simple, right?
-    * The trick is that we have to extend all trait matching to work like auto-traits does, and accept cycles. Consider deriving clone on
-        * `struct List<T> { value: Rc<T>, next: Option<Rc<List<T>>> }`
-        * here you would get `impl<T> Clone for List<T> where Rc<T>: Clone, Option<Rc<List<T>>>: Clone` -- if you try that today, you'll find it is a cycle error.
-    * We are going to refer to this "accept cycles" as coinductive; it's basically the [co-LP formulation by Luke Simon et al.](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.102.9618&rep=rep1&type=pdf) that I referred to earlier.
+**Implied bounds:**
+Given `struct Foo<T: Ord>`, can `impl<T> Foo<T> { ... }` just know that `T: Ord`?
+We actually have implied bounds today, but they are limited to supertraits (e.g., `T: Eq => T: PartialEq`),
+so maybe a better way to describe implied bounds would be *expanded implied bounds*.
 
-These two features are a bit tricky to integrate because accepting cycles, if you're not careful, can easily lead you into assuming implied bounds that are not true. The classic example is this:
+**Perfect derive:**
+Given `#[derive(Clone)] struct Foo<T> { x: Rc<T> }`,
+we "just know" that `impl<T> Clone for Foo<T>` works,
+and that `T: Clone` is not necessary?
+The idea is that `derive` would generate `impl<T> Clone for Foo<T> where Rc<T>: Clone`.
+Seems simple, right?
+The trick is that we have to extend all trait matching to work like auto-traits does,
+and accept cycles.
+Consider deriving clone on * `struct List<T> { value: Rc<T>, next: Option<Rc<List<T>>> }`.
+Here you would get `impl<T> Clone for List<T> where Rc<T>: Clone, Option<Rc<List<T>>>: Clone`.
+If you try that today, you'll find it is a cycle error.
+We are going to refer to this "accept cycles" as coinductive;
+it's basically the co-LP formulation by [Luke Simon et al.] that I referred to earlier.
+
+These two features are a bit tricky to integrate because accepting cycles, 
+if you're not careful, can easily lead you into assuming implied bounds that are not true.
+The classic example is this:
 
 ```rust
 trait Copy { }
 trait Magic: Copy { }
 ```
 
-Clearly, given these traits, we know that `T: Magic => T: Copy`, right? But what about if someone writes this rather tautological impl:
+Clearly, given these traits, we know that `T: Magic => T: Copy`, right?
+But what about if someone writes this rather tautological impl:
 
 ```rust
 impl<T: Magic> Magic for T { }
 ```
 
-If we're not careful, we can use this impl to show that every type implements `Magic` -- and yet there is no `impl Copy` anywhere. Something is off!
+If we're not careful, we can use this impl to show that every type implements `Magic` --
+and yet there is no `impl Copy` anywhere.
+Something is off!
 
-The solution to that is based on the scheme that [scalexm](https://github.com/scalexm) invented for Chalk; I've tweaked it somewhat by integrating it a bit more deeply into the "core logic", which simplifies the predicates that we need. I find I like this formulation better, and it allows us to simplify a few other things too.
+The solution to that is based on the scheme that [scalexm](https://github.com/scalexm) invented for Chalk;
+I've tweaked it somewhat by integrating it a bit more deeply into the "core logic",
+which simplifies the predicates that we need.
+I find I like this formulation better, and it allows us to simplify a few other things too.
 
 ### Distinguish `HasImpl` and `Implemented`
 
-The first key part of the system is to distinguish *having an impl* (`HasImpl`) from *being implemented* (`Implemented`). The former says that the user wrote an impl. The latter says that all the requirements are met to implement the trait, including in particular that all of its where clauses (which includes the supertraits) are satisfied.
+The first key part of the system
+is to distinguish *having an impl* (`HasImpl`) from *being implemented* (`Implemented`).
+The former says that the user wrote an impl.
+The latter says that all the requirements are met to implement the trait,
+including in particular that all of its where clauses (which includes the supertraits) are satisfied.
 
 Using the code for impls we saw earlier, the `Magic` impl would generate the following clause:
 
@@ -41,7 +65,10 @@ Using the code for impls we saw earlier, the `Magic` impl would generate the fol
                  (HasImpl (Magic (T)))))
 ```
 
-To actually prove `Implemented(T: Magic)`, This clause has to be combined with the clauses generated by the trait declarations ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/decl-to-clause.rkt#L95-L118)). For the `Copy` trait, which has no where clauses, this clause is very simple. To be implemented, the impl must exist, and the type must be well-formed:
+To actually prove `Implemented(T: Magic)`,
+this clause has to be combined with the clauses generated by the trait declarations ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/decl-to-clause.rkt#L95-L118)).
+For the `Copy` trait, which has no where clauses, this clause is very simple.
+To be implemented, the impl must exist, and the type must be well-formed:
 
 ```scheme
 ; forall<T> { (
@@ -69,7 +96,8 @@ For `Magic`, the rule includes the where clause that `T: Copy`:
                  (Implemented (Magic (T)))))
 ```
 
-Now we start to see how this works -- if I want to call a function with a `T: Magic` where clause, like this...
+Now we start to see how this works -- 
+if I want to call a function with a `T: Magic` where clause, like this...
 
 ```rust
 fn make_the_magic_happen<T: Magic>(t: T) {
@@ -78,17 +106,21 @@ fn make_the_magic_happen<T: Magic>(t: T) {
 }
 ```
 
-...it is not enough to show that `HasImpl` is satisfied, I also have to prove that `T: Copy`. To do that, I have to show that `HasImpl(T: Copy)`, and I can't do that.
+...it is not enough to show that `HasImpl` is satisfied, I also have to prove that `T: Copy`
+To do that, I have to show that `HasImpl(T: Copy)`, and I can't do that.
 
 ### But wait, implied bounds?
 
-Actually though, the above is not sufficient to solve the problem. That's because we haven't added in implied bounds yet! The *naive* version of implied bounds is that we want to add in a rule like so:
+Actually though, the above is not sufficient to solve the problem
+That's because we haven't added in implied bounds yet! The *naive* version of implied bounds is that we want to add in a rule like so:
 
 ```
 Implemented(T: Magic) => Implemented(T: Copy)
 ```
 
-i.e., if I know that `T: Magic`, I also know that `T: Copy`. But if we literally added that clause, it would be unsound, at least in a coinductive setting. Why is that? Say I want to prove that `String: Copy`...
+i.e., if I know that `T: Magic`, I also know that `T: Copy`
+But if we literally added that clause, it would be unsound, at least in a coinductive setting
+Why is that? Say I want to prove that `String: Copy`...
 
 * `Implemented(String: Copy)`? Well, that's true if...
     * `Implemented(String: Magic)`? Well, that's true if...
@@ -97,7 +129,9 @@ i.e., if I know that `T: Magic`, I also know that `T: Copy`. But if we literally
         * `WellFormed(String)` -- yep
         * `Implemented(String: Copy)` -- well, that's on the stack, so that's ok!
 
-The traditional solution so this sort of problem is to impose some kind of limits on the impls people can write so they must be "productive". It's a bit tricky to define what productivity means, but intuitively it means "not tautological". The challenge is that the various schemes I've seen for showing productivity don't accept impls like the ones that perfect derive would create, so they wouldn't really work for us. The solution in the impl works a different way.
+The traditional solution so this sort of problem is to impose some kind of limits on the impls people can write so they must be "productive"
+It's a bit tricky to define what productivity means, but intuitively it means "not tautological"
+The challenge is that the various schemes I've seen for showing productivity don't accept impls like the ones that perfect derive would create, so they wouldn't really work for us. The solution in the impl works a different way.
 
 The co-LP formulation acccepts any cycle as valid, so it's very easy to create these kind of "tautological rules". Now, if the user actually *wrote* those impls, I don't see that as a problem. It's ok to have mutually dependent impls, all we want to know basically is "when I call a method, there will be some impl to go to" (see example below). But it's not good if it's unsound. =)
 
@@ -217,3 +251,5 @@ Thinking a bit more abstractly, no matter what where clauses we have on various 
 xxx -- didn't get time to to finish this, but I think that you can frame the previous two sections in terms of the typical "productivity" rules. There is a nice thesis I've been slowly working through on this. The TL;DR is something like this: "we accept all cycles but require that for any proof of `Implemented(T: Foo)`, `HasImpl(T: Foo)` must appear somewhere in the cycle", but that's not quite stating it right.
 
 # Case study: Implied bounds and perfect derive
+
+[Luke Simon et al.]: https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.102.9618&rep=rep1&type=pdf
