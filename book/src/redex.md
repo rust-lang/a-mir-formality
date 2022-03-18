@@ -1,5 +1,8 @@
 # Why PLT Redex?
 
+MIR Formality is written in PLT Redex, a dialect of Racket,
+a LISP-like language popular in programming language research.
+
 I chose to use PLT Redex because it's a really great tool for exploration.
 It allows you to write very high-level structures, execute them, and see what happens.
 

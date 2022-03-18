@@ -1,4 +1,4 @@
-## Case study: Implied bounds and perfect derive
+# Case study: Implied bounds and perfect derive
 
 The current code doesn't really model Rust as it is today.
 It actually models Rust extended with support for two new features:
@@ -207,7 +207,8 @@ fn make_the_magic_happen<T: Magic>(t: T) {
 }
 ```
 
-We don't currently have type-checking logic in formality but, if we did, type-checking this function would require copying `t` and hence proving that:
+We don't currently have type-checking logic in Formality
+but, if we did, type-checking this function would require copying `t` and hence proving that:
 
 ```
 forall<T> {
@@ -270,12 +271,12 @@ Therefore, if our program relies on `Implemented(i32: Magic)`, that must be prov
 Put another way, `Implemented(i32: Magic)` must be a member of that infinite set of facts that we described earlier, the ones which categorize "everything that is true in this program".
 But we already argued that this set does not include `Implemented(i32: Magic)`, because the only way to get such a fact is to use the program clause, and the program clause requires that `HasImpl(i32: Copy)`, which is not true.
 
+<!--
 ### Productivity again?
 
 xxx -- didn't get time to to finish this, but I think that you can frame the previous two sections in terms of the typical "productivity" rules.
 There is a nice thesis I've been slowly working through on this.
 The TL;DR is something like this: "we accept all cycles but require that for any proof of `Implemented(T: Foo)`, `HasImpl(T: Foo)` must appear somewhere in the cycle", but that's not quite stating it right.
-
-# Case study: Implied bounds and perfect derive
+-->
 
 [Luke Simon et al.]: https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.102.9618&rep=rep1&type=pdf

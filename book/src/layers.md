@@ -15,7 +15,7 @@ but is optimized for extracting their "essential properties".
 Defines core logical predicates (`Implemented(T: Trait)`, etc) and solvers.
 This layer does not define what they *mean* -- i.e., the conditions in which they are true.
 
-## the "Rust declarations" layer: `formality-decl`
+## The "Rust declarations" layer: `formality-decl`
 
 Defines Rust "top-level items" and their semantics.
 This includes crates, structs, traits, impls, but excludes function bodies.
@@ -33,15 +33,11 @@ For example, `struct Foo { f1: T1 }` is well-formed if `T` is well-formed.
 Defines the MIR and rules for its type checker.
 This corresponds roughly to the MIR borrow checker + polonius.
 
-<!-- Nick:and the type checker (and trait system) too, or is this just about lifetime checking? -->
+<!-- Nick: and the type checker (and trait system) too, or is this just about lifetime checking? -->
 <!-- Niko: all the things  -->
 <!-- Niko: note that the MIR borrow checker includes a type checker -->
-
-<!-- Caveat: I've sketched this out, but nothing more. -->
 
 ## The MIR operational semantics layer: `formality-mir-op`
 
 Extends the above level with an operational semantics.
 Basically equivalent to miri.
-
-<!-- Caveat: I haven't even sketched this out yet. -->
