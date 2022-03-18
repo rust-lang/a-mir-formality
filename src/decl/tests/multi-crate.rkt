@@ -9,13 +9,6 @@
 
 (module+ test
 
-  ;;
-  ;; # Crate C
-  ;;
-  ;; can prove `ForAll<T> { If (WellFormed(Foo<T>) { Implemented(Foo<T>: WithDebug<T>) } }`
-  ;;
-  ;; cannot prove `ForAll<T> { If (WellFormed(Foo<T>) { Implemented(T: Debug) } }`
-
   (redex-let*
    formality-decl
 
@@ -46,23 +39,105 @@
                    )
                   (term (CrateB (crate (TraitDecl_WithDebug AdtDecl_Foo TraitImplDecl))))))
 
-    (CrateDecls (term (CrateDecl_A CrateDecl_B)))
+    (;; # Crate C
+     ;;
+     ;; No items.
+     CrateDecl_C (redex-let*
+                  formality-decl
+                  ()
+                  (term (CrateC (crate ())))))
 
-    ;; Crate B can prove itself WF
-    (Goal_B_Ok (term (crate-ok-goal CrateDecls CrateDecl_B)))
-    (Env_B (term (env-with-crate-decls EmptyEnv CrateDecls CrateB)))
+    (CrateDecls_AB (term (CrateDecl_A CrateDecl_B)))
+    (CrateDecls_ABC (term (CrateDecl_A CrateDecl_B CrateDecl_C)))
 
-    ;; Crate B can prove `ForAll<T> { If (WellFormed(Foo<T>) { Implemented(T: Debug) } }`
+    (Env_B (term (env-with-crate-decls EmptyEnv CrateDecls_AB CrateB)))
+    (Env_C (term (env-with-crate-decls EmptyEnv CrateDecls_ABC CrateC)))
     )
 
-   (traced '()
-           (test-equal
-            (judgment-holds (prove-top-level-goal
-                             Env_B
-                             Goal_B_Ok
+   (redex-let*
+    formality-decl
+    ;; Crate B can prove itself WF
+    ((Goal_B_Ok (term (crate-ok-goal CrateDecls_AB CrateDecl_B))))
+    (traced '()
+            (test-equal
+             (judgment-holds (prove-top-level-goal
+                              Env_B
+                              Goal_B_Ok
+                              EnvSubstitution)
                              EnvSubstitution)
-                            EnvSubstitution)
-            (term ((Env_B ())))))
+             (term ((Env_B ())))))
+    )
+
+   (redex-let*
+    formality-decl
+    ;; Crate B can prove `ForAll<T> { If (WellFormed(Foo<T>)) { Implemented(T: Debug) } }`
+    ((Goal_B_ImpliedBound (term (ForAll ((TyKind T))
+                                        (Implies ((WellFormed (TyKind (TyApply Foo (T)))))
+                                                 (Implemented (Debug (T))))))))
+    (traced '()
+            (test-equal
+             (judgment-holds (prove-top-level-goal
+                              Env_B
+                              Goal_B_ImpliedBound
+                              EnvSubstitution)
+                             EnvSubstitution)
+             (term ((Env_B ()))))))
+
+   (redex-let*
+    formality-decl
+    ;; Crate C cannot prove `ForAll<T> { If (WellFormed(Foo<T>) { Implemented(Foo<T>: Debug) } }`
+    ((Goal_C_ImpliedBound (term (ForAll ((TyKind T))
+                                        (Implies ((WellFormed (TyKind (TyApply Foo (T))))
+                                                  (WellFormed (TyKind T)))
+                                                 (Implemented (Debug (T))))))))
+
+    (traced '()
+            (test-equal
+             (judgment-holds (prove-top-level-goal
+                              Env_C
+                              Goal_C_ImpliedBound
+                              EnvSubstitution)
+                             EnvSubstitution)
+             (term ()))))
+
+   (redex-let*
+    formality-decl
+    ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T)) { Implemented(Foo<T>: WithDebug<T>) } }`
+    ((Goal_C_UseImpl (term (ForAll ((TyKind T))
+                                   (Implies ((WellFormed (TyKind (TyApply Foo (T))))
+                                             (WellFormed (TyKind T)))
+                                            (Implemented (WithDebug ((TyApply Foo (T)) T))))))))
+
+    (traced '()
+            (test-equal
+             (judgment-holds (prove-top-level-goal
+                              Env_C
+                              Goal_C_UseImpl
+                              EnvSubstitution)
+                             EnvSubstitution)
+             (term (; ...actually, it can't, because it can't prove `T: Debug` right now. Does that make sense?
+                    )))))
+
+   (redex-let*
+    formality-decl
+    ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T), Implemented(T: Debug)) { Implemented(Foo<T>: WithDebug<T>) } }`
+    ((Goal_C_UseImplDebug (term (ForAll ((TyKind T))
+                                        (Implies ((WellFormed (TyKind (TyApply Foo (T))))
+                                                  (WellFormed (TyKind T))
+                                                  (Implemented (Debug (T))))
+                                                 (Implemented (WithDebug ((TyApply Foo (T)) T))))))))
+
+    (traced '()
+            (test-equal
+             (judgment-holds (prove-top-level-goal
+                              Env_C
+                              Goal_C_UseImplDebug
+                              EnvSubstitution)
+                             EnvSubstitution)
+             (term ((Env_C ()))))))
    )
   )
+
+
+
 

@@ -72,12 +72,19 @@
    ;;         (WellFormed (TyKind (Foo (T)))) :-
    ;;            (Implemented (Ord T)))
    ;;
-   ;; And the following invariants global to the crate C:
+   ;; And the following invariants local to the crate C:
    ;;
    ;;     (ForAll ((TyKind T))
    ;;         (WellFormed Ty) => (Implemented (Ord T)))
+   ;;
+   ;; We would ideally add the following global invariants, but they cause
+   ;; the cosld solver to blow up. To show that (e.g.) `WellFormed(Bar)`, it would
+   ;; then try to show `WellFormed(Foo<Bar>)`, and so on.
+   ;;
+   ;;     (ForAll ((TyKind T))
+   ;;         (WellFormed (Foo (T))) => (WellFormed (T)))
    (crate-item-decl-rules _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
-   ((Clause) () Invariants)
+   ((Clause) () Invariants_wc)
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error Ty_adt (TyApply AdtId (VarId ...)))
@@ -85,11 +92,16 @@
                                (Implies
                                 ((where-clause-to-goal WhereClause) ...)
                                 (WellFormed (TyKind Ty_adt)))))
-   (where/error Invariants ((ForAll KindedVarIds
-                                    (Implies
-                                     ((WellFormed (TyKind Ty_adt)))
-                                     (where-clause-to-hypothesis WhereClause)))
-                            ...))
+   (where/error Invariants_wc ((ForAll KindedVarIds
+                                       (Implies
+                                        ((WellFormed (TyKind Ty_adt)))
+                                        (where-clause-to-hypothesis WhereClause)))
+                               ...))
+   #;(where/error Invariants_wf ((ForAll KindedVarIds
+                                         (Implies
+                                          ((WellFormed (TyKind Ty_adt)))
+                                          (WellFormed (ParameterKind VarId))))
+                                 ...))
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:
