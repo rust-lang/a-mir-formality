@@ -321,18 +321,16 @@
 
   )
 
+
 (define-metafunction formality-ty
-  ;; Finds the declared universe of `VarId` in the given environment.
-  ;;
-  ;; If `VarId` is not found in the `Env`, returns the root universe. This is a useful
-  ;; default for random user-given names like `i32` or `Vec`.
-  var-defined-in-env : Env VarId -> boolean
+  ;; True if this variable is an existential variable defined in the environment.
+  env-contains-existential-var : Env VarId -> boolean
 
-  [(var-defined-in-env Env VarId)
+  [(env-contains-existential-var Env VarId)
    #t
-   (where (_ ... (VarId Quantifier Universe) _ ...) (env-var-binders Env))]
+   (where (_ ... (VarId Exists Universe) _ ...) (env-var-binders Env))]
 
-  [(var-defined-in-env Env VarId)
+  [(env-contains-existential-var Env VarId)
    #f]
 
   )

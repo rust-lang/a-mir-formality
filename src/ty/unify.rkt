@@ -60,7 +60,7 @@
    (unify-pair Env (VarId Parameter))
    (Env_out ((VarId Parameter)) ())
 
-   (where #t (var-defined-in-env Env VarId))
+   (where #t (env-contains-existential-var Env VarId))
    (where Env_out (occurs-check Env VarId Parameter))
    ]
 
@@ -68,7 +68,7 @@
    (unify-pair Env (VarId Parameter))
    Error
 
-   (where #t (var-defined-in-env Env VarId))
+   (where #t (env-contains-existential-var Env VarId))
    (where Error (occurs-check Env VarId Parameter))
    ]
 
@@ -76,7 +76,7 @@
    (unify-pair Env (Parameter VarId))
    (unify-pair Env (VarId Parameter))
 
-   (where #t (var-defined-in-env Env VarId))
+   (where #t (env-contains-existential-var Env VarId))
    ]
 
   [; Universal placeholders like `(! X)` and `(! Y)` must
