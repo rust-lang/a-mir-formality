@@ -52,7 +52,7 @@ I find I like this formulation better, and it allows us to simplify a few other 
 
 The first key part of the system
 is to distinguish *having an impl* (`HasImpl`) from *being implemented* (`Implemented`).
-The former says that the user wrote an impl.
+The former says that the user wrote an `impl` block.
 The latter says that all the requirements are met to implement the trait,
 including in particular that all of its where clauses (which includes the supertraits) are satisfied.
 
@@ -83,7 +83,7 @@ To be implemented, the impl must exist, and the type must be well-formed:
 
 For `Magic`, the rule includes the where clause that `T: Copy`:
 
-```schheme
+```scheme
 ; forall<T> { (
 ;               HasImpl(T: Magic), 
 ;               WellFormed(T),
@@ -131,9 +131,13 @@ Why is that? Say I want to prove that `String: Copy`...
 
 The traditional solution so this sort of problem is to impose some kind of limits on the impls people can write so they must be "productive"
 It's a bit tricky to define what productivity means, but intuitively it means "not tautological"
-The challenge is that the various schemes I've seen for showing productivity don't accept impls like the ones that perfect derive would create, so they wouldn't really work for us. The solution in the impl works a different way.
+The challenge is that the various schemes I've seen for showing productivity don't accept impls like the ones that perfect derive would create, so they wouldn't really work for us.
+The solution in the impl works a different way.
 
-The co-LP formulation acccepts any cycle as valid, so it's very easy to create these kind of "tautological rules". Now, if the user actually *wrote* those impls, I don't see that as a problem. It's ok to have mutually dependent impls, all we want to know basically is "when I call a method, there will be some impl to go to" (see example below). But it's not good if it's unsound. =)
+The co-LP formulation acccepts any cycle as valid, so it's very easy to create these kind of "tautological rules".
+Now, if the user actually *wrote* those impls, I don't see that as a problem.
+It's ok to have mutually dependent impls, all we want to know basically is "when I call a method, there will be some impl to go to" (see example below).
+But it's not good if it's unsound. =)
 
 ```rust
 trait Foo {
@@ -159,19 +163,31 @@ impl<T: Foo> Bar for T {
 
 ### Enter: invariants
 
-The insight is that it's not ok to use implied bounds out of thin air. You only want to use them for where-clauses that you have in scope. In this way, they are categorically different from program clauses, which always hold. I've decided to refer to implied bounds as *invariants* -- the idea is that they are things which "must be true if the program is valid". So for our program we would have one **invariant**:
+The insight is that it's not ok to use implied bounds out of thin air.
+You only want to use them for where-clauses that you have in scope.
+In this way, they are categorically different from program clauses, which always hold.
+I've decided to refer to implied bounds as *invariants* -- the idea is that they are things which "must be true if the program is valid".
+So for our program we would have one **invariant**:
 
 ```
 forall<T> { Implemented(T: Magic) => Implemented(T: Copy) }
 ```
 
-To express this a bit more formally, let `F` be the set of all "facts" we can generate from the clauses alone (a "fact" here is just a predicate that refers to some concrete types and thing)s. Because there are an infinite set of types, the set of facts is also infinite, but that's ok. In our example, given the rules we've seen so far (but ignoring the implied bound), we can show that `HasImpl(i32: Magic)` and `HasImpl(u32: Magic)` easily enough. We don't have a `HasImpl(i32: Copy)` fact, though, and because of that we also can't have a `Implemented(i32: Copy)` fact. Given this set of facts `F`, then we ought to be able to prove each invariant `I`, or something is broken in our type rules. In our example, the invariant `forall<T> { Implemented(T: Magic) => Implemented(T: Copy) }` does in fact hold, because there are no `Implemented(T: Magic)` facts.
+To express this a bit more formally, let `F` be the set of all "facts" we can generate from the clauses alone (a "fact" here is just a predicate that refers to some concrete types and thing)s.
+Because there are an infinite set of types, the set of facts is also infinite, but that's ok.
+In our example, given the rules we've seen so far (but ignoring the implied bound), we can show that `HasImpl(i32: Magic)` and `HasImpl(u32: Magic)` easily enough.
+We don't have a `HasImpl(i32: Copy)` fact, though, and because of that we also can't have a `Implemented(i32: Copy)` fact.
+Given this set of facts `F`, then we ought to be able to prove each invariant `I`, or something is broken in our type rules.
+In our example, the invariant `forall<T> { Implemented(T: Magic) => Implemented(T: Copy) }` does in fact hold, because there are no `Implemented(T: Magic)` facts.
 
 ### Integrating invariants into the solver
 
-The solver is able to make use of invariants to generate proofs, but only in a limited way. Whereas we can always use a program clause, we can only apply invariants to the *hypotheses* that are in scope -- a *hypotheses* is some where-clause that we are assuming to be true. The idea here is that the caller must have proven that hypothesis to be a *fact* -- if they did so, then unless our type rules are broken, the invariant holds, which means that any facts we can derive with the invariants are also true.
+The solver is able to make use of invariants to generate proofs, but only in a limited way.
+Whereas we can always use a program clause, we can only apply invariants to the *hypotheses* that are in scope -- a *hypotheses* is some where-clause that we are assuming to be true.
+The idea here is that the caller must have proven that hypothesis to be a *fact* -- if they did so, then unless our type rules are broken, the invariant holds, which means that any facts we can derive with the invariants are also true.
 
-This in turn implies that the seemingly tautological impl of `Magic` is actually **legal**! Recall the "ok goals" we saw before, that are used to decide which declarations are legal. The "ok" goal for the magic impl looks like this:
+This in turn implies that the seemingly tautological impl of `Magic` is actually **legal**! Recall the "ok goals" we saw before, that are used to decide which declarations are legal.
+The "ok" goal for the magic impl looks like this:
 
 ```scheme
 (ForAll ((TyKind T))
@@ -179,7 +195,8 @@ This in turn implies that the seemingly tautological impl of `Magic` is actually
                  (Implemented (Magic (T)))))
 ```
 
-Basically, "if we assume that `T: Magic` is implemented, then we can show that `T: Magic` is implemented". Well, that's obviously true.
+Basically, "if we assume that `T: Magic` is implemented, then we can show that `T: Magic` is implemented".
+Well, that's obviously true.
 
 OK, so the impl is legal, but what about this function `make_the_magic_happen`?
 
@@ -198,7 +215,8 @@ forall<T> {
 }
 ```
 
-Here the `Implemented(T: Magic) => ...` comes from the where-clauses on the function. To solve this, the solver puts `Implemented(T: Magic)` into the environment as a hypothesis using the "prove-implies" rule ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/cosld-solve/prove.rkt#L67-L71)):
+Here the `Implemented(T: Magic) => ...` comes from the where-clauses on the function.
+To solve this, the solver puts `Implemented(T: Magic)` into the environment as a hypothesis using the "prove-implies" rule ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/cosld-solve/prove.rkt#L67-L71)):
 
 ```scheme
   [(where Env_1 (env-with-hypotheses Env Hypotheses))
@@ -218,7 +236,8 @@ Next it can apply the "prove-hypothesis-imply" rule ([source](https://github.com
    ]
 ```
 
-This rule usess [`Hypotheses-imply`](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/cosld-solve/hypothesize.rkt#L9-L11), another typing judgment which determines whether `Predicate` is either *directly* in the environment as a hypothesis **or can be derived via an invariant**. This last part is what we need here! The only hypothesis in the environment is `Implemented(T: Magic)`, but we can use the invariant
+This rule usess [`Hypotheses-imply`](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/cosld-solve/hypothesize.rkt#L9-L11), another typing judgment which determines whether `Predicate` is either *directly* in the environment as a hypothesis **or can be derived via an invariant**.
+This last part is what we need here! The only hypothesis in the environment is `Implemented(T: Magic)`, but we can use the invariant
 
 ```
 Implemented(T: Magic) => Implemented(T: Copy)
@@ -228,7 +247,8 @@ to expand that to `Implemented(T: Copy)`, so we are happy.
 
 ### Wait, so is this sound?
 
-But accepting this impl and this function this doesn't mean we have an unsound program -- the question is, who is going to *call* that function, and with what type? And this is where the errors come in. Consider this `main` function:
+But accepting this impl and this function this doesn't mean we have an unsound program -- the question is, who is going to *call* that function, and with what type? And this is where the errors come in.
+Consider this `main` function:
 
 ```rust
 fn main() {
@@ -242,13 +262,19 @@ For this program to type-check, we must prove the where-clauses on `make_the_mag
 Implemented(String: Magic)
 ```
 
-But in this case, there are no hypotheses in the environment, so we can't make use of the invariants. We have to use the program clause, it requires also showing that `Implemented(String: Copy)` which in turn means showing `HasImpl(String: Copy)`, and we cannot do that.
+But in this case, there are no hypotheses in the environment, so we can't make use of the invariants.
+We have to use the program clause, it requires also showing that `Implemented(String: Copy)` which in turn means showing `HasImpl(String: Copy)`, and we cannot do that.
 
-Thinking a bit more abstractly, no matter what where clauses we have on various functions, we will "bottom out" in a `main` function somewhere, and `main` has no where clauses. Therefore, if our program relies on `Implemented(i32: Magic)`, that must be provable in an environment with no hypotheses. Put another way, `Implemented(i32: Magic)` must be a member of that infinite set of facts that we described earlier, the ones which categorize "everything that is true in this program". But we already argued that this set does not include `Implemented(i32: Magic)`, because the only way to get such a fact is to use the program clause, and the program clause requires that `HasImpl(i32: Copy)`, which is not true.
+Thinking a bit more abstractly, no matter what where clauses we have on various functions, we will "bottom out" in a `main` function somewhere, and `main` has no where clauses.
+Therefore, if our program relies on `Implemented(i32: Magic)`, that must be provable in an environment with no hypotheses.
+Put another way, `Implemented(i32: Magic)` must be a member of that infinite set of facts that we described earlier, the ones which categorize "everything that is true in this program".
+But we already argued that this set does not include `Implemented(i32: Magic)`, because the only way to get such a fact is to use the program clause, and the program clause requires that `HasImpl(i32: Copy)`, which is not true.
 
 ### Productivity again?
 
-xxx -- didn't get time to to finish this, but I think that you can frame the previous two sections in terms of the typical "productivity" rules. There is a nice thesis I've been slowly working through on this. The TL;DR is something like this: "we accept all cycles but require that for any proof of `Implemented(T: Foo)`, `HasImpl(T: Foo)` must appear somewhere in the cycle", but that's not quite stating it right.
+xxx -- didn't get time to to finish this, but I think that you can frame the previous two sections in terms of the typical "productivity" rules.
+There is a nice thesis I've been slowly working through on this.
+The TL;DR is something like this: "we accept all cycles but require that for any proof of `Implemented(T: Foo)`, `HasImpl(T: Foo)` must appear somewhere in the cycle", but that's not quite stating it right.
 
 # Case study: Implied bounds and perfect derive
 
