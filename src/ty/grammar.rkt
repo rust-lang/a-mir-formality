@@ -257,9 +257,28 @@
   ;; Returns the hypotheses in the environment
   env-with-hypotheses : Env Hypotheses -> Env
 
-  [(env-with-hypotheses (Universe VarBinders (Clauses (Hypothesis_0 ...) Invariants)) (Hypothesis_1 ...))
-   (Universe VarBinders (Clauses (Hypothesis_0 ... Hypothesis_1 ...) Invariants))
+  [(env-with-hypotheses Env ()) Env]
+
+  [(env-with-hypotheses Env (Hypothesis_0 Hypothesis_1 ...))
+   (env-with-hypotheses Env_1 (Hypothesis_1 ...))
+   (where/error Env_1 (env-with-hypothesis Env Hypothesis_0))
    ]
+  )
+
+(define-metafunction formality-ty
+  ;; Adds a hypothesis (if not already present)
+  env-with-hypothesis : Env Hypothesis -> Env
+
+  [(env-with-hypothesis Env Hypothesis_1)
+   Env
+   (where (_ ... Hypothesis_0 _ ...) (env-hypotheses Env))
+   (where #t ,(alpha-equivalent? (term Hypothesis_0) (term Hypothesis_1)))
+   ]
+
+  [(env-with-hypothesis (Universe VarBinders (Clauses (Hypothesis_0 ...) Invariants)) Hypothesis_1)
+   (Universe VarBinders (Clauses (Hypothesis_0 ... Hypothesis_1) Invariants))
+   ]
+
   )
 
 (define-metafunction formality-ty
