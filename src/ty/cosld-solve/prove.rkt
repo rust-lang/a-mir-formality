@@ -5,7 +5,7 @@
          "../instantiate.rkt"
          "../unify.rkt"
          "../../util.rkt"
-         "hypothesize.rkt"
+         "elaborate.rkt"
          "filter.rkt"
          "util.rkt")
 
@@ -40,7 +40,8 @@
    ]
 
   [(where #f (in? Predicate Predicates_stack))
-   (Hypotheses-imply Env () Predicate EnvSubstitution_out)
+   (where (_ ... Hypothesis _ ... ) (env-hypotheses (elaborate-hypotheses Env)))
+   (Clause-proves Env Predicates_stack Hypothesis Predicate EnvSubstitution_out)
    --------------- "prove-hypotheses-imply"
    (prove Env Predicates_stack Predicate EnvSubstitution_out)
    ]

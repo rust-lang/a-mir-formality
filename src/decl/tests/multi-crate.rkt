@@ -123,7 +123,6 @@
     ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T), Implemented(T: Debug)) { Implemented(Foo<T>: WithDebug<T>) } }`
     ((Goal_C_UseImplDebug (term (ForAll ((TyKind T))
                                         (Implies ((WellFormed (TyKind (TyApply Foo (T))))
-                                                  (WellFormed (TyKind T))
                                                   (Implemented (Debug (T))))
                                                  (Implemented (WithDebug ((TyApply Foo (T)) T))))))))
 

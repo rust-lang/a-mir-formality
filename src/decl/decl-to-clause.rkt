@@ -70,6 +70,7 @@
    ;;
    ;;     (ForAll ((TyKind T))
    ;;         (WellFormed (TyKind (Foo (T)))) :-
+   ;;            (WellFormed (TyKind T))
    ;;            (Implemented (Ord T)))
    ;;
    ;; And the following invariants local to the crate C:
@@ -77,31 +78,30 @@
    ;;     (ForAll ((TyKind T))
    ;;         (WellFormed Ty) => (Implemented (Ord T)))
    ;;
-   ;; We would ideally add the following global invariants, but they cause
-   ;; the cosld solver to blow up. To show that (e.g.) `WellFormed(Bar)`, it would
-   ;; then try to show `WellFormed(Foo<Bar>)`, and so on.
+   ;; And the following global invariants:
    ;;
    ;;     (ForAll ((TyKind T))
    ;;         (WellFormed (Foo (T))) => (WellFormed (T)))
    (crate-item-decl-rules _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
-   ((Clause) () Invariants_wc)
+   ((Clause) Invariants_wf Invariants_wc)
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error Ty_adt (TyApply AdtId (VarId ...)))
    (where/error Clause (ForAll KindedVarIds
                                (Implies
-                                ((where-clause-to-goal WhereClause) ...)
+                                ((WellFormed (ParameterKind VarId)) ...
+                                 (where-clause-to-goal WhereClause) ...)
                                 (WellFormed (TyKind Ty_adt)))))
    (where/error Invariants_wc ((ForAll KindedVarIds
                                        (Implies
                                         ((WellFormed (TyKind Ty_adt)))
                                         (where-clause-to-hypothesis WhereClause)))
                                ...))
-   #;(where/error Invariants_wf ((ForAll KindedVarIds
-                                         (Implies
-                                          ((WellFormed (TyKind Ty_adt)))
-                                          (WellFormed (ParameterKind VarId))))
-                                 ...))
+   (where/error Invariants_wf ((ForAll KindedVarIds
+                                       (Implies
+                                        ((WellFormed (TyKind Ty_adt)))
+                                        (WellFormed (ParameterKind VarId))))
+                               ...))
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:
@@ -124,22 +124,14 @@
    ;; We also generate the following invariants in the defining crate:
    ;;
    ;;     (ForAll ((TyKind Self) (LtKind 'a) (TyKind T))
-   ;;         (Implemented (Foo (Self T))) => (Implemented (Ord T)))
-   ;;
-   ;; In theory we could/should generate these, but they lead the cosld prover down some bad
-   ;; paths. For example, given that `WF(Foo<T>) => Implemented(T: Debug)`, if it is
-   ;; trying to show that `Implemented(Foo<T>: Debug)`, it would try to show that `WF(Foo<Foo<T>>)`
-   ;; is hypothesized, which in turn (thanks to these rules below) would lead it to wonder
-   ;; whether `Implemented(Foo<Foo<T>>: Debug)`, which starts the cycle over again.
-   ;;
-   ;;     (ForAll ((TyKind Self) (LtKind 'a) (TyKind T))
+   ;;         (Implemented (Foo (Self T))) => (Implemented (Ord T))
    ;;         (Implemented (Foo (Self T))) => (WellFormed (TyKind Self))
    ;;         (Implemented (Foo (Self T))) => (WellFormed (LtKind 'a))
    ;;         (Implemented (Foo (Self T))) => (WellFormed (TyKind T)))
    (crate-item-decl-rules _ (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
    ((Clause)
     (Hypothesis_wc ...
-     ;Hypothesis_wf ...
+     Hypothesis_wf ...
      )
     ())
 

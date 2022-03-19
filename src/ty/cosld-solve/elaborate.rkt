@@ -8,7 +8,7 @@
          "util.rkt"
          "filter.rkt"
          "../../util.rkt")
-(provide hypothesis-elaborates-one-step)
+(provide elaborate-hypotheses hypothesis-elaborates)
 
 (define-metafunction formality-ty
   elaborate-hypotheses : Env -> Env
