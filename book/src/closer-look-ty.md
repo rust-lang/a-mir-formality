@@ -140,18 +140,31 @@ and various kinds of "clauses" (things that are assumed to be true, axioms)
 
 Importantly, the *types layer* defines a solver that gives semantics to all the "meta" parts of goals and clauses -- e.g., it defines what it means to prove `(All (G1 G2))` (prove both `G1` and `G2`, duh). But it doesn't have any rules for what it means to prove the *core* predicates true -- so it could never prove `(Implemented (Debug ((! T))))`. Those rules all come from the declaration layer and are given to the types layer as part of the "environment".
 
-You might be curious about the distinction between goal and clause and why there are so many names for clauses (hypothesis, clause, invariant, etc). Let's talk briefly about that.
+#### Goal vs. clause
 
-* **Goals vs clauses:** 
-    * The role of `ForAll` in goals and clauses is different.
-        * Proving $\forall X. G$ requiers proving that `G` is true for any value of `X` (i.e., for a placeholder `(! X)`, in our setup).
-        * In contrast, if you know $\forall X. G$ as an axiom, it means that you can give `X` any value `X1` you want.
-    * Clauses have a limited structure between that keeps the solver tractable. The idea is that they are always "ways to prove a single predicate" true; we don't allow a clause like `(Any (A B))` as a clause, since that would mean "A or B is true but you don't know which". That would then be a second way to prove an `Any` goal like `(Any ...)` and introduce lots of complications (we got enough already, thanks).
+You might be curious about the distinction between goal and clause
+and why there are so many names for clauses (hypothesis, clause, invariant, etc).
+Let's talk briefly about that.
+
+<!-- * **Goals vs clauses:**  -->
+The role of `ForAll` in goals and clauses is different.
+Proving \\( \forall X. G \\) requires proving that `G` is true for any value of `X`
+(i.e., for a placeholder `(! X)`, in our setup).
+By contrast, if you know \\( \forall X. G \\) as an axiom,
+it means that you can give `X` any value `X1` you want.
+Clauses have a limited structure between that keeps the solver tractable.
+The idea is that they are always "ways to prove a single predicate" true;
+we don't allow a clause like `(Any (A B))` as a clause,
+since that would mean "A or B is true but you don't know which".
+That would then be a second way to prove an `Any` goal like `(Any ...)`
+and introduce lots of complications (we got enough already, thanks).
+
 * **Hypotheses vs clauses vs invariants:**
-    * These distinctions are used to express and capture implied bounds. We'll defer a detailed analysis until the section below, but briefly:
-        * "Hypotheses" are where-clauses that are assumed to be true in this section of the code.
-        * "Clauses" are global rules that are always true (derived, e.g., from an impl).
-        * "Invariants" express implied bounds (e.g., supertrait relationships like "if `T: Eq`, then `T: PartialEq`").
+These distinctions are used to express and capture implied bounds.
+We'll defer a detailed analysis until the section below, but briefly:
+* "Hypotheses" are where-clauses that are assumed to be true in this section of the code.
+* "Clauses" are global rules that are always true (derived, e.g., from an impl).
+* "Invariants" express implied bounds (e.g., supertrait relationships like "if `T: Eq`, then `T: PartialEq`").
 
 ### Solver
 
