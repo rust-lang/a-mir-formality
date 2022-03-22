@@ -77,7 +77,10 @@ in that it knows about *universes* and so can handle "forall" proofs and things
 (that's what is found in the environment).
 This is the same as chalk and rustc. 
 
-I won't cover the details but I'll just give an example. This is actually modified from a unit test from the code ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/unify.rkt#L254-L269)). Invoking `most-general-unifier` like so:
+I won't cover the details but I'll just give an example.
+This is actually modified from a unit test from the code
+([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/unify.rkt#L254-L269)).
+Invoking `most-general-unifier` like so:
 
 ```scheme
 (most-general-unifier Env_2 ((A X)
@@ -85,7 +88,10 @@ I won't cover the details but I'll just give an example. This is actually modifi
                              (Y (TyApply i32 ()))))
 ```
 
-corresponds to saying that `[A = X, X = Vec<Y>, Y = i32]` must all be true, where `A`, `X` and `Y` are inference variables. The resulting output is a substitution that maps `A`, `X` and `Y` to the following values:
+<!-- maybe: `A == X`,  `X == Vec<Y>`, and `Y == i32` -->
+corresponds to saying that `[A = X, X = Vec<Y>, Y = i32]` must all be true,
+where `A`, `X` and `Y` are inference variables.
+The resulting output is a substitution that maps `A`, `X`, and `Y` to the following values:
 
 * `A -> Vec<i32>`
 * `X -> Vec<i32>`
@@ -93,22 +99,25 @@ corresponds to saying that `[A = X, X = Vec<Y>, Y = i32]` must all be true, wher
 
 ### Predicates
 
-Formality-ty also defines the core predicates used to define Rust semantics. The current definition is as follows ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/grammar.rkt#L121-L130)):
+`formality-ty` also defines the core predicates used to define Rust semantics.
+The current definition is as follows ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/grammar.rkt#L121-L130)):
 
 ```scheme
-  (Predicate :=
-             ; `TraitRef` is (fully) implemented.
-             (Implemented TraitRef)
-             ; an impl exists for `TraitRef`; this *by itself* doesn't mean
-             ; that `TraitRef` is implemented, as the supertraits may not
-             ; have impls.
-             (HasImpl TraitRef)
-             ; the given type or lifetime is well-formed.
-             (WellFormed (ParameterKind Parameter))
-             )
+(Predicate :=
+           ; `TraitRef` is (fully) implemented.
+           (Implemented TraitRef)
+           ; an impl exists for `TraitRef`; this *by itself* doesn't mean
+           ; that `TraitRef` is implemented, as the supertraits may not
+           ; have impls.
+           (HasImpl TraitRef)
+           ; the given type or lifetime is well-formed.
+           (WellFormed (ParameterKind Parameter))
+           )
 ```
 
-These core predicates are then used to define a richer vocabulary of goals (things that can be proven) and various kinds of "clauses" (things that are assumed to be true, axioms) ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/grammar.rkt#L136-L143)):
+These core predicates are then used to define a richer vocabulary of goals (things that can be proven)
+and various kinds of "clauses" (things that are assumed to be true, axioms)
+([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/grammar.rkt#L136-L143)):
 
 ```scheme
   (Goals = (Goal ...))
