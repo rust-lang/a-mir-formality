@@ -58,7 +58,9 @@ You can also see that the definition of types is aligned to highlight their "ess
 
 A key part of the type layer is that it includes *type unification*. That is, it defines the rules for making types equal. This will eventually have to be extended to cover subtyping (more on that a bit later) so that we can properly handle variance.
 
-Unification is done via a "metafunction", which just means a function that operates on terms (versus a function in the Rust program being analyzed):
+Unification is accomplished in PLT Redex with a "[metafunction][]",
+which just means a function that operates on terms
+(versus a function in the Rust program being analyzed):
 
 ```scheme
 (define-metafunction formality-ty
@@ -70,7 +72,10 @@ This function takes an environment `Env` and a list of pairs of terms that shoul
 * a new environment and substitution from inference variables to values that will make the two terms syntactically equal; or,
 * the term `Error`, if they cannot be unified.
 
-The unifier is a bit smarter than the traditional unification in that it knows about *universes* and so can handle "forall" proofs and things (that's what is found in the environment). This is the same as chalk and rustc. 
+The unifier is a bit smarter than the traditional unification
+in that it knows about *universes* and so can handle "forall" proofs and things
+(that's what is found in the environment).
+This is the same as chalk and rustc. 
 
 I won't cover the details but I'll just give an example. This is actually modified from a unit test from the code ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/unify.rkt#L254-L269)). Invoking `most-general-unifier` like so:
 
@@ -177,3 +182,5 @@ Or read another way:
 * If we can prove `Goal_1` to be true, then we can prove `(Any Goals)` to be true so long as `Goal_1` is somewhere in `Goals`.
 
 It shows you a bit of the power of PLT Redex (and Racket's pattern matching), as well. We are able to write the rule in a "non-deterministic" way -- saying, "pick any goal from the list" and prove it. Redex will search all the possibilities.
+
+[metafunction]: https://docs.racket-lang.org/redex/reference.html#%28form._%28%28lib._redex%2Freduction-semantics..rkt%29._define-metafunction%29%29
