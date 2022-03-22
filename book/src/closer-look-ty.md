@@ -1,6 +1,6 @@
-# A closer look at formality-ty
+# A closer look at `formality-ty`
 
-Let's take a closer look at the formality-ty layer. 
+Let's take a closer look at the `formality-ty` layer.
 
 ### Defining Rust types
 
@@ -34,7 +34,13 @@ The current definition of types looks like this ([source](https://github.com/nik
 )
 ```
 
-As you can see, it's woefully incomplete, but it should give you some idea for the level of abstraction we are shooting for and also how PLT Redex works. The idea here is that a type is either a variable, a placeholder that represents a generic type, or an "application" of a type name to some parameters. Let's see some examples:
+This definition is far from complete,
+but it should give you some idea for the level of abstraction we are shooting for
+and also how PLT Redex works.
+The idea here is that a type is either a variable,
+a placeholder that represents a generic type,
+or an "application" of a type name to some parameters.
+Let's see some examples:
 
 * A generic type like `T` could either be `T` or `(! T)`:
     * `T` is used when the generic has yet to be substituted, e.g., as part of a declaration.
@@ -52,11 +58,17 @@ As I said, this defintion of types is woefully incomplete. I expect it to eventu
 * "function" types `fn(A1...An) -> R`
 * "implication" types `where(...) T` (these don't exist in Rust—yet)
 
-You can also see that the definition of types is aligned to highlight their "essential" characteristics and not necessarily for convenience elsewhere. Almost every Rust type, for example, boils down to *some* kind of "application" (it's likely that we can even represent `fn` types this way).
+You can also see that the definition of types is aligned to highlight their "essential" characteristics
+and not necessarily for convenience elsewhere.
+Almost every Rust type, for example, boils down to *some* kind of "application"
+(it's likely that we can even represent `fn` types this way).
 
 ### Type unification
 
-A key part of the type layer is that it includes *type unification*. That is, it defines the rules for making types equal. This will eventually have to be extended to cover subtyping (more on that a bit later) so that we can properly handle variance.
+A key part of the type layer is that it includes *type unification*.
+That is, it defines the rules for making types equal.
+This will eventually have to be extended to cover subtyping (more on that a bit later)
+so that we can properly handle variance.
 
 Unification is accomplished in PLT Redex with a "[metafunction][]",
 which just means a function that operates on terms
@@ -75,7 +87,7 @@ This function takes an environment `Env` and a list of pairs of terms that shoul
 The unifier is a bit smarter than the traditional unification
 in that it knows about *universes* and so can handle "forall" proofs and things
 (that's what is found in the environment).
-This is the same as chalk and rustc. 
+This is the same as chalk and rustc.
 
 I won't cover the details but I'll just give an example.
 This is actually modified from a unit test from the code
@@ -140,13 +152,12 @@ and various kinds of "clauses" (things that are assumed to be true, axioms)
 
 Importantly, the *types layer* defines a solver that gives semantics to all the "meta" parts of goals and clauses -- e.g., it defines what it means to prove `(All (G1 G2))` (prove both `G1` and `G2`, duh). But it doesn't have any rules for what it means to prove the *core* predicates true -- so it could never prove `(Implemented (Debug ((! T))))`. Those rules all come from the declaration layer and are given to the types layer as part of the "environment".
 
-#### Goal vs. clause
+#### Goals versus clauses
 
 You might be curious about the distinction between goal and clause
 and why there are so many names for clauses (hypothesis, clause, invariant, etc).
 Let's talk briefly about that.
 
-<!-- * **Goals vs clauses:**  -->
 The role of `ForAll` in goals and clauses is different.
 Proving \\( \forall X. G \\) requires proving that `G` is true for any value of `X`
 (i.e., for a placeholder `(! X)`, in our setup).
@@ -159,8 +170,8 @@ since that would mean "A or B is true but you don't know which".
 That would then be a second way to prove an `Any` goal like `(Any ...)`
 and introduce lots of complications (we got enough already, thanks).
 
-* **Hypotheses vs clauses vs invariants:**
-These distinctions are used to express and capture implied bounds.
+Further distinctions between "hypotheses", "clauses", and "invariants"
+are used to express and capture implied bounds.
 We'll defer a detailed analysis until the section below, but briefly:
 * "Hypotheses" are where-clauses that are assumed to be true in this section of the code.
 * "Clauses" are global rules that are always true (derived, e.g., from an impl).
@@ -176,10 +187,10 @@ although the version of it that we've implemented is extended in two ways:
   This means it permits cycles, roughly speaking.
 * It covers hereditary Harrop predicates using the [techniques described by Gopalan Nadathur](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.107.2510&rep=rep1&type=pdf).
 
-In terms of chalk solvers, it is "similar" to slg, but much simpler in its structure (it doesn't do any caching). 
+In terms of chalk solvers, it is "similar" to slg, but much simpler in its structure (it doesn't do any caching).
 
 All those fancy words aside, it's really quite simple.
-It's defined via induction rules, which PLT Redex lets us write in a natural style.
+It's defined via induction rules, which PLT Redex lets us write in a natural style with [`define-judgment-form`](https://docs.racket-lang.org/redex/reference.html#%28form._%28%28lib._redex%2Freduction-semantics..rkt%29._define-judgment-form%29%29).
 The definition begins like so:
 
 ```scheme
@@ -197,7 +208,11 @@ The `Predicates` list is the stack of things we are solving, it's used to detect
 The `EnvSubstitution` is the *output*, it is a modified environment
 paired with a substitution that potentially gives new values to inference variables found in `Goal`.
 
-Here is a simple rule. It defines the way we prove `Any` ([source](https://github.com/nikomatsakis/a-mir-formality/blob/main/src/ty/cosld-solve/prove.rkt#L62-L65)). The notation is as follows. The stuff "above the line" are the conditions that have to be proven; the thing "under the line" is the conclusion that we can draw.
+Here is a simple rule.
+It defines the way we prove `Any` ([source](https://github.com/nikomatsakis/a-mir-formality/blob/main/src/ty/cosld-solve/prove.rkt#L62-L65)).
+The notation is as follows.
+The stuff "above the line" are the conditions that have to be proven;
+the thing "under the line" is the conclusion that we can draw.
 
 ```scheme
   [(prove Env Predicates_stack Goal_1 EnvSubstitution_out)
