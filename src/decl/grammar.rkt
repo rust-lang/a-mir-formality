@@ -4,44 +4,44 @@
 
 (define-extended-language formality-decl formality-ty
   ;; Crate declarations
-  (CrateDecls := (CrateDecl ...))
-  (CrateDecl := (CrateId CrateContents))
-  (CrateContents := (crate (CrateItemDecl ...)))
-  (CrateItemDecl := AdtDecl TraitDecl TraitImplDecl)
+  (CrateDecls ::= (CrateDecl ...))
+  (CrateDecl ::= (CrateId CrateContents))
+  (CrateContents ::= (crate (CrateItemDecl ...)))
+  (CrateItemDecl ::= AdtDecl TraitDecl TraitImplDecl)
 
   ;; AdtDecl -- struct/enum/union declarations
-  (AdtDecl := (AdtId AdtContents))
-  (AdtContents := (AdtKind KindedVarIds WhereClauses AdtVariants))
-  (AdtVariants := (AdtVariant ...))
-  (AdtKind := struct enum union)
-  (AdtVariant := (VariantId FieldDecls))
+  (AdtDecl ::= (AdtId AdtContents))
+  (AdtContents ::= (AdtKind KindedVarIds WhereClauses AdtVariants))
+  (AdtVariants ::= (AdtVariant ...))
+  (AdtKind ::= struct enum union)
+  (AdtVariant ::= (VariantId FieldDecls))
 
   ;; FieldDecl -- type of a field
-  (FieldDecls := (FieldDecl ...))
-  (FieldDecl := (FieldId Ty))
+  (FieldDecls ::= (FieldDecl ...))
+  (FieldDecl ::= (FieldId Ty))
 
   ;; TraitDecl -- trait Foo { ... }
   ;;
   ;; Unlike in Rust, the `KindedVarIds` here always include with `(TyKind Self)` explicitly.
-  (TraitDecl := (TraitId TraitContents))
-  (TraitContents := (trait KindedVarIds WhereClauses TraitItems))
+  (TraitDecl ::= (TraitId TraitContents))
+  (TraitContents ::= (trait KindedVarIds WhereClauses TraitItems))
 
   ;; TraitItem --
-  (TraitItems := (TraitItem ...))
-  (TraitItem := )
+  (TraitItems ::= (TraitItem ...))
+  (TraitItem ::= NotYetImplemented)
 
   ;; Trait impls
   ;;
   ;; Note that trait impls do not have names.
-  (TraitImplDecl := (impl KindedVarIds TraitRef WhereClauses ImplItems))
+  (TraitImplDecl ::= (impl KindedVarIds TraitRef WhereClauses ImplItems))
 
   ;; ImplItem --
-  (ImplItems := (ImplItem ...))
-  (ImplItem := )
+  (ImplItems ::= (ImplItem ...))
+  (ImplItem ::= NotYetImplemented)
 
   ;; WhereClause -- where clause
-  (WhereClauses := (WhereClause ...))
-  (WhereClause :=
+  (WhereClauses ::= (WhereClause ...))
+  (WhereClause ::=
                (ForAll KindedVarIds WhereClause)
                (Implemented TraitRef)
                #;(Outlives (Parameter : Lt))

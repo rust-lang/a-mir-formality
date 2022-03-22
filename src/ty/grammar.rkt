@@ -21,13 +21,13 @@
   ;; scope. So for example given `fn foo<T>() { ... }`,
   ;; inside the body of `foo`, we would represent `T` with
   ;; `(TyApply T ())`.
-  (Tys := (Ty ...))
-  (Ty :=
+  (Tys ::= (Ty ...))
+  (Ty ::=
       (TyApply TyName Parameters) ; Application type
       VarId                       ; Bound or existential (inference) variable
       (! VarId)                   ; Universal (placeholder) variable
       )
-  (TyName :=
+  (TyName ::=
           AdtId           ; enum/struct/union
           TraitId         ; trait
           AssociatedTy    ; Associated type
@@ -40,7 +40,7 @@
   ;;
   ;; Very similar to types `Ty` in terms of how they are represented
   ;; and the meaning of `VarId`.
-  (Lt :=
+  (Lt ::=
       static                      ; 'static
       VarId                       ; Bound or existential (inference) variable
       (! VarId)                   ; Universal (placeholder) variable
@@ -48,7 +48,7 @@
 
   ;; EnvSubstitution - pair of an environment + substitution. This is the output
   ;; from proving things.
-  (EnvSubstitution := (Env Substitution))
+  (EnvSubstitution ::= (Env Substitution))
 
   ;; Env: Typing environment
   ;;
@@ -62,8 +62,8 @@
   ;;   or other such constructs
   ;; * Hypotheses -- facts believed to be true, introduced by
   ;;   where clauses
-  (Env := (Universe VarBinders EnvInferenceRules))
-  (Env-e := Env Error)
+  (Env ::= (Universe VarBinders EnvInferenceRules))
+  (Env-e ::= Env Error)
 
   ;; EnvInferenceRules: various kinds of the logical inference rules,
   ;; each with its own purpose:
@@ -74,51 +74,51 @@
   ;; * Invariants -- implications that are implied by the clauses,
   ;;   used to implement implied bounds (for example, `trait Eq: PartialEq`
   ;;   would create an invariant that `forall T. (T: Eq) => (T: PartialEq)`)
-  (EnvInferenceRules := (Clauses Hypotheses Invariants))
+  (EnvInferenceRules ::= (Clauses Hypotheses Invariants))
 
   ;; VarBinder -- maps a `VarId` to a quantifier kind and `Universe`
-  (VarBinders := (VarBinder ...))
-  (VarBinder := (VarId Quantifier Universe))
+  (VarBinders ::= (VarBinder ...))
+  (VarBinder ::= (VarId Quantifier Universe))
 
   ;; TraitRef = reference to a trait
-  (TraitRef := (TraitId Parameters))
+  (TraitRef ::= (TraitId Parameters))
 
   ;; TraitRef = reference to a trait
-  (AssociatedTy := (TraitId AssociatedTyId))
-  (AssociatedTyApplication := (AssociatedTy Parameters))
+  (AssociatedTy ::= (TraitId AssociatedTyId))
+  (AssociatedTyApplication ::= (AssociatedTy Parameters))
 
   ;; MaybeMut: either mut or not
-  (MaybeMut := () (mut) )
+  (MaybeMut ::= () (mut) )
 
   ;; Substitution: map from bound variable `X`
   ;; to `Parameter` P with which `X` should be
   ;; replaced.
   ;;
   ;; See `substitution.rkt` for helper functions
-  (Substitution-e := Error Substitution)
-  (Substitution := (VarParameter ...))
+  (Substitution-e ::= Error Substitution)
+  (Substitution ::= (VarParameter ...))
   (VarParameter = (VarId Parameter))
 
   ;; KindedVarId: declares a bound parameter and
   ;; its kind (type, lifetime, etc).
-  (KindedVarIds := (KindedVarId ...))
-  (KindedVarId := (ParameterKind VarId))
+  (KindedVarIds ::= (KindedVarId ...))
+  (KindedVarId ::= (ParameterKind VarId))
 
   ;; ParameterKind: kind for a bound variable (type,
   ;; lifetime, etc)
-  (ParameterKind := TyKind LtKind)
+  (ParameterKind ::= TyKind LtKind)
 
   ;; Parameter: value for a generic parameter
-  (Parameters := (Parameter ...))
-  (Parameter := Ty Lt)
+  (Parameters ::= (Parameter ...))
+  (Parameter ::= Ty Lt)
 
   ;; Pairs of parameters
-  (TermPairs := (TermPair ...))
-  (TermPair := (Term Term))
+  (TermPairs ::= (TermPair ...))
+  (TermPair ::= (Term Term))
 
   ;; `Predicate` -- the atomic items that we can prove
-  (Predicates := (Predicate ...))
-  (Predicate :=
+  (Predicates ::= (Predicate ...))
+  (Predicate ::=
              ; `TraitRef` is (fully) implemented.
              (Implemented TraitRef)
              ; an impl exists for `TraitRef`; this *by itself* doesn't mean
@@ -133,7 +133,7 @@
   ;; joined by various forms of logical operators that are built
   ;; into the proving system (see `cosld-solve.rkt`).
   (Goals = (Goal ...))
-  (Goal :=
+  (Goal ::=
         Predicate
         (Equate Term Term)
         (All Goals)
@@ -144,34 +144,34 @@
 
   ;; `Clause`, `Hypothesis` -- axioms. These are both built-in and derived from
   ;; user-defined items like `trait` and `impl`.
-  ((Hypotheses Clauses) := (Clause ...))
-  ((Hypothesis Clause) :=
-                       Predicate
-                       (Implies Goals Predicate)
-                       (ForAll KindedVarIds Clause)
-                       )
+  (Hypotheses Clauses ::= (Clause ...))
+  (Hypothesis Clause ::=
+              Predicate
+              (Implies Goals Predicate)
+              (ForAll KindedVarIds Clause)
+              )
 
   ;; `Invariants` -- things which must be true or the type system has some bugs.
   ;; A rather restricted form of clause.
-  (Invariants := (Invariant ...))
-  (Invariant := (ForAll KindedVarIds (Implies (Predicate) Predicate)))
+  (Invariants ::= (Invariant ...))
+  (Invariant ::= (ForAll KindedVarIds (Implies (Predicate) Predicate)))
 
   ;; `Quantifier` -- the two kinds of quantifiers.
-  (Quantifier := ForAll Exists)
+  (Quantifier ::= ForAll Exists)
 
   ;; `Universe` -- the root universe `RootUniverse` consists of all user-defined names.
   ;; Each time we enter into a `ForAll` quantifier, we introduce a new universe
   ;; that extends the previous one to add new names that didn't exist in the old
   ;; universe (e.g., the placeholders for the universally quantified variables).
   ;; See the paper XXX
-  (Universe := (UniverseId number))
+  (Universe ::= (UniverseId number))
 
   ;; Scalars -- numbers, booleans
-  (ScalarId := i8 u8 i16 u16 i32 u32 i64 u64 i128 u128 bool)
+  (ScalarId ::= i8 u8 i16 u16 i32 u32 i64 u64 i128 u128 bool)
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
-  (VarIds := (VarId ...))
+  (VarIds ::= (VarId ...))
   ((AdtId
     VarId
     TraitId
@@ -179,7 +179,7 @@
     AnyId) variable-not-otherwise-mentioned)
 
   ; Term -- preferred name to any that reads better :)
-  (Term := any)
+  (Term ::= any)
 
   #:binding-forms
   (ForAll ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
