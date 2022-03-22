@@ -168,14 +168,19 @@ We'll defer a detailed analysis until the section below, but briefly:
 
 ### Solver
 
-Putting all this together, the types layer currently includes a relatively simple solver called `cosld-solve`. This is referencing the classic [SLD Resolution Algorithm](https://en.wikipedia.org/wiki/SLD_resolution) that powers prolog, although the version of it that we've implemented is extended in two ways:
+Putting all this together, the types layer currently includes a relatively simple solver called `cosld-solve`.
+The name refers to the classic [SLD Resolution Algorithm][] that powers Prolog,
+although the version of it that we've implemented is extended in two ways:
 
-* It covers Hereditary Harrop predicates using the [techniques described by Gopalan Nadathur](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.107.2510&rep=rep1&type=pdf).
-* It is coinductive as [described by Luke Simon et al.](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.102.9618&rep=rep1&type=pdf) -- this means it permits cycles, roughly speaking.
+* It is coinductive (hence `cosld`) as [described by Luke Simon et al.](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.102.9618&rep=rep1&type=pdf).
+  This means it permits cycles, roughly speaking.
+* It covers hereditary Harrop predicates using the [techniques described by Gopalan Nadathur](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.107.2510&rep=rep1&type=pdf).
 
 In terms of chalk solvers, it is "similar" to slg, but much simpler in its structure (it doesn't do any caching). 
 
-All those fancy words aside, it's really quite simple. It's defined via induction rules, which PLT Redex lets us write in a natural style. The definition begins like so:
+All those fancy words aside, it's really quite simple.
+It's defined via induction rules, which PLT Redex lets us write in a natural style.
+The definition begins like so:
 
 ```scheme
 (define-judgment-form formality-ty
@@ -183,7 +188,14 @@ All those fancy words aside, it's really quite simple. It's defined via inductio
   #:contract (prove Env Predicates_stack Goal EnvSubstitution)
 ```
 
-This says that we are trying to prove something written as `(prove Env Predciates Goal EnvSubstitution)`, where the first three are 'inputs' and the final name is an 'output' (the input vs output distinction is often left implicit in Prolog and other languages). The idea is that we will prove that `Goal` is true in some environment `Env`; the environment contains our hypotheses and clauses, as well as information about the variables in scope. The `Predicates` list is the stack of things we are solving, it's used to detect cycles. The `EnvSubstitution` is the *output*, it is a modified environment paired with a substitution that potentially gives new values to inference variables found in `Goal`.
+This says that we are trying to prove something written as `(prove Env Predciates Goal EnvSubstitution)`,
+where the first three are 'inputs' and the final name is an 'output'
+(the input vs output distinction is often left implicit in Prolog and other languages).
+The idea is that we will prove that `Goal` is true in some environment `Env`;
+the environment contains our hypotheses and clauses, as well as information about the variables in scope.
+The `Predicates` list is the stack of things we are solving, it's used to detect cycles.
+The `EnvSubstitution` is the *output*, it is a modified environment
+paired with a substitution that potentially gives new values to inference variables found in `Goal`.
 
 Here is a simple rule. It defines the way we prove `Any` ([source](https://github.com/nikomatsakis/a-mir-formality/blob/main/src/ty/cosld-solve/prove.rkt#L62-L65)). The notation is as follows. The stuff "above the line" are the conditions that have to be proven; the thing "under the line" is the conclusion that we can draw.
 
@@ -206,3 +218,4 @@ Or read another way:
 It shows you a bit of the power of PLT Redex (and Racket's pattern matching), as well. We are able to write the rule in a "non-deterministic" way -- saying, "pick any goal from the list" and prove it. Redex will search all the possibilities.
 
 [metafunction]: https://docs.racket-lang.org/redex/reference.html#%28form._%28%28lib._redex%2Freduction-semantics..rkt%29._define-metafunction%29%29
+[SLD Resolution Algorithm]: https://en.wikipedia.org/wiki/SLD_resolution
