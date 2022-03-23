@@ -1,0 +1,10 @@
+[book]
+authors = ["nikomatsakis", "pierwill"]
+language = "en"
+multilingual = false
+src = "src"
+title = "The MIR Formality Book"
+
+[output.html]
+additional-css = ["custom.css"]
+mathjax-support = true
