@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "substitution.rkt"
+         "hook.rkt"
          "../util.rkt")
 (provide instantiate-quantified)
 

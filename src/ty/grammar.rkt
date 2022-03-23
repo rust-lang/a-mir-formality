@@ -9,6 +9,11 @@
 ;   like TyAdt
 
 (define-language formality-ty
+  ;; The "hook" is a bit of a hack that allows the environment
+  ;; to (on demand) get access to clauses and invariants from the
+  ;; program without actually knowing the full representation
+  ;; of the program itself. See hook.rkt for more details.
+  (Hook ::= (Hook: any))
 
   ;; Ty -- Rust types
   ;;
@@ -52,29 +57,17 @@
 
   ;; Env: Typing environment
   ;;
+  ;; * Hook -- the "hook" that lets us get program information
   ;; * Universe -- the largest universe yet defined
   ;; * VarBinders -- maps variable names to quantifier-kinds/universes
   ;;   * When bound variables are instantiated, their names
   ;;     are added to this list.
   ;;   * When equating (existential) variables,
   ;;     we modify the universe that it is mapped to here
-  ;; * Clauses -- program clauses derived from impls present
-  ;;   or other such constructs
   ;; * Hypotheses -- facts believed to be true, introduced by
   ;;   where clauses
-  (Env ::= (Universe VarBinders EnvInferenceRules))
+  (Env ::= (Hook Universe VarBinders Hypotheses))
   (Env-e ::= Env Error)
-
-  ;; EnvInferenceRules: various kinds of the logical inference rules,
-  ;; each with its own purpose:
-  ;;
-  ;; * Clauses -- derived from the program declarations, collectively
-  ;;   define the predicates that are true
-  ;; * Hypotheses -- things that we are assuming to be true
-  ;; * Invariants -- implications that are implied by the clauses,
-  ;;   used to implement implied bounds (for example, `trait Eq: PartialEq`
-  ;;   would create an invariant that `forall T. (T: Eq) => (T: PartialEq)`)
-  (EnvInferenceRules ::= (Clauses Hypotheses Invariants))
 
   ;; VarBinder -- maps a `VarId` to a quantifier kind and `Universe`
   (VarBinders ::= (VarBinder ...))
@@ -192,55 +185,44 @@
   )
 
 (define-term
-  EmptyEnv
-  (RootUniverse () (() () ()))
-  )
-
-(define-term
   TyUnit
   (TyApply (Tuple 0) ())
   )
 
 (define-metafunction formality-ty
   ;; Returns the hypotheses in the environment
+  empty-env-with-hook : Hook -> Env
+
+  [(empty-env-with-hook Hook)
+   (Hook RootUniverse () ())]
+  )
+
+(define-metafunction formality-ty
+  ;; Returns the hypotheses in the environment
+  env-hook : Env -> Hook
+
+  [(env-hook (Hook Universe VarBinders Hypotheses)) Hook]
+  )
+
+(define-metafunction formality-ty
+  ;; Returns the hypotheses in the environment
   env-hypotheses : Env -> Hypotheses
 
-  [(env-hypotheses (Universe VarBinders (Clauses Hypotheses Invariants))) Hypotheses]
-  )
-
-(define-metafunction formality-ty
-  ;; Returns the program clauses in the environment
-  env-clauses : Env -> Hypotheses
-
-  [(env-clauses (Universe VarBinders (Clauses Hypotheses Invariants))) Clauses]
-  )
-
-(define-metafunction formality-ty
-  ;; Returns the program clauses in the environment
-  env-invariants : Env -> Hypotheses
-
-  [(env-invariants (Universe VarBinders (Clauses Hypotheses Invariants))) Invariants]
-  )
-
-(define-metafunction formality-ty
-  ;; Same environment but without any clauses (only hypotheses)
-  env-without-clauses : Env -> Env
-
-  [(env-without-clauses (Universe VarBinders (_ Hypotheses))) (Universe VarBinders (() Hypotheses))]
+  [(env-hypotheses (Hook Universe VarBinders Hypotheses)) Hypotheses]
   )
 
 (define-metafunction formality-ty
   ;; Returns the `VarId -> Universe` mapping from the environment
   env-var-binders : Env -> VarBinders
 
-  [(env-var-binders (Universe VarBinders EnvInferenceRules)) VarBinders]
+  [(env-var-binders (Hook Universe VarBinders Hypotheses)) VarBinders]
   )
 
 (define-metafunction formality-ty
   ;; Returns the current maximum universe in the environment
   env-universe : Env -> Universe
 
-  [(env-universe (Universe VarBinders EnvInferenceRules)) Universe]
+  [(env-universe (Hook Universe VarBinders Hypotheses)) Universe]
   )
 
 (define-metafunction formality-ty
@@ -248,8 +230,8 @@
   env-with-vars-in-current-universe : Env Quantifier VarIds -> Env
 
   [(env-with-vars-in-current-universe Env Quantifier (VarId ...))
-   (Universe ((VarId Quantifier Universe) ... VarBinder ...) EnvInferenceRules)
-   (where/error (Universe (VarBinder ...) EnvInferenceRules) Env)
+   (Hook Universe ((VarId Quantifier Universe) ... VarBinder ...) Hypotheses)
+   (where/error (Hook Universe (VarBinder ...) Hypotheses) Env)
    ]
   )
 
@@ -275,8 +257,8 @@
    (where #t ,(alpha-equivalent? (term Hypothesis_0) (term Hypothesis_1)))
    ]
 
-  [(env-with-hypothesis (Universe VarBinders (Clauses (Hypothesis_0 ...) Invariants)) Hypothesis_1)
-   (Universe VarBinders (Clauses (Hypothesis_0 ... Hypothesis_1) Invariants))
+  [(env-with-hypothesis (Hook Universe VarBinders (Hypothesis_0 ...)) Hypothesis_1)
+   (Hook Universe VarBinders (Hypothesis_0 ... Hypothesis_1))
    ]
 
   )
@@ -287,8 +269,8 @@
   env-with-var-limited-to-universe : Env VarId Universe -> Env
 
   [(env-with-var-limited-to-universe Env VarId Universe_max)
-   (Universe (VarBinder_0 ... (VarId Quantifier Universe_new) VarBinder_1 ...) EnvInferenceRules)
-   (where/error (Universe (VarBinder_0 ... (VarId Quantifier Universe_old) VarBinder_1 ...) EnvInferenceRules) Env)
+   (Hook Universe (VarBinder_0 ... (VarId Quantifier Universe_new) VarBinder_1 ...) Hypotheses)
+   (where/error (Hook Universe (VarBinder_0 ... (VarId Quantifier Universe_old) VarBinder_1 ...) Hypotheses) Env)
    (where/error Universe_new (min-universe Universe_old Universe_max))
    ]
   )
@@ -317,9 +299,9 @@
   env-with-incremented-universe : Env -> Env
 
   [(env-with-incremented-universe Env)
-   (Universe_new VarBinders EnvInferenceRules)
+   (Hook Universe_new VarBinders Hypotheses)
 
-   (where/error (Universe VarBinders EnvInferenceRules) Env)
+   (where/error (Hook Universe VarBinders Hypotheses) Env)
    (where/error Universe_new (next-universe Universe))
    ]
 
@@ -420,21 +402,6 @@
   [(placeholder-variables _)
    ()]
 
-  )
-
-(define-metafunction formality-ty
-  ;; Returns the current maximum universe in the environment
-  env-with-clauses-and-invariants : Env Clauses Invariants -> Env
-
-  [(env-with-clauses-and-invariants
-    (Universe VarBinders ((Clause_old ...) Hypotheses (Invariant_old ...)))
-    (Clause_new ...)
-    (Invariant_new ...))
-   (Universe
-    VarBinders
-    ((Clause_old ... Clause_new ...)
-     Hypotheses
-     (Invariant_old ... Invariant_new ...)))]
   )
 
 (define-metafunction formality-ty

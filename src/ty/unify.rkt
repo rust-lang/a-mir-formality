@@ -3,6 +3,7 @@
          "grammar.rkt"
          "instantiate.rkt"
          "substitution.rkt"
+         "hook.rkt"
          "../util.rkt"
          )
 (provide most-general-unifier

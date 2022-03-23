@@ -3,6 +3,7 @@
          "../grammar.rkt"
          "../substitution.rkt"
          "../instantiate.rkt"
+         "../hook.rkt"
          "../unify.rkt")
 
 (provide reset
@@ -34,10 +35,10 @@
   copy-universes : Env_old VarIds_new Env_new -> Env
 
   [(copy-universes
-    (Universe ((VarId_old Quantifier_old Universe_old) ...) EnvInferenceRules)
+    (Hook Universe ((VarId_old Quantifier_old Universe_old) ...) Hypotheses)
     (VarId_new ...)
-    (_ VarBinders_new _))
-   (Universe ((VarId_old Quantifier_old Universe_new) ...) EnvInferenceRules)
+    (Hook _ VarBinders_new _))
+   (Hook Universe ((VarId_old Quantifier_old Universe_new) ...) Hypotheses)
 
    (where/error ((VarId_new _ _) ... (VarId_old Quantifier_old Universe_new) ...) VarBinders_new)
    ]

@@ -2,6 +2,7 @@
 (require redex
          racket/set
          "../grammar.rkt"
+         "../hook.rkt"
          "../substitution.rkt"
          "../instantiate.rkt"
          "../unify.rkt"
@@ -132,8 +133,7 @@
 (module+ test
   (redex-let*
    formality-ty
-   [(Env (term (env-with-clauses-and-invariants EmptyEnv
-                                                ()
+   [(Env (term (env-with-clauses-and-invariants ()
                                                 ((ForAll ((TyKind T)) (Implies ((Implemented (Eq (T)))) (Implemented (PartialEq (T)))))
                                                  (ForAll ((TyKind T)) (Implies ((Implemented (Ord (T)))) (Implemented (PartialOrd (T)))))
                                                  (ForAll ((TyKind T)) (Implies ((Implemented (Ord (T)))) (Implemented (Eq (T)))))

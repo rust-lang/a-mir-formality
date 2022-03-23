@@ -3,6 +3,8 @@
 (provide (all-defined-out))
 
 (define-extended-language formality-decl formality-ty
+  (DeclProgram ::= (CrateDecls CrateId))
+
   ;; Crate declarations
   (CrateDecls ::= (CrateDecl ...))
   (CrateDecl ::= (CrateId CrateContents))

@@ -30,7 +30,7 @@
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
 
-    (Env (term (env-with-crate-decl EmptyEnv CrateDecl)))
+    (Env (term (env-for-crate-decl CrateDecl)))
     )
 
    (; All decls in crate are considered 'ok'. In particular, the impl is considered 'ok',
@@ -91,7 +91,7 @@
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
 
-    (Env (term (env-with-crate-decl EmptyEnv CrateDecl)))
+    (Env (term (env-for-crate-decl CrateDecl)))
     )
 
    (; All decls in crate are considered 'ok'.
@@ -159,7 +159,7 @@
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
 
-    (Env (term (env-with-crate-decl EmptyEnv CrateDecl)))
+    (Env (term (env-for-crate-decl CrateDecl)))
     )
 
    (; All decls in crate are considered 'ok'.

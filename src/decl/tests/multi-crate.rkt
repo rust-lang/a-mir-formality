@@ -50,8 +50,8 @@
     (CrateDecls_AB (term (CrateDecl_A CrateDecl_B)))
     (CrateDecls_ABC (term (CrateDecl_A CrateDecl_B CrateDecl_C)))
 
-    (Env_B (term (env-with-crate-decls EmptyEnv CrateDecls_AB CrateB)))
-    (Env_C (term (env-with-crate-decls EmptyEnv CrateDecls_ABC CrateC)))
+    (Env_B (term (env-for-crate-decls CrateDecls_AB CrateB)))
+    (Env_C (term (env-for-crate-decls CrateDecls_ABC CrateC)))
     )
 
    (redex-let*

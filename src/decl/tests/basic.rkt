@@ -17,7 +17,7 @@
    ((TraitDecl (term (Debug (trait ((TyKind Self)) () ()))))
     (TraitImplDecl (term (impl () (Debug ((scalar-ty i32))) () ())))
     (CrateDecl (term (TheCrate (crate (TraitDecl TraitImplDecl)))))
-    (Env (term (env-with-crate-decl EmptyEnv CrateDecl)))
+    (Env (term (env-for-crate-decl CrateDecl)))
     )
 
    (traced '()

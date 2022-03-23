@@ -18,7 +18,7 @@
     (TraitDecl_Eq (term (Eq (trait ((TyKind Self)) ((Implemented (PartialEq (Self)))) ()))))
     (TraitDecl_Debug (term (Debug (trait ((TyKind Self)) () ()))))
     (CrateDecl (term (TheCrate (crate (TraitDecl_PartialEq TraitDecl_Eq)))))
-    (Env (term (env-with-crate-decl EmptyEnv CrateDecl)))
+    (Env (term (env-for-crate-decl CrateDecl)))
     )
 
    (traced '()

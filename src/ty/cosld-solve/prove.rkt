@@ -1,6 +1,7 @@
 #lang racket
 (require redex
          "../grammar.rkt"
+         "../hook.rkt"
          "../substitution.rkt"
          "../instantiate.rkt"
          "../unify.rkt"
@@ -33,7 +34,7 @@
   #:contract (prove Env Predicates_stack Goal EnvSubstitution)
 
   [(where #f (in? Predicate Predicates_stack))
-   (where (_ ... Clause _ ... ) (filter-clauses (env-clauses Env) Predicate))
+   (where (_ ... Clause _ ... ) (filter-clauses (env-clauses-for-predicate Env Predicate) Predicate))
    (Clause-proves Env Predicates_stack Clause Predicate EnvSubstitution_out)
    --------------- "prove-clause"
    (prove Env Predicates_stack Predicate EnvSubstitution_out)
@@ -201,8 +202,7 @@
     formality-ty
     ((Invariant_PartialEq-if-Eq (term (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
                                                                     (Implemented (PartialEq (T)))))))
-     (Env (term (env-with-clauses-and-invariants EmptyEnv
-                                                 ()
+     (Env (term (env-with-clauses-and-invariants ()
                                                  (Invariant_PartialEq-if-Eq)
                                                  ))))
 

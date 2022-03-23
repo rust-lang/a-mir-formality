@@ -79,8 +79,8 @@
   ;; environment ought to be substituted).
   apply-substitution-to-env : Substitution Env  -> Env
 
-  [(apply-substitution-to-env Substitution (Universe VarBinders EnvInferenceRules))
-   (Universe VarBinders (apply-substitution Substitution EnvInferenceRules))]
+  [(apply-substitution-to-env Substitution (Hook Universe VarBinders Hypotheses))
+   (Hook Universe VarBinders (apply-substitution Substitution Hypotheses))]
 
   )
 
