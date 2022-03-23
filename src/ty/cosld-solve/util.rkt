@@ -25,8 +25,8 @@
   )
 
 (define-metafunction formality-ty
-  ;; Returns a version of `Env_old` where the universes of any variables
-  ;; may be adjused based on `Env_new` but it is otherwise unchanged.
+  ;; Returns a version of `Env_old` where the universes/substitution of any
+  ;; variables may be adjused based on `Env_new` but it is otherwise unchanged.
   ;;
   ;; Currently requires that (a) new variables are introduced as a prefix
   ;; onto the environment and (b) only the `VarIds_new` have been introduced.
@@ -35,12 +35,13 @@
   copy-universes : Env_old VarIds_new Env_new -> Env
 
   [(copy-universes
-    (Hook Universe ((VarId_old Quantifier_old Universe_old) ...) Hypotheses)
+    (Hook Universe ((VarId_old Quantifier_old Universe_old) ...) Substitution_0 Hypotheses)
     (VarId_new ...)
-    (Hook _ VarBinders_new _))
-   (Hook Universe ((VarId_old Quantifier_old Universe_new) ...) Hypotheses)
+    (Hook _ VarBinders_new Substitution_new _))
+   (Hook Universe ((VarId_old Quantifier_old Universe_new) ...) Substitution_out Hypotheses)
 
    (where/error ((VarId_new _ _) ... (VarId_old Quantifier_old Universe_new) ...) VarBinders_new)
+   (where/error Substitution_out (substitution-without-vars Substitution_new (VarId_new ...)))
    ]
   )
 

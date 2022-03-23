@@ -62,16 +62,14 @@
   [; if the result of applying substitution to itself has no change, all done
    (substitution-fix Substitution_0)
    Substitution_0
-   (where ((VarId_0 Parameter_0) ...) Substitution_0)
-   (where (Parameter_0 ...) (apply-substitution Substitution_0 (Parameter_0 ...)))
+   (where Substitution_0 (apply-substitution-to-substitution Substitution_0 Substitution_0))
    ]
 
   [; otherwise recursively apply
    (substitution-fix Substitution_0)
-   (substitution-fix ((VarId_0 Parameter_1) ...))
-   (where ((VarId_0 Parameter_0) ...) Substitution_0)
-   (where (Parameter_1 ...) (apply-substitution Substitution_0 (Parameter_0 ...)))
-   ]
+   (substitution-fix Substitution_1)
+   (where/error Substitution_1 (apply-substitution-to-substitution Substitution_0 Substitution_0))
+      ]
   )
 
 (define-metafunction formality-ty
@@ -79,11 +77,26 @@
   ;; environment ought to be substituted).
   apply-substitution-to-env : Substitution Env  -> Env
 
-  [(apply-substitution-to-env Substitution (Hook Universe VarBinders Hypotheses))
-   (Hook Universe VarBinders (apply-substitution Substitution Hypotheses))]
+  [(apply-substitution-to-env Substitution (Hook Universe VarBinders Substitution_env Hypotheses))
+   (Hook
+    Universe
+    VarBinders
+    (apply-substitution-to-substitution Substitution Substitution_env)
+    (apply-substitution Substitution Hypotheses))]
 
   )
 
+(define-metafunction formality-ty
+  ;; Applies the substitution to an environment (not all parts of the
+  ;; environment ought to be substituted).
+  apply-substitution-to-substitution : Substitution Substitution -> Substitution
+
+  [(apply-substitution-to-substitution Substitution_0 ((VarId_0 Parameter_0) ...))
+   ((VarId_0 Parameter_1) ...)
+   (where/error (Parameter_1 ...) (apply-substitution Substitution_0 (Parameter_0 ...)))
+   ]
+
+  )
 (module+ test
   (test-equal (term (apply-substitution
                      ((x x1) (y y1))
