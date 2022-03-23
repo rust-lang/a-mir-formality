@@ -1,10 +1,10 @@
-# A closer look at `formality-ty`
+## A closer look at `formality-ty`
 
 Let's take a closer look at the `formality-ty` layer.
 
 ### Defining Rust types
 
-The current definition of types looks like this ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/grammar.rkt#L25-L37)):
+The current definition of types looks like this:
 
 ```scheme
 (define-language formality-ty
@@ -33,6 +33,7 @@ The current definition of types looks like this ([source](https://github.com/nik
    ((AdtId VarId TraitId AssociatedTyId AnyId) := variable-not-otherwise-mentioned)
 )
 ```
+<span class="caption">[Source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/grammar.rkt#L25-L37)</span>
 
 This definition is far from complete,
 but it should give you some idea for the level of abstraction we are shooting for
