@@ -22,24 +22,24 @@
   ;; variable. It can also be a `TyNotVar`, in which case
   ;; it is a known type.
   ;;
-  ;; Generic types are represented using `TyApply` inside their
+  ;; Generic types are represented using `TyRigid` inside their
   ;; scope. So for example given `fn foo<T>() { ... }`,
   ;; inside the body of `foo`, we would represent `T` with
-  ;; `(TyApply T ())`.
+  ;; `(TyRigid T ())`.
   (Tys ::= (Ty ...))
   (Ty ::=
-      (TyApply TyName Parameters) ; Application type
-      VarId                       ; Bound or existential (inference) variable
-      (! VarId)                   ; Universal (placeholder) variable
+      (TyRigid RigidName Parameters) ; A *rigid* type is onee that can only be equal to itself.
+      VarId                          ; Bound or existential (inference) variable
+      (! VarId)                      ; Universal (placeholder) variable
       )
-  (TyName ::=
-          AdtId           ; enum/struct/union
-          TraitId         ; trait
-          AssociatedTy    ; Associated type
-          ScalarId        ; Something like i32, u32, etc
-          (Ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
-          (Tuple number)  ; tuple of given arity
-          )
+  (RigidName ::=
+             AdtId           ; enum/struct/union
+             TraitId         ; trait
+             AssociatedTy    ; Associated type
+             ScalarId        ; Something like i32, u32, etc
+             (Ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
+             (Tuple number)  ; tuple of given arity
+             )
 
   ;; Lt -- Rust lifetimes
   ;;
@@ -186,7 +186,7 @@
 
 (define-term
   TyUnit
-  (TyApply (Tuple 0) ())
+  (TyRigid (Tuple 0) ())
   )
 
 (define-metafunction formality-ty
@@ -353,7 +353,7 @@
 
   [(appears-free VarId any)
    ,(not (alpha-equivalent? formality-ty (term any) (term any_1)))
-   (where/error any_1 (substitute any VarId (TyApply VarId ())))
+   (where/error any_1 (substitute any VarId (TyRigid VarId ())))
    ]
   )
 
@@ -368,8 +368,8 @@
   [(free-variables VarId)
    (VarId)]
 
-  [; The `c` in `(TyApply c ())` is not a variable but a constant.
-   (free-variables (TyApply _ Substitution))
+  [; The `c` in `(TyRigid c ())` is not a variable but a constant.
+   (free-variables (TyRigid _ Substitution))
    (free-variables Substitution)]
 
   [(free-variables (LtApply _))
@@ -387,7 +387,7 @@
 
 (define-metafunction formality-ty
   ;; Returns the set of names that are "placeholders", i.e.,
-  ;; rigid types. For example, if you have `(TyApply Vec ((TyApply X ())))`,
+  ;; rigid types. For example, if you have `(TyRigid Vec ((TyRigid X ())))`,
   ;; this would return `(Vec X)`.
   placeholder-variables : Term -> (VarId ...)
 
@@ -463,7 +463,7 @@
 (define-metafunction formality-ty
   scalar-ty : ScalarId -> Ty
 
-  ((scalar-ty ScalarId) (TyApply ScalarId ()))
+  ((scalar-ty ScalarId) (TyRigid ScalarId ()))
   )
 
 (module+ test

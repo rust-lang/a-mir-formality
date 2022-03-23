@@ -200,17 +200,17 @@
 
    ; Equating `E` with `i32` is OK
    (test-equal
-    (term (occurs-check Env_1 E (TyApply i32 ())))
+    (term (occurs-check Env_1 E (TyRigid i32 ())))
     (term Env_1))
 
    ; Equating `E` with `Vec<E>` is not possible
    (test-equal
-    (term (occurs-check Env_1 E (TyApply Vec (E))))
+    (term (occurs-check Env_1 E (TyRigid Vec (E))))
     (term Error))
 
    ; Equating `E` with `Vec<i32>` is ok
    (test-equal
-    (term (occurs-check Env_1 E (TyApply Vec ((scalar-ty i32)))))
+    (term (occurs-check Env_1 E (TyRigid Vec ((scalar-ty i32)))))
     (term Env_1))
 
    ; Equating `E` with `V` is not possible,
@@ -227,7 +227,7 @@
    ; Equating E with `Vec<V>` is not possible,
    ; since V is in U1
    (test-equal
-    (term (occurs-check Env_1 E (TyApply Vec (Ty_V))))
+    (term (occurs-check Env_1 E (TyRigid Vec (Ty_V))))
     (term Error))
 
    ; Equating X (in U1) with E (in U0) moves X to U0
@@ -261,7 +261,7 @@
    ; yields [X => T]
    (redex-let*
     formality-ty
-    (((Env_out Substitution_out) (term (most-general-unifier Env_2 (((TyApply Vec (Ty_X)) (TyApply Vec (Ty_T))))))))
+    (((Env_out Substitution_out) (term (most-general-unifier Env_2 (((TyRigid Vec (Ty_X)) (TyRigid Vec (Ty_T))))))))
     (test-equal (term Env_out) (term Env_2))
     (test-equal (term Substitution_out) (term ((Ty_X Ty_T))))
     )
@@ -282,19 +282,19 @@
    ; Test [Vec<A> = Vec<T>]
    ;
    ; yields error
-   (test-equal (term (most-general-unifier Env_2 (((TyApply Vec (Ty_A)) (TyApply Vec (Ty_T))))))
+   (test-equal (term (most-general-unifier Env_2 (((TyRigid Vec (Ty_A)) (TyRigid Vec (Ty_T))))))
                (term Error))
 
    ; Test [Vec<A> = Vec<X>, Vec<X> = Vec<T>] results in an error.
-   (test-equal (term (most-general-unifier Env_2 (((TyApply Vec (Ty_A)) (TyApply Vec (Ty_X)))
-                                                  ((TyApply Vec (Ty_X)) (TyApply Vec (Ty_T))))))
+   (test-equal (term (most-general-unifier Env_2 (((TyRigid Vec (Ty_A)) (TyRigid Vec (Ty_X)))
+                                                  ((TyRigid Vec (Ty_X)) (TyRigid Vec (Ty_T))))))
                (term Error))
 
 
    ; Test (i32: Eq) != (i32: PartialEq)
    ;
    ; yields error
-   (test-equal (term (most-general-unifier Env_2 (((Eq ((TyApply i32 ()))) (PartialEq ((TyApply i32 ())))))))
+   (test-equal (term (most-general-unifier Env_2 (((Eq ((TyRigid i32 ()))) (PartialEq ((TyRigid i32 ())))))))
                (term Error))
 
    ; Test [A = X, X = Vec<Y>, Y = i32]
@@ -304,15 +304,15 @@
    (redex-let*
     formality-ty
     (((Env_out Substitution_out) (term (most-general-unifier Env_2 ((Ty_A Ty_X)
-                                                                    (Ty_X (TyApply Vec (Ty_Y)))
-                                                                    (Ty_Y (TyApply i32 ()))
+                                                                    (Ty_X (TyRigid Vec (Ty_Y)))
+                                                                    (Ty_Y (TyRigid i32 ()))
                                                                     )))))
     (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Ty_A)))
     (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Ty_X)))
     (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Ty_Y)))
-    (test-equal (term Substitution_out) (term ((Ty_A (TyApply Vec ((TyApply i32 ()))))
-                                               (Ty_X (TyApply Vec ((TyApply i32 ()))))
-                                               (Ty_Y (TyApply i32 ()))))))
+    (test-equal (term Substitution_out) (term ((Ty_A (TyRigid Vec ((TyRigid i32 ()))))
+                                               (Ty_X (TyRigid Vec ((TyRigid i32 ()))))
+                                               (Ty_Y (TyRigid i32 ()))))))
 
    (; Test that the substitution is applied to hypotheses in the environment, too
     redex-let*

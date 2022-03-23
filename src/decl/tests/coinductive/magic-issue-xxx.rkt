@@ -16,7 +16,7 @@
      AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
 
     (; reference to `Foo`
-     Ty_Foo (term (TyApply Foo ())))
+     Ty_Foo (term (TyRigid Foo ())))
 
     (; trait Magic: Copy { }
      TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))
@@ -77,7 +77,7 @@
      AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
 
     (; reference to `Foo`
-     Ty_Foo (term (TyApply Foo ())))
+     Ty_Foo (term (TyRigid Foo ())))
 
     (; trait Magic: Copy { }
      TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))
@@ -136,13 +136,13 @@
      AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
 
     (; reference to `Foo`
-     Ty_Foo (term (TyApply Foo ())))
+     Ty_Foo (term (TyRigid Foo ())))
 
     (; struct Bar { counter: i32 }
      AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
 
     (; reference to `Bar`
-     Ty_Bar (term (TyApply Bar ())))
+     Ty_Bar (term (TyRigid Bar ())))
 
     (; trait Magic: Copy { }
      TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))

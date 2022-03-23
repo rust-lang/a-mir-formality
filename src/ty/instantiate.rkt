@@ -14,7 +14,7 @@
   [; Handle universal binder instantiation.
    ;
    ; In this case, we want to replace e.g. `for<T> Vec<T>` with
-   ; `Vec<T1<>>` for some fresh name `T1` -- i.e., `(TyApply Vec (TyApply T1 ()))`.
+   ; `Vec<T1<>>` for some fresh name `T1` -- i.e., `(TyRigid Vec (TyRigid T1 ()))`.
    (instantiate-quantified Env_0 (ForAll KindedVarIds Term_0))
    (Env_2 Term_1 (VarId_new ...))
 
@@ -36,7 +36,7 @@
   [; Handle existential binder instantiation.
    ;
    ; In this case, we want to replace e.g. `exists<T> Vec<T>` with
-   ; `Vec<T1>` for some fresh name `T1` -- i.e., `(TyApply Vec (T1))`.
+   ; `Vec<T1>` for some fresh name `T1` -- i.e., `(TyRigid Vec (T1))`.
    (instantiate-quantified Env_0 (Exists KindedVarIds Term_0))
    (Env_1 Term_1 (VarId_new ...))
 
@@ -59,13 +59,13 @@
   ;; Given a binder like `ForAll<type T, lifetime L>`, this function is
   ;; invoked with a substitution `T => T1, L => L1` mapping `T` and `L`
   ;; to fresh names, along with some element of the original binder
-  ;; like `type T` or `lifetime L`. It returns a mapping `T => (TyApply T1 ())`
+  ;; like `type T` or `lifetime L`. It returns a mapping `T => (TyRigid T1 ())`
   ;; that maps from the original variable to a parameter using the new
   ;; name in placeholder position.
   placeholder-parameter : Substitution KindedVarId -> (VarId Parameter)
 
   [(placeholder-parameter Substitution (TyKind VarId))
-   (VarId (TyApply VarId_new ()))
+   (VarId (TyRigid VarId_new ()))
    (where VarId_new (apply-substitution Substitution VarId))]
 
   [(placeholder-parameter Substitution (LifetimeVar VarId))
@@ -81,12 +81,12 @@
 
    (test-match-terms
     formality-ty
-    (term (instantiate-quantified EmptyEnv (ForAll ((TyKind V)) (TyApply Vec (V)))))
-    (term (_ (TyApply Vec ((! VarId_V1))) (VarId_V1))))
+    (term (instantiate-quantified EmptyEnv (ForAll ((TyKind V)) (TyRigid Vec (V)))))
+    (term (_ (TyRigid Vec ((! VarId_V1))) (VarId_V1))))
 
    (test-match-terms
     formality-ty
-    (term (instantiate-quantified EmptyEnv (Exists ((TyKind V)) (TyApply Vec (V)))))
-    (term (_ (TyApply Vec (VarId_V1)) (VarId_V1))))
+    (term (instantiate-quantified EmptyEnv (Exists ((TyKind V)) (TyRigid Vec (V)))))
+    (term (_ (TyRigid Vec (VarId_V1)) (VarId_V1))))
    )
   )

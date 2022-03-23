@@ -96,12 +96,12 @@
               (term (x1 (ForAll (TyKind z) (x1 y1 z) y1))))
 
   (test-equal (term (substitution-fix
-                     ((x (TyApply SomeType (y)))
+                     ((x (TyRigid SomeType (y)))
                       (y y1)
                       (z x))))
-              (term ((x (TyApply SomeType (y1)))
+              (term ((x (TyRigid SomeType (y1)))
                      (y y1)
-                     (z (TyApply SomeType (y1))))))
+                     (z (TyRigid SomeType (y1))))))
 
   (test-equal (term (substitution-without-vars
                      ((x x1) (y y1) (z z1))

@@ -144,16 +144,16 @@
    (traced '()
            (test-equal
             (term (elaborate-hypothesis-one-step Env (Implemented (Ord ((scalar-ty u32))))))
-            (term ((Implemented (Eq ((TyApply u32 ()))))
-                   (Implemented (PartialOrd ((TyApply u32 ()))))))))
+            (term ((Implemented (Eq ((TyRigid u32 ()))))
+                   (Implemented (PartialOrd ((TyRigid u32 ()))))))))
 
    (traced '()
            (test-equal
             (term (env-hypotheses (elaborate-hypotheses (env-with-hypotheses Env ((Implemented (Ord ((scalar-ty u32)))))))))
-            (term ((Implemented (Ord ((TyApply u32 ()))))
-                   (Implemented (Eq ((TyApply u32 ()))))
-                   (Implemented (PartialOrd ((TyApply u32 ()))))
-                   (Implemented (PartialEq ((TyApply u32 ()))))))))
+            (term ((Implemented (Ord ((TyRigid u32 ()))))
+                   (Implemented (Eq ((TyRigid u32 ()))))
+                   (Implemented (PartialOrd ((TyRigid u32 ()))))
+                   (Implemented (PartialEq ((TyRigid u32 ()))))))))
 
    (traced '()
            (test-alpha-equivalent

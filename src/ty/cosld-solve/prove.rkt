@@ -139,7 +139,7 @@
      (Env_2 Ty_X (VarId_2)) (term (instantiate-quantified Env_1 (Exists ((TyKind X)) X))))
     (; Y, Z are in U1
      (Env_3 (Ty_Y Ty_Z) VarIds_3) (term (instantiate-quantified Env_2 (Exists ((TyKind Y) (TyKind Z)) (Y Z)))))
-    ((Env_4 Substitution_out) (term (most-general-unifier Env_3 (((TyApply Vec (Ty_A)) (TyApply Vec (Ty_X)))))))
+    ((Env_4 Substitution_out) (term (most-general-unifier Env_3 (((TyRigid Vec (Ty_A)) (TyRigid Vec (Ty_X)))))))
     (Env_5 (term (copy-universes Env_2 VarIds_3 Env_4)))
     )
 
@@ -160,14 +160,14 @@
     (test-equal
      (judgment-holds (prove-top-level-goal
                       Env
-                      (All ((Equate T (TyApply Vec (U)))
-                            (Equate U (TyApply Vec (V)))
-                            (Equate V (TyApply i32 ()))))
+                      (All ((Equate T (TyRigid Vec (U)))
+                            (Equate U (TyRigid Vec (V)))
+                            (Equate V (TyRigid i32 ()))))
                       EnvSubstitution)
                      EnvSubstitution)
-     (term ((Env ((T (TyApply Vec ((TyApply Vec ((TyApply i32 ()))))))
-                  (U (TyApply Vec ((TyApply i32 ()))))
-                  (V (TyApply i32 ()))))))))
+     (term ((Env ((T (TyRigid Vec ((TyRigid Vec ((TyRigid i32 ()))))))
+                  (U (TyRigid Vec ((TyRigid i32 ()))))
+                  (V (TyRigid i32 ()))))))))
 
    (test-equal
     (judgment-holds (prove-top-level-goal
@@ -207,7 +207,7 @@
                                                  ))))
 
     (test-equal
-     (judgment-holds (prove-top-level-goal Env (Implemented (PartialEq ((TyApply u32 ())))) EnvSubstitution)
+     (judgment-holds (prove-top-level-goal Env (Implemented (PartialEq ((TyRigid u32 ())))) EnvSubstitution)
                      EnvSubstitution)
      (term ()))
 

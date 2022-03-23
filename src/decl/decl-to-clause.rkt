@@ -142,7 +142,7 @@
    ((Clause) Invariants_wf Invariants_wc)
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
-   (where/error Ty_adt (TyApply AdtId (VarId ...)))
+   (where/error Ty_adt (TyRigid AdtId (VarId ...)))
    (where/error Clause (ForAll KindedVarIds
                                (Implies
                                 ((WellFormed (ParameterKind VarId)) ...
