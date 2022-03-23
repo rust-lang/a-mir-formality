@@ -19,3 +19,52 @@ jobs:
       - name: Run Tests
         run: |
           xvfb-run raco test .
+  book:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install mdbook
+        env:
+          MDBOOK_SHA: c6810849bfdcf9fdeafb693129308c8e4b7811134e1fe413eb7bacac697b9789
+        run: |
+          cd book
+          curl -LO https://github.com/rust-lang/mdBook/releases/download/v0.4.5/mdbook-v0.4.5-x86_64-unknown-linux-gnu.tar.gz
+          echo "${MDBOOK_SHA}  mdbook-v0.4.5-x86_64-unknown-linux-gnu.tar.gz" | sha256sum --check -
+          # Add the book directory to the $PATH
+          echo "$GITHUB_WORKSPACE/book" >> $GITHUB_PATH
+      # - name: Execute tests for book
+      #   run: cd book && ./mdbook test
+      - name: Build book
+        run: cd book && ./mdbook build
+      - name: Upload book to GitHub Pages
+        env:
+          DEPLOY_SHA: bef09c1cac587271d0352b0ae59949d2cab93b3d1c9dc45366a42fbe51f6221a
+          GITHUB_DEPLOY_KEY: ${{ secrets.k }}
+        run: |
+          touch target/doc/.nojekyll
+          curl -LsSf https://raw.githubusercontent.com/rust-lang/simpleinfra/master/setup-deploy-keys/src/deploy.rs
+          echo "${DEPLOY_SHA}  deploy.rs" | sha256sum --check -
+          rustc deploy.rs -o /tmp/deploy
+          cp -r book/book/html target/doc/book
+          (cd target/doc && /tmp/deploy)
+        if: matrix.rust == 'stable' && github.ref == 'refs/heads/master'
+
+  # end-success:
+  #   name: bors build finished
+  #   if: success()
+  #   runs-on: ubuntu-latest
+  #   needs: [test, fmt]
+
+  #   steps:
+  #     - name: Mark the job as successful
+  #       run: exit 0
+
+  # end-failure:
+  #   name: bors build finished
+  #   if: "!success()"
+  #   runs-on: ubuntu-latest
+  #   needs: [test, fmt]
+
+  #   steps:
+  #     - name: Mark the job as a failure
+  #       run: exit 1
