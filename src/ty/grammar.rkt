@@ -63,7 +63,6 @@
   ;; * Hypotheses -- facts believed to be true, introduced by
   ;;   where clauses
   (Env ::= (Hook Universe VarBinders Substitution Hypotheses))
-  (Env-e ::= Env Error)
 
   ;; VarBinder -- maps a `VarId` to a quantifier kind and `Universe`
   (VarBinders ::= (VarBinder ...))
@@ -84,7 +83,6 @@
   ;; replaced.
   ;;
   ;; See `substitution.rkt` for helper functions
-  (Substitution-e ::= Error Substitution)
   (Substitution ::= (VarParameter ...))
   (VarParameter = (VarId Parameter))
 

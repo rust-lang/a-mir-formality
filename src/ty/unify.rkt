@@ -163,7 +163,7 @@
   ;; variable `V` that occur in `Parameter`. The universe of `V` cannot
   ;; be greater than the universe of `VarId` (since whatever value `V` ultimately
   ;; takes on will become part of `VarId`'s value).
-  occurs-check : Env VarId Parameter -> Env-e
+  occurs-check : Env VarId Parameter -> Env or Error
 
   [(occurs-check Env VarId Parameter)
    Env_1
