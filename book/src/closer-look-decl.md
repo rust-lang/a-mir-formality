@@ -11,13 +11,9 @@ that adds new stuff to `formality-ty`:
 
 For example, a set of crates looks like this:
 
-```scheme
- (CrateDecls := (CrateDecl ...))
-  (CrateDecl := (CrateId CrateContents))
-  (CrateContents := (crate (CrateItemDecl ...)))
-  (CrateItemDecl := AdtDecl TraitDecl TraitImplDecl)
+```scheme,ignore
+{{#include ../../src/decl/grammar.rkt:Crates}}
 ```
-<span class="caption">[Source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/grammar.rkt#L7-L10)</span>
 
 Basically a crate `a` is represented as a list of items like `(a (crate (item1 item2 item3)))`
 where `item{1,2,3}` are either structs/enums (`AdtDecl`), traits (`TraitDecl`), or impls (`TraitImplDecl`).

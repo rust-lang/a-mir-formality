@@ -10,11 +10,13 @@
 (define-extended-language formality-decl formality-ty
   (DeclProgram ::= (CrateDecls CrateId))
 
+  ;; ANCHOR:Crates
   ;; Crate declarations
   (CrateDecls ::= (CrateDecl ...))
   (CrateDecl ::= (CrateId CrateContents))
   (CrateContents ::= (crate (CrateItemDecl ...)))
   (CrateItemDecl ::= AdtDecl TraitDecl TraitImplDecl)
+  ;; ANCHOR_END:Crates
 
   ;; AdtDecl -- struct/enum/union declarations
   (AdtDecl ::= (AdtId AdtContents))
