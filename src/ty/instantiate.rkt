@@ -53,26 +53,6 @@
    ]
   )
 
-(define-metafunction formality-ty
-  ;; Helper function for instantiating `ForAll` binders:
-  ;;
-  ;; Given a binder like `ForAll<type T, lifetime L>`, this function is
-  ;; invoked with a substitution `T => T1, L => L1` mapping `T` and `L`
-  ;; to fresh names, along with some element of the original binder
-  ;; like `type T` or `lifetime L`. It returns a mapping `T => (TyRigid T1 ())`
-  ;; that maps from the original variable to a parameter using the new
-  ;; name in placeholder position.
-  placeholder-parameter : Substitution KindedVarId -> (VarId Parameter)
-
-  [(placeholder-parameter Substitution (TyKind VarId))
-   (VarId (TyRigid VarId_new ()))
-   (where VarId_new (apply-substitution Substitution VarId))]
-
-  [(placeholder-parameter Substitution (LifetimeVar VarId))
-   (VarId (LtApply VarId_new ()))
-   (where VarId_new (apply-substitution Substitution VarId))]
-  )
-
 (module+ test
 
   (redex-let*
