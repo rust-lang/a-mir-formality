@@ -51,10 +51,6 @@
       (! VarId)                   ; Universal (placeholder) variable
       )
 
-  ;; EnvSubstitution - pair of an environment + substitution. This is the output
-  ;; from proving things.
-  (EnvSubstitution ::= (Env Substitution))
-
   ;; Env: Typing environment
   ;;
   ;; * Hook -- the "hook" that lets us get program information
