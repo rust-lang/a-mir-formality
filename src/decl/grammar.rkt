@@ -29,6 +29,7 @@
   (FieldDecls ::= (FieldDecl ...))
   (FieldDecl ::= (FieldId Ty))
 
+  ;; ANCHOR:Traits
   ;; TraitDecl -- trait Foo { ... }
   ;;
   ;; Unlike in Rust, the `KindedVarIds` here always include with `(TyKind Self)` explicitly.
@@ -56,6 +57,7 @@
                #;(Outlives (Parameter : Lt))
                #;(ProjectionEq TraitRef :: (AssociatedTyId Substitution) = Ty)
                )
+  ;; ANCHOR_END:Traits
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose

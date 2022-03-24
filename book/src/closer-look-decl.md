@@ -23,17 +23,9 @@ where `item{1,2,3}` are either structs/enums (`AdtDecl`), traits (`TraitDecl`), 
 Let's look more closely at one of those kinds of items.
 A trait declaration looks like this:
 
-```scheme
-  (TraitDecl := (TraitId TraitContents))
-  (TraitContents := (trait KindedVarIds WhereClauses TraitItems))
-  ...
-  (WhereClauses := (WhereClause ...))
-  (WhereClause :=
-               (ForAll KindedVarIds WhereClause)
-               (Implemented TraitRef)
-               )
+```scheme,ignore
+{{#include ../../src/decl/grammar.rkt:Traits}}
 ```
-<span class="caption">[Source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/grammar.rkt#L26-L27)</span>
 
 Here:
 
