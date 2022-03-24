@@ -19,21 +19,23 @@
   ;; The algorithm is a variant of the classic unification algorithm adapted for
   ;; universes. It is described in "A Proof Procedure for the Logic of Hereditary Harrop Formulas"
   ;; publishd in 1992 by Gopalan Nadathur at Duke University.
-  most-general-unifier : Env TermPairs -> EnvSubstitution or Error
+  most-general-unifier : Env TermPairs -> Env or Error
 
   [(most-general-unifier Env TermPairs)
-   (unify-pairs VarIds_exists Env () TermPairs)
+   (unify-pairs VarIds_exists Env TermPairs_subst)
 
+   (where/error TermPairs_subst (apply-substitution-from-env Env TermPairs))
    (where/error VarIds_exists (existential-vars-in-env Env))]
   )
 
 (define-metafunction formality-ty
   ;; Like `most-general-unifier`, but treats `VarIds` as variables and
   ;; everything else as fixed.
-  most-general-unifier/vars : VarIds Env TermPairs -> EnvSubstitution or Error
+  most-general-unifier/vars : VarIds Env TermPairs -> Env or Error
 
   [(most-general-unifier/vars VarIds Env TermPairs)
-   (unify-pairs VarIds Env () TermPairs)]
+   (unify-pairs VarIds Env TermPairs_subst)
+   (where/error TermPairs_subst (apply-substitution-from-env Env TermPairs))]
   )
 
 (define-metafunction formality-ty
@@ -62,42 +64,41 @@
   )
 
 (define-metafunction formality-ty
-  unify-pairs : VarIds_exists Env Substitution TermPairs -> EnvSubstitution or Error
+  unify-pairs : VarIds_exists Env TermPairs -> Env or Error
   [; base case, all done, but we have to apply the substitution to itself
-   (unify-pairs VarIds_exists Env Substitution ())
-   (Env_1 Substitution_1)
-   (where/error Substitution_1 (substitution-fix Substitution))
+   (unify-pairs VarIds_exists Env ())
+   Env_1
+   (where/error Substitution_1 (substitution-fix (env-substitution Env)))
    (where/error Env_1 (apply-substitution-to-env Substitution_1 Env))
    ]
 
   [; unify the first pair ===> if that is an error, fail
-   (unify-pairs VarIds_exists Env Substitution (TermPair_first TermPair_rest ...))
+   (unify-pairs VarIds_exists Env (TermPair_first TermPair_rest ...))
    Error
    (where Error (unify-pair VarIds_exists Env TermPair_first))]
 
   [; unify the first pair ===> if that succeeds, apply resulting substitution to the rest
    ; and recurse
-   (unify-pairs VarIds_exists Env Substitution_in (TermPair_first TermPair_rest ...))
-   (unify-pairs VarIds_exists Env_u Substitution_all TermPairs_all)
+   (unify-pairs VarIds_exists Env (TermPair_first TermPair_rest ...))
+   (unify-pairs VarIds_exists Env_u TermPairs_all)
 
-   (where (Env_u Substitution_u (TermPair_u ...)) (unify-pair VarIds_exists Env TermPair_first))
-   (where/error (TermPair_v ...) (apply-substitution Substitution_u (TermPair_rest ...)))
+   (where (Env_u (TermPair_u ...)) (unify-pair VarIds_exists Env TermPair_first))
+   (where/error (TermPair_v ...) (apply-substitution-from-env Env_u (TermPair_rest ...)))
    (where/error TermPairs_all (TermPair_u ... TermPair_v ...))
-   (where/error Substitution_all (substitution-concat-disjoint Substitution_in Substitution_u))
    ]
   )
 
 (define-metafunction formality-ty
-  unify-pair : VarIds_exists Env TermPair -> (Env Substitution TermPairs) or Error
+  unify-pair : VarIds_exists Env TermPair -> (Env TermPairs) or Error
 
   [; X = X ===> always ok
    (unify-pair _ Env (Term Term))
-   (Env () ())
+   (Env ())
    ]
 
   [; X = P ===> occurs check ok, return `[X => P]`
    (unify-pair VarIds_exists Env (VarId Parameter))
-   (Env_out ((VarId Parameter)) ())
+   ((env-with-var-mapped-to Env_out VarId Parameter) ())
 
    (where #t (contains-id VarIds_exists VarId))
    (where Env_out (occurs-check Env VarId Parameter))
@@ -133,7 +134,7 @@
   [; (L ...) = (R ...) ===> true if Li = Ri for all i and the lengths are the same
    (unify-pair VarIds_exists Env ((Term_l ..._0)
                                   (Term_r ..._0)))
-   (Env () ((Term_l Term_r) ...))]
+   (Env ((Term_l Term_r) ...))]
 
   [; any other case fails to unify
    (unify-pair VarIds_exists Env (Term_1 Term_2))
@@ -174,7 +175,7 @@
 
    ; can't have `X = T<>` if `X` cannot see the universe of `T`
    (where/error (VarId_placeholder ...) (placeholder-variables Parameter))
-   (where #t (all? ((universe-includes Universe_VarId (universe-of-var-in-env Env VarId_placeholder)) ...)))
+   (where #t (all? (universe-includes Universe_VarId (universe-of-var-in-env Env VarId_placeholder)) ...))
 
    ; for each `X = ... Y ...`, adjust universe of Y so that it can see all values of X
    (where/error VarIds_free (free-variables Parameter))
@@ -261,9 +262,9 @@
    ; yields [X => T]
    (redex-let*
     formality-ty
-    (((Env_out Substitution_out) (term (most-general-unifier Env_2 (((TyRigid Vec (Ty_X)) (TyRigid Vec (Ty_T))))))))
-    (test-equal (term Env_out) (term Env_2))
-    (test-equal (term Substitution_out) (term ((Ty_X Ty_T))))
+    ((Env_out (term (most-general-unifier Env_2 (((TyRigid Vec (Ty_X)) (TyRigid Vec (Ty_T))))))))
+    (test-equal (term (env-var-binders Env_out)) (term (env-var-binders Env_2)))
+    (test-equal (term (apply-substitution-from-env Env_out Ty_X)) (term Ty_T))
     )
 
    ; Test some random loop-y structures like (A B C) = (T U V)
@@ -271,12 +272,12 @@
    ; yields [X => T]
    (redex-let*
     formality-ty
-    (((Env_out Substitution_out) (term (most-general-unifier Env_2 (((Ty_X Ty_Y Ty_Z)
-                                                                     (Ty_T Ty_U Ty_V)))))))
-    (test-equal (term Env_out) (term Env_2))
-    (test-equal (term Substitution_out) (term ((Ty_X Ty_T)
-                                               (Ty_Y Ty_U)
-                                               (Ty_Z Ty_V))))
+    ((Env_out (term (most-general-unifier Env_2 (((Ty_X Ty_Y Ty_Z)
+                                                  (Ty_T Ty_U Ty_V)))))))
+    (test-equal (term (env-var-binders Env_out)) (term (env-var-binders Env_2)))
+    (test-equal (term (apply-substitution-from-env Env_out (Ty_X Ty_Y Ty_Z)))
+                (term (Ty_T Ty_U Ty_V))
+                )
     )
 
    ; Test [Vec<A> = Vec<T>]
@@ -303,16 +304,17 @@
    ; into the root universe.
    (redex-let*
     formality-ty
-    (((Env_out Substitution_out) (term (most-general-unifier Env_2 ((Ty_A Ty_X)
-                                                                    (Ty_X (TyRigid Vec (Ty_Y)))
-                                                                    (Ty_Y (TyRigid i32 ()))
-                                                                    )))))
+    ((Env_out (term (most-general-unifier Env_2 ((Ty_A Ty_X)
+                                                 (Ty_X (TyRigid Vec (Ty_Y)))
+                                                 (Ty_Y (TyRigid i32 ()))
+                                                 )))))
     (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Ty_A)))
     (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Ty_X)))
     (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Ty_Y)))
-    (test-equal (term Substitution_out) (term ((Ty_A (TyRigid Vec ((TyRigid i32 ()))))
-                                               (Ty_X (TyRigid Vec ((TyRigid i32 ()))))
-                                               (Ty_Y (TyRigid i32 ()))))))
+    (test-equal (term (apply-substitution-from-env Env_out (Ty_A Ty_X Ty_Y)))
+                (term ((TyRigid Vec ((TyRigid i32 ())))
+                       (TyRigid Vec ((TyRigid i32 ())))
+                       (TyRigid i32 ())))))
 
    (; Test that the substitution is applied to hypotheses in the environment, too
     redex-let*
@@ -320,10 +322,10 @@
     ((; assume that `X: Debug` (note that `X` is an existential variable)
       Env_3 (term (env-with-hypotheses Env_2 ((Implemented (Debug (Ty_X)))))))
      (; constrain `X = i32` to yield new substitution
-      (Env_out Substitution_out) (term (most-general-unifier Env_3 ((Ty_X (scalar-ty i32)))))))
+      Env_out (term (most-general-unifier Env_3 ((Ty_X (scalar-ty i32)))))))
 
     ; concluded that `X = i32`
-    (test-equal (term Substitution_out) (term ((Ty_X (scalar-ty i32)))))
+    (test-equal (term (apply-substitution-from-env Env_out Ty_X)) (term (scalar-ty i32)))
 
     ; starts out as `X: Debug`
     (test-equal (term (env-hypotheses Env_3)) (term ((Implemented (Debug (Ty_X))))))
@@ -333,13 +335,15 @@
     )
 
    ; Here we can only map X but that's fine.
-   (test-equal (term (most-general-unifier/vars (X) Env_2 ((X (scalar-ty i32))
-                                                           (X X)
-                                                           (X (scalar-ty i32)))))
-               (term (Env_2 ((X (scalar-ty i32))))))
+   (test-equal (term (apply-substitution-from-env
+                      (most-general-unifier/vars (Ty_X) Env_2 ((Ty_X (scalar-ty i32))
+                                                               (Ty_X Ty_X)
+                                                               (Ty_X (scalar-ty i32))))
+                      Ty_X))
+               (term (scalar-ty i32)))
 
    ; Here, even though Y is a variable, we fail because we're not allowed to assign it.
-   (test-equal (term (most-general-unifier/vars (X) Env_2 ((X Y) (X (scalar-ty i32)))))
+   (test-equal (term (most-general-unifier/vars (Ty_X) Env_2 ((Ty_X Ty_Y) (Ty_X (scalar-ty i32)))))
                (term Error))
    )
   )

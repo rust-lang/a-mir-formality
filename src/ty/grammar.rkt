@@ -219,6 +219,14 @@
   )
 
 (define-metafunction formality-ty
+  ;; Returns the substitution from the environment -- i.e., the currently inferred values
+  ;; for any existential variables
+  env-substitution : Env -> Substitution
+
+  [(env-substitution (Hook Universe VarBinders Substitution Hypotheses)) Substitution]
+  )
+
+(define-metafunction formality-ty
   ;; Returns the current maximum universe in the environment
   env-universe : Env -> Universe
 
@@ -407,22 +415,22 @@
 (define-metafunction formality-ty
   ;; Boolean operator
   not? : boolean -> boolean
-  [(not? false) true]
-  [(not? true) false]
+  [(not? #f) #t]
+  [(not? #t) #f]
   )
 
 (define-metafunction formality-ty
   ;; Boolean operator
-  all? : (boolean ...) -> boolean
-  [(all? (#t ...)) #t]
-  [(all? _) #f]
+  all? : boolean ... -> boolean
+  [(all? #t ...) #t]
+  [(all? _ ...) #f]
   )
 
 (define-metafunction formality-ty
   ;; Boolean operator
-  any? : (boolean ...) -> boolean
-  [(any? (_ ... #t _ ...)) #t]
-  [(any? _) #f]
+  any? : boolean ... -> boolean
+  [(any? _ ... #t _ ...) #t]
+  [(any? _ ...) #f]
   )
 
 (define-metafunction formality-ty

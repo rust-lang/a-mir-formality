@@ -25,9 +25,9 @@
             (judgment-holds (prove-top-level-goal
                              Env
                              (Implemented (Debug ((scalar-ty i32))))
-                             EnvSubstitution)
-                            EnvSubstitution)
-            (term ((Env ())))))
+                             Env_out)
+                            Env_out)
+            (term (Env))))
    )
   )
 

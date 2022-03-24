@@ -2,11 +2,29 @@
 (require redex/reduction-semantics "grammar.rkt")
 (provide substitution-to-fresh-vars
          apply-substitution
+         apply-substitution-from-env
          apply-substitution-to-env
          substitution-fix
          substitution-concat-disjoint
          substitution-without-vars
+         substitution-maps-var
+         env-with-var-mapped-to
          )
+
+(define-metafunction formality-ty
+  ;; Returns an `Env` where `VarId` is mapped to `Parameter` (`VarId` must not yet be mapped)
+  env-with-var-mapped-to : Env_in VarId_in Parameter_in -> Env_out
+  #:pre (all? (not? (substitution-maps-var (env-substitution Env_in) VarId_in))
+              (env-contains-existential-var Env_in VarId_in)
+              #;(universe-of-var-in-env Env_in VarId_in)
+              )
+
+  [(env-with-var-mapped-to Env VarId Parameter)
+   (Hook Universe VarBinders ((VarId Parameter) (VarId_env Parameter_env) ...) Hypotheses)
+   (where/error (Hook Universe VarBinders ((VarId_env Parameter_env) ...) Hypotheses) Env)
+   ]
+  )
+
 
 (define-metafunction formality-ty
   ;; Given a set of kinded-var-ids, creates a substituion map that maps them to
@@ -28,12 +46,29 @@
   )
 
 (define-metafunction formality-ty
+  ;; True if the substitution includes `VarId` in its domain
+  substitution-maps-var : Substitution VarId -> boolean
+
+  [(substitution-maps-var (_ ... (VarId _) _ ...) VarId) #t]
+  [(substitution-maps-var (_ ...) VarId) #f]
+  )
+
+(define-metafunction formality-ty
   ;; Substitute substitution-map any ==> applies a substitution map to anything
   apply-substitution : Substitution Term -> Term
 
   [(apply-substitution () Term) Term]
   [(apply-substitution ((VarId_0 Term_0) (VarId_1 Term_1) ...) Term_term)
    (apply-substitution ((VarId_1 Term_1) ...) (substitute Term_term VarId_0 Term_0))]
+  )
+
+(define-metafunction formality-ty
+  ;; Substitute the values for any inference variables found in Env to Term.
+  apply-substitution-from-env : Env Term -> Term
+
+  [(apply-substitution-from-env Env Term)
+   (apply-substitution Substitution Term)
+   (where/error Substitution (env-substitution Env))]
   )
 
 (define-metafunction formality-ty
@@ -69,7 +104,7 @@
    (substitution-fix Substitution_0)
    (substitution-fix Substitution_1)
    (where/error Substitution_1 (apply-substitution-to-substitution Substitution_0 Substitution_0))
-      ]
+   ]
   )
 
 (define-metafunction formality-ty

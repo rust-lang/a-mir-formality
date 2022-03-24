@@ -63,9 +63,9 @@
              (judgment-holds (prove-top-level-goal
                               Env_B
                               Goal_B_Ok
-                              EnvSubstitution)
-                             EnvSubstitution)
-             (term ((Env_B ())))))
+                              Env_out)
+                             Env_out)
+             (term (Env_B))))
     )
 
    (redex-let*
@@ -79,9 +79,9 @@
              (judgment-holds (prove-top-level-goal
                               Env_B
                               Goal_B_ImpliedBound
-                              EnvSubstitution)
-                             EnvSubstitution)
-             (term ((Env_B ()))))))
+                              Env_out)
+                             Env_out)
+             (term (Env_B)))))
 
    (redex-let*
     formality-decl
@@ -96,8 +96,8 @@
              (judgment-holds (prove-top-level-goal
                               Env_C
                               Goal_C_ImpliedBound
-                              EnvSubstitution)
-                             EnvSubstitution)
+                              Env_out)
+                             Env_out)
              (term ()))))
 
    (redex-let*
@@ -113,8 +113,8 @@
              (judgment-holds (prove-top-level-goal
                               Env_C
                               Goal_C_UseImpl
-                              EnvSubstitution)
-                             EnvSubstitution)
+                              Env_out)
+                             Env_out)
              (term (; ...actually, it can't, because it can't prove `T: Debug` right now. Does that make sense?
                     )))))
 
@@ -131,9 +131,9 @@
              (judgment-holds (prove-top-level-goal
                               Env_C
                               Goal_C_UseImplDebug
-                              EnvSubstitution)
-                             EnvSubstitution)
-             (term ((Env_C ()))))))
+                              Env_out)
+                             Env_out)
+             (term (Env_C)))))
    )
   )
 

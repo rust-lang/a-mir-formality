@@ -104,9 +104,8 @@
    (where/error (ForAll KindedVarIds Term) Invariant)
    (where (Env_1 (Implies (Predicate_condition) Predicate_consequence) VarIds)
           (instantiate-quantified Env (Exists KindedVarIds Term)))
-   (where (Env_2 Substitution)
-          (most-general-unifier/vars VarIds Env_1 ((Predicate_condition Predicate_in))))
-   (where Predicate_out (apply-substitution Substitution Predicate_consequence))
+   (where Env_2 (most-general-unifier/vars VarIds Env_1 ((Predicate_condition Predicate_in))))
+   (where Predicate_out (apply-substitution-from-env Env_2 Predicate_consequence))
    ------------------- "elaborate-predicate"
    (hypothesis-elaborates-one-step Env Predicate_in Predicate_out)
    ]

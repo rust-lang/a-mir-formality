@@ -40,9 +40,9 @@
             (judgment-holds (prove-top-level-goal
                              Env
                              (crate-ok-goal (CrateDecl) CrateDecl)
-                             EnvSubstitution)
-                            EnvSubstitution)
-            (term ((Env ())))))
+                             Env_out)
+                            Env_out)
+            (term (Env))))
 
    (; ...but when we try to use it, we cannot prove that `i32: Magic`
     ; because `i32: Copy` does not hold...
@@ -51,8 +51,8 @@
             (judgment-holds (prove-top-level-goal
                              Env
                              (Implemented (Magic (Ty_Foo)))
-                             EnvSubstitution)
-                            EnvSubstitution)
+                             Env_out)
+                            Env_out)
             (term ())))
 
 
@@ -62,8 +62,8 @@
             (judgment-holds (prove-top-level-goal
                              Env
                              (Implemented (Copy (Ty_Foo)))
-                             EnvSubstitution)
-                            EnvSubstitution)
+                             Env_out)
+                            Env_out)
             (term ())))
 
    )
@@ -100,9 +100,9 @@
             (judgment-holds (prove-top-level-goal
                              Env
                              (crate-ok-goal (CrateDecl) CrateDecl)
-                             EnvSubstitution)
-                            EnvSubstitution)
-            (term ((Env ())))))
+                             Env_out)
+                            Env_out)
+            (term (Env))))
 
    (; Cannot prove that `i32: Magic`
     traced '()
@@ -110,8 +110,8 @@
             (judgment-holds (prove-top-level-goal
                              Env
                              (Implemented (Magic (Ty_Foo)))
-                             EnvSubstitution)
-                            EnvSubstitution)
+                             Env_out)
+                            Env_out)
             (term ())))
 
 
@@ -121,8 +121,8 @@
             (judgment-holds (prove-top-level-goal
                              Env
                              (Implemented (Copy (Ty_Foo)))
-                             EnvSubstitution)
-                            EnvSubstitution)
+                             Env_out)
+                            Env_out)
             (term ())))
 
    )
@@ -168,9 +168,9 @@
             (judgment-holds (prove-top-level-goal
                              Env
                              (crate-ok-goal (CrateDecl) CrateDecl)
-                             EnvSubstitution)
-                            EnvSubstitution)
-            (term ((Env ())))))
+                             Env_out)
+                            Env_out)
+            (term (Env))))
 
    (; We can prove that `Foo Magic` because `Foo Copy` does holds
     traced '()
@@ -178,8 +178,8 @@
             (judgment-holds (prove-top-level-goal
                              Env
                              (Implemented (Magic (Ty_Foo)))
-                             EnvSubstitution)
-                            EnvSubstitution)
+                             Env_out)
+                            Env_out)
             (term ())))
 
    (; But not `Bar: Magic` because `Bar: Copy` does not hold
@@ -188,8 +188,8 @@
             (judgment-holds (prove-top-level-goal
                              Env
                              (Implemented (Magic (Ty_Bar)))
-                             EnvSubstitution)
-                            EnvSubstitution)
+                             Env_out)
+                            Env_out)
             (term ())))
 
    )

@@ -28,8 +28,8 @@
                              (ForAll ((TyKind T))
                                      (Implies ((Implemented (PartialEq (T))))
                                               (Implemented (Eq (T)))))
-                             EnvSubstitution)
-                            EnvSubstitution)
+                             Env_out)
+                            Env_out)
             (term ())))
 
    (traced '()
@@ -39,9 +39,9 @@
                              (ForAll ((TyKind T))
                                      (Implies ((Implemented (Eq (T))))
                                               (Implemented (PartialEq (T)))))
-                             EnvSubstitution)
-                            EnvSubstitution)
-            (term ((Env ())))))
+                             Env_out)
+                            Env_out)
+            (term (Env))))
 
    (traced '()
            (test-equal
@@ -50,9 +50,9 @@
                              (ForAll ((TyKind T))
                                      (Implies ((Implemented (Eq (T))))
                                               (Implemented (Eq (T)))))
-                             EnvSubstitution)
-                            EnvSubstitution)
-            (term ((Env ())))))
+                             Env_out)
+                            Env_out)
+            (term (Env))))
 
    (traced '()
            (test-equal
@@ -61,8 +61,8 @@
                              (ForAll ((TyKind T))
                                      (Implies ((Implemented (Eq (T))))
                                               (Implemented (Debug (T)))))
-                             EnvSubstitution)
-                            EnvSubstitution)
+                             Env_out)
+                            Env_out)
             (term ())))
    )
   )
