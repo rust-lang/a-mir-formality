@@ -394,9 +394,10 @@
   )
 
 (define-metafunction formality-ty
-  ;; Returns the set of names that are "placeholders", i.e.,
-  ;; rigid types. For example, if you have `(TyRigid Vec ((TyRigid X ())))`,
-  ;; this would return `(Vec X)`.
+  ;; Returns the set of universally quantified variables from
+  ;; within the term -- this excludes global constants like
+  ;; adt names. So e.g. if you have `(TyRigid Vec ((! X)))`,
+  ;; this would return `(X)`.
   placeholder-variables : Term -> (VarId ...)
 
   [(placeholder-variables (! VarId))
