@@ -113,42 +113,17 @@ The resulting output is a substitution that maps `A`, `X`, and `Y` to the follow
 ### Predicates
 
 `formality-ty` also defines the core predicates used to define Rust semantics.
-The current definition is as follows ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/grammar.rkt#L121-L130)):
+The current definition is as follows:
 
-```scheme
-(Predicate :=
-           ; `TraitRef` is (fully) implemented.
-           (Implemented TraitRef)
-           ; an impl exists for `TraitRef`; this *by itself* doesn't mean
-           ; that `TraitRef` is implemented, as the supertraits may not
-           ; have impls.
-           (HasImpl TraitRef)
-           ; the given type or lifetime is well-formed.
-           (WellFormed (ParameterKind Parameter))
-           )
+```scheme,ignore
+{{#include ../../src/ty/grammar.rkt:Predicates}}
 ```
 
 These core predicates are then used to define a richer vocabulary of goals (things that can be proven)
-and various kinds of "clauses" (things that are assumed to be true, axioms)
-([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/grammar.rkt#L136-L143)):
+and various kinds of "clauses" (things that are assumed to be true, axioms):
 
-```scheme
-  (Goals = (Goal ...))
-  (Goal :=
-        Predicate
-        (Equate Term Term)
-        (All Goals)
-        (Any Goals)
-        (Implies Hypotheses Goal)
-        (Quantifier KindedVarIds Goal)
-        )
-
-  ((Hypotheses Clauses Invariants) := (Clause ...))
-  ((Hypothesis Clause Invariant) :=
-                                 Predicate
-                                 (Implies Goals Predicate)
-                                 (ForAll KindedVarIds Clause)
-                                 )
+```scheme,ignore
+{{#include ../../src/logic/grammar.rkt:GoalsAndHypotheses}}
 ```
 
 Importantly, the *types layer* defines a solver that gives semantics to all the "meta" parts of goals and clauses -- e.g., it defines what it means to prove `(All (G1 G2))` (prove both `G1` and `G2`, duh). But it doesn't have any rules for what it means to prove the *core* predicates true -- so it could never prove `(Implemented (Debug ((! T))))`. Those rules all come from the declaration layer and are given to the types layer as part of the "environment".

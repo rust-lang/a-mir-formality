@@ -48,6 +48,7 @@
   ;; `Predicate` -- the atomic items that we can prove
   (Predicates ::= (Predicate ...))
 
+  ;; ANCHOR:GoalsAndHypotheses
   ;; `Goal` -- things we can prove. These consists of predicates
   ;; joined by various forms of logical operators that are built
   ;; into the proving system (see `cosld-solve.rkt`).
@@ -71,7 +72,8 @@
               (Implies Goals Predicate)
               (ForAll KindedVarIds Clause)
               )
-
+  ;; ANCHOR_END:GoalsAndHypotheses
+  
   ;; `Invariants` -- things which must be true or the type system has some bugs.
   ;; A rather restricted form of clause.
   (Invariants ::= (Invariant ...))
