@@ -36,7 +36,7 @@
   #:mode (equate I I I O)
   #:contract (equate Env Term Term Env_out)
 
-  [(where Env_out (most-general-unifier Env ((Term_1 Term_2))))
+  [(where Env_out (unify Env ((Term_1 Term_2))))
    ----------------
    (equate Env Term_1 Term_2 Env_out)]
 
@@ -54,7 +54,7 @@
      (Env_2 Ty_X (VarId_2)) (term (instantiate-quantified Env_1 (Exists ((TyKind X)) X))))
     (; Y, Z are in U1
      (Env_3 (Ty_Y Ty_Z) VarIds_3) (term (instantiate-quantified Env_2 (Exists ((TyKind Y) (TyKind Z)) (Y Z)))))
-    (Env_4 (term (most-general-unifier Env_3 (((TyRigid Vec (Ty_A)) (TyRigid Vec (Ty_X)))))))
+    (Env_4 (term (unify Env_3 (((TyRigid Vec (Ty_A)) (TyRigid Vec (Ty_X)))))))
     (Env_5 (term (reset Env_2 VarIds_3 Env_4)))
     )
 
