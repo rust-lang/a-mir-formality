@@ -296,4 +296,21 @@
             (term ())))
    )
 
+  ; Version of the above where our hypothesis is just `p`; this should be provable.
+  (redex-let*
+   formality-logic
+   ((Clause (term (Implies (q) p)))
+    (Invariant (term (ForAll () (Implies (p) q))))
+    (Env (term (env-with-clauses-and-invariants (Clause)
+                                                (Invariant)
+                                                )))
+    )
+
+   (traced '()
+           (test-equal
+            (judgment-holds (prove-top-level-goal/cosld Env (Implies (p) q) Env_out)
+                            Env_out)
+            (term (Env))))
+   )
+
   )
