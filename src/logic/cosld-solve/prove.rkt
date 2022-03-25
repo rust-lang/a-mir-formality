@@ -276,6 +276,9 @@
   ; * Then we can try to prove `P`...
   ; * Which requires proving `P`...
   ; * ...which succeeds! Uh oh.
+  ;
+  ; Except it doesn't, because cycles that involve hypotheses are inductive
+  ; and thus rejected.
   (redex-let*
    formality-logic
    ((Clause (term (Implies (q) p)))
