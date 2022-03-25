@@ -56,7 +56,7 @@
 
 ;; A suitable env for testing the formality-ty layer in isolation
 ;; with no clauses nor invariants.
-(define-term EmptyEnv (empty-env-with-hook (formality-ty-hook () ())))
+(define-term EmptyEnv (env-with-hook (formality-ty-hook () ())))
 
 (define-metafunction formality-ty
   ;; Creates a suitable env for testing the formality-ty layer
@@ -64,6 +64,6 @@
   env-with-clauses-and-invariants : Clauses Invariants -> Env
 
   [(env-with-clauses-and-invariants Clauses Invariants)
-   (empty-env-with-hook (formality-ty-hook Clauses Invariants))
+   (env-with-hook (formality-ty-hook Clauses Invariants))
    ]
   )

@@ -23,7 +23,7 @@
   env-for-crate-decls : CrateDecls CrateId -> Env
 
   [(env-for-crate-decls CrateDecls CrateId)
-   (empty-env-with-hook (formality-decl-hook DeclProgram))
+   (env-with-hook (formality-decl-hook DeclProgram))
    (where/error DeclProgram (CrateDecls CrateId))
    ]
   )

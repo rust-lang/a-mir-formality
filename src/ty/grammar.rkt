@@ -185,9 +185,9 @@
 
 (define-metafunction formality-ty
   ;; Returns the hypotheses in the environment
-  empty-env-with-hook : Hook -> Env
+  env-with-hook : Hook -> Env
 
-  [(empty-env-with-hook Hook)
+  [(env-with-hook Hook)
    (Hook RootUniverse () () ())]
   )
 
