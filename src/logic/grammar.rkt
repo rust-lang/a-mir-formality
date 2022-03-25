@@ -106,6 +106,10 @@
   (TermPair ::= (Term Term))
   (TermPairs ::= (TermPair ...))
 
+  ; Internal data structure used during cosld proving
+  (Prove/Stacks ::= (Predicates Predicates))
+  (Prove/Coinductive ::= + -)
+
   #:binding-forms
   (ForAll ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   (Exists ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
