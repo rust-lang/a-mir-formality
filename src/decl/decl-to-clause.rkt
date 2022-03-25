@@ -38,9 +38,8 @@
 
   [(formality-decl-hook DeclProgram)
    (Hook: ,(formality-hook
-            (lambda (predicate) (if (redex-match formality-decl Predicate predicate)
-                                    (term (decl-clauses-for-predicate DeclProgram ,predicate))
-                                    '()))
+            (lambda (predicate)
+              (term (decl-clauses-for-predicate DeclProgram ,predicate)))
             (term (decl-invariants DeclProgram))
             (lambda (env var-ids predicate1 predicate2)
               (term (ty:equate-predicates/vars ,env ,var-ids ,predicate1 ,predicate2)))
