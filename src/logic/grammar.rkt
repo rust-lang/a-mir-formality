@@ -55,11 +55,13 @@
   (Goal ::=
         Predicate
         Relation
-        (All Goals)
-        (Any Goals)
-        (Implies Hypotheses Goal)
-        (Quantifier KindedVarIds Goal)
-        )
+        BuiltinGoal)
+  (BuiltinGoal ::=
+               (All Goals)
+               (Any Goals)
+               (Implies Hypotheses Goal)
+               (Quantifier KindedVarIds Goal)
+               )
 
   ;; `Clause`, `Hypothesis` -- axioms. These are both built-in and derived from
   ;; user-defined items like `trait` and `impl`.
@@ -95,12 +97,15 @@
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
   (VarIds ::= (VarId ...))
-  (VarId ::= variable-not-otherwise-mentioned)
+  (VarId AnyId ::= variable-not-otherwise-mentioned)
 
   ; Term -- preferred name to any that reads better :)
   (Term ::= any)
   (TermPair ::= (Term Term))
   (TermPairs ::= (TermPair ...))
+
+  ; Hack to control what is considered a valid `VarId`, useful for some metafunctions
+  (Keywords-Hack ::= ! struct enum union let TyRigid)
 
   #:binding-forms
   (ForAll ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))

@@ -1,4 +1,4 @@
 #lang racket
-(require "cosld-solve/prove.rkt")
+(require (prefix-in logic: "cosld-solve/prove.rkt"))
 
-(provide prove-top-level-goal)
+(provide logic:prove-top-level-goal/cosld)

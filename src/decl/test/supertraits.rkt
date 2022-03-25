@@ -2,8 +2,8 @@
 (require redex/reduction-semantics
          "../decl-to-clause.rkt"
          "../grammar.rkt"
+         "../prove.rkt"
          "../../ty/grammar.rkt"
-         "../../ty/cosld-solve.rkt"
          "../../util.rkt")
 
 (module+ test
@@ -23,7 +23,7 @@
 
    (traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (ForAll ((TyKind T))
                                      (Implies ((Implemented (PartialEq (T))))
@@ -34,7 +34,7 @@
 
    (traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (ForAll ((TyKind T))
                                      (Implies ((Implemented (Eq (T))))
@@ -45,7 +45,7 @@
 
    (traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (ForAll ((TyKind T))
                                      (Implies ((Implemented (Eq (T))))
@@ -56,7 +56,7 @@
 
    (traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (ForAll ((TyKind T))
                                      (Implies ((Implemented (Eq (T))))

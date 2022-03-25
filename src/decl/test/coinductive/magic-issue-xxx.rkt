@@ -3,8 +3,7 @@
          "../../decl-to-clause.rkt"
          "../../decl-ok.rkt"
          "../../grammar.rkt"
-         "../../../ty/grammar.rkt"
-         "../../../ty/cosld-solve.rkt"
+         "../../prove.rkt"
          "../../../util.rkt")
 
 (module+ test
@@ -37,7 +36,7 @@
     ; since its where clauses allow it to locally prove that `Self: Copy`.
     traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (crate-ok-goal (CrateDecl) CrateDecl)
                              Env_out)
@@ -48,7 +47,7 @@
     ; because `i32: Copy` does not hold...
     traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (Implemented (Magic (Ty_Foo)))
                              Env_out)
@@ -59,7 +58,7 @@
    (; ...also cannot prove that `i32: Copy`, of course.
     traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (Implemented (Copy (Ty_Foo)))
                              Env_out)
@@ -97,7 +96,7 @@
    (; All decls in crate are considered 'ok'.
     traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (crate-ok-goal (CrateDecl) CrateDecl)
                              Env_out)
@@ -107,7 +106,7 @@
    (; Cannot prove that `i32: Magic`
     traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (Implemented (Magic (Ty_Foo)))
                              Env_out)
@@ -118,7 +117,7 @@
    (; And cannot prove that `i32: Copy`
     traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (Implemented (Copy (Ty_Foo)))
                              Env_out)
@@ -165,7 +164,7 @@
    (; All decls in crate are considered 'ok'.
     traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (crate-ok-goal (CrateDecl) CrateDecl)
                              Env_out)
@@ -175,7 +174,7 @@
    (; We can prove that `Foo Magic` because `Foo Copy` does holds
     traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (Implemented (Magic (Ty_Foo)))
                              Env_out)
@@ -185,7 +184,7 @@
    (; But not `Bar: Magic` because `Bar: Copy` does not hold
     traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (Implemented (Magic (Ty_Bar)))
                              Env_out)

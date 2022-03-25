@@ -232,6 +232,17 @@
   )
 
 (define-metafunction formality-logic
+  ;; The "grammar" for predicates is just *any term* -- that's not very
+  ;; useful, and extension languages refine it. When matching against predicates,
+  ;; then, we can use this function to avoid matching on other kinds of goals.
+  is-predicate-goal? : Goal -> boolean
+
+  [(is-predicate-goal? BuiltinGoal) #f]
+  [(is-predicate-goal? Relation) #f]
+  [(is-predicate-goal? _) #t]
+  )
+
+(define-metafunction formality-logic
   ;; Returns the set of universally quantified variables from
   ;; within the term -- this excludes global constants like
   ;; adt names. So e.g. if you have `(TyRigid Vec ((! X)))`,

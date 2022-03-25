@@ -2,8 +2,7 @@
 (require redex/reduction-semantics
          "../decl-to-clause.rkt"
          "../grammar.rkt"
-         "../../ty/grammar.rkt"
-         "../../ty/cosld-solve.rkt"
+         "../prove.rkt"
          "../../util.rkt")
 
 (module+ test
@@ -22,7 +21,7 @@
 
    (traced '()
            (test-equal
-            (judgment-holds (prove-top-level-goal
+            (judgment-holds (decl:prove-top-level-goal/cosld
                              Env
                              (Implemented (Debug ((scalar-ty i32))))
                              Env_out)

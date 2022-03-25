@@ -1,8 +1,10 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
-         "../ty/grammar.rkt"
-         "../ty/hook.rkt")
+         "../logic/env.rkt"
+         "../ty/unify.rkt"
+         "../ty/could-match.rkt"
+         "../logic/hook.rkt")
 (provide env-for-crate-decl
          env-for-crate-decls)
 
@@ -36,8 +38,16 @@
 
   [(formality-decl-hook DeclProgram)
    (Hook: ,(formality-hook
-            (lambda (predicate) (term (decl-clauses-for-predicate DeclProgram ,predicate)))
-            (term (decl-invariants DeclProgram))))
+            (lambda (predicate) (if (redex-match formality-decl Predicate predicate)
+                                    (term (decl-clauses-for-predicate DeclProgram ,predicate))
+                                    '()))
+            (term (decl-invariants DeclProgram))
+            (lambda (env var-ids predicate1 predicate2)
+              (term (ty:equate-predicates/vars ,env ,var-ids ,predicate1 ,predicate2)))
+            (lambda (env relation)
+              (term (ty:relate-parameters ,env ,relation)))
+            (lambda (predicate1 predicate2)
+              (term (ty:predicates-could-match ,predicate1 ,predicate2)))))
    ]
   )
 

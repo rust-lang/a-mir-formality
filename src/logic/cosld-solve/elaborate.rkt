@@ -59,7 +59,8 @@
   #:mode (hypothesis-elaborates-one-step I I O)
   #:contract (hypothesis-elaborates-one-step Env Hypothesis Hypothesis)
 
-  [(where (_ ... Invariant _ ...) (env-invariants Env))
+  [(where #t (is-predicate-goal? Predicate_in))
+   (where (_ ... Invariant _ ...) (env-invariants Env))
    (where/error (ForAll KindedVarIds Term) Invariant)
    (where (Env_1 (Implies (Predicate_condition) Predicate_consequence) VarIds)
           (instantiate-quantified Env (Exists KindedVarIds Term)))

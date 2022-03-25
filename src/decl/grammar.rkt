@@ -1,6 +1,11 @@
 #lang racket
 (require redex/reduction-semantics "../ty/grammar.rkt")
-(provide (all-defined-out))
+(provide formality-decl
+         trait-decl-id
+         item-with-id
+         scalar-ty
+         TyUnit
+         )
 
 (define-extended-language formality-decl formality-ty
   (DeclProgram ::= (CrateDecls CrateId))

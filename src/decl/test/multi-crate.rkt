@@ -3,12 +3,10 @@
          "../decl-to-clause.rkt"
          "../decl-ok.rkt"
          "../grammar.rkt"
-         "../../ty/grammar.rkt"
-         "../../ty/cosld-solve.rkt"
+         "../prove.rkt"
          "../../util.rkt")
 
 (module+ test
-
   (redex-let*
    formality-decl
 
@@ -60,7 +58,7 @@
     ((Goal_B_Ok (term (crate-ok-goal CrateDecls_AB CrateDecl_B))))
     (traced '()
             (test-equal
-             (judgment-holds (prove-top-level-goal
+             (judgment-holds (decl:prove-top-level-goal/cosld
                               Env_B
                               Goal_B_Ok
                               Env_out)
@@ -76,7 +74,7 @@
                                                  (Implemented (Debug (T))))))))
     (traced '()
             (test-equal
-             (judgment-holds (prove-top-level-goal
+             (judgment-holds (decl:prove-top-level-goal/cosld
                               Env_B
                               Goal_B_ImpliedBound
                               Env_out)
@@ -93,7 +91,7 @@
 
     (traced '()
             (test-equal
-             (judgment-holds (prove-top-level-goal
+             (judgment-holds (decl:prove-top-level-goal/cosld
                               Env_C
                               Goal_C_ImpliedBound
                               Env_out)
@@ -110,7 +108,7 @@
 
     (traced '()
             (test-equal
-             (judgment-holds (prove-top-level-goal
+             (judgment-holds (decl:prove-top-level-goal/cosld
                               Env_C
                               Goal_C_UseImpl
                               Env_out)
@@ -128,7 +126,7 @@
 
     (traced '()
             (test-equal
-             (judgment-holds (prove-top-level-goal
+             (judgment-holds (decl:prove-top-level-goal/cosld
                               Env_C
                               Goal_C_UseImplDebug
                               Env_out)
@@ -136,7 +134,3 @@
              (term (Env_C)))))
    )
   )
-
-
-
-
