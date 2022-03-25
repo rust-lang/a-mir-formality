@@ -54,8 +54,7 @@
   (Tys ::= (Ty ...))
   (Ty ::=
       (TyRigid RigidName Parameters) ; A *rigid* type is onee that can only be equal to itself.
-      VarId                          ; Bound or existential (inference) variable
-      (! VarId)                      ; Universal (placeholder) variable
+      VarId                          ; Bound, inference (existential), or placeholder (universal) variable
       )
   (RigidName ::=
              AdtId           ; enum/struct/union
@@ -72,8 +71,7 @@
   ;; and the meaning of `VarId`.
   (Lt ::=
       static                      ; 'static
-      VarId                       ; Bound or existential (inference) variable
-      (! VarId)                   ; Universal (placeholder) variable
+      VarId                       ; Bound, inference (existential), or placeholder (universal) variable
       )
 
   ;; TraitRef = reference to a trait

@@ -171,7 +171,6 @@
 
   )
 
-
 (define-metafunction formality-logic
   ;; True if this variable is an existential variable defined in the environment.
   env-contains-existential-var : Env VarId -> boolean
@@ -181,6 +180,19 @@
    (where (_ ... (VarId Exists Universe) _ ...) (env-var-binders Env))]
 
   [(env-contains-existential-var Env VarId)
+   #f]
+
+  )
+
+(define-metafunction formality-logic
+  ;; True if this variable is an placeholder (universal) variable defined in the environment.
+  env-contains-placeholder-var : Env VarId -> boolean
+
+  [(env-contains-placeholder-var Env VarId)
+   #t
+   (where (_ ... (VarId ForAll Universe) _ ...) (env-var-binders Env))]
+
+  [(env-contains-placeholder-var Env VarId)
    #f]
 
   )
@@ -245,19 +257,21 @@
 (define-metafunction formality-logic
   ;; Returns the set of universally quantified variables from
   ;; within the term -- this excludes global constants like
-  ;; adt names. So e.g. if you have `(TyRigid Vec ((! X)))`,
-  ;; this would return `(X)`.
-  placeholder-variables : Term -> (VarId ...)
+  ;; adt names. So e.g. if you have `(TyRigid Vec (X))`,
+  ;; this would return `(X)` (presuming `X` was forall'd).
+  placeholder-variables : Env Term -> (VarId ...)
 
-  [(placeholder-variables (! VarId))
-   (VarId)]
-
-  [(placeholder-variables (Term ...))
-   ,(apply set-union (term (() VarIds ...)))
-   (where/error (VarIds ...) ((placeholder-variables Term) ...))
+  [(placeholder-variables Env VarId)
+   (VarId)
+   (where #t (env-contains-placeholder-var Env VarId))
    ]
 
-  [(placeholder-variables _)
+  [(placeholder-variables Env (Term ...))
+   ,(apply set-union (term (() VarIds ...)))
+   (where/error (VarIds ...) ((placeholder-variables Env Term) ...))
+   ]
+
+  [(placeholder-variables Env _)
    ()]
 
   )

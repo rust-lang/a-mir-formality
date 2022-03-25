@@ -99,18 +99,6 @@
    (where #t (contains-id VarIds_exists VarId))
    ]
 
-  [; Universal placeholders like `(! X)` and `(! Y)` must
-   ; be syntactically equal to be unified.
-   ;
-   ; Note: It's important that we don't recurse and cmopare
-   ; `!` to `!`, `X` to `Y` etc, because if we did so, we would
-   ; mistake `X` and `Y` for existential variables (they are variables
-   ; defined in the environment, and the environment doesn't presently
-   ; distinguish *how* they are defined, for better or -- arguably -- worse).
-   (unify-pair VarIds_exists Env ((! VarId_!_0) (! VarId_!_0)))
-   Error
-   ]
-
   [; (L ...) = (R ...) ===> true if Li = Ri for all i and the lengths are the same
    (unify-pair VarIds_exists Env ((Term_l ..._0)
                                   (Term_r ..._0)))
@@ -154,7 +142,7 @@
    (where/error Universe_VarId (universe-of-var-in-env Env VarId))
 
    ; can't have `X = T<>` if `X` cannot see the universe of `T`
-   (where/error (VarId_placeholder ...) (placeholder-variables Parameter))
+   (where/error (VarId_placeholder ...) (placeholder-variables Env Parameter))
    (where #t (all? (universe-includes Universe_VarId (universe-of-var-in-env Env VarId_placeholder)) ...))
 
    ; for each `X = ... Y ...`, adjust universe of Y so that it can see all values of X
