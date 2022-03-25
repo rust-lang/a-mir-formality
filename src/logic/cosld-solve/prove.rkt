@@ -10,9 +10,7 @@
          "filter.rkt"
          "util.rkt")
 
-(provide prove/cosld
-         prove-top-level-goal/cosld
-         prove-top-level-goal-substitution/cosld)
+(provide prove-top-level-goal/cosld)
 
 (define-judgment-form formality-logic
   ;; Prove a "top-level" goal is true in the given environment
@@ -25,7 +23,7 @@
   #:mode (prove-top-level-goal/cosld I I O)
   #:contract (prove-top-level-goal/cosld Env Goal Env)
 
-  [(prove/cosld Env () Goal Env_out)
+  [(prove Env () Goal Env_out)
    ---------------
    (prove-top-level-goal/cosld Env Goal Env_out)
    ]
@@ -33,114 +31,114 @@
 
 (define-judgment-form formality-logic
   ;; Convenience judgment that extracts the Substitution from the Env for testing.
-  #:mode (prove-top-level-goal-substitution/cosld I I O)
-  #:contract (prove-top-level-goal-substitution/cosld Env Goal Substitution)
+  #:mode (prove-top-level-goal-substitution I I O)
+  #:contract (prove-top-level-goal-substitution Env Goal Substitution)
 
-  [(prove/cosld Env () Goal Env_out)
+  [(prove Env () Goal Env_out)
    (where/error Substitution (env-substitution Env_out))
    ---------------
-   (prove-top-level-goal-substitution/cosld Env Goal Substitution)
+   (prove-top-level-goal-substitution Env Goal Substitution)
    ]
   )
 
 (define-judgment-form formality-logic
-  #:mode (prove/cosld I I I O)
-  #:contract (prove/cosld Env Predicates_stack Goal Env_out)
+  #:mode (prove I I I O)
+  #:contract (prove Env Predicates_stack Goal Env_out)
 
   [(where #t (is-predicate-goal? Predicate))
    (where #f (in? Predicate Predicates_stack))
    (where (_ ... Clause _ ... ) (filter-clauses Env (env-clauses-for-predicate Env Predicate) Predicate))
-   (clause-proves/cosld Env Predicates_stack Clause Predicate Env_out)
+   (clause-proves Env Predicates_stack Clause Predicate Env_out)
    --------------- "prove-clause"
-   (prove/cosld Env Predicates_stack Predicate Env_out)
+   (prove Env Predicates_stack Predicate Env_out)
    ]
 
   [(where #t (is-predicate-goal? Predicate))
    (where #f (in? Predicate Predicates_stack))
    (where (_ ... Hypothesis _ ... ) (filter-clauses Env (env-hypotheses (elaborate-hypotheses Env)) Predicate))
-   (clause-proves/cosld Env Predicates_stack Hypothesis Predicate Env_out)
+   (clause-proves Env Predicates_stack Hypothesis Predicate Env_out)
    --------------- "prove-hypotheses-imply"
-   (prove/cosld Env Predicates_stack Predicate Env_out)
+   (prove Env Predicates_stack Predicate Env_out)
    ]
 
   [(where #t (is-predicate-goal? Predicate))
    (where #t (in? Predicate Predicates_stack))
    --------------- "prove-cycle"
-   (prove/cosld Env Predicates_stack Predicate Env)
+   (prove Env Predicates_stack Predicate Env)
    ]
 
   [(where Env_out (relate-parameters Env Relation))
    --------------- "prove-relate"
-   (prove/cosld Env Predicates_stack Relation Env_out)
+   (prove Env Predicates_stack Relation Env_out)
    ]
 
-  [(prove-all/cosld Env Predicates_stack Goals Env_out)
+  [(prove-all Env Predicates_stack Goals Env_out)
    --------------- "prove-all"
-   (prove/cosld Env Predicates_stack (All Goals) Env_out)
+   (prove Env Predicates_stack (All Goals) Env_out)
    ]
 
-  [(prove/cosld Env Predicates_stack Goal_1 Env_out)
+  [(prove Env Predicates_stack Goal_1 Env_out)
    --------------- "prove-any"
-   (prove/cosld Env Predicates_stack (Any (Goal_0 ... Goal_1 Goal_2 ...)) Env_out)
+   (prove Env Predicates_stack (Any (Goal_0 ... Goal_1 Goal_2 ...)) Env_out)
    ]
 
   [(where Env_1 (env-with-hypotheses Env Hypotheses))
-   (prove/cosld Env_1 Predicates_stack Goal Env_out)
+   (prove Env_1 Predicates_stack Goal Env_out)
    --------------- "prove-implies"
-   (prove/cosld Env Predicates_stack (Implies Hypotheses Goal) (reset Env () Env_out))
+   (prove Env Predicates_stack (Implies Hypotheses Goal) (reset Env () Env_out))
    ]
 
   [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (ForAll KindedVarIds Goal)))
-   (prove/cosld Env_1 Predicates_stack Goal_1 Env_out)
+   (prove Env_1 Predicates_stack Goal_1 Env_out)
    --------------- "prove-forall"
-   (prove/cosld Env Predicates_stack (ForAll KindedVarIds Goal) (reset Env VarIds_new Env_out))
+   (prove Env Predicates_stack (ForAll KindedVarIds Goal) (reset Env VarIds_new Env_out))
    ]
 
   [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (Exists KindedVarIds Goal)))
-   (prove/cosld Env_1 Predicates_stack Goal_1 Env_out)
+   (prove Env_1 Predicates_stack Goal_1 Env_out)
    --------------- "prove-exists"
-   (prove/cosld Env Predicates_stack (Exists KindedVarIds Goal) (reset Env VarIds_new Env_out))
+   (prove Env Predicates_stack (Exists KindedVarIds Goal) (reset Env VarIds_new Env_out))
    ]
 
   )
 
 (define-judgment-form formality-logic
-  #:mode (prove-all/cosld I I I O)
-  #:contract (prove-all/cosld Env Predicates_stack Goals Env_out)
+  #:mode (prove-all I I I O)
+  #:contract (prove-all Env Predicates_stack Goals Env_out)
 
   [----------------
-   (prove-all/cosld Env Predicates_stack () Env)]
+   (prove-all Env Predicates_stack () Env)]
 
-  [(prove/cosld Env Predicates_stack Goal_0 Env_1)
+  [(prove Env Predicates_stack Goal_0 Env_1)
    (where/error (Goals_subst Predicates_subst) (apply-substitution-from-env Env_1 ((Goal_1 ...) Predicates_stack)))
-   (prove-all/cosld Env_1 Predicates_subst Goals_subst Env_out)
+   (prove-all Env_1 Predicates_subst Goals_subst Env_out)
    ----------------
-   (prove-all/cosld Env Predicates_stack (Goal_0 Goal_1 ...) Env_out)]
+   (prove-all Env Predicates_stack (Goal_0 Goal_1 ...) Env_out)]
 
   )
 
 (define-judgment-form formality-logic
-  #:mode (clause-proves/cosld I I I I O)
-  #:contract (clause-proves/cosld Env Predicates_stack Clause Predicate Env_out)
+  #:mode (clause-proves I I I I O)
+  #:contract (clause-proves Env Predicates_stack Clause Predicate Env_out)
 
   [(where #t (is-predicate-goal? Predicate_1))
    (where Env_out (equate-predicates Env Predicate_1 Predicate_2))
    --------------- "clause-fact"
-   (clause-proves/cosld Env Predicates_stack Predicate_1 Predicate_2 Env_out)
+   (clause-proves Env Predicates_stack Predicate_1 Predicate_2 Env_out)
    ]
 
   [(where Env_eq (equate-predicates Env Predicate_1 Predicate_2))
    (where/error (Goals_subst Predicates_subst)
                 (apply-substitution-from-env Env_eq (Goals (Predicate_2 Predicate_stack ...))))
-   (prove-all/cosld Env Predicates_subst Goals_subst Env_out)
+   (prove-all Env Predicates_subst Goals_subst Env_out)
    --------------- "clause-backchain"
-   (clause-proves/cosld Env (Predicate_stack ...) (Implies Goals Predicate_1) Predicate_2 Env_out)
+   (clause-proves Env (Predicate_stack ...) (Implies Goals Predicate_1) Predicate_2 Env_out)
    ]
 
   [(where/error (Env_i Clause_i VarIds_i) (instantiate-quantified Env (Exists KindedVarIds Clause)))
-   (clause-proves/cosld Env_i Predicates_stack Clause_i Predicate Env_out)
+   (clause-proves Env_i Predicates_stack Clause_i Predicate Env_out)
    --------------- "clause-forall"
-   (clause-proves/cosld Env Predicates_stack (ForAll KindedVarIds Clause) Predicate (reset Env VarIds_i Env_out))
+   (clause-proves Env Predicates_stack (ForAll KindedVarIds Clause) Predicate (reset Env VarIds_i Env_out))
    ]
 
   )
@@ -178,7 +176,7 @@
     formality-logic
     ((Env (term (env-with-vars-in-current-universe EmptyEnv Exists (T U V)))))
     (test-equal
-     (judgment-holds (prove-top-level-goal-substitution/cosld
+     (judgment-holds (prove-top-level-goal-substitution
                       Env
                       (All ((T == (TyRigid Vec (U)))
                             (U == (TyRigid Vec (V)))
