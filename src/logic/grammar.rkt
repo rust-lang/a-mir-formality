@@ -73,7 +73,7 @@
               (ForAll KindedVarIds Clause)
               )
   ;; ANCHOR_END:GoalsAndHypotheses
-  
+
   ;; `Invariants` -- things which must be true or the type system has some bugs.
   ;; A rather restricted form of clause.
   (Invariants ::= (Invariant ...))
@@ -105,9 +105,6 @@
   (Term ::= any)
   (TermPair ::= (Term Term))
   (TermPairs ::= (TermPair ...))
-
-  ; Hack to control what is considered a valid `VarId`, useful for some metafunctions
-  (Keywords-Hack ::= ! struct enum union let TyRigid)
 
   #:binding-forms
   (ForAll ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
