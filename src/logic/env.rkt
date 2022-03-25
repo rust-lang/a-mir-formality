@@ -154,6 +154,20 @@
   )
 
 (define-metafunction formality-logic
+  ;; If this variable is declared in the environment, return its
+  ;; quantifier/universe (or `()` otherwise).
+  var-binding-in-env : Env VarId -> (Quantifier Universe) or ()
+
+  [(var-binding-in-env Env VarId)
+   (Quantifier Universe)
+   (where (_ ... (VarId Quantifier Universe) _ ...) (env-var-binders Env))]
+
+  [(var-binding-in-env Env VarId)
+   ()]
+
+  )
+
+(define-metafunction formality-logic
   ;; Finds the declared universe of `VarId` in the given environment.
   ;;
   ;; If `VarId` is not found in the `Env`, returns the root universe. This is a useful
@@ -162,12 +176,25 @@
 
   [(universe-of-var-in-env Env VarId)
    Universe
-   (where (_ ... (VarId Quantifier Universe) _ ...) (env-var-binders Env))]
+   (where (Quantifier Universe) (var-binding-in-env Env VarId))]
 
-  [; Default is to consider random type names as "forall" constants in root universe
-   (universe-of-var-in-env Env VarId_!_1)
+  [(universe-of-var-in-env Env VarId)
    RootUniverse
-   (where ((VarId_!_1 _ _) ...) (env-var-binders Env))]
+   (where () (var-binding-in-env Env VarId))]
+
+  )
+
+
+(define-metafunction formality-logic
+  ;; True if this variable is an existential variable defined in the environment.
+  env-contains-var : Env VarId -> boolean
+
+  [(env-contains-var Env VarId)
+   #t
+   (where (_ _) (var-binding-in-env Env VarId))]
+
+  [(env-contains-var Env VarId)
+   #f]
 
   )
 
@@ -177,7 +204,7 @@
 
   [(env-contains-existential-var Env VarId)
    #t
-   (where (_ ... (VarId Exists Universe) _ ...) (env-var-binders Env))]
+   (where (Exists _) (var-binding-in-env Env VarId))]
 
   [(env-contains-existential-var Env VarId)
    #f]
@@ -190,7 +217,7 @@
 
   [(env-contains-placeholder-var Env VarId)
    #t
-   (where (_ ... (VarId ForAll Universe) _ ...) (env-var-binders Env))]
+   (where (ForAll _) (var-binding-in-env Env VarId))]
 
   [(env-contains-placeholder-var Env VarId)
    #f]
@@ -217,28 +244,22 @@
 
 (define-metafunction formality-logic
   ;; Returns the set of variables that appear free in the given term.
-  free-variables : any -> (VarId ...)
+  free-variables : Env Term -> (VarId ...)
 
-  [(free-variables (Quantifier ((ParameterKind VarId_bound) ...) any))
+  [(free-variables Env (Quantifier ((ParameterKind VarId_bound) ...) Term))
    ,(set-subtract (term VarIds_free) (term (VarId_bound ...)))
-   (where/error VarIds_free (free-variables any))]
+   (where/error VarIds_free (free-variables Env Term))]
 
-  [(free-variables VarId)
-   (VarId)]
+  [(free-variables Env VarId)
+   (VarId)
+   (where #t (env-contains-var Env VarId))]
 
-  [; The `c` in `(TyRigid c ())` is not a variable but a constant.
-   (free-variables (TyRigid _ Substitution))
-   (free-variables Substitution)]
-
-  [(free-variables (LtApply _))
-   ()]
-
-  [(free-variables (any ...))
+  [(free-variables Env (Term ...))
    ,(apply set-union (term (() VarIds ...)))
-   (where/error (VarIds ...) ((free-variables any) ...))
+   (where/error (VarIds ...) ((free-variables Env Term) ...))
    ]
 
-  [(free-variables _)
+  [(free-variables Env _)
    ()]
 
   )

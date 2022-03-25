@@ -146,7 +146,7 @@
    (where #t (all? (universe-includes Universe_VarId (universe-of-var-in-env Env VarId_placeholder)) ...))
 
    ; for each `X = ... Y ...`, adjust universe of Y so that it can see all values of X
-   (where/error VarIds_free (free-variables Parameter))
+   (where/error VarIds_free (free-variables Env Parameter))
    (where/error Env_1 (env-with-vars-limited-to-universe Env VarIds_free Universe_VarId))
    ]
 
