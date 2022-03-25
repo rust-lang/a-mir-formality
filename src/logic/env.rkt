@@ -243,7 +243,9 @@
   )
 
 (define-metafunction formality-logic
-  ;; Returns the set of variables that appear free in the given term.
+  ;; Returns the set of variables that appear free in the given term;
+  ;; only returns variables that are defined in the environment.
+  ;; Everything else is assumed to be a universal constant or keyword.
   free-variables : Env Term -> (VarId ...)
 
   [(free-variables Env (Quantifier ((ParameterKind VarId_bound) ...) Term))
