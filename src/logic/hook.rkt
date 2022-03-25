@@ -48,7 +48,7 @@
 
 (define-metafunction formality-logic
   ;; Equate `Predicate_1` and `Predicate_2` by binding existential variables in `Env`
-  equate-predicates : Env Predicate Predicate -> Env or Error
+  equate-predicates : Env Predicate Predicate -> (Env Goals) or Error
 
   [(equate-predicates Env Predicate_1 Predicate_2)
    (equate-predicates/vars Env VarIds Predicate_1 Predicate_2)
@@ -58,7 +58,7 @@
 
 (define-metafunction formality-logic
   ;; Equate `Predicate_1` and `Predicate_2` by binding `VarIds` in `Env`
-  equate-predicates/vars : Env VarIds Predicate_1 Predicate_2 -> Env or Error
+  equate-predicates/vars : Env VarIds Predicate_1 Predicate_2 -> (Env Goals) or Error
 
   [(equate-predicates/vars Env VarIds Predicate_1 Predicate_2)
    ,(let ((equate-fn (formality-hook-equate-predicates/vars (term any))))
@@ -69,8 +69,7 @@
 
 (define-metafunction formality-logic
   ;; Apply the relation `Relation`, potentially binding existential variables in `Env`
-  
-  relate-parameters : Env Relation -> Env or Error
+  relate-parameters : Env Relation -> (Env Goals) or Error
 
   [(relate-parameters Env Relation)
    ,(let ((relate-fn (formality-hook-relate-parameters (term any))))

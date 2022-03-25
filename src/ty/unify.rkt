@@ -10,14 +10,14 @@
          )
 
 (define-metafunction formality-ty
-  ty:equate-predicates/vars : Env VarIds Predicate Predicate -> Env or Error
+  ty:equate-predicates/vars : Env VarIds Predicate Predicate -> (Env Goals) or Error
 
   [(ty:equate-predicates/vars Env VarIds Predicate_1 Predicate_2)
    (unify/vars VarIds Env ((Predicate_1 Predicate_2)))]
   )
 
 (define-metafunction formality-ty
-  ty:relate-parameters : Env Relation -> Env or Error
+  ty:relate-parameters : Env Relation -> (Env Goals) or Error
 
   [(ty:relate-parameters Env (Parameter_1 == Parameter_2))
    (unify/vars (existential-vars-in-env Env) Env ((Parameter_1 Parameter_2)))]
@@ -34,7 +34,7 @@
   ;; The algorithm is a variant of the classic unification algorithm adapted for
   ;; universes. It is described in "A Proof Procedure for the Logic of Hereditary Harrop Formulas"
   ;; publishd in 1992 by Gopalan Nadathur at Duke University.
-  unify/vars : VarIds Env TermPairs -> Env or Error
+  unify/vars : VarIds Env TermPairs -> (Env Goals) or Error
 
   [(unify/vars VarIds Env TermPairs)
    (unify-pairs VarIds Env (apply-substitution-from-env Env TermPairs))]
@@ -42,10 +42,10 @@
   )
 
 (define-metafunction formality-ty
-  unify-pairs : VarIds_exists Env TermPairs -> Env or Error
+  unify-pairs : VarIds_exists Env TermPairs -> (Env Goals) or Error
   [; base case, all done, but we have to apply the substitution to itself
    (unify-pairs VarIds_exists Env ())
-   Env_1
+   (Env_1 ())
    (where/error Substitution_1 (substitution-fix (env-substitution Env)))
    (where/error Env_1 (apply-substitution-to-env Substitution_1 Env))
    ]

@@ -62,14 +62,16 @@
    ]
 
   [(where #t (is-predicate-goal? Predicate))
-   (where #t (in? Predicate Predicates_co))
+   (where #t (in? (apply-substitution-from-env Env Predicate)
+                  (apply-substitution-from-env Env Predicates_co)))
    --------------- "prove-coinductive-cycle"
    (prove Env (_ Predicates_co) Predicate Env)
    ]
 
-  [(where Env_out (relate-parameters Env Relation))
+  [(where (Env_eq Goals_eq) (relate-parameters Env Relation))
+   (prove-all Env_eq Prove/Stacks Goals_eq Env_eq)
    --------------- "prove-relate"
-   (prove Env Prove/Stacks Relation Env_out)
+   (prove Env Prove/Stacks Relation Env_eq)
    ]
 
   [(prove-all Env Prove/Stacks Goals Env_out)
@@ -132,16 +134,22 @@
   #:mode (clause-proves I I I I I O)
   #:contract (clause-proves Env Prove/Stacks Prove/Coinductive Clause Predicate Env_out)
 
+  ; FIXME: Do we want to push this predicate on the stack while we try to
+  ; prove the `Goals_eq`? Does it ever even matter, given the sorts of predicates we generate?
   [(where #t (is-predicate-goal? Predicate_1))
-   (where Env_out (equate-predicates Env Predicate_1 Predicate_2))
+   (where (Env_eq Goals_eq) (equate-predicates Env Predicate_1 Predicate_2))
+   (where/error Prove/Stacks_eq (apply-substitution-from-env Env_eq Prove/Stacks))
+   (prove-all Env_eq Prove/Stacks_eq Goals_eq Env_out)
    --------------- "clause-fact"
    (clause-proves Env Prove/Stacks Prove/Coinductive Predicate_1 Predicate_2 Env_out)
    ]
 
-  [(where Env_eq (equate-predicates Env Predicate_1 Predicate_2))
+  ; FIXME: We are inconsistent with the previous rule about whether to push `Predicate` on the
+  ; stack while proving the goals that result from equating it. Seems bad.
+  [(where (Env_eq (Goal_eq ...)) (equate-predicates Env Predicate_1 Predicate_2))
    (where/error Prove/Stacks_pushed (push-on-stack Prove/Stacks Prove/Coinductive Predicate_2))
-   (where/error (Goals_subst Prove/Stacks_subst) (apply-substitution-from-env Env_eq (Goals Prove/Stacks_pushed)))
-   (prove-all Env Prove/Stacks_subst Goals_subst Env_out)
+   (where/error ((Goal_subst ...) Prove/Stacks_subst) (apply-substitution-from-env Env_eq (Goals Prove/Stacks_pushed)))
+   (prove-all Env_eq Prove/Stacks_subst (Goal_eq ... Goal_subst ...) Env_out)
    --------------- "clause-backchain"
    (clause-proves Env Prove/Stacks Prove/Coinductive (Implies Goals Predicate_1) Predicate_2 Env_out)
    ]
@@ -180,7 +188,7 @@
      (Env_2 Term_X (VarId_2)) (term (instantiate-quantified Env_1 (Exists ((TyKind X)) X))))
     (; Y, Z are in U1
      (Env_3 (Term_Y Term_Z) VarIds_3) (term (instantiate-quantified Env_2 (Exists ((TyKind Y) (TyKind Z)) (Y Z)))))
-    (Env_4 (term (relate-parameters Env_3 ((TyRigid Vec (Term_A)) == (TyRigid Vec (Term_X))))))
+    ((Env_4 ()) (term (relate-parameters Env_3 ((TyRigid Vec (Term_A)) == (TyRigid Vec (Term_X))))))
     (Env_5 (term (reset Env_2 VarIds_3 Env_4)))
     )
 
@@ -198,18 +206,19 @@
    (redex-let*
     formality-logic
     ((Env (term (env-with-vars-in-current-universe EmptyEnv Exists (T U V)))))
-    (test-equal
-     (judgment-holds (prove-top-level-goal-substitution
-                      Env
-                      (All ((T == (TyRigid Vec (U)))
-                            (U == (TyRigid Vec (V)))
-                            (V == (TyRigid i32 ()))))
-                      Substitution_out)
-                     Substitution_out)
-     (term (((V (TyRigid i32 ()))
-             (U (TyRigid Vec ((TyRigid i32 ()))))
-             (T (TyRigid Vec ((TyRigid Vec ((TyRigid i32 ()))))))
-             ))))
+    (traced '()
+            (test-equal
+             (judgment-holds (prove-top-level-goal-substitution
+                              Env
+                              (All ((T == (TyRigid Vec (U)))
+                                    (U == (TyRigid Vec (V)))
+                                    (V == (TyRigid i32 ()))))
+                              Substitution_out)
+                             Substitution_out)
+             (term (((V (TyRigid i32 ()))
+                     (U (TyRigid Vec ((TyRigid i32 ()))))
+                     (T (TyRigid Vec ((TyRigid Vec ((TyRigid i32 ()))))))
+                     )))))
     )
 
    (test-equal

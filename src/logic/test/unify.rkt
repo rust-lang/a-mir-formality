@@ -12,17 +12,27 @@
          )
 
 (define-metafunction formality-logic
-  test-equate-predicates/vars : Env VarIds Predicate Predicate -> Env or Error
+  test-equate-predicates/vars : Env VarIds Predicate Predicate -> (Env Goals) or Error
 
   [(test-equate-predicates/vars Env VarIds Predicate_1 Predicate_2)
-   (unify/vars VarIds Env ((Predicate_1 Predicate_2)))]
+   (Env_out ())
+   (where Env_out (unify/vars VarIds Env ((Predicate_1 Predicate_2))))]
+
+  [(test-equate-predicates/vars Env VarIds Predicate_1 Predicate_2)
+   Error
+   (where Error (unify/vars VarIds Env ((Predicate_1 Predicate_2))))]
   )
 
 (define-metafunction formality-logic
-  test-relate-parameters : Env Relation -> Env or Error
+  test-relate-parameters : Env Relation -> (Env Goals) or Error
 
   [(test-relate-parameters Env (Parameter_1 == Parameter_2))
-   (unify/vars (existential-vars-in-env Env) Env ((Parameter_1 Parameter_2)))]
+   (Env_out ())
+   (where Env_out (unify/vars (existential-vars-in-env Env) Env ((Parameter_1 Parameter_2))))]
+
+  [(test-relate-parameters Env (Parameter_1 == Parameter_2))
+   Error
+   (where Error (unify/vars (existential-vars-in-env Env) Env ((Parameter_1 Parameter_2))))]
   )
 
 (define-metafunction formality-logic

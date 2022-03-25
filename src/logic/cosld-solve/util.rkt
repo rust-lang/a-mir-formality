@@ -40,10 +40,6 @@
      (Env_1 Term_T (VarId_1)) (term (instantiate-quantified Env_0 (ForAll ((TyKind T)) T))))
     (; X is in U1
      (Env_2 Term_X (VarId_2)) (term (instantiate-quantified Env_1 (Exists ((TyKind X)) X))))
-    (; Y, Z are in U1
-     (Env_3 (Term_Y Term_Z) VarIds_3) (term (instantiate-quantified Env_2 (Exists ((TyKind Y) (TyKind Z)) (Y Z)))))
-    (Env_4 (term (relate-parameters Env_3 ((TyRigid Vec (Term_A)) == (TyRigid Vec (Term_X))))))
-    (Env_5 (term (reset Env_2 VarIds_3 Env_4)))
     )
 
    (test-equal (term (reset Env_0 (VarId_1) Env_1)) (term Env_0))

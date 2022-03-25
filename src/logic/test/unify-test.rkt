@@ -13,7 +13,11 @@
 ; importing instantiate.rkt, since unify.rkt is used by the test module
 ; of everything else
 (module+ test
+
   (define-metafunction formality-logic
+    ;; Convenient metafunction for tests-- unify the terms and return
+    ;; resulting environment, assuming no subgoals (the simple unifier
+    ;; in the logic code never produces any).
     unify : Env TermPairs -> Env or Error
 
     [(unify Env TermPairs)

@@ -64,10 +64,10 @@
    (where/error (ForAll KindedVarIds Term) Invariant)
    (where (Env_1 (Implies (Predicate_condition) Predicate_consequence) VarIds)
           (instantiate-quantified Env (Exists KindedVarIds Term)))
-   (where Env_2 (equate-predicates/vars Env_1 VarIds Predicate_condition Predicate_in))
+   (where (Env_2 Goals_2) (equate-predicates/vars Env_1 VarIds Predicate_condition Predicate_in))
    (where Predicate_out (apply-substitution-from-env Env_2 Predicate_consequence))
    ------------------- "elaborate-predicate"
-   (hypothesis-elaborates-one-step Env Predicate_in Predicate_out)
+   (hypothesis-elaborates-one-step Env Predicate_in (implication-hypothesis Goals_2 Predicate_out))
    ]
 
   [(hypothesis-elaborates-one-step Env
@@ -82,12 +82,31 @@
   [(hypothesis-elaborates-one-step Env
                                    Predicate_in
                                    Predicate_out)
-   ------------------- "elaborate-implies"
+   (where #t (is-predicate-goal? Predicate_out))
+   ------------------- "elaborate-implies-map"
    (hypothesis-elaborates-one-step Env
-                                   (Implies Goals Predicate_in)
-                                   (Implies Goals Predicate_out))
+                                   (Implies (Goal_in ...) Predicate_in)
+                                   (Implies (Goal_in ...) Predicate_out))
+   ]
+
+  [(hypothesis-elaborates-one-step Env
+                                   Predicate_in
+                                   (Implies (Goal_out ...) Predicate_out))
+   ------------------- "elaborate-implies-flatten"
+   (hypothesis-elaborates-one-step Env
+                                   (Implies (Goal_in ...) Predicate_in)
+                                   (Implies (Goal_in ... Goal_out ...) Predicate_out))
    ]
   )
+
+(define-metafunction formality-logic
+  implication-hypothesis : Goals Predicate -> Hypothesis
+
+  [(implication-hypothesis () Predicate) Predicate]
+
+  [(implication-hypothesis Goals Predicate) (Implies Goals Predicate)]
+  )
+
 
 (module+ test
   (require "../test/hook.rkt")
