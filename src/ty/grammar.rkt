@@ -26,6 +26,7 @@
   ;; Overridden from formality-logic.
   (Parameter ::= Ty Lt)
 
+  ;; ANCHOR:Predicates
   ;; `Predicate` -- the atomic items that we can prove
   ;;
   ;; Overridden from formality-logic.
@@ -39,6 +40,7 @@
              ; the given type or lifetime is well-formed.
              (WellFormed (ParameterKind Parameter))
              )
+  ;; ANCHOR_END:Predicates
 
   ;; Ty -- Rust types
   ;;
