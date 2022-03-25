@@ -240,4 +240,34 @@
                      Env_out)
      (term (Env)))
     )
-   ))
+   )
+
+  ; Test for tricky case of cycle handling
+  ;
+  ; Clause: (p :- q)
+  ; Invariant: (p => q)
+  ; Hypothesis: (p => p)
+  ;
+  ; When trying to prove `Q`...
+  ; * We can elaborate the hypothesis to `P => P` and `P => Q`.
+  ; * Then we can try to prove `P`...
+  ; * Which requires proving `P`...
+  ; * ...which succeeds! Uh oh.
+  (redex-let*
+   formality-logic
+   ((Clause (term (Implies (q) p)))
+    (Invariant (term (ForAll () (Implies (p) q))))
+    (Hypothesis (term (Implies (p) p)))
+    (Env (term (env-with-clauses-and-invariants (Clause)
+                                                (Invariant)
+                                                )))
+    )
+
+   (traced '(prove)
+           (test-equal
+            (judgment-holds (prove-top-level-goal/cosld Env (Implies (Hypothesis) q) Env_out)
+                            Env_out)
+            (term ())))
+   )
+
+  )
