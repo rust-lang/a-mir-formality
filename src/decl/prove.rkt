@@ -12,6 +12,9 @@
   ;; enriched to handle [FOHH] predicates as well as to
   ;; support a simple form of coinduction.
   ;;
+  ;; In contrast to `logic:prove-top-level-goal/cosld`, this version
+  ;; uses the `formality-decl` grammar, but is otherwise the same.
+  ;;
   ;; [SLD]: https://en.wikipedia.org/wiki/SLD_resolution
   ;; [FOHH]: https://en.wikipedia.org/wiki/Harrop_formula
   #:mode (decl:prove-top-level-goal/cosld I I O)
