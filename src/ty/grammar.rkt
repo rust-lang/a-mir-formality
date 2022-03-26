@@ -44,20 +44,20 @@
 
   ;; Ty -- Rust types
   ;;
-  ;; A type `Ty` can be a `VarId`, in which case it is
-  ;; either an existential (inference) variable or a bound
-  ;; variable. It can also be a `TyNotVar`, in which case
-  ;; it is a known type.
+  ;; Most Rust types are some variation of `RigidTy`,
+  ;; but there are a number of different varieties.
+  ;; See the documentation on those specific nonterminals
+  ;; for more information.
   ;;
-  ;; Generic types are represented using `TyRigid` inside their
-  ;; scope. So for example given `fn foo<T>() { ... }`,
-  ;; inside the body of `foo`, we would represent `T` with
-  ;; `(TyRigid T ())`.
+  ;; A type `Ty` can be a `VarId`, in which case it is
+  ;; either a bound, existential (inference), or universal
+  ;; (placeholder) variable.
   (Tys ::= (Ty ...))
-  (Ty ::=
-      (TyRigid RigidName Parameters) ; A *rigid* type is onee that can only be equal to itself.
-      VarId                          ; Bound, inference (existential), or placeholder (universal) variable
-      )
+  (Ty ::= RigidTy VarId)
+
+  ;; RigidTy -- A *rigid* type is onee that can only be equal to itself. Most Rust types fit
+  ;; this category, e.g., `Vec<i32>` would be represented as `(TyRigid Vec ((TyRigid i32 ())))`.
+  (RigidTy ::= (TyRigid RigidName Parameters))
   (RigidName ::=
              AdtId           ; enum/struct/union
              TraitId         ; trait
