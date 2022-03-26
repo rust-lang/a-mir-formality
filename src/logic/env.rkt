@@ -334,6 +334,13 @@
   )
 
 (define-metafunction formality-logic
+  ;; `in?` specialized to Id for a micro-optimization
+  in?/id : AnyId (AnyId ...) -> boolean
+  [(in?/id AnyId (_ ... AnyId _ ...)) #t]
+  [(in?/id _ _) #f]
+  )
+
+(define-metafunction formality-logic
   ;; Returns the smallest of the various universes provided
   min-universe : Universe ... -> Universe
   [(min-universe (UniverseId number) ...)

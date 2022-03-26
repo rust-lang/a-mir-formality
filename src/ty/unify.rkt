@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "predicate.rkt"
+         "where-clauses.rkt"
          "../logic/substitution.rkt"
          "../logic/env.rkt"
          )
@@ -59,16 +60,21 @@
 (define-metafunction formality-ty
   relate/one/substituted : VarIds_exists Env Relation -> (Env Goals) or Error
 
-  [; X = X ===> always ok
-   (relate/one/substituted _ Env (Parameter == Parameter))
+  [; X == X, X <= X, X >= X ===> always ok
+   (relate/one/substituted _ Env (Parameter RelationOp Parameter))
    (Env ())
+   ]
+
+  [; reorder so we only have to consider `==` or `<=`
+   (relate/one/substituted VarIds Env (Parameter_1 >= Parameter_2))
+   (relate/one/substituted VarIds Env (Parameter_2 <= Parameter_1))
    ]
 
   [; X = P ===> occurs check ok, return `[X => P]`
    (relate/one/substituted VarIds_exists Env (VarId == Parameter))
    ((env-with-var-mapped-to Env_out VarId Parameter) ())
 
-   (where #t (in? VarId VarIds_exists))
+   (where #t (in?/id VarId VarIds_exists))
    (where Env_out (occurs-check Env VarId Parameter))
    ]
 
@@ -76,7 +82,7 @@
    (relate/one/substituted VarIds_exists Env (VarId == Parameter))
    Error
 
-   (where #t (in? VarId VarIds_exists))
+   (where #t (in?/id VarId VarIds_exists))
    (where Error (occurs-check Env VarId Parameter))
    ]
 
@@ -84,13 +90,39 @@
    (relate/one/substituted VarIds_exists Env (Parameter == VarId))
    (relate/one/substituted VarIds_exists Env (VarId == Parameter))
 
-   (where #t (in? VarId VarIds_exists))
+   (where #t (in?/id VarId VarIds_exists))
    ]
 
   [; Relating two rigid types with the same name: relate their parameters.
    (relate/one/substituted VarIds Env ((TyRigid RigidName (Parameter_1 ..._1)) == (TyRigid RigidName (Parameter_2 ..._1))))
    (relate/all VarIds (Env ()) ((Parameter_1 == Parameter_2) ...))
    ]
+
+  #;[; For the remaining types, rewrite `==` as two `<=` relations
+     (relate/one/substituted VarIds Env (Parameter_1 == Parameter_2))
+     (Env ((Parameter_1 <= Parameter_2) (Parameter_2 <= Parameter_1)))
+     ]
+
+  #;[; ∀ on the supertype side
+     (relate/one/substituted VarIds Env (Parameter_1 <= (ForAll KindedVarIds Parameter_2)))
+     (Env (ForAll KindedVarIds (Parameter_1 RelationOp Parameter_2)))
+     ]
+
+  #;[; Implication on the supertype side
+     (relate/one/substituted VarIds Env (Parameter_1 <= (Implies WhereClauses Parameter_2)))
+     (Env ((Implies (where-clauses->goals WhereClauses) (Parameter_1 RelationOp Parameter_2))))
+     ]
+
+  #;[; ∀ on the subtype side
+     (relate/one/substituted VarIds Env ((ForAll KindedVarIds Parameter_1) <= Parameter_2))
+     (Env (Exists KindedVarIds (Parameter_1 RelationOp Parameter_2)))
+     ]
+
+  #;[; Implication on the subtype side
+     (relate/one/substituted VarIds Env ((Implies WhereClauses Parameter_1) <= Parameter_2))
+     (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
+     (where (Goal_wc ...) (where-clauses->goals WhereClauses))
+     ]
 
   [; all other sets of types cannot be related
    (relate/one/substituted _ _ _)
