@@ -61,7 +61,6 @@
   (RigidName ::=
              AdtId           ; enum/struct/union
              TraitId         ; trait
-             AssociatedTy    ; Associated type
              ScalarId        ; Something like i32, u32, etc
              (Ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
              (Tuple number)  ; tuple of given arity
@@ -81,7 +80,6 @@
 
   ;; TraitRef = reference to a trait
   (AssociatedTy ::= (TraitId AssociatedTyId))
-  (AssociatedTyApplication ::= (AssociatedTy Parameters))
 
   ;; MaybeMut: either mut or not
   (MaybeMut ::= () (mut))
@@ -91,7 +89,7 @@
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
-  (AdtId TraitId AssociatedTyId ::=
+  (AdtId TraitId AssociatedTyId TyAliasId ::=
          variable-not-otherwise-mentioned)
   )
 
