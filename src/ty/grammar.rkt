@@ -42,6 +42,17 @@
              )
   ;; ANCHOR_END:Predicates
 
+  ;; WhereClause -- Rust where clauses. These are a subset of
+  ;; the logical Goals, Clauses, and Predicates. They
+  ;; can be translated into predicates.
+  (WhereClauses ::= (WhereClause ...))
+  (WhereClause ::=
+               (ForAll KindedVarIds WhereClause)
+               (Implemented TraitRef)
+               #;(Outlives (Parameter : Lt))
+               #;(ProjectionEq TraitRef :: (AssociatedTyId Substitution) = Ty)
+               )
+
   ;; Ty -- Rust types
   ;;
   ;; Most Rust types are some variation of `RigidTy`,

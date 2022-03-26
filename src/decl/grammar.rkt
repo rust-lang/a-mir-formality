@@ -48,15 +48,6 @@
   ;; ImplItem --
   (ImplItems ::= (ImplItem ...))
   (ImplItem ::= NotYetImplemented)
-
-  ;; WhereClause -- where clause
-  (WhereClauses ::= (WhereClause ...))
-  (WhereClause ::=
-               (ForAll KindedVarIds WhereClause)
-               (Implemented TraitRef)
-               #;(Outlives (Parameter : Lt))
-               #;(ProjectionEq TraitRef :: (AssociatedTyId Substitution) = Ty)
-               )
   ;; ANCHOR_END:Traits
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help

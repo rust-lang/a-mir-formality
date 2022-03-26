@@ -167,10 +167,10 @@ This matches and extracts out the parameter kinds (lifetimes vs types, in this c
    (where/error ((ParameterKind_trait _) ...) KindedVarIds_trait)
 ```
 
-Next we convert the where clauses (e,g, `T: Ord`) into goals, using a helper function `where-clauses-to-goals` (described below):
+Next we convert the where clauses (e,g, `T: Ord`) into goals, using a helper function `where-clauses->goals` (described below):
 
 ```scheme
-   (where/error (Goal_wc ...) (where-clauses-to-goals WhereClauses_impl))
+   (where/error (Goal_wc ...) (where-clauses->goals WhereClauses_impl))
 ```
 
 Finally we can generate that variable `Clause` that was referenced in the final result.
@@ -188,21 +188,21 @@ and `WellFormed`-ness goals that we must prove
    ]
 ```
 
-The `where-clause-to-goal` helper is fairly simple.
+The `where-clause->goal` helper is fairly simple.
 Here is the source, I'll leave puzzling it out as an exercise to the reader:
 
 ```scheme
 (define-metafunction formality-decl
   ;; Convert a where clause `W` into a goal that proves `W` is true.
-  where-clause-to-goal : WhereClause -> Goal
+  where-clause->goal : WhereClause -> Goal
 
-  ((where-clause-to-goal (Implemented TraitRef))
+  ((where-clause->goal (Implemented TraitRef))
    (Implemented TraitRef)
    )
 
-  ((where-clause-to-goal (ForAll KindedVarIds WhereClause))
+  ((where-clause->goal (ForAll KindedVarIds WhereClause))
    (ForAll KindedVarIds Goal)
-   (where/error Goal (where-clause-to-goal WhereClause))
+   (where/error Goal (where-clause->goal WhereClause))
    )
 
   ; FIXME: Support lifetimes, projections

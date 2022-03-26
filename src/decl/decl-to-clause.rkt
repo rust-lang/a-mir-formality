@@ -4,6 +4,7 @@
          "../logic/env.rkt"
          "../ty/unify.rkt"
          "../ty/could-match.rkt"
+         "../ty/where-clauses.rkt"
          "../logic/hook.rkt")
 (provide env-for-crate-decl
          env-for-crate-decls)
@@ -155,12 +156,12 @@
    (where/error Clause (ForAll KindedVarIds
                                (Implies
                                 ((WellFormed (ParameterKind VarId)) ...
-                                 (where-clause-to-goal WhereClause) ...)
+                                 (where-clause->goal WhereClause) ...)
                                 (WellFormed (TyKind Ty_adt)))))
    (where/error Invariants_wc ((ForAll KindedVarIds
                                        (Implies
                                         ((WellFormed (TyKind Ty_adt)))
-                                        (where-clause-to-hypothesis WhereClause)))
+                                        (where-clause->hypothesis WhereClause)))
                                ...))
    (where/error Invariants_wf ((ForAll KindedVarIds
                                        (Implies
@@ -206,13 +207,13 @@
                                (Implies
                                 ((HasImpl TraitRef_me)
                                  (WellFormed (ParameterKind VarId)) ...
-                                 (where-clause-to-goal WhereClause) ...
+                                 (where-clause->goal WhereClause) ...
                                  )
                                 (Implemented TraitRef_me))))
    (where/error (Hypothesis_wc ...) ((ForAll KindedVarIds
                                              (Implies
                                               ((Implemented TraitRef_me))
-                                              (where-clause-to-hypothesis WhereClause))) ...))
+                                              (where-clause->hypothesis WhereClause))) ...))
    (where/error (Hypothesis_wf ...) ((ForAll KindedVarIds
                                              (Implies
                                               ((Implemented TraitRef_me))
@@ -237,7 +238,7 @@
    (where/error (TraitId (Parameter_trait ...)) TraitRef)
    (where/error (trait KindedVarIds_trait _ _) (item-with-id CrateDecls TraitId))
    (where/error ((ParameterKind_trait _) ...) KindedVarIds_trait)
-   (where/error (Goal_wc ...) (where-clauses-to-goals WhereClauses_impl))
+   (where/error (Goal_wc ...) (where-clauses->goals WhereClauses_impl))
    (where/error Clause (ForAll KindedVarIds_impl
                                (Implies
                                 ((WellFormed (ParameterKind_trait Parameter_trait)) ...
@@ -263,47 +264,4 @@
     ())
    )
 
-  )
-
-(define-metafunction formality-decl
-  ;; Convert a set of where clauses into a set of goals that prove
-  ;; those where clauses hold.
-  where-clauses-to-goals : WhereClauses -> Goals
-
-  ((where-clauses-to-goals (WhereClause ...))
-   ((where-clause-to-goal WhereClause) ...)
-   )
-  )
-
-(define-metafunction formality-decl
-  ;; Convert a where clause `W` into a goal that proves `W` is true.
-  where-clause-to-goal : WhereClause -> Goal
-
-  ((where-clause-to-goal (Implemented TraitRef))
-   (Implemented TraitRef)
-   )
-
-  ((where-clause-to-goal (ForAll KindedVarIds WhereClause))
-   (ForAll KindedVarIds Goal)
-   (where/error Goal (where-clause-to-goal WhereClause))
-   )
-
-  ; FIXME: Support lifetimes, projections
-  )
-
-(define-metafunction formality-decl
-  ;; Convert a where clause `W` into a hypothesis that code which is
-  ;; implied by `W` can assume to be true.
-  where-clause-to-hypothesis : WhereClause -> Hypothesis
-
-  ((where-clause-to-hypothesis (Implemented TraitRef))
-   (Implemented TraitRef)
-   )
-
-  ((where-clause-to-hypothesis (ForAll KindedVarIds WhereClause))
-   (ForAll KindedVarIds Goal)
-   (where/error Goal (where-clause-to-goal WhereClause))
-   )
-
-  ; FIXME: Support lifetimes, projections
   )
