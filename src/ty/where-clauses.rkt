@@ -5,6 +5,7 @@
 (provide where-clause->goal
          where-clause->hypothesis
          where-clauses->goals
+         where-clauses->hypotheses
          )
 
 ; FIXME: Right now, where clauses are a syntactic subset of goals and
@@ -24,6 +25,13 @@
   where-clause->goal : WhereClause -> Goal
 
   ((where-clause->goal WhereClause) WhereClause)
+  )
+
+(define-metafunction formality-ty
+  ;; Convert a set of where clause `W` into hypotheses.
+  where-clauses->hypotheses : WhereClause -> Hypotheses
+
+  ((where-clauses->hypotheses WhereClauses) WhereClauses)
   )
 
 (define-metafunction formality-ty
