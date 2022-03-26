@@ -80,6 +80,7 @@
   (Invariant ::= (ForAll KindedVarIds (Implies (Predicate) Predicate)))
 
   ;; Different ways to relate parameters
+  (Relations ::= (Relation ...))
   (Relation ::= (Parameter RelationOp Parameter))
   (RelationOp ::=
               ==

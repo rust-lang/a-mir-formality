@@ -7,17 +7,19 @@
          apply-substitution
          apply-substitution-from-env
          apply-substitution-to-env
+         env-fix
          substitution-fix
          substitution-concat-disjoint
          substitution-without-vars
          substitution-maps-var
+         env-maps-var
          env-with-var-mapped-to
          )
 
 (define-metafunction formality-logic
   ;; Returns an `Env` where `VarId` is mapped to `Parameter` (`VarId` must not yet be mapped)
   env-with-var-mapped-to : Env_in VarId_in Parameter_in -> Env_out
-  #:pre (all? (not? (substitution-maps-var (env-substitution Env_in) VarId_in))
+  #:pre (all? (not? (env-maps-var Env_in VarId_in))
               (env-contains-existential-var Env_in VarId_in)
               #;(universe-of-var-in-env Env_in VarId_in)
               )
@@ -46,6 +48,16 @@
 
   [(substitution-concat-disjoint Substitution ...)
    ,(apply append (term (Substitution ...)))]
+  )
+
+(define-metafunction formality-logic
+  ;; True if the Env's substitution includes a mapping for VarId.
+  env-maps-var : Env VarId -> boolean
+
+  [(env-maps-var Env VarId)
+   (substitution-maps-var (env-substitution Env) VarId)
+   ]
+
   )
 
 (define-metafunction formality-logic
@@ -91,6 +103,18 @@
    ((VarId_0 Term_0) (VarId_2 Term_2) ...)
    (where/error ((VarId_2 Term_2) ...) (substitution-without-vars ((VarId_1 Term_1) ...) VarIds))
    ]
+  )
+
+(define-metafunction formality-logic
+  ;; Apply the environment's substitution to itself until a fixed point is reached.
+  ;; Return the new environment with this fixed point.
+  env-fix : Env -> Env
+
+  [(env-fix Env)
+   (apply-substitution-to-env Substitution_fix Env)
+   (where Substitution_fix (subsitution-fix (env-substitution Env)))
+   ]
+
   )
 
 (define-metafunction formality-logic

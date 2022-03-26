@@ -1,6 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
+         "predicate.rkt"
          "../logic/substitution.rkt"
          "../logic/env.rkt"
          )
@@ -13,107 +14,89 @@
   ty:equate-predicates/vars : Env VarIds Predicate Predicate -> (Env Goals) or Error
 
   [(ty:equate-predicates/vars Env VarIds Predicate_1 Predicate_2)
-   (unify/vars VarIds Env ((Predicate_1 Predicate_2)))]
+   (relate/all VarIds (Env ()) ((Parameter_1 == Parameter_2) ...))
+   (where ((Predicate/Skeleton_1 (Parameter_1 ..._1)) (Predicate/Skeleton_1 (Parameter_2 ..._1)))
+          ((flay-predicate Predicate_1) (flay-predicate Predicate_2)))
+   ]
+
+  [(ty:equate-predicates/vars _ _ _ _)
+   Error
+   ]
+
   )
 
 (define-metafunction formality-ty
   ty:relate-parameters : Env Relation -> (Env Goals) or Error
 
-  [(ty:relate-parameters Env (Parameter_1 == Parameter_2))
-   (unify/vars (existential-vars-in-env Env) Env ((Parameter_1 Parameter_2)))]
+  [(ty:relate-parameters Env Relation)
+   (relate/one (existential-vars-in-env Env) Env Relation)]
   )
 
 (define-metafunction formality-ty
-  ;; Given an environment `Env` and a set `TermPairs` of `(Term Term)` pairs,
-  ;; computes a new environment `Env_out` whose substitution maps variables
-  ;; from `VarIds` as needed to ensure that each `(Term Term)` pair is
-  ;; equal. Yields `Error` if there is no such set. As a side-effect of this process,
-  ;; existential variables may also be moved to smaller universes (because `?X = ?Y` requires
-  ;; that `?X` and `?Y` be in the same universe).
-  ;;
-  ;; The algorithm is a variant of the classic unification algorithm adapted for
-  ;; universes. It is described in "A Proof Procedure for the Logic of Hereditary Harrop Formulas"
-  ;; publishd in 1992 by Gopalan Nadathur at Duke University.
-  unify/vars : VarIds Env TermPairs -> (Env Goals) or Error
+  relate/all : VarIds (Env Goals) Relations -> (Env Goals) or Error
 
-  [(unify/vars VarIds Env TermPairs)
-   (unify-pairs VarIds Env (apply-substitution-from-env Env TermPairs))]
-
-  )
-
-(define-metafunction formality-ty
-  unify-pairs : VarIds_exists Env TermPairs -> (Env Goals) or Error
-  [; base case, all done, but we have to apply the substitution to itself
-   (unify-pairs VarIds_exists Env ())
-   (Env_1 ())
-   (where/error Substitution_1 (substitution-fix (env-substitution Env)))
-   (where/error Env_1 (apply-substitution-to-env Substitution_1 Env))
+  [(relate/all VarIds (Env Goals) ())
+   (Env Goals)
    ]
 
-  [; unify the first pair ===> if that is an error, fail
-   (unify-pairs VarIds_exists Env (TermPair_first TermPair_rest ...))
-   Error
-   (where Error (unify-pair VarIds_exists Env TermPair_first))]
+  [(relate/all VarIds (Env_0 (Goal_0 ...)) (Relation_1 Relation_rest ...))
+   (relate/all VarIds (Env_1 (Goal_0 ... Goal_1 ...)) (Relation_rest ...))
+   (where (Env_1 (Goal_1 ...)) (relate/one VarIds Env_0 Relation_1))
+   ]
 
-  [; unify the first pair ===> if that succeeds, apply resulting substitution to the rest
-   ; and recurse
-   (unify-pairs VarIds_exists Env (TermPair_first TermPair_rest ...))
-   (unify-pairs VarIds_exists Env_u TermPairs_all)
+  [(relate/all _ _ _) Error]
 
-   (where (Env_u (TermPair_u ...)) (unify-pair VarIds_exists Env TermPair_first))
-   (where/error (TermPair_v ...) (apply-substitution-from-env Env_u (TermPair_rest ...)))
-   (where/error TermPairs_all (TermPair_u ... TermPair_v ...))
+  )
+
+(define-metafunction formality-ty
+  relate/one : VarIds Env Relation -> (Env Goals) or Error
+
+  [(relate/one VarIds Env Relation)
+   (relate/one/substituted VarIds Env (apply-substitution-from-env Env Relation))
    ]
   )
 
 (define-metafunction formality-ty
-  unify-pair : VarIds_exists Env TermPair -> (Env TermPairs) or Error
+  relate/one/substituted : VarIds_exists Env Relation -> (Env Goals) or Error
 
   [; X = X ===> always ok
-   (unify-pair _ Env (Term Term))
+   (relate/one/substituted _ Env (Parameter == Parameter))
    (Env ())
    ]
 
   [; X = P ===> occurs check ok, return `[X => P]`
-   (unify-pair VarIds_exists Env (VarId Parameter))
+   (relate/one/substituted VarIds_exists Env (VarId == Parameter))
    ((env-with-var-mapped-to Env_out VarId Parameter) ())
 
-   (where #t (contains-id VarIds_exists VarId))
+   (where #t (in? VarId VarIds_exists))
    (where Env_out (occurs-check Env VarId Parameter))
    ]
 
   [; X = P ===> but occurs check fails, return Error
-   (unify-pair VarIds_exists Env (VarId Parameter))
+   (relate/one/substituted VarIds_exists Env (VarId == Parameter))
    Error
 
-   (where #t (contains-id VarIds_exists VarId))
+   (where #t (in? VarId VarIds_exists))
    (where Error (occurs-check Env VarId Parameter))
    ]
 
   [; P = X ===> just reverse order
-   (unify-pair VarIds_exists Env (Parameter VarId))
-   (unify-pair VarIds_exists Env (VarId Parameter))
+   (relate/one/substituted VarIds_exists Env (Parameter == VarId))
+   (relate/one/substituted VarIds_exists Env (VarId == Parameter))
 
-   (where #t (contains-id VarIds_exists VarId))
+   (where #t (in? VarId VarIds_exists))
    ]
 
-  [; (L ...) = (R ...) ===> true if Li = Ri for all i and the lengths are the same
-   (unify-pair VarIds_exists Env ((Term_l ..._0)
-                                  (Term_r ..._0)))
-   (Env ((Term_l Term_r) ...))]
+  [; Relating two rigid types with the same name: relate their parameters.
+   (relate/one/substituted VarIds Env ((TyRigid RigidName (Parameter_1 ..._1)) == (TyRigid RigidName (Parameter_2 ..._1))))
+   (relate/all VarIds (Env ()) ((Parameter_1 == Parameter_2) ...))
+   ]
 
-  [; any other case fails to unify
-   (unify-pair VarIds_exists Env (Term_1 Term_2))
+  [; all other sets of types cannot be related
+   (relate/one/substituted _ _ _)
    Error
    ]
 
-  )
-
-(define-metafunction formality-ty
-  contains-id : VarIds VarId -> boolean
-
-  [(contains-id (_ ... VarId _ ...) VarId) #t]
-  [(contains-id _ _) #f]
   )
 
 (define-metafunction formality-ty
