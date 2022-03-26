@@ -42,6 +42,17 @@
              )
   ;; ANCHOR_END:Predicates
 
+  ;; A *flayed* predicate separates out the "rigid part"
+  ;; (the skeleton) from the parameters. To determine whether two
+  ;; predicates ate equal, the skeletons can just be compared for
+  ;; equality, but the parameters have to be equated as types.
+  (Predicate/Flayed ::= (Predicate/Skeleton Parameters))
+  (Predicate/Skeleton ::=
+                      (Implemented TraitId)
+                      (HasImpl TraitId)
+                      (WellFormed ParameterKind)
+                      )
+
   ;; WhereClause -- Rust where clauses. These are a subset of
   ;; the logical Goals, Clauses, and Predicates. They
   ;; can be translated into predicates.
