@@ -1,14 +1,15 @@
 #lang racket
 (require redex
+         "../../util.rkt"
          "../grammar.rkt"
          "../hook.rkt"
          "../substitution.rkt"
          "../instantiate.rkt"
          "../env.rkt"
-         "../../util.rkt"
+         "../reset.rkt"
          "elaborate.rkt"
          "filter.rkt"
-         "util.rkt")
+         )
 
 (provide prove-top-level-goal/cosld)
 

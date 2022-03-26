@@ -1,9 +1,9 @@
 #lang racket
 (require redex
-         "../grammar.rkt"
-         "../substitution.rkt"
-         "../instantiate.rkt"
-         "../hook.rkt")
+         "grammar.rkt"
+         "substitution.rkt"
+         "instantiate.rkt"
+         "hook.rkt")
 
 (provide reset)
 
@@ -30,7 +30,7 @@
   )
 
 (module+ test
-  (require "../test/hook.rkt")
+  (require "test/hook.rkt")
 
   (redex-let*
    formality-logic

@@ -1,13 +1,10 @@
 #lang racket
 (require redex
-         racket/set
          "../grammar.rkt"
          "../hook.rkt"
          "../substitution.rkt"
          "../instantiate.rkt"
          "../env.rkt"
-         "util.rkt"
-         "filter.rkt"
          "../../util.rkt"
          )
 (provide elaborate-hypotheses)
