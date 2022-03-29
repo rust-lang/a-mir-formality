@@ -5,7 +5,7 @@
          "../ty/unify.rkt"
          "../ty/could-match.rkt"
          "../ty/where-clauses.rkt"
-         "../logic/hook.rkt")
+         "../ty/hook.rkt")
 (provide env-for-crate-decl
          env-for-crate-decls)
 
@@ -38,7 +38,7 @@
   formality-decl-hook : DeclProgram -> Hook
 
   [(formality-decl-hook DeclProgram)
-   (Hook: ,(formality-hook
+   (Hook: ,(formality-ty-hook
             (lambda (predicate)
               (term (decl-clauses-for-predicate DeclProgram ,predicate)))
             (term (decl-invariants DeclProgram))
@@ -47,7 +47,9 @@
             (lambda (env relation)
               (term (ty:relate-parameters ,env ,relation)))
             (lambda (predicate1 predicate2)
-              (term (ty:predicates-could-match ,predicate1 ,predicate2)))))
+              (term (ty:predicates-could-match ,predicate1 ,predicate2)))
+            (lambda (adt-id)
+              (term (variances-for-adt-id DeclProgram ,adt-id)))))
    ]
   )
 
@@ -220,7 +222,7 @@
                                               (WellFormed (ParameterKind VarId)))) ...))
    ]
 
-  [;; For an trait impl declared in the crate C, like the following:
+  [;; For an trait impl declared in the crate C, like the followin
    ;;
    ;;     impl<'a, T> Foo<'a, T> for i32 where T: Ord { }
    ;;
@@ -264,4 +266,21 @@
     ())
    )
 
+  )
+
+(define-metafunction formality-decl
+  ;; Part of the "hook" for a formality-decl program:
+  ;;
+  ;; Create the clauses for solving a given predicate
+  ;; (right now the predicate is not used).
+  variances-for-adt-id : DeclProgram AdtId -> (RelationOp ...)
+
+  [(variances-for-adt-id DeclProgram AdtId)
+   (RelationOp ...)
+   (where/error AdtContents (item-with-id DeclProgram AdtId))
+   (where/error (AdtKind ((ParameterKind VarId) ...) WhereClauses AdtVariants) AdtContents)
+
+   ; for now, just hard-code `==` for all VarId...
+   (where/error ((VarId RelationOp) ...) ((VarId ==) ...))
+   ]
   )

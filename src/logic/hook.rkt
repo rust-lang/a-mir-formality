@@ -1,6 +1,6 @@
 #lang racket
 (require redex/reduction-semantics "grammar.rkt" "env.rkt")
-(provide formality-hook
+(provide formality-logic-hook
          env-clauses-for-predicate
          env-invariants
          equate-predicates
@@ -17,12 +17,12 @@
 ;; * `equate-predicates/vars`: a `Env VarIds Predicate Predicate -> Env or Error` lambda that unifies two predicates
 ;; * `relate-parameters`: a `Env Relation -> Env or Error` lambda that relates two parameters
 ;; * `predicate-could-match`: a `Predicate Predicate -> bool` that filters down predicates
-(struct formality-hook (clauses
-                        invariants
-                        equate-predicates/vars
-                        relate-parameters
-                        predicates-could-match
-                        ))
+(struct formality-logic-hook (clauses
+                              invariants
+                              equate-predicates/vars
+                              relate-parameters
+                              predicates-could-match
+                              ))
 
 (define-metafunction formality-logic
   ;; Returns all program clauses in the environment that are
@@ -30,7 +30,7 @@
   env-clauses-for-predicate : Env Predicate -> Clauses
 
   [(env-clauses-for-predicate Env Predicate)
-   ,(let ((clauses-fn (formality-hook-clauses (term any))))
+   ,(let ((clauses-fn (formality-logic-hook-clauses (term any))))
       (clauses-fn (term Predicate)))
    (where/error (Hook: any) (env-hook Env))
    ]
@@ -41,7 +41,7 @@
   env-invariants : Env -> Invariants
 
   [(env-invariants Env)
-   ,(formality-hook-invariants (term any))
+   ,(formality-logic-hook-invariants (term any))
    (where/error (Hook: any) (env-hook Env))
    ]
   )
@@ -61,7 +61,7 @@
   equate-predicates/vars : Env VarIds Predicate_1 Predicate_2 -> (Env Goals) or Error
 
   [(equate-predicates/vars Env VarIds Predicate_1 Predicate_2)
-   ,(let ((equate-fn (formality-hook-equate-predicates/vars (term any))))
+   ,(let ((equate-fn (formality-logic-hook-equate-predicates/vars (term any))))
       (equate-fn (term Env) (term VarIds) (term Predicate_1) (term Predicate_2)))
    (where/error (Hook: any) (env-hook Env))
    ]
@@ -72,7 +72,7 @@
   relate-parameters : Env Relation -> (Env Goals) or Error
 
   [(relate-parameters Env Relation)
-   ,(let ((relate-fn (formality-hook-relate-parameters (term any))))
+   ,(let ((relate-fn (formality-logic-hook-relate-parameters (term any))))
       (relate-fn (term Env) (term Relation)))
    (where/error (Hook: any) (env-hook Env))
    ]
@@ -82,7 +82,7 @@
   predicates-could-match : Env Predicate_1 Predicate_2 -> boolean
 
   [(predicates-could-match Env Predicate_1 Predicate_2)
-   ,(let ((predicates-could-match-fn (formality-hook-predicates-could-match (term any))))
+   ,(let ((predicates-could-match-fn (formality-logic-hook-predicates-could-match (term any))))
       (predicates-could-match-fn (term Predicate_1) (term Predicate_2)))
    (where/error (Hook: any) (env-hook Env))
    ]
