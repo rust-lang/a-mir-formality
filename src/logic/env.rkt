@@ -321,7 +321,9 @@
   )
 
 (define-metafunction formality-logic
-  ;; Boolean operator
+  ;; `in? Term Terms` is true if `Term` is a of `Terms`;
+  ;; it takes binding forms into account, so `forall (K1 X1) X1` and `forall (K1 X2) X2`
+  ;; are considered equal.
   in? : Term (Term ...) -> boolean
   [(in? Term_0 (_ ... Term_1 _ ...))
    #t
