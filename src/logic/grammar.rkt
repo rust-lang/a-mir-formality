@@ -109,6 +109,7 @@
   (VarId AnyId ::= variable-not-otherwise-mentioned)
 
   ; Term -- preferred name to any that reads better :)
+  (Terms ::= (Term ...))
   (Term ::= any)
   (TermPair ::= (Term Term))
   (TermPairs ::= (TermPair ...))

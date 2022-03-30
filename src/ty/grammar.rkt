@@ -82,7 +82,6 @@
   (RigidTy ::= (TyRigid RigidName Parameters))
   (RigidName ::=
              AdtId           ; enum/struct/union
-             TraitId         ; trait
              ScalarId        ; Something like i32, u32, etc
              (Ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
              (Tuple number)  ; tuple of given arity
@@ -119,6 +118,8 @@
   ;; clarify their purpose
   (AdtId TraitId AssociatedTyId TyAliasId ::=
          variable-not-otherwise-mentioned)
+
+  (Variance := - + =)
   )
 
 (define-term

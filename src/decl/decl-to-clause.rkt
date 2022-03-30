@@ -273,14 +273,12 @@
   ;;
   ;; Create the clauses for solving a given predicate
   ;; (right now the predicate is not used).
-  variances-for-adt-id : DeclProgram AdtId -> (RelationOp ...)
+  variances-for-adt-id : DeclProgram AdtId -> (Variance ...)
 
-  [(variances-for-adt-id DeclProgram AdtId)
-   (RelationOp ...)
-   (where/error AdtContents (item-with-id DeclProgram AdtId))
+  [(variances-for-adt-id (CrateDecls CrateId) AdtId)
+   (Variance ...)
+   (where/error AdtContents (item-with-id CrateDecls AdtId))
    (where/error (AdtKind ((ParameterKind VarId) ...) WhereClauses AdtVariants) AdtContents)
-
-   ; for now, just hard-code `==` for all VarId...
-   (where/error ((VarId RelationOp) ...) ((VarId ==) ...))
+   (where/error ((VarId Variance) ...) ((VarId =) ...)) ; for now, just hard-code `==` for all VarId...
    ]
   )

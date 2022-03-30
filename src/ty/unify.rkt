@@ -4,6 +4,7 @@
          "predicate.rkt"
          "inequalities.rkt"
          "where-clauses.rkt"
+         "variance.rkt"
          "../logic/substitution.rkt"
          "../logic/env.rkt"
          )
@@ -99,9 +100,11 @@
    (where #t (in?/id VarId VarIds_exists))
    ]
 
-  [; Relating two rigid types with the same name: relate their parameters.
-   (relate/one/substituted VarIds Env ((TyRigid RigidName (Parameter_1 ..._1)) == (TyRigid RigidName (Parameter_2 ..._1))))
-   (relate/all VarIds (Env ()) ((Parameter_1 == Parameter_2) ...))
+  [; Relating two rigid types with the same name: relate their parameters according to the declared variance.
+   (relate/one/substituted VarIds Env ((TyRigid RigidName (Parameter_1 ..._1)) RelationOp (TyRigid RigidName (Parameter_2 ..._1))))
+   (relate/all VarIds (Env ()) ((Parameter_1 (apply-variance Variance RelationOp) Parameter_2) ...))
+   (where/error (Variance ...) (variances-for Env RigidName))
+   (where #t (same-length (Variance ...) (Parameter_1 ...))) ; well-formedness violation otherwise
    ]
 
   #;[; For the remaining types, rewrite `==` as two `<=` relations

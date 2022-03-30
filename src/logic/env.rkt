@@ -378,6 +378,22 @@
   )
 
 (define-metafunction formality-logic
+  ;; Repeat a given term multiple times
+  repeat-n-times : Term number -> (Term ...)
+  [(repeat-n-times Term 0) ()]
+  [(repeat-n-times Term number)
+   (Term Term_1 ...)
+   (where/error (Term_1 ...) (repeat-n-times Term ,(- (term number) 1)))]
+  )
+
+(define-metafunction formality-logic
+  ;; True if two lists have the same length.
+  same-length : Terms Terms -> boolean
+  [(same-length (Term_0 ..._1) (Term_1 ..._1)) #t]
+  [(same-length _ _) #f]
+  )
+
+(define-metafunction formality-logic
   ;; `in?` specialized to Id for a micro-optimization
   in?/id : AnyId (AnyId ...) -> boolean
   [(in?/id AnyId (_ ... AnyId _ ...)) #t]
