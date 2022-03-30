@@ -106,6 +106,12 @@
   ;; MaybeMut: either mut or not
   (MaybeMut ::= () (mut))
 
+  ;; VarInequality -- Stores the bounds for a variable (type, lifetime)
+  ;; whose value is not known precisely.
+  ;;
+  ;; Overridden from formal-logic.
+  (VarInequality ::= (Parameters_lb <= VarId <= Parameters_ub))
+
   ;; Scalars -- numbers, booleans
   (ScalarId ::= i8 u8 i16 u16 i32 u32 i64 u64 i128 u128 bool)
 

@@ -41,10 +41,27 @@
   )
 
 (define-metafunction formality-logic
+  ;; Returns the substitution from the environment -- i.e., the currently inferred values
+  ;; for any existential variables
+  env-inequalities : Env -> VarInequalities
+
+  [(env-inequalities (Hook Universe VarBinders Substitution VarInequalities Hypotheses)) VarInequalities]
+  )
+
+(define-metafunction formality-logic
   ;; Returns the current maximum universe in the environment
   env-universe : Env -> Universe
 
   [(env-universe (Hook Universe VarBinders Substitution VarInequalities Hypotheses)) Universe]
+  )
+
+(define-metafunction formality-logic
+  ;; Replace the inequalities in the universe with the given set.
+  env-with-inequalities : Env VarInequalities -> Env
+
+  [(env-with-inequalities (Hook Universe VarBinders Substitution _ Hypotheses) VarInequalities)
+   (Hook Universe VarBinders Substitution VarInequalities Hypotheses)
+   ]
   )
 
 (define-metafunction formality-logic
@@ -207,6 +224,31 @@
    (where (Exists _) (var-binding-in-env Env VarId))]
 
   [(env-contains-existential-var Env VarId)
+   #f]
+
+  )
+
+(define-metafunction formality-logic
+  ;; True if this variable is an existential variable defined in the environment
+  ;; that has not yet been mapped to a specific value.
+  env-contains-unmapped-existential-var : Env VarId -> boolean
+
+  [(env-contains-unmapped-existential-var Env VarId)
+   (all? (env-contains-existential-var Env VarId)
+         (not? (env-maps-var Env VarId)))
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; True if the Env's substitution includes a mapping for VarId.
+  env-maps-var : Env VarId -> boolean
+
+  [(env-maps-var Env VarId)
+   #t
+   (where (_ ... (VarId _) _ ...) (env-substitution Env))
+   ]
+
+  [(env-maps-var Env VarId)
    #f]
 
   )

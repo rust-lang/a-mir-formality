@@ -15,6 +15,7 @@
   (Parameter ::= Term)     ; Value of a variable
   (ParameterKind ::= Term) ; Kinds for variables (e.g., type/lifetimes)
   (Predicate ::= Term)     ; Kinds of predicates we can prove
+  (VarInequality ::= Term) ; Variable relationships inferred and stored in the environment
 
   ;; Env: Typing environment
   ;;
@@ -39,9 +40,10 @@
 
   ;; VarInequality -- for variables that don't have a known
   ;; value (which would appear in the substitution), we may
-  ;; have an *inequality*.
+  ;; have an *inequality*. These are opaque to the logic layer,
+  ;; they get manipulated by the type layer in the various
+  ;; hook functions.
   (VarInequalities ::= (VarInequality ...))
-  (VarInequality ::= (Parameters <= VarId <= Parameters))
 
   ;; KindedVarId: declares a bound parameter and
   ;; its kind (type, lifetime, etc).
@@ -88,10 +90,8 @@
   ;; Different ways to relate parameters
   (Relations ::= (Relation ...))
   (Relation ::= (Parameter RelationOp Parameter))
-  (RelationOp ::=
-              ==
-              >=
-              <=)
+  (RelationOp ::= == InequalityOp)
+  (InequalityOp ::= <= >=)
 
   ;; `Quantifier` -- the two kinds of quantifiers.
   (Quantifier ::= ForAll Exists)

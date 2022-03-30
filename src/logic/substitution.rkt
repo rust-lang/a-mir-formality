@@ -12,22 +12,26 @@
          substitution-concat-disjoint
          substitution-without-vars
          substitution-maps-var
-         env-maps-var
          env-with-var-mapped-to
          )
 
 (define-metafunction formality-logic
   ;; Returns an `Env` where `VarId` is mapped to `Parameter` (`VarId` must not yet be mapped)
   env-with-var-mapped-to : Env_in VarId_in Parameter_in -> Env_out
-  #:pre (all? (not? (env-maps-var Env_in VarId_in))
-              (env-contains-existential-var Env_in VarId_in)
-              #;(universe-of-var-in-env Env_in VarId_in)
-              )
+  #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
 
   [(env-with-var-mapped-to Env VarId Parameter)
    (Hook Universe VarBinders ((VarId Parameter) (VarId_env Parameter_env) ...) VarInequalities Hypotheses)
    (where/error (Hook Universe VarBinders ((VarId_env Parameter_env) ...) VarInequalities Hypotheses) Env)
    ]
+  )
+
+(define-metafunction formality-logic
+  ;; True if the substitution includes `VarId` in its domain
+  substitution-maps-var : Substitution VarId -> boolean
+
+  [(substitution-maps-var (_ ... (VarId _) _ ...) VarId) #t]
+  [(substitution-maps-var (_ ...) VarId) #f]
   )
 
 (define-metafunction formality-logic
@@ -56,24 +60,6 @@
 
   [(substitution-concat-disjoint Substitution ...)
    ,(apply append (term (Substitution ...)))]
-  )
-
-(define-metafunction formality-logic
-  ;; True if the Env's substitution includes a mapping for VarId.
-  env-maps-var : Env VarId -> boolean
-
-  [(env-maps-var Env VarId)
-   (substitution-maps-var (env-substitution Env) VarId)
-   ]
-
-  )
-
-(define-metafunction formality-logic
-  ;; True if the substitution includes `VarId` in its domain
-  substitution-maps-var : Substitution VarId -> boolean
-
-  [(substitution-maps-var (_ ... (VarId _) _ ...) VarId) #t]
-  [(substitution-maps-var (_ ...) VarId) #f]
   )
 
 (define-metafunction formality-logic
