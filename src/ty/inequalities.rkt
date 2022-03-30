@@ -5,6 +5,7 @@
          )
 (provide variable-bounds
          env-with-var-related-to-parameter
+         remove-var-bounds-from-env
          )
 
 (define-metafunction formality-ty
@@ -33,12 +34,12 @@
   remove-var-bounds-from-env : Env_in VarId_in -> (Env (Parameters_lb Parameters_ub))
   #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
 
-  [(remove-var-bounds-from-env Env_in VarId_in)
+  [(remove-var-bounds-from-env Env VarId)
    ((env-with-inequalities (VarInequality_0 ... VarInequality_1 ...)) (Parameters_lb Parameters_ub))
    (where (VarInequality_0 ... (Parameters_lb <= VarId <= Parameters_ub) VarInequality_1 ...) (env-inequalities Env))
    ]
 
-  [(remove-var-bounds-from-env Env_in VarId_in)
+  [(remove-var-bounds-from-env Env VarId)
    (Env (() ()))
    ]
 

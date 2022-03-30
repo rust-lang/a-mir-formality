@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "predicate.rkt"
+         "inequalities.rkt"
          "where-clauses.rkt"
          "../logic/substitution.rkt"
          "../logic/env.rkt"
@@ -70,15 +71,20 @@
    (relate/one/substituted VarIds Env (Parameter_2 <= Parameter_1))
    ]
 
-  [; X = P ===> occurs check ok, return `[X => P]`
+  [; X = P ===> if occurs check ok, return `[X => P]`
+   ;
+   ; If we had inequalities related to `X`, e.g., `X <= u32`, then
+   ; we enqueue goals like `P <= u32`.
    (relate/one/substituted VarIds_exists Env (VarId == Parameter))
-   ((env-with-var-mapped-to Env_out VarId Parameter) ())
+   (Env_3 ((Parameter_lb <= Parameter) ... (Parameter <= Parameter_ub) ...))
 
    (where #t (in?/id VarId VarIds_exists))
-   (where Env_out (occurs-check Env VarId Parameter))
+   (where Env_1 (occurs-check Env VarId Parameter))
+   (where/error (Env_2 ((Parameter_lb ...) (Parameter_ub ...))) (remove-var-bounds-from-env Env_1 VarId))
+   (where/error Env_3 (env-with-var-mapped-to Env_2 VarId Parameter))
    ]
 
-  [; X = P ===> but occurs check fails, return Error
+  [; X = P ===> if occurs check fails, return Error
    (relate/one/substituted VarIds_exists Env (VarId == Parameter))
    Error
 
