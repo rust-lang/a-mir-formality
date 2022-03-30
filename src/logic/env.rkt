@@ -8,28 +8,28 @@
   env-with-hook : Hook -> Env
 
   [(env-with-hook Hook)
-   (Hook RootUniverse () () ())]
+   (Hook RootUniverse () () () ())]
   )
 
 (define-metafunction formality-logic
   ;; Returns the hypotheses in the environment
   env-hook : Env -> Hook
 
-  [(env-hook (Hook Universe VarBinders Substitution Hypotheses)) Hook]
+  [(env-hook (Hook Universe VarBinders Substitution VarInequalities Hypotheses)) Hook]
   )
 
 (define-metafunction formality-logic
   ;; Returns the hypotheses in the environment
   env-hypotheses : Env -> Hypotheses
 
-  [(env-hypotheses (Hook Universe VarBinders Substitution Hypotheses)) Hypotheses]
+  [(env-hypotheses (Hook Universe VarBinders Substitution VarInequalities Hypotheses)) Hypotheses]
   )
 
 (define-metafunction formality-logic
   ;; Returns the `VarId -> Universe` mapping from the environment
   env-var-binders : Env -> VarBinders
 
-  [(env-var-binders (Hook Universe VarBinders Substitution Hypotheses)) VarBinders]
+  [(env-var-binders (Hook Universe VarBinders Substitution VarInequalities Hypotheses)) VarBinders]
   )
 
 (define-metafunction formality-logic
@@ -37,14 +37,14 @@
   ;; for any existential variables
   env-substitution : Env -> Substitution
 
-  [(env-substitution (Hook Universe VarBinders Substitution Hypotheses)) Substitution]
+  [(env-substitution (Hook Universe VarBinders Substitution VarInequalities Hypotheses)) Substitution]
   )
 
 (define-metafunction formality-logic
   ;; Returns the current maximum universe in the environment
   env-universe : Env -> Universe
 
-  [(env-universe (Hook Universe VarBinders Substitution Hypotheses)) Universe]
+  [(env-universe (Hook Universe VarBinders Substitution VarInequalities Hypotheses)) Universe]
   )
 
 (define-metafunction formality-logic
@@ -77,8 +77,8 @@
   env-with-vars-in-current-universe : Env Quantifier VarIds -> Env
 
   [(env-with-vars-in-current-universe Env Quantifier (VarId ...))
-   (Hook Universe ((VarId Quantifier Universe) ... VarBinder ...) Substitution Hypotheses)
-   (where/error (Hook Universe (VarBinder ...) Substitution Hypotheses) Env)
+   (Hook Universe ((VarId Quantifier Universe) ... VarBinder ...) Substitution VarInequalities Hypotheses)
+   (where/error (Hook Universe (VarBinder ...) Substitution VarInequalities Hypotheses) Env)
    ]
   )
 
@@ -103,8 +103,8 @@
    (where #t (in? Hypothesis_1 (env-hypotheses Env)))
    ]
 
-  [(env-with-hypothesis (Hook Universe VarBinders Substitution (Hypothesis_0 ...)) Hypothesis_1)
-   (Hook Universe VarBinders Substitution (Hypothesis_0 ... Hypothesis_1))
+  [(env-with-hypothesis (Hook Universe VarBinders Substitution VarInequalities (Hypothesis_0 ...)) Hypothesis_1)
+   (Hook Universe VarBinders Substitution VarInequalities (Hypothesis_0 ... Hypothesis_1))
    ]
 
   )
@@ -115,8 +115,8 @@
   env-with-var-limited-to-universe : Env VarId Universe -> Env
 
   [(env-with-var-limited-to-universe Env VarId Universe_max)
-   (Hook Universe (VarBinder_0 ... (VarId Quantifier Universe_new) VarBinder_1 ...) Substitution Hypotheses)
-   (where/error (Hook Universe (VarBinder_0 ... (VarId Quantifier Universe_old) VarBinder_1 ...) Substitution Hypotheses) Env)
+   (Hook Universe (VarBinder_0 ... (VarId Quantifier Universe_new) VarBinder_1 ...) Substitution VarInequalities Hypotheses)
+   (where/error (Hook Universe (VarBinder_0 ... (VarId Quantifier Universe_old) VarBinder_1 ...) Substitution VarInequalities Hypotheses) Env)
    (where/error Universe_new (min-universe Universe_old Universe_max))
    ]
   )
@@ -145,9 +145,9 @@
   env-with-incremented-universe : Env -> Env
 
   [(env-with-incremented-universe Env)
-   (Hook Universe_new VarBinders Substitution Hypotheses)
+   (Hook Universe_new VarBinders Substitution VarInequalities Hypotheses)
 
-   (where/error (Hook Universe VarBinders Substitution Hypotheses) Env)
+   (where/error (Hook Universe VarBinders Substitution VarInequalities Hypotheses) Env)
    (where/error Universe_new (next-universe Universe))
    ]
 

@@ -2,8 +2,8 @@
 (require redex
          "grammar.rkt"
          "substitution.rkt"
-         "instantiate.rkt"
-         "hook.rkt")
+         "inequalities.rkt"
+         "instantiate.rkt")
 
 (provide reset)
 
@@ -18,14 +18,15 @@
   reset : Env_old VarIds_new Env_new -> Env
 
   [(reset
-    (Hook Universe ((VarId_old Quantifier_old Universe_old) ...) Substitution_0 Hypotheses) ; Env_old
+    (Hook Universe ((VarId_old Quantifier_old Universe_old) ...) _ _ Hypotheses) ; Env_old
     (VarId_new ...) ; VarIds_new
-    (Hook _ VarBinders_new Substitution_new _) ; Env_new
+    (Hook _ VarBinders_new Substitution_new VarInequalities_new _) ; Env_new
     )
-   (Hook Universe ((VarId_old Quantifier_old Universe_new) ...) Substitution_out Hypotheses)
+   (Hook Universe ((VarId_old Quantifier_old Universe_new) ...) Substitution_out VarInequalities_out Hypotheses)
 
    (where/error ((VarId_new _ _) ... (VarId_old Quantifier_old Universe_new) ...) VarBinders_new)
    (where/error Substitution_out (substitution-without-vars Substitution_new (VarId_new ...)))
+   (where/error VarInequalities_out (inequalities-without-vars VarInequalities_new (VarId_new ...)))
    ]
   )
 

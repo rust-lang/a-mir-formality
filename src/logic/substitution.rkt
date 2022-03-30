@@ -25,8 +25,8 @@
               )
 
   [(env-with-var-mapped-to Env VarId Parameter)
-   (Hook Universe VarBinders ((VarId Parameter) (VarId_env Parameter_env) ...) Hypotheses)
-   (where/error (Hook Universe VarBinders ((VarId_env Parameter_env) ...) Hypotheses) Env)
+   (Hook Universe VarBinders ((VarId Parameter) (VarId_env Parameter_env) ...) VarInequalities Hypotheses)
+   (where/error (Hook Universe VarBinders ((VarId_env Parameter_env) ...) VarInequalities Hypotheses) Env)
    ]
   )
 
@@ -139,11 +139,12 @@
   ;; environment ought to be substituted).
   apply-substitution-to-env : Substitution Env  -> Env
 
-  [(apply-substitution-to-env Substitution (Hook Universe VarBinders Substitution_env Hypotheses))
+  [(apply-substitution-to-env Substitution (Hook Universe VarBinders Substitution_env VarInequalities Hypotheses))
    (Hook
     Universe
     VarBinders
     (apply-substitution-to-substitution Substitution Substitution_env)
+    (apply-substitution Substitution VarInequalities) ; the domain of the inequality *ought* to be disjoint from domain of substitution
     (apply-substitution Substitution Hypotheses))]
 
   )

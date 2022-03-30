@@ -27,7 +27,7 @@
   ;;     we modify the universe that it is mapped to here
   ;; * Hypotheses -- facts believed to be true, introduced by
   ;;   where clauses
-  (Env ::= (Hook Universe VarBinders Substitution Hypotheses))
+  (Env ::= (Hook Universe VarBinders Substitution VarInequalities Hypotheses))
 
   ;; Maps variables to their values; those values are not core to the
   ;; logic, though.
@@ -36,6 +36,12 @@
   ;; VarBinder -- maps a `VarId` to a quantifier kind and `Universe`
   (VarBinders ::= (VarBinder ...))
   (VarBinder ::= (VarId Quantifier Universe))
+
+  ;; VarInequality -- for variables that don't have a known
+  ;; value (which would appear in the substitution), we may
+  ;; have an *inequality*.
+  (VarInequalities ::= (VarInequality ...))
+  (VarInequality ::= (Parameters <= VarId <= Parameters))
 
   ;; KindedVarId: declares a bound parameter and
   ;; its kind (type, lifetime, etc).
