@@ -35,36 +35,22 @@
    (; All decls in crate are considered 'ok'. In particular, the impl is considered 'ok',
     ; since its where clauses allow it to locally prove that `Self: Copy`.
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (crate-ok-goal (CrateDecl) CrateDecl)
-                             Env_out)
-                            Env_out)
-            (term (Env))))
+           (decl:test-can-prove
+            Env
+            (crate-ok-goal (CrateDecl) CrateDecl)))
 
    (; ...but when we try to use it, we cannot prove that `i32: Magic`
     ; because `i32: Copy` does not hold...
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (Implemented (Magic (Ty_Foo)))
-                             Env_out)
-                            Env_out)
-            (term ())))
-
+           (decl:test-cannot-prove
+            Env
+            (Implemented (Magic (Ty_Foo)))))
 
    (; ...also cannot prove that `i32: Copy`, of course.
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (Implemented (Copy (Ty_Foo)))
-                             Env_out)
-                            Env_out)
-            (term ())))
-
+           (decl:test-cannot-prove
+            Env
+            (Implemented (Copy (Ty_Foo)))))
    )
 
   (; Mutual recursion between Magic and Copy, with Magic implemented in terms of itself,
@@ -95,34 +81,21 @@
 
    (; All decls in crate are considered 'ok'.
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (crate-ok-goal (CrateDecl) CrateDecl)
-                             Env_out)
-                            Env_out)
-            (term (Env))))
+           (decl:test-can-prove
+            Env
+            (crate-ok-goal (CrateDecl) CrateDecl)))
 
    (; Cannot prove that `i32: Magic`
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (Implemented (Magic (Ty_Foo)))
-                             Env_out)
-                            Env_out)
-            (term ())))
-
+           (decl:test-cannot-prove
+            Env
+            (Implemented (Magic (Ty_Foo)))))
 
    (; And cannot prove that `i32: Copy`
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (Implemented (Copy (Ty_Foo)))
-                             Env_out)
-                            Env_out)
-            (term ())))
+           (decl:test-cannot-prove
+            Env
+            (Implemented (Copy (Ty_Foo)))))
 
    )
 
@@ -163,33 +136,21 @@
 
    (; All decls in crate are considered 'ok'.
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (crate-ok-goal (CrateDecl) CrateDecl)
-                             Env_out)
-                            Env_out)
-            (term (Env))))
+           (decl:test-can-prove
+            Env
+            (crate-ok-goal (CrateDecl) CrateDecl)))
 
    (; We can prove that `Foo Magic` because `Foo Copy` does holds
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (Implemented (Magic (Ty_Foo)))
-                             Env_out)
-                            Env_out)
-            (term ())))
+           (decl:test-cannot-prove
+            Env
+            (Implemented (Magic (Ty_Foo)))))
 
    (; But not `Bar: Magic` because `Bar: Copy` does not hold
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (Implemented (Magic (Ty_Bar)))
-                             Env_out)
-                            Env_out)
-            (term ())))
+           (decl:test-cannot-prove
+            Env
+            (Implemented (Magic (Ty_Bar)))))
 
    )
   )

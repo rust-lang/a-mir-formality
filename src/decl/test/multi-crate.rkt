@@ -57,13 +57,7 @@
     ;; Crate B can prove itself WF
     ((Goal_B_Ok (term (crate-ok-goal CrateDecls_AB CrateDecl_B))))
     (traced '()
-            (test-equal
-             (judgment-holds (decl:prove-top-level-goal/cosld
-                              Env_B
-                              Goal_B_Ok
-                              Env_out)
-                             Env_out)
-             (term (Env_B))))
+            (decl:test-can-prove Env_B Goal_B_Ok))
     )
 
    (redex-let*
@@ -73,13 +67,7 @@
                                         (Implies ((WellFormed (TyKind (TyRigid Foo (T)))))
                                                  (Implemented (Debug (T))))))))
     (traced '()
-            (test-equal
-             (judgment-holds (decl:prove-top-level-goal/cosld
-                              Env_B
-                              Goal_B_ImpliedBound
-                              Env_out)
-                             Env_out)
-             (term (Env_B)))))
+            (decl:test-can-prove Env_B Goal_B_ImpliedBound)))
 
    (redex-let*
     formality-decl
@@ -90,47 +78,29 @@
                                                  (Implemented (Debug (T))))))))
 
     (traced '()
-            (test-equal
-             (judgment-holds (decl:prove-top-level-goal/cosld
-                              Env_C
-                              Goal_C_ImpliedBound
-                              Env_out)
-                             Env_out)
-             (term ()))))
+            (decl:test-cannot-prove Env_C Goal_C_ImpliedBound)))
 
-   (redex-let*
-    formality-decl
-    ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T)) { Implemented(Foo<T>: WithDebug<T>) } }`
-    ((Goal_C_UseImpl (term (ForAll ((TyKind T))
-                                   (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
-                                             (WellFormed (TyKind T)))
-                                            (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
+  (redex-let*
+   formality-decl
+   ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T)) { Implemented(Foo<T>: WithDebug<T>) } }`
+   ((Goal_C_UseImpl (term (ForAll ((TyKind T))
+                                  (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
+                                            (WellFormed (TyKind T)))
+                                           (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
 
-    (traced '()
-            (test-equal
-             (judgment-holds (decl:prove-top-level-goal/cosld
-                              Env_C
-                              Goal_C_UseImpl
-                              Env_out)
-                             Env_out)
-             (term (; ...actually, it can't, because it can't prove `T: Debug` right now. Does that make sense?
-                    )))))
+   ; ...actually, it can't, because it can't prove `T: Debug` right now. Does that make sense?
+   (traced '()
+           (decl:test-cannot-prove Env_C Goal_C_UseImpl)))
 
-   (redex-let*
-    formality-decl
-    ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T), Implemented(T: Debug)) { Implemented(Foo<T>: WithDebug<T>) } }`
-    ((Goal_C_UseImplDebug (term (ForAll ((TyKind T))
-                                        (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
-                                                  (Implemented (Debug (T))))
-                                                 (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
+  (redex-let*
+   formality-decl
+   ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T), Implemented(T: Debug)) { Implemented(Foo<T>: WithDebug<T>) } }`
+   ((Goal_C_UseImplDebug (term (ForAll ((TyKind T))
+                                       (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
+                                                 (Implemented (Debug (T))))
+                                                (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
 
-    (traced '()
-            (test-equal
-             (judgment-holds (decl:prove-top-level-goal/cosld
-                              Env_C
-                              Goal_C_UseImplDebug
-                              Env_out)
-                             Env_out)
-             (term (Env_C)))))
-   )
+   (traced '()
+           (decl:test-can-prove Env_C Goal_C_UseImplDebug)))
   )
+)

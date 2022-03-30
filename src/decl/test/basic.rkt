@@ -20,13 +20,8 @@
     )
 
    (traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (Implemented (Debug ((scalar-ty i32))))
-                             Env_out)
-                            Env_out)
-            (term (Env))))
+           (decl:test-can-prove
+            Env
+            (Implemented (Debug ((scalar-ty i32))))))
    )
   )
-

@@ -6,7 +6,6 @@
          "../substitution.rkt"
          "../instantiate.rkt"
          "../env.rkt"
-         "../reset.rkt"
          "elaborate.rkt"
          "filter.rkt"
          )
@@ -175,9 +174,36 @@
    ]
   )
 
+(define-metafunction formality-logic
+  ;; Returns a version of `Env_new` that has the universe and hypotheses of
+  ;; `Env_old`.
+  ;;
+  ;; Note that the result may still contain variables declared in the old universes.
+  reset : Env_old VarIds_new Env_new -> Env
+
+  [(reset
+    (Hook Universe_old _ _ _ Hypotheses_old) ; Env_old
+    (VarId_new ...) ; VarIds_new
+    (Hook _ VarBinders_new Substitution_new VarInequalities_new _) ; Env_new
+    )
+   (Hook Universe_old VarBinders_new Substitution_new VarInequalities_new Hypotheses_old)
+   ]
+  )
 
 (module+ test
   (require "../test/hook.rkt")
+
+  (define-syntax-rule (test-can-prove env goal)
+    (test-equal
+     (judgment-holds (prove-top-level-goal/cosld env goal _))
+     #t)
+    )
+
+  (define-syntax-rule (test-cannot-prove env goal)
+    (test-equal
+     (judgment-holds (prove-top-level-goal/cosld env goal _))
+     #f)
+    )
 
   (redex-let*
    formality-logic
@@ -200,9 +226,7 @@
    (test-equal (term (universe-of-var-in-env Env_5 Term_X)) (term RootUniverse))
 
    (traced '()
-           (test-equal
-            (judgment-holds (prove-top-level-goal/cosld EmptyEnv (All ()) Env_out) Env_out)
-            (term (EmptyEnv))))
+           (test-can-prove EmptyEnv (All ())))
 
    (redex-let*
     formality-logic
@@ -222,34 +246,28 @@
                      )))))
     )
 
-   (test-equal
-    (judgment-holds (prove-top-level-goal/cosld
-                     EmptyEnv
-                     (ForAll ((TyKind T))
-                             (Implies ((Implemented (Debug (T))))
-                                      (Implemented (Debug (T)))))
-                     Env_out)
-                    Env_out)
-    (term (EmptyEnv)))
+   (test-can-prove
+    EmptyEnv
+    (ForAll ((TyKind T))
+            (Implies ((Implemented (Debug (T))))
+                     (Implemented (Debug (T))))))
 
-   (test-equal
-    (judgment-holds (prove-top-level-goal/cosld
-                     (env-with-vars-in-current-universe EmptyEnv Exists (X))
-                     (ForAll ((TyKind T))
-                             (T == X))
-                     Env_out)
-                    Env_out)
-    (term ()))
+   (test-cannot-prove
+    (env-with-vars-in-current-universe EmptyEnv Exists (X))
+    (Exists ((TyKind X))
+            (ForAll ((TyKind T))
+                    (T == X))))
 
-   (test-equal
-    (judgment-holds (prove-top-level-goal/cosld
-                     EmptyEnv
-                     (ForAll ((TyKind T))
-                             (Exists ((TyKind X))
-                                     (T == X)))
-                     Env_out)
-                    Env_out)
-    (term (EmptyEnv)))
+   (test-cannot-prove
+    (env-with-vars-in-current-universe EmptyEnv Exists (X))
+    (ForAll ((TyKind T))
+            (T == X)))
+
+   (test-can-prove
+    EmptyEnv
+    (ForAll ((TyKind T))
+            (Exists ((TyKind X))
+                    (T == X))))
 
    (redex-let*
     formality-logic
@@ -259,19 +277,11 @@
                                                  (Invariant_PartialEq-if-Eq)
                                                  ))))
 
-    (test-equal
-     (judgment-holds (prove-top-level-goal/cosld Env (Implemented (PartialEq ((TyRigid u32 ())))) Env_out)
-                     Env_out)
-     (term ()))
+    (test-cannot-prove Env (Implemented (PartialEq ((TyRigid u32 ())))))
 
-    (test-equal
-     (judgment-holds (prove-top-level-goal/cosld
-                      Env
-                      (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
-                                                    (Implemented (PartialEq (T)))))
-                      Env_out)
-                     Env_out)
-     (term (Env)))
+    (test-can-prove Env
+                    (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
+                                                  (Implemented (PartialEq (T))))))
     )
    )
 
@@ -300,10 +310,7 @@
     )
 
    (traced '()
-           (test-equal
-            (judgment-holds (prove-top-level-goal/cosld Env (Implies (Hypothesis) q) Env_out)
-                            Env_out)
-            (term ())))
+           (test-cannot-prove Env (Implies (Hypothesis) q)))
    )
 
   ; Version of the above where our hypothesis is just `p`; this should be provable.
@@ -317,10 +324,7 @@
     )
 
    (traced '()
-           (test-equal
-            (judgment-holds (prove-top-level-goal/cosld Env (Implies (p) q) Env_out)
-                            Env_out)
-            (term (Env))))
+           (test-can-prove Env (Implies (p) q)))
    )
 
   )

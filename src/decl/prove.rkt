@@ -4,7 +4,21 @@
          "../logic/cosld-solve.rkt"
          )
 (provide decl:prove-top-level-goal/cosld
+         decl:test-can-prove
+         decl:test-cannot-prove
          )
+
+(define-syntax-rule (decl:test-can-prove env goal)
+  (test-equal
+   (judgment-holds (decl:prove-top-level-goal/cosld env goal _))
+   #t)
+  )
+
+(define-syntax-rule (decl:test-cannot-prove env goal)
+  (test-equal
+   (judgment-holds (decl:prove-top-level-goal/cosld env goal _))
+   #f)
+  )
 
 (define-extended-judgment-form formality-decl logic:prove-top-level-goal/cosld
   ;; Prove a "top-level" goal is true in the given environment

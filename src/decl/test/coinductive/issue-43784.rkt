@@ -52,42 +52,26 @@
     ; the `impl<T> Complete for T` cannot prove that `T: Complete` because it cannot
     ; prove that `T: Copy`.
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env_A
-                             (crate-ok-goal (CrateDecl_A) CrateDecl_A)
-                             Env_out)
-                            Env_out)
-            (term ())))
+           (decl:test-cannot-prove
+            Env_A
+            (crate-ok-goal (CrateDecl_A) CrateDecl_A)))
 
    (; The crate B, however, IS well-formed.
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env_B
-                             (crate-ok-goal (CrateDecl_B) CrateDecl_B)
-                             Env_out)
-                            Env_out)
-            (term (Env_B))))
+           (decl:test-can-prove
+            Env_B
+            (crate-ok-goal (CrateDecl_B) CrateDecl_B)))
 
    (; But `Foo: Partial` does not hold in B.
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env_B
-                             (Implemented (Partial (Ty_Foo)))
-                             Env_out)
-                            Env_out)
-            (term ())))
+           (decl:test-cannot-prove
+            Env_B
+            (Implemented (Partial (Ty_Foo)))))
 
    (; But `Foo: Partial` implies `Foo: Copy`.
     traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env_B
-                             (Implies ((Implemented (Partial (Ty_Foo)))) (Implemented (Copy (Ty_Foo))))
-                             Env_out)
-                            Env_out)
-            (term (Env_B))))
+           (decl:test-can-prove
+            Env_B
+            (Implies ((Implemented (Partial (Ty_Foo)))) (Implemented (Copy (Ty_Foo))))))
    )
   )

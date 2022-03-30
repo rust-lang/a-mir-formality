@@ -22,47 +22,31 @@
     )
 
    (traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (ForAll ((TyKind T))
-                                     (Implies ((Implemented (PartialEq (T))))
-                                              (Implemented (Eq (T)))))
-                             Env_out)
-                            Env_out)
-            (term ())))
+           (decl:test-cannot-prove
+            Env
+            (ForAll ((TyKind T))
+                    (Implies ((Implemented (PartialEq (T))))
+                             (Implemented (Eq (T)))))))
 
    (traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (ForAll ((TyKind T))
-                                     (Implies ((Implemented (Eq (T))))
-                                              (Implemented (PartialEq (T)))))
-                             Env_out)
-                            Env_out)
-            (term (Env))))
+           (decl:test-can-prove
+            Env
+            (ForAll ((TyKind T))
+                    (Implies ((Implemented (Eq (T))))
+                             (Implemented (PartialEq (T)))))))
 
    (traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (ForAll ((TyKind T))
-                                     (Implies ((Implemented (Eq (T))))
-                                              (Implemented (Eq (T)))))
-                             Env_out)
-                            Env_out)
-            (term (Env))))
+           (decl:test-can-prove
+            Env
+            (ForAll ((TyKind T))
+                    (Implies ((Implemented (Eq (T))))
+                             (Implemented (Eq (T)))))))
 
    (traced '()
-           (test-equal
-            (judgment-holds (decl:prove-top-level-goal/cosld
-                             Env
-                             (ForAll ((TyKind T))
-                                     (Implies ((Implemented (Eq (T))))
-                                              (Implemented (Debug (T)))))
-                             Env_out)
-                            Env_out)
-            (term ())))
+           (decl:test-cannot-prove
+            Env
+            (ForAll ((TyKind T))
+                    (Implies ((Implemented (Eq (T))))
+                             (Implemented (Debug (T)))))))
    )
   )

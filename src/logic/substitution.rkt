@@ -30,6 +30,14 @@
    ]
   )
 
+(define-metafunction formality-logic
+  ;; Returns the variables that are mapped by a substitution.
+  substitution-domain : Substitution -> VarIds
+
+  [(substitution-domain ((VarId Parameter) ...))
+   (VarId ...)
+   ]
+  )
 
 (define-metafunction formality-logic
   ;; Given a set of kinded-var-ids, creates a substituion map that maps them to
