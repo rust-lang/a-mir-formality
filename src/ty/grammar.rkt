@@ -75,7 +75,7 @@
   ;; either a bound, existential (inference), or universal
   ;; (placeholder) variable.
   (Tys ::= (Ty ...))
-  (Ty ::= RigidTy VarId)
+  (Ty ::= RigidTy ForAllTy ImplicationTy VarId)
 
   ;; RigidTy -- A *rigid* type is onee that can only be equal to itself. Most Rust types fit
   ;; this category, e.g., `Vec<i32>` would be represented as `(TyRigid Vec ((TyRigid i32 ())))`.
@@ -86,6 +86,14 @@
              (Ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
              (Tuple number)  ; tuple of given arity
              )
+
+  ;; ForAll/Implication Types: In Rust, these are always paired with `dyn` and `fn` types,
+  ;; but in our calculus we separate and generalize them.
+  ;;
+  ;; Implication types have an interesting twist: if the implication is false, the only
+  ;; valid operation on the type is to drop it.
+  (ForAllTy ::= (ForAll KindedVarIds Ty))
+  (ImplicationTy ::= (Implies WhereClauses Ty))
 
   ;; Lt -- Rust lifetimes
   ;;
