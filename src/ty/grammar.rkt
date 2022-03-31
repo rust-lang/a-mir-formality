@@ -85,6 +85,7 @@
              ScalarId        ; Something like i32, u32, etc
              (Ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
              (Tuple number)  ; tuple of given arity
+             (Fn Abi number) ; fn types
              )
 
   ;; ForAll/Implication Types: In Rust, these are always paired with `dyn` and `fn` types,
@@ -94,6 +95,9 @@
   ;; valid operation on the type is to drop it.
   (ForAllTy ::= (ForAll KindedVarIds Ty))
   (ImplicationTy ::= (Implies WhereClauses Ty))
+
+  ;; Treat ABIs as opaque strings (for now, at least)
+  (Abi ::= string)
 
   ;; Lt -- Rust lifetimes
   ;;
