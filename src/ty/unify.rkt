@@ -67,11 +67,6 @@
    (Env ())
    ]
 
-  [; reorder so we only have to consider `==` or `<=`
-   (relate/one/substituted VarIds Env (Parameter_1 >= Parameter_2))
-   (relate/one/substituted VarIds Env (Parameter_2 <= Parameter_1))
-   ]
-
   [; X = P ===> if occurs check ok, return `[X => P]`
    ;
    ; If we had inequalities related to `X`, e.g., `X <= u32`, then
