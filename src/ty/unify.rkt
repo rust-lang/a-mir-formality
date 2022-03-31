@@ -133,37 +133,48 @@
    (where #t (same-length (Variance ...) (Parameter_1 ...))) ; well-formedness violation otherwise
    ]
 
-  #;[; For the remaining types, rewrite `==` as two `<=` relations
-     (relate/one/substituted VarIds Env (Parameter_1 == Parameter_2))
-     (Env ((Parameter_1 <= Parameter_2) (Parameter_2 <= Parameter_1)))
-     ]
+  [; For ∀ or implication types, rewrite `==` as two `<=` relations
+   (relate/one/substituted VarIds Env (Parameter_1 == Parameter_2))
+   (Env ((Parameter_1 <= Parameter_2) (Parameter_2 <= Parameter_1)))
 
-  #;[; ∀ on the supertype side
-     (relate/one/substituted VarIds Env (Parameter_1 <= (ForAll KindedVarIds Parameter_2)))
-     (Env (ForAll KindedVarIds (Parameter_1 RelationOp Parameter_2)))
-     ]
+   (where #t (any? (is-forall-or-implies Parameter_1)
+                   (is-forall-or-implies Parameter_2)))
+   ]
 
-  #;[; Implication on the supertype side
-     (relate/one/substituted VarIds Env (Parameter_1 <= (Implies WhereClauses Parameter_2)))
-     (Env ((Implies (where-clauses->goals WhereClauses) (Parameter_1 RelationOp Parameter_2))))
-     ]
+  [; ∀ on the supertype side
+   (relate/one/substituted VarIds Env (Parameter_1 <= (ForAll KindedVarIds Parameter_2)))
+   (Env (ForAll KindedVarIds (Parameter_1 RelationOp Parameter_2)))
+   ]
 
-  #;[; ∀ on the subtype side
-     (relate/one/substituted VarIds Env ((ForAll KindedVarIds Parameter_1) <= Parameter_2))
-     (Env (Exists KindedVarIds (Parameter_1 RelationOp Parameter_2)))
-     ]
+  [; Implication on the supertype side
+   (relate/one/substituted VarIds Env (Parameter_1 <= (Implies WhereClauses Parameter_2)))
+   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter_1 RelationOp Parameter_2))))
+   ]
 
-  #;[; Implication on the subtype side
-     (relate/one/substituted VarIds Env ((Implies WhereClauses Parameter_1) <= Parameter_2))
-     (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
-     (where (Goal_wc ...) (where-clauses->goals WhereClauses))
-     ]
+  [; ∀ on the subtype side
+   (relate/one/substituted VarIds Env ((ForAll KindedVarIds Parameter_1) <= Parameter_2))
+   (Env (Exists KindedVarIds (Parameter_1 RelationOp Parameter_2)))
+   ]
+
+  [; Implication on the subtype side
+   (relate/one/substituted VarIds Env ((Implies WhereClauses Parameter_1) <= Parameter_2))
+   (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
+   (where (Goal_wc ...) (where-clauses->goals WhereClauses))
+   ]
 
   [; all other sets of types cannot be related
    (relate/one/substituted _ _ _)
    Error
    ]
 
+  )
+
+(define-metafunction formality-ty
+  is-forall-or-implies : Parameter -> boolean
+
+  [(is-forall-or-implies (ForAll _ _)) #t]
+  [(is-forall-or-implies (Implies _ _)) #t]
+  [(is-forall-or-implies _) #f]
   )
 
 (define-metafunction formality-ty
