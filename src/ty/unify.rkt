@@ -96,7 +96,12 @@
   [; X ?= R<...> -- Inequality between a variable and a rigid type (`==` is handled above)
    ;
    ; addressed by instantiating X with `R<P1...Pn>` for fresh P1...Pn and then requiring
-   ; `R<P1...Pn> ?= R<...>` with a goal like `∃P1...Pn: (X = R<P1...Pn>) ∧ (R<P1..Pn> ?= R<...>)`
+   ; `R<P1...Pn> ?= R<...>` with a goal like
+   ;
+   ; `∃P1...Pn: (X = R<P1...Pn>) ∧ WF(R<P1..Pn>) ∧ (R<P1..Pn> ?= R<...>)`
+   ;
+   ; Note the requirement to prove `WF(R<P1..Pn>)`. This is necessary because the `T1 ?= T2`
+   ; judgments assume that T1, T2 are WF.
    (relate/one/substituted VarIds Env (VarId InequalityOp Parameter_r))
    (Env (Goal))
 
@@ -108,10 +113,14 @@
    (where/error ((VarId_rigid VarId_p) ...) (substitution-to-fresh-vars Parameter_r ((VarId_rigid ParameterKind_rigid) ...)))
    ; create the `R<P1..Pn>` type
    (where/error Parameter_p (TyRigid RigidName (VarId_p ...)))
-   ; create the `∃P1...Pn: (X = R<P1...Pn>) ∧ (R<P1..Pn> ?= R<...>)` goal
+   ; create the `∃P1...Pn: (X = R<P1...Pn>) ∧ WF(R<P1..Pn>) ∧ (R<P1..Pn> ?= R<...>)` goal
+   ;
+   ; I've reordered the WellFormed requirement since it helps the cosld solver
    (where/error Goal (Exists ((VarId_p ParameterKind_rigid) ...)
                              (All ((VarId = Parameter_p)
-                                   (Parameter_p InequalityOp Parameter_r)))))
+                                   (Parameter_p InequalityOp Parameter_r)
+                                   (WellFormed (TyKind Parameter_p))
+                                   ))))
    ]
 
   [; P op X ===> just reverse order
