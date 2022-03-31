@@ -5,20 +5,20 @@
          "../logic/env.rkt"
          )
 (provide formality-ty-hook
-         env-adt-variances
+         env-adt-generics
          )
 
 ;; Extends the core logic hook with the ability to query variance:
 ;;
-;; adt-variance : AdtId -> (Variance ...)
-(struct formality-ty-hook formality-logic-hook (adt-variance))
+;; adt-generics : AdtId -> Generics
+(struct formality-ty-hook formality-logic-hook (adt-generics))
 
 (define-metafunction formality-ty
   ;; Returns the variance for each of the parameters to an Adt
-  env-adt-variances : Env AdtId -> (Variance ...)
+  env-adt-generics : Env AdtId -> Generics
 
-  [(env-adt-variances Env AdtId)
-   ,((formality-ty-hook-adt-variance (term any)) (term AdtId))
+  [(env-adt-generics Env AdtId)
+   ,((formality-ty-hook-adt-generics (term any)) (term AdtId))
    (where/error (Hook: any) (env-hook Env))
    ]
   )

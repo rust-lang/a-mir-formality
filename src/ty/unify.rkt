@@ -4,7 +4,7 @@
          "predicate.rkt"
          "inequalities.rkt"
          "where-clauses.rkt"
-         "variance.rkt"
+         "parameters.rkt"
          "../logic/substitution.rkt"
          "../logic/env.rkt"
          )
@@ -93,12 +93,34 @@
    (where Error (occurs-check Env VarId Parameter))
    ]
 
-  [; P = X ===> just reverse order
-   (relate/one/substituted VarIds_exists Env (Parameter == VarId))
-   (relate/one/substituted VarIds_exists Env (VarId == Parameter))
+  [; X ?= R<...> -- Inequality between a variable and a rigid type (`==` is handled above)
+   ;
+   ; addressed by instantiating X with `R<P1...Pn>` for fresh P1...Pn and then requiring
+   ; `R<P1...Pn> ?= R<...>` with a goal like `∃P1...Pn: (X = R<P1...Pn>) ∧ (R<P1..Pn> ?= R<...>)`
+   (relate/one/substituted VarIds Env (VarId InequalityOp Parameter_r))
+   (Env (Goal))
+
+   (where (TyRigid RigidName (Parameter ...)) Parameter_r)
+   (where #t (in?/id VarId VarIds_exists))
+   ; get the generic parameters for the rigid-name `R`
+   (where/error ((VarId_rigid (ParameterKind_rigid _)) ...) (generic-parameters-for Env RigidName))
+   ; make fresh names `VarId_p ...` for each parameter that don't appear in `R<...>` to avoid accidental capture
+   (where/error ((VarId_rigid VarId_p) ...) (substitution-to-fresh-vars Parameter_r ((VarId_rigid ParameterKind_rigid) ...)))
+   ; create the `R<P1..Pn>` type
+   (where/error Parameter_p (TyRigid RigidName (VarId_p ...)))
+   ; create the `∃P1...Pn: (X = R<P1...Pn>) ∧ (R<P1..Pn> ?= R<...>)` goal
+   (where/error Goal (Exists ((VarId_p ParameterKind_rigid) ...)
+                             (All ((VarId = Parameter_p)
+                                   (Parameter_p InequalityOp Parameter_r)))))
+   ]
+
+  [; P op X ===> just reverse order
+   (relate/one/substituted VarIds_exists Env (Parameter RelationOp VarId))
+   (relate/one/substituted VarIds_exists Env (VarId (invert-relation RelationOp) Parameter))
 
    (where #t (in?/id VarId VarIds_exists))
    ]
+
 
   [; Relating two rigid types with the same name: relate their parameters according to the declared variance.
    (relate/one/substituted VarIds Env ((TyRigid RigidName (Parameter_1 ..._1)) RelationOp (TyRigid RigidName (Parameter_2 ..._1))))
@@ -138,6 +160,14 @@
    Error
    ]
 
+  )
+
+(define-metafunction formality-ty
+  invert-relation : RelationOp -> RelationOp
+
+  [(invert-relation <=) >=]
+  [(invert-relation >=) <=]
+  [(invert-relation ==) ==]
   )
 
 (define-metafunction formality-ty

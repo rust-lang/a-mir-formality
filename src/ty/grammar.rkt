@@ -119,6 +119,11 @@
   (AdtId TraitId AssociatedTyId TyAliasId ::=
          variable-not-otherwise-mentioned)
 
+  ;; Generic parameters
+  (Generics ::= (GenericParameters WhereClauses))
+  (GenericParameters ::= (GenericParameter ...))
+  (GenericParameter ::= (VarId KindAndVariance))
+  (KindAndVariance ::= (ParameterKind Variance))
   (Variance := - + =)
   )
 

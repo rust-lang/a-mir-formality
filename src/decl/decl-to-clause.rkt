@@ -49,7 +49,7 @@
             (lambda (predicate1 predicate2)
               (term (ty:predicates-could-match ,predicate1 ,predicate2)))
             (lambda (adt-id)
-              (term (variances-for-adt-id DeclProgram ,adt-id)))))
+              (term (generics-for-adt-id DeclProgram ,adt-id)))))
    ]
   )
 
@@ -273,12 +273,11 @@
   ;;
   ;; Create the clauses for solving a given predicate
   ;; (right now the predicate is not used).
-  variances-for-adt-id : DeclProgram AdtId -> (Variance ...)
+  generics-for-adt-id : DeclProgram AdtId -> Generics
 
-  [(variances-for-adt-id (CrateDecls CrateId) AdtId)
-   (Variance ...)
+  [(generics-for-adt-id (CrateDecls CrateId) AdtId)
+   (((VarId (ParameterKind =)) ...) WhereClauses) ; for now we hardcode `=` (invariance) as the variance
    (where/error AdtContents (item-with-id CrateDecls AdtId))
    (where/error (AdtKind ((ParameterKind VarId) ...) WhereClauses AdtVariants) AdtContents)
-   (where/error ((VarId Variance) ...) ((VarId =) ...)) ; for now, just hard-code `==` for all VarId...
    ]
   )
