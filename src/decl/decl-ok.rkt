@@ -79,6 +79,25 @@
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)
    ]
+
+  [;; For a constant declared in the crate C, like the following:
+   ;;
+   ;;     const NAMED<T>: Foo<T> where T: Trait;
+   ;;
+   ;; we require that the type is well formed assuming the where clauses are satisfied.
+   (crate-item-ok-goal CrateDecls (ConstId (const KindedVarIds WhereClauses Ty)))
+   (ForAll KindedVarIds
+           (Implies
+            (; assuming all generic parameters are WF...
+             (WellFormed KindedVarId) ...
+             ; ...where-clauses are satisfied...
+             WhereClause ...)
+            (; ... then the trait must be implemented
+             WellFormed (TyKind Ty))))
+
+   (where/error (KindedVarId ...) KindedVarIds)
+   (where/error (WhereClause ...) WhereClauses)
+   ]
   )
 
 (define-metafunction formality-decl

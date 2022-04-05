@@ -8,6 +8,7 @@
          )
 
 (define-extended-language formality-decl formality-ty
+  ;; A *program* in "decl" is a set of crates (`CrateDecls`) and a current crate (`CrateId`).
   (DeclProgram ::= (CrateDecls CrateId))
 
   ;; ANCHOR:Crates
@@ -15,7 +16,7 @@
   (CrateDecls ::= (CrateDecl ...))
   (CrateDecl ::= (CrateId CrateContents))
   (CrateContents ::= (crate (CrateItemDecl ...)))
-  (CrateItemDecl ::= AdtDecl TraitDecl TraitImplDecl)
+  (CrateItemDecl ::= AdtDecl TraitDecl TraitImplDecl ConstDecl)
   ;; ANCHOR_END:Crates
 
   ;; AdtDecl -- struct/enum/union declarations
@@ -45,6 +46,10 @@
   ;; Note that trait impls do not have names.
   (TraitImplDecl ::= (impl KindedVarIds TraitRef WhereClauses ImplItems))
 
+  ;; Named constants
+  (ConstDecl ::= (ConstId ConstContents))
+  (ConstContents ::= (const KindedVarIds WhereClauses Ty))
+
   ;; ImplItem --
   (ImplItems ::= (ImplItem ...))
   (ImplItem ::= NotYetImplemented)
@@ -54,6 +59,7 @@
   ;; clarify their purpose
   ((CrateId
     TraitImplId
+    ConstId
     VariantId
     FieldId) variable-not-otherwise-mentioned)
 
@@ -70,6 +76,10 @@
         TraitRef #:refers-to (shadow VarId ...)
         WhereClauses #:refers-to (shadow VarId ...)
         ImplItems #:refers-to (shadow VarId ...))
+  (const ConstId
+         ((ParameterKind VarId) ...)
+         WhereClauses #:refers-to (shadow VarId ...)
+         Ty #:refers-to (shadow VarId ...))
   )
 
 (define-metafunction formality-decl

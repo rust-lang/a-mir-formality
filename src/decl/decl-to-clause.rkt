@@ -16,7 +16,7 @@
 
   [(env-for-crate-decl CrateDecl)
    (env-for-crate-decls (CrateDecl) CrateId)
-   (where (CrateId CrateContents) CrateDecl)
+   (where/error (CrateId CrateContents) CrateDecl)
    ]
   )
 
@@ -247,6 +247,15 @@
                                  Goal_wc ...
                                  )
                                 (HasImpl TraitRef))))
+   ]
+
+  [;; For an named constant in the crate C, like the following
+   ;;
+   ;;    const NAMED<T>: Foo<T> where T: Trait;
+   ;;
+   ;; we don't yet any rules.
+   (crate-item-decl-rules CrateDecls ConstDecl)
+   (() () ())
    ]
   )
 
