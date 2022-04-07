@@ -3,10 +3,22 @@
          "grammar.rkt"
          "../logic/env.rkt"
          )
-(provide variable-bounds
+(provide known-bounds
+         variable-bounds
          env-with-var-related-to-parameter
          remove-var-bounds-from-env
+         invert-inequality-op
          )
+
+(define-metafunction formality-ty
+  ;; Returns the bounds on `VarId_in` found in the environment, or `(() ())` if none are found.
+  ;;
+  ;; `VarId_in` must be a variable declared in the environment and must not be unmapped.
+  invert-inequality-op : InequalityOp -> InequalityOp
+
+  [(invert-inequality-op <=) >=]
+  [(invert-inequality-op >=) <=]
+  )
 
 (define-metafunction formality-ty
   ;; Returns the bounds on `VarId_in` found in the environment, or `(() ())` if none are found.
@@ -23,6 +35,22 @@
   [(variable-bounds Env VarId)
    (() ())
    ]
+  )
+
+(define-metafunction formality-ty
+  ;; Given a variable `VarId_in` and a inequality op (e.g., `<=`, `>=`), returns the known
+  ;; bounds `P` such that e.g. `P <= VarId` or `VarId <= P`.
+  known-bounds : Env_in InequalityOp VarId_in -> Parameters_ub
+  #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
+
+  [(known-bounds Env <= VarId)
+   Parameters_lb
+   (where/error (Parameters_lb Parameters_ub) (variable-bounds Env_in VarId_in))]
+
+  [(known-bounds Env >= VarId)
+   Parameters_ub
+   (where/error (Parameters_lb Parameters_ub) (variable-bounds Env_in VarId_in))]
+
   )
 
 (define-metafunction formality-ty

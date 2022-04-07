@@ -12,6 +12,7 @@
          substitution-concat-disjoint
          substitution-without-vars
          substitution-maps-var
+         substitution-valid?
          env-with-var-mapped-to
          )
 
@@ -78,6 +79,18 @@
   [(apply-substitution-from-env Env Term)
    (apply-substitution Substitution Term)
    (where/error Substitution (env-substitution Env))]
+  )
+
+(define-metafunction formality-logic
+  ;; A substitution is *valid* in the environment if
+  ;;
+  ;; * it maps distinct variables
+  ;; * the keys are existentially bound variables
+  ;; * the values for each variable do not reference anything outside of its universe
+  substitution-valid? : Env Substitution -> boolean
+
+  [; FIXME this is incomplete
+   (substitution-valid? ((VarId_!_1 Parameter) ...)) #t]
   )
 
 (define-metafunction formality-logic

@@ -62,30 +62,31 @@
 (define-metafunction formality-ty
   relate/one/substituted : VarIds_exists Env Relation -> (Env Goals) or Error
 
-  [; X == X, X <= X, X >= X ===> always ok
+  [; X == X, X <= X, X >= X:
+   ;   Always ok.
    (relate/one/substituted _ Env (Parameter RelationOp Parameter))
    (Env ())
    ]
 
-  [; X = P ===> if occurs check ok, return `[X => P]`
-   ;
-   ; If we had inequalities related to `X`, e.g., `X <= u32`, then
-   ; we enqueue goals like `P <= u32`.
-   (relate/one/substituted VarIds_exists Env (VarId == Parameter))
-   (Env_3 ((Parameter_lb <= Parameter) ... (Parameter <= Parameter_ub) ...))
-
-   (where #t (in?/id VarId VarIds_exists))
-   (where Env_1 (occurs-check Env VarId Parameter))
-   (where/error (Env_2 ((Parameter_lb ...) (Parameter_ub ...))) (remove-var-bounds-from-env Env_1 VarId))
-   (where/error Env_3 (env-with-var-mapped-to Env_2 VarId Parameter))
-   ]
-
-  [; X = P ===> if occurs check fails, return Error
-   (relate/one/substituted VarIds_exists Env (VarId == Parameter))
+  [; X = P<... X ...> etc:
+   ;   Error if `X` appears in its own value.
+   (relate/one/substituted VarIds_exists Env (VarId RelationOp Parameter))
    Error
 
    (where #t (in?/id VarId VarIds_exists))
-   (where Error (occurs-check Env VarId Parameter))
+   (where #f (occurs-check Env VarId Parameter))
+   ]
+
+  [; X = P where occurs check ok:
+   ;   Substitute `[X => P]` and prove `P <= P1`/`P >= P1` for each bound `P1` on `X`.
+   (relate/one/substituted VarIds_exists Env (VarId == Parameter))
+   (Env_2 ((Parameter_lb <= Parameter) ... (Parameter <= Parameter_ub) ...))
+
+   (where #t (in?/id VarId VarIds_exists))
+   (where/error #t (occurs-check Env VarId Parameter)) ; tested earlier
+   (where #t (universe-check Env VarId Parameter))
+   (where/error (Env_1 ((Parameter_lb ...) (Parameter_ub ...))) (remove-var-bounds-from-env Env VarId))
+   (where/error Env_2 (env-with-var-mapped-to Env_1 VarId Parameter))
    ]
 
   [; X ?= R<...> -- Inequality between a variable and a rigid type (`==` is handled above)
@@ -118,13 +119,47 @@
                                    ))))
    ]
 
-  [; P op X ===> just reverse order
+  [; `X <= P`, `X >= P` where universes, occurs-check ok:
+   ;   Add `X <= P` as a bound and, for each `P1` where `P1 <= X`,
+   ;   require that `P1 <= P` (respectively `>=`).
+   (relate/one/substituted VarIds_exists Env (VarId InequalityOp Parameter))
+   (Env_1 ((Parameter_bound InequalityOp Parameter) ...))
+
+   (where #t (in?/id VarId VarIds_exists))
+   (where/error #t (occurs-check Env VarId Parameter)) ; tested earlier
+   (where #t (universe-check Env VarId Parameter))
+   (where/error (Parameter_bound ...) (known-bounds Env InequalityOp VarId))
+   (where/error Env_1 (env-with-var-related-to-parameter Env VarId InequalityOp Parameter))
+   ]
+
+  [; `!X <= P` where:
+   ;    Prove `X <= P1` for any `P1 <= P`.
+   ;
+   ; * FIXME: This is not optimal.
+   (relate/one/substituted VarIds_exists Env (VarId InequalityOp Parameter))
+   (Env_1 ((Any ((Parameter_bound InequalityOp Parameter) ...))))
+
+   (where #t (env-contains-placeholder-var Env VarId))
+   (where/error (Parameter_bound ...) (known-bounds Env InequalityOp VarId)) ; *
+   ]
+
+  [; `P op X` ===> just reverse order
    (relate/one/substituted VarIds_exists Env (Parameter RelationOp VarId))
    (relate/one/substituted VarIds_exists Env (VarId (invert-relation RelationOp) Parameter))
 
    (where #t (in?/id VarId VarIds_exists))
    ]
 
+  [; `!X <= P` where:
+   ;    Prove `X <= P1` for any `P1 <= P`.
+   ;
+   ; * FIXME: This is not optimal.
+   (relate/one/substituted VarIds_exists Env (VarId InequalityOp Parameter))
+   (Env_1 ((Any ((Parameter_bound InequalityOp Parameter) ...))))
+
+   (where #t (env-contains-placeholder-var Env VarId))
+   (where/error (Parameter_bound ...) (known-bounds Env InequalityOp VarId)) ; *
+   ]
 
   [; Relating two rigid types with the same name: relate their parameters according to the declared variance.
    (relate/one/substituted VarIds Env ((TyRigid RigidName (Parameter_1 ..._1)) RelationOp (TyRigid RigidName (Parameter_2 ..._1))))
@@ -186,39 +221,35 @@
   )
 
 (define-metafunction formality-ty
-  ;; Checks whether `VarId` can be assigned the value of `Parameter`.
+  ;; Checks whether `VarId` appears free in `Parameter`.
+  occurs-check : Env VarId Parameter -> boolean
+
+  [(occurs-check Env VarId Parameter)
+   ; can't have X = Vec<X> or whatever, that would be infinite in size
+   (not? (in?/id VarId (free-variables Env Parameter)))]
+
+  )
+
+(define-metafunction formality-ty
+  ;; Checks whether `VarId` is in a universe that can see all the values of `Parameter`.
   ;;
   ;; Fails if:
   ;;
-  ;; * `VarId` appears in `Parameter`
   ;; * `Parameter` mentions a placeholder that `VarId` cannot name because of its universe
   ;;
   ;; Returns a fresh environment which contains adjust universes for each
   ;; variable `V` that occur in `Parameter`. The universe of `V` cannot
   ;; be greater than the universe of `VarId` (since whatever value `V` ultimately
   ;; takes on will become part of `VarId`'s value).
-  occurs-check : Env VarId Parameter -> Env or Error
+  universe-check : Env VarId Parameter -> boolean
 
-  [(occurs-check Env VarId Parameter)
-   Env_1
+  [(universe-check Env VarId Parameter)
+   (all? (universe-includes Universe_VarId (universe-of-var-in-env Env VarId_free)) ...)
 
-   ; can't have X = Vec<X> or whatever, that would be infinite in size
-   (where #f (appears-free VarId Parameter))
-
-   ; find the universe of `VarId`
    (where/error Universe_VarId (universe-of-var-in-env Env VarId))
-
-   ; can't have `X = T<>` if `X` cannot see the universe of `T`
-   (where/error (VarId_placeholder ...) (placeholder-variables Env Parameter))
-   (where #t (all? (universe-includes Universe_VarId (universe-of-var-in-env Env VarId_placeholder)) ...))
-
-   ; for each `X = ... Y ...`, adjust universe of Y so that it can see all values of X
-   (where/error VarIds_free (free-variables Env Parameter))
-   (where/error Env_1 (env-with-vars-limited-to-universe Env VarIds_free Universe_VarId))
-   ]
-
-  [(occurs-check Env VarId Parameter)
-   Error
+   (where/error (VarId_free ...) (free-variables Env Parameter))
    ]
 
   )
+
+

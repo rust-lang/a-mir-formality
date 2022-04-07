@@ -100,6 +100,16 @@
   )
 
 (define-metafunction formality-logic
+  ;; Extend `Env` with a single variable declared in the given universe with the given quantifier.
+  env-with-var : Env VarId Universe Quantifier -> Env
+
+  [(env-with-var Env VarId Universe Quantifier)
+   (Hook Universe ((VarId Quantifier Universe) VarBinder ...) Substitution VarInequalities Hypotheses)
+   (where/error (Hook Universe (VarBinder ...) Substitution VarInequalities Hypotheses) Env)
+   ]
+  )
+
+(define-metafunction formality-logic
   ;; Returns the hypotheses in the environment
   env-with-hypotheses : Env Hypotheses -> Env
 
@@ -286,7 +296,8 @@
 
 (define-metafunction formality-logic
   ;; Returns the set of variables that appear free in the given term;
-  ;; only returns variables that are defined in the environment.
+  ;; only returns variables that are defined in the environment. This includes
+  ;; both existential (inference) and universal (placeholder) variables.
   ;; Everything else is assumed to be a universal constant or keyword.
   free-variables : Env Term -> (VarId ...)
 

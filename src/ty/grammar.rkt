@@ -117,6 +117,10 @@
   ;; MaybeMut: either mut or not
   (MaybeMut ::= () (mut))
 
+  ;; Pairs of variables (X0, X1), used as a kind of map
+  (VarIdPairs ::= (VarIdPair ...))
+  (VarIdPair ::= (VarId VarId))
+
   ;; VarInequality -- Stores the bounds for a variable (type, lifetime)
   ;; whose value is not known precisely.
   ;;
