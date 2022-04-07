@@ -6,7 +6,7 @@
          "../substitution.rkt"
          "../instantiate.rkt"
          "../env.rkt"
-         "elaborate.rkt"
+         "../elaborate.rkt"
          "filter.rkt"
          )
 

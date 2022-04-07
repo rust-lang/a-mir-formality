@@ -1,15 +1,57 @@
 #lang racket
 (require redex
-         "../grammar.rkt"
-         "../hook.rkt"
-         "../substitution.rkt"
-         "../instantiate.rkt"
-         "../env.rkt"
-         "../../util.rkt"
+         "grammar.rkt"
+         "hook.rkt"
+         "substitution.rkt"
+         "instantiate.rkt"
+         "env.rkt"
+         "../util.rkt"
          )
 (provide elaborate-hypotheses)
 
+; (define-metafunction formality-logic
+;   ;; Given an Env with some set of hypotheses H, returns a new environment
+;   ;; that adds in any "implied bounds", i.e., the hypotheses implied by the
+;   ;; program Invariants.
+;   hypothesized-placeholder-bounds : Env VarId -> Env
+;   #:pre (env-contains-placeholder-var Env VarId)
+
+;   [(hypothesized-placeholder-bounds Env VarId)
+;    (where/error Env_1 (elaborate-hypotheses Env)
+;                 (where/))
+;    ]
+;   )
+
+; (define-judgment-form formality-logic
+;   ;; Helper judgment, elaborates a hypothesis in all the ways possible.
+;   #:mode (hypothesized-placeholder-bound I I O)
+;   #:contract (hypothesized-placeholder-bound Env VarId Parameter_out)
+
+;   [(where (_ ... Hypothesis _ ...) (env-hypotheses (elaborate-hypotheses Env)))
+;    (hypothesis-implies-placeholder-bound Env VarId Hypothesis Parameter_out)
+;    ----------
+;    (hypothesized-placeholder-bound Env VarId Parameter_out)
+;    ]
+
+;   )
+
+; (define-judgment-form formality-logic
+;   ;; Helper judgment, elaborates a hypothesis in all the ways possible.
+;   #:mode (hypothesis-implies-placeholder-bound I I I O)
+;   #:contract (hypothesis-implies-placeholder-bound Env VarId Hypothesis Parameter_out)
+
+;   [(where (_ ... Hypothesis _ ...) (env-hypotheses (elaborate-hypotheses Env)))
+;    ( Env VarId Hypothesis Parameter_out)
+;    ----------
+;    (hypothesis-implies-placeholder-bound Env VarId  Parameter_out)
+;    ]
+
+;   )
+
 (define-metafunction formality-logic
+  ;; Given an Env with some set of hypotheses H, returns a new environment
+  ;; that adds in any "implied bounds", i.e., the hypotheses implied by the
+  ;; program Invariants.
   elaborate-hypotheses : Env -> Env
 
   [; fixed point reached?
@@ -30,6 +72,8 @@
   )
 
 (define-metafunction formality-logic
+  ;; Helper function: elaborates the given list of hypotheses, adding the results
+  ;; to Env.
   elaborate-hypotheses-one-step : Env Hypotheses_to-elaborate -> Env
 
   ((elaborate-hypotheses-one-step Env ())
@@ -45,6 +89,8 @@
   )
 
 (define-metafunction formality-logic
+  ;; Helper function: elaborates a single hypothesis, adding the results
+  ;; to Env.
   elaborate-hypothesis-one-step : Env Hypothesis -> Hypotheses
 
   ([elaborate-hypothesis-one-step Env Hypothesis_in]
@@ -53,6 +99,7 @@
   )
 
 (define-judgment-form formality-logic
+  ;; Helper judgment, elaborates a hypothesis in all the ways possible.
   #:mode (hypothesis-elaborates-one-step I I O)
   #:contract (hypothesis-elaborates-one-step Env Hypothesis Hypothesis)
 
@@ -97,6 +144,8 @@
   )
 
 (define-metafunction formality-logic
+  ;; Helper function: creates a `(Implies Goals Predicate)` hypothesis if `Goals` is non-empty,
+  ;; otherwise just returns `Predicate`.
   implication-hypothesis : Goals Predicate -> Hypothesis
 
   [(implication-hypothesis () Predicate) Predicate]
@@ -106,7 +155,7 @@
 
 
 (module+ test
-  (require "../test/hook.rkt")
+  (require "test/hook.rkt")
 
   (redex-let*
    formality-logic
