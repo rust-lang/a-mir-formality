@@ -80,10 +80,10 @@
 
   [(existential-vars-from-binders ()) ()]
 
-  [(existential-vars-from-binders ((_ ForAll _) VarBinder_2 ...))
+  [(existential-vars-from-binders ((_ _ ForAll _) VarBinder_2 ...))
    (existential-vars-from-binders (VarBinder_2 ...))]
 
-  [(existential-vars-from-binders ((VarId_1 Exists _) VarBinder_2 ...))
+  [(existential-vars-from-binders ((VarId_1 _ Exists _) VarBinder_2 ...))
    (VarId_1 VarId_2 ...)
    (where/error (VarId_2 ...) (existential-vars-from-binders (VarBinder_2 ...)))]
 
@@ -91,10 +91,10 @@
 
 (define-metafunction formality-logic
   ;; Extend `Env`, mapping the names in `VarIds` to the current universe
-  env-with-vars-in-current-universe : Env Quantifier VarIds -> Env
+  env-with-vars-in-current-universe : Env Quantifier KindedVarIds -> Env
 
-  [(env-with-vars-in-current-universe Env Quantifier (VarId ...))
-   (Hook Universe ((VarId Quantifier Universe) ... VarBinder ...) Substitution VarInequalities Hypotheses)
+  [(env-with-vars-in-current-universe Env Quantifier ((ParameterKind VarId) ...))
+   (Hook Universe ((VarId ParameterKind Quantifier Universe) ... VarBinder ...) Substitution VarInequalities Hypotheses)
    (where/error (Hook Universe (VarBinder ...) Substitution VarInequalities Hypotheses) Env)
    ]
   )
@@ -132,8 +132,8 @@
   env-with-var-limited-to-universe : Env VarId Universe -> Env
 
   [(env-with-var-limited-to-universe Env VarId Universe_max)
-   (Hook Universe (VarBinder_0 ... (VarId Quantifier Universe_new) VarBinder_1 ...) Substitution VarInequalities Hypotheses)
-   (where/error (Hook Universe (VarBinder_0 ... (VarId Quantifier Universe_old) VarBinder_1 ...) Substitution VarInequalities Hypotheses) Env)
+   (Hook Universe (VarBinder_0 ... (VarId ParameterKind Quantifier Universe_new) VarBinder_1 ...) Substitution VarInequalities Hypotheses)
+   (where/error (Hook Universe (VarBinder_0 ... (VarId ParameterKind Quantifier Universe_old) VarBinder_1 ...) Substitution VarInequalities Hypotheses) Env)
    (where/error Universe_new (min-universe Universe_old Universe_max))
    ]
   )
@@ -173,11 +173,11 @@
 (define-metafunction formality-logic
   ;; If this variable is declared in the environment, return its
   ;; quantifier/universe (or `()` otherwise).
-  var-binding-in-env : Env VarId -> (Quantifier Universe) or ()
+  var-binding-in-env : Env VarId -> (ParameterKind Quantifier Universe) or ()
 
   [(var-binding-in-env Env VarId)
-   (Quantifier Universe)
-   (where (_ ... (VarId Quantifier Universe) _ ...) (env-var-binders Env))]
+   (ParameterKind Quantifier Universe)
+   (where (_ ... (VarId ParameterKind Quantifier Universe) _ ...) (env-var-binders Env))]
 
   [(var-binding-in-env Env VarId)
    ()]
@@ -193,7 +193,7 @@
 
   [(universe-of-var-in-env Env VarId)
    Universe
-   (where (Quantifier Universe) (var-binding-in-env Env VarId))]
+   (where (_ Quantifier Universe) (var-binding-in-env Env VarId))]
 
   [(universe-of-var-in-env Env VarId)
    RootUniverse
@@ -208,7 +208,7 @@
 
   [(env-contains-var Env VarId)
    #t
-   (where (_ _) (var-binding-in-env Env VarId))]
+   (where (_ _ _) (var-binding-in-env Env VarId))]
 
   [(env-contains-var Env VarId)
    #f]
@@ -221,7 +221,7 @@
 
   [(env-contains-existential-var Env VarId)
    #t
-   (where (Exists _) (var-binding-in-env Env VarId))]
+   (where (_ Exists _) (var-binding-in-env Env VarId))]
 
   [(env-contains-existential-var Env VarId)
    #f]
@@ -259,7 +259,7 @@
 
   [(env-contains-placeholder-var Env VarId)
    #t
-   (where (ForAll _) (var-binding-in-env Env VarId))]
+   (where (_ ForAll _) (var-binding-in-env Env VarId))]
 
   [(env-contains-placeholder-var Env VarId)
    #f]

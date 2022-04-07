@@ -34,9 +34,10 @@
   ;; logic, though.
   (Substitution ::= ((VarId Parameter) ...))
 
-  ;; VarBinder -- maps a `VarId` to a quantifier kind and `Universe`
+  ;; VarBinder -- maps a `VarId` to a kind (ty/lifetime/etc), quantifier kind (forall/exists),
+  ;; and universe
   (VarBinders ::= (VarBinder ...))
-  (VarBinder ::= (VarId Quantifier Universe))
+  (VarBinder ::= (VarId ParameterKind Quantifier Universe))
 
   ;; VarInequality -- for variables that don't have a known
   ;; value (which would appear in the substitution), we may

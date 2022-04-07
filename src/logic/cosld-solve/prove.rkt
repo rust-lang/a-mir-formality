@@ -230,7 +230,7 @@
 
    (redex-let*
     formality-logic
-    ((Env (term (env-with-vars-in-current-universe EmptyEnv Exists (T U V)))))
+    ((Env (term (env-with-vars-in-current-universe EmptyEnv Exists ((TyKind T) (TyKind U) (TyKind V))))))
     (traced '()
             (test-equal
              (judgment-holds (prove-top-level-goal-substitution
@@ -253,13 +253,13 @@
                      (Implemented (Debug (T))))))
 
    (test-cannot-prove
-    (env-with-vars-in-current-universe EmptyEnv Exists (X))
+    (env-with-vars-in-current-universe EmptyEnv Exists ((TyKind X)))
     (Exists ((TyKind X))
             (ForAll ((TyKind T))
                     (T == X))))
 
    (test-cannot-prove
-    (env-with-vars-in-current-universe EmptyEnv Exists (X))
+    (env-with-vars-in-current-universe EmptyEnv Exists ((TyKind X)))
     (ForAll ((TyKind T))
             (T == X)))
 
