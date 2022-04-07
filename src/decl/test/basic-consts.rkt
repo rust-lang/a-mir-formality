@@ -23,7 +23,7 @@
     )
 
    (traced '()
-           (decl:test-can-prove
+           (decl:test-cannot-prove
             Env
             (crate-ok-goal (CrateDecl) CrateDecl)))
    )
