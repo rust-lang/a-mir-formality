@@ -101,11 +101,22 @@
 
 (define-metafunction formality-logic
   ;; Extend `Env` with a single variable declared in the given universe with the given quantifier.
-  env-with-var : Env VarId Universe Quantifier -> Env
+  env-with-var : Env VarId ParameterKind Universe Quantifier -> Env
 
-  [(env-with-var Env VarId Universe Quantifier)
-   (Hook Universe ((VarId Quantifier Universe) VarBinder ...) Substitution VarInequalities Hypotheses)
+  [(env-with-var Env VarId ParameterKind Universe Quantifier)
+   (Hook Universe ((VarId ParameterKind Quantifier Universe) VarBinder ...) Substitution VarInequalities Hypotheses)
    (where/error (Hook Universe (VarBinder ...) Substitution VarInequalities Hypotheses) Env)
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; Returns a list of fresh var-ids that are not found in `Term`.
+  ;;
+  ;; The names are based on `VarIds` (i.e., one name will be returned per item in `VarIds`).
+  fresh-var-ids : Term VarIds -> VarIds
+
+  [(fresh-var-ids Term VarIds)
+   ,(variables-not-in (term Term) (term VarIds))
    ]
   )
 

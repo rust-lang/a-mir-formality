@@ -51,7 +51,7 @@
 
   [(substitution-to-fresh-vars Term ((ParameterKind VarId) ...))
    ((VarId VarId_fresh) ...)
-   (where/error (VarId_fresh ...) ,(variables-not-in (term Term) (term (VarId ...))))
+   (where/error (VarId_fresh ...) (fresh-var-ids Term (VarId ...)))
    ]
   )
 
