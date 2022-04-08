@@ -68,28 +68,21 @@
    ;
    ; Example. Given `extrude <= X` where
    ;
-   ; * `b0 <= X`
-   ; * `b1 <= X`
+   ; * `X <= b0`
+   ; * `X <= b1`
    ;
    ; we will produce `extrude(X)` where
    ;
-   ; * `b0 <= extrude(b0)`
-   ; * `b1 <= extrude(b1)`
-   ; * `extrude(b0) <= extrude(X)`
-   ; * `extrude(b1) <= extrude(X)`
+   ; * `extrude(b0) <= b0`
+   ; * `extrude(b1) <= b1`
+   ; * `extrude(X) <= extrude(b0)`
+   ; * `extrude(X) <= extrude(b1)`
    ; * `extrude(X) <= X`
    ;
-   ; or, more precisely, we produce this (equivalent, but with some inequality ops inverted
-   ; to respect universes etc):
-   ;
-   ; * `extrude(b0) >= b0`
-   ; * `extrude(b1) >= b1`
-   ; * `extrude(X) >= extrude(b0)`
-   ; * `extrude(X) >= extrude(b1)`
-   ; * `X >= extrude(X)`
+   ; for the final edge, we store it as `X >= extrude(X)`
    (extrude-term Env (VarIdPair ...) Universe InequalityOp_<= VarId)
-   ;                                               ^^^^^^^^^^^^^^^ name variable "as if" it represents `<=`
-   ;                                                               though of course it could also be `>=`
+   ;                                          ^^^^^^^^^^^^^^^ name variable "as if" it represents `<=`
+   ;                                                          though of course it could also be `>=`
    (Env_4 VarId_out Goals_b)
 
    (where (ParameterKind Exists Universe_VarId) (var-binding-in-env Env VarId))
@@ -99,18 +92,18 @@
    (where/error (VarId_out) (fresh-var-ids Env (VarId)))
    (where/error Env_1 (env-with-var Env VarId_out ParameterKind Exists Universe))
    (where/error VarIdPairs_new ((VarId VarId_out) VarIdPair ...))
-   ; extract bounds `b_0...b_n` where `b_i <= X` for all `i`
-   (where/error (Parameter_b ...) (known-bounds Env InequalityOp_<= VarId))
-   ; create `extruded(b_i) >= b_i` for each bound `b_i`
+   ; extract bounds `b_0...b_n` where `X <= b_i` for all `i`
+   (where/error (Parameter_b ...) (known-bounds Env InequalityOp_>= VarId))
+   ; create `extruded(b_i) <= b_i` for each bound `b_i`
    (where/error (Env_2 Parameters_be Goals_b) (extrude-terms Env_1
                                                              VarIdPairs_new
                                                              Universe
-                                                             InequalityOp_>=
+                                                             InequalityOp_<=
                                                              (Parameter_b ...)))
-   ; add `extrude(X) >= extrude(b_i)` for each `b_i`
+   ; add `extrude(X) <= extrude(b_i)` for each `b_i`
    (where/error Env_3 (env-with-var-related-to-parameters Env_2
                                                           VarId_out
-                                                          InequalityOp_>=
+                                                          InequalityOp_<=
                                                           Parameters_be))
    ; add `X >= extrude(X)`
    (where/error Env_4 (env-with-var-related-to-parameter Env_3
@@ -206,6 +199,6 @@
    (Env_1 (Term_out0 Term_out1 ...) (Goal_out0 ... Goal_out1 ...))
 
    (where/error (Env_0 Term_out0 (Goal_out0 ...)) (extrude-term Env VarIdPairs Universe InequalityOp Term_0))
-   (where/error (Env_1 (Term_out1 ...) (Goal_out1 ...)) (extrude-terms Env VarIdPairs Universe InequalityOp (Term_1 ...)))
+   (where/error (Env_1 (Term_out1 ...) (Goal_out1 ...)) (extrude-terms Env_0 VarIdPairs Universe InequalityOp (Term_1 ...)))
    ]
   )
