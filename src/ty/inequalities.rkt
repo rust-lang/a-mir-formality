@@ -26,7 +26,7 @@
   ;;
   ;; `VarId_in` must be a variable declared in the environment and must not be unmapped.
   variable-bounds : Env_in VarId_in -> (Parameters_lb Parameters_ub)
-  #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
+  #:pre (env-contains-unmapped-var Env_in VarId_in)
 
   [(variable-bounds Env VarId)
    (Parameters_lb Parameters_ub)
@@ -40,17 +40,17 @@
 
 (define-metafunction formality-ty
   ;; Given a variable `VarId_in` and a inequality op (e.g., `<=`, `>=`), returns the known
-  ;; bounds `P` such that e.g. `P <= VarId` or `VarId <= P`.
+  ;; bounds `P` such that e.g. `P <= VarId` or `P >= VarId`.
   known-bounds : Env_in InequalityOp VarId_in -> Parameters_ub
-  #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
+  #:pre (env-contains-unmapped-var Env_in VarId_in)
 
   [(known-bounds Env <= VarId)
    Parameters_lb
-   (where/error (Parameters_lb Parameters_ub) (variable-bounds Env_in VarId_in))]
+   (where/error (Parameters_lb _) (variable-bounds Env VarId))]
 
   [(known-bounds Env >= VarId)
    Parameters_ub
-   (where/error (Parameters_lb Parameters_ub) (variable-bounds Env_in VarId_in))]
+   (where/error (_ Parameters_ub) (variable-bounds Env VarId))]
 
   )
 
@@ -100,13 +100,13 @@
   #:pre (env-contains-unmapped-var Env_in VarId_in)
 
   [(env-with-var-related-to-parameter Env VarId InequalityOp Parameter)
-   (env-with-inequalities (VarInequality_0 ... VarInequality VarInequality_1 ...))
+   (env-with-inequalities Env (VarInequality_0 ... VarInequality VarInequality_1 ...))
    (where (VarInequality_0 ... (Parameters_lb <= VarId <= Parameters_ub) VarInequality_1 ...) (env-inequalities Env))
    (where/error VarInequality (var-inequality-with-parameter (Parameters_lb <= VarId <= Parameters_ub) InequalityOp Parameter))
    ]
 
   [(env-with-var-related-to-parameter Env VarId InequalityOp Parameter)
-   (env-with-inequalities (VarInequality (VarInequality_0 ...)))
+   (env-with-inequalities Env (VarInequality VarInequality_0 ...))
    (where/error (VarInequality_0 ...) (env-inequalities Env))
    (where/error VarInequality (var-inequality-with-parameter (() <= VarId <= ()) InequalityOp Parameter))
    ]

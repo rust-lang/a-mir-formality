@@ -90,7 +90,7 @@
   substitution-valid? : Env Substitution -> boolean
 
   [; FIXME this is incomplete
-   (substitution-valid? ((VarId_!_1 Parameter) ...)) #t]
+   (substitution-valid? Env ((VarId_!_1 Parameter) ...)) #t]
   )
 
 (define-metafunction formality-logic

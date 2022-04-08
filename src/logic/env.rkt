@@ -101,12 +101,12 @@
 
 (define-metafunction formality-logic
   ;; Extend `Env` with a single variable declared in the given universe with the given quantifier.
-  env-with-var : Env VarId ParameterKind Universe Quantifier -> Env
+  env-with-var : Env VarId ParameterKind Quantifier Universe -> Env
 
-  [(env-with-var Env VarId ParameterKind Universe Quantifier)
-   (Hook Universe ((VarId ParameterKind Quantifier Universe) VarBinder ...) Substitution VarInequalities Hypotheses)
-   (where/error (Hook Universe (VarBinder ...) Substitution VarInequalities Hypotheses) Env)
-   ]
+  [(env-with-var Env VarId ParameterKind Quantifier Universe)
+   (Hook_Env Universe_Env ((VarId ParameterKind Quantifier Universe) VarBinder_Env ...) Substitution_Env VarInequalities_Env Hypotheses_Env)
+   (where/error (Hook_Env Universe_Env (VarBinder_Env ...) Substitution_Env VarInequalities_Env Hypotheses_Env) Env)
+   ] 
   )
 
 (define-metafunction formality-logic

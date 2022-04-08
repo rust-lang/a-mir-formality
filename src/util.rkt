@@ -16,5 +16,6 @@
 (define-syntax-rule (test-judgment-false j) (test-equal (judgment-holds j) #f))
 
 (define-syntax-rule (traced l a) (begin (current-traced-metafunctions l)
-                                        a
-                                        (current-traced-metafunctions '())))
+                                        (let ((result a))
+                                          (current-traced-metafunctions '())
+                                          result)))
