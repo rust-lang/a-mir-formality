@@ -261,6 +261,17 @@
   )
 
 (define-metafunction formality-logic
+  ;; True if this variable is defined in the environment
+  ;; and has not been mapped to a specific value.
+  env-contains-unmapped-var : Env VarId -> boolean
+
+  [(env-contains-unmapped-var Env VarId)
+   (all? (env-contains-var Env VarId)
+         (not? (env-maps-var Env VarId)))
+   ]
+  )
+
+(define-metafunction formality-logic
   ;; True if the Env's substitution includes a mapping for VarId.
   env-maps-var : Env VarId -> boolean
 

@@ -5,6 +5,7 @@
          )
 (provide known-bounds
          variable-bounds
+         env-with-var-related-to-parameters
          env-with-var-related-to-parameter
          remove-var-bounds-from-env
          invert-inequality-op
@@ -74,12 +75,29 @@
   )
 
 (define-metafunction formality-ty
+  ;; Extends the environment with additional bounds for `VarId_in` (has no effect if this bound
+  ;; is already present).
+  ;;
+  ;; `VarId_in` must be a variable declared in the environment and must not be unmapped.
+  env-with-var-related-to-parameters : Env_in VarId_in InequalityOp Parameters -> Env
+  #:pre (env-contains-unmapped-var Env_in VarId_in)
+
+  [(env-with-var-related-to-parameters Env VarId InequalityOp ())
+   Env]
+
+  [(env-with-var-related-to-parameters Env VarId InequalityOp (Parameter_0 Parameter_r ...))
+   (env-with-var-related-to-parameters Env_0 VarId InequalityOp (Parameter_r ...))
+   (where/error Env_0 (env-with-var-related-to-parameter Env VarId InequalityOp Parameter_0))]
+
+  )
+
+(define-metafunction formality-ty
   ;; Extends the environment with an additional bound for `VarId_in` (has no effect if this bound
   ;; is already present).
   ;;
   ;; `VarId_in` must be a variable declared in the environment and must not be unmapped.
   env-with-var-related-to-parameter : Env_in VarId_in InequalityOp Parameter -> Env
-  #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
+  #:pre (env-contains-unmapped-var Env_in VarId_in)
 
   [(env-with-var-related-to-parameter Env VarId InequalityOp Parameter)
    (env-with-inequalities (VarInequality_0 ... VarInequality VarInequality_1 ...))
