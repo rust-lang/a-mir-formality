@@ -1,11 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
-         "predicate.rkt"
          "inequalities.rkt"
-         "where-clauses.rkt"
-         "parameters.rkt"
-         "../logic/instantiate.rkt"
          "../logic/substitution.rkt"
          "../logic/env.rkt"
          )

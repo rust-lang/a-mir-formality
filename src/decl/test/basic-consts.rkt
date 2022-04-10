@@ -7,6 +7,7 @@
          "../../util.rkt")
 
 (module+ test
+(current-traced-metafunctions '(relate/one compare/one/substituted equate/one/substituted))
   ;; Program:
   ;;
   ;; trait Debug { }
@@ -22,7 +23,7 @@
     (Env (term (env-for-crate-decl CrateDecl)))
     )
 
-   (traced '()
+   (traced '(relate/one compare/one/substituted equate/one/substituted)
            (decl:test-cannot-prove
             Env
             (crate-ok-goal (CrateDecl) CrateDecl)))
