@@ -1,8 +1,17 @@
 #lang racket
 
-(require redex/reduction-semantics "../grammar.rkt" "../../logic/env.rkt" "../hook.rkt" "../unify.rkt")
+(require redex/reduction-semantics
+         "../grammar.rkt"
+         "../../logic/env.rkt"
+         "../../logic/cosld-solve.rkt"
+         "../hook.rkt"
+         "../unify.rkt"
+         )
 (provide env-with-clauses-invariants-and-generics
          EmptyEnv
+         ty:prove-top-level-goal/cosld
+         ty:test-can-prove
+         ty:test-cannot-prove
          )
 
 (define-metafunction formality-ty
@@ -33,4 +42,23 @@
   find-adt-generics : AdtId ((AdtId_1 Generics) ...) -> Generics
 
   [(find-adt-generics AdtId (_ ... (AdtId Generics) _ ...)) Generics]
+  )
+
+(define-extended-judgment-form formality-ty logic:prove-top-level-goal/cosld
+  ;; See logic:prove-top-level-goal/cosld
+  #:mode (ty:prove-top-level-goal/cosld I I O)
+  #:contract (ty:prove-top-level-goal/cosld Env Goal Env)
+
+  )
+
+(define-syntax-rule (ty:test-can-prove env goal)
+  (test-equal
+   (judgment-holds (ty:prove-top-level-goal/cosld env goal _))
+   #t)
+  )
+
+(define-syntax-rule (ty:test-cannot-prove env goal)
+  (test-equal
+   (judgment-holds (ty:prove-top-level-goal/cosld env goal _))
+   #f)
   )

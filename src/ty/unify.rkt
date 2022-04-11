@@ -216,19 +216,26 @@
    (where #f (universe-check-ok? Env VarId Parameter))
    ]
 
+  [; Flip `>=` to `<=` for forall, exists, and implication types
+   (compare/one/substituted VarIds Env (Parameter_1 >= Parameter_2))
+   (compare/one/substituted VarIds Env (Parameter_2 <= Parameter_1))
+   (where #t (any? (forall-exists-or-implication? Parameter_1)
+                   (forall-exists-or-implication? Parameter_2)))
+   ]
+
   [; ∀ on the supertype side
    (compare/one/substituted VarIds Env (Parameter_1 <= (ForAll KindedVarIds Parameter_2)))
-   (Env (ForAll KindedVarIds (Parameter_1 RelationOp Parameter_2)))
+   (Env ((ForAll KindedVarIds (Parameter_1 <= Parameter_2))))
    ]
 
   [; Implication on the supertype side
    (compare/one/substituted VarIds Env (Parameter_1 <= (Implies WhereClauses Parameter_2)))
-   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter_1 RelationOp Parameter_2))))
+   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter_1 <= Parameter_2))))
    ]
 
   [; ∀ on the subtype side
    (compare/one/substituted VarIds Env ((ForAll KindedVarIds Parameter_1) <= Parameter_2))
-   (Env (Exists KindedVarIds (Parameter_1 RelationOp Parameter_2)))
+   (Env ((Exists KindedVarIds (Parameter_1 <= Parameter_2))))
    ]
 
   [; Implication on the subtype side
@@ -335,6 +342,17 @@
    (where/error Universe_VarId (universe-of-var-in-env Env VarId))
    (where/error (VarId_free ...) (free-variables Env Parameter))
    ]
+
+  )
+
+(define-metafunction formality-ty
+  ;; True if this is a forall, exists, or implication type.
+  forall-exists-or-implication? : Parameter -> boolean
+
+  [(forall-exists-or-implication? (ForAll _ _)) #t]
+  [(forall-exists-or-implication? (Exists _ _)) #t]
+  [(forall-exists-or-implication? (Implies _ _)) #t]
+  [(forall-exists-or-implication? _) #f]
 
   )
 

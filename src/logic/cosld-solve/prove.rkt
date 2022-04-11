@@ -69,9 +69,9 @@
    ]
 
   [(where (Env_eq Goals_eq) (relate-parameters Env Relation))
-   (prove-all Env_eq Prove/Stacks Goals_eq Env_eq)
+   (prove-all Env_eq Prove/Stacks Goals_eq Env_out)
    --------------- "prove-relate"
-   (prove Env Prove/Stacks Relation Env_eq)
+   (prove Env Prove/Stacks Relation Env_out)
    ]
 
   [(prove-all Env Prove/Stacks Goals Env_out)
