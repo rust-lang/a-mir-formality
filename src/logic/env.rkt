@@ -106,7 +106,7 @@
   [(env-with-var Env VarId ParameterKind Quantifier Universe)
    (Hook_Env Universe_Env ((VarId ParameterKind Quantifier Universe) VarBinder_Env ...) Substitution_Env VarInequalities_Env Hypotheses_Env)
    (where/error (Hook_Env Universe_Env (VarBinder_Env ...) Substitution_Env VarInequalities_Env Hypotheses_Env) Env)
-   ] 
+   ]
   )
 
 (define-metafunction formality-logic
@@ -308,12 +308,25 @@
 
 (define-metafunction formality-logic
   ;; True if the given variable appears free in the given term.
-  appears-free : VarId any -> boolean
+  appears-free : VarId Term -> boolean
 
-  [(appears-free VarId any)
-   ,(not (alpha-equivalent? formality-logic (term any) (term any_1)))
-   (where/error any_1 (substitute any VarId (TyRigid VarId ())))
+  [(appears-free VarId Term)
+   ,(not (alpha-equivalent? formality-logic (term Term) (term Term_1)))
+   (where/error Term_1 (substitute Term VarId (TyRigid VarId ())))
    ]
+  )
+
+(define-metafunction formality-logic
+  ;; True if any of the given variable appears free in the given term.
+  any-appears-free : VarIds Term -> boolean
+
+  [(any-appears-free (_ ... VarId _ ...) Term)
+   #t
+   (where #t (appears-free VarId Term))]
+
+  [(any-appears-free _ _)
+   #f]
+
   )
 
 (define-metafunction formality-logic

@@ -33,6 +33,7 @@
   ;; Maps variables to their values; those values are not core to the
   ;; logic, though.
   (Substitution ::= ((VarId Parameter) ...))
+  (Substitution-or-error ::= Substitution Error)
 
   ;; VarBinder -- maps a `VarId` to a kind (ty/lifetime/etc), quantifier kind (forall/exists),
   ;; and universe

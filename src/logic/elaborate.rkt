@@ -5,6 +5,7 @@
          "substitution.rkt"
          "instantiate.rkt"
          "env.rkt"
+         "match.rkt"
          "../util.rkt"
          )
 (provide elaborate-hypotheses)
@@ -105,13 +106,24 @@
 
   [(where #t (is-predicate-goal? Predicate_in))
    (where (_ ... Invariant _ ...) (env-invariants Env))
-   (where/error (ForAll KindedVarIds Term) Invariant)
-   (where (Env_1 (Implies (Predicate_condition) Predicate_consequence) VarIds)
-          (instantiate-quantified Env (Exists KindedVarIds Term)))
-   (where (Env_2 Goals_2) (equate-predicates/vars Env_1 VarIds Predicate_condition Predicate_in))
-   (where Predicate_out (apply-substitution-from-env Env_2 Predicate_consequence))
+
+   ; the Invariant will have the form `ForAll (Vars...) Term_bound`:
+   ; create a version of `Term_bound` where `Vars` are fresh identifiers
+   ; that don't appear in the environment
+   (where/error (ForAll ((ParameterKind VarId) ...) Term_bound) Invariant)
+   (where/error (VarId_fresh ...) (fresh-var-ids Env (VarId ...)))
+   (where/error Substitution_freshen ((VarId VarId_fresh) ...))
+   (where/error Term_bound-fresh (apply-substitution Substitution_freshen Term_bound))
+
+   ; that bound term must have form `P => Q`, try to find some assignment
+   ; for the (fresh) `Vars` that matches `P` against `Predicate_in`
+   (where/error (Implies (Predicate_condition) Predicate_consequence) Term_bound-fresh)
+   (where Substitution_m (match-terms (VarId_fresh ...) Predicate_condition Predicate_in))
+
+   ; if successful, we can add `Q` to the result (after substituting the result of the match)
+   (where/error Predicate_out (apply-substitution Substitution_m Predicate_consequence))
    ------------------- "elaborate-predicate"
-   (hypothesis-elaborates-one-step Env Predicate_in (implication-hypothesis Goals_2 Predicate_out))
+   (hypothesis-elaborates-one-step Env Predicate_in Predicate_out)
    ]
 
   [(hypothesis-elaborates-one-step Env
@@ -142,17 +154,6 @@
                                    (Implies (Goal_in ... Goal_out ...) Predicate_out))
    ]
   )
-
-(define-metafunction formality-logic
-  ;; Helper function: creates a `(Implies Goals Predicate)` hypothesis if `Goals` is non-empty,
-  ;; otherwise just returns `Predicate`.
-  implication-hypothesis : Goals Predicate -> Hypothesis
-
-  [(implication-hypothesis () Predicate) Predicate]
-
-  [(implication-hypothesis Goals Predicate) (Implies Goals Predicate)]
-  )
-
 
 (module+ test
   (require "test/hook.rkt")
