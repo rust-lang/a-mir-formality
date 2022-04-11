@@ -176,6 +176,34 @@
    (where #t (universe-check-ok? Env VarId Parameter))
    ]
 
+  [; Flip `>=` to `<=` for forall, exists, and implication types
+   (compare/one/substituted VarIds Env (Parameter_1 >= Parameter_2))
+   (compare/one/substituted VarIds Env (Parameter_2 <= Parameter_1))
+   (where #t (any? (forall-exists-or-implication? Parameter_1)
+                   (forall-exists-or-implication? Parameter_2)))
+   ]
+
+  [; ∀ on the supertype side
+   (compare/one/substituted VarIds Env (Parameter_1 <= (ForAll KindedVarIds Parameter_2)))
+   (Env ((ForAll KindedVarIds (Parameter_1 <= Parameter_2))))
+   ]
+
+  [; Implication on the supertype side
+   (compare/one/substituted VarIds Env (Parameter_1 <= (Implies WhereClauses Parameter_2)))
+   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter_1 <= Parameter_2))))
+   ]
+
+  [; ∀ on the subtype side
+   (compare/one/substituted VarIds Env ((ForAll KindedVarIds Parameter_1) <= Parameter_2))
+   (Env ((Exists KindedVarIds (Parameter_1 <= Parameter_2))))
+   ]
+
+  [; Implication on the subtype side
+   (compare/one/substituted VarIds Env ((Implies WhereClauses Parameter_1) <= Parameter_2))
+   (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
+   (where (Goal_wc ...) (where-clauses->goals WhereClauses))
+   ]
+
   [; `!X <= T` where:
    ;    Prove `X <= T1` for any `T1 <= P` from environment.
    (compare/one/substituted VarIds_exists Env (VarId InequalityOp Parameter))
@@ -214,34 +242,6 @@
    (where #t (in?/id VarId VarIds_exists))
    (where #t (occurs-check-ok? Env VarId Parameter))
    (where #f (universe-check-ok? Env VarId Parameter))
-   ]
-
-  [; Flip `>=` to `<=` for forall, exists, and implication types
-   (compare/one/substituted VarIds Env (Parameter_1 >= Parameter_2))
-   (compare/one/substituted VarIds Env (Parameter_2 <= Parameter_1))
-   (where #t (any? (forall-exists-or-implication? Parameter_1)
-                   (forall-exists-or-implication? Parameter_2)))
-   ]
-
-  [; ∀ on the supertype side
-   (compare/one/substituted VarIds Env (Parameter_1 <= (ForAll KindedVarIds Parameter_2)))
-   (Env ((ForAll KindedVarIds (Parameter_1 <= Parameter_2))))
-   ]
-
-  [; Implication on the supertype side
-   (compare/one/substituted VarIds Env (Parameter_1 <= (Implies WhereClauses Parameter_2)))
-   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter_1 <= Parameter_2))))
-   ]
-
-  [; ∀ on the subtype side
-   (compare/one/substituted VarIds Env ((ForAll KindedVarIds Parameter_1) <= Parameter_2))
-   (Env ((Exists KindedVarIds (Parameter_1 <= Parameter_2))))
-   ]
-
-  [; Implication on the subtype side
-   (compare/one/substituted VarIds Env ((Implies WhereClauses Parameter_1) <= Parameter_2))
-   (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
-   (where (Goal_wc ...) (where-clauses->goals WhereClauses))
    ]
 
   [; all other sets of types cannot be compared
