@@ -26,6 +26,10 @@
            )
 
    (traced '()
+           (ty:test-cannot-prove Env ((scalar-ty u32) <= (ForAll ((TyKind T)) T)))
+           )
+
+   (traced '()
            (ty:test-cannot-prove Env ((ForAll ((TyKind T)) T) >= (scalar-ty u32)))
            )
 
