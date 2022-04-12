@@ -258,7 +258,9 @@
 
   [(map-var Env VarId Parameter)
    (Env_2 ((Parameter_lb <= Parameter) ... (Parameter <= Parameter_ub) ...))
-   (where/error (Env_1 ((Parameter_lb ...) (Parameter_ub ...))) (remove-var-bounds-from-env Env VarId))
+   (where/error (Parameter_lb ...) (known-bounds Env <= VarId))
+   (where/error (Parameter_ub ...) (known-bounds Env >= VarId))
+   (where/error Env_1 (remove-var-bounds-from-env Env VarId))
    (where/error Env_2 (env-with-var-mapped-to Env_1 VarId Parameter))
    ]
 

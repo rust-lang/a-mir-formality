@@ -29,12 +29,9 @@
   #:pre (env-contains-unmapped-var Env_in VarId_in)
 
   [(variable-bounds Env VarId)
-   (Parameters_lb Parameters_ub)
-   (where (_ ... (Parameters_lb <= VarId <= Parameters_ub) _ ...) (env-inequalities Env))
-   ]
-
-  [(variable-bounds Env VarId)
-   (() ())
+   ((known-bounds Env <= VarId)
+    (known-bounds Env >= VarId)
+    )
    ]
   )
 
@@ -44,13 +41,17 @@
   known-bounds : Env_in InequalityOp VarId_in -> Parameters_ub
   #:pre (env-contains-unmapped-var Env_in VarId_in)
 
-  [(known-bounds Env <= VarId)
-   Parameters_lb
-   (where/error (Parameters_lb _) (variable-bounds Env VarId))]
+  [(known-bounds Env InequalityOp_<= VarId)
+   Parameters
+   (; we store bounds like `VarId <= X`, so if we want `X <= VarId`, we have to
+    ; search for `VarId >= X`.
+    where/error InequalityOp_>= (invert-inequality-op InequalityOp_<=))
+   (where (_ ... (VarId InequalityOp_>= Parameters) _ ...) (env-inequalities Env))
+   ]
 
-  [(known-bounds Env >= VarId)
-   Parameters_ub
-   (where/error (_ Parameters_ub) (variable-bounds Env VarId))]
+  [(known-bounds Env InequalityOp VarId)
+   ()
+   ]
 
   )
 
@@ -60,18 +61,23 @@
   ;; had.
   ;;
   ;; `VarId_in` must be a variable declared in the environment and must not be unmapped.
-  remove-var-bounds-from-env : Env_in VarId_in -> (Env (Parameters_lb Parameters_ub))
+  remove-var-bounds-from-env : Env_in VarId_in -> Env
   #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
 
   [(remove-var-bounds-from-env Env VarId)
-   ((env-with-inequalities (VarInequality_0 ... VarInequality_1 ...)) (Parameters_lb Parameters_ub))
-   (where (VarInequality_0 ... (Parameters_lb <= VarId <= Parameters_ub) VarInequality_1 ...) (env-inequalities Env))
+   (env-with-inequalities Env (flatten ((filter-var-inequality VarInequality VarId) ...)))
+   (where/error (VarInequality ...) (env-inequalities Env))
    ]
 
-  [(remove-var-bounds-from-env Env VarId)
-   (Env (() ()))
-   ]
+  )
 
+(define-metafunction formality-ty
+  ;; If `VarInequality` is a relation of `VarId`, return empty list.
+  ;; Else return `(VarInequality)`.
+  filter-var-inequality : VarInequality VarId -> (VarInequality ...)
+
+  [(filter-var-inequality (VarId InequalityOp _) VarId) ()]
+  [(filter-var-inequality VarInequality VarId) (VarInequality)]
   )
 
 (define-metafunction formality-ty
@@ -100,36 +106,20 @@
   #:pre (env-contains-unmapped-var Env_in VarId_in)
 
   [(env-with-var-related-to-parameter Env VarId InequalityOp Parameter)
-   (env-with-inequalities Env (VarInequality_0 ... VarInequality VarInequality_1 ...))
-   (where (VarInequality_0 ... (Parameters_lb <= VarId <= Parameters_ub) VarInequality_1 ...) (env-inequalities Env))
-   (where/error VarInequality (var-inequality-with-parameter (Parameters_lb <= VarId <= Parameters_ub) InequalityOp Parameter))
+   Env
+   (where (VarInequality_0 ... (VarId InequalityOp Parameters_b) VarInequality_1 ...) (env-inequalities Env))
+   (where #t (in? Parameter Parameters_b))
    ]
 
   [(env-with-var-related-to-parameter Env VarId InequalityOp Parameter)
-   (env-with-inequalities Env (VarInequality VarInequality_0 ...))
+   (env-with-inequalities Env (VarInequality_0 ... (VarId InequalityOp (Parameter Parameter_b ...)) VarInequality_1 ...))
+   (where (VarInequality_0 ... (VarId InequalityOp (Parameter_b ...)) VarInequality_1 ...) (env-inequalities Env))
+   (where #f (in? Parameter (Parameter_b ...)))
+   ]
+
+  [(env-with-var-related-to-parameter Env VarId InequalityOp Parameter)
+   (env-with-inequalities Env ((VarId InequalityOp (Parameter)) VarInequality_0 ...))
    (where/error (VarInequality_0 ...) (env-inequalities Env))
-   (where/error VarInequality (var-inequality-with-parameter (() <= VarId <= ()) InequalityOp Parameter))
-   ]
-
-  )
-
-(define-metafunction formality-ty
-  ;; Adds `Parameter` into `VarInequality` in the appropriate place based on `InequalityOp`
-  ;; and returns the resulting `VarInequality`.
-  var-inequality-with-parameter : VarInequality InequalityOp Parameter -> VarInequality
-
-  [(var-inequality-with-parameter (Parameters_lb <= VarId <= (Parameter_ub ...)) <= Parameter)
-   (Parameters_lb <= VarId <= (Parameter Parameter_ub ...))
-   (where #f (in? Parameter (Parameter_ub ...)))
-   ]
-
-  [(var-inequality-with-parameter ((Parameter_lb ...) <= VarId <= Parameters_ub) >= Parameter)
-   ((Parameter Parameter_lb ...) <= VarId <= Parameters_ub)
-   (where #f (in? Parameter (Parameter_lb ...)))
-   ]
-
-  [(var-inequality-with-parameter VarInequality _ Parameter)
-   VarInequality
    ]
 
   )
