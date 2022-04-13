@@ -1,0 +1,79 @@
+#lang racket
+(require racket/set
+         redex/reduction-semantics
+         "grammar.rkt"
+         "../logic/env.rkt"
+         "../logic/substitution.rkt"
+         )
+(provide extract-scheme
+         )
+
+(define-metafunction formality-ty
+  extract-scheme : Env Term -> (Exists KindedVarIds (Implies Goals Term))
+
+  [(extract-scheme Env Term)
+   (Exists (KindedVarId ... ...) (Implies Goals Term_subst))
+   (where/error Term_subst (apply-substitution-from-env Env Term))
+   (where/error ((VarId_free ...) Goals) (extract-goals-for-vars-fix Env () () Term_subst))
+   (where/error ((KindedVarId ...) ...) ((keep-existential-var Env VarId_free) ...))
+   ]
+  )
+
+(define-metafunction formality-ty
+  ;; If `VarId` is an existential, return a 1-element list with `(ParameterKind VarId)`.
+  ;; Else return empty list.
+  keep-existential-var : Env VarId -> (KindedVarId ...)
+
+  [(keep-existential-var Env VarId)
+   ((ParameterKind VarId))
+   (where (ParameterKind Exists _) (var-binding-in-env Env VarId))
+   ]
+
+  [(keep-existential-var Env VarId)
+   ()
+   ]
+
+  )
+
+(define-metafunction formality-ty
+  ;; Find free variables appearing in either `Goals` or `Term` that are
+  ;; not members of `VarIds`; extract any relevant bounds on them
+  ;; from the environment and add those to `Goals`. Repeat until fixed point is reached.
+  extract-goals-for-vars-fix : Env VarIds Goals Term -> (VarIds Goals)
+
+  [(extract-goals-for-vars-fix Env VarIds Goals Term)
+   (VarIds Goals)
+   (where/error VarIds_free (free-variables Env (Goals Term)))
+   (where () ,(set-subtract (term VarIds_free) (term VarIds)))
+   ]
+
+  [(extract-goals-for-vars-fix Env (VarId_in ...) (Goal ...) Term)
+   (extract-goals-for-vars-fix Env
+                               (VarId_in ... VarId_extra ...)
+                               (Goal ... Goal_subst ... ...)
+                               Term)
+   (where/error VarIds_free (free-variables Env (Goal ... Term)))
+   (where (VarId_extra ...) ,(set-subtract (term VarIds_free) (term (VarId_in ...))))
+   (where/error ((Goal_extra ...) ...) ((extract-goals-for-var Env VarId_extra) ...))
+   (where/error ((Goal_subst ...) ...) (((apply-substitution-from-env Env Goal_extra) ...) ...))
+   ]
+  )
+
+(define-metafunction formality-ty
+  extract-goals-for-var : Env VarId_in -> Goals
+
+  [(extract-goals-for-var Env VarId)
+   (Goal ... ...)
+   (where/error (VarInequality ...) (env-inequalities Env))
+   (where/error ((Goal ...) ...) ((match-var-inequality VarInequality VarId) ...))
+   ]
+  )
+
+(define-metafunction formality-ty
+  ;; If `VarInequality` is a relation of `VarId`, return empty list.
+  ;; Else return `(VarInequality)`.
+  match-var-inequality : VarInequality VarId -> (Goal ...)
+
+  [(match-var-inequality (VarId InequalityOp (Parameter ...)) VarId) ((VarId InequalityOp Parameter) ...)]
+  [(match-var-inequality VarInequality VarId) ()]
+  )
