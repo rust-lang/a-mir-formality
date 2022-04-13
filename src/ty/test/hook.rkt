@@ -2,8 +2,9 @@
 
 (require redex/reduction-semantics
          "../grammar.rkt"
-         "../../logic/env.rkt"
          "../../logic/cosld-solve.rkt"
+         "../../logic/env.rkt"
+         "../../logic/instantiate.rkt"
          "../hook.rkt"
          "../unify.rkt"
          )
@@ -12,6 +13,8 @@
          ty:prove-top-level-goal/cosld
          ty:test-can-prove
          ty:test-cannot-prove
+         ty:with-vars
+         ty:test-prove
          )
 
 (define-metafunction formality-ty
@@ -62,3 +65,35 @@
    (judgment-holds (ty:prove-top-level-goal/cosld env goal _))
    #f)
   )
+
+(define-syntax-rule (ty:test-prove env goal schemes)
+  (redex-let*
+   formality-ty
+   ((Env env)
+    (Goal goal)
+    (Envs_out (judgment-holds (ty:prove-top-level-goal/cosld env goal Env_out) Env_out))
+    (Schemes_out (term (extract-schemes Envs_out Goal)))
+    )
+   (test-equal
+    (term Schemes_out)
+    schemes)
+   )
+  )
+
+(define-syntax (ty:with-vars-helper stx)
+  (syntax-case stx ()
+    [(_ base-env () new-env body ...)
+     #'(redex-let
+        formality-ty
+        [(new-env base-env)] body ...)]
+    [(_ base-env ((quantifier (kind id) ...) quantifiers ...) new-env body ...)
+     #'(redex-let
+        formality-ty
+        [((Env_inner () (id ...)) (term (instantiate-quantified ,base-env (quantifier ((kind id) ...) ()))))]
+        (ty:with-vars-helper (term Env_inner) (quantifiers ...) new-env body ...)
+        )
+     ]
+    ))
+
+(define-syntax-rule (ty:with-vars base-env ((quantifier (kind id) ...) ...) new-env body ...)
+  (ty:with-vars-helper base-env ((quantifier (kind id) ...) ...) new-env body ...))

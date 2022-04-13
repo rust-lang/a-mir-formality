@@ -15,6 +15,12 @@
 ;   like TyAdt
 
 (define-extended-language formality-ty formality-logic
+  ;; A *scheme* consists of some term and some variables/implications.
+  ;;
+  ;; FIXME: give a real explanation
+  (Schemes ::= (Scheme ...))
+  (Scheme ::= (Exists KindedVarIds (Implies Goals Term)))
+
   ;; ParameterKind: kind for a bound variable (type,
   ;; lifetime, etc)
   ;;
@@ -60,7 +66,7 @@
   (WhereClause ::=
                (ForAll KindedVarIds WhereClause)
                (Implemented TraitRef)
-               #;(Outlives (Parameter : Lt))
+               (Outlives (Parameter : Lt))
                #;(ProjectionEq TraitRef :: (AssociatedTyId Substitution) = Ty)
                )
 

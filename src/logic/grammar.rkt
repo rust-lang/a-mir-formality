@@ -28,6 +28,7 @@
   ;;     we modify the universe that it is mapped to here
   ;; * Hypotheses -- facts believed to be true, introduced by
   ;;   where clauses
+  (Envs ::= (Env ...))
   (Env ::= (Hook Universe VarBinders Substitution VarInequalities Hypotheses))
 
   ;; Maps variables to their values; those values are not core to the

@@ -6,10 +6,21 @@
          "../logic/substitution.rkt"
          )
 (provide extract-scheme
+         extract-schemes
          )
 
 (define-metafunction formality-ty
-  extract-scheme : Env Term -> (Exists KindedVarIds (Implies Goals Term))
+  ;; Extract schemes from multiple environments for the same terms.
+  ;; Just here to help with the testing macro.
+  extract-schemes : Envs Term -> Schemes
+
+  [(extract-schemes (Env ...) Term)
+   ((extract-scheme Env Term) ...)
+   ]
+  )
+
+(define-metafunction formality-ty
+  extract-scheme : Env Term -> Scheme
 
   [(extract-scheme Env Term)
    (Exists (KindedVarId ... ...) (Implies Goals Term_subst))
