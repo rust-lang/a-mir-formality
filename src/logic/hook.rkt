@@ -7,7 +7,8 @@
          equate-predicates/vars
          relate-parameters
          predicates-could-match
-         is-predicate-goal?
+         is-predicate?
+         is-relation?
          )
 
 ;; Creates a "hook" value:
@@ -18,13 +19,15 @@
 ;; * `equate-predicates/vars`: a `Env VarIds Predicate Predicate -> Env or Error` lambda that unifies two predicates
 ;; * `relate-parameters`: a `Env Relation -> Env or Error` lambda that relates two parameters
 ;; * `predicate-could-match`: a `Predicate Predicate -> bool` that filters down predicates
-;; * `is-predicate`: true if a term matches `Predicate`
+;; * `is-predicate`: true if a term matches `Predicate`, needed because logic/grammar has `Predicate ::= Term`
+;; * `is-relation`: true if a term matches `Relation`, needed because logic/grammar has `Relation ::= Term`
 (struct formality-logic-hook (clauses
                               invariants
                               equate-predicates/vars
                               relate-parameters
                               predicates-could-match
                               is-predicate
+                              is-relation
                               ))
 
 (define-metafunction formality-logic
@@ -95,11 +98,24 @@
   ;; The "grammar" for predicates is just *any term* -- that's not very
   ;; useful, and extension languages refine it. When matching against predicates,
   ;; then, we can use this function to avoid matching on other kinds of goals.
-  is-predicate-goal? : Env Goal -> boolean
+  is-predicate? : Env Goal -> boolean
 
-  [(is-predicate-goal? Env Goal)
+  [(is-predicate? Env Goal)
    ,(let ((is-predicate-fn (formality-logic-hook-is-predicate (term any))))
       (is-predicate-fn (term Goal)))
+   (where/error (Hook: any) (env-hook Env))
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; The "grammar" for predicates is just *any term* -- that's not very
+  ;; useful, and extension languages refine it. When matching against predicates,
+  ;; then, we can use this function to avoid matching on other kinds of goals.
+  is-relation? : Env Goal -> boolean
+
+  [(is-relation? Env Goal)
+   ,(let ((is-relation-fn (formality-logic-hook-is-relation (term any))))
+      (is-relation-fn (term Goal)))
    (where/error (Hook: any) (env-hook Env))
    ]
   )

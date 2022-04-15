@@ -19,7 +19,10 @@
                                                     (term (test-relate-parameters ,env ,relation)))
                                                   (lambda (predicate1 predicate2) #t)
                                                   (lambda (goal)
-                                                    (term (logic:is-predicate-goal? ,goal))
+                                                    (term (logic:is-predicate? ,goal))
+                                                    )
+                                                  (lambda (goal)
+                                                    (term (logic:is-relation-goal? ,goal))
                                                     )
                                                   ))))
    ]
@@ -33,9 +36,17 @@
   ;; The "grammar" for predicates is just *any term* -- that's not very
   ;; useful, and extension languages refine it. When matching against predicates,
   ;; then, we can use this function to avoid matching on other kinds of goals.
-  logic:is-predicate-goal? : Goal -> boolean
+  logic:is-predicate? : Goal -> boolean
 
-  [(logic:is-predicate-goal? BuiltinGoal) #f]
-  [(logic:is-predicate-goal? (Parameter_1 == Parameter_2)) #f]
-  [(logic:is-predicate-goal? _) #t]
+  [(logic:is-predicate? BuiltinGoal) #f]
+  [(logic:is-predicate? (Parameter_1 == Parameter_2)) #f]
+  [(logic:is-predicate? _) #t]
+  )
+
+(define-metafunction formality-logic
+  ;; At this layer, only `==` is a recognized relation
+  logic:is-relation-goal? : Goal -> boolean
+
+  [(logic:is-relation-goal? (Parameter_1 == Parameter_2)) #t]
+  [(logic:is-relation-goal? _) #f]
   )

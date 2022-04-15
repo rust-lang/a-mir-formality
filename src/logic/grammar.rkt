@@ -16,6 +16,7 @@
   (ParameterKind ::= Term) ; Kinds for variables (e.g., type/lifetimes)
   (Predicate ::= Term)     ; Kinds of predicates we can prove
   (VarInequality ::= Term) ; Variable relationships inferred and stored in the environment
+  (InequalityOp ::= Term)  ; Relations between terms beyond `==`
 
   ;; Env: Typing environment
   ;;
@@ -94,7 +95,6 @@
   (Relations ::= (Relation ...))
   (Relation ::= (Parameter RelationOp Parameter))
   (RelationOp ::= == InequalityOp)
-  (InequalityOp ::= <= >=)
 
   ;; `Quantifier` -- the two kinds of quantifiers.
   (Quantifier ::= ForAll Exists)

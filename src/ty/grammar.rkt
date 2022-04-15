@@ -133,6 +133,11 @@
   ;; Overridden from formal-logic.
   (VarInequality ::= (VarId InequalityOp Parameters))
 
+  ;; InequalityOp -- Relations beyond `==`
+  ;;
+  ;; Overridden from formal-logic.
+  (InequalityOp ::= <= >=)
+
   ;; Scalars -- numbers, booleans
   (ScalarId ::= i8 u8 i16 u16 i32 u32 i64 u64 i128 u128 bool)
 

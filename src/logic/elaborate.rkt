@@ -104,7 +104,7 @@
   #:mode (hypothesis-elaborates-one-step I I O)
   #:contract (hypothesis-elaborates-one-step Env Hypothesis Hypothesis)
 
-  [(where #t (is-predicate-goal? Env Predicate_in))
+  [(where #t (is-predicate? Env Predicate_in))
    (where (_ ... Invariant _ ...) (env-invariants Env))
 
    ; the Invariant will have the form `ForAll (Vars...) Term_bound`:
@@ -138,7 +138,7 @@
   [(hypothesis-elaborates-one-step Env
                                    Predicate_in
                                    Predicate_out)
-   (where #t (is-predicate-goal? Env Predicate_out))
+   (where #t (is-predicate? Env Predicate_out))
    ------------------- "elaborate-implies-map"
    (hypothesis-elaborates-one-step Env
                                    (Implies (Goal_in ...) Predicate_in)
