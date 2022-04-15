@@ -80,27 +80,27 @@
     (traced '()
             (decl:test-cannot-prove Env_C Goal_C_ImpliedBound)))
 
-  (redex-let*
-   formality-decl
-   ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T)) { Implemented(Foo<T>: WithDebug<T>) } }`
-   ((Goal_C_UseImpl (term (ForAll ((TyKind T))
-                                  (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
-                                            (WellFormed (TyKind T)))
-                                           (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
+   (redex-let*
+    formality-decl
+    ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T)) { Implemented(Foo<T>: WithDebug<T>) } }`
+    ((Goal_C_UseImpl (term (ForAll ((TyKind T))
+                                   (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
+                                             (WellFormed (TyKind T)))
+                                            (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
 
-   ; ...actually, it can't, because it can't prove `T: Debug` right now. Does that make sense?
-   (traced '()
-           (decl:test-cannot-prove Env_C Goal_C_UseImpl)))
+    ; ...actually, it can't, because it can't prove `T: Debug` right now. Does that make sense?
+    (traced '()
+            (decl:test-cannot-prove Env_C Goal_C_UseImpl)))
 
-  (redex-let*
-   formality-decl
-   ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T), Implemented(T: Debug)) { Implemented(Foo<T>: WithDebug<T>) } }`
-   ((Goal_C_UseImplDebug (term (ForAll ((TyKind T))
-                                       (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
-                                                 (Implemented (Debug (T))))
-                                                (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
+   (redex-let*
+    formality-decl
+    ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T), Implemented(T: Debug)) { Implemented(Foo<T>: WithDebug<T>) } }`
+    ((Goal_C_UseImplDebug (term (ForAll ((TyKind T))
+                                        (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
+                                                  (Implemented (Debug (T))))
+                                                 (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
 
-   (traced '()
-           (decl:test-can-prove Env_C Goal_C_UseImplDebug)))
+    (traced '()
+            (decl:test-can-prove Env_C Goal_C_UseImplDebug)))
+   )
   )
-)

@@ -31,6 +31,8 @@
                                                (lambda (env relation)
                                                  (term (ty:relate-parameters ,env ,relation)))
                                                (lambda (predicate1 predicate2) #t)
+                                               (lambda (goal)
+                                                 (term (ty:is-predicate-goal? ,goal)))
                                                (lambda (adt-id)
                                                  (term (find-adt-generics ,adt-id ((AdtId Generics) ...))))
                                                ))))

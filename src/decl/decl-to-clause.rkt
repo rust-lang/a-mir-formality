@@ -48,6 +48,8 @@
               (term (ty:relate-parameters ,env ,relation)))
             (lambda (predicate1 predicate2)
               (term (ty:predicates-could-match ,predicate1 ,predicate2)))
+            (lambda (goal)
+              (term (ty:is-predicate-goal? ,goal)))
             (lambda (adt-id)
               (term (generics-for-adt-id DeclProgram ,adt-id)))))
    ]

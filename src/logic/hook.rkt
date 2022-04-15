@@ -7,6 +7,7 @@
          equate-predicates/vars
          relate-parameters
          predicates-could-match
+         is-predicate-goal?
          )
 
 ;; Creates a "hook" value:
@@ -17,11 +18,13 @@
 ;; * `equate-predicates/vars`: a `Env VarIds Predicate Predicate -> Env or Error` lambda that unifies two predicates
 ;; * `relate-parameters`: a `Env Relation -> Env or Error` lambda that relates two parameters
 ;; * `predicate-could-match`: a `Predicate Predicate -> bool` that filters down predicates
+;; * `is-predicate`: true if a term matches `Predicate`
 (struct formality-logic-hook (clauses
                               invariants
                               equate-predicates/vars
                               relate-parameters
                               predicates-could-match
+                              is-predicate
                               ))
 
 (define-metafunction formality-logic
@@ -84,6 +87,19 @@
   [(predicates-could-match Env Predicate_1 Predicate_2)
    ,(let ((predicates-could-match-fn (formality-logic-hook-predicates-could-match (term any))))
       (predicates-could-match-fn (term Predicate_1) (term Predicate_2)))
+   (where/error (Hook: any) (env-hook Env))
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; The "grammar" for predicates is just *any term* -- that's not very
+  ;; useful, and extension languages refine it. When matching against predicates,
+  ;; then, we can use this function to avoid matching on other kinds of goals.
+  is-predicate-goal? : Env Goal -> boolean
+
+  [(is-predicate-goal? Env Goal)
+   ,(let ((is-predicate-fn (formality-logic-hook-is-predicate (term any))))
+      (is-predicate-fn (term Goal)))
    (where/error (Hook: any) (env-hook Env))
    ]
   )

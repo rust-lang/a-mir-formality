@@ -45,7 +45,7 @@
   #:mode (prove I I I O)
   #:contract (prove Env Prove/Stacks Goal Env_out)
 
-  [(where #t (is-predicate-goal? Predicate))
+  [(where #t (is-predicate-goal? Env Predicate))
    (not-in-stacks Env Predicate Prove/Stacks)
    (where (_ ... Clause _ ... ) (filter-clauses Env (env-clauses-for-predicate Env Predicate) Predicate))
    (clause-proves Env Prove/Stacks + Clause Predicate Env_out)
@@ -53,7 +53,7 @@
    (prove Env Prove/Stacks Predicate Env_out)
    ]
 
-  [(where #t (is-predicate-goal? Predicate))
+  [(where #t (is-predicate-goal? Env Predicate))
    (not-in-stacks Env Predicate Prove/Stacks)
    (where (_ ... Hypothesis _ ... ) (filter-clauses Env (env-hypotheses (elaborate-hypotheses Env)) Predicate))
    (clause-proves Env Prove/Stacks - Hypothesis Predicate Env_out)
@@ -61,7 +61,7 @@
    (prove Env Prove/Stacks Predicate Env_out)
    ]
 
-  [(where #t (is-predicate-goal? Predicate))
+  [(where #t (is-predicate-goal? Env Predicate))
    (where #t (in? (apply-substitution-from-env Env Predicate)
                   (apply-substitution-from-env Env Predicates_co)))
    --------------- "prove-coinductive-cycle"
@@ -136,7 +136,7 @@
 
   ; FIXME: Do we want to push this predicate on the stack while we try to
   ; prove the `Goals_eq`? Does it ever even matter, given the sorts of predicates we generate?
-  [(where #t (is-predicate-goal? Predicate_1))
+  [(where #t (is-predicate-goal? Env Predicate_1))
    (where (Env_eq Goals_eq) (equate-predicates Env Predicate_1 Predicate_2))
    (where/error Prove/Stacks_eq (apply-substitution-from-env Env_eq Prove/Stacks))
    (prove-all Env_eq Prove/Stacks_eq Goals_eq Env_out)

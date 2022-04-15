@@ -6,6 +6,7 @@
          )
 (provide formality-ty-hook
          env-adt-generics
+         ty:is-predicate-goal?
          )
 
 ;; Extends the core logic hook with the ability to query variance:
@@ -21,4 +22,11 @@
    ,((formality-ty-hook-adt-generics (term any)) (term AdtId))
    (where/error (Hook: any) (env-hook Env))
    ]
+  )
+
+(define-metafunction formality-ty
+  ty:is-predicate-goal? : Goal -> boolean
+
+  [(ty:is-predicate-goal? Predicate) #t]
+  [(ty:is-predicate-goal? _) #f]
   )
