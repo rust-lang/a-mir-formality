@@ -6,7 +6,7 @@
          "../../logic/env.rkt"
          "../../logic/instantiate.rkt"
          "../hook.rkt"
-         "../unify.rkt"
+         "../relate.rkt"
          )
 (provide env-with-clauses-invariants-and-generics
          EmptyEnv

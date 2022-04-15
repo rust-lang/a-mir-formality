@@ -2,7 +2,7 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "../logic/env.rkt"
-         "../ty/unify.rkt"
+         "../ty/relate.rkt"
          "../ty/could-match.rkt"
          "../ty/where-clauses.rkt"
          "../ty/hook.rkt")
