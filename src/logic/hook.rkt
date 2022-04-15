@@ -4,7 +4,6 @@
          env-clauses-for-predicate
          env-invariants
          equate-predicates
-         equate-predicates/vars
          relate-parameters
          predicates-could-match
          is-predicate?
@@ -23,7 +22,7 @@
 ;; * `is-relation`: true if a term matches `Relation`, needed because logic/grammar has `Relation ::= Term`
 (struct formality-logic-hook (clauses
                               invariants
-                              equate-predicates/vars
+                              equate-predicates
                               relate-parameters
                               predicates-could-match
                               is-predicate
@@ -57,20 +56,11 @@
   equate-predicates : Env Predicate Predicate -> (Env Goals) or Error
 
   [(equate-predicates Env Predicate_1 Predicate_2)
-   (equate-predicates/vars Env VarIds Predicate_1 Predicate_2)
-   (where/error VarIds  (existential-vars-in-env Env))]
-
-  )
-
-(define-metafunction formality-logic
-  ;; Equate `Predicate_1` and `Predicate_2` by binding `VarIds` in `Env`
-  equate-predicates/vars : Env VarIds Predicate_1 Predicate_2 -> (Env Goals) or Error
-
-  [(equate-predicates/vars Env VarIds Predicate_1 Predicate_2)
-   ,(let ((equate-fn (formality-logic-hook-equate-predicates/vars (term any))))
-      (equate-fn (term Env) (term VarIds) (term Predicate_1) (term Predicate_2)))
+   ,(let ((equate-fn (formality-logic-hook-equate-predicates (term any))))
+      (equate-fn (term Env) (term Predicate_1) (term Predicate_2)))
    (where/error (Hook: any) (env-hook Env))
    ]
+
   )
 
 (define-metafunction formality-logic

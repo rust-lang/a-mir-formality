@@ -26,8 +26,8 @@
    (env-with-hook (Hook: ,(begin
                             (formality-ty-hook (lambda (predicate) (term Clauses))
                                                (term Invariants)
-                                               (lambda (env var-ids predicate1 predicate2)
-                                                 (term (ty:equate-predicates/vars ,env ,var-ids ,predicate1 ,predicate2)))
+                                               (lambda (env predicate1 predicate2)
+                                                 (term (ty:equate-predicates ,env ,predicate1 ,predicate2)))
                                                (lambda (env relation)
                                                  (term (ty:relate-parameters ,env ,relation)))
                                                (lambda (predicate1 predicate2) #t)

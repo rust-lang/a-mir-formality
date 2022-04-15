@@ -14,17 +14,6 @@
 ; of everything else
 (module+ test
 
-  (define-metafunction formality-logic
-    ;; Convenient metafunction for tests-- unify the terms and return
-    ;; resulting environment, assuming no subgoals (the simple unifier
-    ;; in the logic code never produces any).
-    unify : Env TermPairs -> Env or Error
-
-    [(unify Env TermPairs)
-     (unify/vars (existential-vars-in-env Env) Env TermPairs)]
-
-    )
-
   ;; occurs-check tests
   (redex-let*
    formality-logic
@@ -170,17 +159,5 @@
     ; changes to `i32: Debug` now that we know `X = i32`
     (test-equal (term (env-hypotheses Env_out)) (term ((Implemented (Debug ((scalar-ty i32)))))))
     )
-
-   ; Here we can only map X but that's fine.
-   (test-equal (term (apply-substitution-from-env
-                      (unify/vars (Term_X) Env_2 ((Term_X (scalar-ty i32))
-                                                  (Term_X Term_X)
-                                                  (Term_X (scalar-ty i32))))
-                      Term_X))
-               (term (scalar-ty i32)))
-
-   ; Here, even though Y is a variable, we fail because we're not allowed to assign it.
-   (test-equal (term (unify/vars (Term_X) Env_2 ((Term_X Term_Y) (Term_X (scalar-ty i32)))))
-               (term Error))
    )
   )

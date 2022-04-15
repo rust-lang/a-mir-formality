@@ -18,51 +18,51 @@
   ;;
   ;; *
   ;; *
-  equate/one/substituted : VarIds_exists Env (Parameter == Parameter) -> (Env Goals)
+  equate/one/substituted : Env (Parameter == Parameter) -> (Env Goals)
 
   [; T == T is always ok
-   (equate/one/substituted _ Env (Parameter == Parameter))
+   (equate/one/substituted Env (Parameter == Parameter))
    (Env ())
    ]
 
   [; X == T where occurs check, universe check ok:
    ;   Substitute `[X => P]` and prove `P <= P1`/`P >= P1` for each bound `P1` on `X`.
-   (equate/one/substituted VarIds_exists Env (VarId == Parameter))
+   (equate/one/substituted Env (VarId == Parameter))
    (map-var Env VarId Parameter)
 
-   (where #t (in?/id VarId VarIds_exists))
+   (where #t (env-contains-existential-var Env VarId))
    (where #t (occurs-check-ok? Env VarId Parameter))
    (where #t (universe-check-ok? Env VarId Parameter))
    ]
 
   [; X == T where occurs check, universe check ok, but in reverse
-   (equate/one/substituted VarIds_exists Env (Parameter == VarId))
+   (equate/one/substituted Env (Parameter == VarId))
    (map-var Env VarId Parameter)
 
-   (where #t (in?/id VarId VarIds_exists))
+   (where #t (env-contains-existential-var Env VarId))
    (where #t (occurs-check-ok? Env VarId Parameter))
    (where #t (universe-check-ok? Env VarId Parameter))
    ]
 
   [; X == R<...> -- equality between a variable and a rigid type
-   (equate/one/substituted VarIds_exists Env (VarId == (TyRigid RigidName (Parameter ...))))
+   (equate/one/substituted Env (VarId == (TyRigid RigidName (Parameter ...))))
    (relate-var-to-rigid Env (VarId == (TyRigid RigidName (Parameter ...))))
-   (where #t (in?/id VarId VarIds_exists))
+   (where #t (env-contains-existential-var Env VarId))
    ]
 
   [; R<...> == X -- equality between a variable and a rigid type
-   (equate/one/substituted VarIds_exists Env ((TyRigid RigidName (Parameter ...)) == VarId))
+   (equate/one/substituted Env ((TyRigid RigidName (Parameter ...)) == VarId))
    (relate-var-to-rigid Env (VarId == (TyRigid RigidName (Parameter ...))))
-   (where #t (in?/id VarId VarIds_exists))
+   (where #t (env-contains-existential-var Env VarId))
    ]
 
   [; Equating two rigid types with the same name: equate their parameters
-   (equate/one/substituted VarIds Env ((TyRigid RigidName (Parameter_1 ..._1)) == (TyRigid RigidName (Parameter_2 ..._1))))
+   (equate/one/substituted Env ((TyRigid RigidName (Parameter_1 ..._1)) == (TyRigid RigidName (Parameter_2 ..._1))))
    (Env ((Parameter_1 == Parameter_2) ...))
    ]
 
   [; Otherwise, `T1 == T2` if `T1 <= T2` and `T2 <= T1`
-   (equate/one/substituted VarIds Env (Parameter_1 == Parameter_2))
+   (equate/one/substituted Env (Parameter_1 == Parameter_2))
    (Env ((Parameter_1 <= Parameter_2) (Parameter_1 >= Parameter_2)))
    ]
 
@@ -70,44 +70,44 @@
 
 (define-metafunction formality-ty
   ;;
-  compare/one/substituted : VarIds_exists Env (Parameter InequalityOp Parameter) -> (Env Goals) or Error
+  compare/one/substituted : Env (Parameter InequalityOp Parameter) -> (Env Goals) or Error
 
   [; X ?= X:
    ;   Always ok.
-   (compare/one/substituted _ Env (Parameter InequalityOp Parameter))
+   (compare/one/substituted Env (Parameter InequalityOp Parameter))
    (Env ())
    ]
 
   [; X ?= R<...> -- Inequality between a variable and a rigid type
-   (compare/one/substituted VarIds_exists Env (VarId InequalityOp (TyRigid RigidName (Parameter ...))))
+   (compare/one/substituted Env (VarId InequalityOp (TyRigid RigidName (Parameter ...))))
    (relate-var-to-rigid Env (VarId InequalityOp (TyRigid RigidName (Parameter ...))))
-   (where #t (in?/id VarId VarIds_exists))
+   (where #t (env-contains-existential-var Env VarId))
    ]
 
   [; R<...> ?= X -- Inequality between a variable and a rigid type
-   (compare/one/substituted VarIds_exists Env ((TyRigid RigidName (Parameter ...)) InequalityOp VarId))
+   (compare/one/substituted Env ((TyRigid RigidName (Parameter ...)) InequalityOp VarId))
    (relate-var-to-rigid Env (VarId (invert-inequality-op InequalityOp) (TyRigid RigidName (Parameter ...))))
-   (where #t (in?/id VarId VarIds_exists))
+   (where #t (env-contains-existential-var Env VarId))
    ]
 
   [; R<...> ?= X -- Inequality between a variable and a rigid type
-   (compare/one/substituted VarIds_exists Env ((TyRigid RigidName (Parameter ...)) InequalityOp VarId))
+   (compare/one/substituted Env ((TyRigid RigidName (Parameter ...)) InequalityOp VarId))
    (relate-var-to-rigid Env (VarId (invert-inequality-op InequalityOp) (TyRigid RigidName (Parameter ...))))
-   (where #t (in?/id VarId VarIds_exists))
+   (where #t (env-contains-existential-var Env VarId))
    ]
 
   [; R<...> ?= R<...> -- Relating two rigid types with the same name: relate their parameters according to the declared variance.
-   (compare/one/substituted VarIds Env ((TyRigid RigidName (Parameter_1 ..._1)) InequalityOp (TyRigid RigidName (Parameter_2 ..._1))))
+   (compare/one/substituted Env ((TyRigid RigidName (Parameter_1 ..._1)) InequalityOp (TyRigid RigidName (Parameter_2 ..._1))))
    (relate-rigid-to-rigid Env ((TyRigid RigidName (Parameter_1 ...)) InequalityOp (TyRigid RigidName (Parameter_2 ...))))
    ]
 
   [; `?X <= T` where occurs, universes ok:
    ;   Add `X <= P` as a bound and, for each bound `B` where `B <= X`,
    ;   require that `B <= P` (respectively `>=`).
-   (compare/one/substituted VarIds_exists Env (VarId InequalityOp Parameter))
+   (compare/one/substituted Env (VarId InequalityOp Parameter))
    (Env_1 ((Parameter_bound InequalityOp Parameter) ...))
 
-   (where #t (in?/id VarId VarIds_exists))
+   (where #t (env-contains-existential-var Env VarId))
    (where #t (occurs-check-ok? Env VarId Parameter))
    (where #t (universe-check-ok? Env VarId Parameter))
    (where/error (Parameter_bound ...) (known-bounds Env InequalityOp VarId))
@@ -116,47 +116,47 @@
 
   [; `T <= ?X` where occurs, universes ok:
    ;    Flip to `?X <= T` and use above rule.
-   (compare/one/substituted VarIds_exists Env (Parameter InequalityOp VarId))
-   (compare/one/substituted VarIds_exists Env (VarId (invert-inequality-op InequalityOp) Parameter))
+   (compare/one/substituted Env (Parameter InequalityOp VarId))
+   (compare/one/substituted Env (VarId (invert-inequality-op InequalityOp) Parameter))
 
-   (where #t (in?/id VarId VarIds_exists))
+   (where #t (env-contains-existential-var Env VarId))
    (where #t (occurs-check-ok? Env VarId Parameter))
    (where #t (universe-check-ok? Env VarId Parameter))
    ]
 
   [; Flip `>=` to `<=` for forall, exists, and implication types
-   (compare/one/substituted VarIds Env (Parameter_1 >= Parameter_2))
-   (compare/one/substituted VarIds Env (Parameter_2 <= Parameter_1))
+   (compare/one/substituted Env (Parameter_1 >= Parameter_2))
+   (compare/one/substituted Env (Parameter_2 <= Parameter_1))
    (where #t (any? (forall-exists-or-implication? Parameter_1)
                    (forall-exists-or-implication? Parameter_2)))
    ]
 
   [; ∀ on the supertype side
-   (compare/one/substituted VarIds Env (Parameter_1 <= (ForAll KindedVarIds Parameter_2)))
+   (compare/one/substituted Env (Parameter_1 <= (ForAll KindedVarIds Parameter_2)))
    ; NB: Redex binding forms ensure that names in `KindedVarIds` do not appear free in `Parameter_1`
    (Env ((ForAll KindedVarIds (Parameter_1 <= Parameter_2))))
    ]
 
   [; Implication on the supertype side
-   (compare/one/substituted VarIds Env (Parameter_1 <= (Implies WhereClauses Parameter_2)))
+   (compare/one/substituted Env (Parameter_1 <= (Implies WhereClauses Parameter_2)))
    (Env ((Implies (where-clauses->goals WhereClauses) (Parameter_1 <= Parameter_2))))
    ]
 
   [; ∀ on the subtype side
-   (compare/one/substituted VarIds Env ((ForAll KindedVarIds Parameter_1) <= Parameter_2))
+   (compare/one/substituted Env ((ForAll KindedVarIds Parameter_1) <= Parameter_2))
    ; NB: Redex binding forms ensure that all names in `KindedVarIds` do not appear free in `Parameter_2`
    (Env ((Exists KindedVarIds (Parameter_1 <= Parameter_2))))
    ]
 
   [; Implication on the subtype side
-   (compare/one/substituted VarIds Env ((Implies WhereClauses Parameter_1) <= Parameter_2))
+   (compare/one/substituted Env ((Implies WhereClauses Parameter_1) <= Parameter_2))
    (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
    (where (Goal_wc ...) (where-clauses->goals WhereClauses))
    ]
 
   [; `!X <= T` where:
    ;    Prove `X <= T1` for any `T1 <= P` from environment.
-   (compare/one/substituted VarIds_exists Env (VarId InequalityOp Parameter))
+   (compare/one/substituted Env (VarId InequalityOp Parameter))
    (Env ((Any ((Parameter_bound InequalityOp Parameter) ...))))
 
    (where #t (env-contains-placeholder-var Env VarId))
@@ -165,8 +165,8 @@
 
   [; `T <= !X` where:
    ;    Flip to `!X <= T` and use above rule.
-   (compare/one/substituted VarIds_exists Env (Parameter InequalityOp VarId))
-   (compare/one/substituted VarIds_exists Env (VarId (invert-inequality-op InequalityOp) Parameter))
+   (compare/one/substituted Env (Parameter InequalityOp VarId))
+   (compare/one/substituted Env (VarId (invert-inequality-op InequalityOp) Parameter))
 
    (where #t (env-contains-placeholder-var Env VarId))
    ]
@@ -174,10 +174,10 @@
   [; `?X <= T` where occurs ok, universes not ok:
    ;   Add `X <= P` as a bound and, for each bound `B` where `B <= X`,
    ;   require that `B <= P` (respectively `>=`).
-   (compare/one/substituted VarIds_exists Env (VarId InequalityOp Parameter))
+   (compare/one/substituted Env (VarId InequalityOp Parameter))
    (Env_1 ((VarId InequalityOp Parameter_extruded) Goal ...))
 
-   (where #t (in?/id VarId VarIds_exists))
+   (where #t (env-contains-existential-var Env VarId))
    (where #t (occurs-check-ok? Env VarId Parameter))
    (where #f (universe-check-ok? Env VarId Parameter))
    (where/error Universe_VarId (universe-of-var-in-env Env VarId))
@@ -186,16 +186,16 @@
 
   [; `T <= ?X` where occurs ok, universes not ok:
    ;     Invert and use above rule.
-   (compare/one/substituted VarIds_exists Env (Parameter InequalityOp VarId))
-   (compare/one/substituted VarIds_exists Env (VarId (invert-inequality-op InequalityOp) Parameter))
+   (compare/one/substituted Env (Parameter InequalityOp VarId))
+   (compare/one/substituted Env (VarId (invert-inequality-op InequalityOp) Parameter))
 
-   (where #t (in?/id VarId VarIds_exists))
+   (where #t (env-contains-existential-var Env VarId))
    (where #t (occurs-check-ok? Env VarId Parameter))
    (where #f (universe-check-ok? Env VarId Parameter))
    ]
 
   [; all other sets of types cannot be compared
-   (compare/one/substituted _ _ _)
+   (compare/one/substituted _ _)
    Error
    ]
 

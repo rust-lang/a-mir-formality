@@ -81,28 +81,30 @@
            ))
     )
 
-   (test-match
-    formality-ty
+   (traced '(compare/one/substituted)
+           (test-match
+            formality-ty
 
-    ((Exists
-      ((LtKind VarId_A)
-       (TyKind VarId_TheTy)
-       (LtKind VarId_TheLt))
-      (Implies
-       ((VarId_TheTy <= VarId_T)
-        (VarId_TheLt <= VarId_A))
-       ((TyRigid (Ref ()) (VarId_TheLt VarId_TheTy))
-        <=
-        (TyRigid (Ref ()) (VarId_A VarId_T)))))
-     )
+            ((Exists
+              ((LtKind VarId_A)
+               (TyKind VarId_TheTy)
+               (LtKind VarId_TheLt))
+              (Implies
+               ((VarId_TheTy <= VarId_T)
+                (VarId_TheLt <= VarId_A))
+               ((TyRigid (Ref ()) (VarId_TheLt VarId_TheTy))
+                <=
+                (TyRigid (Ref ()) (VarId_A VarId_T)))))
+             )
 
-    (term (ty:prove-scheme
-           Env
-           ((ForAll ((TyKind T)))
-            (Exists ((TyKind U) (LtKind A))))
-           (U <= (TyRigid (Ref ()) (A T)))
-           ))
-    )
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((TyKind T)))
+                    (Exists ((TyKind U) (LtKind A))))
+                   (U <= (TyRigid (Ref ()) (A T)))
+                   ))
+            )
+           )
 
    (; Test for capture avoidance -- we should not be able to prove this!
     test-match
