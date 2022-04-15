@@ -50,7 +50,7 @@
    ]
 
   [; Functions are contravariant in the arguments P1...Pn and covariant in their return type P(n+1)
-   (generics-for Env (Fn number_arity))
+   (generics-for Env (Fn Abi number_arity))
    (((VarId_arg (TyKind Variance)) ... (VarId_ret (TyKind +))) ())
    (where/error (VarId_arg ... VarId_ret) (unique-names ,(+ (term number_arity) 1)))
    (where/error ((TyKind Variance) ...) (repeat-n-times (TyKind -) number_arity))
@@ -61,7 +61,7 @@
   ;; Returns N unique variable ids like `P`, `P1`, `P2`, etc.
   ;; There is no guarantee of "freshness" relative to other terms, though.
   ;; Useful for making up the generics for generic parameters to tuples, function types, etc.
-  unique-names : number -> VarId
+  unique-names : number -> VarIds
 
   [(unique-names number)
    ,(variables-not-in '() (term (repeat-n-times P number)))

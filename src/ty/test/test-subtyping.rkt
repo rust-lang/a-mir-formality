@@ -67,43 +67,54 @@
                                    (ForAll ((TyKind T)) (Implies ((Implemented (NeverImpl (T)))) T))))
            )
 
-   (redex-let*
+   (test-match
     formality-ty
-    [(Schemes_out (term (ty:prove-scheme
-                         Env
-                         ((ForAll ((TyKind T)))
-                          (Exists ((TyKind U))))
-                         (T <= U)
-                         )))
-     ]
-    (test-match
-     formality-ty
-     ((Exists ((TyKind Ty_U)) (Implies ((Ty_U >= Ty_T)) (Ty_T <= Ty_U))))
-     (term Schemes_out))
+
+    ((Exists ((TyKind Ty_U)) (Implies ((Ty_U >= Ty_T)) (Ty_T <= Ty_U)))
+     )
+
+    (term (ty:prove-scheme
+           Env
+           ((ForAll ((TyKind T)))
+            (Exists ((TyKind U))))
+           (T <= U)
+           ))
     )
 
-   (redex-let*
+   (test-match
     formality-ty
-    [((Scheme_out ...) (term (ty:prove-scheme
-                              Env
-                              ((ForAll ((TyKind T)))
-                               (Exists ((TyKind U) (LtKind A))))
-                              (U <= (TyRigid (Ref ()) (A T)))
-                              )))
-     ]
-    (test-match
-     formality-ty
-     ((Exists
-       ((LtKind VarId_A)
-        (TyKind VarId_TheTy)
-        (LtKind VarId_TheLt))
-       (Implies
-        ((VarId_TheTy <= VarId_T)
-         (VarId_TheLt <= VarId_A))
-        ((TyRigid (Ref ()) (VarId_TheLt VarId_TheTy))
-         <=
-         (TyRigid (Ref ()) (VarId_A VarId_T))))))
-     (term (Scheme_out ...)))
+
+    ((Exists
+      ((LtKind VarId_A)
+       (TyKind VarId_TheTy)
+       (LtKind VarId_TheLt))
+      (Implies
+       ((VarId_TheTy <= VarId_T)
+        (VarId_TheLt <= VarId_A))
+       ((TyRigid (Ref ()) (VarId_TheLt VarId_TheTy))
+        <=
+        (TyRigid (Ref ()) (VarId_A VarId_T)))))
+     )
+
+    (term (ty:prove-scheme
+           Env
+           ((ForAll ((TyKind T)))
+            (Exists ((TyKind U) (LtKind A))))
+           (U <= (TyRigid (Ref ()) (A T)))
+           ))
     )
+
+   (; Test for capture avoidance -- we should not be able to prove this!
+    test-match
+    formality-ty
+    ()
+    (term (ty:prove-scheme
+           Env
+           ((ForAll ((TyKind T)))
+            )
+           ((TyRigid (Fn "" 1) (T TyUnit)) ; fn(T)
+            <=
+            (ForAll ((TyKind T)) (TyRigid (Fn "" 1) (T TyUnit))) ; forall<T> fn(T)
+            ))))
    )
   )

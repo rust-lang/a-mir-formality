@@ -38,8 +38,11 @@
   )
 
 (define-metafunction formality-ty
-  ;; Given a variable `VarId_in` and a inequality op (e.g., `<=`, `>=`), returns the known
-  ;; bounds `P` such that e.g. `P <= VarId` or `P >= VarId`.
+  ;; Given a variable `VarId_in` and a inequality op `op` (e.g. `<=`), returns the known
+  ;; bounds `P` such that `P (op) VarId` (e.g., `P <= VarId`).
+  ;;
+  ;; (Note that these are stored in the environment with `VarId` listed first, so we actually
+  ;; look for inequalities like `VarId >= P`.)
   known-bounds : Env_in InequalityOp VarId_in -> Parameters_ub
   #:pre (env-contains-unmapped-var Env_in VarId_in)
 

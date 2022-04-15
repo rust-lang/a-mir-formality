@@ -133,6 +133,7 @@
 
   [; ∀ on the supertype side
    (compare/one/substituted VarIds Env (Parameter_1 <= (ForAll KindedVarIds Parameter_2)))
+   ; NB: Redex binding forms ensure that names in `KindedVarIds` do not appear free in `Parameter_1`
    (Env ((ForAll KindedVarIds (Parameter_1 <= Parameter_2))))
    ]
 
@@ -143,6 +144,7 @@
 
   [; ∀ on the subtype side
    (compare/one/substituted VarIds Env ((ForAll KindedVarIds Parameter_1) <= Parameter_2))
+   ; NB: Redex binding forms ensure that all names in `KindedVarIds` do not appear free in `Parameter_2`
    (Env ((Exists KindedVarIds (Parameter_1 <= Parameter_2))))
    ]
 
