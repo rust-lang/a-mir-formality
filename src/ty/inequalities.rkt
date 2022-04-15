@@ -19,6 +19,8 @@
 
   [(invert-inequality-op <=) >=]
   [(invert-inequality-op >=) <=]
+  [(invert-inequality-op -outlives-) -outlived-by-]
+  [(invert-inequality-op -outlived-by-) -outlives-]
   )
 
 (define-metafunction formality-ty
