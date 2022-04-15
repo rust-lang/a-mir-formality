@@ -7,14 +7,14 @@
          "../../logic/instantiate.rkt"
          "../hook.rkt"
          "../relate.rkt"
+         "../scheme.rkt"
          )
 (provide env-with-clauses-invariants-and-generics
          EmptyEnv
          ty:prove-top-level-goal/cosld
          ty:test-can-prove
          ty:test-cannot-prove
-         ty:with-vars
-         ty:test-prove
+         ty:prove-scheme
          )
 
 (define-metafunction formality-ty
@@ -70,34 +70,22 @@
    #f)
   )
 
-(define-syntax-rule (ty:test-prove env goal schemes)
-  (redex-let*
-   formality-ty
-   ((Env env)
-    (Goal goal)
-    (Envs_out (judgment-holds (ty:prove-top-level-goal/cosld env goal Env_out) Env_out))
-    (Schemes_out (term (extract-schemes Envs_out Goal)))
-    )
-   (test-equal
-    (term Schemes_out)
-    schemes)
-   )
+(define-metafunction formality-ty
+  ;; Convenient metafunction for tests:
+  ;;
+  ;; Creates an environment introducing the various quantifiers etc.
+  ;; Then proves the goal and extracts a "scheme".
+  ;; Returns the resulting scheme(s), which you can test with `test-match`.
+  ty:prove-scheme : Env ((Quantifier KindedVarIds) ...) Goal -> Schemes
+
+  [(ty:prove-scheme Env () Goal)
+   (extract-schemes Envs_out Goal)
+   (where/error Envs_out ,(judgment-holds (ty:prove-top-level-goal/cosld Env Goal Env_out) Env_out))
+   ]
+
+  [(ty:prove-scheme Env ((Quantifier_0 KindedVarIds_0) (Quantifier KindedVarIds) ...) Goal)
+   (ty:prove-scheme Env_out ((Quantifier KindedVarIds) ...) Goal_out)
+   (where/error (Env_out Goal_out _) (instantiate-quantified Env (Quantifier_0 KindedVarIds_0 Goal)))
+   ]
+
   )
-
-(define-syntax (ty:with-vars-helper stx)
-  (syntax-case stx ()
-    [(_ base-env () new-env body ...)
-     #'(redex-let
-        formality-ty
-        [(new-env base-env)] body ...)]
-    [(_ base-env ((quantifier (kind id) ...) quantifiers ...) new-env body ...)
-     #'(redex-let
-        formality-ty
-        [((Env_inner () (id ...)) (term (instantiate-quantified ,base-env (quantifier ((kind id) ...) ()))))]
-        (ty:with-vars-helper (term Env_inner) (quantifiers ...) new-env body ...)
-        )
-     ]
-    ))
-
-(define-syntax-rule (ty:with-vars base-env ((quantifier (kind id) ...) ...) new-env body ...)
-  (ty:with-vars-helper base-env ((quantifier (kind id) ...) ...) new-env body ...))
