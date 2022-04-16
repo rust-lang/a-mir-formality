@@ -23,7 +23,7 @@
    ;    * Adds `?X -outlives- P` as a constraint
    ;    * For each `P1 -outlives- ?X` constraint, require `P1 -outlives- P`
    (outlives/one/substituted Env (VarId OutlivesOp Parameter))
-   (Env ((Parameter_b OutlivesOp Parameter) ...))
+   (Env_b ((Parameter_b OutlivesOp Parameter) ...))
    (where #t (env-contains-existential-var Env VarId))
    (where #t (universe-check-ok? Env VarId Parameter))
    (where/error (Parameter_b ...) (known-bounds Env (invert-inequality-op OutlivesOp) VarId))
@@ -34,11 +34,11 @@
    ;    * Extrude a `P1` in `universe(?X)` such that `P1 -outlives- P`
    ;    * Require that `?X -outlives- P1`
    (outlives/one/substituted Env (VarId OutlivesOp Parameter))
-   (Env ((VarId OutlivesOp Parameter_1)))
+   (Env_e (Goal_e ... (VarId OutlivesOp Parameter_e)))
    (where #t (env-contains-existential-var Env VarId))
    (where #f (universe-check-ok? Env VarId Parameter))
    (where/error Universe_VarId (universe-of-var-in-env Env VarId))
-   (where/error Parameter_1 (extrude-parameter Env Universe_VarId OutlivesOp VarId Parameter))
+   (where/error (Env_e Parameter_e (Goal_e ...)) (extrude-parameter Env Universe_VarId OutlivesOp VarId Parameter))
    ]
 
   [; P -outlives- ?X (regardless of universe):
@@ -51,13 +51,13 @@
   [; P -outlives- ?X where P in universe(?X):
    ;    * Reverse of the above.
    (outlives/one/substituted Env (Parameter_0 -outlives- Parameter_1))
-   (Env Goals)
-   (where (Env Goals) (outlives/one/substituted/reduce Env (Parameter_0 -outlives- Parameter_1)))
+   (Env_out Goals_out)
+   (where (Env_out Goals_out) (outlives/one/substituted/reduce Env (Parameter_0 -outlives- Parameter_1)))
    ]
 
   [(outlives/one/substituted Env (Parameter_0 -outlived-by- Parameter_1))
-   (Env Goals)
-   (where (Env Goals) (outlives/one/substituted/reduce Env (Parameter_1 -outlives- Parameter_0)))
+   (Env_out Goals_out)
+   (where (Env_out Goals_out) (outlives/one/substituted/reduce Env (Parameter_1 -outlives- Parameter_0)))
    ]
 
   )

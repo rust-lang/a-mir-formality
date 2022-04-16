@@ -2,6 +2,7 @@
 (require racket/set
          redex/reduction-semantics
          "grammar.rkt"
+         "inequalities.rkt"
          "../logic/env.rkt"
          "../logic/substitution.rkt"
          )
@@ -65,26 +66,7 @@
                                Term)
    (where/error VarIds_free (free-variables Env (Goal ... Term)))
    (where (VarId_extra ...) ,(set-subtract (term VarIds_free) (term (VarId_in ...))))
-   (where/error ((Goal_extra ...) ...) ((extract-goals-for-var Env VarId_extra) ...))
+   (where/error ((Goal_extra ...) ...) ((known-relations Env VarId_extra) ...))
    (where/error ((Goal_subst ...) ...) (((apply-substitution-from-env Env Goal_extra) ...) ...))
    ]
-  )
-
-(define-metafunction formality-ty
-  extract-goals-for-var : Env VarId_in -> Goals
-
-  [(extract-goals-for-var Env VarId)
-   (Goal ... ...)
-   (where/error (VarInequality ...) (env-inequalities Env))
-   (where/error ((Goal ...) ...) ((match-var-inequality VarInequality VarId) ...))
-   ]
-  )
-
-(define-metafunction formality-ty
-  ;; If `VarInequality` is a relation of `VarId`, return empty list.
-  ;; Else return `(VarInequality)`.
-  match-var-inequality : VarInequality VarId -> (Goal ...)
-
-  [(match-var-inequality (VarId InequalityOp (Parameter ...)) VarId) ((VarId InequalityOp Parameter) ...)]
-  [(match-var-inequality VarInequality VarId) ()]
   )

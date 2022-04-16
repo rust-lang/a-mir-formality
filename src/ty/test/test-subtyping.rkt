@@ -81,7 +81,7 @@
            ))
     )
 
-   (traced '(compare/one/substituted)
+   (traced '()
            (test-match
             formality-ty
 
@@ -91,7 +91,7 @@
                (LtKind VarId_TheLt))
               (Implies
                ((VarId_TheTy <= VarId_T)
-                (VarId_TheLt <= VarId_A))
+                (VarId_TheLt -outlives- VarId_A))
                ((TyRigid (Ref ()) (VarId_TheLt VarId_TheTy))
                 <=
                 (TyRigid (Ref ()) (VarId_A VarId_T)))))
