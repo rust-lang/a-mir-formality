@@ -80,14 +80,32 @@
    (where #t (universe-check-ok? Env VarId Parameter))
    ]
 
-  [; Flip `>=` to `<=` for forall, exists, and implication types
-   (compare/one/substituted Env (PredicateTy >= Parameter))
-   (compare/one/substituted Env (Parameter <= PredicateTy))
+  [; `?X <= T` where occurs ok, universes not ok:
+   ;   Add `X <= P` as a bound and, for each bound `B` where `B <= X`,
+   ;   require that `B <= P` (respectively `>=`).
+   (compare/one/substituted Env (VarId SubtypeOp Parameter))
+   (Env_1 ((VarId SubtypeOp Parameter_extruded) Goal ...))
+
+   (where #t (env-contains-existential-var Env VarId))
+   (where #t (occurs-check-ok? Env VarId Parameter))
+   (where #f (universe-check-ok? Env VarId Parameter))
+   (where/error Universe_VarId (universe-of-var-in-env Env VarId))
+   (where/error (Env_1 Parameter_extruded (Goal ...)) (extrude-parameter Env Universe_VarId SubtypeOp Parameter))
    ]
 
-  [; Flip `>=` to `<=` for forall, exists, and implication types
-   (compare/one/substituted Env (Parameter >= PredicateTy))
-   (compare/one/substituted Env (PredicateTy <= Parameter))
+  [; `T <= ?X` where occurs ok, universes not ok:
+   ;     Invert and use above rule.
+   (compare/one/substituted Env (Parameter SubtypeOp VarId))
+   (compare/one/substituted Env (VarId (invert-inequality-op SubtypeOp) Parameter))
+
+   (where #t (env-contains-existential-var Env VarId))
+   (where #t (occurs-check-ok? Env VarId Parameter))
+   (where #f (universe-check-ok? Env VarId Parameter))
+   ]
+
+  [; Flip `>=` to `<=` for remaining rules
+   (compare/one/substituted Env (Parameter_1 >= Parameter_2))
+   (compare/one/substituted Env (Parameter_2 <= Parameter_1))
    ]
 
   [; ∀ on the supertype side
@@ -128,42 +146,20 @@
 
   [; `!X <= T` where:
    ;    Prove `X <= T1` for any `T1 <= P` from environment.
-   (compare/one/substituted Env (VarId SubtypeOp Parameter))
+   (compare/one/substituted Env (VarId <= Parameter))
    (Env ((Any Goals)))
 
    (where #t (env-contains-placeholder-var Env VarId))
-   (where/error Goals (bound-placeholder-from-hypotheses Env VarId SubtypeOp Parameter))
+   (where/error Goals (bound-placeholder-from-hypotheses Env VarId <= Parameter))
    ]
 
   [; `T <= !X` where:
    ;    Flip to `!X <= T` and use above rule.
-   (compare/one/substituted Env (Parameter SubtypeOp VarId))
-   (compare/one/substituted Env (VarId (invert-inequality-op SubtypeOp) Parameter))
+   (compare/one/substituted Env (Parameter <= VarId))
+   (Env ((Any Goals)))
 
    (where #t (env-contains-placeholder-var Env VarId))
-   ]
-
-  [; `?X <= T` where occurs ok, universes not ok:
-   ;   Add `X <= P` as a bound and, for each bound `B` where `B <= X`,
-   ;   require that `B <= P` (respectively `>=`).
-   (compare/one/substituted Env (VarId SubtypeOp Parameter))
-   (Env_1 ((VarId SubtypeOp Parameter_extruded) Goal ...))
-
-   (where #t (env-contains-existential-var Env VarId))
-   (where #t (occurs-check-ok? Env VarId Parameter))
-   (where #f (universe-check-ok? Env VarId Parameter))
-   (where/error Universe_VarId (universe-of-var-in-env Env VarId))
-   (where/error (Env_1 Parameter_extruded (Goal ...)) (extrude-parameter Env Universe_VarId SubtypeOp Parameter))
-   ]
-
-  [; `T <= ?X` where occurs ok, universes not ok:
-   ;     Invert and use above rule.
-   (compare/one/substituted Env (Parameter SubtypeOp VarId))
-   (compare/one/substituted Env (VarId (invert-inequality-op SubtypeOp) Parameter))
-
-   (where #t (env-contains-existential-var Env VarId))
-   (where #t (occurs-check-ok? Env VarId Parameter))
-   (where #f (universe-check-ok? Env VarId Parameter))
+   (where/error Goals (bound-placeholder-from-hypotheses Env VarId >= Parameter))
    ]
 
   [; all other sets of types cannot be compared
