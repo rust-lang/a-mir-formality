@@ -77,6 +77,7 @@
            Env
            ((ForAll ((TyKind T)))
             (Exists ((TyKind U))))
+           ()
            (T <= U)
            ))
     )
@@ -116,6 +117,7 @@
                    Env
                    ((ForAll ((TyKind T)))
                     (Exists ((TyKind U) (LtKind A))))
+                   ()
                    (U <= (TyRigid (Ref ()) (A T)))
                    ))
             )
@@ -129,6 +131,7 @@
            Env
            ((ForAll ((TyKind T)))
             )
+           ()
            ((TyRigid (Fn "" 1) (T TyUnit)) ; fn(T)
             <=
             (ForAll ((TyKind T)) (TyRigid (Fn "" 1) (T TyUnit))) ; forall<T> fn(T)

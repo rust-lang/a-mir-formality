@@ -34,17 +34,18 @@
             formality-ty
 
             ((Exists
-              ((LtKind B«4»1) (LtKind A«3»1))
+              ((LtKind VarId_B) (LtKind VarId_A))
               (Implies
-               ((A«3»1 -outlives- B«4»1))
-               ((TyRigid (Ref ()) (A«3»1 T«0»1))
+               ((VarId_A -outlives- VarId_B))
+               ((TyRigid (Ref ()) (VarId_A VarId_T))
                 -outlives-
-                (TyRigid (Ref ()) (B«4»1 T«0»1))))))
+                (TyRigid (Ref ()) (VarId_B VarId_T))))))
 
             (term (ty:prove-scheme
                    Env
                    ((ForAll ((TyKind T)))
                     (Exists ((LtKind A) (LtKind B))))
+                   ()
                    ((TyRigid (Ref ()) (A T)) -outlives- (TyRigid (Ref ()) (B T)))
                    ))
             )
@@ -72,6 +73,7 @@
             (term (ty:prove-scheme
                    Env
                    ()
+                   ()
                    ((ForAll ((LtKind A)) (TyRigid (Fn "" 1) ((TyRigid (Ref ()) (A (scalar-ty u32))) TyUnit)))
                     -outlives-
                     static)
@@ -97,9 +99,89 @@
                    Env
                    ((ForAll ((TyKind T)))
                     (Exists ((LtKind A))))
+                   ()
                    (A
                     -outlives-
                     T)
+                   ))
+            )
+           )
+
+   (traced '()
+
+           ; Given any !A and !B, cannot prove
+           ;
+           ; !A -outlives- !B
+
+           (test-match
+            formality-ty
+
+            ()
+
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((LtKind A) (LtKind B))))
+                   ()
+                   (A -outlives- B)
+                   ))
+            )
+           )
+
+   (traced '()
+
+           ; Given any !A and !B where !A:!B, can prove
+           ;
+           ; !A -outlives- !B
+
+           (test-match
+            formality-ty
+
+            ((Exists () (Implies () (VarId_A -outlives- VarId_B))))
+
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((Outlives (A : B)))
+                   (A -outlives- B)
+                   ))
+            )
+           )
+
+   (traced '()
+
+           ; Given any !A and !B where !A:!B, cannot prove A == B
+
+           (test-match
+            formality-ty
+
+            ()
+
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((Outlives (A : B))
+                    )
+                   (A == B)
+                   ))
+            )
+           )
+
+   (traced '()
+
+           ; Given any !A and !B where !A:!B and !B:!A, can prove A == B
+
+           (test-match
+            formality-ty
+
+            ((Exists () (Implies () (VarId_A == VarId_B))))
+
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((Outlives (A : B))
+                    (Outlives (B : A))
+                    )
+                   (A == B)
                    ))
             )
            )

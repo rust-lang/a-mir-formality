@@ -11,20 +11,16 @@
          )
 
 (define-metafunction formality-ty
-  ;; Finds all hypotheses in the environment of the form `B InequalityOp VarId`.
-  ;;
-  ;; Returns a list of `(Env (Implies Gs B))` pairs, where the `Env` is the
-  ;; new environment (may contain additional variables), `Gs` is a list of goals that must be
-  ;; proven to validate the hypotheses, and `B` is the bound where `B InequalityOp VarId`
-  ;; is true (if Gs hold).
-  bound-placeholder-from-hypothesis : Env_in VarId_in InequalityOp_◃ Parameter_in -> (Goal_out ...)
+  ;; Returns a list of goals `Goal ...`, any one of which is sufficient to prove
+  ;; that `!X ◃ P`.
+  bound-placeholder-from-hypothesis : Env_in VarId_!X InequalityOp_◃ Parameter -> (Goal_out ...)
 
-  #:pre (env-contains-placeholder-var Env_in VarId_in)
+  #:pre (env-contains-placeholder-var Env_in VarId_!X)
 
-  [(bound-placeholder-from-hypothesis Env VarId InequalityOp_◃ Parameter)
+  [(bound-placeholder-from-hypothesis Env VarId_!X InequalityOp_◃ Parameter)
    (Goal_out ... ...)
    (where/error (FlatHypothesis ...) (flattened-hypotheses-in-env Env))
-   (where/error ((Goal_out ...) ...) ((match-hypothesis FlatHypothesis VarId InequalityOp_◃ Parameter) ...))
+   (where/error ((Goal_out ...) ...) ((match-hypothesis FlatHypothesis VarId_!X InequalityOp_◃ Parameter) ...))
    ]
 
   )

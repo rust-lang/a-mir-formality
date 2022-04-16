@@ -47,6 +47,16 @@
    (where (Env_out Goals_out) (outlives/one/substituted/reduce Env (Parameter_1 -outlives- Parameter_0)))
    ]
 
+  [; !A -outlives- !B
+   ; !A -outlived-by- !B
+   (outlives/one/substituted Env (VarId_A OutlivesOp VarId_B))
+   (Env ((Any Goals)))
+
+   (where (LtKind ForAll _) (var-binding-in-env Env VarId_A))
+   (where (LtKind ForAll _) (var-binding-in-env Env VarId_B))
+   (where Goals (bound-placeholder-from-hypothesis Env VarId_A OutlivesOp VarId_B))
+   ]
+
   [; ?X -outlives- P where P in universe(?X):
    ;    * Adds `?X -outlives- P` as a constraint
    ;    * For each `P1 -outlives- ?X` constraint, require `P1 -outlives- P`

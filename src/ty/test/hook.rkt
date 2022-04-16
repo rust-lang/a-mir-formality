@@ -8,6 +8,7 @@
          "../hook.rkt"
          "../relate.rkt"
          "../scheme.rkt"
+         "../where-clauses.rkt"
          )
 (provide env-with-clauses-invariants-and-generics
          EmptyEnv
@@ -73,19 +74,23 @@
 (define-metafunction formality-ty
   ;; Convenient metafunction for tests:
   ;;
-  ;; Creates an environment introducing the various quantifiers etc.
+  ;; Creates an environment introducing the various quantifiers etc and then the
+  ;; given where-clauses (as hypotheses).
+  ;;
   ;; Then proves the goal and extracts a "scheme".
+  ;;
   ;; Returns the resulting scheme(s), which you can test with `test-match`.
-  ty:prove-scheme : Env ((Quantifier KindedVarIds) ...) Goal -> Schemes
+  ty:prove-scheme : Env ((Quantifier KindedVarIds) ...) WhereClauses Goal -> Schemes
 
-  [(ty:prove-scheme Env () Goal)
+  [(ty:prove-scheme Env () WhereClauses Goal)
    (extract-schemes Envs_out Goal)
-   (where/error Envs_out ,(judgment-holds (ty:prove-top-level-goal/cosld Env Goal Env_out) Env_out))
+   (where/error Env_h (env-with-hypotheses Env (where-clauses->hypotheses WhereClauses)))
+   (where/error Envs_out ,(judgment-holds (ty:prove-top-level-goal/cosld Env_h Goal Env_out) Env_out))
    ]
 
-  [(ty:prove-scheme Env ((Quantifier_0 KindedVarIds_0) (Quantifier KindedVarIds) ...) Goal)
-   (ty:prove-scheme Env_out ((Quantifier KindedVarIds) ...) Goal_out)
-   (where/error (Env_out Goal_out _) (instantiate-quantified Env (Quantifier_0 KindedVarIds_0 Goal)))
+  [(ty:prove-scheme Env ((Quantifier_0 KindedVarIds_0) (Quantifier KindedVarIds) ...) WhereClauses Goal)
+   (ty:prove-scheme Env_out ((Quantifier KindedVarIds) ...) WhereClauses_out Goal_out)
+   (where/error (Env_out (WhereClauses_out Goal_out) _) (instantiate-quantified Env (Quantifier_0 KindedVarIds_0 (WhereClauses Goal))))
    ]
 
   )

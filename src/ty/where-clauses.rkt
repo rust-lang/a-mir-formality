@@ -3,8 +3,9 @@
          "grammar.rkt"
          )
 (provide where-clause->goal
-         where-clause->hypothesis
          where-clauses->goals
+         where-clause->hypothesis
+         where-clauses->hypotheses
          )
 
 ; FIXME: Right now, where clauses are a syntactic subset of goals and
@@ -34,6 +35,16 @@
   [(where-clause->goal (Outlives (Parameter_a : Parameter_b)))
    (Parameter_a -outlives- Parameter_b)
    ]
+
+  )
+
+(define-metafunction formality-ty
+  ;; Convert a where clause `W` into a hypothesis that code which is
+  ;; implied by `W` can assume to be true.
+  where-clauses->hypotheses : WhereClauses -> Hypotheses
+
+  [(where-clauses->hypotheses (WhereClause ...))
+   ((where-clause->hypothesis WhereClause) ...)]
 
   )
 
