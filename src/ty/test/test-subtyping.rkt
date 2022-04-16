@@ -316,7 +316,7 @@
                     )
                    ()
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
-                     ForAll ((LtKind A) (LtKind B))h
+                     ForAll ((LtKind A) (LtKind B))
                             (Implies ((Outlives (B : A))) ; implied bound!
                                      (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
                     <=
