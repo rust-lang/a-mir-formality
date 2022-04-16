@@ -78,8 +78,7 @@
   ;; either a bound, existential (inference), or universal
   ;; (placeholder) variable.
   (Tys ::= (Ty ...))
-  (Ty ::= RigidTy PredicateTy VarId)
-  (PredicateTy ::= ForAllTy ExistsTy ImplicationTy EnsuresTy)
+  (Ty ::= RigidTy AliasTy PredicateTy VarId)
 
   ;; RigidTy -- A *rigid* type is onee that can only be equal to itself. Most Rust types fit
   ;; this category, e.g., `Vec<i32>` would be represented as `(TyRigid Vec ((TyRigid i32 ())))`.
@@ -91,6 +90,17 @@
              (Tuple number)  ; tuple of given arity
              (Fn Abi number) ; fn types
              )
+
+  ;; AliasTy -- an *alias* type is basically a *type lambda*. You can either *normalize* it
+  ;; to another type *or* prove that it is equal to another alias type by showing
+  ;; that the alias name + arguments are the same.
+  (AliasTy ::= (TyAlias AliasName Parameters))
+  (AliasName ::=
+             AliasId
+             )
+
+  ;; Predicate types correspond to the builtin logical connectives.
+  (PredicateTy ::= ForAllTy ExistsTy ImplicationTy EnsuresTy)
 
   ;; ForAll and implication types: In Rust, these are always paired with `dyn` and `fn` types,
   ;; but in our calculus we separate and generalize them.
@@ -160,7 +170,7 @@
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
-  (AdtId TraitId AssociatedTyId TyAliasId ::=
+  (AdtId AliasId TraitId AssociatedTyId TyAliasId ::=
          variable-not-otherwise-mentioned)
 
   ;; Generic parameters
