@@ -82,6 +82,21 @@
     )
 
    (traced '()
+           ; Test that, given some placeholder type T
+           ;
+           ;     U <: &'a T
+           ;
+           ; is true if
+           ;
+           ;     U = &'b V
+           ;     'a = 'a
+           ;
+           ; and
+           ;
+           ;     V <= T
+           ;     'b -outlives- 'a
+           ;
+           ; FIXME. Give Rust's setup with types, we could make `V <= T` just be `V = T`, right?
            (test-match
             formality-ty
 
