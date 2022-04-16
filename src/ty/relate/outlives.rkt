@@ -79,19 +79,19 @@
   [; ?X -outlives- P where P NOT in universe(?X):
    ;    * Extrude a `P1` in `universe(?X)` such that `P1 -outlives- P`
    ;    * Require that `?X -outlives- P1`
-   (outlives/one/substituted Env (VarId OutlivesOp Parameter))
-   (Env_e (Goal_e ... (VarId OutlivesOp Parameter_e)))
-   (where #t (env-contains-existential-var Env VarId))
-   (where #f (universe-check-ok? Env VarId Parameter))
-   (where/error Universe_VarId (universe-of-var-in-env Env VarId))
-   (where/error (Env_e Parameter_e (Goal_e ...)) (extrude-parameter Env Universe_VarId OutlivesOp VarId Parameter))
+   (outlives/one/substituted Env (VarId_?X OutlivesOp Parameter))
+   (Env_e (Goal_e ... (VarId_?X OutlivesOp Parameter_e)))
+   (where #t (env-contains-existential-var Env VarId_?X))
+   (where #f (universe-check-ok? Env VarId_?X Parameter))
+   (where/error Universe_VarId (universe-of-var-in-env Env VarId_?X))
+   (where/error (Env_e Parameter_e (Goal_e ...)) (extrude-parameter Env Universe_VarId OutlivesOp VarId_?X Parameter))
    ]
 
   [; P -outlives- ?X (regardless of universe):
    ;    * Reverse of one of the two cases above.
-   (outlives/one/substituted Env (Parameter OutlivesOp VarId))
-   (outlives/one/substituted Env (VarId (invert-inequality-op OutlivesOp) Parameter))
-   (where #t (env-contains-existential-var Env VarId))
+   (outlives/one/substituted Env (Parameter OutlivesOp VarId_?X))
+   (outlives/one/substituted Env (VarId_?X (invert-inequality-op OutlivesOp) Parameter))
+   (where #t (env-contains-existential-var Env VarId_?X))
    ]
   )
 
@@ -145,6 +145,32 @@
    ;     ∃i (P0 : Pr_i)
    (outlives/one/substituted/reduce Env (Parameter -outlives- (TyRigid RigidName (Parameter_r ...))))
    (Env ((Any ((Parameter -outlives- Parameter_r) ...))))
+   ]
+
+  [; A<Pa ...> : P if
+   ;      ∀i. (Pa_i : P) or
+   ;      (A<Pa ...> ~~~> T; T : P)
+   ;
+   ; To establish that an alias type outlives P we can either normalize the alias type or
+   ; we can relate P to each of the alias type's parameters. The latter is based on the reasoning
+   ; that the alias must be a function of its inputs and other static things.
+   (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
+   (Env ((Any (Goal_each Goal_n))))
+   (where/error Goal_each (All ((Parameter_a -outlives- Parameter) ...)))
+   (where/error Goal_n (Exists ((TyKind T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
+                                                  (T -outlives- Parameter)))))
+   ]
+
+  [; P : A<Pa ...> if
+   ;      (A<Pa ...> ~~~> T; P : T)
+   ;
+   ; To establish that P outlives an alias type we *must* normalize.
+   ; No matter what its arguments, the alias type could normalize to `i32` or some such thing,
+   ; in which case only static outlives it.
+   (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
+   (Env (Goal_n))
+   (where/error Goal_n (Exists ((TyKind T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
+                                                  (Parameter -outlives- T)))))
    ]
 
   [; !X : T if
