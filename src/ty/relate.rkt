@@ -2,7 +2,9 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "predicate.rkt"
+         "relate/outlives.rkt"
          "relate/subtype.rkt"
+         "relate/equate.rkt"
          "../logic/substitution.rkt"
          "../logic/env.rkt"
          )
@@ -56,8 +58,12 @@
    (equate/one/substituted Env (apply-substitution-from-env Env (Parameter_1 == Parameter_2)))
    ]
 
-  [(relate/one Env (Parameter_1 InequalityOp Parameter_2))
-   (compare/one/substituted Env (apply-substitution-from-env Env (Parameter_1 InequalityOp Parameter_2)))
+  [(relate/one Env (Parameter_1 SubtypeOp Parameter_2))
+   (compare/one/substituted Env (apply-substitution-from-env Env (Parameter_1 SubtypeOp Parameter_2)))
+   ]
+
+  [(relate/one Env (Parameter_1 OutlivesOp Parameter_2))
+   (outlives/one/substituted Env (apply-substitution-from-env Env (Parameter_1 OutlivesOp Parameter_2)))
    ]
   )
 

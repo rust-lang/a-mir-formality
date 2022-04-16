@@ -137,11 +137,16 @@
   ;;
   ;; Overridden from formal-logic.
   (InequalityOp ::=
-                <=                 ; A "subset" of B (e.g., subtype means A inhabited by subset of values of B)
-                >=                 ; A "superset" of B (e.g., supertype)
-                -outlives-         ; `A:B` -- anything that invalidates A must invalidate B
-                -outlived-by-      ; `B:A` -- anything that invalidates B must invalidate A
-                )
+                SubtypeOp
+                OutlivesOp)
+  (SubtypeOp ::=
+             <=                 ; A "subset" of B (e.g., subtype means A inhabited by subset of values of B)
+             >=                 ; A "superset" of B (e.g., supertype)
+             )
+  (OutlivesOp ::=
+              -outlives-         ; `A:B` -- anything that invalidates A must invalidate B
+              -outlived-by-      ; `B:A` -- anything that invalidates B must invalidate A
+              )
 
   ;; Scalars -- numbers, booleans
   (ScalarId ::= i8 u8 i16 u16 i32 u32 i64 u64 i128 u128 bool)
