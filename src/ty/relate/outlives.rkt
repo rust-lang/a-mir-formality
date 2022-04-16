@@ -49,23 +49,31 @@
 
   [; !A -outlives- !B
    ; !A -outlived-by- !B
-   (outlives/one/substituted Env (VarId_A OutlivesOp VarId_B))
+   (outlives/one/substituted Env (VarId_!A OutlivesOp VarId_!B))
    (Env ((Any Goals)))
 
-   (where (LtKind ForAll _) (var-binding-in-env Env VarId_A))
-   (where (LtKind ForAll _) (var-binding-in-env Env VarId_B))
-   (where Goals (bound-placeholder-from-hypotheses Env VarId_A OutlivesOp VarId_B))
+   (where (LtKind ForAll _) (var-binding-in-env Env VarId_!A))
+   (where (LtKind ForAll _) (var-binding-in-env Env VarId_!B))
+   (where Goals (bound-placeholder-from-hypotheses Env VarId_!A OutlivesOp VarId_!B))
+   ]
+
+  [; !A -outlives- static
+   (outlives/one/substituted Env (VarId_!A -outlives- static))
+   (Env ((Any Goals)))
+
+   (where (LtKind ForAll _) (var-binding-in-env Env VarId_!A))
+   (where Goals (bound-placeholder-from-hypotheses Env VarId_!A -outlives- static))
    ]
 
   [; ?X -outlives- P where P in universe(?X):
    ;    * Adds `?X -outlives- P` as a constraint
    ;    * For each `P1 -outlives- ?X` constraint, require `P1 -outlives- P`
-   (outlives/one/substituted Env (VarId OutlivesOp Parameter))
+   (outlives/one/substituted Env (VarId_?X OutlivesOp Parameter))
    (Env_b ((Parameter_b OutlivesOp Parameter) ...))
-   (where #t (env-contains-existential-var Env VarId))
-   (where #t (universe-check-ok? Env VarId Parameter))
-   (where/error (Parameter_b ...) (known-bounds Env (invert-inequality-op OutlivesOp) VarId))
-   (where/error Env_b (env-with-var-related-to-parameter Env VarId OutlivesOp Parameter))
+   (where #t (env-contains-existential-var Env VarId_?X))
+   (where #t (universe-check-ok? Env VarId_?X Parameter))
+   (where/error (Parameter_b ...) (known-bounds Env OutlivesOp VarId_?X))
+   (where/error Env_b (env-with-var-related-to-parameter Env VarId_?X OutlivesOp Parameter))
    ]
 
   [; ?X -outlives- P where P NOT in universe(?X):

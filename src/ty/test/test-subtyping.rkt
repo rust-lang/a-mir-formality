@@ -118,7 +118,7 @@
                    ((ForAll ((TyKind T)))
                     (Exists ((TyKind U) (LtKind A))))
                    ()
-                   (U <= (TyRigid (Ref ()) (A T)))
+                   (U <= (& A T))
                    ))
             )
            )
@@ -126,7 +126,7 @@
    (; Test for capture avoidance -- we should not be able to prove this!
     test-match
     formality-ty
-    ()
+    () ; no solutions
     (term (ty:prove-scheme
            Env
            ((ForAll ((TyKind T)))
@@ -134,7 +134,7 @@
            ()
            ((TyRigid (Fn "" 1) (T TyUnit)) ; fn(T)
             <=
-            (ForAll ((TyKind T)) (TyRigid (Fn "" 1) (T TyUnit))) ; forall<T> fn(T)
+            (ForAll ((TyKind T)) (fn (T) TyUnit)) ; forall<T> fn(T)
             ))))
 
    (traced '()
@@ -155,7 +155,7 @@
    (; Test for ensures: we cannot add ensures for things we cannot prove
     test-match
     formality-ty
-    ()
+    () ; no solutions
     (term (ty:prove-scheme
            Env
            ((ForAll ((TyKind T)))
@@ -186,7 +186,7 @@
     ; cannot use an implication type whose premises we cannot prove
     test-match
     formality-ty
-    ()
+    () ; no solutions
     (term (ty:prove-scheme
            Env
            ((ForAll ((TyKind T)))
@@ -236,7 +236,7 @@
     ; base type must match
     test-match
     formality-ty
-    ()
+    () ; no solutions
     (term (ty:prove-scheme
            Env
            ((ForAll ((TyKind T) (TyKind U)))
@@ -244,13 +244,13 @@
            ()
            (U
             <=
-            (Implies ((Implemented (Debug (T)))) T)h
+            (Implies ((Implemented (Debug (T)))) T)
             ))))
 
    (; Test for implication on both sides
     test-match
     formality-ty
-    ((Exists () (Implies () _)))q
+    ((Exists () (Implies () _)))
     (term (ty:prove-scheme
            Env
            ((ForAll ((TyKind T)))
@@ -261,5 +261,70 @@
             (Implies ((Implemented (Debug (T)))) T)
             ))))
 
+   (; #25860 -- the buggy path we have today, where implied bounds
+    ; are not reflected in the type -- subtyping works
+    test-match
+    formality-ty
+    ((Exists () (Implies () _))) ; provable! uh-oh!
+    (term (ty:prove-scheme
+           Env
+           ((ForAll ((TyKind T) (LtKind X)))
+            )
+           ()
+           ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
+             ForAll ((LtKind A) (LtKind B))
+                    (fn ((& A (& B TyUnit)) (& B T)) (& A T)))
+            <=
+            (; fn(&'static &'x (), &'x T) -> &'static T
+             fn ((& static (& X TyUnit)) (& X T)) (& static T))
+            )
+           )
+          )
+    )
+
+   (traced '()
+           (; #25860 -- the fixed path, where implied bounds are part of the
+            ; resulting type
+            test-match
+            formality-ty
+            () ; no solutions
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((TyKind T) (LtKind X)))
+                    )
+                   ()
+                   ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
+                     ForAll ((LtKind A) (LtKind B))
+                            (Implies ((Outlives (B : A))) ; implied bound!
+                                     (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
+                    <=
+                    (; fn(&'static &'x (), &'x T) -> &'static T
+                     fn ((& static (& X TyUnit)) (& X T)) (& static T))
+                    )
+                   )
+                  )
+            ))
+
+   (traced '()
+           (; #25860 -- an upcast that discharges implied bound successfully
+            test-match
+            formality-ty
+            ((Exists () (Implies () _))) ; provable!
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((TyKind T) (LtKind X)))
+                    )
+                   ()
+                   ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
+                     ForAll ((LtKind A) (LtKind B))h
+                            (Implies ((Outlives (B : A))) ; implied bound!
+                                     (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
+                    <=
+                    (; fn(&'x &'static (), &'static T) -> &'x T
+                     fn ((& X (& static TyUnit)) (& static T)) (& X T))
+                    )
+                   )
+                  )
+            ))
    )
   )

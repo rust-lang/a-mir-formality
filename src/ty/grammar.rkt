@@ -3,10 +3,7 @@
          racket/set
          "../logic/grammar.rkt"
          )
-(provide formality-ty
-         TyUnit
-         scalar-ty
-         )
+(provide (all-defined-out))
 
 ; Naming convention:
 ;
@@ -183,4 +180,37 @@
   scalar-ty : ScalarId -> Ty
 
   ((scalar-ty ScalarId) (TyRigid ScalarId ()))
+  )
+
+(define-metafunction formality-ty
+  & : Lt Ty -> Ty
+
+  [(& Lt Ty) (TyRigid (Ref ()) (Lt Ty))]
+  )
+
+(define-metafunction formality-ty
+  &mut : Lt Ty -> Ty
+
+  [(&mut Lt Ty) (TyRigid (Ref (mut)) (Lt Ty))]
+  )
+
+(define-metafunction formality-ty
+  box : Ty -> Ty
+
+  [(box Ty) (TyRigid Box (Lt Ty))]
+  )
+
+(define-metafunction formality-ty
+  vec : Ty -> Ty
+
+  [(vec Ty) (TyRigid Vec (Lt Ty))]
+  )
+
+(define-metafunction formality-ty
+  fn : Tys Ty -> Ty
+
+  [(fn (Ty_arg ...) Ty_ret)
+   (TyRigid (Fn "Rust" number) (Ty_arg ... Ty_ret))
+   (where/error number ,(length (term (Ty_arg ...))))
+   ]
   )

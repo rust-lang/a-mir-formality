@@ -16,8 +16,8 @@
   ;; those where clauses hold.
   where-clauses->goals : WhereClauses -> Goals
 
-  ((where-clauses->goals WhereClauses)
-   WhereClauses)
+  [(where-clauses->goals (WhereClause ...))
+   ((where-clause->goal WhereClause) ...)]
   )
 
 (define-metafunction formality-ty
