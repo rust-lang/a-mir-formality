@@ -20,6 +20,16 @@
    (Env ())
    ]
 
+  [; 'static : X for all X.
+   (outlives/one/substituted Env (static -outlives- Parameter))
+   (Env ())
+   ]
+
+  [; And the reverse
+   (outlives/one/substituted Env (Parameter -outlived-by- static))
+   (Env ())
+   ]
+
   [; Try to reduce to subproblems, if we can.
    (outlives/one/substituted Env (Parameter_0 -outlives- Parameter_1))
    (Env_out Goals_out)
@@ -74,16 +84,42 @@
               (parameter-has-type-kind? Env_in Parameter_b)
               )
 
+  [; (&'a T : P) or (&'a mut T : P) if
+   ;     'a : P
+   ;
+   ; This is a hack / optimization on the more general case below that is based on knowing
+   ; that `&'a T` is only well-formed it `T : 'a`. The general rule would have us prove
+   ; that *both* `T : P` and `'a : P`. But if `T : 'a` and `'a : P`, then `T : P` is implied by
+   ; transitivity, so we can check check whether `'a : P` and that should be good enough.
+   ;
+   ; We could do this for arbitrary rigid types if we inspected their where-clauses,
+   ; but I didn't feel like writing up that logic just now, and the rule below is not wrong,
+   ; it just produces more answers than are necessary. (So, alternatively, we could also
+   ; work on the "answer subsumption" logic.)
+   (outlives/one/substituted/reduce Env ((TyRigid (Ref _) (Lt _)) -outlives- Parameter))
+   (Env ((Lt -outlives- Parameter)))
+   ]
+
   [; R<Pr_0...Pr_n> : P1 if
    ;     ∀i (Pr_i : P1)
    (outlives/one/substituted/reduce Env ((TyRigid RigidName (Parameter ...)) -outlives- Parameter_r))
    (Env ((Parameter -outlives- Parameter_r) ...))
    ]
 
-  [; P : R<Pr_0...Pr_n> if
-   ;     ∃i (P0 : Pr_i)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (TyRigid RigidName (Parameter_r ...))))
-   (Env ((Any ((Parameter -outlives- Parameter_r) ...))))
+  [; (P : &'a T) or (P : &'a mut T) if
+   ;     P : 'a
+   ;
+   ; This is a hack / optimization on the more general case below that is based on knowing
+   ; that `&'a T` is only well-formed it `T : 'a`. The general rule would have us prove
+   ; that *either* `P : T` or `P : 'a`. But if `P : T`, then `P : 'a` too, so we can just check
+   ; whether `P : 'a` and that is good enough.
+   ;
+   ; We could do this for arbitrary rigid types if we inspected their where-clauses,
+   ; but I didn't feel like writing up that logic just now, and the rule below is not wrong,
+   ; it just produces more answers than are necessary. (So, alternatively, we could also
+   ; work on the "answer subsumption" logic.)
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (TyRigid (Ref _) (Lt _))))
+   (Env ((Parameter -outlives- Lt)))
    ]
 
   [; P : R<Pr_0...Pr_n> if
@@ -101,7 +137,17 @@
    (where/error (Parameter_bound ...) (known-bounds Env -outlived-by- VarId)) ; * FIXME: need to look through hypotheses
    ]
 
-  [; T : !X if
+  [; T : !X where !X has no known bounds:
+   ;
+   ; Require T : static
+   (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
+   (Env ((Parameter -outlives- static)))
+
+   (where (TyKind ForAll _) (var-binding-in-env Env VarId))
+   (where/error () (known-bounds Env -outlives- VarId)) ; * FIXME: need to look through hypotheses
+   ]
+
+  [; T : !X where !X has known bounds:
    ;    `T1 : T` for any `T1 : X` (`T1 -outlives- X`) from environment.
    (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
    (Env ((Any ((Parameter -outlives- Parameter_bound) ...))))
@@ -117,7 +163,7 @@
    ;
    ; e.g. `'a : forall<'b> fn(&'b u32)` is false
    (outlives/one/substituted/reduce Env (Parameter -outlives- (ForAll KindedVarIds Ty)))
-   (Env (ForAll KindedVarIds (Parameter -outlives- Ty)))
+   (Env ((ForAll KindedVarIds (Parameter -outlives- Ty))))
    ]
 
   [; ∀ P0 : P1 if
@@ -131,17 +177,18 @@
    ;    `(fn(&'b &'a u32) : 'a)` is false because
    ;    `'b : 'a`
    (outlives/one/substituted/reduce Env ((ForAll KindedVarIds Ty) -outlives- Parameter))
-   (Env (Exists KindedVarIds (Parameter -outlives- Ty)))
+   (Env ((Exists KindedVarIds (Parameter -outlives- Ty))))
    ]
 
   [; P0 : (WC => P1) if WC => (P0 : P1)
    (outlives/one/substituted/reduce Env (Parameter -outlives- (Implies WhereClauses Ty)))
-   (Env (Implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty)))
+   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty))))
    ]
 
   [; (WC => P0) : P1 if WC, (P0 : P1)
    (outlives/one/substituted/reduce Env ((Implies WhereClauses Ty) -outlives- Parameter))
-   (Env (flatten (where-clauses->goals WhereClauses) ((Parameter -outlives- Ty))))
+   (Env (Goal_wc ... (Parameter -outlives- Ty)))
+   (where (Goal_wc ...) (where-clauses->goals WhereClauses))
    ]
 
   [; P0 : ∃ P1 if
@@ -172,7 +219,7 @@
    ;    third goal adds the bound that `T : 'static`
    ;    this will relate `'a: 'static`
    (outlives/one/substituted/reduce Env (Parameter -outlives- (Exists KindedVarIds Ty)))
-   (Env (Exists KindedVarIds (Parameter -outlives- Ty)))
+   (Env ((Exists KindedVarIds (Parameter -outlives- Ty))))
    ]
 
   [; ∃ P0 : P1 if
@@ -195,19 +242,20 @@
    ;     `∀T. (T: Write, T: 'b) => Any (('b : 'a))`
    ;     ...and here I assume `'b: 'a` cannot be proven.
    (outlives/one/substituted/reduce Env ((Exists KindedVarIds Ty) -outlives- Parameter))
-   (Env (ForAll KindedVarIds (Ty -outlives- Parameter)))
+   (Env ((ForAll KindedVarIds (Ty -outlives- Parameter))))
    ]
 
   [; P0 : (P1 ensures WC) if
    ;    WC, (P0 : P1)
    (outlives/one/substituted/reduce Env (Parameter -outlives- (Ensures Ty WhereClauses)))
-   (Env (flatten (where-clauses->goals WhereClauses) ((Parameter -outlives- Ty))))
+   (Env (Goal_wc ... (Parameter -outlives- Ty)))
+   (where (Goal_wc ...) (where-clauses->goals WhereClauses))
    ]
 
   [; (P0 ensures WC) : P1 if
    ;     WC => (P0 : P1)
    (outlives/one/substituted/reduce Env (Parameter -outlives- (Ensures Ty WhereClauses)))
-   (Env (Implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty)))
+   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty))))
    ]
 
   [(outlives/one/substituted/reduce Env (Parameter_a -outlives- Parameter_b))

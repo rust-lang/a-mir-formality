@@ -23,6 +23,13 @@
     )
 
    (traced '()
+
+           ; Given a T:
+           ;
+           ; &'a T -outlives- &'b T if
+           ;
+           ; 'a -outlives- 'b
+
            (test-match
             formality-ty
 
@@ -39,6 +46,60 @@
                    ((ForAll ((TyKind T)))
                     (Exists ((LtKind A) (LtKind B))))
                    ((TyRigid (Ref ()) (A T)) -outlives- (TyRigid (Ref ()) (B T)))
+                   ))
+            )
+           )
+
+   (traced '()
+           (test-match
+            formality-ty
+
+            ; for<'a> fn(&'a T) -outlives- static
+
+            ((Exists
+              ()
+              (Implies
+               ()
+               ((ForAll
+                 ((LtKind A))
+                 (TyRigid
+                  (Fn "" 1)
+                  ((TyRigid (Ref ()) (A (TyRigid u32 ())))
+                   (TyRigid (Tuple 0) ()))))
+                -outlives-
+                static))))
+
+            (term (ty:prove-scheme
+                   Env
+                   ()
+                   ((ForAll ((LtKind A)) (TyRigid (Fn "" 1) ((TyRigid (Ref ()) (A (scalar-ty u32))) TyUnit)))
+                    -outlives-
+                    static)
+                   ))
+            )
+           )
+
+   (traced '()
+           (test-match
+            formality-ty
+
+            ; For some T, exists A where (A : T)...
+            ;
+            ; true if (A -outlives- 'static)
+
+            ((Exists
+              ((LtKind VarId_A))
+              (Implies
+               ((VarId_A -outlives- static))
+               (VarId_A -outlives- VarId_T))))
+
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((TyKind T)))
+                    (Exists ((LtKind A))))
+                   (A
+                    -outlives-
+                    T)
                    ))
             )
            )

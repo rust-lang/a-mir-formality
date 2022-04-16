@@ -18,7 +18,7 @@
    (where/error (ParameterKind _ _) (var-binding-in-env Env VarId))]
 
   ; The others are not, so we can just test via patterns
-  [(parameter-kind Env Lifetime) LtKind]
+  [(parameter-kind Env Lt) LtKind]
   [(parameter-kind Env Ty) TyKind]
   )
 
