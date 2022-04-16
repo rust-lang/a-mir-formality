@@ -20,4 +20,8 @@
    ((WellFormed ParameterKind) (Parameter))
    ]
 
+  [(flay-predicate (Normalize (TyAlias AliasName (Parameter ...)) Ty))
+   ((Normalize AliasName) (Parameter ... Ty))
+   ]
+
   )

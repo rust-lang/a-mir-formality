@@ -56,6 +56,7 @@
                       (Implemented TraitId)
                       (HasImpl TraitId)
                       (WellFormed ParameterKind)
+                      (Normalize AliasName)
                       )
 
   ;; WhereClause -- Rust where clauses. These are a subset of
@@ -99,6 +100,7 @@
   (AliasTy ::= (TyAlias AliasName Parameters))
   (AliasName ::=
              AliasId
+             (TraitId AssociatedTyId)
              )
 
   ;; Predicate types correspond to the builtin logical connectives.

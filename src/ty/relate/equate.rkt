@@ -75,19 +75,19 @@
     where/error Goal_eq (All ((Parameter_1 == Parameter_2) ...)))
    (; Or we can normalize both aliases to the same type
     where/error Goal_n (Exists ((TyKind T))
-                               (All (Normalize (TyAlias AliasName (Parameter_1 ...)) T)
-                                    (Normalize (TyAlias AliasName (Parameter_2 ...)) T))
+                               (All ((Normalize (TyAlias AliasName (Parameter_1 ...)) T)
+                                     (Normalize (TyAlias AliasName (Parameter_2 ...)) T)))
                                ))
    ]
 
   [; Equating alias with something else
-   (equate/one/substituted Env ((TyAlias AliasName Parameters) == Ty))
-   (Env ((Normalize (TyAlias AliasName Parameters) Ty)))
+   (equate/one/substituted Env (AliasTy == Ty))
+   (Env ((Normalize AliasTy Ty)))
    ]
 
   [; Equating alias with something else
-   (equate/one/substituted Env (Ty == (TyAlias AliasName Parameters)))
-   (Env ((Normalize (TyAlias AliasName Parameters) Ty)))
+   (equate/one/substituted Env (Ty == AliasTy))
+   (Env ((Normalize AliasTy Ty)))
    ]
 
   [; Otherwise, `T1 == T2` if `T1 <= T2` and `T2 <= T1`

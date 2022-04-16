@@ -152,30 +152,28 @@
     where/error Goal_eq (All ((Parameter_1 == Parameter_2) ...)))
    (; Or we can normalize both aliases to the same type
     where/error Goal_n (Exists ((TyKind T1) (TyKind T2))
-                               (All (T1 <= T2)
-                                    (Normalize (TyAlias AliasName (Parameter_1 ...)) T1)
-                                    (Normalize (TyAlias AliasName (Parameter_2 ...)) T2))
+                               (All ((T1 <= T2)
+                                     (Normalize (TyAlias AliasName (Parameter_1 ...)) T1)
+                                     (Normalize (TyAlias AliasName (Parameter_2 ...)) T2)))
                                ))
    ]
 
   [; Alias on subtype
-   (compare/one/substituted Env ((TyAlias AliasName Parameters) <= Ty))
+   (compare/one/substituted Env (AliasTy <= Ty))
    (Env (Goal_n))
    (; Or we can normalize both aliases to the same type
     where/error Goal_n (Exists ((TyKind T))
-                               (All
-                                (T <= Ty)
-                                (Normalize (TyAlias AliasName Parameters) T))))
+                               (All ((T <= Ty)
+                                     (Normalize AliasTy T)))))
    ]
 
   [; Alias on supertype
-   (compare/one/substituted Env (Ty <= (TyAlias AliasName Parameters)))
+   (compare/one/substituted Env (Ty <= AliasTy))
    (Env (Goal_n))
    (; Or we can normalize both aliases to the same type
     where/error Goal_n (Exists ((TyKind T))
-                               (All
-                                (Ty <= T)
-                                (Normalize (TyAlias AliasName Parameters) T))))
+                               (All ((Ty <= T)
+                                     (Normalize AliasTy T)))))
    ]
 
   [; `!X <= T` where:
