@@ -81,10 +81,13 @@
    ]
 
   [; Flip `>=` to `<=` for forall, exists, and implication types
-   (compare/one/substituted Env (Parameter_1 >= Parameter_2))
-   (compare/one/substituted Env (Parameter_2 <= Parameter_1))
-   (where #t (any? (forall-exists-or-implication? Parameter_1)
-                   (forall-exists-or-implication? Parameter_2)))
+   (compare/one/substituted Env (PredicateTy >= Parameter))
+   (compare/one/substituted Env (Parameter <= PredicateTy))
+   ]
+
+  [; Flip `>=` to `<=` for forall, exists, and implication types
+   (compare/one/substituted Env (Parameter >= PredicateTy))
+   (compare/one/substituted Env (PredicateTy <= Parameter))
    ]
 
   [; ∀ on the supertype side
@@ -95,7 +98,14 @@
 
   [; Implication on the supertype side
    (compare/one/substituted Env (Parameter_1 <= (Implies WhereClauses Parameter_2)))
-   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter_1 <= Parameter_2))))
+   (Env ((Implies Goals_wc (Parameter_1 <= Parameter_2))))
+   (where/error Goals_wc (where-clauses->goals WhereClauses))
+   ]
+
+  [; Ensures on the subtype side
+   (compare/one/substituted Env ((Ensures Parameter_1 WhereClauses) <= Parameter_2))
+   (Env ((Implies Hypotheses_wc (Parameter_1 <= Parameter_2))))
+   (where/error Hypotheses_wc (where-clauses->hypotheses WhereClauses))
    ]
 
   [; ∀ on the subtype side
@@ -107,7 +117,13 @@
   [; Implication on the subtype side
    (compare/one/substituted Env ((Implies WhereClauses Parameter_1) <= Parameter_2))
    (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
-   (where (Goal_wc ...) (where-clauses->goals WhereClauses))
+   (where/error (Goal_wc ...) (where-clauses->goals WhereClauses))
+   ]
+
+  [; Ensures on the supertype side
+   (compare/one/substituted Env (Parameter_1 <= (Ensures Parameter_2 WhereClauses)))
+   (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
+   (where/error (Goal_wc ...) (where-clauses->goals WhereClauses))
    ]
 
   [; `!X <= T` where:
@@ -154,17 +170,6 @@
    (compare/one/substituted _ _)
    Error
    ]
-
-  )
-
-(define-metafunction formality-ty
-  ;; True if this is a forall, exists, or implication type.
-  forall-exists-or-implication? : Parameter -> boolean
-
-  [(forall-exists-or-implication? (ForAll _ _)) #t]
-  [(forall-exists-or-implication? (Exists _ _)) #t]
-  [(forall-exists-or-implication? (Implies _ _)) #t]
-  [(forall-exists-or-implication? _) #f]
 
   )
 

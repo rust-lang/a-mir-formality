@@ -136,5 +136,130 @@
             <=
             (ForAll ((TyKind T)) (TyRigid (Fn "" 1) (T TyUnit))) ; forall<T> fn(T)
             ))))
+
+   (traced '()
+           (; Test for ensures: we can add ensures for things we can prove
+            test-match
+            formality-ty
+            ((Exists _ (Implies _ _)))
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((TyKind T)))
+                    )
+                   ((Implemented (Debug (T))))
+                   (T
+                    <=
+                    (Ensures T ((Implemented (Debug (T)))))
+                    )))))
+
+   (; Test for ensures: we cannot add ensures for things we cannot prove
+    test-match
+    formality-ty
+    ()
+    (term (ty:prove-scheme
+           Env
+           ((ForAll ((TyKind T)))
+            )
+           ()
+           (T
+            <=
+            (Ensures T ((Implemented (Debug (T)))))
+            ))))
+
+
+   (; Test for ensures: we can use ensures on LHS to prove ensures on RHS
+    test-match
+    formality-ty
+    ((Exists _ (Implies _ _)))
+    (term (ty:prove-scheme
+           Env
+           ((ForAll ((TyKind T)))
+            )
+           ()
+           ((Ensures T ((Implemented (Debug (T)))))
+            <=
+            (Ensures T ((Implemented (Debug (T)))))
+            ))))
+
+   (; Test for implication in subtype
+    ;
+    ; cannot use an implication type whose premises we cannot prove
+    test-match
+    formality-ty
+    ()
+    (term (ty:prove-scheme
+           Env
+           ((ForAll ((TyKind T)))
+            )
+           ()
+           ((Implies ((Implemented (Debug (T)))) T)
+            <=
+            T
+            ))))
+
+   (; Test for implication in subtype:
+    ;
+    ; can use an implication type whose premises
+    ; we CAN prove
+    test-match
+    formality-ty
+    ((Exists () (Implies () _)))
+    (term (ty:prove-scheme
+           Env
+           ((ForAll ((TyKind T)))
+            )
+           ((Implemented (Debug (T))))
+           ((Implies ((Implemented (Debug (T)))) T)
+            <=
+            T
+            ))))
+
+
+   (; Test for implication in supertype
+    ;
+    ; can add implications, no problem
+    test-match
+    formality-ty
+    ((Exists () (Implies () _)))
+    (term (ty:prove-scheme
+           Env
+           ((ForAll ((TyKind T)))
+            )
+           ()
+           (T
+            <=
+            (Implies ((Implemented (Debug (T)))) T)
+            ))))
+
+   (; Test for implication in supertype
+    ;
+    ; base type must match
+    test-match
+    formality-ty
+    ()
+    (term (ty:prove-scheme
+           Env
+           ((ForAll ((TyKind T) (TyKind U)))
+            )
+           ()
+           (U
+            <=
+            (Implies ((Implemented (Debug (T)))) T)h
+            ))))
+
+   (; Test for implication on both sides
+    test-match
+    formality-ty
+    ((Exists () (Implies () _)))q
+    (term (ty:prove-scheme
+           Env
+           ((ForAll ((TyKind T)))
+            )
+           ()
+           ((Implies ((Implemented (Debug (T)))) T)
+            <=
+            (Implies ((Implemented (Debug (T)))) T)
+            ))))
+
    )
   )

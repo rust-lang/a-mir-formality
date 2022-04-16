@@ -81,7 +81,8 @@
   ;; either a bound, existential (inference), or universal
   ;; (placeholder) variable.
   (Tys ::= (Ty ...))
-  (Ty ::= RigidTy ForAllTy ImplicationTy VarId)
+  (Ty ::= RigidTy PredicateTy VarId)
+  (PredicateTy ::= ForAllTy ExistsTy ImplicationTy EnsuresTy)
 
   ;; RigidTy -- A *rigid* type is onee that can only be equal to itself. Most Rust types fit
   ;; this category, e.g., `Vec<i32>` would be represented as `(TyRigid Vec ((TyRigid i32 ())))`.
@@ -94,13 +95,17 @@
              (Fn Abi number) ; fn types
              )
 
-  ;; ForAll/Implication Types: In Rust, these are always paired with `dyn` and `fn` types,
+  ;; ForAll and implication types: In Rust, these are always paired with `dyn` and `fn` types,
   ;; but in our calculus we separate and generalize them.
   ;;
   ;; Implication types have an interesting twist: if the implication is false, the only
   ;; valid operation on the type is to drop it.
   (ForAllTy ::= (ForAll KindedVarIds Ty))
   (ImplicationTy ::= (Implies WhereClauses Ty))
+
+  ;; Exists and ensures types: These are used in Rust to model
+  (ExistsTy ::= (Exists KindedVarIds Ty))
+  (EnsuresTy ::= (Ensures Ty WhereClauses))
 
   ;; Treat ABIs as opaque strings (for now, at least)
   (Abi ::= string)
