@@ -116,7 +116,7 @@
    (Env ((Any Goals)))
 
    (where #t (env-contains-placeholder-var Env VarId))
-   (where/error Goals (bound-placeholder-from-hypothesis Env VarId SubtypeOp Parameter))
+   (where/error Goals (bound-placeholder-from-hypotheses Env VarId SubtypeOp Parameter))
    ]
 
   [; `T <= !X` where:

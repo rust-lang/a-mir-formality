@@ -139,9 +139,9 @@
    (where/error VarIdPairs_new ((VarId VarId_out) VarIdPair ...))
 
    ; We want to require that `?Xe ◃ !X` -- so find bounds `B` where
-   ; `B ◃ !X` and show that `?Xe ◃ B`. Except that, given the way the `bound-placeholder-from-hypothesis`
+   ; `B ◃ !X` and show that `?Xe ◃ B`. Except that, given the way the `bound-placeholder-from-hypotheses`
    ; function works, we find founds `B` where `!X ▹ B` and then show that `B ▹ ?Xe`.
-   (where/error Goals_out (bound-placeholder-from-hypothesis Env_?Xe VarId_!X InequalityOp_▹ VarId_?Xe))
+   (where/error Goals_out (bound-placeholder-from-hypotheses Env_?Xe VarId_!X InequalityOp_▹ VarId_?Xe))
    ]
 
   ;; structural recursion

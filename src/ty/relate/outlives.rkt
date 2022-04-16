@@ -54,7 +54,7 @@
 
    (where (LtKind ForAll _) (var-binding-in-env Env VarId_A))
    (where (LtKind ForAll _) (var-binding-in-env Env VarId_B))
-   (where Goals (bound-placeholder-from-hypothesis Env VarId_A OutlivesOp VarId_B))
+   (where Goals (bound-placeholder-from-hypotheses Env VarId_A OutlivesOp VarId_B))
    ]
 
   [; ?X -outlives- P where P in universe(?X):
@@ -145,7 +145,7 @@
    (Env ((Any Goals)))
 
    (where (TyKind ForAll _) (var-binding-in-env Env VarId))
-   (where/error Goals (bound-placeholder-from-hypothesis Env VarId -outlives- Parameter))
+   (where/error Goals (bound-placeholder-from-hypotheses Env VarId -outlives- Parameter))
    ]
 
   [; T : !X where !X has no known bounds:
@@ -155,7 +155,7 @@
    (Env ((Parameter -outlives- static)))
 
    (where (TyKind ForAll _) (var-binding-in-env Env VarId))
-   (where () (bound-placeholder-from-hypothesis Env VarId -outlived-by- Parameter))
+   (where () (bound-placeholder-from-hypotheses Env VarId -outlived-by- Parameter))
    ]
 
   [; T : !X where !X has known bounds:
@@ -167,7 +167,7 @@
    (Env ((Any (Goal_0 Goal_1 ...))))
 
    (where (TyKind ForAll _) (var-binding-in-env Env VarId))
-   (where/error (Goal_0 Goal_1 ...) (bound-placeholder-from-hypothesis Env VarId -outlived-by- Parameter))
+   (where/error (Goal_0 Goal_1 ...) (bound-placeholder-from-hypotheses Env VarId -outlived-by- Parameter))
    ]
 
   [; P0 : ∀ P1 if

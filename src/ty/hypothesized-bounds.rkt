@@ -7,17 +7,17 @@
          "../logic/match.rkt"
          "../logic/substitution.rkt"
          )
-(provide bound-placeholder-from-hypothesis
+(provide bound-placeholder-from-hypotheses
          )
 
 (define-metafunction formality-ty
   ;; Returns a list of goals `Goal ...`, any one of which is sufficient to prove
-  ;; that `!X ◃ P`.
-  bound-placeholder-from-hypothesis : Env_in VarId_!X InequalityOp_◃ Parameter -> (Goal_out ...)
+  ;; that `!X ◃ P` based on the known bounds on `!X` found in the hypotheses.
+  bound-placeholder-from-hypotheses : Env_in VarId_!X InequalityOp_◃ Parameter -> (Goal_out ...)
 
   #:pre (env-contains-placeholder-var Env_in VarId_!X)
 
-  [(bound-placeholder-from-hypothesis Env VarId_!X InequalityOp_◃ Parameter)
+  [(bound-placeholder-from-hypotheses Env VarId_!X InequalityOp_◃ Parameter)
    (Goal_out ... ...)
    (where/error (FlatHypothesis ...) (flattened-hypotheses-in-env Env))
    (where/error ((Goal_out ...) ...) ((match-hypothesis FlatHypothesis VarId_!X InequalityOp_◃ Parameter) ...))
