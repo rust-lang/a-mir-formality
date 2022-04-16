@@ -12,13 +12,13 @@
   [(ty:predicates-could-match Predicate_1 Predicate_2)
    #t
    (where ((Predicate/Skeleton _) (Predicate/Skeleton _))
-          ((flay-predicate Predicate_1) (flay-predicate Predicate_2)))
+          ((debone-predicate Predicate_1) (debone-predicate Predicate_2)))
    ]
 
   [(ty:predicates-could-match Predicate_1 Predicate_2)
    #f
    (where ((Predicate/Skeleton_!_1 _) (Predicate/Skeleton_!_1 _))
-          ((flay-predicate Predicate_1) (flay-predicate Predicate_2)))
+          ((debone-predicate Predicate_1) (debone-predicate Predicate_2)))
    ]
 
   )

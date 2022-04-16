@@ -19,7 +19,7 @@
   [(ty:equate-predicates Env Predicate_1 Predicate_2)
    (relate/all (Env ()) ((Parameter_1 == Parameter_2) ...))
    (where ((Predicate/Skeleton_1 (Parameter_1 ..._1)) (Predicate/Skeleton_1 (Parameter_2 ..._1)))
-          ((flay-predicate Predicate_1) (flay-predicate Predicate_2)))
+          ((debone-predicate Predicate_1) (debone-predicate Predicate_2)))
    ]
 
   [(ty:equate-predicates _ _ _)

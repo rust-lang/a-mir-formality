@@ -2,25 +2,25 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          )
-(provide flay-predicate
+(provide debone-predicate
          )
 
 (define-metafunction formality-ty
-  flay-predicate : Predicate -> Predicate/Flayed
+  debone-predicate : Predicate -> Predicate/Deboned
 
-  [(flay-predicate (Implemented (TraitId Parameters)))
+  [(debone-predicate (Implemented (TraitId Parameters)))
    ((Implemented TraitId) Parameters)
    ]
 
-  [(flay-predicate (HasImpl (TraitId Parameters)))
+  [(debone-predicate (HasImpl (TraitId Parameters)))
    ((HasImpl TraitId) Parameters)
    ]
 
-  [(flay-predicate (WellFormed (ParameterKind Parameter)))
+  [(debone-predicate (WellFormed (ParameterKind Parameter)))
    ((WellFormed ParameterKind) (Parameter))
    ]
 
-  [(flay-predicate (Normalize (TyAlias AliasName (Parameter ...)) Ty))
+  [(debone-predicate (Normalize (TyAlias AliasName (Parameter ...)) Ty))
    ((Normalize AliasName) (Parameter ... Ty))
    ]
 
