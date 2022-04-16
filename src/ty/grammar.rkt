@@ -67,7 +67,7 @@
                (ForAll KindedVarIds WhereClause)
                (Implemented TraitRef)
                (Outlives (Parameter : Lt))
-               #;(ProjectionEq TraitRef :: (AssociatedTyId Substitution) = Ty)
+               (Normalize AliasTy Ty)
                )
 
   ;; Ty -- Rust types

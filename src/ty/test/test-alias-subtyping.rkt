@@ -32,12 +32,8 @@
                 )))
     )
 
-
-
-
    (traced '()
-           (; #25860 -- an upcast that discharges implied bound successfully
-            test-match
+           (test-match
             formality-ty
             ((Exists () (Implies () _))) ; provable!
             (term (ty:prove-scheme
@@ -47,6 +43,43 @@
                    ((item (vec (scalar-ty i32)))
                     <=
                     (scalar-ty i32)
+                    )
+                   )
+                  )
+            ))
+
+   (traced '()
+           (test-match
+            formality-ty
+            ;; Cannot prove that `item(T) == item(U)` for arbitrary
+            ;; T and U.
+            () ; not provable!
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((TyKind T) (TyKind U))))
+                   ()
+                   ((item T)
+                    <=
+                    (item U)
+                    )
+                   )
+                  )
+            ))
+
+   (traced '()
+           (test-match
+            formality-ty
+            ;; Given that `item(T) = i32` and `item(U) = i32`,
+            ;; we *can* prove that `item(T) == item(U)`.
+            ((Exists () (Implies () _))) ; provable!
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((TyKind T) (TyKind U))))
+                   ((Normalize (item T) (scalar-ty i32))
+                    (Normalize (item U) (scalar-ty i32)))
+                   ((item T)
+                    <=
+                    (item U)
                     )
                    )
                   )
