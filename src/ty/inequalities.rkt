@@ -5,6 +5,7 @@
          )
 (provide known-bounds
          variable-bounds
+         known-relations
          env-with-var-related-to-parameters
          env-with-var-related-to-parameter
          remove-var-bounds-from-env
@@ -61,6 +62,29 @@
   )
 
 (define-metafunction formality-ty
+  ;; Given a variable `VarId_in` returns all known relations about `VarId_in`
+  ;; (e.g., `VarId_in <= Parameter` etc).
+  known-relations : Env_in VarId_in -> (Relation ...)
+  #:pre (env-contains-unmapped-var Env_in VarId_in)
+
+  [(known-relations Env VarId)
+   (Relation ... ...)
+   (where/error (VarInequality ...) (env-inequalities Env))
+   (where/error ((Relation ...) ...) ((filter-for-var VarInequality VarId) ...))
+   ]
+
+  )
+
+(define-metafunction formality-ty
+  ;; If `VarInequality` is a relation of `VarId`, return empty list.
+  ;; Else return `(VarInequality)`.
+  filter-for-var : VarInequality VarId -> (Relation ...)
+
+  [(filter-for-var (VarId InequalityOp (Parameter ...)) VarId) ((VarId InequalityOp Parameter) ...)]
+  [(filter-for-var VarInequality VarId) ()]
+  )
+
+(define-metafunction formality-ty
   ;; Removes `VarId_in` from the list of bounded variables in `Env_in` (assuming it is
   ;; present) and returns the resulting environment as well as whatever bounds `VarId_in`
   ;; had.
@@ -70,7 +94,7 @@
   #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
 
   [(remove-var-bounds-from-env Env VarId)
-   (env-with-inequalities Env (flatten ((filter-var-inequality VarInequality VarId) ...)))
+   (env-with-inequalities Env (flatten ((filter-not-for-var VarInequality VarId) ...)))
    (where/error (VarInequality ...) (env-inequalities Env))
    ]
 
@@ -79,10 +103,10 @@
 (define-metafunction formality-ty
   ;; If `VarInequality` is a relation of `VarId`, return empty list.
   ;; Else return `(VarInequality)`.
-  filter-var-inequality : VarInequality VarId -> (VarInequality ...)
+  filter-not-for-var : VarInequality VarId -> (VarInequality ...)
 
-  [(filter-var-inequality (VarId InequalityOp _) VarId) ()]
-  [(filter-var-inequality VarInequality VarId) (VarInequality)]
+  [(filter-not-for-var (VarId InequalityOp _) VarId) ()]
+  [(filter-not-for-var VarInequality VarId) (VarInequality)]
   )
 
 (define-metafunction formality-ty
