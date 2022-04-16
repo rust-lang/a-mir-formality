@@ -144,6 +144,40 @@
    (where/error (Goal_wc ...) (where-clauses->goals WhereClauses))
    ]
 
+  [; Alias on both sides with same name
+   (compare/one/substituted Env ((TyAlias AliasName (Parameter_1 ...)) <= (TyAlias AliasName (Parameter_2 ...))))
+   (Env ((Any (Goal_eq Goal_n))))
+   (; Either all the parameters are equal (note that we have no variance on TyAlias, so they
+    ; must be equal)
+    where/error Goal_eq (All ((Parameter_1 == Parameter_2) ...)))
+   (; Or we can normalize both aliases to the same type
+    where/error Goal_n (Exists ((TyKind T1) (TyKind T2))
+                               (All (T1 <= T2)
+                                    (Normalize (TyAlias AliasName (Parameter_1 ...)) T1)
+                                    (Normalize (TyAlias AliasName (Parameter_2 ...)) T2))
+                               ))
+   ]
+
+  [; Alias on subtype
+   (compare/one/substituted Env ((TyAlias AliasName Parameters) <= Ty))
+   (Env (Goal_n))
+   (; Or we can normalize both aliases to the same type
+    where/error Goal_n (Exists ((TyKind T))
+                               (All
+                                (T <= Ty)
+                                (Normalize (TyAlias AliasName Parameters) T))))
+   ]
+
+  [; Alias on supertype
+   (compare/one/substituted Env (Ty <= (TyAlias AliasName Parameters)))
+   (Env (Goal_n))
+   (; Or we can normalize both aliases to the same type
+    where/error Goal_n (Exists ((TyKind T))
+                               (All
+                                (Ty <= T)
+                                (Normalize (TyAlias AliasName Parameters) T))))
+   ]
+
   [; `!X <= T` where:
    ;    Prove `X <= T1` for any `T1 <= P` from environment.
    (compare/one/substituted Env (VarId <= Parameter))

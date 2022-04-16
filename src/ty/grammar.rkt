@@ -42,6 +42,8 @@
              (HasImpl TraitRef)
              ; the given type or lifetime is well-formed.
              (WellFormed (ParameterKind Parameter))
+             ; normalize a given alias to another type
+             (Normalize AliasTy Ty)
              )
   ;; ANCHOR_END:Predicates
 

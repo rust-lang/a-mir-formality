@@ -68,6 +68,28 @@
    (Env ((Parameter_1 == Parameter_2) ...))
    ]
 
+  [; Equating two alias types with same name
+   (equate/one/substituted Env ((TyAlias AliasName (Parameter_1 ...)) == (TyAlias AliasName (Parameter_2 ...))))
+   (Env ((Any (Goal_eq Goal_n))))
+   (; Either all the parameters are equal
+    where/error Goal_eq (All ((Parameter_1 == Parameter_2) ...)))
+   (; Or we can normalize both aliases to the same type
+    where/error Goal_n (Exists ((TyKind T))
+                               (All (Normalize (TyAlias AliasName (Parameter_1 ...)) T)
+                                    (Normalize (TyAlias AliasName (Parameter_2 ...)) T))
+                               ))
+   ]
+
+  [; Equating alias with something else
+   (equate/one/substituted Env ((TyAlias AliasName Parameters) == Ty))
+   (Env ((Normalize (TyAlias AliasName Parameters) Ty)))
+   ]
+
+  [; Equating alias with something else
+   (equate/one/substituted Env (Ty == (TyAlias AliasName Parameters)))
+   (Env ((Normalize (TyAlias AliasName Parameters) Ty)))
+   ]
+
   [; Otherwise, `T1 == T2` if `T1 <= T2` and `T2 <= T1`
    (equate/one/substituted Env (Parameter_1 == Parameter_2))
    (Env ((Parameter_1 <= Parameter_2) (Parameter_1 >= Parameter_2)))
