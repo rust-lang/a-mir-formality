@@ -5,7 +5,6 @@
 (provide where-clause->goal
          where-clause->hypothesis
          where-clauses->goals
-         where-clauses->hypotheses
          )
 
 ; FIXME: Right now, where clauses are a syntactic subset of goals and
@@ -24,14 +23,18 @@
   ;; Convert a where clause `W` into a goal that proves `W` is true.
   where-clause->goal : WhereClause -> Goal
 
-  ((where-clause->goal WhereClause) WhereClause)
-  )
+  [(where-clause->goal (ForAll KindedVarIds WhereClause))
+   (ForAll KindedVarIds (where-clause->goal WhereClause))
+   ]
 
-(define-metafunction formality-ty
-  ;; Convert a set of where clause `W` into hypotheses.
-  where-clauses->hypotheses : WhereClause -> Hypotheses
+  [(where-clause->goal (Implemented TraitRef))
+   (Implemented TraitRef)
+   ]
 
-  ((where-clauses->hypotheses WhereClauses) WhereClauses)
+  [(where-clause->goal (Outlives (Parameter_a : Parameter_b)))
+   (Parameter_a -outlives- Parameter_b)
+   ]
+
   )
 
 (define-metafunction formality-ty
@@ -39,5 +42,9 @@
   ;; implied by `W` can assume to be true.
   where-clause->hypothesis : WhereClause -> Hypothesis
 
-  ((where-clause->hypothesis WhereClause) WhereClause)
+  [(where-clause->hypothesis WhereClause)
+   ; Hack: we know that we restrict ourselves to the subset of things that can be
+   ; interpreted either way, so just reuse `where-clause->goal`.
+   (where-clause->goal WhereClause)]
+
   )

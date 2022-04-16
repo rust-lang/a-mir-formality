@@ -98,10 +98,17 @@
   (Hypotheses Clauses ::= (Clause ...))
   (Hypothesis Clause ::=
               AtomicGoal
-              (Implies Goals Predicate)
+              (Implies Goals AtomicGoal)
               (ForAll KindedVarIds Clause)
               )
   ;; ANCHOR_END:GoalsAndHypotheses
+
+  ;; A `FlatHypothesis` is a flattened form of hypotheses; it is equally expressive
+  ;; with the recursive structure. Useful for matching.
+  (FlatHypotheses ::= (FlatHypothesis ...))
+  (FlatHypothesis ::= (ForAll KindedVarIds FlatImplicationHypothesis))
+  (FlatImplicationHypotheses ::= (FlatImplicationHypothesis ...))
+  (FlatImplicationHypothesis ::= (Implies Goals AtomicGoal))
 
   ;; `Invariants` -- things which must be true or the type system has some bugs.
   ;; A rather restricted form of clause.

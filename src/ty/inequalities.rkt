@@ -4,7 +4,6 @@
          "../logic/env.rkt"
          )
 (provide known-bounds
-         variable-bounds
          known-relations
          env-with-var-related-to-parameters
          env-with-var-related-to-parameter
@@ -24,19 +23,6 @@
   [(invert-inequality-op -outlived-by-) -outlives-]
   )
 
-(define-metafunction formality-ty
-  ;; Returns the bounds on `VarId_in` found in the environment, or `(() ())` if none are found.
-  ;;
-  ;; `VarId_in` must be a variable declared in the environment and must not be unmapped.
-  variable-bounds : Env_in VarId_in -> (Parameters_lb Parameters_ub)
-  #:pre (env-contains-unmapped-var Env_in VarId_in)
-
-  [(variable-bounds Env VarId)
-   ((known-bounds Env <= VarId)
-    (known-bounds Env >= VarId)
-    )
-   ]
-  )
 
 (define-metafunction formality-ty
   ;; Given a variable `VarId_in` and a inequality op `op` (e.g. `<=`), returns the known
@@ -45,14 +31,14 @@
   ;; (Note that these are stored in the environment with `VarId` listed first, so we actually
   ;; look for inequalities like `VarId >= P`.)
   known-bounds : Env_in InequalityOp VarId_in -> Parameters_ub
-  #:pre (env-contains-unmapped-var Env_in VarId_in)
+  #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
 
-  [(known-bounds Env InequalityOp_<= VarId)
+  [(known-bounds Env InequalityOp_◃ VarId)
    Parameters
    (; we store bounds like `VarId <= X`, so if we want `X <= VarId`, we have to
     ; search for `VarId >= X`.
-    where/error InequalityOp_>= (invert-inequality-op InequalityOp_<=))
-   (where (_ ... (VarId InequalityOp_>= Parameters) _ ...) (env-inequalities Env))
+    where/error InequalityOp_▹ (invert-inequality-op InequalityOp_◃))
+   (where (_ ... (VarId InequalityOp_▹ Parameters) _ ...) (env-inequalities Env))
    ]
 
   [(known-bounds Env InequalityOp VarId)
@@ -65,7 +51,7 @@
   ;; Given a variable `VarId_in` returns all known relations about `VarId_in`
   ;; (e.g., `VarId_in <= Parameter` etc).
   known-relations : Env_in VarId_in -> (Relation ...)
-  #:pre (env-contains-unmapped-var Env_in VarId_in)
+  #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
 
   [(known-relations Env VarId)
    (Relation ... ...)
@@ -115,7 +101,7 @@
   ;;
   ;; `VarId_in` must be a variable declared in the environment and must not be unmapped.
   env-with-var-related-to-parameters : Env_in VarId_in InequalityOp Parameters -> Env
-  #:pre (env-contains-unmapped-var Env_in VarId_in)
+  #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
 
   [(env-with-var-related-to-parameters Env VarId InequalityOp ())
    Env]
@@ -132,7 +118,7 @@
   ;;
   ;; `VarId_in` must be a variable declared in the environment and must not be unmapped.
   env-with-var-related-to-parameter : Env_in VarId_in InequalityOp Parameter -> Env
-  #:pre (env-contains-unmapped-var Env_in VarId_in)
+  #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
 
   [(env-with-var-related-to-parameter Env VarId InequalityOp Parameter)
    Env

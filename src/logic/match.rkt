@@ -6,7 +6,8 @@
          "../util.rkt"
          )
 
-(provide match-terms)
+(provide match-terms
+)
 
 (define-metafunction formality-logic
   ;; *matching terms* is a very simple minded form of unification

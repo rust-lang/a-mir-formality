@@ -1,6 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "universe-check.rkt"
+         "../hypothesized-bounds.rkt"
          "../grammar.rkt"
          "../kind.rkt"
          "../inequalities.rkt"
@@ -131,10 +132,10 @@
   [; !X : T if
    ;    `T1 : T` for any `X : T1` (`X -outlives- T1` or `T1 -outlived-by- X`) from environment.
    (outlives/one/substituted/reduce Env (VarId -outlives- Parameter))
-   (Env ((Any ((Parameter_bound -outlives- Parameter) ...))))
+   (Env ((Any Goals)))
 
    (where (TyKind ForAll _) (var-binding-in-env Env VarId))
-   (where/error (Parameter_bound ...) (known-bounds Env -outlived-by- VarId)) ; * FIXME: need to look through hypotheses
+   (where/error Goals (bound-placeholder-from-hypothesis Env VarId -outlives- Parameter))
    ]
 
   [; T : !X where !X has no known bounds:
@@ -144,16 +145,19 @@
    (Env ((Parameter -outlives- static)))
 
    (where (TyKind ForAll _) (var-binding-in-env Env VarId))
-   (where/error () (known-bounds Env -outlives- VarId)) ; * FIXME: need to look through hypotheses
+   (where () (bound-placeholder-from-hypothesis Env VarId -outlived-by- Parameter))
    ]
 
   [; T : !X where !X has known bounds:
    ;    `T1 : T` for any `T1 : X` (`T1 -outlives- X`) from environment.
+   ;
+   ; We could merge this rule and the one above by always adding static, but it would
+   ; yield strictly less precise results.
    (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
-   (Env ((Any ((Parameter -outlives- Parameter_bound) ...))))
+   (Env ((Any (Goal_0 Goal_1 ...))))
 
    (where (TyKind ForAll _) (var-binding-in-env Env VarId))
-   (where/error (Parameter_bound ...) (known-bounds Env -outlives- VarId)) ; * FIXME: need to look through hypotheses
+   (where/error (Goal_0 Goal_1 ...) (bound-placeholder-from-hypothesis Env VarId -outlived-by- Parameter))
    ]
 
   [; P0 : ∀ P1 if

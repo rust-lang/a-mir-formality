@@ -10,6 +10,7 @@
          env-fix
          substitution-fix
          substitution-concat-disjoint
+         substitution-domain
          substitution-without-vars
          substitution-maps-var
          substitution-valid?

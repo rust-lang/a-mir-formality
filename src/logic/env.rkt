@@ -261,17 +261,6 @@
   )
 
 (define-metafunction formality-logic
-  ;; True if this variable is defined in the environment
-  ;; and has not been mapped to a specific value.
-  env-contains-unmapped-var : Env VarId -> boolean
-
-  [(env-contains-unmapped-var Env VarId)
-   (all? (env-contains-var Env VarId)
-         (not? (env-maps-var Env VarId)))
-   ]
-  )
-
-(define-metafunction formality-logic
   ;; True if the Env's substitution includes a mapping for VarId.
   env-maps-var : Env VarId -> boolean
 
@@ -355,6 +344,31 @@
   )
 
 (define-metafunction formality-logic
+  ;; Returns the set of variables that appear free in the given term;
+  ;; only returns variables that are defined in the environment. This includes
+  ;; both existential (inference) and universal (placeholder) variables.
+  ;; Everything else is assumed to be a universal constant or keyword.
+  free-existential-variables : Env Term -> (VarId ...)
+
+  [(free-existential-variables Env (Quantifier ((ParameterKind VarId_bound) ...) Term))
+   ,(set-subtract (term VarIds_free) (term (VarId_bound ...)))
+   (where/error VarIds_free (free-existential-variables Env Term))]
+
+  [(free-existential-variables Env VarId)
+   (VarId)
+   (where #t (env-contains-existential-var Env VarId))]
+
+  [(free-existential-variables Env (Term ...))
+   ,(apply set-union (term (() VarIds ...)))
+   (where/error (VarIds ...) ((free-existential-variables Env Term) ...))
+   ]
+
+  [(free-existential-variables Env _)
+   ()]
+
+  )
+
+(define-metafunction formality-logic
   ;; Returns the set of universally quantified variables from
   ;; within the term -- this excludes global constants like
   ;; adt names. So e.g. if you have `(TyRigid Vec (X))`,
@@ -433,6 +447,14 @@
   in?/id : AnyId (AnyId ...) -> boolean
   [(in?/id AnyId (_ ... AnyId _ ...)) #t]
   [(in?/id _ _) #f]
+  )
+
+(define-metafunction formality-logic
+  ;; `in?` specialized to Id for a micro-optimization
+  all-in?/id : (AnyId ...) (AnyId ...) -> boolean
+  [(all-in?/id (AnyId_0 ...) AnyIds)
+   (all? ((in?/id AnyId_0 AnyIds) ...))
+   ]
   )
 
 (define-metafunction formality-logic

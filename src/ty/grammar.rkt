@@ -148,6 +148,11 @@
               -outlived-by-      ; `B:A` -- anything that invalidates B must invalidate A
               )
 
+  ;; A `HypothesizedBound` `Gs => B` indicates that there is a hypothesis in
+  ;; the environment that `B ◃ !X` for some `InequalityOp` `◃` and placeholder `!X`.
+  ;; found in the environment's hypotheses.
+  (HypothesizedBound ::= (Goal => Parameter))
+
   ;; Scalars -- numbers, booleans
   (ScalarId ::= i8 u8 i16 u16 i32 u32 i64 u64 i128 u128 bool)
 

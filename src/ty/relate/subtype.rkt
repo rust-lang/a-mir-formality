@@ -8,6 +8,7 @@
          "../inequalities.rkt"
          "../where-clauses.rkt"
          "../extrude.rkt"
+         "../hypothesized-bounds.rkt"
          "../../logic/env.rkt"
          )
 (provide compare/one/substituted
@@ -112,10 +113,10 @@
   [; `!X <= T` where:
    ;    Prove `X <= T1` for any `T1 <= P` from environment.
    (compare/one/substituted Env (VarId SubtypeOp Parameter))
-   (Env ((Any ((Parameter_bound SubtypeOp Parameter) ...))))
+   (Env ((Any Goals)))
 
    (where #t (env-contains-placeholder-var Env VarId))
-   (where/error (Parameter_bound ...) (known-bounds Env SubtypeOp VarId)) ; * FIXME: need to look through hypotheses
+   (where/error Goals (bound-placeholder-from-hypothesis Env VarId SubtypeOp Parameter))
    ]
 
   [; `T <= !X` where:

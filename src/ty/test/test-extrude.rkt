@@ -10,6 +10,21 @@
          )
 
 (module+ test
+
+  (define-metafunction formality-ty
+    ;; Returns the bounds on `VarId_in` found in the environment, or `(() ())` if none are found.
+    ;;
+    ;; `VarId_in` must be a variable declared in the environment and must not be unmapped.
+    variable-bounds : Env_in VarId_in -> (Parameters_lb Parameters_ub)
+    #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
+
+    [(variable-bounds Env VarId)
+     ((known-bounds Env <= VarId)
+      (known-bounds Env >= VarId)
+      )
+     ]
+    )
+
   (redex-let*
    formality-ty
 
@@ -18,7 +33,8 @@
     ((Env_0 () (Ty_A Ty_B)) (term (instantiate-quantified EmptyEnv (ForAll ((TyKind A) (TyKind B)) ()))))
     (Universe_1 (term (universe-of-var-in-env Env_0 Ty_A)))
     ((Env_1 () (Ty_X)) (term (instantiate-quantified Env_0 (ForAll ((TyKind X)) ()))))
-    (Env_2 (term (env-with-var-related-to-parameters Env_1 Ty_X <= (Ty_A Ty_B)))))
+    (Env_2 (term (env-with-hypotheses Env_1 ((Ty_X <= Ty_A) (Ty_X <= Ty_B)))))
+    )
 
    (redex-let*
     formality-ty
@@ -63,7 +79,7 @@
 
     (test-equal
      (term Goals)
-     (term ((Any ((Ty_extruded >= Ty_B) (Ty_extruded >= Ty_A))))))
+     (term ((Any ((Ty_A <= Ty_extruded) (Ty_B <= Ty_extruded))))))
 
     )
 
