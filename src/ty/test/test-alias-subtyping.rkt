@@ -84,5 +84,61 @@
                    )
                   )
             ))
+
+   (traced '()
+           (test-match
+            formality-ty
+            ;; We cannot prove that `item(&'a()) <= item(&'b ())`
+            ;; even though `&'a () <= &'b ()`
+            () ; not provable
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((Outlives (A : B)))
+                   ((item (& A TyUnit))
+                    <=
+                    (item (& B TyUnit))
+                    )
+                   )
+                  )
+            ))
+
+   (traced '()
+           (test-match
+            formality-ty
+            ;; We CAN prove that `item(&'a()) <= item(&'b ())`
+            ;; when `&'a () == &'b ()`
+            ((Exists () (Implies () _))) ; provable
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((Outlives (A : B))
+                    (Outlives (B : A))
+                    )
+                   ((item (& A TyUnit))
+                    <=
+                    (item (& B TyUnit))
+                    )
+                   )
+                  )
+            ))
+
+   (traced '()
+           (test-match
+            formality-ty
+            ;; We can ALSO prove that `item(Vec<&'a()>) <= item(Vec<&'b ()>)`
+            ;; because we can normalize and `&'a () <= &'b ()`
+            ((Exists () (Implies () _))) ; provable
+            (term (ty:prove-scheme
+                   Env
+                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((Outlives (A : B)))
+                   ((item (vec (& A TyUnit)))
+                    <=
+                    (item (vec (& B TyUnit)))
+                    )
+                   )
+                  )
+            ))
    )
   )
