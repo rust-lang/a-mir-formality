@@ -62,16 +62,21 @@
             Env_B
             (crate-ok-goal (CrateDecl_B) CrateDecl_B)))
 
-   (; But `Foo: Partial` does not hold in B.
-    traced '()
-           (decl:test-cannot-prove
-            Env_B
-            (Implemented (Partial (Ty_Foo)))))
+   (redex-let*
+    formality-decl
+    [(Ty_Foo (term (TyRigid Foo ())))]
 
-   (; But `Foo: Partial` implies `Foo: Copy`.
-    traced '()
-           (decl:test-can-prove
-            Env_B
-            (Implies ((Implemented (Partial (Ty_Foo)))) (Implemented (Copy (Ty_Foo))))))
+    (; But `Foo: Partial` does not hold in B.
+     traced '()
+            (decl:test-cannot-prove
+             Env_B
+             (Implemented (Partial (Ty_Foo)))))
+
+    (; But `Foo: Partial` implies `Foo: Copy`.
+     traced '()
+            (decl:test-can-prove
+             Env_B
+             (Implies ((Implemented (Partial (Ty_Foo)))) (Implemented (Copy (Ty_Foo))))))
+    )
    )
   )
