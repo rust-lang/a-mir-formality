@@ -64,11 +64,28 @@
   ;; `Goal` -- things we can prove. These consists of predicates
   ;; joined by various forms of logical operators that are built
   ;; into the proving system (see `cosld-solve.rkt`).
+  ;;
+  ;; `AtomicGoal` -- goals whose meaning is defined by the
+  ;; upper layers and is opaque to this layer. We break them into
+  ;; two categories, predicates and relations, which affects how
+  ;; the upper layers convey their meaning to us:
+  ;;
+  ;; * For *predicates* the upper layer gives us a set of `Clause`
+  ;;   instances we can use to prove them true.
+  ;;
+  ;; * For *relations* the upper layer directly manipulates the
+  ;;   environment using a callback function and gives us a set of
+  ;;   subsequent goals. This is used for things like subtyping that use a
+  ;;   very custom search strategy to avoid getting "lost in the solver" and to implement
+  ;;   inference.
+  ;;
+  ;; `BuiltinGoal` -- defines logical connectives that the solver layer
+  ;; directly manages.
   (Goals = (Goal ...))
-  (Goal ::=
-        Predicate
-        Relation
-        BuiltinGoal)
+  (Goal ::= AtomicGoal BuiltinGoal)
+  (AtomicGoal ::=
+              Predicate
+              Relation)
   (BuiltinGoal ::=
                (All Goals)
                (Any Goals)
@@ -80,7 +97,7 @@
   ;; user-defined items like `trait` and `impl`.
   (Hypotheses Clauses ::= (Clause ...))
   (Hypothesis Clause ::=
-              Predicate
+              AtomicGoal
               (Implies Goals Predicate)
               (ForAll KindedVarIds Clause)
               )
