@@ -4,6 +4,8 @@
          "../logic/env.rkt"
          )
 (provide parameter-kind
+         parameter-has-type-kind?
+         parameter-has-lifetime-kind?
          )
 
 (define-metafunction formality-ty
@@ -18,4 +20,26 @@
   ; The others are not, so we can just test via patterns
   [(parameter-kind Env Lifetime) LtKind]
   [(parameter-kind Env Ty) TyKind]
+  )
+
+(define-metafunction formality-ty
+  parameter-has-type-kind? : Env Parameter -> boolean
+
+  [(parameter-has-type-kind? Env Parameter)
+   #t
+   (where TyKind (parameter-kind Env Parameter))]
+
+  [(parameter-has-type-kind? Env Parameter)
+   #f]
+  )
+
+(define-metafunction formality-ty
+  parameter-has-lifetime-kind? : Env Parameter -> boolean
+
+  [(parameter-has-lifetime-kind? Env Parameter)
+   #t
+   (where LtKind (parameter-kind Env Parameter))]
+
+  [(parameter-has-lifetime-kind? Env Parameter)
+   #f]
   )

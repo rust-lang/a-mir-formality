@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "universe-check.rkt"
          "../grammar.rkt"
+         "../kind.rkt"
          "../inequalities.rkt"
          "../where-clauses.rkt"
          "../extrude.rkt"
@@ -17,6 +18,22 @@
    ;   Always ok.
    (outlives/one/substituted Env (Parameter OutlivesOp Parameter))
    (Env ())
+   ]
+
+  [; Try to reduce to subproblems, if we can.
+   (outlives/one/substituted Env (Parameter_0 -outlives- Parameter_1))
+   (Env_out Goals_out)
+   (where #t (any? (parameter-has-type-kind? Env Parameter_0)
+                   (parameter-has-type-kind? Env Parameter_1)))
+   (where (Env_out Goals_out) (outlives/one/substituted/reduce Env (Parameter_0 -outlives- Parameter_1)))
+   ]
+
+  [; Try to reduce to subproblems, if we can.
+   (outlives/one/substituted Env (Parameter_0 -outlived-by- Parameter_1))
+   (Env_out Goals_out)
+   (where #t (any? (parameter-has-type-kind? Env Parameter_0)
+                   (parameter-has-type-kind? Env Parameter_1)))
+   (where (Env_out Goals_out) (outlives/one/substituted/reduce Env (Parameter_1 -outlives- Parameter_0)))
    ]
 
   [; ?X -outlives- P where P in universe(?X):
@@ -44,27 +61,18 @@
   [; P -outlives- ?X (regardless of universe):
    ;    * Reverse of one of the two cases above.
    (outlives/one/substituted Env (Parameter OutlivesOp VarId))
-   (outlives/one/substituted Env (Parameter (invert-inequality-op OutlivesOp) VarId))
+   (outlives/one/substituted Env (VarId (invert-inequality-op OutlivesOp) Parameter))
    (where #t (env-contains-existential-var Env VarId))
    ]
-
-  [; P -outlives- ?X where P in universe(?X):
-   ;    * Reverse of the above.
-   (outlives/one/substituted Env (Parameter_0 -outlives- Parameter_1))
-   (Env_out Goals_out)
-   (where (Env_out Goals_out) (outlives/one/substituted/reduce Env (Parameter_0 -outlives- Parameter_1)))
-   ]
-
-  [(outlives/one/substituted Env (Parameter_0 -outlived-by- Parameter_1))
-   (Env_out Goals_out)
-   (where (Env_out Goals_out) (outlives/one/substituted/reduce Env (Parameter_1 -outlives- Parameter_0)))
-   ]
-
   )
 
 (define-metafunction formality-ty
-  ;; Cases where we can reduce the outlives problem to other subproblems.
-  outlives/one/substituted/reduce : Env (Parameter -outlives- Parameter) -> (Env Goals) or Error
+  ;; Outlives relations involving types can often be reduced to subproblems.
+  outlives/one/substituted/reduce : Env_in (Parameter_a -outlives- Parameter_b) -> (Env Goals) or ()
+
+  #:pre (any? (parameter-has-type-kind? Env_in Parameter_a)
+              (parameter-has-type-kind? Env_in Parameter_b)
+              )
 
   [; R<Pr_0...Pr_n> : P1 if
    ;     ∀i (Pr_i : P1)
@@ -86,19 +94,19 @@
 
   [; !X : T if
    ;    `T1 : T` for any `X : T1` (`X -outlives- T1` or `T1 -outlived-by- X`) from environment.
-   (outlives/one/substituted/reduce VarIds_exists Env (VarId -outlives- Parameter))
+   (outlives/one/substituted/reduce Env (VarId -outlives- Parameter))
    (Env ((Any ((Parameter_bound -outlives- Parameter) ...))))
 
-   (where #t (env-contains-placeholder-var Env VarId))
+   (where (TyKind ForAll _) (var-binding-in-env Env VarId))
    (where/error (Parameter_bound ...) (known-bounds Env -outlived-by- VarId)) ; * FIXME: need to look through hypotheses
    ]
 
   [; T : !X if
    ;    `T1 : T` for any `T1 : X` (`T1 -outlives- X`) from environment.
-   (outlives/one/substituted/reduce VarIds_exists Env (Parameter -outlives- VarId))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
    (Env ((Any ((Parameter -outlives- Parameter_bound) ...))))
 
-   (where #t (env-contains-placeholder-var Env VarId))
+   (where (TyKind ForAll _) (var-binding-in-env Env VarId))
    (where/error (Parameter_bound ...) (known-bounds Env -outlives- VarId)) ; * FIXME: need to look through hypotheses
    ]
 
@@ -200,5 +208,9 @@
    ;     WC => (P0 : P1)
    (outlives/one/substituted/reduce Env (Parameter -outlives- (Ensures Ty WhereClauses)))
    (Env (Implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty)))
+   ]
+
+  [(outlives/one/substituted/reduce Env (Parameter_a -outlives- Parameter_b))
+   ()
    ]
   )
