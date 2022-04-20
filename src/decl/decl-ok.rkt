@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "../ty/grammar.rkt"
+         "../ty/where-clauses.rkt"
          "decl-from-crate.rkt")
 (provide crate-item-ok-goal crate-ok-goal)
 
@@ -12,7 +13,10 @@
   crate-ok-goal : CrateDecls CrateDecl -> Goal
 
   [(crate-ok-goal CrateDecls (CrateId (crate (CrateItemDecl ...))))
-   (All ((crate-item-ok-goal CrateDecls CrateItemDecl) ...))
+   (All (Goal_regular ... Goal_lang-item ... ...))
+
+   (where/error (Goal_regular ...) ((crate-item-ok-goal CrateDecls CrateItemDecl) ...))
+   (where/error ((Goal_lang-item ...) ...) ((lang-item-ok-goals CrateDecls CrateItemDecl) ...))
    ]
   )
 
@@ -23,7 +27,7 @@
 
   [;; For an ADT declaration declared in the crate C, like the following:
    ;;
-   ;;     struct Foo<T> where T: Ord { ... f: T ... }
+   ;;     struct Foo<T> where T: Ord { ... f: Vec<T> ... }
    ;;
    ;; We generate the following goal, which specifies that -- assuming the generics
    ;; are well formed and the where-clauses hold -- the field types are well-formed:
@@ -31,7 +35,7 @@
    ;;     (ForAll ((TyKind T))
    ;;         (Implies ((WellFormed (TyKind T))
    ;;                   (Implemented (Ord T)))
-   ;;           (WellFormed (TyKind T)) ...))
+   ;;           (WellFormed (TyKind Vec<T>)) ...))
    (crate-item-ok-goal _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
    Goal_wf
 
@@ -102,4 +106,58 @@
 
 (define-metafunction formality-decl
   trait-item-ok-goal : TraitItemDecl -> Goal
+  )
+
+(define-metafunction formality-decl
+  ;; Given a crate item that may be a lang item (i.e., some well-known trait like `Drop`),
+  ;; returns extra goals that must be met.
+  ;;
+  ;; If this is not a lang item, or this lang item
+  ;; has no extra goals associated with it beyond the basic Rust type system rules,
+  ;; returns the empty list.
+  lang-item-ok-goals : CrateDecls CrateItemDecl -> (Goal ...)
+
+  [; Impl of the Drop trait for an ADT type:
+   ;
+   ; When you implement the Drop trait for some struct `Foo<T>`, you must cover *all* possible
+   ; instances of `Foo<T>`. e.g., you cannot have `impl Drop for Foo<i32>` nor can you have
+   ; `impl<U> Drop for Foo<U> where U: Ord`, unless `T: Ord` was a where clause declared on
+   ; `Foo`.
+   ;
+   ; ```
+   ; struct Foo<T> where T: Debug { }
+   ; impl<U> Drop for Foo<U> where U: Debug + Eq { }
+   ; ```
+   ;
+   ; would generate a goal like
+   ;
+   ; ∀T. (Implemented (T: Debug)) =>
+   ;     ∃U. ((Foo<U> = Foo<T>)
+   ;          (Implemented (U: Debug))
+   ;          (Implemented (U: Eq)))
+   ;
+   ; when this goal is given to the solver, it would be rejected because `T: Eq` is not provable
+   ; (we only know that `T: Debug`).
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (Ty_impl)) (WhereClause_impl ...) _))
+   ((ForAll KindedVarIds_adt
+            (Implies (where-clauses->hypotheses WhereClauses_adt)
+                     (Exists KindedVarIds_impl
+                             (All ((Ty_impl == Ty_adt)
+                                   (where-clause->goal WhereClause_impl) ...
+                                   ))
+                             ))))
+
+   (where (TyRigid AdtId Parameters) Ty_impl)
+   (where (_ KindedVarIds_adt WhereClauses_adt _) (item-with-id CrateDecls AdtId))
+   (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
+   (where/error Ty_adt (TyRigid AdtId (VarId_adt ...)))
+   ]
+
+  [; Impl of the Drop trait for something that is not an ADT -- always an error.
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (_ ...)) WhereClauses_impl _))
+   ((Any ())) ; unprovable goal
+   ]
+
+  [; Base case: this is not a special item, or it has no special rules: return empty list.
+   (lang-item-ok-goals CrateDecls _) ()]
   )
