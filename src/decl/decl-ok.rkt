@@ -3,7 +3,9 @@
          "grammar.rkt"
          "../ty/grammar.rkt"
          "../ty/where-clauses.rkt"
-         "decl-from-crate.rkt")
+         "decl-from-crate.rkt"
+         "../logic/env.rkt"
+         )
 (provide crate-item-ok-goal crate-ok-goal)
 
 (define-metafunction formality-decl
@@ -11,6 +13,8 @@
   ;; generate the goal that proves all declarations in the current crate are
   ;; "ok". Other crates are assumed to be "ok".
   crate-ok-goal : CrateDecls CrateDecl -> Goal
+
+  #:pre (in? CrateDecl CrateDecls)
 
   [(crate-ok-goal CrateDecls (CrateId (crate (CrateItemDecl ...))))
    (All (Goal_regular ... Goal_lang-item ... ...))
@@ -148,7 +152,7 @@
                              ))))
 
    (where (TyRigid AdtId Parameters) Ty_impl)
-   (where (_ KindedVarIds_adt WhereClauses_adt _) (item-with-id CrateDecls AdtId))
+   (where (AdtKind KindedVarIds_adt WhereClauses_adt _) (item-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
    (where/error Ty_adt (TyRigid AdtId (VarId_adt ...)))
    ]
@@ -156,6 +160,42 @@
   [; Impl of the Drop trait for something that is not an ADT -- always an error.
    (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (_ ...)) WhereClauses_impl _))
    ((Any ())) ; unprovable goal
+   ]
+
+  [; Impl of the Copy trait for an ADT type:
+   ;
+   ; When you implement the Copy trait for some struct `Foo<T>`, all the fields in that struct
+   ; (or enum, union, etc) must also be `Copy`.
+   ;
+   ; So for this example...
+   ;
+   ; ```
+   ; struct Foo<T> {
+   ;    field: Vec<T>
+   ; }
+   ; impl<U> Copy for Foo<U> where U: Debug { }
+   ; ```
+   ;
+   ; would generate a goal like
+   ;
+   ; ∀U. (Implemented (U: Debug)) =>
+   ;     ∃T. ((Foo<U> = Foo<T>) ∧
+   ;          (Implemented (Vec<T>: Copy)))
+   ;
+   ; of course, in this case, it is not provable because `Vec<T>: Copy` is not true for any `T`.
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Copy (Ty_impl)) (WhereClause_impl ...) ()))
+   ((ForAll KindedVarIds_impl
+            (Implies ((where-clause->hypothesis WhereClause_impl) ...)
+                     (Exists KindedVarIds_adt
+                             (All ((Ty_impl == Ty_adt)
+                                   (Implemented (rust:Copy (Ty_field))) ... ...
+                                   )
+                                  )))))
+
+   (where (TyRigid AdtId Parameters) Ty_impl)
+   (where (AdtKind KindedVarIds_adt _ AdtVariants) (item-with-id CrateDecls AdtId))
+   (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
+   (where/error Ty_adt (TyRigid AdtId (VarId_adt ...)))
    ]
 
   [; Base case: this is not a special item, or it has no special rules: return empty list.
