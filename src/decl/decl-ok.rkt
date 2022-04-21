@@ -196,6 +196,7 @@
    (where (AdtKind KindedVarIds_adt _ AdtVariants) (item-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
    (where/error Ty_adt (TyRigid AdtId (VarId_adt ...)))
+   (where/error ((VariantId ((FieldId Ty_field) ...)) ...) AdtVariants)
    ]
 
   [; Base case: this is not a special item, or it has no special rules: return empty list.
