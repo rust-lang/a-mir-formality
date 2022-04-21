@@ -12,9 +12,9 @@
   ;; Given a set of crates and the decl for the current crate,
   ;; generate the goal that proves all declarations in the current crate are
   ;; "ok". Other crates are assumed to be "ok".
-  crate-ok-goal : CrateDecls CrateDecl -> Goal
+  crate-ok-goal : CrateDecls_cs CrateDecl_c -> Goal
 
-  #:pre (in? CrateDecl CrateDecls)
+  #:pre (in? CrateDecl_c CrateDecls_cs)
 
   [(crate-ok-goal CrateDecls (CrateId (crate (CrateItemDecl ...))))
    (All (Goal_regular ... Goal_lang-item ... ...))
