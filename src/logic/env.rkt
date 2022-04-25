@@ -12,7 +12,7 @@
   )
 
 (define-metafunction formality-logic
-  ;; Returns the hypotheses in the environment
+  ;; Returns the hook in the environment
   env-hook : Env -> Hook
 
   [(env-hook (Hook Universe VarBinders Substitution VarInequalities Hypotheses)) Hook]
