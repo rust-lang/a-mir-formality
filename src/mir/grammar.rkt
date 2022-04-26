@@ -9,7 +9,7 @@
   (statements (statement ...))
   (statement
    (statement-assign place rvalue)
-   (statement-set-discriminant place variant)
+   (statement-set-discriminant place variant-id)
    (statement-storage-live local-variable-id)
    (statement-storage-dead local-variable-id)
    statement-nop
@@ -18,18 +18,14 @@
   (rvalue
    (rvalue-use operand)
    (rvalue-repeat operand constant)
-   (rvalue-ref lifetime mutability place)
-   (rvalue-addr-of mutability place)
+   (rvalue-ref Lt MaybeMut place)
+   (rvalue-addr-of MaybeMut place)
    (rvalue-len place)
    (rvalue-binary-op binary-op operand operand)
-   (nullary-op ty)
+   (nullary-op Ty)
    )
 
   (binary-op + - * /)
-
-  (lifetime lifetime-id)
-
-  (mutability () (mut) )
 
   (terminator
    (terminator-goto basic-block-id)
@@ -69,6 +65,5 @@
     local-variable-id
     field-id
     variant-id
-    lifetime-id
     id) variable-not-otherwise-mentioned)
   )
