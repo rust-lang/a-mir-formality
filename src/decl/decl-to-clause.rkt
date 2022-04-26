@@ -148,12 +148,12 @@
    ;; And the following invariants local to the crate C:
    ;;
    ;;     (ForAll ((TyKind T))
-   ;;         (WellFormed Ty) => (Implemented (Ord T)))
+   ;;         (WellFormed (TyKind (Foo (T)))) => (Implemented (Ord T)))
    ;;
    ;; And the following global invariants:
    ;;
    ;;     (ForAll ((TyKind T))
-   ;;         (WellFormed (Foo (T))) => (WellFormed (T)))
+   ;;         (WellFormed (TyKind (Foo (T)))) => (WellFormed (TyKind T)))
    (crate-item-decl-rules _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
    ((Clause) Invariants_wf Invariants_wc)
 
@@ -187,7 +187,7 @@
    ;;
    ;;     (ForAll ((TyKind Self) (LtKind 'a) (TyKind T))
    ;;         (Implemented (Foo (Self 'a T))) :-
-   ;;            (HasImpl (Foo (Self T))),
+   ;;            (HasImpl (Foo (Self 'a T))),
    ;;            (WellFormed (TyKind Self)),
    ;;            (WellFormed (LtKind 'a)),
    ;;            (WellFormed (TyKind T)),
@@ -196,10 +196,10 @@
    ;; We also generate the following invariants in the defining crate:
    ;;
    ;;     (ForAll ((TyKind Self) (LtKind 'a) (TyKind T))
-   ;;         (Implemented (Foo (Self T))) => (Implemented (Ord T))
-   ;;         (Implemented (Foo (Self T))) => (WellFormed (TyKind Self))
-   ;;         (Implemented (Foo (Self T))) => (WellFormed (LtKind 'a))
-   ;;         (Implemented (Foo (Self T))) => (WellFormed (TyKind T)))
+   ;;         (Implemented (Foo (Self 'a T))) => (Implemented (Ord T))
+   ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (TyKind Self))
+   ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (LtKind 'a))
+   ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (TyKind T)))
    (crate-item-decl-rules _ (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
    ((Clause)
     (Hypothesis_wc ...
@@ -236,7 +236,7 @@
    ;;     (ForAll ((LtKind 'a) (TyKind T))
    ;;         (HasImpl (Foo (i32 'a u32))) :-
    ;;             (WellFormed (TyKind i32))
-   ;;             (WellFormed (TyKind i32))
+   ;;             (WellFormed (LtKind 'a))
    ;;             (Implemented (Ord T)))
    (crate-item-decl-rules CrateDecls (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    ((Clause) () ())
