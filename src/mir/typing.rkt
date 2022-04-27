@@ -61,42 +61,43 @@
 
 (define-judgment-form
   formality-mir+Γ
-  #:mode (types-ok I I O)
-  #:contract (types-ok Γ any Γ)
+  #:mode (types/block I I O)
+  #:contract (types/block Γ basic-block-data Γ)
 
-  ; blocks
-  [(types-ok Γ_0 statements Γ_1)
-   (types-ok Γ_1 terminator Γ_2)
-   -------------------------------------------------------------
-   (types-ok Γ_0 (basic-block-data (statements terminator)) Γ_2)]
+  [(types/term Γ_0 terminator Γ_1)
+   -------------------------------------
+   (types/block Γ_0 (() terminator) Γ_1)]
 
-  [------------------------------
-   (types-ok Γ (statements ()) Γ)]
+  [(types/stmt Γ_0 statement_hd Γ_1)
+   (types/block Γ_1 ((statement_tl ...) terminator) Γ_2)
+   ------------------------------------------------------------------
+   (types/block Γ_0 ((statement_hd statement_tl ...) terminator) Γ_2)]
+)
 
-  [(types-ok Γ_0 statement_hd Γ_1)
-   (types-ok Γ_1 (statements (statement_tl ...)) Γ_2)
-   ---------------------------------------------------------------
-   (types-ok Γ_0 (statements (statement_hd statement_tl ...)) Γ_2)]
+(define-judgment-form
+  formality-mir+Γ
+  #:mode (types/stmt I I O)
+  #:contract (types/stmt Γ statement Γ)
 
-  ; statements
-  [------------------------------
-   (types-ok Γ (statement-nop) Γ)]
+  [--------------------------------
+   (types/stmt Γ (statement-nop) Γ)]
 
   [(types/rvalue Γ rvalue Ty)
    (types/place Γ place (TyPlace Ty))
-   ----------------------------------------------
-   (types-ok Γ (statement-assign place rvalue) Γ)]
+   ------------------------------------------------
+   (types/stmt Γ (statement-assign place rvalue) Γ)]
+)
 
-  ;[(types Γ rvalue Ty)
-  ;-------------------------------------------------------------------------------------------------
-  ; (types-ok Γ (statement-assign (place (local-variable-id ())) rvalue) (local-variable-id : Ty Γ))]
+(define-judgment-form
+  formality-mir+Γ
+  #:mode (types/term I I O)
+  #:contract (types/term Γ terminator Γ)
 
-   ; terminators
   [(types/operand Γ operand_fn (TyRigid (Fn _ _) (Ty_arg ..._n Ty_ret)))
    (types/operand Γ operand_arg Ty_arg) ...
    (types/place Γ place (TyPlace Ty_ret))
-    ----------------------------------------------------------------------
-   (types-ok Γ (terminator-call operand_fn (operand_arg ..._n) place _) Γ)]
+   -------------------------------------------------------------------------
+   (types/term Γ (terminator-call operand_fn (operand_arg ..._n) place _) Γ)]
 )
 
 (define-metafunction formality-mir+Γ
