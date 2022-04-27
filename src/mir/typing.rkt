@@ -99,3 +99,21 @@
     ----------------------------------------------------------------
    (types-ok Γ (terminator-call operand_fn (operand_arg ..._n) place _) Γ)]
 )
+
+(module+ test
+  (test-equal
+    (judgment-holds
+      (types ·
+             (operand-constant (constant 42))
+             Ty)
+      Ty)
+    (list (term (scalar-ty i32))))
+
+  (test-equal
+    (judgment-holds
+      (types (foo : (scalar-ty i32) ·)
+             (place (foo (projections ())))
+             Ty)
+      Ty)
+    (list (term (scalar-ty i32))))
+)
