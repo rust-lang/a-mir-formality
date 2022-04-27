@@ -1,15 +1,15 @@
 #lang racket
-(require redex  "../ty/grammar.rkt")
+(require redex  "../ty/grammar.rkt" "../decl/grammar.rkt")
 (provide (all-defined-out))
 
-(define-extended-language formality-mir formality-ty
+(define-extended-language formality-mir formality-decl
   (basic-block-map ((basic-block-id basic-block-data) ...))
   (basic-block-data (statements terminator))
 
   (statements (statement ...))
   (statement
    (statement-assign place rvalue)
-   (statement-set-discriminant place variant-id)
+   (statement-set-discriminant place VariantId)
    (statement-storage-live local-variable-id)
    (statement-storage-dead local-variable-id)
    statement-nop
@@ -55,15 +55,13 @@
   (projections (projection ...))
   (projection
    projection-deref
-   (projection-field field-id)
+   (projection-field FieldId)
    (projection-index local-variable-id)
-   (projection-downcast variant-id)
+   (projection-downcast VariantId)
    )
 
   ; identifiers of various kinds:
   ((basic-block-id
     local-variable-id
-    field-id
-    variant-id
     id) variable-not-otherwise-mentioned)
   )

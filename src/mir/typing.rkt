@@ -5,6 +5,7 @@
 (provide (all-defined-out))
 
 (define-extended-language formality-mir+Γ formality-mir
+  [PlaceTy (TyPlace Ty) (TyPlaceVariant Ty VariantId)]
   [Γ · (local-variable-id : Ty Γ)])
 
 (define-judgment-form
@@ -99,6 +100,45 @@
     ----------------------------------------------------------------
    (types-ok Γ (terminator-call operand_fn (operand_arg ..._n) place _) Γ)]
 )
+
+(define-metafunction formality-mir
+  apply-projections : CrateDecls PlaceTy projections -> PlaceTy
+
+  [(apply-projections _ PlaceTy ()) PlaceTy]
+
+  [(apply-projections CrateDecls
+                      (TyPlace (TyRigid (Ref _) (_ Ty)))
+                      (projection-deref projection ...))
+   (apply-projections CrateDecls (TyPlace Ty) (projection ...))]
+
+  [(apply-projections CrateDecls
+                      (TyPlace Ty_adt)
+                      ((projection-field FieldId) projection ...))
+   (apply-projections CrateDecls (TyPlace Ty_field) (projection ...))
+   
+   (where (TyRigid AdtId Parameters) Ty_adt)
+   (where (struct _ _ ((VariantId FieldDecls))) (item-with-id CrateDecls AdtId))
+   (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
+
+  [(apply-projections CrateDecls
+                      (TyPlace Ty)
+                      ((projection-downcast VariantId) projection ...))
+   (apply-projections CrateDecls (TyPlaceVariant Ty VariantId) (projection ...))
+   
+   (where (TyRigid AdtId Parameters) Ty)
+   (where (enum _ _ AdtVariants) (item-with-id CrateDecls AdtId))
+   (where (_ ... (VariantId _) _ ...) AdtVariants)]
+
+  [(apply-projections CrateDecls
+                      (TyPlaceVariant Ty_adt VaraintId)
+                      ((projection-field FieldId) projection ...))
+   (apply-projections CrateDecls (TyPlace Ty_field) (projection ...))
+   
+   (where (TyRigid AdtId Parameters) Ty_adt)
+   (where (enum _ _ AdtVariants) (item-with-id CrateDecls AdtId))
+   (where (_ ... (VariantId FieldDecls) _ ...) AdtVariants)
+   (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
+  )
 
 (module+ test
   (test-equal
