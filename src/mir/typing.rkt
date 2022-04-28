@@ -42,16 +42,16 @@
   #:mode (types/rvalue I I O)
   #:contract (types/rvalue Γ rvalue Ty)
 
-  [-----------------------------------
-   (types/rvalue Γ (nullary-op Ty) Ty)]
+  [--------------------------------------------------
+   (types/rvalue Γ (nullary-op Ty) (scalar-ty usize))]
 
   [(types/operand Γ operand Ty)
    ----------------------------------------
    (types/rvalue Γ (rvalue-use operand) Ty)]
 
   [(types/place Γ place (TyPlace Ty))
-   ------------------------------------------------------------------------------------------------
-   (types/rvalue Γ (rvalue-ref lifetime mutability place) (TyRigid (Ref mutability) (lifetime Ty)))]
+   --------------------------------------------------------------------------------
+   (types/rvalue Γ (rvalue-ref Lt MaybeMut place) (TyRigid (Ref MaybeMut) (Lt Ty)))]
 
   [(types/operand Γ operand_a (TyRigid ScalarId_ty ()))
    (types/operand Γ operand_b (TyRigid ScalarId_ty ()))
@@ -183,6 +183,14 @@
         (types/place Γ
                     (bar ((projection-downcast Baz) (projection-field counter)))
                     (TyPlace Ty))
+        Ty)
+      (list (term (scalar-ty i32))))
+
+    (test-equal
+      (judgment-holds
+        (types/rvalue Γ
+                      (rvalue-binary-op + (operand-constant 1) (operand-constant 2))
+                      Ty)
         Ty)
       (list (term (scalar-ty i32))))
   )
