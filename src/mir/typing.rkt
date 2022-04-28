@@ -1,7 +1,7 @@
 #lang racket
 (require redex
          "grammar.rkt"
-         "../ty/grammar.rkt")
+         "../decl/grammar.rkt")
 (provide (all-defined-out))
 
 (define-extended-language formality-mir+Γ formality-mir
@@ -111,29 +111,27 @@
    (apply-projections CrateDecls (TyPlace Ty) (projection ...))]
 
   [(apply-projections CrateDecls
-                      (TyPlace Ty_adt)
+                      (TyPlace (TyRigid AdtId _))
                       ((projection-field FieldId) projection ...))
    (apply-projections CrateDecls (TyPlace Ty_field) (projection ...))
    
-   (where (TyRigid AdtId Parameters) Ty_adt)
-   (where (struct _ _ ((VariantId FieldDecls))) (item-with-id CrateDecls AdtId))
+   (where (struct _ _ ((_ FieldDecls))) (item-with-id CrateDecls AdtId))
    (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
 
   [(apply-projections CrateDecls
-                      (TyPlace Ty)
+                      (TyPlace Ty_adt)
                       ((projection-downcast VariantId) projection ...))
-   (apply-projections CrateDecls (TyPlaceVariant Ty VariantId) (projection ...))
+   (apply-projections CrateDecls (TyPlaceVariant Ty_adt VariantId) (projection ...))
    
-   (where (TyRigid AdtId Parameters) Ty)
+   (where (TyRigid AdtId _) Ty_adt)
    (where (enum _ _ AdtVariants) (item-with-id CrateDecls AdtId))
    (where (_ ... (VariantId _) _ ...) AdtVariants)]
 
   [(apply-projections CrateDecls
-                      (TyPlaceVariant Ty_adt VaraintId)
+                      (TyPlaceVariant (TyRigid AdtId _) VariantId)
                       ((projection-field FieldId) projection ...))
    (apply-projections CrateDecls (TyPlace Ty_field) (projection ...))
    
-   (where (TyRigid AdtId Parameters) Ty_adt)
    (where (enum _ _ AdtVariants) (item-with-id CrateDecls AdtId))
    (where (_ ... (VariantId FieldDecls) _ ...) AdtVariants)
    (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
@@ -143,8 +141,17 @@
   (redex-let*
    formality-mir+Γ
 
-   ((CrateDecl (term (TheCrate (crate ()))))
-    (Γ (term (((foo (scalar-ty i32))) (CrateDecl))))
+   ((; struct Foo { counter: i32 }
+     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+
+    (; enum Bar { Baz { counter: i32 } }
+     AdtDecl_Bar (term (Bar (enum () () ((Baz ((counter (scalar-ty i32)))))))))
+
+    (; crate TheCrate { ... }
+     CrateDecl (term (TheCrate (crate (AdtDecl_Foo AdtDecl_Bar)))))
+    
+    ; let foo: Foo
+    (Γ (term (((foo (TyRigid Foo ())) (bar (TyRigid Bar ()))) (CrateDecl))))
     )
 
     (test-equal
@@ -160,6 +167,22 @@
         (types/place Γ
                      (foo ())
                      (TyPlace Ty))
+        Ty)
+      (list (term (TyRigid Foo ()))))
+
+    (test-equal
+      (judgment-holds
+        (types/place Γ
+                    (foo ((projection-field counter)))
+                    (TyPlace Ty))
+        Ty)
+      (list (term (scalar-ty i32))))
+
+    (test-equal
+      (judgment-holds
+        (types/place Γ
+                    (bar ((projection-downcast Baz) (projection-field counter)))
+                    (TyPlace Ty))
         Ty)
       (list (term (scalar-ty i32))))
   )
