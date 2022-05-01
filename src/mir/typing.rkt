@@ -5,20 +5,79 @@
 (provide (all-defined-out))
 
 (define-extended-language formality-mir+Γ formality-mir
+  ;; Extension of `Ty` to optionally store a `VariantId`.
   [PlaceTy ::= (TyPlace Ty) (TyPlaceVariant Ty VariantId)]
+  ;; Typing context storing bindings from locals to types.
   [Γ-ty ::= ((local-variable-id Ty) ...)]
-  [Γ ::= (Γ-ty CrateDecls)])
+  ;; Extended typing context, additionally containing `CrateDecls`.
+  [Γ ::= (Γ-ty CrateDecls)]
+  )
+
+(define-metafunction formality-mir+Γ
+  ;; Returns the type of the local with the given `local-variable-id`.
+  type-of-local : Γ local-variable-id -> Ty
+
+  [(type-of-local Γ local-variable-id)
+   Ty
+   (where/error (Γ-ty _) Γ)
+   (where (_ ... (local-variable-id Ty) _ ...) Γ-ty)]
+  )
+
+(define-metafunction formality-mir+Γ
+  ;; Returns the `AdtContents` of the ADT with the given `AdtId`.
+  decl-of-adt : Γ AdtId -> AdtContents
+
+  [(decl-of-adt Γ AdtId)
+   AdtContents
+   (where/error (_ CrateDecls) Γ)
+   (where AdtContents (item-with-id CrateDecls AdtId))]
+  )
+
+(define-metafunction formality-mir+Γ
+  ;; Returns the derived type obtained by recursively applying `projections` to a given `PlaceTy`.
+  apply-projections : Γ PlaceTy projections -> PlaceTy
+
+  [(apply-projections _ PlaceTy ()) PlaceTy]
+
+  [(apply-projections Γ
+                      (TyPlace (TyRigid (Ref _) (_ Ty)))
+                      (projection-deref projection ...))
+   (apply-projections Γ (TyPlace Ty) (projection ...))]
+
+  [(apply-projections Γ
+                      (TyPlace (TyRigid AdtId _))
+                      ((projection-field FieldId) projection ...))
+   (apply-projections Γ (TyPlace Ty_field) (projection ...))
+   (where (struct _ _ ((_ FieldDecls))) (decl-of-adt Γ AdtId))
+   (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
+
+  [(apply-projections Γ
+                      (TyPlace Ty_adt)
+                      ((projection-downcast VariantId) projection ...))
+   (apply-projections Γ (TyPlaceVariant Ty_adt VariantId) (projection ...))
+   (where (TyRigid AdtId _) Ty_adt)
+   (where (enum _ _ AdtVariants) (decl-of-adt Γ AdtId))
+   (where (_ ... (VariantId _) _ ...) AdtVariants)]
+
+  [(apply-projections Γ
+                      (TyPlaceVariant (TyRigid AdtId _) VariantId)
+                      ((projection-field FieldId) projection ...))
+   (apply-projections Γ (TyPlace Ty_field) (projection ...))
+   (where (enum _ _ AdtVariants) (decl-of-adt Γ AdtId))
+   (where (_ ... (VariantId FieldDecls) _ ...) AdtVariants)
+   (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
+  )
 
 (define-judgment-form
   formality-mir+Γ
   #:mode (types/place I I O)
   #:contract (types/place Γ place PlaceTy)
 
-  [(where (_ ... (local-variable-id Ty_var) _ ...) Γ-ty)
-   (where PlaceTy (apply-projections CrateDecls (TyPlace Ty_var) projections))
-   --------------------------------------------------------------------------- "local"
-   (types/place (Γ-ty CrateDecls) (local-variable-id projections) PlaceTy)]
-)
+  [(where Ty_var (type-of-local Γ local-variable-id))
+   (where PlaceTy (apply-projections Γ (TyPlace Ty_var) projections))
+   ------------------------------------------------------------------ "local"
+   (types/place Γ (local-variable-id projections) PlaceTy)]
+  )
 
 (define-judgment-form
   formality-mir+Γ
@@ -35,7 +94,7 @@
 
   [------------------------------------------------------ "const"
    (types/operand Γ (operand-constant _) (scalar-ty i32))]
-)
+  )
 
 (define-judgment-form
   formality-mir+Γ
@@ -57,7 +116,7 @@
    (types/operand Γ operand_b (TyRigid ScalarId_ty ()))
    ---------------------------------------------------------------------------------- "binop"
    (types/rvalue Γ (rvalue-binary-op _ operand_a operand_b) (TyRigid ScalarId_ty ()))]
-)
+  )
 
 (define-judgment-form
   formality-mir+Γ
@@ -79,12 +138,11 @@
    (types/stmt Γ (statement-assign place rvalue) Γ)]
 
   [(types/place Γ place (TyPlace (TyRigid AdtId _)))
-   (where/error (_ CrateDecls) Γ)
-   (where (enum _ _ AdtVariants) (item-with-id CrateDecls AdtId))
+   (where (enum _ _ AdtVariants) (decl-of-adt Γ AdtId))
    (where (_ ... (VariantId _) _ ...) AdtVariants)
    -------------------------------------------------------------- "set-discr"
    (types/stmt Γ (statement-set-discriminant place VariantId) Γ)]
-)
+  )
 
 (define-judgment-form
   formality-mir+Γ
@@ -120,7 +178,7 @@
    (types/place Γ place (TyPlace Ty_ret))
    ------------------------------------------------------------------------- "call"
    (types/term Γ (terminator-call operand_fn (operand_arg ..._n) place _) Γ)]
-)
+  )
 
 (define-judgment-form
   formality-mir+Γ
@@ -135,43 +193,6 @@
    (types/block Γ_1 ((statement_tl ...) terminator) Γ_2)
    ------------------------------------------------------------------ "block-step"
    (types/block Γ_0 ((statement_hd statement_tl ...) terminator) Γ_2)]
-)
-
-(define-metafunction formality-mir+Γ
-  apply-projections : CrateDecls PlaceTy projections -> PlaceTy
-
-  [(apply-projections _ PlaceTy ()) PlaceTy]
-
-  [(apply-projections CrateDecls
-                      (TyPlace (TyRigid (Ref _) (_ Ty)))
-                      (projection-deref projection ...))
-   (apply-projections CrateDecls (TyPlace Ty) (projection ...))]
-
-  [(apply-projections CrateDecls
-                      (TyPlace (TyRigid AdtId _))
-                      ((projection-field FieldId) projection ...))
-   (apply-projections CrateDecls (TyPlace Ty_field) (projection ...))
-   
-   (where (struct _ _ ((_ FieldDecls))) (item-with-id CrateDecls AdtId))
-   (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
-
-  [(apply-projections CrateDecls
-                      (TyPlace Ty_adt)
-                      ((projection-downcast VariantId) projection ...))
-   (apply-projections CrateDecls (TyPlaceVariant Ty_adt VariantId) (projection ...))
-   
-   (where (TyRigid AdtId _) Ty_adt)
-   (where (enum _ _ AdtVariants) (item-with-id CrateDecls AdtId))
-   (where (_ ... (VariantId _) _ ...) AdtVariants)]
-
-  [(apply-projections CrateDecls
-                      (TyPlaceVariant (TyRigid AdtId _) VariantId)
-                      ((projection-field FieldId) projection ...))
-   (apply-projections CrateDecls (TyPlace Ty_field) (projection ...))
-   
-   (where (enum _ _ AdtVariants) (item-with-id CrateDecls AdtId))
-   (where (_ ... (VariantId FieldDecls) _ ...) AdtVariants)
-   (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
   )
 
 (module+ test
