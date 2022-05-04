@@ -79,5 +79,30 @@
             Env
             (crate-ok-goal (CrateDecl) CrateDecl)
             ))
+
+
+   (redex-let*
+    formality-decl
+    [(; impl rust:Copy for Foo { }
+      TraitImplDecl_Foo (term (impl () (rust:Copy ((TyRigid Foo ()))) () ())))
+
+     (; the crate has the struct, the trait, and the impl
+      CrateDecl_Pass (term (TheCrate (crate (TraitDecl_Copy
+                                             AdtDecl_Foo
+                                             AdtDecl_Bar
+                                             TraitImplDecl
+                                             TraitImplDecl_Foo
+                                             )))))
+
+     ]
+
+    (traced '()
+            (decl:test-can-prove
+             Env
+             (crate-ok-goal (CrateDecl_Pass) CrateDecl_Pass)
+             ))
+
+    )
+
    )
   )
