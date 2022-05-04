@@ -3,65 +3,63 @@
 (provide (all-defined-out))
 
 (define-extended-language formality-mir formality-decl
-  (basic-block-map ((basic-block-id basic-block-data) ...))
-  (basic-block-data (statements terminator))
+  (BasicBlockMap ::= ((BasicBlockId BasicBlockData) ...))
+  (BasicBlockData ::= (Statements Terminator))
 
-  (statements (statement ...))
-  (statement
-   (statement-assign place rvalue)
-   (statement-set-discriminant place VariantId)
-   (statement-storage-live local-variable-id)
-   (statement-storage-dead local-variable-id)
-   statement-nop
-   )
+  (Statements ::= (Statement ...))
+  (Statement ::=
+             (StatementAssign Place Rvalue)
+             (StatementSetDiscriminant Place VariantId)
+             (StatementStorageLive LocalId)
+             (StatementStorageDead LocalId)
+             StatementNop
+             )
 
-  (rvalue
-   (rvalue-use operand)
-   (rvalue-repeat operand constant)
-   (rvalue-ref Lt MaybeMut place)
-   (rvalue-addr-of MaybeMut place)
-   (rvalue-len place)
-   (rvalue-binary-op binary-op operand operand)
-   (nullary-op Ty)
-   )
+  (Rvalue ::=
+          (RvalueUse Operand)
+          (RvalueRepeat Operand Constant)
+          (RvalueRef Lt MaybeMut Place)
+          (RvalueAddrOf MaybeMut Place)
+          (RvalueLen Place)
+          (RvalueBinaryOp BinaryOp Operand Operand)
+          (RvalueNullaryOp Ty)
+          )
 
-  (binary-op + - * /)
+  (BinaryOp ::= + - * /)
 
-  (terminator
-   (terminator-goto basic-block-id)
-   ;(terminator-switch-int operand switch-targets)
-   terminator-resume
-   terminator-abort
-   terminator-return
-   terminator-unreachable
-   (terminator-drop place target-ids)
-   (terminator-drop-and-replace place operand target-ids)
-   (terminator-call operand operands place target-ids)
-   )
-  (target-ids
-   (basic-block-id) ; unwind not possible
-   (basic-block-id basic-block-id) ; unwind possible
-   )
+  (Terminator ::=
+              (TerminatorGoto BasicBlockId)
+              ;(TerminatorSwitchInt Operand SwitchTargets)
+              TerminatorResume
+              TerminatorAbort
+              TerminatorReturn
+              TerminatorUnreachable
+              (TerminatorDrop Place TargetIds)
+              (TerminatorDropAndReplace Place Operand TargetIds)
+              (TerminatorCall Operand Operands Place TargetIds)
+              )
+  (TargetIds ::=
+             (BasicBlockId) ; unwind not possible
+             (BasicBlockId BasicBlockId) ; unwind possible
+             )
 
-  (operand
-   (operand-copy place)
-   (operand-move place)
-   (operand-constant constant)
-   )
+  (Operand ::=
+           (OperandCopy Place)
+           (OperandMove Place)
+           (OperandConstant Constant)
+           )
 
-  (constant number)
+  (Constant ::= number)
 
-  (place (local-variable-id projections))
-  (projections (projection ...))
-  (projection
-   projection-deref
-   (projection-field FieldId)
-   (projection-index local-variable-id)
-   (projection-downcast VariantId)
-   )
+  (Place ::= (LocalId Projections))
+  (Projections ::= (Projection ...))
+  (Projection ::=
+              ProjectionDeref
+              (ProjectionField FieldId)
+              (ProjectionIndex LocalId)
+              (ProjectionDowncast VariantId)
+              )
 
   ; identifiers of various kinds:
-  ((basic-block-id
-    local-variable-id
-    id) variable-not-otherwise-mentioned)
+  (BasicBlockId LocalId ::= variable-not-otherwise-mentioned)
   )

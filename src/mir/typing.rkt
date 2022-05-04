@@ -8,19 +8,19 @@
   ;; Extension of `Ty` to optionally store a `VariantId`.
   [PlaceTy ::= (TyPlace Ty) (TyPlaceVariant Ty VariantId)]
   ;; Typing context storing bindings from locals to types.
-  [Γ-ty ::= ((local-variable-id Ty) ...)]
+  [Γ-ty ::= ((LocalId Ty) ...)]
   ;; Extended typing context, additionally containing `CrateDecls`.
   [Γ ::= (Γ-ty CrateDecls)]
   )
 
 (define-metafunction formality-mir+Γ
-  ;; Returns the type of the local with the given `local-variable-id`.
-  type-of-local : Γ local-variable-id -> Ty
+  ;; Returns the type of the local with the given `LocalId`.
+  type-of-local : Γ LocalId -> Ty
 
-  [(type-of-local Γ local-variable-id)
+  [(type-of-local Γ LocalId)
    Ty
    (where/error (Γ-ty _) Γ)
-   (where (_ ... (local-variable-id Ty) _ ...) Γ-ty)]
+   (where (_ ... (LocalId Ty) _ ...) Γ-ty)]
   )
 
 (define-metafunction formality-mir+Γ
@@ -34,35 +34,35 @@
   )
 
 (define-metafunction formality-mir+Γ
-  ;; Returns the derived type obtained by recursively applying `projections` to a given `PlaceTy`.
-  apply-projections : Γ PlaceTy projections -> PlaceTy
+  ;; Returns the derived type obtained by recursively applying `Projections` to a given `PlaceTy`.
+  apply-projections : Γ PlaceTy Projections -> PlaceTy
 
   [(apply-projections _ PlaceTy ()) PlaceTy]
 
   [(apply-projections Γ
                       (TyPlace (TyRigid (Ref _) (_ Ty)))
-                      (projection-deref projection ...))
-   (apply-projections Γ (TyPlace Ty) (projection ...))]
+                      (ProjectionDeref Projection ...))
+   (apply-projections Γ (TyPlace Ty) (Projection ...))]
 
   [(apply-projections Γ
                       (TyPlace (TyRigid AdtId _))
-                      ((projection-field FieldId) projection ...))
-   (apply-projections Γ (TyPlace Ty_field) (projection ...))
+                      ((ProjectionField FieldId) Projection ...))
+   (apply-projections Γ (TyPlace Ty_field) (Projection ...))
    (where (struct _ _ ((_ FieldDecls))) (decl-of-adt Γ AdtId))
    (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
 
   [(apply-projections Γ
                       (TyPlace Ty_adt)
-                      ((projection-downcast VariantId) projection ...))
-   (apply-projections Γ (TyPlaceVariant Ty_adt VariantId) (projection ...))
+                      ((ProjectionDowncast VariantId) Projection ...))
+   (apply-projections Γ (TyPlaceVariant Ty_adt VariantId) (Projection ...))
    (where (TyRigid AdtId _) Ty_adt)
    (where (enum _ _ AdtVariants) (decl-of-adt Γ AdtId))
    (where (_ ... (VariantId _) _ ...) AdtVariants)]
 
   [(apply-projections Γ
                       (TyPlaceVariant (TyRigid AdtId _) VariantId)
-                      ((projection-field FieldId) projection ...))
-   (apply-projections Γ (TyPlace Ty_field) (projection ...))
+                      ((ProjectionField FieldId) Projection ...))
+   (apply-projections Γ (TyPlace Ty_field) (Projection ...))
    (where (enum _ _ AdtVariants) (decl-of-adt Γ AdtId))
    (where (_ ... (VariantId FieldDecls) _ ...) AdtVariants)
    (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
@@ -71,128 +71,128 @@
 (define-judgment-form
   formality-mir+Γ
   #:mode (types/place I I O)
-  #:contract (types/place Γ place PlaceTy)
+  #:contract (types/place Γ Place PlaceTy)
 
-  [(where Ty_var (type-of-local Γ local-variable-id))
-   (where PlaceTy (apply-projections Γ (TyPlace Ty_var) projections))
+  [(where Ty_var (type-of-local Γ LocalId))
+   (where PlaceTy (apply-projections Γ (TyPlace Ty_var) Projections))
    ------------------------------------------------------------------ "local"
-   (types/place Γ (local-variable-id projections) PlaceTy)]
+   (types/place Γ (LocalId Projections) PlaceTy)]
   )
 
 (define-judgment-form
   formality-mir+Γ
   #:mode (types/operand I I O)
-  #:contract (types/operand Γ operand Ty)
+  #:contract (types/operand Γ Operand Ty)
 
-  [(types/place Γ place (TyPlace Ty))
-   ----------------------------------------- "copy"
-   (types/operand Γ (operand-copy place) Ty)]
+  [(types/place Γ Place (TyPlace Ty))
+   ---------------------------------------- "copy"
+   (types/operand Γ (OperandCopy Place) Ty)]
 
-  [(types/place Γ place (TyPlace Ty))
-   ----------------------------------------- "move"
-   (types/operand Γ (operand-move place) Ty)]
+  [(types/place Γ Place (TyPlace Ty))
+   ---------------------------------------- "move"
+   (types/operand Γ (OperandMove Place) Ty)]
 
-  [------------------------------------------------------ "const"
-   (types/operand Γ (operand-constant _) (scalar-ty i32))]
+  [----------------------------------------------------- "const"
+   (types/operand Γ (OperandConstant _) (scalar-ty i32))]
   )
 
 (define-judgment-form
   formality-mir+Γ
   #:mode (types/rvalue I I O)
-  #:contract (types/rvalue Γ rvalue Ty)
+  #:contract (types/rvalue Γ Rvalue Ty)
 
-  [-------------------------------------------------- "nullop"
-   (types/rvalue Γ (nullary-op Ty) (scalar-ty usize))]
+  [------------------------------------------------------- "nullop"
+   (types/rvalue Γ (RvalueNullaryOp Ty) (scalar-ty usize))]
 
-  [(types/operand Γ operand Ty)
-   ---------------------------------------- "use"
-   (types/rvalue Γ (rvalue-use operand) Ty)]
+  [(types/operand Γ Operand Ty)
+   --------------------------------------- "use"
+   (types/rvalue Γ (RvalueUse Operand) Ty)]
 
-  [(types/place Γ place (TyPlace Ty))
-   -------------------------------------------------------------------------------- "ref"
-   (types/rvalue Γ (rvalue-ref Lt MaybeMut place) (TyRigid (Ref MaybeMut) (Lt Ty)))]
+  [(types/place Γ Place (TyPlace Ty))
+   ------------------------------------------------------------------------------- "ref"
+   (types/rvalue Γ (RvalueRef Lt MaybeMut Place) (TyRigid (Ref MaybeMut) (Lt Ty)))]
 
-  [(types/operand Γ operand_a (TyRigid ScalarId_ty ()))
-   (types/operand Γ operand_b (TyRigid ScalarId_ty ()))
-   ---------------------------------------------------------------------------------- "binop"
-   (types/rvalue Γ (rvalue-binary-op _ operand_a operand_b) (TyRigid ScalarId_ty ()))]
+  [(types/operand Γ Operand_a (TyRigid ScalarId_ty ()))
+   (types/operand Γ Operand_b (TyRigid ScalarId_ty ()))
+   -------------------------------------------------------------------------------- "binop"
+   (types/rvalue Γ (RvalueBinaryOp _ Operand_a Operand_b) (TyRigid ScalarId_ty ()))]
   )
 
 (define-judgment-form
   formality-mir+Γ
   #:mode (types/stmt I I O)
-  #:contract (types/stmt Γ statement Γ)
+  #:contract (types/stmt Γ Statement Γ)
 
-  [-------------------------------- "nop"
-   (types/stmt Γ (statement-nop) Γ)]
+  [------------------------------- "nop"
+   (types/stmt Γ (StatementNop) Γ)]
 
-  [----------------------------------------- "storage-live"
-   (types/stmt Γ (statement-storage-live) Γ)]
+  [--------------------------------------- "storage-live"
+   (types/stmt Γ (StatementStorageLive) Γ)]
 
-  [----------------------------------------- "storage-dead"
-   (types/stmt Γ (statement-storage-dead) Γ)]
+  [--------------------------------------- "storage-dead"
+   (types/stmt Γ (StatementStorageDead) Γ)]
 
-  [(types/rvalue Γ rvalue Ty)
-   (types/place Γ place (TyPlace Ty))
-   ------------------------------------------------ "assign"
-   (types/stmt Γ (statement-assign place rvalue) Γ)]
+  [(types/rvalue Γ Rvalue Ty)
+   (types/place Γ Place (TyPlace Ty))
+   ----------------------------------------------- "assign"
+   (types/stmt Γ (StatementAssign Place Rvalue) Γ)]
 
-  [(types/place Γ place (TyPlace (TyRigid AdtId _)))
+  [(types/place Γ Place (TyPlace (TyRigid AdtId _)))
    (where (enum _ _ AdtVariants) (decl-of-adt Γ AdtId))
    (where (_ ... (VariantId _) _ ...) AdtVariants)
-   -------------------------------------------------------------- "set-discr"
-   (types/stmt Γ (statement-set-discriminant place VariantId) Γ)]
+   ----------------------------------------------------------- "set-discr"
+   (types/stmt Γ (StatementSetDiscriminant Place VariantId) Γ)]
   )
 
 (define-judgment-form
   formality-mir+Γ
   #:mode (types/term I I O)
-  #:contract (types/term Γ terminator Γ)
+  #:contract (types/term Γ Terminator Γ)
 
-  [------------------------------------ "goto"
-   (types/term Γ (terminator-goto _) Γ)]
+  [----------------------------------- "goto"
+   (types/term Γ (TerminatorGoto _) Γ)]
 
-  [---------------------------------- "resume"
-   (types/term Γ terminator-resume Γ)]
+  [--------------------------------- "resume"
+   (types/term Γ TerminatorResume Γ)]
 
-  [--------------------------------- "abort"
-   (types/term Γ terminator-abort Γ)]
+  [-------------------------------- "abort"
+   (types/term Γ TerminatorAbort Γ)]
 
-  [---------------------------------- "return"
-   (types/term Γ terminator-return Γ)]
+  [--------------------------------- "return"
+   (types/term Γ TerminatorReturn Γ)]
 
-  [--------------------------------------- "unreachable"
-   (types/term Γ terminator-unreachable Γ)]
+  [-------------------------------------- "unreachable"
+   (types/term Γ TerminatorUnreachable Γ)]
 
-  [(types/place Γ place _)
-   ------------------------------------------ "drop"
-   (types/term Γ (terminator-drop place _) Γ)]
+  [(types/place Γ Place _)
+   ----------------------------------------- "drop"
+   (types/term Γ (TerminatorDrop Place _) Γ)]
 
-  [(types/place Γ place (TyPlace Ty))
-   (types/operand Γ operand Ty)
-   -------------------------------------------------------------- "drop-replace"
-   (types/term Γ (terminator-drop-and-replace place operand _) Γ)]
+  [(types/place Γ Place (TyPlace Ty))
+   (types/operand Γ Operand Ty)
+   ----------------------------------------------------------- "drop-replace"
+   (types/term Γ (TerminatorDropAndReplace Place Operand _) Γ)]
 
-  [(types/operand Γ operand_fn (TyRigid (Fn _ _) (Ty_arg ..._n Ty_ret)))
-   (types/operand Γ operand_arg Ty_arg) ...
-   (types/place Γ place (TyPlace Ty_ret))
-   ------------------------------------------------------------------------- "call"
-   (types/term Γ (terminator-call operand_fn (operand_arg ..._n) place _) Γ)]
+  [(types/operand Γ Operand_fn (TyRigid (Fn _ _) (Ty_arg ..._n Ty_ret)))
+   (types/operand Γ Operand_arg Ty_arg) ...
+   (types/place Γ Place (TyPlace Ty_ret))
+   ------------------------------------------------------------------------ "call"
+   (types/term Γ (TerminatorCall Operand_fn (Operand_arg ..._n) Place _) Γ)]
   )
 
 (define-judgment-form
   formality-mir+Γ
   #:mode (types/block I I O)
-  #:contract (types/block Γ basic-block-data Γ)
+  #:contract (types/block Γ BasicBlockData Γ)
 
-  [(types/term Γ_0 terminator Γ_1)
+  [(types/term Γ_0 Terminator Γ_1)
    ------------------------------------- "block-base"
-   (types/block Γ_0 (() terminator) Γ_1)]
+   (types/block Γ_0 (() Terminator) Γ_1)]
 
-  [(types/stmt Γ_0 statement_hd Γ_1)
-   (types/block Γ_1 ((statement_tl ...) terminator) Γ_2)
+  [(types/stmt Γ_0 Statement_hd Γ_1)
+   (types/block Γ_1 ((Statement_tl ...) Terminator) Γ_2)
    ------------------------------------------------------------------ "block-step"
-   (types/block Γ_0 ((statement_hd statement_tl ...) terminator) Γ_2)]
+   (types/block Γ_0 ((Statement_hd Statement_tl ...) Terminator) Γ_2)]
   )
 
 (module+ test
@@ -215,7 +215,7 @@
     (test-equal
       (judgment-holds
         (types/operand Γ
-                       (operand-constant 42)
+                       (OperandConstant 42)
                        Ty)
         Ty)
       (list (term (scalar-ty i32))))
@@ -231,7 +231,7 @@
     (test-equal
       (judgment-holds
         (types/place Γ
-                    (foo ((projection-field counter)))
+                    (foo ((ProjectionField counter)))
                     (TyPlace Ty))
         Ty)
       (list (term (scalar-ty i32))))
@@ -239,7 +239,7 @@
     (test-equal
       (judgment-holds
         (types/place Γ
-                    (bar ((projection-downcast Baz) (projection-field counter)))
+                    (bar ((ProjectionDowncast Baz) (ProjectionField counter)))
                     (TyPlace Ty))
         Ty)
       (list (term (scalar-ty i32))))
@@ -247,7 +247,7 @@
     (test-equal
       (judgment-holds
         (types/rvalue Γ
-                      (rvalue-binary-op + (operand-constant 1) (operand-constant 2))
+                      (RvalueBinaryOp + (OperandConstant 1) (OperandConstant 2))
                       Ty)
         Ty)
       (list (term (scalar-ty i32))))
