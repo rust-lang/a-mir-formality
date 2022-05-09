@@ -105,6 +105,34 @@
   )
 
 (define-metafunction formality-mir+Γ
+  ;; Computes the `Goals` that have to hold for a `Operand`
+  goals/operand : Γ Operand -> Goals
+
+  [; copy
+   (goals/operand Γ (OperandCopy Place))
+   ((Implemented (rust:Copy (Ty))))
+   (where (TyPlace Ty _) (typeof/place Γ Place))]
+
+  [; move
+   (goals/operand Γ (OperandMove Place))
+   ()]
+
+  [; constant
+   (goals/operand Γ (OperandConstant _))
+   ()]
+  )
+(define-metafunction formality-mir+Γ
+  goals/operands : Γ (Operand ...) -> Goals
+
+  [(goals/operands Γ ()) ()]
+
+  [(goals/operands Γ (Operand_hd Operand_tl ...))
+   (Goal_hd ... Goal_tl ...)
+   (where (Goal_hd ...) (goals/operand Γ Operand_hd))
+   (where (Goal_tl ...) (goals/operands Γ (Operand_tl ...)))]
+  )
+
+(define-metafunction formality-mir+Γ
   ;; Computes the `Ty` of a `Rvalue`
   typeof/rvalue : Γ Rvalue -> Ty
 
@@ -139,7 +167,8 @@
 
   [; use
    (goals/rvalue Γ (RvalueUse Operand))
-   ()]
+   (Goal_op ...)
+   (where (Goal_op ...) (goals/operand Γ Operand))]
 
   [; ref
    (goals/rvalue Γ (RvalueRef Lt MaybeMut Place))
@@ -151,9 +180,11 @@
 
   [; binop
    (goals/rvalue Γ (RvalueBinaryOp _ Operand_rhs Operand_lhs))
-   ((Ty_rhs == Ty_lhs))
+   ((Ty_rhs == Ty_lhs) Goal_rhs ... Goal_lhs ...)
    (where Ty_rhs (typeof/operand Γ Operand_rhs))
-   (where Ty_lhs (typeof/operand Γ Operand_lhs))]
+   (where Ty_lhs (typeof/operand Γ Operand_lhs))
+   (where (Goal_rhs ...) (goals/operand Γ Operand_rhs))
+   (where (Goal_lhs ...) (goals/operand Γ Operand_lhs))]
   )
 
 (define-metafunction formality-mir+Γ
@@ -212,16 +243,19 @@
 
   [; drop-replace
    (goals/term Γ (TerminatorDropAndReplace Place Operand _))
-   ((Ty_operand == Ty_place))
+   ((Ty_operand == Ty_place) Goal_op ...)
    (where Ty_operand (typeof/operand Γ Operand))
-   (where (TyPlace Ty_place _) (typeof/place Γ Place))]
+   (where (TyPlace Ty_place _) (typeof/place Γ Place))
+   (where (Goal_op ...) (goals/operand Γ Operand))]
 
   [; call
    (goals/term Γ (TerminatorCall Operand_fn (Operand_arg ..._n) Place _))
-   ((Ty_ret <= Ty_place) (Ty_oparg <= Ty_arg) ...)
+   ((Ty_ret <= Ty_place) (Ty_oparg <= Ty_arg) ... Goal_fn ... Goal_arg ...)
    (where (TyRigid (Fn _ _) (Ty_arg ..._n Ty_ret)) (typeof/operand Γ Operand_fn))
    (where (Ty_oparg ...) (typeof/operands Γ (Operand_arg ...)))
-   (where (TyPlace Ty_place (mut)) (typeof/place Γ Place))]
+   (where (TyPlace Ty_place (mut)) (typeof/place Γ Place))
+   (where (Goal_fn ...) (goals/operand Γ Operand_fn))
+   (where (Goal_arg ...) (goals/operands Γ (Operand_arg ...)))]
   )
 
 (define-metafunction formality-mir+Γ
