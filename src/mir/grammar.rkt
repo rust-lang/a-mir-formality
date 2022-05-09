@@ -3,6 +3,11 @@
 (provide (all-defined-out))
 
 (define-extended-language formality-mir formality-decl
+  (Body ::= (LocalDecls BasicBlockMap))
+
+  (LocalDecls ::= (LocalDecl ...))
+  (LocalDecl ::= (LocalId Ty MaybeMut))
+
   (BasicBlockMap ::= ((BasicBlockId BasicBlockData) ...))
   (BasicBlockData ::= (Statements Terminator))
 
