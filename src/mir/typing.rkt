@@ -125,14 +125,14 @@
   #:mode (types/stmt I I O)
   #:contract (types/stmt Γ Statement Γ)
 
-  [------------------------------- "nop"
-   (types/stmt Γ (StatementNop) Γ)]
+  [----------------------------- "nop"
+   (types/stmt Γ StatementNop Γ)]
 
-  [--------------------------------------- "storage-live"
-   (types/stmt Γ (StatementStorageLive) Γ)]
+  [------------------------------------- "storage-live"
+   (types/stmt Γ StatementStorageLive Γ)]
 
-  [--------------------------------------- "storage-dead"
-   (types/stmt Γ (StatementStorageDead) Γ)]
+  [------------------------------------- "storage-dead"
+   (types/stmt Γ StatementStorageDead Γ)]
 
   [(types/rvalue Γ Rvalue Ty)
    (types/place Γ Place (TyPlace Ty (mut)))
