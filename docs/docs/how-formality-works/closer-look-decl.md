@@ -251,7 +251,7 @@ Here is the rule for impls:
 <span class="caption">[Source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/decl-ok.rkt#L59-L71)</span>
 
 In short, an `impl` is well-formed if the trait is fully implemented.
-We'll look at the definition of *implemented* in more detail in [the next section](./case-study.md),
+We'll look at the definition of *implemented* in more detail in [the next section](../what-formality-can-do/case-study),
 but for now it suffices to say that a trait is implemented if
 (a) it has an impl and 
 (b) all of its where-clauses are satisfied.
