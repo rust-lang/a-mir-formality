@@ -2,7 +2,7 @@
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
     <channel>
         <title>a-mir-formality Blog</title>
-        <link>https://nikomatsakis.github.io/a-mir-formality/blog</link>
+        <link>https://nikomatsakis.github.io/a-mir-formality/a-mir-formality/blog</link>
         <description>a-mir-formality Blog</description>
         <lastBuildDate>Thu, 12 May 2022 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
@@ -10,7 +10,7 @@
         <language>en</language>
         <item>
             <title><![CDATA[a MIR Formality, goals and the reality]]></title>
-            <link>https://nikomatsakis.github.io/a-mir-formality/blog/2022/05/12/</link>
+            <link>https://nikomatsakis.github.io/a-mir-formality/a-mir-formality/blog/2022/05/12/</link>
             <guid>/2022/05/12/</guid>
             <pubDate>Thu, 12 May 2022 00:00:00 GMT</pubDate>
             <description><![CDATA[This is a document that was prepared for the 2022-03-18 types team deep dive (read the transcript from that meeting).]]></description>

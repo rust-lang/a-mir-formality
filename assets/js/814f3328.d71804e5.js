@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunka_mir_formality=self.webpackChunka_mir_formality||[]).push([[535],{5641:function(t){t.exports=JSON.parse('{"title":"Recent posts","items":[{"title":"a MIR Formality, goals and the reality","permalink":"/a-mir-formality/blog/2022/05/12/"}]}')}}]);
