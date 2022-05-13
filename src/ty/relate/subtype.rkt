@@ -109,6 +109,11 @@
    ]
 
   [; ∀ on the supertype side
+  ;
+  ; if I have to prove that `T <: forall<'a> U`...
+  ; I can prove...
+  ; `forall<'a> { T <: U }`... and that's the same thing
+
    (compare/one/substituted Env (Parameter_1 <= (ForAll KindedVarIds Parameter_2)))
    ; NB: Redex binding forms ensure that names in `KindedVarIds` do not appear free in `Parameter_1`
    (Env ((ForAll KindedVarIds (Parameter_1 <= Parameter_2))))
@@ -127,6 +132,10 @@
    ]
 
   [; ∀ on the subtype side
+  ;
+  ; if I have to prove that `forall<'a> T <: U`...
+  ; I can prove...
+  ; `exists<'a> { T <: U }`... and that's the same thing
    (compare/one/substituted Env ((ForAll KindedVarIds Parameter_1) <= Parameter_2))
    ; NB: Redex binding forms ensure that all names in `KindedVarIds` do not appear free in `Parameter_2`
    (Env ((Exists KindedVarIds (Parameter_1 <= Parameter_2))))
