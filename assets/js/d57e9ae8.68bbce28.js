@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunka_mir_formality=self.webpackChunka_mir_formality||[]).push([[507],{3769:function(a){a.exports=JSON.parse('{"name":"docusaurus-plugin-content-docs","id":"default"}')}}]);
