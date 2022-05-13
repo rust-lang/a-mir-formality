@@ -9,7 +9,7 @@ const config = {
   title: 'a-mir-formality',
   tagline: 'A formal model of Rust',
   url: 'https://nikomatsakis.github.io/a-mir-formality',
-  baseUrl: '/',
+  baseUrl: '/a-mir-formality',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/ferris.svg',
