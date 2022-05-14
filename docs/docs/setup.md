@@ -18,11 +18,18 @@ How to build, test, and run a-mir-formality:
 
 ## Run racket manually for better stacktraces
 
-When you use `raco test`, you often get stacktraces that are not very helpful. You can do better by running racket manually with the `-lerrortrace` flag, which adds some runtime overhead but tracks more information. This command would run the tests found in the `test` submodule of `src/decl/test/copy.rkt`:
+When you use `raco test`, you often get stacktraces that are not very helpful. You can do better by running racket manually with the `-lerrortrace` flag, which adds some runtime overhead but tracks more information. This command runs raco with error trace enabled:
+
+```bash
+racket -l errortrace -l raco -- test src/decl/test/copy.rkt
+```
+
+Alternatively, *this* command runs the tests found in the `test` submodule of `src/decl/test/copy.rkt` without using `raco`:
 
 ```bash
 racket -l errortrace -l racket/base -e '(require (submod "src/decl/test/copy.rkt" test))' 
 ```
+
 
 ## The `traced` macro
 
