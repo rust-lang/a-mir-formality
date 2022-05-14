@@ -94,8 +94,10 @@
                                              TraitImplDecl_Foo
                                              )))))
 
-     ]
+     (; create the Env for checking things in this crate
+      Env (term (env-for-crate-decl CrateDecl_Pass)))
 
+     ]
     (traced '()
             (decl:test-can-prove
              Env
