@@ -66,7 +66,7 @@
   (WhereClause ::=
                (∀ KindedVarIds WhereClause)
                (is-implemented TraitRef)
-               (outlives (Parameter : Lt))
+               (Parameter : Lt)
                (normalizes-to AliasTy Ty)
                )
 

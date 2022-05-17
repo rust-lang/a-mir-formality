@@ -94,7 +94,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
-                   ((outlives (A : B)))
+                   ((A : B))
                    ((item (& A TyUnit))
                     <=
                     (item (& B TyUnit))
@@ -112,8 +112,8 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
-                   ((outlives (A : B))
-                    (outlives (B : A))
+                   ((A : B)
+                    (B : A)
                     )
                    ((item (& A TyUnit))
                     <=
@@ -132,7 +132,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
-                   ((outlives (A : B)))
+                   ((A : B))
                    ((item (vec (& A TyUnit)))
                     <=
                     (item (vec (& B TyUnit)))
