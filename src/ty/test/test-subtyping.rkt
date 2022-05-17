@@ -40,23 +40,23 @@
 
    ; Cannot have an implication on the subtype side that doesn't appear on the supertype side
    (traced '()
-           (ty:test-cannot-prove Env ((∀ ((type T)) (implies ((is-implemented (NeverImpl (T)))) T))
+           (ty:test-cannot-prove Env ((∀ ((type T)) (implies ((T : NeverImpl ())) T))
                                       <=
                                       (∀ ((type T)) T)))
            )
 
    ; ...unless we can prove it.
    (traced '()
-           (ty:test-can-prove Env ((∀ ((type T)) (implies ((is-implemented (AlwaysImpl (T)))) T))
+           (ty:test-can-prove Env ((∀ ((type T)) (implies ((T : AlwaysImpl ())) T))
                                    <=
                                    (∀ ((type T)) T)))
            )
 
    ; OK if the implication is on both sides.
    (traced '()
-           (ty:test-can-prove Env ((∀ ((type T)) (implies ((is-implemented (NeverImpl (T)))) T))
+           (ty:test-can-prove Env ((∀ ((type T)) (implies ((T : NeverImpl ())) T))
                                    <=
-                                   (∀ ((type T)) (implies ((is-implemented (NeverImpl (T)))) T))))
+                                   (∀ ((type T)) (implies ((T : NeverImpl ())) T))))
            )
 
    ; OK if the implication is just on supertype side: that means that the consumer will prove it,
@@ -64,7 +64,7 @@
    (traced '()
            (ty:test-can-prove Env ((∀ ((type T)) T)
                                    <=
-                                   (∀ ((type T)) (implies ((is-implemented (NeverImpl (T)))) T))))
+                                   (∀ ((type T)) (implies ((T : NeverImpl ())) T))))
            )
 
    (test-match
@@ -146,10 +146,10 @@
                    Env
                    ((∀ ((type T)))
                     )
-                   ((is-implemented (Debug (T))))
+                   ((T : Debug()))
                    (T
                     <=
-                    (ensures T ((is-implemented (Debug (T)))))
+                    (ensures T ((T : Debug())))
                     )))))
 
    (; Test for ensures: we cannot add ensures for things we cannot prove
@@ -163,7 +163,7 @@
            ()
            (T
             <=
-            (ensures T ((is-implemented (Debug (T)))))
+            (ensures T ((T : Debug())))
             ))))
 
 
@@ -176,9 +176,9 @@
            ((∀ ((type T)))
             )
            ()
-           ((ensures T ((is-implemented (Debug (T)))))
+           ((ensures T ((T : Debug())))
             <=
-            (ensures T ((is-implemented (Debug (T)))))
+            (ensures T ((T : Debug())))
             ))))
 
    (; Test for implication in subtype
@@ -192,7 +192,7 @@
            ((∀ ((type T)))
             )
            ()
-           ((implies ((is-implemented (Debug (T)))) T)
+           ((implies ((T : Debug())) T)
             <=
             T
             ))))
@@ -208,8 +208,8 @@
            Env
            ((∀ ((type T)))
             )
-           ((is-implemented (Debug (T))))
-           ((implies ((is-implemented (Debug (T)))) T)
+           ((T : Debug()))
+           ((implies ((T : Debug())) T)
             <=
             T
             ))))
@@ -228,7 +228,7 @@
            ()
            (T
             <=
-            (implies ((is-implemented (Debug (T)))) T)
+            (implies ((T : Debug())) T)
             ))))
 
    (; Test for implication in supertype
@@ -244,7 +244,7 @@
            ()
            (U
             <=
-            (implies ((is-implemented (Debug (T)))) T)
+            (implies ((T : Debug())) T)
             ))))
 
    (; Test for implication on both sides
@@ -256,9 +256,9 @@
            ((∀ ((type T)))
             )
            ()
-           ((implies ((is-implemented (Debug (T)))) T)
+           ((implies ((T : Debug())) T)
             <=
-            (implies ((is-implemented (Debug (T)))) T)
+            (implies ((T : Debug())) T)
             ))))
 
    (; #25860 -- the buggy path we have today, where implied bounds
@@ -295,7 +295,7 @@
                    ()
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
                      ∀ ((lifetime A) (lifetime B))
-                       (implies ((outlives (B : A))) ; implied bound!
+                       (implies ((B : A)) ; implied bound!
                                 (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
                     <=
                     (; fn(&'static &'x (), &'x T) -> &'static T
@@ -317,7 +317,7 @@
                    ()
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
                      ∀ ((lifetime A) (lifetime B))
-                       (implies ((outlives (B : A))) ; implied bound!
+                       (implies ((B : A)) ; implied bound!
                                 (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
                     <=
                     (; fn(&'x &'static (), &'static T) -> &'x T

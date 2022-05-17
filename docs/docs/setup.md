@@ -13,18 +13,19 @@ How to build, test, and run a-mir-formality:
 * You can use [DrRacket](https://docs.racket-lang.org/drracket/), or you can use VSCode. We recommend the following VSCode extensions:
     * [Magic Racket](https://marketplace.visualstudio.com/items?itemName=evzen-wybitul.magic-racket) to give a Racket mode that supports most LSP operations decently well
     * [Rainbow brackets](https://marketplace.visualstudio.com/items?itemName=2gua.rainbow-brackets) is highly recommended to help sort out `()`
+    * The [Unicode Math](https://marketplace.visualstudio.com/items?itemName=studykit.unicode-math) or [Unicode Latex](https://marketplace.visualstudio.com/items?itemName=oijaz.unicode-latex) extensions are useful for inserting characters like `∀`.
 
 # Debugging tips
 
 ## Run racket manually for better stacktraces
 
-When you use `raco test`, you often get stacktraces that are not very helpful. You can do better by running racket manually with the `-lerrortrace` flag, which adds some runtime overhead but tracks more information. This command runs raco with error trace enabled:
+When you use `raco test`, you often get stacktraces that are not very helpful. You can do better by running racket manually with the `-l errortrace` flag, which adds some runtime overhead but tracks more information. The easiest way to do this is to use [the `test` script](https://github.com/nikomatsakis/a-mir-formality/blob/main/test) and give it the name of some `rkt` file, e.g. `src/decl/test/copy.rkt`. This will run the tests found in the `test` submodule within that file.
 
 ```bash
-racket -l errortrace -l raco -- test src/decl/test/copy.rkt
+./test src/decl/test/copy.rkt
 ```
 
-Alternatively, *this* command runs the tests found in the `test` submodule of `src/decl/test/copy.rkt` without using `raco`:
+This will expand to running `racket` with a command like this:
 
 ```bash
 racket -l errortrace -l racket/base -e '(require (submod "src/decl/test/copy.rkt" test))' 

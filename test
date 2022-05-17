@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ "$1" == "" ];
+then
+	echo "expected: test file.rkt"
+        exit 1
+fi
+
+racket -l errortrace -l racket/base -e '(require (submod "'$1'" test))'

@@ -191,6 +191,8 @@
             (term ((∀ ((type T)) (is-implemented (Ord (T))))
                    (∀ ((type T)) (is-implemented (Eq (T))))
                    (∀ ((type T)) (is-implemented (PartialOrd (T))))
-                   (∀ ((type T)) (is-implemented (PartialEq (T))))))))
+                   (∀ ((type T)) (is-implemented (PartialEq (T)))))))
+
+           )
    )
   )

@@ -28,15 +28,15 @@
    (∀ KindedVarIds (where-clause->goal WhereClause))
    ]
 
-  [(where-clause->goal (is-implemented TraitRef))
-   (is-implemented TraitRef)
+  [(where-clause->goal (Ty_self : TraitId (Parameter ...)))
+   (is-implemented (TraitId (Ty_self Parameter ...)))
    ]
 
-  [(where-clause->goal (normalizes-to AliasTy Ty))
+  [(where-clause->goal (AliasTy == Ty))
    (normalizes-to AliasTy Ty)
    ]
 
-  [(where-clause->goal (outlives (Parameter_a : Parameter_b)))
+  [(where-clause->goal (Parameter_a : Parameter_b))
    (Parameter_a -outlives- Parameter_b)
    ]
 
