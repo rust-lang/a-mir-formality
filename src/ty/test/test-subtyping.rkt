@@ -149,7 +149,7 @@
                    ((is-implemented (Debug (T))))
                    (T
                     <=
-                    (Ensures T ((is-implemented (Debug (T)))))
+                    (ensures T ((is-implemented (Debug (T)))))
                     )))))
 
    (; Test for ensures: we cannot add ensures for things we cannot prove
@@ -163,7 +163,7 @@
            ()
            (T
             <=
-            (Ensures T ((is-implemented (Debug (T)))))
+            (ensures T ((is-implemented (Debug (T)))))
             ))))
 
 
@@ -176,9 +176,9 @@
            ((∀ ((type T)))
             )
            ()
-           ((Ensures T ((is-implemented (Debug (T)))))
+           ((ensures T ((is-implemented (Debug (T)))))
             <=
-            (Ensures T ((is-implemented (Debug (T)))))
+            (ensures T ((is-implemented (Debug (T)))))
             ))))
 
    (; Test for implication in subtype

@@ -116,7 +116,7 @@
 
   ;; ∃ and ensures types: These are used in Rust to model
   (∃Ty ::= (∃ KindedVarIds Ty))
-  (EnsuresTy ::= (Ensures Ty WhereClauses))
+  (EnsuresTy ::= (ensures Ty WhereClauses))
 
   ;; Treat ABIs as opaque strings (for now, at least)
   (Abi ::= string)

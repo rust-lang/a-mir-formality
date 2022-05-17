@@ -126,7 +126,7 @@
    ]
 
   [; Ensures on the subtype side
-   (compare/one/substituted Env ((Ensures Parameter_1 WhereClauses) <= Parameter_2))
+   (compare/one/substituted Env ((ensures Parameter_1 WhereClauses) <= Parameter_2))
    (Env ((implies Hypotheses_wc (Parameter_1 <= Parameter_2))))
    (where/error Hypotheses_wc (where-clauses->hypotheses WhereClauses))
    ]
@@ -148,7 +148,7 @@
    ]
 
   [; Ensures on the supertype side
-   (compare/one/substituted Env (Parameter_1 <= (Ensures Parameter_2 WhereClauses)))
+   (compare/one/substituted Env (Parameter_1 <= (ensures Parameter_2 WhereClauses)))
    (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
    (where/error (Goal_wc ...) (where-clauses->goals WhereClauses))
    ]
