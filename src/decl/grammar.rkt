@@ -33,7 +33,7 @@
   ;; ANCHOR:Traits
   ;; TraitDecl -- trait Foo { ... }
   ;;
-  ;; Unlike in Rust, the `KindedVarIds` here always include with `(TyKind Self)` explicitly.
+  ;; Unlike in Rust, the `KindedVarIds` here always include with `(type Self)` explicitly.
   (TraitDecl ::= (TraitId TraitContents))
   (TraitContents ::= (trait KindedVarIds WhereClauses TraitItems))
 

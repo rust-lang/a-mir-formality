@@ -64,7 +64,7 @@ Using the code for impls we saw earlier, the `Magic` impl would generate the fol
 
 ```scheme
 ; forall<T> { Implemented(T: Magic) => HasImpl(T: Magic) }
-(∀ ((TyKind T)) 
+(∀ ((type T)) 
         (Implies ((Implemented (Magic (T))))
                  (HasImpl (Magic (T)))))
 ```
@@ -79,9 +79,9 @@ To be implemented, the impl must exist, and the type must be well-formed:
 ;               HasImpl(T: Copy), 
 ;               WellFormed(T),
 ;             ) => Implemented(T: Copy) }
-(∀ ((TyKind T))
+(∀ ((type T))
         (Implies ((HasImpl (Copy (T)))
-                  (WellFormed (TyKind (T))))
+                  (WellFormed (type (T))))
                  (Implemented (Copy (T)))))
 ```
 
@@ -93,9 +93,9 @@ For `Magic`, the rule includes the where clause that `T: Copy`:
 ;               WellFormed(T),
 ;               Implemented(T: Copy),
 ;             ) => Implemented(T: Magic) }
-(∀ ((TyKind T))
+(∀ ((type T))
         (Implies ((HasImpl (Magic (T)))
-                  (WellFormed (TyKind (T)))
+                  (WellFormed (type (T)))
                   (Implemented (Copy (T))))
                  (Implemented (Magic (T)))))
 ```
@@ -194,7 +194,7 @@ This in turn implies that the seemingly tautological impl of `Magic` is actually
 The "ok" goal for the magic impl looks like this:
 
 ```scheme
-(∀ ((TyKind T))
+(∀ ((type T))
         (Implies ((Implemented (Magic (T))))
                  (Implemented (Magic (T)))))
 ```

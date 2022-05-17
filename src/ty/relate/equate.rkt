@@ -74,7 +74,7 @@
    (; Either all the parameters are equal
     where/error Goal_eq (All ((Parameter_1 == Parameter_2) ...)))
    (; Or we can normalize both aliases to the same type
-    where/error Goal_n (∃ ((TyKind T))
+    where/error Goal_n (∃ ((type T))
                           (All ((Normalize (TyAlias AliasName (Parameter_1 ...)) T)
                                 (Normalize (TyAlias AliasName (Parameter_2 ...)) T)))
                           ))

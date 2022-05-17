@@ -15,7 +15,7 @@
    ;; Test for that `impl Copy for i32` is permitted.
 
    ((; trait rust:Copy { _: Foo }
-     TraitDecl_Copy (term (rust:Copy (trait ((TyKind Self)) () ()))))
+     TraitDecl_Copy (term (rust:Copy (trait ((type Self)) () ()))))
 
     (; impl rust:Copy for i32 { }
      TraitImplDecl (term (impl () (rust:Copy ((scalar-ty i32))) () ())))
@@ -43,7 +43,7 @@
    ;; because `Foo: Copy` does not hold.
 
    ((; trait rust:Copy { }
-     TraitDecl_Copy (term (rust:Copy (trait ((TyKind Self)) () ()))))
+     TraitDecl_Copy (term (rust:Copy (trait ((type Self)) () ()))))
 
     (; struct Foo { }
      AdtDecl_Foo (term (Foo (struct

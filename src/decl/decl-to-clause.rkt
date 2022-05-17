@@ -140,20 +140,20 @@
    ;;
    ;; We generate the following clause
    ;;
-   ;;     (∀ ((TyKind T))
-   ;;         (WellFormed (TyKind (Foo (T)))) :-
-   ;;            (WellFormed (TyKind T))
+   ;;     (∀ ((type T))
+   ;;         (WellFormed (type (Foo (T)))) :-
+   ;;            (WellFormed (type T))
    ;;            (Implemented (Ord T)))
    ;;
    ;; And the following invariants local to the crate C:
    ;;
-   ;;     (∀ ((TyKind T))
-   ;;         (WellFormed (TyKind (Foo (T)))) => (Implemented (Ord T)))
+   ;;     (∀ ((type T))
+   ;;         (WellFormed (type (Foo (T)))) => (Implemented (Ord T)))
    ;;
    ;; And the following global invariants:
    ;;
-   ;;     (∀ ((TyKind T))
-   ;;         (WellFormed (TyKind (Foo (T)))) => (WellFormed (TyKind T)))
+   ;;     (∀ ((type T))
+   ;;         (WellFormed (type (Foo (T)))) => (WellFormed (type T)))
    (crate-item-decl-rules _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
    ((Clause) Invariants_wf Invariants_wc)
 
@@ -163,15 +163,15 @@
                           (Implies
                            ((WellFormed (ParameterKind VarId)) ...
                             (where-clause->goal WhereClause) ...)
-                           (WellFormed (TyKind Ty_adt)))))
+                           (WellFormed (type Ty_adt)))))
    (where/error Invariants_wc ((∀ KindedVarIds
                                   (Implies
-                                   ((WellFormed (TyKind Ty_adt)))
+                                   ((WellFormed (type Ty_adt)))
                                    (where-clause->hypothesis WhereClause)))
                                ...))
    (where/error Invariants_wf ((∀ KindedVarIds
                                   (Implies
-                                   ((WellFormed (TyKind Ty_adt)))
+                                   ((WellFormed (type Ty_adt)))
                                    (WellFormed (ParameterKind VarId))))
                                ...))
    ]
@@ -185,21 +185,21 @@
    ;; implemented, all of its input types must be well-formed, it must have
    ;; an impl, and the where-clauses declared on the trait must be met:
    ;;
-   ;;     (∀ ((TyKind Self) (LtKind 'a) (TyKind T))
+   ;;     (∀ ((type Self) (LtKind 'a) (type T))
    ;;         (Implemented (Foo (Self 'a T))) :-
    ;;            (HasImpl (Foo (Self 'a T))),
-   ;;            (WellFormed (TyKind Self)),
+   ;;            (WellFormed (type Self)),
    ;;            (WellFormed (LtKind 'a)),
-   ;;            (WellFormed (TyKind T)),
+   ;;            (WellFormed (type T)),
    ;;            (Implemented (Ord T)))
    ;;
    ;; We also generate the following invariants in the defining crate:
    ;;
-   ;;     (∀ ((TyKind Self) (LtKind 'a) (TyKind T))
+   ;;     (∀ ((type Self) (LtKind 'a) (type T))
    ;;         (Implemented (Foo (Self 'a T))) => (Implemented (Ord T))
-   ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (TyKind Self))
+   ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (type Self))
    ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (LtKind 'a))
-   ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (TyKind T)))
+   ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (type T)))
    (crate-item-decl-rules _ (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
    ((Clause)
     (Hypothesis_wc ...
@@ -233,9 +233,9 @@
    ;; We consider `HasImpl` to hold if (a) all inputs are well formed and (b) where
    ;; clauses are satisfied:
    ;;
-   ;;     (∀ ((LtKind 'a) (TyKind T))
+   ;;     (∀ ((LtKind 'a) (type T))
    ;;         (HasImpl (Foo (i32 'a u32))) :-
-   ;;             (WellFormed (TyKind i32))
+   ;;             (WellFormed (type i32))
    ;;             (WellFormed (LtKind 'a))
    ;;             (Implemented (Ord T)))
    (crate-item-decl-rules CrateDecls (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
@@ -272,9 +272,9 @@
   default-rules : () -> (Clauses Invariants)
 
   ((default-rules ())
-   (((WellFormed (TyKind (scalar-ty i32)))
-     (WellFormed (TyKind (scalar-ty u32)))
-     (WellFormed (TyKind TyUnit))
+   (((WellFormed (type (scalar-ty i32)))
+     (WellFormed (type (scalar-ty u32)))
+     (WellFormed (type TyUnit))
      )
     ())
    )

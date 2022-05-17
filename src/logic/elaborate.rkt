@@ -161,10 +161,10 @@
   (redex-let*
    formality-logic
    [(Env (term (env-with-clauses-and-invariants ()
-                                                ((∀ ((TyKind T)) (Implies ((Implemented (Eq (T)))) (Implemented (PartialEq (T)))))
-                                                 (∀ ((TyKind T)) (Implies ((Implemented (Ord (T)))) (Implemented (PartialOrd (T)))))
-                                                 (∀ ((TyKind T)) (Implies ((Implemented (Ord (T)))) (Implemented (Eq (T)))))
-                                                 (∀ ((TyKind T)) (Implies ((Implemented (PartialOrd (T)))) (Implemented (PartialEq (T)))))
+                                                ((∀ ((type T)) (Implies ((Implemented (Eq (T)))) (Implemented (PartialEq (T)))))
+                                                 (∀ ((type T)) (Implies ((Implemented (Ord (T)))) (Implemented (PartialOrd (T)))))
+                                                 (∀ ((type T)) (Implies ((Implemented (Ord (T)))) (Implemented (Eq (T)))))
+                                                 (∀ ((type T)) (Implies ((Implemented (PartialOrd (T)))) (Implemented (PartialEq (T)))))
                                                  ))))
     ]
 
@@ -187,10 +187,10 @@
             formality-logic
             (term (env-hypotheses (elaborate-hypotheses
                                    (env-with-hypotheses Env
-                                                        ((∀ ((TyKind T)) (Implemented (Ord (T)))))))))
-            (term ((∀ ((TyKind T)) (Implemented (Ord (T))))
-                   (∀ ((TyKind T)) (Implemented (Eq (T))))
-                   (∀ ((TyKind T)) (Implemented (PartialOrd (T))))
-                   (∀ ((TyKind T)) (Implemented (PartialEq (T))))))))
+                                                        ((∀ ((type T)) (Implemented (Ord (T)))))))))
+            (term ((∀ ((type T)) (Implemented (Ord (T))))
+                   (∀ ((type T)) (Implemented (Eq (T))))
+                   (∀ ((type T)) (Implemented (PartialOrd (T))))
+                   (∀ ((type T)) (Implemented (PartialEq (T))))))))
    )
   )

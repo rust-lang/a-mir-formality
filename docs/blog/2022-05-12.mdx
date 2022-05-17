@@ -290,7 +290,7 @@ would be represented as
 
 ```scheme
 (Foo (trait ; KindedVarIds -- the generics:
-            ((TyKind Self) (TyKind T))
+            ((type Self) (type T))
             ; where clauses, including supertraits:
             ((Implemented (Ord (T))) (Implemented (Bar (Self))))
             ; trait items, empty list:
@@ -350,10 +350,10 @@ To see how it works, let's look at the case for an `impl` from that section. To 
    ;; We consider `HasImpl` to hold if (a) all inputs are well formed and (b) where
    ;; clauses are satisfied:
    ;;
-   ;;     (∀ ((LtKind 'a) (TyKind T))
+   ;;     (∀ ((LtKind 'a) (type T))
    ;;         (HasImpl (Foo (i32 'a u32))) :-
-   ;;             (WellFormed (TyKind i32))
-   ;;             (WellFormed (TyKind i32))
+   ;;             (WellFormed (type i32))
+   ;;             (WellFormed (type i32))
    ;;             (Implemented (Ord T)))
 ```
 
@@ -492,7 +492,7 @@ Using the code for impls we saw earlier, the `Magic` impl would generate the fol
 
 ```scheme
 ; forall<T> { Implemented(T: Magic) => HasImpl(T: Magic) }
-(∀ ((TyKind T)) 
+(∀ ((type T)) 
         (Implies ((Implemented (Magic (T))))
                  (HasImpl (Magic (T)))))
 ```
@@ -504,9 +504,9 @@ To actually prove `Implemented(T: Magic)`, This clause has to be combined with t
 ;               HasImpl(T: Copy), 
 ;               WellFormed(T),
 ;             ) => Implemented(T: Copy) }
-(∀ ((TyKind T))
+(∀ ((type T))
         (Implies ((HasImpl (Copy (T)))
-                  (WellFormed (TyKind (T))))
+                  (WellFormed (type (T))))
                  (Implemented (Copy (T)))))
 ```
 
@@ -518,9 +518,9 @@ For `Magic`, the rule includes the where clause that `T: Copy`:
 ;               WellFormed(T),
 ;               Implemented(T: Copy),
 ;             ) => Implemented(T: Magic) }
-(∀ ((TyKind T))
+(∀ ((type T))
         (Implies ((HasImpl (Magic (T)))
-                  (WellFormed (TyKind (T)))
+                  (WellFormed (type (T)))
                   (Implemented (Copy (T))))
                  (Implemented (Magic (T)))))
 ```
@@ -596,7 +596,7 @@ The solver is able to make use of invariants to generate proofs, but only in a l
 This in turn implies that the seemingly tautological impl of `Magic` is actually **legal**! Recall the "ok goals" we saw before, that are used to decide which declarations are legal. The "ok" goal for the magic impl looks like this:
 
 ```scheme
-(∀ ((TyKind T))
+(∀ ((type T))
         (Implies ((Implemented (Magic (T))))
                  (Implemented (Magic (T)))))
 ```

@@ -209,13 +209,13 @@
   (redex-let*
    formality-logic
    ((; A is in U0
-     (Env_0 Term_A (VarId_0)) (term (instantiate-quantified EmptyEnv (∃ ((TyKind A)) A))))
+     (Env_0 Term_A (VarId_0)) (term (instantiate-quantified EmptyEnv (∃ ((type A)) A))))
     (; V is a placeholder in U1
-     (Env_1 Term_T (VarId_1)) (term (instantiate-quantified Env_0 (∀ ((TyKind T)) T))))
+     (Env_1 Term_T (VarId_1)) (term (instantiate-quantified Env_0 (∀ ((type T)) T))))
     (; X is in U1
-     (Env_2 Term_X (VarId_2)) (term (instantiate-quantified Env_1 (∃ ((TyKind X)) X))))
+     (Env_2 Term_X (VarId_2)) (term (instantiate-quantified Env_1 (∃ ((type X)) X))))
     (; Y, Z are in U1
-     (Env_3 (Term_Y Term_Z) VarIds_3) (term (instantiate-quantified Env_2 (∃ ((TyKind Y) (TyKind Z)) (Y Z)))))
+     (Env_3 (Term_Y Term_Z) VarIds_3) (term (instantiate-quantified Env_2 (∃ ((type Y) (type Z)) (Y Z)))))
     ((Env_4 ()) (term (relate-parameters Env_3 ((TyRigid Vec (Term_A)) == (TyRigid Vec (Term_X))))))
     (Env_5 (term (reset Env_2 VarIds_3 Env_4)))
     )
@@ -231,7 +231,7 @@
 
    (redex-let*
     formality-logic
-    ((Env (term (env-with-vars-in-current-universe EmptyEnv ∃ ((TyKind T) (TyKind U) (TyKind V))))))
+    ((Env (term (env-with-vars-in-current-universe EmptyEnv ∃ ((type T) (type U) (type V))))))
     (traced '()
             (test-equal
              (judgment-holds (prove-top-level-goal-substitution
@@ -249,31 +249,31 @@
 
    (test-can-prove
     EmptyEnv
-    (∀ ((TyKind T))
+    (∀ ((type T))
        (Implies ((Implemented (Debug (T))))
                 (Implemented (Debug (T))))))
 
    (test-cannot-prove
-    (env-with-vars-in-current-universe EmptyEnv ∃ ((TyKind X)))
-    (∃ ((TyKind X))
-       (∀ ((TyKind T))
+    (env-with-vars-in-current-universe EmptyEnv ∃ ((type X)))
+    (∃ ((type X))
+       (∀ ((type T))
           (T == X))))
 
    (test-cannot-prove
-    (env-with-vars-in-current-universe EmptyEnv ∃ ((TyKind X)))
-    (∀ ((TyKind T))
+    (env-with-vars-in-current-universe EmptyEnv ∃ ((type X)))
+    (∀ ((type T))
        (T == X)))
 
    (test-can-prove
     EmptyEnv
-    (∀ ((TyKind T))
-       (∃ ((TyKind X))
+    (∀ ((type T))
+       (∃ ((type X))
           (T == X))))
 
    (redex-let*
     formality-logic
-    ((Invariant_PartialEq-if-Eq (term (∀ ((TyKind T)) (Implies ((Implemented (Eq (T))))
-                                                               (Implemented (PartialEq (T)))))))
+    ((Invariant_PartialEq-if-Eq (term (∀ ((type T)) (Implies ((Implemented (Eq (T))))
+                                                             (Implemented (PartialEq (T)))))))
      (Env (term (env-with-clauses-and-invariants ()
                                                  (Invariant_PartialEq-if-Eq)
                                                  ))))
@@ -281,8 +281,8 @@
     (test-cannot-prove Env (Implemented (PartialEq ((TyRigid u32 ())))))
 
     (test-can-prove Env
-                    (∀ ((TyKind T)) (Implies ((Implemented (Eq (T))))
-                                             (Implemented (PartialEq (T))))))
+                    (∀ ((type T)) (Implies ((Implemented (Eq (T))))
+                                           (Implemented (PartialEq (T))))))
     )
    )
 

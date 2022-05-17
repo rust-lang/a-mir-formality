@@ -60,7 +60,7 @@
   (redex-let*
    formality-logic
 
-   ((Clauses_test (term ((∀ ((TyKind T)) (Implemented (Debug (T))))))))
+   ((Clauses_test (term ((∀ ((type T)) (Implemented (Debug (T))))))))
 
    (test-equal (term (filter-clauses
                       EmptyEnv

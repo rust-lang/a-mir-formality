@@ -15,7 +15,7 @@
    ;; Test for that `impl Drop for i32` is not permitted.
 
    ((; trait rust:Drop { }
-     TraitDecl_Drop (term (rust:Drop (trait ((TyKind Self)) () ()))))
+     TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; impl rust:Drop for i32 { }
      TraitImplDecl (term (impl () (rust:Drop ((scalar-ty i32))) () ())))
@@ -42,12 +42,12 @@
    ;; Test for case where the Drop impl is for `Foo<i32>` only.
 
    ((; struct Foo<T> { }
-     AdtDecl_Foo (term (Foo (struct ((TyKind T)) ()
+     AdtDecl_Foo (term (Foo (struct ((type T)) ()
                               ((Foo ())) ; the 1 variant (named `Foo`)
                               ))))
 
     (; trait rust:Drop { }
-     TraitDecl_Drop (term (rust:Drop (trait ((TyKind Self)) () ()))))
+     TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; impl rust:Drop for Foo<i32> { } //~ ERROR
      TraitImplDecl (term (impl () (rust:Drop ((TyRigid Foo ((scalar-ty i32))))) () ())))
@@ -76,15 +76,15 @@
    ;; that doesn't follow from the struct.
 
    ((; struct Foo<T> { }
-     AdtDecl_Foo (term (Foo (struct ((TyKind T)) ()
+     AdtDecl_Foo (term (Foo (struct ((type T)) ()
                               ((Foo ())) ; the 1 variant (named `Foo`)
                               ))))
 
     (; trait rust:Drop { }
-     TraitDecl_Drop (term (rust:Drop (trait ((TyKind Self)) () ()))))
+     TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; impl<U> rust:Drop for Foo<U> where U: Debug { } //~ ERROR
-     TraitImplDecl (term (impl ((TyKind U)) (rust:Drop ((TyRigid Foo (U)))) ((Implemented (Debug (U)))) ())))
+     TraitImplDecl (term (impl ((type U)) (rust:Drop ((TyRigid Foo (U)))) ((Implemented (Debug (U)))) ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo
@@ -111,15 +111,15 @@
    ;; the predicates on the struct.
 
    ((; struct Foo<T> { }
-     AdtDecl_Foo (term (Foo (struct ((TyKind T)) ()
+     AdtDecl_Foo (term (Foo (struct ((type T)) ()
                               ((Foo ())) ; the 1 variant (named `Foo`)
                               ))))
 
     (; trait rust:Drop { }
-     TraitDecl_Drop (term (rust:Drop (trait ((TyKind Self)) () ()))))
+     TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; impl<U> rust:Drop for Foo<U> { }
-     TraitImplDecl (term (impl ((TyKind U)) (rust:Drop ((TyRigid Foo (U)))) () ())))
+     TraitImplDecl (term (impl ((type U)) (rust:Drop ((TyRigid Foo (U)))) () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo
@@ -146,21 +146,21 @@
    ;; the predicates on the struct.
 
    ((; struct Foo<T> where T: Ord { }
-     AdtDecl_Foo (term (Foo (struct ((TyKind T)) ((Implemented (Ord (T))))
+     AdtDecl_Foo (term (Foo (struct ((type T)) ((Implemented (Ord (T))))
                               ((Foo ())) ; the 1 variant (named `Foo`)
                               ))))
 
     (; trait rust:Drop { }
-     TraitDecl_Drop (term (rust:Drop (trait ((TyKind Self)) () ()))))
+     TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; trait Eq { }
-     TraitDecl_Eq (term (Eq (trait ((TyKind Self)) () ()))))
+     TraitDecl_Eq (term (Eq (trait ((type Self)) () ()))))
 
     (; trait Ord: Eq { }
-     TraitDecl_Ord (term (Ord (trait ((TyKind Self)) ((Implemented (Eq (Self)))) ()))))
+     TraitDecl_Ord (term (Ord (trait ((type Self)) ((Implemented (Eq (Self)))) ()))))
 
     (; impl<U> rust:Drop for Foo<U> where T: Ord + Eq { }
-     TraitImplDecl (term (impl ((TyKind U))
+     TraitImplDecl (term (impl ((type U))
                                (rust:Drop ((TyRigid Foo (U))))
                                ((Implemented (Ord (U)))
                                 (Implemented (Eq (U)))

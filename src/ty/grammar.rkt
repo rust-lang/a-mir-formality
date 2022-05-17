@@ -22,7 +22,7 @@
   ;; lifetime, etc)
   ;;
   ;; Overridden from formality-logic.
-  (ParameterKind ::= TyKind LtKind)
+  (ParameterKind ::= type LtKind)
 
   ;; Parameter: value for a generic parameter
   ;;

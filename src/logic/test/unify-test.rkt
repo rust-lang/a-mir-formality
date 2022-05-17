@@ -18,11 +18,11 @@
   (redex-let*
    formality-logic
    ((; T, U, and E are in U0
-     Env_0 (term (env-with-vars-in-current-universe EmptyEnv ∃ ((TyKind T) (TyKind U) (TyKind E)))))
+     Env_0 (term (env-with-vars-in-current-universe EmptyEnv ∃ ((type T) (type U) (type E)))))
     (; V is a placeholder in U1
-     (Env_1 Term_V _) (term (instantiate-quantified Env_0 (∀ ((TyKind V)) V))))
+     (Env_1 Term_V _) (term (instantiate-quantified Env_0 (∀ ((type V)) V))))
     (; X is in U1, too
-     Env_2 (term (env-with-vars-in-current-universe Env_1 ∃ ((TyKind X))))))
+     Env_2 (term (env-with-vars-in-current-universe Env_1 ∃ ((type X))))))
 
    ; Equating `E` with `i32` is OK
    (test-equal
@@ -76,11 +76,11 @@
   (redex-let*
    formality-logic
    ((; A, B, and C are existential variables in U0
-     (Env_0 (Term_A Term_B Term_C) _) (term (instantiate-quantified EmptyEnv (∃ ((TyKind A) (TyKind B) (TyKind C)) (A B C)))))
+     (Env_0 (Term_A Term_B Term_C) _) (term (instantiate-quantified EmptyEnv (∃ ((type A) (type B) (type C)) (A B C)))))
     (; T, U, and V are placeholders in U1
-     (Env_1 (Term_T Term_U Term_V) _) (term (instantiate-quantified Env_0 (∀ ((TyKind T) (TyKind U) (TyKind V)) (T U V)))))
+     (Env_1 (Term_T Term_U Term_V) _) (term (instantiate-quantified Env_0 (∀ ((type T) (type U) (type V)) (T U V)))))
     (; X, Y, and Z are existential variables in U1
-     (Env_2 (Term_X Term_Y Term_Z) _) (term (instantiate-quantified Env_1 (∃ ((TyKind X) (TyKind Y) (TyKind Z)) (X Y Z))))))
+     (Env_2 (Term_X Term_Y Term_Z) _) (term (instantiate-quantified Env_1 (∃ ((type X) (type Y) (type Z)) (X Y Z))))))
 
    ; Test [Vec<X> = Vec<T>]
    ;

@@ -160,7 +160,7 @@
     ; must be equal)
     where/error Goal_eq (All ((Parameter_1 == Parameter_2) ...)))
    (; Or we can normalize both aliases to the same type
-    where/error Goal_n (∃ ((TyKind T1) (TyKind T2))
+    where/error Goal_n (∃ ((type T1) (type T2))
                           (All ((T1 <= T2)
                                 (Normalize (TyAlias AliasName (Parameter_1 ...)) T1)
                                 (Normalize (TyAlias AliasName (Parameter_2 ...)) T2)))
@@ -171,7 +171,7 @@
    (compare/one/substituted Env (AliasTy <= Ty))
    (Env (Goal_n))
    (; Or we can normalize both aliases to the same type
-    where/error Goal_n (∃ ((TyKind T))
+    where/error Goal_n (∃ ((type T))
                           (All ((T <= Ty)
                                 (Normalize AliasTy T)))))
    ]
@@ -180,7 +180,7 @@
    (compare/one/substituted Env (Ty <= AliasTy))
    (Env (Goal_n))
    (; Or we can normalize both aliases to the same type
-    where/error Goal_n (∃ ((TyKind T))
+    where/error Goal_n (∃ ((type T))
                           (All ((Ty <= T)
                                 (Normalize AliasTy T)))))
    ]

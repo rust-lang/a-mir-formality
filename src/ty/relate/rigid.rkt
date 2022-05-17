@@ -38,7 +38,7 @@
                               (; (R<P1..Pn> <op> R<...>) ∧
                                (TyRigid RigidName (VarId_p ...)) RelationOp (TyRigid RigidName (Parameter ...)))
                               (; WF(R<P1..Pn>)
-                               WellFormed (TyKind (TyRigid RigidName (VarId_p ...))))
+                               WellFormed (type (TyRigid RigidName (VarId_p ...))))
                               ))))
 
    ]

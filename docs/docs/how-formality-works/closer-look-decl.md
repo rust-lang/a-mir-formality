@@ -51,7 +51,7 @@ would be represented as
 
 ```scheme
 (Foo (trait ; KindedVarIds -- the generics:
-            ((TyKind Self) (TyKind T))
+            ((type Self) (type T))
             ; where clauses, including supertraits:
             ((Implemented (Ord (T))) (Implemented (Bar (Self))))
             ; trait items, empty list:
@@ -125,10 +125,10 @@ To begin with, here is the comment explaining what we aim to do:
    ;; We consider `HasImpl` to hold if (a) all inputs are well formed and (b) where
    ;; clauses are satisfied:
    ;;
-   ;;     (∀ ((LtKind 'a) (TyKind T))
+   ;;     (∀ ((LtKind 'a) (type T))
    ;;         (HasImpl (Foo (i32 'a u32))) :-
-   ;;             (WellFormed (TyKind i32))
-   ;;             (WellFormed (TyKind i32))
+   ;;             (WellFormed (type i32))
+   ;;             (WellFormed (type i32))
    ;;             (Implemented (Ord T)))
 ```
 

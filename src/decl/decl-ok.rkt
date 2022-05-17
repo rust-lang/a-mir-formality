@@ -36,10 +36,10 @@
    ;; We generate the following goal, which specifies that -- assuming the generics
    ;; are well formed and the where-clauses hold -- the field types are well-formed:
    ;;
-   ;;     (∀ ((TyKind T))
-   ;;         (Implies ((WellFormed (TyKind T))
+   ;;     (∀ ((type T))
+   ;;         (Implies ((WellFormed (type T))
    ;;                   (Implemented (Ord T)))
-   ;;           (WellFormed (TyKind Vec<T>)) ...))
+   ;;           (WellFormed (type Vec<T>)) ...))
    (crate-item-ok-goal _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
    Goal_wf
 
@@ -48,7 +48,7 @@
    (where/error Goal_wf (∀ KindedVarIds
                            (Implies
                             ((WellFormed KindedVarId) ... WhereClause ...)
-                            (All ((WellFormed (TyKind Ty)) ... ...)))))
+                            (All ((WellFormed (type Ty)) ... ...)))))
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:
@@ -101,7 +101,7 @@
         ; ...where-clauses are satisfied...
         WhereClause ...)
        (; ... then the trait must be implemented
-        WellFormed (TyKind Ty))))
+        WellFormed (type Ty))))
 
    (where/error (KindedVarId ...) KindedVarIds)
    (where/error (WhereClause ...) WhereClauses)

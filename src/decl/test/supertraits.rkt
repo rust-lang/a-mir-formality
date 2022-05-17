@@ -14,9 +14,9 @@
   (redex-let*
    formality-decl
 
-   ((TraitDecl_PartialEq (term (PartialEq (trait ((TyKind Self)) () ()))))
-    (TraitDecl_Eq (term (Eq (trait ((TyKind Self)) ((Implemented (PartialEq (Self)))) ()))))
-    (TraitDecl_Debug (term (Debug (trait ((TyKind Self)) () ()))))
+   ((TraitDecl_PartialEq (term (PartialEq (trait ((type Self)) () ()))))
+    (TraitDecl_Eq (term (Eq (trait ((type Self)) ((Implemented (PartialEq (Self)))) ()))))
+    (TraitDecl_Debug (term (Debug (trait ((type Self)) () ()))))
     (CrateDecl (term (TheCrate (crate (TraitDecl_PartialEq TraitDecl_Eq)))))
     (Env (term (env-for-crate-decl CrateDecl)))
     )
@@ -24,28 +24,28 @@
    (traced '()
            (decl:test-cannot-prove
             Env
-            (∀ ((TyKind T))
+            (∀ ((type T))
                (Implies ((Implemented (PartialEq (T))))
                         (Implemented (Eq (T)))))))
 
    (traced '()
            (decl:test-can-prove
             Env
-            (∀ ((TyKind T))
+            (∀ ((type T))
                (Implies ((Implemented (Eq (T))))
                         (Implemented (PartialEq (T)))))))
 
    (traced '()
            (decl:test-can-prove
             Env
-            (∀ ((TyKind T))
+            (∀ ((type T))
                (Implies ((Implemented (Eq (T))))
                         (Implemented (Eq (T)))))))
 
    (traced '()
            (decl:test-cannot-prove
             Env
-            (∀ ((TyKind T))
+            (∀ ((type T))
                (Implies ((Implemented (Eq (T))))
                         (Implemented (Debug (T)))))))
    )

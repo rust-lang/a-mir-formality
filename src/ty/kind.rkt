@@ -19,7 +19,7 @@
 
   ; The others are not, so we can just test via patterns
   [(parameter-kind Env Lt) LtKind]
-  [(parameter-kind Env Ty) TyKind]
+  [(parameter-kind Env Ty) type]
   )
 
 (define-metafunction formality-ty
@@ -27,7 +27,7 @@
 
   [(parameter-has-type-kind? Env Parameter)
    #t
-   (where TyKind (parameter-kind Env Parameter))]
+   (where type (parameter-kind Env Parameter))]
 
   [(parameter-has-type-kind? Env Parameter)
    #f]

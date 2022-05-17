@@ -18,13 +18,13 @@
      Ty_Foo (term (TyRigid Foo ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))
+     TraitDecl_Magic (term (Magic (trait ((type Self)) ((Implemented (Copy (Self)))) ()))))
 
     (; trait Copy { }
-     TraitDecl_Copy (term (Copy (trait ((TyKind Self)) () ()))))
+     TraitDecl_Copy (term (Copy (trait ((type Self)) () ()))))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((TyKind T)) (Magic (T)) ((Implemented (Magic (T)))) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((Implemented (Magic (T)))) ())))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
@@ -65,13 +65,13 @@
      Ty_Foo (term (TyRigid Foo ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))
+     TraitDecl_Magic (term (Magic (trait ((type Self)) ((Implemented (Copy (Self)))) ()))))
 
     (; trait Copy: Magic { }
-     TraitDecl_Copy (term (Copy (trait ((TyKind Self)) ((Implemented (Magic (Self)))) ()))))
+     TraitDecl_Copy (term (Copy (trait ((type Self)) ((Implemented (Magic (Self)))) ()))))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((TyKind T)) (Magic (T)) ((Implemented (Magic (T)))) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((Implemented (Magic (T)))) ())))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
@@ -117,13 +117,13 @@
      Ty_Bar (term (TyRigid Bar ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))
+     TraitDecl_Magic (term (Magic (trait ((type Self)) ((Implemented (Copy (Self)))) ()))))
 
     (; trait Copy { }
-     TraitDecl_Copy (term (Copy (trait ((TyKind Self)) () ()))))
+     TraitDecl_Copy (term (Copy (trait ((type Self)) () ()))))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((TyKind T)) (Magic (T)) ((Implemented (Magic (T)))) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((Implemented (Magic (T)))) ())))
 
     (; impl Copy for Foo { }
      TraitImplDecl_Copy (term (impl () (Copy (Ty_Foo)) () ())))

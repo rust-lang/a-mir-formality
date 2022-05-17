@@ -157,8 +157,8 @@
    (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
    (Env ((Any (Goal_each Goal_n))))
    (where/error Goal_each (All ((Parameter_a -outlives- Parameter) ...)))
-   (where/error Goal_n (∃ ((TyKind T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
-                                             (T -outlives- Parameter)))))
+   (where/error Goal_n (∃ ((type T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
+                                           (T -outlives- Parameter)))))
    ]
 
   [; P : A<Pa ...> if
@@ -169,8 +169,8 @@
    ; in which case only static outlives it.
    (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
    (Env (Goal_n))
-   (where/error Goal_n (∃ ((TyKind T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
-                                             (Parameter -outlives- T)))))
+   (where/error Goal_n (∃ ((type T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
+                                           (Parameter -outlives- T)))))
    ]
 
   [; !X : T if
@@ -178,7 +178,7 @@
    (outlives/one/substituted/reduce Env (VarId -outlives- Parameter))
    (Env ((Any Goals)))
 
-   (where (TyKind ∀ _) (var-binding-in-env Env VarId))
+   (where (type ∀ _) (var-binding-in-env Env VarId))
    (where/error Goals (bound-placeholder-from-hypotheses Env VarId -outlives- Parameter))
    ]
 
@@ -188,7 +188,7 @@
    (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
    (Env ((Parameter -outlives- static)))
 
-   (where (TyKind ∀ _) (var-binding-in-env Env VarId))
+   (where (type ∀ _) (var-binding-in-env Env VarId))
    (where () (bound-placeholder-from-hypotheses Env VarId -outlived-by- Parameter))
    ]
 
@@ -200,7 +200,7 @@
    (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
    (Env ((Any (Goal_0 Goal_1 ...))))
 
-   (where (TyKind ∀ _) (var-binding-in-env Env VarId))
+   (where (type ∀ _) (var-binding-in-env Env VarId))
    (where/error (Goal_0 Goal_1 ...) (bound-placeholder-from-hypotheses Env VarId -outlived-by- Parameter))
    ]
 

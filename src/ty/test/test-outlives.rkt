@@ -13,9 +13,9 @@
 
    ((Env (term (env-with-clauses-invariants-and-generics
                 ((; Just ignore WellFormed rules, not interesting for testing subtyping
-                  ∀ ((TyKind T)) (WellFormed (TyKind T)))
+                  ∀ ((type T)) (WellFormed (type T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
-                  ∀ ((TyKind T)) (Implemented (AlwaysImpl (T))))
+                  ∀ ((type T)) (Implemented (AlwaysImpl (T))))
                  )
                 ()
                 ()
@@ -43,7 +43,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((TyKind T)))
+                   ((∀ ((type T)))
                     (∃ ((LtKind A) (LtKind B))))
                    ()
                    ((TyRigid (Ref ()) (A T)) -outlives- (TyRigid (Ref ()) (B T)))
@@ -97,7 +97,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((TyKind T)))
+                   ((∀ ((type T)))
                     (∃ ((LtKind A))))
                    ()
                    (A
