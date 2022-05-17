@@ -125,7 +125,7 @@ To begin with, here is the comment explaining what we aim to do:
    ;; We consider `HasImpl` to hold if (a) all inputs are well formed and (b) where
    ;; clauses are satisfied:
    ;;
-   ;;     (∀ ((LtKind 'a) (type T))
+   ;;     (∀ ((lifetime 'a) (type T))
    ;;         (HasImpl (Foo (i32 'a u32))) :-
    ;;             (WellFormed (type i32))
    ;;             (WellFormed (type i32))

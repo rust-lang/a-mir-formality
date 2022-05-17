@@ -102,9 +102,9 @@
             formality-ty
 
             ((∃
-              ((LtKind VarId_A)
+              ((lifetime VarId_A)
                (type VarId_TheTy)
-               (LtKind VarId_TheLt))
+               (lifetime VarId_TheLt))
               (Implies
                ((VarId_TheTy <= VarId_T)
                 (VarId_TheLt -outlives- VarId_A))
@@ -116,7 +116,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T)))
-                    (∃ ((type U) (LtKind A))))
+                    (∃ ((type U) (lifetime A))))
                    ()
                    (U <= (& A T))
                    ))
@@ -268,11 +268,11 @@
     ((∃ () (Implies () _))) ; provable! uh-oh!
     (term (ty:prove-scheme
            Env
-           ((∀ ((type T) (LtKind X)))
+           ((∀ ((type T) (lifetime X)))
             )
            ()
            ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
-             ∀ ((LtKind A) (LtKind B))
+             ∀ ((lifetime A) (lifetime B))
                (fn ((& A (& B TyUnit)) (& B T)) (& A T)))
             <=
             (; fn(&'static &'x (), &'x T) -> &'static T
@@ -290,11 +290,11 @@
             () ; no solutions
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((type T) (LtKind X)))
+                   ((∀ ((type T) (lifetime X)))
                     )
                    ()
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
-                     ∀ ((LtKind A) (LtKind B))
+                     ∀ ((lifetime A) (lifetime B))
                        (Implies ((Outlives (B : A))) ; implied bound!
                                 (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
                     <=
@@ -312,11 +312,11 @@
             ((∃ () (Implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((type T) (LtKind X)))
+                   ((∀ ((type T) (lifetime X)))
                     )
                    ()
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
-                     ∀ ((LtKind A) (LtKind B))
+                     ∀ ((lifetime A) (lifetime B))
                        (Implies ((Outlives (B : A))) ; implied bound!
                                 (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
                     <=

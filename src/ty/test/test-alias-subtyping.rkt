@@ -93,7 +93,7 @@
             () ; not provable
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((LtKind A) (LtKind B))))
+                   ((∀ ((lifetime A) (lifetime B))))
                    ((Outlives (A : B)))
                    ((item (& A TyUnit))
                     <=
@@ -111,7 +111,7 @@
             ((∃ () (Implies () _))) ; provable
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((LtKind A) (LtKind B))))
+                   ((∀ ((lifetime A) (lifetime B))))
                    ((Outlives (A : B))
                     (Outlives (B : A))
                     )
@@ -131,7 +131,7 @@
             ((∃ () (Implies () _))) ; provable
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((LtKind A) (LtKind B))))
+                   ((∀ ((lifetime A) (lifetime B))))
                    ((Outlives (A : B)))
                    ((item (vec (& A TyUnit)))
                     <=

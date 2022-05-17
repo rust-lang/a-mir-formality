@@ -52,8 +52,8 @@
    (outlives/one/substituted Env (VarId_!A OutlivesOp VarId_!B))
    (Env ((Any Goals)))
 
-   (where (LtKind ∀ _) (var-binding-in-env Env VarId_!A))
-   (where (LtKind ∀ _) (var-binding-in-env Env VarId_!B))
+   (where (lifetime ∀ _) (var-binding-in-env Env VarId_!A))
+   (where (lifetime ∀ _) (var-binding-in-env Env VarId_!B))
    (where Goals (bound-placeholder-from-hypotheses Env VarId_!A OutlivesOp VarId_!B))
    ]
 
@@ -61,7 +61,7 @@
    (outlives/one/substituted Env (VarId_!A -outlives- static))
    (Env ((Any Goals)))
 
-   (where (LtKind ∀ _) (var-binding-in-env Env VarId_!A))
+   (where (lifetime ∀ _) (var-binding-in-env Env VarId_!A))
    (where Goals (bound-placeholder-from-hypotheses Env VarId_!A -outlives- static))
    ]
 

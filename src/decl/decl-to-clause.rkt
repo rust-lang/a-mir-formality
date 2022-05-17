@@ -185,20 +185,20 @@
    ;; implemented, all of its input types must be well-formed, it must have
    ;; an impl, and the where-clauses declared on the trait must be met:
    ;;
-   ;;     (∀ ((type Self) (LtKind 'a) (type T))
+   ;;     (∀ ((type Self) (lifetime 'a) (type T))
    ;;         (Implemented (Foo (Self 'a T))) :-
    ;;            (HasImpl (Foo (Self 'a T))),
    ;;            (WellFormed (type Self)),
-   ;;            (WellFormed (LtKind 'a)),
+   ;;            (WellFormed (lifetime 'a)),
    ;;            (WellFormed (type T)),
    ;;            (Implemented (Ord T)))
    ;;
    ;; We also generate the following invariants in the defining crate:
    ;;
-   ;;     (∀ ((type Self) (LtKind 'a) (type T))
+   ;;     (∀ ((type Self) (lifetime 'a) (type T))
    ;;         (Implemented (Foo (Self 'a T))) => (Implemented (Ord T))
    ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (type Self))
-   ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (LtKind 'a))
+   ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (lifetime 'a))
    ;;         (Implemented (Foo (Self 'a T))) => (WellFormed (type T)))
    (crate-item-decl-rules _ (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
    ((Clause)
@@ -233,10 +233,10 @@
    ;; We consider `HasImpl` to hold if (a) all inputs are well formed and (b) where
    ;; clauses are satisfied:
    ;;
-   ;;     (∀ ((LtKind 'a) (type T))
+   ;;     (∀ ((lifetime 'a) (type T))
    ;;         (HasImpl (Foo (i32 'a u32))) :-
    ;;             (WellFormed (type i32))
-   ;;             (WellFormed (LtKind 'a))
+   ;;             (WellFormed (lifetime 'a))
    ;;             (Implemented (Ord T)))
    (crate-item-decl-rules CrateDecls (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    ((Clause) () ())

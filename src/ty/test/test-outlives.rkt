@@ -34,7 +34,7 @@
             formality-ty
 
             ((∃
-              ((LtKind VarId_B) (LtKind VarId_A))
+              ((lifetime VarId_B) (lifetime VarId_A))
               (Implies
                ((VarId_A -outlives- VarId_B))
                ((TyRigid (Ref ()) (VarId_A VarId_T))
@@ -44,7 +44,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T)))
-                    (∃ ((LtKind A) (LtKind B))))
+                    (∃ ((lifetime A) (lifetime B))))
                    ()
                    ((TyRigid (Ref ()) (A T)) -outlives- (TyRigid (Ref ()) (B T)))
                    ))
@@ -62,7 +62,7 @@
               (Implies
                ()
                ((∀
-                 ((LtKind A))
+                 ((lifetime A))
                  (TyRigid
                   (Fn "" 1)
                   ((TyRigid (Ref ()) (A (TyRigid u32 ())))
@@ -74,7 +74,7 @@
                    Env
                    ()
                    ()
-                   ((∀ ((LtKind A)) (TyRigid (Fn "" 1) ((TyRigid (Ref ()) (A (scalar-ty u32))) TyUnit)))
+                   ((∀ ((lifetime A)) (TyRigid (Fn "" 1) ((TyRigid (Ref ()) (A (scalar-ty u32))) TyUnit)))
                     -outlives-
                     static)
                    ))
@@ -90,7 +90,7 @@
             ; true if (A -outlives- 'static)
 
             ((∃
-              ((LtKind VarId_A))
+              ((lifetime VarId_A))
               (Implies
                ((VarId_A -outlives- static))
                (VarId_A -outlives- VarId_T))))
@@ -98,7 +98,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T)))
-                    (∃ ((LtKind A))))
+                    (∃ ((lifetime A))))
                    ()
                    (A
                     -outlives-
@@ -120,7 +120,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((LtKind A) (LtKind B))))
+                   ((∀ ((lifetime A) (lifetime B))))
                    ()
                    (A -outlives- B)
                    ))
@@ -140,7 +140,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((LtKind A) (LtKind B))))
+                   ((∀ ((lifetime A) (lifetime B))))
                    ((Outlives (A : B)))
                    (A -outlives- B)
                    ))
@@ -158,7 +158,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((LtKind A) (LtKind B))))
+                   ((∀ ((lifetime A) (lifetime B))))
                    ((Outlives (A : B))
                     )
                    (A == B)
@@ -177,7 +177,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((LtKind A) (LtKind B))))
+                   ((∀ ((lifetime A) (lifetime B))))
                    ((Outlives (A : B))
                     (Outlives (B : A))
                     )

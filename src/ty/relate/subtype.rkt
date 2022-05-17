@@ -30,8 +30,8 @@
    ; 'a >= 'b if 'a -outlived-by- 'b
    (compare/one/substituted Env (Parameter_a SubtypeOp Parameter_b))
    (Env ((Parameter_a (subtype->outlives SubtypeOp) Parameter_b)))
-   (where LtKind (parameter-kind Env Parameter_a))
-   (where/error LtKind (parameter-kind Env Parameter_b)) ; ought to be well-kinded
+   (where lifetime (parameter-kind Env Parameter_a))
+   (where/error lifetime (parameter-kind Env Parameter_b)) ; ought to be well-kinded
    ]
 
   [; X ?= R<...> -- Inequality between a variable and a rigid type
