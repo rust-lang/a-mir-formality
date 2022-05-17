@@ -7,7 +7,7 @@
          )
 
 (provide match-terms
-)
+         )
 
 (define-metafunction formality-logic
   ;; *matching terms* is a very simple minded form of unification
@@ -109,7 +109,7 @@
 
   (traced '()
           (test-equal
-           (term (match-terms (X) (Implemented (TraitRef (X))) (HasImpl (TraitRef (u32)))))
+           (term (match-terms (X) (Implemented (TraitRef (X))) (has-impl (TraitRef (u32)))))
            (term Error)
            )
           )

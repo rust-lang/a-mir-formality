@@ -80,7 +80,7 @@
    (test-equal (term (filter-clauses
                       EmptyEnv
                       Clauses_test
-                      (HasImpl (Debug ((scalar-ty i32))))))
+                      (has-impl (Debug ((scalar-ty i32))))))
                (term Clauses_test))
    )
   )

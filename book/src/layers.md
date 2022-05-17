@@ -23,8 +23,8 @@ This includes crates, structs, traits, impls, but excludes function bodies.
 
 Semantics are defined by converting Rust items into predicates.
 For example, `impl<T: Eq> Eq for Vec<T>` becomes a "program clause" (axiom)
-like `forall<T> { Implemented(T: Eq) => HasImpl(Vec<T>: Eq) }`.
-(The distinction between `HasImpl` and `Implemented` is covered below.)
+like `forall<T> { Implemented(T: Eq) => has-impl(Vec<T>: Eq) }`.
+(The distinction between `has-impl` and `Implemented` is covered below.)
 
 This layer also defines the well-formedness checks for those items.
 For example, `struct Foo { f1: T1 }` is well-formed if `T` is well-formed.

@@ -12,8 +12,8 @@
    ((Implemented TraitId) Parameters)
    ]
 
-  [(debone-predicate (HasImpl (TraitId Parameters)))
-   ((HasImpl TraitId) Parameters)
+  [(debone-predicate (has-impl (TraitId Parameters)))
+   ((has-impl TraitId) Parameters)
    ]
 
   [(debone-predicate (WellFormed (ParameterKind Parameter)))

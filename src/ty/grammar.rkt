@@ -39,7 +39,7 @@
              ; an impl exists for `TraitRef`; this *by itself* doesn't mean
              ; that `TraitRef` is implemented, as the supertraits may not
              ; have impls.
-             (HasImpl TraitRef)
+             (has-impl TraitRef)
              ; the given type or lifetime is well-formed.
              (WellFormed (ParameterKind Parameter))
              ; normalize a given alias to another type
@@ -54,7 +54,7 @@
   (Predicate/Deboned ::= (Predicate/Skeleton Parameters))
   (Predicate/Skeleton ::=
                       (Implemented TraitId)
-                      (HasImpl TraitId)
+                      (has-impl TraitId)
                       (WellFormed ParameterKind)
                       (Normalize AliasName)
                       )

@@ -118,11 +118,11 @@ To begin with, here is the comment explaining what we aim to do:
    ;;
    ;;     impl<'a, T> Foo<'a, T> for i32 where T: Ord { }
    ;;
-   ;; We consider `HasImpl` to hold if (a) all inputs are well formed and (b) where
+   ;; We consider `has-impl` to hold if (a) all inputs are well formed and (b) where
    ;; clauses are satisfied:
    ;;
    ;;     (∀ ((lifetime 'a) (type T))
-   ;;         (HasImpl (Foo (i32 'a u32))) :-
+   ;;         (has-impl (Foo (i32 'a u32))) :-
    ;;             (WellFormed (type i32))
    ;;             (WellFormed (type i32))
    ;;             (Implemented (Ord T)))
@@ -184,7 +184,7 @@ and `WellFormed`-ness goals that we must prove
                                 ((WellFormed (ParameterKind_trait Parameter_trait)) ...
                                  Goal_wc ...
                                  )
-                                (HasImpl TraitRef))))
+                                (has-impl TraitRef))))
    ]
 ```
 

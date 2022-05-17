@@ -36,7 +36,7 @@
 
   (test-equal (term (ty:predicates-could-match
                      (Implemented (Debug (T)))
-                     (HasImpl (WithDebug ((scalar-ty i32))))))
+                     (has-impl (WithDebug ((scalar-ty i32))))))
               (term #f))
   )
 

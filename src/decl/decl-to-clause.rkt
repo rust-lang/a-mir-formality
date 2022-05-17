@@ -187,7 +187,7 @@
    ;;
    ;;     (∀ ((type Self) (lifetime 'a) (type T))
    ;;         (Implemented (Foo (Self 'a T))) :-
-   ;;            (HasImpl (Foo (Self 'a T))),
+   ;;            (has-impl (Foo (Self 'a T))),
    ;;            (WellFormed (type Self)),
    ;;            (WellFormed (lifetime 'a)),
    ;;            (WellFormed (type T)),
@@ -211,7 +211,7 @@
    (where/error TraitRef_me (TraitId (VarId ...)))
    (where/error Clause (∀ KindedVarIds
                           (implies
-                           ((HasImpl TraitRef_me)
+                           ((has-impl TraitRef_me)
                             (WellFormed (ParameterKind VarId)) ...
                             (where-clause->goal WhereClause) ...
                             )
@@ -230,11 +230,11 @@
    ;;
    ;;     impl<'a, T> Foo<'a, T> for i32 where T: Ord { }
    ;;
-   ;; We consider `HasImpl` to hold if (a) all inputs are well formed and (b) where
+   ;; We consider `has-impl` to hold if (a) all inputs are well formed and (b) where
    ;; clauses are satisfied:
    ;;
    ;;     (∀ ((lifetime 'a) (type T))
-   ;;         (HasImpl (Foo (i32 'a u32))) :-
+   ;;         (has-impl (Foo (i32 'a u32))) :-
    ;;             (WellFormed (type i32))
    ;;             (WellFormed (lifetime 'a))
    ;;             (Implemented (Ord T)))
@@ -250,7 +250,7 @@
                            ((WellFormed (ParameterKind_trait Parameter_trait)) ...
                             Goal_wc ...
                             )
-                           (HasImpl TraitRef))))
+                           (has-impl TraitRef))))
    ]
 
   [;; For an named constant in the crate C, like the following
