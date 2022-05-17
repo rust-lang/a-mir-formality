@@ -23,7 +23,7 @@ The current definition of types looks like this:
           AssociatedTy    ; Associated type
           ScalarId        ; Something like i32, u32, etc
           (ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
-          (Tuple number)  ; tuple of given arity
+          (tuple number)  ; tuple of given arity
           )
    ...
    (ScalarId := i8 u8 i16 u16 i32 u32 i64 u64 i128 u128 bool)

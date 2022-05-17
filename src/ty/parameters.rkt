@@ -42,8 +42,8 @@
   [(generics-for Env (ref ())) (((TheLt (lifetime +)) (TheTy (type +))) ((outlives (TheTy : TheLt))))]
   [(generics-for Env (ref (mut))) (((TheLt (lifetime +)) (TheTy (type =))) ((outlives (TheTy : TheLt))))]
 
-  [; Tuples are covariant in their elements P1...Pn
-   (generics-for Env (Tuple number_arity))
+  [; tuples are covariant in their elements P1...Pn
+   (generics-for Env (tuple number_arity))
    (((VarId (type Variance)) ...) ())
    (where/error (VarId ...) (unique-names number_arity))
    (where/error ((type Variance) ...) (repeat-n-times (type +) number_arity))

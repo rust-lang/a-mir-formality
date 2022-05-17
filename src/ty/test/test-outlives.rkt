@@ -66,7 +66,7 @@
                  (rigid-ty
                   (Fn "" 1)
                   ((rigid-ty (ref ()) (A (rigid-ty u32 ())))
-                   (rigid-ty (Tuple 0) ()))))
+                   (rigid-ty (tuple 0) ()))))
                 -outlives-
                 static))))
 

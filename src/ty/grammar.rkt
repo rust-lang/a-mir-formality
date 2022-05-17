@@ -90,7 +90,7 @@
              AdtId           ; enum/struct/union
              ScalarId        ; Something like i32, u32, etc
              (ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
-             (Tuple number)  ; tuple of given arity
+             (tuple number)  ; tuple of given arity
              (Fn Abi number) ; fn types
              )
 
@@ -182,7 +182,7 @@
 
 (define-term
   TyUnit
-  (rigid-ty (Tuple 0) ())
+  (rigid-ty (tuple 0) ())
   )
 
 (define-metafunction formality-ty
