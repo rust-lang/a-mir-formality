@@ -3,21 +3,21 @@
 (provide (all-defined-out))
 
 (define-metafunction formality-mir
+  apply-projection : Place Projection -> Place
+
+  [(apply-projection Place *) (* Place)]
+  [(apply-projection Place (field FieldId)) (field Place FieldId)]
+  [(apply-projection Place (index LocalId)) (index Place LocalId)]
+  [(apply-projection Place (downcast VariantId)) (downcast Place VariantId)]
+  )
+
+(define-metafunction formality-mir
   apply-projections : Place Projections -> Place
 
   [(apply-projections Place ()) Place]
 
-  [(apply-projections Place (* Projection ...))
-   (apply-projections (* Place) (Projection ...))]
-
-  [(apply-projections Place ((field FieldId) Projection ...))
-   (apply-projections (field Place FieldId) (Projection ...))]
-
-  [(apply-projections Place ((index LocalId) Projection ...))
-   (apply-projections (index Place LocalId) (Projection ...))]
-
-  [(apply-projections Place ((downcast VariantId) Projection ...))
-   (apply-projections (downcast Place VariantId) (Projection ...))]
+  [(apply-projections Place (Projection_hd Projection_tl ...))
+   (apply-projections (apply-projection Place Projection_hd) (Projection_tl ...))]
   )
 
 (define-metafunction formality-mir
