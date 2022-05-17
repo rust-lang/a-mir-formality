@@ -75,8 +75,8 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T) (type U))))
-                   ((normalizes-to (item T) (scalar-ty i32))
-                    (normalizes-to (item U) (scalar-ty i32)))
+                   (((item T) == (scalar-ty i32))
+                    ((item U) == (scalar-ty i32)))
                    ((item T)
                     <=
                     (item U)

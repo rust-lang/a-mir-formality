@@ -32,7 +32,7 @@
    (is-implemented (TraitId (Ty_self Parameter ...)))
    ]
 
-  [(where-clause->goal (normalizes-to AliasTy Ty))
+  [(where-clause->goal (AliasTy == Ty))
    (normalizes-to AliasTy Ty)
    ]
 

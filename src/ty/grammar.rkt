@@ -67,7 +67,7 @@
                (∀ KindedVarIds WhereClause)
                (Ty : TraitId Parameters)
                (Parameter : Lt)
-               (normalizes-to AliasTy Ty)
+               (AliasTy == Ty)
                )
 
   ;; Ty -- Rust types
