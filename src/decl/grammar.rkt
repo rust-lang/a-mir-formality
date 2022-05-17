@@ -4,7 +4,7 @@
          trait-decl-id
          item-with-id
          scalar-ty
-         TyUnit
+         unit-ty
          )
 
 (define-extended-language formality-decl formality-ty

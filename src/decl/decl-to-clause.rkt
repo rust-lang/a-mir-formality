@@ -274,7 +274,7 @@
   ((default-rules ())
    (((well-formed (type (scalar-ty i32)))
      (well-formed (type (scalar-ty u32)))
-     (well-formed (type TyUnit))
+     (well-formed (type unit-ty))
      )
     ())
    )

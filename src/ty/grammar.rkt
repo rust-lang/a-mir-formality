@@ -181,7 +181,7 @@
   )
 
 (define-term
-  TyUnit
+  unit-ty
   (rigid-ty (tuple 0) ())
   )
 
