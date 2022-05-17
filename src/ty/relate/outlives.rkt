@@ -115,7 +115,7 @@
    ; but I didn't feel like writing up that logic just now, and the rule below is not wrong,
    ; it just produces more answers than are necessary. (So, alternatively, we could also
    ; work on the "answer subsumption" logic.)
-   (outlives/one/substituted/reduce Env ((rigid-ty (Ref _) (Lt _)) -outlives- Parameter))
+   (outlives/one/substituted/reduce Env ((rigid-ty (ref _) (Lt _)) -outlives- Parameter))
    (Env ((Lt -outlives- Parameter)))
    ]
 
@@ -137,7 +137,7 @@
    ; but I didn't feel like writing up that logic just now, and the rule below is not wrong,
    ; it just produces more answers than are necessary. (So, alternatively, we could also
    ; work on the "answer subsumption" logic.)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (rigid-ty (Ref _) (Lt _))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (rigid-ty (ref _) (Lt _))))
    (Env ((Parameter -outlives- Lt)))
    ]
 

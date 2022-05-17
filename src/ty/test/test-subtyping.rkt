@@ -108,9 +108,9 @@
               (implies
                ((VarId_TheTy <= VarId_T)
                 (VarId_TheLt -outlives- VarId_A))
-               ((rigid-ty (Ref ()) (VarId_TheLt VarId_TheTy))
+               ((rigid-ty (ref ()) (VarId_TheLt VarId_TheTy))
                 <=
-                (rigid-ty (Ref ()) (VarId_A VarId_T)))))
+                (rigid-ty (ref ()) (VarId_A VarId_T)))))
              )
 
             (term (ty:prove-scheme

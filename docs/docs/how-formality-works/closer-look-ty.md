@@ -22,7 +22,7 @@ The current definition of types looks like this:
           TraitId         ; trait
           AssociatedTy    ; Associated type
           ScalarId        ; Something like i32, u32, etc
-          (Ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
+          (ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
           (Tuple number)  ; tuple of given arity
           )
    ...

@@ -89,7 +89,7 @@
   (RigidName ::=
              AdtId           ; enum/struct/union
              ScalarId        ; Something like i32, u32, etc
-             (Ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
+             (ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
              (Tuple number)  ; tuple of given arity
              (Fn Abi number) ; fn types
              )
@@ -194,13 +194,13 @@
 (define-metafunction formality-ty
   & : Lt Ty -> Ty
 
-  [(& Lt Ty) (rigid-ty (Ref ()) (Lt Ty))]
+  [(& Lt Ty) (rigid-ty (ref ()) (Lt Ty))]
   )
 
 (define-metafunction formality-ty
   &mut : Lt Ty -> Ty
 
-  [(&mut Lt Ty) (rigid-ty (Ref (mut)) (Lt Ty))]
+  [(&mut Lt Ty) (rigid-ty (ref (mut)) (Lt Ty))]
   )
 
 (define-metafunction formality-ty
