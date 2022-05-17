@@ -154,16 +154,16 @@
    ]
 
   [; Alias on both sides with same name
-   (compare/one/substituted Env ((TyAlias AliasName (Parameter_1 ...)) <= (TyAlias AliasName (Parameter_2 ...))))
+   (compare/one/substituted Env ((alias-ty AliasName (Parameter_1 ...)) <= (alias-ty AliasName (Parameter_2 ...))))
    (Env ((Any (Goal_eq Goal_n))))
-   (; Either all the parameters are equal (note that we have no variance on TyAlias, so they
+   (; Either all the parameters are equal (note that we have no variance on alias-ty, so they
     ; must be equal)
     where/error Goal_eq (All ((Parameter_1 == Parameter_2) ...)))
    (; Or we can normalize both aliases to the same type
     where/error Goal_n (∃ ((type T1) (type T2))
                           (All ((T1 <= T2)
-                                (normalizes-to (TyAlias AliasName (Parameter_1 ...)) T1)
-                                (normalizes-to (TyAlias AliasName (Parameter_2 ...)) T2)))
+                                (normalizes-to (alias-ty AliasName (Parameter_1 ...)) T1)
+                                (normalizes-to (alias-ty AliasName (Parameter_2 ...)) T2)))
                           ))
    ]
 

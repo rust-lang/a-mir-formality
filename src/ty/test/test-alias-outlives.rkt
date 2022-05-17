@@ -11,7 +11,7 @@
     ;; convenience for testing: write `(item T)` to reference the alias type `Item`
     item : Ty -> AliasTy
 
-    [(item Ty) (TyAlias Item (Ty))]
+    [(item Ty) (alias-ty Item (Ty))]
     )
 
   (redex-let*

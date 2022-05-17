@@ -97,7 +97,7 @@
   ;; AliasTy -- an *alias* type is basically a *type lambda*. You can either *normalize* it
   ;; to another type *or* prove that it is equal to another alias type by showing
   ;; that the alias name + arguments are the same.
-  (AliasTy ::= (TyAlias AliasName Parameters))
+  (AliasTy ::= (alias-ty AliasName Parameters))
   (AliasName ::=
              AliasId
              (TraitId AssociatedTyId)
@@ -169,7 +169,7 @@
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
-  (AdtId AliasId TraitId AssociatedTyId TyAliasId ::=
+  (AdtId AliasId TraitId AssociatedTyId AliasTyId ::=
          variable-not-otherwise-mentioned)
 
   ;; Generic parameters

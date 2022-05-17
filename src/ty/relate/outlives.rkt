@@ -154,10 +154,10 @@
    ; To establish that an alias type outlives P we can either normalize the alias type or
    ; we can relate P to each of the alias type's parameters. The latter is based on the reasoning
    ; that the alias must be a function of its inputs and other static things.
-   (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
+   (outlives/one/substituted/reduce Env ((alias-ty AliasName (Parameter_a ...)) -outlives- Parameter))
    (Env ((Any (Goal_each Goal_n))))
    (where/error Goal_each (All ((Parameter_a -outlives- Parameter) ...)))
-   (where/error Goal_n (∃ ((type T)) (All ((normalizes-to (TyAlias AliasName (Parameter_a ...)) T)
+   (where/error Goal_n (∃ ((type T)) (All ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
                                            (T -outlives- Parameter)))))
    ]
 
@@ -167,9 +167,9 @@
    ; To establish that P outlives an alias type we *must* normalize.
    ; No matter what its arguments, the alias type could normalize to `i32` or some such thing,
    ; in which case only static outlives it.
-   (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
+   (outlives/one/substituted/reduce Env ((alias-ty AliasName (Parameter_a ...)) -outlives- Parameter))
    (Env (Goal_n))
-   (where/error Goal_n (∃ ((type T)) (All ((normalizes-to (TyAlias AliasName (Parameter_a ...)) T)
+   (where/error Goal_n (∃ ((type T)) (All ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
                                            (Parameter -outlives- T)))))
    ]
 

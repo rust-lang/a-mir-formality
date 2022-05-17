@@ -20,7 +20,7 @@
    ((well-formed ParameterKind) (Parameter))
    ]
 
-  [(debone-predicate (normalizes-to (TyAlias AliasName (Parameter ...)) Ty))
+  [(debone-predicate (normalizes-to (alias-ty AliasName (Parameter ...)) Ty))
    ((normalizes-to AliasName) (Parameter ... Ty))
    ]
 
