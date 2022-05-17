@@ -155,7 +155,7 @@
 
   [; Alias on both sides with same name
    (compare/one/substituted Env ((alias-ty AliasName (Parameter_1 ...)) <= (alias-ty AliasName (Parameter_2 ...))))
-   (Env ((Any (Goal_eq Goal_n))))
+   (Env ((|| (Goal_eq Goal_n))))
    (; Either all the parameters are equal (note that we have no variance on alias-ty, so they
     ; must be equal)
     where/error Goal_eq (&& ((Parameter_1 == Parameter_2) ...)))
@@ -188,7 +188,7 @@
   [; `!X <= T` where:
    ;    Prove `X <= T1` for any `T1 <= P` from environment.
    (compare/one/substituted Env (VarId <= Parameter))
-   (Env ((Any Goals)))
+   (Env ((|| Goals)))
 
    (where #t (env-contains-placeholder-var Env VarId))
    (where/error Goals (bound-placeholder-from-hypotheses Env VarId <= Parameter))
@@ -197,7 +197,7 @@
   [; `T <= !X` where:
    ;    Flip to `!X <= T` and use above rule.
    (compare/one/substituted Env (Parameter <= VarId))
-   (Env ((Any Goals)))
+   (Env ((|| Goals)))
 
    (where #t (env-contains-placeholder-var Env VarId))
    (where/error Goals (bound-placeholder-from-hypotheses Env VarId >= Parameter))

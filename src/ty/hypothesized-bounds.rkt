@@ -103,7 +103,7 @@
   [(simplify-goal (&& (Goal)))
    (simplify-goal Goal)]
 
-  [(simplify-goal (Any (Goal)))
+  [(simplify-goal (|| (Goal)))
    (simplify-goal Goal)]
 
   [(simplify-goal (implies () Goal))

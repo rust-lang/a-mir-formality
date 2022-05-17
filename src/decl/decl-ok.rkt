@@ -159,7 +159,7 @@
 
   [; Impl of the Drop trait for something that is not an ADT -- always an error.
    (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (_ ...)) WhereClauses_impl _))
-   ((Any ())) ; unprovable goal
+   ((|| ())) ; unprovable goal
    ]
 
   [; Impl of the Copy trait for an ADT type:

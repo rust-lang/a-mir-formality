@@ -125,9 +125,9 @@
    ; * `extrude(b0) ◃ b0`
    ; * `extrude(b1) ◃ b1`
    ;
-   ; and the goal `Any(extrude(X) ◃ extrude(b0), extrude(X) ◃ extrude(b1))`
+   ; and the goal `extrude(X) ◃ extrude(b0) || extrude(X) ◃ extrude(b1)`
    (extrude-term Env (VarIdPair ...) Universe InequalityOp_◃ VarId_!X)
-   (Env_?Xe VarId_?Xe ((Any Goals_out)))
+   (Env_?Xe VarId_?Xe ((|| Goals_out)))
 
    (where (ParameterKind ∀ Universe_!X) (var-binding-in-env Env VarId_!X))
    (where/error #f (universe-includes Universe Universe_!X))

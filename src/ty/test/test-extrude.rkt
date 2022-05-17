@@ -56,7 +56,7 @@
     (; Goals are not provable.
      test-equal
      (term Goals)
-     (term ((Any ()))))
+     (term ((|| ()))))
 
     )
 
@@ -79,7 +79,7 @@
 
     (test-equal
      (term Goals)
-     (term ((Any ((Ty_A <= Ty_extruded) (Ty_B <= Ty_extruded))))))
+     (term ((|| ((Ty_A <= Ty_extruded) (Ty_B <= Ty_extruded))))))
 
     )
 

@@ -50,7 +50,7 @@
   [; !A -outlives- !B
    ; !A -outlived-by- !B
    (outlives/one/substituted Env (VarId_!A OutlivesOp VarId_!B))
-   (Env ((Any Goals)))
+   (Env ((|| Goals)))
 
    (where (lifetime ∀ _) (var-binding-in-env Env VarId_!A))
    (where (lifetime ∀ _) (var-binding-in-env Env VarId_!B))
@@ -59,7 +59,7 @@
 
   [; !A -outlives- static
    (outlives/one/substituted Env (VarId_!A -outlives- static))
-   (Env ((Any Goals)))
+   (Env ((|| Goals)))
 
    (where (lifetime ∀ _) (var-binding-in-env Env VarId_!A))
    (where Goals (bound-placeholder-from-hypotheses Env VarId_!A -outlives- static))
@@ -144,7 +144,7 @@
   [; P : R<Pr_0...Pr_n> if
    ;     ∃i (P0 : Pr_i)
    (outlives/one/substituted/reduce Env (Parameter -outlives- (rigid-ty RigidName (Parameter_r ...))))
-   (Env ((Any ((Parameter -outlives- Parameter_r) ...))))
+   (Env ((|| ((Parameter -outlives- Parameter_r) ...))))
    ]
 
   [; A<Pa ...> : P if
@@ -155,7 +155,7 @@
    ; we can relate P to each of the alias type's parameters. The latter is based on the reasoning
    ; that the alias must be a function of its inputs and other static things.
    (outlives/one/substituted/reduce Env ((alias-ty AliasName (Parameter_a ...)) -outlives- Parameter))
-   (Env ((Any (Goal_each Goal_n))))
+   (Env ((|| (Goal_each Goal_n))))
    (where/error Goal_each (&& ((Parameter_a -outlives- Parameter) ...)))
    (where/error Goal_n (∃ ((type T)) (&& ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
                                           (T -outlives- Parameter)))))
@@ -176,7 +176,7 @@
   [; !X : T if
    ;    `T1 : T` for any `X : T1` (`X -outlives- T1` or `T1 -outlived-by- X`) from environment.
    (outlives/one/substituted/reduce Env (VarId -outlives- Parameter))
-   (Env ((Any Goals)))
+   (Env ((|| Goals)))
 
    (where (type ∀ _) (var-binding-in-env Env VarId))
    (where/error Goals (bound-placeholder-from-hypotheses Env VarId -outlives- Parameter))
@@ -198,7 +198,7 @@
    ; We could merge this rule and the one above by always adding static, but it would
    ; yield strictly less precise results.
    (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
-   (Env ((Any (Goal_0 Goal_1 ...))))
+   (Env ((|| (Goal_0 Goal_1 ...))))
 
    (where (type ∀ _) (var-binding-in-env Env VarId))
    (where/error (Goal_0 Goal_1 ...) (bound-placeholder-from-hypotheses Env VarId -outlived-by- Parameter))
@@ -281,13 +281,13 @@
    ;     `∀T. ((T ensures (T: Write, T: 'static)) : 'a)`
    ;     `∀T. (T: Write, T: 'static) => (T : 'a)`
    ;     find the bounds on `T`, find `'static`
-   ;     `∀T. (T: Write, T: 'static) => Any (('static : 'a))`
+   ;     `∀T. (T: Write, T: 'static) => (|| (('static : 'a)))`
    ;
    ; e.g. `dyn (Write + 'b) : 'a` is false because
    ;     `∀T. ((T ensures (T: Write, T: 'b)) : 'a)`
    ;     `∀T. (T: Write, T: 'b) => (T : 'a)`
    ;     find the bounds on `T`, find `'static`
-   ;     `∀T. (T: Write, T: 'b) => Any (('b : 'a))`
+   ;     `∀T. (T: Write, T: 'b) => (|| (('b : 'a)))`
    ;     ...and here I assume `'b: 'a` cannot be proven.
    (outlives/one/substituted/reduce Env ((∃ KindedVarIds Ty) -outlives- Parameter))
    (Env ((∀ KindedVarIds (Ty -outlives- Parameter))))

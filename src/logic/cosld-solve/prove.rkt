@@ -82,7 +82,7 @@
 
   [(prove Env Prove/Stacks Goal_1 Env_out)
    --------------- "prove-any"
-   (prove Env Prove/Stacks (Any (Goal_0 ... Goal_1 Goal_2 ...)) Env_out)
+   (prove Env Prove/Stacks (|| (Goal_0 ... Goal_1 Goal_2 ...)) Env_out)
    ]
 
   [(where Env_1 (env-with-hypotheses Env Hypotheses))

@@ -88,7 +88,7 @@
               Relation)
   (BuiltinGoal ::=
                (&& Goals)
-               (Any Goals)
+               (|| Goals)
                (implies Hypotheses Goal)
                (Quantifier KindedVarIds Goal)
                )
