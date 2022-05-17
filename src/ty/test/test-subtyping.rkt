@@ -132,9 +132,9 @@
            ((∀ ((type T)))
             )
            ()
-           ((rigid-ty (fn-ptr "" 1) (T TyUnit)) ; fn(T)
+           ((rigid-ty (fn-ptr "" 1) (T unit-ty)) ; fn(T)
             <=
-            (∀ ((type T)) (fn (T) TyUnit)) ; forall<T> fn(T)
+            (∀ ((type T)) (fn (T) unit-ty)) ; forall<T> fn(T)
             ))))
 
    (traced '()
@@ -273,10 +273,10 @@
            ()
            ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
              ∀ ((lifetime A) (lifetime B))
-               (fn ((& A (& B TyUnit)) (& B T)) (& A T)))
+               (fn ((& A (& B unit-ty)) (& B T)) (& A T)))
             <=
             (; fn(&'static &'x (), &'x T) -> &'static T
-             fn ((& static (& X TyUnit)) (& X T)) (& static T))
+             fn ((& static (& X unit-ty)) (& X T)) (& static T))
             )
            )
           )
@@ -296,10 +296,10 @@
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
                      ∀ ((lifetime A) (lifetime B))
                        (implies ((B : A)) ; implied bound!
-                                (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
+                                (fn ((& A (& B unit-ty)) (& B T)) (& A T))))
                     <=
                     (; fn(&'static &'x (), &'x T) -> &'static T
-                     fn ((& static (& X TyUnit)) (& X T)) (& static T))
+                     fn ((& static (& X unit-ty)) (& X T)) (& static T))
                     )
                    )
                   )
@@ -318,10 +318,10 @@
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
                      ∀ ((lifetime A) (lifetime B))
                        (implies ((B : A)) ; implied bound!
-                                (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
+                                (fn ((& A (& B unit-ty)) (& B T)) (& A T))))
                     <=
                     (; fn(&'x &'static (), &'static T) -> &'x T
-                     fn ((& X (& static TyUnit)) (& static T)) (& X T))
+                     fn ((& X (& static unit-ty)) (& static T)) (& X T))
                     )
                    )
                   )
