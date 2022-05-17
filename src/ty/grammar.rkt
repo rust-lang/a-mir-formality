@@ -91,7 +91,7 @@
              ScalarId        ; Something like i32, u32, etc
              (ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
              (tuple number)  ; tuple of given arity
-             (Fn Abi number) ; fn types
+             (fn-ptr Abi number) ; fn types
              )
 
   ;; AliasTy -- an *alias* type is basically a *type lambda*. You can either *normalize* it
@@ -219,7 +219,7 @@
   fn : Tys Ty -> Ty
 
   [(fn (Ty_arg ...) Ty_ret)
-   (rigid-ty (Fn "Rust" number) (Ty_arg ... Ty_ret))
+   (rigid-ty (fn-ptr "Rust" number) (Ty_arg ... Ty_ret))
    (where/error number ,(length (term (Ty_arg ...))))
    ]
   )

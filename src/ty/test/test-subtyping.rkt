@@ -132,7 +132,7 @@
            ((∀ ((type T)))
             )
            ()
-           ((rigid-ty (Fn "" 1) (T TyUnit)) ; fn(T)
+           ((rigid-ty (fn-ptr "" 1) (T TyUnit)) ; fn(T)
             <=
             (∀ ((type T)) (fn (T) TyUnit)) ; forall<T> fn(T)
             ))))
