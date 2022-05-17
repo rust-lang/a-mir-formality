@@ -89,7 +89,7 @@
   (BuiltinGoal ::=
                (All Goals)
                (Any Goals)
-               (Implies Hypotheses Goal)
+               (implies Hypotheses Goal)
                (Quantifier KindedVarIds Goal)
                )
 
@@ -98,7 +98,7 @@
   (Hypotheses Clauses ::= (Clause ...))
   (Hypothesis Clause ::=
               AtomicGoal
-              (Implies Goals AtomicGoal)
+              (implies Goals AtomicGoal)
               (∀ KindedVarIds Clause)
               )
   ;; ANCHOR_END:GoalsAndHypotheses
@@ -108,12 +108,12 @@
   (FlatHypotheses ::= (FlatHypothesis ...))
   (FlatHypothesis ::= (∀ KindedVarIds FlatImplicationHypothesis))
   (FlatImplicationHypotheses ::= (FlatImplicationHypothesis ...))
-  (FlatImplicationHypothesis ::= (Implies Goals AtomicGoal))
+  (FlatImplicationHypothesis ::= (implies Goals AtomicGoal))
 
   ;; `Invariants` -- things which must be true or the type system has some bugs.
   ;; A rather restricted form of clause.
   (Invariants ::= (Invariant ...))
-  (Invariant ::= (∀ KindedVarIds (Implies (Predicate) Predicate)))
+  (Invariant ::= (∀ KindedVarIds (implies (Predicate) Predicate)))
 
   ;; Different ways to relate parameters
   (Relations ::= (Relation ...))

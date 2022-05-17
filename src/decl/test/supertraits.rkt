@@ -25,28 +25,28 @@
            (decl:test-cannot-prove
             Env
             (∀ ((type T))
-               (Implies ((Implemented (PartialEq (T))))
+               (implies ((Implemented (PartialEq (T))))
                         (Implemented (Eq (T)))))))
 
    (traced '()
            (decl:test-can-prove
             Env
             (∀ ((type T))
-               (Implies ((Implemented (Eq (T))))
+               (implies ((Implemented (Eq (T))))
                         (Implemented (PartialEq (T)))))))
 
    (traced '()
            (decl:test-can-prove
             Env
             (∀ ((type T))
-               (Implies ((Implemented (Eq (T))))
+               (implies ((Implemented (Eq (T))))
                         (Implemented (Eq (T)))))))
 
    (traced '()
            (decl:test-cannot-prove
             Env
             (∀ ((type T))
-               (Implies ((Implemented (Eq (T))))
+               (implies ((Implemented (Eq (T))))
                         (Implemented (Debug (T)))))))
    )
   )

@@ -37,7 +37,7 @@
    (; We have a hypothesis
     ;
     ; ∀Xs_h. (G_h => (P_l ◃ P_r))
-    where (∀ ((ParameterKind_h VarId_h) ...) (Implies Goals_h (Parameter_l InequalityOp_◃ Parameter_r))) FlatHypothesis)
+    where (∀ ((ParameterKind_h VarId_h) ...) (implies Goals_h (Parameter_l InequalityOp_◃ Parameter_r))) FlatHypothesis)
    (; find substitution Θ such that P_l = VarId
     ;
     ; Note that `domain(Θ) ⊆ Xs`
@@ -58,8 +58,8 @@
                               ))))
    ]
 
-  [(match-hypothesis (∀ ((ParameterKind_h VarId_h) ...) (Implies Goals_h (Parameter_l InequalityOp_◃ Parameter_r))) VarId_v InequalityOp_▹ Parameter_b)
-   (match-hypothesis (∀ ((ParameterKind_h VarId_h) ...) (Implies Goals_h (Parameter_r InequalityOp_▹ Parameter_l))) VarId_v InequalityOp_▹ Parameter_b)
+  [(match-hypothesis (∀ ((ParameterKind_h VarId_h) ...) (implies Goals_h (Parameter_l InequalityOp_◃ Parameter_r))) VarId_v InequalityOp_▹ Parameter_b)
+   (match-hypothesis (∀ ((ParameterKind_h VarId_h) ...) (implies Goals_h (Parameter_r InequalityOp_▹ Parameter_l))) VarId_v InequalityOp_▹ Parameter_b)
    (where InequalityOp_◃ (invert-inequality-op InequalityOp_▹))
    ]
 
@@ -106,7 +106,7 @@
   [(simplify-goal (Any (Goal)))
    (simplify-goal Goal)]
 
-  [(simplify-goal (Implies () Goal))
+  [(simplify-goal (implies () Goal))
    (simplify-goal Goal)]
 
   [(simplify-goal Goal)

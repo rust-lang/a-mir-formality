@@ -33,7 +33,7 @@
    (traced '()
            (test-match
             formality-ty
-            ((∃ () (Implies () _))) ; provable!
+            ((∃ () (implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
                    ()

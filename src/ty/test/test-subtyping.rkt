@@ -40,23 +40,23 @@
 
    ; Cannot have an implication on the subtype side that doesn't appear on the supertype side
    (traced '()
-           (ty:test-cannot-prove Env ((∀ ((type T)) (Implies ((Implemented (NeverImpl (T)))) T))
+           (ty:test-cannot-prove Env ((∀ ((type T)) (implies ((Implemented (NeverImpl (T)))) T))
                                       <=
                                       (∀ ((type T)) T)))
            )
 
    ; ...unless we can prove it.
    (traced '()
-           (ty:test-can-prove Env ((∀ ((type T)) (Implies ((Implemented (AlwaysImpl (T)))) T))
+           (ty:test-can-prove Env ((∀ ((type T)) (implies ((Implemented (AlwaysImpl (T)))) T))
                                    <=
                                    (∀ ((type T)) T)))
            )
 
    ; OK if the implication is on both sides.
    (traced '()
-           (ty:test-can-prove Env ((∀ ((type T)) (Implies ((Implemented (NeverImpl (T)))) T))
+           (ty:test-can-prove Env ((∀ ((type T)) (implies ((Implemented (NeverImpl (T)))) T))
                                    <=
-                                   (∀ ((type T)) (Implies ((Implemented (NeverImpl (T)))) T))))
+                                   (∀ ((type T)) (implies ((Implemented (NeverImpl (T)))) T))))
            )
 
    ; OK if the implication is just on supertype side: that means that the consumer will prove it,
@@ -64,13 +64,13 @@
    (traced '()
            (ty:test-can-prove Env ((∀ ((type T)) T)
                                    <=
-                                   (∀ ((type T)) (Implies ((Implemented (NeverImpl (T)))) T))))
+                                   (∀ ((type T)) (implies ((Implemented (NeverImpl (T)))) T))))
            )
 
    (test-match
     formality-ty
 
-    ((∃ ((type Ty_U)) (Implies ((Ty_U >= Ty_T)) (Ty_T <= Ty_U)))
+    ((∃ ((type Ty_U)) (implies ((Ty_U >= Ty_T)) (Ty_T <= Ty_U)))
      )
 
     (term (ty:prove-scheme
@@ -105,7 +105,7 @@
               ((lifetime VarId_A)
                (type VarId_TheTy)
                (lifetime VarId_TheLt))
-              (Implies
+              (implies
                ((VarId_TheTy <= VarId_T)
                 (VarId_TheLt -outlives- VarId_A))
                ((TyRigid (Ref ()) (VarId_TheLt VarId_TheTy))
@@ -141,7 +141,7 @@
            (; Test for ensures: we can add ensures for things we can prove
             test-match
             formality-ty
-            ((∃ _ (Implies _ _)))
+            ((∃ _ (implies _ _)))
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T)))
@@ -170,7 +170,7 @@
    (; Test for ensures: we can use ensures on LHS to prove ensures on RHS
     test-match
     formality-ty
-    ((∃ _ (Implies _ _)))
+    ((∃ _ (implies _ _)))
     (term (ty:prove-scheme
            Env
            ((∀ ((type T)))
@@ -192,7 +192,7 @@
            ((∀ ((type T)))
             )
            ()
-           ((Implies ((Implemented (Debug (T)))) T)
+           ((implies ((Implemented (Debug (T)))) T)
             <=
             T
             ))))
@@ -203,13 +203,13 @@
     ; we CAN prove
     test-match
     formality-ty
-    ((∃ () (Implies () _)))
+    ((∃ () (implies () _)))
     (term (ty:prove-scheme
            Env
            ((∀ ((type T)))
             )
            ((Implemented (Debug (T))))
-           ((Implies ((Implemented (Debug (T)))) T)
+           ((implies ((Implemented (Debug (T)))) T)
             <=
             T
             ))))
@@ -220,7 +220,7 @@
     ; can add implications, no problem
     test-match
     formality-ty
-    ((∃ () (Implies () _)))
+    ((∃ () (implies () _)))
     (term (ty:prove-scheme
            Env
            ((∀ ((type T)))
@@ -228,7 +228,7 @@
            ()
            (T
             <=
-            (Implies ((Implemented (Debug (T)))) T)
+            (implies ((Implemented (Debug (T)))) T)
             ))))
 
    (; Test for implication in supertype
@@ -244,28 +244,28 @@
            ()
            (U
             <=
-            (Implies ((Implemented (Debug (T)))) T)
+            (implies ((Implemented (Debug (T)))) T)
             ))))
 
    (; Test for implication on both sides
     test-match
     formality-ty
-    ((∃ () (Implies () _)))
+    ((∃ () (implies () _)))
     (term (ty:prove-scheme
            Env
            ((∀ ((type T)))
             )
            ()
-           ((Implies ((Implemented (Debug (T)))) T)
+           ((implies ((Implemented (Debug (T)))) T)
             <=
-            (Implies ((Implemented (Debug (T)))) T)
+            (implies ((Implemented (Debug (T)))) T)
             ))))
 
    (; #25860 -- the buggy path we have today, where implied bounds
     ; are not reflected in the type -- subtyping works
     test-match
     formality-ty
-    ((∃ () (Implies () _))) ; provable! uh-oh!
+    ((∃ () (implies () _))) ; provable! uh-oh!
     (term (ty:prove-scheme
            Env
            ((∀ ((type T) (lifetime X)))
@@ -295,7 +295,7 @@
                    ()
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
                      ∀ ((lifetime A) (lifetime B))
-                       (Implies ((Outlives (B : A))) ; implied bound!
+                       (implies ((Outlives (B : A))) ; implied bound!
                                 (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
                     <=
                     (; fn(&'static &'x (), &'x T) -> &'static T
@@ -309,7 +309,7 @@
            (; #25860 -- an upcast that discharges implied bound successfully
             test-match
             formality-ty
-            ((∃ () (Implies () _))) ; provable!
+            ((∃ () (implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T) (lifetime X)))
@@ -317,7 +317,7 @@
                    ()
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
                      ∀ ((lifetime A) (lifetime B))
-                       (Implies ((Outlives (B : A))) ; implied bound!
+                       (implies ((Outlives (B : A))) ; implied bound!
                                 (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
                     <=
                     (; fn(&'x &'static (), &'static T) -> &'x T

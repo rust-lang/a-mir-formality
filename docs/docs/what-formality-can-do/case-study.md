@@ -65,7 +65,7 @@ Using the code for impls we saw earlier, the `Magic` impl would generate the fol
 ```scheme
 ; forall<T> { Implemented(T: Magic) => HasImpl(T: Magic) }
 (∀ ((type T)) 
-        (Implies ((Implemented (Magic (T))))
+        (implies ((Implemented (Magic (T))))
                  (HasImpl (Magic (T)))))
 ```
 
@@ -80,7 +80,7 @@ To be implemented, the impl must exist, and the type must be well-formed:
 ;               WellFormed(T),
 ;             ) => Implemented(T: Copy) }
 (∀ ((type T))
-        (Implies ((HasImpl (Copy (T)))
+        (implies ((HasImpl (Copy (T)))
                   (WellFormed (type (T))))
                  (Implemented (Copy (T)))))
 ```
@@ -94,7 +94,7 @@ For `Magic`, the rule includes the where clause that `T: Copy`:
 ;               Implemented(T: Copy),
 ;             ) => Implemented(T: Magic) }
 (∀ ((type T))
-        (Implies ((HasImpl (Magic (T)))
+        (implies ((HasImpl (Magic (T)))
                   (WellFormed (type (T)))
                   (Implemented (Copy (T))))
                  (Implemented (Magic (T)))))
@@ -195,7 +195,7 @@ The "ok" goal for the magic impl looks like this:
 
 ```scheme
 (∀ ((type T))
-        (Implies ((Implemented (Magic (T))))
+        (implies ((Implemented (Magic (T))))
                  (Implemented (Magic (T)))))
 ```
 
@@ -227,7 +227,7 @@ To solve this, the solver puts `Implemented(T: Magic)` into the environment as a
   [(where Env_1 (env-with-hypotheses Env Hypotheses))
    (prove Env_1 Predicates_stack Goal EnvSubstitution_out)
    -------------------------------------------------------- "prove-implies"
-   (prove Env Predicates_stack (Implies Hypotheses Goal) (reset Env () EnvSubstitution_out))
+   (prove Env Predicates_stack (implies Hypotheses Goal) (reset Env () EnvSubstitution_out))
    ]
 ```
 

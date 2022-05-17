@@ -173,14 +173,14 @@ These core predicates are then used to define a richer vocabulary of goals (thin
         (Equate Term Term)
         (All Goals)
         (Any Goals)
-        (Implies Hypotheses Goal)
+        (implies Hypotheses Goal)
         (Quantifier KindedVarIds Goal)
         )
 
   ((Hypotheses Clauses Invariants) := (Clause ...))
   ((Hypothesis Clause Invariant) :=
                                  Predicate
-                                 (Implies Goals Predicate)
+                                 (implies Goals Predicate)
                                  (∀ KindedVarIds Clause)
                                  )
 ```
@@ -393,7 +393,7 @@ Finally we can generate that variable `Clause` that was referenced in the final 
 
 ```scheme
    (where/error Clause (∀ KindedVarIds_impl
-                               (Implies
+                               (implies
                                 ((WellFormed (ParameterKind_trait Parameter_trait)) ...
                                  Goal_wc ...
                                  )
@@ -443,7 +443,7 @@ The idea is that the crate is "ok" (i.e., passes the type check) if these goals 
    ;; we require that the trait is implemented.
    (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    (∀ KindedVarIds_impl
-           (Implies ((WellFormed KindedVarId_impl) ... WhereClause_impl ...)
+           (implies ((WellFormed KindedVarId_impl) ... WhereClause_impl ...)
                     (All ((Implemented TraitRef)))))
 
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
@@ -493,7 +493,7 @@ Using the code for impls we saw earlier, the `Magic` impl would generate the fol
 ```scheme
 ; forall<T> { Implemented(T: Magic) => HasImpl(T: Magic) }
 (∀ ((type T)) 
-        (Implies ((Implemented (Magic (T))))
+        (implies ((Implemented (Magic (T))))
                  (HasImpl (Magic (T)))))
 ```
 
@@ -505,7 +505,7 @@ To actually prove `Implemented(T: Magic)`, This clause has to be combined with t
 ;               WellFormed(T),
 ;             ) => Implemented(T: Copy) }
 (∀ ((type T))
-        (Implies ((HasImpl (Copy (T)))
+        (implies ((HasImpl (Copy (T)))
                   (WellFormed (type (T))))
                  (Implemented (Copy (T)))))
 ```
@@ -519,7 +519,7 @@ For `Magic`, the rule includes the where clause that `T: Copy`:
 ;               Implemented(T: Copy),
 ;             ) => Implemented(T: Magic) }
 (∀ ((type T))
-        (Implies ((HasImpl (Magic (T)))
+        (implies ((HasImpl (Magic (T)))
                   (WellFormed (type (T)))
                   (Implemented (Copy (T))))
                  (Implemented (Magic (T)))))
@@ -597,7 +597,7 @@ This in turn implies that the seemingly tautological impl of `Magic` is actually
 
 ```scheme
 (∀ ((type T))
-        (Implies ((Implemented (Magic (T))))
+        (implies ((Implemented (Magic (T))))
                  (Implemented (Magic (T)))))
 ```
 
@@ -626,7 +626,7 @@ Here the `Implemented(T: Magic) => ...` comes from the where-clauses on the func
   [(where Env_1 (env-with-hypotheses Env Hypotheses))
    (prove Env_1 Predicates_stack Goal EnvSubstitution_out)
    -------------------------------------------------------- "prove-implies"
-   (prove Env Predicates_stack (Implies Hypotheses Goal) (reset Env () EnvSubstitution_out))
+   (prove Env Predicates_stack (implies Hypotheses Goal) (reset Env () EnvSubstitution_out))
    ]
 ```
 

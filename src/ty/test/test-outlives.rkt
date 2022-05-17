@@ -35,7 +35,7 @@
 
             ((∃
               ((lifetime VarId_B) (lifetime VarId_A))
-              (Implies
+              (implies
                ((VarId_A -outlives- VarId_B))
                ((TyRigid (Ref ()) (VarId_A VarId_T))
                 -outlives-
@@ -59,7 +59,7 @@
 
             ((∃
               ()
-              (Implies
+              (implies
                ()
                ((∀
                  ((lifetime A))
@@ -91,7 +91,7 @@
 
             ((∃
               ((lifetime VarId_A))
-              (Implies
+              (implies
                ((VarId_A -outlives- static))
                (VarId_A -outlives- VarId_T))))
 
@@ -136,7 +136,7 @@
            (test-match
             formality-ty
 
-            ((∃ () (Implies () (VarId_A -outlives- VarId_B))))
+            ((∃ () (implies () (VarId_A -outlives- VarId_B))))
 
             (term (ty:prove-scheme
                    Env
@@ -173,7 +173,7 @@
            (test-match
             formality-ty
 
-            ((∃ () (Implies () (VarId_A == VarId_B))))
+            ((∃ () (implies () (VarId_A == VarId_B))))
 
             (term (ty:prove-scheme
                    Env

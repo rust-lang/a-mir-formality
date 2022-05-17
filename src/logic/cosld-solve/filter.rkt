@@ -40,7 +40,7 @@
   ;; something we need. The only harm to not filtering is harder-to-read debug
   ;; output.
 
-  [(clause-could-match-predicate Env (Implies Goals Predicate) Predicate_1)
+  [(clause-could-match-predicate Env (implies Goals Predicate) Predicate_1)
    (clause-could-match-predicate Env Predicate Predicate_1)
    ]
 

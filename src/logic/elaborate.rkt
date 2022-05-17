@@ -117,7 +117,7 @@
 
    ; that bound term must have form `P => Q`, try to find some assignment
    ; for the (fresh) `Vars` that matches `P` against `Predicate_in`
-   (where/error (Implies (Predicate_condition) Predicate_consequence) Term_bound-fresh)
+   (where/error (implies (Predicate_condition) Predicate_consequence) Term_bound-fresh)
    (where Substitution_m (match-terms (VarId_fresh ...) Predicate_condition Predicate_in))
 
    ; if successful, we can add `Q` to the result (after substituting the result of the match)
@@ -141,17 +141,17 @@
    (where #t (is-predicate? Env Predicate_out))
    ------------------- "elaborate-implies-map"
    (hypothesis-elaborates-one-step Env
-                                   (Implies (Goal_in ...) Predicate_in)
-                                   (Implies (Goal_in ...) Predicate_out))
+                                   (implies (Goal_in ...) Predicate_in)
+                                   (implies (Goal_in ...) Predicate_out))
    ]
 
   [(hypothesis-elaborates-one-step Env
                                    Predicate_in
-                                   (Implies (Goal_out ...) Predicate_out))
+                                   (implies (Goal_out ...) Predicate_out))
    ------------------- "elaborate-implies-flatten"
    (hypothesis-elaborates-one-step Env
-                                   (Implies (Goal_in ...) Predicate_in)
-                                   (Implies (Goal_in ... Goal_out ...) Predicate_out))
+                                   (implies (Goal_in ...) Predicate_in)
+                                   (implies (Goal_in ... Goal_out ...) Predicate_out))
    ]
   )
 
@@ -161,10 +161,10 @@
   (redex-let*
    formality-logic
    [(Env (term (env-with-clauses-and-invariants ()
-                                                ((∀ ((type T)) (Implies ((Implemented (Eq (T)))) (Implemented (PartialEq (T)))))
-                                                 (∀ ((type T)) (Implies ((Implemented (Ord (T)))) (Implemented (PartialOrd (T)))))
-                                                 (∀ ((type T)) (Implies ((Implemented (Ord (T)))) (Implemented (Eq (T)))))
-                                                 (∀ ((type T)) (Implies ((Implemented (PartialOrd (T)))) (Implemented (PartialEq (T)))))
+                                                ((∀ ((type T)) (implies ((Implemented (Eq (T)))) (Implemented (PartialEq (T)))))
+                                                 (∀ ((type T)) (implies ((Implemented (Ord (T)))) (Implemented (PartialOrd (T)))))
+                                                 (∀ ((type T)) (implies ((Implemented (Ord (T)))) (Implemented (Eq (T)))))
+                                                 (∀ ((type T)) (implies ((Implemented (PartialOrd (T)))) (Implemented (PartialEq (T)))))
                                                  ))))
     ]
 

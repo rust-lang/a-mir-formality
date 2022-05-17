@@ -120,14 +120,14 @@
    ]
 
   [; Implication on the supertype side
-   (compare/one/substituted Env (Parameter_1 <= (Implies WhereClauses Parameter_2)))
-   (Env ((Implies Goals_wc (Parameter_1 <= Parameter_2))))
+   (compare/one/substituted Env (Parameter_1 <= (implies WhereClauses Parameter_2)))
+   (Env ((implies Goals_wc (Parameter_1 <= Parameter_2))))
    (where/error Goals_wc (where-clauses->goals WhereClauses))
    ]
 
   [; Ensures on the subtype side
    (compare/one/substituted Env ((Ensures Parameter_1 WhereClauses) <= Parameter_2))
-   (Env ((Implies Hypotheses_wc (Parameter_1 <= Parameter_2))))
+   (Env ((implies Hypotheses_wc (Parameter_1 <= Parameter_2))))
    (where/error Hypotheses_wc (where-clauses->hypotheses WhereClauses))
    ]
 
@@ -142,7 +142,7 @@
    ]
 
   [; Implication on the subtype side
-   (compare/one/substituted Env ((Implies WhereClauses Parameter_1) <= Parameter_2))
+   (compare/one/substituted Env ((implies WhereClauses Parameter_1) <= Parameter_2))
    (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
    (where/error (Goal_wc ...) (where-clauses->goals WhereClauses))
    ]

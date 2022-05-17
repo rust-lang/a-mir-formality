@@ -24,9 +24,9 @@
   flatten-hypothesis : KindedVarIds Goals Hypothesis -> FlatHypothesis
 
   [(flatten-hypothesis KindedVarIds Goals AtomicGoal)
-   (∀ KindedVarIds (Implies Goals AtomicGoal))]
+   (∀ KindedVarIds (implies Goals AtomicGoal))]
 
-  [(flatten-hypothesis KindedVarIds (Goal_0 ...) (Implies (Goal_1 ...) AtomicGoal))
+  [(flatten-hypothesis KindedVarIds (Goal_0 ...) (implies (Goal_1 ...) AtomicGoal))
    (flatten-hypothesis KindedVarIds (Goal_0 ... Goal_1 ...) AtomicGoal)
    ]
 
@@ -39,14 +39,14 @@
 (define-metafunction formality-logic
   match-hypothesis : FlatHypothesis AtomicGoal -> (FlatImplicationHypothesis) or ()
 
-  [(match-hypothesis (∀ ((ParameterKind_h VarId_h) ...) (Implies Goals_h AtomicGoal_h)) AtomicGoal)
+  [(match-hypothesis (∀ ((ParameterKind_h VarId_h) ...) (implies Goals_h AtomicGoal_h)) AtomicGoal)
    ()
 
    (where Error (match-terms (VarId_h ...) AtomicGoal_h AtomicGoal))
    ]
 
-  [(match-hypothesis (∀ ((ParameterKind_h VarId_h) ...) (Implies Goals_h AtomicGoal_h)) AtomicGoal)
-   (Implies (apply-substitution Substitution Goals_h) (apply-substitution Substitution AtomicGoal_h))
+  [(match-hypothesis (∀ ((ParameterKind_h VarId_h) ...) (implies Goals_h AtomicGoal_h)) AtomicGoal)
+   (implies (apply-substitution Substitution Goals_h) (apply-substitution Substitution AtomicGoal_h))
 
    (where Substitution (match-terms (VarId_h ...) AtomicGoal_h AtomicGoal))
    ]

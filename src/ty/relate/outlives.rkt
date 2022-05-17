@@ -229,12 +229,12 @@
    ]
 
   [; P0 : (WC => P1) if WC => (P0 : P1)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (Implies WhereClauses Ty)))
-   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (implies WhereClauses Ty)))
+   (Env ((implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty))))
    ]
 
   [; (WC => P0) : P1 if WC, (P0 : P1)
-   (outlives/one/substituted/reduce Env ((Implies WhereClauses Ty) -outlives- Parameter))
+   (outlives/one/substituted/reduce Env ((implies WhereClauses Ty) -outlives- Parameter))
    (Env (Goal_wc ... (Parameter -outlives- Ty)))
    (where (Goal_wc ...) (where-clauses->goals WhereClauses))
    ]
@@ -303,7 +303,7 @@
   [; (P0 ensures WC) : P1 if
    ;     WC => (P0 : P1)
    (outlives/one/substituted/reduce Env (Parameter -outlives- (Ensures Ty WhereClauses)))
-   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty))))
+   (Env ((implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty))))
    ]
 
   [(outlives/one/substituted/reduce Env (Parameter_a -outlives- Parameter_b))

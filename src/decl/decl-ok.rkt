@@ -37,7 +37,7 @@
    ;; are well formed and the where-clauses hold -- the field types are well-formed:
    ;;
    ;;     (∀ ((type T))
-   ;;         (Implies ((WellFormed (type T))
+   ;;         (implies ((WellFormed (type T))
    ;;                   (Implemented (Ord T)))
    ;;           (WellFormed (type Vec<T>)) ...))
    (crate-item-ok-goal _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
@@ -46,7 +46,7 @@
    (where/error (KindedVarId ...) KindedVarIds)
    (where/error ((VariantId ((FieldId Ty) ...)) ...) AdtVariants)
    (where/error Goal_wf (∀ KindedVarIds
-                           (Implies
+                           (implies
                             ((WellFormed KindedVarId) ... WhereClause ...)
                             (All ((WellFormed (type Ty)) ... ...)))))
    ]
@@ -58,7 +58,7 @@
    ;; we require that all the trait-item WF goals are met.
    (crate-item-ok-goal _ (TraitId (trait KindedVarIds (WhereClause ...) (TraitItem ...))))
    (∀ KindedVarIds
-      (Implies ((WellFormed KindedVarId) ... WhereClause ...)
+      (implies ((WellFormed KindedVarId) ... WhereClause ...)
                (All (Goal_trait-item ...))))
 
    (where/error (Goal_trait-item ...) ((trait-item-ok-goal TraitItem) ...))
@@ -73,7 +73,7 @@
    ;; all inputs are WF, and where-clauses are satisfied.
    (crate-item-ok-goal CrateDecls (impl KindedVarIds_impl (TraitId (Parameter_trait ...)) WhereClauses_impl ImplItems))
    (∀ KindedVarIds_impl
-      (Implies
+      (implies
        (; assuming all generic parameters are WF...
         (WellFormed KindedVarId_impl) ...
         ; ...all inputs are WF...
@@ -95,7 +95,7 @@
    ;; we require that the type is well formed assuming the where clauses are satisfied.
    (crate-item-ok-goal CrateDecls (ConstId (const KindedVarIds WhereClauses Ty)))
    (∀ KindedVarIds
-      (Implies
+      (implies
        (; assuming all generic parameters are WF...
         (WellFormed KindedVarId) ...
         ; ...where-clauses are satisfied...
@@ -144,7 +144,7 @@
    ; (we only know that `T: Debug`).
    (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (Ty_impl)) (WhereClause_impl ...) _))
    ((∀ KindedVarIds_adt
-       (Implies (where-clauses->hypotheses WhereClauses_adt)
+       (implies (where-clauses->hypotheses WhereClauses_adt)
                 (∃ KindedVarIds_impl
                    (All ((Ty_impl == Ty_adt)
                          (where-clause->goal WhereClause_impl) ...
@@ -185,7 +185,7 @@
    ; of course, in this case, it is not provable because `Vec<T>: Copy` is not true for any `T`.
    (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Copy (Ty_impl)) (WhereClause_impl ...) ()))
    ((∀ KindedVarIds_impl
-       (Implies ((where-clause->hypothesis WhereClause_impl) ...)
+       (implies ((where-clause->hypothesis WhereClause_impl) ...)
                 (∃ KindedVarIds_adt
                    (All ((Ty_impl == Ty_adt)
                          (Implemented (rust:Copy (Ty_field))) ... ...

@@ -160,17 +160,17 @@
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error Ty_adt (TyRigid AdtId (VarId ...)))
    (where/error Clause (∀ KindedVarIds
-                          (Implies
+                          (implies
                            ((WellFormed (ParameterKind VarId)) ...
                             (where-clause->goal WhereClause) ...)
                            (WellFormed (type Ty_adt)))))
    (where/error Invariants_wc ((∀ KindedVarIds
-                                  (Implies
+                                  (implies
                                    ((WellFormed (type Ty_adt)))
                                    (where-clause->hypothesis WhereClause)))
                                ...))
    (where/error Invariants_wf ((∀ KindedVarIds
-                                  (Implies
+                                  (implies
                                    ((WellFormed (type Ty_adt)))
                                    (WellFormed (ParameterKind VarId))))
                                ...))
@@ -210,18 +210,18 @@
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error TraitRef_me (TraitId (VarId ...)))
    (where/error Clause (∀ KindedVarIds
-                          (Implies
+                          (implies
                            ((HasImpl TraitRef_me)
                             (WellFormed (ParameterKind VarId)) ...
                             (where-clause->goal WhereClause) ...
                             )
                            (Implemented TraitRef_me))))
    (where/error (Hypothesis_wc ...) ((∀ KindedVarIds
-                                        (Implies
+                                        (implies
                                          ((Implemented TraitRef_me))
                                          (where-clause->hypothesis WhereClause))) ...))
    (where/error (Hypothesis_wf ...) ((∀ KindedVarIds
-                                        (Implies
+                                        (implies
                                          ((Implemented TraitRef_me))
                                          (WellFormed (ParameterKind VarId)))) ...))
    ]
@@ -246,7 +246,7 @@
    (where/error ((ParameterKind_trait _) ...) KindedVarIds_trait)
    (where/error (Goal_wc ...) (where-clauses->goals WhereClauses_impl))
    (where/error Clause (∀ KindedVarIds_impl
-                          (Implies
+                          (implies
                            ((WellFormed (ParameterKind_trait Parameter_trait)) ...
                             Goal_wc ...
                             )

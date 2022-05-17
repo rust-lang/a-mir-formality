@@ -184,7 +184,7 @@ and `WellFormed`-ness goals that we must prove
 
 ```scheme
    (where/error Clause (∀ KindedVarIds_impl
-                               (Implies
+                               (implies
                                 ((WellFormed (ParameterKind_trait Parameter_trait)) ...
                                  Goal_wc ...
                                  )
@@ -240,7 +240,7 @@ Here is the rule for impls:
    ;; we require that the trait is implemented.
    (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    (∀ KindedVarIds_impl
-           (Implies ((WellFormed KindedVarId_impl) ... WhereClause_impl ...)
+           (implies ((WellFormed KindedVarId_impl) ... WhereClause_impl ...)
                     (All ((Implemented TraitRef)))))
 
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)

@@ -88,7 +88,7 @@
   [(where Env_1 (env-with-hypotheses Env Hypotheses))
    (prove Env_1 Prove/Stacks Goal Env_out)
    --------------- "prove-implies"
-   (prove Env Prove/Stacks (Implies Hypotheses Goal) (reset Env () Env_out))
+   (prove Env Prove/Stacks (implies Hypotheses Goal) (reset Env () Env_out))
    ]
 
   [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (∀ KindedVarIds Goal)))
@@ -152,7 +152,7 @@
    (where/error ((Goal_subst ...) Prove/Stacks_subst) (apply-substitution-from-env Env_eq (Goals Prove/Stacks_pushed)))
    (prove-all Env_eq Prove/Stacks_subst (Goal_eq ... Goal_subst ...) Env_out)
    --------------- "clause-backchain"
-   (clause-proves Env Prove/Stacks Prove/Coinductive (Implies Goals Predicate_1) Predicate_2 Env_out)
+   (clause-proves Env Prove/Stacks Prove/Coinductive (implies Goals Predicate_1) Predicate_2 Env_out)
    ]
 
   [(where/error (Env_i Clause_i VarIds_i) (instantiate-quantified Env (∃ KindedVarIds Clause)))
@@ -250,7 +250,7 @@
    (test-can-prove
     EmptyEnv
     (∀ ((type T))
-       (Implies ((Implemented (Debug (T))))
+       (implies ((Implemented (Debug (T))))
                 (Implemented (Debug (T))))))
 
    (test-cannot-prove
@@ -272,7 +272,7 @@
 
    (redex-let*
     formality-logic
-    ((Invariant_PartialEq-if-Eq (term (∀ ((type T)) (Implies ((Implemented (Eq (T))))
+    ((Invariant_PartialEq-if-Eq (term (∀ ((type T)) (implies ((Implemented (Eq (T))))
                                                              (Implemented (PartialEq (T)))))))
      (Env (term (env-with-clauses-and-invariants ()
                                                  (Invariant_PartialEq-if-Eq)
@@ -281,7 +281,7 @@
     (test-cannot-prove Env (Implemented (PartialEq ((TyRigid u32 ())))))
 
     (test-can-prove Env
-                    (∀ ((type T)) (Implies ((Implemented (Eq (T))))
+                    (∀ ((type T)) (implies ((Implemented (Eq (T))))
                                            (Implemented (PartialEq (T))))))
     )
    )
@@ -302,30 +302,30 @@
   ; and thus rejected.
   (redex-let*
    formality-logic
-   ((Clause (term (Implies (q) p)))
-    (Invariant (term (∀ () (Implies (p) q))))
-    (Hypothesis (term (Implies (p) p)))
+   ((Clause (term (implies (q) p)))
+    (Invariant (term (∀ () (implies (p) q))))
+    (Hypothesis (term (implies (p) p)))
     (Env (term (env-with-clauses-and-invariants (Clause)
                                                 (Invariant)
                                                 )))
     )
 
    (traced '()
-           (test-cannot-prove Env (Implies (Hypothesis) q)))
+           (test-cannot-prove Env (implies (Hypothesis) q)))
    )
 
   ; Version of the above where our hypothesis is just `p`; this should be provable.
   (redex-let*
    formality-logic
-   ((Clause (term (Implies (q) p)))
-    (Invariant (term (∀ () (Implies (p) q))))
+   ((Clause (term (implies (q) p)))
+    (Invariant (term (∀ () (implies (p) q))))
     (Env (term (env-with-clauses-and-invariants (Clause)
                                                 (Invariant)
                                                 )))
     )
 
    (traced '()
-           (test-can-prove Env (Implies (p) q)))
+           (test-can-prove Env (implies (p) q)))
    )
 
   )

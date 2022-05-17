@@ -16,7 +16,7 @@
   ;;
   ;; FIXME: give a real explanation
   (Schemes ::= (Scheme ...))
-  (Scheme ::= (∃ KindedVarIds (Implies Goals Term)))
+  (Scheme ::= (∃ KindedVarIds (implies Goals Term)))
 
   ;; ParameterKind: kind for a bound variable (type,
   ;; lifetime, etc)
@@ -112,7 +112,7 @@
   ;; Implication types have an interesting twist: if the implication is false, the only
   ;; valid operation on the type is to drop it.
   (∀Ty ::= (∀ KindedVarIds Ty))
-  (ImplicationTy ::= (Implies WhereClauses Ty))
+  (ImplicationTy ::= (implies WhereClauses Ty))
 
   ;; ∃ and ensures types: These are used in Rust to model
   (∃Ty ::= (∃ KindedVarIds Ty))

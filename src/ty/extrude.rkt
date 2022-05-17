@@ -165,8 +165,8 @@
    (where/error (Env_out Term_out Goals_out) (extrude-term Env VarIdPairs_new Universe InequalityOp Term))
    ]
 
-  [(extrude-term Env VarIdPairs Universe InequalityOp (Implies WhereClauses Ty))
-   (Env_out (Implies WhereClauses Ty_out) (append Goals_ty Goals_wc))
+  [(extrude-term Env VarIdPairs Universe InequalityOp (implies WhereClauses Ty))
+   (Env_out (implies WhereClauses Ty_out) (append Goals_ty Goals_wc))
 
    (where/error (Env_1 Ty_out Goals_ty) (extrude-term Env VarIdPairs Universe InequalityOp Ty))
    (where/error (Env_2 WhereClauses_out Goals_wc) (extrude-terms Env VarIdPairs Universe InequalityOp WhereClauses))

@@ -64,7 +64,7 @@
     formality-decl
     ;; Crate B can prove `∀<T> { If (WellFormed(Foo<T>)) { Implemented(T: Debug) } }`
     ((Goal_B_ImpliedBound (term (∀ ((type T))
-                                   (Implies ((WellFormed (type (TyRigid Foo (T)))))
+                                   (implies ((WellFormed (type (TyRigid Foo (T)))))
                                             (Implemented (Debug (T))))))))
     (traced '()
             (decl:test-can-prove Env_B Goal_B_ImpliedBound)))
@@ -73,7 +73,7 @@
     formality-decl
     ;; Crate C cannot prove `∀<T> { If (WellFormed(Foo<T>) { Implemented(Foo<T>: Debug) } }`
     ((Goal_C_ImpliedBound (term (∀ ((type T))
-                                   (Implies ((WellFormed (type (TyRigid Foo (T))))
+                                   (implies ((WellFormed (type (TyRigid Foo (T))))
                                              (WellFormed (type T)))
                                             (Implemented (Debug (T))))))))
 
@@ -84,7 +84,7 @@
     formality-decl
     ;; but it CAN prove `∀<T> { If (WellFormed(Foo<T>, T)) { Implemented(Foo<T>: WithDebug<T>) } }`
     ((Goal_C_UseImpl (term (∀ ((type T))
-                              (Implies ((WellFormed (type (TyRigid Foo (T))))
+                              (implies ((WellFormed (type (TyRigid Foo (T))))
                                         (WellFormed (type T)))
                                        (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
 
@@ -96,7 +96,7 @@
     formality-decl
     ;; but it CAN prove `∀<T> { If (WellFormed(Foo<T>, T), Implemented(T: Debug)) { Implemented(Foo<T>: WithDebug<T>) } }`
     ((Goal_C_UseImplDebug (term (∀ ((type T))
-                                   (Implies ((WellFormed (type (TyRigid Foo (T))))
+                                   (implies ((WellFormed (type (TyRigid Foo (T))))
                                              (Implemented (Debug (T))))
                                             (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
 

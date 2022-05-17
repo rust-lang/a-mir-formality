@@ -29,7 +29,7 @@
             (lifetime Lt_I)
             (lifetime Lt_K)
             (lifetime Lt_L))
-           (Implies
+           (implies
             ((Lt_J <= Lt_K) (Lt_I <= Lt_K) (Lt_K <= Lt_L))
             ((TyRigid (Ref ()) (Lt_I (TyRigid i32 ())))
              (TyRigid (Ref ()) (Lt_J (TyRigid i32 ())))))))

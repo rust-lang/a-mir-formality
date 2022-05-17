@@ -76,7 +76,7 @@
      traced '()
             (decl:test-can-prove
              Env_B
-             (Implies ((Implemented (Partial (Ty_Foo)))) (Implemented (Copy (Ty_Foo))))))
+             (implies ((Implemented (Partial (Ty_Foo)))) (Implemented (Copy (Ty_Foo))))))
     )
    )
   )
