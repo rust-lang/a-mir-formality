@@ -30,9 +30,9 @@
 
 
    (; Forall A, B. Forall X: X <= A, X <= B.
-    ((Env_0 () (Ty_A Ty_B)) (term (instantiate-quantified EmptyEnv (ForAll ((TyKind A) (TyKind B)) ()))))
+    ((Env_0 () (Ty_A Ty_B)) (term (instantiate-quantified EmptyEnv (∀ ((TyKind A) (TyKind B)) ()))))
     (Universe_1 (term (universe-of-var-in-env Env_0 Ty_A)))
-    ((Env_1 () (Ty_X)) (term (instantiate-quantified Env_0 (ForAll ((TyKind X)) ()))))
+    ((Env_1 () (Ty_X)) (term (instantiate-quantified Env_0 (∀ ((TyKind X)) ()))))
     (Env_2 (term (env-with-hypotheses Env_1 ((Ty_X <= Ty_A) (Ty_X <= Ty_B)))))
     )
 
@@ -88,11 +88,11 @@
   (redex-let*
    formality-ty
 
-   (; ForAll. Exists A, B. ForAll. Exists X: X <= A, X <= B.
-    ((Env_0 () ()) (term (instantiate-quantified EmptyEnv (ForAll () ()))))
+   (; ∀. Exists A, B. ∀. Exists X: X <= A, X <= B.
+    ((Env_0 () ()) (term (instantiate-quantified EmptyEnv (∀ () ()))))
     ((Env_1 () (Ty_A Ty_B)) (term (instantiate-quantified Env_0 (Exists ((TyKind A) (TyKind B)) ()))))
     (Universe_1 (term (universe-of-var-in-env Env_1 Ty_A)))
-    ((Env_2 () ()) (term (instantiate-quantified Env_1 (ForAll () ()))))
+    ((Env_2 () ()) (term (instantiate-quantified Env_1 (∀ () ()))))
     ((Env_3 () (Ty_X)) (term (instantiate-quantified Env_2 (Exists ((TyKind X)) ()))))
     (Env_4 (term (env-with-var-related-to-parameters Env_3 Ty_X <= (Ty_A Ty_B)))))
 
@@ -157,11 +157,11 @@
   (redex-let*
    formality-ty
 
-   (; ForAll. Exists A, B. ForAll. Exists X, Y: X <= Y, Y <= A, Y <= B
-    ((Env_0 () ()) (term (instantiate-quantified EmptyEnv (ForAll () ()))))
+   (; ∀. Exists A, B. ∀. Exists X, Y: X <= Y, Y <= A, Y <= B
+    ((Env_0 () ()) (term (instantiate-quantified EmptyEnv (∀ () ()))))
     ((Env_1 () (Ty_A Ty_B)) (term (instantiate-quantified Env_0 (Exists ((TyKind A) (TyKind B)) ()))))
     (Universe_1 (term (universe-of-var-in-env Env_1 Ty_A)))
-    ((Env_2 () ()) (term (instantiate-quantified Env_1 (ForAll () ()))))
+    ((Env_2 () ()) (term (instantiate-quantified Env_1 (∀ () ()))))
     ((Env_3 () (Ty_X Ty_Y)) (term (instantiate-quantified Env_2 (Exists ((TyKind X) (TyKind Y)) ()))))
     (Env_4 (term (env-with-var-related-to-parameters Env_3 Ty_X <= (Ty_Y))))
     (Env_5 (term (env-with-var-related-to-parameters Env_4 Ty_Y <= (Ty_A Ty_B)))))

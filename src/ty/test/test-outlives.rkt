@@ -13,9 +13,9 @@
 
    ((Env (term (env-with-clauses-invariants-and-generics
                 ((; Just ignore WellFormed rules, not interesting for testing subtyping
-                  ForAll ((TyKind T)) (WellFormed (TyKind T)))
+                  ∀ ((TyKind T)) (WellFormed (TyKind T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
-                  ForAll ((TyKind T)) (Implemented (AlwaysImpl (T))))
+                  ∀ ((TyKind T)) (Implemented (AlwaysImpl (T))))
                  )
                 ()
                 ()
@@ -43,7 +43,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T)))
+                   ((∀ ((TyKind T)))
                     (Exists ((LtKind A) (LtKind B))))
                    ()
                    ((TyRigid (Ref ()) (A T)) -outlives- (TyRigid (Ref ()) (B T)))
@@ -61,7 +61,7 @@
               ()
               (Implies
                ()
-               ((ForAll
+               ((∀
                  ((LtKind A))
                  (TyRigid
                   (Fn "" 1)
@@ -74,7 +74,7 @@
                    Env
                    ()
                    ()
-                   ((ForAll ((LtKind A)) (TyRigid (Fn "" 1) ((TyRigid (Ref ()) (A (scalar-ty u32))) TyUnit)))
+                   ((∀ ((LtKind A)) (TyRigid (Fn "" 1) ((TyRigid (Ref ()) (A (scalar-ty u32))) TyUnit)))
                     -outlives-
                     static)
                    ))
@@ -97,7 +97,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T)))
+                   ((∀ ((TyKind T)))
                     (Exists ((LtKind A))))
                    ()
                    (A
@@ -120,7 +120,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((∀ ((LtKind A) (LtKind B))))
                    ()
                    (A -outlives- B)
                    ))
@@ -140,7 +140,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((∀ ((LtKind A) (LtKind B))))
                    ((Outlives (A : B)))
                    (A -outlives- B)
                    ))
@@ -158,7 +158,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((∀ ((LtKind A) (LtKind B))))
                    ((Outlives (A : B))
                     )
                    (A == B)
@@ -177,7 +177,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((∀ ((LtKind A) (LtKind B))))
                    ((Outlives (A : B))
                     (Outlives (B : A))
                     )

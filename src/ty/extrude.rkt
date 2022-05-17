@@ -129,7 +129,7 @@
    (extrude-term Env (VarIdPair ...) Universe InequalityOp_◃ VarId_!X)
    (Env_?Xe VarId_?Xe ((Any Goals_out)))
 
-   (where (ParameterKind ForAll Universe_!X) (var-binding-in-env Env VarId_!X))
+   (where (ParameterKind ∀ Universe_!X) (var-binding-in-env Env VarId_!X))
    (where/error #f (universe-includes Universe Universe_!X))
    (where/error InequalityOp_▹ (invert-inequality-op InequalityOp_◃))
 
@@ -152,8 +152,8 @@
    (where/error (Env_out Parameters_out Goals_out) (extrude-terms Env VarIdPairs Universe InequalityOp Parameters))
    ]
 
-  [(extrude-term Env VarIdPairs Universe InequalityOp (ForAll KindedVarIds Term))
-   (Env_out (ForAll KindedVarIds Term_out) Goals_out)
+  [(extrude-term Env VarIdPairs Universe InequalityOp (∀ KindedVarIds Term))
+   (Env_out (∀ KindedVarIds Term_out) Goals_out)
 
    ; create a new mapping that has `VarId=VarId` for each newly introduced name, plus
    ; any mappings from `KindedVarIds` that are *not* shadowed

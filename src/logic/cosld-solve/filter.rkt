@@ -44,7 +44,7 @@
    (clause-could-match-predicate Env Predicate Predicate_1)
    ]
 
-  [(clause-could-match-predicate Env (ForAll KindedVarIds Clause) Predicate_1)
+  [(clause-could-match-predicate Env (∀ KindedVarIds Clause) Predicate_1)
    (clause-could-match-predicate Env Clause Predicate_1)
    ]
 
@@ -60,7 +60,7 @@
   (redex-let*
    formality-logic
 
-   ((Clauses_test (term ((ForAll ((TyKind T)) (Implemented (Debug (T))))))))
+   ((Clauses_test (term ((∀ ((TyKind T)) (Implemented (Debug (T))))))))
 
    (test-equal (term (filter-clauses
                       EmptyEnv

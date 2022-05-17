@@ -181,7 +181,7 @@ These core predicates are then used to define a richer vocabulary of goals (thin
   ((Hypothesis Clause Invariant) :=
                                  Predicate
                                  (Implies Goals Predicate)
-                                 (ForAll KindedVarIds Clause)
+                                 (∀ KindedVarIds Clause)
                                  )
 ```
 
@@ -190,7 +190,7 @@ Importantly, the *types layer* defines a solver that gives semantics to all the 
 You might be curious about the distinction between goal and clause and why there are so many names for clauses (hypothesis, clause, invariant, etc). Let's talk briefly about that.
 
 * **Goals vs clauses:** 
-    * The role of `ForAll` in goals and clauses is different.
+    * The role of `∀` in goals and clauses is different.
         * Proving $\forall X. G$ requiers proving that `G` is true for any value of `X` (i.e., for a placeholder `(! X)`, in our setup).
         * In contrast, if you know $\forall X. G$ as an axiom, it means that you can give `X` any value `X1` you want.
     * Clauses have a limited structure between that keeps the solver tractable. The idea is that they are always "ways to prove a single predicate" true; we don't allow a clause like `(Any (A B))` as a clause, since that would mean "A or B is true but you don't know which". That would then be a second way to prove an `Any` goal like `(Any ...)` and introduce lots of complications (we got enough already, thanks).
@@ -268,7 +268,7 @@ Let's look more closely at one of those kinds of items. A trait declaration look
   ...
   (WhereClauses := (WhereClause ...))
   (WhereClause :=
-               (ForAll KindedVarIds WhereClause)
+               (∀ KindedVarIds WhereClause)
                (Implemented TraitRef)
                )
 ```
@@ -350,7 +350,7 @@ To see how it works, let's look at the case for an `impl` from that section. To 
    ;; We consider `HasImpl` to hold if (a) all inputs are well formed and (b) where
    ;; clauses are satisfied:
    ;;
-   ;;     (ForAll ((LtKind 'a) (TyKind T))
+   ;;     (∀ ((LtKind 'a) (TyKind T))
    ;;         (HasImpl (Foo (i32 'a u32))) :-
    ;;             (WellFormed (TyKind i32))
    ;;             (WellFormed (TyKind i32))
@@ -392,7 +392,7 @@ Next we convert the where clauses (e,g, `T: Ord`) into goals, using a helper fun
 Finally we can generate that variable `Clause` that was referenced in the final result. Note that we use the `...` notation to "flatten" together the list of goals from the where-clauses (`Goal_wc ...`) and `WellFormed`-ness goals that we must prove (i.e., to use the impl, we must show that its input types are well-formed):
 
 ```scheme
-   (where/error Clause (ForAll KindedVarIds_impl
+   (where/error Clause (∀ KindedVarIds_impl
                                (Implies
                                 ((WellFormed (ParameterKind_trait Parameter_trait)) ...
                                  Goal_wc ...
@@ -412,8 +412,8 @@ The `where-clause-to-goal` helper is fairly simple. Here is the source, I'll lea
    (Implemented TraitRef)
    )
 
-  ((where-clause-to-goal (ForAll KindedVarIds WhereClause))
-   (ForAll KindedVarIds Goal)
+  ((where-clause-to-goal (∀ KindedVarIds WhereClause))
+   (∀ KindedVarIds Goal)
    (where/error Goal (where-clause-to-goal WhereClause))
    )
 
@@ -442,7 +442,7 @@ The idea is that the crate is "ok" (i.e., passes the type check) if these goals 
    ;;
    ;; we require that the trait is implemented.
    (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
-   (ForAll KindedVarIds_impl
+   (∀ KindedVarIds_impl
            (Implies ((WellFormed KindedVarId_impl) ... WhereClause_impl ...)
                     (All ((Implemented TraitRef)))))
 
@@ -492,7 +492,7 @@ Using the code for impls we saw earlier, the `Magic` impl would generate the fol
 
 ```scheme
 ; forall<T> { Implemented(T: Magic) => HasImpl(T: Magic) }
-(ForAll ((TyKind T)) 
+(∀ ((TyKind T)) 
         (Implies ((Implemented (Magic (T))))
                  (HasImpl (Magic (T)))))
 ```
@@ -504,7 +504,7 @@ To actually prove `Implemented(T: Magic)`, This clause has to be combined with t
 ;               HasImpl(T: Copy), 
 ;               WellFormed(T),
 ;             ) => Implemented(T: Copy) }
-(ForAll ((TyKind T))
+(∀ ((TyKind T))
         (Implies ((HasImpl (Copy (T)))
                   (WellFormed (TyKind (T))))
                  (Implemented (Copy (T)))))
@@ -518,7 +518,7 @@ For `Magic`, the rule includes the where clause that `T: Copy`:
 ;               WellFormed(T),
 ;               Implemented(T: Copy),
 ;             ) => Implemented(T: Magic) }
-(ForAll ((TyKind T))
+(∀ ((TyKind T))
         (Implies ((HasImpl (Magic (T)))
                   (WellFormed (TyKind (T)))
                   (Implemented (Copy (T))))
@@ -596,7 +596,7 @@ The solver is able to make use of invariants to generate proofs, but only in a l
 This in turn implies that the seemingly tautological impl of `Magic` is actually **legal**! Recall the "ok goals" we saw before, that are used to decide which declarations are legal. The "ok" goal for the magic impl looks like this:
 
 ```scheme
-(ForAll ((TyKind T))
+(∀ ((TyKind T))
         (Implies ((Implemented (Magic (T))))
                  (Implemented (Magic (T)))))
 ```

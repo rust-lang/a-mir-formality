@@ -13,9 +13,9 @@
 
    ((Env (term (env-with-clauses-invariants-and-generics
                 ((; Just ignore WellFormed rules, not interesting for testing subtyping
-                  ForAll ((TyKind T)) (WellFormed (TyKind T)))
+                  ∀ ((TyKind T)) (WellFormed (TyKind T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
-                  ForAll ((TyKind T)) (Implemented (AlwaysImpl (T))))
+                  ∀ ((TyKind T)) (Implemented (AlwaysImpl (T))))
                  )
                 ()
                 ()
@@ -23,48 +23,48 @@
     )
 
    (traced '()
-           (ty:test-can-prove Env ((ForAll ((TyKind T)) T) <= (scalar-ty u32)))
+           (ty:test-can-prove Env ((∀ ((TyKind T)) T) <= (scalar-ty u32)))
            )
 
    (traced '()
-           (ty:test-can-prove Env ((scalar-ty u32) >= (ForAll ((TyKind T)) T)))
+           (ty:test-can-prove Env ((scalar-ty u32) >= (∀ ((TyKind T)) T)))
            )
 
    (traced '()
-           (ty:test-cannot-prove Env ((scalar-ty u32) <= (ForAll ((TyKind T)) T)))
+           (ty:test-cannot-prove Env ((scalar-ty u32) <= (∀ ((TyKind T)) T)))
            )
 
    (traced '()
-           (ty:test-cannot-prove Env ((ForAll ((TyKind T)) T) >= (scalar-ty u32)))
+           (ty:test-cannot-prove Env ((∀ ((TyKind T)) T) >= (scalar-ty u32)))
            )
 
    ; Cannot have an implication on the subtype side that doesn't appear on the supertype side
    (traced '()
-           (ty:test-cannot-prove Env ((ForAll ((TyKind T)) (Implies ((Implemented (NeverImpl (T)))) T))
+           (ty:test-cannot-prove Env ((∀ ((TyKind T)) (Implies ((Implemented (NeverImpl (T)))) T))
                                       <=
-                                      (ForAll ((TyKind T)) T)))
+                                      (∀ ((TyKind T)) T)))
            )
 
    ; ...unless we can prove it.
    (traced '()
-           (ty:test-can-prove Env ((ForAll ((TyKind T)) (Implies ((Implemented (AlwaysImpl (T)))) T))
+           (ty:test-can-prove Env ((∀ ((TyKind T)) (Implies ((Implemented (AlwaysImpl (T)))) T))
                                    <=
-                                   (ForAll ((TyKind T)) T)))
+                                   (∀ ((TyKind T)) T)))
            )
 
    ; OK if the implication is on both sides.
    (traced '()
-           (ty:test-can-prove Env ((ForAll ((TyKind T)) (Implies ((Implemented (NeverImpl (T)))) T))
+           (ty:test-can-prove Env ((∀ ((TyKind T)) (Implies ((Implemented (NeverImpl (T)))) T))
                                    <=
-                                   (ForAll ((TyKind T)) (Implies ((Implemented (NeverImpl (T)))) T))))
+                                   (∀ ((TyKind T)) (Implies ((Implemented (NeverImpl (T)))) T))))
            )
 
    ; OK if the implication is just on supertype side: that means that the consumer will prove it,
    ; but in this case it's not really needed anyway.
    (traced '()
-           (ty:test-can-prove Env ((ForAll ((TyKind T)) T)
+           (ty:test-can-prove Env ((∀ ((TyKind T)) T)
                                    <=
-                                   (ForAll ((TyKind T)) (Implies ((Implemented (NeverImpl (T)))) T))))
+                                   (∀ ((TyKind T)) (Implies ((Implemented (NeverImpl (T)))) T))))
            )
 
    (test-match
@@ -75,7 +75,7 @@
 
     (term (ty:prove-scheme
            Env
-           ((ForAll ((TyKind T)))
+           ((∀ ((TyKind T)))
             (Exists ((TyKind U))))
            ()
            (T <= U)
@@ -115,7 +115,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T)))
+                   ((∀ ((TyKind T)))
                     (Exists ((TyKind U) (LtKind A))))
                    ()
                    (U <= (& A T))
@@ -129,12 +129,12 @@
     () ; no solutions
     (term (ty:prove-scheme
            Env
-           ((ForAll ((TyKind T)))
+           ((∀ ((TyKind T)))
             )
            ()
            ((TyRigid (Fn "" 1) (T TyUnit)) ; fn(T)
             <=
-            (ForAll ((TyKind T)) (fn (T) TyUnit)) ; forall<T> fn(T)
+            (∀ ((TyKind T)) (fn (T) TyUnit)) ; forall<T> fn(T)
             ))))
 
    (traced '()
@@ -144,7 +144,7 @@
             ((Exists _ (Implies _ _)))
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T)))
+                   ((∀ ((TyKind T)))
                     )
                    ((Implemented (Debug (T))))
                    (T
@@ -158,7 +158,7 @@
     () ; no solutions
     (term (ty:prove-scheme
            Env
-           ((ForAll ((TyKind T)))
+           ((∀ ((TyKind T)))
             )
            ()
            (T
@@ -173,7 +173,7 @@
     ((Exists _ (Implies _ _)))
     (term (ty:prove-scheme
            Env
-           ((ForAll ((TyKind T)))
+           ((∀ ((TyKind T)))
             )
            ()
            ((Ensures T ((Implemented (Debug (T)))))
@@ -189,7 +189,7 @@
     () ; no solutions
     (term (ty:prove-scheme
            Env
-           ((ForAll ((TyKind T)))
+           ((∀ ((TyKind T)))
             )
            ()
            ((Implies ((Implemented (Debug (T)))) T)
@@ -206,7 +206,7 @@
     ((Exists () (Implies () _)))
     (term (ty:prove-scheme
            Env
-           ((ForAll ((TyKind T)))
+           ((∀ ((TyKind T)))
             )
            ((Implemented (Debug (T))))
            ((Implies ((Implemented (Debug (T)))) T)
@@ -223,7 +223,7 @@
     ((Exists () (Implies () _)))
     (term (ty:prove-scheme
            Env
-           ((ForAll ((TyKind T)))
+           ((∀ ((TyKind T)))
             )
            ()
            (T
@@ -239,7 +239,7 @@
     () ; no solutions
     (term (ty:prove-scheme
            Env
-           ((ForAll ((TyKind T) (TyKind U)))
+           ((∀ ((TyKind T) (TyKind U)))
             )
            ()
            (U
@@ -253,7 +253,7 @@
     ((Exists () (Implies () _)))
     (term (ty:prove-scheme
            Env
-           ((ForAll ((TyKind T)))
+           ((∀ ((TyKind T)))
             )
            ()
            ((Implies ((Implemented (Debug (T)))) T)
@@ -268,12 +268,12 @@
     ((Exists () (Implies () _))) ; provable! uh-oh!
     (term (ty:prove-scheme
            Env
-           ((ForAll ((TyKind T) (LtKind X)))
+           ((∀ ((TyKind T) (LtKind X)))
             )
            ()
            ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
-             ForAll ((LtKind A) (LtKind B))
-                    (fn ((& A (& B TyUnit)) (& B T)) (& A T)))
+             ∀ ((LtKind A) (LtKind B))
+               (fn ((& A (& B TyUnit)) (& B T)) (& A T)))
             <=
             (; fn(&'static &'x (), &'x T) -> &'static T
              fn ((& static (& X TyUnit)) (& X T)) (& static T))
@@ -290,13 +290,13 @@
             () ; no solutions
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T) (LtKind X)))
+                   ((∀ ((TyKind T) (LtKind X)))
                     )
                    ()
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
-                     ForAll ((LtKind A) (LtKind B))
-                            (Implies ((Outlives (B : A))) ; implied bound!
-                                     (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
+                     ∀ ((LtKind A) (LtKind B))
+                       (Implies ((Outlives (B : A))) ; implied bound!
+                                (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
                     <=
                     (; fn(&'static &'x (), &'x T) -> &'static T
                      fn ((& static (& X TyUnit)) (& X T)) (& static T))
@@ -312,13 +312,13 @@
             ((Exists () (Implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T) (LtKind X)))
+                   ((∀ ((TyKind T) (LtKind X)))
                     )
                    ()
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
-                     ForAll ((LtKind A) (LtKind B))
-                            (Implies ((Outlives (B : A))) ; implied bound!
-                                     (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
+                     ∀ ((LtKind A) (LtKind B))
+                       (Implies ((Outlives (B : A))) ; implied bound!
+                                (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
                     <=
                     (; fn(&'x &'static (), &'static T) -> &'x T
                      fn ((& X (& static TyUnit)) (& static T)) (& X T))

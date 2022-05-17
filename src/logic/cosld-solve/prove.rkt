@@ -91,10 +91,10 @@
    (prove Env Prove/Stacks (Implies Hypotheses Goal) (reset Env () Env_out))
    ]
 
-  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (ForAll KindedVarIds Goal)))
+  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (∀ KindedVarIds Goal)))
    (prove Env_1 Prove/Stacks Goal_1 Env_out)
    --------------- "prove-forall"
-   (prove Env Prove/Stacks (ForAll KindedVarIds Goal) (reset Env VarIds_new Env_out))
+   (prove Env Prove/Stacks (∀ KindedVarIds Goal) (reset Env VarIds_new Env_out))
    ]
 
   [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (Exists KindedVarIds Goal)))
@@ -158,7 +158,7 @@
   [(where/error (Env_i Clause_i VarIds_i) (instantiate-quantified Env (Exists KindedVarIds Clause)))
    (clause-proves Env_i Prove/Stacks Prove/Coinductive Clause_i Predicate Env_out)
    --------------- "clause-forall"
-   (clause-proves Env Prove/Stacks Prove/Coinductive (ForAll KindedVarIds Clause) Predicate (reset Env VarIds_i Env_out))
+   (clause-proves Env Prove/Stacks Prove/Coinductive (∀ KindedVarIds Clause) Predicate (reset Env VarIds_i Env_out))
    ]
 
   )
@@ -211,7 +211,7 @@
    ((; A is in U0
      (Env_0 Term_A (VarId_0)) (term (instantiate-quantified EmptyEnv (Exists ((TyKind A)) A))))
     (; V is a placeholder in U1
-     (Env_1 Term_T (VarId_1)) (term (instantiate-quantified Env_0 (ForAll ((TyKind T)) T))))
+     (Env_1 Term_T (VarId_1)) (term (instantiate-quantified Env_0 (∀ ((TyKind T)) T))))
     (; X is in U1
      (Env_2 Term_X (VarId_2)) (term (instantiate-quantified Env_1 (Exists ((TyKind X)) X))))
     (; Y, Z are in U1
@@ -249,31 +249,31 @@
 
    (test-can-prove
     EmptyEnv
-    (ForAll ((TyKind T))
-            (Implies ((Implemented (Debug (T))))
-                     (Implemented (Debug (T))))))
+    (∀ ((TyKind T))
+       (Implies ((Implemented (Debug (T))))
+                (Implemented (Debug (T))))))
 
    (test-cannot-prove
     (env-with-vars-in-current-universe EmptyEnv Exists ((TyKind X)))
     (Exists ((TyKind X))
-            (ForAll ((TyKind T))
-                    (T == X))))
+            (∀ ((TyKind T))
+               (T == X))))
 
    (test-cannot-prove
     (env-with-vars-in-current-universe EmptyEnv Exists ((TyKind X)))
-    (ForAll ((TyKind T))
-            (T == X)))
+    (∀ ((TyKind T))
+       (T == X)))
 
    (test-can-prove
     EmptyEnv
-    (ForAll ((TyKind T))
-            (Exists ((TyKind X))
-                    (T == X))))
+    (∀ ((TyKind T))
+       (Exists ((TyKind X))
+               (T == X))))
 
    (redex-let*
     formality-logic
-    ((Invariant_PartialEq-if-Eq (term (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
-                                                                    (Implemented (PartialEq (T)))))))
+    ((Invariant_PartialEq-if-Eq (term (∀ ((TyKind T)) (Implies ((Implemented (Eq (T))))
+                                                               (Implemented (PartialEq (T)))))))
      (Env (term (env-with-clauses-and-invariants ()
                                                  (Invariant_PartialEq-if-Eq)
                                                  ))))
@@ -281,8 +281,8 @@
     (test-cannot-prove Env (Implemented (PartialEq ((TyRigid u32 ())))))
 
     (test-can-prove Env
-                    (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
-                                                  (Implemented (PartialEq (T))))))
+                    (∀ ((TyKind T)) (Implies ((Implemented (Eq (T))))
+                                             (Implemented (PartialEq (T))))))
     )
    )
 
@@ -303,7 +303,7 @@
   (redex-let*
    formality-logic
    ((Clause (term (Implies (q) p)))
-    (Invariant (term (ForAll () (Implies (p) q))))
+    (Invariant (term (∀ () (Implies (p) q))))
     (Hypothesis (term (Implies (p) p)))
     (Env (term (env-with-clauses-and-invariants (Clause)
                                                 (Invariant)
@@ -318,7 +318,7 @@
   (redex-let*
    formality-logic
    ((Clause (term (Implies (q) p)))
-    (Invariant (term (ForAll () (Implies (p) q))))
+    (Invariant (term (∀ () (Implies (p) q))))
     (Env (term (env-with-clauses-and-invariants (Clause)
                                                 (Invariant)
                                                 )))

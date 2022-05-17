@@ -19,11 +19,11 @@
 
    ((Env (term (env-with-clauses-invariants-and-generics
                 ((; Just ignore WellFormed rules, not interesting for testing subtyping
-                  ForAll ((TyKind T)) (WellFormed (TyKind T)))
+                  ∀ ((TyKind T)) (WellFormed (TyKind T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
-                  ForAll ((TyKind T)) (Implemented (AlwaysImpl (T))))
+                  ∀ ((TyKind T)) (Implemented (AlwaysImpl (T))))
                  (; Normalize `Item<Vec<T>>` to `T`
-                  ForAll ((TyKind T)) (Normalize (item (vec T)) T))
+                  ∀ ((TyKind T)) (Normalize (item (vec T)) T))
                  )
                 ()
                 ()

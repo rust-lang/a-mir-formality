@@ -24,29 +24,29 @@
    (traced '()
            (decl:test-cannot-prove
             Env
-            (ForAll ((TyKind T))
-                    (Implies ((Implemented (PartialEq (T))))
-                             (Implemented (Eq (T)))))))
+            (∀ ((TyKind T))
+               (Implies ((Implemented (PartialEq (T))))
+                        (Implemented (Eq (T)))))))
 
    (traced '()
            (decl:test-can-prove
             Env
-            (ForAll ((TyKind T))
-                    (Implies ((Implemented (Eq (T))))
-                             (Implemented (PartialEq (T)))))))
+            (∀ ((TyKind T))
+               (Implies ((Implemented (Eq (T))))
+                        (Implemented (PartialEq (T)))))))
 
    (traced '()
            (decl:test-can-prove
             Env
-            (ForAll ((TyKind T))
-                    (Implies ((Implemented (Eq (T))))
-                             (Implemented (Eq (T)))))))
+            (∀ ((TyKind T))
+               (Implies ((Implemented (Eq (T))))
+                        (Implemented (Eq (T)))))))
 
    (traced '()
            (decl:test-cannot-prove
             Env
-            (ForAll ((TyKind T))
-                    (Implies ((Implemented (Eq (T))))
-                             (Implemented (Debug (T)))))))
+            (∀ ((TyKind T))
+               (Implies ((Implemented (Eq (T))))
+                        (Implemented (Debug (T)))))))
    )
   )

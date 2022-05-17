@@ -64,7 +64,7 @@
   ;; can be translated into predicates.
   (WhereClauses ::= (WhereClause ...))
   (WhereClause ::=
-               (ForAll KindedVarIds WhereClause)
+               (∀ KindedVarIds WhereClause)
                (Implemented TraitRef)
                (Outlives (Parameter : Lt))
                (Normalize AliasTy Ty)
@@ -104,14 +104,14 @@
              )
 
   ;; Predicate types correspond to the builtin logical connectives.
-  (PredicateTy ::= ForAllTy ExistsTy ImplicationTy EnsuresTy)
+  (PredicateTy ::= ∀Ty ExistsTy ImplicationTy EnsuresTy)
 
-  ;; ForAll and implication types: In Rust, these are always paired with `dyn` and `fn` types,
+  ;; ∀ and implication types: In Rust, these are always paired with `dyn` and `fn` types,
   ;; but in our calculus we separate and generalize them.
   ;;
   ;; Implication types have an interesting twist: if the implication is false, the only
   ;; valid operation on the type is to drop it.
-  (ForAllTy ::= (ForAll KindedVarIds Ty))
+  (∀Ty ::= (∀ KindedVarIds Ty))
   (ImplicationTy ::= (Implies WhereClauses Ty))
 
   ;; Exists and ensures types: These are used in Rust to model

@@ -107,10 +107,10 @@
   [(where #t (is-predicate? Env Predicate_in))
    (where (_ ... Invariant _ ...) (env-invariants Env))
 
-   ; the Invariant will have the form `ForAll (Vars...) Term_bound`:
+   ; the Invariant will have the form `∀ (Vars...) Term_bound`:
    ; create a version of `Term_bound` where `Vars` are fresh identifiers
    ; that don't appear in the environment
-   (where/error (ForAll ((ParameterKind VarId) ...) Term_bound) Invariant)
+   (where/error (∀ ((ParameterKind VarId) ...) Term_bound) Invariant)
    (where/error (VarId_fresh ...) (fresh-var-ids Env (VarId ...)))
    (where/error Substitution_freshen ((VarId VarId_fresh) ...))
    (where/error Term_bound-fresh (apply-substitution Substitution_freshen Term_bound))
@@ -131,8 +131,8 @@
                                    Hypothesis_out)
    ------------------- "elaborate-forall"
    (hypothesis-elaborates-one-step Env
-                                   (ForAll KindedVarIds Hypothesis_in)
-                                   (ForAll KindedVarIds Hypothesis_out))
+                                   (∀ KindedVarIds Hypothesis_in)
+                                   (∀ KindedVarIds Hypothesis_out))
    ]
 
   [(hypothesis-elaborates-one-step Env
@@ -161,10 +161,10 @@
   (redex-let*
    formality-logic
    [(Env (term (env-with-clauses-and-invariants ()
-                                                ((ForAll ((TyKind T)) (Implies ((Implemented (Eq (T)))) (Implemented (PartialEq (T)))))
-                                                 (ForAll ((TyKind T)) (Implies ((Implemented (Ord (T)))) (Implemented (PartialOrd (T)))))
-                                                 (ForAll ((TyKind T)) (Implies ((Implemented (Ord (T)))) (Implemented (Eq (T)))))
-                                                 (ForAll ((TyKind T)) (Implies ((Implemented (PartialOrd (T)))) (Implemented (PartialEq (T)))))
+                                                ((∀ ((TyKind T)) (Implies ((Implemented (Eq (T)))) (Implemented (PartialEq (T)))))
+                                                 (∀ ((TyKind T)) (Implies ((Implemented (Ord (T)))) (Implemented (PartialOrd (T)))))
+                                                 (∀ ((TyKind T)) (Implies ((Implemented (Ord (T)))) (Implemented (Eq (T)))))
+                                                 (∀ ((TyKind T)) (Implies ((Implemented (PartialOrd (T)))) (Implemented (PartialEq (T)))))
                                                  ))))
     ]
 
@@ -187,10 +187,10 @@
             formality-logic
             (term (env-hypotheses (elaborate-hypotheses
                                    (env-with-hypotheses Env
-                                                        ((ForAll ((TyKind T)) (Implemented (Ord (T)))))))))
-            (term ((ForAll ((TyKind T)) (Implemented (Ord (T))))
-                   (ForAll ((TyKind T)) (Implemented (Eq (T))))
-                   (ForAll ((TyKind T)) (Implemented (PartialOrd (T))))
-                   (ForAll ((TyKind T)) (Implemented (PartialEq (T))))))))
+                                                        ((∀ ((TyKind T)) (Implemented (Ord (T)))))))))
+            (term ((∀ ((TyKind T)) (Implemented (Ord (T))))
+                   (∀ ((TyKind T)) (Implemented (Eq (T))))
+                   (∀ ((TyKind T)) (Implemented (PartialOrd (T))))
+                   (∀ ((TyKind T)) (Implemented (PartialEq (T))))))))
    )
   )

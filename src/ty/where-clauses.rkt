@@ -24,8 +24,8 @@
   ;; Convert a where clause `W` into a goal that proves `W` is true.
   where-clause->goal : WhereClause -> Goal
 
-  [(where-clause->goal (ForAll KindedVarIds WhereClause))
-   (ForAll KindedVarIds (where-clause->goal WhereClause))
+  [(where-clause->goal (∀ KindedVarIds WhereClause))
+   (∀ KindedVarIds (where-clause->goal WhereClause))
    ]
 
   [(where-clause->goal (Implemented TraitRef))

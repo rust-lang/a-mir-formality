@@ -99,21 +99,21 @@
   (Hypothesis Clause ::=
               AtomicGoal
               (Implies Goals AtomicGoal)
-              (ForAll KindedVarIds Clause)
+              (∀ KindedVarIds Clause)
               )
   ;; ANCHOR_END:GoalsAndHypotheses
 
   ;; A `FlatHypothesis` is a flattened form of hypotheses; it is equally expressive
   ;; with the recursive structure. Useful for matching.
   (FlatHypotheses ::= (FlatHypothesis ...))
-  (FlatHypothesis ::= (ForAll KindedVarIds FlatImplicationHypothesis))
+  (FlatHypothesis ::= (∀ KindedVarIds FlatImplicationHypothesis))
   (FlatImplicationHypotheses ::= (FlatImplicationHypothesis ...))
   (FlatImplicationHypothesis ::= (Implies Goals AtomicGoal))
 
   ;; `Invariants` -- things which must be true or the type system has some bugs.
   ;; A rather restricted form of clause.
   (Invariants ::= (Invariant ...))
-  (Invariant ::= (ForAll KindedVarIds (Implies (Predicate) Predicate)))
+  (Invariant ::= (∀ KindedVarIds (Implies (Predicate) Predicate)))
 
   ;; Different ways to relate parameters
   (Relations ::= (Relation ...))
@@ -121,10 +121,10 @@
   (RelationOp ::= == InequalityOp)
 
   ;; `Quantifier` -- the two kinds of quantifiers.
-  (Quantifier ::= ForAll Exists)
+  (Quantifier ::= ∀ Exists)
 
   ;; `Universe` -- the root universe `RootUniverse` consists of all user-defined names.
-  ;; Each time we enter into a `ForAll` quantifier, we introduce a new universe
+  ;; Each time we enter into a `∀` quantifier, we introduce a new universe
   ;; that extends the previous one to add new names that didn't exist in the old
   ;; universe (e.g., the placeholders for the universally quantified variables).
   ;; See the paper XXX
@@ -146,7 +146,7 @@
   (Prove/Coinductive ::= + -)
 
   #:binding-forms
-  (ForAll ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
+  (∀ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   (Exists ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   )
 

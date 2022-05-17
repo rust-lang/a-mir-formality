@@ -52,8 +52,8 @@
    (outlives/one/substituted Env (VarId_!A OutlivesOp VarId_!B))
    (Env ((Any Goals)))
 
-   (where (LtKind ForAll _) (var-binding-in-env Env VarId_!A))
-   (where (LtKind ForAll _) (var-binding-in-env Env VarId_!B))
+   (where (LtKind ∀ _) (var-binding-in-env Env VarId_!A))
+   (where (LtKind ∀ _) (var-binding-in-env Env VarId_!B))
    (where Goals (bound-placeholder-from-hypotheses Env VarId_!A OutlivesOp VarId_!B))
    ]
 
@@ -61,7 +61,7 @@
    (outlives/one/substituted Env (VarId_!A -outlives- static))
    (Env ((Any Goals)))
 
-   (where (LtKind ForAll _) (var-binding-in-env Env VarId_!A))
+   (where (LtKind ∀ _) (var-binding-in-env Env VarId_!A))
    (where Goals (bound-placeholder-from-hypotheses Env VarId_!A -outlives- static))
    ]
 
@@ -178,7 +178,7 @@
    (outlives/one/substituted/reduce Env (VarId -outlives- Parameter))
    (Env ((Any Goals)))
 
-   (where (TyKind ForAll _) (var-binding-in-env Env VarId))
+   (where (TyKind ∀ _) (var-binding-in-env Env VarId))
    (where/error Goals (bound-placeholder-from-hypotheses Env VarId -outlives- Parameter))
    ]
 
@@ -188,7 +188,7 @@
    (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
    (Env ((Parameter -outlives- static)))
 
-   (where (TyKind ForAll _) (var-binding-in-env Env VarId))
+   (where (TyKind ∀ _) (var-binding-in-env Env VarId))
    (where () (bound-placeholder-from-hypotheses Env VarId -outlived-by- Parameter))
    ]
 
@@ -200,7 +200,7 @@
    (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
    (Env ((Any (Goal_0 Goal_1 ...))))
 
-   (where (TyKind ForAll _) (var-binding-in-env Env VarId))
+   (where (TyKind ∀ _) (var-binding-in-env Env VarId))
    (where/error (Goal_0 Goal_1 ...) (bound-placeholder-from-hypotheses Env VarId -outlived-by- Parameter))
    ]
 
@@ -210,8 +210,8 @@
    ; e.g. `'a : forall<'b> fn(&'b &'a u32)` is true
    ;
    ; e.g. `'a : forall<'b> fn(&'b u32)` is false
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (ForAll KindedVarIds Ty)))
-   (Env ((ForAll KindedVarIds (Parameter -outlives- Ty))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (∀ KindedVarIds Ty)))
+   (Env ((∀ KindedVarIds (Parameter -outlives- Ty))))
    ]
 
   [; ∀ P0 : P1 if
@@ -224,7 +224,7 @@
    ;    `exists 'b. (fn(&'b &'a u32) : 'a)` is false because
    ;    `(fn(&'b &'a u32) : 'a)` is false because
    ;    `'b : 'a`
-   (outlives/one/substituted/reduce Env ((ForAll KindedVarIds Ty) -outlives- Parameter))
+   (outlives/one/substituted/reduce Env ((∀ KindedVarIds Ty) -outlives- Parameter))
    (Env ((Exists KindedVarIds (Parameter -outlives- Ty))))
    ]
 
@@ -290,7 +290,7 @@
    ;     `∀T. (T: Write, T: 'b) => Any (('b : 'a))`
    ;     ...and here I assume `'b: 'a` cannot be proven.
    (outlives/one/substituted/reduce Env ((Exists KindedVarIds Ty) -outlives- Parameter))
-   (Env ((ForAll KindedVarIds (Ty -outlives- Parameter))))
+   (Env ((∀ KindedVarIds (Ty -outlives- Parameter))))
    ]
 
   [; P0 : (P1 ensures WC) if

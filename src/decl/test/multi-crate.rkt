@@ -62,31 +62,31 @@
 
    (redex-let*
     formality-decl
-    ;; Crate B can prove `ForAll<T> { If (WellFormed(Foo<T>)) { Implemented(T: Debug) } }`
-    ((Goal_B_ImpliedBound (term (ForAll ((TyKind T))
-                                        (Implies ((WellFormed (TyKind (TyRigid Foo (T)))))
-                                                 (Implemented (Debug (T))))))))
+    ;; Crate B can prove `∀<T> { If (WellFormed(Foo<T>)) { Implemented(T: Debug) } }`
+    ((Goal_B_ImpliedBound (term (∀ ((TyKind T))
+                                   (Implies ((WellFormed (TyKind (TyRigid Foo (T)))))
+                                            (Implemented (Debug (T))))))))
     (traced '()
             (decl:test-can-prove Env_B Goal_B_ImpliedBound)))
 
    (redex-let*
     formality-decl
-    ;; Crate C cannot prove `ForAll<T> { If (WellFormed(Foo<T>) { Implemented(Foo<T>: Debug) } }`
-    ((Goal_C_ImpliedBound (term (ForAll ((TyKind T))
-                                        (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
-                                                  (WellFormed (TyKind T)))
-                                                 (Implemented (Debug (T))))))))
+    ;; Crate C cannot prove `∀<T> { If (WellFormed(Foo<T>) { Implemented(Foo<T>: Debug) } }`
+    ((Goal_C_ImpliedBound (term (∀ ((TyKind T))
+                                   (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
+                                             (WellFormed (TyKind T)))
+                                            (Implemented (Debug (T))))))))
 
     (traced '()
             (decl:test-cannot-prove Env_C Goal_C_ImpliedBound)))
 
    (redex-let*
     formality-decl
-    ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T)) { Implemented(Foo<T>: WithDebug<T>) } }`
-    ((Goal_C_UseImpl (term (ForAll ((TyKind T))
-                                   (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
-                                             (WellFormed (TyKind T)))
-                                            (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
+    ;; but it CAN prove `∀<T> { If (WellFormed(Foo<T>, T)) { Implemented(Foo<T>: WithDebug<T>) } }`
+    ((Goal_C_UseImpl (term (∀ ((TyKind T))
+                              (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
+                                        (WellFormed (TyKind T)))
+                                       (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
 
     ; ...actually, it can't, because it can't prove `T: Debug` right now. Does that make sense?
     (traced '()
@@ -94,11 +94,11 @@
 
    (redex-let*
     formality-decl
-    ;; but it CAN prove `ForAll<T> { If (WellFormed(Foo<T>, T), Implemented(T: Debug)) { Implemented(Foo<T>: WithDebug<T>) } }`
-    ((Goal_C_UseImplDebug (term (ForAll ((TyKind T))
-                                        (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
-                                                  (Implemented (Debug (T))))
-                                                 (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
+    ;; but it CAN prove `∀<T> { If (WellFormed(Foo<T>, T), Implemented(T: Debug)) { Implemented(Foo<T>: WithDebug<T>) } }`
+    ((Goal_C_UseImplDebug (term (∀ ((TyKind T))
+                                   (Implies ((WellFormed (TyKind (TyRigid Foo (T))))
+                                             (Implemented (Debug (T))))
+                                            (Implemented (WithDebug ((TyRigid Foo (T)) T))))))))
 
     (traced '()
             (decl:test-can-prove Env_C Goal_C_UseImplDebug)))

@@ -21,11 +21,11 @@
 
    ((Env (term (env-with-clauses-invariants-and-generics
                 ((; Just ignore WellFormed rules, not interesting for testing subtyping
-                  ForAll ((TyKind T)) (WellFormed (TyKind T)))
+                  ∀ ((TyKind T)) (WellFormed (TyKind T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
-                  ForAll ((TyKind T)) (Implemented (AlwaysImpl (T))))
+                  ∀ ((TyKind T)) (Implemented (AlwaysImpl (T))))
                  (; Normalize `Item<Vec<T>>` to `T`
-                  ForAll ((TyKind T)) (Normalize (item (vec T)) T))
+                  ∀ ((TyKind T)) (Normalize (item (vec T)) T))
                  )
                 ()
                 ()
@@ -56,7 +56,7 @@
             () ; not provable!
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T) (TyKind U))))
+                   ((∀ ((TyKind T) (TyKind U))))
                    ()
                    ((item T)
                     <=
@@ -74,7 +74,7 @@
             ((Exists () (Implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T) (TyKind U))))
+                   ((∀ ((TyKind T) (TyKind U))))
                    ((Normalize (item T) (scalar-ty i32))
                     (Normalize (item U) (scalar-ty i32)))
                    ((item T)
@@ -93,7 +93,7 @@
             () ; not provable
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((∀ ((LtKind A) (LtKind B))))
                    ((Outlives (A : B)))
                    ((item (& A TyUnit))
                     <=
@@ -111,7 +111,7 @@
             ((Exists () (Implies () _))) ; provable
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((∀ ((LtKind A) (LtKind B))))
                    ((Outlives (A : B))
                     (Outlives (B : A))
                     )
@@ -131,7 +131,7 @@
             ((Exists () (Implies () _))) ; provable
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((∀ ((LtKind A) (LtKind B))))
                    ((Outlives (A : B)))
                    ((item (vec (& A TyUnit)))
                     <=

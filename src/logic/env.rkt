@@ -75,12 +75,12 @@
   )
 
 (define-metafunction formality-logic
-  ;; Filters out universal (ForAll) binders and returns just the VarIds of the existential ones.
+  ;; Filters out universal (∀) binders and returns just the VarIds of the existential ones.
   existential-vars-from-binders : VarBinders -> VarIds
 
   [(existential-vars-from-binders ()) ()]
 
-  [(existential-vars-from-binders ((_ _ ForAll _) VarBinder_2 ...))
+  [(existential-vars-from-binders ((_ _ ∀ _) VarBinder_2 ...))
    (existential-vars-from-binders (VarBinder_2 ...))]
 
   [(existential-vars-from-binders ((VarId_1 _ Exists _) VarBinder_2 ...))
@@ -280,7 +280,7 @@
 
   [(env-contains-placeholder-var Env VarId)
    #t
-   (where (_ ForAll _) (var-binding-in-env Env VarId))]
+   (where (_ ∀ _) (var-binding-in-env Env VarId))]
 
   [(env-contains-placeholder-var Env VarId)
    #f]

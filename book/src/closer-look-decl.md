@@ -121,7 +121,7 @@ To begin with, here is the comment explaining what we aim to do:
    ;; We consider `HasImpl` to hold if (a) all inputs are well formed and (b) where
    ;; clauses are satisfied:
    ;;
-   ;;     (ForAll ((LtKind 'a) (TyKind T))
+   ;;     (∀ ((LtKind 'a) (TyKind T))
    ;;         (HasImpl (Foo (i32 'a u32))) :-
    ;;             (WellFormed (TyKind i32))
    ;;             (WellFormed (TyKind i32))
@@ -179,7 +179,7 @@ and `WellFormed`-ness goals that we must prove
 (i.e., to use the impl, we must show that its input types are well-formed):
 
 ```scheme
-   (where/error Clause (ForAll KindedVarIds_impl
+   (where/error Clause (∀ KindedVarIds_impl
                                (Implies
                                 ((WellFormed (ParameterKind_trait Parameter_trait)) ...
                                  Goal_wc ...
@@ -200,8 +200,8 @@ Here is the source, I'll leave puzzling it out as an exercise to the reader:
    (Implemented TraitRef)
    )
 
-  ((where-clause->goal (ForAll KindedVarIds WhereClause))
-   (ForAll KindedVarIds Goal)
+  ((where-clause->goal (∀ KindedVarIds WhereClause))
+   (∀ KindedVarIds Goal)
    (where/error Goal (where-clause->goal WhereClause))
    )
 
@@ -235,7 +235,7 @@ Here is the rule for impls:
    ;;
    ;; we require that the trait is implemented.
    (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
-   (ForAll KindedVarIds_impl
+   (∀ KindedVarIds_impl
            (Implies ((WellFormed KindedVarId_impl) ... WhereClause_impl ...)
                     (All ((Implemented TraitRef)))))
 

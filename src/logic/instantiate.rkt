@@ -16,7 +16,7 @@
    ;
    ; In this case, we want to replace e.g. `for<T> Vec<T>` with
    ; `Vec<T1<>>` for some fresh name `T1` -- i.e., `(TyRigid Vec (TyRigid T1 ()))`.
-   (instantiate-quantified Env_0 (ForAll KindedVarIds Term_0))
+   (instantiate-quantified Env_0 (∀ KindedVarIds Term_0))
    (Env_2 Term_1 (VarId_new ...))
 
    ; map the `KindedVarIds` to fresh names that do not appear in the environment `Env_0`
@@ -27,7 +27,7 @@
    ; create a new environment where the fresh names are placed in a fresh universe
    (where/error Env_1 (env-with-incremented-universe Env_0))
    (where/error ((ParameterKind _) ...) KindedVarIds)
-   (where/error Env_2 (env-with-vars-in-current-universe Env_1 ForAll ((ParameterKind VarId_new) ...)))
+   (where/error Env_2 (env-with-vars-in-current-universe Env_1 ∀ ((ParameterKind VarId_new) ...)))
 
    ; substitute the uses of bound variables in the term with their placeholders
    (where/error Term_1 (apply-substitution Substitution_to_placeholders Term_0))
@@ -63,7 +63,7 @@
 
    (test-match-terms
     formality-logic
-    (term (instantiate-quantified EmptyEnv (ForAll ((Atom V)) (Vec (V)))))
+    (term (instantiate-quantified EmptyEnv (∀ ((Atom V)) (Vec (V)))))
     (term (_ (Vec (VarId_V1)) (VarId_V1))))
 
    (test-match-terms

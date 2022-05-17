@@ -11,7 +11,7 @@
 (module+ test
   (redex-let*
    formality-ty
-   [((Env_1 () (Ty_T)) (term (instantiate-quantified EmptyEnv (ForAll ((TyKind T)) ()))))
+   [((Env_1 () (Ty_T)) (term (instantiate-quantified EmptyEnv (∀ ((TyKind T)) ()))))
     ((Env_2 () (Ty_A Ty_B)) (term (instantiate-quantified Env_1 (Exists ((TyKind A) (TyKind B)) ()))))
     ((Env_3 () (Lt_I Lt_J Lt_K Lt_L)) (term (instantiate-quantified Env_2 (Exists ((LtKind I) (LtKind J) (LtKind K) (LtKind L)) ()))))
     (Env_4 (term (env-with-var-mapped-to Env_3 Ty_A (TyRigid (Ref ()) (Lt_I (scalar-ty i32))))))

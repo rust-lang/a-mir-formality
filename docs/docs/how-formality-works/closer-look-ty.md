@@ -137,7 +137,7 @@ You might be curious about the distinction between goal and clause
 and why there are so many names for clauses (hypothesis, clause, invariant, etc).
 Let's talk briefly about that.
 
-The role of `ForAll` in goals and clauses is different.
+The role of `∀` in goals and clauses is different.
 Proving \\( \forall X. G \\) requires proving that `G` is true for any value of `X`
 (i.e., for a placeholder `(! X)`, in our setup).
 By contrast, if you know \\( \forall X. G \\) as an axiom,
