@@ -40,11 +40,11 @@
   ;; something we need. The only harm to not filtering is harder-to-read debug
   ;; output.
 
-  [(clause-could-match-predicate Env (Implies Goals Predicate) Predicate_1)
+  [(clause-could-match-predicate Env (implies Goals Predicate) Predicate_1)
    (clause-could-match-predicate Env Predicate Predicate_1)
    ]
 
-  [(clause-could-match-predicate Env (ForAll KindedVarIds Clause) Predicate_1)
+  [(clause-could-match-predicate Env (∀ KindedVarIds Clause) Predicate_1)
    (clause-could-match-predicate Env Clause Predicate_1)
    ]
 
@@ -60,12 +60,12 @@
   (redex-let*
    formality-logic
 
-   ((Clauses_test (term ((ForAll ((TyKind T)) (Implemented (Debug (T))))))))
+   ((Clauses_test (term ((∀ ((type T)) (is-implemented (Debug (T))))))))
 
    (test-equal (term (filter-clauses
                       EmptyEnv
                       Clauses_test
-                      (Implemented (Debug ((scalar-ty i32))))))
+                      (is-implemented (Debug ((scalar-ty i32))))))
                (term Clauses_test))
 
    ; The "filtering" function we use at the logic level is ... not very precise.
@@ -74,13 +74,13 @@
    (test-equal (term (filter-clauses
                       EmptyEnv
                       Clauses_test
-                      (Implemented (WithDebug ((scalar-ty i32))))))
+                      (is-implemented (WithDebug ((scalar-ty i32))))))
                (term Clauses_test))
 
    (test-equal (term (filter-clauses
                       EmptyEnv
                       Clauses_test
-                      (HasImpl (Debug ((scalar-ty i32))))))
+                      (has-impl (Debug ((scalar-ty i32))))))
                (term Clauses_test))
    )
   )

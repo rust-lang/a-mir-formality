@@ -11,19 +11,19 @@
     ;; convenience for testing: write `(item T)` to reference the alias type `Item`
     item : Ty -> AliasTy
 
-    [(item Ty) (TyAlias Item (Ty))]
+    [(item Ty) (alias-ty Item (Ty))]
     )
 
   (redex-let*
    formality-ty
 
    ((Env (term (env-with-clauses-invariants-and-generics
-                ((; Just ignore WellFormed rules, not interesting for testing subtyping
-                  ForAll ((TyKind T)) (WellFormed (TyKind T)))
+                ((; Just ignore well-formed rules, not interesting for testing subtyping
+                  ∀ ((type T)) (well-formed (type T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
-                  ForAll ((TyKind T)) (Implemented (AlwaysImpl (T))))
-                 (; Normalize `Item<Vec<T>>` to `T`
-                  ForAll ((TyKind T)) (Normalize (item (vec T)) T))
+                  ∀ ((type T)) (is-implemented (AlwaysImpl (T))))
+                 (; normalizes-to `Item<Vec<T>>` to `T`
+                  ∀ ((type T)) (normalizes-to (item (vec T)) T))
                  )
                 ()
                 ()
@@ -33,7 +33,7 @@
    (traced '()
            (test-match
             formality-ty
-            ((Exists () (Implies () _))) ; provable!
+            ((∃ () (implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
                    ()

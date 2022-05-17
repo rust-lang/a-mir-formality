@@ -15,16 +15,16 @@
      AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
 
     (; reference to `Foo`
-     Ty_Foo (term (TyRigid Foo ())))
+     Ty_Foo (term (rigid-ty Foo ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))
+     TraitDecl_Magic (term (Magic (trait ((type Self)) ((is-implemented (Copy (Self)))) ()))))
 
     (; trait Copy { }
-     TraitDecl_Copy (term (Copy (trait ((TyKind Self)) () ()))))
+     TraitDecl_Copy (term (Copy (trait ((type Self)) () ()))))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((TyKind T)) (Magic (T)) ((Implemented (Magic (T)))) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((is-implemented (Magic (T)))) ())))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
@@ -44,13 +44,13 @@
     traced '()
            (decl:test-cannot-prove
             Env
-            (Implemented (Magic (Ty_Foo)))))
+            (is-implemented (Magic (Ty_Foo)))))
 
    (; ...also cannot prove that `i32: Copy`, of course.
     traced '()
            (decl:test-cannot-prove
             Env
-            (Implemented (Copy (Ty_Foo)))))
+            (is-implemented (Copy (Ty_Foo)))))
    )
 
   (; Mutual recursion between Magic and Copy, with Magic implemented in terms of itself,
@@ -62,16 +62,16 @@
      AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
 
     (; reference to `Foo`
-     Ty_Foo (term (TyRigid Foo ())))
+     Ty_Foo (term (rigid-ty Foo ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))
+     TraitDecl_Magic (term (Magic (trait ((type Self)) ((is-implemented (Copy (Self)))) ()))))
 
     (; trait Copy: Magic { }
-     TraitDecl_Copy (term (Copy (trait ((TyKind Self)) ((Implemented (Magic (Self)))) ()))))
+     TraitDecl_Copy (term (Copy (trait ((type Self)) ((is-implemented (Magic (Self)))) ()))))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((TyKind T)) (Magic (T)) ((Implemented (Magic (T)))) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((is-implemented (Magic (T)))) ())))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
@@ -89,13 +89,13 @@
     traced '()
            (decl:test-cannot-prove
             Env
-            (Implemented (Magic (Ty_Foo)))))
+            (is-implemented (Magic (Ty_Foo)))))
 
    (; And cannot prove that `i32: Copy`
     traced '()
            (decl:test-cannot-prove
             Env
-            (Implemented (Copy (Ty_Foo)))))
+            (is-implemented (Copy (Ty_Foo)))))
 
    )
 
@@ -108,22 +108,22 @@
      AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
 
     (; reference to `Foo`
-     Ty_Foo (term (TyRigid Foo ())))
+     Ty_Foo (term (rigid-ty Foo ())))
 
     (; struct Bar { counter: i32 }
      AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
 
     (; reference to `Bar`
-     Ty_Bar (term (TyRigid Bar ())))
+     Ty_Bar (term (rigid-ty Bar ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((TyKind Self)) ((Implemented (Copy (Self)))) ()))))
+     TraitDecl_Magic (term (Magic (trait ((type Self)) ((is-implemented (Copy (Self)))) ()))))
 
     (; trait Copy { }
-     TraitDecl_Copy (term (Copy (trait ((TyKind Self)) () ()))))
+     TraitDecl_Copy (term (Copy (trait ((type Self)) () ()))))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((TyKind T)) (Magic (T)) ((Implemented (Magic (T)))) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((is-implemented (Magic (T)))) ())))
 
     (; impl Copy for Foo { }
      TraitImplDecl_Copy (term (impl () (Copy (Ty_Foo)) () ())))
@@ -144,13 +144,13 @@
     traced '()
            (decl:test-cannot-prove
             Env
-            (Implemented (Magic (Ty_Foo)))))
+            (is-implemented (Magic (Ty_Foo)))))
 
    (; But not `Bar: Magic` because `Bar: Copy` does not hold
     traced '()
            (decl:test-cannot-prove
             Env
-            (Implemented (Magic (Ty_Bar)))))
+            (is-implemented (Magic (Ty_Bar)))))
 
    )
   )

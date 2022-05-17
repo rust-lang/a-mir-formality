@@ -172,21 +172,21 @@
 (module+ test
   (test-equal (term (apply-substitution
                      ((x x1) (y y1))
-                     (x (ForAll (TyKind x) (x y) y))))
-              (term (x1 (ForAll (TyKind x1) (x1 y1) y1))))
+                     (x (∀ (type x) (x y) y))))
+              (term (x1 (∀ (type x1) (x1 y1) y1))))
 
   (test-equal (term (apply-substitution
                      ((x x1) (y y1))
-                     (x (ForAll (TyKind z) (x y z) y))))
-              (term (x1 (ForAll (TyKind z) (x1 y1 z) y1))))
+                     (x (∀ (type z) (x y z) y))))
+              (term (x1 (∀ (type z) (x1 y1 z) y1))))
 
   (test-equal (term (substitution-fix
-                     ((x (TyRigid SomeType (y)))
+                     ((x (rigid-ty SomeType (y)))
                       (y y1)
                       (z x))))
-              (term ((x (TyRigid SomeType (y1)))
+              (term ((x (rigid-ty SomeType (y1)))
                      (y y1)
-                     (z (TyRigid SomeType (y1))))))
+                     (z (rigid-ty SomeType (y1))))))
 
   (test-equal (term (substitution-without-vars
                      ((x x1) (y y1) (z z1))

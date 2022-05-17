@@ -12,10 +12,10 @@
    formality-ty
 
    ((Env (term (env-with-clauses-invariants-and-generics
-                ((; Just ignore WellFormed rules, not interesting for testing subtyping
-                  ForAll ((TyKind T)) (WellFormed (TyKind T)))
+                ((; Just ignore well-formed rules, not interesting for testing subtyping
+                  ∀ ((type T)) (well-formed (type T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
-                  ForAll ((TyKind T)) (Implemented (AlwaysImpl (T))))
+                  ∀ ((type T)) (is-implemented (AlwaysImpl (T))))
                  )
                 ()
                 ()
@@ -33,20 +33,20 @@
            (test-match
             formality-ty
 
-            ((Exists
-              ((LtKind VarId_B) (LtKind VarId_A))
-              (Implies
+            ((∃
+              ((lifetime VarId_B) (lifetime VarId_A))
+              (implies
                ((VarId_A -outlives- VarId_B))
-               ((TyRigid (Ref ()) (VarId_A VarId_T))
+               ((rigid-ty (ref ()) (VarId_A VarId_T))
                 -outlives-
-                (TyRigid (Ref ()) (VarId_B VarId_T))))))
+                (rigid-ty (ref ()) (VarId_B VarId_T))))))
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T)))
-                    (Exists ((LtKind A) (LtKind B))))
+                   ((∀ ((type T)))
+                    (∃ ((lifetime A) (lifetime B))))
                    ()
-                   ((TyRigid (Ref ()) (A T)) -outlives- (TyRigid (Ref ()) (B T)))
+                   ((rigid-ty (ref ()) (A T)) -outlives- (rigid-ty (ref ()) (B T)))
                    ))
             )
            )
@@ -57,16 +57,16 @@
 
             ; for<'a> fn(&'a T) -outlives- static
 
-            ((Exists
+            ((∃
               ()
-              (Implies
+              (implies
                ()
-               ((ForAll
-                 ((LtKind A))
-                 (TyRigid
-                  (Fn "" 1)
-                  ((TyRigid (Ref ()) (A (TyRigid u32 ())))
-                   (TyRigid (Tuple 0) ()))))
+               ((∀
+                 ((lifetime A))
+                 (rigid-ty
+                  (fn-ptr "" 1)
+                  ((rigid-ty (ref ()) (A (rigid-ty u32 ())))
+                   (rigid-ty (tuple 0) ()))))
                 -outlives-
                 static))))
 
@@ -74,7 +74,7 @@
                    Env
                    ()
                    ()
-                   ((ForAll ((LtKind A)) (TyRigid (Fn "" 1) ((TyRigid (Ref ()) (A (scalar-ty u32))) TyUnit)))
+                   ((∀ ((lifetime A)) (rigid-ty (fn-ptr "" 1) ((rigid-ty (ref ()) (A (scalar-ty u32))) TyUnit)))
                     -outlives-
                     static)
                    ))
@@ -89,16 +89,16 @@
             ;
             ; true if (A -outlives- 'static)
 
-            ((Exists
-              ((LtKind VarId_A))
-              (Implies
+            ((∃
+              ((lifetime VarId_A))
+              (implies
                ((VarId_A -outlives- static))
                (VarId_A -outlives- VarId_T))))
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T)))
-                    (Exists ((LtKind A))))
+                   ((∀ ((type T)))
+                    (∃ ((lifetime A))))
                    ()
                    (A
                     -outlives-
@@ -120,7 +120,7 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
+                   ((∀ ((lifetime A) (lifetime B))))
                    ()
                    (A -outlives- B)
                    ))
@@ -136,12 +136,12 @@
            (test-match
             formality-ty
 
-            ((Exists () (Implies () (VarId_A -outlives- VarId_B))))
+            ((∃ () (implies () (VarId_A -outlives- VarId_B))))
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
-                   ((Outlives (A : B)))
+                   ((∀ ((lifetime A) (lifetime B))))
+                   ((outlives (A : B)))
                    (A -outlives- B)
                    ))
             )
@@ -158,8 +158,8 @@
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
-                   ((Outlives (A : B))
+                   ((∀ ((lifetime A) (lifetime B))))
+                   ((outlives (A : B))
                     )
                    (A == B)
                    ))
@@ -173,13 +173,13 @@
            (test-match
             formality-ty
 
-            ((Exists () (Implies () (VarId_A == VarId_B))))
+            ((∃ () (implies () (VarId_A == VarId_B))))
 
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
-                   ((Outlives (A : B))
-                    (Outlives (B : A))
+                   ((∀ ((lifetime A) (lifetime B))))
+                   ((outlives (A : B))
+                    (outlives (B : A))
                     )
                    (A == B)
                    ))

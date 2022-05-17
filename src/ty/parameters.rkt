@@ -39,21 +39,21 @@
 
   [(generics-for Env AdtId) (env-adt-generics Env AdtId)]
   [(generics-for Env ScalarId) (() ())]
-  [(generics-for Env (Ref ())) (((TheLt (LtKind +)) (TheTy (TyKind +))) ((Outlives (TheTy : TheLt))))]
-  [(generics-for Env (Ref (mut))) (((TheLt (LtKind +)) (TheTy (TyKind =))) ((Outlives (TheTy : TheLt))))]
+  [(generics-for Env (ref ())) (((TheLt (lifetime +)) (TheTy (type +))) ((outlives (TheTy : TheLt))))]
+  [(generics-for Env (ref (mut))) (((TheLt (lifetime +)) (TheTy (type =))) ((outlives (TheTy : TheLt))))]
 
-  [; Tuples are covariant in their elements P1...Pn
-   (generics-for Env (Tuple number_arity))
-   (((VarId (TyKind Variance)) ...) ())
+  [; tuples are covariant in their elements P1...Pn
+   (generics-for Env (tuple number_arity))
+   (((VarId (type Variance)) ...) ())
    (where/error (VarId ...) (unique-names number_arity))
-   (where/error ((TyKind Variance) ...) (repeat-n-times (TyKind +) number_arity))
+   (where/error ((type Variance) ...) (repeat-n-times (type +) number_arity))
    ]
 
   [; Functions are contravariant in the arguments P1...Pn and covariant in their return type P(n+1)
-   (generics-for Env (Fn Abi number_arity))
-   (((VarId_arg (TyKind Variance)) ... (VarId_ret (TyKind +))) ())
+   (generics-for Env (fn-ptr Abi number_arity))
+   (((VarId_arg (type Variance)) ... (VarId_ret (type +))) ())
    (where/error (VarId_arg ... VarId_ret) (unique-names ,(+ (term number_arity) 1)))
-   (where/error ((TyKind Variance) ...) (repeat-n-times (TyKind -) number_arity))
+   (where/error ((type Variance) ...) (repeat-n-times (type -) number_arity))
    ]
   )
 

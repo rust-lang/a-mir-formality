@@ -24,19 +24,19 @@
   ;; Convert a where clause `W` into a goal that proves `W` is true.
   where-clause->goal : WhereClause -> Goal
 
-  [(where-clause->goal (ForAll KindedVarIds WhereClause))
-   (ForAll KindedVarIds (where-clause->goal WhereClause))
+  [(where-clause->goal (∀ KindedVarIds WhereClause))
+   (∀ KindedVarIds (where-clause->goal WhereClause))
    ]
 
-  [(where-clause->goal (Implemented TraitRef))
-   (Implemented TraitRef)
+  [(where-clause->goal (is-implemented TraitRef))
+   (is-implemented TraitRef)
    ]
 
-  [(where-clause->goal (Normalize AliasTy Ty))
-   (Normalize AliasTy Ty)
+  [(where-clause->goal (normalizes-to AliasTy Ty))
+   (normalizes-to AliasTy Ty)
    ]
 
-  [(where-clause->goal (Outlives (Parameter_a : Parameter_b)))
+  [(where-clause->goal (outlives (Parameter_a : Parameter_b)))
    (Parameter_a -outlives- Parameter_b)
    ]
 

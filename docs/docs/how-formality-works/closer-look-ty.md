@@ -22,8 +22,8 @@ The current definition of types looks like this:
           TraitId         ; trait
           AssociatedTy    ; Associated type
           ScalarId        ; Something like i32, u32, etc
-          (Ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
-          (Tuple number)  ; tuple of given arity
+          (ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
+          (tuple number)  ; tuple of given arity
           )
    ...
    (ScalarId := i8 u8 i16 u16 i32 u32 i64 u64 i128 u128 bool)
@@ -129,7 +129,7 @@ and various kinds of "clauses" (things that are assumed to be true, axioms):
 {{#include ../../src/logic/grammar.rkt:GoalsAndHypotheses}}
 ```
 
-Importantly, the *types layer* defines a solver that gives semantics to all the "meta" parts of goals and clauses -- e.g., it defines what it means to prove `(All (G1 G2))` (prove both `G1` and `G2`, duh). But it doesn't have any rules for what it means to prove the *core* predicates true -- so it could never prove `(Implemented (Debug ((! T))))`. Those rules all come from the declaration layer and are given to the types layer as part of the "environment".
+Importantly, the *types layer* defines a solver that gives semantics to all the "meta" parts of goals and clauses -- e.g., it defines what it means to prove `(&& (G1 G2))` (prove both `G1` and `G2`, duh). But it doesn't have any rules for what it means to prove the *core* predicates true -- so it could never prove `(is-implemented (Debug ((! T))))`. Those rules all come from the declaration layer and are given to the types layer as part of the "environment".
 
 #### Goals versus clauses
 
@@ -137,16 +137,16 @@ You might be curious about the distinction between goal and clause
 and why there are so many names for clauses (hypothesis, clause, invariant, etc).
 Let's talk briefly about that.
 
-The role of `ForAll` in goals and clauses is different.
+The role of `∀` in goals and clauses is different.
 Proving \\( \forall X. G \\) requires proving that `G` is true for any value of `X`
 (i.e., for a placeholder `(! X)`, in our setup).
 By contrast, if you know \\( \forall X. G \\) as an axiom,
 it means that you can give `X` any value `X1` you want.
 Clauses have a limited structure between that keeps the solver tractable.
 The idea is that they are always "ways to prove a single predicate" true;
-we don't allow a clause like `(Any (A B))` as a clause,
+we don't allow a clause like `(|| (A B))` as a clause,
 since that would mean "A or B is true but you don't know which".
-That would then be a second way to prove an `Any` goal like `(Any ...)`
+That would then be a second way to prove an `||` goal like `(|| ...)`
 and introduce lots of complications (we got enough already, thanks).
 
 Further distinctions between "hypotheses", "clauses", and "invariants"
@@ -188,7 +188,7 @@ The `EnvSubstitution` is the *output*, it is a modified environment
 paired with a substitution that potentially gives new values to inference variables found in `Goal`.
 
 Here is a simple rule.
-It defines the way we prove `Any` ([source](https://github.com/nikomatsakis/a-mir-formality/blob/main/src/ty/cosld-solve/prove.rkt#L62-L65)).
+It defines the way we prove `||` ([source](https://github.com/nikomatsakis/a-mir-formality/blob/main/src/ty/cosld-solve/prove.rkt#L62-L65)).
 The notation is as follows.
 The stuff "above the line" are the conditions that have to be proven;
 the thing "under the line" is the conclusion that we can draw.
@@ -196,18 +196,18 @@ the thing "under the line" is the conclusion that we can draw.
 ```scheme
   [(prove Env Predicates_stack Goal_1 EnvSubstitution_out)
    ------------------------------------------------------- "prove-any"
-   (prove Env Predicates_stack (Any (Goal_0 ... Goal_1 Goal_2 ...)) EnvSubstitution_out)
+   (prove Env Predicates_stack (|| (Goal_0 ... Goal_1 Goal_2 ...)) EnvSubstitution_out)
    ]
 ```
 
 This rule says:
 
-* Given some goal `(Any (Goal_0 ... Goal_1 Goal_2 ...))` where `Goal_1` is found somewhere in that list...
-    * if we can prove `Goal_1` to be true, then the `Any` goal is true.
+* Given some goal `(|| (Goal_0 ... Goal_1 Goal_2 ...))` where `Goal_1` is found somewhere in that list...
+    * if we can prove `Goal_1` to be true, then the `||` goal is true.
 
 Or read another way:
 
-* If we can prove `Goal_1` to be true, then we can prove `(Any Goals)` to be true so long as `Goal_1` is somewhere in `Goals`.
+* If we can prove `Goal_1` to be true, then we can prove `(|| Goals)` to be true so long as `Goal_1` is somewhere in `Goals`.
 
 It shows you a bit of the power of PLT Redex (and Racket's pattern matching), as well. We are able to write the rule in a "non-deterministic" way -- saying, "pick any goal from the list" and prove it. Redex will search all the possibilities.
 

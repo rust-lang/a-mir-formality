@@ -50,18 +50,18 @@
   [; !A -outlives- !B
    ; !A -outlived-by- !B
    (outlives/one/substituted Env (VarId_!A OutlivesOp VarId_!B))
-   (Env ((Any Goals)))
+   (Env ((|| Goals)))
 
-   (where (LtKind ForAll _) (var-binding-in-env Env VarId_!A))
-   (where (LtKind ForAll _) (var-binding-in-env Env VarId_!B))
+   (where (lifetime ∀ _) (var-binding-in-env Env VarId_!A))
+   (where (lifetime ∀ _) (var-binding-in-env Env VarId_!B))
    (where Goals (bound-placeholder-from-hypotheses Env VarId_!A OutlivesOp VarId_!B))
    ]
 
   [; !A -outlives- static
    (outlives/one/substituted Env (VarId_!A -outlives- static))
-   (Env ((Any Goals)))
+   (Env ((|| Goals)))
 
-   (where (LtKind ForAll _) (var-binding-in-env Env VarId_!A))
+   (where (lifetime ∀ _) (var-binding-in-env Env VarId_!A))
    (where Goals (bound-placeholder-from-hypotheses Env VarId_!A -outlives- static))
    ]
 
@@ -115,13 +115,13 @@
    ; but I didn't feel like writing up that logic just now, and the rule below is not wrong,
    ; it just produces more answers than are necessary. (So, alternatively, we could also
    ; work on the "answer subsumption" logic.)
-   (outlives/one/substituted/reduce Env ((TyRigid (Ref _) (Lt _)) -outlives- Parameter))
+   (outlives/one/substituted/reduce Env ((rigid-ty (ref _) (Lt _)) -outlives- Parameter))
    (Env ((Lt -outlives- Parameter)))
    ]
 
   [; R<Pr_0...Pr_n> : P1 if
    ;     ∀i (Pr_i : P1)
-   (outlives/one/substituted/reduce Env ((TyRigid RigidName (Parameter ...)) -outlives- Parameter_r))
+   (outlives/one/substituted/reduce Env ((rigid-ty RigidName (Parameter ...)) -outlives- Parameter_r))
    (Env ((Parameter -outlives- Parameter_r) ...))
    ]
 
@@ -137,14 +137,14 @@
    ; but I didn't feel like writing up that logic just now, and the rule below is not wrong,
    ; it just produces more answers than are necessary. (So, alternatively, we could also
    ; work on the "answer subsumption" logic.)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (TyRigid (Ref _) (Lt _))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (rigid-ty (ref _) (Lt _))))
    (Env ((Parameter -outlives- Lt)))
    ]
 
   [; P : R<Pr_0...Pr_n> if
    ;     ∃i (P0 : Pr_i)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (TyRigid RigidName (Parameter_r ...))))
-   (Env ((Any ((Parameter -outlives- Parameter_r) ...))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (rigid-ty RigidName (Parameter_r ...))))
+   (Env ((|| ((Parameter -outlives- Parameter_r) ...))))
    ]
 
   [; A<Pa ...> : P if
@@ -154,11 +154,11 @@
    ; To establish that an alias type outlives P we can either normalize the alias type or
    ; we can relate P to each of the alias type's parameters. The latter is based on the reasoning
    ; that the alias must be a function of its inputs and other static things.
-   (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
-   (Env ((Any (Goal_each Goal_n))))
-   (where/error Goal_each (All ((Parameter_a -outlives- Parameter) ...)))
-   (where/error Goal_n (Exists ((TyKind T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
-                                                  (T -outlives- Parameter)))))
+   (outlives/one/substituted/reduce Env ((alias-ty AliasName (Parameter_a ...)) -outlives- Parameter))
+   (Env ((|| (Goal_each Goal_n))))
+   (where/error Goal_each (&& ((Parameter_a -outlives- Parameter) ...)))
+   (where/error Goal_n (∃ ((type T)) (&& ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
+                                          (T -outlives- Parameter)))))
    ]
 
   [; P : A<Pa ...> if
@@ -167,18 +167,18 @@
    ; To establish that P outlives an alias type we *must* normalize.
    ; No matter what its arguments, the alias type could normalize to `i32` or some such thing,
    ; in which case only static outlives it.
-   (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
+   (outlives/one/substituted/reduce Env ((alias-ty AliasName (Parameter_a ...)) -outlives- Parameter))
    (Env (Goal_n))
-   (where/error Goal_n (Exists ((TyKind T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
-                                                  (Parameter -outlives- T)))))
+   (where/error Goal_n (∃ ((type T)) (&& ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
+                                          (Parameter -outlives- T)))))
    ]
 
   [; !X : T if
    ;    `T1 : T` for any `X : T1` (`X -outlives- T1` or `T1 -outlived-by- X`) from environment.
    (outlives/one/substituted/reduce Env (VarId -outlives- Parameter))
-   (Env ((Any Goals)))
+   (Env ((|| Goals)))
 
-   (where (TyKind ForAll _) (var-binding-in-env Env VarId))
+   (where (type ∀ _) (var-binding-in-env Env VarId))
    (where/error Goals (bound-placeholder-from-hypotheses Env VarId -outlives- Parameter))
    ]
 
@@ -188,7 +188,7 @@
    (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
    (Env ((Parameter -outlives- static)))
 
-   (where (TyKind ForAll _) (var-binding-in-env Env VarId))
+   (where (type ∀ _) (var-binding-in-env Env VarId))
    (where () (bound-placeholder-from-hypotheses Env VarId -outlived-by- Parameter))
    ]
 
@@ -198,9 +198,9 @@
    ; We could merge this rule and the one above by always adding static, but it would
    ; yield strictly less precise results.
    (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
-   (Env ((Any (Goal_0 Goal_1 ...))))
+   (Env ((|| (Goal_0 Goal_1 ...))))
 
-   (where (TyKind ForAll _) (var-binding-in-env Env VarId))
+   (where (type ∀ _) (var-binding-in-env Env VarId))
    (where/error (Goal_0 Goal_1 ...) (bound-placeholder-from-hypotheses Env VarId -outlived-by- Parameter))
    ]
 
@@ -210,8 +210,8 @@
    ; e.g. `'a : forall<'b> fn(&'b &'a u32)` is true
    ;
    ; e.g. `'a : forall<'b> fn(&'b u32)` is false
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (ForAll KindedVarIds Ty)))
-   (Env ((ForAll KindedVarIds (Parameter -outlives- Ty))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (∀ KindedVarIds Ty)))
+   (Env ((∀ KindedVarIds (Parameter -outlives- Ty))))
    ]
 
   [; ∀ P0 : P1 if
@@ -224,17 +224,17 @@
    ;    `exists 'b. (fn(&'b &'a u32) : 'a)` is false because
    ;    `(fn(&'b &'a u32) : 'a)` is false because
    ;    `'b : 'a`
-   (outlives/one/substituted/reduce Env ((ForAll KindedVarIds Ty) -outlives- Parameter))
-   (Env ((Exists KindedVarIds (Parameter -outlives- Ty))))
+   (outlives/one/substituted/reduce Env ((∀ KindedVarIds Ty) -outlives- Parameter))
+   (Env ((∃ KindedVarIds (Parameter -outlives- Ty))))
    ]
 
   [; P0 : (WC => P1) if WC => (P0 : P1)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (Implies WhereClauses Ty)))
-   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (implies WhereClauses Ty)))
+   (Env ((implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty))))
    ]
 
   [; (WC => P0) : P1 if WC, (P0 : P1)
-   (outlives/one/substituted/reduce Env ((Implies WhereClauses Ty) -outlives- Parameter))
+   (outlives/one/substituted/reduce Env ((implies WhereClauses Ty) -outlives- Parameter))
    (Env (Goal_wc ... (Parameter -outlives- Ty)))
    (where (Goal_wc ...) (where-clauses->goals WhereClauses))
    ]
@@ -266,8 +266,8 @@
    ;        though we will have trouble finding an instance :)
    ;    third goal adds the bound that `T : 'static`
    ;    this will relate `'a: 'static`
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (Exists KindedVarIds Ty)))
-   (Env ((Exists KindedVarIds (Parameter -outlives- Ty))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (∃ KindedVarIds Ty)))
+   (Env ((∃ KindedVarIds (Parameter -outlives- Ty))))
    ]
 
   [; ∃ P0 : P1 if
@@ -281,29 +281,29 @@
    ;     `∀T. ((T ensures (T: Write, T: 'static)) : 'a)`
    ;     `∀T. (T: Write, T: 'static) => (T : 'a)`
    ;     find the bounds on `T`, find `'static`
-   ;     `∀T. (T: Write, T: 'static) => Any (('static : 'a))`
+   ;     `∀T. (T: Write, T: 'static) => (|| (('static : 'a)))`
    ;
    ; e.g. `dyn (Write + 'b) : 'a` is false because
    ;     `∀T. ((T ensures (T: Write, T: 'b)) : 'a)`
    ;     `∀T. (T: Write, T: 'b) => (T : 'a)`
    ;     find the bounds on `T`, find `'static`
-   ;     `∀T. (T: Write, T: 'b) => Any (('b : 'a))`
+   ;     `∀T. (T: Write, T: 'b) => (|| (('b : 'a)))`
    ;     ...and here I assume `'b: 'a` cannot be proven.
-   (outlives/one/substituted/reduce Env ((Exists KindedVarIds Ty) -outlives- Parameter))
-   (Env ((ForAll KindedVarIds (Ty -outlives- Parameter))))
+   (outlives/one/substituted/reduce Env ((∃ KindedVarIds Ty) -outlives- Parameter))
+   (Env ((∀ KindedVarIds (Ty -outlives- Parameter))))
    ]
 
   [; P0 : (P1 ensures WC) if
    ;    WC, (P0 : P1)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (Ensures Ty WhereClauses)))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (ensures Ty WhereClauses)))
    (Env (Goal_wc ... (Parameter -outlives- Ty)))
    (where (Goal_wc ...) (where-clauses->goals WhereClauses))
    ]
 
   [; (P0 ensures WC) : P1 if
    ;     WC => (P0 : P1)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (Ensures Ty WhereClauses)))
-   (Env ((Implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (ensures Ty WhereClauses)))
+   (Env ((implies (where-clauses->goals WhereClauses) (Parameter -outlives- Ty))))
    ]
 
   [(outlives/one/substituted/reduce Env (Parameter_a -outlives- Parameter_b))

@@ -47,9 +47,9 @@ would be represented as
 
 ```scheme
 (Foo (trait ; KindedVarIds -- the generics:
-            ((TyKind Self) (TyKind T))
+            ((type Self) (type T))
             ; where clauses, including supertraits:
-            ((Implemented (Ord (T))) (Implemented (Bar (Self))))
+            ((is-implemented (Ord (T))) (is-implemented (Bar (Self))))
             ; trait items, empty list:
             ()
             ))
@@ -118,14 +118,14 @@ To begin with, here is the comment explaining what we aim to do:
    ;;
    ;;     impl<'a, T> Foo<'a, T> for i32 where T: Ord { }
    ;;
-   ;; We consider `HasImpl` to hold if (a) all inputs are well formed and (b) where
+   ;; We consider `has-impl` to hold if (a) all inputs are well formed and (b) where
    ;; clauses are satisfied:
    ;;
-   ;;     (ForAll ((LtKind 'a) (TyKind T))
-   ;;         (HasImpl (Foo (i32 'a u32))) :-
-   ;;             (WellFormed (TyKind i32))
-   ;;             (WellFormed (TyKind i32))
-   ;;             (Implemented (Ord T)))
+   ;;     (∀ ((lifetime 'a) (type T))
+   ;;         (has-impl (Foo (i32 'a u32))) :-
+   ;;             (well-formed (type i32))
+   ;;             (well-formed (type i32))
+   ;;             (is-implemented (Ord T)))
 ```
 
 The actual code for this
@@ -175,16 +175,16 @@ Next we convert the where clauses (e,g, `T: Ord`) into goals, using a helper fun
 
 Finally we can generate that variable `Clause` that was referenced in the final result.
 Note that we use the `...` notation to "flatten" together the list of goals from the where-clauses (`Goal_wc ...`)
-and `WellFormed`-ness goals that we must prove
+and `well-formed`-ness goals that we must prove
 (i.e., to use the impl, we must show that its input types are well-formed):
 
 ```scheme
-   (where/error Clause (ForAll KindedVarIds_impl
-                               (Implies
-                                ((WellFormed (ParameterKind_trait Parameter_trait)) ...
+   (where/error Clause (∀ KindedVarIds_impl
+                               (implies
+                                ((well-formed (ParameterKind_trait Parameter_trait)) ...
                                  Goal_wc ...
                                  )
-                                (HasImpl TraitRef))))
+                                (has-impl TraitRef))))
    ]
 ```
 
@@ -196,12 +196,12 @@ Here is the source, I'll leave puzzling it out as an exercise to the reader:
   ;; Convert a where clause `W` into a goal that proves `W` is true.
   where-clause->goal : WhereClause -> Goal
 
-  ((where-clause->goal (Implemented TraitRef))
-   (Implemented TraitRef)
+  ((where-clause->goal (is-implemented TraitRef))
+   (is-implemented TraitRef)
    )
 
-  ((where-clause->goal (ForAll KindedVarIds WhereClause))
-   (ForAll KindedVarIds Goal)
+  ((where-clause->goal (∀ KindedVarIds WhereClause))
+   (∀ KindedVarIds Goal)
    (where/error Goal (where-clause->goal WhereClause))
    )
 
@@ -235,9 +235,9 @@ Here is the rule for impls:
    ;;
    ;; we require that the trait is implemented.
    (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
-   (ForAll KindedVarIds_impl
-           (Implies ((WellFormed KindedVarId_impl) ... WhereClause_impl ...)
-                    (All ((Implemented TraitRef)))))
+   (∀ KindedVarIds_impl
+           (implies ((well-formed KindedVarId_impl) ... WhereClause_impl ...)
+                    (&& ((is-implemented TraitRef)))))
 
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)

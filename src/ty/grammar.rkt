@@ -16,13 +16,13 @@
   ;;
   ;; FIXME: give a real explanation
   (Schemes ::= (Scheme ...))
-  (Scheme ::= (Exists KindedVarIds (Implies Goals Term)))
+  (Scheme ::= (∃ KindedVarIds (implies Goals Term)))
 
   ;; ParameterKind: kind for a bound variable (type,
   ;; lifetime, etc)
   ;;
   ;; Overridden from formality-logic.
-  (ParameterKind ::= TyKind LtKind)
+  (ParameterKind ::= type lifetime)
 
   ;; Parameter: value for a generic parameter
   ;;
@@ -35,15 +35,15 @@
   ;; Overridden from formality-logic.
   (Predicate ::=
              ; `TraitRef` is (fully) implemented.
-             (Implemented TraitRef)
+             (is-implemented TraitRef)
              ; an impl exists for `TraitRef`; this *by itself* doesn't mean
              ; that `TraitRef` is implemented, as the supertraits may not
              ; have impls.
-             (HasImpl TraitRef)
+             (has-impl TraitRef)
              ; the given type or lifetime is well-formed.
-             (WellFormed (ParameterKind Parameter))
+             (well-formed (ParameterKind Parameter))
              ; normalize a given alias to another type
-             (Normalize AliasTy Ty)
+             (normalizes-to AliasTy Ty)
              )
   ;; ANCHOR_END:Predicates
 
@@ -53,10 +53,10 @@
   ;; equality, but the parameters have to be equated as types.
   (Predicate/Deboned ::= (Predicate/Skeleton Parameters))
   (Predicate/Skeleton ::=
-                      (Implemented TraitId)
-                      (HasImpl TraitId)
-                      (WellFormed ParameterKind)
-                      (Normalize AliasName)
+                      (is-implemented TraitId)
+                      (has-impl TraitId)
+                      (well-formed ParameterKind)
+                      (normalizes-to AliasName)
                       )
 
   ;; WhereClause -- Rust where clauses. These are a subset of
@@ -64,10 +64,10 @@
   ;; can be translated into predicates.
   (WhereClauses ::= (WhereClause ...))
   (WhereClause ::=
-               (ForAll KindedVarIds WhereClause)
-               (Implemented TraitRef)
-               (Outlives (Parameter : Lt))
-               (Normalize AliasTy Ty)
+               (∀ KindedVarIds WhereClause)
+               (is-implemented TraitRef)
+               (outlives (Parameter : Lt))
+               (normalizes-to AliasTy Ty)
                )
 
   ;; Ty -- Rust types
@@ -83,40 +83,40 @@
   (Tys ::= (Ty ...))
   (Ty ::= RigidTy AliasTy PredicateTy VarId)
 
-  ;; RigidTy -- A *rigid* type is onee that can only be equal to itself. Most Rust types fit
-  ;; this category, e.g., `Vec<i32>` would be represented as `(TyRigid Vec ((TyRigid i32 ())))`.
-  (RigidTy ::= (TyRigid RigidName Parameters))
+  ;; RigidTy -- A *rigid* type is one that can only be equal to itself. Most Rust types fit
+  ;; this category, e.g., `Vec<i32>` would be represented as `(rigid-ty Vec ((rigid-ty i32 ())))`.
+  (RigidTy ::= (rigid-ty RigidName Parameters))
   (RigidName ::=
              AdtId           ; enum/struct/union
              ScalarId        ; Something like i32, u32, etc
-             (Ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
-             (Tuple number)  ; tuple of given arity
-             (Fn Abi number) ; fn types
+             (ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
+             (tuple number)  ; tuple of given arity
+             (fn-ptr Abi number) ; fn types
              )
 
   ;; AliasTy -- an *alias* type is basically a *type lambda*. You can either *normalize* it
   ;; to another type *or* prove that it is equal to another alias type by showing
   ;; that the alias name + arguments are the same.
-  (AliasTy ::= (TyAlias AliasName Parameters))
+  (AliasTy ::= (alias-ty AliasName Parameters))
   (AliasName ::=
              AliasId
              (TraitId AssociatedTyId)
              )
 
   ;; Predicate types correspond to the builtin logical connectives.
-  (PredicateTy ::= ForAllTy ExistsTy ImplicationTy EnsuresTy)
+  (PredicateTy ::= ∀Ty ∃Ty ImplicationTy EnsuresTy)
 
-  ;; ForAll and implication types: In Rust, these are always paired with `dyn` and `fn` types,
+  ;; ∀ and implication types: In Rust, these are always paired with `dyn` and `fn` types,
   ;; but in our calculus we separate and generalize them.
   ;;
   ;; Implication types have an interesting twist: if the implication is false, the only
   ;; valid operation on the type is to drop it.
-  (ForAllTy ::= (ForAll KindedVarIds Ty))
-  (ImplicationTy ::= (Implies WhereClauses Ty))
+  (∀Ty ::= (∀ KindedVarIds Ty))
+  (ImplicationTy ::= (implies WhereClauses Ty))
 
-  ;; Exists and ensures types: These are used in Rust to model
-  (ExistsTy ::= (Exists KindedVarIds Ty))
-  (EnsuresTy ::= (Ensures Ty WhereClauses))
+  ;; ∃ and ensures types: These are used in Rust to model
+  (∃Ty ::= (∃ KindedVarIds Ty))
+  (EnsuresTy ::= (ensures Ty WhereClauses))
 
   ;; Treat ABIs as opaque strings (for now, at least)
   (Abi ::= string)
@@ -169,7 +169,7 @@
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
-  (AdtId AliasId TraitId AssociatedTyId TyAliasId ::=
+  (AdtId AliasId TraitId AssociatedTyId AliasTyId ::=
          variable-not-otherwise-mentioned)
 
   ;; Generic parameters
@@ -182,44 +182,44 @@
 
 (define-term
   TyUnit
-  (TyRigid (Tuple 0) ())
+  (rigid-ty (tuple 0) ())
   )
 
 (define-metafunction formality-ty
   scalar-ty : ScalarId -> Ty
 
-  ((scalar-ty ScalarId) (TyRigid ScalarId ()))
+  ((scalar-ty ScalarId) (rigid-ty ScalarId ()))
   )
 
 (define-metafunction formality-ty
   & : Lt Ty -> Ty
 
-  [(& Lt Ty) (TyRigid (Ref ()) (Lt Ty))]
+  [(& Lt Ty) (rigid-ty (ref ()) (Lt Ty))]
   )
 
 (define-metafunction formality-ty
   &mut : Lt Ty -> Ty
 
-  [(&mut Lt Ty) (TyRigid (Ref (mut)) (Lt Ty))]
+  [(&mut Lt Ty) (rigid-ty (ref (mut)) (Lt Ty))]
   )
 
 (define-metafunction formality-ty
   box : Ty -> Ty
 
-  [(box Ty) (TyRigid Box (Lt Ty))]
+  [(box Ty) (rigid-ty Box (Lt Ty))]
   )
 
 (define-metafunction formality-ty
   vec : Ty -> Ty
 
-  [(vec Ty) (TyRigid Vec (Lt Ty))]
+  [(vec Ty) (rigid-ty Vec (Lt Ty))]
   )
 
 (define-metafunction formality-ty
   fn : Tys Ty -> Ty
 
   [(fn (Ty_arg ...) Ty_ret)
-   (TyRigid (Fn "Rust" number) (Ty_arg ... Ty_ret))
+   (rigid-ty (fn-ptr "Rust" number) (Ty_arg ... Ty_ret))
    (where/error number ,(length (term (Ty_arg ...))))
    ]
   )

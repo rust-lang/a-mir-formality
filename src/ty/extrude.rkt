@@ -80,12 +80,12 @@
    (extrude-term Env (VarIdPair ...) Universe InequalityOp_◃ VarId)
    (Env_4 VarId_out Goals_b)
 
-   (where (ParameterKind Exists Universe_VarId) (var-binding-in-env Env VarId))
+   (where (ParameterKind ∃ Universe_VarId) (var-binding-in-env Env VarId))
    (where/error InequalityOp_▹ (invert-inequality-op InequalityOp_◃))
    (where/error #f (universe-includes Universe Universe_VarId))
    ; create output variable `VarId_out` (`extrude(X)` in the example above)
    (where/error (VarId_out) (fresh-var-ids Env (VarId)))
-   (where/error Env_1 (env-with-var Env VarId_out ParameterKind Exists Universe))
+   (where/error Env_1 (env-with-var Env VarId_out ParameterKind ∃ Universe))
    (where/error VarIdPairs_new ((VarId VarId_out) VarIdPair ...))
    ; extract bounds `b_0...b_n` where `X ◃ b_i` for all `i`
    (where/error (Parameter_b ...) (known-bounds Env InequalityOp_▹ VarId))
@@ -125,17 +125,17 @@
    ; * `extrude(b0) ◃ b0`
    ; * `extrude(b1) ◃ b1`
    ;
-   ; and the goal `Any(extrude(X) ◃ extrude(b0), extrude(X) ◃ extrude(b1))`
+   ; and the goal `extrude(X) ◃ extrude(b0) || extrude(X) ◃ extrude(b1)`
    (extrude-term Env (VarIdPair ...) Universe InequalityOp_◃ VarId_!X)
-   (Env_?Xe VarId_?Xe ((Any Goals_out)))
+   (Env_?Xe VarId_?Xe ((|| Goals_out)))
 
-   (where (ParameterKind ForAll Universe_!X) (var-binding-in-env Env VarId_!X))
+   (where (ParameterKind ∀ Universe_!X) (var-binding-in-env Env VarId_!X))
    (where/error #f (universe-includes Universe Universe_!X))
    (where/error InequalityOp_▹ (invert-inequality-op InequalityOp_◃))
 
    ; Create fresh (existential) variable `?Xe` that will be returning
    (where/error (VarId_?Xe) (fresh-var-ids Env (VarId_!X)))
-   (where/error Env_?Xe (env-with-var Env VarId_?Xe ParameterKind Exists Universe))
+   (where/error Env_?Xe (env-with-var Env VarId_?Xe ParameterKind ∃ Universe))
    (where/error VarIdPairs_new ((VarId VarId_out) VarIdPair ...))
 
    ; We want to require that `?Xe ◃ !X` -- so find bounds `B` where
@@ -146,14 +146,14 @@
 
   ;; structural recursion
 
-  [(extrude-term Env VarIdPairs Universe InequalityOp (TyRigid RigidName Parameters))
-   (Env_out (TyRigid RigidName Parameters_out) Goals_out)
+  [(extrude-term Env VarIdPairs Universe InequalityOp (rigid-ty RigidName Parameters))
+   (Env_out (rigid-ty RigidName Parameters_out) Goals_out)
 
    (where/error (Env_out Parameters_out Goals_out) (extrude-terms Env VarIdPairs Universe InequalityOp Parameters))
    ]
 
-  [(extrude-term Env VarIdPairs Universe InequalityOp (ForAll KindedVarIds Term))
-   (Env_out (ForAll KindedVarIds Term_out) Goals_out)
+  [(extrude-term Env VarIdPairs Universe InequalityOp (∀ KindedVarIds Term))
+   (Env_out (∀ KindedVarIds Term_out) Goals_out)
 
    ; create a new mapping that has `VarId=VarId` for each newly introduced name, plus
    ; any mappings from `KindedVarIds` that are *not* shadowed
@@ -165,15 +165,15 @@
    (where/error (Env_out Term_out Goals_out) (extrude-term Env VarIdPairs_new Universe InequalityOp Term))
    ]
 
-  [(extrude-term Env VarIdPairs Universe InequalityOp (Implies WhereClauses Ty))
-   (Env_out (Implies WhereClauses Ty_out) (append Goals_ty Goals_wc))
+  [(extrude-term Env VarIdPairs Universe InequalityOp (implies WhereClauses Ty))
+   (Env_out (implies WhereClauses Ty_out) (append Goals_ty Goals_wc))
 
    (where/error (Env_1 Ty_out Goals_ty) (extrude-term Env VarIdPairs Universe InequalityOp Ty))
    (where/error (Env_2 WhereClauses_out Goals_wc) (extrude-terms Env VarIdPairs Universe InequalityOp WhereClauses))
    ]
 
-  [(extrude-term Env VarIdPairs Universe InequalityOp (Implemented (TraitId Parameters)))
-   (Env_out (Implemented (TraitId Parameters_out)) Goals_out)
+  [(extrude-term Env VarIdPairs Universe InequalityOp (is-implemented (TraitId Parameters)))
+   (Env_out (is-implemented (TraitId Parameters_out)) Goals_out)
 
    (where/error (Env_out Parameters_out Goals_out) (extrude-terms Env VarIdPairs Universe InequalityOp Parameters))
    ]

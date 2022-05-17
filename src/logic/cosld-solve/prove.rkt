@@ -77,30 +77,30 @@
 
   [(prove-all Env Prove/Stacks Goals Env_out)
    --------------- "prove-all"
-   (prove Env Prove/Stacks (All Goals) Env_out)
+   (prove Env Prove/Stacks (&& Goals) Env_out)
    ]
 
   [(prove Env Prove/Stacks Goal_1 Env_out)
    --------------- "prove-any"
-   (prove Env Prove/Stacks (Any (Goal_0 ... Goal_1 Goal_2 ...)) Env_out)
+   (prove Env Prove/Stacks (|| (Goal_0 ... Goal_1 Goal_2 ...)) Env_out)
    ]
 
   [(where Env_1 (env-with-hypotheses Env Hypotheses))
    (prove Env_1 Prove/Stacks Goal Env_out)
    --------------- "prove-implies"
-   (prove Env Prove/Stacks (Implies Hypotheses Goal) (reset Env () Env_out))
+   (prove Env Prove/Stacks (implies Hypotheses Goal) (reset Env () Env_out))
    ]
 
-  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (ForAll KindedVarIds Goal)))
+  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (∀ KindedVarIds Goal)))
    (prove Env_1 Prove/Stacks Goal_1 Env_out)
    --------------- "prove-forall"
-   (prove Env Prove/Stacks (ForAll KindedVarIds Goal) (reset Env VarIds_new Env_out))
+   (prove Env Prove/Stacks (∀ KindedVarIds Goal) (reset Env VarIds_new Env_out))
    ]
 
-  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (Exists KindedVarIds Goal)))
+  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (∃ KindedVarIds Goal)))
    (prove Env_1 Prove/Stacks Goal_1 Env_out)
    --------------- "prove-exists"
-   (prove Env Prove/Stacks (Exists KindedVarIds Goal) (reset Env VarIds_new Env_out))
+   (prove Env Prove/Stacks (∃ KindedVarIds Goal) (reset Env VarIds_new Env_out))
    ]
 
   )
@@ -152,13 +152,13 @@
    (where/error ((Goal_subst ...) Prove/Stacks_subst) (apply-substitution-from-env Env_eq (Goals Prove/Stacks_pushed)))
    (prove-all Env_eq Prove/Stacks_subst (Goal_eq ... Goal_subst ...) Env_out)
    --------------- "clause-backchain"
-   (clause-proves Env Prove/Stacks Prove/Coinductive (Implies Goals Predicate_1) Predicate_2 Env_out)
+   (clause-proves Env Prove/Stacks Prove/Coinductive (implies Goals Predicate_1) Predicate_2 Env_out)
    ]
 
-  [(where/error (Env_i Clause_i VarIds_i) (instantiate-quantified Env (Exists KindedVarIds Clause)))
+  [(where/error (Env_i Clause_i VarIds_i) (instantiate-quantified Env (∃ KindedVarIds Clause)))
    (clause-proves Env_i Prove/Stacks Prove/Coinductive Clause_i Predicate Env_out)
    --------------- "clause-forall"
-   (clause-proves Env Prove/Stacks Prove/Coinductive (ForAll KindedVarIds Clause) Predicate (reset Env VarIds_i Env_out))
+   (clause-proves Env Prove/Stacks Prove/Coinductive (∀ KindedVarIds Clause) Predicate (reset Env VarIds_i Env_out))
    ]
 
   )
@@ -209,14 +209,14 @@
   (redex-let*
    formality-logic
    ((; A is in U0
-     (Env_0 Term_A (VarId_0)) (term (instantiate-quantified EmptyEnv (Exists ((TyKind A)) A))))
+     (Env_0 Term_A (VarId_0)) (term (instantiate-quantified EmptyEnv (∃ ((type A)) A))))
     (; V is a placeholder in U1
-     (Env_1 Term_T (VarId_1)) (term (instantiate-quantified Env_0 (ForAll ((TyKind T)) T))))
+     (Env_1 Term_T (VarId_1)) (term (instantiate-quantified Env_0 (∀ ((type T)) T))))
     (; X is in U1
-     (Env_2 Term_X (VarId_2)) (term (instantiate-quantified Env_1 (Exists ((TyKind X)) X))))
+     (Env_2 Term_X (VarId_2)) (term (instantiate-quantified Env_1 (∃ ((type X)) X))))
     (; Y, Z are in U1
-     (Env_3 (Term_Y Term_Z) VarIds_3) (term (instantiate-quantified Env_2 (Exists ((TyKind Y) (TyKind Z)) (Y Z)))))
-    ((Env_4 ()) (term (relate-parameters Env_3 ((TyRigid Vec (Term_A)) == (TyRigid Vec (Term_X))))))
+     (Env_3 (Term_Y Term_Z) VarIds_3) (term (instantiate-quantified Env_2 (∃ ((type Y) (type Z)) (Y Z)))))
+    ((Env_4 ()) (term (relate-parameters Env_3 ((rigid-ty Vec (Term_A)) == (rigid-ty Vec (Term_X))))))
     (Env_5 (term (reset Env_2 VarIds_3 Env_4)))
     )
 
@@ -227,62 +227,62 @@
    (test-equal (term (universe-of-var-in-env Env_5 Term_X)) (term RootUniverse))
 
    (traced '()
-           (test-can-prove EmptyEnv (All ())))
+           (test-can-prove EmptyEnv (&& ())))
 
    (redex-let*
     formality-logic
-    ((Env (term (env-with-vars-in-current-universe EmptyEnv Exists ((TyKind T) (TyKind U) (TyKind V))))))
+    ((Env (term (env-with-vars-in-current-universe EmptyEnv ∃ ((type T) (type U) (type V))))))
     (traced '()
             (test-equal
              (judgment-holds (prove-top-level-goal-substitution
                               Env
-                              (All ((T == (TyRigid Vec (U)))
-                                    (U == (TyRigid Vec (V)))
-                                    (V == (TyRigid i32 ()))))
+                              (&& ((T == (rigid-ty Vec (U)))
+                                   (U == (rigid-ty Vec (V)))
+                                   (V == (rigid-ty i32 ()))))
                               Substitution_out)
                              Substitution_out)
-             (term (((V (TyRigid i32 ()))
-                     (U (TyRigid Vec ((TyRigid i32 ()))))
-                     (T (TyRigid Vec ((TyRigid Vec ((TyRigid i32 ()))))))
+             (term (((V (rigid-ty i32 ()))
+                     (U (rigid-ty Vec ((rigid-ty i32 ()))))
+                     (T (rigid-ty Vec ((rigid-ty Vec ((rigid-ty i32 ()))))))
                      )))))
     )
 
    (test-can-prove
     EmptyEnv
-    (ForAll ((TyKind T))
-            (Implies ((Implemented (Debug (T))))
-                     (Implemented (Debug (T))))))
+    (∀ ((type T))
+       (implies ((is-implemented (Debug (T))))
+                (is-implemented (Debug (T))))))
 
    (test-cannot-prove
-    (env-with-vars-in-current-universe EmptyEnv Exists ((TyKind X)))
-    (Exists ((TyKind X))
-            (ForAll ((TyKind T))
-                    (T == X))))
+    (env-with-vars-in-current-universe EmptyEnv ∃ ((type X)))
+    (∃ ((type X))
+       (∀ ((type T))
+          (T == X))))
 
    (test-cannot-prove
-    (env-with-vars-in-current-universe EmptyEnv Exists ((TyKind X)))
-    (ForAll ((TyKind T))
-            (T == X)))
+    (env-with-vars-in-current-universe EmptyEnv ∃ ((type X)))
+    (∀ ((type T))
+       (T == X)))
 
    (test-can-prove
     EmptyEnv
-    (ForAll ((TyKind T))
-            (Exists ((TyKind X))
-                    (T == X))))
+    (∀ ((type T))
+       (∃ ((type X))
+          (T == X))))
 
    (redex-let*
     formality-logic
-    ((Invariant_PartialEq-if-Eq (term (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
-                                                                    (Implemented (PartialEq (T)))))))
+    ((Invariant_PartialEq-if-Eq (term (∀ ((type T)) (implies ((is-implemented (Eq (T))))
+                                                             (is-implemented (PartialEq (T)))))))
      (Env (term (env-with-clauses-and-invariants ()
                                                  (Invariant_PartialEq-if-Eq)
                                                  ))))
 
-    (test-cannot-prove Env (Implemented (PartialEq ((TyRigid u32 ())))))
+    (test-cannot-prove Env (is-implemented (PartialEq ((rigid-ty u32 ())))))
 
     (test-can-prove Env
-                    (ForAll ((TyKind T)) (Implies ((Implemented (Eq (T))))
-                                                  (Implemented (PartialEq (T))))))
+                    (∀ ((type T)) (implies ((is-implemented (Eq (T))))
+                                           (is-implemented (PartialEq (T))))))
     )
    )
 
@@ -302,30 +302,30 @@
   ; and thus rejected.
   (redex-let*
    formality-logic
-   ((Clause (term (Implies (q) p)))
-    (Invariant (term (ForAll () (Implies (p) q))))
-    (Hypothesis (term (Implies (p) p)))
+   ((Clause (term (implies (q) p)))
+    (Invariant (term (∀ () (implies (p) q))))
+    (Hypothesis (term (implies (p) p)))
     (Env (term (env-with-clauses-and-invariants (Clause)
                                                 (Invariant)
                                                 )))
     )
 
    (traced '()
-           (test-cannot-prove Env (Implies (Hypothesis) q)))
+           (test-cannot-prove Env (implies (Hypothesis) q)))
    )
 
   ; Version of the above where our hypothesis is just `p`; this should be provable.
   (redex-let*
    formality-logic
-   ((Clause (term (Implies (q) p)))
-    (Invariant (term (ForAll () (Implies (p) q))))
+   ((Clause (term (implies (q) p)))
+    (Invariant (term (∀ () (implies (p) q))))
     (Env (term (env-with-clauses-and-invariants (Clause)
                                                 (Invariant)
                                                 )))
     )
 
    (traced '()
-           (test-can-prove Env (Implies (p) q)))
+           (test-can-prove Env (implies (p) q)))
    )
 
   )
