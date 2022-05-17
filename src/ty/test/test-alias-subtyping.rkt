@@ -75,8 +75,8 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T) (type U))))
-                   ((normalizes-to (item T) (scalar-ty i32))
-                    (normalizes-to (item U) (scalar-ty i32)))
+                   (((item T) == (scalar-ty i32))
+                    ((item U) == (scalar-ty i32)))
                    ((item T)
                     <=
                     (item U)
@@ -94,7 +94,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
-                   ((outlives (A : B)))
+                   ((A : B))
                    ((item (& A unit-ty))
                     <=
                     (item (& B unit-ty))
@@ -112,8 +112,8 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
-                   ((outlives (A : B))
-                    (outlives (B : A))
+                   ((A : B)
+                    (B : A)
                     )
                    ((item (& A unit-ty))
                     <=
@@ -132,7 +132,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
-                   ((outlives (A : B)))
+                   ((A : B))
                    ((item (vec (& A unit-ty)))
                     <=
                     (item (vec (& B unit-ty)))

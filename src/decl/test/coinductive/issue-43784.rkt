@@ -14,19 +14,19 @@
      AdtDecl_Foo (term (Foo (struct () () ((struct-variant ()))))))
 
     (; trait Partial: Copy { }
-     TraitDecl_Partial (term (Partial (trait ((type Self)) ((is-implemented (Copy (Self)))) ()))))
+     TraitDecl_Partial (term (Partial (trait ((type Self)) ((Self : Copy())) ()))))
 
     (; trait Complete: Partial { }
-     TraitDecl_Complete (term (Complete (trait ((type Self)) ((is-implemented (Partial (Self)))) ()))))
+     TraitDecl_Complete (term (Complete (trait ((type Self)) ((Self : Partial())) ()))))
 
     (; impl<T> Partial for T where T: Complete {}
-     TraitImplDecl_Partial (term (impl ((type T)) (Partial (T)) ((is-implemented (Complete (T)))) ())))
+     TraitImplDecl_Partial (term (impl ((type T)) (Partial (T)) ((T : Complete())) ())))
 
     (; impl<T> Complete for T {}
      TraitImplDecl_CompleteA (term (impl ((type T)) (Complete (T)) () ())))
 
     (; impl<T: Partial> Complete for T {}
-     TraitImplDecl_CompleteB (term (impl ((type T)) (Complete (T)) ((is-implemented (Partial (T)))) ())))
+     TraitImplDecl_CompleteB (term (impl ((type T)) (Complete (T)) ((T : Partial())) ())))
 
     (; crate A { ... }
      CrateDecl_A (term (A (crate (AdtDecl_Foo

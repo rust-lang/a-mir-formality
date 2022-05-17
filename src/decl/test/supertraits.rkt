@@ -15,7 +15,7 @@
    formality-decl
 
    ((TraitDecl_PartialEq (term (PartialEq (trait ((type Self)) () ()))))
-    (TraitDecl_Eq (term (Eq (trait ((type Self)) ((is-implemented (PartialEq (Self)))) ()))))
+    (TraitDecl_Eq (term (Eq (trait ((type Self)) ((Self : PartialEq())) ()))))
     (TraitDecl_Debug (term (Debug (trait ((type Self)) () ()))))
     (CrateDecl (term (TheCrate (crate (TraitDecl_PartialEq TraitDecl_Eq)))))
     (Env (term (env-for-crate-decl CrateDecl)))

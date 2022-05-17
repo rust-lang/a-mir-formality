@@ -292,7 +292,7 @@ would be represented as
 (Foo (trait ; KindedVarIds -- the generics:
             ((type Self) (type T))
             ; where clauses, including supertraits:
-            ((is-implemented (Ord (T))) (is-implemented (Bar (Self))))
+            ((T : Ord()) (Self : Bar()))
             ; trait items, empty list:
             ()
             ))

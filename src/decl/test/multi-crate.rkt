@@ -31,8 +31,8 @@
      ;;
      CrateDecl_B (redex-let*
                   formality-decl
-                  ((TraitDecl_WithDebug (term (WithDebug (trait ((type Self) (type T)) ((is-implemented (Debug (T)))) ()))))
-                   (AdtDecl_Foo (term (Foo (struct ((type T)) ((is-implemented (Debug (T)))) ((Foo ()))))))
+                  ((TraitDecl_WithDebug (term (WithDebug (trait ((type Self) (type T)) ((T : Debug())) ()))))
+                   (AdtDecl_Foo (term (Foo (struct ((type T)) ((T : Debug())) ((Foo ()))))))
                    (TraitImplDecl (term (impl ((type T)) (WithDebug ((rigid-ty Foo (T)) T)) () ())))
                    )
                   (term (CrateB (crate (TraitDecl_WithDebug AdtDecl_Foo TraitImplDecl))))))
@@ -71,7 +71,7 @@
 
    (redex-let*
     formality-decl
-    ;; Crate C cannot prove `∀<T> { If (well-formed(Foo<T>) { is-implemented(Foo<T>: Debug) } }`
+    ;; Crate C cannot prove `∀<T> { If (well-formed(Foo<T>) { is-implemented(T: Debug) } }`
     ((Goal_C_ImpliedBound (term (∀ ((type T))
                                    (implies ((well-formed (type (rigid-ty Foo (T))))
                                              (well-formed (type T)))

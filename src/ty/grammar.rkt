@@ -65,9 +65,9 @@
   (WhereClauses ::= (WhereClause ...))
   (WhereClause ::=
                (∀ KindedVarIds WhereClause)
-               (is-implemented TraitRef)
-               (outlives (Parameter : Lt))
-               (normalizes-to AliasTy Ty)
+               (Ty : TraitId Parameters)
+               (Parameter : Lt)
+               (AliasTy == Ty)
                )
 
   ;; Ty -- Rust types
