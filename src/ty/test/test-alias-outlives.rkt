@@ -18,8 +18,8 @@
    formality-ty
 
    ((Env (term (env-with-clauses-invariants-and-generics
-                ((; Just ignore WellFormed rules, not interesting for testing subtyping
-                  ∀ ((type T)) (WellFormed (type T)))
+                ((; Just ignore well-formed rules, not interesting for testing subtyping
+                  ∀ ((type T)) (well-formed (type T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
                   ∀ ((type T)) (Implemented (AlwaysImpl (T))))
                  (; Normalize `Item<Vec<T>>` to `T`

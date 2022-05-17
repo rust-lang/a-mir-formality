@@ -16,8 +16,8 @@
    ((has-impl TraitId) Parameters)
    ]
 
-  [(debone-predicate (WellFormed (ParameterKind Parameter)))
-   ((WellFormed ParameterKind) (Parameter))
+  [(debone-predicate (well-formed (ParameterKind Parameter)))
+   ((well-formed ParameterKind) (Parameter))
    ]
 
   [(debone-predicate (Normalize (TyAlias AliasName (Parameter ...)) Ty))

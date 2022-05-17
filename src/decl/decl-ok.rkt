@@ -37,9 +37,9 @@
    ;; are well formed and the where-clauses hold -- the field types are well-formed:
    ;;
    ;;     (∀ ((type T))
-   ;;         (implies ((WellFormed (type T))
+   ;;         (implies ((well-formed (type T))
    ;;                   (Implemented (Ord T)))
-   ;;           (WellFormed (type Vec<T>)) ...))
+   ;;           (well-formed (type Vec<T>)) ...))
    (crate-item-ok-goal _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
    Goal_wf
 
@@ -47,8 +47,8 @@
    (where/error ((VariantId ((FieldId Ty) ...)) ...) AdtVariants)
    (where/error Goal_wf (∀ KindedVarIds
                            (implies
-                            ((WellFormed KindedVarId) ... WhereClause ...)
-                            (All ((WellFormed (type Ty)) ... ...)))))
+                            ((well-formed KindedVarId) ... WhereClause ...)
+                            (All ((well-formed (type Ty)) ... ...)))))
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:
@@ -58,7 +58,7 @@
    ;; we require that all the trait-item WF goals are met.
    (crate-item-ok-goal _ (TraitId (trait KindedVarIds (WhereClause ...) (TraitItem ...))))
    (∀ KindedVarIds
-      (implies ((WellFormed KindedVarId) ... WhereClause ...)
+      (implies ((well-formed KindedVarId) ... WhereClause ...)
                (All (Goal_trait-item ...))))
 
    (where/error (Goal_trait-item ...) ((trait-item-ok-goal TraitItem) ...))
@@ -75,9 +75,9 @@
    (∀ KindedVarIds_impl
       (implies
        (; assuming all generic parameters are WF...
-        (WellFormed KindedVarId_impl) ...
+        (well-formed KindedVarId_impl) ...
         ; ...all inputs are WF...
-        (WellFormed (ParameterKind_trait Parameter_trait)) ...
+        (well-formed (ParameterKind_trait Parameter_trait)) ...
         ; ...where-clauses are satisfied...
         WhereClause_impl ...)
        (; ... then the trait must be implemented
@@ -97,11 +97,11 @@
    (∀ KindedVarIds
       (implies
        (; assuming all generic parameters are WF...
-        (WellFormed KindedVarId) ...
+        (well-formed KindedVarId) ...
         ; ...where-clauses are satisfied...
         WhereClause ...)
        (; ... then the trait must be implemented
-        WellFormed (type Ty))))
+        well-formed (type Ty))))
 
    (where/error (KindedVarId ...) KindedVarIds)
    (where/error (WhereClause ...) WhereClauses)

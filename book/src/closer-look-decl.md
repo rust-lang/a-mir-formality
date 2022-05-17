@@ -123,8 +123,8 @@ To begin with, here is the comment explaining what we aim to do:
    ;;
    ;;     (∀ ((lifetime 'a) (type T))
    ;;         (has-impl (Foo (i32 'a u32))) :-
-   ;;             (WellFormed (type i32))
-   ;;             (WellFormed (type i32))
+   ;;             (well-formed (type i32))
+   ;;             (well-formed (type i32))
    ;;             (Implemented (Ord T)))
 ```
 
@@ -175,13 +175,13 @@ Next we convert the where clauses (e,g, `T: Ord`) into goals, using a helper fun
 
 Finally we can generate that variable `Clause` that was referenced in the final result.
 Note that we use the `...` notation to "flatten" together the list of goals from the where-clauses (`Goal_wc ...`)
-and `WellFormed`-ness goals that we must prove
+and `well-formed`-ness goals that we must prove
 (i.e., to use the impl, we must show that its input types are well-formed):
 
 ```scheme
    (where/error Clause (∀ KindedVarIds_impl
                                (implies
-                                ((WellFormed (ParameterKind_trait Parameter_trait)) ...
+                                ((well-formed (ParameterKind_trait Parameter_trait)) ...
                                  Goal_wc ...
                                  )
                                 (has-impl TraitRef))))
@@ -236,7 +236,7 @@ Here is the rule for impls:
    ;; we require that the trait is implemented.
    (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    (∀ KindedVarIds_impl
-           (implies ((WellFormed KindedVarId_impl) ... WhereClause_impl ...)
+           (implies ((well-formed KindedVarId_impl) ... WhereClause_impl ...)
                     (All ((Implemented TraitRef)))))
 
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)

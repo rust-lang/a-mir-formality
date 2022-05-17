@@ -41,7 +41,7 @@
              ; have impls.
              (has-impl TraitRef)
              ; the given type or lifetime is well-formed.
-             (WellFormed (ParameterKind Parameter))
+             (well-formed (ParameterKind Parameter))
              ; normalize a given alias to another type
              (Normalize AliasTy Ty)
              )
@@ -55,7 +55,7 @@
   (Predicate/Skeleton ::=
                       (Implemented TraitId)
                       (has-impl TraitId)
-                      (WellFormed ParameterKind)
+                      (well-formed ParameterKind)
                       (Normalize AliasName)
                       )
 

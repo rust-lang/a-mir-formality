@@ -73,11 +73,11 @@ To be implemented, the impl must exist, and the type must be well-formed:
 ```scheme
 ; forall<T> { (
 ;               has-impl(T: Copy), 
-;               WellFormed(T),
+;               well-formed(T),
 ;             ) => Implemented(T: Copy) }
 (∀ ((type T))
         (implies ((has-impl (Copy (T)))
-                  (WellFormed (type (T))))
+                  (well-formed (type (T))))
                  (Implemented (Copy (T)))))
 ```
 
@@ -86,12 +86,12 @@ For `Magic`, the rule includes the where clause that `T: Copy`:
 ```scheme
 ; forall<T> { (
 ;               has-impl(T: Magic), 
-;               WellFormed(T),
+;               well-formed(T),
 ;               Implemented(T: Copy),
 ;             ) => Implemented(T: Magic) }
 (∀ ((type T))
         (implies ((has-impl (Magic (T)))
-                  (WellFormed (type (T)))
+                  (well-formed (type (T)))
                   (Implemented (Copy (T))))
                  (Implemented (Magic (T)))))
 ```
@@ -126,7 +126,7 @@ Why is that? Say I want to prove that `String: Copy`...
     * `Implemented(String: Magic)`? Well, that's true if...
         * `has-impl(String: Magic)`? Well, that's true if...
             * `Implemented(String: Magic)` -- and that's on the stack, so that's ok!
-        * `WellFormed(String)` -- yep
+        * `well-formed(String)` -- yep
         * `Implemented(String: Copy)` -- well, that's on the stack, so that's ok!
 
 The traditional solution so this sort of problem is to impose some kind of limits on the impls people can write so they must be "productive"

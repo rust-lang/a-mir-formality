@@ -160,7 +160,7 @@ Formality-ty also defines the core predicates used to define Rust semantics. The
              ; have impls.
              (has-impl TraitRef)
              ; the given type or lifetime is well-formed.
-             (WellFormed (ParameterKind Parameter))
+             (well-formed (ParameterKind Parameter))
              )
 ```
 
@@ -352,8 +352,8 @@ To see how it works, let's look at the case for an `impl` from that section. To 
    ;;
    ;;     (∀ ((lifetime 'a) (type T))
    ;;         (has-impl (Foo (i32 'a u32))) :-
-   ;;             (WellFormed (type i32))
-   ;;             (WellFormed (type i32))
+   ;;             (well-formed (type i32))
+   ;;             (well-formed (type i32))
    ;;             (Implemented (Ord T)))
 ```
 
@@ -389,12 +389,12 @@ Next we convert the where clauses (e,g, `T: Ord`) into goals, using a helper fun
    (where/error (Goal_wc ...) (where-clauses-to-goals WhereClauses_impl))
 ```
 
-Finally we can generate that variable `Clause` that was referenced in the final result. Note that we use the `...` notation to "flatten" together the list of goals from the where-clauses (`Goal_wc ...`) and `WellFormed`-ness goals that we must prove (i.e., to use the impl, we must show that its input types are well-formed):
+Finally we can generate that variable `Clause` that was referenced in the final result. Note that we use the `...` notation to "flatten" together the list of goals from the where-clauses (`Goal_wc ...`) and `well-formed`-ness goals that we must prove (i.e., to use the impl, we must show that its input types are well-formed):
 
 ```scheme
    (where/error Clause (∀ KindedVarIds_impl
                                (implies
-                                ((WellFormed (ParameterKind_trait Parameter_trait)) ...
+                                ((well-formed (ParameterKind_trait Parameter_trait)) ...
                                  Goal_wc ...
                                  )
                                 (has-impl TraitRef))))
@@ -443,7 +443,7 @@ The idea is that the crate is "ok" (i.e., passes the type check) if these goals 
    ;; we require that the trait is implemented.
    (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    (∀ KindedVarIds_impl
-           (implies ((WellFormed KindedVarId_impl) ... WhereClause_impl ...)
+           (implies ((well-formed KindedVarId_impl) ... WhereClause_impl ...)
                     (All ((Implemented TraitRef)))))
 
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
@@ -502,11 +502,11 @@ To actually prove `Implemented(T: Magic)`, This clause has to be combined with t
 ```scheme
 ; forall<T> { (
 ;               has-impl(T: Copy), 
-;               WellFormed(T),
+;               well-formed(T),
 ;             ) => Implemented(T: Copy) }
 (∀ ((type T))
         (implies ((has-impl (Copy (T)))
-                  (WellFormed (type (T))))
+                  (well-formed (type (T))))
                  (Implemented (Copy (T)))))
 ```
 
@@ -515,12 +515,12 @@ For `Magic`, the rule includes the where clause that `T: Copy`:
 ```schheme
 ; forall<T> { (
 ;               has-impl(T: Magic), 
-;               WellFormed(T),
+;               well-formed(T),
 ;               Implemented(T: Copy),
 ;             ) => Implemented(T: Magic) }
 (∀ ((type T))
         (implies ((has-impl (Magic (T)))
-                  (WellFormed (type (T)))
+                  (well-formed (type (T)))
                   (Implemented (Copy (T))))
                  (Implemented (Magic (T)))))
 ```
@@ -550,7 +550,7 @@ i.e., if I know that `T: Magic`, I also know that `T: Copy`. But if we literally
     * `Implemented(String: Magic)`? Well, that's true if...
         * `has-impl(String: Magic)`? Well, that's true if...
             * `Implemented(String: Magic)` -- and that's on the stack, so that's ok!
-        * `WellFormed(String)` -- yep
+        * `well-formed(String)` -- yep
         * `Implemented(String: Copy)` -- well, that's on the stack, so that's ok!
 
 The traditional solution so this sort of problem is to impose some kind of limits on the impls people can write so they must be "productive". It's a bit tricky to define what productivity means, but intuitively it means "not tautological". The challenge is that the various schemes I've seen for showing productivity don't accept impls like the ones that perfect derive would create, so they wouldn't really work for us. The solution in the impl works a different way.
