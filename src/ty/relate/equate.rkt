@@ -48,8 +48,8 @@
    ; Universe check fails or else previous case would have matched.
    ; In this case, we equate `X` with `R<...>` and recursively relate
    ; the parameters.
-   (equate/one/substituted Env (VarId == (TyRigid RigidName (Parameter ...))))
-   (relate-var-to-rigid Env (VarId == (TyRigid RigidName (Parameter ...))))
+   (equate/one/substituted Env (VarId == (rigid-ty RigidName (Parameter ...))))
+   (relate-var-to-rigid Env (VarId == (rigid-ty RigidName (Parameter ...))))
    (where #t (env-contains-existential-var Env VarId))
    ]
 
@@ -58,13 +58,13 @@
    ; Universe check fails or else previous case would have matched.
    ; In this case, we equate `X` with `R<...>` and recursively relate
    ; the parameters.
-   (equate/one/substituted Env ((TyRigid RigidName (Parameter ...)) == VarId))
-   (relate-var-to-rigid Env (VarId == (TyRigid RigidName (Parameter ...))))
+   (equate/one/substituted Env ((rigid-ty RigidName (Parameter ...)) == VarId))
+   (relate-var-to-rigid Env (VarId == (rigid-ty RigidName (Parameter ...))))
    (where #t (env-contains-existential-var Env VarId))
    ]
 
   [; Equating two rigid types with the same name: equate their parameters
-   (equate/one/substituted Env ((TyRigid RigidName (Parameter_1 ..._1)) == (TyRigid RigidName (Parameter_2 ..._1))))
+   (equate/one/substituted Env ((rigid-ty RigidName (Parameter_1 ..._1)) == (rigid-ty RigidName (Parameter_2 ..._1))))
    (Env ((Parameter_1 == Parameter_2) ...))
    ]
 

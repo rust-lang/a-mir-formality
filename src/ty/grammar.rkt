@@ -83,9 +83,9 @@
   (Tys ::= (Ty ...))
   (Ty ::= RigidTy AliasTy PredicateTy VarId)
 
-  ;; RigidTy -- A *rigid* type is onee that can only be equal to itself. Most Rust types fit
-  ;; this category, e.g., `Vec<i32>` would be represented as `(TyRigid Vec ((TyRigid i32 ())))`.
-  (RigidTy ::= (TyRigid RigidName Parameters))
+  ;; RigidTy -- A *rigid* type is one that can only be equal to itself. Most Rust types fit
+  ;; this category, e.g., `Vec<i32>` would be represented as `(rigid-ty Vec ((rigid-ty i32 ())))`.
+  (RigidTy ::= (rigid-ty RigidName Parameters))
   (RigidName ::=
              AdtId           ; enum/struct/union
              ScalarId        ; Something like i32, u32, etc
@@ -182,44 +182,44 @@
 
 (define-term
   TyUnit
-  (TyRigid (Tuple 0) ())
+  (rigid-ty (Tuple 0) ())
   )
 
 (define-metafunction formality-ty
   scalar-ty : ScalarId -> Ty
 
-  ((scalar-ty ScalarId) (TyRigid ScalarId ()))
+  ((scalar-ty ScalarId) (rigid-ty ScalarId ()))
   )
 
 (define-metafunction formality-ty
   & : Lt Ty -> Ty
 
-  [(& Lt Ty) (TyRigid (Ref ()) (Lt Ty))]
+  [(& Lt Ty) (rigid-ty (Ref ()) (Lt Ty))]
   )
 
 (define-metafunction formality-ty
   &mut : Lt Ty -> Ty
 
-  [(&mut Lt Ty) (TyRigid (Ref (mut)) (Lt Ty))]
+  [(&mut Lt Ty) (rigid-ty (Ref (mut)) (Lt Ty))]
   )
 
 (define-metafunction formality-ty
   box : Ty -> Ty
 
-  [(box Ty) (TyRigid Box (Lt Ty))]
+  [(box Ty) (rigid-ty Box (Lt Ty))]
   )
 
 (define-metafunction formality-ty
   vec : Ty -> Ty
 
-  [(vec Ty) (TyRigid Vec (Lt Ty))]
+  [(vec Ty) (rigid-ty Vec (Lt Ty))]
   )
 
 (define-metafunction formality-ty
   fn : Tys Ty -> Ty
 
   [(fn (Ty_arg ...) Ty_ret)
-   (TyRigid (Fn "Rust" number) (Ty_arg ... Ty_ret))
+   (rigid-ty (Fn "Rust" number) (Ty_arg ... Ty_ret))
    (where/error number ,(length (term (Ty_arg ...))))
    ]
   )

@@ -151,10 +151,10 @@
                          ))
                    ))))
 
-   (where (TyRigid AdtId Parameters) Ty_impl)
+   (where (rigid-ty AdtId Parameters) Ty_impl)
    (where (AdtKind KindedVarIds_adt WhereClauses_adt _) (item-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
-   (where/error Ty_adt (TyRigid AdtId (VarId_adt ...)))
+   (where/error Ty_adt (rigid-ty AdtId (VarId_adt ...)))
    ]
 
   [; Impl of the Drop trait for something that is not an ADT -- always an error.
@@ -192,10 +192,10 @@
                          )
                         )))))
 
-   (where (TyRigid AdtId Parameters) Ty_impl)
+   (where (rigid-ty AdtId Parameters) Ty_impl)
    (where (AdtKind KindedVarIds_adt _ AdtVariants) (item-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
-   (where/error Ty_adt (TyRigid AdtId (VarId_adt ...)))
+   (where/error Ty_adt (rigid-ty AdtId (VarId_adt ...)))
    (where/error ((VariantId ((FieldId Ty_field) ...)) ...) AdtVariants)
    ]
 

@@ -108,9 +108,9 @@
               (implies
                ((VarId_TheTy <= VarId_T)
                 (VarId_TheLt -outlives- VarId_A))
-               ((TyRigid (Ref ()) (VarId_TheLt VarId_TheTy))
+               ((rigid-ty (Ref ()) (VarId_TheLt VarId_TheTy))
                 <=
-                (TyRigid (Ref ()) (VarId_A VarId_T)))))
+                (rigid-ty (Ref ()) (VarId_A VarId_T)))))
              )
 
             (term (ty:prove-scheme
@@ -132,7 +132,7 @@
            ((∀ ((type T)))
             )
            ()
-           ((TyRigid (Fn "" 1) (T TyUnit)) ; fn(T)
+           ((rigid-ty (Fn "" 1) (T TyUnit)) ; fn(T)
             <=
             (∀ ((type T)) (fn (T) TyUnit)) ; forall<T> fn(T)
             ))))

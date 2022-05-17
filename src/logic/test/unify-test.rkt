@@ -26,17 +26,17 @@
 
    ; Equating `E` with `i32` is OK
    (test-equal
-    (term (occurs-check Env_1 E (TyRigid i32 ())))
+    (term (occurs-check Env_1 E (rigid-ty i32 ())))
     (term Env_1))
 
    ; Equating `E` with `Vec<E>` is not possible
    (test-equal
-    (term (occurs-check Env_1 E (TyRigid Vec (E))))
+    (term (occurs-check Env_1 E (rigid-ty Vec (E))))
     (term Error))
 
    ; Equating `E` with `Vec<i32>` is ok
    (test-equal
-    (term (occurs-check Env_1 E (TyRigid Vec ((scalar-ty i32)))))
+    (term (occurs-check Env_1 E (rigid-ty Vec ((scalar-ty i32)))))
     (term Env_1))
 
    ; Equating `E` with `V` is not possible,
@@ -53,7 +53,7 @@
    ; Equating E with `Vec<V>` is not possible,
    ; since V is in U1
    (test-equal
-    (term (occurs-check Env_1 E (TyRigid Vec (Term_V))))
+    (term (occurs-check Env_1 E (rigid-ty Vec (Term_V))))
     (term Error))
 
    ; Equating X (in U1) with E (in U0) moves X to U0
@@ -87,7 +87,7 @@
    ; yields [X => T]
    (redex-let*
     formality-logic
-    ((Env_out (term (unify Env_2 (((TyRigid Vec (Term_X)) (TyRigid Vec (Term_T))))))))
+    ((Env_out (term (unify Env_2 (((rigid-ty Vec (Term_X)) (rigid-ty Vec (Term_T))))))))
     (test-equal (term (env-var-binders Env_out)) (term (env-var-binders Env_2)))
     (test-equal (term (apply-substitution-from-env Env_out Term_X)) (term Term_T))
     )
@@ -108,20 +108,20 @@
    ; Test [Vec<A> = Vec<T>]
    ;
    ; yields error
-   (test-equal (term (unify Env_2 (((TyRigid Vec (Term_A))
-                                    (TyRigid Vec (Term_T))))))
+   (test-equal (term (unify Env_2 (((rigid-ty Vec (Term_A))
+                                    (rigid-ty Vec (Term_T))))))
                (term Error))
 
    ; Test [Vec<A> = Vec<X>, Vec<X> = Vec<T>] results in an error.
-   (test-equal (term (unify Env_2 (((TyRigid Vec (Term_A)) (TyRigid Vec (Term_X)))
-                                   ((TyRigid Vec (Term_X)) (TyRigid Vec (Term_T))))))
+   (test-equal (term (unify Env_2 (((rigid-ty Vec (Term_A)) (rigid-ty Vec (Term_X)))
+                                   ((rigid-ty Vec (Term_X)) (rigid-ty Vec (Term_T))))))
                (term Error))
 
 
    ; Test (i32: Eq) != (i32: PartialEq)
    ;
    ; yields error
-   (test-equal (term (unify Env_2 (((Eq ((TyRigid i32 ()))) (PartialEq ((TyRigid i32 ())))))))
+   (test-equal (term (unify Env_2 (((Eq ((rigid-ty i32 ()))) (PartialEq ((rigid-ty i32 ())))))))
                (term Error))
 
    ; Test [A = X, X = Vec<Y>, Y = i32]
@@ -131,16 +131,16 @@
    (redex-let*
     formality-logic
     ((Env_out (term (unify Env_2 ((Term_A Term_X)
-                                  (Term_X (TyRigid Vec (Term_Y)))
-                                  (Term_Y (TyRigid i32 ()))
+                                  (Term_X (rigid-ty Vec (Term_Y)))
+                                  (Term_Y (rigid-ty i32 ()))
                                   )))))
     (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Term_A)))
     (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Term_X)))
     (test-equal (term RootUniverse) (term (universe-of-var-in-env Env_out Term_Y)))
     (test-equal (term (apply-substitution-from-env Env_out (Term_A Term_X Term_Y)))
-                (term ((TyRigid Vec ((TyRigid i32 ())))
-                       (TyRigid Vec ((TyRigid i32 ())))
-                       (TyRigid i32 ())))))
+                (term ((rigid-ty Vec ((rigid-ty i32 ())))
+                       (rigid-ty Vec ((rigid-ty i32 ())))
+                       (rigid-ty i32 ())))))
 
    (; Test that the substitution is applied to hypotheses in the environment, too
     redex-let*

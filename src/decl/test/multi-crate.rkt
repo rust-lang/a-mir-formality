@@ -33,7 +33,7 @@
                   formality-decl
                   ((TraitDecl_WithDebug (term (WithDebug (trait ((type Self) (type T)) ((is-implemented (Debug (T)))) ()))))
                    (AdtDecl_Foo (term (Foo (struct ((type T)) ((is-implemented (Debug (T)))) ((Foo ()))))))
-                   (TraitImplDecl (term (impl ((type T)) (WithDebug ((TyRigid Foo (T)) T)) () ())))
+                   (TraitImplDecl (term (impl ((type T)) (WithDebug ((rigid-ty Foo (T)) T)) () ())))
                    )
                   (term (CrateB (crate (TraitDecl_WithDebug AdtDecl_Foo TraitImplDecl))))))
 
@@ -64,7 +64,7 @@
     formality-decl
     ;; Crate B can prove `∀<T> { If (well-formed(Foo<T>)) { is-implemented(T: Debug) } }`
     ((Goal_B_ImpliedBound (term (∀ ((type T))
-                                   (implies ((well-formed (type (TyRigid Foo (T)))))
+                                   (implies ((well-formed (type (rigid-ty Foo (T)))))
                                             (is-implemented (Debug (T))))))))
     (traced '()
             (decl:test-can-prove Env_B Goal_B_ImpliedBound)))
@@ -73,7 +73,7 @@
     formality-decl
     ;; Crate C cannot prove `∀<T> { If (well-formed(Foo<T>) { is-implemented(Foo<T>: Debug) } }`
     ((Goal_C_ImpliedBound (term (∀ ((type T))
-                                   (implies ((well-formed (type (TyRigid Foo (T))))
+                                   (implies ((well-formed (type (rigid-ty Foo (T))))
                                              (well-formed (type T)))
                                             (is-implemented (Debug (T))))))))
 
@@ -84,9 +84,9 @@
     formality-decl
     ;; but it CAN prove `∀<T> { If (well-formed(Foo<T>, T)) { is-implemented(Foo<T>: WithDebug<T>) } }`
     ((Goal_C_UseImpl (term (∀ ((type T))
-                              (implies ((well-formed (type (TyRigid Foo (T))))
+                              (implies ((well-formed (type (rigid-ty Foo (T))))
                                         (well-formed (type T)))
-                                       (is-implemented (WithDebug ((TyRigid Foo (T)) T))))))))
+                                       (is-implemented (WithDebug ((rigid-ty Foo (T)) T))))))))
 
     ; ...actually, it can't, because it can't prove `T: Debug` right now. Does that make sense?
     (traced '()
@@ -96,9 +96,9 @@
     formality-decl
     ;; but it CAN prove `∀<T> { If (well-formed(Foo<T>, T), is-implemented(T: Debug)) { is-implemented(Foo<T>: WithDebug<T>) } }`
     ((Goal_C_UseImplDebug (term (∀ ((type T))
-                                   (implies ((well-formed (type (TyRigid Foo (T))))
+                                   (implies ((well-formed (type (rigid-ty Foo (T))))
                                              (is-implemented (Debug (T))))
-                                            (is-implemented (WithDebug ((TyRigid Foo (T)) T))))))))
+                                            (is-implemented (WithDebug ((rigid-ty Foo (T)) T))))))))
 
     (traced '()
             (decl:test-can-prove Env_C Goal_C_UseImplDebug)))

@@ -15,7 +15,7 @@
   [; Handle universal binder instantiation.
    ;
    ; In this case, we want to replace e.g. `for<T> Vec<T>` with
-   ; `Vec<T1<>>` for some fresh name `T1` -- i.e., `(TyRigid Vec (TyRigid T1 ()))`.
+   ; `Vec<T1<>>` for some fresh name `T1` -- i.e., `(rigid-ty Vec (rigid-ty T1 ()))`.
    (instantiate-quantified Env_0 (∀ KindedVarIds Term_0))
    (Env_2 Term_1 (VarId_new ...))
 
@@ -36,7 +36,7 @@
   [; Handle existential binder instantiation.
    ;
    ; In this case, we want to replace e.g. `exists<T> Vec<T>` with
-   ; `Vec<T1>` for some fresh name `T1` -- i.e., `(TyRigid Vec (T1))`.
+   ; `Vec<T1>` for some fresh name `T1` -- i.e., `(rigid-ty Vec (T1))`.
    (instantiate-quantified Env_0 (∃ KindedVarIds Term_0))
    (Env_1 Term_1 (VarId_new ...))
 

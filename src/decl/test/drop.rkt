@@ -50,7 +50,7 @@
      TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; impl rust:Drop for Foo<i32> { } //~ ERROR
-     TraitImplDecl (term (impl () (rust:Drop ((TyRigid Foo ((scalar-ty i32))))) () ())))
+     TraitImplDecl (term (impl () (rust:Drop ((rigid-ty Foo ((scalar-ty i32))))) () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo
@@ -84,7 +84,7 @@
      TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; impl<U> rust:Drop for Foo<U> where U: Debug { } //~ ERROR
-     TraitImplDecl (term (impl ((type U)) (rust:Drop ((TyRigid Foo (U)))) ((is-implemented (Debug (U)))) ())))
+     TraitImplDecl (term (impl ((type U)) (rust:Drop ((rigid-ty Foo (U)))) ((is-implemented (Debug (U)))) ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo
@@ -119,7 +119,7 @@
      TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; impl<U> rust:Drop for Foo<U> { }
-     TraitImplDecl (term (impl ((type U)) (rust:Drop ((TyRigid Foo (U)))) () ())))
+     TraitImplDecl (term (impl ((type U)) (rust:Drop ((rigid-ty Foo (U)))) () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo
@@ -161,7 +161,7 @@
 
     (; impl<U> rust:Drop for Foo<U> where T: Ord + Eq { }
      TraitImplDecl (term (impl ((type U))
-                               (rust:Drop ((TyRigid Foo (U))))
+                               (rust:Drop ((rigid-ty Foo (U))))
                                ((is-implemented (Ord (U)))
                                 (is-implemented (Eq (U)))
                                 )

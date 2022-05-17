@@ -301,7 +301,7 @@
 
   [(appears-free VarId Term)
    ,(not (alpha-equivalent? formality-logic (term Term) (term Term_1)))
-   (where/error Term_1 (substitute Term VarId (TyRigid VarId ())))
+   (where/error Term_1 (substitute Term VarId (rigid-ty VarId ())))
    ]
   )
 
@@ -371,7 +371,7 @@
 (define-metafunction formality-logic
   ;; Returns the set of universally quantified variables from
   ;; within the term -- this excludes global constants like
-  ;; adt names. So e.g. if you have `(TyRigid Vec (X))`,
+  ;; adt names. So e.g. if you have `(rigid-ty Vec (X))`,
   ;; this would return `(X)` (presuming `X` was forall'd).
   placeholder-variables : Env Term -> (VarId ...)
 

@@ -37,16 +37,16 @@
               ((lifetime VarId_B) (lifetime VarId_A))
               (implies
                ((VarId_A -outlives- VarId_B))
-               ((TyRigid (Ref ()) (VarId_A VarId_T))
+               ((rigid-ty (Ref ()) (VarId_A VarId_T))
                 -outlives-
-                (TyRigid (Ref ()) (VarId_B VarId_T))))))
+                (rigid-ty (Ref ()) (VarId_B VarId_T))))))
 
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T)))
                     (∃ ((lifetime A) (lifetime B))))
                    ()
-                   ((TyRigid (Ref ()) (A T)) -outlives- (TyRigid (Ref ()) (B T)))
+                   ((rigid-ty (Ref ()) (A T)) -outlives- (rigid-ty (Ref ()) (B T)))
                    ))
             )
            )
@@ -63,10 +63,10 @@
                ()
                ((∀
                  ((lifetime A))
-                 (TyRigid
+                 (rigid-ty
                   (Fn "" 1)
-                  ((TyRigid (Ref ()) (A (TyRigid u32 ())))
-                   (TyRigid (Tuple 0) ()))))
+                  ((rigid-ty (Ref ()) (A (rigid-ty u32 ())))
+                   (rigid-ty (Tuple 0) ()))))
                 -outlives-
                 static))))
 
@@ -74,7 +74,7 @@
                    Env
                    ()
                    ()
-                   ((∀ ((lifetime A)) (TyRigid (Fn "" 1) ((TyRigid (Ref ()) (A (scalar-ty u32))) TyUnit)))
+                   ((∀ ((lifetime A)) (rigid-ty (Fn "" 1) ((rigid-ty (Ref ()) (A (scalar-ty u32))) TyUnit)))
                     -outlives-
                     static)
                    ))

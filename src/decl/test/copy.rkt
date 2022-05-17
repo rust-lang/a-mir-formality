@@ -56,12 +56,12 @@
      AdtDecl_Bar (term (Bar (struct
                               () ; no generic parameters
                               () ; no where clauses
-                              ((Bar ((f (TyRigid Foo ()))
+                              ((Bar ((f (rigid-ty Foo ()))
                                      ))) ; the 1 variant (named `Foo`)
                               ))))
 
     (; impl rust:Copy for Bar { }
-     TraitImplDecl (term (impl () (rust:Copy ((TyRigid Bar ()))) () ())))
+     TraitImplDecl (term (impl () (rust:Copy ((rigid-ty Bar ()))) () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (TraitDecl_Copy
@@ -84,7 +84,7 @@
    (redex-let*
     formality-decl
     [(; impl rust:Copy for Foo { }
-      TraitImplDecl_Foo (term (impl () (rust:Copy ((TyRigid Foo ()))) () ())))
+      TraitImplDecl_Foo (term (impl () (rust:Copy ((rigid-ty Foo ()))) () ())))
 
      (; the crate has the struct, the trait, and the impl
       CrateDecl_Pass (term (TheCrate (crate (TraitDecl_Copy

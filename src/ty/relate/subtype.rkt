@@ -35,26 +35,26 @@
    ]
 
   [; X ?= R<...> -- Inequality between a variable and a rigid type
-   (compare/one/substituted Env (VarId SubtypeOp (TyRigid RigidName (Parameter ...))))
-   (relate-var-to-rigid Env (VarId SubtypeOp (TyRigid RigidName (Parameter ...))))
+   (compare/one/substituted Env (VarId SubtypeOp (rigid-ty RigidName (Parameter ...))))
+   (relate-var-to-rigid Env (VarId SubtypeOp (rigid-ty RigidName (Parameter ...))))
    (where #t (env-contains-existential-var Env VarId))
    ]
 
   [; R<...> ?= X -- Inequality between a variable and a rigid type
-   (compare/one/substituted Env ((TyRigid RigidName (Parameter ...)) SubtypeOp VarId))
-   (relate-var-to-rigid Env (VarId (invert-inequality-op SubtypeOp) (TyRigid RigidName (Parameter ...))))
+   (compare/one/substituted Env ((rigid-ty RigidName (Parameter ...)) SubtypeOp VarId))
+   (relate-var-to-rigid Env (VarId (invert-inequality-op SubtypeOp) (rigid-ty RigidName (Parameter ...))))
    (where #t (env-contains-existential-var Env VarId))
    ]
 
   [; R<...> ?= X -- Inequality between a variable and a rigid type
-   (compare/one/substituted Env ((TyRigid RigidName (Parameter ...)) SubtypeOp VarId))
-   (relate-var-to-rigid Env (VarId (invert-inequality-op SubtypeOp) (TyRigid RigidName (Parameter ...))))
+   (compare/one/substituted Env ((rigid-ty RigidName (Parameter ...)) SubtypeOp VarId))
+   (relate-var-to-rigid Env (VarId (invert-inequality-op SubtypeOp) (rigid-ty RigidName (Parameter ...))))
    (where #t (env-contains-existential-var Env VarId))
    ]
 
   [; R<...> ?= R<...> -- Relating two rigid types with the same name: relate their parameters according to the declared variance.
-   (compare/one/substituted Env ((TyRigid RigidName (Parameter_1 ..._1)) SubtypeOp (TyRigid RigidName (Parameter_2 ..._1))))
-   (relate-rigid-to-rigid Env ((TyRigid RigidName (Parameter_1 ...)) SubtypeOp (TyRigid RigidName (Parameter_2 ...))))
+   (compare/one/substituted Env ((rigid-ty RigidName (Parameter_1 ..._1)) SubtypeOp (rigid-ty RigidName (Parameter_2 ..._1))))
+   (relate-rigid-to-rigid Env ((rigid-ty RigidName (Parameter_1 ...)) SubtypeOp (rigid-ty RigidName (Parameter_2 ...))))
    ]
 
   [; `?X <= T` where occurs, universes ok:

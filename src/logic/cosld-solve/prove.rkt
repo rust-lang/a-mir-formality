@@ -216,7 +216,7 @@
      (Env_2 Term_X (VarId_2)) (term (instantiate-quantified Env_1 (∃ ((type X)) X))))
     (; Y, Z are in U1
      (Env_3 (Term_Y Term_Z) VarIds_3) (term (instantiate-quantified Env_2 (∃ ((type Y) (type Z)) (Y Z)))))
-    ((Env_4 ()) (term (relate-parameters Env_3 ((TyRigid Vec (Term_A)) == (TyRigid Vec (Term_X))))))
+    ((Env_4 ()) (term (relate-parameters Env_3 ((rigid-ty Vec (Term_A)) == (rigid-ty Vec (Term_X))))))
     (Env_5 (term (reset Env_2 VarIds_3 Env_4)))
     )
 
@@ -236,14 +236,14 @@
             (test-equal
              (judgment-holds (prove-top-level-goal-substitution
                               Env
-                              (All ((T == (TyRigid Vec (U)))
-                                    (U == (TyRigid Vec (V)))
-                                    (V == (TyRigid i32 ()))))
+                              (All ((T == (rigid-ty Vec (U)))
+                                    (U == (rigid-ty Vec (V)))
+                                    (V == (rigid-ty i32 ()))))
                               Substitution_out)
                              Substitution_out)
-             (term (((V (TyRigid i32 ()))
-                     (U (TyRigid Vec ((TyRigid i32 ()))))
-                     (T (TyRigid Vec ((TyRigid Vec ((TyRigid i32 ()))))))
+             (term (((V (rigid-ty i32 ()))
+                     (U (rigid-ty Vec ((rigid-ty i32 ()))))
+                     (T (rigid-ty Vec ((rigid-ty Vec ((rigid-ty i32 ()))))))
                      )))))
     )
 
@@ -278,7 +278,7 @@
                                                  (Invariant_PartialEq-if-Eq)
                                                  ))))
 
-    (test-cannot-prove Env (is-implemented (PartialEq ((TyRigid u32 ())))))
+    (test-cannot-prove Env (is-implemented (PartialEq ((rigid-ty u32 ())))))
 
     (test-can-prove Env
                     (∀ ((type T)) (implies ((is-implemented (Eq (T))))

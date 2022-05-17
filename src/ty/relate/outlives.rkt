@@ -115,13 +115,13 @@
    ; but I didn't feel like writing up that logic just now, and the rule below is not wrong,
    ; it just produces more answers than are necessary. (So, alternatively, we could also
    ; work on the "answer subsumption" logic.)
-   (outlives/one/substituted/reduce Env ((TyRigid (Ref _) (Lt _)) -outlives- Parameter))
+   (outlives/one/substituted/reduce Env ((rigid-ty (Ref _) (Lt _)) -outlives- Parameter))
    (Env ((Lt -outlives- Parameter)))
    ]
 
   [; R<Pr_0...Pr_n> : P1 if
    ;     ∀i (Pr_i : P1)
-   (outlives/one/substituted/reduce Env ((TyRigid RigidName (Parameter ...)) -outlives- Parameter_r))
+   (outlives/one/substituted/reduce Env ((rigid-ty RigidName (Parameter ...)) -outlives- Parameter_r))
    (Env ((Parameter -outlives- Parameter_r) ...))
    ]
 
@@ -137,13 +137,13 @@
    ; but I didn't feel like writing up that logic just now, and the rule below is not wrong,
    ; it just produces more answers than are necessary. (So, alternatively, we could also
    ; work on the "answer subsumption" logic.)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (TyRigid (Ref _) (Lt _))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (rigid-ty (Ref _) (Lt _))))
    (Env ((Parameter -outlives- Lt)))
    ]
 
   [; P : R<Pr_0...Pr_n> if
    ;     ∃i (P0 : Pr_i)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (TyRigid RigidName (Parameter_r ...))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (rigid-ty RigidName (Parameter_r ...))))
    (Env ((Any ((Parameter -outlives- Parameter_r) ...))))
    ]
 

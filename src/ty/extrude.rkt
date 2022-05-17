@@ -146,8 +146,8 @@
 
   ;; structural recursion
 
-  [(extrude-term Env VarIdPairs Universe InequalityOp (TyRigid RigidName Parameters))
-   (Env_out (TyRigid RigidName Parameters_out) Goals_out)
+  [(extrude-term Env VarIdPairs Universe InequalityOp (rigid-ty RigidName Parameters))
+   (Env_out (rigid-ty RigidName Parameters_out) Goals_out)
 
    (where/error (Env_out Parameters_out Goals_out) (extrude-terms Env VarIdPairs Universe InequalityOp Parameters))
    ]

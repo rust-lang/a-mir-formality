@@ -64,7 +64,7 @@
 
    (redex-let*
     formality-decl
-    [(Ty_Foo (term (TyRigid Foo ())))]
+    [(Ty_Foo (term (rigid-ty Foo ())))]
 
     (; But `Foo: Partial` does not hold in B.
      traced '()
