@@ -74,7 +74,7 @@
                    Env
                    ()
                    ()
-                   ((∀ ((lifetime A)) (rigid-ty (fn-ptr "" 1) ((rigid-ty (ref ()) (A (scalar-ty u32))) TyUnit)))
+                   ((∀ ((lifetime A)) (rigid-ty (fn-ptr "" 1) ((rigid-ty (ref ()) (A (scalar-ty u32))) unit-ty)))
                     -outlives-
                     static)
                    ))
