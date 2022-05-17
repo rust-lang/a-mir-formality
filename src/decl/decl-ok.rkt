@@ -47,7 +47,7 @@
    (where/error ((VariantId ((FieldId Ty) ...)) ...) AdtVariants)
    (where/error Goal_wf (∀ KindedVarIds
                            (implies
-                            ((well-formed KindedVarId) ... WhereClause ...)
+                            ((well-formed KindedVarId) ... (where-clause->hypothesis WhereClause) ...)
                             (&& ((well-formed (type Ty)) ... ...)))))
    ]
 
@@ -58,7 +58,7 @@
    ;; we require that all the trait-item WF goals are met.
    (crate-item-ok-goal _ (TraitId (trait KindedVarIds (WhereClause ...) (TraitItem ...))))
    (∀ KindedVarIds
-      (implies ((well-formed KindedVarId) ... WhereClause ...)
+      (implies ((well-formed KindedVarId) ... (where-clause->hypothesis WhereClause) ...)
                (&& (Goal_trait-item ...))))
 
    (where/error (Goal_trait-item ...) ((trait-item-ok-goal TraitItem) ...))
@@ -79,7 +79,7 @@
         ; ...all inputs are WF...
         (well-formed (ParameterKind_trait Parameter_trait)) ...
         ; ...where-clauses are satisfied...
-        WhereClause_impl ...)
+        (where-clause->hypothesis WhereClause_impl) ...)
        (; ... then the trait must be implemented
         is-implemented (TraitId (Parameter_trait ...)))))
 
@@ -99,7 +99,7 @@
        (; assuming all generic parameters are WF...
         (well-formed KindedVarId) ...
         ; ...where-clauses are satisfied...
-        WhereClause ...)
+        (where-clause->hypothesis WhereClause) ...)
        (; ... then the trait must be implemented
         well-formed (type Ty))))
 

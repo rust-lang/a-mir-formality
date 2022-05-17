@@ -28,8 +28,8 @@
    (∀ KindedVarIds (where-clause->goal WhereClause))
    ]
 
-  [(where-clause->goal (is-implemented TraitRef))
-   (is-implemented TraitRef)
+  [(where-clause->goal (Ty_self : TraitId (Parameter ...)))
+   (is-implemented (TraitId (Ty_self Parameter ...)))
    ]
 
   [(where-clause->goal (normalizes-to AliasTy Ty))
