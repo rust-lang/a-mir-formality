@@ -39,8 +39,8 @@
 
   [(generics-for Env AdtId) (env-adt-generics Env AdtId)]
   [(generics-for Env ScalarId) (() ())]
-  [(generics-for Env (Ref ())) (((TheLt (lifetime +)) (TheTy (type +))) ((Outlives (TheTy : TheLt))))]
-  [(generics-for Env (Ref (mut))) (((TheLt (lifetime +)) (TheTy (type =))) ((Outlives (TheTy : TheLt))))]
+  [(generics-for Env (Ref ())) (((TheLt (lifetime +)) (TheTy (type +))) ((outlives (TheTy : TheLt))))]
+  [(generics-for Env (Ref (mut))) (((TheLt (lifetime +)) (TheTy (type =))) ((outlives (TheTy : TheLt))))]
 
   [; Tuples are covariant in their elements P1...Pn
    (generics-for Env (Tuple number_arity))

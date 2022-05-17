@@ -295,7 +295,7 @@
                    ()
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
                      ∀ ((lifetime A) (lifetime B))
-                       (implies ((Outlives (B : A))) ; implied bound!
+                       (implies ((outlives (B : A))) ; implied bound!
                                 (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
                     <=
                     (; fn(&'static &'x (), &'x T) -> &'static T
@@ -317,7 +317,7 @@
                    ()
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
                      ∀ ((lifetime A) (lifetime B))
-                       (implies ((Outlives (B : A))) ; implied bound!
+                       (implies ((outlives (B : A))) ; implied bound!
                                 (fn ((& A (& B TyUnit)) (& B T)) (& A T))))
                     <=
                     (; fn(&'x &'static (), &'static T) -> &'x T
