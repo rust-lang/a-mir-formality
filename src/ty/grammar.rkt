@@ -104,7 +104,7 @@
              )
 
   ;; Predicate types correspond to the builtin logical connectives.
-  (PredicateTy ::= ∀Ty ExistsTy ImplicationTy EnsuresTy)
+  (PredicateTy ::= ∀Ty ∃Ty ImplicationTy EnsuresTy)
 
   ;; ∀ and implication types: In Rust, these are always paired with `dyn` and `fn` types,
   ;; but in our calculus we separate and generalize them.
@@ -115,7 +115,7 @@
   (ImplicationTy ::= (Implies WhereClauses Ty))
 
   ;; ∃ and ensures types: These are used in Rust to model
-  (ExistsTy ::= (∃ KindedVarIds Ty))
+  (∃Ty ::= (∃ KindedVarIds Ty))
   (EnsuresTy ::= (Ensures Ty WhereClauses))
 
   ;; Treat ABIs as opaque strings (for now, at least)
