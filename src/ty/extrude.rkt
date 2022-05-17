@@ -172,8 +172,8 @@
    (where/error (Env_2 WhereClauses_out Goals_wc) (extrude-terms Env VarIdPairs Universe InequalityOp WhereClauses))
    ]
 
-  [(extrude-term Env VarIdPairs Universe InequalityOp (Implemented (TraitId Parameters)))
-   (Env_out (Implemented (TraitId Parameters_out)) Goals_out)
+  [(extrude-term Env VarIdPairs Universe InequalityOp (is-implemented (TraitId Parameters)))
+   (Env_out (is-implemented (TraitId Parameters_out)) Goals_out)
 
    (where/error (Env_out Parameters_out Goals_out) (extrude-terms Env VarIdPairs Universe InequalityOp Parameters))
    ]

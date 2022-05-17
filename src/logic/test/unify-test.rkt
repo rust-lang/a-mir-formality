@@ -146,7 +146,7 @@
     redex-let*
     formality-logic
     ((; assume that `X: Debug` (note that `X` is an existential variable)
-      Env_3 (term (env-with-hypotheses Env_2 ((Implemented (Debug (Term_X)))))))
+      Env_3 (term (env-with-hypotheses Env_2 ((is-implemented (Debug (Term_X)))))))
      (; constrain `X = i32` to yield new substitution
       Env_out (term (unify Env_3 ((Term_X (scalar-ty i32)))))))
 
@@ -154,10 +154,10 @@
     (test-equal (term (apply-substitution-from-env Env_out Term_X)) (term (scalar-ty i32)))
 
     ; starts out as `X: Debug`
-    (test-equal (term (env-hypotheses Env_3)) (term ((Implemented (Debug (Term_X))))))
+    (test-equal (term (env-hypotheses Env_3)) (term ((is-implemented (Debug (Term_X))))))
 
     ; changes to `i32: Debug` now that we know `X = i32`
-    (test-equal (term (env-hypotheses Env_out)) (term ((Implemented (Debug ((scalar-ty i32)))))))
+    (test-equal (term (env-hypotheses Env_out)) (term ((is-implemented (Debug ((scalar-ty i32)))))))
     )
    )
   )

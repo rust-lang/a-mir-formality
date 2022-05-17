@@ -22,6 +22,6 @@
    (traced '()
            (decl:test-can-prove
             Env
-            (Implemented (Debug ((scalar-ty i32))))))
+            (is-implemented (Debug ((scalar-ty i32))))))
    )
   )

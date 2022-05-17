@@ -35,7 +35,7 @@
   ;; Overridden from formality-logic.
   (Predicate ::=
              ; `TraitRef` is (fully) implemented.
-             (Implemented TraitRef)
+             (is-implemented TraitRef)
              ; an impl exists for `TraitRef`; this *by itself* doesn't mean
              ; that `TraitRef` is implemented, as the supertraits may not
              ; have impls.
@@ -53,7 +53,7 @@
   ;; equality, but the parameters have to be equated as types.
   (Predicate/Deboned ::= (Predicate/Skeleton Parameters))
   (Predicate/Skeleton ::=
-                      (Implemented TraitId)
+                      (is-implemented TraitId)
                       (has-impl TraitId)
                       (well-formed ParameterKind)
                       (normalizes-to AliasName)
@@ -65,7 +65,7 @@
   (WhereClauses ::= (WhereClause ...))
   (WhereClause ::=
                (∀ KindedVarIds WhereClause)
-               (Implemented TraitRef)
+               (is-implemented TraitRef)
                (Outlives (Parameter : Lt))
                (normalizes-to AliasTy Ty)
                )

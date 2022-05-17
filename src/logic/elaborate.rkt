@@ -161,36 +161,36 @@
   (redex-let*
    formality-logic
    [(Env (term (env-with-clauses-and-invariants ()
-                                                ((∀ ((type T)) (implies ((Implemented (Eq (T)))) (Implemented (PartialEq (T)))))
-                                                 (∀ ((type T)) (implies ((Implemented (Ord (T)))) (Implemented (PartialOrd (T)))))
-                                                 (∀ ((type T)) (implies ((Implemented (Ord (T)))) (Implemented (Eq (T)))))
-                                                 (∀ ((type T)) (implies ((Implemented (PartialOrd (T)))) (Implemented (PartialEq (T)))))
+                                                ((∀ ((type T)) (implies ((is-implemented (Eq (T)))) (is-implemented (PartialEq (T)))))
+                                                 (∀ ((type T)) (implies ((is-implemented (Ord (T)))) (is-implemented (PartialOrd (T)))))
+                                                 (∀ ((type T)) (implies ((is-implemented (Ord (T)))) (is-implemented (Eq (T)))))
+                                                 (∀ ((type T)) (implies ((is-implemented (PartialOrd (T)))) (is-implemented (PartialEq (T)))))
                                                  ))))
     ]
 
    (traced '()
            (test-equal
-            (term (elaborate-hypothesis-one-step Env (Implemented (Ord ((scalar-ty u32))))))
-            (term ((Implemented (Eq ((scalar-ty u32))))
-                   (Implemented (PartialOrd ((scalar-ty u32))))))))
+            (term (elaborate-hypothesis-one-step Env (is-implemented (Ord ((scalar-ty u32))))))
+            (term ((is-implemented (Eq ((scalar-ty u32))))
+                   (is-implemented (PartialOrd ((scalar-ty u32))))))))
 
    (traced '()
            (test-equal
-            (term (env-hypotheses (elaborate-hypotheses (env-with-hypotheses Env ((Implemented (Ord ((scalar-ty u32)))))))))
-            (term ((Implemented (Ord ((scalar-ty u32))))
-                   (Implemented (Eq ((scalar-ty u32))))
-                   (Implemented (PartialOrd ((scalar-ty u32))))
-                   (Implemented (PartialEq ((scalar-ty u32))))))))
+            (term (env-hypotheses (elaborate-hypotheses (env-with-hypotheses Env ((is-implemented (Ord ((scalar-ty u32)))))))))
+            (term ((is-implemented (Ord ((scalar-ty u32))))
+                   (is-implemented (Eq ((scalar-ty u32))))
+                   (is-implemented (PartialOrd ((scalar-ty u32))))
+                   (is-implemented (PartialEq ((scalar-ty u32))))))))
 
    (traced '()
            (test-alpha-equivalent
             formality-logic
             (term (env-hypotheses (elaborate-hypotheses
                                    (env-with-hypotheses Env
-                                                        ((∀ ((type T)) (Implemented (Ord (T)))))))))
-            (term ((∀ ((type T)) (Implemented (Ord (T))))
-                   (∀ ((type T)) (Implemented (Eq (T))))
-                   (∀ ((type T)) (Implemented (PartialOrd (T))))
-                   (∀ ((type T)) (Implemented (PartialEq (T))))))))
+                                                        ((∀ ((type T)) (is-implemented (Ord (T)))))))))
+            (term ((∀ ((type T)) (is-implemented (Ord (T))))
+                   (∀ ((type T)) (is-implemented (Eq (T))))
+                   (∀ ((type T)) (is-implemented (PartialOrd (T))))
+                   (∀ ((type T)) (is-implemented (PartialEq (T))))))))
    )
   )

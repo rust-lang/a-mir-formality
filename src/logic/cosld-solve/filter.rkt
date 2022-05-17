@@ -60,12 +60,12 @@
   (redex-let*
    formality-logic
 
-   ((Clauses_test (term ((∀ ((type T)) (Implemented (Debug (T))))))))
+   ((Clauses_test (term ((∀ ((type T)) (is-implemented (Debug (T))))))))
 
    (test-equal (term (filter-clauses
                       EmptyEnv
                       Clauses_test
-                      (Implemented (Debug ((scalar-ty i32))))))
+                      (is-implemented (Debug ((scalar-ty i32))))))
                (term Clauses_test))
 
    ; The "filtering" function we use at the logic level is ... not very precise.
@@ -74,7 +74,7 @@
    (test-equal (term (filter-clauses
                       EmptyEnv
                       Clauses_test
-                      (Implemented (WithDebug ((scalar-ty i32))))))
+                      (is-implemented (WithDebug ((scalar-ty i32))))))
                (term Clauses_test))
 
    (test-equal (term (filter-clauses

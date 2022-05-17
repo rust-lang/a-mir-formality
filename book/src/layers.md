@@ -11,7 +11,7 @@ Defines Rust types and functions for equating/relating them.
 The representation is meant to cover all Rust types,
 but is optimized for extracting their "essential properties".
 
-Defines core logical predicates (`Implemented(T: Trait)`, etc) and solvers.
+Defines core logical predicates (`is-implemented(T: Trait)`, etc) and solvers.
 This layer does not define what they *mean* -- i.e., the conditions in which they are true.
 
 ## The declarations layer (`formality-decl`)
@@ -23,8 +23,8 @@ This includes crates, structs, traits, impls, but excludes function bodies.
 
 Semantics are defined by converting Rust items into predicates.
 For example, `impl<T: Eq> Eq for Vec<T>` becomes a "program clause" (axiom)
-like `forall<T> { Implemented(T: Eq) => has-impl(Vec<T>: Eq) }`.
-(The distinction between `has-impl` and `Implemented` is covered below.)
+like `forall<T> { is-implemented(T: Eq) => has-impl(Vec<T>: Eq) }`.
+(The distinction between `has-impl` and `is-implemented` is covered below.)
 
 This layer also defines the well-formedness checks for those items.
 For example, `struct Foo { f1: T1 }` is well-formed if `T` is well-formed.

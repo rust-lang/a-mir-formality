@@ -49,7 +49,7 @@ would be represented as
 (Foo (trait ; KindedVarIds -- the generics:
             ((type Self) (type T))
             ; where clauses, including supertraits:
-            ((Implemented (Ord (T))) (Implemented (Bar (Self))))
+            ((is-implemented (Ord (T))) (is-implemented (Bar (Self))))
             ; trait items, empty list:
             ()
             ))
@@ -125,7 +125,7 @@ To begin with, here is the comment explaining what we aim to do:
    ;;         (has-impl (Foo (i32 'a u32))) :-
    ;;             (well-formed (type i32))
    ;;             (well-formed (type i32))
-   ;;             (Implemented (Ord T)))
+   ;;             (is-implemented (Ord T)))
 ```
 
 The actual code for this
@@ -196,8 +196,8 @@ Here is the source, I'll leave puzzling it out as an exercise to the reader:
   ;; Convert a where clause `W` into a goal that proves `W` is true.
   where-clause->goal : WhereClause -> Goal
 
-  ((where-clause->goal (Implemented TraitRef))
-   (Implemented TraitRef)
+  ((where-clause->goal (is-implemented TraitRef))
+   (is-implemented TraitRef)
    )
 
   ((where-clause->goal (∀ KindedVarIds WhereClause))
@@ -237,7 +237,7 @@ Here is the rule for impls:
    (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    (∀ KindedVarIds_impl
            (implies ((well-formed KindedVarId_impl) ... WhereClause_impl ...)
-                    (All ((Implemented TraitRef)))))
+                    (All ((is-implemented TraitRef)))))
 
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)

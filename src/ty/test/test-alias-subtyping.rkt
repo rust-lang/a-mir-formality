@@ -23,7 +23,7 @@
                 ((; Just ignore well-formed rules, not interesting for testing subtyping
                   ∀ ((type T)) (well-formed (type T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
-                  ∀ ((type T)) (Implemented (AlwaysImpl (T))))
+                  ∀ ((type T)) (is-implemented (AlwaysImpl (T))))
                  (; normalizes-to `Item<Vec<T>>` to `T`
                   ∀ ((type T)) (normalizes-to (item (vec T)) T))
                  )

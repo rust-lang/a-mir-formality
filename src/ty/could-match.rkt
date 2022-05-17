@@ -25,17 +25,17 @@
 
 (module+ test
   (test-equal (term (ty:predicates-could-match
-                     (Implemented (Debug (T)))
-                     (Implemented (Debug ((scalar-ty i32))))))
+                     (is-implemented (Debug (T)))
+                     (is-implemented (Debug ((scalar-ty i32))))))
               (term #t))
 
   (test-equal (term (ty:predicates-could-match
-                     (Implemented (Debug (T)))
-                     (Implemented (WithDebug ((scalar-ty i32))))))
+                     (is-implemented (Debug (T)))
+                     (is-implemented (WithDebug ((scalar-ty i32))))))
               (term #f))
 
   (test-equal (term (ty:predicates-could-match
-                     (Implemented (Debug (T)))
+                     (is-implemented (Debug (T)))
                      (has-impl (WithDebug ((scalar-ty i32))))))
               (term #f))
   )

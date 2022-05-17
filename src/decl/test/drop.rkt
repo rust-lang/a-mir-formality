@@ -84,7 +84,7 @@
      TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; impl<U> rust:Drop for Foo<U> where U: Debug { } //~ ERROR
-     TraitImplDecl (term (impl ((type U)) (rust:Drop ((TyRigid Foo (U)))) ((Implemented (Debug (U)))) ())))
+     TraitImplDecl (term (impl ((type U)) (rust:Drop ((TyRigid Foo (U)))) ((is-implemented (Debug (U)))) ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo
@@ -146,7 +146,7 @@
    ;; the predicates on the struct.
 
    ((; struct Foo<T> where T: Ord { }
-     AdtDecl_Foo (term (Foo (struct ((type T)) ((Implemented (Ord (T))))
+     AdtDecl_Foo (term (Foo (struct ((type T)) ((is-implemented (Ord (T))))
                               ((Foo ())) ; the 1 variant (named `Foo`)
                               ))))
 
@@ -157,13 +157,13 @@
      TraitDecl_Eq (term (Eq (trait ((type Self)) () ()))))
 
     (; trait Ord: Eq { }
-     TraitDecl_Ord (term (Ord (trait ((type Self)) ((Implemented (Eq (Self)))) ()))))
+     TraitDecl_Ord (term (Ord (trait ((type Self)) ((is-implemented (Eq (Self)))) ()))))
 
     (; impl<U> rust:Drop for Foo<U> where T: Ord + Eq { }
      TraitImplDecl (term (impl ((type U))
                                (rust:Drop ((TyRigid Foo (U))))
-                               ((Implemented (Ord (U)))
-                                (Implemented (Eq (U)))
+                               ((is-implemented (Ord (U)))
+                                (is-implemented (Eq (U)))
                                 )
                                ())))
 

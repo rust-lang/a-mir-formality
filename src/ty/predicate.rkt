@@ -8,8 +8,8 @@
 (define-metafunction formality-ty
   debone-predicate : Predicate -> Predicate/Deboned
 
-  [(debone-predicate (Implemented (TraitId Parameters)))
-   ((Implemented TraitId) Parameters)
+  [(debone-predicate (is-implemented (TraitId Parameters)))
+   ((is-implemented TraitId) Parameters)
    ]
 
   [(debone-predicate (has-impl (TraitId Parameters)))

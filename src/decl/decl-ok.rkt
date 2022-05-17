@@ -38,7 +38,7 @@
    ;;
    ;;     (∀ ((type T))
    ;;         (implies ((well-formed (type T))
-   ;;                   (Implemented (Ord T)))
+   ;;                   (is-implemented (Ord T)))
    ;;           (well-formed (type Vec<T>)) ...))
    (crate-item-ok-goal _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
    Goal_wf
@@ -81,7 +81,7 @@
         ; ...where-clauses are satisfied...
         WhereClause_impl ...)
        (; ... then the trait must be implemented
-        Implemented (TraitId (Parameter_trait ...)))))
+        is-implemented (TraitId (Parameter_trait ...)))))
 
    (where/error (TraitId (trait ((ParameterKind_trait _) ...) _ _)) (trait-decl-with-id CrateDecls TraitId))
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
@@ -135,10 +135,10 @@
    ;
    ; would generate a goal like
    ;
-   ; ∀T. (Implemented (T: Debug)) =>
+   ; ∀T. (is-implemented (T: Debug)) =>
    ;     ∃U. ((Foo<U> = Foo<T>)
-   ;          (Implemented (U: Debug))
-   ;          (Implemented (U: Eq)))
+   ;          (is-implemented (U: Debug))
+   ;          (is-implemented (U: Eq)))
    ;
    ; when this goal is given to the solver, it would be rejected because `T: Eq` is not provable
    ; (we only know that `T: Debug`).
@@ -178,9 +178,9 @@
    ;
    ; would generate a goal like
    ;
-   ; ∀U. (Implemented (U: Debug)) =>
+   ; ∀U. (is-implemented (U: Debug)) =>
    ;     ∃T. ((Foo<U> = Foo<T>) ∧
-   ;          (Implemented (Vec<T>: Copy)))
+   ;          (is-implemented (Vec<T>: Copy)))
    ;
    ; of course, in this case, it is not provable because `Vec<T>: Copy` is not true for any `T`.
    (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Copy (Ty_impl)) (WhereClause_impl ...) ()))
@@ -188,7 +188,7 @@
        (implies ((where-clause->hypothesis WhereClause_impl) ...)
                 (∃ KindedVarIds_adt
                    (All ((Ty_impl == Ty_adt)
-                         (Implemented (rust:Copy (Ty_field))) ... ...
+                         (is-implemented (rust:Copy (Ty_field))) ... ...
                          )
                         )))))
 

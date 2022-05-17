@@ -17,7 +17,7 @@
    formality-decl
 
    ((TraitDecl (term (Debug (trait ((type Self)) () ()))))
-    (AdtDecl_Foo (term (Foo (struct ((type T)) ((Implemented (Debug (T)))) ((Foo ()))))))
+    (AdtDecl_Foo (term (Foo (struct ((type T)) ((is-implemented (Debug (T)))) ((Foo ()))))))
     (ConstDecl_Malformed (term (Malformed (const ((type T)) () (TyRigid Foo (T))))))
     (CrateDecl (term (TheCrate (crate (TraitDecl AdtDecl_Foo ConstDecl_Malformed)))))
     (Env (term (env-for-crate-decl CrateDecl)))

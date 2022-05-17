@@ -15,7 +15,7 @@
                 ((; Just ignore well-formed rules, not interesting for testing subtyping
                   ∀ ((type T)) (well-formed (type T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
-                  ∀ ((type T)) (Implemented (AlwaysImpl (T))))
+                  ∀ ((type T)) (is-implemented (AlwaysImpl (T))))
                  )
                 ()
                 ()
@@ -40,23 +40,23 @@
 
    ; Cannot have an implication on the subtype side that doesn't appear on the supertype side
    (traced '()
-           (ty:test-cannot-prove Env ((∀ ((type T)) (implies ((Implemented (NeverImpl (T)))) T))
+           (ty:test-cannot-prove Env ((∀ ((type T)) (implies ((is-implemented (NeverImpl (T)))) T))
                                       <=
                                       (∀ ((type T)) T)))
            )
 
    ; ...unless we can prove it.
    (traced '()
-           (ty:test-can-prove Env ((∀ ((type T)) (implies ((Implemented (AlwaysImpl (T)))) T))
+           (ty:test-can-prove Env ((∀ ((type T)) (implies ((is-implemented (AlwaysImpl (T)))) T))
                                    <=
                                    (∀ ((type T)) T)))
            )
 
    ; OK if the implication is on both sides.
    (traced '()
-           (ty:test-can-prove Env ((∀ ((type T)) (implies ((Implemented (NeverImpl (T)))) T))
+           (ty:test-can-prove Env ((∀ ((type T)) (implies ((is-implemented (NeverImpl (T)))) T))
                                    <=
-                                   (∀ ((type T)) (implies ((Implemented (NeverImpl (T)))) T))))
+                                   (∀ ((type T)) (implies ((is-implemented (NeverImpl (T)))) T))))
            )
 
    ; OK if the implication is just on supertype side: that means that the consumer will prove it,
@@ -64,7 +64,7 @@
    (traced '()
            (ty:test-can-prove Env ((∀ ((type T)) T)
                                    <=
-                                   (∀ ((type T)) (implies ((Implemented (NeverImpl (T)))) T))))
+                                   (∀ ((type T)) (implies ((is-implemented (NeverImpl (T)))) T))))
            )
 
    (test-match
@@ -146,10 +146,10 @@
                    Env
                    ((∀ ((type T)))
                     )
-                   ((Implemented (Debug (T))))
+                   ((is-implemented (Debug (T))))
                    (T
                     <=
-                    (Ensures T ((Implemented (Debug (T)))))
+                    (Ensures T ((is-implemented (Debug (T)))))
                     )))))
 
    (; Test for ensures: we cannot add ensures for things we cannot prove
@@ -163,7 +163,7 @@
            ()
            (T
             <=
-            (Ensures T ((Implemented (Debug (T)))))
+            (Ensures T ((is-implemented (Debug (T)))))
             ))))
 
 
@@ -176,9 +176,9 @@
            ((∀ ((type T)))
             )
            ()
-           ((Ensures T ((Implemented (Debug (T)))))
+           ((Ensures T ((is-implemented (Debug (T)))))
             <=
-            (Ensures T ((Implemented (Debug (T)))))
+            (Ensures T ((is-implemented (Debug (T)))))
             ))))
 
    (; Test for implication in subtype
@@ -192,7 +192,7 @@
            ((∀ ((type T)))
             )
            ()
-           ((implies ((Implemented (Debug (T)))) T)
+           ((implies ((is-implemented (Debug (T)))) T)
             <=
             T
             ))))
@@ -208,8 +208,8 @@
            Env
            ((∀ ((type T)))
             )
-           ((Implemented (Debug (T))))
-           ((implies ((Implemented (Debug (T)))) T)
+           ((is-implemented (Debug (T))))
+           ((implies ((is-implemented (Debug (T)))) T)
             <=
             T
             ))))
@@ -228,7 +228,7 @@
            ()
            (T
             <=
-            (implies ((Implemented (Debug (T)))) T)
+            (implies ((is-implemented (Debug (T)))) T)
             ))))
 
    (; Test for implication in supertype
@@ -244,7 +244,7 @@
            ()
            (U
             <=
-            (implies ((Implemented (Debug (T)))) T)
+            (implies ((is-implemented (Debug (T)))) T)
             ))))
 
    (; Test for implication on both sides
@@ -256,9 +256,9 @@
            ((∀ ((type T)))
             )
            ()
-           ((implies ((Implemented (Debug (T)))) T)
+           ((implies ((is-implemented (Debug (T)))) T)
             <=
-            (implies ((Implemented (Debug (T)))) T)
+            (implies ((is-implemented (Debug (T)))) T)
             ))))
 
    (; #25860 -- the buggy path we have today, where implied bounds

@@ -43,13 +43,13 @@ Formality is structured into several layers. These layers are meant to also map 
 * **formality-ty:** the "types" layer
     * Defines Rust types and functions for equating/relating them.
         * The representation is meant to cover all Rust types, but is optimized for extracting their "essential properties".
-    * Defines core logical predicates (`Implemented(T: Trait)`, etc) and solvers.
+    * Defines core logical predicates (`is-implemented(T: Trait)`, etc) and solvers.
         * But doesn't define what they *mean* -- i.e., the conditions in which they are true.
 * **formality-decl:** the "Rust declarations" layer
     * Defines Rust "top-level items" and their semantics
         * This includes crates, structs, traits, impls, but excludes function bodies.
     * Semantics are defined by converting Rust items into predicates
-        * e.g., `impl<T: Eq> Eq for Vec<T>` becomes a "program clause" (axiom) like `forall<T> { Implemented(T: Eq) => has-impl(Vec<T: Eq>) }` (the distinction between `has-impl` and `Implemented` is covered below).
+        * e.g., `impl<T: Eq> Eq for Vec<T>` becomes a "program clause" (axiom) like `forall<T> { is-implemented(T: Eq) => has-impl(Vec<T: Eq>) }` (the distinction between `has-impl` and `is-implemented` is covered below).
     * Defines the well-formedness checks for those items
         * e.g., `struct Foo { f1: T1 }` is well-formed if 
 * **formality-mir:** the "type system for MIR" layer
@@ -154,7 +154,7 @@ Formality-ty also defines the core predicates used to define Rust semantics. The
 ```scheme
   (Predicate :=
              ; `TraitRef` is (fully) implemented.
-             (Implemented TraitRef)
+             (is-implemented TraitRef)
              ; an impl exists for `TraitRef`; this *by itself* doesn't mean
              ; that `TraitRef` is implemented, as the supertraits may not
              ; have impls.
@@ -185,7 +185,7 @@ These core predicates are then used to define a richer vocabulary of goals (thin
                                  )
 ```
 
-Importantly, the *types layer* defines a solver that gives semantics to all the "meta" parts of goals and clauses -- e.g., it defines what it means to prove `(All (G1 G2))` (prove both `G1` and `G2`, duh). But it doesn't have any rules for what it means to prove the *core* predicates true -- so it could never prove `(Implemented (Debug ((! T))))`. Those rules all come from the declaration layer and are given to the types layer as part of the "environment".
+Importantly, the *types layer* defines a solver that gives semantics to all the "meta" parts of goals and clauses -- e.g., it defines what it means to prove `(All (G1 G2))` (prove both `G1` and `G2`, duh). But it doesn't have any rules for what it means to prove the *core* predicates true -- so it could never prove `(is-implemented (Debug ((! T))))`. Those rules all come from the declaration layer and are given to the types layer as part of the "environment".
 
 You might be curious about the distinction between goal and clause and why there are so many names for clauses (hypothesis, clause, invariant, etc). Let's talk briefly about that.
 
@@ -269,7 +269,7 @@ Let's look more closely at one of those kinds of items. A trait declaration look
   (WhereClauses := (WhereClause ...))
   (WhereClause :=
                (∀ KindedVarIds WhereClause)
-               (Implemented TraitRef)
+               (is-implemented TraitRef)
                )
 ```
 
@@ -292,7 +292,7 @@ would be represented as
 (Foo (trait ; KindedVarIds -- the generics:
             ((type Self) (type T))
             ; where clauses, including supertraits:
-            ((Implemented (Ord (T))) (Implemented (Bar (Self))))
+            ((is-implemented (Ord (T))) (is-implemented (Bar (Self))))
             ; trait items, empty list:
             ()
             ))
@@ -354,7 +354,7 @@ To see how it works, let's look at the case for an `impl` from that section. To 
    ;;         (has-impl (Foo (i32 'a u32))) :-
    ;;             (well-formed (type i32))
    ;;             (well-formed (type i32))
-   ;;             (Implemented (Ord T)))
+   ;;             (is-implemented (Ord T)))
 ```
 
 The actual code for this ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/decl-to-clause.rkt#L141-L166)) begins by matching the item that we are generating rules for:
@@ -408,8 +408,8 @@ The `where-clause-to-goal` helper is fairly simple. Here is the source, I'll lea
   ;; Convert a where clause `W` into a goal that proves `W` is true.
   where-clause-to-goal : WhereClause -> Goal
 
-  ((where-clause-to-goal (Implemented TraitRef))
-   (Implemented TraitRef)
+  ((where-clause-to-goal (is-implemented TraitRef))
+   (is-implemented TraitRef)
    )
 
   ((where-clause-to-goal (∀ KindedVarIds WhereClause))
@@ -444,7 +444,7 @@ The idea is that the crate is "ok" (i.e., passes the type check) if these goals 
    (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    (∀ KindedVarIds_impl
            (implies ((well-formed KindedVarId_impl) ... WhereClause_impl ...)
-                    (All ((Implemented TraitRef)))))
+                    (All ((is-implemented TraitRef)))))
 
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)
@@ -452,7 +452,7 @@ The idea is that the crate is "ok" (i.e., passes the type check) if these goals 
   )
 ```
 
-In short, an impl is well-formed if the trait is implemented. We'll look at the definition of `Implemented` in more detail in [the next section](#Case-study-Implied-bounds-and-perfect-derive), but for now it suffices to say that a trait is implemented if (a) it has an impl and (b) all of its where-clauses are satisfied. Since we know there is an impl (we're checking it right now!) this is equivalent to saying "all of the trait's where clauses are satisfied".
+In short, an impl is well-formed if the trait is implemented. We'll look at the definition of `is-implemented` in more detail in [the next section](#Case-study-Implied-bounds-and-perfect-derive), but for now it suffices to say that a trait is implemented if (a) it has an impl and (b) all of its where-clauses are satisfied. Since we know there is an impl (we're checking it right now!) this is equivalent to saying "all of the trait's where clauses are satisfied".
 
 ## Case study: Implied bounds and perfect derive
 
@@ -484,30 +484,30 @@ If we're not careful, we can use this impl to show that every type implements `M
 
 The solution to that is based on the scheme that [scalexm](https://github.com/scalexm) invented for Chalk; I've tweaked it somewhat by integrating it a bit more deeply into the "core logic", which simplifies the predicates that we need. I find I like this formulation better, and it allows us to simplify a few other things too.
 
-### Distinguish `has-impl` and `Implemented`
+### Distinguish `has-impl` and `is-implemented`
 
-The first key part of the system is to distinguish *having an impl* (`has-impl`) from *being implemented* (`Implemented`). The former says that the user wrote an impl. The latter says that all the requirements are met to implement the trait, including in particular that all of its where clauses (which includes the supertraits) are satisfied.
+The first key part of the system is to distinguish *having an impl* (`has-impl`) from *being implemented* (`is-implemented`). The former says that the user wrote an impl. The latter says that all the requirements are met to implement the trait, including in particular that all of its where clauses (which includes the supertraits) are satisfied.
 
 Using the code for impls we saw earlier, the `Magic` impl would generate the following clause:
 
 ```scheme
-; forall<T> { Implemented(T: Magic) => has-impl(T: Magic) }
+; forall<T> { is-implemented(T: Magic) => has-impl(T: Magic) }
 (∀ ((type T)) 
-        (implies ((Implemented (Magic (T))))
+        (implies ((is-implemented (Magic (T))))
                  (has-impl (Magic (T)))))
 ```
 
-To actually prove `Implemented(T: Magic)`, This clause has to be combined with the clauses generated by the trait declarations ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/decl-to-clause.rkt#L95-L118)). For the `Copy` trait, which has no where clauses, this clause is very simple. To be implemented, the impl must exist, and the type must be well-formed:
+To actually prove `is-implemented(T: Magic)`, This clause has to be combined with the clauses generated by the trait declarations ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/decl-to-clause.rkt#L95-L118)). For the `Copy` trait, which has no where clauses, this clause is very simple. To be implemented, the impl must exist, and the type must be well-formed:
 
 ```scheme
 ; forall<T> { (
 ;               has-impl(T: Copy), 
 ;               well-formed(T),
-;             ) => Implemented(T: Copy) }
+;             ) => is-implemented(T: Copy) }
 (∀ ((type T))
         (implies ((has-impl (Copy (T)))
                   (well-formed (type (T))))
-                 (Implemented (Copy (T)))))
+                 (is-implemented (Copy (T)))))
 ```
 
 For `Magic`, the rule includes the where clause that `T: Copy`:
@@ -516,13 +516,13 @@ For `Magic`, the rule includes the where clause that `T: Copy`:
 ; forall<T> { (
 ;               has-impl(T: Magic), 
 ;               well-formed(T),
-;               Implemented(T: Copy),
-;             ) => Implemented(T: Magic) }
+;               is-implemented(T: Copy),
+;             ) => is-implemented(T: Magic) }
 (∀ ((type T))
         (implies ((has-impl (Magic (T)))
                   (well-formed (type (T)))
-                  (Implemented (Copy (T))))
-                 (Implemented (Magic (T)))))
+                  (is-implemented (Copy (T))))
+                 (is-implemented (Magic (T)))))
 ```
 
 Now we start to see how this works -- if I want to call a function with a `T: Magic` where clause, like this...
@@ -541,17 +541,17 @@ fn make_the_magic_happen<T: Magic>(t: T) {
 Actually though, the above is not sufficient to solve the problem. That's because we haven't added in implied bounds yet! The *naive* version of implied bounds is that we want to add in a rule like so:
 
 ```
-Implemented(T: Magic) => Implemented(T: Copy)
+is-implemented(T: Magic) => is-implemented(T: Copy)
 ```
 
 i.e., if I know that `T: Magic`, I also know that `T: Copy`. But if we literally added that clause, it would be unsound, at least in a coinductive setting. Why is that? Say I want to prove that `String: Copy`...
 
-* `Implemented(String: Copy)`? Well, that's true if...
-    * `Implemented(String: Magic)`? Well, that's true if...
+* `is-implemented(String: Copy)`? Well, that's true if...
+    * `is-implemented(String: Magic)`? Well, that's true if...
         * `has-impl(String: Magic)`? Well, that's true if...
-            * `Implemented(String: Magic)` -- and that's on the stack, so that's ok!
+            * `is-implemented(String: Magic)` -- and that's on the stack, so that's ok!
         * `well-formed(String)` -- yep
-        * `Implemented(String: Copy)` -- well, that's on the stack, so that's ok!
+        * `is-implemented(String: Copy)` -- well, that's on the stack, so that's ok!
 
 The traditional solution so this sort of problem is to impose some kind of limits on the impls people can write so they must be "productive". It's a bit tricky to define what productivity means, but intuitively it means "not tautological". The challenge is that the various schemes I've seen for showing productivity don't accept impls like the ones that perfect derive would create, so they wouldn't really work for us. The solution in the impl works a different way.
 
@@ -584,10 +584,10 @@ impl<T: Foo> Bar for T {
 The insight is that it's not ok to use implied bounds out of thin air. You only want to use them for where-clauses that you have in scope. In this way, they are categorically different from program clauses, which always hold. I've decided to refer to implied bounds as *invariants* -- the idea is that they are things which "must be true if the program is valid". So for our program we would have one **invariant**:
 
 ```
-forall<T> { Implemented(T: Magic) => Implemented(T: Copy) }
+forall<T> { is-implemented(T: Magic) => is-implemented(T: Copy) }
 ```
 
-To express this a bit more formally, let `F` be the set of all "facts" we can generate from the clauses alone (a "fact" here is just a predicate that refers to some concrete types and thing)s. Because there are an infinite set of types, the set of facts is also infinite, but that's ok. In our example, given the rules we've seen so far (but ignoring the implied bound), we can show that `has-impl(i32: Magic)` and `has-impl(u32: Magic)` easily enough. We don't have a `has-impl(i32: Copy)` fact, though, and because of that we also can't have a `Implemented(i32: Copy)` fact. Given this set of facts `F`, then we ought to be able to prove each invariant `I`, or something is broken in our type rules. In our example, the invariant `forall<T> { Implemented(T: Magic) => Implemented(T: Copy) }` does in fact hold, because there are no `Implemented(T: Magic)` facts.
+To express this a bit more formally, let `F` be the set of all "facts" we can generate from the clauses alone (a "fact" here is just a predicate that refers to some concrete types and thing)s. Because there are an infinite set of types, the set of facts is also infinite, but that's ok. In our example, given the rules we've seen so far (but ignoring the implied bound), we can show that `has-impl(i32: Magic)` and `has-impl(u32: Magic)` easily enough. We don't have a `has-impl(i32: Copy)` fact, though, and because of that we also can't have a `is-implemented(i32: Copy)` fact. Given this set of facts `F`, then we ought to be able to prove each invariant `I`, or something is broken in our type rules. In our example, the invariant `forall<T> { is-implemented(T: Magic) => is-implemented(T: Copy) }` does in fact hold, because there are no `is-implemented(T: Magic)` facts.
 
 ### Integrating invariants into the solver
 
@@ -597,8 +597,8 @@ This in turn implies that the seemingly tautological impl of `Magic` is actually
 
 ```scheme
 (∀ ((type T))
-        (implies ((Implemented (Magic (T))))
-                 (Implemented (Magic (T)))))
+        (implies ((is-implemented (Magic (T))))
+                 (is-implemented (Magic (T)))))
 ```
 
 Basically, "if we assume that `T: Magic` is implemented, then we can show that `T: Magic` is implemented". Well, that's obviously true.
@@ -616,11 +616,11 @@ We don't currently have type-checking logic in formality but, if we did, type-ch
 
 ```
 forall<T> {
-    Implemented(T: Magic) => Implemented(T: Copy)
+    is-implemented(T: Magic) => is-implemented(T: Copy)
 }
 ```
 
-Here the `Implemented(T: Magic) => ...` comes from the where-clauses on the function. To solve this, the solver puts `Implemented(T: Magic)` into the environment as a hypothesis using the "prove-implies" rule ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/cosld-solve/prove.rkt#L67-L71)):
+Here the `is-implemented(T: Magic) => ...` comes from the where-clauses on the function. To solve this, the solver puts `is-implemented(T: Magic)` into the environment as a hypothesis using the "prove-implies" rule ([source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/cosld-solve/prove.rkt#L67-L71)):
 
 ```scheme
   [(where Env_1 (env-with-hypotheses Env Hypotheses))
@@ -640,13 +640,13 @@ Next it can apply the "prove-hypothesis-imply" rule ([source](https://github.com
    ]
 ```
 
-This rule usess [`Hypotheses-imply`](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/cosld-solve/hypothesize.rkt#L9-L11), another typing judgment which determines whether `Predicate` is either *directly* in the environment as a hypothesis **or can be derived via an invariant**. This last part is what we need here! The only hypothesis in the environment is `Implemented(T: Magic)`, but we can use the invariant
+This rule usess [`Hypotheses-imply`](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/ty/cosld-solve/hypothesize.rkt#L9-L11), another typing judgment which determines whether `Predicate` is either *directly* in the environment as a hypothesis **or can be derived via an invariant**. This last part is what we need here! The only hypothesis in the environment is `is-implemented(T: Magic)`, but we can use the invariant
 
 ```
-Implemented(T: Magic) => Implemented(T: Copy)
+is-implemented(T: Magic) => is-implemented(T: Copy)
 ```
 
-to expand that to `Implemented(T: Copy)`, so we are happy.
+to expand that to `is-implemented(T: Copy)`, so we are happy.
 
 ### Wait, so is this sound?
 
@@ -661,16 +661,16 @@ fn main() {
 For this program to type-check, we must prove the where-clauses on `make_the_magic_happen`, which means proving
 
 ```
-Implemented(String: Magic)
+is-implemented(String: Magic)
 ```
 
-But in this case, there are no hypotheses in the environment, so we can't make use of the invariants. We have to use the program clause, it requires also showing that `Implemented(String: Copy)` which in turn means showing `has-impl(String: Copy)`, and we cannot do that.
+But in this case, there are no hypotheses in the environment, so we can't make use of the invariants. We have to use the program clause, it requires also showing that `is-implemented(String: Copy)` which in turn means showing `has-impl(String: Copy)`, and we cannot do that.
 
-Thinking a bit more abstractly, no matter what where clauses we have on various functions, we will "bottom out" in a `main` function somewhere, and `main` has no where clauses. Therefore, if our program relies on `Implemented(i32: Magic)`, that must be provable in an environment with no hypotheses. Put another way, `Implemented(i32: Magic)` must be a member of that infinite set of facts that we described earlier, the ones which categorize "everything that is true in this program". But we already argued that this set does not include `Implemented(i32: Magic)`, because the only way to get such a fact is to use the program clause, and the program clause requires that `has-impl(i32: Copy)`, which is not true.
+Thinking a bit more abstractly, no matter what where clauses we have on various functions, we will "bottom out" in a `main` function somewhere, and `main` has no where clauses. Therefore, if our program relies on `is-implemented(i32: Magic)`, that must be provable in an environment with no hypotheses. Put another way, `is-implemented(i32: Magic)` must be a member of that infinite set of facts that we described earlier, the ones which categorize "everything that is true in this program". But we already argued that this set does not include `is-implemented(i32: Magic)`, because the only way to get such a fact is to use the program clause, and the program clause requires that `has-impl(i32: Copy)`, which is not true.
 
 ### Productivity again?
 
-xxx -- didn't get time to to finish this, but I think that you can frame the previous two sections in terms of the typical "productivity" rules. There is a nice thesis I've been slowly working through on this. The TL;DR is something like this: "we accept all cycles but require that for any proof of `Implemented(T: Foo)`, `has-impl(T: Foo)` must appear somewhere in the cycle", but that's not quite stating it right.
+xxx -- didn't get time to to finish this, but I think that you can frame the previous two sections in terms of the typical "productivity" rules. There is a nice thesis I've been slowly working through on this. The TL;DR is something like this: "we accept all cycles but require that for any proof of `is-implemented(T: Foo)`, `has-impl(T: Foo)` must appear somewhere in the cycle", but that's not quite stating it right.
 
 ## Future directions
 

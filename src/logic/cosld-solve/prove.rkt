@@ -250,8 +250,8 @@
    (test-can-prove
     EmptyEnv
     (∀ ((type T))
-       (implies ((Implemented (Debug (T))))
-                (Implemented (Debug (T))))))
+       (implies ((is-implemented (Debug (T))))
+                (is-implemented (Debug (T))))))
 
    (test-cannot-prove
     (env-with-vars-in-current-universe EmptyEnv ∃ ((type X)))
@@ -272,17 +272,17 @@
 
    (redex-let*
     formality-logic
-    ((Invariant_PartialEq-if-Eq (term (∀ ((type T)) (implies ((Implemented (Eq (T))))
-                                                             (Implemented (PartialEq (T)))))))
+    ((Invariant_PartialEq-if-Eq (term (∀ ((type T)) (implies ((is-implemented (Eq (T))))
+                                                             (is-implemented (PartialEq (T)))))))
      (Env (term (env-with-clauses-and-invariants ()
                                                  (Invariant_PartialEq-if-Eq)
                                                  ))))
 
-    (test-cannot-prove Env (Implemented (PartialEq ((TyRigid u32 ())))))
+    (test-cannot-prove Env (is-implemented (PartialEq ((TyRigid u32 ())))))
 
     (test-can-prove Env
-                    (∀ ((type T)) (implies ((Implemented (Eq (T))))
-                                           (Implemented (PartialEq (T))))))
+                    (∀ ((type T)) (implies ((is-implemented (Eq (T))))
+                                           (is-implemented (PartialEq (T))))))
     )
    )
 

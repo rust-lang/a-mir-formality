@@ -102,14 +102,14 @@
 
   (traced '()
           (test-equal
-           (term (match-terms (X) (Implemented (TraitRef (X))) (Implemented (TraitRef (u32)))))
+           (term (match-terms (X) (is-implemented (TraitRef (X))) (is-implemented (TraitRef (u32)))))
            (term ((X u32)))
            )
           )
 
   (traced '()
           (test-equal
-           (term (match-terms (X) (Implemented (TraitRef (X))) (has-impl (TraitRef (u32)))))
+           (term (match-terms (X) (is-implemented (TraitRef (X))) (has-impl (TraitRef (u32)))))
            (term Error)
            )
           )

@@ -14,19 +14,19 @@
      AdtDecl_Foo (term (Foo (struct () () ((struct-variant ()))))))
 
     (; trait Partial: Copy { }
-     TraitDecl_Partial (term (Partial (trait ((type Self)) ((Implemented (Copy (Self)))) ()))))
+     TraitDecl_Partial (term (Partial (trait ((type Self)) ((is-implemented (Copy (Self)))) ()))))
 
     (; trait Complete: Partial { }
-     TraitDecl_Complete (term (Complete (trait ((type Self)) ((Implemented (Partial (Self)))) ()))))
+     TraitDecl_Complete (term (Complete (trait ((type Self)) ((is-implemented (Partial (Self)))) ()))))
 
     (; impl<T> Partial for T where T: Complete {}
-     TraitImplDecl_Partial (term (impl ((type T)) (Partial (T)) ((Implemented (Complete (T)))) ())))
+     TraitImplDecl_Partial (term (impl ((type T)) (Partial (T)) ((is-implemented (Complete (T)))) ())))
 
     (; impl<T> Complete for T {}
      TraitImplDecl_CompleteA (term (impl ((type T)) (Complete (T)) () ())))
 
     (; impl<T: Partial> Complete for T {}
-     TraitImplDecl_CompleteB (term (impl ((type T)) (Complete (T)) ((Implemented (Partial (T)))) ())))
+     TraitImplDecl_CompleteB (term (impl ((type T)) (Complete (T)) ((is-implemented (Partial (T)))) ())))
 
     (; crate A { ... }
      CrateDecl_A (term (A (crate (AdtDecl_Foo
@@ -70,13 +70,13 @@
      traced '()
             (decl:test-cannot-prove
              Env_B
-             (Implemented (Partial (Ty_Foo)))))
+             (is-implemented (Partial (Ty_Foo)))))
 
     (; But `Foo: Partial` implies `Foo: Copy`.
      traced '()
             (decl:test-can-prove
              Env_B
-             (implies ((Implemented (Partial (Ty_Foo)))) (Implemented (Copy (Ty_Foo))))))
+             (implies ((is-implemented (Partial (Ty_Foo)))) (is-implemented (Copy (Ty_Foo))))))
     )
    )
   )

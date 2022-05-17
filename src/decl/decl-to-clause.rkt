@@ -143,12 +143,12 @@
    ;;     (∀ ((type T))
    ;;         (well-formed (type (Foo (T)))) :-
    ;;            (well-formed (type T))
-   ;;            (Implemented (Ord T)))
+   ;;            (is-implemented (Ord T)))
    ;;
    ;; And the following invariants local to the crate C:
    ;;
    ;;     (∀ ((type T))
-   ;;         (well-formed (type (Foo (T)))) => (Implemented (Ord T)))
+   ;;         (well-formed (type (Foo (T)))) => (is-implemented (Ord T)))
    ;;
    ;; And the following global invariants:
    ;;
@@ -186,20 +186,20 @@
    ;; an impl, and the where-clauses declared on the trait must be met:
    ;;
    ;;     (∀ ((type Self) (lifetime 'a) (type T))
-   ;;         (Implemented (Foo (Self 'a T))) :-
+   ;;         (is-implemented (Foo (Self 'a T))) :-
    ;;            (has-impl (Foo (Self 'a T))),
    ;;            (well-formed (type Self)),
    ;;            (well-formed (lifetime 'a)),
    ;;            (well-formed (type T)),
-   ;;            (Implemented (Ord T)))
+   ;;            (is-implemented (Ord T)))
    ;;
    ;; We also generate the following invariants in the defining crate:
    ;;
    ;;     (∀ ((type Self) (lifetime 'a) (type T))
-   ;;         (Implemented (Foo (Self 'a T))) => (Implemented (Ord T))
-   ;;         (Implemented (Foo (Self 'a T))) => (well-formed (type Self))
-   ;;         (Implemented (Foo (Self 'a T))) => (well-formed (lifetime 'a))
-   ;;         (Implemented (Foo (Self 'a T))) => (well-formed (type T)))
+   ;;         (is-implemented (Foo (Self 'a T))) => (is-implemented (Ord T))
+   ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type Self))
+   ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (lifetime 'a))
+   ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
    (crate-item-decl-rules _ (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
    ((Clause)
     (Hypothesis_wc ...
@@ -215,14 +215,14 @@
                             (well-formed (ParameterKind VarId)) ...
                             (where-clause->goal WhereClause) ...
                             )
-                           (Implemented TraitRef_me))))
+                           (is-implemented TraitRef_me))))
    (where/error (Hypothesis_wc ...) ((∀ KindedVarIds
                                         (implies
-                                         ((Implemented TraitRef_me))
+                                         ((is-implemented TraitRef_me))
                                          (where-clause->hypothesis WhereClause))) ...))
    (where/error (Hypothesis_wf ...) ((∀ KindedVarIds
                                         (implies
-                                         ((Implemented TraitRef_me))
+                                         ((is-implemented TraitRef_me))
                                          (well-formed (ParameterKind VarId)))) ...))
    ]
 
@@ -237,7 +237,7 @@
    ;;         (has-impl (Foo (i32 'a u32))) :-
    ;;             (well-formed (type i32))
    ;;             (well-formed (lifetime 'a))
-   ;;             (Implemented (Ord T)))
+   ;;             (is-implemented (Ord T)))
    (crate-item-decl-rules CrateDecls (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    ((Clause) () ())
 
