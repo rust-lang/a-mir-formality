@@ -50,12 +50,12 @@
     where/error Parameter_r1 (apply-substitution Substitution_Θ Parameter_r))
    (; the matched hypothesis `∀Xs_r. (Gs_h1 => (VarId ◃ P_r1))` shows that `VarId ◃ Parameter_b` if...
     where/error Goal (;∃ Xs_R
-                      Exists KindedVarIds_r
-                             (All (; Gs_h1 are satisfied
-                                   Goal_h1 ...
-                                   ; P_r1 ◃ Parameter_b
-                                   (Parameter_r1 InequalityOp_◃ Parameter_b)
-                                   ))))
+                      ∃ KindedVarIds_r
+                        (All (; Gs_h1 are satisfied
+                              Goal_h1 ...
+                              ; P_r1 ◃ Parameter_b
+                              (Parameter_r1 InequalityOp_◃ Parameter_b)
+                              ))))
    ]
 
   [(match-hypothesis (∀ ((ParameterKind_h VarId_h) ...) (Implies Goals_h (Parameter_l InequalityOp_◃ Parameter_r))) VarId_v InequalityOp_▹ Parameter_b)
@@ -97,7 +97,7 @@
 (define-metafunction formality-ty
   simplify-goal : Goal -> Goal
 
-  [(simplify-goal (Exists () Goal))
+  [(simplify-goal (∃ () Goal))
    (simplify-goal Goal)]
 
   [(simplify-goal (All (Goal)))

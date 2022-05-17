@@ -97,10 +97,10 @@
    (prove Env Prove/Stacks (∀ KindedVarIds Goal) (reset Env VarIds_new Env_out))
    ]
 
-  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (Exists KindedVarIds Goal)))
+  [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (∃ KindedVarIds Goal)))
    (prove Env_1 Prove/Stacks Goal_1 Env_out)
    --------------- "prove-exists"
-   (prove Env Prove/Stacks (Exists KindedVarIds Goal) (reset Env VarIds_new Env_out))
+   (prove Env Prove/Stacks (∃ KindedVarIds Goal) (reset Env VarIds_new Env_out))
    ]
 
   )
@@ -155,7 +155,7 @@
    (clause-proves Env Prove/Stacks Prove/Coinductive (Implies Goals Predicate_1) Predicate_2 Env_out)
    ]
 
-  [(where/error (Env_i Clause_i VarIds_i) (instantiate-quantified Env (Exists KindedVarIds Clause)))
+  [(where/error (Env_i Clause_i VarIds_i) (instantiate-quantified Env (∃ KindedVarIds Clause)))
    (clause-proves Env_i Prove/Stacks Prove/Coinductive Clause_i Predicate Env_out)
    --------------- "clause-forall"
    (clause-proves Env Prove/Stacks Prove/Coinductive (∀ KindedVarIds Clause) Predicate (reset Env VarIds_i Env_out))
@@ -209,13 +209,13 @@
   (redex-let*
    formality-logic
    ((; A is in U0
-     (Env_0 Term_A (VarId_0)) (term (instantiate-quantified EmptyEnv (Exists ((TyKind A)) A))))
+     (Env_0 Term_A (VarId_0)) (term (instantiate-quantified EmptyEnv (∃ ((TyKind A)) A))))
     (; V is a placeholder in U1
      (Env_1 Term_T (VarId_1)) (term (instantiate-quantified Env_0 (∀ ((TyKind T)) T))))
     (; X is in U1
-     (Env_2 Term_X (VarId_2)) (term (instantiate-quantified Env_1 (Exists ((TyKind X)) X))))
+     (Env_2 Term_X (VarId_2)) (term (instantiate-quantified Env_1 (∃ ((TyKind X)) X))))
     (; Y, Z are in U1
-     (Env_3 (Term_Y Term_Z) VarIds_3) (term (instantiate-quantified Env_2 (Exists ((TyKind Y) (TyKind Z)) (Y Z)))))
+     (Env_3 (Term_Y Term_Z) VarIds_3) (term (instantiate-quantified Env_2 (∃ ((TyKind Y) (TyKind Z)) (Y Z)))))
     ((Env_4 ()) (term (relate-parameters Env_3 ((TyRigid Vec (Term_A)) == (TyRigid Vec (Term_X))))))
     (Env_5 (term (reset Env_2 VarIds_3 Env_4)))
     )
@@ -231,7 +231,7 @@
 
    (redex-let*
     formality-logic
-    ((Env (term (env-with-vars-in-current-universe EmptyEnv Exists ((TyKind T) (TyKind U) (TyKind V))))))
+    ((Env (term (env-with-vars-in-current-universe EmptyEnv ∃ ((TyKind T) (TyKind U) (TyKind V))))))
     (traced '()
             (test-equal
              (judgment-holds (prove-top-level-goal-substitution
@@ -254,21 +254,21 @@
                 (Implemented (Debug (T))))))
 
    (test-cannot-prove
-    (env-with-vars-in-current-universe EmptyEnv Exists ((TyKind X)))
-    (Exists ((TyKind X))
-            (∀ ((TyKind T))
-               (T == X))))
+    (env-with-vars-in-current-universe EmptyEnv ∃ ((TyKind X)))
+    (∃ ((TyKind X))
+       (∀ ((TyKind T))
+          (T == X))))
 
    (test-cannot-prove
-    (env-with-vars-in-current-universe EmptyEnv Exists ((TyKind X)))
+    (env-with-vars-in-current-universe EmptyEnv ∃ ((TyKind X)))
     (∀ ((TyKind T))
        (T == X)))
 
    (test-can-prove
     EmptyEnv
     (∀ ((TyKind T))
-       (Exists ((TyKind X))
-               (T == X))))
+       (∃ ((TyKind X))
+          (T == X))))
 
    (redex-let*
     formality-logic

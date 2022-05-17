@@ -35,7 +35,7 @@
    (traced '()
            (test-match
             formality-ty
-            ((Exists () (Implies () _))) ; provable!
+            ((∃ () (Implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
                    ()
@@ -71,7 +71,7 @@
             formality-ty
             ;; Given that `item(T) = i32` and `item(U) = i32`,
             ;; we *can* prove that `item(T) == item(U)`.
-            ((Exists () (Implies () _))) ; provable!
+            ((∃ () (Implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
                    ((∀ ((TyKind T) (TyKind U))))
@@ -108,7 +108,7 @@
             formality-ty
             ;; We CAN prove that `item(&'a()) <= item(&'b ())`
             ;; when `&'a () == &'b ()`
-            ((Exists () (Implies () _))) ; provable
+            ((∃ () (Implies () _))) ; provable
             (term (ty:prove-scheme
                    Env
                    ((∀ ((LtKind A) (LtKind B))))
@@ -128,7 +128,7 @@
             formality-ty
             ;; We can ALSO prove that `item(Vec<&'a()>) <= item(Vec<&'b ()>)`
             ;; because we can normalize and `&'a () <= &'b ()`
-            ((Exists () (Implies () _))) ; provable
+            ((∃ () (Implies () _))) ; provable
             (term (ty:prove-scheme
                    Env
                    ((∀ ((LtKind A) (LtKind B))))

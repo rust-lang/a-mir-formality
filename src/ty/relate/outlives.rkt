@@ -157,8 +157,8 @@
    (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
    (Env ((Any (Goal_each Goal_n))))
    (where/error Goal_each (All ((Parameter_a -outlives- Parameter) ...)))
-   (where/error Goal_n (Exists ((TyKind T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
-                                                  (T -outlives- Parameter)))))
+   (where/error Goal_n (∃ ((TyKind T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
+                                             (T -outlives- Parameter)))))
    ]
 
   [; P : A<Pa ...> if
@@ -169,8 +169,8 @@
    ; in which case only static outlives it.
    (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
    (Env (Goal_n))
-   (where/error Goal_n (Exists ((TyKind T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
-                                                  (Parameter -outlives- T)))))
+   (where/error Goal_n (∃ ((TyKind T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
+                                             (Parameter -outlives- T)))))
    ]
 
   [; !X : T if
@@ -225,7 +225,7 @@
    ;    `(fn(&'b &'a u32) : 'a)` is false because
    ;    `'b : 'a`
    (outlives/one/substituted/reduce Env ((∀ KindedVarIds Ty) -outlives- Parameter))
-   (Env ((Exists KindedVarIds (Parameter -outlives- Ty))))
+   (Env ((∃ KindedVarIds (Parameter -outlives- Ty))))
    ]
 
   [; P0 : (WC => P1) if WC => (P0 : P1)
@@ -266,8 +266,8 @@
    ;        though we will have trouble finding an instance :)
    ;    third goal adds the bound that `T : 'static`
    ;    this will relate `'a: 'static`
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (Exists KindedVarIds Ty)))
-   (Env ((Exists KindedVarIds (Parameter -outlives- Ty))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (∃ KindedVarIds Ty)))
+   (Env ((∃ KindedVarIds (Parameter -outlives- Ty))))
    ]
 
   [; ∃ P0 : P1 if
@@ -289,7 +289,7 @@
    ;     find the bounds on `T`, find `'static`
    ;     `∀T. (T: Write, T: 'b) => Any (('b : 'a))`
    ;     ...and here I assume `'b: 'a` cannot be proven.
-   (outlives/one/substituted/reduce Env ((Exists KindedVarIds Ty) -outlives- Parameter))
+   (outlives/one/substituted/reduce Env ((∃ KindedVarIds Ty) -outlives- Parameter))
    (Env ((∀ KindedVarIds (Ty -outlives- Parameter))))
    ]
 

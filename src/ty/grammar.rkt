@@ -16,7 +16,7 @@
   ;;
   ;; FIXME: give a real explanation
   (Schemes ::= (Scheme ...))
-  (Scheme ::= (Exists KindedVarIds (Implies Goals Term)))
+  (Scheme ::= (∃ KindedVarIds (Implies Goals Term)))
 
   ;; ParameterKind: kind for a bound variable (type,
   ;; lifetime, etc)
@@ -114,8 +114,8 @@
   (∀Ty ::= (∀ KindedVarIds Ty))
   (ImplicationTy ::= (Implies WhereClauses Ty))
 
-  ;; Exists and ensures types: These are used in Rust to model
-  (ExistsTy ::= (Exists KindedVarIds Ty))
+  ;; ∃ and ensures types: These are used in Rust to model
+  (ExistsTy ::= (∃ KindedVarIds Ty))
   (EnsuresTy ::= (Ensures Ty WhereClauses))
 
   ;; Treat ABIs as opaque strings (for now, at least)

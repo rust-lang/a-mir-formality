@@ -138,7 +138,7 @@
    ; `exists<'a> { T <: U }`... and that's the same thing
    (compare/one/substituted Env ((∀ KindedVarIds Parameter_1) <= Parameter_2))
    ; NB: Redex binding forms ensure that all names in `KindedVarIds` do not appear free in `Parameter_2`
-   (Env ((Exists KindedVarIds (Parameter_1 <= Parameter_2))))
+   (Env ((∃ KindedVarIds (Parameter_1 <= Parameter_2))))
    ]
 
   [; Implication on the subtype side
@@ -160,29 +160,29 @@
     ; must be equal)
     where/error Goal_eq (All ((Parameter_1 == Parameter_2) ...)))
    (; Or we can normalize both aliases to the same type
-    where/error Goal_n (Exists ((TyKind T1) (TyKind T2))
-                               (All ((T1 <= T2)
-                                     (Normalize (TyAlias AliasName (Parameter_1 ...)) T1)
-                                     (Normalize (TyAlias AliasName (Parameter_2 ...)) T2)))
-                               ))
+    where/error Goal_n (∃ ((TyKind T1) (TyKind T2))
+                          (All ((T1 <= T2)
+                                (Normalize (TyAlias AliasName (Parameter_1 ...)) T1)
+                                (Normalize (TyAlias AliasName (Parameter_2 ...)) T2)))
+                          ))
    ]
 
   [; Alias on subtype
    (compare/one/substituted Env (AliasTy <= Ty))
    (Env (Goal_n))
    (; Or we can normalize both aliases to the same type
-    where/error Goal_n (Exists ((TyKind T))
-                               (All ((T <= Ty)
-                                     (Normalize AliasTy T)))))
+    where/error Goal_n (∃ ((TyKind T))
+                          (All ((T <= Ty)
+                                (Normalize AliasTy T)))))
    ]
 
   [; Alias on supertype
    (compare/one/substituted Env (Ty <= AliasTy))
    (Env (Goal_n))
    (; Or we can normalize both aliases to the same type
-    where/error Goal_n (Exists ((TyKind T))
-                               (All ((Ty <= T)
-                                     (Normalize AliasTy T)))))
+    where/error Goal_n (∃ ((TyKind T))
+                          (All ((Ty <= T)
+                                (Normalize AliasTy T)))))
    ]
 
   [; `!X <= T` where:

@@ -80,12 +80,12 @@
    (extrude-term Env (VarIdPair ...) Universe InequalityOp_◃ VarId)
    (Env_4 VarId_out Goals_b)
 
-   (where (ParameterKind Exists Universe_VarId) (var-binding-in-env Env VarId))
+   (where (ParameterKind ∃ Universe_VarId) (var-binding-in-env Env VarId))
    (where/error InequalityOp_▹ (invert-inequality-op InequalityOp_◃))
    (where/error #f (universe-includes Universe Universe_VarId))
    ; create output variable `VarId_out` (`extrude(X)` in the example above)
    (where/error (VarId_out) (fresh-var-ids Env (VarId)))
-   (where/error Env_1 (env-with-var Env VarId_out ParameterKind Exists Universe))
+   (where/error Env_1 (env-with-var Env VarId_out ParameterKind ∃ Universe))
    (where/error VarIdPairs_new ((VarId VarId_out) VarIdPair ...))
    ; extract bounds `b_0...b_n` where `X ◃ b_i` for all `i`
    (where/error (Parameter_b ...) (known-bounds Env InequalityOp_▹ VarId))
@@ -135,7 +135,7 @@
 
    ; Create fresh (existential) variable `?Xe` that will be returning
    (where/error (VarId_?Xe) (fresh-var-ids Env (VarId_!X)))
-   (where/error Env_?Xe (env-with-var Env VarId_?Xe ParameterKind Exists Universe))
+   (where/error Env_?Xe (env-with-var Env VarId_?Xe ParameterKind ∃ Universe))
    (where/error VarIdPairs_new ((VarId VarId_out) VarIdPair ...))
 
    ; We want to require that `?Xe ◃ !X` -- so find bounds `B` where

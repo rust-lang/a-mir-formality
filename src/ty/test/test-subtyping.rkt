@@ -70,13 +70,13 @@
    (test-match
     formality-ty
 
-    ((Exists ((TyKind Ty_U)) (Implies ((Ty_U >= Ty_T)) (Ty_T <= Ty_U)))
+    ((∃ ((TyKind Ty_U)) (Implies ((Ty_U >= Ty_T)) (Ty_T <= Ty_U)))
      )
 
     (term (ty:prove-scheme
            Env
            ((∀ ((TyKind T)))
-            (Exists ((TyKind U))))
+            (∃ ((TyKind U))))
            ()
            (T <= U)
            ))
@@ -101,7 +101,7 @@
            (test-match
             formality-ty
 
-            ((Exists
+            ((∃
               ((LtKind VarId_A)
                (TyKind VarId_TheTy)
                (LtKind VarId_TheLt))
@@ -116,7 +116,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((TyKind T)))
-                    (Exists ((TyKind U) (LtKind A))))
+                    (∃ ((TyKind U) (LtKind A))))
                    ()
                    (U <= (& A T))
                    ))
@@ -141,7 +141,7 @@
            (; Test for ensures: we can add ensures for things we can prove
             test-match
             formality-ty
-            ((Exists _ (Implies _ _)))
+            ((∃ _ (Implies _ _)))
             (term (ty:prove-scheme
                    Env
                    ((∀ ((TyKind T)))
@@ -170,7 +170,7 @@
    (; Test for ensures: we can use ensures on LHS to prove ensures on RHS
     test-match
     formality-ty
-    ((Exists _ (Implies _ _)))
+    ((∃ _ (Implies _ _)))
     (term (ty:prove-scheme
            Env
            ((∀ ((TyKind T)))
@@ -203,7 +203,7 @@
     ; we CAN prove
     test-match
     formality-ty
-    ((Exists () (Implies () _)))
+    ((∃ () (Implies () _)))
     (term (ty:prove-scheme
            Env
            ((∀ ((TyKind T)))
@@ -220,7 +220,7 @@
     ; can add implications, no problem
     test-match
     formality-ty
-    ((Exists () (Implies () _)))
+    ((∃ () (Implies () _)))
     (term (ty:prove-scheme
            Env
            ((∀ ((TyKind T)))
@@ -250,7 +250,7 @@
    (; Test for implication on both sides
     test-match
     formality-ty
-    ((Exists () (Implies () _)))
+    ((∃ () (Implies () _)))
     (term (ty:prove-scheme
            Env
            ((∀ ((TyKind T)))
@@ -265,7 +265,7 @@
     ; are not reflected in the type -- subtyping works
     test-match
     formality-ty
-    ((Exists () (Implies () _))) ; provable! uh-oh!
+    ((∃ () (Implies () _))) ; provable! uh-oh!
     (term (ty:prove-scheme
            Env
            ((∀ ((TyKind T) (LtKind X)))
@@ -309,7 +309,7 @@
            (; #25860 -- an upcast that discharges implied bound successfully
             test-match
             formality-ty
-            ((Exists () (Implies () _))) ; provable!
+            ((∃ () (Implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
                    ((∀ ((TyKind T) (LtKind X)))

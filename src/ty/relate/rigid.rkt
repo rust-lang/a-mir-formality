@@ -32,14 +32,14 @@
 
    (; create final goal we will have to prove
     where/error Goal (; ∃P1...Pn:
-                      Exists ((ParameterKind VarId_p) ...)
-                             (All ((; (X == R<P1...Pn>) ∧
-                                    VarId == (TyRigid RigidName (VarId_p ...)))
-                                   (; (R<P1..Pn> <op> R<...>) ∧
-                                    (TyRigid RigidName (VarId_p ...)) RelationOp (TyRigid RigidName (Parameter ...)))
-                                   (; WF(R<P1..Pn>)
-                                    WellFormed (TyKind (TyRigid RigidName (VarId_p ...))))
-                                   ))))
+                      ∃ ((ParameterKind VarId_p) ...)
+                        (All ((; (X == R<P1...Pn>) ∧
+                               VarId == (TyRigid RigidName (VarId_p ...)))
+                              (; (R<P1..Pn> <op> R<...>) ∧
+                               (TyRigid RigidName (VarId_p ...)) RelationOp (TyRigid RigidName (Parameter ...)))
+                              (; WF(R<P1..Pn>)
+                               WellFormed (TyKind (TyRigid RigidName (VarId_p ...))))
+                              ))))
 
    ]
 

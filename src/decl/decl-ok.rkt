@@ -145,11 +145,11 @@
    (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (Ty_impl)) (WhereClause_impl ...) _))
    ((∀ KindedVarIds_adt
        (Implies (where-clauses->hypotheses WhereClauses_adt)
-                (Exists KindedVarIds_impl
-                        (All ((Ty_impl == Ty_adt)
-                              (where-clause->goal WhereClause_impl) ...
-                              ))
-                        ))))
+                (∃ KindedVarIds_impl
+                   (All ((Ty_impl == Ty_adt)
+                         (where-clause->goal WhereClause_impl) ...
+                         ))
+                   ))))
 
    (where (TyRigid AdtId Parameters) Ty_impl)
    (where (AdtKind KindedVarIds_adt WhereClauses_adt _) (item-with-id CrateDecls AdtId))
@@ -186,11 +186,11 @@
    (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Copy (Ty_impl)) (WhereClause_impl ...) ()))
    ((∀ KindedVarIds_impl
        (Implies ((where-clause->hypothesis WhereClause_impl) ...)
-                (Exists KindedVarIds_adt
-                        (All ((Ty_impl == Ty_adt)
-                              (Implemented (rust:Copy (Ty_field))) ... ...
-                              )
-                             )))))
+                (∃ KindedVarIds_adt
+                   (All ((Ty_impl == Ty_adt)
+                         (Implemented (rust:Copy (Ty_field))) ... ...
+                         )
+                        )))))
 
    (where (TyRigid AdtId Parameters) Ty_impl)
    (where (AdtKind KindedVarIds_adt _ AdtVariants) (item-with-id CrateDecls AdtId))

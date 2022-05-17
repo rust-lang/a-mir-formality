@@ -33,7 +33,7 @@
            (test-match
             formality-ty
 
-            ((Exists
+            ((∃
               ((LtKind VarId_B) (LtKind VarId_A))
               (Implies
                ((VarId_A -outlives- VarId_B))
@@ -44,7 +44,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((TyKind T)))
-                    (Exists ((LtKind A) (LtKind B))))
+                    (∃ ((LtKind A) (LtKind B))))
                    ()
                    ((TyRigid (Ref ()) (A T)) -outlives- (TyRigid (Ref ()) (B T)))
                    ))
@@ -57,7 +57,7 @@
 
             ; for<'a> fn(&'a T) -outlives- static
 
-            ((Exists
+            ((∃
               ()
               (Implies
                ()
@@ -89,7 +89,7 @@
             ;
             ; true if (A -outlives- 'static)
 
-            ((Exists
+            ((∃
               ((LtKind VarId_A))
               (Implies
                ((VarId_A -outlives- static))
@@ -98,7 +98,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((TyKind T)))
-                    (Exists ((LtKind A))))
+                    (∃ ((LtKind A))))
                    ()
                    (A
                     -outlives-
@@ -136,7 +136,7 @@
            (test-match
             formality-ty
 
-            ((Exists () (Implies () (VarId_A -outlives- VarId_B))))
+            ((∃ () (Implies () (VarId_A -outlives- VarId_B))))
 
             (term (ty:prove-scheme
                    Env
@@ -173,7 +173,7 @@
            (test-match
             formality-ty
 
-            ((Exists () (Implies () (VarId_A == VarId_B))))
+            ((∃ () (Implies () (VarId_A == VarId_B))))
 
             (term (ty:prove-scheme
                    Env

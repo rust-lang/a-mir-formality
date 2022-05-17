@@ -121,7 +121,7 @@
   (RelationOp ::= == InequalityOp)
 
   ;; `Quantifier` -- the two kinds of quantifiers.
-  (Quantifier ::= ∀ Exists)
+  (Quantifier ::= ∀ ∃)
 
   ;; `Universe` -- the root universe `RootUniverse` consists of all user-defined names.
   ;; Each time we enter into a `∀` quantifier, we introduce a new universe
@@ -147,7 +147,7 @@
 
   #:binding-forms
   (∀ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
-  (Exists ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
+  (∃ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   )
 
 (define-term

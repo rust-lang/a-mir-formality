@@ -83,7 +83,7 @@
   [(existential-vars-from-binders ((_ _ ∀ _) VarBinder_2 ...))
    (existential-vars-from-binders (VarBinder_2 ...))]
 
-  [(existential-vars-from-binders ((VarId_1 _ Exists _) VarBinder_2 ...))
+  [(existential-vars-from-binders ((VarId_1 _ ∃ _) VarBinder_2 ...))
    (VarId_1 VarId_2 ...)
    (where/error (VarId_2 ...) (existential-vars-from-binders (VarBinder_2 ...)))]
 
@@ -242,7 +242,7 @@
 
   [(env-contains-existential-var Env VarId)
    #t
-   (where (_ Exists _) (var-binding-in-env Env VarId))]
+   (where (_ ∃ _) (var-binding-in-env Env VarId))]
 
   [(env-contains-existential-var Env VarId)
    #f]
