@@ -157,7 +157,7 @@
    (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
    (Env ((Any (Goal_each Goal_n))))
    (where/error Goal_each (All ((Parameter_a -outlives- Parameter) ...)))
-   (where/error Goal_n (∃ ((type T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
+   (where/error Goal_n (∃ ((type T)) (All ((normalizes-to (TyAlias AliasName (Parameter_a ...)) T)
                                            (T -outlives- Parameter)))))
    ]
 
@@ -169,7 +169,7 @@
    ; in which case only static outlives it.
    (outlives/one/substituted/reduce Env ((TyAlias AliasName (Parameter_a ...)) -outlives- Parameter))
    (Env (Goal_n))
-   (where/error Goal_n (∃ ((type T)) (All ((Normalize (TyAlias AliasName (Parameter_a ...)) T)
+   (where/error Goal_n (∃ ((type T)) (All ((normalizes-to (TyAlias AliasName (Parameter_a ...)) T)
                                            (Parameter -outlives- T)))))
    ]
 

@@ -162,8 +162,8 @@
    (; Or we can normalize both aliases to the same type
     where/error Goal_n (∃ ((type T1) (type T2))
                           (All ((T1 <= T2)
-                                (Normalize (TyAlias AliasName (Parameter_1 ...)) T1)
-                                (Normalize (TyAlias AliasName (Parameter_2 ...)) T2)))
+                                (normalizes-to (TyAlias AliasName (Parameter_1 ...)) T1)
+                                (normalizes-to (TyAlias AliasName (Parameter_2 ...)) T2)))
                           ))
    ]
 
@@ -173,7 +173,7 @@
    (; Or we can normalize both aliases to the same type
     where/error Goal_n (∃ ((type T))
                           (All ((T <= Ty)
-                                (Normalize AliasTy T)))))
+                                (normalizes-to AliasTy T)))))
    ]
 
   [; Alias on supertype
@@ -182,7 +182,7 @@
    (; Or we can normalize both aliases to the same type
     where/error Goal_n (∃ ((type T))
                           (All ((Ty <= T)
-                                (Normalize AliasTy T)))))
+                                (normalizes-to AliasTy T)))))
    ]
 
   [; `!X <= T` where:

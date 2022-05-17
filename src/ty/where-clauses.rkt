@@ -32,8 +32,8 @@
    (Implemented TraitRef)
    ]
 
-  [(where-clause->goal (Normalize AliasTy Ty))
-   (Normalize AliasTy Ty)
+  [(where-clause->goal (normalizes-to AliasTy Ty))
+   (normalizes-to AliasTy Ty)
    ]
 
   [(where-clause->goal (Outlives (Parameter_a : Parameter_b)))

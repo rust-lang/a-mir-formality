@@ -43,7 +43,7 @@
              ; the given type or lifetime is well-formed.
              (well-formed (ParameterKind Parameter))
              ; normalize a given alias to another type
-             (Normalize AliasTy Ty)
+             (normalizes-to AliasTy Ty)
              )
   ;; ANCHOR_END:Predicates
 
@@ -56,7 +56,7 @@
                       (Implemented TraitId)
                       (has-impl TraitId)
                       (well-formed ParameterKind)
-                      (Normalize AliasName)
+                      (normalizes-to AliasName)
                       )
 
   ;; WhereClause -- Rust where clauses. These are a subset of
@@ -67,7 +67,7 @@
                (∀ KindedVarIds WhereClause)
                (Implemented TraitRef)
                (Outlives (Parameter : Lt))
-               (Normalize AliasTy Ty)
+               (normalizes-to AliasTy Ty)
                )
 
   ;; Ty -- Rust types

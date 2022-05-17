@@ -22,8 +22,8 @@
                   ∀ ((type T)) (well-formed (type T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
                   ∀ ((type T)) (Implemented (AlwaysImpl (T))))
-                 (; Normalize `Item<Vec<T>>` to `T`
-                  ∀ ((type T)) (Normalize (item (vec T)) T))
+                 (; normalizes-to `Item<Vec<T>>` to `T`
+                  ∀ ((type T)) (normalizes-to (item (vec T)) T))
                  )
                 ()
                 ()
