@@ -33,13 +33,13 @@
    (; create final goal we will have to prove
     where/error Goal (; ∃P1...Pn:
                       ∃ ((ParameterKind VarId_p) ...)
-                        (All ((; (X == R<P1...Pn>) ∧
-                               VarId == (rigid-ty RigidName (VarId_p ...)))
-                              (; (R<P1..Pn> <op> R<...>) ∧
-                               (rigid-ty RigidName (VarId_p ...)) RelationOp (rigid-ty RigidName (Parameter ...)))
-                              (; WF(R<P1..Pn>)
-                               well-formed (type (rigid-ty RigidName (VarId_p ...))))
-                              ))))
+                        (&& ((; (X == R<P1...Pn>) ∧
+                              VarId == (rigid-ty RigidName (VarId_p ...)))
+                             (; (R<P1..Pn> <op> R<...>) ∧
+                              (rigid-ty RigidName (VarId_p ...)) RelationOp (rigid-ty RigidName (Parameter ...)))
+                             (; WF(R<P1..Pn>)
+                              well-formed (type (rigid-ty RigidName (VarId_p ...))))
+                             ))))
 
    ]
 

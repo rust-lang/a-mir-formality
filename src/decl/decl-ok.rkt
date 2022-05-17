@@ -17,7 +17,7 @@
   #:pre (in? CrateDecl_c CrateDecls_cs)
 
   [(crate-ok-goal CrateDecls (CrateId (crate (CrateItemDecl ...))))
-   (All (Goal_regular ... Goal_lang-item ... ...))
+   (&& (Goal_regular ... Goal_lang-item ... ...))
 
    (where/error (Goal_regular ...) ((crate-item-ok-goal CrateDecls CrateItemDecl) ...))
    (where/error ((Goal_lang-item ...) ...) ((lang-item-ok-goals CrateDecls CrateItemDecl) ...))
@@ -48,7 +48,7 @@
    (where/error Goal_wf (∀ KindedVarIds
                            (implies
                             ((well-formed KindedVarId) ... WhereClause ...)
-                            (All ((well-formed (type Ty)) ... ...)))))
+                            (&& ((well-formed (type Ty)) ... ...)))))
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:
@@ -59,7 +59,7 @@
    (crate-item-ok-goal _ (TraitId (trait KindedVarIds (WhereClause ...) (TraitItem ...))))
    (∀ KindedVarIds
       (implies ((well-formed KindedVarId) ... WhereClause ...)
-               (All (Goal_trait-item ...))))
+               (&& (Goal_trait-item ...))))
 
    (where/error (Goal_trait-item ...) ((trait-item-ok-goal TraitItem) ...))
    (where/error (KindedVarId ...) KindedVarIds)
@@ -146,9 +146,9 @@
    ((∀ KindedVarIds_adt
        (implies (where-clauses->hypotheses WhereClauses_adt)
                 (∃ KindedVarIds_impl
-                   (All ((Ty_impl == Ty_adt)
-                         (where-clause->goal WhereClause_impl) ...
-                         ))
+                   (&& ((Ty_impl == Ty_adt)
+                        (where-clause->goal WhereClause_impl) ...
+                        ))
                    ))))
 
    (where (rigid-ty AdtId Parameters) Ty_impl)
@@ -187,10 +187,10 @@
    ((∀ KindedVarIds_impl
        (implies ((where-clause->hypothesis WhereClause_impl) ...)
                 (∃ KindedVarIds_adt
-                   (All ((Ty_impl == Ty_adt)
-                         (is-implemented (rust:Copy (Ty_field))) ... ...
-                         )
-                        )))))
+                   (&& ((Ty_impl == Ty_adt)
+                        (is-implemented (rust:Copy (Ty_field))) ... ...
+                        )
+                       )))))
 
    (where (rigid-ty AdtId Parameters) Ty_impl)
    (where (AdtKind KindedVarIds_adt _ AdtVariants) (item-with-id CrateDecls AdtId))

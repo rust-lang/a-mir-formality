@@ -171,7 +171,7 @@ These core predicates are then used to define a richer vocabulary of goals (thin
   (Goal :=
         Predicate
         (Equate Term Term)
-        (All Goals)
+        (&& Goals)
         (Any Goals)
         (implies Hypotheses Goal)
         (Quantifier KindedVarIds Goal)
@@ -185,7 +185,7 @@ These core predicates are then used to define a richer vocabulary of goals (thin
                                  )
 ```
 
-Importantly, the *types layer* defines a solver that gives semantics to all the "meta" parts of goals and clauses -- e.g., it defines what it means to prove `(All (G1 G2))` (prove both `G1` and `G2`, duh). But it doesn't have any rules for what it means to prove the *core* predicates true -- so it could never prove `(is-implemented (Debug ((! T))))`. Those rules all come from the declaration layer and are given to the types layer as part of the "environment".
+Importantly, the *types layer* defines a solver that gives semantics to all the "meta" parts of goals and clauses -- e.g., it defines what it means to prove `(&& (G1 G2))` (prove both `G1` and `G2`, duh). But it doesn't have any rules for what it means to prove the *core* predicates true -- so it could never prove `(is-implemented (Debug ((! T))))`. Those rules all come from the declaration layer and are given to the types layer as part of the "environment".
 
 You might be curious about the distinction between goal and clause and why there are so many names for clauses (hypothesis, clause, invariant, etc). Let's talk briefly about that.
 
@@ -444,7 +444,7 @@ The idea is that the crate is "ok" (i.e., passes the type check) if these goals 
    (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    (∀ KindedVarIds_impl
            (implies ((well-formed KindedVarId_impl) ... WhereClause_impl ...)
-                    (All ((is-implemented TraitRef)))))
+                    (&& ((is-implemented TraitRef)))))
 
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)

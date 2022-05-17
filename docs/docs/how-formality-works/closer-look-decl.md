@@ -241,7 +241,7 @@ Here is the rule for impls:
    (crate-item-ok-goal _ (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    (∀ KindedVarIds_impl
            (implies ((well-formed KindedVarId_impl) ... WhereClause_impl ...)
-                    (All ((is-implemented TraitRef)))))
+                    (&& ((is-implemented TraitRef)))))
 
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)

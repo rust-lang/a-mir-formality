@@ -158,12 +158,12 @@
    (Env ((Any (Goal_eq Goal_n))))
    (; Either all the parameters are equal (note that we have no variance on alias-ty, so they
     ; must be equal)
-    where/error Goal_eq (All ((Parameter_1 == Parameter_2) ...)))
+    where/error Goal_eq (&& ((Parameter_1 == Parameter_2) ...)))
    (; Or we can normalize both aliases to the same type
     where/error Goal_n (∃ ((type T1) (type T2))
-                          (All ((T1 <= T2)
-                                (normalizes-to (alias-ty AliasName (Parameter_1 ...)) T1)
-                                (normalizes-to (alias-ty AliasName (Parameter_2 ...)) T2)))
+                          (&& ((T1 <= T2)
+                               (normalizes-to (alias-ty AliasName (Parameter_1 ...)) T1)
+                               (normalizes-to (alias-ty AliasName (Parameter_2 ...)) T2)))
                           ))
    ]
 
@@ -172,8 +172,8 @@
    (Env (Goal_n))
    (; Or we can normalize both aliases to the same type
     where/error Goal_n (∃ ((type T))
-                          (All ((T <= Ty)
-                                (normalizes-to AliasTy T)))))
+                          (&& ((T <= Ty)
+                               (normalizes-to AliasTy T)))))
    ]
 
   [; Alias on supertype
@@ -181,8 +181,8 @@
    (Env (Goal_n))
    (; Or we can normalize both aliases to the same type
     where/error Goal_n (∃ ((type T))
-                          (All ((Ty <= T)
-                                (normalizes-to AliasTy T)))))
+                          (&& ((Ty <= T)
+                               (normalizes-to AliasTy T)))))
    ]
 
   [; `!X <= T` where:

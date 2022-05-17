@@ -77,7 +77,7 @@
 
   [(prove-all Env Prove/Stacks Goals Env_out)
    --------------- "prove-all"
-   (prove Env Prove/Stacks (All Goals) Env_out)
+   (prove Env Prove/Stacks (&& Goals) Env_out)
    ]
 
   [(prove Env Prove/Stacks Goal_1 Env_out)
@@ -227,7 +227,7 @@
    (test-equal (term (universe-of-var-in-env Env_5 Term_X)) (term RootUniverse))
 
    (traced '()
-           (test-can-prove EmptyEnv (All ())))
+           (test-can-prove EmptyEnv (&& ())))
 
    (redex-let*
     formality-logic
@@ -236,9 +236,9 @@
             (test-equal
              (judgment-holds (prove-top-level-goal-substitution
                               Env
-                              (All ((T == (rigid-ty Vec (U)))
-                                    (U == (rigid-ty Vec (V)))
-                                    (V == (rigid-ty i32 ()))))
+                              (&& ((T == (rigid-ty Vec (U)))
+                                   (U == (rigid-ty Vec (V)))
+                                   (V == (rigid-ty i32 ()))))
                               Substitution_out)
                              Substitution_out)
              (term (((V (rigid-ty i32 ()))

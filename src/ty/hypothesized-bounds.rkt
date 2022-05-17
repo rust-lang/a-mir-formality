@@ -51,11 +51,11 @@
    (; the matched hypothesis `∀Xs_r. (Gs_h1 => (VarId ◃ P_r1))` shows that `VarId ◃ Parameter_b` if...
     where/error Goal (;∃ Xs_R
                       ∃ KindedVarIds_r
-                        (All (; Gs_h1 are satisfied
-                              Goal_h1 ...
-                              ; P_r1 ◃ Parameter_b
-                              (Parameter_r1 InequalityOp_◃ Parameter_b)
-                              ))))
+                        (&& (; Gs_h1 are satisfied
+                             Goal_h1 ...
+                             ; P_r1 ◃ Parameter_b
+                             (Parameter_r1 InequalityOp_◃ Parameter_b)
+                             ))))
    ]
 
   [(match-hypothesis (∀ ((ParameterKind_h VarId_h) ...) (implies Goals_h (Parameter_l InequalityOp_◃ Parameter_r))) VarId_v InequalityOp_▹ Parameter_b)
@@ -100,7 +100,7 @@
   [(simplify-goal (∃ () Goal))
    (simplify-goal Goal)]
 
-  [(simplify-goal (All (Goal)))
+  [(simplify-goal (&& (Goal)))
    (simplify-goal Goal)]
 
   [(simplify-goal (Any (Goal)))

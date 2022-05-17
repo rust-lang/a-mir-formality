@@ -156,9 +156,9 @@
    ; that the alias must be a function of its inputs and other static things.
    (outlives/one/substituted/reduce Env ((alias-ty AliasName (Parameter_a ...)) -outlives- Parameter))
    (Env ((Any (Goal_each Goal_n))))
-   (where/error Goal_each (All ((Parameter_a -outlives- Parameter) ...)))
-   (where/error Goal_n (∃ ((type T)) (All ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
-                                           (T -outlives- Parameter)))))
+   (where/error Goal_each (&& ((Parameter_a -outlives- Parameter) ...)))
+   (where/error Goal_n (∃ ((type T)) (&& ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
+                                          (T -outlives- Parameter)))))
    ]
 
   [; P : A<Pa ...> if
@@ -169,8 +169,8 @@
    ; in which case only static outlives it.
    (outlives/one/substituted/reduce Env ((alias-ty AliasName (Parameter_a ...)) -outlives- Parameter))
    (Env (Goal_n))
-   (where/error Goal_n (∃ ((type T)) (All ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
-                                           (Parameter -outlives- T)))))
+   (where/error Goal_n (∃ ((type T)) (&& ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
+                                          (Parameter -outlives- T)))))
    ]
 
   [; !X : T if

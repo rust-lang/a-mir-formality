@@ -87,7 +87,7 @@
               Predicate
               Relation)
   (BuiltinGoal ::=
-               (All Goals)
+               (&& Goals)
                (Any Goals)
                (implies Hypotheses Goal)
                (Quantifier KindedVarIds Goal)
