@@ -128,7 +128,7 @@
   ;; that extends the previous one to add new names that didn't exist in the old
   ;; universe (e.g., the placeholders for the universally quantified variables).
   ;; See the paper XXX
-  (Universe ::= (UniverseId number))
+  (Universe ::= (universe number))
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
@@ -152,5 +152,5 @@
 
 (define-term
   RootUniverse
-  (UniverseId 0)
+  (universe 0)
   )

@@ -169,7 +169,7 @@
 
   [(env-with-vars-limited-to-universe Env (VarId_0 VarId_1 ...) Universe_max)
    (env-with-vars-limited-to-universe Env (VarId_1 ...) Universe_max)
-   (where (UniverseId 0) (universe-of-var-in-env Env VarId_0))]
+   (where (universe 0) (universe-of-var-in-env Env VarId_0))]
 
   [(env-with-vars-limited-to-universe Env (VarId_0 VarId_1 ...) Universe_max)
    (env-with-vars-limited-to-universe Env_1 (VarId_1 ...) Universe_max)
@@ -291,8 +291,8 @@
   ;; Increments a universe to return the next largest universe.
   next-universe : Universe -> Universe
 
-  [(next-universe (UniverseId natural))
-   (UniverseId ,(+ 1 (term natural)))]
+  [(next-universe (universe natural))
+   (universe ,(+ 1 (term natural)))]
   )
 
 (define-metafunction formality-logic
@@ -460,21 +460,21 @@
 (define-metafunction formality-logic
   ;; Returns the smallest of the various universes provided
   min-universe : Universe ... -> Universe
-  [(min-universe (UniverseId number) ...)
-   (UniverseId ,(apply min (term (number ...))))
+  [(min-universe (universe number) ...)
+   (universe ,(apply min (term (number ...))))
    ])
 
 (define-metafunction formality-logic
   ;; Returns the smallest of the various universes provided
   max-universe : Universe ... -> Universe
-  [(max-universe (UniverseId number) ...)
-   (UniverseId ,(apply max (term (number ...))))
+  [(max-universe (universe number) ...)
+   (universe ,(apply max (term (number ...))))
    ])
 
 (define-metafunction formality-logic
   ;; True if `Universe_0` includes all values of `Universe_1`
   universe-includes : Universe_0 Universe_1 -> boolean
-  [(universe-includes (UniverseId number_0) (UniverseId number_1))
+  [(universe-includes (universe number_0) (universe number_1))
    ,(>= (term number_0) (term number_1))])
 
 (define-metafunction formality-logic
