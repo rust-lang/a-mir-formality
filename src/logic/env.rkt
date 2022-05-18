@@ -194,10 +194,10 @@
 (define-metafunction formality-logic
   ;; If this variable is declared in the environment, return its
   ;; quantifier/universe (or `()` otherwise).
-  var-binding-in-env : Env VarId -> (ParameterKind Quantifier Universe) or ()
+  var-binding-in-env : Env VarId -> VarBinder or ()
 
   [(var-binding-in-env Env VarId)
-   (ParameterKind Quantifier Universe)
+   (VarId ParameterKind Quantifier Universe)
    (where (_ ... (VarId ParameterKind Quantifier Universe) _ ...) (env-var-binders Env))]
 
   [(var-binding-in-env Env VarId)
@@ -214,7 +214,7 @@
 
   [(universe-of-var-in-env Env VarId)
    Universe
-   (where (_ Quantifier Universe) (var-binding-in-env Env VarId))]
+   (where (_ _ Quantifier Universe) (var-binding-in-env Env VarId))]
 
   [(universe-of-var-in-env Env VarId)
    RootUniverse
@@ -228,11 +228,11 @@
   env-contains-var : Env VarId -> boolean
 
   [(env-contains-var Env VarId)
-   #t
-   (where (_ _ _) (var-binding-in-env Env VarId))]
+   #f
+   (where () (var-binding-in-env Env VarId))]
 
   [(env-contains-var Env VarId)
-   #f]
+   #t]
 
   )
 
@@ -242,7 +242,7 @@
 
   [(env-contains-existential-var Env VarId)
    #t
-   (where (_ ∃ _) (var-binding-in-env Env VarId))]
+   (where (_ _ ∃ _) (var-binding-in-env Env VarId))]
 
   [(env-contains-existential-var Env VarId)
    #f]
@@ -280,7 +280,7 @@
 
   [(env-contains-placeholder-var Env VarId)
    #t
-   (where (_ ∀ _) (var-binding-in-env Env VarId))]
+   (where (_ _ ∀ _) (var-binding-in-env Env VarId))]
 
   [(env-contains-placeholder-var Env VarId)
    #f]

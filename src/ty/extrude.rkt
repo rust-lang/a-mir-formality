@@ -80,7 +80,7 @@
    (extrude-term Env (VarIdPair ...) Universe InequalityOp_◃ VarId)
    (Env_4 VarId_out Goals_b)
 
-   (where (ParameterKind ∃ Universe_VarId) (var-binding-in-env Env VarId))
+   (where (VarId ParameterKind ∃ Universe_VarId) (var-binding-in-env Env VarId))
    (where/error InequalityOp_▹ (invert-inequality-op InequalityOp_◃))
    (where/error #f (universe-includes Universe Universe_VarId))
    ; create output variable `VarId_out` (`extrude(X)` in the example above)
@@ -129,7 +129,7 @@
    (extrude-term Env (VarIdPair ...) Universe InequalityOp_◃ VarId_!X)
    (Env_?Xe VarId_?Xe ((|| Goals_out)))
 
-   (where (ParameterKind ∀ Universe_!X) (var-binding-in-env Env VarId_!X))
+   (where (VarId ParameterKind ∀ Universe_!X) (var-binding-in-env Env VarId_!X))
    (where/error #f (universe-includes Universe Universe_!X))
    (where/error InequalityOp_▹ (invert-inequality-op InequalityOp_◃))
 

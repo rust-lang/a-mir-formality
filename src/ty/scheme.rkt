@@ -38,7 +38,7 @@
 
   [(add-var-kind Env VarId)
    (ParameterKind VarId)
-   (where/error (ParameterKind ∃ _) (var-binding-in-env Env VarId))
+   (where/error (_ ParameterKind ∃ _) (var-binding-in-env Env VarId))
    ]
 
   )
