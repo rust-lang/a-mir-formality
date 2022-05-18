@@ -30,8 +30,8 @@ A trait declaration looks like this:
 Here:
 
 * `TraitId` is the name of the trait
-* `KindedVarIds` is a list of generic parameters like `((TyVar Self) (TyVar T))`.
-  Note that the `Self` parameter is made explicit. 
+* `KindedVarIds` is a list of generic parameters like `((type Self) (type T))`.
+  Note that the `Self` parameter is made explicit.
 * `WhereClauses` is a list of where-clauses, which are currently just `T: Foo` trait references
   (though potentially higher-ranked).
 * `TraitItems` are the contents of the trait, currently not used for anything.
@@ -95,7 +95,7 @@ and ultimately invokes this helper function, `crate-item-decl-rules`:
 ```
 <span class="caption">[Source](https://github.com/nikomatsakis/a-mir-formality/blob/47eceea34b5f56a55d781acc73dca86c996b15c5/src/decl/decl-to-clause.rkt#L57-L63)</span>
 
-`crate-item-decl-rules` takes 
+`crate-item-decl-rules` takes
 
 * the full set of crates `CrateDecls` and
 * the declaration of a single item `CrateItemDecl`
@@ -108,7 +108,7 @@ We'll cover the invariants later.
 <!-- move/copy description of metafunctions to ty chapter -->
 Metafunctions are basically a gigantic match statement.
 They consist of a series of clauses,
-each of which begins with a "pattern match" against the arguments. 
+each of which begins with a "pattern match" against the arguments.
 
 To see how it works, let's look at the case for an `impl` from that section.
 To begin with, here is the comment explaining what we aim to do:
@@ -148,7 +148,7 @@ The function this is part of  -- this says we will produce one global clause
 This final result is allowed to refer to variables defined on the following lines, shown below.
 A `(where/error <pattern> <value>)` clause is effectively just `let <pattern> = <value>`, in Rust terms;
 the `/error` part means "if this pattern doesn't match, generate an error".
-You can also write `(where <pattern> <value>)`, but that means that if the pattern doesn't match, 
+You can also write `(where <pattern> <value>)`, but that means that if the pattern doesn't match,
 the metafunction should to see if the next rule works.
 
 The impl code begins by pattern matching against the `TraitRef` that the impl is implementing
@@ -212,7 +212,7 @@ Here is the source, I'll leave puzzling it out as an exercise to the reader:
 
 ### Generating the "ok goals" for a crate
 
-In addition to "clauses", there is also a function `crate-ok-goal` 
+In addition to "clauses", there is also a function `crate-ok-goal`
 that generate goals for each crate item in a given crate:
 
 ```scheme
@@ -249,7 +249,7 @@ Here is the rule for impls:
 In short, an `impl` is well-formed if the trait is fully implemented.
 We'll look at the definition of *implemented* in more detail in [the next section](./case-study.md),
 but for now it suffices to say that a trait is implemented if
-(a) it has an impl and 
+(a) it has an impl and
 (b) all of its where-clauses are satisfied.
-Since we know there is an impl (we're checking it right now!) this is equivalent to saying 
+Since we know there is an impl (we're checking it right now!) this is equivalent to saying
 "all of the trait's where clauses are satisfied".

@@ -13,9 +13,9 @@ The current definition of types looks like this:
 (define-language formality-ty
   ...
   (Ty :=
-      (TyApply TyName Parameters) ; Application type
-      VarId                       ; Bound or existential (inference) variable
-      (! VarId)                   ; Universal (placeholder) variable
+      (rigid-ty TyName Parameters) ; Application type
+      VarId                        ; Bound or existential (inference) variable
+      (! VarId)                    ; Universal (placeholder) variable
       )
   (TyName :=
           AdtId           ; enum/struct/union
@@ -50,9 +50,9 @@ Let's see some examples:
     * `T` is used when the generic has yet to be substituted, e.g., as part of a declaration.
     * `(! T)` is used as a placeholder to "any type `T`".
 * A type like `Vec<T>` in Rust would be represented therefore as:
-    * `(TyApply Vec (T))`, in a declaration; or,
-    * `(TyApply Vec ((! T)))` when checking it.
-* A scalar type like `i32` is represented as `(TyApply i32 ())`.
+    * `(rigid-ty Vec (T))`, in a declaration; or,
+    * `(rigid-ty Vec ((! T)))` when checking it.
+* A scalar type like `i32` is represented as `(rigid-ty i32 ())`.
 
 As I said, this defintion of types is woefully incomplete. I expect it to eventually include:
 
@@ -100,8 +100,8 @@ Invoking `most-general-unifier` like so:
 
 ```scheme
 (most-general-unifier Env_2 ((A X)
-                             (X (TyApply Vec (Y)))
-                             (Y (TyApply i32 ()))))
+                             (X (rigid-ty Vec (Y)))
+                             (Y (rigid-ty i32 ()))))
 ```
 
 <!-- maybe: `A == X`,  `X == Vec<Y>`, and `Y == i32` -->

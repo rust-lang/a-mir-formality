@@ -95,9 +95,9 @@
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A : B))
-                   ((item (& A TyUnit))
+                   ((item (& A unit-ty))
                     <=
-                    (item (& B TyUnit))
+                    (item (& B unit-ty))
                     )
                    )
                   )
@@ -115,9 +115,9 @@
                    ((A : B)
                     (B : A)
                     )
-                   ((item (& A TyUnit))
+                   ((item (& A unit-ty))
                     <=
-                    (item (& B TyUnit))
+                    (item (& B unit-ty))
                     )
                    )
                   )
@@ -133,9 +133,9 @@
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A : B))
-                   ((item (vec (& A TyUnit)))
+                   ((item (vec (& A unit-ty)))
                     <=
-                    (item (vec (& B TyUnit)))
+                    (item (vec (& B unit-ty)))
                     )
                    )
                   )
