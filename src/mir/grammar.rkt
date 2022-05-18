@@ -50,7 +50,14 @@
 
   (Constant ::= number)
 
-  (Place ::= (LocalId Projections))
+  (Place ::=
+         LocalId
+         (* Place)
+         (field Place FieldId)
+         (index Place LocalId)
+         (downcast Place VariantId)
+         )
+
   (Projections ::= (Projection ...))
   (Projection ::=
               *
