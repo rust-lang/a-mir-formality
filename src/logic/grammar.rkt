@@ -128,7 +128,10 @@
   ;; that extends the previous one to add new names that didn't exist in the old
   ;; universe (e.g., the placeholders for the universally quantified variables).
   ;; See the paper XXX
+  (Universes ::= (Universe ...))
   (Universe ::= (universe number))
+  (UniversePairs ::= (UniversePair ...))
+  (UniversePair ::= (Universe Universe))
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
@@ -145,9 +148,13 @@
   (Prove/Stacks ::= (Predicates Predicates))
   (Prove/Coinductive ::= + -)
 
+  (CanonicalTerm ::= (canonicalized VarBinders Term))
+  (CanonicalGoal ::= (canonicalized VarBinders (implies Hypotheses Goal)))
+
   #:binding-forms
   (∀ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   (∃ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
+  (canonicalized ((VarId ParameterKind Quantifier Universe) ...) any #:refers-to (shadow VarId ...))
   )
 
 (define-term
