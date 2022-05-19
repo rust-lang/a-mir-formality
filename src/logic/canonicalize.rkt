@@ -3,25 +3,31 @@
          racket/set
          "grammar.rkt"
          "env.rkt"
+         "instantiate.rkt"
          "substitution.rkt"
          )
 (provide canonicalize-term)
 
-#;(define-metafunction formality-logic
-    canonicalize-term : Env Term -> CanonicalTerm
-    [(canonicalize-term Env Term_0)
-     xxx
-     (where/error Term_1 (apply-substitution-from-env Env Term_0))
+(define-metafunction formality-logic
+  canonicalize-term : Env Term -> (CanonicalTerm UniversePairs)
+  [(canonicalize-term Env Term_0)
+   ((canonicalized (VarBinder_map ...) Term_1) (reverse-universe-map UniversePairs_map))
 
-     ; find the free variables in Term and the binding info about them from env
-     (where/error (VarId_free ...) (free-variables Env Term_1))
-     (where/error (VarBinder_free ...) ((var-binding-in-env Env VarId_free) ...))
+   (where/error Term_1 (apply-substitution-from-env Env Term_0))
 
-     ; find the universes that these free variables refer to
-     (where/error ((_ _ _ Universe_free) ...) (VarBinder_free ...))
-     (where/error (Universe_all ...) (RootUniverse Universe_free ...))
-     ]
-    )
+   ; find the free variables in Term and the binding info about them from env
+   (where/error (VarId_free ...) (free-variables Env Term_1))
+   (where/error (VarBinder_free ...) ((var-binding-in-env Env VarId_free) ...))
+
+   ; find the universes that these free variables refer to
+   (where/error ((_ _ _ Universe_free) ...) (VarBinder_free ...))
+   (where/error (Universe_all ...) (RootUniverse Universe_free ...))
+
+   ; compress the universes in Term
+   (where/error UniversePairs_map (universe-map (Universe_all ...)))
+   (where/error (VarBinder_map ...) (apply-universe-map UniversePairs_map (VarBinder_free ...)))
+   ]
+  )
 
 (define-metafunction formality-logic
   ;; Replace all universes in `Term` with their replacements from `UniversePairs`.
@@ -79,7 +85,9 @@
   )
 
 (module+ test
-
+  (require "test/hook.rkt"
+           "../util.rkt"
+           )
   (test-equal (term (universe-map ((universe 1) (universe 1) (universe 3) (universe 7))))
               (term (((universe 0) (universe 0))
                      ((universe 1) (universe 1))
@@ -89,4 +97,23 @@
   (test-equal (term (apply-universe-map (((universe 0) (universe 1)) ((universe 1) (universe 0))) (a b (universe 0) (universe 1))))
               (term (a b (universe 1) (universe 0))))
 
+  (redex-let*
+   formality-logic
+
+   (((Env_0 () (Parameter_A Parameter_B)) (term (instantiate-quantified EmptyEnv (∀ ((type A) (type B)) ()))))
+    ((Env_1 () (Parameter_X)) (term (instantiate-quantified Env_0 (∀ ((type X)) ()))))
+    ((Env_2 () (Parameter_Z)) (term (instantiate-quantified Env_1 (∀ ((type Z)) ()))))
+    )
+
+   (traced '()
+           (test-equal
+            (term (canonicalize-term Env_2 (Parameter_A Parameter_Z)))
+            (term ((canonicalized
+                    ((Parameter_Z type ∀ (universe 2))
+                     (Parameter_A type ∀ (universe 1)))
+                    (Parameter_A Parameter_Z))
+                   (((universe 0) (universe 0))
+                    ((universe 1) (universe 1))
+                    ((universe 2) (universe 3)))))))
+   )
   )
