@@ -220,10 +220,9 @@
    ; e.g. `forall<'b> fn(&'b) : 'a` is true because
    ;    `'b : 'a` if `'b = 'a`
    ;
-   ; e.g. `forall<'b> fn(&'b &'a u32) : 'a` is false because
-   ;    `exists 'b. (fn(&'b &'a u32) : 'a)` is false because
-   ;    `(fn(&'b &'a u32) : 'a)` is false because
-   ;    `'b : 'a`
+   ; e.g. `forall<'b> fn(&'b &'a u32) : 'a` is true because
+   ;    `exists 'b. (fn(&'b &'a u32) : 'a)` is true because
+   ;    `(fn(&'b &'a u32) : 'a)` is true if `'b == 'a`
    (outlives/one/substituted/reduce Env ((∀ KindedVarIds Ty) -outlives- Parameter))
    (Env ((∃ KindedVarIds (Parameter -outlives- Ty))))
    ]
