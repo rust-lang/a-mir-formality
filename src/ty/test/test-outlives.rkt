@@ -85,6 +85,32 @@
            (test-match
             formality-ty
 
+            ; for<'a> fn(&'a &'b T) -outlives- 'b
+
+            ((∃ _ _)) ; provable
+
+            (redex-let*
+             formality-ty
+             [(Ty_fn (term (∀ ((lifetime A))
+                              (fn
+                               ((& A (& B (scalar-ty i32))))
+                               unit-ty))))
+              (Goal (term (Ty_fn -outlives- B)))
+              ]
+             (term (ty:prove-scheme
+                    Env
+                    ((∃ ((lifetime B))))
+                    ()
+                    Goal
+                    ))
+             )
+            )
+           )
+
+   (traced '()
+           (test-match
+            formality-ty
+
             ; For some T, exists A where (A : T)...
             ;
             ; true if (A -outlives- 'static)

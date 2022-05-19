@@ -52,8 +52,8 @@
    (outlives/one/substituted Env (VarId_!A OutlivesOp VarId_!B))
    (Env ((|| Goals)))
 
-   (where (lifetime ∀ _) (var-binding-in-env Env VarId_!A))
-   (where (lifetime ∀ _) (var-binding-in-env Env VarId_!B))
+   (where (_ lifetime ∀ _) (var-binding-in-env Env VarId_!A))
+   (where (_ lifetime ∀ _) (var-binding-in-env Env VarId_!B))
    (where Goals (bound-placeholder-from-hypotheses Env VarId_!A OutlivesOp VarId_!B))
    ]
 
@@ -61,7 +61,7 @@
    (outlives/one/substituted Env (VarId_!A -outlives- static))
    (Env ((|| Goals)))
 
-   (where (lifetime ∀ _) (var-binding-in-env Env VarId_!A))
+   (where (_ lifetime ∀ _) (var-binding-in-env Env VarId_!A))
    (where Goals (bound-placeholder-from-hypotheses Env VarId_!A -outlives- static))
    ]
 
@@ -178,7 +178,7 @@
    (outlives/one/substituted/reduce Env (VarId -outlives- Parameter))
    (Env ((|| Goals)))
 
-   (where (type ∀ _) (var-binding-in-env Env VarId))
+   (where (_ type ∀ _) (var-binding-in-env Env VarId))
    (where/error Goals (bound-placeholder-from-hypotheses Env VarId -outlives- Parameter))
    ]
 
@@ -188,7 +188,7 @@
    (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
    (Env ((Parameter -outlives- static)))
 
-   (where (type ∀ _) (var-binding-in-env Env VarId))
+   (where (_ type ∀ _) (var-binding-in-env Env VarId))
    (where () (bound-placeholder-from-hypotheses Env VarId -outlived-by- Parameter))
    ]
 
@@ -200,7 +200,7 @@
    (outlives/one/substituted/reduce Env (Parameter -outlives- VarId))
    (Env ((|| (Goal_0 Goal_1 ...))))
 
-   (where (type ∀ _) (var-binding-in-env Env VarId))
+   (where (_ type ∀ _) (var-binding-in-env Env VarId))
    (where/error (Goal_0 Goal_1 ...) (bound-placeholder-from-hypotheses Env VarId -outlived-by- Parameter))
    ]
 
@@ -220,10 +220,9 @@
    ; e.g. `forall<'b> fn(&'b) : 'a` is true because
    ;    `'b : 'a` if `'b = 'a`
    ;
-   ; e.g. `forall<'b> fn(&'b &'a u32) : 'a` is false because
-   ;    `exists 'b. (fn(&'b &'a u32) : 'a)` is false because
-   ;    `(fn(&'b &'a u32) : 'a)` is false because
-   ;    `'b : 'a`
+   ; e.g. `forall<'b> fn(&'b &'a u32) : 'a` is true because
+   ;    `exists 'b. (fn(&'b &'a u32) : 'a)` is true because
+   ;    `(fn(&'b &'a u32) : 'a)` is true if `'b == 'a`
    (outlives/one/substituted/reduce Env ((∀ KindedVarIds Ty) -outlives- Parameter))
    (Env ((∃ KindedVarIds (Parameter -outlives- Ty))))
    ]

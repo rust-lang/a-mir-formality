@@ -15,7 +15,7 @@
   ; The VarId syntactic form is shared by types and lifetimes
   [(parameter-kind Env VarId)
    ParameterKind
-   (where/error (ParameterKind _ _) (var-binding-in-env Env VarId))]
+   (where/error (VarId ParameterKind _ _) (var-binding-in-env Env VarId))]
 
   ; The others are not, so we can just test via patterns
   [(parameter-kind Env Lt) lifetime]
