@@ -7,6 +7,7 @@ sidebar_position: 2
 How to build, test, and run a-mir-formality:
 
 * [Download and install racket](https://download.racket-lang.org/)
+    * run `nix-shell` if you have nix available to get everything set up automatically
 * Check out the a-mir-formality repository
 * Run `raco test -j22 src` to run the tests
     * This will use 22 parallel threads; you may want to tune the number depending on how many cores you have.
