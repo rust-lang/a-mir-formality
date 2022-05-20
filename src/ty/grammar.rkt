@@ -65,9 +65,9 @@
   (WhereClauses ::= (WhereClause ...))
   (WhereClause ::=
                (∀ KindedVarIds WhereClause)
-               (Ty : TraitId Parameters)
-               (Parameter : Lt)
-               (AliasTy == Ty)
+               (Ty : TraitId Parameters) ; T: Debug
+               (Parameter : Lt) ; T: 'a
+               (AliasTy == Ty) ; <T as Iterator>::Item == u32
                )
 
   ;; Ty -- Rust types
