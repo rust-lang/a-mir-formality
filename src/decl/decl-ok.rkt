@@ -51,6 +51,18 @@
                             (&& ((well-formed (type Ty)) ... ...)))))
    ]
 
+  [;; For a fn declaration declared in the crate C, like the following:
+   ;;
+   ;;     fn foo<'a, T>(t: &'a T) -> u32 where T: Ord { ... }
+   ;;
+   ;; We generate the following goal, which specifies that -- assuming the generics
+   ;; are well formed and the where-clauses hold -- the field types are well-formed:
+   ;;
+   ;;     FIXME
+   (crate-item-ok-goal _ (FnId (fn-decl KindedVarIds Tys_arg Ty_ret (WhereClause ...))))
+   ,(raise "not-yet-implemented")
+   ]
+
   [;; For a trait declaration declared in the crate C, like the following:
    ;;
    ;;     trait Foo<'a, T> where T: Ord { ... }
