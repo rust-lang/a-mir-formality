@@ -1,5 +1,5 @@
 #lang racket
-(require redex "grammar.rkt")
+(require redex/reduction-semantics "grammar.rkt")
 (provide (all-defined-out))
 
 (define-metafunction formality-mir

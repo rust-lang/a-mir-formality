@@ -253,6 +253,13 @@
                            (has-impl TraitRef))))
    ]
 
+  [;; For a function declared in the crate C, like the following
+   ;;
+   ;;     fn foo<'a, T>(&'a T) -> &'a T { ... }
+   (crate-item-decl-rules _ (_ (fn-decl KindedVarIds_fn Tys_arg Ty_ret WhereClauses_fn)))
+   (() () ())
+   ]
+
   [;; For an named constant in the crate C, like the following
    ;;
    ;;    const NAMED<T>: Foo<T> where T: Trait;
