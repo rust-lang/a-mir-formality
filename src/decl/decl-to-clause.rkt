@@ -113,7 +113,8 @@
    (crate-decl-rules CrateDecls (CrateId (crate (CrateItemDecl ...))) CrateId)
    ((Clause ... ...) (Invariant_all ... ... Invariant_local ... ...))
 
-   (where/error (((Clause ...) (Invariant_all ...) (Invariant_local ...)) ...) ((crate-item-decl-rules CrateDecls CrateItemDecl) ...))
+   (where/error (((Clause ...) (Invariant_all ...) (Invariant_local ...)) ...)
+                ((crate-item-decl-rules CrateDecls CrateId CrateItemDecl) ...))
    ]
 
   [; Rules from crate C to use from other crates -- exclude the invariants, which are
@@ -122,17 +123,24 @@
    ((Clause ... ...) (Invariant_all ... ...))
 
    (where (CrateId_!_same CrateId_!_same) (CrateId_0 CrateId_1))
-   (where/error (((Clause ...) (Invariant_all ...) _) ...) ((crate-item-decl-rules CrateDecls CrateItemDecl) ...))
+   (where/error (((Clause ...) (Invariant_all ...) _) ...)
+                ((crate-item-decl-rules CrateDecls CrateId_0 CrateItemDecl) ...))
    ]
   )
 
 (define-metafunction formality-decl
-  ;; Given a crate item, return a tuple of:
+  ;; Given:
+  ;;
+  ;; * a set of crate-declarations
+  ;; * the id I of a crate
+  ;; * some item in the the crate I
+  ;;
+  ;; Return a tuple of:
   ;;
   ;; * The clauses that hold in all crates due to this item
   ;; * The invariants that hold in all crates due to this item
-  ;; * The invariants that hold only in the crate that declared this item
-  crate-item-decl-rules : CrateDecls CrateItemDecl -> (Clauses Invariants Invariants)
+  ;; * The invariants that hold only in the crate I
+  crate-item-decl-rules : CrateDecls CrateId CrateItemDecl -> (Clauses Invariants Invariants)
 
   [;; For an ADT declaration declared in the crate C, like the following:
    ;;
@@ -154,7 +162,7 @@
    ;;
    ;;     (∀ ((type T))
    ;;         (well-formed (type (Foo (T)))) => (well-formed (type T)))
-   (crate-item-decl-rules _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
+   (crate-item-decl-rules CrateDecls CrateId (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
    ((Clause) Invariants_wf Invariants_wc)
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
@@ -200,7 +208,7 @@
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type Self))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (lifetime 'a))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
-   (crate-item-decl-rules _ (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
+   (crate-item-decl-rules CrateDecls CrateId  (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
    ((Clause)
     (Hypothesis_wc ...
      Hypothesis_wf ...
@@ -238,7 +246,7 @@
    ;;             (well-formed (type i32))
    ;;             (well-formed (lifetime 'a))
    ;;             (is-implemented (Ord T)))
-   (crate-item-decl-rules CrateDecls (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
+   (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
    ((Clause) () ())
 
    (where/error (TraitId (Parameter_trait ...)) TraitRef)
@@ -256,7 +264,7 @@
   [;; For a function declared in the crate C, like the following
    ;;
    ;;     fn foo<'a, T>(&'a T) -> &'a T { ... }
-   (crate-item-decl-rules _ (_ (fn-decl KindedVarIds_fn Tys_arg Ty_ret WhereClauses_fn)))
+   (crate-item-decl-rules CrateDecls CrateId (_ (fn-decl KindedVarIds_fn Tys_arg Ty_ret WhereClauses_fn)))
    (() () ())
    ]
 
@@ -265,7 +273,7 @@
    ;;    const NAMED<T>: Foo<T> where T: Trait;
    ;;
    ;; we don't yet any rules.
-   (crate-item-decl-rules CrateDecls ConstDecl)
+   (crate-item-decl-rules CrateDecls CrateId ConstDecl)
    (() () ())
    ]
   )
