@@ -5,6 +5,7 @@
          "../ty/where-clauses.rkt"
          "decl-from-crate.rkt"
          "../logic/env.rkt"
+         "decl-wf-where-clause.rkt"
          )
 (provide crate-item-ok-goal crate-ok-goal)
 
@@ -40,7 +41,7 @@
    ;;         (implies ((well-formed (type T))
    ;;                   (is-implemented (Ord T)))
    ;;           (well-formed (type Vec<T>)) ...))
-   (crate-item-ok-goal _ (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
+   (crate-item-ok-goal CrateDecls (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
    Goal_wf
 
    (where/error (KindedVarId ...) KindedVarIds)
@@ -48,7 +49,11 @@
    (where/error Goal_wf (∀ KindedVarIds
                            (implies
                             ((well-formed KindedVarId) ... (where-clause->hypothesis WhereClause) ...)
-                            (&& ((well-formed (type Ty)) ... ...)))))
+                            (&& ((well-formed (type Ty))
+                                 ... ...
+                                 (well-formed-where-clause-goal CrateDecls WhereClause)
+                                 ...))
+                            )))
    ]
 
   [;; For a fn declaration declared in the crate C, like the following:
@@ -66,7 +71,7 @@
    ;;
    ;; FIXME: Actually implement that, along with for the other items
    (crate-item-ok-goal _ (FnId (fn-decl KindedVarIds Tys_arg Ty_ret (WhereClause ...))))
-   (&& ())
+   (&& ((well-formed-where-clause-goal WhereClause) ...))
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:
@@ -74,10 +79,11 @@
    ;;     trait Foo<'a, T> where T: Ord { ... }
    ;;
    ;; we require that all the trait-item WF goals are met.
-   (crate-item-ok-goal _ (TraitId (trait KindedVarIds (WhereClause ...) (TraitItem ...))))
+   (crate-item-ok-goal CrateDecls (TraitId (trait KindedVarIds (WhereClause ...) (TraitItem ...))))
    (∀ KindedVarIds
       (implies ((well-formed KindedVarId) ... (where-clause->hypothesis WhereClause) ...)
-               (&& (Goal_trait-item ...))))
+               (&& (Goal_trait-item ...
+                    (well-formed-where-clause-goal CrateDecls WhereClause) ...))))
 
    (where/error (Goal_trait-item ...) ((trait-item-ok-goal TraitItem) ...))
    (where/error (KindedVarId ...) KindedVarIds)
@@ -98,8 +104,9 @@
         (well-formed (ParameterKind_trait Parameter_trait)) ...
         ; ...where-clauses are satisfied...
         (where-clause->hypothesis WhereClause_impl) ...)
-       (; ... then the trait must be implemented
-        is-implemented (TraitId (Parameter_trait ...)))))
+       ( && ((; ... then the trait must be implemented
+              is-implemented (TraitId (Parameter_trait ...)))
+             (well-formed-where-clause-goal CrateDecls WhereClause_impl) ...))))
 
    (where/error (TraitId (trait ((ParameterKind_trait _) ...) _ _)) (trait-decl-with-id CrateDecls TraitId))
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
@@ -118,8 +125,9 @@
         (well-formed KindedVarId) ...
         ; ...where-clauses are satisfied...
         (where-clause->hypothesis WhereClause) ...)
-       (; ... then the trait must be implemented
-        well-formed (type Ty))))
+       (&& ((; ... then the trait must be implemented
+             well-formed (type Ty))
+            (well-formed-where-clause-goal CrateDecls WhereClause) ...))))
 
    (where/error (KindedVarId ...) KindedVarIds)
    (where/error (WhereClause ...) WhereClauses)

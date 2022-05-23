@@ -80,6 +80,9 @@
                               ((Foo ())) ; the 1 variant (named `Foo`)
                               ))))
 
+    (; trait Debug { }
+     TraitDecl_Debug (term (Debug (trait ((type Self)) () ()))))
+
     (; trait rust:Drop { }
      TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
@@ -88,6 +91,7 @@
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo
+                                       TraitDecl_Debug
                                        TraitDecl_Drop
                                        TraitImplDecl
                                        )))))

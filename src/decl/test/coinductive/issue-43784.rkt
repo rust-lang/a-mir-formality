@@ -13,6 +13,9 @@
    ((; struct Foo { }
      AdtDecl_Foo (term (Foo (struct () () ((struct-variant ()))))))
 
+    (; trait Copy { }
+     TraitDecl_Copy (term (Copy (trait ((type Self)) () ()))))
+
     (; trait Partial: Copy { }
      TraitDecl_Partial (term (Partial (trait ((type Self)) ((Self : Copy())) ()))))
 
@@ -30,6 +33,7 @@
 
     (; crate A { ... }
      CrateDecl_A (term (A (crate (AdtDecl_Foo
+                                  TraitDecl_Copy
                                   TraitDecl_Partial
                                   TraitDecl_Complete
                                   TraitImplDecl_Partial
@@ -39,6 +43,7 @@
 
     (; crate B { ... }
      CrateDecl_B (term (B (crate (AdtDecl_Foo
+                                  TraitDecl_Copy
                                   TraitDecl_Partial
                                   TraitDecl_Complete
                                   TraitImplDecl_Partial

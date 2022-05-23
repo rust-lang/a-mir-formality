@@ -7,7 +7,8 @@
          "../ty/could-match.rkt"
          "../ty/where-clauses.rkt"
          "../ty/hook.rkt")
-(provide )
+(provide well-formed-where-clause-goal
+         )
 
 (define-metafunction formality-decl
   well-formed-where-clause-goal : CrateDecls WhereClause -> Goal
