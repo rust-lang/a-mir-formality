@@ -76,5 +76,47 @@
 
     (traced '() (decl:test-crate-decl-ok (CrateDecl) C))
     )
+
+   (; trait Baz<A> where Self: Foo<B> { }
+    ;
+    ; Not OK: `B: Bar` is required.
+    redex-let*
+    formality-decl
+
+    ((TraitDecl_Baz (term (Baz (trait ((type Self) (type A))
+                                      ((Self : Foo(A))
+                                       )
+                                      ()))))
+
+     (CrateDecl (term (C (crate (TraitDecl_Foo
+                                 TraitDecl_Bar
+                                 TraitDecl_Baz
+                                 )))))
+     )
+
+    (traced '() (decl:test-crate-decl-not-ok (CrateDecl) C))
+    )
+
+   (; trait Baz<A> where Self: Foo<B>, B: Bar { }
+    ;
+    ; OK.
+    redex-let*
+    formality-decl
+
+    ((TraitDecl_Baz (term (Baz (trait ((type Self) (type A))
+                                      ((Self : Foo(A))
+                                       (A : Bar())
+                                       )
+                                      ()))))
+
+     (CrateDecl (term (C (crate (TraitDecl_Foo
+                                 TraitDecl_Bar
+                                 TraitDecl_Baz
+                                 )))))
+     )
+
+    (traced '() (decl:test-crate-decl-ok (CrateDecl) C))
+    )
    )
+
   )
