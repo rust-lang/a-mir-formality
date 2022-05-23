@@ -17,8 +17,11 @@
   (CrateDecls ::= (CrateDecl ...))
   (CrateDecl ::= (CrateId CrateContents))
   (CrateContents ::= (crate (CrateItemDecl ...)))
-  (CrateItemDecl ::= AdtDecl TraitDecl TraitImplDecl ConstDecl FnDecl)
+  (CrateItemDecl ::= FeatureDecl AdtDecl TraitDecl TraitImplDecl ConstDecl FnDecl)
   ;; ANCHOR_END:Crates
+
+  ;; FeatureDecl -- indicates a feature gate is enabled on this crate
+  (FeatureDecl ::= (feature FeatureId))
 
   ;; AdtDecl -- struct/enum/union declarations
   (AdtDecl ::= (AdtId AdtContents))
@@ -70,6 +73,7 @@
     TraitImplId
     ConstId
     VariantId
+    FeatureId
     FieldId
     FnId) variable-not-otherwise-mentioned)
 

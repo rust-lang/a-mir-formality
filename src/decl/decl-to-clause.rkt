@@ -1,6 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
+         "feature-gate.rkt"
          "../logic/env.rkt"
          "../ty/relate.rkt"
          "../ty/could-match.rkt"
@@ -224,10 +225,27 @@
                             (where-clause->goal WhereClause) ...
                             )
                            (is-implemented TraitRef_me))))
-   (where/error (Hypothesis_wc ...) ((∀ KindedVarIds
-                                        (implies
-                                         ((is-implemented TraitRef_me))
-                                         (where-clause->hypothesis WhereClause))) ...))
+
+
+   ; With the expanded-implied-bounds feature, we include all where clauses from the
+   ; trait as implied bounds. Without it, we include only supertraits.
+   (where/error (WhereClause_super ...) (super-where-clauses KindedVarIds (WhereClause ...)))
+   (where/error (Hypothesis_wc ...) (if-crate-has-feature
+                                     CrateDecls
+                                     CrateId
+                                     expanded-implied-bounds
+
+                                     ((∀ KindedVarIds
+                                         (implies
+                                          ((is-implemented TraitRef_me))
+                                          (where-clause->hypothesis WhereClause))) ...)
+
+                                     ((∀ KindedVarIds
+                                         (implies
+                                          ((is-implemented TraitRef_me))
+                                          (where-clause->hypothesis WhereClause_super))) ...)
+
+                                     ))
    (where/error (Hypothesis_wf ...) ((∀ KindedVarIds
                                         (implies
                                          ((is-implemented TraitRef_me))
@@ -276,6 +294,11 @@
    (crate-item-decl-rules CrateDecls CrateId ConstDecl)
    (() () ())
    ]
+
+  [;; Feature gates don't introduce any rules
+   (crate-item-decl-rules CrateDecls CrateId FeatureDecl)
+   (() () ())
+   ]
   )
 
 (define-metafunction formality-decl
@@ -292,6 +315,29 @@
      (well-formed (type unit-ty))
      )
     ())
+   )
+
+  )
+
+(define-metafunction formality-decl
+  super-where-clauses : KindedVarIds WhereClauses -> WhereClauses
+
+  ((super-where-clauses KindedVarIds ())
+   ()
+   )
+
+  ((super-where-clauses KindedVarIds ((VarId_Self : TraitId Parameters) WhereClause_1 ...))
+   ((VarId_Self : TraitId Parameters) (super-where-clauses KindedVarIds WhereClause_1) ...)
+   (where ((type VarId_Self) _ ...) KindedVarIds)
+   )
+
+  ((super-where-clauses KindedVarIds ((VarId_Self : Parameter) WhereClause_1 ...))
+   ((VarId_Self : TraitId Parameter) (super-where-clauses KindedVarIds WhereClause_1) ...)
+   (where ((type VarId_Self) _ ...) KindedVarIds)
+   )
+
+  ((super-where-clauses KindedVarIds (_ WhereClause_1 ...))
+   ((super-where-clauses KindedVarIds WhereClause_1) ...)
    )
 
   )

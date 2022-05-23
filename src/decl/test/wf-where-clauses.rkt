@@ -1,0 +1,80 @@
+#lang racket
+(require redex/reduction-semantics
+         "../decl-to-clause.rkt"
+         "../decl-ok.rkt"
+         "../grammar.rkt"
+         "../prove.rkt"
+         "../../util.rkt")
+
+;; Various tests that check the requirements that where clauses be well-formed.
+
+(module+ test
+
+  ; Common declarations
+  (redex-let*
+   formality-decl
+
+   ((; trait Foo<T> where T: Bar { }
+     TraitDecl_Foo (term (Foo (trait ((type Self) (type T)) ((T : Bar())) ()))))
+
+    (; trait Bar { }
+     TraitDecl_Bar (term (Bar (trait ((type Self)) () ()))))
+    )
+
+   (; struct S<A, B> where A: Foo<B> { }
+    redex-let*
+    formality-decl
+
+    ((AdtDecl_S (term (S (struct ((type A) (type B))
+                           ((A : Foo(B)))
+                           ((S ()))))))
+
+     (CrateDecl (term (C (crate (TraitDecl_Foo
+                                 TraitDecl_Bar
+                                 AdtDecl_S
+                                 )))))
+     )
+
+    (traced '() (decl:test-crate-decl-not-ok (CrateDecl) C))
+    )
+
+   (; struct S<A, B> where A: Foo<B> { }
+    ;
+    ; but with implied bounds
+    redex-let*
+    formality-decl
+
+    ((AdtDecl_S (term (S (struct ((type A) (type B))
+                           ((A : Foo(B)))
+                           ((S ()))))))
+
+     (CrateDecl (term (C (crate ((feature expanded-implied-bounds)
+                                 TraitDecl_Foo
+                                 TraitDecl_Bar
+                                 AdtDecl_S
+                                 )))))
+     )
+
+    (traced '() (decl:test-crate-decl-ok (CrateDecl) C))
+    )
+
+   (; struct S<A, B> where A: Foo<B>, B: Bar { }
+    redex-let*
+    formality-decl
+
+    ((AdtDecl_S (term (S (struct ((type A) (type B))
+                           ((A : Foo(B))
+                            (B : Bar())
+                            )
+                           ((S ()))))))
+
+     (CrateDecl (term (C (crate (TraitDecl_Foo
+                                 TraitDecl_Bar
+                                 AdtDecl_S
+                                 )))))
+     )
+
+    (traced '() (decl:test-crate-decl-ok (CrateDecl) C))
+    )
+   )
+  )

@@ -132,6 +132,10 @@
    (where/error (KindedVarId ...) KindedVarIds)
    (where/error (WhereClause ...) WhereClauses)
    ]
+
+  [;; Features are always ok.
+   (crate-item-ok-goal CrateDecls FeatureDecl)
+   (&& ())]
   )
 
 (define-metafunction formality-decl
