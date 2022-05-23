@@ -1,7 +1,10 @@
 #lang racket
 (require redex
          "grammar.rkt"
-         "../decl/grammar.rkt")
+         "../decl/grammar.rkt"
+         "../decl/decl-to-clause.rkt"
+         "../decl/prove.rkt"
+         "../util.rkt")
 (provide (all-defined-out))
 
 (define-extended-language formality-mir+Γ formality-mir
@@ -256,3 +259,50 @@
    (where (Goal_hd ...) (goals/stmt Γ Statement_hd))
    (where (Goal_tl ...) (goals/block Γ ((Statement_tl ...) Terminator)))]
   )
+
+(module+ test
+  (redex-let*
+   formality-mir+Γ
+
+   ((; struct Foo { counter: i32 }
+     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+    (Ty_Foo (term (rigid-ty Foo ())))
+
+    (; enum Bar { Baz { counter: i32 } }
+     AdtDecl_Bar (term (Bar (enum () () ((Baz ((counter (scalar-ty i32)))))))))
+    (Ty_Bar (term (rigid-ty Bar ())))
+
+    (; crate TheCrate { ... }
+     CrateDecl (term (TheCrate (crate (AdtDecl_Foo AdtDecl_Bar)))))
+    
+    ; let foo: Foo; let bar: Bar;
+    (Γ (term (((foo Ty_Foo ()) (bar Ty_Bar ())) (CrateDecl))))
+    (Env (term (env-for-crate-decl CrateDecl)))
+    )
+
+    (test-equal
+      (term (typeof/operand Γ (const 42)))
+      (term (scalar-ty i32)))
+
+    (test-equal
+      (term (typeof/place Γ foo))
+      (term (place-ty (rigid-ty Foo ()) ())))
+
+    (test-equal
+      (term (typeof/place Γ (field foo counter)))
+      (term (place-ty (scalar-ty i32) ())))
+
+    (test-equal
+      (term (typeof/place Γ (field (downcast bar Baz) counter)))
+      (term (place-ty (scalar-ty i32) ())))
+
+    (test-equal
+      (term (typeof/rvalue Γ (+ (const 1) (const 2))))
+      (term (scalar-ty i32)))
+
+    (traced '()
+            (decl:test-can-prove
+            Env
+            (&& (goals/rvalue Γ (+ (const 1) (const 2))))))
+  )
+)
