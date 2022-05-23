@@ -6,7 +6,7 @@
 
 (define-extended-language formality-mir+Γ formality-mir
   ;; Extension of `Ty` to optionally store a `VariantId`.
-  [PlaceTy ::= (TyPlace Ty MaybeMut) (TyPlaceVariant Ty MaybeMut VariantId)]
+  [PlaceTy ::= (place-ty Ty MaybeMut) (place-ty-variant Ty MaybeMut VariantId)]
   ;; Typing context storing bindings from locals to types and `CrateDecls`.
   [Γ ::= (LocalDecls CrateDecls)]
   )
@@ -16,7 +16,7 @@
   type-of-local : Γ LocalId -> PlaceTy
 
   [(type-of-local Γ LocalId)
-   (TyPlace Ty MaybeMut)
+   (place-ty Ty MaybeMut)
    (where/error (LocalDecls _) Γ)
    (where (_ ... (LocalId Ty MaybeMut) _ ...) LocalDecls)]
   )
@@ -32,49 +32,40 @@
   )
 
 (define-metafunction formality-mir+Γ
-  ;; Returns the derived type obtained by recursively applying `Projections` to a given `PlaceTy`.
-  apply-projections : Γ PlaceTy Projections -> PlaceTy
-
-  [(apply-projections _ PlaceTy ()) PlaceTy]
-
-  [(apply-projections Γ
-                      (TyPlace (TyRigid (Ref _) (_ Ty)) MaybeMut)
-                      (ProjectionDeref Projection ...))
-   (apply-projections Γ (TyPlace Ty MaybeMut) (Projection ...))]
-
-  [(apply-projections Γ
-                      (TyPlace (TyRigid AdtId _) MaybeMut)
-                      ((ProjectionField FieldId) Projection ...))
-   (apply-projections Γ (TyPlace Ty_field MaybeMut) (Projection ...))
-   (where (struct _ _ ((_ FieldDecls))) (decl-of-adt Γ AdtId))
-   (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
-
-  [(apply-projections Γ
-                      (TyPlace Ty_adt MaybeMut)
-                      ((ProjectionDowncast VariantId) Projection ...))
-   (apply-projections Γ (TyPlaceVariant Ty_adt MaybeMut VariantId) (Projection ...))
-   (where (TyRigid AdtId _) Ty_adt)
-   (where (enum _ _ AdtVariants) (decl-of-adt Γ AdtId))
-   (where (_ ... (VariantId _) _ ...) AdtVariants)]
-
-  [(apply-projections Γ
-                      (TyPlaceVariant (TyRigid AdtId _) MaybeMut VariantId)
-                      ((ProjectionField FieldId) Projection ...))
-   (apply-projections Γ (TyPlace Ty_field MaybeMut) (Projection ...))
-   (where (enum _ _ AdtVariants) (decl-of-adt Γ AdtId))
-   (where (_ ... (VariantId FieldDecls) _ ...) AdtVariants)
-   (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
-  )
-
-(define-metafunction formality-mir+Γ
   ;; Computes the `PlaceTy` of a `Place`
   typeof/place : Γ Place -> PlaceTy
 
   [; local
-   (typeof/place Γ (LocalId Projections))
-   PlaceTy_proj
-   (where PlaceTy_local (type-of-local Γ LocalId))
-   (where PlaceTy_proj (apply-projections Γ PlaceTy_local Projections))]
+   (typeof/place Γ LocalId)
+   (type-of-local Γ LocalId)]
+
+  [; deref
+   (typeof/place Γ (* Place))
+   (place-ty Ty MaybeMut)
+   (where (place-ty (rigid-ty (ref _) (_ Ty)) MaybeMut) (typeof/place Γ Place))]
+
+  [; field-struct
+   (typeof/place Γ (field Place FieldId))
+   (place-ty Ty_field MaybeMut)
+   (where (place-ty (rigid-ty AdtId _) MaybeMut) (typeof/place Γ Place))
+   (where (struct _ _ ((_ FieldDecls))) (decl-of-adt Γ AdtId))
+   (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
+
+  [; downcast
+   (typeof/place Γ (downcast Place VariantId))
+   (place-ty-variant Ty_adt MaybeMut VariantId)
+   (where (place-ty Ty_adt MaybeMut) (typeof/place Γ Place))
+   (where (rigid-ty AdtId _) Ty_adt)
+   (where (enum _ _ AdtVariants) (decl-of-adt Γ AdtId))
+   (where (_ ... (VariantId _) _ ...) AdtVariants)]
+
+  [; field-enum
+   (typeof/place Γ (field  Place FieldId))
+   (place-ty Ty_field MaybeMut)
+   (where (place-ty-variant (rigid-ty AdtId _) MaybeMut VariantId) (typeof/place Γ Place))
+   (where (enum _ _ AdtVariants) (decl-of-adt Γ AdtId))
+   (where (_ ... (VariantId FieldDecls) _ ...) AdtVariants)
+   (where (_ ... (FieldId Ty_field) _ ...) FieldDecls)]
   )
 
 (define-metafunction formality-mir+Γ
@@ -82,17 +73,17 @@
   typeof/operand : Γ Operand -> Ty
 
   [; copy
-   (typeof/operand Γ (OperandCopy Place))
+   (typeof/operand Γ (copy Place))
    Ty
-   (where (TyPlace Ty _) (typeof/place Γ Place))]
+   (where (place-ty Ty _) (typeof/place Γ Place))]
 
   [; move
-   (typeof/operand Γ (OperandMove Place))
+   (typeof/operand Γ (move Place))
    Ty
-   (where (TyPlace Ty _) (typeof/place Γ Place))]
+   (where (place-ty Ty _) (typeof/place Γ Place))]
 
   [; constant
-   (typeof/operand Γ (OperandConstant _))
+   (typeof/operand Γ (const _))
    (scalar-ty i32)]
   )
 (define-metafunction formality-mir+Γ
@@ -109,16 +100,16 @@
   goals/operand : Γ Operand -> Goals
 
   [; copy
-   (goals/operand Γ (OperandCopy Place))
-   ((Implemented (rust:Copy (Ty))))
-   (where (TyPlace Ty _) (typeof/place Γ Place))]
+   (goals/operand Γ (copy Place))
+   ((is-implemented (rust:Copy (Ty))))
+   (where (place-ty Ty _) (typeof/place Γ Place))]
 
   [; move
-   (goals/operand Γ (OperandMove Place))
+   (goals/operand Γ (move Place))
    ()]
 
   [; constant
-   (goals/operand Γ (OperandConstant _))
+   (goals/operand Γ (const _))
    ()]
   )
 (define-metafunction formality-mir+Γ
@@ -137,28 +128,24 @@
   typeof/rvalue : Γ Rvalue -> Ty
 
   [; use
-   (typeof/rvalue Γ (RvalueUse Operand))
+   (typeof/rvalue Γ (use Operand))
    Ty
    (where Ty (typeof/operand Γ Operand))]
 
   [; ref
-   (typeof/rvalue Γ (RvalueRef Lt () Place))
-   (TyRigid (Ref ()) (Lt Ty))
-   (where (TyPlace Ty _) (typeof/place Γ Place))]
+   (typeof/rvalue Γ (ref Lt () Place))
+   (rigid-ty (ref ()) (Lt Ty))
+   (where (place-ty Ty _) (typeof/place Γ Place))]
 
   [; ref-mut
-   (typeof/rvalue Γ (RvalueRef Lt (mut) Place))
-   (TyRigid (Ref (mut)) (Lt Ty))
-   (where (TyPlace Ty (mut)) (typeof/place Γ Place))]
-
-  [; nullop
-   (typeof/rvalue Γ (RvalueNullaryOp Ty))
-   (scalar-ty usize)]
+   (typeof/rvalue Γ (ref Lt (mut) Place))
+   (rigid-ty (ref (mut)) (Lt Ty))
+   (where (place-ty Ty (mut)) (typeof/place Γ Place))]
 
   [; binop
-   (typeof/rvalue Γ (RvalueBinaryOp _ Operand_rhs _))
-   (TyRigid ScalarId_ty ())
-   (where (TyRigid ScalarId_ty ()) (typeof/operand Γ Operand_rhs))]
+   (typeof/rvalue Γ (BinaryOp Operand_rhs _))
+   (rigid-ty ScalarId_ty ())
+   (where (rigid-ty ScalarId_ty ()) (typeof/operand Γ Operand_rhs))]
   )
 
 (define-metafunction formality-mir+Γ
@@ -166,20 +153,16 @@
   goals/rvalue : Γ Rvalue -> Goals
 
   [; use
-   (goals/rvalue Γ (RvalueUse Operand))
+   (goals/rvalue Γ (use Operand))
    (Goal_op ...)
    (where (Goal_op ...) (goals/operand Γ Operand))]
 
   [; ref
-   (goals/rvalue Γ (RvalueRef Lt MaybeMut Place))
-   ()]
-
-  [; nullop
-   (goals/rvalue Γ (RvalueNullaryOp Ty))
+   (goals/rvalue Γ (ref Lt MaybeMut Place))
    ()]
 
   [; binop
-   (goals/rvalue Γ (RvalueBinaryOp _ Operand_rhs Operand_lhs))
+   (goals/rvalue Γ (BinaryOp Operand_rhs Operand_lhs))
    ((Ty_rhs == Ty_lhs) Goal_rhs ... Goal_lhs ...)
    (where Ty_rhs (typeof/operand Γ Operand_rhs))
    (where Ty_lhs (typeof/operand Γ Operand_lhs))
@@ -191,23 +174,23 @@
   ;; Computes the `Goals` that have to hold for a `Statement`
   goals/stmt : Γ Statement -> Goals
 
-  [; nop
-   (goals/stmt Γ StatementNop)
+  [; noop
+   (goals/stmt Γ noop)
    ()]
 
   [; storage-live
-   (goals/stmt Γ StatementStorageLive)
+   (goals/stmt Γ storage-live)
    ()]
 
   [; storage-dead
-   (goals/stmt Γ StatementStorageLive)
+   (goals/stmt Γ storage-dead)
    ()]
 
   [; assign
-   (goals/stmt Γ (StatementAssign Place Rvalue))
+   (goals/stmt Γ (assign Place Rvalue))
    ((Ty_rvalue <= Ty_place) Goal_rvalue ...)
    (where Ty_rvalue (typeof/rvalue Γ Rvalue))
-   (where (TyPlace Ty_place (mut)) (typeof/place Γ Place))
+   (where (place-ty Ty_place (mut)) (typeof/place Γ Place))
    (where (Goal_rvalue ...) (goals/rvalue Γ Rvalue))]
 
   ; TODO: set-discr
@@ -218,42 +201,42 @@
   goals/term : Γ Terminator -> Goals
 
   [; goto
-   (goals/term Γ (TerminatorGoto _))
+   (goals/term Γ (goto _))
    ()]
 
   [; resume
-   (goals/term Γ TerminatorResume)
+   (goals/term Γ resume)
    ()]
 
   [; abort
-   (goals/term Γ TerminatorAbort)
+   (goals/term Γ abort)
    ()]
 
   [; return
-   (goals/term Γ TerminatorReturn)
+   (goals/term Γ return)
    ()]
 
   [; unreachable
-   (goals/term Γ TerminatorUnreachable)
+   (goals/term Γ unreachable)
    ()]
 
   [; drop
-   (goals/term Γ (TerminatorDrop _ _))
+   (goals/term Γ (drop _ _))
    ()]
 
   [; drop-replace
-   (goals/term Γ (TerminatorDropAndReplace Place Operand _))
+   (goals/term Γ (drop-and-replace Place Operand _))
    ((Ty_operand == Ty_place) Goal_op ...)
    (where Ty_operand (typeof/operand Γ Operand))
-   (where (TyPlace Ty_place _) (typeof/place Γ Place))
+   (where (place-ty Ty_place _) (typeof/place Γ Place))
    (where (Goal_op ...) (goals/operand Γ Operand))]
 
   [; call
-   (goals/term Γ (TerminatorCall Operand_fn (Operand_arg ..._n) Place _))
+   (goals/term Γ (call Operand_fn (Operand_arg ..._n) Place _))
    ((Ty_ret <= Ty_place) (Ty_oparg <= Ty_arg) ... Goal_fn ... Goal_arg ...)
-   (where (TyRigid (Fn _ _) (Ty_arg ..._n Ty_ret)) (typeof/operand Γ Operand_fn))
+   (where (rigid-ty (fn-ptr _ _) (Ty_arg ..._n Ty_ret)) (typeof/operand Γ Operand_fn))
    (where (Ty_oparg ...) (typeof/operands Γ (Operand_arg ...)))
-   (where (TyPlace Ty_place (mut)) (typeof/place Γ Place))
+   (where (place-ty Ty_place (mut)) (typeof/place Γ Place))
    (where (Goal_fn ...) (goals/operand Γ Operand_fn))
    (where (Goal_arg ...) (goals/operands Γ (Operand_arg ...)))]
   )
