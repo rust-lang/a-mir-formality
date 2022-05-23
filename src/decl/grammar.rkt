@@ -1,6 +1,7 @@
 #lang racket
 (require redex/reduction-semantics "../ty/grammar.rkt")
 (provide formality-decl
+         crate-decl-with-id
          trait-decl-id
          item-with-id
          scalar-ty
@@ -91,6 +92,14 @@
          Ty #:refers-to (shadow VarId ...))
   )
 
+(define-metafunction formality-decl
+  crate-decl-with-id : CrateDecls CrateId -> CrateDecl
+
+  ((crate-decl-with-id (_ ... (CrateId CrateContents) _ ...) CrateId)
+   (CrateId CrateContents)
+   )
+
+  )
 (define-metafunction formality-decl
   trait-decl-id : TraitDecl -> TraitId
 

@@ -95,16 +95,9 @@
                                        TraitDecl_Drop
                                        TraitImplDecl
                                        )))))
-
-    (; create the Env for checking things in this crate
-     Env (term (env-for-crate-decl CrateDecl)))
     )
 
-   (traced '()
-           (decl:test-cannot-prove
-            Env
-            (crate-ok-goal (CrateDecl) CrateDecl)
-            ))
+   (traced '() (decl:test-crate-decl-not-ok (CrateDecl) TheCrate))
    )
 
   (redex-let*
@@ -178,16 +171,10 @@
                                        TraitDecl_Ord
                                        TraitImplDecl
                                        )))))
-
-    (; create the Env for checking things in this crate
-     Env (term (env-for-crate-decl CrateDecl)))
     )
 
    (traced '()
-           (decl:test-can-prove
-            Env
-            (crate-ok-goal (CrateDecl) CrateDecl)
-            ))
+           (decl:test-crate-decl-ok (CrateDecl) TheCrate))
    )
 
   )

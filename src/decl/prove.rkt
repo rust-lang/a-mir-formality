@@ -2,10 +2,14 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "../logic/cosld-solve.rkt"
+         "decl-ok.rkt"
+         "decl-to-clause.rkt"
          )
 (provide decl:prove-top-level-goal/cosld
          decl:test-can-prove
          decl:test-cannot-prove
+         decl:test-crate-decl-ok
+         decl:test-crate-decl-not-ok
          )
 
 (define-syntax-rule (decl:test-can-prove env goal)
@@ -18,6 +22,30 @@
   (test-equal
    (judgment-holds (decl:prove-top-level-goal/cosld env goal _))
    #f)
+  )
+
+(define-syntax-rule (decl:test-crate-decl-ok crate-decls crate-id)
+  (redex-let*
+   formality-decl
+   ((CrateDecls (term crate-decls))
+    (CrateId (term crate-id))
+    (CrateDecl (term (crate-decl-with-id CrateDecls CrateId)))
+    (Env (term (env-for-crate-decls CrateDecls CrateId))))
+
+   (decl:test-can-prove Env (crate-ok-goal CrateDecls CrateDecl))
+   )
+  )
+
+(define-syntax-rule (decl:test-crate-decl-not-ok crate-decls crate-id)
+  (redex-let*
+   formality-decl
+   ((CrateDecls (term crate-decls))
+    (CrateId (term crate-id))
+    (CrateDecl (term (crate-decl-with-id CrateDecls CrateId)))
+    (Env (term (env-for-crate-decls CrateDecls CrateId))))
+
+   (decl:test-cannot-prove Env (crate-ok-goal CrateDecls CrateDecl))
+   )
   )
 
 (define-extended-judgment-form formality-decl logic:prove-top-level-goal/cosld
