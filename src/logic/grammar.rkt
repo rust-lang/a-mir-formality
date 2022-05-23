@@ -113,7 +113,7 @@
   ;; `Invariants` -- things which must be true or the type system has some bugs.
   ;; A rather restricted form of clause.
   (Invariants ::= (Invariant ...))
-  (Invariant ::= (∀ KindedVarIds (implies (Predicate) Predicate)))
+  (Invariant ::= (∀ KindedVarIds (implies (Predicate) AtomicGoal)))
 
   ;; Different ways to relate parameters
   (Relations ::= (Relation ...))

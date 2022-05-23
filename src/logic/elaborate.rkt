@@ -117,13 +117,13 @@
 
    ; that bound term must have form `P => Q`, try to find some assignment
    ; for the (fresh) `Vars` that matches `P` against `Predicate_in`
-   (where/error (implies (Predicate_condition) Predicate_consequence) Term_bound-fresh)
+   (where/error (implies (Predicate_condition) AtomicGoal_consequence) Term_bound-fresh)
    (where Substitution_m (match-terms (VarId_fresh ...) Predicate_condition Predicate_in))
 
    ; if successful, we can add `Q` to the result (after substituting the result of the match)
-   (where/error Predicate_out (apply-substitution Substitution_m Predicate_consequence))
+   (where/error AtomicGoal_out (apply-substitution Substitution_m AtomicGoal_consequence))
    ------------------- "elaborate-predicate"
-   (hypothesis-elaborates-one-step Env Predicate_in Predicate_out)
+   (hypothesis-elaborates-one-step Env Predicate_in AtomicGoal_out)
    ]
 
   [(hypothesis-elaborates-one-step Env
@@ -136,22 +136,22 @@
    ]
 
   [(hypothesis-elaborates-one-step Env
-                                   Predicate_in
-                                   Predicate_out)
-   (where #t (is-predicate? Env Predicate_out))
+                                   AtomicGoal_in
+                                   AtomicGoal_out)
+   (where #t (is-atomic-goal? Env AtomicGoal_out))
    ------------------- "elaborate-implies-map"
    (hypothesis-elaborates-one-step Env
-                                   (implies (Goal_in ...) Predicate_in)
-                                   (implies (Goal_in ...) Predicate_out))
+                                   (implies (Goal_in ...) AtomicGoal_in)
+                                   (implies (Goal_in ...) AtomicGoal_out))
    ]
 
   [(hypothesis-elaborates-one-step Env
-                                   Predicate_in
-                                   (implies (Goal_out ...) Predicate_out))
+                                   AtomicGoal_in
+                                   (implies (Goal_out ...) AtomicGoal_out))
    ------------------- "elaborate-implies-flatten"
    (hypothesis-elaborates-one-step Env
-                                   (implies (Goal_in ...) Predicate_in)
-                                   (implies (Goal_in ... Goal_out ...) Predicate_out))
+                                   (implies (Goal_in ...) AtomicGoal_in)
+                                   (implies (Goal_in ... Goal_out ...) AtomicGoal_out))
    ]
   )
 

@@ -8,6 +8,7 @@
          predicates-could-match
          is-predicate?
          is-relation?
+         is-atomic-goal?
          )
 
 ;; Creates a "hook" value:
@@ -107,5 +108,16 @@
    ,(let ((is-relation-fn (formality-logic-hook-is-relation (term any))))
       (is-relation-fn (term Goal)))
    (where/error (Hook: any) (env-hook Env))
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; The "grammar" for predicates is just *any term* -- that's not very
+  ;; useful, and extension languages refine it. When matching against predicates,
+  ;; then, we can use this function to avoid matching on other kinds of goals.
+  is-atomic-goal? : Env Goal -> boolean
+
+  [(is-atomic-goal? Env Goal)
+   ,(or (term (is-predicate? Env Goal)) (term (is-relation? Env Goal)))
    ]
   )
