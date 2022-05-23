@@ -211,8 +211,8 @@
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
    (crate-item-decl-rules CrateDecls CrateId  (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
    ((Clause)
-    (Hypothesis_wc ...
-     Hypothesis_wf ...
+    (Invariant_wc ...
+     Invariant_wf ...
      )
     ())
 
@@ -230,26 +230,26 @@
    ; With the expanded-implied-bounds feature, we include all where clauses from the
    ; trait as implied bounds. Without it, we include only supertraits.
    (where/error (WhereClause_super ...) (super-where-clauses KindedVarIds (WhereClause ...)))
-   (where/error (Hypothesis_wc ...) (if-crate-has-feature
-                                     CrateDecls
-                                     CrateId
-                                     expanded-implied-bounds
+   (where/error (Invariant_wc ...) (if-crate-has-feature
+                                    CrateDecls
+                                    CrateId
+                                    expanded-implied-bounds
 
-                                     ((∀ KindedVarIds
-                                         (implies
-                                          ((is-implemented TraitRef_me))
-                                          (where-clause->hypothesis WhereClause))) ...)
-
-                                     ((∀ KindedVarIds
-                                         (implies
-                                          ((is-implemented TraitRef_me))
-                                          (where-clause->hypothesis WhereClause_super))) ...)
-
-                                     ))
-   (where/error (Hypothesis_wf ...) ((∀ KindedVarIds
+                                    ((∀ KindedVarIds
                                         (implies
                                          ((is-implemented TraitRef_me))
-                                         (well-formed (ParameterKind VarId)))) ...))
+                                         (where-clause->hypothesis WhereClause))) ...)
+
+                                    ((∀ KindedVarIds
+                                        (implies
+                                         ((is-implemented TraitRef_me))
+                                         (where-clause->hypothesis WhereClause_super))) ...)
+
+                                    ))
+   (where/error (Invariant_wf ...) ((∀ KindedVarIds
+                                       (implies
+                                        ((is-implemented TraitRef_me))
+                                        (well-formed (ParameterKind VarId)))) ...))
    ]
 
   [;; For an trait impl declared in the crate C, like the followin
@@ -322,22 +322,30 @@
 (define-metafunction formality-decl
   super-where-clauses : KindedVarIds WhereClauses -> WhereClauses
 
-  ((super-where-clauses KindedVarIds ())
+  ((super-where-clauses KindedVarIds (WhereClause ...))
+   (flatten ((filter-super-where-clauses KindedVarIds WhereClause) ...))
+   )
+
+  )
+
+(define-metafunction formality-decl
+  filter-super-where-clauses : KindedVarIds WhereClause -> WhereClauses
+
+  (; Keep `Self: Trait` bounds
+   (filter-super-where-clauses KindedVarIds (VarId_Self : TraitId Parameters))
+   ((VarId_Self : TraitId Parameters))
+   (where ((type VarId_Self) _ ...) KindedVarIds)
+   )
+
+  (; Keep `Self: 'a` bounds
+   (filter-super-where-clauses KindedVarIds (VarId_Self : Parameter))
+   ((VarId_Self : Parameter))
+   (where ((type VarId_Self) _ ...) KindedVarIds)
+   )
+
+  (; Discard others
+   (filter-super-where-clauses KindedVarIds WhereClause)
    ()
-   )
-
-  ((super-where-clauses KindedVarIds ((VarId_Self : TraitId Parameters) WhereClause_1 ...))
-   ((VarId_Self : TraitId Parameters) (super-where-clauses KindedVarIds WhereClause_1) ...)
-   (where ((type VarId_Self) _ ...) KindedVarIds)
-   )
-
-  ((super-where-clauses KindedVarIds ((VarId_Self : Parameter) WhereClause_1 ...))
-   ((VarId_Self : TraitId Parameter) (super-where-clauses KindedVarIds WhereClause_1) ...)
-   (where ((type VarId_Self) _ ...) KindedVarIds)
-   )
-
-  ((super-where-clauses KindedVarIds (_ WhereClause_1 ...))
-   ((super-where-clauses KindedVarIds WhereClause_1) ...)
    )
 
   )
