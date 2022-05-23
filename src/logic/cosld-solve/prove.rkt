@@ -1,5 +1,5 @@
 #lang racket
-(require redex
+(require redex/reduction-semantics
          "../../util.rkt"
          "../grammar.rkt"
          "../hook.rkt"

@@ -58,9 +58,15 @@
    ;; We generate the following goal, which specifies that -- assuming the generics
    ;; are well formed and the where-clauses hold -- the field types are well-formed:
    ;;
-   ;;     FIXME
+   ;;     (∀ ((lifetime A) (type T))
+   ;;         (implies ((well-formed (lifetime A))
+   ;;                   (well-formed (type T))
+   ;;                   (well-formed (type (rigid-ty (ref ()) (A (rigid-ty T ()))))))
+   ;;           (well-formed-where-clause-goal (T : Trait_Ord ()))))
+   ;;
+   ;; FIXME: Actually implement that, along with for the other items
    (crate-item-ok-goal _ (FnId (fn-decl KindedVarIds Tys_arg Ty_ret (WhereClause ...))))
-   ,(raise "not-yet-implemented")
+   (&& ())
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:
