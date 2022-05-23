@@ -107,17 +107,17 @@
   [(where #t (is-predicate? Env Predicate_in))
    (where (_ ... Invariant _ ...) (env-invariants Env))
 
-   ; the Invariant will have the form `ForAll (Vars...) Term_bound`:
+   ; the Invariant will have the form `∀ (Vars...) Term_bound`:
    ; create a version of `Term_bound` where `Vars` are fresh identifiers
    ; that don't appear in the environment
-   (where/error (ForAll ((ParameterKind VarId) ...) Term_bound) Invariant)
+   (where/error (∀ ((ParameterKind VarId) ...) Term_bound) Invariant)
    (where/error (VarId_fresh ...) (fresh-var-ids Env (VarId ...)))
    (where/error Substitution_freshen ((VarId VarId_fresh) ...))
    (where/error Term_bound-fresh (apply-substitution Substitution_freshen Term_bound))
 
    ; that bound term must have form `P => Q`, try to find some assignment
    ; for the (fresh) `Vars` that matches `P` against `Predicate_in`
-   (where/error (Implies (Predicate_condition) Predicate_consequence) Term_bound-fresh)
+   (where/error (implies (Predicate_condition) Predicate_consequence) Term_bound-fresh)
    (where Substitution_m (match-terms (VarId_fresh ...) Predicate_condition Predicate_in))
 
    ; if successful, we can add `Q` to the result (after substituting the result of the match)
@@ -131,8 +131,8 @@
                                    Hypothesis_out)
    ------------------- "elaborate-forall"
    (hypothesis-elaborates-one-step Env
-                                   (ForAll KindedVarIds Hypothesis_in)
-                                   (ForAll KindedVarIds Hypothesis_out))
+                                   (∀ KindedVarIds Hypothesis_in)
+                                   (∀ KindedVarIds Hypothesis_out))
    ]
 
   [(hypothesis-elaborates-one-step Env
@@ -141,17 +141,17 @@
    (where #t (is-predicate? Env Predicate_out))
    ------------------- "elaborate-implies-map"
    (hypothesis-elaborates-one-step Env
-                                   (Implies (Goal_in ...) Predicate_in)
-                                   (Implies (Goal_in ...) Predicate_out))
+                                   (implies (Goal_in ...) Predicate_in)
+                                   (implies (Goal_in ...) Predicate_out))
    ]
 
   [(hypothesis-elaborates-one-step Env
                                    Predicate_in
-                                   (Implies (Goal_out ...) Predicate_out))
+                                   (implies (Goal_out ...) Predicate_out))
    ------------------- "elaborate-implies-flatten"
    (hypothesis-elaborates-one-step Env
-                                   (Implies (Goal_in ...) Predicate_in)
-                                   (Implies (Goal_in ... Goal_out ...) Predicate_out))
+                                   (implies (Goal_in ...) Predicate_in)
+                                   (implies (Goal_in ... Goal_out ...) Predicate_out))
    ]
   )
 
@@ -161,36 +161,38 @@
   (redex-let*
    formality-logic
    [(Env (term (env-with-clauses-and-invariants ()
-                                                ((ForAll ((TyKind T)) (Implies ((Implemented (Eq (T)))) (Implemented (PartialEq (T)))))
-                                                 (ForAll ((TyKind T)) (Implies ((Implemented (Ord (T)))) (Implemented (PartialOrd (T)))))
-                                                 (ForAll ((TyKind T)) (Implies ((Implemented (Ord (T)))) (Implemented (Eq (T)))))
-                                                 (ForAll ((TyKind T)) (Implies ((Implemented (PartialOrd (T)))) (Implemented (PartialEq (T)))))
+                                                ((∀ ((type T)) (implies ((is-implemented (Eq (T)))) (is-implemented (PartialEq (T)))))
+                                                 (∀ ((type T)) (implies ((is-implemented (Ord (T)))) (is-implemented (PartialOrd (T)))))
+                                                 (∀ ((type T)) (implies ((is-implemented (Ord (T)))) (is-implemented (Eq (T)))))
+                                                 (∀ ((type T)) (implies ((is-implemented (PartialOrd (T)))) (is-implemented (PartialEq (T)))))
                                                  ))))
     ]
 
    (traced '()
            (test-equal
-            (term (elaborate-hypothesis-one-step Env (Implemented (Ord ((scalar-ty u32))))))
-            (term ((Implemented (Eq ((scalar-ty u32))))
-                   (Implemented (PartialOrd ((scalar-ty u32))))))))
+            (term (elaborate-hypothesis-one-step Env (is-implemented (Ord ((scalar-ty u32))))))
+            (term ((is-implemented (Eq ((scalar-ty u32))))
+                   (is-implemented (PartialOrd ((scalar-ty u32))))))))
 
    (traced '()
            (test-equal
-            (term (env-hypotheses (elaborate-hypotheses (env-with-hypotheses Env ((Implemented (Ord ((scalar-ty u32)))))))))
-            (term ((Implemented (Ord ((scalar-ty u32))))
-                   (Implemented (Eq ((scalar-ty u32))))
-                   (Implemented (PartialOrd ((scalar-ty u32))))
-                   (Implemented (PartialEq ((scalar-ty u32))))))))
+            (term (env-hypotheses (elaborate-hypotheses (env-with-hypotheses Env ((is-implemented (Ord ((scalar-ty u32)))))))))
+            (term ((is-implemented (Ord ((scalar-ty u32))))
+                   (is-implemented (Eq ((scalar-ty u32))))
+                   (is-implemented (PartialOrd ((scalar-ty u32))))
+                   (is-implemented (PartialEq ((scalar-ty u32))))))))
 
    (traced '()
            (test-alpha-equivalent
             formality-logic
             (term (env-hypotheses (elaborate-hypotheses
                                    (env-with-hypotheses Env
-                                                        ((ForAll ((TyKind T)) (Implemented (Ord (T)))))))))
-            (term ((ForAll ((TyKind T)) (Implemented (Ord (T))))
-                   (ForAll ((TyKind T)) (Implemented (Eq (T))))
-                   (ForAll ((TyKind T)) (Implemented (PartialOrd (T))))
-                   (ForAll ((TyKind T)) (Implemented (PartialEq (T))))))))
+                                                        ((∀ ((type T)) (is-implemented (Ord (T)))))))))
+            (term ((∀ ((type T)) (is-implemented (Ord (T))))
+                   (∀ ((type T)) (is-implemented (Eq (T))))
+                   (∀ ((type T)) (is-implemented (PartialOrd (T))))
+                   (∀ ((type T)) (is-implemented (PartialEq (T)))))))
+
+           )
    )
   )

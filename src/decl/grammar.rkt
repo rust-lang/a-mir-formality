@@ -4,7 +4,7 @@
          trait-decl-id
          item-with-id
          scalar-ty
-         TyUnit
+         unit-ty
          )
 
 (define-extended-language formality-decl formality-ty
@@ -16,7 +16,7 @@
   (CrateDecls ::= (CrateDecl ...))
   (CrateDecl ::= (CrateId CrateContents))
   (CrateContents ::= (crate (CrateItemDecl ...)))
-  (CrateItemDecl ::= AdtDecl TraitDecl TraitImplDecl ConstDecl)
+  (CrateItemDecl ::= AdtDecl TraitDecl TraitImplDecl ConstDecl FnDecl)
   ;; ANCHOR_END:Crates
 
   ;; AdtDecl -- struct/enum/union declarations
@@ -33,13 +33,13 @@
   ;; ANCHOR:Traits
   ;; TraitDecl -- trait Foo { ... }
   ;;
-  ;; Unlike in Rust, the `KindedVarIds` here always include with `(TyKind Self)` explicitly.
+  ;; Unlike in Rust, the `KindedVarIds` here always include with `(type Self)` explicitly.
   (TraitDecl ::= (TraitId TraitContents))
   (TraitContents ::= (trait KindedVarIds WhereClauses TraitItems))
 
   ;; TraitItem --
   (TraitItems ::= (TraitItem ...))
-  (TraitItem ::= NotYetImplemented)
+  (TraitItem ::= FnDecl)
 
   ;; Trait impls
   ;;
@@ -52,8 +52,16 @@
 
   ;; ImplItem --
   (ImplItems ::= (ImplItem ...))
-  (ImplItem ::= NotYetImplemented)
+  (ImplItem ::= FnDecl)
   ;; ANCHOR_END:Traits
+
+
+  ;; Function
+  ;;
+  ;; fn foo<...>(...) -> ... where ... { body }
+  (FnDecl ::= (FnId FnContents))
+  (FnContents ::= (fn-decl KindedVarIds Tys Ty WhereClauses))
+
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
@@ -61,7 +69,8 @@
     TraitImplId
     ConstId
     VariantId
-    FieldId) variable-not-otherwise-mentioned)
+    FieldId
+    FnId) variable-not-otherwise-mentioned)
 
   #:binding-forms
   (AdtKind AdtKind

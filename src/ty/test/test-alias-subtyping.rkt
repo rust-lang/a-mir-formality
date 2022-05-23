@@ -13,19 +13,19 @@
     ;; convenience for testing: write `(item T)` to reference the alias type `Item`
     item : Ty -> AliasTy
 
-    [(item Ty) (TyAlias Item (Ty))]
+    [(item Ty) (alias-ty Item (Ty))]
     )
 
   (redex-let*
    formality-ty
 
    ((Env (term (env-with-clauses-invariants-and-generics
-                ((; Just ignore WellFormed rules, not interesting for testing subtyping
-                  ForAll ((TyKind T)) (WellFormed (TyKind T)))
+                ((; Just ignore well-formed rules, not interesting for testing subtyping
+                  ∀ ((type T)) (well-formed (type T)))
                  (; Define a trait `AlwaysImpl` that is implemented for all types
-                  ForAll ((TyKind T)) (Implemented (AlwaysImpl (T))))
-                 (; Normalize `Item<Vec<T>>` to `T`
-                  ForAll ((TyKind T)) (Normalize (item (vec T)) T))
+                  ∀ ((type T)) (is-implemented (AlwaysImpl (T))))
+                 (; normalizes-to `Item<Vec<T>>` to `T`
+                  ∀ ((type T)) (normalizes-to (item (vec T)) T))
                  )
                 ()
                 ()
@@ -35,7 +35,7 @@
    (traced '()
            (test-match
             formality-ty
-            ((Exists () (Implies () _))) ; provable!
+            ((∃ () (implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
                    ()
@@ -56,7 +56,7 @@
             () ; not provable!
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T) (TyKind U))))
+                   ((∀ ((type T) (type U))))
                    ()
                    ((item T)
                     <=
@@ -71,12 +71,12 @@
             formality-ty
             ;; Given that `item(T) = i32` and `item(U) = i32`,
             ;; we *can* prove that `item(T) == item(U)`.
-            ((Exists () (Implies () _))) ; provable!
+            ((∃ () (implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((TyKind T) (TyKind U))))
-                   ((Normalize (item T) (scalar-ty i32))
-                    (Normalize (item U) (scalar-ty i32)))
+                   ((∀ ((type T) (type U))))
+                   (((item T) == (scalar-ty i32))
+                    ((item U) == (scalar-ty i32)))
                    ((item T)
                     <=
                     (item U)
@@ -93,11 +93,11 @@
             () ; not provable
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
-                   ((Outlives (A : B)))
-                   ((item (& A TyUnit))
+                   ((∀ ((lifetime A) (lifetime B))))
+                   ((A : B))
+                   ((item (& A unit-ty))
                     <=
-                    (item (& B TyUnit))
+                    (item (& B unit-ty))
                     )
                    )
                   )
@@ -108,16 +108,16 @@
             formality-ty
             ;; We CAN prove that `item(&'a()) <= item(&'b ())`
             ;; when `&'a () == &'b ()`
-            ((Exists () (Implies () _))) ; provable
+            ((∃ () (implies () _))) ; provable
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
-                   ((Outlives (A : B))
-                    (Outlives (B : A))
+                   ((∀ ((lifetime A) (lifetime B))))
+                   ((A : B)
+                    (B : A)
                     )
-                   ((item (& A TyUnit))
+                   ((item (& A unit-ty))
                     <=
-                    (item (& B TyUnit))
+                    (item (& B unit-ty))
                     )
                    )
                   )
@@ -128,14 +128,14 @@
             formality-ty
             ;; We can ALSO prove that `item(Vec<&'a()>) <= item(Vec<&'b ()>)`
             ;; because we can normalize and `&'a () <= &'b ()`
-            ((Exists () (Implies () _))) ; provable
+            ((∃ () (implies () _))) ; provable
             (term (ty:prove-scheme
                    Env
-                   ((ForAll ((LtKind A) (LtKind B))))
-                   ((Outlives (A : B)))
-                   ((item (vec (& A TyUnit)))
+                   ((∀ ((lifetime A) (lifetime B))))
+                   ((A : B))
+                   ((item (vec (& A unit-ty)))
                     <=
-                    (item (vec (& B TyUnit)))
+                    (item (vec (& B unit-ty)))
                     )
                    )
                   )

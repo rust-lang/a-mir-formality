@@ -13,35 +13,34 @@
 
   (Statements ::= (Statement ...))
   (Statement ::=
-             (StatementAssign Place Rvalue)
-             (StatementSetDiscriminant Place VariantId)
-             (StatementStorageLive LocalId)
-             (StatementStorageDead LocalId)
-             StatementNop
+             (assign Place Rvalue)
+             (set-discriminant Place VariantId)
+             (storage-live LocalId)
+             (storage-dead LocalId)
+             noop
              )
 
   (Rvalue ::=
-          (RvalueUse Operand)
-          (RvalueRepeat Operand Constant)
-          (RvalueRef Lt MaybeMut Place)
-          (RvalueAddrOf MaybeMut Place)
-          (RvalueLen Place)
-          (RvalueBinaryOp BinaryOp Operand Operand)
-          (RvalueNullaryOp Ty)
+          (use Operand)
+          (repeat Operand Constant)
+          (ref Lt MaybeMut Place)
+          (addr-of MaybeMut Place)
+          (len Place)
+          (BinaryOp Operand Operand)
           )
 
   (BinaryOp ::= + - * /)
 
   (Terminator ::=
-              (TerminatorGoto BasicBlockId)
+              (goto BasicBlockId)
               ;(TerminatorSwitchInt Operand SwitchTargets)
-              TerminatorResume
-              TerminatorAbort
-              TerminatorReturn
-              TerminatorUnreachable
-              (TerminatorDrop Place TargetIds)
-              (TerminatorDropAndReplace Place Operand TargetIds)
-              (TerminatorCall Operand Operands Place TargetIds)
+              resume
+              abort
+              return
+              unreachable
+              (drop Place TargetIds)
+              (drop-and-replace Place Operand TargetIds)
+              (call Operand Operands Place TargetIds)
               )
   (TargetIds ::=
              (BasicBlockId) ; unwind not possible
@@ -49,20 +48,27 @@
              )
 
   (Operand ::=
-           (OperandCopy Place)
-           (OperandMove Place)
-           (OperandConstant Constant)
+           (copy Place)
+           (move Place)
+           (const Constant)
            )
 
   (Constant ::= number)
 
-  (Place ::= (LocalId Projections))
+  (Place ::=
+         LocalId
+         (* Place)
+         (field Place FieldId)
+         (index Place LocalId)
+         (downcast Place VariantId)
+         )
+
   (Projections ::= (Projection ...))
   (Projection ::=
-              ProjectionDeref
-              (ProjectionField FieldId)
-              (ProjectionIndex LocalId)
-              (ProjectionDowncast VariantId)
+              *
+              (field FieldId)
+              (index LocalId)
+              (downcast VariantId)
               )
 
   ; identifiers of various kinds:

@@ -1,6 +1,10 @@
-# A MIR Formality
+---
+sidebar_position: 1
+---
 
-A MIR Formality (or just Formality) is an early-stage experimental project that aims to be
+# Introduction
+
+**A MIR Formality** (or just Formality) is an early-stage experimental project that aims to be
 a complete, authoritative formal model of the [Rust MIR][].
 Presuming these experiments bear fruit,
 the intention is to bring this model into Rust as an RFC

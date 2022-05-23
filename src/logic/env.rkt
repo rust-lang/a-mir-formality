@@ -12,7 +12,7 @@
   )
 
 (define-metafunction formality-logic
-  ;; Returns the hypotheses in the environment
+  ;; Returns the hook in the environment
   env-hook : Env -> Hook
 
   [(env-hook (Hook Universe VarBinders Substitution VarInequalities Hypotheses)) Hook]
@@ -75,15 +75,15 @@
   )
 
 (define-metafunction formality-logic
-  ;; Filters out universal (ForAll) binders and returns just the VarIds of the existential ones.
+  ;; Filters out universal (∀) binders and returns just the VarIds of the existential ones.
   existential-vars-from-binders : VarBinders -> VarIds
 
   [(existential-vars-from-binders ()) ()]
 
-  [(existential-vars-from-binders ((_ _ ForAll _) VarBinder_2 ...))
+  [(existential-vars-from-binders ((_ _ ∀ _) VarBinder_2 ...))
    (existential-vars-from-binders (VarBinder_2 ...))]
 
-  [(existential-vars-from-binders ((VarId_1 _ Exists _) VarBinder_2 ...))
+  [(existential-vars-from-binders ((VarId_1 _ ∃ _) VarBinder_2 ...))
    (VarId_1 VarId_2 ...)
    (where/error (VarId_2 ...) (existential-vars-from-binders (VarBinder_2 ...)))]
 
@@ -169,7 +169,7 @@
 
   [(env-with-vars-limited-to-universe Env (VarId_0 VarId_1 ...) Universe_max)
    (env-with-vars-limited-to-universe Env (VarId_1 ...) Universe_max)
-   (where (UniverseId 0) (universe-of-var-in-env Env VarId_0))]
+   (where (universe 0) (universe-of-var-in-env Env VarId_0))]
 
   [(env-with-vars-limited-to-universe Env (VarId_0 VarId_1 ...) Universe_max)
    (env-with-vars-limited-to-universe Env_1 (VarId_1 ...) Universe_max)
@@ -194,10 +194,10 @@
 (define-metafunction formality-logic
   ;; If this variable is declared in the environment, return its
   ;; quantifier/universe (or `()` otherwise).
-  var-binding-in-env : Env VarId -> (ParameterKind Quantifier Universe) or ()
+  var-binding-in-env : Env VarId -> VarBinder or ()
 
   [(var-binding-in-env Env VarId)
-   (ParameterKind Quantifier Universe)
+   (VarId ParameterKind Quantifier Universe)
    (where (_ ... (VarId ParameterKind Quantifier Universe) _ ...) (env-var-binders Env))]
 
   [(var-binding-in-env Env VarId)
@@ -214,7 +214,7 @@
 
   [(universe-of-var-in-env Env VarId)
    Universe
-   (where (_ Quantifier Universe) (var-binding-in-env Env VarId))]
+   (where (_ _ Quantifier Universe) (var-binding-in-env Env VarId))]
 
   [(universe-of-var-in-env Env VarId)
    RootUniverse
@@ -228,11 +228,11 @@
   env-contains-var : Env VarId -> boolean
 
   [(env-contains-var Env VarId)
-   #t
-   (where (_ _ _) (var-binding-in-env Env VarId))]
+   #f
+   (where () (var-binding-in-env Env VarId))]
 
   [(env-contains-var Env VarId)
-   #f]
+   #t]
 
   )
 
@@ -242,7 +242,7 @@
 
   [(env-contains-existential-var Env VarId)
    #t
-   (where (_ Exists _) (var-binding-in-env Env VarId))]
+   (where (_ _ ∃ _) (var-binding-in-env Env VarId))]
 
   [(env-contains-existential-var Env VarId)
    #f]
@@ -280,7 +280,7 @@
 
   [(env-contains-placeholder-var Env VarId)
    #t
-   (where (_ ForAll _) (var-binding-in-env Env VarId))]
+   (where (_ _ ∀ _) (var-binding-in-env Env VarId))]
 
   [(env-contains-placeholder-var Env VarId)
    #f]
@@ -291,8 +291,8 @@
   ;; Increments a universe to return the next largest universe.
   next-universe : Universe -> Universe
 
-  [(next-universe (UniverseId natural))
-   (UniverseId ,(+ 1 (term natural)))]
+  [(next-universe (universe natural))
+   (universe ,(+ 1 (term natural)))]
   )
 
 (define-metafunction formality-logic
@@ -301,7 +301,7 @@
 
   [(appears-free VarId Term)
    ,(not (alpha-equivalent? formality-logic (term Term) (term Term_1)))
-   (where/error Term_1 (substitute Term VarId (TyRigid VarId ())))
+   (where/error Term_1 (substitute Term VarId (rigid-ty VarId ())))
    ]
   )
 
@@ -371,7 +371,7 @@
 (define-metafunction formality-logic
   ;; Returns the set of universally quantified variables from
   ;; within the term -- this excludes global constants like
-  ;; adt names. So e.g. if you have `(TyRigid Vec (X))`,
+  ;; adt names. So e.g. if you have `(rigid-ty Vec (X))`,
   ;; this would return `(X)` (presuming `X` was forall'd).
   placeholder-variables : Env Term -> (VarId ...)
 
@@ -460,21 +460,21 @@
 (define-metafunction formality-logic
   ;; Returns the smallest of the various universes provided
   min-universe : Universe ... -> Universe
-  [(min-universe (UniverseId number) ...)
-   (UniverseId ,(apply min (term (number ...))))
+  [(min-universe (universe number) ...)
+   (universe ,(apply min (term (number ...))))
    ])
 
 (define-metafunction formality-logic
   ;; Returns the smallest of the various universes provided
   max-universe : Universe ... -> Universe
-  [(max-universe (UniverseId number) ...)
-   (UniverseId ,(apply max (term (number ...))))
+  [(max-universe (universe number) ...)
+   (universe ,(apply max (term (number ...))))
    ])
 
 (define-metafunction formality-logic
   ;; True if `Universe_0` includes all values of `Universe_1`
   universe-includes : Universe_0 Universe_1 -> boolean
-  [(universe-includes (UniverseId number_0) (UniverseId number_1))
+  [(universe-includes (universe number_0) (universe number_1))
    ,(>= (term number_0) (term number_1))])
 
 (define-metafunction formality-logic

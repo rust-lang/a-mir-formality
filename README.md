@@ -4,6 +4,10 @@ This repository is an early-stage experimental project that aims to be a complet
 Presuming these experiments bear fruit, the intention is to bring this model into Rust as an RFC
 and develop it as an official part of the language definition.
 
+## Quickstart guide
+
+The quickstart guide can be found [in the documentation](https://nikomatsakis.github.io/a-mir-formality/docs/setup)
+
 ## Tool
 
 For the time being, the model is implemented in [PLT Redex](https://redex.racket-lang.org/).

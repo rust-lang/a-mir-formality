@@ -48,8 +48,8 @@
    ; Universe check fails or else previous case would have matched.
    ; In this case, we equate `X` with `R<...>` and recursively relate
    ; the parameters.
-   (equate/one/substituted Env (VarId == (TyRigid RigidName (Parameter ...))))
-   (relate-var-to-rigid Env (VarId == (TyRigid RigidName (Parameter ...))))
+   (equate/one/substituted Env (VarId == (rigid-ty RigidName (Parameter ...))))
+   (relate-var-to-rigid Env (VarId == (rigid-ty RigidName (Parameter ...))))
    (where #t (env-contains-existential-var Env VarId))
    ]
 
@@ -58,36 +58,36 @@
    ; Universe check fails or else previous case would have matched.
    ; In this case, we equate `X` with `R<...>` and recursively relate
    ; the parameters.
-   (equate/one/substituted Env ((TyRigid RigidName (Parameter ...)) == VarId))
-   (relate-var-to-rigid Env (VarId == (TyRigid RigidName (Parameter ...))))
+   (equate/one/substituted Env ((rigid-ty RigidName (Parameter ...)) == VarId))
+   (relate-var-to-rigid Env (VarId == (rigid-ty RigidName (Parameter ...))))
    (where #t (env-contains-existential-var Env VarId))
    ]
 
   [; Equating two rigid types with the same name: equate their parameters
-   (equate/one/substituted Env ((TyRigid RigidName (Parameter_1 ..._1)) == (TyRigid RigidName (Parameter_2 ..._1))))
+   (equate/one/substituted Env ((rigid-ty RigidName (Parameter_1 ..._1)) == (rigid-ty RigidName (Parameter_2 ..._1))))
    (Env ((Parameter_1 == Parameter_2) ...))
    ]
 
   [; Equating two alias types with same name
-   (equate/one/substituted Env ((TyAlias AliasName (Parameter_1 ...)) == (TyAlias AliasName (Parameter_2 ...))))
-   (Env ((Any (Goal_eq Goal_n))))
+   (equate/one/substituted Env ((alias-ty AliasName (Parameter_1 ...)) == (alias-ty AliasName (Parameter_2 ...))))
+   (Env ((|| (Goal_eq Goal_n))))
    (; Either all the parameters are equal
-    where/error Goal_eq (All ((Parameter_1 == Parameter_2) ...)))
+    where/error Goal_eq (&& ((Parameter_1 == Parameter_2) ...)))
    (; Or we can normalize both aliases to the same type
-    where/error Goal_n (Exists ((TyKind T))
-                               (All ((Normalize (TyAlias AliasName (Parameter_1 ...)) T)
-                                     (Normalize (TyAlias AliasName (Parameter_2 ...)) T)))
-                               ))
+    where/error Goal_n (∃ ((type T))
+                          (&& ((normalizes-to (alias-ty AliasName (Parameter_1 ...)) T)
+                               (normalizes-to (alias-ty AliasName (Parameter_2 ...)) T)))
+                          ))
    ]
 
   [; Equating alias with something else
    (equate/one/substituted Env (AliasTy == Ty))
-   (Env ((Normalize AliasTy Ty)))
+   (Env ((normalizes-to AliasTy Ty)))
    ]
 
   [; Equating alias with something else
    (equate/one/substituted Env (Ty == AliasTy))
-   (Env ((Normalize AliasTy Ty)))
+   (Env ((normalizes-to AliasTy Ty)))
    ]
 
   [; Otherwise, `T1 == T2` if `T1 <= T2` and `T2 <= T1`

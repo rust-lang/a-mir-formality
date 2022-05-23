@@ -16,9 +16,9 @@
   (redex-let*
    formality-decl
 
-   ((TraitDecl (term (Debug (trait ((TyKind Self)) () ()))))
-    (AdtDecl_Foo (term (Foo (struct ((TyKind T)) ((Implemented (Debug (T)))) ((Foo ()))))))
-    (ConstDecl_Malformed (term (Malformed (const ((TyKind T)) () (TyRigid Foo (T))))))
+   ((TraitDecl (term (Debug (trait ((type Self)) () ()))))
+    (AdtDecl_Foo (term (Foo (struct ((type T)) ((T : Debug())) ((Foo ()))))))
+    (ConstDecl_Malformed (term (Malformed (const ((type T)) () (rigid-ty Foo (T))))))
     (CrateDecl (term (TheCrate (crate (TraitDecl AdtDecl_Foo ConstDecl_Malformed)))))
     (Env (term (env-for-crate-decl CrateDecl)))
     )
