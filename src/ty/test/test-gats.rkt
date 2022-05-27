@@ -18,7 +18,7 @@
                  (; Define a trait `Iterable` that is implemented for Vec<T>
                   ∀ ((type T)) (is-implemented (Iterable ((vec T)))))
                  (; normalizes-to `Item<Vec<T>, A>` to `(rigid-ty (ref ()) (A T))`
-                  ∀ ((type T) (lifetime A)) (normalizes-to (alias-ty Item ((vec T) A)) (rigid-ty (ref ()) (A T))))
+                  ∀ ((type T) (lifetime A)) (normalizes-to (alias-ty Item ((vec T) A)) (& A T)))
                  )
                 ()
                 ()
