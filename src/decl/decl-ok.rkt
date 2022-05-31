@@ -148,8 +148,11 @@
         (where-clause->hypothesis WhereClause) ...)
        (&& ((; ... then the trait must be implemented
              well-formed (type Ty))
-            (is-implemented (rust:Send (Ty)))
-            (well-formed-where-clause-goal CrateDecls WhereClause) ...))))
+            (; ... and the type must be Send
+             is-implemented (rust:Send (Ty)))
+            (; ... and the where-clauses must be WF
+             well-formed-where-clause-goal CrateDecls WhereClause)
+            ...))))
 
    (where/error (KindedVarId ...) KindedVarIds)
    (where/error (WhereClause ...) WhereClauses)
