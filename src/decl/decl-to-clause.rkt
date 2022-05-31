@@ -295,6 +295,15 @@
    (() () ())
    ]
 
+  [;; For a named static in the crate C, like the following
+   ;;
+   ;;    static NAMED<T>: Foo<T> where T: Trait;
+   ;;
+   ;; we don't yet any rules.
+   (crate-item-decl-rules CrateDecls CrateId StaticDecl)
+   (() () ())
+   ]
+
   [;; Feature gates don't introduce any rules
    (crate-item-decl-rules CrateDecls CrateId FeatureDecl)
    (() () ())
