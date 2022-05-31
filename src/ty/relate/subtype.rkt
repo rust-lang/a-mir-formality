@@ -170,7 +170,7 @@
   [; Alias on subtype
    (compare/one/substituted Env (AliasTy <= Ty))
    (Env (Goal_n))
-   (; Or we can normalize both aliases to the same type
+   (; The alias has to normalize to a subtype of Ty
     where/error Goal_n (∃ ((type T))
                           (&& ((T <= Ty)
                                (normalizes-to AliasTy T)))))
@@ -179,7 +179,7 @@
   [; Alias on supertype
    (compare/one/substituted Env (Ty <= AliasTy))
    (Env (Goal_n))
-   (; Or we can normalize both aliases to the same type
+   (; The alias has to normalize to a supertype of Ty
     where/error Goal_n (∃ ((type T))
                           (&& ((Ty <= T)
                                (normalizes-to AliasTy T)))))
@@ -195,7 +195,7 @@
    ]
 
   [; `T <= !X` where:
-   ;    Flip to `!X <= T` and use above rule.
+   ;    Flip to `!X >= T` and use above rule.
    (compare/one/substituted Env (Parameter <= VarId))
    (Env ((|| Goals)))
 
