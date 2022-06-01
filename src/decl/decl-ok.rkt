@@ -148,8 +148,8 @@
         (where-clause->hypothesis WhereClause) ...)
        (&& ((; ... then the trait must be implemented
              well-formed (type Ty))
-            (; ... and the type must be Send
-             is-implemented (rust:Send (Ty)))
+            (; ... and the type must be Sync
+             is-implemented (rust:Sync (Ty)))
             (; ... and the where-clauses must be WF
              well-formed-where-clause-goal CrateDecls WhereClause)
             ...))))

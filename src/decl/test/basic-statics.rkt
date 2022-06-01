@@ -13,6 +13,8 @@
      AdtDecl_Foo (term (Foo (struct () () ((Foo ())))))))
 
    (; test that Send check fails
+    ;
+    ; FIXME(#26)  when we support auto traits, we'll need a neg impl here
     redex-let*
     formality-decl
     [(; static S: Foo;
@@ -25,14 +27,16 @@
             ))
 
 
-   (; test that Send check fails
+   (; test that Sync check succeeds when an impl is present
+    ;
+    ; FIXME(#26)  when we support auto traits, we won't need an impl here
     redex-let*
     formality-decl
     [(; static S: Foo;
       StaticDecl (term (S (static () () (rigid-ty Foo ())))))
      (; impl Send for Foo
-      TraitImplDecl_Send (term (impl ((type T)) (rust:Send ((rigid-ty Foo ()))) () ())))
-     (CrateDecl (term (TheCrate (crate (AdtDecl_Foo StaticDecl TraitImplDecl_Send)))))
+      TraitImplDecl_Sync (term (impl ((type T)) (rust:Sync ((rigid-ty Foo ()))) () ())))
+     (CrateDecl (term (TheCrate (crate (AdtDecl_Foo StaticDecl TraitImplDecl_Sync)))))
      ]
 
     (traced '()
