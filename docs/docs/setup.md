@@ -9,7 +9,7 @@ How to build, test, and run a-mir-formality:
 * [Download and install racket](https://download.racket-lang.org/)
     * run `nix-shell` if you have nix available to get everything set up automatically
 * Check out the a-mir-formality repository
-* Run `raco test -j22 src` to run the tests
+* Run `raco test -j 22 src` to run the tests
     * This will use 22 parallel threads; you may want to tune the number depending on how many cores you have.
 * You can use [DrRacket](https://docs.racket-lang.org/drracket/), or you can use VSCode. We recommend the following VSCode extensions:
     * [Magic Racket](https://marketplace.visualstudio.com/items?itemName=evzen-wybitul.magic-racket) to give a Racket mode that supports most LSP operations decently well
