@@ -133,6 +133,31 @@
    (where/error (WhereClause ...) WhereClauses)
    ]
 
+  [;; For a static declared in the crate C, like the following:
+   ;;
+   ;;     static NAMED<T>: Foo<T> where T: Trait;
+   ;;
+   ;; we require that the type is well formed assuming the where clauses are satisfied
+   ;; and that the type is `Send`.
+   (crate-item-ok-goal CrateDecls (StaticId (static KindedVarIds WhereClauses Ty)))
+   (∀ KindedVarIds
+      (implies
+       (; assuming all generic parameters are WF...
+        (well-formed KindedVarId) ...
+        ; ...where-clauses are satisfied...
+        (where-clause->hypothesis WhereClause) ...)
+       (&& ((; ... then the trait must be implemented
+             well-formed (type Ty))
+            (; ... and the type must be Sync
+             is-implemented (rust:Sync (Ty)))
+            (; ... and the where-clauses must be WF
+             well-formed-where-clause-goal CrateDecls WhereClause)
+            ...))))
+
+   (where/error (KindedVarId ...) KindedVarIds)
+   (where/error (WhereClause ...) WhereClauses)
+   ]
+
   [;; Features are always ok.
    (crate-item-ok-goal CrateDecls FeatureDecl)
    (&& ())]

@@ -290,8 +290,17 @@
    ;;
    ;;    const NAMED<T>: Foo<T> where T: Trait;
    ;;
-   ;; we don't yet any rules.
+   ;; we don't create any clauses.
    (crate-item-decl-rules CrateDecls CrateId ConstDecl)
+   (() () ())
+   ]
+
+  [;; For a named static in the crate C, like the following
+   ;;
+   ;;    static NAMED<T>: Foo<T> where T: Trait;
+   ;;
+   ;; we don't create any clauses.
+   (crate-item-decl-rules CrateDecls CrateId StaticDecl)
    (() () ())
    ]
 

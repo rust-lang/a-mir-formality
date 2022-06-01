@@ -17,7 +17,7 @@
   (CrateDecls ::= (CrateDecl ...))
   (CrateDecl ::= (CrateId CrateContents))
   (CrateContents ::= (crate (CrateItemDecl ...)))
-  (CrateItemDecl ::= FeatureDecl AdtDecl TraitDecl TraitImplDecl ConstDecl FnDecl)
+  (CrateItemDecl ::= FeatureDecl AdtDecl TraitDecl TraitImplDecl ConstDecl StaticDecl FnDecl)
   ;; ANCHOR_END:Crates
 
   ;; FeatureDecl -- indicates a feature gate is enabled on this crate
@@ -50,6 +50,10 @@
   ;; Note that trait impls do not have names.
   (TraitImplDecl ::= (impl KindedVarIds TraitRef WhereClauses ImplItems))
 
+  ;; Named statics
+  (StaticDecl ::= (StaticId StaticContents))
+  (StaticContents ::= (static KindedVarIds WhereClauses Ty))
+
   ;; Named constants
   (ConstDecl ::= (ConstId ConstContents))
   (ConstContents ::= (const KindedVarIds WhereClauses Ty))
@@ -72,6 +76,7 @@
   ((CrateId
     TraitImplId
     ConstId
+    StaticId
     VariantId
     FeatureId
     FieldId
