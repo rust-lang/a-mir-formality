@@ -7,8 +7,8 @@ sidebar_position: 1
 **A MIR Formality** (or just Formality) is an early-stage experimental project that aims to be
 a complete, authoritative formal model of the [Rust MIR][].
 The project has two goals.
-First, the models of Rust's MIR given by Formality's will serve as a complete model of _safe Rust_.
-including all static checks and operational semantics.
+First, the models of Rust's MIR given by Formality's will serve as a complete model for Rust, 
+including both its type checking rules (what programs are accepted) and semantics (what happens when you run them on an idealized machine).
 This will provide a source of truth.
 
 Presuming these experiments bear fruit,
