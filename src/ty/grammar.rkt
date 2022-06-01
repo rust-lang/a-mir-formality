@@ -172,6 +172,11 @@
   (AdtId AliasId TraitId AssociatedTyId AliasTyId ::=
          variable-not-otherwise-mentioned)
 
+  ;; Signature
+  ;;
+  ;; Callable functions (with any ABI)
+  (Signature ::= (ForAll KindedVarIds (implies WhereClauses (Tys_formal -> Ty_ret))))
+
   ;; Generic parameters
   (Generics ::= (GenericParameters WhereClauses))
   (GenericParameters ::= (GenericParameter ...))

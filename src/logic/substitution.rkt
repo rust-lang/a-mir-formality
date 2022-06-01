@@ -7,6 +7,7 @@
          apply-substitution
          apply-substitution-from-env
          apply-substitution-to-env
+         create-substitution
          env-fix
          substitution-fix
          substitution-concat-disjoint
@@ -53,6 +54,15 @@
   [(substitution-to-fresh-vars Term ((ParameterKind VarId) ...))
    ((VarId VarId_fresh) ...)
    (where/error (VarId_fresh ...) (fresh-var-ids Term (VarId ...)))
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; Given a set of kinded-var-ids and values for those var-ids, creates a substitution.
+  create-substitution : KindedVarIds Parameters -> Substitution
+
+  [(create-substitution ((ParameterKind VarId) ..._1) (Parameter ..._1))
+   ((VarId Parameter) ...)
    ]
   )
 

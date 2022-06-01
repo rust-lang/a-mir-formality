@@ -6,11 +6,15 @@
          item-with-id
          scalar-ty
          unit-ty
+         crate-decls
          )
 
 (define-extended-language formality-decl formality-ty
   ;; A *program* in "decl" is a set of crates (`CrateDecls`) and a current crate (`CrateId`).
   (DeclProgram ::= (CrateDecls CrateId))
+
+  ;; Fn bodies are not defined in this layer.
+  (FnBody ::= Term)
 
   ;; ANCHOR:Crates
   ;; Crate declarations
@@ -52,24 +56,22 @@
 
   ;; Named statics
   (StaticDecl ::= (StaticId StaticContents))
-  (StaticContents ::= (static KindedVarIds WhereClauses Ty))
+  (StaticContents ::= (static KindedVarIds WhereClauses Ty FnBody))
 
   ;; Named constants
   (ConstDecl ::= (ConstId ConstContents))
-  (ConstContents ::= (const KindedVarIds WhereClauses Ty))
+  (ConstContents ::= (const KindedVarIds WhereClauses Ty FnBody))
 
   ;; ImplItem --
   (ImplItems ::= (ImplItem ...))
   (ImplItem ::= FnDecl)
   ;; ANCHOR_END:Traits
 
-
   ;; Function
   ;;
   ;; fn foo<...>(...) -> ... where ... { body }
   (FnDecl ::= (FnId FnContents))
-  (FnContents ::= (fn-decl KindedVarIds Tys Ty WhereClauses))
-
+  (FnContents ::= (fn-decl KindedVarIds Tys Ty WhereClauses FnBody))
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
@@ -98,7 +100,19 @@
   (const ConstId
          ((ParameterKind VarId) ...)
          WhereClauses #:refers-to (shadow VarId ...)
-         Ty #:refers-to (shadow VarId ...))
+         Ty #:refers-to (shadow VarId ...)
+         FnBody #:refers-to (shadow VarId ...))
+  (static ConstId
+          ((ParameterKind VarId) ...)
+          WhereClauses #:refers-to (shadow VarId ...)
+          Ty #:refers-to (shadow VarId ...)
+          FnBody #:refers-to (shadow VarId ...))
+  (fn-decl FnId
+           ((ParameterKind VarId) ...)
+           Tys #:refers-to (shadow VarId ...)
+           Ty #:refers-to (shadow VarId ...)
+           WhereClauses #:refers-to (shadow VarId ...)
+           FnBody #:refers-to (shadow VarId ...))
   )
 
 (define-metafunction formality-decl
@@ -109,6 +123,17 @@
    )
 
   )
+
+
+(define-metafunction formality-decl
+  crate-decls : DeclProgram -> CrateDecls
+
+  [(crate-decls (CrateDecls CrateId))
+   CrateDecls
+   ]
+
+  )
+
 (define-metafunction formality-decl
   trait-decl-id : TraitDecl -> TraitId
 

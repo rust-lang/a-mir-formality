@@ -2,6 +2,8 @@
 (require redex/reduction-semantics racket/set)
 (provide formality-logic
          RootUniverse
+         true-goal
+         false-goal
          )
 
 (define-language formality-logic
@@ -160,4 +162,14 @@
 (define-term
   RootUniverse
   (universe 0)
+  )
+
+(define-term
+  true-goal
+  (&& ())
+  )
+
+(define-term
+  false-goal
+  (|| ())
   )
