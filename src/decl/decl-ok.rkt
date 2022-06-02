@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "../ty/grammar.rkt"
+         "../logic/grammar.rkt"
          "../ty/where-clauses.rkt"
          "decl-from-crate.rkt"
          "../logic/env.rkt"
@@ -70,7 +71,7 @@
    ;;           (well-formed-where-clause-goal (T : Trait_Ord ()))))
    ;;
    ;; FIXME: Actually implement that, along with for the other items
-   (crate-item-ok-goal _ (FnId (fn-decl KindedVarIds Tys_arg Ty_ret (WhereClause ...))))
+   (crate-item-ok-goal _ (FnId (fn-decl KindedVarIds Tys_arg Ty_ret (WhereClause ...) FnBody)))
    (&& ((well-formed-where-clause-goal WhereClause) ...))
    ]
 
@@ -118,7 +119,7 @@
    ;;     const NAMED<T>: Foo<T> where T: Trait;
    ;;
    ;; we require that the type is well formed assuming the where clauses are satisfied.
-   (crate-item-ok-goal CrateDecls (ConstId (const KindedVarIds WhereClauses Ty)))
+   (crate-item-ok-goal CrateDecls (ConstId (const KindedVarIds WhereClauses Ty FnBody)))
    (∀ KindedVarIds
       (implies
        (; assuming all generic parameters are WF...
@@ -139,7 +140,7 @@
    ;;
    ;; we require that the type is well formed assuming the where clauses are satisfied
    ;; and that the type is `Send`.
-   (crate-item-ok-goal CrateDecls (StaticId (static KindedVarIds WhereClauses Ty)))
+   (crate-item-ok-goal CrateDecls (StaticId (static KindedVarIds WhereClauses Ty FnBody)))
    (∀ KindedVarIds
       (implies
        (; assuming all generic parameters are WF...
@@ -160,7 +161,8 @@
 
   [;; Features are always ok.
    (crate-item-ok-goal CrateDecls FeatureDecl)
-   (&& ())]
+   true-goal
+   ]
   )
 
 (define-metafunction formality-decl

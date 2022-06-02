@@ -3,23 +3,30 @@
 (provide (all-defined-out))
 
 (define-extended-language formality-mir formality-decl
-  (Body ::= (LocalDecls BasicBlockMap))
+  ; Overridden from formality-decl
+  (FnBody ::= (∃ KindedVarIds LocalsAndBlocks))
+  (LocalsAndBlocks ::= (LocalDecls BasicBlockDecls))
 
+  ;; A `LocalDecl` indicates the type of a local variable.
   (LocalDecls ::= (LocalDecl ...))
   (LocalDecl ::= (LocalId Ty MaybeMut))
 
-  (BasicBlockMap ::= ((BasicBlockId BasicBlockData) ...))
+  ;; A `BasicBlockDecl` declares the data for a basic block: its statements, terminator, etc.
+  (BasicBlockDecls ::= (BasicBlockDecl ...))
+  (BasicBlockDecl ::= (BasicBlockId BasicBlockData))
   (BasicBlockData ::= (Statements Terminator))
 
+  ;; A MIR statement is a single executiable unit within a basic block.
   (Statements ::= (Statement ...))
   (Statement ::=
-             (assign Place Rvalue)
+             (Place = Rvalue)
              (set-discriminant Place VariantId)
              (storage-live LocalId)
              (storage-dead LocalId)
              noop
              )
 
+  ;; A Rvalue indicates the set of expressions that can be evaluated into a place.
   (Rvalue ::=
           (use Operand)
           (repeat Operand Constant)
@@ -31,9 +38,9 @@
 
   (BinaryOp ::= + - * /)
 
+  ;; A `Terminator` ends a basic block and branches to other blocks.
   (Terminator ::=
               (goto BasicBlockId)
-              ;(TerminatorSwitchInt Operand SwitchTargets)
               resume
               abort
               return
@@ -47,6 +54,7 @@
              (BasicBlockId BasicBlockId) ; unwind possible
              )
 
+  ;; An `Operand` is the argument to an rvalue.
   (Operand ::=
            (copy Place)
            (move Place)
@@ -71,6 +79,16 @@
               (downcast VariantId)
               )
 
+  ;; Internal to type check:
+  ;;
+  ;; Extension of `Ty` to optionally store a `VariantId`.
+  (PlaceTy ::= (place-ty Ty MaybeMut) (place-ty-variant Ty MaybeMut VariantId))
+
+  ;; Interal to type check:
+  ;;
+  ;; Typing context storing bindings from locals to types and `CrateDecls`.
+  (Γ ::= (LocalDecls CrateDecls))
+
   ; identifiers of various kinds:
-  (BasicBlockId LocalId ::= variable-not-otherwise-mentioned)
+  (MirId BasicBlockId LocalId ::= variable-not-otherwise-mentioned)
   )

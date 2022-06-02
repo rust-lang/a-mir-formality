@@ -19,7 +19,8 @@
                             ((lifetime A) (type T))
                             ((rigid-ty (ref ()) (A (rigid-ty T ()))))
                             (rigid-ty (ref ()) (A (rigid-ty T ())))
-                            ()))))
+                            ()
+                            dummy-body))))
 
     (; the crate has a function
      CrateDecl (term (TheCrate (crate (FnDecl_foo)))))

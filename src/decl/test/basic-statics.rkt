@@ -18,7 +18,8 @@
     redex-let*
     formality-decl
     [(; static S: Foo;
-      StaticDecl (term (S (static () () (rigid-ty Foo ())))))
+      StaticDecl (term (S (static () () (rigid-ty Foo ()) fn-body))))
+
      (CrateDecl (term (TheCrate (crate (AdtDecl_Foo StaticDecl)))))
      ]
 
@@ -33,7 +34,7 @@
     redex-let*
     formality-decl
     [(; static S: Foo;
-      StaticDecl (term (S (static () () (rigid-ty Foo ())))))
+      StaticDecl (term (S (static () () (rigid-ty Foo ()) dummy-body))))
      (; impl Send for Foo
       TraitImplDecl_Sync (term (impl ((type T)) (rust:Sync ((rigid-ty Foo ()))) () ())))
      (CrateDecl (term (TheCrate (crate (AdtDecl_Foo StaticDecl TraitImplDecl_Sync)))))

@@ -8,7 +8,9 @@
          "../ty/where-clauses.rkt"
          "../ty/hook.rkt")
 (provide env-for-crate-decl
-         env-for-crate-decls)
+         env-for-crate-decls
+         env-for-decl-program
+         )
 
 (define-metafunction formality-decl
   ;; Convenience function: add the clauses/hypothesis from a single crate
@@ -27,10 +29,20 @@
   env-for-crate-decls : CrateDecls CrateId -> Env
 
   [(env-for-crate-decls CrateDecls CrateId)
+   (env-for-decl-program (CrateDecls CrateId))
+   ]
+  )
+
+(define-metafunction formality-decl
+  ;; Create an environment for the given program.
+  env-for-decl-program : DeclProgram -> Env
+
+  [(env-for-decl-program (CrateDecls CrateId))
    (env-with-hook (formality-decl-hook DeclProgram))
    (where/error DeclProgram (CrateDecls CrateId))
    ]
   )
+
 
 (define-metafunction formality-decl
   ;; The "hook" for a decl program -- given a set of create-decls and a current
@@ -282,7 +294,7 @@
   [;; For a function declared in the crate C, like the following
    ;;
    ;;     fn foo<'a, T>(&'a T) -> &'a T { ... }
-   (crate-item-decl-rules CrateDecls CrateId (_ (fn-decl KindedVarIds_fn Tys_arg Ty_ret WhereClauses_fn)))
+   (crate-item-decl-rules CrateDecls CrateId (_ (fn-decl KindedVarIds_fn Tys_arg Ty_ret WhereClauses_fn FnBody)))
    (() () ())
    ]
 

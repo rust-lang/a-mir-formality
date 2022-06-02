@@ -227,7 +227,7 @@
    (test-equal (term (universe-of-var-in-env Env_5 Term_X)) (term RootUniverse))
 
    (traced '()
-           (test-can-prove EmptyEnv (&& ())))
+           (test-can-prove EmptyEnv true-goal))
 
    (redex-let*
     formality-logic
