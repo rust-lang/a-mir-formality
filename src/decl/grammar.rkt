@@ -69,7 +69,7 @@
   ;;
   ;; fn foo<...>(...) -> ... where ... { body }
   (FnDecl ::= (FnId FnContents))
-  (FnContents ::= (fn-decl KindedVarIds Tys Ty WhereClauses FnBody))
+  (FnContents ::= (fn KindedVarIds Tys Ty WhereClauses FnBody))
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
@@ -105,12 +105,12 @@
           WhereClauses #:refers-to (shadow VarId ...)
           Ty #:refers-to (shadow VarId ...)
           FnBody #:refers-to (shadow VarId ...))
-  (fn-decl FnId
-           ((ParameterKind VarId) ...)
-           Tys #:refers-to (shadow VarId ...)
-           Ty #:refers-to (shadow VarId ...)
-           WhereClauses #:refers-to (shadow VarId ...)
-           FnBody #:refers-to (shadow VarId ...))
+  (fn FnId
+      ((ParameterKind VarId) ...)
+      Tys #:refers-to (shadow VarId ...)
+      Ty #:refers-to (shadow VarId ...)
+      WhereClauses #:refers-to (shadow VarId ...)
+      FnBody #:refers-to (shadow VarId ...))
   )
 
 (define-metafunction formality-decl

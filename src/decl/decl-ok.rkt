@@ -71,7 +71,7 @@
    ;;           (well-formed-where-clause-goal (T : Trait_Ord ()))))
    ;;
    ;; FIXME: Actually implement that, along with for the other items
-   (crate-item-ok-goal _ (FnId (fn-decl KindedVarIds Tys_arg Ty_ret (WhereClause ...) FnBody)))
+   (crate-item-ok-goal _ (FnId (fn KindedVarIds Tys_arg Ty_ret (WhereClause ...) FnBody)))
    (&& ((well-formed-where-clause-goal WhereClause) ...))
    ]
 

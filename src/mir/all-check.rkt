@@ -85,7 +85,7 @@
 
   [; function items
    (prove-crate-item-ok DeclProgram FnDecl)
-   (where/error (FnId (fn-decl KindedVarIds Tys Ty WhereClauses FnBody)) FnDecl)
+   (where/error (FnId (fn KindedVarIds Tys Ty WhereClauses FnBody)) FnDecl)
    (✅-FnBody DeclProgram (∀ KindedVarIds (Tys -> Ty where WhereClauses FnBody)))
    ----------------------------------------
    (✅-CrateItemDecl DeclProgram FnDecl)

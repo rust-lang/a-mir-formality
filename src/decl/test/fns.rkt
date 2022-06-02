@@ -15,7 +15,7 @@
    ;; Test that we can write a function
 
    ((; fn foo<'a, T>(&'a T) -> &'a T { ... }
-     FnDecl_foo (term (foo (fn-decl
+     FnDecl_foo (term (foo (fn
                             ((lifetime A) (type T))
                             ((rigid-ty (ref ()) (A (rigid-ty T ()))))
                             (rigid-ty (ref ()) (A (rigid-ty T ())))
