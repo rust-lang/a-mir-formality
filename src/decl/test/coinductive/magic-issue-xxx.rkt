@@ -4,7 +4,9 @@
          "../../decl-ok.rkt"
          "../../grammar.rkt"
          "../../prove.rkt"
-         "../../../util.rkt")
+         "../../../ty/user-ty.rkt"
+         "../../../util.rkt"
+         )
 
 (module+ test
   (; Magic trait, implemented in terms of itself, that extends Copy
@@ -12,7 +14,7 @@
    formality-decl
 
    ((; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (user-ty i32)))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
@@ -59,7 +61,7 @@
    formality-decl
 
    ((; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (user-ty i32)))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
@@ -105,13 +107,13 @@
    formality-decl
 
    ((; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (user-ty i32)))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
 
     (; struct Bar { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (user-ty i32)))))))))
 
     (; reference to `Bar`
      Ty_Bar (term (rigid-ty Bar ())))

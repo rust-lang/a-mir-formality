@@ -65,7 +65,7 @@
    (test-equal (term (filter-clauses
                       EmptyEnv
                       Clauses_test
-                      (is-implemented (Debug ((scalar-ty i32))))))
+                      (is-implemented (Debug ((user-ty i32))))))
                (term Clauses_test))
 
    ; The "filtering" function we use at the logic level is ... not very precise.
@@ -74,13 +74,13 @@
    (test-equal (term (filter-clauses
                       EmptyEnv
                       Clauses_test
-                      (is-implemented (WithDebug ((scalar-ty i32))))))
+                      (is-implemented (WithDebug ((user-ty i32))))))
                (term Clauses_test))
 
    (test-equal (term (filter-clauses
                       EmptyEnv
                       Clauses_test
-                      (has-impl (Debug ((scalar-ty i32))))))
+                      (has-impl (Debug ((user-ty i32))))))
                (term Clauses_test))
    )
   )

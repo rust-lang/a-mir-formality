@@ -3,6 +3,7 @@
          "hook.rkt"
          "../grammar.rkt"
          "../scheme.rkt"
+         "../user-ty.rkt"
          "../../util.rkt"
          "../../logic/instantiate.rkt"
          )
@@ -16,9 +17,10 @@
                 ((; Just ignore well-formed rules, not interesting for testing subtyping
                   ∀ ((type T)) (well-formed (type T)))
                  (; Define a trait `Iterable` that is implemented for Vec<T>
-                  ∀ ((type T)) (is-implemented (Iterable ((vec T)))))
+                  ∀ ((type T)) (is-implemented (Iterable ((user-ty (Vec T))))))
                  (; normalizes-to `Item<Vec<T>, A>` to `(rigid-ty (ref ()) (A T))`
-                  ∀ ((type T) (lifetime A)) (normalizes-to (alias-ty Item ((vec T) A)) (& A T)))
+                  ∀ ((type T) (lifetime A)) (normalizes-to (user-ty (@ Item (Vec T) A))
+                                                           (user-ty (& A T))))
                  )
                 ()
                 ()
@@ -33,7 +35,7 @@
                    Env
                    ((∀ ((type T) (lifetime A))) (∃ ((type U))))
                    ()
-                   (normalizes-to (alias-ty Item ((vec T) A)) (rigid-ty (ref ()) (A T)))
+                   (normalizes-to (user-ty (@ Item (Vec T) A)) (user-ty (& A T)))
                    )
                   )
             ))

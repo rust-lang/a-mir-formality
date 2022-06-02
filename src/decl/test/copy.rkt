@@ -4,6 +4,7 @@
          "../decl-ok.rkt"
          "../grammar.rkt"
          "../prove.rkt"
+         "../../ty/user-ty.rkt"
          "../../util.rkt")
 
 ;; Test the special rules for impls of the Copy trait.
@@ -18,7 +19,7 @@
      TraitDecl_Copy (term (rust:Copy (trait ((type Self)) () ()))))
 
     (; impl rust:Copy for i32 { }
-     TraitImplDecl (term (impl () (rust:Copy ((scalar-ty i32))) () ())))
+     TraitImplDecl (term (impl () (rust:Copy ((user-ty i32))) () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (TraitDecl_Copy

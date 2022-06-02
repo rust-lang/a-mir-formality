@@ -6,6 +6,7 @@
          "../ty/relate.rkt"
          "../ty/could-match.rkt"
          "../ty/where-clauses.rkt"
+         "../ty/user-ty.rkt"
          "../ty/hook.rkt")
 (provide env-for-crate-decl
          env-for-crate-decls
@@ -331,9 +332,9 @@
   default-rules : () -> (Clauses Invariants)
 
   ((default-rules ())
-   (((well-formed (type (scalar-ty i32)))
-     (well-formed (type (scalar-ty u32)))
-     (well-formed (type unit-ty))
+   (((well-formed (type (user-ty i32)))
+     (well-formed (type (user-ty u32)))
+     (well-formed (type (user-ty ())))
      )
     ())
    )

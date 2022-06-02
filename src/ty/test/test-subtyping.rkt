@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "hook.rkt"
          "../grammar.rkt"
+         "../user-ty.rkt"
          "../scheme.rkt"
          "../../util.rkt"
          "../../logic/instantiate.rkt"
@@ -23,19 +24,19 @@
     )
 
    (traced '()
-           (ty:test-can-prove Env ((∀ ((type T)) T) <= (scalar-ty u32)))
+           (ty:test-can-prove Env ((∀ ((type T)) T) <= (user-ty u32)))
            )
 
    (traced '()
-           (ty:test-can-prove Env ((scalar-ty u32) >= (∀ ((type T)) T)))
+           (ty:test-can-prove Env ((user-ty u32) >= (∀ ((type T)) T)))
            )
 
    (traced '()
-           (ty:test-cannot-prove Env ((scalar-ty u32) <= (∀ ((type T)) T)))
+           (ty:test-cannot-prove Env ((user-ty u32) <= (∀ ((type T)) T)))
            )
 
    (traced '()
-           (ty:test-cannot-prove Env ((∀ ((type T)) T) >= (scalar-ty u32)))
+           (ty:test-cannot-prove Env ((∀ ((type T)) T) >= (user-ty u32)))
            )
 
    ; Cannot have an implication on the subtype side that doesn't appear on the supertype side
@@ -118,7 +119,7 @@
                    ((∀ ((type T)))
                     (∃ ((type U) (lifetime A))))
                    ()
-                   (U <= (& A T))
+                   (U <= (user-ty (& A T)))
                    ))
             )
            )
@@ -132,9 +133,9 @@
            ((∀ ((type T)))
             )
            ()
-           ((rigid-ty (fn-ptr "" 1) (T unit-ty)) ; fn(T)
+           ((user-ty (fn (T) -> ()))
             <=
-            (∀ ((type T)) (fn (T) unit-ty)) ; forall<T> fn(T)
+            (user-ty (for ((type T)) (fn (T) -> ())))
             ))))
 
    (traced '()
@@ -273,10 +274,10 @@
            ()
            ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
              ∀ ((lifetime A) (lifetime B))
-               (fn ((& A (& B unit-ty)) (& B T)) (& A T)))
+               (user-ty (fn ((& A (& B ())) (& B T)) -> (& A T))))
             <=
             (; fn(&'static &'x (), &'x T) -> &'static T
-             fn ((& static (& X unit-ty)) (& X T)) (& static T))
+             user-ty (fn ((& static (& X ())) (& X T)) -> (& static T)))
             )
            )
           )
@@ -296,10 +297,10 @@
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
                      ∀ ((lifetime A) (lifetime B))
                        (implies ((B : A)) ; implied bound!
-                                (fn ((& A (& B unit-ty)) (& B T)) (& A T))))
+                                (user-ty (fn ((& A (& B ())) (& B T)) -> (& A T)))))
                     <=
                     (; fn(&'static &'x (), &'x T) -> &'static T
-                     fn ((& static (& X unit-ty)) (& X T)) (& static T))
+                     user-ty (fn ((& static (& X ())) (& X T)) -> (& static T)))
                     )
                    )
                   )
@@ -318,10 +319,10 @@
                    ((; fn foo<'a, 'b, T>(_: &'a &'b (), v: &'b T) -> &'a T { v }
                      ∀ ((lifetime A) (lifetime B))
                        (implies ((B : A)) ; implied bound!
-                                (fn ((& A (& B unit-ty)) (& B T)) (& A T))))
+                                (user-ty (fn ((& A (& B ())) (& B T)) -> (& A T)))))
                     <=
                     (; fn(&'x &'static (), &'static T) -> &'x T
-                     fn ((& X (& static unit-ty)) (& static T)) (& X T))
+                     user-ty (fn ((& X (& static ())) (& static T)) -> (& X T)))
                     )
                    )
                   )

@@ -3,6 +3,7 @@
          "../all-check.rkt"
          "../grammar.rkt"
          "../../ty/grammar.rkt"
+         "../../ty/user-ty.rkt"
          "../../util.rkt"
          )
 
@@ -49,7 +50,7 @@
     (StaticDecl_UNIT (term (UNIT (static
                                   () ; generics
                                   () ; where-clauses
-                                  (& static (& static unit-ty)) ; type
+                                  (user-ty (& static (& static ()))) ; type
                                   (∃
                                    ((lifetime L0)
                                     (lifetime L1)
@@ -57,9 +58,9 @@
                                     (lifetime L3)
                                     (lifetime L4)
                                     )
-                                   ([(_0 (& L0 (& L1 unit-ty)) mut)
-                                     (_1 (& L2 unit-ty) mut)
-                                     (_2 unit-ty mut)
+                                   ([(_0 (user-ty (& L0 (& L1 ()))) mut)
+                                     (_1 (user-ty (& L2 ())) mut)
+                                     (_2 (user-ty ()) mut)
                                      ]
                                     [(bb0 {(noop
                                             (_1 = (ref L3 () _2))

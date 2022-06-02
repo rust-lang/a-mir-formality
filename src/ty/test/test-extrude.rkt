@@ -4,6 +4,7 @@
          "../grammar.rkt"
          "../extrude.rkt"
          "../inequalities.rkt"
+         "../user-ty.rkt"
          "../../logic/instantiate.rkt"
          "../../logic/env.rkt"
          "../../util.rkt"

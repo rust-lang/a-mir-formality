@@ -125,7 +125,7 @@
    ;
    ; FIXME
    ------------------------------------------
-   (type-of/Operand Γ (const _) (scalar-ty i32))
+   (type-of/Operand Γ (const _) (user-ty i32))
    ]
   )
 

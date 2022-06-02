@@ -4,6 +4,7 @@
          "../decl-ok.rkt"
          "../grammar.rkt"
          "../prove.rkt"
+         "../../ty/user-ty.rkt"
          "../../util.rkt")
 
 (module+ test
@@ -18,7 +19,7 @@
      CrateDecl_A (redex-let*
                   formality-decl
                   ((TraitDecl (term (Debug (trait ((type Self)) () ()))))
-                   (TraitImplDecl (term (impl () (Debug ((scalar-ty i32))) () ())))
+                   (TraitImplDecl (term (impl () (Debug ((user-ty i32))) () ())))
                    )
                   (term (CrateA (crate (TraitDecl TraitImplDecl))))))
 

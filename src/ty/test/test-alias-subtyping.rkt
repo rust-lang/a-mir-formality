@@ -3,6 +3,7 @@
          "hook.rkt"
          "../grammar.rkt"
          "../scheme.rkt"
+         "../user-ty.rkt"
          "../../util.rkt"
          "../../logic/instantiate.rkt"
          )
@@ -11,9 +12,9 @@
 
   (define-metafunction formality-ty
     ;; convenience for testing: write `(item T)` to reference the alias type `Item`
-    item : Ty -> AliasTy
+    item : UserTy -> AliasTy
 
-    [(item Ty) (alias-ty Item (Ty))]
+    [(item UserTy) (alias-ty Item ((user-ty UserTy)))]
     )
 
   (redex-let*
@@ -25,7 +26,7 @@
                  (; Define a trait `AlwaysImpl` that is implemented for all types
                   ∀ ((type T)) (is-implemented (AlwaysImpl (T))))
                  (; normalizes-to `Item<Vec<T>>` to `T`
-                  ∀ ((type T)) (normalizes-to (item (vec T)) T))
+                  ∀ ((type T)) (normalizes-to (item (Vec T)) T))
                  )
                 ()
                 ()
@@ -40,9 +41,9 @@
                    Env
                    ()
                    ()
-                   ((item (vec (scalar-ty i32)))
+                   ((item (Vec i32))
                     <=
-                    (scalar-ty i32)
+                    (user-ty i32)
                     )
                    )
                   )
@@ -75,8 +76,8 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T) (type U))))
-                   (((item T) == (scalar-ty i32))
-                    ((item U) == (scalar-ty i32)))
+                   (((item T) == (user-ty i32))
+                    ((item U) == (user-ty i32)))
                    ((item T)
                     <=
                     (item U)
@@ -95,9 +96,9 @@
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A : B))
-                   ((item (& A unit-ty))
+                   ((item (& A ()))
                     <=
-                    (item (& B unit-ty))
+                    (item (& B ()))
                     )
                    )
                   )
@@ -115,9 +116,9 @@
                    ((A : B)
                     (B : A)
                     )
-                   ((item (& A unit-ty))
+                   ((item (& A ()))
                     <=
-                    (item (& B unit-ty))
+                    (item (& B ()))
                     )
                    )
                   )
@@ -133,9 +134,9 @@
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A : B))
-                   ((item (vec (& A unit-ty)))
+                   ((item (Vec (& A ())))
                     <=
-                    (item (vec (& B unit-ty)))
+                    (item (Vec (& B ())))
                     )
                    )
                   )

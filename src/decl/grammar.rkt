@@ -4,8 +4,6 @@
          crate-decl-with-id
          trait-decl-id
          item-with-id
-         scalar-ty
-         unit-ty
          crate-decls
          )
 

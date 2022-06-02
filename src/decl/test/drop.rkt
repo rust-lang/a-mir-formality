@@ -4,6 +4,7 @@
          "../decl-ok.rkt"
          "../grammar.rkt"
          "../prove.rkt"
+         "../../ty/user-ty.rkt"
          "../../util.rkt")
 
 ;; Test the special rules for impls of the Drop trait.
@@ -18,7 +19,7 @@
      TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; impl rust:Drop for i32 { }
-     TraitImplDecl (term (impl () (rust:Drop ((scalar-ty i32))) () ())))
+     TraitImplDecl (term (impl () (rust:Drop ((user-ty i32))) () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (TraitDecl_Drop
@@ -50,7 +51,7 @@
      TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; impl rust:Drop for Foo<i32> { } //~ ERROR
-     TraitImplDecl (term (impl () (rust:Drop ((rigid-ty Foo ((scalar-ty i32))))) () ())))
+     TraitImplDecl (term (impl () (rust:Drop ((rigid-ty Foo ((user-ty i32))))) () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo

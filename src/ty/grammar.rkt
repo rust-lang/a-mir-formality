@@ -70,6 +70,26 @@
                (AliasTy == Ty) ; <T as Iterator>::Item == u32
                )
 
+  ;; UserTy -- rust user-facing types
+  ;;
+  ;; these match the grammar Rust user's expect. They are a notational
+  ;; convenience. Use the `(user-ty UserTy)` function to convert
+  ;; to the internal `Ty` types.
+  (UserTys ::= (UserTy ...))
+  (UserTy ::=
+          (for KindedVarIds UserTy)
+          ()
+          (tuple UserTy ...)
+          (& Lt UserTy)
+          (&mut Lt UserTy)
+          ScalarId
+          (AdtId UserParameter ...)
+          (fn UserTys -> UserTy)
+          (@ AliasName UserParameter ...)
+          VarId
+          )
+  (UserParameter ::= UserTy Lt)
+
   ;; Ty -- Rust types
   ;;
   ;; Most Rust types are some variation of `RigidTy`,
@@ -183,48 +203,6 @@
   (GenericParameter ::= (VarId KindAndVariance))
   (KindAndVariance ::= (ParameterKind Variance))
   (Variance := - + =)
-  )
 
-(define-term
-  unit-ty
-  (rigid-ty (tuple 0) ())
-  )
-
-(define-metafunction formality-ty
-  scalar-ty : ScalarId -> Ty
-
-  ((scalar-ty ScalarId) (rigid-ty ScalarId ()))
-  )
-
-(define-metafunction formality-ty
-  & : Lt Ty -> Ty
-
-  [(& Lt Ty) (rigid-ty (ref ()) (Lt Ty))]
-  )
-
-(define-metafunction formality-ty
-  &mut : Lt Ty -> Ty
-
-  [(&mut Lt Ty) (rigid-ty (ref mut) (Lt Ty))]
-  )
-
-(define-metafunction formality-ty
-  box : Ty -> Ty
-
-  [(box Ty) (rigid-ty Box (Lt Ty))]
-  )
-
-(define-metafunction formality-ty
-  vec : Ty -> Ty
-
-  [(vec Ty) (rigid-ty Vec (Lt Ty))]
-  )
-
-(define-metafunction formality-ty
-  fn : Tys Ty -> Ty
-
-  [(fn (Ty_arg ...) Ty_ret)
-   (rigid-ty (fn-ptr "Rust" number) (Ty_arg ... Ty_ret))
-   (where/error number ,(length (term (Ty_arg ...))))
-   ]
+  (for ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   )

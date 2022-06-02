@@ -3,6 +3,7 @@
          "../grammar.rkt"
          "../prove.rkt"
          "../../util.rkt"
+         "../../ty/user-ty.rkt"
          "libcore.rkt")
 
 (module+ test

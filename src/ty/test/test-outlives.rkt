@@ -3,6 +3,7 @@
          "hook.rkt"
          "../grammar.rkt"
          "../scheme.rkt"
+         "../user-ty.rkt"
          "../../util.rkt"
          "../../logic/instantiate.rkt"
          )
@@ -64,7 +65,7 @@
                ((∀
                  ((lifetime A))
                  (rigid-ty
-                  (fn-ptr "" 1)
+                  (fn-ptr _ 1)
                   ((rigid-ty (ref ()) (A (rigid-ty u32 ())))
                    (rigid-ty (tuple 0) ()))))
                 -outlives-
@@ -74,7 +75,7 @@
                    Env
                    ()
                    ()
-                   ((∀ ((lifetime A)) (rigid-ty (fn-ptr "" 1) ((rigid-ty (ref ()) (A (scalar-ty u32))) unit-ty)))
+                   ((user-ty (for ((lifetime A)) (fn ((& A u32)) -> ())))
                     -outlives-
                     static)
                    ))
@@ -91,10 +92,7 @@
 
             (redex-let*
              formality-ty
-             [(Ty_fn (term (∀ ((lifetime A))
-                              (fn
-                               ((& A (& B (scalar-ty i32))))
-                               unit-ty))))
+             [(Ty_fn (term (user-ty (for ((lifetime A)) (fn ((& A (& B i32))) -> ())))))
               (Goal (term (Ty_fn -outlives- B)))
               ]
              (term (ty:prove-scheme
