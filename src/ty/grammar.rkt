@@ -137,7 +137,7 @@
   (AssociatedTy ::= (TraitId AssociatedTyId))
 
   ;; MaybeMut: either mut or not
-  (MaybeMut ::= () (mut))
+  (MaybeMut ::= () mut)
 
   ;; Pairs of variables (X0, X1), used as a kind of map
   (VarIdPairs ::= (VarIdPair ...))
@@ -205,7 +205,7 @@
 (define-metafunction formality-ty
   &mut : Lt Ty -> Ty
 
-  [(&mut Lt Ty) (rigid-ty (ref (mut)) (Lt Ty))]
+  [(&mut Lt Ty) (rigid-ty (ref mut) (Lt Ty))]
   )
 
 (define-metafunction formality-ty

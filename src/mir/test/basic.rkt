@@ -15,7 +15,7 @@
   (redex-let*
    formality-mir
 
-   ((LocalDecls_foo (term ((_0 (scalar-ty i32) (mut))
+   ((LocalDecls_foo (term ((_0 (scalar-ty i32) mut)
                            (_1 (scalar-ty i32) ())
                            )))
     (BasicBlockData_bb0 (term (((_0 = (use (copy _1)))) return)))

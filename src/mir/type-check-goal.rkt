@@ -72,7 +72,7 @@
 
   [(type-of/Place Γ Place Ty_place)
    (type-of/Rvalue Γ Rvalue Ty_rvalue)
-   #;(mutability/Place Γ Place (mut))
+   #;(mutability/Place Γ Place mut)
    ----------------------------------------
    (type-check-goal/Statement Γ
                               (Place = Rvalue)

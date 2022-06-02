@@ -163,7 +163,7 @@
   [; ref-mut
    (type-of/Place Γ Place Ty)
    ------------------------------------------
-   (type-of/Rvalue Γ (ref Lt (mut) Place) (&mut Lt Ty))
+   (type-of/Rvalue Γ (ref Lt mut Place) (&mut Lt Ty))
    ]
 
   [; binop
