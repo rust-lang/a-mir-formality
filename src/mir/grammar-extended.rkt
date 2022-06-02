@@ -55,7 +55,7 @@
   [(decl-of-adt Γ AdtId)
    AdtContents
    (where/error (_ CrateDecls) Γ)
-   (where AdtContents (item-with-id CrateDecls AdtId))
+   (where AdtContents (adt-with-id CrateDecls AdtId))
    ]
   )
 

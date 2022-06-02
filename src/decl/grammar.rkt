@@ -3,7 +3,8 @@
 (provide formality-decl
          crate-decl-with-id
          trait-decl-id
-         item-with-id
+         trait-with-id
+         adt-with-id
          crate-decls
          )
 
@@ -139,13 +140,25 @@
   )
 
 (define-metafunction formality-decl
-  ;; Find the given named item amongst all the declared crates.
-  item-with-id : CrateDecls AnyId -> Term
+  ;; Find the given ADT amongst all the declared crates.
+  adt-with-id : CrateDecls AdtId -> AdtContents
 
-  ((item-with-id CrateDecls AnyId)
-   Term
+  ((adt-with-id CrateDecls AdtId)
+   AdtContents
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (_ (crate (_ ... (AnyId Term) _ ...))) CrateDecl)
+   (where (_ (crate (_ ... (AdtId AdtContents) _ ...))) CrateDecl)
+   )
+  )
+
+(define-metafunction formality-decl
+  ;; Find the given trait amongst all the declared crates.
+  trait-with-id : CrateDecls TraitId -> TraitContents
+
+  ((trait-with-id CrateDecls TraitId)
+   TraitContents
+
+   (where (_ ... CrateDecl _ ...) CrateDecls)
+   (where (_ (crate (_ ... (TraitId TraitContents) _ ...))) CrateDecl)
    )
   )

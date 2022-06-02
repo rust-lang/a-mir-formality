@@ -281,7 +281,7 @@
    ((Clause) () ())
 
    (where/error (TraitId (Parameter_trait ...)) TraitRef)
-   (where/error (trait KindedVarIds_trait _ _) (item-with-id CrateDecls TraitId))
+   (where/error (trait KindedVarIds_trait _ _) (trait-with-id CrateDecls TraitId))
    (where/error ((ParameterKind_trait _) ...) KindedVarIds_trait)
    (where/error (Goal_wc ...) (where-clauses->goals WhereClauses_impl))
    (where/error Clause (∀ KindedVarIds_impl
@@ -381,7 +381,7 @@
 
   [(generics-for-adt-id (CrateDecls CrateId) AdtId)
    (((VarId (ParameterKind =)) ...) WhereClauses) ; for now we hardcode `=` (invariance) as the variance
-   (where/error AdtContents (item-with-id CrateDecls AdtId))
+   (where/error AdtContents (adt-with-id CrateDecls AdtId))
    (where/error (AdtKind ((ParameterKind VarId) ...) WhereClauses AdtVariants) AdtContents)
    ]
   )
