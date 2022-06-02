@@ -58,7 +58,7 @@ Gtk initialization failed for display ":0"
 
 then this is indeed the problem.
 
-The problem is that the language server works by running a readless version of racket and GUI functionality is required for some of that, even if it isn't used.
+The problem is that the language server works by running a headless version of racket and GUI functionality is required for some of that, even if it isn't used.
 
 ## Can I use racket without X11 support?
 
@@ -68,14 +68,14 @@ Yes, but. One workaround is to install racket into a directory like `~/racket` b
 
 ```
 #!/bin/bash
-xvfb-run $HOME/racket/bin/racket "$@"
+xvfb-run -a $HOME/racket/bin/racket "$@"
 ```
 
 `~/bin/raco`:
 
 ```
 #!/bin/bash
-xvfb-run $HOME/racket/bin/raco "$@"
+xvfb-run -a $HOME/racket/bin/raco "$@"
 ```
 
 and then make them executable:
