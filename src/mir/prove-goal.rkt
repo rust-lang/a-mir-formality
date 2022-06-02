@@ -3,6 +3,8 @@
          "grammar-extended.rkt"
          "type-check-goal.rkt"
          "../decl/decl-ok.rkt"
+         "../decl/decl-to-clause.rkt"
+         "../decl/grammar.rkt"
          "../logic/cosld-solve.rkt"
          )
 (provide prove-goal
@@ -29,8 +31,7 @@
   #:mode (prove-goal I I)
   #:contract (prove-goal DeclProgram Goal)
 
-  [(where/error (CrateDecls CrateId) DeclProgram)
-   (where/error Env (env-for-crate-decls CrateDecls CrateId))
+  [(where/error Env (env-for-decl-program DeclProgram))
    (logic:prove-top-level-goal/cosld Env Goal Env)
    ----------------------------------------
    (prove-goal DeclProgram Goal)

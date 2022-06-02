@@ -4,6 +4,8 @@
          "locations.rkt"
          "type-of.rkt"
          "../ty/where-clauses.rkt"
+         "../logic/grammar.rkt"
+         "../logic/env.rkt"
          )
 (provide type-check-goal/Γ
          )
@@ -13,7 +15,7 @@
   #:mode (type-check-goal/Γ I O)
   #:contract (type-check-goal/Γ Γ GoalAtLocations)
 
-  [(where/error (LocalDecls (BasicBlockDecl ...)) (mir-body-of-Γ Γ))
+  [(where/error (LocalDecls (BasicBlockDecl ...)) (locals-and-blocks-of-Γ Γ))
    (type-check-goal/BasicBlockDecl Γ BasicBlockDecl GoalAtLocations_bb) ...
    (type-check-goal/inputs-and-outputs Γ GoalAtLocations_io)
    ----------------------------------------
@@ -44,7 +46,7 @@
    ;
    ; FIXME: check that the where-clauses in signature are well-formed?
    ----------------------------------------
-   (type-check-goal/inputs-and-outputs Γ true-goal)
+   (type-check-goal/inputs-and-outputs Γ ())
    ]
   )
 
@@ -73,7 +75,7 @@
    #;(mutability/Place Γ Place (mut))
    ----------------------------------------
    (type-check-goal/Statement Γ
-                              (assign Place Rvalue)
+                              (Place = Rvalue)
                               (Ty_rvalue <= Ty_place))
    ]
 

@@ -5,7 +5,7 @@
          "well-formed-mir.rkt"
          )
 (provide unsafe-check
-)
+         )
 
 (define-judgment-form
   formality-mir-extended
@@ -13,7 +13,7 @@
   #:contract (unsafe-check Γ)
 
   [; FIXME
-      ----------------------------------------
+   ----------------------------------------
    (unsafe-check Γ)
    ]
   )

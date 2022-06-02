@@ -4,7 +4,8 @@
 
 (define-extended-language formality-mir formality-decl
   ; Overridden from formality-decl
-  (FnBody ::= (LocalDecls BasicBlockDecls))
+  (FnBody ::= (∃ KindedVarIds LocalsAndBlocks))
+  (LocalsAndBlocks ::= (LocalDecls BasicBlockDecls))
 
   ;; A `LocalDecl` indicates the type of a local variable.
   (LocalDecls ::= (LocalDecl ...))
@@ -18,7 +19,7 @@
   ;; A MIR statement is a single executiable unit within a basic block.
   (Statements ::= (Statement ...))
   (Statement ::=
-             (assign Place Rvalue)
+             (Place = Rvalue)
              (set-discriminant Place VariantId)
              (storage-live LocalId)
              (storage-dead LocalId)

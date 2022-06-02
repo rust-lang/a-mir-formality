@@ -19,7 +19,7 @@
   #:mode (well-formed/Γ I)
   #:contract (well-formed/Γ Γ)
 
-  [(where/error (LocalDecls (BasicBlockDecl ...)) (mir-body-of-Γ Γ))
+  [(where/error (LocalDecls (BasicBlockDecl ...)) (locals-and-blocks-of-Γ Γ))
    (; each basic block id is distinct
     where ((BasicBlockId_!_1 _) ...) (BasicBlockDecl ...))
 
@@ -53,12 +53,63 @@
    (well-formed/Statement Γ noop)
    ]
 
+  [(well-formed/Place Γ Place)
+  (well-formed/Rvalue Γ Rvalue)
+    ----------------------------------------
+   (well-formed/Statement Γ (Place = Rvalue))
+   ]
+
+  )
+
+(define-judgment-form
+  formality-mir-extended
+  #:mode (well-formed/Place I I)
+  #:contract (well-formed/Place Γ Place)
+
+  [(well-formed/LocalId Γ LocalId)
+   ----------------------------------------
+   (well-formed/Place Γ LocalId)
+   ]
+
+  )
+
+(define-judgment-form
+  formality-mir-extended
+  #:mode (well-formed/Rvalue I I)
+  #:contract (well-formed/Rvalue Γ Rvalue)
+
+  [(well-formed/Operand Γ Operand)
+   ----------------------------------------
+   (well-formed/Rvalue Γ (use Operand))
+   ]
+
+  )
+
+  (define-judgment-form
+  formality-mir-extended
+  #:mode (well-formed/Operand I I)
+  #:contract (well-formed/Operand Γ Operand)
+
+  [(well-formed/Place Γ Place)
+   ----------------------------------------
+   (well-formed/Operand Γ (copy Place))
+   ]
+
+   [(well-formed/Place Γ Place)
+   ----------------------------------------
+   (well-formed/Operand Γ (move Place))
+   ]
+
+   [----------------------------------------
+   (well-formed/Operand Γ (const number))
+   ]
+
   )
 
 (define-judgment-form
   formality-mir-extended
   #:mode (well-formed/LocalId I I)
-  #:contract (well-formed/LocalId Γ Statement)
+  #:contract (well-formed/LocalId Γ LocalId)
 
   [(where (_ ... (LocalId _ _) _ ...) (local-decls-of-Γ Γ))
    ----------------------------------------
@@ -75,6 +126,14 @@
   [(well-formed/BasicBlockId Γ BasicBlockId)
    ----------------------------------------
    (well-formed/Terminator Γ (goto BasicBlockId))
+   ]
+
+   [----------------------------------------
+   (well-formed/Terminator Γ return)
+   ]
+
+   [----------------------------------------
+   (well-formed/Terminator Γ resume)
    ]
 
   )

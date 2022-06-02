@@ -6,6 +6,9 @@
          "unsafe-check.rkt"
          "borrow-check.rkt"
          "../decl/decl-ok.rkt"
+         "../decl/decl-to-clause.rkt"
+         "../decl/grammar.rkt"
+         "../logic/instantiate.rkt"
          "prove-goal.rkt"
          )
 (provide ✅-Program
@@ -95,37 +98,34 @@
   ;; The "all-check" is the master checking rule that checks all correctness criteria
   ;; for a fn body.
   ;;
-  ;; Example, given this Rust function:
-  ;;
-  ;; ```rust
-  ;; fn foo<T>(data1: T, data2: T) -> (T, T)
-  ;; where
-  ;;     T: Debug
-  ;; {
-  ;;     (data1, data2)
-  ;; }
-  ;; ```
-  ;;
-  ;; this judgment would eventually be invoked like:
-  ;;
-  ;; ```
-  ;; ✅-FnBody some-program (∀ ((type T)) ((T T) -> (ty-tuple (T T)) where ((T: Debug())) mir))
-  ;;                            -------     - -     ----------------        ------------
-  ;;                     type-parameters  arguments   return type           where-clauses
-  ;; ```
   ;;
   ;; and our job would be to check (among other things) that `(data1, data2)` is a value of type
   ;; `(T, T)`, as was declared in the function signature (but also that we can borrow check
   ;; the fn body, meaning that each value is moved at most once, etc).
   #:mode (✅-FnBody I I)
-  #:contract (✅-FnBody DeclProgram (∀ KindedVarIds (Tys -> Ty where WhereClauses MirBody)))
+  #:contract (✅-FnBody DeclProgram MirBodySig)
 
-  [(where/error Γ (DeclProgram KindedVarIds (Tys -> Ty where WhereClauses) MirBody))
+  [;; base environment 0: just the program declarations
+   (where/error Env_0 (env-for-decl-program DeclProgram))
+
+   ;; environment 1: instantiate the generic arguments as universal placeholders and tag
+   (where/error (Env_1 (Tys -> Ty where WhereClauses (∃ KindedVarIds_1 LocalsAndBlocks_1)) VarIds_∀)
+                (instantiate-quantified Env_0 MirBodySig))
+
+   ;; environment 2: instantiate the existential inference variables within the mir body (lifetimes, typically)
+   (where/error (Env_2 LocalsAndBlocks_2 VarIds_∃)
+                (instantiate-quantified Env_1 (∃ KindedVarIds_1 LocalsAndBlocks_1)))
+
+   ;; construct the typing environment
+   (where/error (CrateDecls _) DeclProgram)
+   (where/error Γ (CrateDecls VarIds_∀ (Tys -> Ty where WhereClauses) LocalsAndBlocks_2))
+
+   ;; run the checks
    (well-formed/Γ Γ)
    (unsafe-check Γ)
    (type-check-goal/Γ Γ GoalAtLocations)
    (borrow-check Γ GoalAtLocations)
    ----------------------------------------
-   (✅-FnBody DeclProgram (∀ KindedVarIds (Tys -> Ty where WhereClauses MirBody)))
+   (✅-FnBody DeclProgram MirBodySig)
    ]
   )

@@ -1,22 +1,49 @@
 #lang racket
-(require redex
+(require redex/reduction-semantics
          "grammar.rkt")
-(provide formality-mir-extended
+(provide (all-defined-out)
          )
 
 (define-extended-language formality-mir-extended formality-mir
   ;; Typing context storing bindings from locals to types and `CrateDecls`.
-  (Γ ::= (CrateDecls KindedVarIds (Tys -> Ty where WhereClauses) MirBody))
+  (Γ ::= (CrateDecls VarIds_∀ (Tys -> Ty where WhereClauses) LocalsAndBlocks))
 
+  ;; MaybeVariantId -- either a variant-id or nothing
   (MaybeVariantId ::= () (VariantId))
 
+  ;; MirBodySig -- all the information we need when type-checking a MIR function body.
+  ;;
+  ;; Example, given this Rust function:
+  ;;
+  ;; ```rust
+  ;; fn foo<T, U>(data1: T, data2: U) -> (T, U)
+  ;; where
+  ;;     T: Debug
+  ;; {
+  ;;     (data1, data2)
+  ;; }
+  ;; ```
+  ;;
+  ;; we would get a `MirBodySig` like
+  ;;
+  ;; ```
+  ;;    (∀ ((type T) (type U)) ((T U) -> (ty-tuple (T U)) where ((T: Debug())) mir))
+  ;;        -----------------    - -     ----------------        ------------
+  ;;        type-parameters   arguments   return type           where-clauses
+  ;; ```
+  ;;
+  (MirBodySig ::= (∀ KindedVarIds (Tys -> Ty where WhereClauses FnBody)))
+
+  ;; Location --- identifies a particular statement or terminator within the MIR
   (Location ::= (BasicBlockId @ number))
 
-  ;;
+  ;; StatementAtLocation, TerminatorAtLocation -- pair of a statement/terminator with its location
   (StatementAtLocations ::= (StatementAtLocation ...))
   (StatementAtLocation ::= (Location Statement))
   (TerminatorAtLocation ::= (Location Terminator))
 
+  ;; GoalAtLocation -- a goal that must hold at a given program location; used by borrow checking
+  ;; to implement flow sensitivity
   (GoalAtLocations ::= (GoalAtLocation ...))
   (GoalAtLocation ::= (Location Goal))
   )
@@ -34,9 +61,9 @@
 
 (define-metafunction formality-mir-extended
   ;; Returns the `MirBody` from the environment Γ
-  mir-body-of-Γ : Γ -> MirBody
+  locals-and-blocks-of-Γ : Γ -> LocalsAndBlocks
 
-  [(mir-body-of-Γ (_ _ _ MirBody)) MirBody]
+  [(locals-and-blocks-of-Γ (_ _ _ LocalsAndBlocks)) LocalsAndBlocks]
   )
 
 (define-metafunction formality-mir-extended
@@ -45,7 +72,7 @@
 
   [(local-decls-of-Γ Γ)
    LocalDecls
-   (where/error (LocalDecls _) (mir-body-of-Γ Γ))]
+   (where/error (LocalDecls _) (locals-and-blocks-of-Γ Γ))]
   )
 
 (define-metafunction formality-mir-extended
@@ -54,7 +81,7 @@
 
   [(basic-block-decls-of-Γ Γ)
    BasicBlockDecls
-   (where/error (_ BasicBlockDecls) (mir-body-of-Γ Γ))]
+   (where/error (_ BasicBlockDecls) (locals-and-blocks-of-Γ Γ))]
   )
 
 (define-metafunction formality-mir-extended
