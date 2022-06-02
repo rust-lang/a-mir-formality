@@ -109,8 +109,8 @@
    (where/error Env_0 (env-for-decl-program DeclProgram))
 
    ;; environment 1: instantiate the generic arguments as universal placeholders and tag
-   (where/error (Env_1 (Tys -> Ty where WhereClauses (∃ KindedVarIds_1 LocalsAndBlocks_1)) VarIds_∀)
-                (instantiate-quantified Env_0 MirBodySig))
+   (where (Env_1 (Tys -> Ty where WhereClauses (∃ KindedVarIds_1 LocalsAndBlocks_1)) VarIds_∀)
+          (instantiate-quantified Env_0 MirBodySig))
 
    ;; environment 2: instantiate the existential inference variables within the mir body (lifetimes, typically)
    (where/error (Env_2 LocalsAndBlocks_2 VarIds_∃)
@@ -125,7 +125,11 @@
    (unsafe-check Γ)
    (type-check-goal/Γ Γ GoalAtLocations)
    (borrow-check Γ GoalAtLocations)
-   ----------------------------------------
+   ---------------------------------------- "mir-fn-body"
    (✅-FnBody DeclProgram MirBodySig)
+   ]
+
+  [---------------------------------------- "trusted-fn-body"
+   (✅-FnBody DeclProgram (∀ _ (_ -> _ where _ trusted-fn-body)))
    ]
   )

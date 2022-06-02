@@ -4,7 +4,10 @@
 
 (define-extended-language formality-mir formality-decl
   ; Overridden from formality-decl
-  (FnBody ::= (∃ KindedVarIds LocalsAndBlocks))
+  (FnBody ::=
+          (∃ KindedVarIds LocalsAndBlocks)
+          trusted-fn-body ; a special tag that is always considered to pass the type check
+          )
   (LocalsAndBlocks ::= (LocalDecls BasicBlockDecls))
 
   ;; A `LocalDecl` indicates the type of a local variable.
