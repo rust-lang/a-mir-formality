@@ -20,10 +20,10 @@
      Ty_Foo (term (rigid-ty Foo ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((type Self)) ((Self : Copy())) ()))))
+     TraitDecl_Magic (term (trait Magic ((type Self)) ((Self : Copy())) ())))
 
     (; trait Copy { }
-     TraitDecl_Copy (term (Copy (trait ((type Self)) () ()))))
+     TraitDecl_Copy (term (trait Copy ((type Self)) () ())))
 
     (; impl<T> Magic for T where T: Magic { }
      TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((T : Magic())) ())))
@@ -67,10 +67,10 @@
      Ty_Foo (term (rigid-ty Foo ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((type Self)) ((Self : Copy())) ()))))
+     TraitDecl_Magic (term (trait Magic ((type Self)) ((Self : Copy())) ())))
 
     (; trait Copy: Magic { }
-     TraitDecl_Copy (term (Copy (trait ((type Self)) ((Self : Magic())) ()))))
+     TraitDecl_Copy (term (trait Copy ((type Self)) ((Self : Magic())) ())))
 
     (; impl<T> Magic for T where T: Magic { }
      TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((T : Magic())) ())))
@@ -119,10 +119,10 @@
      Ty_Bar (term (rigid-ty Bar ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((type Self)) ((Self : Copy())) ()))))
+     TraitDecl_Magic (term (trait Magic ((type Self)) ((Self : Copy())) ())))
 
     (; trait Copy { }
-     TraitDecl_Copy (term (Copy (trait ((type Self)) () ()))))
+     TraitDecl_Copy (term (trait Copy ((type Self)) () ())))
 
     (; impl<T> Magic for T where T: Magic { }
      TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((T : Magic())) ())))

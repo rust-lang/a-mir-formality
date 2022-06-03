@@ -80,7 +80,7 @@
    ;;     trait Foo<'a, T> where T: Ord { ... }
    ;;
    ;; we require that all the trait-item WF goals are met.
-   (crate-item-ok-goal CrateDecls (TraitId (trait KindedVarIds (WhereClause ...) (TraitItem ...))))
+   (crate-item-ok-goal CrateDecls (trait TraitId KindedVarIds (WhereClause ...) (TraitItem ...)))
    (∀ KindedVarIds
       (implies ((well-formed KindedVarId) ... (where-clause->hypothesis WhereClause) ...)
                (&& (Goal_trait-item ...
@@ -109,7 +109,7 @@
               is-implemented (TraitId (Parameter_trait ...)))
              (well-formed-where-clause-goal CrateDecls WhereClause_impl) ...))))
 
-   (where/error (TraitId (trait ((ParameterKind_trait _) ...) _ _)) (trait-decl-with-id CrateDecls TraitId))
+   (where/error (trait TraitId ((ParameterKind_trait _) ...) _ _) (trait-decl-with-id CrateDecls TraitId))
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)
    ]

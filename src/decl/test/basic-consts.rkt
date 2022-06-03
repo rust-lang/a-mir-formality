@@ -11,7 +11,7 @@
    formality-decl
 
    [(; trait Debug { }
-     TraitDecl (term (Debug (trait ((type Self)) () ()))))
+     TraitDecl (term (trait Debug ((type Self)) () ())))
     (; struct Foo<T: Debug> { }
      AdtDecl_Foo (term (struct Foo ((type T)) ((T : Debug())) ((Foo ())))))
     ]

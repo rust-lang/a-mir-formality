@@ -16,7 +16,7 @@
    ;; Test for that `impl Drop for i32` is not permitted.
 
    [(; trait rust:Drop { }
-     TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
+     TraitDecl_Drop (term (trait rust:Drop ((type Self)) () ())))
 
     (; impl rust:Drop for i32 { }
      TraitImplDecl (term (impl () (rust:Drop ((user-ty i32))) () ())))
@@ -48,7 +48,7 @@
                          )))
 
     (; trait rust:Drop { }
-     TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
+     TraitDecl_Drop (term (trait rust:Drop ((type Self)) () ())))
 
     (; impl rust:Drop for Foo<i32> { } //~ ERROR
      TraitImplDecl (term (impl () (rust:Drop ((rigid-ty Foo ((user-ty i32))))) () ())))
@@ -82,10 +82,10 @@
                          )))
 
     (; trait Debug { }
-     TraitDecl_Debug (term (Debug (trait ((type Self)) () ()))))
+     TraitDecl_Debug (term (trait Debug ((type Self)) () ())))
 
     (; trait rust:Drop { }
-     TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
+     TraitDecl_Drop (term (trait rust:Drop ((type Self)) () ())))
 
     (; impl<U> rust:Drop for Foo<U> where U: Debug { } //~ ERROR
      TraitImplDecl (term (impl ((type U)) (rust:Drop ((rigid-ty Foo (U)))) ((U : Debug())) ())))
@@ -114,7 +114,7 @@
                          )))
 
     (; trait rust:Drop { }
-     TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
+     TraitDecl_Drop (term (trait rust:Drop ((type Self)) () ())))
 
     (; impl<U> rust:Drop for Foo<U> { }
      TraitImplDecl (term (impl ((type U)) (rust:Drop ((rigid-ty Foo (U)))) () ())))
@@ -149,13 +149,13 @@
                          )))
 
     (; trait rust:Drop { }
-     TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
+     TraitDecl_Drop (term (trait rust:Drop ((type Self)) () ())))
 
     (; trait Eq { }
-     TraitDecl_Eq (term (Eq (trait ((type Self)) () ()))))
+     TraitDecl_Eq (term (trait Eq ((type Self)) () ())))
 
     (; trait Ord: Eq { }
-     TraitDecl_Ord (term (Ord (trait ((type Self)) ((Self : Eq())) ()))))
+     TraitDecl_Ord (term (trait Ord ((type Self)) ((Self : Eq())) ())))
 
     (; impl<U> rust:Drop for Foo<U> where T: Ord + Eq { }
      TraitImplDecl (term (impl ((type U))

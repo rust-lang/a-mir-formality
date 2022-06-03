@@ -40,8 +40,7 @@
   ;; TraitDecl -- trait Foo { ... }
   ;;
   ;; Unlike in Rust, the `KindedVarIds` here always include with `(type Self)` explicitly.
-  (TraitDecl ::= (TraitId TraitContents))
-  (TraitContents ::= (trait KindedVarIds WhereClauses TraitItems))
+  (TraitDecl ::= (trait TraitId KindedVarIds WhereClauses TraitItems))
 
   ;; TraitItem --
   (TraitItems ::= (TraitItem ...))
@@ -135,7 +134,7 @@
 (define-metafunction formality-decl
   trait-decl-id : TraitDecl -> TraitId
 
-  ((trait-decl-id (TraitId TraitContents)) TraitId)
+  ((trait-decl-id (trait TraitId _ _ _)) TraitId)
   )
 
 (define-metafunction formality-decl
@@ -152,12 +151,12 @@
 
 (define-metafunction formality-decl
   ;; Find the given trait amongst all the declared crates.
-  trait-with-id : CrateDecls TraitId -> TraitContents
+  trait-with-id : CrateDecls TraitId -> TraitDecl
 
   [(trait-with-id CrateDecls TraitId)
-   TraitContents
+   (trait TraitId KindedVarIds WhereClauses TraitItems)
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (_ (crate (_ ... (TraitId TraitContents) _ ...))) CrateDecl)
+   (where (_ (crate (_ ... (trait TraitId KindedVarIds WhereClauses TraitItems) _ ...))) CrateDecl)
    ]
   )

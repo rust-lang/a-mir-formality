@@ -222,7 +222,7 @@
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type Self))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (lifetime 'a))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
-   (crate-item-decl-rules CrateDecls CrateId  (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
+   (crate-item-decl-rules CrateDecls CrateId  (trait TraitId KindedVarIds (WhereClause ...) TraitItems))
    ((Clause)
     (Invariant_wc ...
      Invariant_wf ...
@@ -281,7 +281,7 @@
    ((Clause) () ())
 
    (where/error (TraitId (Parameter_trait ...)) TraitRef)
-   (where/error (trait KindedVarIds_trait _ _) (trait-with-id CrateDecls TraitId))
+   (where/error (trait TraitId KindedVarIds_trait _ _) (trait-with-id CrateDecls TraitId))
    (where/error ((ParameterKind_trait _) ...) KindedVarIds_trait)
    (where/error (Goal_wc ...) (where-clauses->goals WhereClauses_impl))
    (where/error Clause (∀ KindedVarIds_impl
