@@ -3,6 +3,7 @@
          "../all-check.rkt"
          "../grammar.rkt"
          "../../ty/grammar.rkt"
+         "../../ty/user-ty.rkt"
          "../../util.rkt"
          )
 
@@ -15,8 +16,8 @@
   (redex-let*
    formality-mir
 
-   ((LocalDecls_foo (term ((_0 (scalar-ty i32) (mut))
-                           (_1 (scalar-ty i32) ())
+   ((LocalDecls_foo (term ((_0 (user-ty i32) mut)
+                           (_1 (user-ty i32) ())
                            )))
     (BasicBlockData_bb0 (term (((_0 = (use (copy _1)))) return)))
     (BasicBlockDecl_bb0 (term (bb0 BasicBlockData_bb0)))
@@ -36,11 +37,9 @@
                               )
                              )
                          )))
-    (FnDecl_foo (term (foo (fn-decl ()
-                                    ((scalar-ty i32) (scalar-ty i32))
-                                    (scalar-ty i32)
-                                    ()
-                                    FnBody_foo))))
+    (FnDecl_foo (term (fn foo [] ((user-ty i32) (user-ty i32)) -> (user-ty i32)
+                          where ()
+                          FnBody_foo)))
     (CrateDecl_the-crate (term (the-crate (crate (FnDecl_foo)))))
     (DeclProgram (term ((CrateDecl_the-crate) the-crate)))
     )

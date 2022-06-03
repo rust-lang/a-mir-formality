@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "predicate.rkt"
+         "user-ty.rkt"
          )
 (provide ty:predicates-could-match
          )
@@ -26,17 +27,17 @@
 (module+ test
   (test-equal (term (ty:predicates-could-match
                      (is-implemented (Debug (T)))
-                     (is-implemented (Debug ((scalar-ty i32))))))
+                     (is-implemented (Debug ((user-ty i32))))))
               (term #t))
 
   (test-equal (term (ty:predicates-could-match
                      (is-implemented (Debug (T)))
-                     (is-implemented (WithDebug ((scalar-ty i32))))))
+                     (is-implemented (WithDebug ((user-ty i32))))))
               (term #f))
 
   (test-equal (term (ty:predicates-could-match
                      (is-implemented (Debug (T)))
-                     (has-impl (WithDebug ((scalar-ty i32))))))
+                     (has-impl (WithDebug ((user-ty i32))))))
               (term #f))
   )
 

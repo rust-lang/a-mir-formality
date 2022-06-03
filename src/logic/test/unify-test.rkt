@@ -36,7 +36,7 @@
 
    ; Equating `E` with `Vec<i32>` is ok
    (test-equal
-    (term (occurs-check Env_1 E (rigid-ty Vec ((scalar-ty i32)))))
+    (term (occurs-check Env_1 E (rigid-ty Vec ((user-ty i32)))))
     (term Env_1))
 
    ; Equating `E` with `V` is not possible,
@@ -148,16 +148,16 @@
     ((; assume that `X: Debug` (note that `X` is an existential variable)
       Env_3 (term (env-with-hypotheses Env_2 ((is-implemented (Debug (Term_X)))))))
      (; constrain `X = i32` to yield new substitution
-      Env_out (term (unify Env_3 ((Term_X (scalar-ty i32)))))))
+      Env_out (term (unify Env_3 ((Term_X (user-ty i32)))))))
 
     ; concluded that `X = i32`
-    (test-equal (term (apply-substitution-from-env Env_out Term_X)) (term (scalar-ty i32)))
+    (test-equal (term (apply-substitution-from-env Env_out Term_X)) (term (user-ty i32)))
 
     ; starts out as `X: Debug`
     (test-equal (term (env-hypotheses Env_3)) (term ((is-implemented (Debug (Term_X))))))
 
     ; changes to `i32: Debug` now that we know `X = i32`
-    (test-equal (term (env-hypotheses Env_out)) (term ((is-implemented (Debug ((scalar-ty i32)))))))
+    (test-equal (term (env-hypotheses Env_out)) (term ((is-implemented (Debug ((user-ty i32)))))))
     )
    )
   )

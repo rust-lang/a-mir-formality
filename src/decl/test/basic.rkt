@@ -3,6 +3,7 @@
          "../decl-to-clause.rkt"
          "../grammar.rkt"
          "../prove.rkt"
+         "../../ty/user-ty.rkt"
          "../../util.rkt")
 
 (module+ test
@@ -13,8 +14,8 @@
   (redex-let*
    formality-decl
 
-   ((TraitDecl (term (Debug (trait ((type Self)) () ()))))
-    (TraitImplDecl (term (impl () (Debug ((scalar-ty i32))) () ())))
+   ((TraitDecl (term (trait Debug ((type Self)) where () {})))
+    (TraitImplDecl (term (impl () (Debug ((user-ty i32))) where () {})))
     (CrateDecl (term (TheCrate (crate (TraitDecl TraitImplDecl)))))
     (Env (term (env-for-crate-decl CrateDecl)))
     )
@@ -22,6 +23,6 @@
    (traced '()
            (decl:test-can-prove
             Env
-            (is-implemented (Debug ((scalar-ty i32))))))
+            (is-implemented (Debug ((user-ty i32))))))
    )
   )

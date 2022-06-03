@@ -3,15 +3,16 @@
          "hook.rkt"
          "../grammar.rkt"
          "../../util.rkt"
+         "../user-ty.rkt"
          )
 
 (module+ test
 
   (define-metafunction formality-ty
     ;; convenience for testing: write `(item T)` to reference the alias type `Item`
-    item : Ty -> AliasTy
+    item : UserTy -> AliasTy
 
-    [(item Ty) (alias-ty Item (Ty))]
+    [(item UserTy) (alias-ty Item ((user-ty UserTy)))]
     )
 
   (redex-let*
@@ -23,7 +24,7 @@
                  (; Define a trait `AlwaysImpl` that is implemented for all types
                   ∀ ((type T)) (is-implemented (AlwaysImpl (T))))
                  (; normalizes-to `Item<Vec<T>>` to `T`
-                  ∀ ((type T)) (normalizes-to (item (vec T)) T))
+                  ∀ ((type T)) (normalizes-to (item (Vec T)) T))
                  )
                 ()
                 ()
@@ -38,7 +39,7 @@
                    Env
                    ()
                    ()
-                   ((item (scalar-ty i32))
+                   ((item i32)
                     -outlives-
                     static
                     )

@@ -14,14 +14,11 @@
   (redex-let*
    formality-decl
 
-   ((TraitDecl_PartialEq (term (PartialEq (trait ((type Self))
-                                                 ()
-                                                 ()
-                                                 ))))
-    (TraitDecl_Eq (term (Eq (trait ((type Self))
-                                   ((Self : PartialEq()))
-                                   ()))))
-    (TraitDecl_Debug (term (Debug (trait ((type Self)) () ()))))
+   ((TraitDecl_PartialEq (term (trait PartialEq ((type Self)) where () {})))
+    (TraitDecl_Eq (term (trait Eq ((type Self))
+                               where ((Self : PartialEq()))
+                               {})))
+    (TraitDecl_Debug (term (trait Debug ((type Self)) where () {})))
     (CrateDecl (term (TheCrate (crate (TraitDecl_PartialEq TraitDecl_Eq)))))
     (Env (term (env-for-crate-decl CrateDecl)))
     )

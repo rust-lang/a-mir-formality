@@ -69,7 +69,7 @@
 
   [; constants
    (prove-crate-item-ok DeclProgram ConstDecl)
-   (where/error (_ (const KindedVarIds WhereClauses Ty FnBody)) ConstDecl)
+   (where/error (const _ KindedVarIds where WhereClauses : Ty = FnBody) ConstDecl)
    (✅-FnBody DeclProgram (∀ KindedVarIds (() -> Ty where WhereClauses FnBody)))
    ----------------------------------------
    (✅-CrateItemDecl DeclProgram ConstDecl)
@@ -77,7 +77,7 @@
 
   [; statics
    (prove-crate-item-ok DeclProgram StaticDecl)
-   (where/error (_ (static KindedVarIds WhereClauses Ty FnBody)) StaticDecl)
+   (where/error (static _ KindedVarIds where WhereClauses : Ty = FnBody) StaticDecl)
    (✅-FnBody DeclProgram (∀ KindedVarIds (() -> Ty where WhereClauses FnBody)))
    ----------------------------------------
    (✅-CrateItemDecl DeclProgram StaticDecl)
@@ -85,7 +85,7 @@
 
   [; function items
    (prove-crate-item-ok DeclProgram FnDecl)
-   (where/error (FnId (fn-decl KindedVarIds Tys Ty WhereClauses FnBody)) FnDecl)
+   (where/error (fn FnId KindedVarIds Tys -> Ty where WhereClauses FnBody) FnDecl)
    (✅-FnBody DeclProgram (∀ KindedVarIds (Tys -> Ty where WhereClauses FnBody)))
    ----------------------------------------
    (✅-CrateItemDecl DeclProgram FnDecl)
@@ -109,8 +109,8 @@
    (where/error Env_0 (env-for-decl-program DeclProgram))
 
    ;; environment 1: instantiate the generic arguments as universal placeholders and tag
-   (where/error (Env_1 (Tys -> Ty where WhereClauses (∃ KindedVarIds_1 LocalsAndBlocks_1)) VarIds_∀)
-                (instantiate-quantified Env_0 MirBodySig))
+   (where (Env_1 (Tys -> Ty where WhereClauses (∃ KindedVarIds_1 LocalsAndBlocks_1)) VarIds_∀)
+          (instantiate-quantified Env_0 MirBodySig))
 
    ;; environment 2: instantiate the existential inference variables within the mir body (lifetimes, typically)
    (where/error (Env_2 LocalsAndBlocks_2 VarIds_∃)
@@ -125,7 +125,11 @@
    (unsafe-check Γ)
    (type-check-goal/Γ Γ GoalAtLocations)
    (borrow-check Γ GoalAtLocations)
-   ----------------------------------------
+   ---------------------------------------- "mir-fn-body"
    (✅-FnBody DeclProgram MirBodySig)
+   ]
+
+  [---------------------------------------- "trusted-fn-body"
+   (✅-FnBody DeclProgram (∀ _ (_ -> _ where _ trusted-fn-body)))
    ]
   )

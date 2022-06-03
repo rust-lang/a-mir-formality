@@ -40,7 +40,7 @@
    ;
    ; * in our example above `(ParameterKind VarId) ...` would match `((type Self) (type T))`
    ; * and `WhereClauses` would be `(T : Bar ())`
-   (where/error (trait ((ParameterKind VarId) ...) WhereClauses _) (item-with-id CrateDecls TraitId))
+   (where/error (trait TraitId ((ParameterKind VarId) ...) where WhereClauses _) (trait-with-id CrateDecls TraitId))
 
    ; create a substitution ((Self => A) (T => B))
    (where/error (Parameter_value ...) (Ty Parameter ...))

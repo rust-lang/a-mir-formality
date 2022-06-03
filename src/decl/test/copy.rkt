@@ -4,6 +4,7 @@
          "../decl-ok.rkt"
          "../grammar.rkt"
          "../prove.rkt"
+         "../../ty/user-ty.rkt"
          "../../util.rkt")
 
 ;; Test the special rules for impls of the Copy trait.
@@ -15,10 +16,10 @@
    ;; Test for that `impl Copy for i32` is permitted.
 
    ((; trait rust:Copy { _: Foo }
-     TraitDecl_Copy (term (rust:Copy (trait ((type Self)) () ()))))
+     TraitDecl_Copy (term (trait rust:Copy ((type Self)) where () ())))
 
     (; impl rust:Copy for i32 { }
-     TraitImplDecl (term (impl () (rust:Copy ((scalar-ty i32))) () ())))
+     TraitImplDecl (term (impl () (rust:Copy ((user-ty i32))) where () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (TraitDecl_Copy
@@ -42,26 +43,26 @@
    ;; Test for that `struct Foo { } struct Bar { f: Foo } impl Copy for Bar` is not permitted
    ;; because `Foo: Copy` does not hold.
 
-   ((; trait rust:Copy { }
-     TraitDecl_Copy (term (rust:Copy (trait ((type Self)) () ()))))
+   [(; trait rust:Copy { }
+     TraitDecl_Copy (term (trait rust:Copy ((type Self)) where () ())))
 
     (; struct Foo { }
-     AdtDecl_Foo (term (Foo (struct
-                              () ; no generic parameters
-                              () ; no where clauses
-                              ((Foo ())) ; the 1 variant (named `Foo`)
-                              ))))
+     AdtDecl_Foo (term (struct Foo
+                         () ; no generic parameters
+                         where () ; no where clauses
+                         ((Foo ())) ; the 1 variant (named `Foo`)
+                         )))
 
     (; struct Bar { _: Foo }
-     AdtDecl_Bar (term (Bar (struct
-                              () ; no generic parameters
-                              () ; no where clauses
-                              ((Bar ((f (rigid-ty Foo ()))
-                                     ))) ; the 1 variant (named `Foo`)
-                              ))))
+     AdtDecl_Bar (term (struct Bar
+                         () ; no generic parameters
+                         where () ; no where clauses
+                         ((Bar ((f (rigid-ty Foo ()))
+                                ))) ; the 1 variant (named `Foo`)
+                         )))
 
     (; impl rust:Copy for Bar { }
-     TraitImplDecl (term (impl () (rust:Copy ((rigid-ty Bar ()))) () ())))
+     TraitImplDecl (term (impl () (rust:Copy ((rigid-ty Bar ()))) where () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (TraitDecl_Copy
@@ -72,7 +73,7 @@
 
     (; create the Env for checking things in this crate
      Env (term (env-for-crate-decl CrateDecl)))
-    )
+    ]
 
    (traced '()
            (decl:test-cannot-prove
@@ -84,7 +85,7 @@
    (redex-let*
     formality-decl
     [(; impl rust:Copy for Foo { }
-      TraitImplDecl_Foo (term (impl () (rust:Copy ((rigid-ty Foo ()))) () ())))
+      TraitImplDecl_Foo (term (impl () (rust:Copy ((rigid-ty Foo ()))) where () ())))
 
      (; the crate has the struct, the trait, and the impl
       CrateDecl_Pass (term (TheCrate (crate (TraitDecl_Copy

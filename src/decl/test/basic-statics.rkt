@@ -3,14 +3,16 @@
          "../grammar.rkt"
          "../prove.rkt"
          "../../util.rkt"
+         "../../ty/user-ty.rkt"
          "libcore.rkt")
 
 (module+ test
   (redex-let*
    formality-decl
 
-   ((; struct Foo { }
-     AdtDecl_Foo (term (Foo (struct () () ((Foo ())))))))
+   [(; struct Foo { }
+     AdtDecl_Foo (term (struct Foo () where () ((Foo ())))))
+    ]
 
    (; test that Send check fails
     ;
@@ -18,7 +20,7 @@
     redex-let*
     formality-decl
     [(; static S: Foo;
-      StaticDecl (term (S (static () () (rigid-ty Foo ()) fn-body))))
+      StaticDecl (term (static S () where () : (rigid-ty Foo ()) = fn-body)))
 
      (CrateDecl (term (TheCrate (crate (AdtDecl_Foo StaticDecl)))))
      ]
@@ -34,9 +36,9 @@
     redex-let*
     formality-decl
     [(; static S: Foo;
-      StaticDecl (term (S (static () () (rigid-ty Foo ()) dummy-body))))
+      StaticDecl (term (static S () where () : (rigid-ty Foo ()) = dummy-body)))
      (; impl Send for Foo
-      TraitImplDecl_Sync (term (impl ((type T)) (rust:Sync ((rigid-ty Foo ()))) () ())))
+      TraitImplDecl_Sync (term (impl ((type T)) (rust:Sync ((rigid-ty Foo ()))) where () ())))
      (CrateDecl (term (TheCrate (crate (AdtDecl_Foo StaticDecl TraitImplDecl_Sync)))))
      ]
 

@@ -14,12 +14,12 @@
    formality-decl
 
    ((; trait Foo<T> where Self: Bar, T: Bar { }
-     TraitDecl_Foo (term (Foo (trait ((type Self) (type T))
-                                     ((T : Bar()) (Self : Bar()))
-                                     ()))))
+     TraitDecl_Foo (term (trait Foo ((type Self) (type T))
+                                where ((T : Bar()) (Self : Bar()))
+                                {})))
 
     (; trait Bar { }
-     TraitDecl_Bar (term (Bar (trait ((type Self)) () ()))))
+     TraitDecl_Bar (term (trait Bar ((type Self)) where () {})))
 
     (Env (term (env-for-crate-decl (C (crate (TraitDecl_Foo
                                               TraitDecl_Bar))))))
@@ -61,9 +61,9 @@
    formality-decl
 
    ((; trait Foo<'l, T> where Self: 'a, T: 'a { }
-     TraitDecl_Foo (term (Foo (trait ((type Self) (lifetime l) (type T))
-                                     ((T : l) (Self : l))
-                                     ()))))
+     TraitDecl_Foo (term (trait Foo ((type Self) (lifetime l) (type T))
+                                where ((T : l) (Self : l))
+                                {})))
 
     (Env (term (env-for-crate-decl (C (crate (TraitDecl_Foo))))))
 

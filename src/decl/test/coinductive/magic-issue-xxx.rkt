@@ -4,33 +4,35 @@
          "../../decl-ok.rkt"
          "../../grammar.rkt"
          "../../prove.rkt"
-         "../../../util.rkt")
+         "../../../ty/user-ty.rkt"
+         "../../../util.rkt"
+         )
 
 (module+ test
   (; Magic trait, implemented in terms of itself, that extends Copy
    redex-let*
    formality-decl
 
-   ((; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+   [(; struct Foo { counter: i32 }
+     AdtDecl_Foo (term (struct Foo () where () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((type Self)) ((Self : Copy())) ()))))
+     TraitDecl_Magic (term (trait Magic ((type Self)) where ((Self : Copy())) ())))
 
     (; trait Copy { }
-     TraitDecl_Copy (term (Copy (trait ((type Self)) () ()))))
+     TraitDecl_Copy (term (trait Copy ((type Self)) where () ())))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((T : Magic())) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) where ((T : Magic())) ())))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
 
     (Env (term (env-for-crate-decl CrateDecl)))
-    )
+    ]
 
    (; All decls in crate are considered 'ok'. In particular, the impl is considered 'ok',
     ; since its where clauses allow it to locally prove that `Self: Copy`.
@@ -58,26 +60,26 @@
    redex-let*
    formality-decl
 
-   ((; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+   [(; struct Foo { counter: i32 }
+     AdtDecl_Foo (term (struct Foo () where () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((type Self)) ((Self : Copy())) ()))))
+     TraitDecl_Magic (term (trait Magic ((type Self)) where ((Self : Copy())) {})))
 
     (; trait Copy: Magic { }
-     TraitDecl_Copy (term (Copy (trait ((type Self)) ((Self : Magic())) ()))))
+     TraitDecl_Copy (term (trait Copy ((type Self)) where ((Self : Magic())) {})))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((T : Magic())) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) where ((T : Magic())) {})))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
 
     (Env (term (env-for-crate-decl CrateDecl)))
-    )
+    ]
 
    (; All decls in crate are considered 'ok'.
     traced '()
@@ -105,28 +107,28 @@
    formality-decl
 
    ((; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+     AdtDecl_Foo (term (struct Foo () where () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
 
     (; struct Bar { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (scalar-ty i32)))))))))
+     AdtDecl_Foo (term (struct Foo () where () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Bar`
      Ty_Bar (term (rigid-ty Bar ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (Magic (trait ((type Self)) ((Self : Copy())) ()))))
+     TraitDecl_Magic (term (trait Magic ((type Self)) where ((Self : Copy())) {})))
 
     (; trait Copy { }
-     TraitDecl_Copy (term (Copy (trait ((type Self)) () ()))))
+     TraitDecl_Copy (term (trait Copy ((type Self)) where () {})))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((T : Magic())) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) where ((T : Magic())) {})))
 
     (; impl Copy for Foo { }
-     TraitImplDecl_Copy (term (impl () (Copy (Ty_Foo)) () ())))
+     TraitImplDecl_Copy (term (impl () (Copy (Ty_Foo)) where () {})))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))

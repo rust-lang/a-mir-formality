@@ -4,7 +4,6 @@
          "../ty/grammar.rkt"
          "../logic/grammar.rkt"
          "../ty/where-clauses.rkt"
-         "decl-from-crate.rkt"
          "../logic/env.rkt"
          "decl-wf-where-clause.rkt"
          )
@@ -42,7 +41,7 @@
    ;;         (implies ((well-formed (type T))
    ;;                   (is-implemented (Ord T)))
    ;;           (well-formed (type Vec<T>)) ...))
-   (crate-item-ok-goal CrateDecls (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
+   (crate-item-ok-goal CrateDecls (AdtKind AdtId KindedVarIds where (WhereClause ...) AdtVariants))
    Goal_wf
 
    (where/error (KindedVarId ...) KindedVarIds)
@@ -71,7 +70,7 @@
    ;;           (well-formed-where-clause-goal (T : Trait_Ord ()))))
    ;;
    ;; FIXME: Actually implement that, along with for the other items
-   (crate-item-ok-goal _ (FnId (fn-decl KindedVarIds Tys_arg Ty_ret (WhereClause ...) FnBody)))
+   (crate-item-ok-goal _ (fn FnId KindedVarIds Tys_arg -> Ty_ret where (WhereClause ...) FnBody))
    (&& ((well-formed-where-clause-goal WhereClause) ...))
    ]
 
@@ -80,7 +79,7 @@
    ;;     trait Foo<'a, T> where T: Ord { ... }
    ;;
    ;; we require that all the trait-item WF goals are met.
-   (crate-item-ok-goal CrateDecls (TraitId (trait KindedVarIds (WhereClause ...) (TraitItem ...))))
+   (crate-item-ok-goal CrateDecls (trait TraitId KindedVarIds where (WhereClause ...) (TraitItem ...)))
    (∀ KindedVarIds
       (implies ((well-formed KindedVarId) ... (where-clause->hypothesis WhereClause) ...)
                (&& (Goal_trait-item ...
@@ -96,7 +95,7 @@
    ;;
    ;; we require that the trait is implemented, given that all generics are WF,
    ;; all inputs are WF, and where-clauses are satisfied.
-   (crate-item-ok-goal CrateDecls (impl KindedVarIds_impl (TraitId (Parameter_trait ...)) WhereClauses_impl ImplItems))
+   (crate-item-ok-goal CrateDecls (impl KindedVarIds_impl (TraitId (Parameter_trait ...)) where WhereClauses_impl ImplItems))
    (∀ KindedVarIds_impl
       (implies
        (; assuming all generic parameters are WF...
@@ -109,7 +108,7 @@
               is-implemented (TraitId (Parameter_trait ...)))
              (well-formed-where-clause-goal CrateDecls WhereClause_impl) ...))))
 
-   (where/error (TraitId (trait ((ParameterKind_trait _) ...) _ _)) (trait-decl-with-id CrateDecls TraitId))
+   (where/error (trait TraitId ((ParameterKind_trait _) ...) where _ _) (trait-with-id CrateDecls TraitId))
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)
    ]
@@ -119,7 +118,7 @@
    ;;     const NAMED<T>: Foo<T> where T: Trait;
    ;;
    ;; we require that the type is well formed assuming the where clauses are satisfied.
-   (crate-item-ok-goal CrateDecls (ConstId (const KindedVarIds WhereClauses Ty FnBody)))
+   (crate-item-ok-goal CrateDecls (const ConstId KindedVarIds where WhereClauses : Ty = FnBody))
    (∀ KindedVarIds
       (implies
        (; assuming all generic parameters are WF...
@@ -140,7 +139,7 @@
    ;;
    ;; we require that the type is well formed assuming the where clauses are satisfied
    ;; and that the type is `Send`.
-   (crate-item-ok-goal CrateDecls (StaticId (static KindedVarIds WhereClauses Ty FnBody)))
+   (crate-item-ok-goal CrateDecls (static StaticId KindedVarIds where WhereClauses : Ty = FnBody))
    (∀ KindedVarIds
       (implies
        (; assuming all generic parameters are WF...
@@ -199,7 +198,7 @@
    ;
    ; when this goal is given to the solver, it would be rejected because `T: Eq` is not provable
    ; (we only know that `T: Debug`).
-   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (Ty_impl)) (WhereClause_impl ...) _))
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (Ty_impl)) where (WhereClause_impl ...) _))
    ((∀ KindedVarIds_adt
        (implies (where-clauses->hypotheses WhereClauses_adt)
                 (∃ KindedVarIds_impl
@@ -209,13 +208,13 @@
                    ))))
 
    (where (rigid-ty AdtId Parameters) Ty_impl)
-   (where (AdtKind KindedVarIds_adt WhereClauses_adt _) (item-with-id CrateDecls AdtId))
+   (where (AdtKind AdtId KindedVarIds_adt where WhereClauses_adt _) (adt-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
    (where/error Ty_adt (rigid-ty AdtId (VarId_adt ...)))
    ]
 
   [; Impl of the Drop trait for something that is not an ADT -- always an error.
-   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (_ ...)) WhereClauses_impl _))
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (_ ...)) where WhereClauses_impl _))
    ((|| ())) ; unprovable goal
    ]
 
@@ -240,7 +239,7 @@
    ;          (is-implemented (Vec<T>: Copy)))
    ;
    ; of course, in this case, it is not provable because `Vec<T>: Copy` is not true for any `T`.
-   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Copy (Ty_impl)) (WhereClause_impl ...) ()))
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Copy (Ty_impl)) where (WhereClause_impl ...) ()))
    ((∀ KindedVarIds_impl
        (implies ((where-clause->hypothesis WhereClause_impl) ...)
                 (∃ KindedVarIds_adt
@@ -250,7 +249,7 @@
                        )))))
 
    (where (rigid-ty AdtId Parameters) Ty_impl)
-   (where (AdtKind KindedVarIds_adt _ AdtVariants) (item-with-id CrateDecls AdtId))
+   (where (AdtKind AdtId KindedVarIds_adt where _ AdtVariants) (adt-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
    (where/error Ty_adt (rigid-ty AdtId (VarId_adt ...)))
    (where/error ((VariantId ((FieldId Ty_field) ...)) ...) AdtVariants)

@@ -15,19 +15,19 @@
    formality-decl
 
    ((; trait Foo<T> where T: Bar { }
-     TraitDecl_Foo (term (Foo (trait ((type Self) (type T)) ((T : Bar())) ()))))
+     TraitDecl_Foo (term (trait Foo ((type Self) (type T)) where ((T : Bar())) {})))
 
     (; trait Bar { }
-     TraitDecl_Bar (term (Bar (trait ((type Self)) () ()))))
+     TraitDecl_Bar (term (trait Bar ((type Self)) where () {})))
     )
 
    (; struct S<A, B> where A: Foo<B> { }
     redex-let*
     formality-decl
 
-    ((AdtDecl_S (term (S (struct ((type A) (type B))
-                           ((A : Foo(B)))
-                           ((S ()))))))
+    ((AdtDecl_S (term (struct S ((type A) (type B))
+                        where ((A : Foo(B)))
+                        ((S ())))))
 
      (CrateDecl (term (C (crate (TraitDecl_Foo
                                  TraitDecl_Bar
@@ -44,9 +44,9 @@
     redex-let*
     formality-decl
 
-    ((AdtDecl_S (term (S (struct ((type A) (type B))
-                           ((A : Foo(B)))
-                           ((S ()))))))
+    ((AdtDecl_S (term (struct S ((type A) (type B))
+                        where ((A : Foo(B)))
+                        ((S ())))))
 
      (CrateDecl (term (C (crate ((feature expanded-implied-bounds)
                                  TraitDecl_Foo
@@ -62,11 +62,11 @@
     redex-let*
     formality-decl
 
-    ((AdtDecl_S (term (S (struct ((type A) (type B))
-                           ((A : Foo(B))
-                            (B : Bar())
-                            )
-                           ((S ()))))))
+    ((AdtDecl_S (term (struct S ((type A) (type B))
+                        where ((A : Foo(B))
+                               (B : Bar())
+                               )
+                        ((S ())))))
 
      (CrateDecl (term (C (crate (TraitDecl_Foo
                                  TraitDecl_Bar
@@ -83,11 +83,10 @@
     redex-let*
     formality-decl
 
-    ((TraitDecl_Baz (term (Baz (trait ((type Self) (type A))
-                                      ((Self : Foo(A))
-                                       )
-                                      ()))))
-
+    ((TraitDecl_Baz (term (trait Baz ((type Self) (type A))
+                                 where ((Self : Foo(A))
+                                        )
+                                 {})))
      (CrateDecl (term (C (crate (TraitDecl_Foo
                                  TraitDecl_Bar
                                  TraitDecl_Baz
@@ -103,11 +102,11 @@
     redex-let*
     formality-decl
 
-    ((TraitDecl_Baz (term (Baz (trait ((type Self) (type A))
-                                      ((Self : Foo(A))
-                                       (A : Bar())
-                                       )
-                                      ()))))
+    ((TraitDecl_Baz (term (trait Baz ((type Self) (type A))
+                                 where ((Self : Foo(A))
+                                        (A : Bar())
+                                        )
+                                 {})))
 
      (CrateDecl (term (C (crate (TraitDecl_Foo
                                  TraitDecl_Bar

@@ -6,6 +6,7 @@
          "../ty/relate.rkt"
          "../ty/could-match.rkt"
          "../ty/where-clauses.rkt"
+         "../ty/user-ty.rkt"
          "../ty/hook.rkt")
 (provide env-for-crate-decl
          env-for-crate-decls
@@ -175,7 +176,7 @@
    ;;
    ;;     (∀ ((type T))
    ;;         (well-formed (type (Foo (T)))) => (well-formed (type T)))
-   (crate-item-decl-rules CrateDecls CrateId (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
+   (crate-item-decl-rules CrateDecls CrateId (AdtKind AdtId KindedVarIds where (WhereClause ...) AdtVariants))
    ((Clause) Invariants_wf Invariants_wc)
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
@@ -221,7 +222,7 @@
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type Self))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (lifetime 'a))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
-   (crate-item-decl-rules CrateDecls CrateId  (TraitId (trait KindedVarIds (WhereClause ...) TraitItems)))
+   (crate-item-decl-rules CrateDecls CrateId  (trait TraitId KindedVarIds where (WhereClause ...) TraitItems))
    ((Clause)
     (Invariant_wc ...
      Invariant_wf ...
@@ -276,11 +277,11 @@
    ;;             (well-formed (type i32))
    ;;             (well-formed (lifetime 'a))
    ;;             (is-implemented (Ord T)))
-   (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitRef WhereClauses_impl ImplItems))
+   (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitRef where  WhereClauses_impl ImplItems))
    ((Clause) () ())
 
    (where/error (TraitId (Parameter_trait ...)) TraitRef)
-   (where/error (trait KindedVarIds_trait _ _) (item-with-id CrateDecls TraitId))
+   (where/error (trait TraitId KindedVarIds_trait where _ _) (trait-with-id CrateDecls TraitId))
    (where/error ((ParameterKind_trait _) ...) KindedVarIds_trait)
    (where/error (Goal_wc ...) (where-clauses->goals WhereClauses_impl))
    (where/error Clause (∀ KindedVarIds_impl
@@ -294,7 +295,7 @@
   [;; For a function declared in the crate C, like the following
    ;;
    ;;     fn foo<'a, T>(&'a T) -> &'a T { ... }
-   (crate-item-decl-rules CrateDecls CrateId (_ (fn-decl KindedVarIds_fn Tys_arg Ty_ret WhereClauses_fn FnBody)))
+   (crate-item-decl-rules CrateDecls CrateId (fn _ KindedVarIds_fn Tys_arg -> Ty_ret where WhereClauses_fn FnBody))
    (() () ())
    ]
 
@@ -331,9 +332,9 @@
   default-rules : () -> (Clauses Invariants)
 
   ((default-rules ())
-   (((well-formed (type (scalar-ty i32)))
-     (well-formed (type (scalar-ty u32)))
-     (well-formed (type unit-ty))
+   (((well-formed (type (user-ty i32)))
+     (well-formed (type (user-ty u32)))
+     (well-formed (type (user-ty ())))
      )
     ())
    )
@@ -380,7 +381,6 @@
 
   [(generics-for-adt-id (CrateDecls CrateId) AdtId)
    (((VarId (ParameterKind =)) ...) WhereClauses) ; for now we hardcode `=` (invariance) as the variance
-   (where/error AdtContents (item-with-id CrateDecls AdtId))
-   (where/error (AdtKind ((ParameterKind VarId) ...) WhereClauses AdtVariants) AdtContents)
+   (where/error (AdtKind AdtId ((ParameterKind VarId) ...) WhereClauses AdtVariants) (adt-with-id CrateDecls AdtId))
    ]
   )

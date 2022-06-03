@@ -15,12 +15,12 @@
    ;; Test that we can write a function
 
    ((; fn foo<'a, T>(&'a T) -> &'a T { ... }
-     FnDecl_foo (term (foo (fn-decl
-                            ((lifetime A) (type T))
-                            ((rigid-ty (ref ()) (A (rigid-ty T ()))))
-                            (rigid-ty (ref ()) (A (rigid-ty T ())))
-                            ()
-                            dummy-body))))
+     FnDecl_foo (term (fn foo
+                          ((lifetime A) (type T))
+                          ((rigid-ty (ref ()) (A (rigid-ty T ()))))
+                          -> (rigid-ty (ref ()) (A (rigid-ty T ())))
+                          where ()
+                          dummy-body)))
 
     (; the crate has a function
      CrateDecl (term (TheCrate (crate (FnDecl_foo)))))

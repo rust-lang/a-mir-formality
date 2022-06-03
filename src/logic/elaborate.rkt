@@ -170,17 +170,17 @@
 
    (traced '()
            (test-equal
-            (term (elaborate-hypothesis-one-step Env (is-implemented (Ord ((scalar-ty u32))))))
-            (term ((is-implemented (Eq ((scalar-ty u32))))
-                   (is-implemented (PartialOrd ((scalar-ty u32))))))))
+            (term (elaborate-hypothesis-one-step Env (is-implemented (Ord ((user-ty u32))))))
+            (term ((is-implemented (Eq ((user-ty u32))))
+                   (is-implemented (PartialOrd ((user-ty u32))))))))
 
    (traced '()
            (test-equal
-            (term (env-hypotheses (elaborate-hypotheses (env-with-hypotheses Env ((is-implemented (Ord ((scalar-ty u32)))))))))
-            (term ((is-implemented (Ord ((scalar-ty u32))))
-                   (is-implemented (Eq ((scalar-ty u32))))
-                   (is-implemented (PartialOrd ((scalar-ty u32))))
-                   (is-implemented (PartialEq ((scalar-ty u32))))))))
+            (term (env-hypotheses (elaborate-hypotheses (env-with-hypotheses Env ((is-implemented (Ord ((user-ty u32)))))))))
+            (term ((is-implemented (Ord ((user-ty u32))))
+                   (is-implemented (Eq ((user-ty u32))))
+                   (is-implemented (PartialOrd ((user-ty u32))))
+                   (is-implemented (PartialEq ((user-ty u32))))))))
 
    (traced '()
            (test-alpha-equivalent

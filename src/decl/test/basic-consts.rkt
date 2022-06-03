@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "../grammar.rkt"
          "../prove.rkt"
+         "../../ty/user-ty.rkt"
          "../../util.rkt")
 
 (module+ test
@@ -9,17 +10,18 @@
   (redex-let*
    formality-decl
 
-   ((; trait Debug { }
-     TraitDecl (term (Debug (trait ((type Self)) () ()))))
+   [(; trait Debug { }
+     TraitDecl (term (trait Debug ((type Self)) where () ())))
     (; struct Foo<T: Debug> { }
-     AdtDecl_Foo (term (Foo (struct ((type T)) ((T : Debug())) ((Foo ())))))))
+     AdtDecl_Foo (term (struct Foo ((type T)) where ((T : Debug())) ((Foo ())))))
+    ]
 
    (; test that WF checks fail if `T: Debug` is missing
     redex-let*
     formality-decl
     [
      (; const BROKEN<T>: Foo<T>;
-      ConstDecl_broken (term (BROKEN (const ((type T)) () (rigid-ty Foo (T)) dummy-body))))
+      ConstDecl_broken (term (const BROKEN ((type T)) where () : (user-ty (Foo T)) = dummy-body)))
      (CrateDecl (term (TheCrate (crate (TraitDecl AdtDecl_Foo ConstDecl_broken)))))
      ]
 
@@ -32,7 +34,7 @@
     formality-decl
     [
      (; const OK<T: Debug>: Foo<T>;
-      ConstDecl_ok (term (OK (const ((type T)) ((T : Debug())) (rigid-ty Foo (T)) dummy-body))))
+      ConstDecl_ok (term (const OK ((type T)) where ((T : Debug())) : (user-ty (Foo T)) = dummy-body)))
      (CrateDecl (term (TheCrate (crate (TraitDecl AdtDecl_Foo ConstDecl_ok)))))
      ]
 

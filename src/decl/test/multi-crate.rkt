@@ -4,6 +4,7 @@
          "../decl-ok.rkt"
          "../grammar.rkt"
          "../prove.rkt"
+         "../../ty/user-ty.rkt"
          "../../util.rkt")
 
 (module+ test
@@ -17,8 +18,8 @@
      ;;
      CrateDecl_A (redex-let*
                   formality-decl
-                  ((TraitDecl (term (Debug (trait ((type Self)) () ()))))
-                   (TraitImplDecl (term (impl () (Debug ((scalar-ty i32))) () ())))
+                  ((TraitDecl (term (trait Debug ((type Self)) where () {})))
+                   (TraitImplDecl (term (impl () (Debug ((user-ty i32))) where () {})))
                    )
                   (term (CrateA (crate (TraitDecl TraitImplDecl))))))
 
@@ -31,9 +32,9 @@
      ;;
      CrateDecl_B (redex-let*
                   formality-decl
-                  ((TraitDecl_WithDebug (term (WithDebug (trait ((type Self) (type T)) ((T : Debug())) ()))))
-                   (AdtDecl_Foo (term (Foo (struct ((type T)) ((T : Debug())) ((Foo ()))))))
-                   (TraitImplDecl (term (impl ((type T)) (WithDebug ((rigid-ty Foo (T)) T)) () ())))
+                  ((TraitDecl_WithDebug (term (trait WithDebug ((type Self) (type T)) where ((T : Debug())) {})))
+                   (AdtDecl_Foo (term (struct Foo ((type T)) where ((T : Debug())) ((Foo ())))))
+                   (TraitImplDecl (term (impl ((type T)) (WithDebug ((rigid-ty Foo (T)) T)) where () ())))
                    )
                   (term (CrateB (crate (TraitDecl_WithDebug AdtDecl_Foo TraitImplDecl))))))
 
