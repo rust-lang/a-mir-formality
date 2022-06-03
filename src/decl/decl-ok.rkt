@@ -4,7 +4,6 @@
          "../ty/grammar.rkt"
          "../logic/grammar.rkt"
          "../ty/where-clauses.rkt"
-         "decl-from-crate.rkt"
          "../logic/env.rkt"
          "decl-wf-where-clause.rkt"
          )
@@ -109,7 +108,7 @@
               is-implemented (TraitId (Parameter_trait ...)))
              (well-formed-where-clause-goal CrateDecls WhereClause_impl) ...))))
 
-   (where/error (trait TraitId ((ParameterKind_trait _) ...) _ _) (trait-decl-with-id CrateDecls TraitId))
+   (where/error (trait TraitId ((ParameterKind_trait _) ...) _ _) (trait-with-id CrateDecls TraitId))
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)
    ]
