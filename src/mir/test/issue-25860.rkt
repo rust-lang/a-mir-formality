@@ -47,28 +47,27 @@
     ;;     }
     ;; }
     ;; ```
-    (StaticDecl_UNIT (term (static UNIT
-                                   () ; generics
-                                   () ; where-clauses
-                                   (user-ty (& static (& static ()))) ; type
-                                   (∃
-                                    ((lifetime L0)
-                                     (lifetime L1)
-                                     (lifetime L2)
-                                     (lifetime L3)
-                                     (lifetime L4)
-                                     )
-                                    ([(_0 (user-ty (& L0 (& L1 ()))) mut)
-                                      (_1 (user-ty (& L2 ())) mut)
-                                      (_2 (user-ty ()) mut)
-                                      ]
-                                     [(bb0 {(noop
-                                             (_1 = (ref L3 () _2))
-                                             (_0 = (ref L4 () _1)))
-                                            return
-                                            })]
-                                     )
-                                    )
+    (StaticDecl_UNIT (term (static UNIT ()
+                                   where ()
+                                   : (user-ty (& static (& static ())))
+                                   = (∃
+                                      ((lifetime L0)
+                                       (lifetime L1)
+                                       (lifetime L2)
+                                       (lifetime L3)
+                                       (lifetime L4)
+                                       )
+                                      ([(_0 (user-ty (& L0 (& L1 ()))) mut)
+                                        (_1 (user-ty (& L2 ())) mut)
+                                        (_2 (user-ty ()) mut)
+                                        ]
+                                       [(bb0 {(noop
+                                               (_1 = (ref L3 () _2))
+                                               (_0 = (ref L4 () _1)))
+                                              return
+                                              })]
+                                       )
+                                      )
                                    )))
     ]
 

@@ -27,7 +27,7 @@
   (FeatureDecl ::= (feature FeatureId))
 
   ;; AdtDecl -- struct/enum/union declarations
-  (AdtDecl ::= (AdtKind AdtId KindedVarIds WhereClauses AdtVariants))
+  (AdtDecl ::= (AdtKind AdtId KindedVarIds where WhereClauses AdtVariants))
   (AdtVariants ::= (AdtVariant ...))
   (AdtKind ::= struct enum union)
   (AdtVariant ::= (VariantId FieldDecls))
@@ -40,7 +40,7 @@
   ;; TraitDecl -- trait Foo { ... }
   ;;
   ;; Unlike in Rust, the `KindedVarIds` here always include with `(type Self)` explicitly.
-  (TraitDecl ::= (trait TraitId KindedVarIds WhereClauses TraitItems))
+  (TraitDecl ::= (trait TraitId KindedVarIds where WhereClauses TraitItems))
 
   ;; TraitItem --
   (TraitItems ::= (TraitItem ...))
@@ -49,13 +49,13 @@
   ;; Trait impls
   ;;
   ;; Note that trait impls do not have names.
-  (TraitImplDecl ::= (impl KindedVarIds TraitRef WhereClauses ImplItems))
+  (TraitImplDecl ::= (impl KindedVarIds TraitRef where WhereClauses ImplItems))
 
   ;; Named statics
-  (StaticDecl ::= (static StaticId KindedVarIds WhereClauses Ty FnBody))
+  (StaticDecl ::= (static StaticId KindedVarIds where WhereClauses : Ty = FnBody))
 
   ;; Named constants
-  (ConstDecl ::= (const ConstId KindedVarIds WhereClauses Ty FnBody))
+  (ConstDecl ::= (const ConstId KindedVarIds where WhereClauses : Ty = FnBody))
 
   ;; ImplItem --
   (ImplItems ::= (ImplItem ...))
@@ -65,7 +65,7 @@
   ;; Function
   ;;
   ;; fn foo<...>(...) -> ... where ... { body }
-  (FnDecl ::= (fn FnId KindedVarIds Tys Ty WhereClauses FnBody))
+  (FnDecl ::= (fn FnId KindedVarIds Tys -> Ty where WhereClauses FnBody))
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
@@ -81,31 +81,31 @@
   #:binding-forms
   (AdtKind AdtKind
            ((ParameterKind VarId) ...)
-           WhereClauses #:refers-to (shadow VarId ...)
+           where WhereClauses #:refers-to (shadow VarId ...)
            AdtVariants #:refers-to (shadow VarId ...))
   (trait TraitId
          ((ParameterKind VarId) ...)
-         WhereClauses #:refers-to (shadow VarId ...)
+         where WhereClauses #:refers-to (shadow VarId ...)
          TraitItems #:refers-to (shadow VarId ...))
   (impl ((ParameterKind VarId) ...)
         TraitRef #:refers-to (shadow VarId ...)
-        WhereClauses #:refers-to (shadow VarId ...)
+        where WhereClauses #:refers-to (shadow VarId ...)
         ImplItems #:refers-to (shadow VarId ...))
   (const ConstId
          ((ParameterKind VarId) ...)
-         WhereClauses #:refers-to (shadow VarId ...)
-         Ty #:refers-to (shadow VarId ...)
-         FnBody #:refers-to (shadow VarId ...))
+         where WhereClauses #:refers-to (shadow VarId ...)
+         : Ty #:refers-to (shadow VarId ...)
+         = FnBody #:refers-to (shadow VarId ...))
   (static StaticId
           ((ParameterKind VarId) ...)
-          WhereClauses #:refers-to (shadow VarId ...)
-          Ty #:refers-to (shadow VarId ...)
-          FnBody #:refers-to (shadow VarId ...))
+          where WhereClauses #:refers-to (shadow VarId ...)
+          : Ty #:refers-to (shadow VarId ...)
+          = FnBody #:refers-to (shadow VarId ...))
   (fn FnId
       ((ParameterKind VarId) ...)
       Tys #:refers-to (shadow VarId ...)
-      Ty #:refers-to (shadow VarId ...)
-      WhereClauses #:refers-to (shadow VarId ...)
+      -> Ty #:refers-to (shadow VarId ...)
+      where WhereClauses #:refers-to (shadow VarId ...)
       FnBody #:refers-to (shadow VarId ...))
   )
 
@@ -131,7 +131,7 @@
 (define-metafunction formality-decl
   trait-decl-id : TraitDecl -> TraitId
 
-  ((trait-decl-id (trait TraitId _ _ _)) TraitId)
+  ((trait-decl-id (trait TraitId _ where _ _)) TraitId)
   )
 
 (define-metafunction formality-decl
@@ -139,10 +139,10 @@
   adt-with-id : CrateDecls AdtId -> AdtDecl
 
   [(adt-with-id CrateDecls AdtId)
-   (AdtKind AdtId KindedVarIds WhereClauses AdtVariants)
+   (AdtKind AdtId KindedVarIds where WhereClauses AdtVariants)
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (_ (crate (_ ... (AdtKind AdtId KindedVarIds WhereClauses AdtVariants) _ ...))) CrateDecl)
+   (where (_ (crate (_ ... (AdtKind AdtId KindedVarIds where WhereClauses AdtVariants) _ ...))) CrateDecl)
    ]
   )
 
@@ -151,9 +151,9 @@
   trait-with-id : CrateDecls TraitId -> TraitDecl
 
   [(trait-with-id CrateDecls TraitId)
-   (trait TraitId KindedVarIds WhereClauses TraitItems)
+   (trait TraitId KindedVarIds where WhereClauses TraitItems)
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (_ (crate (_ ... (trait TraitId KindedVarIds WhereClauses TraitItems) _ ...))) CrateDecl)
+   (where (_ (crate (_ ... (trait TraitId KindedVarIds where WhereClauses TraitItems) _ ...))) CrateDecl)
    ]
   )

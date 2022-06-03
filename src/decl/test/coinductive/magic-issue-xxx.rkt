@@ -14,19 +14,19 @@
    formality-decl
 
    [(; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (struct Foo () () ((struct-variant ((counter (user-ty i32))))))))
+     AdtDecl_Foo (term (struct Foo () where () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (trait Magic ((type Self)) ((Self : Copy())) ())))
+     TraitDecl_Magic (term (trait Magic ((type Self)) where ((Self : Copy())) ())))
 
     (; trait Copy { }
-     TraitDecl_Copy (term (trait Copy ((type Self)) () ())))
+     TraitDecl_Copy (term (trait Copy ((type Self)) where () ())))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((T : Magic())) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) where ((T : Magic())) ())))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
@@ -61,19 +61,19 @@
    formality-decl
 
    [(; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (struct Foo () () ((struct-variant ((counter (user-ty i32))))))))
+     AdtDecl_Foo (term (struct Foo () where () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (trait Magic ((type Self)) ((Self : Copy())) ())))
+     TraitDecl_Magic (term (trait Magic ((type Self)) where ((Self : Copy())) {})))
 
     (; trait Copy: Magic { }
-     TraitDecl_Copy (term (trait Copy ((type Self)) ((Self : Magic())) ())))
+     TraitDecl_Copy (term (trait Copy ((type Self)) where ((Self : Magic())) {})))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((T : Magic())) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) where ((T : Magic())) {})))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
@@ -107,28 +107,28 @@
    formality-decl
 
    ((; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (struct Foo () () ((struct-variant ((counter (user-ty i32))))))))
+     AdtDecl_Foo (term (struct Foo () where () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
 
     (; struct Bar { counter: i32 }
-     AdtDecl_Foo (term (struct Foo () () ((struct-variant ((counter (user-ty i32))))))))
+     AdtDecl_Foo (term (struct Foo () where () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Bar`
      Ty_Bar (term (rigid-ty Bar ())))
 
     (; trait Magic: Copy { }
-     TraitDecl_Magic (term (trait Magic ((type Self)) ((Self : Copy())) ())))
+     TraitDecl_Magic (term (trait Magic ((type Self)) where ((Self : Copy())) {})))
 
     (; trait Copy { }
-     TraitDecl_Copy (term (trait Copy ((type Self)) () ())))
+     TraitDecl_Copy (term (trait Copy ((type Self)) where () {})))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) ((T : Magic())) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) where ((T : Magic())) {})))
 
     (; impl Copy for Foo { }
-     TraitImplDecl_Copy (term (impl () (Copy (Ty_Foo)) () ())))
+     TraitImplDecl_Copy (term (impl () (Copy (Ty_Foo)) where () {})))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))

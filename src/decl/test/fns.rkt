@@ -18,8 +18,8 @@
      FnDecl_foo (term (fn foo
                           ((lifetime A) (type T))
                           ((rigid-ty (ref ()) (A (rigid-ty T ()))))
-                          (rigid-ty (ref ()) (A (rigid-ty T ())))
-                          ()
+                          -> (rigid-ty (ref ()) (A (rigid-ty T ())))
+                          where ()
                           dummy-body)))
 
     (; the crate has a function

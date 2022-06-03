@@ -15,10 +15,10 @@
    formality-decl
 
    ((; trait Foo<T> where T: Bar { }
-     TraitDecl_Foo (term (trait Foo ((type Self) (type T)) ((T : Bar())) ())))
+     TraitDecl_Foo (term (trait Foo ((type Self) (type T)) where ((T : Bar())) {})))
 
     (; trait Bar { }
-     TraitDecl_Bar (term (trait Bar ((type Self)) () ())))
+     TraitDecl_Bar (term (trait Bar ((type Self)) where () {})))
     )
 
    (; struct S<A, B> where A: Foo<B> { }
@@ -26,7 +26,7 @@
     formality-decl
 
     ((AdtDecl_S (term (struct S ((type A) (type B))
-                        ((A : Foo(B)))
+                        where ((A : Foo(B)))
                         ((S ())))))
 
      (CrateDecl (term (C (crate (TraitDecl_Foo
@@ -45,7 +45,7 @@
     formality-decl
 
     ((AdtDecl_S (term (struct S ((type A) (type B))
-                        ((A : Foo(B)))
+                        where ((A : Foo(B)))
                         ((S ())))))
 
      (CrateDecl (term (C (crate ((feature expanded-implied-bounds)
@@ -63,9 +63,9 @@
     formality-decl
 
     ((AdtDecl_S (term (struct S ((type A) (type B))
-                        ((A : Foo(B))
-                         (B : Bar())
-                         )
+                        where ((A : Foo(B))
+                               (B : Bar())
+                               )
                         ((S ())))))
 
      (CrateDecl (term (C (crate (TraitDecl_Foo
@@ -84,9 +84,9 @@
     formality-decl
 
     ((TraitDecl_Baz (term (trait Baz ((type Self) (type A))
-                                 ((Self : Foo(A))
-                                  )
-                                 ())))
+                                 where ((Self : Foo(A))
+                                        )
+                                 {})))
      (CrateDecl (term (C (crate (TraitDecl_Foo
                                  TraitDecl_Bar
                                  TraitDecl_Baz
@@ -103,10 +103,10 @@
     formality-decl
 
     ((TraitDecl_Baz (term (trait Baz ((type Self) (type A))
-                                 ((Self : Foo(A))
-                                  (A : Bar())
-                                  )
-                                 ())))
+                                 where ((Self : Foo(A))
+                                        (A : Bar())
+                                        )
+                                 {})))
 
      (CrateDecl (term (C (crate (TraitDecl_Foo
                                  TraitDecl_Bar

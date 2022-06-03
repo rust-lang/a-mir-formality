@@ -14,8 +14,8 @@
   (redex-let*
    formality-decl
 
-   ((TraitDecl (term (trait Debug ((type Self)) () ())))
-    (TraitImplDecl (term (impl () (Debug ((user-ty i32))) () ())))
+   ((TraitDecl (term (trait Debug ((type Self)) where () {})))
+    (TraitImplDecl (term (impl () (Debug ((user-ty i32))) where () {})))
     (CrateDecl (term (TheCrate (crate (TraitDecl TraitImplDecl)))))
     (Env (term (env-for-crate-decl CrateDecl)))
     )

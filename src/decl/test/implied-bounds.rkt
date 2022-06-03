@@ -15,11 +15,11 @@
 
    ((; trait Foo<T> where Self: Bar, T: Bar { }
      TraitDecl_Foo (term (trait Foo ((type Self) (type T))
-                                ((T : Bar()) (Self : Bar()))
-                                ())))
+                                where ((T : Bar()) (Self : Bar()))
+                                {})))
 
     (; trait Bar { }
-     TraitDecl_Bar (term (trait Bar ((type Self)) () ())))
+     TraitDecl_Bar (term (trait Bar ((type Self)) where () {})))
 
     (Env (term (env-for-crate-decl (C (crate (TraitDecl_Foo
                                               TraitDecl_Bar))))))
@@ -62,8 +62,8 @@
 
    ((; trait Foo<'l, T> where Self: 'a, T: 'a { }
      TraitDecl_Foo (term (trait Foo ((type Self) (lifetime l) (type T))
-                                ((T : l) (Self : l))
-                                ())))
+                                where ((T : l) (Self : l))
+                                {})))
 
     (Env (term (env-for-crate-decl (C (crate (TraitDecl_Foo))))))
 

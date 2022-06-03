@@ -11,25 +11,25 @@
    formality-decl
 
    [(; struct Foo { }
-     AdtDecl_Foo (term (struct Foo () () ((struct-variant ())))))
+     AdtDecl_Foo (term (struct Foo () where () ((struct-variant ())))))
 
     (; trait Copy { }
-     TraitDecl_Copy (term (trait Copy ((type Self)) () ())))
+     TraitDecl_Copy (term (trait Copy ((type Self)) where () ())))
 
     (; trait Partial: Copy { }
-     TraitDecl_Partial (term (trait Partial((type Self)) ((Self : Copy())) ())))
+     TraitDecl_Partial (term (trait Partial((type Self)) where ((Self : Copy())) ())))
 
     (; trait Complete: Partial { }
-     TraitDecl_Complete (term (trait Complete ((type Self)) ((Self : Partial())) ())))
+     TraitDecl_Complete (term (trait Complete ((type Self)) where ((Self : Partial())) ())))
 
     (; impl<T> Partial for T where T: Complete {}
-     TraitImplDecl_Partial (term (impl ((type T)) (Partial (T)) ((T : Complete())) ())))
+     TraitImplDecl_Partial (term (impl ((type T)) (Partial (T)) where ((T : Complete())) ())))
 
     (; impl<T> Complete for T {}
-     TraitImplDecl_CompleteA (term (impl ((type T)) (Complete (T)) () ())))
+     TraitImplDecl_CompleteA (term (impl ((type T)) (Complete (T)) where () ())))
 
     (; impl<T: Partial> Complete for T {}
-     TraitImplDecl_CompleteB (term (impl ((type T)) (Complete (T)) ((T : Partial())) ())))
+     TraitImplDecl_CompleteB (term (impl ((type T)) (Complete (T)) where ((T : Partial())) ())))
 
     (; crate A { ... }
      CrateDecl_A (term (A (crate (AdtDecl_Foo
