@@ -69,7 +69,7 @@
 
   [; constants
    (prove-crate-item-ok DeclProgram ConstDecl)
-   (where/error (_ (const KindedVarIds WhereClauses Ty FnBody)) ConstDecl)
+   (where/error (const _ KindedVarIds WhereClauses Ty FnBody) ConstDecl)
    (✅-FnBody DeclProgram (∀ KindedVarIds (() -> Ty where WhereClauses FnBody)))
    ----------------------------------------
    (✅-CrateItemDecl DeclProgram ConstDecl)
@@ -77,7 +77,7 @@
 
   [; statics
    (prove-crate-item-ok DeclProgram StaticDecl)
-   (where/error (_ (static KindedVarIds WhereClauses Ty FnBody)) StaticDecl)
+   (where/error (static _ KindedVarIds WhereClauses Ty FnBody) StaticDecl)
    (✅-FnBody DeclProgram (∀ KindedVarIds (() -> Ty where WhereClauses FnBody)))
    ----------------------------------------
    (✅-CrateItemDecl DeclProgram StaticDecl)

@@ -52,12 +52,10 @@
   (TraitImplDecl ::= (impl KindedVarIds TraitRef WhereClauses ImplItems))
 
   ;; Named statics
-  (StaticDecl ::= (StaticId StaticContents))
-  (StaticContents ::= (static KindedVarIds WhereClauses Ty FnBody))
+  (StaticDecl ::= (static StaticId KindedVarIds WhereClauses Ty FnBody))
 
   ;; Named constants
-  (ConstDecl ::= (ConstId ConstContents))
-  (ConstContents ::= (const KindedVarIds WhereClauses Ty FnBody))
+  (ConstDecl ::= (const ConstId KindedVarIds WhereClauses Ty FnBody))
 
   ;; ImplItem --
   (ImplItems ::= (ImplItem ...))
@@ -99,7 +97,7 @@
          WhereClauses #:refers-to (shadow VarId ...)
          Ty #:refers-to (shadow VarId ...)
          FnBody #:refers-to (shadow VarId ...))
-  (static ConstId
+  (static StaticId
           ((ParameterKind VarId) ...)
           WhereClauses #:refers-to (shadow VarId ...)
           Ty #:refers-to (shadow VarId ...)

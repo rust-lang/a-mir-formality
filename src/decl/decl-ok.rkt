@@ -118,7 +118,7 @@
    ;;     const NAMED<T>: Foo<T> where T: Trait;
    ;;
    ;; we require that the type is well formed assuming the where clauses are satisfied.
-   (crate-item-ok-goal CrateDecls (ConstId (const KindedVarIds WhereClauses Ty FnBody)))
+   (crate-item-ok-goal CrateDecls (const ConstId KindedVarIds WhereClauses Ty FnBody))
    (∀ KindedVarIds
       (implies
        (; assuming all generic parameters are WF...
@@ -139,7 +139,7 @@
    ;;
    ;; we require that the type is well formed assuming the where clauses are satisfied
    ;; and that the type is `Send`.
-   (crate-item-ok-goal CrateDecls (StaticId (static KindedVarIds WhereClauses Ty FnBody)))
+   (crate-item-ok-goal CrateDecls (static StaticId KindedVarIds WhereClauses Ty FnBody))
    (∀ KindedVarIds
       (implies
        (; assuming all generic parameters are WF...
