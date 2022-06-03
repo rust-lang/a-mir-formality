@@ -65,8 +65,7 @@
   ;; Function
   ;;
   ;; fn foo<...>(...) -> ... where ... { body }
-  (FnDecl ::= (FnId FnContents))
-  (FnContents ::= (fn KindedVarIds Tys Ty WhereClauses FnBody))
+  (FnDecl ::= (fn FnId KindedVarIds Tys Ty WhereClauses FnBody))
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
