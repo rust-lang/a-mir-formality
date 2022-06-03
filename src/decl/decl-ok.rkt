@@ -42,7 +42,7 @@
    ;;         (implies ((well-formed (type T))
    ;;                   (is-implemented (Ord T)))
    ;;           (well-formed (type Vec<T>)) ...))
-   (crate-item-ok-goal CrateDecls (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
+   (crate-item-ok-goal CrateDecls (AdtKind AdtId KindedVarIds (WhereClause ...) AdtVariants))
    Goal_wf
 
    (where/error (KindedVarId ...) KindedVarIds)
@@ -209,7 +209,7 @@
                    ))))
 
    (where (rigid-ty AdtId Parameters) Ty_impl)
-   (where (AdtKind KindedVarIds_adt WhereClauses_adt _) (adt-with-id CrateDecls AdtId))
+   (where (AdtKind AdtId KindedVarIds_adt WhereClauses_adt _) (adt-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
    (where/error Ty_adt (rigid-ty AdtId (VarId_adt ...)))
    ]
@@ -250,7 +250,7 @@
                        )))))
 
    (where (rigid-ty AdtId Parameters) Ty_impl)
-   (where (AdtKind KindedVarIds_adt _ AdtVariants) (adt-with-id CrateDecls AdtId))
+   (where (AdtKind AdtId KindedVarIds_adt _ AdtVariants) (adt-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
    (where/error Ty_adt (rigid-ty AdtId (VarId_adt ...)))
    (where/error ((VariantId ((FieldId Ty_field) ...)) ...) AdtVariants)

@@ -176,7 +176,7 @@
    ;;
    ;;     (∀ ((type T))
    ;;         (well-formed (type (Foo (T)))) => (well-formed (type T)))
-   (crate-item-decl-rules CrateDecls CrateId (AdtId (AdtKind KindedVarIds (WhereClause ...) AdtVariants)))
+   (crate-item-decl-rules CrateDecls CrateId (AdtKind AdtId KindedVarIds (WhereClause ...) AdtVariants))
    ((Clause) Invariants_wf Invariants_wc)
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
@@ -381,7 +381,6 @@
 
   [(generics-for-adt-id (CrateDecls CrateId) AdtId)
    (((VarId (ParameterKind =)) ...) WhereClauses) ; for now we hardcode `=` (invariance) as the variance
-   (where/error AdtContents (adt-with-id CrateDecls AdtId))
-   (where/error (AdtKind ((ParameterKind VarId) ...) WhereClauses AdtVariants) AdtContents)
+   (where/error (AdtKind AdtId ((ParameterKind VarId) ...) WhereClauses AdtVariants) (adt-with-id CrateDecls AdtId))
    ]
   )

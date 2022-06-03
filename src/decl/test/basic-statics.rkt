@@ -10,8 +10,9 @@
   (redex-let*
    formality-decl
 
-   ((; struct Foo { }
-     AdtDecl_Foo (term (Foo (struct () () ((Foo ())))))))
+   [(; struct Foo { }
+     AdtDecl_Foo (term (struct Foo () () ((Foo ())))))
+    ]
 
    (; test that Send check fails
     ;

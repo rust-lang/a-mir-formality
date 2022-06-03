@@ -27,8 +27,7 @@
   (FeatureDecl ::= (feature FeatureId))
 
   ;; AdtDecl -- struct/enum/union declarations
-  (AdtDecl ::= (AdtId AdtContents))
-  (AdtContents ::= (AdtKind KindedVarIds WhereClauses AdtVariants))
+  (AdtDecl ::= (AdtKind AdtId KindedVarIds WhereClauses AdtVariants))
   (AdtVariants ::= (AdtVariant ...))
   (AdtKind ::= struct enum union)
   (AdtVariant ::= (VariantId FieldDecls))
@@ -141,24 +140,24 @@
 
 (define-metafunction formality-decl
   ;; Find the given ADT amongst all the declared crates.
-  adt-with-id : CrateDecls AdtId -> AdtContents
+  adt-with-id : CrateDecls AdtId -> AdtDecl
 
-  ((adt-with-id CrateDecls AdtId)
-   AdtContents
+  [(adt-with-id CrateDecls AdtId)
+   (AdtKind AdtId KindedVarIds WhereClauses AdtVariants)
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (_ (crate (_ ... (AdtId AdtContents) _ ...))) CrateDecl)
-   )
+   (where (_ (crate (_ ... (AdtKind AdtId KindedVarIds WhereClauses AdtVariants) _ ...))) CrateDecl)
+   ]
   )
 
 (define-metafunction formality-decl
   ;; Find the given trait amongst all the declared crates.
   trait-with-id : CrateDecls TraitId -> TraitContents
 
-  ((trait-with-id CrateDecls TraitId)
+  [(trait-with-id CrateDecls TraitId)
    TraitContents
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
    (where (_ (crate (_ ... (TraitId TraitContents) _ ...))) CrateDecl)
-   )
+   ]
   )

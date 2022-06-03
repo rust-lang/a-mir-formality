@@ -50,12 +50,10 @@
 
 (define-metafunction formality-mir-extended
   ;; Returns the `AdtContents` of the ADT with the given `AdtId`.
-  decl-of-adt : Γ AdtId -> AdtContents
+  decl-of-adt : Γ AdtId -> AdtDecl
 
   [(decl-of-adt Γ AdtId)
-   AdtContents
-   (where/error (_ CrateDecls) Γ)
-   (where AdtContents (adt-with-id CrateDecls AdtId))
+   (adt-with-id (crate-decls-of-Γ CrateDecls) AdtId)
    ]
   )
 

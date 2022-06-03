@@ -15,7 +15,7 @@
 
    ;; Test for that `impl Drop for i32` is not permitted.
 
-   ((; trait rust:Drop { }
+   [(; trait rust:Drop { }
      TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
 
     (; impl rust:Drop for i32 { }
@@ -28,7 +28,7 @@
 
     (; create the Env for checking things in this crate
      Env (term (env-for-crate-decl CrateDecl)))
-    )
+    ]
 
    (traced '()
            (decl:test-cannot-prove
@@ -42,10 +42,10 @@
 
    ;; Test for case where the Drop impl is for `Foo<i32>` only.
 
-   ((; struct Foo<T> { }
-     AdtDecl_Foo (term (Foo (struct ((type T)) ()
-                              ((Foo ())) ; the 1 variant (named `Foo`)
-                              ))))
+   [(; struct Foo<T> { }
+     AdtDecl_Foo (term (struct Foo ((type T)) ()
+                         ((Foo ())) ; the 1 variant (named `Foo`)
+                         )))
 
     (; trait rust:Drop { }
      TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
@@ -61,7 +61,7 @@
 
     (; create the Env for checking things in this crate
      Env (term (env-for-crate-decl CrateDecl)))
-    )
+    ]
 
    (traced '()
            (decl:test-cannot-prove
@@ -76,10 +76,10 @@
    ;; Test for case where the Drop impl adds an extra where clause
    ;; that doesn't follow from the struct.
 
-   ((; struct Foo<T> { }
-     AdtDecl_Foo (term (Foo (struct ((type T)) ()
-                              ((Foo ())) ; the 1 variant (named `Foo`)
-                              ))))
+   [(; struct Foo<T> { }
+     AdtDecl_Foo (term (struct Foo ((type T)) ()
+                         ((Foo ())) ; the 1 variant (named `Foo`)
+                         )))
 
     (; trait Debug { }
      TraitDecl_Debug (term (Debug (trait ((type Self)) () ()))))
@@ -96,7 +96,7 @@
                                        TraitDecl_Drop
                                        TraitImplDecl
                                        )))))
-    )
+    ]
 
    (traced '() (decl:test-crate-decl-not-ok (CrateDecl) TheCrate))
    )
@@ -108,10 +108,10 @@
    ;; are syntactically present on the struct, but they are entailed by
    ;; the predicates on the struct.
 
-   ((; struct Foo<T> { }
-     AdtDecl_Foo (term (Foo (struct ((type T)) ()
-                              ((Foo ())) ; the 1 variant (named `Foo`)
-                              ))))
+   [(; struct Foo<T> { }
+     AdtDecl_Foo (term (struct Foo ((type T)) ()
+                         ((Foo ())) ; the 1 variant (named `Foo`)
+                         )))
 
     (; trait rust:Drop { }
      TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
@@ -127,7 +127,7 @@
 
     (; create the Env for checking things in this crate
      Env (term (env-for-crate-decl CrateDecl)))
-    )
+    ]
 
    (traced '()
            (decl:test-can-prove
@@ -143,10 +143,10 @@
    ;; are syntactically present on the struct, but they are entailed by
    ;; the predicates on the struct.
 
-   ((; struct Foo<T> where T: Ord { }
-     AdtDecl_Foo (term (Foo (struct ((type T)) ((T : Ord()))
-                              ((Foo ())) ; the 1 variant (named `Foo`)
-                              ))))
+   [(; struct Foo<T> where T: Ord { }
+     AdtDecl_Foo (term (struct Foo ((type T)) ((T : Ord()))
+                         ((Foo ())) ; the 1 variant (named `Foo`)
+                         )))
 
     (; trait rust:Drop { }
      TraitDecl_Drop (term (rust:Drop (trait ((type Self)) () ()))))
@@ -172,7 +172,7 @@
                                        TraitDecl_Ord
                                        TraitImplDecl
                                        )))))
-    )
+    ]
 
    (traced '()
            (decl:test-crate-decl-ok (CrateDecl) TheCrate))

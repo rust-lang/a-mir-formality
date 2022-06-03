@@ -25,9 +25,9 @@
     redex-let*
     formality-decl
 
-    ((AdtDecl_S (term (S (struct ((type A) (type B))
-                           ((A : Foo(B)))
-                           ((S ()))))))
+    ((AdtDecl_S (term (struct S ((type A) (type B))
+                        ((A : Foo(B)))
+                        ((S ())))))
 
      (CrateDecl (term (C (crate (TraitDecl_Foo
                                  TraitDecl_Bar
@@ -44,9 +44,9 @@
     redex-let*
     formality-decl
 
-    ((AdtDecl_S (term (S (struct ((type A) (type B))
-                           ((A : Foo(B)))
-                           ((S ()))))))
+    ((AdtDecl_S (term (struct S ((type A) (type B))
+                        ((A : Foo(B)))
+                        ((S ())))))
 
      (CrateDecl (term (C (crate ((feature expanded-implied-bounds)
                                  TraitDecl_Foo
@@ -62,11 +62,11 @@
     redex-let*
     formality-decl
 
-    ((AdtDecl_S (term (S (struct ((type A) (type B))
-                           ((A : Foo(B))
-                            (B : Bar())
-                            )
-                           ((S ()))))))
+    ((AdtDecl_S (term (struct S ((type A) (type B))
+                        ((A : Foo(B))
+                         (B : Bar())
+                         )
+                        ((S ())))))
 
      (CrateDecl (term (C (crate (TraitDecl_Foo
                                  TraitDecl_Bar

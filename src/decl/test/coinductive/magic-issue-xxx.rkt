@@ -13,8 +13,8 @@
    redex-let*
    formality-decl
 
-   ((; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (user-ty i32)))))))))
+   [(; struct Foo { counter: i32 }
+     AdtDecl_Foo (term (struct Foo () () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
@@ -32,7 +32,7 @@
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
 
     (Env (term (env-for-crate-decl CrateDecl)))
-    )
+    ]
 
    (; All decls in crate are considered 'ok'. In particular, the impl is considered 'ok',
     ; since its where clauses allow it to locally prove that `Self: Copy`.
@@ -60,8 +60,8 @@
    redex-let*
    formality-decl
 
-   ((; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (user-ty i32)))))))))
+   [(; struct Foo { counter: i32 }
+     AdtDecl_Foo (term (struct Foo () () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
@@ -79,7 +79,7 @@
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
 
     (Env (term (env-for-crate-decl CrateDecl)))
-    )
+    ]
 
    (; All decls in crate are considered 'ok'.
     traced '()
@@ -107,13 +107,13 @@
    formality-decl
 
    ((; struct Foo { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (user-ty i32)))))))))
+     AdtDecl_Foo (term (struct Foo () () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Foo`
      Ty_Foo (term (rigid-ty Foo ())))
 
     (; struct Bar { counter: i32 }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ((counter (user-ty i32)))))))))
+     AdtDecl_Foo (term (struct Foo () () ((struct-variant ((counter (user-ty i32))))))))
 
     (; reference to `Bar`
      Ty_Bar (term (rigid-ty Bar ())))

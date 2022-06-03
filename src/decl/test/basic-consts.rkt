@@ -10,10 +10,11 @@
   (redex-let*
    formality-decl
 
-   ((; trait Debug { }
+   [(; trait Debug { }
      TraitDecl (term (Debug (trait ((type Self)) () ()))))
     (; struct Foo<T: Debug> { }
-     AdtDecl_Foo (term (Foo (struct ((type T)) ((T : Debug())) ((Foo ())))))))
+     AdtDecl_Foo (term (struct Foo ((type T)) ((T : Debug())) ((Foo ())))))
+    ]
 
    (; test that WF checks fail if `T: Debug` is missing
     redex-let*

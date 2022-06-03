@@ -44,7 +44,7 @@
    ;
    ; extract the name of the singular variant
    (place-type-of Γ Place (rigid-ty AdtId Parameters) ())
-   (where (struct _ _ ((VariantId _))) (decl-of-adt Γ AdtId))
+   (where (struct AdtId _ _ ((VariantId _))) (decl-of-adt Γ AdtId))
    (field-ty Γ AdtId Parameters VariantId FieldId Ty_field)
    ----------------------------------
    (place-type-of Γ (field Place FieldId) Ty_field ())
@@ -54,7 +54,7 @@
    ;
    ; must have been downcast to a particular variant
    (place-type-of Γ Place (rigid-ty AdtId Parameters) (VariantId))
-   (where (enum _ _ _) (decl-of-adt Γ AdtId))
+   (where (enum AdtId _ _ _) (decl-of-adt Γ AdtId))
    (field-ty Γ AdtId Parameters VariantId FieldId Ty_field)
    ----------------------------------
    (place-type-of Γ (field Place FieldId) Ty_field ())
@@ -63,7 +63,7 @@
 
   [; downcast to an enum variant
    (place-type-of Γ Place (rigid-ty AdtId Parameters) ())
-   (where (enum _ _ (_ ... (VariantId _) _ ...)) (decl-of-adt Γ AdtId))
+   (where (enum AdtId _ _ (_ ... (VariantId _) _ ...)) (decl-of-adt Γ AdtId))
    ----------------------------------
    (place-type-of Γ (downcast Place VariantId) (rigid-ty AdtId Parameters) (VariantId))
    ]
@@ -93,7 +93,7 @@
   #:mode (field-ty I I I I I O)
   #:contract (field-ty Γ AdtId Parameters VariantId FieldId Ty)
 
-  [(where (_ KindedVarIds _ (_ ... (VariantId FieldDecls) _ ...)) (decl-of-adt Γ AdtId))
+  [(where (_ AdtId KindedVarIds _ (_ ... (VariantId FieldDecls) _ ...)) (decl-of-adt Γ AdtId))
    (where/error Substitution (create-substitution KindedVarIds Parameters))
    (where (_ ... (FieldId Ty) _ ...) FieldDecls)
    (where/error Ty_substituted (apply-substitution Substitution Ty))

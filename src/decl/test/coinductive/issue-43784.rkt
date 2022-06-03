@@ -10,8 +10,8 @@
   (redex-let*
    formality-decl
 
-   ((; struct Foo { }
-     AdtDecl_Foo (term (Foo (struct () () ((struct-variant ()))))))
+   [(; struct Foo { }
+     AdtDecl_Foo (term (struct Foo () () ((struct-variant ())))))
 
     (; trait Copy { }
      TraitDecl_Copy (term (Copy (trait ((type Self)) () ()))))
@@ -50,7 +50,7 @@
                                   TraitImplDecl_CompleteB)))))
 
     (Env_B (term (env-for-crate-decl CrateDecl_B)))
-    )
+    ]
 
    (; The crate A is not well-formed:
     ;
