@@ -174,17 +174,25 @@
                            ((well-formed (ParameterKind VarId)) ...
                             (where-clause->goal WhereClause) ...)
                            (well-formed (type Ty_adt)))))
+   (where/error (WhereClause_implied ...) (if-crate-has-feature
+                                           CrateDecls
+                                           CrateId
+                                           expanded-implied-bounds
+                                           (; with the `expanded-implied-bounds` feature, you get all the where clauses
+                                            WhereClause ...)
+                                           (; without the `expanded-implied-bounds` feature, you only get the super traits
+                                            outlives-clauses (WhereClause ...))
+                                           ))
+   (where/error (Invariant_where-clause ...) ((∀ KindedVarIds
+                                                 (implies
+                                                  ((well-formed (type Ty_adt)))
+                                                  (where-clause->hypothesis WhereClause_implied)))
+                                              ...))
    (where/error (Invariant_well-formed ...) ((∀ KindedVarIds
                                                 (implies
                                                  ((well-formed (type Ty_adt)))
                                                  (well-formed (ParameterKind VarId))))
                                              ...))
-   (where/error (Invariant_where-clause ...) ((∀ KindedVarIds
-                                                 (implies
-                                                  ((well-formed (type Ty_adt)))
-                                                  (where-clause->hypothesis WhereClause)))
-                                              ...))
-
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:
@@ -225,8 +233,6 @@
                            (is-implemented TraitRef_me))))
 
 
-   ; With the expanded-implied-bounds feature, we include all where clauses from the
-   ; trait as implied bounds. Without it, we include only supertraits.
    (where/error (WhereClause_implied ...) (if-crate-has-feature
                                            CrateDecls
                                            CrateId
@@ -348,6 +354,30 @@
 
   (; Discard others
    (filter-super-where-clauses KindedVarIds WhereClause)
+   ()
+   )
+
+  )
+
+(define-metafunction formality-decl
+  outlives-clauses : WhereClauses -> WhereClauses
+
+  ((outlives-clauses (WhereClause ...))
+   (flatten ((filter-outlives-where-clause WhereClause) ...))
+   )
+
+  )
+
+(define-metafunction formality-decl
+  filter-outlives-where-clause : WhereClause -> WhereClauses
+
+  (; Keep `Self: 'a` bounds
+   (filter-outlives-where-clause (Parameter_1 : Parameter_2))
+   ((Parameter_1 : Parameter_2))
+   )
+
+  (; Discard others
+   (filter-outlives-where-clause WhereClause)
    ()
    )
 
