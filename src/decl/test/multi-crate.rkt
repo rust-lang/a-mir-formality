@@ -72,26 +72,25 @@
 
    (redex-let*
     formality-decl
-    ;; Crate C cannot prove `∀<T> { If (well-formed(Foo<T>) { is-implemented(T: Debug) } }`
+    ;; Crate C can also prove `∀<T> { If (well-formed(Foo<T>) { is-implemented(T: Debug) } }`
     ((Goal_C_ImpliedBound (term (∀ ((type T))
                                    (implies ((well-formed (type (rigid-ty Foo (T))))
                                              (well-formed (type T)))
                                             (is-implemented (Debug (T))))))))
 
     (traced '()
-            (decl:test-cannot-prove Env_C Goal_C_ImpliedBound)))
+            (decl:test-can-prove Env_C Goal_C_ImpliedBound)))
 
    (redex-let*
     formality-decl
-    ;; but it CAN prove `∀<T> { If (well-formed(Foo<T>, T)) { is-implemented(Foo<T>: WithDebug<T>) } }`
+    ;; and it can prove `∀<T> { If (well-formed(Foo<T>, T)) { is-implemented(Foo<T>: WithDebug<T>) } }`
     ((Goal_C_UseImpl (term (∀ ((type T))
                               (implies ((well-formed (type (rigid-ty Foo (T))))
                                         (well-formed (type T)))
                                        (is-implemented (WithDebug ((rigid-ty Foo (T)) T))))))))
 
-    ; ...actually, it can't, because it can't prove `T: Debug` right now. Does that make sense?
     (traced '()
-            (decl:test-cannot-prove Env_C Goal_C_UseImpl)))
+            (decl:test-can-prove Env_C Goal_C_UseImpl)))
 
    (redex-let*
     formality-decl

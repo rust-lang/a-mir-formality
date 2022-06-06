@@ -123,21 +123,10 @@
   ;; that later.
   crate-decl-rules : CrateDecls CrateDecl CrateId -> (Clauses Invariants)
 
-  [; Rules from crate C to use internally within crate C
-   (crate-decl-rules CrateDecls (CrateId (crate (CrateItemDecl ...))) CrateId)
-   ((Clause ... ...) (Invariant_all ... ... Invariant_local ... ...))
+  [(crate-decl-rules CrateDecls (CrateId_0 (crate (CrateItemDecl ...))) CrateId_1)
+   ((Clause ... ...) (Invariant ... ...))
 
-   (where/error (((Clause ...) (Invariant_all ...) (Invariant_local ...)) ...)
-                ((crate-item-decl-rules CrateDecls CrateId CrateItemDecl) ...))
-   ]
-
-  [; Rules from crate C to use from other crates -- exclude the invariants, which are
-   ; local to crate C, but keep the clauses, which are global.
-   (crate-decl-rules CrateDecls (CrateId_0 (crate (CrateItemDecl ...))) CrateId_1)
-   ((Clause ... ...) (Invariant_all ... ...))
-
-   (where (CrateId_!_same CrateId_!_same) (CrateId_0 CrateId_1))
-   (where/error (((Clause ...) (Invariant_all ...) _) ...)
+   (where/error (((Clause ...) (Invariant ...)) ...)
                 ((crate-item-decl-rules CrateDecls CrateId_0 CrateItemDecl) ...))
    ]
   )
@@ -152,9 +141,8 @@
   ;; Return a tuple of:
   ;;
   ;; * The clauses that hold in all crates due to this item
-  ;; * The invariants that hold in all crates due to this item
-  ;; * The invariants that hold only in the current crate
-  crate-item-decl-rules : CrateDecls CrateId CrateItemDecl -> (Clauses Invariants Invariants)
+  ;; * The invariants that hold
+  crate-item-decl-rules : CrateDecls CrateId CrateItemDecl -> (Clauses Invariants)
 
   [;; For an ADT declaration declared in the crate C, like the following:
    ;;
@@ -177,7 +165,7 @@
    ;;     (∀ ((type T))
    ;;         (well-formed (type (Foo (T)))) => (well-formed (type T)))
    (crate-item-decl-rules CrateDecls CrateId (AdtKind AdtId KindedVarIds where (WhereClause ...) AdtVariants))
-   ((Clause) Invariants_global Invariants_local)
+   ((Clause) (Invariant_well-formed ... Invariant_where-clause ...))
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error Ty_adt (rigid-ty AdtId (VarId ...)))
@@ -186,16 +174,16 @@
                            ((well-formed (ParameterKind VarId)) ...
                             (where-clause->goal WhereClause) ...)
                            (well-formed (type Ty_adt)))))
-   (where/error Invariants_global ((∀ KindedVarIds
-                                      (implies
-                                       ((well-formed (type Ty_adt)))
-                                       (well-formed (ParameterKind VarId))))
-                                   ...))
-   (where/error Invariants_local ((∀ KindedVarIds
-                                     (implies
-                                      ((well-formed (type Ty_adt)))
-                                      (where-clause->hypothesis WhereClause)))
-                                  ...))
+   (where/error (Invariant_well-formed ...) ((∀ KindedVarIds
+                                                (implies
+                                                 ((well-formed (type Ty_adt)))
+                                                 (well-formed (ParameterKind VarId))))
+                                             ...))
+   (where/error (Invariant_where-clause ...) ((∀ KindedVarIds
+                                                 (implies
+                                                  ((well-formed (type Ty_adt)))
+                                                  (where-clause->hypothesis WhereClause)))
+                                              ...))
 
    ]
 
@@ -224,11 +212,7 @@
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (lifetime 'a))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
    (crate-item-decl-rules CrateDecls CrateId  (trait TraitId KindedVarIds where (WhereClause ...) TraitItems))
-   ((Clause)
-    (Invariant_well-formed ...
-     Invariant_where-clause ...
-     )
-    ())
+   ((Clause) (Invariant_well-formed ... Invariant_where-clause ...))
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error TraitRef_me (TraitId (VarId ...)))
@@ -275,7 +259,7 @@
    ;;             (well-formed (lifetime 'a))
    ;;             (is-implemented (Ord T)))
    (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitRef where  WhereClauses_impl ImplItems))
-   ((Clause) () ())
+   ((Clause) ())
 
    (where/error (TraitId (Parameter_trait ...)) TraitRef)
    (where/error (trait TraitId KindedVarIds_trait where _ _) (trait-with-id CrateDecls TraitId))
@@ -293,7 +277,7 @@
    ;;
    ;;     fn foo<'a, T>(&'a T) -> &'a T { ... }
    (crate-item-decl-rules CrateDecls CrateId (fn _ KindedVarIds_fn Tys_arg -> Ty_ret where WhereClauses_fn FnBody))
-   (() () ())
+   (() ())
    ]
 
   [;; For an named constant in the crate C, like the following
@@ -302,7 +286,7 @@
    ;;
    ;; we don't create any clauses.
    (crate-item-decl-rules CrateDecls CrateId ConstDecl)
-   (() () ())
+   (() ())
    ]
 
   [;; For a named static in the crate C, like the following
@@ -311,12 +295,12 @@
    ;;
    ;; we don't create any clauses.
    (crate-item-decl-rules CrateDecls CrateId StaticDecl)
-   (() () ())
+   (() ())
    ]
 
   [;; Feature gates don't introduce any rules
    (crate-item-decl-rules CrateDecls CrateId FeatureDecl)
-   (() () ())
+   (() ())
    ]
   )
 
