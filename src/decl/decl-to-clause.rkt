@@ -153,7 +153,7 @@
   ;;
   ;; * The clauses that hold in all crates due to this item
   ;; * The invariants that hold in all crates due to this item
-  ;; * The invariants that hold only in the crate I
+  ;; * The invariants that hold only in the current crate
   crate-item-decl-rules : CrateDecls CrateId CrateItemDecl -> (Clauses Invariants Invariants)
 
   [;; For an ADT declaration declared in the crate C, like the following:
@@ -177,7 +177,7 @@
    ;;     (∀ ((type T))
    ;;         (well-formed (type (Foo (T)))) => (well-formed (type T)))
    (crate-item-decl-rules CrateDecls CrateId (AdtKind AdtId KindedVarIds where (WhereClause ...) AdtVariants))
-   ((Clause) Invariants_wf Invariants_wc)
+   ((Clause) Invariants_global Invariants_local)
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error Ty_adt (rigid-ty AdtId (VarId ...)))
@@ -186,16 +186,17 @@
                            ((well-formed (ParameterKind VarId)) ...
                             (where-clause->goal WhereClause) ...)
                            (well-formed (type Ty_adt)))))
-   (where/error Invariants_wc ((∀ KindedVarIds
-                                  (implies
-                                   ((well-formed (type Ty_adt)))
-                                   (where-clause->hypothesis WhereClause)))
-                               ...))
-   (where/error Invariants_wf ((∀ KindedVarIds
-                                  (implies
-                                   ((well-formed (type Ty_adt)))
-                                   (well-formed (ParameterKind VarId))))
-                               ...))
+   (where/error Invariants_global ((∀ KindedVarIds
+                                      (implies
+                                       ((well-formed (type Ty_adt)))
+                                       (well-formed (ParameterKind VarId))))
+                                   ...))
+   (where/error Invariants_local ((∀ KindedVarIds
+                                     (implies
+                                      ((well-formed (type Ty_adt)))
+                                      (where-clause->hypothesis WhereClause)))
+                                  ...))
+
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:
@@ -224,8 +225,8 @@
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
    (crate-item-decl-rules CrateDecls CrateId  (trait TraitId KindedVarIds where (WhereClause ...) TraitItems))
    ((Clause)
-    (Invariant_wc ...
-     Invariant_wf ...
+    (Invariant_well-formed ...
+     Invariant_where-clause ...
      )
     ())
 
@@ -242,27 +243,23 @@
 
    ; With the expanded-implied-bounds feature, we include all where clauses from the
    ; trait as implied bounds. Without it, we include only supertraits.
-   (where/error (WhereClause_super ...) (super-where-clauses KindedVarIds (WhereClause ...)))
-   (where/error (Invariant_wc ...) (if-crate-has-feature
-                                    CrateDecls
-                                    CrateId
-                                    expanded-implied-bounds
-
-                                    ((∀ KindedVarIds
-                                        (implies
-                                         ((is-implemented TraitRef_me))
-                                         (where-clause->hypothesis WhereClause))) ...)
-
-                                    ((∀ KindedVarIds
-                                        (implies
-                                         ((is-implemented TraitRef_me))
-                                         (where-clause->hypothesis WhereClause_super))) ...)
-
-                                    ))
-   (where/error (Invariant_wf ...) ((∀ KindedVarIds
-                                       (implies
-                                        ((is-implemented TraitRef_me))
-                                        (well-formed (ParameterKind VarId)))) ...))
+   (where/error (WhereClause_implied ...) (if-crate-has-feature
+                                           CrateDecls
+                                           CrateId
+                                           expanded-implied-bounds
+                                           (; with the `expanded-implied-bounds` feature, you get all the where clauses
+                                            WhereClause ...)
+                                           (; without the `expanded-implied-bounds` feature, you only get the super traits
+                                            super-where-clauses KindedVarIds (WhereClause ...))
+                                           ))
+   (where/error (Invariant_where-clause ...)  ((∀ KindedVarIds
+                                                  (implies
+                                                   ((is-implemented TraitRef_me))
+                                                   (where-clause->hypothesis WhereClause_implied))) ...))
+   (where/error (Invariant_well-formed ...) ((∀ KindedVarIds
+                                                (implies
+                                                 ((is-implemented TraitRef_me))
+                                                 (well-formed (ParameterKind VarId)))) ...))
    ]
 
   [;; For an trait impl declared in the crate C, like the followin
