@@ -15,7 +15,7 @@
 ;;
 ;; * `clauses`: a `Predicate -> Clauses` lambda that returns all clauses that could possibly
 ;;   prove `Predicate`.
-;; * `invariants`: a `(Invariant ...)` term with all the invariants in the program
+;; * `invariants`: a `-> Invariants` lambda that returns all the invariants in the program
 ;; * `equate-predicates/vars`: a `Env VarIds Predicate Predicate -> Env or Error` lambda that unifies two predicates
 ;; * `relate-parameters`: a `Env Relation -> Env or Error` lambda that relates two parameters
 ;; * `predicate-could-match`: a `Predicate Predicate -> bool` that filters down predicates
@@ -47,7 +47,8 @@
   env-invariants : Env -> Invariants
 
   [(env-invariants Env)
-   ,(formality-logic-hook-invariants (term any))
+   ,(let ((invariants-fn (formality-logic-hook-invariants (term any))))
+      (invariants-fn))
    (where/error (Hook: any) (env-hook Env))
    ]
   )

@@ -26,7 +26,7 @@
   [(env-with-clauses-invariants-and-generics Clauses Invariants ((AdtId Generics) ...))
    (env-with-hook (Hook: ,(begin
                             (formality-ty-hook (lambda (predicate) (term Clauses))
-                                               (term Invariants)
+                                               (lambda () (term Invariants))
                                                (lambda (env predicate1 predicate2)
                                                  (term (ty:equate-predicates ,env ,predicate1 ,predicate2)))
                                                (lambda (env relation)
