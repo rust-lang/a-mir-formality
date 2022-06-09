@@ -2,9 +2,8 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "substitution.rkt"
-         "hook.rkt"
          "env.rkt"
-         "../util.rkt")
+         )
 (provide instantiate-quantified)
 
 (define-metafunction formality-logic
@@ -52,23 +51,4 @@
    ; substitute the uses of bound variables in the term with their inference variables
    (where/error Term_1 (apply-substitution Substitution_to_inference Term_0))
    ]
-  )
-
-(module+ test
-  (require "test/hook.rkt")
-
-  (redex-let*
-   formality-logic
-   []
-
-   (test-match-terms
-    formality-logic
-    (term (instantiate-quantified EmptyEnv (∀ ((Atom V)) (Vec (V)))))
-    (term (_ (Vec (VarId_V1)) (VarId_V1))))
-
-   (test-match-terms
-    formality-logic
-    (term (instantiate-quantified EmptyEnv (∃ ((Atom V)) (Vec (V)))))
-    (term (_ (Vec (VarId_V1)) (VarId_V1))))
-   )
   )

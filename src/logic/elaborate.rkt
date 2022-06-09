@@ -8,7 +8,9 @@
          "match.rkt"
          "../util.rkt"
          )
-(provide elaborate-hypotheses)
+(provide elaborate-hypotheses
+         elaborate-hypothesis-one-step ; for testing
+         )
 
 ; (define-metafunction formality-logic
 ;   ;; Given an Env with some set of hypotheses H, returns a new environment
@@ -105,19 +107,19 @@
   #:contract (hypothesis-elaborates-one-step Env Hypothesis Hypothesis)
 
   [(where #t (is-predicate? Env Predicate_in))
-   (where (_ ... Invariant _ ...) (env-invariants Env))
+   (where (_ ... FlatInvariant _ ...) (env-flat-invariants Env))
 
-   ; the Invariant will have the form `∀ (Vars...) Term_bound`:
+   ; the FlatInvariant will have the form `∀ (Vars...) Term_bound`:
    ; create a version of `Term_bound` where `Vars` are fresh identifiers
    ; that don't appear in the environment
-   (where/error (∀ ((ParameterKind VarId) ...) Term_bound) Invariant)
+   (where/error (∀ ((ParameterKind VarId) ...) FlatInvariantImplication_bound) FlatInvariant)
    (where/error (VarId_fresh ...) (fresh-var-ids Env (VarId ...)))
    (where/error Substitution_freshen ((VarId VarId_fresh) ...))
-   (where/error Term_bound-fresh (apply-substitution Substitution_freshen Term_bound))
+   (where/error FlatInvariantImplication_fresh (apply-substitution Substitution_freshen FlatInvariantImplication_bound))
 
    ; that bound term must have form `P => Q`, try to find some assignment
    ; for the (fresh) `Vars` that matches `P` against `Predicate_in`
-   (where/error (implies (Predicate_condition) AtomicGoal_consequence) Term_bound-fresh)
+   (where/error (implies (Predicate_condition) AtomicGoal_consequence) FlatInvariantImplication_fresh)
    (where Substitution_m (match-terms (VarId_fresh ...) Predicate_condition Predicate_in))
 
    ; if successful, we can add `Q` to the result (after substituting the result of the match)
@@ -155,44 +157,3 @@
    ]
   )
 
-(module+ test
-  (require "test/hook.rkt")
-
-  (redex-let*
-   formality-logic
-   [(Env (term (env-with-clauses-and-invariants ()
-                                                ((∀ ((type T)) (implies ((is-implemented (Eq (T)))) (is-implemented (PartialEq (T)))))
-                                                 (∀ ((type T)) (implies ((is-implemented (Ord (T)))) (is-implemented (PartialOrd (T)))))
-                                                 (∀ ((type T)) (implies ((is-implemented (Ord (T)))) (is-implemented (Eq (T)))))
-                                                 (∀ ((type T)) (implies ((is-implemented (PartialOrd (T)))) (is-implemented (PartialEq (T)))))
-                                                 ))))
-    ]
-
-   (traced '()
-           (test-equal
-            (term (elaborate-hypothesis-one-step Env (is-implemented (Ord ((user-ty u32))))))
-            (term ((is-implemented (Eq ((user-ty u32))))
-                   (is-implemented (PartialOrd ((user-ty u32))))))))
-
-   (traced '()
-           (test-equal
-            (term (env-hypotheses (elaborate-hypotheses (env-with-hypotheses Env ((is-implemented (Ord ((user-ty u32)))))))))
-            (term ((is-implemented (Ord ((user-ty u32))))
-                   (is-implemented (Eq ((user-ty u32))))
-                   (is-implemented (PartialOrd ((user-ty u32))))
-                   (is-implemented (PartialEq ((user-ty u32))))))))
-
-   (traced '()
-           (test-alpha-equivalent
-            formality-logic
-            (term (env-hypotheses (elaborate-hypotheses
-                                   (env-with-hypotheses Env
-                                                        ((∀ ((type T)) (is-implemented (Ord (T)))))))))
-            (term ((∀ ((type T)) (is-implemented (Ord (T))))
-                   (∀ ((type T)) (is-implemented (Eq (T))))
-                   (∀ ((type T)) (is-implemented (PartialOrd (T))))
-                   (∀ ((type T)) (is-implemented (PartialEq (T)))))))
-
-           )
-   )
-  )

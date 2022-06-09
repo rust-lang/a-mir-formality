@@ -115,7 +115,17 @@
   ;; `Invariants` -- things which must be true or the type system has some bugs.
   ;; A rather restricted form of clause.
   (Invariants ::= (Invariant ...))
-  (Invariant ::= (∀ KindedVarIds (implies (Predicate) AtomicGoal)))
+  (Invariant ::=
+             (∀ KindedVarIds Invariant)
+             (implies (Predicate) Invariant)
+             AtomicGoal
+             )
+
+  ;; `Invariants` -- things which must be true or the type system has some bugs.
+  ;; A rather restricted form of clause.
+  (FlatInvariants ::= (FlatInvariant ...))
+  (FlatInvariant ::= (∀ KindedVarIds FlatInvariantImplication))
+  (FlatInvariantImplication ::= (implies (Predicate) AtomicGoal))
 
   ;; Different ways to relate parameters
   (Relations ::= (Relation ...))

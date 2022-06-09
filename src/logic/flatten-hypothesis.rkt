@@ -5,6 +5,7 @@
          "env.rkt"
          )
 (provide flattened-hypotheses-in-env
+         flatten-invariants
          )
 
 (define-metafunction formality-logic
@@ -21,19 +22,29 @@
   )
 
 (define-metafunction formality-logic
+  flatten-invariants : Invariants -> FlatInvariants
+
+  [(flatten-invariants (Invariant ...))
+   ((flatten-hypothesis () () Invariant) ...)
+   ]
+
+  )
+
+(define-metafunction formality-logic
   flatten-hypothesis : KindedVarIds Goals Hypothesis -> FlatHypothesis
 
-  [(flatten-hypothesis KindedVarIds Goals AtomicGoal)
-   (∀ KindedVarIds (implies Goals AtomicGoal))]
-
-  [(flatten-hypothesis KindedVarIds (Goal_0 ...) (implies (Goal_1 ...) AtomicGoal))
-   (flatten-hypothesis KindedVarIds (Goal_0 ... Goal_1 ...) AtomicGoal)
+  [(flatten-hypothesis KindedVarIds (Goal_0 ...) (implies (Goal_1 ...) Hypothesis))
+   (flatten-hypothesis KindedVarIds (Goal_0 ... Goal_1 ...) Hypothesis)
    ]
 
   [(flatten-hypothesis (KindedVarId_0 ...) Goals (∀ (KindedVarId_1 ...) Hypothesis))
    (flatten-hypothesis (KindedVarId_0 ... KindedVarId_1 ...) Goals Hypothesis)
    ]
 
+   [(flatten-hypothesis KindedVarIds Goals AtomicGoal)
+    (∀ KindedVarIds (implies Goals AtomicGoal))
+    ]
+ 
   )
 
 (define-metafunction formality-logic

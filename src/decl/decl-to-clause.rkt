@@ -3,6 +3,7 @@
          "grammar.rkt"
          "feature-gate.rkt"
          "../logic/env.rkt"
+         "../logic/flatten-hypothesis.rkt"
          "../ty/relate.rkt"
          "../ty/could-match.rkt"
          "../ty/where-clauses.rkt"
@@ -122,10 +123,10 @@
   ;; clauses. This will eventually not suffice, e.g., with
   ;; auto traits. But this helper is private, so we can refactor
   ;; that later.
-  crate-decl-rules : CrateDecls CrateDecl CrateId -> (Clauses Invariants)
+  crate-decl-rules : CrateDecls CrateDecl CrateId -> (Clauses FlatInvariants)
 
   [(crate-decl-rules CrateDecls (CrateId_0 (crate (CrateItemDecl ...))) CrateId_1)
-   ((Clause ... ...) (Invariant ... ...))
+   ((Clause ... ...) (flatten-invariants (Invariant ... ...)))
 
    (where/error (((Clause ...) (Invariant ...)) ...)
                 ((crate-item-decl-rules CrateDecls CrateId_0 CrateItemDecl) ...))
@@ -375,6 +376,12 @@
   (; Keep `Self: 'a` bounds
    (filter-outlives-where-clause (Parameter_1 : Parameter_2))
    ((Parameter_1 : Parameter_2))
+   )
+
+  (; Keep (∀ WC) if we are keeping WC
+   (filter-outlives-where-clause (∀ KindedVarIds WhereClause))
+   ((∀ KindedVarIds WhereClause_1) ...)
+   (where/error (WhereClause_1 ...) (filter-outlives-where-clause WhereClause))
    )
 
   (; Discard others

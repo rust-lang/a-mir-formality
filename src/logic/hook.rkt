@@ -2,7 +2,7 @@
 (require redex/reduction-semantics "grammar.rkt" "env.rkt")
 (provide formality-logic-hook
          env-clauses-for-predicate
-         env-invariants
+         env-flat-invariants
          equate-predicates
          relate-parameters
          predicates-could-match
@@ -22,7 +22,7 @@
 ;; * `is-predicate`: true if a term matches `Predicate`, needed because logic/grammar has `Predicate ::= Term`
 ;; * `is-relation`: true if a term matches `Relation`, needed because logic/grammar has `Relation ::= Term`
 (struct formality-logic-hook (clauses
-                              invariants
+                              flat-invariants
                               equate-predicates
                               relate-parameters
                               predicates-could-match
@@ -43,12 +43,12 @@
   )
 
 (define-metafunction formality-logic
-  ;; Returns the invariants in the environment
-  env-invariants : Env -> Invariants
+  ;; Returns the (flattened) invariants in the environment
+  env-flat-invariants : Env -> FlatInvariants
 
-  [(env-invariants Env)
-   ,(let ((invariants-fn (formality-logic-hook-invariants (term any))))
-      (invariants-fn))
+  [(env-flat-invariants Env)
+   ,(let ((flat-invariants-fn (formality-logic-hook-flat-invariants (term any))))
+      (flat-invariants-fn))
    (where/error (Hook: any) (env-hook Env))
    ]
   )

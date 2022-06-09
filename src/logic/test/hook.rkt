@@ -1,5 +1,11 @@
 #lang racket
-(require redex/reduction-semantics "../grammar.rkt" "../env.rkt" "../hook.rkt" "unify.rkt")
+(require redex/reduction-semantics
+         "../grammar.rkt"
+         "../env.rkt"
+         "../hook.rkt"
+         "../flatten-hypothesis.rkt"
+         "unify.rkt"
+         )
 (provide env-with-clauses-and-invariants
          EmptyEnv
          )
@@ -12,7 +18,7 @@
   [(env-with-clauses-and-invariants Clauses Invariants)
    (env-with-hook (Hook: ,(begin
                             (formality-logic-hook (lambda (predicate) (term Clauses))
-                                                  (lambda () (term Invariants))
+                                                  (lambda () (term (flatten-invariants Invariants)))
                                                   (lambda (env predicate1 predicate2)
                                                     (term (test-equate-predicates ,env ,predicate1 ,predicate2)))
                                                   (lambda (env relation)
