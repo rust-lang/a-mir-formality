@@ -1,16 +1,14 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
-         "../logic/env.rkt"
          "../logic/substitution.rkt"
-         "../ty/relate.rkt"
-         "../ty/could-match.rkt"
          "../ty/where-clauses.rkt"
-         "../ty/hook.rkt")
+         )
 (provide well-formed-where-clause-goal
          )
 
 (define-metafunction formality-decl
+  ;; Given a `WhereClause`, returns a goal that defines when this where-clause is well-formed.
   well-formed-where-clause-goal : CrateDecls WhereClause -> Goal
 
   [(well-formed-where-clause-goal CrateDecls (∀ KindedVarIds WhereClause))
