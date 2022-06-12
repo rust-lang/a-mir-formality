@@ -14,7 +14,9 @@
 ;; Extends the core logic hook with the ability to query variance:
 ;;
 ;; adt-generics : AdtId -> Generics
-(struct formality-ty-hook formality-logic-hook (adt-generics))
+(struct formality-ty-hook formality-logic-hook (adt-generics
+                                                where-clause->goal∧clause-from-env
+                                                ))
 
 (define-metafunction formality-ty
   ;; Returns the variance for each of the parameters to an Adt
@@ -46,20 +48,8 @@
   ;; actually invoke.
   where-clause->goal∧clause-from-env : Env WhereClause -> Goal∧Clause
 
-  [(where-clause->goal∧clause-from-env Env (∀ KindedVarIds WhereClause))
-   (∀ KindedVarIds (where-clause->goal∧clause-from-env Env WhereClause))
+  [(where-clause->goal∧clause-from-env Env WhereClause)
+   ,((formality-ty-hook-where-clause->goal∧clause-from-env (term any)) (term WhereClause))
+   (where/error (Hook: any) (env-hook Env))
    ]
-
-  [(where-clause->goal∧clause-from-env Env (Ty_self : TraitId (Parameter ...)))
-   (is-implemented (TraitId (Ty_self Parameter ...)))
-   ]
-
-  [(where-clause->goal∧clause-from-env Env (AliasTy == Ty))
-   (normalizes-to AliasTy Ty)
-   ]
-
-  [(where-clause->goal∧clause-from-env Env (Parameter_a : Parameter_b))
-   (Parameter_a -outlives- Parameter_b)
-   ]
-
   )

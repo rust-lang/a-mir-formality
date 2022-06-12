@@ -68,7 +68,12 @@
             (lambda (goal)
               (term (ty:is-relation? ,goal)))
             (lambda (adt-id)
-              (term (generics-for-adt-id DeclProgram ,adt-id)))))
+              (term (generics-for-adt-id DeclProgram ,adt-id)))
+            (lambda (where-clause)
+              (term (where-clause->goal∧clause CrateDecls ,where-clause)))
+            ))
+
+   (where/error (CrateDecls CrateId) DeclProgram)
    ]
   )
 

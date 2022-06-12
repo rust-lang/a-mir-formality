@@ -38,6 +38,8 @@
                                                  (term (ty:is-relation? ,goal)))
                                                (lambda (adt-id)
                                                  (term (find-adt-generics ,adt-id ((AdtId Generics) ...))))
+                                               (lambda (where-clause)
+                                                 (term (where-clause->goal∧clause-mock ,where-clause)))
                                                ))))
    ]
   )
@@ -91,6 +93,31 @@
   [(ty:prove-scheme Env ((Quantifier_0 KindedVarIds_0) (Quantifier KindedVarIds) ...) WhereClauses Goal)
    (ty:prove-scheme Env_out ((Quantifier KindedVarIds) ...) WhereClauses_out Goal_out)
    (where/error (Env_out (WhereClauses_out Goal_out) _) (instantiate-quantified Env (Quantifier_0 KindedVarIds_0 (WhereClauses Goal))))
+   ]
+
+  )
+
+(define-metafunction formality-ty
+  ;; Converts a where-clause into a `Goal∧Clause`.
+  ;;
+  ;; The REAL version of this is in formality-decl; this is a "mock" version for
+  ;; testing the typing code in isolation.
+  where-clause->goal∧clause-mock : WhereClause -> Goal∧Clause
+
+  [(where-clause->goal∧clause-mock (∀ KindedVarIds WhereClause))
+   (∀ KindedVarIds (where-clause->goal∧clause WhereClause))
+   ]
+
+  [(where-clause->goal∧clause-mock (Ty_self : TraitId (Parameter ...)))
+   (is-implemented (TraitId (Ty_self Parameter ...)))
+   ]
+
+  [(where-clause->goal∧clause-mock (AliasTy == Ty))
+   (normalizes-to AliasTy Ty)
+   ]
+
+  [(where-clause->goal∧clause-mock (Parameter_a : Parameter_b))
+   (Parameter_a -outlives- Parameter_b)
    ]
 
   )

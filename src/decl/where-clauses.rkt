@@ -6,6 +6,7 @@
          where-clauses->goals
          where-clause->hypothesis
          where-clauses->hypotheses
+         where-clause->goal∧clause
          )
 
 (define-metafunction formality-decl
