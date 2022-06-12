@@ -9,9 +9,6 @@
          where-clauses->hypotheses
          )
 
-; FIXME: Right now, where clauses are a syntactic subset of goals and
-; clauses. Do we want to commit to that?
-
 (define-metafunction formality-ty
   ;; Convert where clauses `W ...` into goals `G ...` that prove
   ;; those where clauses hold.
