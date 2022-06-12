@@ -1,6 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
+         "hook.rkt"
          )
 (provide where-clause->goal
          where-clauses->goals
@@ -46,35 +47,5 @@
 
   [(where-clause->hypothesis WhereClause)
    (where-clause->goal∧clause WhereClause)]
-
-  )
-
-(define-metafunction formality-ty
-  where-clause->goal∧clause : WhereClause -> Goal∧Clause
-
-  [(where-clause->goal∧clause (∀ KindedVarIds WhereClause))
-   (∀ KindedVarIds (where-clause->goal∧clause WhereClause))
-   ]
-
-  [(where-clause->goal∧clause (Ty_self : TraitId (Parameter ...)))
-   (is-implemented (TraitId (Ty_self Parameter ...)))
-   ]
-
-  [(where-clause->goal∧clause (AliasTy == Ty))
-   (normalizes-to AliasTy Ty)
-   ]
-
-  [(where-clause->goal∧clause (Parameter_a : Parameter_b))
-   (Parameter_a -outlives- Parameter_b)
-   ]
-
-  )
-
-(define-metafunction formality-ty
-  where-clauses->goals∧clauses : WhereClauses -> Goals∧Clauses
-
-  [(where-clauses->goals∧clauses (WhereClause ...))
-   ((where-clause->goal∧clause WhereClause) ...)
-   ]
 
   )
