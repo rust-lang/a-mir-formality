@@ -1,11 +1,15 @@
 #lang racket
-(require redex/reduction-semantics "../ty/grammar.rkt")
+(require redex/reduction-semantics
+         "../ty/grammar.rkt"
+         "../logic/substitution.rkt"
+         )
 (provide formality-decl
          crate-decl-with-id
          trait-decl-id
          trait-with-id
          adt-with-id
          crate-decls
+         instantiate-bounds-clause
          )
 
 (define-extended-language formality-decl formality-ty
@@ -44,7 +48,33 @@
 
   ;; TraitItem --
   (TraitItems ::= (TraitItem ...))
-  (TraitItem ::= FnDecl)
+  (TraitItem ::= FnDecl AssociatedTyDecl)
+
+  ;; Associated type declarations (in a trait)
+  (AssociatedTyDecl ::= (type AssociatedTyId KindedVarIds BoundsClause where WhereClauses))
+
+  ;; Bounds clause -- used in associated type declarations etc to indicate
+  ;; things that must be true about the value of an associated type.
+  ;;
+  ;; The `VarId` is the name of the associated type. e.g., where in Rust we might write
+  ;;
+  ;; ```rust
+  ;; trait Iterator {
+  ;;     type Item: Sized;
+  ;; }
+  ;; ```
+  ;;
+  ;;                             name for the item
+  ;;                                     |
+  ;;                                     ▼
+  ;; that becomes `(type Item() (: (type I) (I : Sized())) where ())`
+  ;;                                        —————————————
+  ;;                                             |
+  ;;                                 represents the `: Sized` part
+  ;;
+  ;; This notation is kind of painful and maybe we should improve it! It'd be nice to
+  ;; write `(: (Sized()))` instead.
+  (BoundsClause ::= (: KindedVarId WhereClauses))
 
   ;; Trait impls
   ;;
@@ -59,8 +89,12 @@
 
   ;; ImplItem --
   (ImplItems ::= (ImplItem ...))
-  (ImplItem ::= FnDecl)
+  (ImplItem ::= FnDecl AssociatedTyValue)
   ;; ANCHOR_END:Traits
+
+  ;; Associated type value (in an impl)
+  (AssociatedTyValue ::= (type AssociatedTyId KindedVarIds BoundsClause = Ty where WhereClauses))
+
 
   ;; Function
   ;;
@@ -114,6 +148,7 @@
           where WhereClauses #:refers-to (shadow VarId ...)
           : Ty #:refers-to (shadow VarId ...)
           = FnBody #:refers-to (shadow VarId ...))
+  (: (ParameterKind VarId) WhereClauses #:refers-to (shadow VarId))
   (fn FnId
       ((ParameterKind VarId) ...)
       Tys #:refers-to (shadow VarId ...)
@@ -168,5 +203,15 @@
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
    (where (_ (crate (_ ... (trait TraitId KindedVarIds where WhereClauses TraitItems) _ ...))) CrateDecl)
+   ]
+  )
+
+(define-metafunction formality-decl
+  ;; Given a bound like `: Sized`, 'instantiates' to apply to a given type `T`,
+  ;; yielding a where clause like `T: Sized`.
+  instantiate-bounds-clause : Bounds Parameter -> WhereClauses
+
+  [(instantiate-bounds-clause (: (ParameterKind VarId) WhereClauses) Parameter)
+   (apply-substitution ((VarId Parameter)) WhereClauses)
    ]
   )

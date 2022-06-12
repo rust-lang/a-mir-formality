@@ -4,6 +4,7 @@
          "../where-clauses.rkt"
          "../feature-gate.rkt"
          "../../logic/env.rkt"
+         "trait-item.rkt"
          )
 (provide crate-item-decl-rules
          )
@@ -96,20 +97,28 @@
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type Self))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (lifetime 'a))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
-   (crate-item-decl-rules CrateDecls CrateId  (trait TraitId KindedVarIds where (WhereClause ...) TraitItems))
-   ((Clause) (Invariant_well-formed ... Invariant_where-clause ...))
+   (crate-item-decl-rules CrateDecls CrateId  (trait TraitId KindedVarIds where (WhereClause ...) (TraitItem ...)))
+   ((flatten ((Clause) Clauses_item ...))
+    (flatten ((Invariant_well-formed ... Invariant_where-clause ...) Invariants_item ...)))
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error TraitRef_me (TraitId (VarId ...)))
+
+   ; Clause for `(is-implemented Trait ...)` -- trait is implemented if
+   ; (a) there's an impl for it,
+   ; (b) input types are well-formed
+   ; (c) all where-clauses hold
    (where/error Clause (∀ KindedVarIds
                           (implies
-                           ((has-impl TraitRef_me)
-                            (well-formed (ParameterKind VarId)) ...
-                            (where-clause->goal CrateDecls WhereClause) ...
+                           ((has-impl TraitRef_me) ; (a)
+                            (well-formed (ParameterKind VarId)) ... ; (b)
+                            (where-clause->goal CrateDecls WhereClause) ... ; (c)
                             )
                            (is-implemented TraitRef_me))))
 
 
+   ; Invariants: if you know that `T: Foo`, you also know `T: Bar`
+   ; where `Bar` is a supertrait (normal) / where-clause (expanded-implied-bounds)
    (where/error (WhereClause_implied ...) (if-crate-has-feature
                                            CrateDecls
                                            CrateId
@@ -127,6 +136,9 @@
                                                 (implies
                                                  ((is-implemented TraitRef_me))
                                                  (well-formed (ParameterKind VarId)))) ...))
+
+   ; get program-clauses and invariants from the trait items
+   (where/error ((Clauses_item Invariants_item) ...) ((trait-item-decl-rules CrateDecls CrateId (TraitId KindedVarIds) TraitItem) ...))
    ]
 
   [;; For an trait impl declared in the crate C, like the followin
