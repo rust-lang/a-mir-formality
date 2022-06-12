@@ -1,11 +1,11 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
+         "where-clauses.rkt"
          "feature-gate.rkt"
          "../logic/env.rkt"
          "../ty/relate.rkt"
          "../ty/could-match.rkt"
-         "../ty/where-clauses.rkt"
          "../ty/user-ty.rkt"
          "../ty/hook.rkt")
 (provide env-for-crate-decl
@@ -173,7 +173,7 @@
    (where/error Clause (∀ KindedVarIds
                           (implies
                            ((well-formed (ParameterKind VarId)) ...
-                            (where-clause->goal WhereClause) ...)
+                            (where-clause->goal CrateDecls WhereClause) ...)
                            (well-formed (type Ty_adt)))))
    (where/error (WhereClause_implied ...) (if-crate-has-feature
                                            CrateDecls
@@ -187,7 +187,7 @@
    (where/error (Invariant_where-clause ...) ((∀ KindedVarIds
                                                  (implies
                                                   ((well-formed (type Ty_adt)))
-                                                  (where-clause->hypothesis WhereClause_implied)))
+                                                  (where-clause->hypothesis CrateDecls WhereClause_implied)))
                                               ...))
    (where/error (Invariant_well-formed ...) ((∀ KindedVarIds
                                                 (implies
@@ -229,7 +229,7 @@
                           (implies
                            ((has-impl TraitRef_me)
                             (well-formed (ParameterKind VarId)) ...
-                            (where-clause->goal WhereClause) ...
+                            (where-clause->goal CrateDecls WhereClause) ...
                             )
                            (is-implemented TraitRef_me))))
 
@@ -246,7 +246,7 @@
    (where/error (Invariant_where-clause ...)  ((∀ KindedVarIds
                                                   (implies
                                                    ((is-implemented TraitRef_me))
-                                                   (where-clause->hypothesis WhereClause_implied))) ...))
+                                                   (where-clause->hypothesis CrateDecls WhereClause_implied))) ...))
    (where/error (Invariant_well-formed ...) ((∀ KindedVarIds
                                                 (implies
                                                  ((is-implemented TraitRef_me))
@@ -271,7 +271,7 @@
    (where/error (TraitId (Parameter_trait ...)) TraitRef)
    (where/error (trait TraitId KindedVarIds_trait where _ _) (trait-with-id CrateDecls TraitId))
    (where/error ((ParameterKind_trait _) ...) KindedVarIds_trait)
-   (where/error (Goal_wc ...) (where-clauses->goals WhereClauses_impl))
+   (where/error (Goal_wc ...) (where-clauses->goals CrateDecls WhereClauses_impl))
    (where/error Clause (∀ KindedVarIds_impl
                           (implies
                            ((well-formed (ParameterKind_trait Parameter_trait)) ...

@@ -3,7 +3,7 @@
          "grammar-extended.rkt"
          "locations.rkt"
          "type-of.rkt"
-         "../ty/where-clauses.rkt"
+         "../decl/where-clauses.rkt"
          "../logic/grammar.rkt"
          "../logic/env.rkt"
          )
@@ -112,7 +112,7 @@
    (where (∀ KindedVarIds (implies (WhereClause ...) ((Ty_formal ...) -> Ty_ret))) (ty-signature Γ Ty_fn))
    (where Goal (∃ KindedVarIds (&& ((Ty_arg <= Ty_formal) ...
                                     (Ty_ret <= Ty_dest)
-                                    (where-clause->goal WhereClause) ...
+                                    (where-clause->goal (crate-decls-of-Γ Γ) WhereClause) ...
                                     ))))
    ----------------------------------------
    (type-check-goal/Terminator Γ (call Operand_fn (Operand_arg ...) Place_dest TargetIds) Goal)

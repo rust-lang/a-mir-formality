@@ -2,7 +2,7 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "../logic/substitution.rkt"
-         "../ty/where-clauses.rkt"
+         "where-clauses.rkt"
          )
 (provide well-formed-where-clause-goal
          )
@@ -31,7 +31,7 @@
    ; `((well-formed (type X)) (is-implemented (Foo (X))))`.
    (well-formed-where-clause-goal CrateDecls (Ty : TraitId (Parameter ...)))
    (&& ((well-formed (ParameterKind Parameter_value)) ...
-        (where-clause->goal WhereClause_substituted) ...)
+        (where-clause->goal CrateDecls WhereClause_substituted) ...)
        )
 
    ; Find the trait declaration

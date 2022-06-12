@@ -3,7 +3,7 @@
          "grammar.rkt"
          "../ty/grammar.rkt"
          "../logic/grammar.rkt"
-         "../ty/where-clauses.rkt"
+         "where-clauses.rkt"
          "../logic/env.rkt"
          "decl-wf-where-clause.rkt"
          )
@@ -48,7 +48,7 @@
    (where/error ((VariantId ((FieldId Ty) ...)) ...) AdtVariants)
    (where/error Goal_wf (∀ KindedVarIds
                            (implies
-                            ((well-formed KindedVarId) ... (where-clause->hypothesis WhereClause) ...)
+                            ((well-formed KindedVarId) ... (where-clause->hypothesis CrateDecls WhereClause) ...)
                             (&& ((well-formed (type Ty))
                                  ... ...
                                  (well-formed-where-clause-goal CrateDecls WhereClause)
@@ -81,7 +81,7 @@
    ;; we require that all the trait-item WF goals are met.
    (crate-item-ok-goal CrateDecls (trait TraitId KindedVarIds where (WhereClause ...) (TraitItem ...)))
    (∀ KindedVarIds
-      (implies ((well-formed KindedVarId) ... (where-clause->hypothesis WhereClause) ...)
+      (implies ((well-formed KindedVarId) ... (where-clause->hypothesis CrateDecls WhereClause) ...)
                (&& (Goal_trait-item ...
                     (well-formed-where-clause-goal CrateDecls WhereClause) ...))))
 
@@ -103,7 +103,7 @@
         ; ...all inputs are WF...
         (well-formed (ParameterKind_trait Parameter_trait)) ...
         ; ...where-clauses are satisfied...
-        (where-clause->hypothesis WhereClause_impl) ...)
+        (where-clause->hypothesis CrateDecls WhereClause_impl) ...)
        ( && ((; ... then the trait must be implemented
               is-implemented (TraitId (Parameter_trait ...)))
              (well-formed-where-clause-goal CrateDecls WhereClause_impl) ...))))
@@ -124,7 +124,7 @@
        (; assuming all generic parameters are WF...
         (well-formed KindedVarId) ...
         ; ...where-clauses are satisfied...
-        (where-clause->hypothesis WhereClause) ...)
+        (where-clause->hypothesis CrateDecls WhereClause) ...)
        (&& ((; ... then the trait must be implemented
              well-formed (type Ty))
             (well-formed-where-clause-goal CrateDecls WhereClause) ...))))
@@ -145,7 +145,7 @@
        (; assuming all generic parameters are WF...
         (well-formed KindedVarId) ...
         ; ...where-clauses are satisfied...
-        (where-clause->hypothesis WhereClause) ...)
+        (where-clause->hypothesis CrateDecls WhereClause) ...)
        (&& ((; ... then the trait must be implemented
              well-formed (type Ty))
             (; ... and the type must be Sync
@@ -200,10 +200,10 @@
    ; (we only know that `T: Debug`).
    (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (Ty_impl)) where (WhereClause_impl ...) _))
    ((∀ KindedVarIds_adt
-       (implies (where-clauses->hypotheses WhereClauses_adt)
+       (implies (where-clauses->hypotheses CrateDecls WhereClauses_adt)
                 (∃ KindedVarIds_impl
                    (&& ((Ty_impl == Ty_adt)
-                        (where-clause->goal WhereClause_impl) ...
+                        (where-clause->goal CrateDecls WhereClause_impl) ...
                         ))
                    ))))
 
@@ -241,7 +241,7 @@
    ; of course, in this case, it is not provable because `Vec<T>: Copy` is not true for any `T`.
    (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Copy (Ty_impl)) where (WhereClause_impl ...) ()))
    ((∀ KindedVarIds_impl
-       (implies ((where-clause->hypothesis WhereClause_impl) ...)
+       (implies ((where-clause->hypothesis CrateDecls WhereClause_impl) ...)
                 (∃ KindedVarIds_adt
                    (&& ((Ty_impl == Ty_adt)
                         (is-implemented (rust:Copy (Ty_field))) ... ...
