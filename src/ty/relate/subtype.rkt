@@ -6,7 +6,7 @@
          "../kind.rkt"
          "../grammar.rkt"
          "../inequalities.rkt"
-         "../where-clauses.rkt"
+         "../where-clauses-from-env.rkt"
          "../extrude.rkt"
          "../hypothesized-bounds.rkt"
          "../../logic/env.rkt"
@@ -122,13 +122,13 @@
   [; Implication on the supertype side
    (compare/one/substituted Env (Parameter_1 <= (implies WhereClauses Parameter_2)))
    (Env ((implies Goals_wc (Parameter_1 <= Parameter_2))))
-   (where/error Goals_wc (where-clauses->goals WhereClauses))
+   (where/error Goals_wc (where-clauses->goals-from-env Env WhereClauses))
    ]
 
   [; Ensures on the subtype side
    (compare/one/substituted Env ((ensures Parameter_1 WhereClauses) <= Parameter_2))
    (Env ((implies Hypotheses_wc (Parameter_1 <= Parameter_2))))
-   (where/error Hypotheses_wc (where-clauses->hypotheses WhereClauses))
+   (where/error Hypotheses_wc (where-clauses->hypotheses-from-env Env WhereClauses))
    ]
 
   [; ∀ on the subtype side
@@ -144,13 +144,13 @@
   [; Implication on the subtype side
    (compare/one/substituted Env ((implies WhereClauses Parameter_1) <= Parameter_2))
    (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
-   (where/error (Goal_wc ...) (where-clauses->goals WhereClauses))
+   (where/error (Goal_wc ...) (where-clauses->goals-from-env Env WhereClauses))
    ]
 
   [; Ensures on the supertype side
    (compare/one/substituted Env (Parameter_1 <= (ensures Parameter_2 WhereClauses)))
    (Env (Goal_wc ... (Parameter_1 <= Parameter_2)))
-   (where/error (Goal_wc ...) (where-clauses->goals WhereClauses))
+   (where/error (Goal_wc ...) (where-clauses->goals-from-env Env WhereClauses))
    ]
 
   [; Alias on both sides with same name

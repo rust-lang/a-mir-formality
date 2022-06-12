@@ -8,7 +8,7 @@
          env-adt-generics
          ty:is-predicate?
          ty:is-relation?
-         where-clause->goal∧clause
+         where-clause->goal∧clause-from-env
          )
 
 ;; Extends the core logic hook with the ability to query variance:
@@ -44,32 +44,22 @@
   ;; Helper function: Converts a where-clause into a `Goal∧Clause`; used to
   ;; define the functions in `where-clauses.rkt`, which are the ones you should
   ;; actually invoke.
-  where-clause->goal∧clause : WhereClause -> Goal∧Clause
+  where-clause->goal∧clause-from-env : Env WhereClause -> Goal∧Clause
 
-  [(where-clause->goal∧clause (∀ KindedVarIds WhereClause))
-   (∀ KindedVarIds (where-clause->goal∧clause WhereClause))
+  [(where-clause->goal∧clause-from-env Env (∀ KindedVarIds WhereClause))
+   (∀ KindedVarIds (where-clause->goal∧clause-from-env Env WhereClause))
    ]
 
-  [(where-clause->goal∧clause (Ty_self : TraitId (Parameter ...)))
+  [(where-clause->goal∧clause-from-env Env (Ty_self : TraitId (Parameter ...)))
    (is-implemented (TraitId (Ty_self Parameter ...)))
    ]
 
-  [(where-clause->goal∧clause (AliasTy == Ty))
+  [(where-clause->goal∧clause-from-env Env (AliasTy == Ty))
    (normalizes-to AliasTy Ty)
    ]
 
-  [(where-clause->goal∧clause (Parameter_a : Parameter_b))
+  [(where-clause->goal∧clause-from-env Env (Parameter_a : Parameter_b))
    (Parameter_a -outlives- Parameter_b)
-   ]
-
-  )
-
-
-(define-metafunction formality-ty
-  where-clauses->goals∧clauses : WhereClauses -> Goals∧Clauses
-
-  [(where-clauses->goals∧clauses (WhereClause ...))
-   ((where-clause->goal∧clause WhereClause) ...)
    ]
 
   )

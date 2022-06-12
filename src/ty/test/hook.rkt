@@ -8,7 +8,7 @@
          "../hook.rkt"
          "../relate.rkt"
          "../scheme.rkt"
-         "../where-clauses.rkt"
+         "../where-clauses-from-env.rkt"
          )
 (provide env-with-clauses-invariants-and-generics
          EmptyEnv
@@ -84,7 +84,7 @@
 
   [(ty:prove-scheme Env () WhereClauses Goal)
    (extract-schemes Envs_out Goal)
-   (where/error Env_h (env-with-hypotheses Env (where-clauses->hypotheses WhereClauses)))
+   (where/error Env_h (env-with-hypotheses Env (where-clauses->hypotheses-from-env Env WhereClauses)))
    (where/error Envs_out ,(judgment-holds (ty:prove-top-level-goal/cosld Env_h Goal Env_out) Env_out))
    ]
 
