@@ -67,6 +67,19 @@
   ;; fn foo<...>(...) -> ... where ... { body }
   (FnDecl ::= (fn FnId KindedVarIds Tys -> Ty where WhereClauses FnBody))
 
+  ;; WhereClauses (defined from ty layer) -- defines the precise syntax of
+  ;; where-clauses
+  (WhereClause ::=
+               (∀ KindedVarIds WhereClause)
+               WhereClauseAtom
+               )
+  (WhereClauseAtoms ::= (WhereClauseAtom ...))
+  (WhereClauseAtom ::=
+                   (Ty : TraitId Parameters) ; T: Debug
+                   (Parameter : Lt) ; T: 'a
+                   (AliasTy == Ty) ; <T as Iterator>::Item == u32
+                   )
+
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
   ((CrateId

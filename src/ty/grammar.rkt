@@ -66,16 +66,7 @@
   ;; WhereClauseAtom represent "first-order" where clauses, without any
   ;; quantification.
   (WhereClauses ::= (WhereClause ...))
-  (WhereClause ::=
-               (∀ KindedVarIds WhereClause)
-               WhereClauseAtom
-               )
-  (WhereClauseAtoms ::= (WhereClauseAtom ...))
-  (WhereClauseAtom ::=
-                   (Ty : TraitId Parameters) ; T: Debug
-                   (Parameter : Lt) ; T: 'a
-                   (AliasTy == Ty) ; <T as Iterator>::Item == u32
-                   )
+  (WhereClause ::= Term)
 
   ;; UserTy -- rust user-facing types
   ;;
