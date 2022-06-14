@@ -64,14 +64,14 @@
    ;;
    ;;     trait Foo<'a, T> where T: Ord { ... }
    ;;
-   ;; we require that all the trait-item WF goals are met.
+   ;; we require that (a) trait where-clauses are WF and (b) all the trait-item WF goals are met.
    (crate-item-ok-goal CrateDecls (trait TraitId KindedVarIds where (WhereClause ...) (TraitItem ...)))
    (∀ KindedVarIds
       (implies ((well-formed KindedVarId) ... (where-clause->hypothesis CrateDecls WhereClause) ...)
                (&& (Goal_trait-item ...
                     (well-formed-where-clause-goal CrateDecls WhereClause) ...))))
 
-   (where/error (Goal_trait-item ...) ((trait-item-ok-goal TraitItem) ...))
+   (where/error (Goal_trait-item ...) ((trait-item-ok-goal CrateDecls (TraitId KindedVarIds (WhereClause ...)) TraitItem) ...))
    (where/error (KindedVarId ...) KindedVarIds)
    ]
 
