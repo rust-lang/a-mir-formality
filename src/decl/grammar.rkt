@@ -209,7 +209,7 @@
 (define-metafunction formality-decl
   ;; Given a bound like `: Sized`, 'instantiates' to apply to a given type `T`,
   ;; yielding a where clause like `T: Sized`.
-  instantiate-bounds-clause : Bounds Parameter -> WhereClauses
+  instantiate-bounds-clause : BoundsClause Parameter -> WhereClauses
 
   [(instantiate-bounds-clause (: (ParameterKind VarId) WhereClauses) Parameter)
    (apply-substitution ((VarId Parameter)) WhereClauses)

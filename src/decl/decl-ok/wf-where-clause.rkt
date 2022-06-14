@@ -1,8 +1,8 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar.rkt"
-         "../logic/substitution.rkt"
-         "where-clauses.rkt"
+         "../grammar.rkt"
+         "../where-clauses.rkt"
+         "../../logic/substitution.rkt"
          )
 (provide well-formed-where-clause-goal
          )

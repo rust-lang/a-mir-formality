@@ -13,7 +13,7 @@
   ;;
   ;; * The clauses that hold in all crates due to this item
   ;; * The invariants that hold
-  trait-item-decl-rules : CrateDecls CrateId (TraitId KindedVarIds_trait) TraitItemDecl -> (Clauses Invariants)
+  trait-item-decl-rules : CrateDecls CrateId (TraitId KindedVarIds_trait) TraitItem -> (Clauses Invariants)
 
   [;; For a method declared in a trait: currently no logical rules are created.
    (trait-item-decl-rules CrateDecls CrateId (TraitId KindedVarIds_trait) FnDecl)
@@ -40,7 +40,7 @@
                               ((is-implemented (TraitId (VarId_t ...))) ; (a)
                                (where-clause->goal WhereClause_i) ... ; (b)
                                )
-                              (well-formed AliasTy))))
+                              (well-formed (type AliasTy)))))
 
    ;; we can conclude that a well-formed alias-ty meets its bounds
    ;;
@@ -52,7 +52,7 @@
    ;; ```
    (where/error (Clause_if-wf ...) (where-clauses->hypotheses CrateDecls (instantiate-bounds-clause BoundsClause_i AliasTy)))
    (where/error (Clause_bound ...) ((∀ (KindedVarId_t ... KindedVarId_i ...)
-                                       (implies ((well-formed AliasTy)) Clause_if-wf)) ...))
+                                       (implies ((well-formed (type AliasTy))) Clause_if-wf)) ...))
 
    ;; if we know that an alias type normalizes to another type X, we know
    ;; that X meets the bounds of that alias type too (feature-gated)
