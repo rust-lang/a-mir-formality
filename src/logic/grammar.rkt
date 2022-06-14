@@ -1,5 +1,6 @@
 #lang racket
-(require redex/reduction-semantics racket/set)
+(require redex/reduction-semantics
+         )
 (provide formality-logic
          RootUniverse
          true-goal
