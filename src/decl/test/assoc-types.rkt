@@ -24,7 +24,7 @@
     (; impl<T> Iterator for MyIter<T> { type Item = T; }
      TraitImplDecl_MyIter_Iterator (term (impl ((type T)) (Iterator ((user-ty (MyIter T)))) where ()
                                                {
-                                                (type Item () (: (type Item) ((Item : rust:Sized ()))) = T where ())
+                                                (type Item () = T where ())
                                                 })))
 
     ]

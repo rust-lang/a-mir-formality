@@ -93,7 +93,7 @@
   ;; ANCHOR_END:Traits
 
   ;; Associated type value (in an impl)
-  (AssociatedTyValue ::= (type AssociatedTyId KindedVarIds BoundsClause = Ty where WhereClauses))
+  (AssociatedTyValue ::= (type AssociatedTyId KindedVarIds = Ty where WhereClauses))
 
 
   ;; Function
