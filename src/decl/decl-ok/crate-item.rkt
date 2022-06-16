@@ -6,6 +6,7 @@
          "../../logic/env.rkt"
          "../../logic/grammar.rkt"
          "trait-item.rkt"
+         "impl-item.rkt"
          "wf-where-clause.rkt"
          )
 (provide crate-item-ok-goal
@@ -81,7 +82,7 @@
    ;;
    ;; we require that the trait is implemented, given that all generics are WF,
    ;; all inputs are WF, and where-clauses are satisfied.
-   (crate-item-ok-goal CrateDecls (impl KindedVarIds_impl (TraitId (Parameter_trait ...)) where WhereClauses_impl ImplItems))
+   (crate-item-ok-goal CrateDecls (impl KindedVarIds_impl (TraitId (Parameter_trait ...)) where WhereClauses_impl (ImplItem ...)))
    (∀ KindedVarIds_impl
       (implies
        (; assuming all generic parameters are WF...
@@ -90,13 +91,18 @@
         (well-formed (ParameterKind_trait Parameter_trait)) ...
         ; ...where-clauses are satisfied...
         (where-clause->hypothesis CrateDecls WhereClause_impl) ...)
-       ( && ((; ... then the trait must be implemented
-              is-implemented (TraitId (Parameter_trait ...)))
-             (well-formed-where-clause-goal CrateDecls WhereClause_impl) ...))))
+       (&& ((; ... then the trait must be implemented
+             is-implemented (TraitId (Parameter_trait ...)))
+            (well-formed-where-clause-goal CrateDecls WhereClause_impl) ...
+            Goal_item ...
+            ))))
 
    (where/error (trait TraitId ((ParameterKind_trait _) ...) where _ _) (trait-with-id CrateDecls TraitId))
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)
+   (where/error (Goal_item ...) ((impl-item-ok-goal CrateDecls
+                                                    (TraitId (Parameter_trait ...))
+                                                    ImplItem) ...))
    ]
 
   [;; For a constant declared in the crate C, like the following:
