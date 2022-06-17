@@ -121,7 +121,7 @@
   (Goals∧Clauses ::= (Goal∧Clause ...))
   (Goal∧Clause ::=
                AtomicGoal
-               (∀ KindedVarIds GoalHypothesis)
+               (∀ KindedVarIds Goal∧Clause)
                (implies Goals∧Clauses AtomicGoal)
                (&& Goals∧Clauses)
                )

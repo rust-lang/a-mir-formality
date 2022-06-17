@@ -5,6 +5,7 @@
          "../feature-gate.rkt"
          "../../logic/env.rkt"
          "trait-item.rkt"
+         "impl-item.rkt"
          )
 (provide crate-item-decl-rules
          )
@@ -153,8 +154,11 @@
    ;;             (well-formed (type i32))
    ;;             (well-formed (lifetime 'a))
    ;;             (is-implemented (Ord T)))
-   (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitRef where  WhereClauses_impl ImplItems))
-   ((Clause) ())
+   (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitRef where WhereClauses_impl [ImplItem ...]))
+   ((flatten ([Clause]
+              Clauses_item ...))
+    (flatten (Invariants_item ...))
+    )
 
    (where/error (TraitId (Parameter_trait ...)) TraitRef)
    (where/error (trait TraitId KindedVarIds_trait where _ _) (trait-with-id CrateDecls TraitId))
@@ -166,6 +170,11 @@
                             Goal_wc ...
                             )
                            (has-impl TraitRef))))
+   (where/error [(Clauses_item Invariants_item) ...]
+                [(impl-item-decl-rules CrateDecls
+                                       CrateId
+                                       (impl KindedVarIds_impl TraitRef where WhereClauses_impl)
+                                       ImplItem) ...])
    ]
 
   [;; For a function declared in the crate C, like the following
