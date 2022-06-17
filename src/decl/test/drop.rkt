@@ -130,10 +130,10 @@
     ]
 
    (traced '()
-           (decl:test-can-prove
-            Env
-            (crate-ok-goal (CrateDecl) CrateDecl)
-            ))
+           (test-equal
+            (term (decl:is-crate-ok (CrateDecl) CrateDecl))
+            #t))
+
    )
 
   (redex-let*

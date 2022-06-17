@@ -25,14 +25,11 @@
     (; the crate has a function
      CrateDecl (term (TheCrate (crate (FnDecl_foo)))))
 
-    (; create the Env for checking things in this crate
-     Env (term (env-for-crate-decl CrateDecl)))
     )
 
    (traced '()
-           (decl:test-can-prove
-            Env
-            (crate-ok-goal (CrateDecl) CrateDecl)
-            ))
+           (test-equal
+            (term (decl:is-crate-ok (CrateDecl) TheCrate))
+            #t))
    )
   )

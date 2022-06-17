@@ -21,8 +21,7 @@
     )
 
    (traced '()
-           (decl:test-can-prove
-            Env
-            (is-implemented (Debug ((user-ty i32))))))
+           (test-equal
+            (term (decl:can-prove-goal Env (is-implemented (Debug ((user-ty i32))))))
+            #t))
    )
-  )

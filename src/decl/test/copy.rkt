@@ -15,7 +15,7 @@
 
    ;; Test for that `impl Copy for i32` is permitted.
 
-   ((; trait rust:Copy { _: Foo }
+   [(; trait rust:Copy { _: Foo }
      TraitDecl_Copy (term (trait rust:Copy ((type Self)) where () ())))
 
     (; impl rust:Copy for i32 { }
@@ -26,15 +26,12 @@
                                        TraitImplDecl
                                        )))))
 
-    (; create the Env for checking things in this crate
-     Env (term (env-for-crate-decl CrateDecl)))
-    )
+    ]
 
    (traced '()
-           (decl:test-can-prove
-            Env
-            (crate-ok-goal (CrateDecl) CrateDecl)
-            ))
+           (test-equal
+            (term (decl:is-crate-ok [CrateDecl] TheCrate))
+            #t))
    )
 
   (redex-let*
@@ -70,17 +67,13 @@
                                        AdtDecl_Bar
                                        TraitImplDecl
                                        )))))
-
-    (; create the Env for checking things in this crate
-     Env (term (env-for-crate-decl CrateDecl)))
     ]
 
    (traced '()
-           (decl:test-cannot-prove
-            Env
-            (crate-ok-goal (CrateDecl) CrateDecl)
+           (test-equal
+            (term (decl:is-crate-ok [CrateDecl] TheCrate))
+            #f
             ))
-
 
    (redex-let*
     formality-decl
@@ -88,22 +81,17 @@
       TraitImplDecl_Foo (term (impl () (rust:Copy ((rigid-ty Foo ()))) where () ())))
 
      (; the crate has the struct, the trait, and the impl
-      CrateDecl_Pass (term (TheCrate (crate (TraitDecl_Copy
+      CrateDecl_Pass (term (TheCrate (crate [TraitDecl_Copy
                                              AdtDecl_Foo
                                              AdtDecl_Bar
                                              TraitImplDecl
                                              TraitImplDecl_Foo
-                                             )))))
-
-     (; create the Env for checking things in this crate
-      Env (term (env-for-crate-decl CrateDecl_Pass)))
-
+                                             ]))))
      ]
     (traced '()
-            (decl:test-can-prove
-             Env
-             (crate-ok-goal (CrateDecl_Pass) CrateDecl_Pass)
-             ))
+            (test-equal
+             (term (decl:is-crate-ok [CrateDecl_Pass] TheCrate))
+             #t))
 
     )
 
