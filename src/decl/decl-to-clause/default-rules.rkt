@@ -1,13 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "../grammar.rkt"
-         "../where-clauses.rkt"
-         "../feature-gate.rkt"
-         "../../logic/env.rkt"
-         "../../ty/relate.rkt"
-         "../../ty/could-match.rkt"
-         "../../ty/user-ty.rkt"
-         "../../ty/hook.rkt")
+         "../../ty/user-ty.rkt")
 (provide default-rules
          )
 
