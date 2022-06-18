@@ -1,7 +1,9 @@
 #lang racket
 (require redex/reduction-semantics
          "../grammar.rkt"
-         "../hook.rkt")
+         "../hook.rkt"
+         "../env.rkt"
+         )
 
 (provide filter-clauses)
 
@@ -11,18 +13,26 @@
   ;; reading debugging traces.
   filter-clauses : Env Clauses Predicate -> Clauses
 
-  [(filter-clauses Env () Predicate)
-   ()
+  [(filter-clauses Env (Clause ...) Predicate)
+   (flatten (Clauses_filtered ...))
+   (where/error (Clauses_filtered ...) ((filter-clause Env Clause Predicate) ...))
    ]
 
-  [(filter-clauses Env (Clause_next Clause_rest ...) Predicate)
-   (Clause_next Clause_rest_filtered ...)
+  )
+
+(define-metafunction formality-logic
+  ;; Filters a list of clauses down to clauses that could *plausibly* match
+  ;; Predicate. This is an optimization and honestly mostly to help when
+  ;; reading debugging traces.
+  filter-clause : Env Clause Predicate -> Clauses
+
+  [(filter-clause Env Clause_next Predicate)
+   (Clause_next)
    (where #t (clause-could-match-predicate Env Clause_next Predicate))
-   (where/error (Clause_rest_filtered ...) (filter-clauses Env (Clause_rest ...) Predicate))
    ]
 
-  [(filter-clauses Env (Clause_next Clause_rest ...) Predicate)
-   (filter-clauses Env (Clause_rest ...) Predicate)
+  [(filter-clause Env Clause_next Predicate)
+   ()
    (where #f (clause-could-match-predicate Env Clause_next Predicate))
    ]
   )
@@ -49,7 +59,7 @@
    ]
 
   [(clause-could-match-predicate Env Predicate_1 Predicate_2)
-   (predicates-could-match Env Predicate_1 Predicate_1)
+   (predicates-could-match Env Predicate_1 Predicate_2)
    ]
 
   )
