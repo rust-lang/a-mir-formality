@@ -1,5 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
+         "../../ty/user-ty.rkt"
          "../grammar.rkt"
          )
 
@@ -16,13 +17,19 @@
      (TraitDecl_Sync (term (trait rust:Sync ((type Self)) where () {})))
      (TraitDecl_Copy (term (trait rust:Copy ((type Self)) where () {})))
      (TraitDecl_Drop (term (trait rust:Drop ((type Self)) where () {})))
-     (CrateDecl_core (term (core (crate (
+
+     (TraitImplDecl_Copy_for_u32 (term (impl[] (rust:Copy[(user-ty u32)]) where [] {})))
+     (TraitImplDecl_Copy_for_i32 (term (impl[] (rust:Copy[(user-ty i32)]) where [] {})))
+
+     (CrateDecl_core (term (core (crate [
                                          TraitDecl_Sized
                                          TraitDecl_Send
                                          TraitDecl_Sync
                                          TraitDecl_Copy
                                          TraitDecl_Drop
-                                         )))))
+                                         TraitImplDecl_Copy_for_u32
+                                         TraitImplDecl_Copy_for_i32
+                                         ]))))
      ]
     (term CrateDecl_core)
     )
