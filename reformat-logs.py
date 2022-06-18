@@ -11,23 +11,24 @@ import sys
 # When things get deeply nested, racket's tracing
 # prints like `> > > >[10]`, where the `10` represents
 # the total number of characteres of indent depth.
-COUNT_RE = re.compile(r"^([<> ]*)\[(\d+)\](.*)$")
+COUNT_RE = re.compile(r"^(c?[<> ]*)\[(\d+)\](.*)$")
 
 # Otherwise it prints like `> > >Foo` when first
 # entering Foo and `< < <Blah` when returning a result.
 #
 # Sometimes it also prints `> > > Bar` -- I *think* that
 # is when `Bar` is a subtask of `Foo`.
-INDENT_RE = re.compile(r"^([<> ]*)(.*)$")
+INDENT_RE = re.compile(r"^(c?[<> ]*)(.*)$")
 
 
 def main():
+    header = '  '
     for line in sys.stdin.readlines():
         mo = COUNT_RE.match(line)
         if mo:
             indent = mo.group(1)
             count = int(mo.group(2))
-            header = indent_header(indent)
+            header = indent_header(header, indent)
             text = mo.group(3)
             print_line(count, header, text)
             continue
@@ -37,7 +38,7 @@ def main():
             raise "bad line: {}".format(line)
         if mo:
             indent = mo.group(1)
-            header = indent_header(indent)
+            header = indent_header(header, indent)
             text = mo.group(2)
             print_line(len(indent), header, text)
             continue
@@ -47,15 +48,15 @@ def print_line(count, header, text):
     print("{}{}{}".format(" " * count, header, text))
 
 
-def indent_header(indent):
-    if indent.endswith('>'):
+def indent_header(old_header, indent):
+    if '>' in indent:
         return '>'
-    elif indent.endswith('> '):
-        return '> '
-    elif indent.endswith('<'):
+    elif '<' in indent:
         return '<'
-    elif indent.endswith('< '):
-        return '< '
+    elif old_header == '>':
+        # putting this character lets you fold the contents of a new
+        # block without folding children
+        return ' ⋮'
     else:
         return '  '
 

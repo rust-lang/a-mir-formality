@@ -16,7 +16,7 @@ then
 fi
 
 REQUIRE='(require (submod "'"$1"'" test))'
-if [ "$NO_FILTER" == "0" ];
+if [ "$NO_FILTER" == "1" ];
 then
         racket -l errortrace -l racket/base -e "$REQUIRE"
 else
