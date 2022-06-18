@@ -1,9 +1,24 @@
 #!/bin/bash
 
-if [ "$1" == "" ];
+ME=$(dirname $0)
+
+NO_FILTER=0
+if [ "$1" == "--no-filter" ];
 then
-	echo "expected: test file.rkt"
+        NO_FILTER=1
+        shift
+fi
+
+if [ "$1" == "" -o "$2" != "" ];
+then
+	echo "expected: test [--no-filter] file.rkt"
         exit 1
 fi
 
-racket -l errortrace -l racket/base -e '(require (submod "'$1'" test))'
+REQUIRE='(require (submod "'"$1"'" test))'
+if [ "$NO_FILTER" == "0" ];
+then
+        racket -l errortrace -l racket/base -e "$REQUIRE"
+else
+        racket -l errortrace -l racket/base -e "$REQUIRE" 2>&1 | python3 $ME/reformat-logs.py
+fi
