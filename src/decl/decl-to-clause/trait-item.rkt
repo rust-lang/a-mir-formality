@@ -25,7 +25,7 @@
    ;; * clause for when the alias-ty is well-formed
    ;; *
    (trait-item-decl-rules CrateDecls CrateId (TraitId (KindedVarId_t ...)) AssociatedTyDecl)
-   ((Clause_wf Clause_bound ...) Invariants_X)
+   ((Clause_wf) (Invariant_bound ... Invariant_X ...))
 
    (where/error ((ParameterKind_t VarId_t) ...) (KindedVarId_t ...))
    (where/error (type AssociatedTyId (KindedVarId_i ...) BoundsClause_i where (WhereClause_i ...)) AssociatedTyDecl)
@@ -51,22 +51,22 @@
    ;;     (well-formed (alias-ty (Iterator Item) (T)))
    ;; ```
    (where/error (Clause_if-wf ...) (where-clauses->hypotheses CrateDecls (instantiate-bounds-clause BoundsClause_i AliasTy)))
-   (where/error (Clause_bound ...) ((∀ (KindedVarId_t ... KindedVarId_i ...)
-                                       (implies ((well-formed (type AliasTy))) Clause_if-wf)) ...))
+   (where/error (Invariant_bound ...) ((∀ (KindedVarId_t ... KindedVarId_i ...)
+                                          (implies ((well-formed (type AliasTy))) Clause_if-wf)) ...))
 
    ;; if we know that an alias type normalizes to another type X, we know
    ;; that X meets the bounds of that alias type too (feature-gated)
    (where/error (VarId_X) (fresh-var-ids CrateDecls (X)))
    (where/error (Clause_X ...) (where-clauses->hypotheses CrateDecls (instantiate-bounds-clause BoundsClause_i VarId_X)))
-   (where/error Invariants_X (if-crate-has-feature
-                              CrateDecls
-                              CrateId
-                              expanded-implied-bounds
-                              (; with expanded-implied-bounds, include the invariants
-                               (∀ (KindedVarId_t ... KindedVarId_i ... (type VarId_X))
-                                  (implies ((normalizes-to ((normalizes-to AliasTy VarId_X)))) Clause_X)) ...)
-                              (; without expanded-implied-bounds, do not, making us behave like rustc
-                               )
-                              ))
+   (where/error (Invariant_X ...) (if-crate-has-feature
+                                   CrateDecls
+                                   CrateId
+                                   expanded-implied-bounds
+                                   (; with expanded-implied-bounds, include the invariants
+                                    (∀ (KindedVarId_t ... KindedVarId_i ... (type VarId_X))
+                                       (implies ((normalizes-to ((normalizes-to AliasTy VarId_X)))) Clause_X)) ...)
+                                   (; without expanded-implied-bounds, do not, making us behave like rustc
+                                    )
+                                   ))
    ]
   )
