@@ -11,14 +11,21 @@ fi
 
 if [ "$1" == "" -o "$2" != "" ];
 then
-	echo "expected: test [--no-filter] file.rkt"
+	echo "expected: test [--no-filter] (file.rkt | --all)"
         exit 1
 fi
 
-REQUIRE='(require (submod "'"$1"'" test))'
-if [ "$NO_FILTER" == "1" ];
+if [ "$1" == "--all" ];
 then
-        racket -l errortrace -l racket/base -e "$REQUIRE"
+        NPROC=$(getconf _NPROCESSORS_ONLN 2> /dev/null || getconf NPROCESSORS_ONLN 2> /dev/null || 4) # number of CPU cores
+        echo "running: raco test src -t -j $NPROC"
+        raco test src -t -j $NPROC
 else
-        racket -l errortrace -l racket/base -e "$REQUIRE" 2>&1 | python3 $ME/reformat-logs.py
+        REQUIRE='(require (submod "'"$1"'" test))'
+        if [ "$NO_FILTER" == "1" ];
+        then
+                racket -l errortrace -l racket/base -e "$REQUIRE"
+        else
+                racket -l errortrace -l racket/base -e "$REQUIRE" 2>&1 | python3 $ME/reformat-logs.py
+        fi
 fi
