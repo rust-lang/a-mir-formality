@@ -8,8 +8,6 @@
          )
 
 (module+ test
-  (current-traced-metafunctions '(relate/one compare/one/substituted equate/one/substituted))
-
   (define-metafunction formality-decl
     trait-decl-with-bound : TraitId BoundsClause -> TraitDecl
 
