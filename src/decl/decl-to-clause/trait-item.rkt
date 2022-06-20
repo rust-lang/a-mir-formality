@@ -38,7 +38,7 @@
    (where/error Clause_wf (∀ (KindedVarId_t ... KindedVarId_i ...)
                              (implies
                               ((is-implemented (TraitId (VarId_t ...))) ; (a)
-                               (where-clause->goal WhereClause_i) ... ; (b)
+                               (where-clause->goal CrateDecls WhereClause_i) ... ; (b)
                                )
                               (well-formed (type AliasTy)))))
 

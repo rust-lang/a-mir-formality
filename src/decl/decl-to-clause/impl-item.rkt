@@ -45,10 +45,9 @@
    (where/error Clause_norm
                 (∀ [KindedVarId_impl ... KindedVarId_val ...]
                    (implies
-                    (flatten
-                     (WhereClauses_impl
-                      WhereClauses_val)
-                     )
+                    (where-clauses->hypotheses
+                     CrateDecls
+                     (flatten (WhereClauses_impl WhereClauses_val)))
                     (normalizes-to AliasTy Ty))))
    ]
   )
