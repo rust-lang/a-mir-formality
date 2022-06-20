@@ -15,6 +15,15 @@
    (∀ KindedVarIds (well-formed-where-clause-goal WhereClause))
    ]
 
+  [; well-formedness for a goal like `T: a`
+   ;
+   ; FIXME -- the syntax of where clauses needs to be changed to give an
+   ; explicit parameter kind for Ty
+   (well-formed-where-clause-goal CrateDecls (Ty : Lt))
+   (&& [(well-formed (type Ty))
+        (well-formed (lifetime Lt))])
+   ]
+
   [; well-formedness for a goal like `A: Foo<B>` where
    ;
    ; ```
