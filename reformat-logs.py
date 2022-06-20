@@ -7,6 +7,7 @@
 
 import re
 import sys
+import fileinput
 
 # When things get deeply nested, racket's tracing
 # prints like `> > > >[10]`, where the `10` represents
@@ -23,7 +24,8 @@ INDENT_RE = re.compile(r"^(c?[<> ]*)(.*)$")
 
 def main():
     header = '  '
-    for line in sys.stdin.readlines():
+    count = 0
+    for line in fileinput.input():
         mo = COUNT_RE.match(line)
         if mo:
             indent = mo.group(1)
@@ -38,14 +40,25 @@ def main():
             raise "bad line: {}".format(line)
         if mo:
             indent = mo.group(1)
+            count = adjust_count(header, count, len(indent))
             header = indent_header(header, indent)
             text = mo.group(2)
-            print_line(len(indent), header, text)
+            print_line(count, header, text)
             continue
 
 
 def print_line(count, header, text):
     print("{}{}{}".format(" " * count, header, text))
+
+
+def adjust_count(old_header, old_count, count):
+    # when redex prints "> > >[18]", we adjust that to be 18 spaces,
+    # but the subsequent lines only have a smaller amount of whitespace,
+    # so we have to make it match.
+    if '>' in old_header or '<' in old_header:
+        if old_count > count:
+            return old_count
+    return count
 
 
 def indent_header(old_header, indent):
