@@ -45,4 +45,16 @@
            #f
            ))
 
+  (; If we know that `(T,): 'a`, we know that `T: 'a`
+   traced '()
+          (test-equal
+           (term (decl:can-prove-goal
+                  [core-crate-decl]
+                  core
+                  (∀ [(type T) (lifetime a)]
+                     (implies [((user-ty (tuple T)) -outlives- a)]
+                              (well-formed (type (user-ty (& a T))))))))
+           #f ; FIXME(#63) -- we don't expand outlives bounds
+           ))
+
   )
