@@ -28,20 +28,24 @@
   [; For an associated type value
    ;
    ; impl LendingIterator for Bar {
-   ;     type Item<'a> = u32 where Self: 'a;
+   ;     type Item<'a> = u32;
    ; }
    ;
    ; given
    ;
    ; trait LendingIterator {
-   ;     type Item<'a> : Sized;
+   ;     type Item<'a> : Sized
+   ;     where Self: 'a;
    ; }
    ;
    ; To be valid, the following conditions must hold:
    ;
-   ; (a) `u32` must implement the bounds from the trait (`Sized`)
-   ; (b) the where-clauses in the trait must imply those from the impl
-   ; (c) the bounds in the trait must be implied by the bounds in impl (`Sized`)
+   ; (a) `u32` is well-formed, given the where-clauses on the associated value from the impl (empty set, in this example);
+   ; (b) `u32` must implement the bounds from the trait (`Sized`)
+   ; (c) the where-clauses in the trait (`where Self: 'a`) must imply those from the impl (empty set, in this example)
+   ;
+   ; Note that the where-clauses from the enclosing impl (along with the generics on that impl)
+   ; are declared by our caller, `crate-item-ok-goal`.
 
    (impl-item-ok-goal CrateDecls TraitRef_impl AssociatedTyValue)
    (∀ (KindedVarId ...)

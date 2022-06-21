@@ -86,10 +86,11 @@
    ;;     (∀ ((type Self) (lifetime 'a) (type T))
    ;;         (is-implemented (Foo (Self 'a T))) :-
    ;;            (has-impl (Foo (Self 'a T))),
-   ;;            (well-formed (type Self)), XXX
-   ;;            (well-formed (lifetime 'a)), XXX
-   ;;            (well-formed (type T)), XXX
-   ;;            (is-implemented (Ord T)))
+   ;;            (well-formed (type Self))
+   ;;            (well-formed (lifetime 'a))
+   ;;            (well-formed (type T))
+   ;;            (is-implemented (Ord T))
+   ;;     )
    ;;
    ;; We also generate the following invariants in the defining crate:
    ;;
@@ -107,13 +108,13 @@
 
    ; Clause for `(is-implemented Trait ...)` -- trait is implemented if
    ; (a) there's an impl for it,
-   ; (b) input types are well-formed XXX
-   ; (c) all where-clauses hold
+   ; (b) all where-clauses hold
+   ; (c) input types are well-formed
    (where/error Clause (∀ KindedVarIds
                           (implies
                            ((has-impl TraitRef_me) ; (a)
-                            ; XXX (well-formed (ParameterKind VarId)) ... ; (b)
-                            (where-clause->goal CrateDecls WhereClause) ... ; (c)
+                            (where-clause->goal CrateDecls WhereClause) ... ; (b)
+                            (well-formed (ParameterKind VarId)) ... ; (c)
                             )
                            (is-implemented TraitRef_me))))
 
@@ -149,11 +150,11 @@
    ;; We consider `has-impl` to hold if (a) all inputs are well formed and (b) where
    ;; clauses are satisfied:
    ;;
-   ;;     (∀ ((lifetime 'a) (type T))
+   ;;     ∀ ((lifetime 'a) (type T))
    ;;         (has-impl (Foo (i32 'a u32))) :-
-   ;;             (well-formed (type i32)) XXX
-   ;;             (well-formed (lifetime 'a)) XXX
-   ;;             (is-implemented (Ord T)))
+   ;;             (is-implemented (Ord T))
+   ;;             (well-formed (type i32))
+   ;;             (well-formed (lifetime 'a))
    (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitRef where WhereClauses_impl [ImplItem ...]))
    ((flatten ([Clause]
               Clauses_item ...))
@@ -166,8 +167,8 @@
    (where/error (Goal_wc ...) (where-clauses->goals CrateDecls WhereClauses_impl))
    (where/error Clause (∀ KindedVarIds_impl
                           (implies
-                           (; XXX (well-formed (ParameterKind_trait Parameter_trait)) ...
-                            Goal_wc ...
+                           (Goal_wc ...
+                            (well-formed (ParameterKind_trait Parameter_trait)) ...
                             )
                            (has-impl TraitRef))))
    (where/error [(Clauses_item Invariants_item) ...]
