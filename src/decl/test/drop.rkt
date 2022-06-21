@@ -131,7 +131,7 @@
 
    (traced '()
            (test-equal
-            (term (decl:is-crate-ok (CrateDecl) CrateDecl))
+            (term (decl:is-crate-ok (CrateDecl) TheCrate))
             #t))
 
    )
