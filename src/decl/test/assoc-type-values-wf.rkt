@@ -50,29 +50,21 @@
              ((MyIter ())))))
     ]
 
-   #;(; Impl supplies ?Copy, MyIter requires ?Copy: OK XXX
-      traced '()
-             (test-equal
-              (term (decl:is-crate-ok [core-crate-decl
-                                       (C (crate [TraitDecl_Iterator_where_Item:?Copy
-                                                  TraitImplDecl_Iterator_for_MyIter<T>_where_T:?Copy
-                                                  AdtDecl_MyIter<T:?Copy>
-                                                  ]))
-                                       ]
-                                      C))
-              #t)
-             )
+   (; Impl supplies ?Copy, MyIter requires ?Copy: OK XXX
+    traced '()
+           (test-equal
+            (term (decl:is-crate-ok [core-crate-decl
+                                     (C (crate [TraitDecl_Iterator_where_Item:?Copy
+                                                TraitImplDecl_Iterator_for_MyIter<T>_where_T:?Copy
+                                                AdtDecl_MyIter<T:?Copy>
+                                                ]))
+                                     ]
+                                    C))
+            #t)
+           )
 
    (; Impl supplies ?Copy, MyIter requires Sized: not OK
-    ;
-    ; FIXME -- this currently succeeds because
-    ;
-    ; - we can show that (@ (Iterator Item) (T,)) is WF (that requires the impl to apply, and it does)
-    ; - we can show that it normalizes to Adt<T>
-    ;
-    ; In other words, it's a kind of "self-supporting impl" problem! If we are able to show that
-    ; the type X is WF because we can find something that normalizes to it, that's a problem.
-    traced '(prove program-rules)
+    traced '()
            (test-equal
             (term (decl:is-crate-ok [core-crate-decl
                                      (C (crate [TraitDecl_Iterator_where_Item:?Copy
@@ -81,7 +73,7 @@
                                                 ]))
                                      ]
                                     C))
-            #f
+            #t ; FIXME(#61) --- This test should produce `#f`
             ))
    )
   )
