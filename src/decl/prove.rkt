@@ -1,51 +1,68 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar.rkt"
          "../logic/cosld-solve.rkt"
+         "../ty/scheme.rkt"
          "decl-ok.rkt"
          "decl-to-clause.rkt"
+         "where-clauses.rkt"
+         "grammar.rkt"
          )
-(provide decl:prove-top-level-goal/cosld
-         decl:test-can-prove
-         decl:test-cannot-prove
-         decl:test-crate-decl-ok
-         decl:test-crate-decl-not-ok
+(provide (all-defined-out)
          )
 
-(define-syntax-rule (decl:test-can-prove env goal)
-  (test-equal
-   (judgment-holds (decl:prove-top-level-goal/cosld env goal _))
-   #t)
+#;(define-metafunction formality-ty
+    ;; Convenient metafunction for tests:
+    ;;
+    ;; Creates an environment introducing the various quantifiers etc and then the
+    ;; given where-clauses (as hypotheses).
+    ;;
+    ;; Then proves the goal and extracts a "scheme".
+    ;;
+    ;; Returns the resulting scheme(s), which you can test with `test-match`.
+    decl:prove-scheme-in-crate : CrateDecls CrateId ((Quantifier KindedVarIds) ...) WhereClauses Goal -> Schemes
+
+    [(decl:prove-scheme-in-crate CrateDecls CrateId ((Quantifier KindedVarIds) ...) WhereClauses Goal)
+     (ty:prove-scheme Env ((Quantifier KindedVarIds) ...) WhereClauses Goal)
+     (where/error Env (env-for-crate-decls CrateDecls CrateId))
+     ]
+
+    )
+
+(define-metafunction formality-decl
+  ;; Convenient metafunction for tests:
+  ;;
+  ;; Creates an environment introducing the various quantifiers etc and then the
+  ;; given where-clauses (as hypotheses).
+  ;;
+  ;; Then proves the goal and extracts a "scheme".
+  ;;
+  ;; Returns the resulting scheme(s), which you can test with `test-match`.
+  decl:can-prove-goal : CrateDecls CrateId Goal -> boolean
+
+  [(decl:can-prove-goal CrateDecls CrateId Goal)
+   ,(judgment-holds (decl:prove-top-level-goal/cosld Env Goal _))
+   (where/error Env (env-for-crate-decls CrateDecls CrateId))
+   ]
+
   )
 
-(define-syntax-rule (decl:test-cannot-prove env goal)
-  (test-equal
-   (judgment-holds (decl:prove-top-level-goal/cosld env goal _))
-   #f)
-  )
+(define-metafunction formality-decl
+  ;; Convenient metafunction for tests:
+  ;;
+  ;; Creates an environment introducing the various quantifiers etc and then the
+  ;; given where-clauses (as hypotheses).
+  ;;
+  ;; Then proves the goal and extracts a "scheme".
+  ;;
+  ;; Returns the resulting scheme(s), which you can test with `test-match`.
+  decl:is-crate-ok : CrateDecls CrateId -> boolean
 
-(define-syntax-rule (decl:test-crate-decl-ok crate-decls crate-id)
-  (redex-let*
-   formality-decl
-   ((CrateDecls (term crate-decls))
-    (CrateId (term crate-id))
-    (CrateDecl (term (crate-decl-with-id CrateDecls CrateId)))
-    (Env (term (env-for-crate-decls CrateDecls CrateId))))
+  [(decl:is-crate-ok CrateDecls CrateId)
+   (decl:can-prove-goal CrateDecls CrateId Goal_ok)
+   (where/error [_ ... (CrateId CrateContents) _ ...] CrateDecls)
+   (where/error Goal_ok (crate-ok-goal CrateDecls (CrateId CrateContents)))
+   ]
 
-   (decl:test-can-prove Env (crate-ok-goal CrateDecls CrateDecl))
-   )
-  )
-
-(define-syntax-rule (decl:test-crate-decl-not-ok crate-decls crate-id)
-  (redex-let*
-   formality-decl
-   ((CrateDecls (term crate-decls))
-    (CrateId (term crate-id))
-    (CrateDecl (term (crate-decl-with-id CrateDecls CrateId)))
-    (Env (term (env-for-crate-decls CrateDecls CrateId))))
-
-   (decl:test-cannot-prove Env (crate-ok-goal CrateDecls CrateDecl))
-   )
   )
 
 (define-extended-judgment-form formality-decl logic:prove-top-level-goal/cosld
@@ -63,3 +80,37 @@
   #:contract (decl:prove-top-level-goal/cosld Env Goal Env)
 
   )
+
+(; deprecated, prefer decl:can-prove-goal
+ define-syntax-rule (decl:test-can-prove env goal)
+  (test-equal
+   (judgment-holds (decl:prove-top-level-goal/cosld env goal _))
+   #t))
+
+(; deprecated, prefer decl:can-prove-goal
+ define-syntax-rule (decl:test-cannot-prove env goal)
+  (test-equal
+   (judgment-holds (decl:prove-top-level-goal/cosld env goal _))
+   #f))
+
+(; deprecated, prefer decl:is-crate-ok
+ define-syntax-rule (decl:test-crate-decl-ok crate-decls crate-id)
+  (redex-let*
+   formality-decl
+   ((CrateDecls (term crate-decls))
+    (CrateId (term crate-id))
+    (CrateDecl (term (crate-decl-with-id CrateDecls CrateId)))
+    (Env (term (env-for-crate-decls CrateDecls CrateId))))
+   (decl:test-can-prove Env (crate-ok-goal CrateDecls CrateDecl))
+   ))
+
+(; deprecated, prefer decl:is-crate-ok
+ define-syntax-rule (decl:test-crate-decl-not-ok crate-decls crate-id)
+  (redex-let*
+   formality-decl
+   ((CrateDecls (term crate-decls))
+    (CrateId (term crate-id))
+    (CrateDecl (term (crate-decl-with-id CrateDecls CrateId)))
+    (Env (term (env-for-crate-decls CrateDecls CrateId))))
+   (decl:test-cannot-prove Env (crate-ok-goal CrateDecls CrateDecl))
+   ))

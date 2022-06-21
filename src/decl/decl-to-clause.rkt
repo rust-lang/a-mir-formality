@@ -1,13 +1,13 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
-         "feature-gate.rkt"
+         "where-clauses.rkt"
          "../logic/env.rkt"
          "../ty/relate.rkt"
          "../ty/could-match.rkt"
-         "../ty/where-clauses.rkt"
-         "../ty/user-ty.rkt"
-         "../ty/hook.rkt")
+         "../ty/hook.rkt"
+         "decl-to-clause/crate-decl.rkt"
+         "decl-to-clause/default-rules.rkt")
 (provide env-for-crate-decl
          env-for-crate-decls
          env-for-decl-program
@@ -44,7 +44,6 @@
    ]
   )
 
-
 (define-metafunction formality-decl
   ;; The "hook" for a decl program -- given a set of create-decls and a current
   ;; crate, lowers those definitions to program clauses on demand using
@@ -55,7 +54,8 @@
    (Hook: ,(formality-ty-hook
             (lambda (predicate)
               (term (decl-clauses-for-predicate DeclProgram ,predicate)))
-            (term (decl-invariants DeclProgram))
+            (lambda ()
+              (term (decl-invariants DeclProgram)))
             (lambda (env predicate1 predicate2)
               (term (ty:equate-predicates ,env ,predicate1 ,predicate2)))
             (lambda (env relation)
@@ -67,7 +67,12 @@
             (lambda (goal)
               (term (ty:is-relation? ,goal)))
             (lambda (adt-id)
-              (term (generics-for-adt-id DeclProgram ,adt-id)))))
+              (term (generics-for-adt-id DeclProgram ,adt-id)))
+            (lambda (where-clause)
+              (term (where-clause->goal∧clause CrateDecls ,where-clause)))
+            ))
+
+   (where/error (CrateDecls CrateId) DeclProgram)
    ]
   )
 
@@ -113,264 +118,6 @@
    ]
   )
 
-(define-metafunction formality-decl
-  ;; Generate the complete set of rules that result from `CrateDecl`
-  ;; when checking the crate `CrateId`.
-  ;;
-  ;; NB: This assumes that we can compile to a complete set of
-  ;; clauses. This will eventually not suffice, e.g., with
-  ;; auto traits. But this helper is private, so we can refactor
-  ;; that later.
-  crate-decl-rules : CrateDecls CrateDecl CrateId -> (Clauses Invariants)
-
-  [; Rules from crate C to use internally within crate C
-   (crate-decl-rules CrateDecls (CrateId (crate (CrateItemDecl ...))) CrateId)
-   ((Clause ... ...) (Invariant_all ... ... Invariant_local ... ...))
-
-   (where/error (((Clause ...) (Invariant_all ...) (Invariant_local ...)) ...)
-                ((crate-item-decl-rules CrateDecls CrateId CrateItemDecl) ...))
-   ]
-
-  [; Rules from crate C to use from other crates -- exclude the invariants, which are
-   ; local to crate C, but keep the clauses, which are global.
-   (crate-decl-rules CrateDecls (CrateId_0 (crate (CrateItemDecl ...))) CrateId_1)
-   ((Clause ... ...) (Invariant_all ... ...))
-
-   (where (CrateId_!_same CrateId_!_same) (CrateId_0 CrateId_1))
-   (where/error (((Clause ...) (Invariant_all ...) _) ...)
-                ((crate-item-decl-rules CrateDecls CrateId_0 CrateItemDecl) ...))
-   ]
-  )
-
-(define-metafunction formality-decl
-  ;; Given:
-  ;;
-  ;; * a set of crate-declarations
-  ;; * the id I of a crate
-  ;; * some item in the the crate I
-  ;;
-  ;; Return a tuple of:
-  ;;
-  ;; * The clauses that hold in all crates due to this item
-  ;; * The invariants that hold in all crates due to this item
-  ;; * The invariants that hold only in the crate I
-  crate-item-decl-rules : CrateDecls CrateId CrateItemDecl -> (Clauses Invariants Invariants)
-
-  [;; For an ADT declaration declared in the crate C, like the following:
-   ;;
-   ;;     struct Foo<T> where T: Ord { ... }
-   ;;
-   ;; We generate the following clause
-   ;;
-   ;;     (∀ ((type T))
-   ;;         (well-formed (type (Foo (T)))) :-
-   ;;            (well-formed (type T))
-   ;;            (is-implemented (Ord T)))
-   ;;
-   ;; And the following invariants local to the crate C:
-   ;;
-   ;;     (∀ ((type T))
-   ;;         (well-formed (type (Foo (T)))) => (is-implemented (Ord T)))
-   ;;
-   ;; And the following global invariants:
-   ;;
-   ;;     (∀ ((type T))
-   ;;         (well-formed (type (Foo (T)))) => (well-formed (type T)))
-   (crate-item-decl-rules CrateDecls CrateId (AdtKind AdtId KindedVarIds where (WhereClause ...) AdtVariants))
-   ((Clause) Invariants_wf Invariants_wc)
-
-   (where/error ((ParameterKind VarId) ...) KindedVarIds)
-   (where/error Ty_adt (rigid-ty AdtId (VarId ...)))
-   (where/error Clause (∀ KindedVarIds
-                          (implies
-                           ((well-formed (ParameterKind VarId)) ...
-                            (where-clause->goal WhereClause) ...)
-                           (well-formed (type Ty_adt)))))
-   (where/error Invariants_wc ((∀ KindedVarIds
-                                  (implies
-                                   ((well-formed (type Ty_adt)))
-                                   (where-clause->hypothesis WhereClause)))
-                               ...))
-   (where/error Invariants_wf ((∀ KindedVarIds
-                                  (implies
-                                   ((well-formed (type Ty_adt)))
-                                   (well-formed (ParameterKind VarId))))
-                               ...))
-   ]
-
-  [;; For a trait declaration declared in the crate C, like the following:
-   ;;
-   ;;     trait Foo<'a, T> where T: Ord { ... }
-   ;;
-   ;; We generate the following clause that proves `Foo` is implemented
-   ;; for some types `(Self 'a T)`. Note that, for `Foo` to be considered
-   ;; implemented, all of its input types must be well-formed, it must have
-   ;; an impl, and the where-clauses declared on the trait must be met:
-   ;;
-   ;;     (∀ ((type Self) (lifetime 'a) (type T))
-   ;;         (is-implemented (Foo (Self 'a T))) :-
-   ;;            (has-impl (Foo (Self 'a T))),
-   ;;            (well-formed (type Self)),
-   ;;            (well-formed (lifetime 'a)),
-   ;;            (well-formed (type T)),
-   ;;            (is-implemented (Ord T)))
-   ;;
-   ;; We also generate the following invariants in the defining crate:
-   ;;
-   ;;     (∀ ((type Self) (lifetime 'a) (type T))
-   ;;         (is-implemented (Foo (Self 'a T))) => (is-implemented (Ord T))
-   ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type Self))
-   ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (lifetime 'a))
-   ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
-   (crate-item-decl-rules CrateDecls CrateId  (trait TraitId KindedVarIds where (WhereClause ...) TraitItems))
-   ((Clause)
-    (Invariant_wc ...
-     Invariant_wf ...
-     )
-    ())
-
-   (where/error ((ParameterKind VarId) ...) KindedVarIds)
-   (where/error TraitRef_me (TraitId (VarId ...)))
-   (where/error Clause (∀ KindedVarIds
-                          (implies
-                           ((has-impl TraitRef_me)
-                            (well-formed (ParameterKind VarId)) ...
-                            (where-clause->goal WhereClause) ...
-                            )
-                           (is-implemented TraitRef_me))))
-
-
-   ; With the expanded-implied-bounds feature, we include all where clauses from the
-   ; trait as implied bounds. Without it, we include only supertraits.
-   (where/error (WhereClause_super ...) (super-where-clauses KindedVarIds (WhereClause ...)))
-   (where/error (Invariant_wc ...) (if-crate-has-feature
-                                    CrateDecls
-                                    CrateId
-                                    expanded-implied-bounds
-
-                                    ((∀ KindedVarIds
-                                        (implies
-                                         ((is-implemented TraitRef_me))
-                                         (where-clause->hypothesis WhereClause))) ...)
-
-                                    ((∀ KindedVarIds
-                                        (implies
-                                         ((is-implemented TraitRef_me))
-                                         (where-clause->hypothesis WhereClause_super))) ...)
-
-                                    ))
-   (where/error (Invariant_wf ...) ((∀ KindedVarIds
-                                       (implies
-                                        ((is-implemented TraitRef_me))
-                                        (well-formed (ParameterKind VarId)))) ...))
-   ]
-
-  [;; For an trait impl declared in the crate C, like the followin
-   ;;
-   ;;     impl<'a, T> Foo<'a, T> for i32 where T: Ord { }
-   ;;
-   ;; We consider `has-impl` to hold if (a) all inputs are well formed and (b) where
-   ;; clauses are satisfied:
-   ;;
-   ;;     (∀ ((lifetime 'a) (type T))
-   ;;         (has-impl (Foo (i32 'a u32))) :-
-   ;;             (well-formed (type i32))
-   ;;             (well-formed (lifetime 'a))
-   ;;             (is-implemented (Ord T)))
-   (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitRef where  WhereClauses_impl ImplItems))
-   ((Clause) () ())
-
-   (where/error (TraitId (Parameter_trait ...)) TraitRef)
-   (where/error (trait TraitId KindedVarIds_trait where _ _) (trait-with-id CrateDecls TraitId))
-   (where/error ((ParameterKind_trait _) ...) KindedVarIds_trait)
-   (where/error (Goal_wc ...) (where-clauses->goals WhereClauses_impl))
-   (where/error Clause (∀ KindedVarIds_impl
-                          (implies
-                           ((well-formed (ParameterKind_trait Parameter_trait)) ...
-                            Goal_wc ...
-                            )
-                           (has-impl TraitRef))))
-   ]
-
-  [;; For a function declared in the crate C, like the following
-   ;;
-   ;;     fn foo<'a, T>(&'a T) -> &'a T { ... }
-   (crate-item-decl-rules CrateDecls CrateId (fn _ KindedVarIds_fn Tys_arg -> Ty_ret where WhereClauses_fn FnBody))
-   (() () ())
-   ]
-
-  [;; For an named constant in the crate C, like the following
-   ;;
-   ;;    const NAMED<T>: Foo<T> where T: Trait;
-   ;;
-   ;; we don't create any clauses.
-   (crate-item-decl-rules CrateDecls CrateId ConstDecl)
-   (() () ())
-   ]
-
-  [;; For a named static in the crate C, like the following
-   ;;
-   ;;    static NAMED<T>: Foo<T> where T: Trait;
-   ;;
-   ;; we don't create any clauses.
-   (crate-item-decl-rules CrateDecls CrateId StaticDecl)
-   (() () ())
-   ]
-
-  [;; Feature gates don't introduce any rules
-   (crate-item-decl-rules CrateDecls CrateId FeatureDecl)
-   (() () ())
-   ]
-  )
-
-(define-metafunction formality-decl
-  ;; Given a crate item, return a tuple of:
-  ;;
-  ;; * The clauses that hold in all crates due to this item
-  ;; * The invariants that hold in all crates due to this item
-  ;; * The invariants that hold only in the crate that declared this item
-  default-rules : () -> (Clauses Invariants)
-
-  ((default-rules ())
-   (((well-formed (type (user-ty i32)))
-     (well-formed (type (user-ty u32)))
-     (well-formed (type (user-ty ())))
-     )
-    ())
-   )
-
-  )
-
-(define-metafunction formality-decl
-  super-where-clauses : KindedVarIds WhereClauses -> WhereClauses
-
-  ((super-where-clauses KindedVarIds (WhereClause ...))
-   (flatten ((filter-super-where-clauses KindedVarIds WhereClause) ...))
-   )
-
-  )
-
-(define-metafunction formality-decl
-  filter-super-where-clauses : KindedVarIds WhereClause -> WhereClauses
-
-  (; Keep `Self: Trait` bounds
-   (filter-super-where-clauses KindedVarIds (VarId_Self : TraitId Parameters))
-   ((VarId_Self : TraitId Parameters))
-   (where ((type VarId_Self) _ ...) KindedVarIds)
-   )
-
-  (; Keep `Self: 'a` bounds
-   (filter-super-where-clauses KindedVarIds (VarId_Self : Parameter))
-   ((VarId_Self : Parameter))
-   (where ((type VarId_Self) _ ...) KindedVarIds)
-   )
-
-  (; Discard others
-   (filter-super-where-clauses KindedVarIds WhereClause)
-   ()
-   )
-
-  )
 
 (define-metafunction formality-decl
   ;; Part of the "hook" for a formality-decl program:

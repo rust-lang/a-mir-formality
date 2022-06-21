@@ -34,8 +34,10 @@
    (rigid-ty AdtId ((user-parameter UserParameter) ...))
    ]
 
-  [(user-ty (@ AliasName UserParameter ...))
-   (alias-ty AliasName ((user-parameter UserParameter) ...))
+  [(user-ty (< UserTy as TraitId (UserParameter_trait ...) > :: AssociatedTyId (UserParameter_ty ...)))
+   (alias-ty (TraitId AssociatedTyId) ((user-ty UserTy)
+                                       (user-parameter UserParameter_trait) ...
+                                       (user-parameter UserParameter_ty) ...))
    ]
 
   [(user-ty (fn (UserTy_arg ...) -> UserTy_ret))

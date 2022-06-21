@@ -1,20 +1,27 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar.rkt"
-         "../logic/env.rkt"
-         "../logic/substitution.rkt"
-         "../ty/relate.rkt"
-         "../ty/could-match.rkt"
-         "../ty/where-clauses.rkt"
-         "../ty/hook.rkt")
+         "../grammar.rkt"
+         "../where-clauses.rkt"
+         "../../logic/substitution.rkt"
+         )
 (provide well-formed-where-clause-goal
          )
 
 (define-metafunction formality-decl
+  ;; Given a `WhereClause`, returns a goal that defines when this where-clause is well-formed.
   well-formed-where-clause-goal : CrateDecls WhereClause -> Goal
 
   [(well-formed-where-clause-goal CrateDecls (∀ KindedVarIds WhereClause))
    (∀ KindedVarIds (well-formed-where-clause-goal WhereClause))
+   ]
+
+  [; well-formedness for a goal like `T: a`
+   ;
+   ; FIXME -- the syntax of where clauses needs to be changed to give an
+   ; explicit parameter kind for Ty
+   (well-formed-where-clause-goal CrateDecls (Ty : Lt))
+   (&& [(well-formed (type Ty))
+        (well-formed (lifetime Lt))])
    ]
 
   [; well-formedness for a goal like `A: Foo<B>` where
@@ -33,7 +40,7 @@
    ; `((well-formed (type X)) (is-implemented (Foo (X))))`.
    (well-formed-where-clause-goal CrateDecls (Ty : TraitId (Parameter ...)))
    (&& ((well-formed (ParameterKind Parameter_value)) ...
-        (where-clause->goal WhereClause_substituted) ...)
+        (where-clause->goal CrateDecls WhereClause_substituted) ...)
        )
 
    ; Find the trait declaration

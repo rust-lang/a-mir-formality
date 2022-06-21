@@ -8,7 +8,7 @@
          "../hook.rkt"
          "../relate.rkt"
          "../scheme.rkt"
-         "../where-clauses.rkt"
+         "../where-clauses-from-env.rkt"
          )
 (provide env-with-clauses-invariants-and-generics
          EmptyEnv
@@ -26,7 +26,7 @@
   [(env-with-clauses-invariants-and-generics Clauses Invariants ((AdtId Generics) ...))
    (env-with-hook (Hook: ,(begin
                             (formality-ty-hook (lambda (predicate) (term Clauses))
-                                               (term Invariants)
+                                               (lambda () (term Invariants))
                                                (lambda (env predicate1 predicate2)
                                                  (term (ty:equate-predicates ,env ,predicate1 ,predicate2)))
                                                (lambda (env relation)
@@ -38,6 +38,8 @@
                                                  (term (ty:is-relation? ,goal)))
                                                (lambda (adt-id)
                                                  (term (find-adt-generics ,adt-id ((AdtId Generics) ...))))
+                                               (lambda (where-clause)
+                                                 (term (where-clause->goal∧clause-mock ,where-clause)))
                                                ))))
    ]
   )
@@ -84,13 +86,38 @@
 
   [(ty:prove-scheme Env () WhereClauses Goal)
    (extract-schemes Envs_out Goal)
-   (where/error Env_h (env-with-hypotheses Env (where-clauses->hypotheses WhereClauses)))
+   (where/error Env_h (env-with-hypotheses Env (where-clauses->hypotheses-from-env Env WhereClauses)))
    (where/error Envs_out ,(judgment-holds (ty:prove-top-level-goal/cosld Env_h Goal Env_out) Env_out))
    ]
 
   [(ty:prove-scheme Env ((Quantifier_0 KindedVarIds_0) (Quantifier KindedVarIds) ...) WhereClauses Goal)
    (ty:prove-scheme Env_out ((Quantifier KindedVarIds) ...) WhereClauses_out Goal_out)
    (where/error (Env_out (WhereClauses_out Goal_out) _) (instantiate-quantified Env (Quantifier_0 KindedVarIds_0 (WhereClauses Goal))))
+   ]
+
+  )
+
+(define-metafunction formality-ty
+  ;; Converts a where-clause into a `Goal∧Clause`.
+  ;;
+  ;; The REAL version of this is in formality-decl; this is a "mock" version for
+  ;; testing the typing code in isolation.
+  where-clause->goal∧clause-mock : WhereClause -> Goal∧Clause
+
+  [(where-clause->goal∧clause-mock (∀ KindedVarIds WhereClause))
+   (∀ KindedVarIds (where-clause->goal∧clause WhereClause))
+   ]
+
+  [(where-clause->goal∧clause-mock (Ty_self : TraitId (Parameter ...)))
+   (is-implemented (TraitId (Ty_self Parameter ...)))
+   ]
+
+  [(where-clause->goal∧clause-mock (AliasTy == Ty))
+   (normalizes-to AliasTy Ty)
+   ]
+
+  [(where-clause->goal∧clause-mock (Parameter_a : Parameter_b))
+   (Parameter_a -outlives- Parameter_b)
    ]
 
   )

@@ -62,13 +62,11 @@
   ;; WhereClause -- Rust where clauses. These are a subset of
   ;; the logical Goals, Clauses, and Predicates. They
   ;; can be translated into predicates.
+  ;;
+  ;; WhereClauseAtom represent "first-order" where clauses, without any
+  ;; quantification.
   (WhereClauses ::= (WhereClause ...))
-  (WhereClause ::=
-               (∀ KindedVarIds WhereClause)
-               (Ty : TraitId Parameters) ; T: Debug
-               (Parameter : Lt) ; T: 'a
-               (AliasTy == Ty) ; <T as Iterator>::Item == u32
-               )
+  (WhereClause ::= Term)
 
   ;; UserTy -- rust user-facing types
   ;;
@@ -85,9 +83,10 @@
           ScalarId
           (AdtId UserParameter ...)
           (fn UserTys -> UserTy)
-          (@ AliasName UserParameter ...)
+          (< UserTy as TraitId UserParameters > :: AssociatedTyId UserParameters)
           VarId
           )
+  (UserParameters ::= (UserParameter ...))
   (UserParameter ::= UserTy Lt)
 
   ;; Ty -- Rust types

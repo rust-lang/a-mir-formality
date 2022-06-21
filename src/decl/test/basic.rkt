@@ -17,12 +17,11 @@
    ((TraitDecl (term (trait Debug ((type Self)) where () {})))
     (TraitImplDecl (term (impl () (Debug ((user-ty i32))) where () {})))
     (CrateDecl (term (TheCrate (crate (TraitDecl TraitImplDecl)))))
-    (Env (term (env-for-crate-decl CrateDecl)))
     )
 
    (traced '()
-           (decl:test-can-prove
-            Env
-            (is-implemented (Debug ((user-ty i32))))))
+           (test-equal
+            (term (decl:can-prove-goal [CrateDecl] TheCrate (is-implemented (Debug[(user-ty i32)]))))
+            #t))
    )
   )

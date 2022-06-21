@@ -19,7 +19,9 @@
   #:contract (prove-crate-item-ok DeclProgram CrateItemDecl)
 
   [(where/error Goal_ok (crate-item-ok-goal (crate-decls DeclProgram) CrateItemDecl))
+   (where/error (Goal_lang-ok ...) (lang-item-ok-goals (crate-decls DeclProgram) CrateItemDecl))
    (prove-goal DeclProgram Goal_ok)
+   (prove-goal DeclProgram Goal_lang-ok) ...
    ----------------------------------------
    (prove-crate-item-ok DeclProgram CrateItemDecl)
    ]

@@ -5,6 +5,7 @@
          "rigid.rkt"
          "../grammar.rkt"
          "../inequalities.rkt"
+         "../../logic/grammar.rkt"
          "../../logic/substitution.rkt"
          "../../logic/env.rkt"
          )
@@ -66,6 +67,14 @@
   [; Equating two rigid types with the same name: equate their parameters
    (equate/one/substituted Env ((rigid-ty RigidName (Parameter_1 ..._1)) == (rigid-ty RigidName (Parameter_2 ..._1))))
    (Env ((Parameter_1 == Parameter_2) ...))
+   ]
+
+  [; Equating two rigid types with different names: error!
+   ;
+   ; This is an optimization to reduce us going down less fruitful
+   ; paths (makes the debug output awfully hard to read.)
+   (equate/one/substituted Env ((rigid-ty RigidName_!_0 _) == (rigid-ty RigidName_!_0 _)))
+   (Env (false-goal))
    ]
 
   [; Equating two alias types with same name
