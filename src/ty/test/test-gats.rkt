@@ -19,8 +19,8 @@
                  (; Define a trait `Iterable` that is implemented for Vec<T>
                   ∀ ((type T)) (is-implemented (Iterable ((user-ty (Vec T))))))
                  (; normalizes-to `Item<Vec<T>, A>` to `(rigid-ty (ref ()) (A T))`
-                  ∀ ((type T) (lifetime A)) (normalizes-to (user-ty (@ Item (Vec T) A))
-                                                           (user-ty (& A T))))
+                  ∀ ((type T) (lifetime a)) (normalizes-to (user-ty (< (Vec T) as Iterator[] > :: Item[a]))
+                                                           (user-ty (& a T))))
                  )
                 ()
                 ()
@@ -33,9 +33,10 @@
             ((∃ () (implies () _))) ; provable!
             (term (ty:prove-scheme
                    Env
-                   ((∀ ((type T) (lifetime A))) (∃ ((type U))))
+                   ((∀ ((type E) (lifetime l))) (∃ ((type U))))
                    ()
-                   (normalizes-to (user-ty (@ Item (Vec T) A)) (user-ty (& A T)))
+                   (normalizes-to (user-ty (< (Vec E) as Iterator[] > :: Item[l]))
+                                  (user-ty (& l E)))
                    )
                   )
             ))

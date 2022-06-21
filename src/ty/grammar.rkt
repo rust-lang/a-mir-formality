@@ -83,9 +83,10 @@
           ScalarId
           (AdtId UserParameter ...)
           (fn UserTys -> UserTy)
-          (@ AliasName UserParameter ...)
+          (< UserTy as TraitId UserParameters > :: AssociatedTyId UserParameters)
           VarId
           )
+  (UserParameters ::= (UserParameter ...))
   (UserParameter ::= UserTy Lt)
 
   ;; Ty -- Rust types

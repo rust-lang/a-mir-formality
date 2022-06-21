@@ -58,7 +58,7 @@
    (; Cannot normalize `(T,)` to `T`
     traced '()
            (test-equal
-            (term (decl:can-prove-goal CrateDecls C ((user-ty (@ (Iterator Item) (tuple u32)))
+            (term (decl:can-prove-goal CrateDecls C ((user-ty (< (tuple u32) as Iterator[] > :: Item[]))
                                                      ==
                                                      (user-ty u32))))
             #f))
@@ -66,7 +66,7 @@
    (; Can normalize `(T,)` to `Once<T>`
     traced '()
            (test-equal
-            (term (decl:can-prove-goal CrateDecls C ((user-ty (@ (Iterator Item) (tuple u32)))
+            (term (decl:can-prove-goal CrateDecls C ((user-ty (< (tuple u32) as Iterator[] > :: Item[]))
                                                      ==
                                                      (user-ty (Once u32)))))
             #t))
@@ -76,7 +76,7 @@
            (test-equal
             (term (decl:can-prove-goal
                    CrateDecls C
-                   (is-implemented (rust:Copy[(user-ty (@ (Iterator Item) (tuple u32)))]))))
+                   (is-implemented (rust:Copy[(user-ty (< (tuple u32) as Iterator[] > :: Item[]))]))))
             #t))
    )
   )
