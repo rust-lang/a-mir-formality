@@ -3,9 +3,8 @@
 (provide formality-logic-hook
          env-clauses-for-predicate
          env-invariants
-         equate-predicates
          relate-parameters
-         predicates-could-match
+         debone-predicate
          is-predicate?
          is-relation?
          is-atomic-goal?
@@ -16,17 +15,15 @@
 ;; * `clauses`: a `Predicate -> Clauses` lambda that returns all clauses that could possibly
 ;;   prove `Predicate`.
 ;; * `invariants`: a `-> Invariants` lambda that returns all the invariants in the program
-;; * `equate-predicates/vars`: a `Env VarIds Predicate Predicate -> Env or Error` lambda that unifies two predicates
 ;; * `relate-parameters`: a `Env Relation -> Env or Error` lambda that relates two parameters
-;; * `predicate-could-match`: a `Predicate Predicate -> bool` that filters down predicates
 ;; * `is-predicate`: true if a term matches `Predicate`, needed because logic/grammar has `Predicate ::= Term`
+;; * `debone-predicate`: a `Predicate -> Predicate/Deboned` function that separates into skeleton, parameters
 ;; * `is-relation`: true if a term matches `Relation`, needed because logic/grammar has `Relation ::= Term`
 (struct formality-logic-hook (clauses
                               invariants
-                              equate-predicates
                               relate-parameters
-                              predicates-could-match
                               is-predicate
+                              debone-predicate
                               is-relation
                               ))
 
@@ -54,18 +51,6 @@
   )
 
 (define-metafunction formality-logic
-  ;; Equate `Predicate_1` and `Predicate_2` by binding existential variables in `Env`
-  equate-predicates : Env Predicate Predicate -> (Env Goals) or Error
-
-  [(equate-predicates Env Predicate_1 Predicate_2)
-   ,(let ((equate-fn (formality-logic-hook-equate-predicates (term any))))
-      (equate-fn (term Env) (term Predicate_1) (term Predicate_2)))
-   (where/error (Hook: any) (env-hook Env))
-   ]
-
-  )
-
-(define-metafunction formality-logic
   ;; Apply the relation `Relation`, potentially binding existential variables in `Env`
   relate-parameters : Env Relation -> (Env Goals) or Error
 
@@ -77,11 +62,12 @@
   )
 
 (define-metafunction formality-logic
-  predicates-could-match : Env Predicate_1 Predicate_2 -> boolean
+  ;; Separate a predicate into its skeleton and a list of parameters.
+  debone-predicate : Env Predicate -> Predicate/Deboned
 
-  [(predicates-could-match Env Predicate_1 Predicate_2)
-   ,(let ((predicates-could-match-fn (formality-logic-hook-predicates-could-match (term any))))
-      (predicates-could-match-fn (term Predicate_1) (term Predicate_2)))
+  [(debone-predicate Env Predicate)
+   ,(let ((debone-predicate-fn (formality-logic-hook-debone-predicate (term any))))
+      (debone-predicate-fn (term Predicate)))
    (where/error (Hook: any) (env-hook Env))
    ]
   )

@@ -15,12 +15,12 @@
   (Hook ::= (Hook: any))
 
   ;; Parameters to the logic:
-  (Parameter ::= Term)     ; Value of a variable
-  (ParameterKind ::= Term) ; Kinds for variables (e.g., type/lifetimes)
-  (Predicate ::= Term)     ; Kinds of predicates we can prove
-  (VarInequality ::= Term) ; Variable relationships inferred and stored in the environment
-  (InequalityOp ::= Term)  ; Relations between terms beyond `==`
-
+  (Parameter ::= Term)          ; Value of a variable
+  (ParameterKind ::= Term)      ; Kinds for variables (e.g., type/lifetimes)
+  (Predicate ::= Term)          ; Kinds of predicates we can prove
+  (Predicate/Skeleton ::= Term) ; Variant of predicates that has no parameters (see Predicate/Deboned)
+  (VarInequality ::= Term)      ; Variable relationships inferred and stored in the environment
+  (InequalityOp ::= Term)       ; Relations between terms beyond `==`
   ;; Env: Typing environment
   ;;
   ;; * Hook -- the "hook" that lets us get program information
@@ -62,6 +62,12 @@
 
   ;; `Predicate` -- the atomic items that we can prove
   (Predicates ::= (Predicate ...))
+
+  ;; `Predicate/Deboned` -- A *deboned* predicate separates out the "rigid part"
+  ;; (the skeleton) from the parameters. To determine whether two
+  ;; predicates ate equal, the skeletons can just be compared for
+  ;; equality, but the parameters have to be equated as types.
+  (Predicate/Deboned ::= (Predicate/Skeleton Parameters))
 
   ;; ANCHOR:GoalsAndHypotheses
   ;; `Goal` -- things we can prove. These consists of predicates

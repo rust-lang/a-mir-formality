@@ -4,7 +4,7 @@
          "where-clauses.rkt"
          "../logic/env.rkt"
          "../ty/relate.rkt"
-         "../ty/could-match.rkt"
+         "../ty/predicate.rkt"
          "../ty/hook.rkt"
          "decl-to-clause/crate-decl.rkt"
          "decl-to-clause/default-rules.rkt")
@@ -56,14 +56,12 @@
               (term (decl-clauses-for-predicate DeclProgram ,predicate)))
             (lambda ()
               (term (decl-invariants DeclProgram)))
-            (lambda (env predicate1 predicate2)
-              (term (ty:equate-predicates ,env ,predicate1 ,predicate2)))
             (lambda (env relation)
               (term (ty:relate-parameters ,env ,relation)))
-            (lambda (predicate1 predicate2)
-              (term (ty:predicates-could-match ,predicate1 ,predicate2)))
             (lambda (goal)
               (term (ty:is-predicate? ,goal)))
+            (lambda (predicate1)
+              (term (ty:debone-predicate ,predicate1)))
             (lambda (goal)
               (term (ty:is-relation? ,goal)))
             (lambda (adt-id)

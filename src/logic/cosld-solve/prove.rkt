@@ -164,6 +164,37 @@
   )
 
 (define-metafunction formality-logic
+  equate-predicates : Env Predicate_1 Predicate_2 -> (Env Goals) or Error
+
+  [(equate-predicates Env Predicate_1 Predicate_2)
+   (equate-parameters/all Env () ((Parameter_1 Parameter_2) ...))
+
+   (where/error (Predicate/Skeleton Parameters_1) (debone-predicate Env Predicate_1))
+   (where (Predicate/Skeleton Parameters_2) (debone-predicate Env Predicate_2))
+   (where ((Parameter_1 ..._s) (Parameter_2 ..._s)) (Parameters_1 Parameters_2)) ; check same length
+   ]
+
+  [(equate-predicates _ _ _) Error]
+
+  )
+
+(define-metafunction formality-logic
+  equate-parameters/all : Env Goals_accum ((Parameter_1 Parameter_2) ...) -> (Env Goals) or Error
+
+  [(equate-parameters/all Env Goals_accum ())
+   (Env Goals_accum)
+   ]
+
+  [(equate-parameters/all Env_0 (Goal_0 ...) ((Parameter_1 Parameter_2) Parameters_rest ...))
+   (equate-parameters/all Env_1 (Goal_0 ... Goal_1 ...) (Parameters_rest ...))
+   (where (Env_1 (Goal_1 ...)) (relate-parameters Env_0 (Parameter_1 == Parameter_2)))
+   ]
+
+  [(equate-parameters/all _ _ _) Error]
+
+  )
+
+(define-metafunction formality-logic
   push-on-stack : Prove/Stacks Prove/Coinductive Predicate  -> Prove/Stacks
 
   [(push-on-stack (Predicates_i (Predicate_c ...)) + Predicate)

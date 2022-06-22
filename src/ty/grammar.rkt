@@ -47,11 +47,7 @@
              )
   ;; ANCHOR_END:Predicates
 
-  ;; A *deboned* predicate separates out the "rigid part"
-  ;; (the skeleton) from the parameters. To determine whether two
-  ;; predicates ate equal, the skeletons can just be compared for
-  ;; equality, but the parameters have to be equated as types.
-  (Predicate/Deboned ::= (Predicate/Skeleton Parameters))
+  ;; The "skeleton" of a predicate is stuff that cannot contain inference variables.
   (Predicate/Skeleton ::=
                       (is-implemented TraitId)
                       (has-impl TraitId)
