@@ -19,7 +19,7 @@
   #:contract (prove-crate-item-ok DeclProgram CrateItemDecl)
 
   [(where/error Goal_ok (crate-item-ok-goal (crate-decls DeclProgram) CrateItemDecl))
-   (where/error (Goal_lang-ok ...) (lang-item-ok-goals (crate-decls DeclProgram) CrateItemDecl))
+   (where/error [Goal_lang-ok ...] (lang-item-ok-goals (crate-decls DeclProgram) CrateItemDecl))
    (prove-goal DeclProgram Goal_ok)
    (prove-goal DeclProgram Goal_lang-ok) ...
    ----------------------------------------
@@ -34,7 +34,7 @@
   #:contract (prove-goal DeclProgram Goal)
 
   [(where/error Env (env-for-decl-program DeclProgram))
-   (logic:prove-top-level-goal/cosld Env Goal Env)
+   (logic:prove-top-level-goal/cosld Env Goal Env_1)
    ----------------------------------------
    (prove-goal DeclProgram Goal)
    ]

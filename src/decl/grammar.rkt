@@ -10,6 +10,8 @@
          adt-with-id
          crate-decls
          instantiate-bounds-clause
+         crate-defining-trait-with-id
+         crate-defining-adt-with-id
          )
 
 (define-extended-language formality-decl formality-ty
@@ -195,6 +197,18 @@
   )
 
 (define-metafunction formality-decl
+  ;; Find the id of the crate that defines `AdtId`.
+  crate-defining-adt-with-id : CrateDecls AdtId -> CrateId
+
+  [(crate-defining-adt-with-id CrateDecls AdtId)
+   CrateId
+
+   (where (_ ... CrateDecl _ ...) CrateDecls)
+   (where (CrateId (crate (_ ... (AdtKind AdtId _ where _ _) _ ...))) CrateDecl)
+   ]
+  )
+
+(define-metafunction formality-decl
   ;; Find the given trait amongst all the declared crates.
   trait-with-id : CrateDecls TraitId -> TraitDecl
 
@@ -203,6 +217,18 @@
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
    (where (_ (crate (_ ... (trait TraitId KindedVarIds where WhereClauses TraitItems) _ ...))) CrateDecl)
+   ]
+  )
+
+(define-metafunction formality-decl
+  ;; Find the id of the crate that defines `TraitId`.
+  crate-defining-trait-with-id : CrateDecls TraitId -> CrateId
+
+  [(crate-defining-trait-with-id CrateDecls TraitId)
+   CrateId
+
+   (where (_ ... CrateDecl _ ...) CrateDecls)
+   (where (CrateId (crate (_ ... (trait TraitId _ where _ _) _ ...))) CrateDecl)
    ]
   )
 

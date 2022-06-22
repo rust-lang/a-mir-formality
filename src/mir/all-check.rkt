@@ -5,6 +5,7 @@
          "well-formed-mir.rkt"
          "unsafe-check.rkt"
          "borrow-check.rkt"
+         "coherence-orphan.rkt"
          "../decl/decl-ok.rkt"
          "../decl/decl-to-clause.rkt"
          "../decl/grammar.rkt"
@@ -62,6 +63,7 @@
 
   [; impl declarations
    (prove-crate-item-ok DeclProgram TraitImplDecl)
+   (✅-OrphanRules DeclProgram TraitImplDecl)
    ; FIXME -- need to check the impl items
    ----------------------------------------
    (✅-CrateItemDecl DeclProgram TraitImplDecl)
