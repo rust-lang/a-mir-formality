@@ -64,10 +64,10 @@
   (Predicates ::= (Predicate ...))
 
   ;; `Predicate/Deboned` -- A *deboned* predicate separates out the "rigid part"
-  ;; (the skeleton) from the parameters. To determine whether two
+  ;; (the skeleton) from input/output parameters. To determine whether two
   ;; predicates ate equal, the skeletons can just be compared for
   ;; equality, but the parameters have to be equated as types.
-  (Predicate/Deboned ::= (Predicate/Skeleton Parameters))
+  (Predicate/Deboned ::= (Predicate/Skeleton Parameters_input -> Parameters_output))
 
   ;; ANCHOR:GoalsAndHypotheses
   ;; `Goal` -- things we can prove. These consists of predicates

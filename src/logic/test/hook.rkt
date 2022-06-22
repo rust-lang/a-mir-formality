@@ -39,8 +39,10 @@
   [(logic:is-predicate? (Parameter_1 == Parameter_2)) #f]
 
   ;; For predicate tests, we expect predicates to either be some kind of
-  ;; fixed word (`p`) or else `(p Parameter ...)`.
+  ;; fixed word (`p`), a word with inputs `(p Parameter ...)`, or
+  ;; a word with inputs and outputs `(p Parameters -> Parameters)`.
   [(logic:is-predicate? VarId) #t]
+  [(logic:is-predicate? (VarId Parameters_in -> Parameters_out)) #t]
   [(logic:is-predicate? (VarId Parameter ...)) #t]
   )
 
@@ -49,8 +51,9 @@
   ;; fixed word (`p`) or else `(p Parameter ...)`.
   logic:test-debone-predicate : Predicate -> Predicate/Deboned
 
-  [(logic:test-debone-predicate VarId) (VarId ())]
-  [(logic:test-debone-predicate (VarId Parameter ...)) (VarId (Parameter ...))]
+  [(logic:test-debone-predicate VarId) (VarId () -> ())]
+  [(logic:test-debone-predicate (VarId Parameters_in -> Parameters_out)) (VarId Parameters_in -> Parameters_out)]
+  [(logic:test-debone-predicate (VarId Parameter ...)) (VarId (Parameter ...) -> ())]
   )
 
 (define-metafunction formality-logic

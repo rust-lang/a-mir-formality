@@ -62,8 +62,8 @@
    #t
    (where #t (is-predicate? Env Predicate_1))
    (where #t (is-predicate? Env Predicate_2))
-   (where/error (Predicate/Skeleton _) (debone-predicate Env Predicate_1))
-   (where/error (Predicate/Skeleton _) (debone-predicate Env Predicate_1))
+   (where/error (Predicate/Skeleton _ -> _) (debone-predicate Env Predicate_1))
+   (where/error (Predicate/Skeleton _ -> _) (debone-predicate Env Predicate_1))
    ]
 
   [(clause-could-match-predicate Env Relation_1 Relation_2)
