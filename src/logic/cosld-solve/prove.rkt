@@ -21,44 +21,36 @@
   ;; [SLD]: https://en.wikipedia.org/wiki/SLD_resolution
   ;; [FOHH]: https://en.wikipedia.org/wiki/Harrop_formula
   #:mode (prove-top-level-goal/cosld I I O)
-  #:contract (prove-top-level-goal/cosld Env Goal Env)
+  #:contract (prove-top-level-goal/cosld Env Goal EnvOutput)
 
-  [(prove Env (() ()) Goal Env_out)
+  [(prove Env (() ()) Goal EnvOutput)
    ---------------
-   (prove-top-level-goal/cosld Env Goal Env_out)
-   ]
-  )
-
-(define-judgment-form formality-logic
-  ;; Convenience judgment that extracts the Substitution from the Env for testing.
-  #:mode (prove-top-level-goal-substitution I I O)
-  #:contract (prove-top-level-goal-substitution Env Goal Substitution)
-
-  [(prove Env (() ()) Goal Env_out)
-   (where/error Substitution (env-substitution Env_out))
-   ---------------
-   (prove-top-level-goal-substitution Env Goal Substitution)
+   (prove-top-level-goal/cosld Env Goal EnvOutput)
    ]
   )
 
 (define-judgment-form formality-logic
   #:mode (prove I I I O)
-  #:contract (prove Env Prove/Stacks Goal Env_out)
+  #:contract (prove Env Prove/Stacks Goal EnvOutput)
+
+  [--------------- "prove-ambiguous"
+   (prove Env Prove/Stacks ambiguous ambiguous)
+   ]
 
   [(where #t (is-predicate? Env Predicate))
    (not-in-stacks Env Predicate Prove/Stacks)
    (where (_ ... Clause _ ... ) (filter-clauses Env (env-clauses-for-predicate Env Predicate) Predicate))
-   (clause-proves Env Prove/Stacks + Clause Predicate Env_out)
+   (clause-proves Env Prove/Stacks + Clause Predicate EnvOutput)
    --------------- "prove-clause"
-   (prove Env Prove/Stacks Predicate Env_out)
+   (prove Env Prove/Stacks Predicate EnvOutput)
    ]
 
   [(where #t (is-predicate? Env Predicate))
    (not-in-stacks Env Predicate Prove/Stacks)
    (where (_ ... Hypothesis _ ... ) (filter-clauses Env (env-hypotheses (elaborate-hypotheses Env)) Predicate))
-   (clause-proves Env Prove/Stacks - Hypothesis Predicate Env_out)
+   (clause-proves Env Prove/Stacks - Hypothesis Predicate EnvOutput)
    --------------- "prove-hypotheses-imply"
-   (prove Env Prove/Stacks Predicate Env_out)
+   (prove Env Prove/Stacks Predicate EnvOutput)
    ]
 
   [(where #t (is-predicate? Env Predicate))
@@ -70,37 +62,37 @@
 
   [(where #t (is-relation? Env Relation))
    (where (Env_eq Goals_eq) (relate-parameters Env Relation))
-   (prove-all Env_eq Prove/Stacks Goals_eq Env_out)
+   (prove-all Env_eq Prove/Stacks Goals_eq EnvOutput)
    --------------- "prove-relate"
-   (prove Env Prove/Stacks Relation Env_out)
+   (prove Env Prove/Stacks Relation EnvOutput)
    ]
 
-  [(prove-all Env Prove/Stacks Goals Env_out)
+  [(prove-all Env Prove/Stacks Goals EnvOutput)
    --------------- "prove-all"
-   (prove Env Prove/Stacks (&& Goals) Env_out)
+   (prove Env Prove/Stacks (&& Goals) EnvOutput)
    ]
 
-  [(prove Env Prove/Stacks Goal_1 Env_out)
+  [(prove Env Prove/Stacks Goal_1 EnvOutput)
    --------------- "prove-any"
-   (prove Env Prove/Stacks (|| (Goal_0 ... Goal_1 Goal_2 ...)) Env_out)
+   (prove Env Prove/Stacks (|| (Goal_0 ... Goal_1 Goal_2 ...)) EnvOutput)
    ]
 
   [(where Env_1 (env-with-hypotheses Env Hypotheses))
-   (prove Env_1 Prove/Stacks Goal Env_out)
+   (prove Env_1 Prove/Stacks Goal EnvOutput)
    --------------- "prove-implies"
-   (prove Env Prove/Stacks (implies Hypotheses Goal) (reset Env () Env_out))
+   (prove Env Prove/Stacks (implies Hypotheses Goal) (reset Env () EnvOutput))
    ]
 
   [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (∀ KindedVarIds Goal)))
-   (prove Env_1 Prove/Stacks Goal_1 Env_out)
+   (prove Env_1 Prove/Stacks Goal_1 EnvOutput)
    --------------- "prove-forall"
-   (prove Env Prove/Stacks (∀ KindedVarIds Goal) (reset Env VarIds_new Env_out))
+   (prove Env Prove/Stacks (∀ KindedVarIds Goal) (reset Env VarIds_new EnvOutput))
    ]
 
   [(where/error (Env_1 Goal_1 VarIds_new) (instantiate-quantified Env (∃ KindedVarIds Goal)))
-   (prove Env_1 Prove/Stacks Goal_1 Env_out)
+   (prove Env_1 Prove/Stacks Goal_1 EnvOutput)
    --------------- "prove-exists"
-   (prove Env Prove/Stacks (∃ KindedVarIds Goal) (reset Env VarIds_new Env_out))
+   (prove Env Prove/Stacks (∃ KindedVarIds Goal) (reset Env VarIds_new EnvOutput))
    ]
 
   )
@@ -118,47 +110,103 @@
 
 (define-judgment-form formality-logic
   #:mode (prove-all I I I O)
-  #:contract (prove-all Env Prove/Stacks Goals Env_out)
+  #:contract (prove-all Env Prove/Stacks Goals EnvOutput)
 
-  [----------------
-   (prove-all Env Prove/Stacks () Env)]
+  [(prove-all-inner Env Prove/Stacks Goals no-progress [] EnvOutput)
+   --------------------------------------------------------
+   (prove-all Env Prove/Stacks Goals EnvOutput)]
+  )
 
-  [(prove Env Prove/Stacks Goal_0 Env_1)
-   (where/error (Goals_subst Predicates_subst) (apply-substitution-from-env Env_1 ((Goal_1 ...) Prove/Stacks)))
-   (prove-all Env_1 Predicates_subst Goals_subst Env_out)
-   ----------------
-   (prove-all Env Prove/Stacks (Goal_0 Goal_1 ...) Env_out)]
+(define-judgment-form formality-logic
+  ;; Helper judgment: maintains a list of deferred goals and a marker that
+  ;; indicates if we made progress. When a goal yields ambiguous, it is pushed
+  ;; as "deferred". Once we've processed all goals, we circle back to the deferred goals
+  ;; (but only if at least *one* goal made progress, otherwise we'll just defer again).
+  #:mode (prove-all-inner I I I I I O)
+  #:contract (prove-all-inner Env Prove/Stacks Goals Prove/Progress Goals_deferred EnvOutput)
+
+  [; Prove next goal (if we can)
+   (where/error Goal_0s (apply-substitution-from-env Env Goal_0))
+   (where/error Prove/Stacks_s (apply-substitution-from-env Env Prove/Stacks))
+   (prove Env Prove/Stacks_s Goal_0s EnvOutput_0)
+   (where/error (Env_1 Prove/Progress_1 Goals_defer1) (prove-all-next-state Env Goal_0 EnvOutput_0 Prove/Progress_0 Goals_defer0))
+   (prove-all-inner Env_1 Prove/Stacks [Goal_1 ...] Prove/Progress_1 Goals_defer1 EnvOutput)
+   --------------------------------------------------------
+   (prove-all-inner Env Prove/Stacks [Goal_0 Goal_1 ...] Prove/Progress_0 Goals_defer0 EnvOutput)]
+
+  [; If we have proven everything and have nothing deferred: done
+   --------------------------------------
+   (prove-all-inner Env Prove/Stacks [] Prove/Progress [] Env)]
+
+  [; Once we've solved everything, if we made some progress, go back to the deferred goals.
+   (prove-all-inner Env Prove/Stacks [Goal_defer0 Goal_defer1 ...] no-progress [] EnvOutput)
+   -----------------------------------------------
+   (prove-all-inner Env Prove/Stacks [] made-progress [Goal_defer0 Goal_defer1 ...] EnvOutput)]
+
+  [; If we have proven everything but have deferred goals, and we didn't make any
+   ; progress when proving things, we are stuck.
+   -----------------------------------------------
+   (prove-all-inner Env Prove/Stacks [] no-progress [Goal_defer0 Goal_defer1 ...] ambiguous)]
+
+  )
+
+(define-metafunction formality-logic
+  ;; Given:
+  ;; * the initial env `Env`
+  ;; * the goal `Goal_0` that we tried to prove
+  ;; * the output `EnvOutput` from that attempt (either a new environment or `ambiguous`)
+  ;; * the previous "progress state"
+  ;; * the previous list of deferred goals
+  ;;
+  ;; Returns:
+  ;; * new progress state for proving remaining goals
+  ;; * new list of deferred goals (which may now include `Goal_0`)
+  ;;
+  ;; Note: this metafunction exists in part as an optimization. Adding more clauses
+  ;; to prove-all-inner can be dramatically slower, so this allows us to consolidate
+  ;; what would (imo) be more naturally written as two clauses into one.
+  prove-all-next-state : Env Goal_0 EnvOutput Prove/Progress Goals_defer -> (Env Prove/Progress Goals)
+
+  [; if we successfully proved `Goal_0`, we don't need to defer it, and we made progress
+   (prove-all-next-state _ _ Env _ Goals_defer)
+   (Env made-progress Goals_defer)
+   ]
+
+  [; otherwise, we DO need to defer `Goal_0`, and we did not make any more progress than before
+   (prove-all-next-state Env Goal_0 ambiguous Prove/Progress (Goal_defer ...))
+   (Env Prove/Progress (Goal_defer ... Goal_0))
+   ]
 
   )
 
 (define-judgment-form formality-logic
   #:mode (clause-proves I I I I I O)
-  #:contract (clause-proves Env Prove/Stacks Prove/Coinductive Clause Predicate Env_out)
+  #:contract (clause-proves Env Prove/Stacks Prove/Coinductive Clause Predicate EnvOutput)
 
   ; FIXME: Do we want to push this predicate on the stack while we try to
   ; prove the `Goals_eq`? Does it ever even matter, given the sorts of predicates we generate?
   [(where #t (is-predicate? Env Predicate_1))
    (where (Env_eq Goals_eq) (equate-predicates Env Predicate_1 Predicate_2))
    (where/error Prove/Stacks_eq (apply-substitution-from-env Env_eq Prove/Stacks))
-   (prove-all Env_eq Prove/Stacks_eq Goals_eq Env_out)
+   (prove-all Env_eq Prove/Stacks_eq Goals_eq EnvOutput)
    --------------- "clause-fact"
-   (clause-proves Env Prove/Stacks Prove/Coinductive Predicate_1 Predicate_2 Env_out)
+   (clause-proves Env Prove/Stacks Prove/Coinductive Predicate_1 Predicate_2 EnvOutput)
    ]
 
   ; FIXME: We are inconsistent with the previous rule about whether to push `Predicate` on the
   ; stack while proving the goals that result from equating it. Seems bad.
-  [(where (Env_eq (Goal_eq ...)) (equate-predicates Env Predicate_1 Predicate_2))
+  [(where (Env_eq [Goal_eq ...]) (equate-predicates Env Predicate_1 Predicate_2))
    (where/error Prove/Stacks_pushed (push-on-stack Prove/Stacks Prove/Coinductive Predicate_2))
-   (where/error ((Goal_subst ...) Prove/Stacks_subst) (apply-substitution-from-env Env_eq (Goals Prove/Stacks_pushed)))
-   (prove-all Env_eq Prove/Stacks_subst (Goal_eq ... Goal_subst ...) Env_out)
+   (where/error ([Goal_subst ...] Prove/Stacks_subst) (apply-substitution-from-env Env_eq (Goals Prove/Stacks_pushed)))
+   (prove-all Env_eq Prove/Stacks_subst [Goal_eq ... Goal_subst ...] EnvOutput)
    --------------- "clause-backchain"
-   (clause-proves Env Prove/Stacks Prove/Coinductive (implies Goals Predicate_1) Predicate_2 Env_out)
+   (clause-proves Env Prove/Stacks Prove/Coinductive (implies Goals Predicate_1) Predicate_2 EnvOutput)
    ]
 
   [(where/error (Env_i Clause_i VarIds_i) (instantiate-quantified Env (∃ KindedVarIds Clause)))
-   (clause-proves Env_i Prove/Stacks Prove/Coinductive Clause_i Predicate Env_out)
+   (clause-proves Env_i Prove/Stacks Prove/Coinductive Clause_i Predicate EnvOutput)
    --------------- "clause-forall"
-   (clause-proves Env Prove/Stacks Prove/Coinductive (∀ KindedVarIds Clause) Predicate (reset Env VarIds_i Env_out))
+   (clause-proves Env Prove/Stacks Prove/Coinductive (∀ KindedVarIds Clause) Predicate (reset Env VarIds_i EnvOutput))
    ]
 
   )
@@ -215,7 +263,7 @@
   ;; `Env_old`.
   ;;
   ;; Note that the result may still contain variables declared in the old universes.
-  reset : Env_old VarIds_new Env_new -> Env
+  reset : Env_old VarIds_new EnvOutput -> EnvOutput
 
   [(reset
     (Hook Universe_old _ _ _ Hypotheses_old) ; Env_old
@@ -223,6 +271,10 @@
     (Hook _ VarBinders_new Substitution_new VarInequalities_new _) ; Env_new
     )
    (Hook Universe_old VarBinders_new Substitution_new VarInequalities_new Hypotheses_old)
+   ]
+
+  [(reset Env_old VarIds_new ambiguous)
+   ambiguous
    ]
   )
 
@@ -239,6 +291,19 @@
     (test-equal
      (judgment-holds (prove-top-level-goal/cosld env goal _))
      #f)
+    )
+
+  (define-judgment-form formality-logic
+    ;; Convenience judgment that extracts the Substitution from the Env for testing.
+    #:mode (prove-top-level-goal-substitution I I O)
+    #:contract (prove-top-level-goal-substitution Env Goal Substitution)
+
+    [(prove Env (() ()) Goal EnvOutput)
+     (where Env_out EnvOutput)
+     (where/error Substitution_out (env-substitution Env_out))
+     ---------------
+     (prove-top-level-goal-substitution Env Goal Substitution_out)
+     ]
     )
 
   (redex-let*

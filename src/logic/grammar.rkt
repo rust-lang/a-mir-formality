@@ -35,6 +35,17 @@
   (Envs ::= (Env ...))
   (Env ::= (Hook Universe VarBinders Substitution VarInequalities Hypotheses))
 
+  ;; EnvOutput: When trying to find answers to a goal, we sometimes
+  ;; get an `ambiguous` result. `ambiguous` means that the result could not be
+  ;; definitively determined as true or false. It occurs in a variety of cases, e.g.
+  ;;
+  ;; * there wasn't enough type information known to resolve the goal;
+  ;; * overflow (in some checkers, anyway).
+  (EnvOutput ::=
+             Env
+             ambiguous
+             )
+
   ;; Maps variables to their values; those values are not core to the
   ;; logic, though.
   (Substitution ::= ((VarId Parameter) ...))
@@ -96,6 +107,7 @@
               Predicate
               Relation)
   (BuiltinGoal ::=
+               ambiguous
                (&& Goals)
                (|| Goals)
                (implies Hypotheses Goal)
@@ -176,6 +188,7 @@
   ; Internal data structure used during cosld proving
   (Prove/Stacks ::= (Predicates Predicates))
   (Prove/Coinductive ::= + -)
+  (Prove/Progress ::= no-progress made-progress)
 
   (CanonicalTerm ::= (canonicalized VarBinders Term))
   (CanonicalGoal ::= (canonicalized VarBinders (implies Hypotheses Goal)))
