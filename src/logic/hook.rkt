@@ -12,7 +12,7 @@
 
 ;; Creates a "hook" value:
 ;;
-;; * `clauses`: a `Predicate -> Clauses` lambda that returns all clauses that could possibly
+;; * `clauses`: a `Env Predicate -> Clauses` lambda that returns all clauses that could possibly
 ;;   prove `Predicate`.
 ;; * `invariants`: a `-> Invariants` lambda that returns all the invariants in the program
 ;; * `relate-parameters`: a `Env Relation -> Env or Error` lambda that relates two parameters
@@ -34,7 +34,7 @@
 
   [(env-clauses-for-predicate Env Predicate)
    ,(let ((clauses-fn (formality-logic-hook-clauses (term any))))
-      (clauses-fn (term Predicate)))
+      (clauses-fn (term Env) (term Predicate)))
    (where/error (Hook: any) (env-hook Env))
    ]
   )

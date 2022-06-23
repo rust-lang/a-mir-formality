@@ -13,9 +13,9 @@
   ;;
   ;; Create the clauses for solving a given predicate
   ;; (right now the predicate is not used).
-  decl-clauses-for-predicate : DeclProgram Predicate -> Clauses
+  decl-clauses-for-predicate : Env DeclProgram Predicate -> Clauses
 
-  [(decl-clauses-for-predicate DeclProgram Predicate)
+  [(decl-clauses-for-predicate Env DeclProgram Predicate)
    Clauses
    (where/error (Clauses _) (program-rules DeclProgram))]
   )

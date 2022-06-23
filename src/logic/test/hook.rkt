@@ -12,7 +12,7 @@
   [(env-with-clauses-and-invariants Clauses Invariants)
    (env-with-hook (Hook: ,(begin
                             (formality-logic-hook
-                             (lambda (predicate) (term Clauses))
+                             (lambda (env predicate) (term Clauses))
                              (lambda () (term Invariants))
                              (lambda (env relation) (term (test-relate-parameters ,env ,relation)))
                              (lambda (goal) (term (logic:is-predicate? ,goal)))

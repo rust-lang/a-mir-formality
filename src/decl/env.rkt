@@ -52,8 +52,8 @@
 
   [(formality-decl-hook DeclProgram)
    (Hook: ,(formality-ty-hook
-            (lambda (predicate)
-              (term (decl-clauses-for-predicate DeclProgram ,predicate)))
+            (lambda (env predicate)
+              (term (decl-clauses-for-predicate ,env DeclProgram ,predicate)))
             (lambda ()
               (term (decl-invariants DeclProgram)))
             (lambda (env relation)
