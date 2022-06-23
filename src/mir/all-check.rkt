@@ -6,7 +6,7 @@
          "unsafe-check.rkt"
          "borrow-check.rkt"
          "../decl/decl-ok.rkt"
-         "../decl/decl-to-clause.rkt"
+         "../decl/env.rkt"
          "../decl/grammar.rkt"
          "../logic/instantiate.rkt"
          "prove-goal.rkt"

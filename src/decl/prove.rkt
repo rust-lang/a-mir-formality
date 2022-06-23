@@ -3,7 +3,7 @@
          "../logic/cosld-solve.rkt"
          "../ty/scheme.rkt"
          "decl-ok.rkt"
-         "decl-to-clause.rkt"
+         "env.rkt"
          "where-clauses.rkt"
          "grammar.rkt"
          )

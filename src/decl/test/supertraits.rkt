@@ -1,6 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
-         "../decl-to-clause.rkt"
+         "../env.rkt"
          "../grammar.rkt"
          "../prove.rkt"
          "../../ty/grammar.rkt"
