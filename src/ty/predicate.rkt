@@ -22,6 +22,14 @@
    ((well-formed ParameterKind) (Parameter) -> ())
    ]
 
+   [(ty:debone-predicate (well-formed-adt (rigid-ty AdtId Parameters)))
+   ((well-formed-adt AdtId) Parameters -> ())
+   ]
+
+   [(ty:debone-predicate (well-formed-alias (alias-ty AliasName Parameters)))
+   ((well-formed-alias AliasName) Parameters -> ())
+   ]
+
   [(ty:debone-predicate (normalizes-to (alias-ty AliasName (Parameter ...)) Ty))
    ((normalizes-to AliasName) (Parameter ...) -> (Ty))
    ]

@@ -27,12 +27,15 @@
    ;;
    ;;     struct Foo<T> where T: Ord { ... }
    ;;
-   ;; We generate the following clause
+   ;; We generate the following clauses
    ;;
    ;;     (∀ ((type T))
-   ;;         (well-formed (type (Foo (T)))) :-
+   ;;         (well-formed-adt (Foo (T))) :-
    ;;            (well-formed (type T))
    ;;            (is-implemented (Ord T)))
+   ;;     (∀ ((type T))
+   ;;         (well-formed (type (Foo (T)))) :-
+   ;;            (well-formed-adt (Foo (T))))
    ;;
    ;; And the following invariants local to the crate C:
    ;;
@@ -44,15 +47,20 @@
    ;;     (∀ ((type T))
    ;;         (well-formed (type (Foo (T)))) => (well-formed (type T)))
    (crate-item-decl-rules CrateDecls CrateId (AdtKind AdtId KindedVarIds where (WhereClause ...) AdtVariants))
-   ((Clause) (Invariant_well-formed ... Invariant_where-clause ...))
+   ([Clause_wf-adt Clause_wf-type] [Invariant_well-formed ... Invariant_where-clause ...])
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error Ty_adt (rigid-ty AdtId (VarId ...)))
-   (where/error Clause (∀ KindedVarIds
-                          (implies
-                           ((well-formed (ParameterKind VarId)) ...
-                            (where-clause->goal CrateDecls WhereClause) ...)
-                           (well-formed (type Ty_adt)))))
+   (where/error Clause_wf-adt (∀ KindedVarIds
+                                 (implies
+                                  ((well-formed (ParameterKind VarId)) ...
+                                   (where-clause->goal CrateDecls WhereClause) ...)
+                                  (well-formed-adt Ty_adt))))
+   (where/error Clause_wf-type (∀ KindedVarIds
+                                  (implies
+                                   ((well-formed-adt Ty_adt))
+                                   (well-formed (type Ty_adt)))))
+
    (where/error [WhereClause_implied ...] (if-crate-has-feature
                                            CrateDecls
                                            CrateId

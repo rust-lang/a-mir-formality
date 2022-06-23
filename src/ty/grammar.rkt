@@ -42,6 +42,10 @@
              (has-impl TraitRef)
              ; the given type or lifetime is well-formed.
              (well-formed (ParameterKind Parameter))
+             ; the given adt is well-formed
+             (well-formed-adt (rigid-ty AdtId Parameters))
+             ; the given alias type is well-formed
+             (well-formed-alias (alias-ty AliasName Parameters))
              ; normalize a given alias to another type
              (normalizes-to AliasTy Ty)
              )
@@ -52,6 +56,8 @@
                       (is-implemented TraitId)
                       (has-impl TraitId)
                       (well-formed ParameterKind)
+                      (well-formed-adt AdtId)
+                      (well-formed-alias AliasName)
                       (normalizes-to AliasName)
                       )
 

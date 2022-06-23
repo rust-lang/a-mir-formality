@@ -17,15 +17,17 @@
 
   [;; For a method declared in a trait: currently no logical rules are created.
    (trait-item-decl-rules CrateDecls CrateId (TraitId KindedVarIds_trait) FnDecl)
-   ([] [])
+   ([] []c)
    ]
 
   [;; For an associated type declared in a trait, defines
    ;;
-   ;; * clause for when the alias-ty is well-formed
-   ;; *
+   ;; * `well-formed-alias (alias-ty AliasName ...)` clause for when this alias is WF
+   ;; * `well-formed (type (alias-ty AliasName ...))` clause that converts from WF to WF-ALIAS
+   ;; * invariants that let us assume things about WF alias types or about
+   ;;   types that normalize to WF alias types
    (trait-item-decl-rules CrateDecls CrateId (TraitId (KindedVarId_t ...)) AssociatedTyDecl)
-   ((Clause_wf) (Invariant_bound ... Invariant_X ...))
+   ([Clause_wf-alias Clause_wf-type] [Invariant_bound ... Invariant_X ...])
 
    (where/error ((ParameterKind_t VarId_t) ...) (KindedVarId_t ...))
    (where/error (type AssociatedTyId (KindedVarId_i ...) BoundsClause_i where (WhereClause_i ...)) AssociatedTyDecl)
@@ -35,12 +37,17 @@
    ;; the alias type `(alias-ty (TraitId AssociatedTyId) Parameters)` is well-formed if...
    ;; (a) the trait `TraitId` is implemented for its parameters
    ;; (b) the where-clauses from the associated type hold
-   (where/error Clause_wf (∀ (KindedVarId_t ... KindedVarId_i ...)
-                             (implies
-                              ((is-implemented (TraitId (VarId_t ...))) ; (a)
-                               (where-clause->goal CrateDecls WhereClause_i) ... ; (b)
-                               )
-                              (well-formed (type AliasTy)))))
+   (where/error Clause_wf-alias (∀ (KindedVarId_t ... KindedVarId_i ...)
+                                   (implies
+                                    [(is-implemented (TraitId (VarId_t ...))) ; (a)
+                                     (where-clause->goal CrateDecls WhereClause_i) ... ; (b)
+                                     ]
+                                    (well-formed-alias AliasTy))))
+
+   (where/error Clause_wf-type (∀ (KindedVarId_t ... KindedVarId_i ...)
+                                  (implies
+                                   [(well-formed-alias AliasTy)]
+                                   (well-formed (type AliasTy)))))
 
    ;; we can conclude that a well-formed alias-ty meets its bounds
    ;;
