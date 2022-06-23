@@ -53,7 +53,7 @@
                            ((well-formed (ParameterKind VarId)) ...
                             (where-clause->goal CrateDecls WhereClause) ...)
                            (well-formed (type Ty_adt)))))
-   (where/error (WhereClause_implied ...) (if-crate-has-feature
+   (where/error [WhereClause_implied ...] (if-crate-has-feature
                                            CrateDecls
                                            CrateId
                                            expanded-implied-bounds
@@ -62,12 +62,12 @@
                                            (; without the `expanded-implied-bounds` feature, you only get the super traits
                                             outlives-clauses (WhereClause ...))
                                            ))
-   (where/error (Invariant_where-clause ...) ((∀ KindedVarIds
+   (where/error [Invariant_where-clause ...] ((∀ KindedVarIds
                                                  (implies
                                                   ((well-formed (type Ty_adt)))
                                                   (where-clause->hypothesis CrateDecls WhereClause_implied)))
                                               ...))
-   (where/error (Invariant_well-formed ...) ((∀ KindedVarIds
+   (where/error [Invariant_well-formed ...] ((∀ KindedVarIds
                                                 (implies
                                                  ((well-formed (type Ty_adt)))
                                                  (well-formed (ParameterKind VarId))))
@@ -100,7 +100,7 @@
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (lifetime 'a))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
    (crate-item-decl-rules CrateDecls CrateId  (trait TraitId KindedVarIds where (WhereClause ...) (TraitItem ...)))
-   ((flatten ((Clause) Clauses_item ...))
+   ((flatten ([Clause_is-impl] Clauses_item ...))
     (flatten ((Invariant_well-formed ... Invariant_where-clause ...) Invariants_item ...)))
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
@@ -110,37 +110,37 @@
    ; (a) there's an impl for it,
    ; (b) all where-clauses hold
    ; (c) input types are well-formed
-   (where/error Clause (∀ KindedVarIds
-                          (implies
-                           ((has-impl TraitRef_me) ; (a)
-                            (where-clause->goal CrateDecls WhereClause) ... ; (b)
-                            (well-formed (ParameterKind VarId)) ... ; (c)
-                            )
-                           (is-implemented TraitRef_me))))
+   (where/error Clause_is-impl (∀ KindedVarIds
+                                  (implies
+                                   ((has-impl TraitRef_me) ; (a)
+                                    (where-clause->goal CrateDecls WhereClause) ... ; (b)
+                                    (well-formed (ParameterKind VarId)) ... ; (c)
+                                    )
+                                   (is-implemented TraitRef_me))))
 
 
    ; Invariants: if you know that `T: Foo`, you also know `T: Bar`
    ; where `Bar` is a supertrait (normal) / where-clause (expanded-implied-bounds)
-   (where/error (WhereClause_implied ...) (if-crate-has-feature
+   (where/error [WhereClause_implied ...] (if-crate-has-feature
                                            CrateDecls
                                            CrateId
                                            expanded-implied-bounds
-                                           (; with the `expanded-implied-bounds` feature, you get all the where clauses
-                                            WhereClause ...)
-                                           (; without the `expanded-implied-bounds` feature, you only get the super traits
-                                            super-where-clauses KindedVarIds (WhereClause ...))
+                                           [; with the `expanded-implied-bounds` feature, you get all the where clauses
+                                            WhereClause ...]
+                                           [; without the `expanded-implied-bounds` feature, you only get the super traits
+                                            super-where-clauses KindedVarIds (WhereClause ...)]
                                            ))
-   (where/error (Invariant_where-clause ...)  ((∀ KindedVarIds
-                                                  (implies
-                                                   ((is-implemented TraitRef_me))
-                                                   (where-clause->hypothesis CrateDecls WhereClause_implied))) ...))
-   (where/error (Invariant_well-formed ...) ((∀ KindedVarIds
+   (where/error [Invariant_where-clause ...] [(∀ KindedVarIds
+                                                 (implies
+                                                  ((is-implemented TraitRef_me))
+                                                  (where-clause->hypothesis CrateDecls WhereClause_implied))) ...])
+   (where/error [Invariant_well-formed ...] [(∀ KindedVarIds
                                                 (implies
                                                  ((is-implemented TraitRef_me))
-                                                 (well-formed (ParameterKind VarId)))) ...))
+                                                 (well-formed (ParameterKind VarId)))) ...])
 
    ; get program-clauses and invariants from the trait items
-   (where/error ((Clauses_item Invariants_item) ...) ((trait-item-decl-rules CrateDecls CrateId (TraitId KindedVarIds) TraitItem) ...))
+   (where/error [(Clauses_item Invariants_item) ...] [(trait-item-decl-rules CrateDecls CrateId (TraitId KindedVarIds) TraitItem) ...])
    ]
 
   [;; For an trait impl declared in the crate C, like the followin

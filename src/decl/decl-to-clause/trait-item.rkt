@@ -17,7 +17,7 @@
 
   [;; For a method declared in a trait: currently no logical rules are created.
    (trait-item-decl-rules CrateDecls CrateId (TraitId KindedVarIds_trait) FnDecl)
-   (() ())
+   ([] [])
    ]
 
   [;; For an associated type declared in a trait, defines
@@ -50,23 +50,23 @@
    ;; (is-implemented Sized ((alias-ty (Iterator Item) (T)))) :-
    ;;     (well-formed (alias-ty (Iterator Item) (T)))
    ;; ```
-   (where/error (Clause_if-wf ...) (where-clauses->hypotheses CrateDecls (instantiate-bounds-clause BoundsClause_i AliasTy)))
-   (where/error (Invariant_bound ...) ((∀ (KindedVarId_t ... KindedVarId_i ...)
-                                          (implies ((well-formed (type AliasTy))) Clause_if-wf)) ...))
+   (where/error [Clause_if-wf ...] (where-clauses->hypotheses CrateDecls (instantiate-bounds-clause BoundsClause_i AliasTy)))
+   (where/error [Invariant_bound ...] [(∀ (KindedVarId_t ... KindedVarId_i ...)
+                                          (implies ((well-formed (type AliasTy))) Clause_if-wf)) ...])
 
    ;; if we know that an alias type normalizes to another type X, we know
    ;; that X meets the bounds of that alias type too (feature-gated)
    (where/error (VarId_X) (fresh-var-ids CrateDecls (X)))
    (where/error (Clause_X ...) (where-clauses->hypotheses CrateDecls (instantiate-bounds-clause BoundsClause_i VarId_X)))
-   (where/error (Invariant_X ...) (if-crate-has-feature
+   (where/error [Invariant_X ...] (if-crate-has-feature
                                    CrateDecls
                                    CrateId
                                    expanded-implied-bounds
-                                   (; with expanded-implied-bounds, include the invariants
+                                   [; with expanded-implied-bounds, include the invariants
                                     (∀ (KindedVarId_t ... KindedVarId_i ... (type VarId_X))
-                                       (implies ((normalizes-to ((normalizes-to AliasTy VarId_X)))) Clause_X)) ...)
-                                   (; without expanded-implied-bounds, do not, making us behave like rustc
-                                    )
+                                       (implies ((normalizes-to ((normalizes-to AliasTy VarId_X)))) Clause_X)) ...]
+                                   [; without expanded-implied-bounds, do not, making us behave like rustc
+                                    ]
                                    ))
    ]
   )
