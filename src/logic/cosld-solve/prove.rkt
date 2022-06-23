@@ -260,66 +260,67 @@
    (test-equal (term (universe-of-var-in-env Env_2 Term_X)) (term (next-universe RootUniverse)))
    (test-equal (term (universe-of-var-in-env Env_4 Term_X)) (term RootUniverse))
    (test-equal (term (universe-of-var-in-env Env_5 Term_X)) (term RootUniverse))
-
-   (traced '()
-           (test-can-prove EmptyEnv true-goal))
-
-   (redex-let*
-    formality-logic
-    ((Env (term (env-with-vars-in-current-universe EmptyEnv ∃ ((type T) (type U) (type V))))))
-    (traced '()
-            (test-equal
-             (judgment-holds (prove-top-level-goal-substitution
-                              Env
-                              (&& ((T == (rigid-ty Vec (U)))
-                                   (U == (rigid-ty Vec (V)))
-                                   (V == (rigid-ty i32 ()))))
-                              Substitution_out)
-                             Substitution_out)
-             (term (((V (rigid-ty i32 ()))
-                     (U (rigid-ty Vec ((rigid-ty i32 ()))))
-                     (T (rigid-ty Vec ((rigid-ty Vec ((rigid-ty i32 ()))))))
-                     )))))
-    )
-
-   (test-can-prove
-    EmptyEnv
-    (∀ ((type T))
-       (implies ((is-implemented (Debug (T))))
-                (is-implemented (Debug (T))))))
-
-   (test-cannot-prove
-    (env-with-vars-in-current-universe EmptyEnv ∃ ((type X)))
-    (∃ ((type X))
-       (∀ ((type T))
-          (T == X))))
-
-   (test-cannot-prove
-    (env-with-vars-in-current-universe EmptyEnv ∃ ((type X)))
-    (∀ ((type T))
-       (T == X)))
-
-   (test-can-prove
-    EmptyEnv
-    (∀ ((type T))
-       (∃ ((type X))
-          (T == X))))
-
-   (redex-let*
-    formality-logic
-    ((Invariant_PartialEq-if-Eq (term (∀ ((type T)) (implies ((is-implemented (Eq (T))))
-                                                             (is-implemented (PartialEq (T)))))))
-     (Env (term (env-with-clauses-and-invariants ()
-                                                 (Invariant_PartialEq-if-Eq)
-                                                 ))))
-
-    (test-cannot-prove Env (is-implemented (PartialEq ((rigid-ty u32 ())))))
-
-    (test-can-prove Env
-                    (∀ ((type T)) (implies ((is-implemented (Eq (T))))
-                                           (is-implemented (PartialEq (T))))))
-    )
    )
+
+  (traced '()
+          (test-can-prove EmptyEnv true-goal))
+
+  (redex-let*
+   formality-logic
+   ((Env (term (env-with-vars-in-current-universe EmptyEnv ∃ ((type T) (type U) (type V))))))
+   (traced '()
+           (test-equal
+            (judgment-holds (prove-top-level-goal-substitution
+                             Env
+                             (&& ((T == (rigid-ty Vec (U)))
+                                  (U == (rigid-ty Vec (V)))
+                                  (V == (rigid-ty i32 ()))))
+                             Substitution_out)
+                            Substitution_out)
+            (term (((V (rigid-ty i32 ()))
+                    (U (rigid-ty Vec ((rigid-ty i32 ()))))
+                    (T (rigid-ty Vec ((rigid-ty Vec ((rigid-ty i32 ()))))))
+                    )))))
+   )
+
+  (test-can-prove
+   EmptyEnv
+   (∀ ((type T))
+      (implies ((is-implemented (Debug (T))))
+               (is-implemented (Debug (T))))))
+
+  (test-cannot-prove
+   (env-with-vars-in-current-universe EmptyEnv ∃ ((type X)))
+   (∃ ((type X))
+      (∀ ((type T))
+         (T == X))))
+
+  (test-cannot-prove
+   (env-with-vars-in-current-universe EmptyEnv ∃ ((type X)))
+   (∀ ((type T))
+      (T == X)))
+
+  (test-can-prove
+   EmptyEnv
+   (∀ ((type T))
+      (∃ ((type X))
+         (T == X))))
+
+  (redex-let*
+   formality-logic
+   ((Invariant_PartialEq-if-Eq (term (∀ ((type T)) (implies ((is-implemented (Eq (T))))
+                                                            (is-implemented (PartialEq (T)))))))
+    (Env (term (env-with-clauses-and-invariants ()
+                                                (Invariant_PartialEq-if-Eq)
+                                                ))))
+
+   (test-cannot-prove Env (is-implemented (PartialEq ((rigid-ty u32 ())))))
+
+   (test-can-prove Env
+                   (∀ ((type T)) (implies ((is-implemented (Eq (T))))
+                                          (is-implemented (PartialEq (T))))))
+   )
+
 
   ; Test for tricky case of cycle handling
   ;
