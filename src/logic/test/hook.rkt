@@ -15,7 +15,9 @@
                              (lambda (env predicate) (term Clauses))
                              (lambda () (term Invariants))
                              (lambda (env relation) (term (test-relate-parameters ,env ,relation)))
+                             (lambda (env predicate) (term Error)) ; no built-in predicates
                              (lambda (goal) (term (logic:is-predicate? ,goal)))
+                             (lambda (predicate) (term #f)) ; no built-in predicates
                              (lambda (predicate) (term (logic:test-debone-predicate ,predicate)))
                              (lambda (goal) (term (logic:is-relation-goal? ,goal)))
                              ))))

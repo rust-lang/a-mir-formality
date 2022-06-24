@@ -38,10 +38,20 @@
    ]
 
   [(where #t (is-predicate? Env Predicate))
+   (where #f (is-builtin-predicate? Env Predicate))
    (not-in-stacks Env Predicate Prove/Stacks)
    (where (_ ... Clause _ ... ) (filter-clauses Env (env-clauses-for-predicate Env Predicate) Predicate))
    (clause-proves Env Prove/Stacks + Clause Predicate EnvOutput)
    --------------- "prove-clause"
+   (prove Env Prove/Stacks Predicate EnvOutput)
+   ]
+
+  [(where #t (is-predicate? Env Predicate))
+   (where #t (is-builtin-predicate? Env Predicate))
+   (not-in-stacks Env Predicate Prove/Stacks)
+   (where (Env_builtin Goals_builtin) (solve-builtin-predicate Env Predicate)) ; could also be Error
+   (prove-all Env_builtin Prove/Stacks Goals_builtin EnvOutput)
+   --------------- "prove-builtin-clause"
    (prove Env Prove/Stacks Predicate EnvOutput)
    ]
 

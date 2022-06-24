@@ -58,8 +58,12 @@
               (term (decl-invariants DeclProgram)))
             (lambda (env relation)
               (term (ty:relate-parameters ,env ,relation)))
+            (lambda (env predicate)
+              (term Error)) ; no built-in predicates
             (lambda (goal)
               (term (ty:is-predicate? ,goal)))
+            (lambda (predicate)
+              (term #f)) ; no built-in predicates
             (lambda (predicate1)
               (term (ty:debone-predicate ,predicate1)))
             (lambda (goal)
