@@ -7,6 +7,7 @@
          "../ty/predicate.rkt"
          "../ty/hook.rkt"
          "decl-to-clause.rkt"
+         "builtin-predicate.rkt"
          )
 (provide env-for-crate-decl
          env-for-crate-decls
@@ -59,11 +60,11 @@
             (lambda (env relation)
               (term (ty:relate-parameters ,env ,relation)))
             (lambda (env predicate)
-              (term Error)) ; no built-in predicates
+              (term (decl:solve-builtin-predicate CrateDecls ,env ,predicate)))
             (lambda (goal)
               (term (ty:is-predicate? ,goal)))
-            (lambda (predicate)
-              (term #f)) ; no built-in predicates
+            (lambda (goal)
+              (term (decl:is-builtin-predicate? ,goal)))
             (lambda (predicate1)
               (term (ty:debone-predicate ,predicate1)))
             (lambda (goal)

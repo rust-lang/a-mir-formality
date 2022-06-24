@@ -71,7 +71,7 @@
   ;; Apply the relation `Relation`, potentially binding existential variables in `Env`
   solve-builtin-predicate : Env Predicate -> (Env Goals) or Error
 
-  [(solve-builtin-predicate Env Relation)
+  [(solve-builtin-predicate Env Predicate)
    ,(let ((solve-builtin-predicate-fn (formality-logic-hook-solve-builtin-predicate (term any))))
       (solve-builtin-predicate-fn (term Env) (term Predicate)))
    (where/error (Hook: any) (env-hook Env))

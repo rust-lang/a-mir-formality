@@ -23,11 +23,10 @@
   [;; For an associated type declared in a trait, defines
    ;;
    ;; * `well-formed-alias (alias-ty AliasName ...)` clause for when this alias is WF
-   ;; * `well-formed (type (alias-ty AliasName ...))` clause that converts from WF to WF-ALIAS
    ;; * invariants that let us assume things about WF alias types or about
    ;;   types that normalize to WF alias types
    (trait-item-decl-rules CrateDecls CrateId (TraitId (KindedVarId_t ...)) AssociatedTyDecl)
-   ([Clause_wf-alias Clause_wf-type] [Invariant_bound ... Invariant_X ...])
+   ([Clause_wf-alias] [Invariant_bound ... Invariant_X ...])
 
    (where/error ((ParameterKind_t VarId_t) ...) (KindedVarId_t ...))
    (where/error (type AssociatedTyId (KindedVarId_i ...) BoundsClause_i where (WhereClause_i ...)) AssociatedTyDecl)
@@ -43,11 +42,6 @@
                                      (where-clause->goal CrateDecls WhereClause_i) ... ; (b)
                                      ]
                                     (well-formed-alias AliasTy))))
-
-   (where/error Clause_wf-type (∀ (KindedVarId_t ... KindedVarId_i ...)
-                                  (implies
-                                   [(well-formed-alias AliasTy)]
-                                   (well-formed (type AliasTy)))))
 
    ;; we can conclude that a well-formed alias-ty meets its bounds
    ;;
