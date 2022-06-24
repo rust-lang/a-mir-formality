@@ -69,7 +69,7 @@
             (lambda (goal)
               (term (ty:is-relation? ,goal)))
             (lambda (adt-id)
-              (term (generics-for-adt-id DeclProgram ,adt-id)))
+              (term (generics-for-adt-id CrateDecls ,adt-id)))
             (lambda (where-clause)
               (term (where-clause->goal∧clause CrateDecls ,where-clause)))
             ))
@@ -83,9 +83,9 @@
   ;;
   ;; Create the clauses for solving a given predicate
   ;; (right now the predicate is not used).
-  generics-for-adt-id : DeclProgram AdtId -> Generics
+  generics-for-adt-id : CrateDecls AdtId -> Generics
 
-  [(generics-for-adt-id (CrateDecls CrateId) AdtId)
+  [(generics-for-adt-id CrateDecls AdtId)
    (((VarId (ParameterKind =)) ...) WhereClauses) ; for now we hardcode `=` (invariance) as the variance
    (where/error (AdtKind AdtId ((ParameterKind VarId) ...) WhereClauses AdtVariants) (adt-with-id CrateDecls AdtId))
    ]
