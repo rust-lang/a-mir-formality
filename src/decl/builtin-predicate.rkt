@@ -6,6 +6,7 @@
          )
 (provide decl:is-builtin-predicate?
          decl:solve-builtin-predicate
+         well-formed-goal-for-ty
          )
 
 (define-metafunction formality-decl
@@ -39,5 +40,19 @@
 
   [(decl:solve-builtin-predicate CrateDecls Env (well-formed (type Ty)))
    (Env (well-formed-goals CrateDecls Ty))
+   ]
+  )
+
+(define-metafunction formality-decl
+  ;; Create the goals to make a type well-formed. This is used
+  ;; as part of proving the values of associated types are valid.
+  well-formed-goal-for-ty : CrateDecls Ty -> Goal
+
+  [(well-formed-goal-for-ty CrateDecls VarId)
+   (well-formed (type VarId))
+   ]
+
+  [(well-formed-goal-for-ty CrateDecls Ty)
+   (well-formed-goal CrateDecls Ty)
    ]
   )

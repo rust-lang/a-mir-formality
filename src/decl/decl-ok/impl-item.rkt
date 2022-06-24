@@ -6,6 +6,7 @@
          "../grammar.rkt"
          "../where-clauses.rkt"
          "../feature-gate.rkt"
+         "../builtin-predicate.rkt"
          )
 (provide impl-item-ok-goal
          )
@@ -78,12 +79,37 @@
    (where/error (Goal_bty ...) (where-clauses->goals CrateDecls WhereClauses_bty))
 
    ; goals (a) and (b) -- the type `Ty` meets its bounds and is well-formed,
-   ; assuming the where-clauses on the assoc type impl item hold
+   ; assuming the where-clauses on the assoc type impl item hold.
+   ;
+   ; IMPORTANT: We use `well-formed-goal-for-ty` to create the goal, rather than
+   ; writing `(well-formed (type Ty))`. This "breaks the loop" to prevent us from
+   ; leveraging this very impl to prove WF. Imagine this program:
+   ;
+   ; ```
+   ; impl Iterator for SomeType { type Item = SomeOtherType<String>; }
+   ; struct SomeOtherType<T: Copy> { t: T }
+   ; ```
+   ;
+   ; This other type `SomeOtherType<String>` is not well-formed, so the impl should be invalid.
+   ; But if we just tried to prove `(well-formed (type SomeOtherType<String>))`, the solver would be
+   ; within its rights to combine the facts that ...
+   ;
+   ; * `<SomeType as Iterator>::Item` (as an alias) is well-formed, since `SomeType: Iterator`
+   ; * `<SomeType as Iterator>::Item` normalizes to `SomeOtherType<String>` (from the impl)
+   ; * therefore `SomeOtherType<String>` is WF
+   ;
+   ; Instead we `well-formed-goal-for-ty`, which means we have to prove the
+   ; where-clause from `SomeOtherType` definition, so we try to prove `String: Copy` (which fails).
+   ;
+   ; One exception is if we have something like `impl<T> Foo for Blah<T> { type Item = T; }`.
+   ; In that case, the `well-formed-goal-for-ty` will just be `(well-formed (type T))`, which is fine
+   ; since that only provable via a hypothesis (that the one who relies on our impl must prove).
    (where/error Goal_ty-wf-and-meets-bounds
                 (implies (where-clauses->hypotheses CrateDecls WhereClauses)
                          (&& (Goal_bty ... ; (a) Ty meets bounds declared in trait
-                              (well-formed (type Ty)) ; (b) type in impl is wf
+                              (well-formed-goal-for-ty CrateDecls Ty) ; (b) type in impl is wf
                               ))))
+
    ; goal (c) -- the where-clauses from the trait imply the where-clauses from the impl
    (where/error Goal_implies
                 (implies

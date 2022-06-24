@@ -73,7 +73,7 @@
                                                 ]))
                                      ]
                                     C))
-            #t ; FIXME(#61) --- This test should produce `#f`
+            #f
             ))
    )
   )
