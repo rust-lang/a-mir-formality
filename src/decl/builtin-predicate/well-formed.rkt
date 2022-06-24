@@ -94,7 +94,7 @@
   ;; ALIAS TYPES
   ;;
   ;; The behavior here is a key point of departure from the normal solver, and in fact
-  ;; the entire reason this predicate is builin. If we are verifying that
+  ;; the entire reason this predicate is builtin. If we are verifying that
   ;; an alias type is well-formed, we do so by checking that the trait is implemented
   ;; and the parameters meet their where clauses. It's then the *impl's* job to have
   ;; ensured it is WF. The default solver rules, if naively applied, would wind up

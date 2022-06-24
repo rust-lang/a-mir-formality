@@ -76,7 +76,7 @@
 
   ;; `Predicate/Deboned` -- A *deboned* predicate separates out the "rigid part"
   ;; (the skeleton) from input/output parameters. To determine whether two
-  ;; predicates ate equal, the skeletons can just be compared for
+  ;; predicates are equal, the skeletons can just be compared for
   ;; equality, but the parameters have to be equated as types.
   (Predicate/Deboned ::= (Predicate/Skeleton Parameters_input -> Parameters_output))
 

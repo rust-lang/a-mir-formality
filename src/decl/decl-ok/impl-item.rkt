@@ -103,7 +103,7 @@
    ;
    ; One exception is if we have something like `impl<T> Foo for Blah<T> { type Item = T; }`.
    ; In that case, the `well-formed-goal-for-ty` will just be `(well-formed (type T))`, which is fine
-   ; since that only provable via a hypothesis (that the one who relies on our impl must prove).
+   ; since that is only provable via a hypothesis (that the one who relies on our impl must prove).
    (where/error Goal_ty-wf-and-meets-bounds
                 (implies (where-clauses->hypotheses CrateDecls WhereClauses)
                          (&& (Goal_bty ... ; (a) Ty meets bounds declared in trait
