@@ -19,7 +19,7 @@ if [ "$1" == "--all" ];
 then
         NPROC=$(getconf _NPROCESSORS_ONLN 2> /dev/null || getconf NPROCESSORS_ONLN 2> /dev/null || 4) # number of CPU cores
         echo "running: raco test -t -j $NPROC src"
-        raco test -t -j $NPROC src
+        time raco test -t -j $NPROC src
 else
         REQUIRE='(require (submod "'"$1"'" test))'
         if [ "$NO_FILTER" == "1" ];
