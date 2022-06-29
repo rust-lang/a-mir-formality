@@ -98,7 +98,7 @@
    ; * `<SomeType as Iterator>::Item` normalizes to `SomeOtherType<String>` (from the impl)
    ; * therefore `SomeOtherType<String>` is WF
    ;
-   ; Instead we `well-formed-goal-for-ty`, which means we have to prove the
+   ; Instead we use `well-formed-goal-for-ty`, which means we have to prove the
    ; where-clause from `SomeOtherType` definition, so we try to prove `String: Copy` (which fails).
    ;
    ; One exception is if we have something like `impl<T> Foo for Blah<T> { type Item = T; }`.
