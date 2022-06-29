@@ -19,9 +19,9 @@
    ;
    ; FIXME -- the syntax of where clauses needs to be changed to give an
    ; explicit parameter kind for Ty
-   (well-formed-where-clause-goal CrateDecls (Ty : Lt))
-   (&& [(well-formed (type Ty))
-        (well-formed (lifetime Lt))])
+   (well-formed-where-clause-goal CrateDecls (KindedParameter_a : KindedParameter_b))
+   (&& [(well-formed KindedParameter_a)
+        (well-formed KindedParameter_b)])
    ]
 
   [; well-formedness for a goal like `A: Foo<B>` where
@@ -38,7 +38,7 @@
    ;
    ; Tricky example. If you have `X: Foo` where `trait Foo where Self: Foo` you would get
    ; `((well-formed (type X)) (is-implemented (Foo (X))))`.
-   (well-formed-where-clause-goal CrateDecls (Ty : TraitId (Parameter ...)))
+   (well-formed-where-clause-goal CrateDecls (Ty : TraitId[Parameter ...]))
    (&& ((well-formed (ParameterKind Parameter_value)) ...
         (where-clause->goal CrateDecls WhereClause_substituted) ...)
        )
@@ -46,7 +46,7 @@
    ; Find the trait declaration
    ;
    ; * in our example above `(ParameterKind VarId) ...` would match `((type Self) (type T))`
-   ; * and `WhereClauses` would be `(T : Bar ())`
+   ; * and `WhereClauses` would be `(T : Bar[])`
    (where/error (trait TraitId ((ParameterKind VarId) ...) where WhereClauses _) (trait-with-id CrateDecls TraitId))
 
    ; create a substitution ((Self => A) (T => B))

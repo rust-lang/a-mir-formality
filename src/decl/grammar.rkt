@@ -112,7 +112,7 @@
   (WhereClauseAtoms ::= (WhereClauseAtom ...))
   (WhereClauseAtom ::=
                    (Ty : TraitId Parameters) ; T: Debug
-                   (Parameter : Lt) ; T: 'a
+                   (KindedParameter : KindedParameter) ; T: 'a
                    (AliasTy == Ty) ; <T as Iterator>::Item == u32
                    )
 

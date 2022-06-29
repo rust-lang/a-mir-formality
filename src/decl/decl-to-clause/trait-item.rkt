@@ -17,7 +17,7 @@
 
   [;; For a method declared in a trait: currently no logical rules are created.
    (trait-item-decl-rules CrateDecls CrateId (TraitId KindedVarIds_trait) FnDecl)
-   ([] []c)
+   ([] [])
    ]
 
   [;; For an associated type declared in a trait, defines

@@ -165,7 +165,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
-                   ((A : B))
+                   (((lifetime A) : (lifetime B)))
                    (A -outlives- B)
                    ))
             )
@@ -183,7 +183,7 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
-                   ((A : B)
+                   (((lifetime A) : (lifetime B))
                     )
                    (A == B)
                    ))
@@ -202,8 +202,8 @@
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
-                   ((A : B)
-                    (B : A)
+                   (((lifetime A) : (lifetime B))
+                    ((lifetime B) : (lifetime A))
                     )
                    (A == B)
                    ))

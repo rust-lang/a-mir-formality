@@ -65,7 +65,7 @@
    (normalizes-to AliasTy Ty)
    ]
 
-  [(where-clause->goal∧clause (Parameter_a : Parameter_b))
+  [(where-clause->goal∧clause ((_ Parameter_a) : (_ Parameter_b)))
    (Parameter_a -outlives- Parameter_b)
    ]
 

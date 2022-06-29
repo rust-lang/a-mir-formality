@@ -88,7 +88,7 @@
      TraitDecl_Drop (term (trait rust:Drop ((type Self)) where () ())))
 
     (; impl<U> rust:Drop for Foo<U> where U: Debug { } //~ ERROR
-     TraitImplDecl (term (impl ((type U)) (rust:Drop ((rigid-ty Foo (U)))) where ((U : Debug())) ())))
+     TraitImplDecl (term (impl ((type U)) (rust:Drop ((rigid-ty Foo (U)))) where ((U : Debug[])) ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo

@@ -229,8 +229,8 @@
    )
 
   (; Keep `Self: 'a` bounds
-   (filter-super-where-clauses KindedVarIds (VarId_Self : Parameter))
-   ((VarId_Self : Parameter))
+   (filter-super-where-clauses KindedVarIds ((type VarId_Self) : KindedParameter))
+   (((type VarId_Self) : KindedParameter))
    (where ((type VarId_Self) _ ...) KindedVarIds)
    )
 
@@ -254,8 +254,8 @@
   filter-outlives-where-clause : WhereClause -> WhereClauses
 
   (; Keep `Self: 'a` bounds
-   (filter-outlives-where-clause (Parameter_1 : Parameter_2))
-   ((Parameter_1 : Parameter_2))
+   (filter-outlives-where-clause (KindedParameter_1 : KindedParameter_2))
+   ((KindedParameter_1 : KindedParameter_2))
    )
 
   (; Discard others

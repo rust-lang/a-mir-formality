@@ -27,7 +27,7 @@
 
    [(; trait LendingIterator { type Item<'a> where Self: 'a; }
      TraitDecl_LendingIterator_with_Item_where_Self:a
-     (term (trait-decl-of-LendingIterator [(Self : a)])))
+     (term (trait-decl-of-LendingIterator [((type Self) : (lifetime a))])))
 
     (; trait LendingIterator { type Item<'a>; }
      TraitDecl_LendingIterator_without_Item_where_Self:a
@@ -39,7 +39,7 @@
                 where ()
                 {
                  (type Item ((lifetime a)) = (user-ty (& a T))
-                       where [(T : a)])
+                       where [((type T) : (lifetime a))])
                  })))
 
     (; struct Lend<T> { }

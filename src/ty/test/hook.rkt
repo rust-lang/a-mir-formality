@@ -105,7 +105,7 @@
    (∀ KindedVarIds (where-clause->goal∧clause WhereClause))
    ]
 
-  [(where-clause->goal∧clause-mock (Ty_self : TraitId (Parameter ...)))
+  [(where-clause->goal∧clause-mock (Ty_self : TraitId[Parameter ...]))
    (is-implemented (TraitId (Ty_self Parameter ...)))
    ]
 
@@ -113,7 +113,7 @@
    (normalizes-to AliasTy Ty)
    ]
 
-  [(where-clause->goal∧clause-mock (Parameter_a : Parameter_b))
+  [(where-clause->goal∧clause-mock ((_ Parameter_a) : (_ Parameter_b)))
    (Parameter_a -outlives- Parameter_b)
    ]
 
