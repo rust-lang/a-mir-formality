@@ -197,7 +197,7 @@
   )
 
 (define-metafunction formality-decl
-  ;; Find the id of the crate that defines `AdtId`.
+  ;; Find the ID of the crate that defines `AdtId`.
   crate-defining-adt-with-id : CrateDecls AdtId -> CrateId
 
   [(crate-defining-adt-with-id CrateDecls AdtId)
@@ -221,7 +221,7 @@
   )
 
 (define-metafunction formality-decl
-  ;; Find the id of the crate that defines `TraitId`.
+  ;; Find the ID of the crate that defines `TraitId`.
   crate-defining-trait-with-id : CrateDecls TraitId -> CrateId
 
   [(crate-defining-trait-with-id CrateDecls TraitId)

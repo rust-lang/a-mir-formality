@@ -41,7 +41,7 @@
 (define-judgment-form
   formality-mir-extended
 
-  ;; The conditions under which an impl passes the orphan rules.
+  ;; Defines when a parameter (type/lifetime) is considered "local" to the current crate.
 
   #:mode (is-local-parameter I I)
   #:contract (is-local-parameter DeclProgram Parameter)
