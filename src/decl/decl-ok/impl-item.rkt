@@ -23,7 +23,48 @@
   impl-item-ok-goal : CrateDecls TraitRef_impl ImplItem -> Goal
 
   [(impl-item-ok-goal CrateDecls TraitRef_impl FnDecl)
-   true-goal
+   Goal_implies
+
+   ; unpack things
+   (where/error (TraitId (Parameter_trait ...)) TraitRef_impl)
+   (where/error (fn FnId (KindedVarId ...) (Ty_arg ...) -> Ty_ret where [WhereClause ...] _) FnDecl)
+
+   ; find the declaration of this associated type
+   (where/error (trait TraitId KindedVarIds_trait where WhereClauses_trait TraitItems_trait) (trait-with-id CrateDecls TraitId))
+   (where/error (_ ... (fn FnId KindedVarIds_trait-fn (Ty_trait-fn-arg ...) -> Ty_trait-fn-ret where WhereClauses_trait-fn _) _ ...) TraitItems_trait)
+   (where/error ((_ VarId_trait) ...) KindedVarIds_trait)
+
+   ; validate that parameter-kinds match and are same in number in trait and on impl
+   ;
+   ; FIXME WF checking in mir layer should be ensuring this
+   ;
+   ; FIXME -- Rust's early/late-bound logic is different here, we may want to make this less conservative
+   (where/error (((ParameterKind VarId_trait-fn) ..._generics) ((ParameterKind VarId) ..._generics))
+                (KindedVarIds_trait-fn (KindedVarId ...))
+                )
+   (where/error ((_ ..._args) (_ ..._args))
+                ((Ty_arg ...) (Ty_trait-fn-arg ...))
+                )
+
+   ; create a substitution from the variables in the impl to the trait
+   (where/error Substitution_trait->impl ((VarId_trait Parameter_trait) ... (VarId_trait-fn VarId) ...))
+
+   ; validate that, for all values of the impl-fn's type parameters...
+   ;
+   ; (a) argument types from trait-fn are subtypes of impl-fn's argument types
+   ; (b) return type from impl-fn is a subtype of trait-fn's return type
+   ; (c) where-clauses from impl-fn are provable using where clauses from trait
+   (where/error [Ty_trait-fn-arg-s ...] [(apply-substitution Substitution_trait->impl Ty_trait-fn-arg) ...])
+   (where/error Ty_trait-fn-ret-s (apply-substitution Substitution_trait->impl Ty_trait-fn-ret))
+   (where/error Goal_implies
+                (∀ [KindedVarId ...]
+                   (implies
+                    (where-clauses->hypotheses CrateDecls (apply-substitution Substitution_trait->impl WhereClauses_trait-fn))
+                    (&& [(Ty_trait-fn-arg-s <= Ty_arg) ... ; (a)
+                         (Ty_ret <= Ty_trait-fn-ret-s) ; (b)
+                         (where-clause->goal CrateDecls WhereClause) ... ; (c)
+                         ]
+                        ))))
    ]
 
   [; For an associated type value
