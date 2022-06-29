@@ -6,8 +6,7 @@
          )
 (provide formality-ty-hook
          env-adt-generics
-         ty:is-predicate?
-         ty:is-relation?
+         ty:categorize-goal
          where-clause->biformula-from-env
          )
 
@@ -29,17 +28,13 @@
   )
 
 (define-metafunction formality-ty
-  ty:is-predicate? : Goal -> boolean
+  ty:categorize-goal : Goal -> Goal/Categorization
 
-  [(ty:is-predicate? Predicate) #t]
-  [(ty:is-predicate? _) #f]
-  )
+  [(ty:categorize-goal BuiltinGoal) builtin-goal]
 
-(define-metafunction formality-ty
-  ty:is-relation? : Goal -> boolean
+  [(ty:categorize-goal Relation) builtin-relation]
 
-  [(ty:is-relation? Relation) #t]
-  [(ty:is-relation? _) #f]
+  [(ty:categorize-goal Predicate) user-predicate]
   )
 
 (define-metafunction formality-ty

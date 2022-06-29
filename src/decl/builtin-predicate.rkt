@@ -2,9 +2,10 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "../logic/env.rkt"
+         "../ty/hook.rkt"
          "builtin-predicate/well-formed.rkt"
          )
-(provide decl:is-builtin-predicate?
+(provide decl:categorize-goal
          decl:solve-builtin-predicate
          well-formed-goal-for-ty
          )
@@ -12,16 +13,17 @@
 (define-metafunction formality-decl
   ;; Part of the "hook" for a formality-decl program:
   ;;
-  ;; Create the clauses for solving a given predicate
-  ;; (right now the predicate is not used).
-  decl:is-builtin-predicate? : Goal -> boolean
+  ;; Extends ty:categorize-goal with a knowledge of which predicates
+  ;; are builtin by the decl layer.
+  decl:categorize-goal : Goal -> Goal/Categorization
 
-  [(decl:is-builtin-predicate? (well-formed (type _)))
-   #t
+  [(decl:categorize-goal (well-formed (type _)))
+   builtin-predicate
    ]
 
-  [(decl:is-builtin-predicate? _)
-   #f]
+  [(decl:categorize-goal Goal)
+   (ty:categorize-goal Goal)]
+
   )
 
 (define-metafunction formality-decl

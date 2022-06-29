@@ -31,10 +31,8 @@
                              (lambda () (term Invariants))
                              (lambda (env relation) (term (ty:relate-parameters ,env ,relation)))
                              (lambda (env predicate) (term Error)) ; no built-in predicates
-                             (lambda (goal) (term (ty:is-predicate? ,goal)))
-                             (lambda (predicate) (term #f)) ; no built-in predicates
                              (lambda (predicate1) (term (ty:debone-predicate ,predicate1)))
-                             (lambda (goal) (term (ty:is-relation? ,goal)))
+                             (lambda (goal) (term (ty:categorize-goal ,goal)))
                              (lambda (adt-id) (term (find-adt-generics ,adt-id ((AdtId Generics) ...))))
                              (lambda (where-clause) (term (where-clause->biformula-mock ,where-clause)))
                              ))))
