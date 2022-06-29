@@ -40,7 +40,7 @@
     (; struct MyIter<T: Copy> { }
      AdtDecl_MyIter<T:Copy>
      (term (struct MyIter ((type T))
-             where ((T : rust:Copy[]))
+             where ((T : core:Copy[]))
              ((MyIter ())))))
 
     (; struct MyIter<T: ?Copy> { }

@@ -12,14 +12,14 @@
   ,(redex-let*
     formality-decl
     [
-     (TraitDecl_Sized (term (trait rust:Sized ((type Self)) where () {})))
-     (TraitDecl_Send (term (trait rust:Send ((type Self)) where () {})))
-     (TraitDecl_Sync (term (trait rust:Sync ((type Self)) where () {})))
-     (TraitDecl_Copy (term (trait rust:Copy ((type Self)) where () {})))
-     (TraitDecl_Drop (term (trait rust:Drop ((type Self)) where () {})))
+     (TraitDecl_Sized (term (trait core:Sized ((type Self)) where () {})))
+     (TraitDecl_Send (term (trait core:Send ((type Self)) where () {})))
+     (TraitDecl_Sync (term (trait core:Sync ((type Self)) where () {})))
+     (TraitDecl_Copy (term (trait core:Copy ((type Self)) where () {})))
+     (TraitDecl_Drop (term (trait core:Drop ((type Self)) where () {})))
 
-     (TraitImplDecl_Copy_for_u32 (term (impl[] (rust:Copy[(user-ty u32)]) where [] {})))
-     (TraitImplDecl_Copy_for_i32 (term (impl[] (rust:Copy[(user-ty i32)]) where [] {})))
+     (TraitImplDecl_Copy_for_u32 (term (impl[] (core:Copy[(user-ty u32)]) where [] {})))
+     (TraitImplDecl_Copy_for_i32 (term (impl[] (core:Copy[(user-ty i32)]) where [] {})))
 
      (CrateDecl_core (term (core (crate [
                                          TraitDecl_Sized

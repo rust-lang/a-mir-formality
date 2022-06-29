@@ -37,8 +37,8 @@
 
     (; impl<T> Copy for Once<T> where T: Copy { }
      TraitImplDecl_Copy_for_Once<T>
-     (term (impl[(type T)] (rust:Copy[(user-ty (Once T))])
-                where [(T : rust:Copy[])]
+     (term (impl[(type T)] (core:Copy[(user-ty (Once T))])
+                where [(T : core:Copy[])]
                 {})))
 
     (CrateDecl_C
@@ -76,7 +76,7 @@
            (test-equal
             (term (decl:can-prove-goal
                    CrateDecls C
-                   (is-implemented (rust:Copy[(user-ty (< (tuple u32) as Iterator[] > :: Item[]))]))))
+                   (is-implemented (core:Copy[(user-ty (< (tuple u32) as Iterator[] > :: Item[]))]))))
             #t))
    )
   )

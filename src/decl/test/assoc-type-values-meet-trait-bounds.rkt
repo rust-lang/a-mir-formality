@@ -24,7 +24,7 @@
 
    [(; trait Iterator { type Item: Sized; }
      TraitDecl_Iterator_where_Item:Sized
-     (term (trait-decl-with-bound Iterator (: (type Item) ((Item : rust:Sized[])))))
+     (term (trait-decl-with-bound Iterator (: (type Item) ((Item : core:Sized[])))))
      )
 
     (; trait Iterator { type Item: ?Sized; }
@@ -38,7 +38,7 @@
     (; impl<T: Sized> Iterator for MyIter<T> { type Item = T; }
      TraitImplDecl_Iterator_for_MyIter<T>_where_T:Sized
      (term (impl ((type T)) (Iterator ((user-ty (MyIter T))))
-                 where ((T : rust:Sized[]))
+                 where ((T : core:Sized[]))
                  {
                   (type Item () = T where ())
                   })))

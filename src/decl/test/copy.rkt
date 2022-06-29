@@ -15,11 +15,11 @@
 
    ;; Test for that `impl Copy for i32` is permitted.
 
-   [(; trait rust:Copy { _: Foo }
-     TraitDecl_Copy (term (trait rust:Copy ((type Self)) where () ())))
+   [(; trait core:Copy { _: Foo }
+     TraitDecl_Copy (term (trait core:Copy ((type Self)) where () ())))
 
-    (; impl rust:Copy for i32 { }
-     TraitImplDecl (term (impl () (rust:Copy ((user-ty i32))) where () ())))
+    (; impl core:Copy for i32 { }
+     TraitImplDecl (term (impl () (core:Copy ((user-ty i32))) where () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (TraitDecl_Copy
@@ -40,8 +40,8 @@
    ;; Test for that `struct Foo { } struct Bar { f: Foo } impl Copy for Bar` is not permitted
    ;; because `Foo: Copy` does not hold.
 
-   [(; trait rust:Copy { }
-     TraitDecl_Copy (term (trait rust:Copy ((type Self)) where () ())))
+   [(; trait core:Copy { }
+     TraitDecl_Copy (term (trait core:Copy ((type Self)) where () ())))
 
     (; struct Foo { }
      AdtDecl_Foo (term (struct Foo
@@ -58,8 +58,8 @@
                                 ))) ; the 1 variant (named `Foo`)
                          )))
 
-    (; impl rust:Copy for Bar { }
-     TraitImplDecl (term (impl () (rust:Copy ((rigid-ty Bar ()))) where () ())))
+    (; impl core:Copy for Bar { }
+     TraitImplDecl (term (impl () (core:Copy ((rigid-ty Bar ()))) where () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (TraitDecl_Copy
@@ -77,8 +77,8 @@
 
    (redex-let*
     formality-decl
-    [(; impl rust:Copy for Foo { }
-      TraitImplDecl_Foo (term (impl () (rust:Copy ((rigid-ty Foo ()))) where () ())))
+    [(; impl core:Copy for Foo { }
+      TraitImplDecl_Foo (term (impl () (core:Copy ((rigid-ty Foo ()))) where () ())))
 
      (; the crate has the struct, the trait, and the impl
       CrateDecl_Pass (term (TheCrate (crate [TraitDecl_Copy

@@ -25,7 +25,7 @@
      (term (impl[] (Get[(user-ty ())]) where []
                 {(fn get[(type T) (lifetime l)]((user-ty (&mut l ()))) -> (user-ty ())
                      where [(T : Debug[])
-                            (T : rust:Copy[])
+                            (T : core:Copy[])
                             ] {})
                  }))
      )
