@@ -59,15 +59,19 @@
    ]
 
   [(clause-could-match-predicate Env Predicate_1 Predicate_2)
-   (predicates-could-match Env Predicate_1 Predicate_2)
+   #t
    (where #t (is-predicate? Env Predicate_1))
    (where #t (is-predicate? Env Predicate_2))
+   (where/error (Predicate/Skeleton _ -> _) (debone-predicate Env Predicate_1))
+   (where/error (Predicate/Skeleton _ -> _) (debone-predicate Env Predicate_1))
    ]
 
   [(clause-could-match-predicate Env Relation_1 Relation_2)
    #t
    (where #t (is-relation? Env Relation_1))
    (where #t (is-relation? Env Relation_2))
+   (where (_ RelationOp _) Relation_1)
+   (where (_ RelationOp _) Relation_2)
    ]
 
   [(clause-could-match-predicate Env Term_1 Term_2)

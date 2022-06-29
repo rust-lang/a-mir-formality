@@ -3,7 +3,7 @@
          "grammar-extended.rkt"
          "type-check-goal.rkt"
          "../decl/decl-ok.rkt"
-         "../decl/decl-to-clause.rkt"
+         "../decl/env.rkt"
          "../decl/grammar.rkt"
          "../logic/cosld-solve.rkt"
          )

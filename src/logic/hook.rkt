@@ -3,30 +3,33 @@
 (provide formality-logic-hook
          env-clauses-for-predicate
          env-invariants
-         equate-predicates
          relate-parameters
-         predicates-could-match
+         solve-builtin-predicate
+         debone-predicate
          is-predicate?
+         is-builtin-predicate?
          is-relation?
          is-atomic-goal?
          )
 
 ;; Creates a "hook" value:
 ;;
-;; * `clauses`: a `Predicate -> Clauses` lambda that returns all clauses that could possibly
+;; * `clauses`: a `Env Predicate -> Clauses` lambda that returns all clauses that could possibly
 ;;   prove `Predicate`.
 ;; * `invariants`: a `-> Invariants` lambda that returns all the invariants in the program
-;; * `equate-predicates/vars`: a `Env VarIds Predicate Predicate -> Env or Error` lambda that unifies two predicates
-;; * `relate-parameters`: a `Env Relation -> Env or Error` lambda that relates two parameters
-;; * `predicate-could-match`: a `Predicate Predicate -> bool` that filters down predicates
+;; * `relate-parameters`: a `Env Relation -> (Env Goals) or Error` lambda that relates two parameters
+;; * `solve-builtin-predicate`: a `Env Predicate -> (Env Goals) or Error` lambda that solves a builtin predicate
 ;; * `is-predicate`: true if a term matches `Predicate`, needed because logic/grammar has `Predicate ::= Term`
+;; * `is-builtin-predicate`: true if a predicate is *builtin*, meaning it should be solved via `solve-builtin-predicate`
+;; * `debone-predicate`: a `Predicate -> Predicate/Deboned` function that separates into skeleton, parameters
 ;; * `is-relation`: true if a term matches `Relation`, needed because logic/grammar has `Relation ::= Term`
 (struct formality-logic-hook (clauses
                               invariants
-                              equate-predicates
                               relate-parameters
-                              predicates-could-match
+                              solve-builtin-predicate
                               is-predicate
+                              is-builtin-predicate
+                              debone-predicate
                               is-relation
                               ))
 
@@ -37,7 +40,7 @@
 
   [(env-clauses-for-predicate Env Predicate)
    ,(let ((clauses-fn (formality-logic-hook-clauses (term any))))
-      (clauses-fn (term Predicate)))
+      (clauses-fn (term Env) (term Predicate)))
    (where/error (Hook: any) (env-hook Env))
    ]
   )
@@ -54,18 +57,6 @@
   )
 
 (define-metafunction formality-logic
-  ;; Equate `Predicate_1` and `Predicate_2` by binding existential variables in `Env`
-  equate-predicates : Env Predicate Predicate -> (Env Goals) or Error
-
-  [(equate-predicates Env Predicate_1 Predicate_2)
-   ,(let ((equate-fn (formality-logic-hook-equate-predicates (term any))))
-      (equate-fn (term Env) (term Predicate_1) (term Predicate_2)))
-   (where/error (Hook: any) (env-hook Env))
-   ]
-
-  )
-
-(define-metafunction formality-logic
   ;; Apply the relation `Relation`, potentially binding existential variables in `Env`
   relate-parameters : Env Relation -> (Env Goals) or Error
 
@@ -77,11 +68,23 @@
   )
 
 (define-metafunction formality-logic
-  predicates-could-match : Env Predicate_1 Predicate_2 -> boolean
+  ;; Apply the relation `Relation`, potentially binding existential variables in `Env`
+  solve-builtin-predicate : Env Predicate -> (Env Goals) or Error
 
-  [(predicates-could-match Env Predicate_1 Predicate_2)
-   ,(let ((predicates-could-match-fn (formality-logic-hook-predicates-could-match (term any))))
-      (predicates-could-match-fn (term Predicate_1) (term Predicate_2)))
+  [(solve-builtin-predicate Env Predicate)
+   ,(let ((solve-builtin-predicate-fn (formality-logic-hook-solve-builtin-predicate (term any))))
+      (solve-builtin-predicate-fn (term Env) (term Predicate)))
+   (where/error (Hook: any) (env-hook Env))
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; Separate a predicate into its skeleton and a list of parameters.
+  debone-predicate : Env Predicate -> Predicate/Deboned
+
+  [(debone-predicate Env Predicate)
+   ,(let ((debone-predicate-fn (formality-logic-hook-debone-predicate (term any))))
+      (debone-predicate-fn (term Predicate)))
    (where/error (Hook: any) (env-hook Env))
    ]
   )
@@ -95,6 +98,17 @@
   [(is-predicate? Env Goal)
    ,(let ((is-predicate-fn (formality-logic-hook-is-predicate (term any))))
       (is-predicate-fn (term Goal)))
+   (where/error (Hook: any) (env-hook Env))
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; If true, then this predicate is *built-in*, meaning that the
+  is-builtin-predicate? : Env Goal -> boolean
+
+  [(is-builtin-predicate? Env Goal)
+   ,(let ((is-builtin-predicate-fn (formality-logic-hook-is-builtin-predicate (term any))))
+      (is-builtin-predicate-fn (term Goal)))
    (where/error (Hook: any) (env-hook Env))
    ]
   )

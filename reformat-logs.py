@@ -77,11 +77,11 @@ def main():
             raise "bad line: {}".format(line)
         indent = mo.group(1)
         text = mo.group(2)
-
-        if indent.isspace():
-            if not current_section:
-                raise "bad line: {}".format(line)
-            current_section.print_body(len(indent), text)
+        if not indent or indent.isspace():
+            if current_section:
+                current_section.print_body(len(indent), text)
+            else:
+                print_line(len(indent), "", text)
         else:
             current_section = Section(
                 indent, len(indent), len(indent)

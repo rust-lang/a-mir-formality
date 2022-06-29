@@ -8,6 +8,7 @@
          "../hook.rkt"
          "../relate.rkt"
          "../scheme.rkt"
+         "../predicate.rkt"
          "../where-clauses-from-env.rkt"
          )
 (provide env-with-clauses-invariants-and-generics
@@ -25,22 +26,18 @@
 
   [(env-with-clauses-invariants-and-generics Clauses Invariants ((AdtId Generics) ...))
    (env-with-hook (Hook: ,(begin
-                            (formality-ty-hook (lambda (predicate) (term Clauses))
-                                               (lambda () (term Invariants))
-                                               (lambda (env predicate1 predicate2)
-                                                 (term (ty:equate-predicates ,env ,predicate1 ,predicate2)))
-                                               (lambda (env relation)
-                                                 (term (ty:relate-parameters ,env ,relation)))
-                                               (lambda (predicate1 predicate2) #t)
-                                               (lambda (goal)
-                                                 (term (ty:is-predicate? ,goal)))
-                                               (lambda (goal)
-                                                 (term (ty:is-relation? ,goal)))
-                                               (lambda (adt-id)
-                                                 (term (find-adt-generics ,adt-id ((AdtId Generics) ...))))
-                                               (lambda (where-clause)
-                                                 (term (where-clause->goal∧clause-mock ,where-clause)))
-                                               ))))
+                            (formality-ty-hook
+                             (lambda (env predicate) (term Clauses))
+                             (lambda () (term Invariants))
+                             (lambda (env relation) (term (ty:relate-parameters ,env ,relation)))
+                             (lambda (env predicate) (term Error)) ; no built-in predicates
+                             (lambda (goal) (term (ty:is-predicate? ,goal)))
+                             (lambda (predicate) (term #f)) ; no built-in predicates
+                             (lambda (predicate1) (term (ty:debone-predicate ,predicate1)))
+                             (lambda (goal) (term (ty:is-relation? ,goal)))
+                             (lambda (adt-id) (term (find-adt-generics ,adt-id ((AdtId Generics) ...))))
+                             (lambda (where-clause) (term (where-clause->goal∧clause-mock ,where-clause)))
+                             ))))
    ]
   )
 

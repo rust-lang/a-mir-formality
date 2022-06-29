@@ -15,12 +15,12 @@
   (Hook ::= (Hook: any))
 
   ;; Parameters to the logic:
-  (Parameter ::= Term)     ; Value of a variable
-  (ParameterKind ::= Term) ; Kinds for variables (e.g., type/lifetimes)
-  (Predicate ::= Term)     ; Kinds of predicates we can prove
-  (VarInequality ::= Term) ; Variable relationships inferred and stored in the environment
-  (InequalityOp ::= Term)  ; Relations between terms beyond `==`
-
+  (Parameter ::= Term)          ; Value of a variable
+  (ParameterKind ::= Term)      ; Kinds for variables (e.g., type/lifetimes)
+  (Predicate ::= Term)          ; Kinds of predicates we can prove
+  (Predicate/Skeleton ::= Term) ; Variant of predicates that has no parameters (see Predicate/Deboned)
+  (VarInequality ::= Term)      ; Variable relationships inferred and stored in the environment
+  (InequalityOp ::= Term)       ; Relations between terms beyond `==`
   ;; Env: Typing environment
   ;;
   ;; * Hook -- the "hook" that lets us get program information
@@ -34,6 +34,17 @@
   ;;   where clauses
   (Envs ::= (Env ...))
   (Env ::= (Hook Universe VarBinders Substitution VarInequalities Hypotheses))
+
+  ;; EnvOutput: When trying to find answers to a goal, we sometimes
+  ;; get an `ambiguous` result. `ambiguous` means that the result could not be
+  ;; definitively determined as true or false. It occurs in a variety of cases, e.g.
+  ;;
+  ;; * there wasn't enough type information known to resolve the goal;
+  ;; * overflow (in some checkers, anyway).
+  (EnvOutput ::=
+             Env
+             ambiguous
+             )
 
   ;; Maps variables to their values; those values are not core to the
   ;; logic, though.
@@ -63,6 +74,12 @@
   ;; `Predicate` -- the atomic items that we can prove
   (Predicates ::= (Predicate ...))
 
+  ;; `Predicate/Deboned` -- A *deboned* predicate separates out the "rigid part"
+  ;; (the skeleton) from input/output parameters. To determine whether two
+  ;; predicates are equal, the skeletons can just be compared for
+  ;; equality, but the parameters have to be equated as types.
+  (Predicate/Deboned ::= (Predicate/Skeleton Parameters_input -> Parameters_output))
+
   ;; ANCHOR:GoalsAndHypotheses
   ;; `Goal` -- things we can prove. These consists of predicates
   ;; joined by various forms of logical operators that are built
@@ -90,6 +107,7 @@
               Predicate
               Relation)
   (BuiltinGoal ::=
+               ambiguous
                (&& Goals)
                (|| Goals)
                (implies Hypotheses Goal)
@@ -170,6 +188,7 @@
   ; Internal data structure used during cosld proving
   (Prove/Stacks ::= (Predicates Predicates))
   (Prove/Coinductive ::= + -)
+  (Prove/Progress ::= no-progress made-progress)
 
   (CanonicalTerm ::= (canonicalized VarBinders Term))
   (CanonicalGoal ::= (canonicalized VarBinders (implies Hypotheses Goal)))
