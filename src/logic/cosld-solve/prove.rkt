@@ -37,10 +37,10 @@
    (prove Env Prove/Stacks ambiguous ambiguous)
    ]
 
-  [(where user-predicate (categorize-goal Env Predicate))
+  [(where (user-predicate Prove/Coinductive) (categorize-goal Env Predicate))
    (not-in-stacks Env Predicate Prove/Stacks)
    (where (_ ... Clause _ ... ) (filter-clauses Env (env-clauses-for-predicate Env Predicate) Predicate))
-   (clause-proves Env Prove/Stacks + Clause Predicate EnvOutput)
+   (clause-proves Env Prove/Stacks Prove/Coinductive Clause Predicate EnvOutput)
    --------------- "prove-clause"
    (prove Env Prove/Stacks Predicate EnvOutput)
    ]

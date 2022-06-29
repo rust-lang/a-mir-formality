@@ -121,7 +121,7 @@
   ;; Since the logic layer doesn't know the syntax of predicates it
   ;; has to use the hook-callback to get this classification.
   (Goal/Categorization ::=
-                       user-predicate
+                       (user-predicate Prove/Coinductive)
                        builtin-predicate
                        builtin-relation
                        builtin-goal

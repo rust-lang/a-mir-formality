@@ -39,9 +39,9 @@
   ;; For predicate tests, we expect predicates to either be some kind of
   ;; fixed word (`p`), a word with inputs `(p Parameter ...)`, or
   ;; a word with inputs and outputs `(p Parameters -> Parameters)`.
-  [(logic:categorize-goal VarId) user-predicate]
-  [(logic:categorize-goal (VarId Parameters_in -> Parameters_out)) user-predicate]
-  [(logic:categorize-goal (VarId Parameter ...)) user-predicate]
+  [(logic:categorize-goal VarId) (user-predicate +)]
+  [(logic:categorize-goal (VarId Parameters_in -> Parameters_out)) (user-predicate +)]
+  [(logic:categorize-goal (VarId Parameter ...)) (user-predicate +)]
   )
 
 (define-metafunction formality-logic

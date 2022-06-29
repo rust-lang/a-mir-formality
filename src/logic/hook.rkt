@@ -103,7 +103,7 @@
 
   [(is-predicate? Env Goal)
    #t
-   (where user-predicate (categorize-goal Env Goal))
+   (where (user-predicate _) (categorize-goal Env Goal))
    ]
 
   [(is-predicate? Env Goal)
