@@ -26,7 +26,7 @@
      (term (impl ((type T)) (Iterator ((user-ty (tuple T))))
                  where ()
                  {
-                  (type Item () = (user-ty (Once T)) where ())
+                  (type Item () = (user-ty (Once < T >)) where ())
                   })))
 
     (; struct Once<T> { }
@@ -37,7 +37,7 @@
 
     (; impl<T> Copy for Once<T> where T: Copy { }
      TraitImplDecl_Copy_for_Once<T>
-     (term (impl[(type T)] (core:Copy[(user-ty (Once T))])
+     (term (impl[(type T)] (core:Copy[(user-ty (Once < T >))])
                 where [(T : core:Copy[])]
                 {})))
 
@@ -68,7 +68,7 @@
            (test-equal
             (term (decl:can-prove-goal CrateDecls C ((user-ty (< (tuple u32) as Iterator[] > :: Item[]))
                                                      ==
-                                                     (user-ty (Once u32)))))
+                                                     (user-ty (Once < u32 >)))))
             #t))
 
    (; Test that `<(u32,) as Iterator>::Item` implements `Copy`

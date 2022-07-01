@@ -26,7 +26,7 @@
                  (; Define a trait `AlwaysImpl` that is implemented for all types
                   ∀ ((type T)) (is-implemented (AlwaysImpl (T))))
                  (; normalizes-to `Item<Vec<T>>` to `T`
-                  ∀ ((type T)) (normalizes-to (item (Vec T)) T))
+                  ∀ ((type T)) (normalizes-to (item (Vec < T >)) T))
                  )
                 ()
                 ()
@@ -41,7 +41,7 @@
                    Env
                    ()
                    ()
-                   ((item (Vec i32))
+                   ((item (Vec < i32 >))
                     <=
                     (user-ty i32)
                     )
@@ -134,9 +134,9 @@
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    (((lifetime A) : (lifetime B)))
-                   ((item (Vec (& A ())))
+                   ((item (Vec < (& A ()) >))
                     <=
-                    (item (Vec (& B ())))
+                    (item (Vec < (& B ()) >))
                     )
                    )
                   )

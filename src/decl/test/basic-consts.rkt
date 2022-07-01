@@ -21,7 +21,7 @@
     formality-decl
     [
      (; const BROKEN<T>: Foo<T>;
-      ConstDecl_broken (term (const BROKEN ((type T)) where [] : (user-ty (Foo T)) = dummy-body)))
+      ConstDecl_broken (term (const BROKEN ((type T)) where [] : (user-ty (Foo < T >)) = dummy-body)))
      (CrateDecl (term (TheCrate (crate (TraitDecl AdtDecl_Foo ConstDecl_broken)))))
      ]
 
@@ -34,7 +34,7 @@
     formality-decl
     [
      (; const OK<T: Debug>: Foo<T>;
-      ConstDecl_ok (term (const OK ((type T)) where ((T : Debug[])) : (user-ty (Foo T)) = dummy-body)))
+      ConstDecl_ok (term (const OK ((type T)) where ((T : Debug[])) : (user-ty (Foo < T >)) = dummy-body)))
      (CrateDecl (term (TheCrate (crate (TraitDecl AdtDecl_Foo ConstDecl_ok)))))
      ]
 

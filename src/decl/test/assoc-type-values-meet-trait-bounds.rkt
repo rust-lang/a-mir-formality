@@ -37,7 +37,7 @@
 
     (; impl<T: Sized> Iterator for MyIter<T> { type Item = T; }
      TraitImplDecl_Iterator_for_MyIter<T>_where_T:Sized
-     (term (impl ((type T)) (Iterator ((user-ty (MyIter T))))
+     (term (impl ((type T)) (Iterator ((user-ty (MyIter < T >))))
                  where ((T : core:Sized[]))
                  {
                   (type Item () = T where ())
@@ -45,7 +45,7 @@
 
     (; impl<T: Sized> Iterator for MyIter<T> { type Item = T; }
      TraitImplDecl_Iterator_for_MyIter<T>_where_T:?Sized
-     (term (impl ((type T)) (Iterator ((user-ty (MyIter T))))
+     (term (impl ((type T)) (Iterator ((user-ty (MyIter < T >))))
                  where ()
                  {
                   (type Item () = T where ())

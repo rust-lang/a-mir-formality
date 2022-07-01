@@ -30,7 +30,7 @@
    (rigid-ty ScalarId ())
    ]
 
-  [(user-ty (AdtId UserParameter ...))
+  [(user-ty (AdtId < UserParameter ... >))
    (rigid-ty AdtId ((user-parameter UserParameter) ...))
    ]
 

@@ -25,7 +25,7 @@
    (traced '()
            (decl:test-can-prove Env (∀ ((lifetime x) (type A))
                                        (implies
-                                        ((well-formed (type (user-ty (Foo x A)))))
+                                        ((well-formed (type (user-ty (Foo < x A >)))))
                                         (A -outlives- x)))))
    )
   )

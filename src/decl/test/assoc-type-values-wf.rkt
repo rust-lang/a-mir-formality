@@ -34,7 +34,7 @@
      (term (impl ((type T)) (Iterator ((user-ty (tuple T))))
                  where ()
                  {
-                  (type Item () = (user-ty (MyIter T)) where ())
+                  (type Item () = (user-ty (MyIter < T >)) where ())
                   })))
 
     (; struct MyIter<T: Copy> { }

@@ -35,7 +35,7 @@
 
     (; impl<T> Iterator for Lend<T> { type Item<'a> = &'a T where T : 'a; }
      TraitImplDecl_LendingIterator_for_Lend<T>
-     (term (impl((type T)) (LendingIterator ((user-ty (Lend T))))
+     (term (impl((type T)) (LendingIterator ((user-ty (Lend < T >))))
                 where ()
                 {
                  (type Item ((lifetime a)) = (user-ty (& a T))

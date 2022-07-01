@@ -54,7 +54,7 @@
      AdtDecl_Bar (term (struct Bar
                          () ; no generic parameters
                          where () ; no where clauses
-                         ((Bar ((f (rigid-ty Foo ()))
+                         ((Bar ((f (user-ty (Foo < >)))
                                 ))) ; the 1 variant (named `Foo`)
                          )))
 

@@ -86,7 +86,7 @@
           (& Lt UserTy)
           (&mut Lt UserTy)
           ScalarId
-          (AdtId UserParameter ...)
+          (AdtId < UserParameter ... >)
           (fn UserTys -> UserTy)
           (< UserTy as TraitId UserParameters > :: AssociatedTyId UserParameters)
           VarId
