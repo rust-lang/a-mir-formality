@@ -19,7 +19,7 @@
      TraitDecl_Copy (term (trait rust:Copy ((type Self)) where () ())))
 
     (; impl rust:Copy for i32 { }
-     TraitImplDecl (term (impl () (rust:Copy ((user-ty i32))) where () ())))
+     TraitImplDecl (term (impl () rust:Copy () for i32 where () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (TraitDecl_Copy
@@ -59,7 +59,7 @@
                          )))
 
     (; impl rust:Copy for Bar { }
-     TraitImplDecl (term (impl () (rust:Copy ((rigid-ty Bar ()))) where () ())))
+     TraitImplDecl (term (impl () rust:Copy () for (Bar) where () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (TraitDecl_Copy
@@ -78,7 +78,7 @@
    (redex-let*
     formality-decl
     [(; impl rust:Copy for Foo { }
-      TraitImplDecl_Foo (term (impl () (rust:Copy ((rigid-ty Foo ()))) where () ())))
+      TraitImplDecl_Foo (term (impl () rust:Copy () for (Foo) where () ())))
 
      (; the crate has the struct, the trait, and the impl
       CrateDecl_Pass (term (TheCrate (crate [TraitDecl_Copy

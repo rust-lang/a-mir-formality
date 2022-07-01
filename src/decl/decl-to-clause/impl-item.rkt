@@ -4,6 +4,7 @@
          "../where-clauses.rkt"
          "../feature-gate.rkt"
          "../../logic/env.rkt"
+         "../../ty/user-ty.rkt"
          )
 (provide impl-item-decl-rules
          )
@@ -13,7 +14,7 @@
   ;;
   ;; * The clauses that hold in all crates due to this item
   ;; * The invariants that hold
-  impl-item-decl-rules : CrateDecls CrateId (impl KindedVarIds TraitRef where WhereClauses) ImplItem -> (Clauses Invariants)
+  impl-item-decl-rules : CrateDecls CrateId (impl KindedVarIds TraitId UserParameters for UserTy where WhereClauses) ImplItem -> (Clauses Invariants)
 
   [;; For a method declared in a trait: currently no logical rules are created.
    (impl-item-decl-rules CrateDecls CrateId _ FnDecl)
@@ -26,7 +27,7 @@
    ;; *
    (impl-item-decl-rules CrateDecls
                          CrateId
-                         (impl [KindedVarId_impl ...] (TraitId [Parameter_impl ...]) where WhereClauses_impl)
+                         (impl [KindedVarId_impl ...] TraitId (UserParameter_trait ...) for UserTy where WhereClauses_impl)
                          AssociatedTyValue)
    ([Clause_norm] [])
 
@@ -40,7 +41,8 @@
    (where/error [(_ VarId_trait) ...] KindedVarIds_trait)
 
    ; create the alias-ty being defined
-   (where/error AliasTy (alias-ty (TraitId AssociatedTyId) [Parameter_impl ... VarId_val ...]))
+   (where/error (Parameter_trait ...) ((user-ty UserTy) (user-parameter UserParameter_trait) ...))
+   (where/error AliasTy (alias-ty (TraitId AssociatedTyId) [Parameter_trait ... VarId_val ...]))
 
    (where/error Clause_norm
                 (∀ [KindedVarId_impl ... KindedVarId_val ...]

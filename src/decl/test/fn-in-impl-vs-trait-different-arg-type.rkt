@@ -21,7 +21,7 @@
     (; impl Get for () { fn get<T>(&self) where T: Debug; }
      ;                             ----- ERROR
      TraitImplDecl_Get
-     (term (impl[] (Get[(user-ty ())]) where []
+     (term (impl[] Get[] for () where []
                 {
                  (fn get[(type T) (lifetime l)]((user-ty (& l ()))) -> (user-ty ()) where [(T : Debug[])] {})
                  }))

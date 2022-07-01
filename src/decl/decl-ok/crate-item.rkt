@@ -5,6 +5,7 @@
          "../feature-gate.rkt"
          "../../logic/env.rkt"
          "../../logic/grammar.rkt"
+         "../../ty/user-ty.rkt"
          "trait-item.rkt"
          "impl-item.rkt"
          "wf-where-clause.rkt"
@@ -82,7 +83,7 @@
    ;;
    ;; we require that the trait is implemented, given that all generics are WF,
    ;; all inputs are WF, and where-clauses are satisfied.
-   (crate-item-ok-goal CrateDecls (impl KindedVarIds_impl (TraitId (Parameter_trait ...)) where WhereClauses_impl (ImplItem ...)))
+   (crate-item-ok-goal CrateDecls (impl KindedVarIds_impl TraitId (UserParameter_trait ...) for UserTy where WhereClauses_impl (ImplItem ...)))
    (∀ KindedVarIds_impl
       (implies
        (; assuming all generic parameters are WF...
@@ -97,11 +98,12 @@
             Goal_item ...
             ))))
 
+   (where/error (Parameter_trait ...) ((user-ty UserTy) (user-parameter UserParameter_trait) ...))
    (where/error (trait TraitId ((ParameterKind_trait _) ...) where _ _) (trait-with-id CrateDecls TraitId))
    (where/error (KindedVarId_impl ...) KindedVarIds_impl)
    (where/error (WhereClause_impl ...) WhereClauses_impl)
    (where/error (Goal_item ...) ((impl-item-ok-goal CrateDecls
-                                                    (TraitId (Parameter_trait ...))
+                                                    TraitId (UserTy UserParameter_trait ...)
                                                     ImplItem) ...))
    ]
 

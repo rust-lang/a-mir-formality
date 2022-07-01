@@ -49,7 +49,7 @@
 
    ; requirements for bound (`Sized`) to be wf:
    (where/error AliasTy (alias-ty (TraitId AssociatedTyId) (VarId_trait ... VarId ...)))
-   (where/error (WhereClause_bound ...) (instantiate-bounds-clause BoundsClause AliasTy))
+   (where/error (WhereClause_bound ...) (instantiate-bounds-clause BoundsClause (internal AliasTy)))
    (where/error (Goal_bound-wf ...) ((well-formed-where-clause-goal CrateDecls WhereClause_bound) ...))
    ]
   )

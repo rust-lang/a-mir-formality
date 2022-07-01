@@ -19,7 +19,7 @@
      CrateDecl_A (redex-let*
                   formality-decl
                   ((TraitDecl (term (trait Debug ((type Self)) where () {})))
-                   (TraitImplDecl (term (impl () (Debug ((user-ty i32))) where () {})))
+                   (TraitImplDecl (term (impl () Debug () for i32 where () {})))
                    )
                   (term (CrateA (crate (TraitDecl TraitImplDecl))))))
 
@@ -37,7 +37,7 @@
                                  formality-decl
                                  ((TraitDecl_WithDebug (term (trait WithDebug ((type Self) (type T)) where ((T : Debug())) {})))
                                   (AdtDecl_Foo (term (struct Foo ((type T)) where ((T : Debug())) ((Foo ())))))
-                                  (TraitImplDecl (term (impl ((type T)) (WithDebug ((rigid-ty Foo (T)) T)) where () ())))
+                                  (TraitImplDecl (term (impl ((type T)) WithDebug (T) for (Foo T) where () ())))
                                   ((CrateItemDecl_B ...) (term (TraitDecl_WithDebug AdtDecl_Foo TraitImplDecl)))
                                   )
                                  (term ((CrateB (crate (CrateItemDecl_B ...)))

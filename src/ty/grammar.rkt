@@ -85,9 +85,11 @@
           ScalarId
           (AdtId UserParameter ...)
           (fn UserTys -> UserTy)
-          (< UserTy as TraitId UserParameters > :: AssociatedTyId UserParameters)
+          UserAliasTy
+          (internal Ty) ; this can be removed once only UserTys occur in decls
           VarId
           )
+  (UserAliasTy ::= (< UserTy as TraitId UserParameters > :: AssociatedTyId UserParameters))
   (UserParameters ::= (UserParameter ...))
   (UserParameter ::= UserTy Lt)
 

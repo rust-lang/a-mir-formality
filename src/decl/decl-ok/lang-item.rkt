@@ -4,6 +4,7 @@
          "../where-clauses.rkt"
          "../feature-gate.rkt"
          "../../logic/env.rkt"
+         "../../ty/user-ty.rkt"
          )
 (provide lang-item-ok-goals
          )
@@ -38,7 +39,7 @@
    ;
    ; when this goal is given to the solver, it would be rejected because `T: Eq` is not provable
    ; (we only know that `T: Debug`).
-   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (Ty_impl)) where (WhereClause_impl ...) _))
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl rust:Drop () for UserTy_impl where (WhereClause_impl ...) _))
    ((∀ KindedVarIds_adt
        (implies (where-clauses->hypotheses CrateDecls WhereClauses_adt)
                 (∃ KindedVarIds_impl
@@ -47,14 +48,14 @@
                         ))
                    ))))
 
-   (where (rigid-ty AdtId Parameters) Ty_impl)
+   (where (rigid-ty AdtId Parameters) (user-ty UserTy_impl))
    (where (AdtKind AdtId KindedVarIds_adt where WhereClauses_adt _) (adt-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
    (where/error Ty_adt (rigid-ty AdtId (VarId_adt ...)))
    ]
 
   [; Impl of the Drop trait for something that is not an ADT -- always an error.
-   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Drop (_ ...)) where WhereClauses_impl _))
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl rust:Drop () for _ where WhereClauses_impl _))
    ((|| ())) ; unprovable goal
    ]
 
@@ -79,7 +80,7 @@
    ;          (is-implemented (Vec<T>: Copy)))
    ;
    ; of course, in this case, it is not provable because `Vec<T>: Copy` is not true for any `T`.
-   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (rust:Copy (Ty_impl)) where (WhereClause_impl ...) ()))
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl rust:Copy () for UserTy_impl where (WhereClause_impl ...) ()))
    ((∀ KindedVarIds_impl
        (implies ((where-clause->hypothesis CrateDecls WhereClause_impl) ...)
                 (∃ KindedVarIds_adt
@@ -88,7 +89,7 @@
                         )
                        )))))
 
-   (where (rigid-ty AdtId Parameters) Ty_impl)
+   (where (rigid-ty AdtId Parameters) (user-ty Ty_impl))
    (where (AdtKind AdtId KindedVarIds_adt where _ AdtVariants) (adt-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
    (where/error Ty_adt (rigid-ty AdtId (VarId_adt ...)))

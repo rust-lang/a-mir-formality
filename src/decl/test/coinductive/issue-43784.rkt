@@ -23,13 +23,13 @@
      TraitDecl_Complete (term (trait Complete ((type Self)) where ((Self : Partial())) ())))
 
     (; impl<T> Partial for T where T: Complete {}
-     TraitImplDecl_Partial (term (impl ((type T)) (Partial (T)) where ((T : Complete())) ())))
+     TraitImplDecl_Partial (term (impl ((type T)) Partial () for T where ((T : Complete())) ())))
 
     (; impl<T> Complete for T {}
-     TraitImplDecl_CompleteA (term (impl ((type T)) (Complete (T)) where () ())))
+     TraitImplDecl_CompleteA (term (impl ((type T)) Complete () for T where () ())))
 
     (; impl<T: Partial> Complete for T {}
-     TraitImplDecl_CompleteB (term (impl ((type T)) (Complete (T)) where ((T : Partial())) ())))
+     TraitImplDecl_CompleteB (term (impl ((type T)) Complete () for T where ((T : Partial())) ())))
 
     (; crate A { ... }
      CrateDecl_A (term (A (crate (AdtDecl_Foo

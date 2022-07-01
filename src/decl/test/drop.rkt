@@ -19,7 +19,7 @@
      TraitDecl_Drop (term (trait rust:Drop ((type Self)) where () ())))
 
     (; impl rust:Drop for i32 { }
-     TraitImplDecl (term (impl () (rust:Drop ((user-ty i32))) where () ())))
+     TraitImplDecl (term (impl () rust:Drop () for i32 where () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (TraitDecl_Drop
@@ -51,7 +51,7 @@
      TraitDecl_Drop (term (trait rust:Drop ((type Self)) where () ())))
 
     (; impl rust:Drop for Foo<i32> { } //~ ERROR
-     TraitImplDecl (term (impl () (rust:Drop ((rigid-ty Foo ((user-ty i32))))) where () ())))
+     TraitImplDecl (term (impl () rust:Drop () for (Foo i32) where () ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo
@@ -88,7 +88,7 @@
      TraitDecl_Drop (term (trait rust:Drop ((type Self)) where () ())))
 
     (; impl<U> rust:Drop for Foo<U> where U: Debug { } //~ ERROR
-     TraitImplDecl (term (impl ((type U)) (rust:Drop ((rigid-ty Foo (U)))) where ((U : Debug())) ())))
+     TraitImplDecl (term (impl ((type U)) rust:Drop () for (Foo U) where ((U : Debug())) ())))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo
@@ -117,7 +117,7 @@
      TraitDecl_Drop (term (trait rust:Drop ((type Self)) where () {})))
 
     (; impl<U> rust:Drop for Foo<U> { }
-     TraitImplDecl (term (impl ((type U)) (rust:Drop ((rigid-ty Foo (U)))) where () {})))
+     TraitImplDecl (term (impl ((type U)) rust:Drop () for (Foo U) where () {})))
 
     (; the crate has the struct, the trait, and the impl
      CrateDecl (term (TheCrate (crate (AdtDecl_Foo
@@ -159,7 +159,7 @@
 
     (; impl<U> rust:Drop for Foo<U> where T: Ord + Eq { }
      TraitImplDecl (term (impl ((type U))
-                               (rust:Drop ((rigid-ty Foo (U))))
+                               rust:Drop () for (Foo U)
                                where ((U : Ord())
                                       (U : Eq())
                                       )

@@ -16,7 +16,7 @@
     (AdtDecl_StructA (term (struct StructA[] where [] [(StructA {})])))
 
     ; the various impls one might write
-    (TraitImplDecl_AforA (term (impl[] (TraitA[(user-ty (StructA))]) where [] {})))
+    (TraitImplDecl_AforA (term (impl[] TraitA[] for (StructA) where [] {})))
     ]
 
    (; both trait/struct in same crate

@@ -81,7 +81,7 @@
   ;; Trait impls
   ;;
   ;; Note that trait impls do not have names.
-  (TraitImplDecl ::= (impl KindedVarIds TraitRef where WhereClauses ImplItems))
+  (TraitImplDecl ::= (impl KindedVarIds TraitId UserParameters for UserTy where WhereClauses ImplItems))
 
   ;; Named statics
   (StaticDecl ::= (static StaticId KindedVarIds where WhereClauses : Ty = FnBody))
@@ -111,9 +111,10 @@
                )
   (WhereClauseAtoms ::= (WhereClauseAtom ...))
   (WhereClauseAtom ::=
-                   (Ty : TraitId Parameters) ; T: Debug
-                   (Parameter : Lt) ; T: 'a
-                   (AliasTy == Ty) ; <T as Iterator>::Item == u32
+                   (UserTy : TraitId UserParameters) ; T: Debug
+                   (UserTy : Lt) ; T: 'a
+                   (Lt >= Lt) ; a': 'b
+                   (UserAliasTy == UserTy) ; <T as Iterator>::Item == u32
                    )
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
@@ -137,7 +138,8 @@
          where WhereClauses #:refers-to (shadow VarId ...)
          TraitItems #:refers-to (shadow VarId ...))
   (impl ((ParameterKind VarId) ...)
-        TraitRef #:refers-to (shadow VarId ...)
+        TraitId UserParameters #:refers-to (shadow VarId ...)
+        for UserTy #:refers-to (shadow VarId ...)
         where WhereClauses #:refers-to (shadow VarId ...)
         ImplItems #:refers-to (shadow VarId ...))
   (const ConstId
@@ -235,9 +237,9 @@
 (define-metafunction formality-decl
   ;; Given a bound like `: Sized`, 'instantiates' to apply to a given type `T`,
   ;; yielding a where clause like `T: Sized`.
-  instantiate-bounds-clause : BoundsClause Parameter -> WhereClauses
+  instantiate-bounds-clause : BoundsClause UserParameter -> WhereClauses
 
-  [(instantiate-bounds-clause (: (ParameterKind VarId) WhereClauses) Parameter)
-   (apply-substitution ((VarId Parameter)) WhereClauses)
+  [(instantiate-bounds-clause (: (ParameterKind VarId) WhereClauses) UserParameter)
+   (apply-substitution ((VarId UserParameter)) WhereClauses)
    ]
   )

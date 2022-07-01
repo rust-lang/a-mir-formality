@@ -51,7 +51,7 @@
    ;; (is-implemented Sized ((alias-ty (Iterator Item) (T)))) :-
    ;;     (well-formed (alias-ty (Iterator Item) (T)))
    ;; ```
-   (where/error [Clause_if-wf ...] (where-clauses->hypotheses CrateDecls (instantiate-bounds-clause BoundsClause_i AliasTy)))
+   (where/error [Clause_if-wf ...] (where-clauses->hypotheses CrateDecls (instantiate-bounds-clause BoundsClause_i (internal AliasTy))))
    (where/error [Invariant_bound ...] [(∀ (KindedVarId_t ... KindedVarId_i ...)
                                           (implies ((well-formed (type AliasTy))) Clause_if-wf)) ...])
 

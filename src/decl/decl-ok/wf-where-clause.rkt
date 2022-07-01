@@ -3,6 +3,7 @@
          "../grammar.rkt"
          "../where-clauses.rkt"
          "../../logic/substitution.rkt"
+         "../../ty/user-ty.rkt"
          )
 (provide well-formed-where-clause-goal
          )
@@ -16,12 +17,15 @@
    ]
 
   [; well-formedness for a goal like `T: a`
-   ;
-   ; FIXME -- the syntax of where clauses needs to be changed to give an
-   ; explicit parameter kind for Ty
-   (well-formed-where-clause-goal CrateDecls (Ty : Lt))
-   (&& [(well-formed (type Ty))
+   (well-formed-where-clause-goal CrateDecls (UserTy : Lt))
+   (&& [(well-formed (type (user-ty UserTy)))
         (well-formed (lifetime Lt))])
+   ]
+
+  [; well-formedness for a goal like `a: b`
+   (well-formed-where-clause-goal CrateDecls (Lt_a >= Lt_b))
+   (&& [(well-formed (lifetime Lt_a))
+        (well-formed (lifetime Lt_b))])
    ]
 
   [; well-formedness for a goal like `A: Foo<B>` where
@@ -38,7 +42,7 @@
    ;
    ; Tricky example. If you have `X: Foo` where `trait Foo where Self: Foo` you would get
    ; `((well-formed (type X)) (is-implemented (Foo (X))))`.
-   (well-formed-where-clause-goal CrateDecls (Ty : TraitId (Parameter ...)))
+   (well-formed-where-clause-goal CrateDecls (UserTy : TraitId (UserParameter ...)))
    (&& ((well-formed (ParameterKind Parameter_value)) ...
         (where-clause->goal CrateDecls WhereClause_substituted) ...)
        )
@@ -50,15 +54,14 @@
    (where/error (trait TraitId ((ParameterKind VarId) ...) where WhereClauses _) (trait-with-id CrateDecls TraitId))
 
    ; create a substitution ((Self => A) (T => B))
-   (where/error (Parameter_value ...) (Ty Parameter ...))
-   (where/error Substitution ((VarId Parameter_value) ...))
+   (where/error (UserParameter_value ...) (UserTy UserParameter ...))
+   (where/error Substitution ((VarId UserParameter_value) ...))
    (where/error (WhereClause_substituted ...) (apply-substitution Substitution WhereClauses))
    ]
 
-  [(well-formed-where-clause-goal CrateDecls (AliasTy == Ty))
-   ; fixme: we need to modify outlives to include a `ParameterKind`
-   (&& ((well-formed (type AliasTy))
-        (well-formed (type Ty))))
+  [(well-formed-where-clause-goal CrateDecls (UserAliasTy == UserTy))
+   (&& ((well-formed (type (user-ty UserAliasTy)))
+        (well-formed (type (user-ty UserTy)))))
    ]
 
 

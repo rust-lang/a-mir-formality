@@ -18,8 +18,8 @@
      (TraitDecl_Copy (term (trait rust:Copy ((type Self)) where () {})))
      (TraitDecl_Drop (term (trait rust:Drop ((type Self)) where () {})))
 
-     (TraitImplDecl_Copy_for_u32 (term (impl[] (rust:Copy[(user-ty u32)]) where [] {})))
-     (TraitImplDecl_Copy_for_i32 (term (impl[] (rust:Copy[(user-ty i32)]) where [] {})))
+     (TraitImplDecl_Copy_for_u32 (term (impl[] rust:Copy[] for u32 where [] {})))
+     (TraitImplDecl_Copy_for_i32 (term (impl[] rust:Copy[] for i32 where [] {})))
 
      (CrateDecl_core (term (core (crate [
                                          TraitDecl_Sized

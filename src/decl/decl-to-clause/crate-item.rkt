@@ -4,6 +4,7 @@
          "../where-clauses.rkt"
          "../feature-gate.rkt"
          "../../logic/env.rkt"
+         "../../ty/user-ty.rkt"
          "trait-item.rkt"
          "impl-item.rkt"
          )
@@ -156,13 +157,13 @@
    ;;             (is-implemented (Ord T))
    ;;             (well-formed (type i32))
    ;;             (well-formed (lifetime 'a))
-   (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitRef where WhereClauses_impl [ImplItem ...]))
+   (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitId (UserParameter_trait ...) for UserTy where WhereClauses_impl [ImplItem ...]))
    ((flatten ([Clause]
               Clauses_item ...))
     (flatten (Invariants_item ...))
     )
 
-   (where/error (TraitId (Parameter_trait ...)) TraitRef)
+   (where/error (Parameter_trait ...) ((user-ty UserTy) (user-parameter UserParameter_trait) ...))
    (where/error (trait TraitId KindedVarIds_trait where _ _) (trait-with-id CrateDecls TraitId))
    (where/error ((ParameterKind_trait _) ...) KindedVarIds_trait)
    (where/error (Goal_wc ...) (where-clauses->goals CrateDecls WhereClauses_impl))
@@ -175,7 +176,7 @@
    (where/error [(Clauses_item Invariants_item) ...]
                 [(impl-item-decl-rules CrateDecls
                                        CrateId
-                                       (impl KindedVarIds_impl TraitRef where WhereClauses_impl)
+                                       (impl KindedVarIds_impl TraitId (UserParameter_trait ...) for UserTy where WhereClauses_impl)
                                        ImplItem) ...])
    ]
 
@@ -223,14 +224,14 @@
   filter-super-where-clauses : KindedVarIds WhereClause -> WhereClauses
 
   (; Keep `Self: Trait` bounds
-   (filter-super-where-clauses KindedVarIds (VarId_Self : TraitId Parameters))
-   ((VarId_Self : TraitId Parameters))
+   (filter-super-where-clauses KindedVarIds (VarId_Self : TraitId UserParameters))
+   ((VarId_Self : TraitId UserParameters))
    (where ((type VarId_Self) _ ...) KindedVarIds)
    )
 
   (; Keep `Self: 'a` bounds
-   (filter-super-where-clauses KindedVarIds (VarId_Self : Parameter))
-   ((VarId_Self : Parameter))
+   (filter-super-where-clauses KindedVarIds (VarId_Self : Lt))
+   ((VarId_Self : Lt))
    (where ((type VarId_Self) _ ...) KindedVarIds)
    )
 
@@ -253,9 +254,14 @@
 (define-metafunction formality-decl
   filter-outlives-where-clause : WhereClause -> WhereClauses
 
-  (; Keep `Self: 'a` bounds
-   (filter-outlives-where-clause (Parameter_1 : Parameter_2))
-   ((Parameter_1 : Parameter_2))
+  (; Keep `T: 'a` bounds
+   (filter-outlives-where-clause (UserType : Lt))
+   ((UserType : Lt))
+   )
+
+  (; Keep `a': 'b` bounds
+   (filter-outlives-where-clause (Lt_a >= Lt_b))
+   ((Lt_a >= Lt_b))
    )
 
   (; Discard others

@@ -15,7 +15,7 @@
    formality-decl
 
    ((TraitDecl (term (trait Debug ((type Self)) where () {})))
-    (TraitImplDecl (term (impl () (Debug ((user-ty i32))) where () {})))
+    (TraitImplDecl (term (impl () Debug () for i32 where () {})))
     (CrateDecl (term (TheCrate (crate (TraitDecl TraitImplDecl)))))
     )
 

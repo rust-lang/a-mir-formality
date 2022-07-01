@@ -8,6 +8,7 @@
          "../decl/decl-ok.rkt"
          "../decl/decl-to-clause.rkt"
          "../decl/grammar.rkt"
+         "../ty/user-ty.rkt"
          "../logic/instantiate.rkt"
          "prove-goal.rkt"
          )
@@ -23,13 +24,13 @@
   #:contract (✅-OrphanRules DeclProgram TraitImplDecl)
 
   [(where/error (CrateDecls CrateId) DeclProgram)
-   (where/error (impl _ (TraitId _) where _ _) TraitImplDecl)
+   (where/error (impl _ TraitId _ for _ where _ _) TraitImplDecl)
    (where CrateId (crate-defining-trait-with-id CrateDecls TraitId))
    ------------------------------- "orphan--trait-is-in-current-crate"
    (✅-OrphanRules DeclProgram TraitImplDecl)]
 
-  [(where/error (impl KindedVarIds (_ (Parameter_self Parameter_other ...)) where WhereClauses _) TraitImplDecl)
-   (is-local-parameter DeclProgram Parameter_self)
+  [(where/error (impl KindedVarIds _ _ for UserTy_self where WhereClauses _) TraitImplDecl)
+   (is-local-parameter DeclProgram (user-ty UserTy_self))
    ------------------------------- "orphan--self-is-local"
    (✅-OrphanRules DeclProgram TraitImplDecl)]
 

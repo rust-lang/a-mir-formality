@@ -1,6 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
+         "../ty/user-ty.rkt"
          )
 (provide where-clause->goal
          where-clauses->goals
@@ -57,16 +58,20 @@
    (∀ KindedVarIds (where-clause->goal∧clause WhereClause))
    ]
 
-  [(where-clause->goal∧clause (Ty_self : TraitId (Parameter ...)))
-   (is-implemented (TraitId (Ty_self Parameter ...)))
+  [(where-clause->goal∧clause (UserTy_self : TraitId (UserParameter ...)))
+   (is-implemented (TraitId ((user-ty UserTy_self) (user-parameter UserParameter) ...)))
    ]
 
-  [(where-clause->goal∧clause (AliasTy == Ty))
-   (normalizes-to AliasTy Ty)
+  [(where-clause->goal∧clause (UserAliasTy == UserTy))
+   (normalizes-to (user-ty UserAliasTy) (user-ty UserTy))
    ]
 
-  [(where-clause->goal∧clause (Parameter_a : Parameter_b))
-   (Parameter_a -outlives- Parameter_b)
+  [(where-clause->goal∧clause (UserTy : Lt))
+   ((user-ty UserTy) -outlives- Lt)
+   ]
+
+  [(where-clause->goal∧clause (Lt_a >= Lt_b))
+   (Lt_a -outlives- Lt_b)
    ]
 
   )

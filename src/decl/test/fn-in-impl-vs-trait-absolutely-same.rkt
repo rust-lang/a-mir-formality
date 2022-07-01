@@ -19,7 +19,7 @@
      )
     (; impl Get for () { fn get<T>(&mut self) where T: Debug; }
      TraitImplDecl_Get
-     (term (impl[] (Get[(user-ty ())]) where []
+     (term (impl[] Get[] for () where []
                 {
                  (fn get[(type T) (lifetime l)]((user-ty (&mut l ()))) -> (user-ty ()) where [(T : Debug[])] {})
                  }))

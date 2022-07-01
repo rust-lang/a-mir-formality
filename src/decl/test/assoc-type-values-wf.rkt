@@ -31,7 +31,7 @@
 
     (; impl<T> Iterator for (T,) { type Item = MyIter<T>; }
      TraitImplDecl_Iterator_for_MyIter<T>_where_T:?Copy
-     (term (impl ((type T)) (Iterator ((user-ty (tuple T))))
+     (term (impl ((type T)) Iterator () for (tuple T)
                  where ()
                  {
                   (type Item () = (user-ty (MyIter T)) where ())

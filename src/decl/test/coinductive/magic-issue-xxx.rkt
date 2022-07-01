@@ -26,7 +26,7 @@
      TraitDecl_Copy (term (trait Copy ((type Self)) where () ())))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) where ((T : Magic())) ())))
+     TraitImplDecl_Magic (term (impl ((type T)) Magic () for T where ((T : Magic())) ())))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
@@ -73,7 +73,7 @@
      TraitDecl_Copy (term (trait Copy ((type Self)) where ((Self : Magic())) {})))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) where ((T : Magic())) {})))
+     TraitImplDecl_Magic (term (impl ((type T)) Magic () for T where ((T : Magic())) {})))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
@@ -125,10 +125,10 @@
      TraitDecl_Copy (term (trait Copy ((type Self)) where () {})))
 
     (; impl<T> Magic for T where T: Magic { }
-     TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) where ((T : Magic())) {})))
+     TraitImplDecl_Magic (term (impl ((type T)) Magic () for T where ((T : Magic())) {})))
 
     (; impl Copy for Foo { }
-     TraitImplDecl_Copy (term (impl () (Copy (Ty_Foo)) where () {})))
+     TraitImplDecl_Copy (term (impl () Copy () for (Foo) where () {})))
 
     (; crate TheCrate { ... }
      CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))

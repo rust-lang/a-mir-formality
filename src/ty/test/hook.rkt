@@ -9,6 +9,7 @@
          "../relate.rkt"
          "../scheme.rkt"
          "../predicate.rkt"
+         "../user-ty.rkt"
          "../where-clauses-from-env.rkt"
          )
 (provide env-with-clauses-invariants-and-generics
@@ -105,16 +106,20 @@
    (∀ KindedVarIds (where-clause->goal∧clause WhereClause))
    ]
 
-  [(where-clause->goal∧clause-mock (Ty_self : TraitId (Parameter ...)))
-   (is-implemented (TraitId (Ty_self Parameter ...)))
+  [(where-clause->goal∧clause-mock (UserTy_self : TraitId (UserParameter ...)))
+   (is-implemented (TraitId ((user-ty UserTy_self) (user-parameter UserParameter) ...)))
    ]
 
-  [(where-clause->goal∧clause-mock (AliasTy == Ty))
-   (normalizes-to AliasTy Ty)
+  [(where-clause->goal∧clause-mock (UserAliasTy == UserTy))
+   (normalizes-to (user-ty UserAliasTy) (user-ty UserTy))
    ]
 
-  [(where-clause->goal∧clause-mock (Parameter_a : Parameter_b))
-   (Parameter_a -outlives- Parameter_b)
+  [(where-clause->goal∧clause-mock (UserTy : Lt))
+   ((user-ty UserTy) -outlives- Lt)
+   ]
+
+  [(where-clause->goal∧clause-mock (Lt_a >= Lt_b))
+   (Lt_a -outlives- Lt_b)
    ]
 
   )

@@ -50,6 +50,8 @@
   [(user-ty (for KindedVarIds UserTy))
    (∀ KindedVarIds (user-ty UserTy))
    ]
+
+  [(user-ty (internal Ty)) Ty]
   )
 
 (define-metafunction formality-ty

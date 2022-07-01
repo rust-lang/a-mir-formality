@@ -3,6 +3,7 @@
          "../../logic/grammar.rkt"
          "../../logic/env.rkt"
          "../../logic/substitution.rkt"
+         "../../ty/user-ty.rkt"
          "../grammar.rkt"
          "../where-clauses.rkt"
          "../feature-gate.rkt"
@@ -20,13 +21,12 @@
   ;;
   ;; The Goal expects to be proven in the context of the impl, meaning that the impl where-clauses
   ;; are assumed to hold, and that the inputs to the impl are well-formed.
-  impl-item-ok-goal : CrateDecls TraitRef_impl ImplItem -> Goal
+  impl-item-ok-goal : CrateDecls TraitId UserParameters ImplItem -> Goal
 
-  [(impl-item-ok-goal CrateDecls TraitRef_impl FnDecl)
+  [(impl-item-ok-goal CrateDecls TraitId (UserParameter_trait ...) FnDecl)
    Goal_implies
 
    ; unpack things
-   (where/error (TraitId (Parameter_trait ...)) TraitRef_impl)
    (where/error (fn FnId (KindedVarId ...) (Ty_arg ...) -> Ty_ret where [WhereClause ...] _) FnDecl)
 
    ; find the declaration of this associated type
@@ -47,7 +47,8 @@
                 )
 
    ; create a substitution from the variables in the impl to the trait
-   (where/error Substitution_trait->impl ((VarId_trait Parameter_trait) ... (VarId_trait-fn VarId) ...))
+   (where/error Substitution_trait->impl-user ((VarId_trait UserParameter_trait) ... (VarId_trait-fn VarId) ...))
+   (where/error Substitution_trait->impl ((VarId_trait (user-parameter UserParameter_trait)) ... (VarId_trait-fn VarId) ...))
 
    ; validate that, for all values of the impl-fn's type parameters...
    ;
@@ -59,7 +60,7 @@
    (where/error Goal_implies
                 (∀ [KindedVarId ...]
                    (implies
-                    (where-clauses->hypotheses CrateDecls (apply-substitution Substitution_trait->impl WhereClauses_trait-fn))
+                    (where-clauses->hypotheses CrateDecls (apply-substitution Substitution_trait->impl-user WhereClauses_trait-fn))
                     (&& [(Ty_trait-fn-arg-s <= Ty_arg) ... ; (a)
                          (Ty_ret <= Ty_trait-fn-ret-s) ; (b)
                          (where-clause->goal CrateDecls WhereClause) ... ; (c)
@@ -89,7 +90,7 @@
    ; Note that the where-clauses from the enclosing impl (along with the generics on that impl)
    ; are declared by our caller, `crate-item-ok-goal`.
 
-   (impl-item-ok-goal CrateDecls TraitRef_impl AssociatedTyValue)
+   (impl-item-ok-goal CrateDecls TraitId (UserParameter_trait ...) AssociatedTyValue)
    (∀ (KindedVarId ...)
       (implies [(well-formed KindedVarId) ...]
                (&& [Goal_ty-wf-and-meets-bounds ; (a) and (b)
@@ -99,7 +100,6 @@
       )
 
    ; unpack things
-   (where/error (TraitId (Parameter_trait ...)) TraitRef_impl)
    (where/error (type AssociatedTyId (KindedVarId ...) = Ty where WhereClauses) AssociatedTyValue)
 
    ; find the declaration of this associated type
@@ -113,10 +113,10 @@
                 )
 
    ; create a substitution from the variables in the impl to the trait
-   (where/error Substitution_trait->impl ((VarId_trait Parameter_trait) ... (VarId_trait-ty VarId) ...))
+   (where/error Substitution_trait->impl ((VarId_trait UserParameter_trait) ... (VarId_trait-ty VarId) ...))
 
    ; goals to check that `Ty` meets the bounds declared in trait
-   (where/error WhereClauses_bty (instantiate-bounds-clause BoundsClause_trait-ty Ty))
+   (where/error WhereClauses_bty (instantiate-bounds-clause BoundsClause_trait-ty (internal Ty)))
    (where/error (Goal_bty ...) (where-clauses->goals CrateDecls WhereClauses_bty))
 
    ; goals (a) and (b) -- the type `Ty` meets its bounds and is well-formed,

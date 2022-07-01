@@ -23,7 +23,7 @@
 
     (; impl<T> Iterator for (T,) { type Item = Once; }
      TraitImplDecl_Iterator_for_Once<T>
-     (term (impl ((type T)) (Iterator ((user-ty (tuple T))))
+     (term (impl ((type T)) Iterator () for (tuple T)
                  where ()
                  {
                   (type Item () = (user-ty (Once T)) where ())
@@ -37,7 +37,7 @@
 
     (; impl<T> Copy for Once<T> where T: Copy { }
      TraitImplDecl_Copy_for_Once<T>
-     (term (impl[(type T)] (rust:Copy[(user-ty (Once T))])
+     (term (impl[(type T)] rust:Copy[] for (Once T)
                 where [(T : rust:Copy[])]
                 {})))
 
