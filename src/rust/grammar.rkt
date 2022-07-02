@@ -16,10 +16,36 @@
   (Rust/CrateItemDecl ::=
                       Rust/FeatureDecl
                       Rust/AdtDecl
+                      Rust/TraitDecl
+                      Rust/TraitImplDecl
+                      Rust/StaticDecl
+                      Rust/ConstDecl
                       )
 
   ;; FeatureDecl -- indicates a feature gate is enabled on this crate
   (Rust/FeatureDecl ::= (feature FeatureId))
+
+  ;; TraitDecl -- trait declaration
+  ;;
+  ;; In this layer, the `(type Self)` parameter is NOT explicitly written.
+  (Rust/TraitDecl ::= (trait TraitId KindedVarIds where Rust/WhereClauses Rust/TraitItems))
+
+  ;; Trait item(s)
+  (Rust/TraitItems ::= { Rust/TraitItem ... })
+  (Rust/TraitItem ::= dummy)
+
+  ;; TraitImplDecl -- an impl of a trait for a type
+  (Rust/TraitImplDecl ::= (impl KindedVarIds TraitId UserParameters for UserTy where Rust/WhereClauses Rust/ImplItems))
+
+  ;; Impl item(s)
+  (Rust/ImplItems ::= { Rust/ImplItem ... })
+  (Rust/ImplItem ::= dummy)
+
+  ;; Named statics
+  (Rust/StaticDecl ::= (static StaticId KindedVarIds where Rust/WhereClauses : Rust/Ty = FnBody))
+
+  ;; Named constants
+  (Rust/ConstDecl ::= (const ConstId KindedVarIds where Rust/WhereClauses : Rust/Ty = FnBody))
 
   ;; AdtDecl -- struct/enum/union declarations
   (Rust/AdtDecl ::= Rust/StructDecl Rust/EnumDecl)
@@ -50,6 +76,9 @@
                         (; <T as Iterator<'a>>::Item<'a> = u32
                          < UserTy as TraitId UserParameters > :: AssociatedTyId UserParameters = UserTy)
                         )
+
+  ; FIXME: Unify these
+  (Rust/Ty ::= UserTy)
 
   ;; Fn bodies are not defined in this layer.
   (FnBody ::= Term)

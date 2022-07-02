@@ -39,6 +39,27 @@
 
    (where [(VariantId [Rust/FieldDecl ...]) ...] Rust/AdtVariants)
    ]
+
+  [(rust→decl/CrateItemDecl (trait TraitId [KindedVarId ...]
+                                   where [Rust/WhereClause ...]
+                                   { Rust/TraitItem ... }))
+   (trait TraitId [(type Self) KindedVarId ...]
+          where [(rust→decl/WhereClause Rust/WhereClause) ...]
+          { (rust→decl/TraitItem Rust/TraitItem) ... })]
+
+  [(rust→decl/CrateItemDecl (impl KindedVarIds TraitId[UserParameter ...] for UserTy
+                                  where [Rust/WhereClause ...]
+                                  { Rust/ImplItem ... }))
+   (impl KindedVarIds (TraitId [(user-ty UserTy) (user-parameter UserParameter) ...])
+         where [(rust→decl/WhereClause Rust/WhereClause) ...]
+         { (rust→decl/ImplItem Rust/ImplItem) ... })]
+
+  [(rust→decl/CrateItemDecl (static StaticId KindedVarIds where [Rust/WhereClause ...] : Rust/Ty = FnBody))
+   (static StaticId KindedVarIds where [(rust→decl/WhereClause Rust/WhereClause) ...] : (user-ty Rust/Ty) = FnBody)]
+
+  [(rust→decl/CrateItemDecl (const ConstId KindedVarIds where [Rust/WhereClause ...] : Rust/Ty = FnBody))
+   (const ConstId KindedVarIds where [(rust→decl/WhereClause Rust/WhereClause) ...] : (user-ty Rust/Ty) = FnBody)]
+
   )
 
 (define-metafunction formality-rust
