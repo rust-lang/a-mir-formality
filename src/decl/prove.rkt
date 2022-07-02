@@ -59,8 +59,8 @@
 
   [(decl:is-crate-ok CrateDecls CrateId)
    (decl:can-prove-goal CrateDecls CrateId Goal_ok)
-   (where/error [_ ... (CrateId CrateContents) _ ...] CrateDecls)
-   (where/error Goal_ok (crate-ok-goal CrateDecls (CrateId CrateContents)))
+   (where/error [_ ... (crate CrateId CrateItemDecls) _ ...] CrateDecls)
+   (where/error Goal_ok (crate-ok-goal CrateDecls (crate CrateId CrateItemDecls)))
    ]
 
   )

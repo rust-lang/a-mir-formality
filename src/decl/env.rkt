@@ -21,7 +21,7 @@
 
   [(env-for-crate-decl CrateDecl)
    (env-for-crate-decls (CrateDecl) CrateId)
-   (where/error (CrateId CrateContents) CrateDecl)
+   (where/error (crate CrateId _) CrateDecl)
    ]
   )
 

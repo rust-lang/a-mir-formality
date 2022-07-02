@@ -21,15 +21,14 @@
      (TraitImplDecl_Copy_for_u32 (term (impl[] (core:Copy[(user-ty u32)]) where [] {})))
      (TraitImplDecl_Copy_for_i32 (term (impl[] (core:Copy[(user-ty i32)]) where [] {})))
 
-     (CrateDecl_core (term (core (crate [
-                                         TraitDecl_Sized
-                                         TraitDecl_Send
-                                         TraitDecl_Sync
-                                         TraitDecl_Copy
-                                         TraitDecl_Drop
-                                         TraitImplDecl_Copy_for_u32
-                                         TraitImplDecl_Copy_for_i32
-                                         ]))))
+     (CrateDecl_core (term (crate core {TraitDecl_Sized
+                                        TraitDecl_Send
+                                        TraitDecl_Sync
+                                        TraitDecl_Copy
+                                        TraitDecl_Drop
+                                        TraitImplDecl_Copy_for_u32
+                                        TraitImplDecl_Copy_for_i32
+                                        })))
      ]
     (term CrateDecl_core)
     )

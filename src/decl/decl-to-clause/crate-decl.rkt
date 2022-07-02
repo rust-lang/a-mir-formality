@@ -16,7 +16,7 @@
   ;; that later.
   crate-decl-rules : CrateDecls CrateDecl CrateId -> (Clauses Invariants)
 
-  [(crate-decl-rules CrateDecls (CrateId_0 (crate (CrateItemDecl ...))) CrateId_1)
+  [(crate-decl-rules CrateDecls (crate CrateId_0 (CrateItemDecl ...)) CrateId_1)
    ((Clause ... ...) (Invariant ... ...))
 
    (where/error (((Clause ...) (Invariant ...)) ...)

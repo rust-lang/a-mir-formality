@@ -18,7 +18,7 @@
      AdtDecl_Foo (term (struct Foo[(lifetime a) (type T)]
                          where [((type T) : (lifetime a))]
                          { (struct-variant ()) })))
-    (CrateDecl_C (term (C (crate (AdtDecl_Foo)))))
+    (CrateDecl_C (term (crate C {AdtDecl_Foo})))
     (Env (term (env-for-crate-decl CrateDecl_C)))
     )
 

@@ -22,9 +22,9 @@
      TraitImplDecl (term (impl () (core:Drop ((user-ty i32))) where () ())))
 
     (; the crate has the struct, the trait, and the impl
-     CrateDecl (term (TheCrate (crate (TraitDecl_Drop
-                                       TraitImplDecl
-                                       )))))
+     CrateDecl (term (crate TheCrate {TraitDecl_Drop
+                                      TraitImplDecl
+                                      })))
 
     (; create the Env for checking things in this crate
      Env (term (env-for-crate-decl CrateDecl)))
@@ -54,10 +54,10 @@
      TraitImplDecl (term (impl () (core:Drop ((rigid-ty Foo ((user-ty i32))))) where () ())))
 
     (; the crate has the struct, the trait, and the impl
-     CrateDecl (term (TheCrate (crate (AdtDecl_Foo
-                                       TraitDecl_Drop
-                                       TraitImplDecl
-                                       )))))
+     CrateDecl (term (crate TheCrate {AdtDecl_Foo
+                                      TraitDecl_Drop
+                                      TraitImplDecl
+                                      })))
 
     (; create the Env for checking things in this crate
      Env (term (env-for-crate-decl CrateDecl)))
@@ -91,11 +91,11 @@
      TraitImplDecl (term (impl ((type U)) (core:Drop ((rigid-ty Foo (U)))) where ((U : Debug[])) ())))
 
     (; the crate has the struct, the trait, and the impl
-     CrateDecl (term (TheCrate (crate (AdtDecl_Foo
-                                       TraitDecl_Debug
-                                       TraitDecl_Drop
-                                       TraitImplDecl
-                                       )))))
+     CrateDecl (term (crate TheCrate {AdtDecl_Foo
+                                      TraitDecl_Debug
+                                      TraitDecl_Drop
+                                      TraitImplDecl
+                                      })))
     ]
 
    (traced '() (decl:test-crate-decl-not-ok (CrateDecl) TheCrate))
@@ -120,10 +120,10 @@
      TraitImplDecl (term (impl ((type U)) (core:Drop ((rigid-ty Foo (U)))) where () {})))
 
     (; the crate has the struct, the trait, and the impl
-     CrateDecl (term (TheCrate (crate (AdtDecl_Foo
-                                       TraitDecl_Drop
-                                       TraitImplDecl
-                                       )))))
+     CrateDecl (term (crate TheCrate {AdtDecl_Foo
+                                      TraitDecl_Drop
+                                      TraitImplDecl
+                                      })))
 
     (; create the Env for checking things in this crate
      Env (term (env-for-crate-decl CrateDecl)))
@@ -166,12 +166,12 @@
                                {})))
 
     (; the crate has the struct, the trait, and the impl
-     CrateDecl (term (TheCrate (crate (AdtDecl_Foo
-                                       TraitDecl_Drop
-                                       TraitDecl_Eq
-                                       TraitDecl_Ord
-                                       TraitImplDecl
-                                       )))))
+     CrateDecl (term (crate TheCrate {AdtDecl_Foo
+                                      TraitDecl_Drop
+                                      TraitDecl_Eq
+                                      TraitDecl_Ord
+                                      TraitImplDecl
+                                      })))
     ]
 
    (traced '()

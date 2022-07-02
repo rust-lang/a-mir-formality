@@ -29,10 +29,10 @@
                         where ((A : Foo(B)))
                         ((S ())))))
 
-     (CrateDecl (term (C (crate (TraitDecl_Foo
-                                 TraitDecl_Bar
-                                 AdtDecl_S
-                                 )))))
+     (CrateDecl (term (crate C (TraitDecl_Foo
+                                TraitDecl_Bar
+                                AdtDecl_S
+                                ))))
      )
 
     (traced '() (decl:test-crate-decl-not-ok (CrateDecl) C))
@@ -48,11 +48,11 @@
                         where ((A : Foo(B)))
                         ((S ())))))
 
-     (CrateDecl (term (C (crate ((feature expanded-implied-bounds)
-                                 TraitDecl_Foo
-                                 TraitDecl_Bar
-                                 AdtDecl_S
-                                 )))))
+     (CrateDecl (term (crate C {(feature expanded-implied-bounds)
+                                TraitDecl_Foo
+                                TraitDecl_Bar
+                                AdtDecl_S
+                                })))
      )
 
     (traced '() (decl:test-crate-decl-ok (CrateDecl) C))
@@ -68,10 +68,10 @@
                                )
                         ((S ())))))
 
-     (CrateDecl (term (C (crate (TraitDecl_Foo
-                                 TraitDecl_Bar
-                                 AdtDecl_S
-                                 )))))
+     (CrateDecl (term (crate C (TraitDecl_Foo
+                                TraitDecl_Bar
+                                AdtDecl_S
+                                ))))
      )
 
     (traced '() (decl:test-crate-decl-ok (CrateDecl) C))
@@ -87,10 +87,10 @@
                                  where ((Self : Foo(A))
                                         )
                                  {})))
-     (CrateDecl (term (C (crate (TraitDecl_Foo
-                                 TraitDecl_Bar
-                                 TraitDecl_Baz
-                                 )))))
+     (CrateDecl (term (crate C (TraitDecl_Foo
+                                TraitDecl_Bar
+                                TraitDecl_Baz
+                                ))))
      )
 
     (traced '() (decl:test-crate-decl-not-ok (CrateDecl) C))
@@ -108,10 +108,10 @@
                                         )
                                  {})))
 
-     (CrateDecl (term (C (crate (TraitDecl_Foo
-                                 TraitDecl_Bar
-                                 TraitDecl_Baz
-                                 )))))
+     (CrateDecl (term (crate C (TraitDecl_Foo
+                                TraitDecl_Bar
+                                TraitDecl_Baz
+                                ))))
      )
 
     (traced '() (decl:test-crate-decl-ok (CrateDecl) C))

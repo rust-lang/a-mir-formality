@@ -32,22 +32,22 @@
      TraitImplDecl_CompleteB (term (impl ((type T)) (Complete (T)) where ((T : Partial())) ())))
 
     (; crate A { ... }
-     CrateDecl_A (term (A (crate (AdtDecl_Foo
-                                  TraitDecl_Copy
-                                  TraitDecl_Partial
-                                  TraitDecl_Complete
-                                  TraitImplDecl_Partial
-                                  TraitImplDecl_CompleteA)))))
+     CrateDecl_A (term (crate A {AdtDecl_Foo
+                                 TraitDecl_Copy
+                                 TraitDecl_Partial
+                                 TraitDecl_Complete
+                                 TraitImplDecl_Partial
+                                 TraitImplDecl_CompleteA})))
 
     (Env_A (term (env-for-crate-decl CrateDecl_A)))
 
     (; crate B { ... }
-     CrateDecl_B (term (B (crate (AdtDecl_Foo
-                                  TraitDecl_Copy
-                                  TraitDecl_Partial
-                                  TraitDecl_Complete
-                                  TraitImplDecl_Partial
-                                  TraitImplDecl_CompleteB)))))
+     CrateDecl_B (term (crate B {AdtDecl_Foo
+                                 TraitDecl_Copy
+                                 TraitDecl_Partial
+                                 TraitDecl_Complete
+                                 TraitImplDecl_Partial
+                                 TraitImplDecl_CompleteB})))
 
     (Env_B (term (env-for-crate-decl CrateDecl_B)))
     ]

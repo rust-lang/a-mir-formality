@@ -55,10 +55,10 @@
    (; Trait requires Sized, impl supplies Sized: OK
     traced '()
            (decl:test-crate-decl-ok [core-crate-decl
-                                     (C (crate [AdtDecl_MyIter
-                                                TraitDecl_Iterator_where_Item:Sized
-                                                TraitImplDecl_Iterator_for_MyIter<T>_where_T:Sized
-                                                ]))
+                                     (crate C {AdtDecl_MyIter
+                                               TraitDecl_Iterator_where_Item:Sized
+                                               TraitImplDecl_Iterator_for_MyIter<T>_where_T:Sized
+                                               })
                                      ]
                                     C)
            )
@@ -66,10 +66,10 @@
    (; Trait requires ?Sized, impl supplies Sized: OK
     traced '()
            (decl:test-crate-decl-ok [core-crate-decl
-                                     (C (crate [AdtDecl_MyIter
-                                                TraitDecl_Iterator_where_Item:?Sized
-                                                TraitImplDecl_Iterator_for_MyIter<T>_where_T:Sized
-                                                ]))
+                                     (crate C {AdtDecl_MyIter
+                                               TraitDecl_Iterator_where_Item:?Sized
+                                               TraitImplDecl_Iterator_for_MyIter<T>_where_T:Sized
+                                               })
                                      ]
                                     C)
            )
@@ -77,10 +77,10 @@
    (; Trait requires Sized, impl supplies ?Sized: not OK
     traced '()
            (decl:test-crate-decl-not-ok [core-crate-decl
-                                         (C (crate [AdtDecl_MyIter
-                                                    TraitDecl_Iterator_where_Item:Sized
-                                                    TraitImplDecl_Iterator_for_MyIter<T>_where_T:?Sized
-                                                    ]))
+                                         (crate C {AdtDecl_MyIter
+                                                   TraitDecl_Iterator_where_Item:Sized
+                                                   TraitImplDecl_Iterator_for_MyIter<T>_where_T:?Sized
+                                                   })
                                          ]
                                         C)
            )
@@ -88,10 +88,10 @@
    (; Trait requires ?Sized, impl supplies ?Sized: OK
     traced '()
            (decl:test-crate-decl-ok [core-crate-decl
-                                     (C (crate [AdtDecl_MyIter
-                                                TraitDecl_Iterator_where_Item:?Sized
-                                                TraitImplDecl_Iterator_for_MyIter<T>_where_T:?Sized
-                                                ]))
+                                     (crate C {AdtDecl_MyIter
+                                               TraitDecl_Iterator_where_Item:?Sized
+                                               TraitImplDecl_Iterator_for_MyIter<T>_where_T:?Sized
+                                               })
                                      ]
                                     C)
            )

@@ -16,7 +16,7 @@
 
    ((TraitDecl (term (trait Debug ((type Self)) where () {})))
     (TraitImplDecl (term (impl () (Debug ((user-ty i32))) where () {})))
-    (CrateDecl (term (TheCrate (crate (TraitDecl TraitImplDecl)))))
+    (CrateDecl (term (crate TheCrate {TraitDecl TraitImplDecl})))
     )
 
    (traced '()

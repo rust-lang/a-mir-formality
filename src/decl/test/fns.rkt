@@ -23,7 +23,7 @@
                           dummy-body)))
 
     (; the crate has a function
-     CrateDecl (term (TheCrate (crate (FnDecl_foo)))))
+     CrateDecl (term (crate TheCrate {FnDecl_foo})))
 
     )
 

@@ -21,12 +21,12 @@
     (; trait Bar { }
      TraitDecl_Bar (term (trait Bar ((type Self)) where () {})))
 
-    (Env (term (env-for-crate-decl (C (crate (TraitDecl_Foo
-                                              TraitDecl_Bar))))))
+    (Env (term (env-for-crate-decl (crate C {TraitDecl_Foo
+                                             TraitDecl_Bar}))))
 
-    (Env_expanded (term (env-for-crate-decl (C (crate (TraitDecl_Foo
-                                                       TraitDecl_Bar
-                                                       (feature expanded-implied-bounds)))))))
+    (Env_expanded (term (env-for-crate-decl (crate C {TraitDecl_Foo
+                                                      TraitDecl_Bar
+                                                      (feature expanded-implied-bounds)}))))
     )
 
    (; Knowing that `A: Foo<B>` implies that `A: Bar`
@@ -63,13 +63,13 @@
    ((; trait Foo<'l, T> where Self: 'a, T: 'a { }
      TraitDecl_Foo (term (trait Foo ((type Self) (lifetime l) (type T))
                                 where (((type T) : (lifetime l))
-                                ((type Self) : (lifetime l)))
+                                       ((type Self) : (lifetime l)))
                                 {})))
 
-    (Env (term (env-for-crate-decl (C (crate (TraitDecl_Foo))))))
+    (Env (term (env-for-crate-decl (crate C {TraitDecl_Foo}))))
 
-    (Env_expanded (term (env-for-crate-decl (C (crate (TraitDecl_Foo
-                                                       (feature expanded-implied-bounds)))))))
+    (Env_expanded (term (env-for-crate-decl (crate C {TraitDecl_Foo
+                                                      (feature expanded-implied-bounds)}))))
     )
 
    (; Knowing that `A: Foo<'a, B>` implies that `A: 'a`

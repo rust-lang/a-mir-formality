@@ -42,11 +42,11 @@
                 {})))
 
     (CrateDecl_C
-     (term (C (crate [TraitDecl_Iterator_where_Item
+     (term (crate C [TraitDecl_Iterator_where_Item
                       TraitImplDecl_Iterator_for_Once<T>
                       AdtDecl_Once<T>
                       TraitImplDecl_Copy_for_Once<T>
-                      ]))))
+                      ])))
 
     (CrateDecls
      (term [core-crate-decl

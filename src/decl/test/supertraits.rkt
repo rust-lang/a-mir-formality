@@ -19,7 +19,7 @@
                                where ((Self : PartialEq()))
                                {})))
     (TraitDecl_Debug (term (trait Debug ((type Self)) where () {})))
-    (CrateDecl (term (TheCrate (crate (TraitDecl_PartialEq TraitDecl_Eq)))))
+    (CrateDecl (term (crate TheCrate {TraitDecl_PartialEq TraitDecl_Eq})))
     (Env (term (env-for-crate-decl CrateDecl)))
     )
 

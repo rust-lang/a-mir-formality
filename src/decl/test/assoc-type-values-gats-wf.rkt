@@ -50,17 +50,17 @@
 
     (; Crate C has LendingIterator trait WITH the where clause
      CrateDecl_C
-     (term (C (crate [TraitDecl_LendingIterator_with_Item_where_Self:a
-                      TraitImplDecl_LendingIterator_for_Lend<T>
-                      AdtDecl_Lend<T>
-                      ]))))
+     (term (crate C {TraitDecl_LendingIterator_with_Item_where_Self:a
+                     TraitImplDecl_LendingIterator_for_Lend<T>
+                     AdtDecl_Lend<T>
+                     })))
 
     (; Crate D has LendingIterator trait WITHOUT the where clause
      CrateDecl_D
-     (term (D (crate [TraitDecl_LendingIterator_without_Item_where_Self:a
-                      TraitImplDecl_LendingIterator_for_Lend<T>
-                      AdtDecl_Lend<T>
-                      ]))))
+     (term (crate D {TraitDecl_LendingIterator_without_Item_where_Self:a
+                     TraitImplDecl_LendingIterator_for_Lend<T>
+                     AdtDecl_Lend<T>
+                     })))
 
     ]
 

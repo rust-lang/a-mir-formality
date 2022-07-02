@@ -29,7 +29,7 @@
      TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) where ((T : Magic())) ())))
 
     (; crate TheCrate { ... }
-     CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
+     CrateDecl (term (crate TheCrate {TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic})))
 
     (Env (term (env-for-crate-decl CrateDecl)))
     ]
@@ -76,7 +76,7 @@
      TraitImplDecl_Magic (term (impl ((type T)) (Magic (T)) where ((T : Magic())) {})))
 
     (; crate TheCrate { ... }
-     CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
+     CrateDecl (term (crate TheCrate {TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic})))
 
     (Env (term (env-for-crate-decl CrateDecl)))
     ]
@@ -131,7 +131,7 @@
      TraitImplDecl_Copy (term (impl () (Copy (Ty_Foo)) where () {})))
 
     (; crate TheCrate { ... }
-     CrateDecl (term (TheCrate (crate (TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic)))))
+     CrateDecl (term (crate TheCrate {TraitDecl_Magic TraitDecl_Copy TraitImplDecl_Magic})))
 
     (Env (term (env-for-crate-decl CrateDecl)))
     )

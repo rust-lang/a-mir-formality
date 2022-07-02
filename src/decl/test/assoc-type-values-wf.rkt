@@ -54,10 +54,10 @@
     traced '()
            (test-equal
             (term (decl:is-crate-ok [core-crate-decl
-                                     (C (crate [TraitDecl_Iterator_where_Item:?Copy
+                                     (crate C {TraitDecl_Iterator_where_Item:?Copy
                                                 TraitImplDecl_Iterator_for_MyIter<T>_where_T:?Copy
                                                 AdtDecl_MyIter<T:?Copy>
-                                                ]))
+                                                })
                                      ]
                                     C))
             #t)
@@ -67,10 +67,10 @@
     traced '()
            (test-equal
             (term (decl:is-crate-ok [core-crate-decl
-                                     (C (crate [TraitDecl_Iterator_where_Item:?Copy
+                                     (crate C {TraitDecl_Iterator_where_Item:?Copy
                                                 TraitImplDecl_Iterator_for_MyIter<T>_where_T:?Copy
                                                 AdtDecl_MyIter<T:Copy>
-                                                ]))
+                                                })
                                      ]
                                     C))
             #f

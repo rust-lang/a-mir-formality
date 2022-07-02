@@ -40,7 +40,7 @@
     (FnDecl_foo (term (fn foo [] ((user-ty i32) (user-ty i32)) -> (user-ty i32)
                           where ()
                           FnBody_foo)))
-    (CrateDecl_the-crate (term (the-crate (crate (FnDecl_foo)))))
+    (CrateDecl_the-crate (term (crate the-crate {FnDecl_foo})))
     (DeclProgram (term ((CrateDecl_the-crate) the-crate)))
     )
 

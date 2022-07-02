@@ -30,7 +30,7 @@
 
    (traced '()
            (test-equal
-            (term (decl:is-crate-ok [core-crate-decl (C (crate [TraitDecl_Get TraitImplDecl_Get]))] C))
+            (term (decl:is-crate-ok [core-crate-decl (crate C {TraitDecl_Get TraitImplDecl_Get})] C))
             #f))
    )
   )

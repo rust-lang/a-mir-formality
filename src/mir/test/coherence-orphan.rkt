@@ -23,7 +23,7 @@
     redex-let*
     formality-mir
     [(DeclProgram (term ([core-crate-decl
-                          (CrateA (crate [TraitDecl_TraitA AdtDecl_StructA TraitImplDecl_AforA]))
+                          (crate CrateA {TraitDecl_TraitA AdtDecl_StructA TraitImplDecl_AforA})
                           ]
                          CrateA)))]
     (traced '()
@@ -35,8 +35,8 @@
     redex-let*
     formality-mir
     [(DeclProgram (term ([core-crate-decl
-                          (CrateA (crate [TraitDecl_TraitA AdtDecl_StructA]))
-                          (CrateB (crate [TraitImplDecl_AforA]))
+                          (crate CrateA {TraitDecl_TraitA AdtDecl_StructA})
+                          (crate CrateB {TraitImplDecl_AforA})
                           ]
                          CrateB)))]
     (traced '() (test-equal
@@ -47,8 +47,8 @@
     redex-let*
     formality-mir
     [(DeclProgram (term ([core-crate-decl
-                          (CrateA (crate [TraitDecl_TraitA]))
-                          (CrateB (crate [AdtDecl_StructA TraitImplDecl_AforA]))
+                          (crate CrateA {TraitDecl_TraitA})
+                          (crate CrateB {AdtDecl_StructA TraitImplDecl_AforA})
                           ]
                          CrateB)))]
     (traced '() (test-equal
@@ -59,8 +59,8 @@
     redex-let*
     formality-mir
     [(DeclProgram (term ([core-crate-decl
-                          (CrateA (crate [AdtDecl_StructA]))
-                          (CrateB (crate [TraitDecl_TraitA TraitImplDecl_AforA]))
+                          (crate CrateA {AdtDecl_StructA})
+                          (crate CrateB {TraitDecl_TraitA TraitImplDecl_AforA})
                           ]
                          CrateB)))]
     (traced '() (test-equal

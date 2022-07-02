@@ -22,9 +22,9 @@
      TraitImplDecl (term (impl () (core:Copy ((user-ty i32))) where () ())))
 
     (; the crate has the struct, the trait, and the impl
-     CrateDecl (term (TheCrate (crate (TraitDecl_Copy
-                                       TraitImplDecl
-                                       )))))
+     CrateDecl (term (crate TheCrate {TraitDecl_Copy
+                                      TraitImplDecl
+                                      })))
 
     ]
 
@@ -62,11 +62,11 @@
      TraitImplDecl (term (impl () (core:Copy ((rigid-ty Bar ()))) where () ())))
 
     (; the crate has the struct, the trait, and the impl
-     CrateDecl (term (TheCrate (crate (TraitDecl_Copy
-                                       AdtDecl_Foo
-                                       AdtDecl_Bar
-                                       TraitImplDecl
-                                       )))))
+     CrateDecl (term (crate TheCrate {TraitDecl_Copy
+                                      AdtDecl_Foo
+                                      AdtDecl_Bar
+                                      TraitImplDecl
+                                      })))
     ]
 
    (traced '()
@@ -81,12 +81,12 @@
       TraitImplDecl_Foo (term (impl () (core:Copy ((rigid-ty Foo ()))) where () ())))
 
      (; the crate has the struct, the trait, and the impl
-      CrateDecl_Pass (term (TheCrate (crate [TraitDecl_Copy
-                                             AdtDecl_Foo
-                                             AdtDecl_Bar
-                                             TraitImplDecl
-                                             TraitImplDecl_Foo
-                                             ]))))
+      CrateDecl_Pass (term (crate TheCrate {TraitDecl_Copy
+                                            AdtDecl_Foo
+                                            AdtDecl_Bar
+                                            TraitImplDecl
+                                            TraitImplDecl_Foo
+                                            })))
      ]
     (traced '()
             (test-equal
