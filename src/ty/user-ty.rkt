@@ -4,6 +4,7 @@
          "predicate.rkt"
          )
 (provide user-ty
+         user-parameter
          )
 
 (define-metafunction formality-ty
