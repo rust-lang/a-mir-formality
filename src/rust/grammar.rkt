@@ -20,6 +20,7 @@
                       Rust/TraitImplDecl
                       Rust/StaticDecl
                       Rust/ConstDecl
+                      Rust/FnDecl
                       )
 
   ;; FeatureDecl -- indicates a feature gate is enabled on this crate
@@ -32,14 +33,38 @@
 
   ;; Trait item(s)
   (Rust/TraitItems ::= { Rust/TraitItem ... })
-  (Rust/TraitItem ::= dummy)
+  (Rust/TraitItem ::= Rust/FnDecl Rust/AssociatedTyDecl)
+
+  ;; Associated type declarations (in a trait)
+  (Rust/AssociatedTyDecl ::= (type AssociatedTyId KindedVarIds : Rust/BoundsClause where Rust/WhereClauses))
+
+  ;; Bounds clauses: the things an associated type must meet.
+  ;;
+  ;; `type Foo: Debug`           => `type Foo[] : (Debug[]) where []`
+  ;; `type Foo: for<'a> Foo<'a>` => `type Foo[] : (for [(lifetime a)] (Foo[a])) where []`
+  ;; `type Foo: 'a`              => `type Foo[] : (lifetime a) where []`
+  (Rust/BoundsClause ::= [Rust/Bound ...])
+  (Rust/Bound ::=
+              (for KindedVarIds Rust/Bound)
+              (TraitId UserParameters)
+              (; Meant to represent `T: Iterator<Item = u32>`, but we write it
+               ; `T : Iterator[] :: Item[] == u32`.
+               TraitId UserParameters :: AssociatedTyId UserParameters == Rust/Ty)
+              KindedUserParameter
+              )
 
   ;; TraitImplDecl -- an impl of a trait for a type
   (Rust/TraitImplDecl ::= (impl KindedVarIds TraitId UserParameters for UserTy where Rust/WhereClauses Rust/ImplItems))
 
   ;; Impl item(s)
   (Rust/ImplItems ::= { Rust/ImplItem ... })
-  (Rust/ImplItem ::= dummy)
+  (Rust/ImplItem ::= Rust/FnDecl Rust/AssociatedTyValue)
+
+  ;; Associated type value (in an impl)
+  (Rust/AssociatedTyValue ::= (type AssociatedTyId KindedVarIds = Rust/Ty where Rust/WhereClauses))
+
+  ;; Function
+  (Rust/FnDecl ::= (fn FnId KindedVarIds Rust/Tys -> Rust/Ty where Rust/WhereClauses FnBody))
 
   ;; Named statics
   (Rust/StaticDecl ::= (static StaticId KindedVarIds where Rust/WhereClauses : Rust/Ty = FnBody))
@@ -74,7 +99,10 @@
                         (; T: 'a
                          KindedUserParameter : KindedUserParameter)
                         (; <T as Iterator<'a>>::Item<'a> = u32
-                         < UserTy as TraitId UserParameters > :: AssociatedTyId UserParameters = UserTy)
+                         ;
+                         ; in Rust today, we write `T: Iterator<'a, Item<'a> = u32>`, but that's kind
+                         ; annoying and there is talk of enabling this more general syntax.
+                         < UserTy as TraitId UserParameters > :: AssociatedTyId UserParameters == UserTy)
                         )
 
   ; FIXME: Unify these
