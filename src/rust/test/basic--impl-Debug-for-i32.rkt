@@ -17,7 +17,7 @@
    ((Rust/TraitDecl (term (trait Debug[] where [] {})))
     (Rust/TraitImplDecl (term (impl[] Debug[] for i32 where [] {})))
     (Rust/CrateDecl (term (crate TheCrate { Rust/TraitDecl Rust/TraitImplDecl })))
-    (Rust/Program (term ([Rust/CrateDecl TheCrate])))
+    (Rust/Program (term ([Rust/CrateDecl] TheCrate)))
     )
 
    (traced '()
