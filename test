@@ -30,7 +30,7 @@ NPROC=$(getconf _NPROCESSORS_ONLN 2> /dev/null || getconf NPROCESSORS_ONLN 2> /d
 if [ "$1" == "--all" ]; then
         echo "running: raco test -t -j $NPROC src"
         time raco test -t -j $NPROC src
-elif [ "$2" != "" ]; then
+elif [ "$2" != "" -o -d "$1" ]; then
         echo "running: raco test -t -j $NPROC $@"
         time raco test -t -j $NPROC "$@"
 else
