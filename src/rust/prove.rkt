@@ -11,6 +11,18 @@
 (define-metafunction formality-rust
   ;; Convenient metafunction for tests:
   ;;
+  ;; Given a set of declarations, make them into a crate named core
+  ;; and test that the program is ok.
+  rust:is-core-crate-ok : Rust/CrateItemDecls -> boolean
+
+  [(rust:is-core-crate-ok Rust/CrateItemDecls)
+   (rust:is-program-ok ([(crate core Rust/CrateItemDecls)] core))]
+
+  )
+
+(define-metafunction formality-rust
+  ;; Convenient metafunction for tests:
+  ;;
   ;; Given a rust program, returns #t if passes type checks.
   rust:is-program-ok : Rust/Program -> boolean
 

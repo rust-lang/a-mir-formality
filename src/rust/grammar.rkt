@@ -12,7 +12,8 @@
 
   ;; Crate declarations
   (Rust/CrateDecls ::= (Rust/CrateDecl ...))
-  (Rust/CrateDecl ::= (crate CrateId {Rust/CrateItemDecl ...}))
+  (Rust/CrateDecl ::= (crate CrateId Rust/CrateItemDecls))
+  (Rust/CrateItemDecls ::= { Rust/CrateItemDecl ... })
   (Rust/CrateItemDecl ::=
                       Rust/FeatureDecl
                       Rust/AdtDecl
