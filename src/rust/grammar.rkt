@@ -106,6 +106,12 @@
                          < UserTy as TraitId UserParameters > :: AssociatedTyId UserParameters == UserTy)
                         )
 
+  ;; Higher-ranked where-clauses for tests
+  (Rust/WhereClauseHr ::=
+                      Rust/WhereClause
+                      (∀ KindedVarIds where Rust/WhereClauses Rust/WhereClause)
+                      )
+
   ; FIXME: Unify these
   (Rust/Ty ::= UserTy)
 
