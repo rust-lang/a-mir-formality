@@ -1,15 +1,14 @@
 #lang racket
 (require redex/reduction-semantics
-         "../env.rkt"
-         "../decl-ok.rkt"
+         "../../util.rkt"
+         "../../ty/user-ty.rkt"
          "../grammar.rkt"
          "../prove.rkt"
-         "../../ty/user-ty.rkt"
-         "../../util.rkt")
+         )
 
 (module+ test
   (redex-let*
-   formality-decl
+   formality-rust
 
    ((;; # Crate A
      ;;
@@ -17,7 +16,7 @@
      ;; impl Debug for i32 { }
      ;;
      CrateDecl_A (redex-let*
-                  formality-decl
+                  formality-rust
                   ((TraitDecl (term (trait Debug ((type Self)) where () {})))
                    (TraitImplDecl (term (impl () (Debug ((user-ty i32))) where () {})))
                    )
@@ -34,7 +33,7 @@
      ;;
      ;; includes (feature expanded-implied-bounds)
      (CrateDecl_B CrateDecl_Be) (redex-let*
-                                 formality-decl
+                                 formality-rust
                                  ((TraitDecl_WithDebug (term (trait WithDebug ((type Self) (type T)) where ((T : Debug())) {})))
                                   (AdtDecl_Foo (term (struct Foo ((type T)) where ((T : Debug())) ((Foo ())))))
                                   (TraitImplDecl (term (impl ((type T)) (WithDebug ((rigid-ty Foo (T)) T)) where () ())))
@@ -47,7 +46,7 @@
      ;;
      ;; No items.
      CrateDecl_C (redex-let*
-                  formality-decl
+                  formality-rust
                   ()
                   (term (crate CrateC {}))))
 
@@ -67,7 +66,7 @@
            (decl:test-crate-decl-ok CrateDecls_ABe CrateBe))
 
    (redex-let*
-    formality-decl
+    formality-rust
     ;; Crate Be can prove `∀<T> { If (well-formed(Foo<T>)) { is-implemented(T: Debug) } }`
     ((Env (term (env-for-crate-decls CrateDecls_ABe CrateBe)))
      (Goal_ImpliedBound (term (∀ ((type T))
@@ -77,7 +76,7 @@
             (decl:test-can-prove Env Goal_ImpliedBound)))
 
    (redex-let*
-    formality-decl
+    formality-rust
     ;; Crate C can also prove `∀<T> { If (well-formed(Foo<T>) { is-implemented(T: Debug) } }`
     ((Env (term (env-for-crate-decls CrateDecls_ABeC CrateC)))
      (Goal_ImpliedBound (term (∀ ((type T))
@@ -89,7 +88,7 @@
             (decl:test-can-prove Env Goal_ImpliedBound)))
 
    (redex-let*
-    formality-decl
+    formality-rust
     ;; and it can prove `∀<T> { If (well-formed(Foo<T>, T)) { is-implemented(Foo<T>: WithDebug<T>) } }`
     ((Env (term (env-for-crate-decls CrateDecls_ABeC CrateC)))
      (Goal_UseImpl (term (∀ ((type T))
@@ -101,7 +100,7 @@
             (decl:test-can-prove Env Goal_UseImpl)))
 
    (redex-let*
-    formality-decl
+    formality-rust
     ;; but it CAN prove `∀<T> { If (well-formed(Foo<T>, T), is-implemented(T: Debug)) { is-implemented(Foo<T>: WithDebug<T>) } }`
     ((Env (term (env-for-crate-decls CrateDecls_ABeC CrateC)))
      (Goal_UseImplDebug (term (∀ ((type T))
