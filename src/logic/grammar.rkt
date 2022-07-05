@@ -141,7 +141,6 @@
                AtomicGoal
                (∀ KindedVarIds Goal∧Clause)
                (implies Goals∧Clauses AtomicGoal)
-               (&& Goals∧Clauses)
                )
 
   ;; A `FlatHypothesis` is a flattened form of hypotheses; it is equally expressive
