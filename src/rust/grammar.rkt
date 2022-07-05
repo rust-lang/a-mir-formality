@@ -113,6 +113,7 @@
                       )
 
   ; FIXME: Unify these
+  (Rust/Tys ::= UserTys)
   (Rust/Ty ::= UserTy)
 
   ;; Fn bodies are not defined in this layer.

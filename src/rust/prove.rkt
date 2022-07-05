@@ -3,7 +3,8 @@
          "../decl/prove.rkt"
          "../decl/where-clauses.rkt"
          "grammar.rkt"
-         "lower-to-decl.rkt"
+         "lower-to-decl/program.rkt"
+         "lower-to-decl/where-clause.rkt"
          )
 (provide (all-defined-out))
 

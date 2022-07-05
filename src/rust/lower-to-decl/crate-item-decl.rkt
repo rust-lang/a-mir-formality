@@ -6,6 +6,7 @@
          "field-decl.rkt"
          "trait-item.rkt"
          "impl-item.rkt"
+         "fn-decl.rkt"
          )
 (provide lower-to-decl/CrateItemDecl
          )
@@ -48,5 +49,8 @@
 
   [(lower-to-decl/CrateItemDecl (const ConstId KindedVarIds where [Rust/WhereClause ...] : Rust/Ty = FnBody))
    (const ConstId KindedVarIds where [(lower-to-decl/WhereClause Rust/WhereClause) ...] : (user-ty Rust/Ty) = FnBody)]
+
+  [(lower-to-decl/CrateItemDecl Rust/FnDecl)
+   (lower-to-decl/FnDecl Rust/FnDecl)]
 
   )
