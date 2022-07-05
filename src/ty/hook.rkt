@@ -43,10 +43,10 @@
   )
 
 (define-metafunction formality-ty
-  ;; Helper function: Converts a where-clause into a `Goal∧Clause`; used to
+  ;; Helper function: Converts a where-clause into a `Biformula`; used to
   ;; define the functions in `where-clauses.rkt`, which are the ones you should
   ;; actually invoke.
-  where-clause->goal∧clause-from-env : Env WhereClause -> Goal∧Clause
+  where-clause->goal∧clause-from-env : Env WhereClause -> Biformula
 
   [(where-clause->goal∧clause-from-env Env WhereClause)
    ,((formality-ty-hook-where-clause->goal∧clause-from-env (term any)) (term WhereClause))

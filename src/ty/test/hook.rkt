@@ -95,11 +95,11 @@
   )
 
 (define-metafunction formality-ty
-  ;; Converts a where-clause into a `Goal∧Clause`.
+  ;; Converts a where-clause into a `Biformula`.
   ;;
   ;; The REAL version of this is in formality-decl; this is a "mock" version for
   ;; testing the typing code in isolation.
-  where-clause->goal∧clause-mock : WhereClause -> Goal∧Clause
+  where-clause->goal∧clause-mock : WhereClause -> Biformula
 
   [(where-clause->goal∧clause-mock (∀ KindedVarIds WhereClause))
    (∀ KindedVarIds (where-clause->goal∧clause WhereClause))

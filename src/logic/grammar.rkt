@@ -125,23 +125,23 @@
   ;; ANCHOR_END:GoalsAndHypotheses
 
 
-  ;; A `Goal∧Clause` is a term that can be interpreted as either a goal
+  ;; A `Biformula` is a term that can be interpreted as either a goal
   ;; or a clause. As a goal, it does not take advantage of the extra
   ;; connectives that goals offer (e.g., `||` or `∃`). As a clause, implication subgoals
   ;; do not take advantage of those connectives.
   ;;
   ;; Note that -- as with goals/clauses always -- the meaning of the `&&` connective
-  ;; varies depending on the role of the `Goal∧Clause`. As a goal, each of the subterms
+  ;; varies depending on the role of the `Biformula`. As a goal, each of the subterms
   ;; must be proven. As a clause, any of the subterms may be assumed (as all of them have
   ;; been proven).
   ;;
-  ;; Rust where-clauses can be translated into `Goal∧Clause`.
-  (Goals∧Clauses ::= (Goal∧Clause ...))
-  (Goal∧Clause ::=
-               AtomicGoal
-               (∀ KindedVarIds Goal∧Clause)
-               (implies Goals∧Clauses AtomicGoal)
-               )
+  ;; Rust where-clauses can be translated into `Biformula`.
+  (Biformulas ::= (Biformula ...))
+  (Biformula ::=
+             AtomicGoal
+             (∀ KindedVarIds Biformula)
+             (implies Biformulas AtomicGoal)
+             )
 
   ;; A `FlatHypothesis` is a flattened form of hypotheses; it is equally expressive
   ;; with the recursive structure. Useful for matching.

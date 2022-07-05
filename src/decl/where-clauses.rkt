@@ -48,10 +48,10 @@
   )
 
 (define-metafunction formality-decl
-  ;; Helper function: Converts a where-clause into a `Goal∧Clause`; used to
+  ;; Helper function: Converts a where-clause into a `Biformula`; used to
   ;; define the functions in `where-clauses.rkt`, which are the ones you should
   ;; actually invoke.
-  where-clause->goal∧clause : WhereClause -> Goal∧Clause
+  where-clause->goal∧clause : WhereClause -> Biformula
 
   [(where-clause->goal∧clause (∀ KindedVarIds WhereClause))
    (∀ KindedVarIds (where-clause->goal∧clause WhereClause))
