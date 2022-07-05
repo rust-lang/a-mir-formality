@@ -26,36 +26,31 @@
            ; Knowing that `A: Foo<B>` implies that `A: Bar`
            (test-equal
             #t
-            (term (rust:can-prove-goal-in-program
+            (term (rust:can-prove-where-clause-in-program
                    Rust/Program_not-expanded
                    (∀ ((type A) (type B))
-                      (implies ((is-implemented (Foo (A B))))
-                               (is-implemented (Bar (A)))
-                               ))))))
+                      where [(A : Foo[B])]
+                      (A : Bar[]))))))
 
    (traced '()
            ; Knowing that `A: Foo<B>` does not imply `B: Bar`
            (test-equal
             #f
-            (term (rust:can-prove-goal-in-program
+            (term (rust:can-prove-where-clause-in-program
                    Rust/Program_not-expanded
                    (∀ ((type A) (type B))
-                      (implies ((is-implemented (Foo (A B))))
-                               (is-implemented (Bar (B)))
-                               ))
-                   ))))
+                      where [(A : Foo[B])]
+                      (B : Bar[]))))))
 
    (traced '()
            ; Knowing that `A: Foo<B>` implies `B: Bar` w/ expanded-implied-bounds
            (test-equal
             #t
-            (term (rust:can-prove-goal-in-program
+            (term (rust:can-prove-where-clause-in-program
                    Rust/Program_expanded
                    (∀ ((type A) (type B))
-                      (implies ((is-implemented (Foo (A B))))
-                               (is-implemented (Bar (B)))
-                               ))
-                   ))))
+                      where [(A : Foo[B])]
+                      (B : Bar[]))))))
    )
 
   (redex-let*
@@ -77,35 +72,30 @@
     traced '()
            (test-equal
             #t
-            (term (rust:can-prove-goal-in-program
+            (term (rust:can-prove-where-clause-in-program
                    Rust/Program_not-expanded
                    (∀ ((type A) (lifetime a) (type B))
-                      (implies ((is-implemented (Foo (A a B))))
-                               (A -outlives- a)
-                               ))
-                   ))))
+                      where [(A : Foo[a B])]
+                      ((type A) : (lifetime a)))))))
 
    (; Knowing that `A: Foo<'a, B>` does not imply that `B: 'a`
     traced '()
            (test-equal
             #f
-            (term (rust:can-prove-goal-in-program
+            (term (rust:can-prove-where-clause-in-program
                    Rust/Program_not-expanded
                    (∀ ((type A) (lifetime a) (type B))
-                      (implies ((is-implemented (Foo (A a B))))
-                               (B -outlives- a)
-                               ))
-                   ))))
+                      where [(A : Foo[a B])]
+                      ((type B) : (lifetime a)))))))
 
    (; Knowing that `A: Foo<'a, B>` implies `B: 'a` w/ expanded-implied-bounds
     traced '()
            (test-equal
             #t
-            (term (rust:can-prove-goal-in-program
+            (term (rust:can-prove-where-clause-in-program
                    Rust/Program_expanded
                    (∀ ((type A) (lifetime a) (type B))
-                      (implies ((is-implemented (Foo (A a B))))
-                               (B -outlives- a)
-                               ))))))
+                      where [(A : Foo[a B])]
+                      ((type B) : (lifetime a)))))))
    )
   )
