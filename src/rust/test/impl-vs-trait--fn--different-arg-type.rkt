@@ -16,7 +16,7 @@
                            ;                              -------------
                            })
                    (impl[] Get[] for () where []
-                        {(fn get[(type T) (lifetime l)]((& l ())) -> () where [(T : Debug[])] {})
+                        {(fn get[(type T) (lifetime l)]((& l ())) -> () where [(T : Debug[])] trusted-fn-body)
                          ;                              --------
                          })
                    ]

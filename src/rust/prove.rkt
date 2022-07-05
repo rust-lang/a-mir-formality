@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "../decl/prove.rkt"
          "../decl/where-clauses.rkt"
+         "../mir/all-check.rkt"
          "grammar.rkt"
          "lower-to-decl/program.rkt"
          "lower-to-decl/where-clause.rkt"
@@ -27,8 +28,8 @@
   rust:is-program-ok : Rust/Program -> boolean
 
   [(rust:is-program-ok Rust/Program)
-   (decl:is-crate-ok CrateDecls CrateId)
-   (where/error (CrateDecls CrateId) (lower-to-decl/Program Rust/Program))
+   ,(judgment-holds (✅-Program DeclProgram))
+   (where/error DeclProgram (lower-to-decl/Program Rust/Program))
    ]
 
   )
