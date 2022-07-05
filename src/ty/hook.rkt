@@ -8,14 +8,14 @@
          env-adt-generics
          ty:is-predicate?
          ty:is-relation?
-         where-clause->goal∧clause-from-env
+         where-clause->biformula-from-env
          )
 
 ;; Extends the core logic hook with the ability to query variance:
 ;;
 ;; adt-generics : AdtId -> Generics
 (struct formality-ty-hook formality-logic-hook (adt-generics
-                                                where-clause->goal∧clause-from-env
+                                                where-clause->biformula-from-env
                                                 ))
 
 (define-metafunction formality-ty
@@ -46,10 +46,10 @@
   ;; Helper function: Converts a where-clause into a `Biformula`; used to
   ;; define the functions in `where-clauses.rkt`, which are the ones you should
   ;; actually invoke.
-  where-clause->goal∧clause-from-env : Env WhereClause -> Biformula
+  where-clause->biformula-from-env : Env WhereClause -> Biformula
 
-  [(where-clause->goal∧clause-from-env Env WhereClause)
-   ,((formality-ty-hook-where-clause->goal∧clause-from-env (term any)) (term WhereClause))
+  [(where-clause->biformula-from-env Env WhereClause)
+   ,((formality-ty-hook-where-clause->biformula-from-env (term any)) (term WhereClause))
    (where/error (Hook: any) (env-hook Env))
    ]
   )

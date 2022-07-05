@@ -6,7 +6,7 @@
          where-clauses->goals
          where-clause->hypothesis
          where-clauses->hypotheses
-         where-clause->goal∧clause
+         where-clause->biformula
          )
 
 (define-metafunction formality-decl
@@ -23,7 +23,7 @@
   where-clause->goal : CrateDecls WhereClause -> Goal
 
   [(where-clause->goal CrateDecls WhereClause)
-   (where-clause->goal∧clause WhereClause)]
+   (where-clause->biformula WhereClause)]
 
   )
 
@@ -43,7 +43,7 @@
   where-clause->hypothesis : CrateDecls WhereClause -> Hypothesis
 
   [(where-clause->hypothesis CrateDecls WhereClause)
-   (where-clause->goal∧clause WhereClause)]
+   (where-clause->biformula WhereClause)]
 
   )
 
@@ -51,21 +51,21 @@
   ;; Helper function: Converts a where-clause into a `Biformula`; used to
   ;; define the functions in `where-clauses.rkt`, which are the ones you should
   ;; actually invoke.
-  where-clause->goal∧clause : WhereClause -> Biformula
+  where-clause->biformula : WhereClause -> Biformula
 
-  [(where-clause->goal∧clause (∀ KindedVarIds WhereClause))
-   (∀ KindedVarIds (where-clause->goal∧clause WhereClause))
+  [(where-clause->biformula (∀ KindedVarIds WhereClause))
+   (∀ KindedVarIds (where-clause->biformula WhereClause))
    ]
 
-  [(where-clause->goal∧clause (Ty_self : TraitId (Parameter ...)))
+  [(where-clause->biformula (Ty_self : TraitId (Parameter ...)))
    (is-implemented (TraitId (Ty_self Parameter ...)))
    ]
 
-  [(where-clause->goal∧clause (AliasTy == Ty))
+  [(where-clause->biformula (AliasTy == Ty))
    (normalizes-to AliasTy Ty)
    ]
 
-  [(where-clause->goal∧clause ((_ Parameter_a) : (_ Parameter_b)))
+  [(where-clause->biformula ((_ Parameter_a) : (_ Parameter_b)))
    (Parameter_a -outlives- Parameter_b)
    ]
 

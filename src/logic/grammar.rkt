@@ -101,6 +101,9 @@
   ;;
   ;; `BuiltinGoal` -- defines logical connectives that the solver layer
   ;; directly manages.
+  ;;
+  ;; The term `Goal` is commonly used
+  ;; in logic programming contexts with this meaning.
   (Goals = (Goal ...))
   (Goal ::= AtomicGoal BuiltinGoal)
   (AtomicGoal ::=
@@ -116,6 +119,9 @@
 
   ;; `Clause`, `Hypothesis` -- axioms. These are both built-in and derived from
   ;; user-defined items like `trait` and `impl`.
+  ;;
+  ;; The term `Clause` (and "program clause") is commonly used
+  ;; in logic programming contexts with this meaning.
   (Hypotheses Clauses ::= (Clause ...))
   (Hypothesis Clause ::=
               AtomicGoal
@@ -136,6 +142,8 @@
   ;; been proven).
   ;;
   ;; Rust where-clauses can be translated into `Biformula`.
+  ;;
+  ;; The term `Biformula` is not in common use, we made it up.
   (Biformulas ::= (Biformula ...))
   (Biformula ::=
              AtomicGoal

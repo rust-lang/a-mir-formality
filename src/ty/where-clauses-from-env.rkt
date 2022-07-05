@@ -23,7 +23,7 @@
   where-clause->goal-from-env : Env WhereClause -> Goal
 
   [(where-clause->goal-from-env Env WhereClause)
-   (where-clause->goal∧clause-from-env Env WhereClause)]
+   (where-clause->biformula-from-env Env WhereClause)]
 
   )
 
@@ -43,6 +43,6 @@
   where-clause->hypothesis-from-env : Env WhereClause -> Hypothesis
 
   [(where-clause->hypothesis-from-env Env WhereClause)
-   (where-clause->goal∧clause-from-env Env WhereClause)]
+   (where-clause->biformula-from-env Env WhereClause)]
 
   )
