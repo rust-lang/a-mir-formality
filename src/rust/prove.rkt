@@ -1,10 +1,9 @@
 #lang racket
 (require redex/reduction-semantics
          "../decl/prove.rkt"
-         "../decl/env.rkt"
          "../decl/where-clauses.rkt"
          "grammar.rkt"
-         "lower.rkt"
+         "lower-to-decl.rkt"
          )
 (provide (all-defined-out))
 
@@ -28,7 +27,7 @@
 
   [(rust:is-program-ok Rust/Program)
    (decl:is-crate-ok CrateDecls CrateId)
-   (where/error (CrateDecls CrateId) (rust→decl/Program Rust/Program))
+   (where/error (CrateDecls CrateId) (lower-to-decl/Program Rust/Program))
    ]
 
   )
@@ -43,16 +42,16 @@
 
   [(rust:can-prove-where-clause-in-program Rust/Program Rust/WhereClause)
    (decl:can-prove-goal CrateDecls CrateId Goal)
-   (where/error (CrateDecls CrateId) (rust→decl/Program Rust/Program))
-   (where/error WhereClause (rust→decl/WhereClause Rust/WhereClause))
+   (where/error (CrateDecls CrateId) (lower-to-decl/Program Rust/Program))
+   (where/error WhereClause (lower-to-decl/WhereClause Rust/WhereClause))
    (where/error Goal (where-clause->goal CrateDecls WhereClause))
    ]
 
   [(rust:can-prove-where-clause-in-program Rust/Program (∀ KindedVarIds where [Rust/WhereClause_h ...] Rust/WhereClause_g))
    (decl:can-prove-goal CrateDecls CrateId (∀ KindedVarIds (implies Hypotheses Goal)))
-   (where/error (CrateDecls CrateId) (rust→decl/Program Rust/Program))
-   (where/error WhereClause_g (rust→decl/WhereClause Rust/WhereClause_g))
-   (where/error [WhereClause_h ...] [(rust→decl/WhereClause Rust/WhereClause_h) ...])
+   (where/error (CrateDecls CrateId) (lower-to-decl/Program Rust/Program))
+   (where/error WhereClause_g (lower-to-decl/WhereClause Rust/WhereClause_g))
+   (where/error [WhereClause_h ...] [(lower-to-decl/WhereClause Rust/WhereClause_h) ...])
    (where/error Hypotheses (where-clauses->hypotheses CrateDecls [WhereClause_h ...]))
    (where/error Goal (where-clause->goal CrateDecls WhereClause_g))
    ]
@@ -67,7 +66,7 @@
 
   [(rust:can-prove-goal-in-program Rust/Program Goal)
    (decl:can-prove-goal CrateDecls CrateId Goal)
-   (where/error (CrateDecls CrateId) (rust→decl/Program Rust/Program))
+   (where/error (CrateDecls CrateId) (lower-to-decl/Program Rust/Program))
    ]
 
   )
