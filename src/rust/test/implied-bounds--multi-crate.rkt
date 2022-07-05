@@ -10,17 +10,14 @@
   (redex-let*
    formality-rust
 
-   ((;; # Crate A
+   [(;; # Crate A
      ;;
      ;; trait Debug { }
      ;; impl Debug for i32 { }
      ;;
-     CrateDecl_A (redex-let*
-                  formality-rust
-                  ((TraitDecl (term (trait Debug ((type Self)) where () {})))
-                   (TraitImplDecl (term (impl () (Debug ((user-ty i32))) where () {})))
-                   )
-                  (term (crate CrateA {TraitDecl TraitImplDecl}))))
+     Rust/CrateDecl_A (term (crate CrateA { (trait Debug[] where [] {})
+                                            (impl[] Debug[] for i32 where [] {})
+                                            })))
 
     (;; # Crate B
      ;;
@@ -32,83 +29,77 @@
      ;; # Crate Be
      ;;
      ;; includes (feature expanded-implied-bounds)
-     (CrateDecl_B CrateDecl_Be) (redex-let*
-                                 formality-rust
-                                 ((TraitDecl_WithDebug (term (trait WithDebug ((type Self) (type T)) where ((T : Debug())) {})))
-                                  (AdtDecl_Foo (term (struct Foo ((type T)) where ((T : Debug())) ((Foo ())))))
-                                  (TraitImplDecl (term (impl ((type T)) (WithDebug ((rigid-ty Foo (T)) T)) where () ())))
-                                  ((CrateItemDecl_B ...) (term (TraitDecl_WithDebug AdtDecl_Foo TraitImplDecl)))
-                                  )
-                                 (term ((crate CrateB {CrateItemDecl_B ...})
-                                        (crate CrateBe {CrateItemDecl_B ... (feature expanded-implied-bounds)})))))
+     [Rust/CrateItemDecl_B ...] (term [(trait WithDebug[(type T)] where [(T : Debug[])] {})
+                                       (struct Foo[(type T)] where [(T : Debug[])] {})
+                                       (impl[(type T)] WithDebug[T] for (Foo < T >) where [] {})
+                                       ]))
+    (Rust/CrateDecl_B (term (crate B { Rust/CrateItemDecl_B ... })))
+    (Rust/CrateDecl_Be (term (crate Be { Rust/CrateItemDecl_B ... (feature expanded-implied-bounds) })))
 
     (;; # Crate C
      ;;
      ;; No items.
-     CrateDecl_C (redex-let*
-                  formality-rust
-                  ()
-                  (term (crate CrateC {}))))
+     Rust/CrateDecl_C (term (crate CrateC {})))
 
-    (CrateDecls_AB (term (CrateDecl_A CrateDecl_B)))
-    (CrateDecls_ABe (term (CrateDecl_A CrateDecl_Be)))
-    (CrateDecls_ABC (term (CrateDecl_A CrateDecl_B CrateDecl_C)))
-    (CrateDecls_ABeC (term (CrateDecl_A CrateDecl_Be CrateDecl_C)))
-    )
+    (Rust/Program_AB (term   ([Rust/CrateDecl_A Rust/CrateDecl_B] B)))
+    (Rust/Program_ABe (term  ([Rust/CrateDecl_A Rust/CrateDecl_Be] Be)))
+    (Rust/Program_ABC (term  ([Rust/CrateDecl_A Rust/CrateDecl_B Rust/CrateDecl_C] C)))
+    (Rust/Program_ABeC (term ([Rust/CrateDecl_A Rust/CrateDecl_Be Rust/CrateDecl_C] C)))
+    ]
 
 
    (;; Crate B cannot prove itself WF
     traced '()
-           (decl:test-crate-decl-not-ok CrateDecls_AB CrateB))
+           (test-equal #f (term (rust:is-program-ok Rust/Program_AB))))
 
    (;; Crate Be CAN prove itself WF
     traced '()
-           (decl:test-crate-decl-ok CrateDecls_ABe CrateBe))
+           (test-equal #t (term (rust:is-program-ok Rust/Program_ABe))))
 
-   (redex-let*
-    formality-rust
-    ;; Crate Be can prove `∀<T> { If (well-formed(Foo<T>)) { is-implemented(T: Debug) } }`
-    ((Env (term (env-for-crate-decls CrateDecls_ABe CrateBe)))
-     (Goal_ImpliedBound (term (∀ ((type T))
-                                 (implies ((well-formed (type (rigid-ty Foo (T)))))
-                                          (is-implemented (Debug (T))))))))
-    (traced '()
-            (decl:test-can-prove Env Goal_ImpliedBound)))
+   (;; Crate Be can prove `∀<T> { If (well-formed(Foo<T>)) { is-implemented(T: Debug) } }`
+    traced '()
+           (test-equal
+            #t
+            (term (rust:can-prove-goal-in-program
+                   Rust/Program_ABe
+                   (∀ ((type T))
+                      (implies ((well-formed (type (rigid-ty Foo (T)))))
+                               (is-implemented (Debug (T)))))))))
 
-   (redex-let*
-    formality-rust
-    ;; Crate C can also prove `∀<T> { If (well-formed(Foo<T>) { is-implemented(T: Debug) } }`
-    ((Env (term (env-for-crate-decls CrateDecls_ABeC CrateC)))
-     (Goal_ImpliedBound (term (∀ ((type T))
-                                 (implies ((well-formed (type (rigid-ty Foo (T))))
-                                           (well-formed (type T)))
-                                          (is-implemented (Debug (T))))))))
+   (;; Crate C can also prove `∀<T> { If (well-formed(Foo<T>) { is-implemented(T: Debug) } }`
+    traced '()
+           (test-equal
+            #t
+            (term (rust:can-prove-goal-in-program
+                   Rust/Program_ABeC
+                   (∀ ((type T))
+                      (implies ((well-formed (type (rigid-ty Foo (T))))
+                                (well-formed (type T)))
+                               (is-implemented (Debug (T)))))
+                   ))))
 
-    (traced '()
-            (decl:test-can-prove Env Goal_ImpliedBound)))
+   (;; and it can prove `∀<T> { If (well-formed(Foo<T>, T)) { is-implemented(Foo<T>: WithDebug<T>) } }`
+    traced '()
+           (test-equal
+            #t
+            (term (rust:can-prove-goal-in-program
+                   Rust/Program_ABeC
+                   (∀ ((type T))
+                      (implies ((well-formed (type (rigid-ty Foo (T))))
+                                (well-formed (type T)))
+                               (is-implemented (WithDebug ((rigid-ty Foo (T)) T)))))
+                   ))))
 
-   (redex-let*
-    formality-rust
-    ;; and it can prove `∀<T> { If (well-formed(Foo<T>, T)) { is-implemented(Foo<T>: WithDebug<T>) } }`
-    ((Env (term (env-for-crate-decls CrateDecls_ABeC CrateC)))
-     (Goal_UseImpl (term (∀ ((type T))
-                            (implies ((well-formed (type (rigid-ty Foo (T))))
-                                      (well-formed (type T)))
-                                     (is-implemented (WithDebug ((rigid-ty Foo (T)) T))))))))
-
-    (traced '()
-            (decl:test-can-prove Env Goal_UseImpl)))
-
-   (redex-let*
-    formality-rust
-    ;; but it CAN prove `∀<T> { If (well-formed(Foo<T>, T), is-implemented(T: Debug)) { is-implemented(Foo<T>: WithDebug<T>) } }`
-    ((Env (term (env-for-crate-decls CrateDecls_ABeC CrateC)))
-     (Goal_UseImplDebug (term (∀ ((type T))
-                                 (implies ((well-formed (type (rigid-ty Foo (T))))
-                                           (is-implemented (Debug (T))))
-                                          (is-implemented (WithDebug ((rigid-ty Foo (T)) T))))))))
-
-    (traced '()
-            (decl:test-can-prove Env Goal_UseImplDebug)))
+   (;; but it CAN prove `∀<T> { If (well-formed(Foo<T>, T), is-implemented(T: Debug)) { is-implemented(Foo<T>: WithDebug<T>) } }`
+    traced '()
+           (test-equal
+            #t
+            (term (rust:can-prove-goal-in-program
+                   Rust/Program_ABeC
+                   (∀ ((type T))
+                      (implies ((well-formed (type (rigid-ty Foo (T))))
+                                (is-implemented (Debug (T))))
+                               (is-implemented (WithDebug ((rigid-ty Foo (T)) T)))))
+                   ))))
    )
   )
