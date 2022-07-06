@@ -2,7 +2,6 @@
 (require redex/reduction-semantics
          "../grammar.rkt"
          "../inequalities.rkt"
-         "../where-clauses-from-env.rkt"
          "../parameters.rkt"
          "../extrude.rkt"
          "../../logic/substitution.rkt"

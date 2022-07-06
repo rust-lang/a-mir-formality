@@ -105,6 +105,7 @@
 
   ;; WhereClauses (defined from ty layer) -- defines the precise syntax of
   ;; where-clauses
+  (WhereClauses ::= [WhereClause ...])
   (WhereClause ::=
                (∀ KindedVarIds WhereClause)
                WhereClauseAtom
