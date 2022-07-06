@@ -126,7 +126,7 @@
    (well-formed/Γ Γ)
    (unsafe-check Γ)
    (type-check-goal/Γ Γ GoalAtLocations)
-   (borrow-check Γ GoalAtLocations)
+   (borrow-check Γ Env_2 GoalAtLocations)
    ---------------------------------------- "mir-fn-body"
    (✅-FnBody DeclProgram MirBodySig)
    ]

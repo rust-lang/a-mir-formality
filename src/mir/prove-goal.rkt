@@ -8,6 +8,7 @@
          "../logic/cosld-solve.rkt"
          )
 (provide prove-goal
+         prove-goal-in-env
          prove-crate-item-ok
          )
 
@@ -37,5 +38,17 @@
    (logic:prove-top-level-goal/cosld Env Goal Env_1)
    ----------------------------------------
    (prove-goal DeclProgram Goal)
+   ]
+  )
+
+(define-judgment-form
+  formality-mir-extended
+
+  #:mode (prove-goal-in-env I I O)
+  #:contract (prove-goal-in-env Env Goal Env_out)
+
+  [(logic:prove-top-level-goal/cosld Env Goal Env_out)
+   ----------------------------------------
+   (prove-goal-in-env Env Goal Env_out)
    ]
   )
