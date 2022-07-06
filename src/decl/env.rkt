@@ -21,7 +21,7 @@
 
   [(env-for-crate-decl CrateDecl)
    (env-for-crate-decls (CrateDecl) CrateId)
-   (where/error (CrateId CrateContents) CrateDecl)
+   (where/error (crate CrateId _) CrateDecl)
    ]
   )
 
@@ -72,7 +72,7 @@
             (lambda (adt-id)
               (term (generics-for-adt-id CrateDecls ,adt-id)))
             (lambda (where-clause)
-              (term (where-clause->goal∧clause CrateDecls ,where-clause)))
+              (term (where-clause->biformula CrateDecls ,where-clause)))
             ))
 
    (where/error (CrateDecls CrateId) DeclProgram)

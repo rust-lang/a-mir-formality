@@ -29,6 +29,9 @@
   ;; Overridden from formality-logic.
   (Parameter ::= Ty Lt)
 
+  ;; Combinaton of a parameter and its kind
+  (KindedParameter ::= (ParameterKind Parameter))
+
   ;; ANCHOR:Predicates
   ;; `Predicate` -- the atomic items that we can prove
   ;;
@@ -41,7 +44,7 @@
              ; have impls.
              (has-impl TraitRef)
              ; the given type or lifetime is well-formed.
-             (well-formed (ParameterKind Parameter))
+             (well-formed KindedParameter)
              ; the given adt is well-formed
              (well-formed-adt (rigid-ty AdtId Parameters))
              ; the given alias type is well-formed
@@ -83,7 +86,7 @@
           (& Lt UserTy)
           (&mut Lt UserTy)
           ScalarId
-          (AdtId UserParameter ...)
+          (AdtId < UserParameter ... >)
           (fn UserTys -> UserTy)
           (< UserTy as TraitId UserParameters > :: AssociatedTyId UserParameters)
           VarId

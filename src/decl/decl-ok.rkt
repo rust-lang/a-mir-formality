@@ -18,7 +18,7 @@
 
   #:pre (in? CrateDecl_c CrateDecls_cs)
 
-  [(crate-ok-goal CrateDecls (CrateId (crate (CrateItemDecl ...))))
+  [(crate-ok-goal CrateDecls (crate CrateId (CrateItemDecl ...)))
    (&& (Goal_regular ... Goal_lang-item ... ...))
 
    (where/error (Goal_regular ...) ((crate-item-ok-goal CrateDecls CrateItemDecl) ...))

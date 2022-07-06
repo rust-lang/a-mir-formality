@@ -17,9 +17,9 @@
                 ((; Just ignore well-formed rules, not interesting for testing subtyping
                   ∀ ((type T)) (well-formed (type T)))
                  (; Define a trait `Iterable` that is implemented for Vec<T>
-                  ∀ ((type T)) (is-implemented (Iterable ((user-ty (Vec T))))))
+                  ∀ ((type T)) (is-implemented (Iterable ((user-ty (Vec < T >))))))
                  (; normalizes-to `Item<Vec<T>, A>` to `(rigid-ty (ref ()) (A T))`
-                  ∀ ((type T) (lifetime a)) (normalizes-to (user-ty (< (Vec T) as Iterator[] > :: Item[a]))
+                  ∀ ((type T) (lifetime a)) (normalizes-to (user-ty (< (Vec < T >) as Iterator[] > :: Item[a]))
                                                            (user-ty (& a T))))
                  )
                 ()
@@ -35,7 +35,7 @@
                    Env
                    ((∀ ((type E) (lifetime l))) (∃ ((type U))))
                    ()
-                   (normalizes-to (user-ty (< (Vec E) as Iterator[] > :: Item[l]))
+                   (normalizes-to (user-ty (< (Vec < E >) as Iterator[] > :: Item[l]))
                                   (user-ty (& l E)))
                    )
                   )

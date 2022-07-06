@@ -13,7 +13,7 @@
    #t
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (CrateId (crate (_ ... (feature FeatureId) _ ...))) CrateDecl)
+   (where (crate CrateId (_ ... (feature FeatureId) _ ...)) CrateDecl)
    )
 
   ((crate-has-feature CrateDecls CrateId FeatureId)

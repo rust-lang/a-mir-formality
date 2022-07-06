@@ -141,7 +141,7 @@
        (&& ((; ... then the trait must be implemented
              well-formed (type Ty))
             (; ... and the type must be Sync
-             is-implemented (rust:Sync (Ty)))
+             is-implemented (core:Sync (Ty)))
             (; ... and the where-clauses must be WF
              well-formed-where-clause-goal CrateDecls WhereClause)
             ...))))

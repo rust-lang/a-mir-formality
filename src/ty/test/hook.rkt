@@ -36,7 +36,7 @@
                              (lambda (predicate1) (term (ty:debone-predicate ,predicate1)))
                              (lambda (goal) (term (ty:is-relation? ,goal)))
                              (lambda (adt-id) (term (find-adt-generics ,adt-id ((AdtId Generics) ...))))
-                             (lambda (where-clause) (term (where-clause->goal∧clause-mock ,where-clause)))
+                             (lambda (where-clause) (term (where-clause->biformula-mock ,where-clause)))
                              ))))
    ]
   )
@@ -95,25 +95,25 @@
   )
 
 (define-metafunction formality-ty
-  ;; Converts a where-clause into a `Goal∧Clause`.
+  ;; Converts a where-clause into a `Biformula`.
   ;;
   ;; The REAL version of this is in formality-decl; this is a "mock" version for
   ;; testing the typing code in isolation.
-  where-clause->goal∧clause-mock : WhereClause -> Goal∧Clause
+  where-clause->biformula-mock : WhereClause -> Biformula
 
-  [(where-clause->goal∧clause-mock (∀ KindedVarIds WhereClause))
-   (∀ KindedVarIds (where-clause->goal∧clause WhereClause))
+  [(where-clause->biformula-mock (∀ KindedVarIds WhereClause))
+   (∀ KindedVarIds (where-clause->biformula WhereClause))
    ]
 
-  [(where-clause->goal∧clause-mock (Ty_self : TraitId (Parameter ...)))
+  [(where-clause->biformula-mock (Ty_self : TraitId[Parameter ...]))
    (is-implemented (TraitId (Ty_self Parameter ...)))
    ]
 
-  [(where-clause->goal∧clause-mock (AliasTy == Ty))
+  [(where-clause->biformula-mock (AliasTy == Ty))
    (normalizes-to AliasTy Ty)
    ]
 
-  [(where-clause->goal∧clause-mock (Parameter_a : Parameter_b))
+  [(where-clause->biformula-mock ((_ Parameter_a) : (_ Parameter_b)))
    (Parameter_a -outlives- Parameter_b)
    ]
 

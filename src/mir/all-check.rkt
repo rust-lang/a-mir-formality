@@ -27,7 +27,7 @@
 
   [(where/error (CrateDecls CrateId) DeclProgram)
    (where/error CrateDecl_current (crate-decl-with-id CrateDecls CrateId))
-   (where/error (_ (crate (CrateItemDecl ...))) CrateDecl_current)
+   (where/error (crate _ {CrateItemDecl ...}) CrateDecl_current)
    (✅-CrateItemDecl DeclProgram CrateItemDecl) ...
    ----------------------------------------
    (✅-Program DeclProgram)

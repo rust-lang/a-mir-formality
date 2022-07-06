@@ -24,8 +24,8 @@
   ;; ANCHOR:Crates
   ;; Crate declarations
   (CrateDecls ::= (CrateDecl ...))
-  (CrateDecl ::= (CrateId CrateContents))
-  (CrateContents ::= (crate (CrateItemDecl ...)))
+  (CrateDecl ::= (crate CrateId CrateItemDecls))
+  (CrateItemDecls ::= (CrateItemDecl ...))
   (CrateItemDecl ::= FeatureDecl AdtDecl TraitDecl TraitImplDecl ConstDecl StaticDecl FnDecl)
   ;; ANCHOR_END:Crates
 
@@ -112,7 +112,7 @@
   (WhereClauseAtoms ::= (WhereClauseAtom ...))
   (WhereClauseAtom ::=
                    (Ty : TraitId Parameters) ; T: Debug
-                   (Parameter : Lt) ; T: 'a
+                   (KindedParameter : KindedParameter) ; T: 'a
                    (AliasTy == Ty) ; <T as Iterator>::Item == u32
                    )
 
@@ -162,8 +162,8 @@
 (define-metafunction formality-decl
   crate-decl-with-id : CrateDecls CrateId -> CrateDecl
 
-  ((crate-decl-with-id (_ ... (CrateId CrateContents) _ ...) CrateId)
-   (CrateId CrateContents)
+  ((crate-decl-with-id (_ ... (crate CrateId CrateItemDecls) _ ...) CrateId)
+   (crate CrateId CrateItemDecls)
    )
 
   )
@@ -192,7 +192,7 @@
    (AdtKind AdtId KindedVarIds where WhereClauses AdtVariants)
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (_ (crate (_ ... (AdtKind AdtId KindedVarIds where WhereClauses AdtVariants) _ ...))) CrateDecl)
+   (where (crate _ (_ ... (AdtKind AdtId KindedVarIds where WhereClauses AdtVariants) _ ...)) CrateDecl)
    ]
   )
 
@@ -204,7 +204,7 @@
    CrateId
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (CrateId (crate (_ ... (AdtKind AdtId _ where _ _) _ ...))) CrateDecl)
+   (where (crate CrateId (_ ... (AdtKind AdtId _ where _ _) _ ...)) CrateDecl)
    ]
   )
 
@@ -216,7 +216,7 @@
    (trait TraitId KindedVarIds where WhereClauses TraitItems)
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (_ (crate (_ ... (trait TraitId KindedVarIds where WhereClauses TraitItems) _ ...))) CrateDecl)
+   (where (crate _ (_ ... (trait TraitId KindedVarIds where WhereClauses TraitItems) _ ...)) CrateDecl)
    ]
   )
 
@@ -228,7 +228,7 @@
    CrateId
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (CrateId (crate (_ ... (trait TraitId _ where _ _) _ ...))) CrateDecl)
+   (where (crate CrateId (_ ... (trait TraitId _ where _ _) _ ...)) CrateDecl)
    ]
   )
 
