@@ -53,9 +53,24 @@
    (well-formed/Statement Γ noop)
    ]
 
+  [(well-formed/LocalId Γ LocalId)
+   ----------------------------------------
+   (well-formed/Statement Γ (storage-live LocalId))
+   ]
+
+  [(well-formed/LocalId Γ LocalId)
+   ----------------------------------------
+   (well-formed/Statement Γ (storage-dead LocalId))
+   ]
+
   [(well-formed/Place Γ Place)
-  (well-formed/Rvalue Γ Rvalue)
-    ----------------------------------------
+   ----------------------------------------
+   (well-formed/Statement Γ (set-discriminant Place _))
+   ]
+
+  [(well-formed/Place Γ Place)
+   (well-formed/Rvalue Γ Rvalue)
+   ----------------------------------------
    (well-formed/Statement Γ (Place = Rvalue))
    ]
 
@@ -71,6 +86,27 @@
    (well-formed/Place Γ LocalId)
    ]
 
+  [(well-formed/Place Γ Place)
+   ----------------------------------------
+   (well-formed/Place Γ (* Place))
+   ]
+
+  [(well-formed/Place Γ Place)
+   ----------------------------------------
+   (well-formed/Place Γ (field Place _))
+   ]
+
+  [(well-formed/Place Γ Place)
+   (well-formed/LocalId Γ LocalId)
+   ----------------------------------------
+   (well-formed/Place Γ (index Place LocalId))
+   ]
+
+  [(well-formed/Place Γ Place)
+   ----------------------------------------
+   (well-formed/Place Γ (downcast Place _))
+   ]
+
   )
 
 (define-judgment-form
@@ -83,9 +119,35 @@
    (well-formed/Rvalue Γ (use Operand))
    ]
 
+  [(well-formed/Operand Γ Operand)
+   ----------------------------------------
+   (well-formed/Rvalue Γ (repeat Operand _))
+   ]
+
+  [(well-formed/Place Γ Place)
+   ----------------------------------------
+   (well-formed/Rvalue Γ (ref _ _ Place))
+   ]
+
+  [(well-formed/Place Γ Place)
+   ----------------------------------------
+   (well-formed/Rvalue Γ (addr-of _ Place))
+   ]
+
+  [(well-formed/Place Γ Place)
+   ----------------------------------------
+   (well-formed/Rvalue Γ (len Place))
+   ]
+
+  [(well-formed/Operand Γ Operand_rhs)
+   (well-formed/Operand Γ Operand_lhs)
+   ----------------------------------------
+   (well-formed/Rvalue Γ (BinaryOp Operand_rhs Operand_lhs))
+   ]
+
   )
 
-  (define-judgment-form
+(define-judgment-form
   formality-mir-extended
   #:mode (well-formed/Operand I I)
   #:contract (well-formed/Operand Γ Operand)
@@ -95,12 +157,12 @@
    (well-formed/Operand Γ (copy Place))
    ]
 
-   [(well-formed/Place Γ Place)
+  [(well-formed/Place Γ Place)
    ----------------------------------------
    (well-formed/Operand Γ (move Place))
    ]
 
-   [----------------------------------------
+  [----------------------------------------
    (well-formed/Operand Γ (const number))
    ]
 
@@ -128,12 +190,41 @@
    (well-formed/Terminator Γ (goto BasicBlockId))
    ]
 
-   [----------------------------------------
+  [----------------------------------------
+   (well-formed/Terminator Γ resume)
+   ]
+
+  [----------------------------------------
+   (well-formed/Terminator Γ abort)
+   ]
+
+  [----------------------------------------
    (well-formed/Terminator Γ return)
    ]
 
-   [----------------------------------------
-   (well-formed/Terminator Γ resume)
+  [----------------------------------------
+   (well-formed/Terminator Γ unreachable)
+   ]
+
+  [(well-formed/Place Γ Place)
+   (well-formed/TargetIds Γ TargetIds)
+   ----------------------------------------
+   (well-formed/Terminator Γ (drop Place TargetIds))
+   ]
+
+  [(well-formed/Place Γ Place)
+   (well-formed/Operand Γ Operand)
+   (well-formed/TargetIds Γ TargetIds)
+   ----------------------------------------
+   (well-formed/Terminator Γ (drop-and-replace Place Operand TargetIds))
+   ]
+
+  [(well-formed/Operand Γ Operand_fn)
+   (well-formed/Operand Γ Operand_arg) ...
+   (well-formed/Place Γ Place)
+   (well-formed/TargetIds Γ TargetIds)
+   ----------------------------------------
+   (well-formed/Terminator Γ (call Operand_fn (Operand_arg ...) Place TargetIds))
    ]
 
   )
@@ -150,3 +241,20 @@
 
   )
 
+(define-judgment-form
+  formality-mir-extended
+  #:mode (well-formed/TargetIds I I)
+  #:contract (well-formed/TargetIds Γ TargetIds)
+
+  [(well-formed/BasicBlockId Γ BasicBlockId)
+   ----------------------------------------
+   (well-formed/TargetIds Γ (BasicBlockId))
+   ]
+
+  [(well-formed/BasicBlockId Γ BasicBlockId_normal)
+   (well-formed/BasicBlockId Γ BasicBlockId_unwind)
+   ----------------------------------------
+   (well-formed/TargetIds Γ (BasicBlockId_normal BasicBlockId_unwind))
+   ]
+
+  )
