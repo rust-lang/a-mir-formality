@@ -86,7 +86,8 @@
   )
 
 (define-metafunction formality-logic
-  ;; Categories the `Goal` according to the grammar defined by the upper layers
+  ;; Categories the `Goal` according to the grammar defined by the higher-level layers
+  ;; (e.g., ty, decl)
   categorize-goal : Env Goal -> Goal/Categorization
 
   [(categorize-goal Env Goal)
