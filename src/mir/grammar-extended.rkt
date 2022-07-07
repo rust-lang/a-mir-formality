@@ -84,7 +84,7 @@
 
 (define-metafunction formality-mir-extended
   ;; Returns the `CrateDecls` from the environment Γ
-  crate-decls-of-Γ : Γ -> MirBody
+  crate-decls-of-Γ : Γ -> CrateDecls
 
   [(crate-decls-of-Γ (CrateDecls _ _ _)) CrateDecls]
   )
