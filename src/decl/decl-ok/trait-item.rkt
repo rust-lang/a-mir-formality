@@ -41,14 +41,14 @@
    (where/error (type AssociatedTyId (KindedVarId ...) BoundsClause where (Biformula ...)) AssociatedTyDecl)
    (where/error ((_ VarId_trait) ...) (KindedVarId_trait ...))
    (where/error ((_ VarId) ...) (KindedVarId ...))
-
+   (where/error KindedVarIds_all [KindedVarId_trait ... KindedVarId ...])
 
    ; requirements for where-clauses (e.g., `Self: 'a`) to be wf:
-   (where/error (Goal_wc-wf ...) ((well-formed-where-clause-goal CrateDecls Biformula) ...))
+   (where/error (Goal_wc-wf ...) ((well-formed-where-clause-goal CrateDecls KindedVarIds_all Biformula) ...))
 
    ; requirements for bound (`Sized`) to be wf:
    (where/error AliasTy (alias-ty (TraitId AssociatedTyId) (VarId_trait ... VarId ...)))
    (where/error (Biformula_bound ...) (instantiate-bounds-clause BoundsClause AliasTy))
-   (where/error (Goal_bound-wf ...) ((well-formed-where-clause-goal CrateDecls Biformula_bound) ...))
+   (where/error (Goal_bound-wf ...) ((well-formed-where-clause-goal CrateDecls KindedVarIds_all Biformula_bound) ...))
    ]
   )

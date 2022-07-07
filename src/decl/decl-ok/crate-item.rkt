@@ -37,7 +37,7 @@
                             ((well-formed KindedVarId) ... Biformula ...)
                             (&& ((well-formed (type Ty))
                                  ... ...
-                                 (well-formed-where-clause-goal CrateDecls Biformula)
+                                 (well-formed-where-clause-goal CrateDecls KindedVarIds Biformula)
                                  ...))
                             )))
    ]
@@ -54,10 +54,14 @@
    ;;                   (well-formed (type T))
    ;;                   (well-formed (type (rigid-ty (ref ()) (A (rigid-ty T ()))))))
    ;;           (well-formed-where-clause-goal (T : Trait_Ord ()))))
-   ;;
-   ;; FIXME: Actually implement that, along with for the other items
-   (crate-item-ok-goal CrateDecls (fn FnId KindedVarIds Tys_arg -> Ty_ret where (Biformula ...) FnBody))
-   (&& ((well-formed-where-clause-goal CrateDecls Biformula) ...))
+   (crate-item-ok-goal CrateDecls (fn FnId KindedVarIds Tys_arg -> Ty_ret where [Biformula ...] FnBody))
+   (∀ KindedVarIds
+      (implies [(well-formed KindedVarId) ...
+                Biformula ...]
+               (&& [(well-formed-where-clause-goal CrateDecls KindedVarIds Biformula) ...
+                    ])))
+
+   (where/error [KindedVarId ...] KindedVarIds)
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:
@@ -69,7 +73,7 @@
    (∀ KindedVarIds
       (implies ((well-formed KindedVarId) ... Biformula ...)
                (&& (Goal_trait-item ...
-                    (well-formed-where-clause-goal CrateDecls Biformula) ...))))
+                    (well-formed-where-clause-goal CrateDecls KindedVarIds Biformula) ...))))
 
    (where/error (Goal_trait-item ...) ((trait-item-ok-goal CrateDecls (TraitId KindedVarIds (Biformula ...)) TraitItem) ...))
    (where/error (KindedVarId ...) KindedVarIds)
@@ -92,7 +96,7 @@
         Biformula_impl ...)
        (&& ((; ... then the trait must be implemented
              is-implemented (TraitId (Parameter_trait ...)))
-            (well-formed-where-clause-goal CrateDecls Biformula_impl) ...
+            (well-formed-where-clause-goal CrateDecls KindedVarIds_impl Biformula_impl) ...
             Goal_item ...
             ))))
 
@@ -109,19 +113,20 @@
    ;;     const NAMED<T>: Foo<T> where T: Trait;
    ;;
    ;; we require that the type is well formed assuming the where clauses are satisfied.
-   (crate-item-ok-goal CrateDecls (const ConstId KindedVarIds where Biformulas : Ty = FnBody))
+   (crate-item-ok-goal CrateDecls (const ConstId KindedVarIds where [Biformula ...] : Ty = FnBody))
    (∀ KindedVarIds
       (implies
-       (; assuming all generic parameters are WF...
+       [; assuming all generic parameters are WF...
         (well-formed KindedVarId) ...
         ; ...where-clauses are satisfied...
-        Biformula ...)
-       (&& ((; ... then the trait must be implemented
+        Biformula ...
+        ]
+       (&& [(; ... then the trait must be implemented
              well-formed (type Ty))
-            (well-formed-where-clause-goal CrateDecls Biformula) ...))))
+            (well-formed-where-clause-goal CrateDecls KindedVarIds Biformula) ...
+            ])))
 
    (where/error (KindedVarId ...) KindedVarIds)
-   (where/error (Biformula ...) Biformulas)
    ]
 
   [;; For a static declared in the crate C, like the following:
@@ -130,23 +135,23 @@
    ;;
    ;; we require that the type is well formed assuming the where clauses are satisfied
    ;; and that the type is `Send`.
-   (crate-item-ok-goal CrateDecls (static StaticId KindedVarIds where Biformulas : Ty = FnBody))
+   (crate-item-ok-goal CrateDecls (static StaticId KindedVarIds where [Biformula ...] : Ty = FnBody))
    (∀ KindedVarIds
       (implies
-       (; assuming all generic parameters are WF...
+       [; assuming all generic parameters are WF...
         (well-formed KindedVarId) ...
         ; ...where-clauses are satisfied...
-        Biformula ...)
-       (&& ((; ... then the trait must be implemented
-             well-formed (type Ty))
-            (; ... and the type must be Sync
-             is-implemented (core:Sync (Ty)))
-            (; ... and the where-clauses must be WF
-             well-formed-where-clause-goal CrateDecls Biformula)
-            ...))))
+        Biformula ...
+        ]
+       (&& [; ... then the trait must be implemented
+            (well-formed (type Ty))
+            ; ... and the type must be Sync
+            (is-implemented (core:Sync (Ty)))
+            ; ... and the where-clauses must be WF
+            (well-formed-where-clause-goal CrateDecls KindedVarIds Biformula) ...
+            ])))
 
    (where/error (KindedVarId ...) KindedVarIds)
-   (where/error (Biformula ...) Biformulas)
    ]
 
   [;; Features are always ok.
