@@ -69,4 +69,11 @@
         (well-formed-goal-for-ty Ty)])
    ]
 
+  [; well-formed goals are added during lowering to represent implied bounds
+   ;
+   ; no WF requirements per se
+   (well-formed-goal-for-biformula CrateDecls _ (well-formed _))
+   true-goal
+   ]
+
   )
