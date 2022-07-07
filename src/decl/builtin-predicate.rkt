@@ -13,7 +13,7 @@
 (define-metafunction formality-decl
   ;; Part of the "hook" for a formality-decl program:
   ;;
-  ;; Extends ty:categorize-goal with a knowledge of which predicates
+  ;; Extends ty:categorize-goal with information about of which predicates
   ;; are builtin by the decl layer.
   decl:categorize-goal : Goal -> Goal/Categorization
 

@@ -117,7 +117,7 @@
                (Quantifier KindedVarIds Goal)
                )
 
-  ;; A `Goal` (above) can be classified into the following categories.
+  ;; A `Goal` can be classified into the following categories.
   ;; Since the logic layer doesn't know the syntax of predicates it
   ;; has to use the hook-callback to get this classification.
   (Goal/Categorization ::=
