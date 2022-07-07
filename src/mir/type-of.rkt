@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "grammar-extended.rkt"
          "../logic/substitution.rkt"
+         "../ty/user-ty.rkt"
          )
 (provide type-of/Place
          type-of/Rvalue
@@ -157,13 +158,13 @@
   [; ref
    (type-of/Place Γ Place Ty)
    ------------------------------------------
-   (type-of/Rvalue Γ (ref Lt () Place) (& Lt Ty))
+   (type-of/Rvalue Γ (ref Lt () Place) (rigid-ty (ref ()) (Lt Ty)))
    ]
 
   [; ref-mut
    (type-of/Place Γ Place Ty)
    ------------------------------------------
-   (type-of/Rvalue Γ (ref Lt mut Place) (&mut Lt Ty))
+   (type-of/Rvalue Γ (ref Lt mut Place) (rigid-ty (ref mut) (Lt Ty)))
    ]
 
   [; binop
