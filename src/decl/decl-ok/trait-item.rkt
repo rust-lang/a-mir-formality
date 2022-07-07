@@ -1,10 +1,10 @@
 #lang racket
 (require redex/reduction-semantics
          "../../logic/grammar.rkt"
+         "../../logic/env.rkt"
          "../grammar.rkt"
          "../feature-gate.rkt"
-         "../../logic/env.rkt"
-         "wf-where-clause.rkt"
+         "../well-formed.rkt"
          )
 (provide trait-item-ok-goal
          )
@@ -44,11 +44,11 @@
    (where/error KindedVarIds_all [KindedVarId_trait ... KindedVarId ...])
 
    ; requirements for where-clauses (e.g., `Self: 'a`) to be wf:
-   (where/error (Goal_wc-wf ...) ((well-formed-goal-for-where-clause CrateDecls KindedVarIds_all Biformula) ...))
+   (where/error (Goal_wc-wf ...) ((well-formed-goal-for-biformula CrateDecls KindedVarIds_all Biformula) ...))
 
    ; requirements for bound (`Sized`) to be wf:
    (where/error AliasTy (alias-ty (TraitId AssociatedTyId) (VarId_trait ... VarId ...)))
    (where/error (Biformula_bound ...) (instantiate-bounds-clause BoundsClause AliasTy))
-   (where/error (Goal_bound-wf ...) ((well-formed-goal-for-where-clause CrateDecls KindedVarIds_all Biformula_bound) ...))
+   (where/error (Goal_bound-wf ...) ((well-formed-goal-for-biformula CrateDecls KindedVarIds_all Biformula_bound) ...))
    ]
   )

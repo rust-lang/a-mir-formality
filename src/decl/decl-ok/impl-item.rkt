@@ -1,11 +1,8 @@
 #lang racket
 (require redex/reduction-semantics
-         "../../logic/grammar.rkt"
-         "../../logic/env.rkt"
          "../../logic/substitution.rkt"
          "../grammar.rkt"
-         "../feature-gate.rkt"
-         "../builtin-predicate.rkt"
+         "../well-formed.rkt"
          )
 (provide impl-item-ok-goal
          )

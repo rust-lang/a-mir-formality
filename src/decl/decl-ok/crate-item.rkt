@@ -4,10 +4,9 @@
          "../feature-gate.rkt"
          "../../logic/env.rkt"
          "../../logic/grammar.rkt"
-         "../builtin-predicate.rkt"
+         "../well-formed.rkt"
          "trait-item.rkt"
          "impl-item.rkt"
-         "wf-where-clause.rkt"
          )
 (provide crate-item-ok-goal
          )
@@ -38,7 +37,7 @@
                            (implies
                             ((well-formed KindedVarId) ... Biformula ...)
                             (&& ((well-formed-goal-for-ty CrateDecls Ty) ...
-                                 (well-formed-goal-for-where-clause CrateDecls KindedVarIds Biformula) ...))
+                                 (well-formed-goal-for-biformula CrateDecls KindedVarIds Biformula) ...))
                             )))
    ]
 
@@ -53,12 +52,12 @@
    ;;         (implies ((well-formed (lifetime A))
    ;;                   (well-formed (type T))
    ;;                   (well-formed (type (rigid-ty (ref ()) (A (rigid-ty T ()))))))
-   ;;           (well-formed-goal-for-where-clause (T : Trait_Ord ()))))
+   ;;           (well-formed-goal-for-biformula (T : Trait_Ord ()))))
    (crate-item-ok-goal CrateDecls (fn FnId KindedVarIds Tys_arg -> Ty_ret where [Biformula ...] FnBody))
    (∀ KindedVarIds
       (implies [(well-formed KindedVarId) ...
                 Biformula ...]
-               (&& [(well-formed-goal-for-where-clause CrateDecls KindedVarIds Biformula) ...
+               (&& [(well-formed-goal-for-biformula CrateDecls KindedVarIds Biformula) ...
                     ])))
 
    (where/error [KindedVarId ...] KindedVarIds)
@@ -73,7 +72,7 @@
    (∀ KindedVarIds
       (implies ((well-formed KindedVarId) ... Biformula ...)
                (&& (Goal_trait-item ...
-                    (well-formed-goal-for-where-clause CrateDecls KindedVarIds Biformula) ...))))
+                    (well-formed-goal-for-biformula CrateDecls KindedVarIds Biformula) ...))))
 
    (where/error (Goal_trait-item ...) ((trait-item-ok-goal CrateDecls (TraitId KindedVarIds (Biformula ...)) TraitItem) ...))
    (where/error (KindedVarId ...) KindedVarIds)
@@ -96,7 +95,7 @@
         Biformula_impl ...)
        (&& ((; ... then the trait must be implemented
              is-implemented (TraitId (Parameter_trait ...)))
-            (well-formed-goal-for-where-clause CrateDecls KindedVarIds_impl Biformula_impl) ...
+            (well-formed-goal-for-biformula CrateDecls KindedVarIds_impl Biformula_impl) ...
             Goal_item ...
             ))))
 
@@ -122,7 +121,7 @@
         Biformula ...
         ]
        (&& [(well-formed-goal-for-ty CrateDecls Ty)
-            (well-formed-goal-for-where-clause CrateDecls KindedVarIds Biformula) ...
+            (well-formed-goal-for-biformula CrateDecls KindedVarIds Biformula) ...
             ])))
 
    (where/error (KindedVarId ...) KindedVarIds)
@@ -147,7 +146,7 @@
             ; ... and the type must be Sync
             (is-implemented (core:Sync (Ty)))
             ; ... and the where-clauses must be WF
-            (well-formed-goal-for-where-clause CrateDecls KindedVarIds Biformula) ...
+            (well-formed-goal-for-biformula CrateDecls KindedVarIds Biformula) ...
             ])))
 
    (where/error (KindedVarId ...) KindedVarIds)

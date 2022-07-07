@@ -3,11 +3,10 @@
          "grammar.rkt"
          "../logic/env.rkt"
          "../ty/hook.rkt"
-         "builtin-predicate/well-formed.rkt"
+         "well-formed/parameter.rkt"
          )
 (provide decl:categorize-goal
          decl:solve-builtin-predicate
-         well-formed-goal-for-ty
          )
 
 (define-metafunction formality-decl
@@ -32,7 +31,27 @@
   ;; Breaks down a `(well-formed (type Foo))` into goals.
   decl:solve-builtin-predicate : CrateDecls Env Predicate -> (Env Goals) or Error
 
-  [; given an unmapped existential variable, we can't solve until more
+  [; The `(well-formed (type T))` predicate is kind of magical in a way
+   ; that manipulates inference. This somewhat violates the layering
+   ; by introducing non-logical considerations and I don't love it,
+   ; we may want to tweak the setup.
+   ;
+   ; To be more specific, we examine the current inference state for the
+   ; type T and return a different set of program clauses based on what
+   ; we see. This avoids two problems:
+   ;
+   ; * `(well-formed (type T))` would just enumerate all types T,
+   ;   which is unproductive; this rule could be generalized to requiring
+   ;   non-bound inputs.
+   ; * rules for alias types should not be used arbitrarily. This is really
+   ;   an optimization. The idea is that, if we have some type
+   ;   `Foo`, it doesn't make sense to go off and try to prove `Foo`
+   ;   WF by finding some `<P0 as Trait<P1..Pn>>::Type` that normalizes
+   ;   to `Foo`. This is true for WF rules in particular because one of
+   ;   the jobs of an impl is to prove that its associated types are WF based
+   ;   on the where-clauses in scope.
+   ;
+   ; given an unmapped existential variable, we can't solve until more
    ; type info is available, so yield an `ambiguous` goal
    (decl:solve-builtin-predicate CrateDecls Env (well-formed (type VarId)))
    (Env [ambiguous])
@@ -41,20 +60,6 @@
    ]
 
   [(decl:solve-builtin-predicate CrateDecls Env (well-formed (type Ty)))
-   (Env (well-formed-goals CrateDecls Ty))
-   ]
-  )
-
-(define-metafunction formality-decl
-  ;; Create the goals to make a type well-formed. This is used
-  ;; as part of proving the values of associated types are valid.
-  well-formed-goal-for-ty : CrateDecls Ty -> Goal
-
-  [(well-formed-goal-for-ty CrateDecls VarId)
-   (well-formed (type VarId))
-   ]
-
-  [(well-formed-goal-for-ty CrateDecls Ty)
-   (well-formed-goal CrateDecls Ty)
+   (Env (well-formed-subgoals-for-ty CrateDecls Ty))
    ]
   )

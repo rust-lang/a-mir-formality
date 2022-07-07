@@ -3,8 +3,9 @@
          "../../logic/substitution.rkt"
          "../../logic/grammar.rkt"
          "../grammar.rkt"
+         "parameter.rkt"
          )
-(provide well-formed-goal-for-where-clause
+(provide well-formed-goal-for-biformula
          )
 
 (define-metafunction formality-decl
@@ -14,10 +15,10 @@
   ;; * `KindedVarIds` -- the variable ids in scope
   ;; * `Biformula` -- the biformula created from the user's where clause (doesn't accept arbitrary
   ;;   biformulas)
-  well-formed-goal-for-where-clause : CrateDecls KindedVarIds Biformula -> Goal
+  well-formed-goal-for-biformula : CrateDecls KindedVarIds Biformula -> Goal
 
-  [(well-formed-goal-for-where-clause CrateDecls KindedVarIds (∀ KindedVarIds Biformula))
-   (∀ KindedVarIds (well-formed-goal-for-where-clause CrateDecls KindedVarIds Biformula))
+  [(well-formed-goal-for-biformula CrateDecls KindedVarIds (∀ KindedVarIds Biformula))
+   (∀ KindedVarIds (well-formed-goal-for-biformula CrateDecls KindedVarIds Biformula))
    ]
 
   [; well-formedness for a goal like `T: a`
@@ -25,9 +26,10 @@
    ; FIXME -- the syntax of where clauses needs to be changed to give an
    ; explicit parameter kind for Ty, or else we need to thread in the variables
    ; in scope so that we can figure it out
-   (well-formed-goal-for-where-clause CrateDecls KindedVarIds (Parameter_a -outlives- Parameter_b))
-   (&& [(well-formed (kinded-parameter KindedVarIds Parameter_a))
-        (well-formed (kinded-parameter KindedVarIds Parameter_b))])
+   (well-formed-goal-for-biformula CrateDecls KindedVarIds (Parameter_a -outlives- Parameter_b))
+   (&& [(well-formed-goal-for-parameter CrateDecls KindedVarIds Parameter_a)
+        (well-formed-goal-for-parameter CrateDecls KindedVarIds Parameter_b)
+        ])
    ]
 
   [; well-formedness for a goal like `A: Foo<B>` where
@@ -44,9 +46,10 @@
    ;
    ; Tricky example. If you have `X: Foo` where `trait Foo where Self: Foo` you would get
    ; `((well-formed (type X)) (is-implemented (Foo (X))))`.
-   (well-formed-goal-for-where-clause CrateDecls _ (is-implemented (TraitId [Parameter ...])))
-   (&& ((well-formed (ParameterKind Parameter_value)) ...
-        Biformula_substituted ...)
+   (well-formed-goal-for-biformula CrateDecls KindedVarIds (is-implemented (TraitId [Parameter ...])))
+   (&& [(well-formed-goal-for-parameter CrateDecls KindedVarIds Parameter_value) ...
+        Biformula_substituted ...
+        ]
        )
 
    ; Find the trait declaration
@@ -61,29 +64,9 @@
    (where/error [Biformula_substituted ...] (apply-substitution Substitution Biformulas))
    ]
 
-  [(well-formed-goal-for-where-clause CrateDecls _ (normalizes-to AliasTy Ty))
-   ; fixme: we need to modify outlives to include a `ParameterKind`
-   (&& ((well-formed (type AliasTy))
-        (well-formed (type Ty))))
+  [(well-formed-goal-for-biformula CrateDecls _ (normalizes-to AliasTy Ty))
+   (&& [(well-formed-goal-for-ty CrateDecls AliasTy)
+        (well-formed-goal-for-ty Ty)])
    ]
 
-  )
-
-(define-metafunction formality-decl
-  ;; Figure out whether something is a type or a lifetime or what.
-  ;;
-  ;; For variables, this is ambiguous and we have to check what is in scope.
-  kinded-parameter : KindedVarIds Parameter -> KindedParameter
-
-  [(kinded-parameter [_ ... (ParameterKind VarId) _ ...] VarId)
-   (ParameterKind VarId)
-   ]
-
-  [(kinded-parameter _ Ty)
-   (type Ty)
-   ]
-
-  [(kinded-parameter _ Lt)
-   (lifetime Lt)
-   ]
   )
