@@ -37,17 +37,15 @@
    (prove Env Prove/Stacks ambiguous ambiguous)
    ]
 
-  [(where #t (is-predicate? Env Predicate))
-   (where #f (is-builtin-predicate? Env Predicate))
+  [(where (user-predicate Prove/Coinductive) (categorize-goal Env Predicate))
    (not-in-stacks Env Predicate Prove/Stacks)
    (where (_ ... Clause _ ... ) (filter-clauses Env (env-clauses-for-predicate Env Predicate) Predicate))
-   (clause-proves Env Prove/Stacks + Clause Predicate EnvOutput)
+   (clause-proves Env Prove/Stacks Prove/Coinductive Clause Predicate EnvOutput)
    --------------- "prove-clause"
    (prove Env Prove/Stacks Predicate EnvOutput)
    ]
 
-  [(where #t (is-predicate? Env Predicate))
-   (where #t (is-builtin-predicate? Env Predicate))
+  [(where builtin-predicate (categorize-goal Env Predicate))
    (not-in-stacks Env Predicate Prove/Stacks)
    (where (Env_builtin Goals_builtin) (solve-builtin-predicate Env Predicate)) ; could also be Error
    (prove-all Env_builtin Prove/Stacks Goals_builtin EnvOutput)
@@ -70,7 +68,7 @@
    (prove Env (_ Predicates_co) Predicate Env)
    ]
 
-  [(where #t (is-relation? Env Relation))
+  [(where builtin-relation (categorize-goal Env Relation))
    (where (Env_eq Goals_eq) (relate-parameters Env Relation))
    (prove-all Env_eq Prove/Stacks Goals_eq EnvOutput)
    --------------- "prove-relate"

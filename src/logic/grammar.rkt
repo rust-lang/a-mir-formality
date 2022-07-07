@@ -117,6 +117,16 @@
                (Quantifier KindedVarIds Goal)
                )
 
+  ;; A `Goal` can be classified into the following categories.
+  ;; Since the logic layer doesn't know the syntax of predicates it
+  ;; has to use the hook-callback to get this classification.
+  (Goal/Categorization ::=
+                       (user-predicate Prove/Coinductive)
+                       builtin-predicate
+                       builtin-relation
+                       builtin-goal
+                       )
+
   ;; `Clause`, `Hypothesis` -- axioms. These are both built-in and derived from
   ;; user-defined items like `trait` and `impl`.
   ;;

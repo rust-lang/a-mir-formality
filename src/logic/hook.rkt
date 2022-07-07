@@ -6,8 +6,8 @@
          relate-parameters
          solve-builtin-predicate
          debone-predicate
+         categorize-goal
          is-predicate?
-         is-builtin-predicate?
          is-relation?
          is-atomic-goal?
          )
@@ -19,18 +19,14 @@
 ;; * `invariants`: a `-> Invariants` lambda that returns all the invariants in the program
 ;; * `relate-parameters`: a `Env Relation -> (Env Goals) or Error` lambda that relates two parameters
 ;; * `solve-builtin-predicate`: a `Env Predicate -> (Env Goals) or Error` lambda that solves a builtin predicate
-;; * `is-predicate`: true if a term matches `Predicate`, needed because logic/grammar has `Predicate ::= Term`
-;; * `is-builtin-predicate`: true if a predicate is *builtin*, meaning it should be solved via `solve-builtin-predicate`
 ;; * `debone-predicate`: a `Predicate -> Predicate/Deboned` function that separates into skeleton, parameters
-;; * `is-relation`: true if a term matches `Relation`, needed because logic/grammar has `Relation ::= Term`
+;; * `categorize-goal`: given a `Goal` returns a `Goal/Categorization` based on the refined grammar
 (struct formality-logic-hook (clauses
                               invariants
                               relate-parameters
                               solve-builtin-predicate
-                              is-predicate
-                              is-builtin-predicate
                               debone-predicate
-                              is-relation
+                              categorize-goal
                               ))
 
 (define-metafunction formality-logic
@@ -90,49 +86,59 @@
   )
 
 (define-metafunction formality-logic
-  ;; The "grammar" for predicates is just *any term* -- that's not very
-  ;; useful, and extension languages refine it. When matching against predicates,
-  ;; then, we can use this function to avoid matching on other kinds of goals.
+  ;; Categories the `Goal` according to the grammar defined by the higher-level layers
+  ;; (e.g., ty, decl)
+  categorize-goal : Env Goal -> Goal/Categorization
+
+  [(categorize-goal Env Goal)
+   ,(let ((categorize-goal-fn (formality-logic-hook-categorize-goal (term Term_hook))))
+      (categorize-goal-fn (term Goal)))
+   (where/error (Hook: Term_hook) (env-hook Env))
+   ]
+  )
+
+
+(define-metafunction formality-logic
+  ;; True if this `Goal` is a user-predicate or builtin-predicate
   is-predicate? : Env Goal -> boolean
 
   [(is-predicate? Env Goal)
-   ,(let ((is-predicate-fn (formality-logic-hook-is-predicate (term any))))
-      (is-predicate-fn (term Goal)))
-   (where/error (Hook: any) (env-hook Env))
+   #t
+   (where (user-predicate _) (categorize-goal Env Goal))
+   ]
+
+  [(is-predicate? Env Goal)
+   #t
+   (where builtin-predicate (categorize-goal Env Goal))
+   ]
+
+  [(is-predicate? Env Goal)
+   #f
    ]
   )
 
 (define-metafunction formality-logic
-  ;; If true, then this predicate is *built-in*, meaning that the
-  is-builtin-predicate? : Env Goal -> boolean
-
-  [(is-builtin-predicate? Env Goal)
-   ,(let ((is-builtin-predicate-fn (formality-logic-hook-is-builtin-predicate (term any))))
-      (is-builtin-predicate-fn (term Goal)))
-   (where/error (Hook: any) (env-hook Env))
-   ]
-  )
-
-(define-metafunction formality-logic
-  ;; The "grammar" for predicates is just *any term* -- that's not very
-  ;; useful, and extension languages refine it. When matching against predicates,
-  ;; then, we can use this function to avoid matching on other kinds of goals.
+  ;; True if this `Goal` is a builtin relation
   is-relation? : Env Goal -> boolean
 
   [(is-relation? Env Goal)
-   ,(let ((is-relation-fn (formality-logic-hook-is-relation (term any))))
-      (is-relation-fn (term Goal)))
-   (where/error (Hook: any) (env-hook Env))
+   #t
+   (where builtin-relation (categorize-goal Env Goal))
+   ]
+
+  [(is-relation? Env Goal)
+   #f
    ]
   )
 
+
 (define-metafunction formality-logic
-  ;; The "grammar" for predicates is just *any term* -- that's not very
-  ;; useful, and extension languages refine it. When matching against predicates,
-  ;; then, we can use this function to avoid matching on other kinds of goals.
+  ;; True if this `Goal` is a predicate or relation
   is-atomic-goal? : Env Goal -> boolean
 
   [(is-atomic-goal? Env Goal)
-   ,(or (term (is-predicate? Env Goal)) (term (is-relation? Env Goal)))
+   (any? (is-relation? Env Goal)
+         (is-predicate? Env Goal))
    ]
+
   )
