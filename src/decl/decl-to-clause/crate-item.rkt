@@ -134,10 +134,15 @@
                                                  (implies
                                                   ((is-implemented TraitRef_me))
                                                   Biformula_implied)) ...])
-   (where/error [Invariant_well-formed ...] [(∀ KindedVarIds
-                                                (implies
-                                                 ((is-implemented TraitRef_me))
-                                                 (well-formed (ParameterKind VarId)))) ...])
+   (where/error [Invariant_well-formed ...] (if-crate-has-feature
+                                             CrateDecls
+                                             CrateId
+                                             expanded-implied-bounds
+                                             [(∀ KindedVarIds
+                                                 (implies
+                                                  ((is-implemented TraitRef_me))
+                                                  (well-formed (ParameterKind VarId)))) ...]
+                                             []))
 
    ; get program-clauses and invariants from the trait items
    (where/error [(Clauses_item Invariants_item) ...] [(trait-item-decl-rules CrateDecls CrateId (TraitId KindedVarIds) TraitItem) ...])
