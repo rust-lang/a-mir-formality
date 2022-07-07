@@ -14,7 +14,7 @@
 
    ((; enum Foo<'a, T> where T: 'a { None, Some(r : &'a T) }
      Rust/AdtDecl_Foo (term (enum Foo[(lifetime a) (type T)]
-                                  where [((type T) : (lifetime a))]
+                                  where [(T : a)]
                                   { (None {})
                                     (Some { (r : (& a T)) })
                                     })))

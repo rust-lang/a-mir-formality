@@ -34,8 +34,8 @@
    (< VarId as TraitId UserParameters_t > :: AssociatedTyId UserParameters_i == Rust/Ty)
    ]
 
-  [(instantiate-rust-bound VarId KindedUserParameter)
-   ((type VarId) : KindedUserParameter)
+  [(instantiate-rust-bound VarId UserParameter)
+   (VarId : UserParameter)
    ]
 
   )

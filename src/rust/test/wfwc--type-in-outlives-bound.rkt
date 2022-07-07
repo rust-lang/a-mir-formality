@@ -14,7 +14,7 @@
             [(trait Ord[] where [] {})
              (struct IsOrd[(type T)] where [(T : Ord[])] {})
              (fn foo[(lifetime a) (type T)]() -> ()
-                 where [((type (IsOrd < T >)) : (lifetime a)) ; for `IsOrd<T>` to be WF, `T: Ord` must hold
+                 where [((IsOrd < T >) : a) ; for `IsOrd<T>` to be WF, `T: Ord` must hold
                         ]
                  trusted-fn-body)
              ])))
@@ -25,7 +25,7 @@
             [(trait Ord[] where [] {})
              (struct IsOrd[(type T)] where [(T : Ord[])] {})
              (fn foo[(lifetime a) (type T)]() -> ()
-                 where [((type (IsOrd < T >)) : (lifetime a))
+                 where [((IsOrd < T >) : a)
                         (T : Ord[])
                         ]
                  trusted-fn-body)
