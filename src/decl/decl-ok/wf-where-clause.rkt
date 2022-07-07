@@ -1,27 +1,34 @@
 #lang racket
 (require redex/reduction-semantics
-         "../grammar.rkt"
-         "../where-clauses.rkt"
          "../../logic/substitution.rkt"
+         "../../logic/grammar.rkt"
+         "../grammar.rkt"
          )
 (provide well-formed-where-clause-goal
          )
 
 (define-metafunction formality-decl
-  ;; Given a `WhereClause`, returns a goal that defines when this where-clause is well-formed.
-  well-formed-where-clause-goal : CrateDecls WhereClause -> Goal
+  ;; Given a `Biformula`, returns a goal that defines when this where-clause is well-formed.
+  ;;
+  ;; * `CrateDecls` -- the crate decls in scope
+  ;; * `KindedVarIds` -- the
+  ;; * `Biformula` -- the biformula created from the user's where clause (doesn't accept arbitrary
+  ;;   biformulas)
+  well-formed-where-clause-goal : CrateDecls Biformula -> Goal
 
-  [(well-formed-where-clause-goal CrateDecls (∀ KindedVarIds WhereClause))
-   (∀ KindedVarIds (well-formed-where-clause-goal WhereClause))
+  [(well-formed-where-clause-goal CrateDecls (∀ KindedVarIds Biformula))
+   (∀ KindedVarIds (well-formed-where-clause-goal Biformula))
    ]
 
   [; well-formedness for a goal like `T: a`
    ;
    ; FIXME -- the syntax of where clauses needs to be changed to give an
-   ; explicit parameter kind for Ty
-   (well-formed-where-clause-goal CrateDecls (KindedParameter_a : KindedParameter_b))
-   (&& [(well-formed KindedParameter_a)
-        (well-formed KindedParameter_b)])
+   ; explicit parameter kind for Ty, or else we need to thread in the variables
+   ; in scope so that we can figure it out
+   (well-formed-where-clause-goal CrateDecls (Parameter_a -outlives- Parameter_b))
+   #;(&& [(well-formed KindedParameter_a)
+          (well-formed KindedParameter_b)])
+   true-goal ; FIXME
    ]
 
   [; well-formedness for a goal like `A: Foo<B>` where
@@ -38,24 +45,24 @@
    ;
    ; Tricky example. If you have `X: Foo` where `trait Foo where Self: Foo` you would get
    ; `((well-formed (type X)) (is-implemented (Foo (X))))`.
-   (well-formed-where-clause-goal CrateDecls (Ty : TraitId[Parameter ...]))
+   (well-formed-where-clause-goal CrateDecls (is-implemented (TraitId [Parameter ...])))
    (&& ((well-formed (ParameterKind Parameter_value)) ...
-        (where-clause->goal CrateDecls WhereClause_substituted) ...)
+        Biformula_substituted ...)
        )
 
    ; Find the trait declaration
    ;
    ; * in our example above `(ParameterKind VarId) ...` would match `((type Self) (type T))`
-   ; * and `WhereClauses` would be `(T : Bar[])`
-   (where/error (trait TraitId ((ParameterKind VarId) ...) where WhereClauses _) (trait-with-id CrateDecls TraitId))
+   ; * and `Biformulas` would be `(T : Bar[])`
+   (where/error (trait TraitId ((ParameterKind VarId) ...) where Biformulas _) (trait-with-id CrateDecls TraitId))
 
    ; create a substitution ((Self => A) (T => B))
-   (where/error (Parameter_value ...) (Ty Parameter ...))
+   (where/error (Parameter_value ...) (Parameter ...))
    (where/error Substitution ((VarId Parameter_value) ...))
-   (where/error (WhereClause_substituted ...) (apply-substitution Substitution WhereClauses))
+   (where/error [Biformula_substituted ...] (apply-substitution Substitution Biformulas))
    ]
 
-  [(well-formed-where-clause-goal CrateDecls (AliasTy == Ty))
+  [(well-formed-where-clause-goal CrateDecls (normalizes-to AliasTy Ty))
    ; fixme: we need to modify outlives to include a `ParameterKind`
    (&& ((well-formed (type AliasTy))
         (well-formed (type Ty))))

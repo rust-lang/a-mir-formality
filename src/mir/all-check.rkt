@@ -71,24 +71,24 @@
 
   [; constants
    (prove-crate-item-ok DeclProgram ConstDecl)
-   (where/error (const _ KindedVarIds where WhereClauses : Ty = FnBody) ConstDecl)
-   (✅-FnBody DeclProgram (∀ KindedVarIds (() -> Ty where WhereClauses FnBody)))
+   (where/error (const _ KindedVarIds where Biformulas : Ty = FnBody) ConstDecl)
+   (✅-FnBody DeclProgram (∀ KindedVarIds (() -> Ty where Biformulas FnBody)))
    ----------------------------------------
    (✅-CrateItemDecl DeclProgram ConstDecl)
    ]
 
   [; statics
    (prove-crate-item-ok DeclProgram StaticDecl)
-   (where/error (static _ KindedVarIds where WhereClauses : Ty = FnBody) StaticDecl)
-   (✅-FnBody DeclProgram (∀ KindedVarIds (() -> Ty where WhereClauses FnBody)))
+   (where/error (static _ KindedVarIds where Biformulas : Ty = FnBody) StaticDecl)
+   (✅-FnBody DeclProgram (∀ KindedVarIds (() -> Ty where Biformulas FnBody)))
    ----------------------------------------
    (✅-CrateItemDecl DeclProgram StaticDecl)
    ]
 
   [; function items
    (prove-crate-item-ok DeclProgram FnDecl)
-   (where/error (fn FnId KindedVarIds Tys -> Ty where WhereClauses FnBody) FnDecl)
-   (✅-FnBody DeclProgram (∀ KindedVarIds (Tys -> Ty where WhereClauses FnBody)))
+   (where/error (fn FnId KindedVarIds Tys -> Ty where Biformulas FnBody) FnDecl)
+   (✅-FnBody DeclProgram (∀ KindedVarIds (Tys -> Ty where Biformulas FnBody)))
    ----------------------------------------
    (✅-CrateItemDecl DeclProgram FnDecl)
    ]
@@ -111,7 +111,7 @@
    (where/error Env_0 (env-for-decl-program DeclProgram))
 
    ;; environment 1: instantiate the generic arguments as universal placeholders and tag
-   (where (Env_1 (Tys -> Ty where WhereClauses (∃ KindedVarIds_1 LocalsAndBlocks_1)) VarIds_∀)
+   (where (Env_1 (Tys -> Ty where Biformulas (∃ KindedVarIds_1 LocalsAndBlocks_1)) VarIds_∀)
           (instantiate-quantified Env_0 MirBodySig))
 
    ;; environment 2: instantiate the existential inference variables within the mir body (lifetimes, typically)
@@ -120,7 +120,7 @@
 
    ;; construct the typing environment
    (where/error (CrateDecls _) DeclProgram)
-   (where/error Γ (CrateDecls VarIds_∀ (Tys -> Ty where WhereClauses) LocalsAndBlocks_2))
+   (where/error Γ (CrateDecls VarIds_∀ (Tys -> Ty where Biformulas) LocalsAndBlocks_2))
 
    ;; run the checks
    (well-formed/Γ Γ)

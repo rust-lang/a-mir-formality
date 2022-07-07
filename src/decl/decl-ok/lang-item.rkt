@@ -1,7 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
          "../grammar.rkt"
-         "../where-clauses.rkt"
          "../feature-gate.rkt"
          "../../logic/env.rkt"
          )
@@ -38,23 +37,23 @@
    ;
    ; when this goal is given to the solver, it would be rejected because `T: Eq` is not provable
    ; (we only know that `T: Debug`).
-   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (core:Drop (Ty_impl)) where (WhereClause_impl ...) _))
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (core:Drop (Ty_impl)) where (Biformula_impl ...) _))
    ((∀ KindedVarIds_adt
-       (implies (where-clauses->hypotheses CrateDecls WhereClauses_adt)
+       (implies Biformulas_adt
                 (∃ KindedVarIds_impl
                    (&& ((Ty_impl == Ty_adt)
-                        (where-clause->goal CrateDecls WhereClause_impl) ...
+                        Biformula_impl ...
                         ))
                    ))))
 
    (where (rigid-ty AdtId Parameters) Ty_impl)
-   (where (AdtKind AdtId KindedVarIds_adt where WhereClauses_adt _) (adt-with-id CrateDecls AdtId))
+   (where (AdtKind AdtId KindedVarIds_adt where Biformulas_adt _) (adt-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
    (where/error Ty_adt (rigid-ty AdtId (VarId_adt ...)))
    ]
 
   [; Impl of the Drop trait for something that is not an ADT -- always an error.
-   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (core:Drop (_ ...)) where WhereClauses_impl _))
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (core:Drop (_ ...)) where Biformulas_impl _))
    ((|| ())) ; unprovable goal
    ]
 
@@ -79,9 +78,9 @@
    ;          (is-implemented (Vec<T>: Copy)))
    ;
    ; of course, in this case, it is not provable because `Vec<T>: Copy` is not true for any `T`.
-   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (core:Copy (Ty_impl)) where (WhereClause_impl ...) ()))
+   (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (core:Copy (Ty_impl)) where (Biformula_impl ...) ()))
    ((∀ KindedVarIds_impl
-       (implies ((where-clause->hypothesis CrateDecls WhereClause_impl) ...)
+       (implies (Biformula_impl ...)
                 (∃ KindedVarIds_adt
                    (&& ((Ty_impl == Ty_adt)
                         (is-implemented (core:Copy (Ty_field))) ... ...

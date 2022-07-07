@@ -33,7 +33,7 @@
   (FeatureDecl ::= (feature FeatureId))
 
   ;; AdtDecl -- struct/enum/union declarations
-  (AdtDecl ::= (AdtKind AdtId KindedVarIds where WhereClauses AdtVariants))
+  (AdtDecl ::= (AdtKind AdtId KindedVarIds where Biformulas AdtVariants))
   (AdtVariants ::= (AdtVariant ...))
   (AdtKind ::= struct enum union)
   (AdtVariant ::= (VariantId FieldDecls))
@@ -46,14 +46,14 @@
   ;; TraitDecl -- trait Foo { ... }
   ;;
   ;; Unlike in Rust, the `KindedVarIds` here always include with `(type Self)` explicitly.
-  (TraitDecl ::= (trait TraitId KindedVarIds where WhereClauses TraitItems))
+  (TraitDecl ::= (trait TraitId KindedVarIds where Biformulas TraitItems))
 
   ;; TraitItem --
   (TraitItems ::= (TraitItem ...))
   (TraitItem ::= FnDecl AssociatedTyDecl)
 
   ;; Associated type declarations (in a trait)
-  (AssociatedTyDecl ::= (type AssociatedTyId KindedVarIds BoundsClause where WhereClauses))
+  (AssociatedTyDecl ::= (type AssociatedTyId KindedVarIds BoundsClause where Biformulas))
 
   ;; Bounds clause -- used in associated type declarations etc to indicate
   ;; things that must be true about the value of an associated type.
@@ -76,18 +76,18 @@
   ;;
   ;; This notation is kind of painful and maybe we should improve it! It'd be nice to
   ;; write `(: (Sized()))` instead.
-  (BoundsClause ::= (: KindedVarId WhereClauses))
+  (BoundsClause ::= (: KindedVarId Biformulas))
 
   ;; Trait impls
   ;;
   ;; Note that trait impls do not have names.
-  (TraitImplDecl ::= (impl KindedVarIds TraitRef where WhereClauses ImplItems))
+  (TraitImplDecl ::= (impl KindedVarIds TraitRef where Biformulas ImplItems))
 
   ;; Named statics
-  (StaticDecl ::= (static StaticId KindedVarIds where WhereClauses : Ty = FnBody))
+  (StaticDecl ::= (static StaticId KindedVarIds where Biformulas : Ty = FnBody))
 
   ;; Named constants
-  (ConstDecl ::= (const ConstId KindedVarIds where WhereClauses : Ty = FnBody))
+  (ConstDecl ::= (const ConstId KindedVarIds where Biformulas : Ty = FnBody))
 
   ;; ImplItem --
   (ImplItems ::= (ImplItem ...))
@@ -95,27 +95,13 @@
   ;; ANCHOR_END:Traits
 
   ;; Associated type value (in an impl)
-  (AssociatedTyValue ::= (type AssociatedTyId KindedVarIds = Ty where WhereClauses))
+  (AssociatedTyValue ::= (type AssociatedTyId KindedVarIds = Ty where Biformulas))
 
 
   ;; Function
   ;;
   ;; fn foo<...>(...) -> ... where ... { body }
-  (FnDecl ::= (fn FnId KindedVarIds Tys -> Ty where WhereClauses FnBody))
-
-  ;; WhereClauses (defined from ty layer) -- defines the precise syntax of
-  ;; where-clauses
-  (WhereClauses ::= [WhereClause ...])
-  (WhereClause ::=
-               (∀ KindedVarIds WhereClause)
-               WhereClauseAtom
-               )
-  (WhereClauseAtoms ::= (WhereClauseAtom ...))
-  (WhereClauseAtom ::=
-                   (Ty : TraitId Parameters) ; T: Debug
-                   (KindedParameter : KindedParameter) ; T: 'a
-                   (AliasTy == Ty) ; <T as Iterator>::Item == u32
-                   )
+  (FnDecl ::= (fn FnId KindedVarIds Tys -> Ty where Biformulas FnBody))
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
@@ -131,32 +117,32 @@
   #:binding-forms
   (AdtKind AdtKind
            ((ParameterKind VarId) ...)
-           where WhereClauses #:refers-to (shadow VarId ...)
+           where Biformulas #:refers-to (shadow VarId ...)
            AdtVariants #:refers-to (shadow VarId ...))
   (trait TraitId
          ((ParameterKind VarId) ...)
-         where WhereClauses #:refers-to (shadow VarId ...)
+         where Biformulas #:refers-to (shadow VarId ...)
          TraitItems #:refers-to (shadow VarId ...))
   (impl ((ParameterKind VarId) ...)
         TraitRef #:refers-to (shadow VarId ...)
-        where WhereClauses #:refers-to (shadow VarId ...)
+        where Biformulas #:refers-to (shadow VarId ...)
         ImplItems #:refers-to (shadow VarId ...))
   (const ConstId
          ((ParameterKind VarId) ...)
-         where WhereClauses #:refers-to (shadow VarId ...)
+         where Biformulas #:refers-to (shadow VarId ...)
          : Ty #:refers-to (shadow VarId ...)
          = FnBody #:refers-to (shadow VarId ...))
   (static StaticId
           ((ParameterKind VarId) ...)
-          where WhereClauses #:refers-to (shadow VarId ...)
+          where Biformulas #:refers-to (shadow VarId ...)
           : Ty #:refers-to (shadow VarId ...)
           = FnBody #:refers-to (shadow VarId ...))
-  (: (ParameterKind VarId) WhereClauses #:refers-to (shadow VarId))
+  (: (ParameterKind VarId) Biformulas #:refers-to (shadow VarId))
   (fn FnId
       ((ParameterKind VarId) ...)
       Tys #:refers-to (shadow VarId ...)
       -> Ty #:refers-to (shadow VarId ...)
-      where WhereClauses #:refers-to (shadow VarId ...)
+      where Biformulas #:refers-to (shadow VarId ...)
       FnBody #:refers-to (shadow VarId ...))
   )
 
@@ -190,10 +176,10 @@
   adt-with-id : CrateDecls AdtId -> AdtDecl
 
   [(adt-with-id CrateDecls AdtId)
-   (AdtKind AdtId KindedVarIds where WhereClauses AdtVariants)
+   (AdtKind AdtId KindedVarIds where Biformulas AdtVariants)
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (crate _ (_ ... (AdtKind AdtId KindedVarIds where WhereClauses AdtVariants) _ ...)) CrateDecl)
+   (where (crate _ (_ ... (AdtKind AdtId KindedVarIds where Biformulas AdtVariants) _ ...)) CrateDecl)
    ]
   )
 
@@ -214,10 +200,10 @@
   trait-with-id : CrateDecls TraitId -> TraitDecl
 
   [(trait-with-id CrateDecls TraitId)
-   (trait TraitId KindedVarIds where WhereClauses TraitItems)
+   (trait TraitId KindedVarIds where Biformulas TraitItems)
 
    (where (_ ... CrateDecl _ ...) CrateDecls)
-   (where (crate _ (_ ... (trait TraitId KindedVarIds where WhereClauses TraitItems) _ ...)) CrateDecl)
+   (where (crate _ (_ ... (trait TraitId KindedVarIds where Biformulas TraitItems) _ ...)) CrateDecl)
    ]
   )
 
@@ -236,9 +222,9 @@
 (define-metafunction formality-decl
   ;; Given a bound like `: Sized`, 'instantiates' to apply to a given type `T`,
   ;; yielding a where clause like `T: Sized`.
-  instantiate-bounds-clause : BoundsClause Parameter -> WhereClauses
+  instantiate-bounds-clause : BoundsClause Parameter -> Biformulas
 
-  [(instantiate-bounds-clause (: (ParameterKind VarId) WhereClauses) Parameter)
-   (apply-substitution ((VarId Parameter)) WhereClauses)
+  [(instantiate-bounds-clause (: (ParameterKind VarId) Biformulas) Parameter)
+   (apply-substitution ((VarId Parameter)) Biformulas)
    ]
   )

@@ -1,7 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
-         "where-clauses.rkt"
          "../logic/env.rkt"
          "../ty/relate.rkt"
          "../ty/predicate.rkt"
@@ -81,7 +80,7 @@
   generics-for-adt-id : CrateDecls AdtId -> Generics
 
   [(generics-for-adt-id CrateDecls AdtId)
-   (((VarId (ParameterKind =)) ...) WhereClauses) ; for now we hardcode `=` (invariance) as the variance
-   (where/error (AdtKind AdtId ((ParameterKind VarId) ...) WhereClauses AdtVariants) (adt-with-id CrateDecls AdtId))
+   (((VarId (ParameterKind =)) ...) Biformulas) ; for now we hardcode `=` (invariance) as the variance
+   (where/error (AdtKind AdtId ((ParameterKind VarId) ...) Biformulas AdtVariants) (adt-with-id CrateDecls AdtId))
    ]
   )

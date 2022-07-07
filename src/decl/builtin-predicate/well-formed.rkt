@@ -3,7 +3,6 @@
 (require redex/reduction-semantics
          "../../logic/grammar.rkt"
          "../grammar.rkt"
-         "../where-clauses.rkt"
          )
 (provide well-formed-goal
          well-formed-goals
@@ -116,12 +115,12 @@
    [false-goal] ; FIXME -- WF rules for existential types
    ]
 
-  [(well-formed-goals CrateDecls (implies WhereClauses Ty))
-   [(implies (where-clauses->hypotheses CrateDecls WhereClauses)
+  [(well-formed-goals CrateDecls (implies Biformulas Ty))
+   [(implies Biformulas
              (well-formed-goal CrateDecls Ty))]
    ]
 
-  [(well-formed-goals CrateDecls (ensures Ty WhereClauses))
-   (flatten [(where-clauses->goals CrateDecls WhereClauses) (well-formed-goals CrateDecls Ty)])
+  [(well-formed-goals CrateDecls (ensures Ty Biformulas))
+   (flatten [Biformulas (well-formed-goals CrateDecls Ty)])
    ]
   )
