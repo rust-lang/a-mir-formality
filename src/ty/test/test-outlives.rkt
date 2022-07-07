@@ -23,7 +23,7 @@
                 )))
     )
 
-   (traced '(ty:categorize-goal)
+   (traced '()
 
            ; Given a T:
            ;
