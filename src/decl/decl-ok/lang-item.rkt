@@ -39,7 +39,8 @@
    ; (we only know that `T: Debug`).
    (lang-item-ok-goals CrateDecls (impl KindedVarIds_impl (core:Drop (Ty_impl)) where (Biformula_impl ...) _))
    ((∀ KindedVarIds_adt
-       (implies Biformulas_adt
+       (implies [Biformula_adt ...
+                 (well-formed (ParameterKind_adt VarId_adt)) ...]
                 (∃ KindedVarIds_impl
                    (&& ((Ty_impl == Ty_adt)
                         Biformula_impl ...
@@ -47,7 +48,7 @@
                    ))))
 
    (where (rigid-ty AdtId Parameters) Ty_impl)
-   (where (AdtKind AdtId KindedVarIds_adt where Biformulas_adt _) (adt-with-id CrateDecls AdtId))
+   (where (AdtKind AdtId KindedVarIds_adt where [Biformula_adt ...] _) (adt-with-id CrateDecls AdtId))
    (where/error ((ParameterKind_adt VarId_adt) ...) KindedVarIds_adt)
    (where/error Ty_adt (rigid-ty AdtId (VarId_adt ...)))
    ]

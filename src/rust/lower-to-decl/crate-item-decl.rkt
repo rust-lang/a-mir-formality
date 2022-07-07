@@ -41,7 +41,10 @@
                                       where [Rust/WhereClause ...]
                                       { Rust/ImplItem ... }))
    (impl KindedVarIds (TraitId [(user-ty UserTy) (user-parameter UserParameter) ...])
-         where [(lower-to-decl/WhereClause Rust/WhereClause) ...]
+         where [(lower-to-decl/WhereClause Rust/WhereClause) ...
+                (well-formed (type (user-ty UserTy)))
+                (appropriate-well-formed-goal KindedVarIds UserParameter) ...
+                ]
          { (lower-to-decl/ImplItem Rust/ImplItem) ... })]
 
   [(lower-to-decl/CrateItemDecl (static StaticId KindedVarIds where [Rust/WhereClause ...] : Rust/Ty = FnBody))
@@ -53,4 +56,22 @@
   [(lower-to-decl/CrateItemDecl Rust/FnDecl)
    (lower-to-decl/FnDecl Rust/FnDecl)]
 
+  )
+
+(define-metafunction formality-rust
+  ;; Creates a `well-formed (K P)` goal for some parameter `P`, determining the kind of
+  ;; the parameter based on the `KindedVarIds` in scope.
+  appropriate-well-formed-goal : KindedVarIds UserParameter -> Biformula
+
+  [(appropriate-well-formed-goal (_ ... (ParameterKind VarId) _ ...) VarId)
+   (well-formed (ParameterKind VarId))
+   ]
+
+  [(appropriate-well-formed-goal _ Ty)
+   (well-formed (type Ty))
+   ]
+
+  [(appropriate-well-formed-goal _ Lt)
+   (well-formed (lifetime Lt))
+   ]
   )
