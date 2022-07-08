@@ -38,9 +38,10 @@
   #:mode (type-check-goal/inputs-and-outputs I O)
   #:contract (type-check-goal/inputs-and-outputs Γ GoalAtLocations)
 
-  [(where/error (_ _ ((Ty_sigarg ..._n) -> Ty_sigret _ _) _) Γ)
+  [(where/error (_ _ ((Ty_sigarg ..._n) -> Ty_sigret _ _) _ _) Γ)
    (where/error ((_ Ty_locret _) (_ Ty_locarg _) ..._n _ ...) (local-decls-of-Γ Γ))
    (where/error ((BasicBlockId_first _) _ ...) (basic-block-decls-of-Γ Γ))
+   ; TODO: the goals should hold at "all locations"
    (where/error Location (BasicBlockId_first @ 0))
    ; FIXME: check that the where-clauses in signature are well-formed?
    ----------------------------------------

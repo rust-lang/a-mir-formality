@@ -124,8 +124,9 @@
    ]
 
   [(well-formed/Place Γ Place)
+   (well-formed/Lt Γ Lt)
    ----------------------------------------
-   (well-formed/Rvalue Γ (ref _ _ Place))
+   (well-formed/Rvalue Γ (ref Lt _ Place))
    ]
 
   [(well-formed/Place Γ Place)
@@ -258,6 +259,23 @@
    (well-formed/BasicBlockId Γ BasicBlockId_unwind)
    ----------------------------------------
    (well-formed/TargetIds Γ (BasicBlockId_normal BasicBlockId_unwind))
+   ]
+
+  )
+
+(define-judgment-form
+  formality-mir-extended
+  #:mode (well-formed/Lt I I)
+  #:contract (well-formed/Lt Γ Lt)
+
+  [----------------------------------------
+   (well-formed/Lt Γ static)
+   ]
+
+  [(where/error (_ (VarId_∀ ...) _ (VarId_∃ ...) _) Γ)
+   (where (_ ... VarId _ ...) (VarId_∀ ... VarId_∃ ...))
+   ----------------------------------------
+   (well-formed/Lt Γ VarId)
    ]
 
   )
