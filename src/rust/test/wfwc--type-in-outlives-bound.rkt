@@ -16,7 +16,7 @@
              (fn foo[(lifetime a) (type T)]() -> ()
                  where [((IsOrd < T >) : a) ; for `IsOrd<T>` to be WF, `T: Ord` must hold
                         ]
-                 trusted-fn-body)
+                 {trusted-fn-body})
              ])))
 
   (traced '()
@@ -28,7 +28,7 @@
                  where [((IsOrd < T >) : a)
                         (T : Ord[])
                         ]
-                 trusted-fn-body)
+                 {trusted-fn-body})
              ])))
 
   )

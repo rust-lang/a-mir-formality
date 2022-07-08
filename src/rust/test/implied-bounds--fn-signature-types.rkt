@@ -15,7 +15,7 @@
            (rust:is-core-crate-ok
             [(fn foo[(lifetime a) (type T)]((& a T)) -> ()
                  where [((& a T) : OK[])]
-                 trusted-fn-body
+                 {trusted-fn-body}
                  )
              (trait OK[] where [] {})
              ]
@@ -29,7 +29,7 @@
            (rust:is-core-crate-ok
             [(fn foo[(lifetime a) (type T)]() -> ()
                  where [((& a T) : OK[])]
-                 trusted-fn-body
+                 {trusted-fn-body}
                  )
              (trait OK[] where [] {})
              ]
@@ -42,7 +42,7 @@
    (rust:is-core-crate-ok
     [(fn foo[(lifetime a) (type T)]() -> (& a T)
          where [((& a T) : OK[])]
-         trusted-fn-body
+         {trusted-fn-body}
          )
      (trait OK[] where [] {})
      ]

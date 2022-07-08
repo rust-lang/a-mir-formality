@@ -22,7 +22,7 @@
     formality-rust
     [
      (; const BROKEN<T>: Foo<T>;
-      Rust/ConstDecl_broken (term (const BROKEN[(type T)] where [] : (Foo < T >) = trusted-fn-body)))
+      Rust/ConstDecl_broken (term (const BROKEN[(type T)] where [] : (Foo < T >) = {trusted-fn-body})))
      (Rust/CrateDecl (term (crate TheCrate { Rust/TraitDecl Rust/AdtDecl_Foo Rust/ConstDecl_broken })))
      ]
 
@@ -35,7 +35,7 @@
     formality-rust
     [
      (; const OK<T: Debug>: Foo<T>;
-      Rust/ConstDecl_ok (term (const OK[(type T)] where [(T : Debug[])] : (Foo < T >) = trusted-fn-body)))
+      Rust/ConstDecl_ok (term (const OK[(type T)] where [(T : Debug[])] : (Foo < T >) = {trusted-fn-body})))
      (Rust/CrateDecl (term (crate TheCrate { Rust/TraitDecl Rust/AdtDecl_Foo Rust/ConstDecl_ok })))
      ]
 

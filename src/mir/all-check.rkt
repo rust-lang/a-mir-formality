@@ -132,6 +132,6 @@
    ]
 
   [---------------------------------------- "trusted-fn-body"
-   (✅-FnBody DeclProgram (∀ _ (_ -> _ where _ trusted-fn-body)))
+   (✅-FnBody DeclProgram (∀ _ (_ -> _ where _ {trusted-fn-body})))
    ]
   )

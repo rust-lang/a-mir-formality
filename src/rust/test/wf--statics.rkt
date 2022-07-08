@@ -20,7 +20,7 @@
     redex-let*
     formality-rust
     [(; static S: Foo = ...;
-      Rust/StaticDecl (term (static S[] where [] : (Foo < >) = trusted-fn-body)))
+      Rust/StaticDecl (term (static S[] where [] : (Foo < >) = {trusted-fn-body})))
 
      (Rust/CrateDecl (term (crate TheCrate { Rust/AdtDecl_Foo
                                              Rust/StaticDecl
@@ -40,7 +40,7 @@
     redex-let*
     formality-rust
     [(; static S: Foo = ...;
-      Rust/StaticDecl (term (static S[] where [] : (Foo < >) = trusted-fn-body)))
+      Rust/StaticDecl (term (static S[] where [] : (Foo < >) = {trusted-fn-body})))
      (; impl Send for Foo
       Rust/TraitImplDecl_Sync (term (impl[(type T)] core:Sync[] for (Foo < >) where [] { })))
      (Rust/CrateDecl (term (crate TheCrate { Rust/AdtDecl_Foo

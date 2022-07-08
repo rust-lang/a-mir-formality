@@ -10,7 +10,7 @@
    formality-rust
    [(Rust/FnDecl (term (fn foo[(lifetime a) (type T)]((& a T)) -> (& a T)
                            where []
-                           trusted-fn-body)))]
+                           {trusted-fn-body})))]
                            
    (;; Test that we can write a function
     traced '()
