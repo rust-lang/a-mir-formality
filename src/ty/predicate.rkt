@@ -26,6 +26,10 @@
    ((well-formed ParameterKind) (Parameter) -> ())
    ]
 
+  [(ty:debone-predicate (in-scope (ParameterKind Parameter)))
+   ((in-scope ParameterKind) (Parameter) -> ())
+   ]
+
   [(ty:debone-predicate (well-formed-adt (rigid-ty AdtId Parameters)))
    ((well-formed-adt AdtId) Parameters -> ())
    ]

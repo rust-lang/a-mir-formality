@@ -20,6 +20,10 @@
    builtin-predicate
    ]
 
+  [(decl:categorize-goal (in-scope (type _)))
+   builtin-predicate
+   ]
+
   [(decl:categorize-goal Goal)
    (ty:categorize-goal Goal)]
 
@@ -59,7 +63,14 @@
    (where #t (env-contains-unmapped-existential-var Env VarId))
    ]
 
-  [(decl:solve-builtin-predicate CrateDecls Env (well-formed (type Ty)))
+  [; (well-formed KP) for anything but unbound existential variables
+   (decl:solve-builtin-predicate CrateDecls Env (well-formed (type Ty)))
    (Env (well-formed-subgoals-for-ty CrateDecls Ty))
    ]
+
+  [; (in-scope KP) :- (well-formed KP)
+   (decl:solve-builtin-predicate CrateDecls Env (in-scope KindedParameter))
+   (Env [(well-formed KindedParameter)])
+   ]
+
   )

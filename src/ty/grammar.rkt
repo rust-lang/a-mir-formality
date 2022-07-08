@@ -47,6 +47,8 @@
              (well-formed-trait-ref TraitRef)
              ; the given type or lifetime is well-formed.
              (well-formed KindedParameter)
+             ; the given type or lifetime is in-scope.
+             (in-scope KindedParameter)
              ; the given adt is well-formed
              (well-formed-adt (rigid-ty AdtId Parameters))
              ; the given alias type is well-formed
@@ -62,6 +64,7 @@
                       (has-impl TraitId)
                       (well-formed-trait-ref TraitId)
                       (well-formed ParameterKind)
+                      (in-scope ParameterKind)
                       (well-formed-adt AdtId)
                       (well-formed-alias AliasName)
                       (normalizes-to AliasName)

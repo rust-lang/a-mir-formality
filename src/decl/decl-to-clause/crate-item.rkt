@@ -43,7 +43,11 @@
    ;;     (∀ ((type T))
    ;;         (well-formed (type (Foo (T)))) => (well-formed (type T)))
    (crate-item-decl-rules CrateDecls CrateId (AdtKind AdtId KindedVarIds where (Biformula ...) AdtVariants))
-   ([Clause_wf-adt] [Invariant_well-formed ... Invariant_where-clause ...])
+   ([Clause_wf-adt] [Invariant_well-formed-where-clause ...
+                     Invariant_in-scope-where-clause ...
+                     Invariant_in-scope-component ...
+                     Invariant_well-formed-component ...
+                     ])
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error Ty_adt (rigid-ty AdtId (VarId ...)))
@@ -53,6 +57,11 @@
                                    Biformula ...)
                                   (well-formed-adt Ty_adt))))
 
+   (where/error [Invariant_well-formed-where-clause ...] ((∀ KindedVarIds
+                                                             (implies
+                                                              ((well-formed (type Ty_adt)))
+                                                              Biformula))
+                                                          ...))
    (where/error [Biformula_implied ...] (if-crate-has-feature
                                          CrateDecls
                                          CrateId
@@ -62,16 +71,21 @@
                                          (; without the `expanded-implied-bounds` feature, you only get the super traits
                                           outlives-clauses (Biformula ...))
                                          ))
-   (where/error [Invariant_where-clause ...] ((∀ KindedVarIds
-                                                 (implies
-                                                  ((well-formed (type Ty_adt)))
-                                                  Biformula_implied))
-                                              ...))
-   (where/error [Invariant_well-formed ...] ((∀ KindedVarIds
-                                                (implies
-                                                 ((well-formed (type Ty_adt)))
-                                                 (well-formed (ParameterKind VarId))))
-                                             ...))
+   (where/error [Invariant_in-scope-where-clause ...] ((∀ KindedVarIds
+                                                          (implies
+                                                           ((in-scope (type Ty_adt)))
+                                                           Biformula_implied))
+                                                       ...))
+   (where/error [Invariant_in-scope-component ...] ((∀ KindedVarIds
+                                                       (implies
+                                                        ((in-scope (type Ty_adt)))
+                                                        (in-scope (ParameterKind VarId))))
+                                                    ...))
+   (where/error [Invariant_well-formed-component ...] ((∀ KindedVarIds
+                                                          (implies
+                                                           ((well-formed (type Ty_adt)))
+                                                           (well-formed (ParameterKind VarId))))
+                                                       ...))
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:

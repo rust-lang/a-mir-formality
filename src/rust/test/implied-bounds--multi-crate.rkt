@@ -50,56 +50,53 @@
 
    (;; Crate B cannot prove itself WF
     traced '()
-           (test-equal #f (term (rust:is-program-ok Rust/Program_AB))))
+           (test-term-false (rust:is-program-ok Rust/Program_AB)))
 
    (;; Crate Be CAN prove itself WF
     traced '()
-           (test-equal #t (term (rust:is-program-ok Rust/Program_ABe))))
+           (test-term-true (rust:is-program-ok Rust/Program_ABe)))
 
    (;; Crate Be can prove `∀<T> { If (well-formed(Foo<T>)) { is-implemented(T: Debug) } }`
     traced '()
-           (test-equal
-            #t
-            (term (rust:can-prove-goal-in-program
-                   Rust/Program_ABe
-                   (∀ ((type T))
-                      (implies ((well-formed (type (rigid-ty Foo (T)))))
-                               (is-implemented (Debug (T)))))))))
+           (test-term-true
+            (rust:can-prove-goal-in-program
+             Rust/Program_ABe
+             (∀ ((type T))
+                (implies ((in-scope (type (rigid-ty Foo (T)))))
+                         (is-implemented (Debug (T))))))))
 
    (;; Crate C can also prove `∀<T> { If (well-formed(Foo<T>) { is-implemented(T: Debug) } }`
     traced '()
-           (test-equal
-            #t
-            (term (rust:can-prove-goal-in-program
-                   Rust/Program_ABeC
-                   (∀ ((type T))
-                      (implies ((well-formed (type (rigid-ty Foo (T))))
-                                (well-formed (type T)))
-                               (is-implemented (Debug (T)))))
-                   ))))
+           (test-term-true
+            (rust:can-prove-goal-in-program
+             Rust/Program_ABeC
+             (∀ ((type T))
+                (implies ((in-scope (type (rigid-ty Foo (T))))
+                          (well-formed (type T)))
+                         (is-implemented (Debug (T)))))
+             )))
 
    (;; and it can prove `∀<T> { If (well-formed(Foo<T>, T)) { is-implemented(Foo<T>: WithDebug<T>) } }`
     traced '()
-           (test-equal
-            #t
-            (term (rust:can-prove-goal-in-program
-                   Rust/Program_ABeC
-                   (∀ ((type T))
-                      (implies ((well-formed (type (rigid-ty Foo (T))))
-                                (well-formed (type T)))
-                               (is-implemented (WithDebug ((rigid-ty Foo (T)) T)))))
-                   ))))
+           (test-term-true
+            (rust:can-prove-goal-in-program
+             Rust/Program_ABeC
+             (∀ ((type T))
+                (implies ((in-scope (type (rigid-ty Foo (T))))
+                          (well-formed (type T)))
+                         (is-implemented (WithDebug ((rigid-ty Foo (T)) T)))))
+             )))
 
    (;; but it CAN prove `∀<T> { If (well-formed(Foo<T>, T), is-implemented(T: Debug)) { is-implemented(Foo<T>: WithDebug<T>) } }`
     traced '()
-           (test-equal
-            #t
-            (term (rust:can-prove-goal-in-program
-                   Rust/Program_ABeC
-                   (∀ ((type T))
-                      (implies ((well-formed (type (rigid-ty Foo (T))))
-                                (is-implemented (Debug (T))))
-                               (is-implemented (WithDebug ((rigid-ty Foo (T)) T)))))
-                   ))))
+           (test-term-true
+            (rust:can-prove-goal-in-program
+             Rust/Program_ABeC
+             (∀ ((type T))
+                (implies ((in-scope (type (rigid-ty Foo (T))))
+                          (well-formed (type T))
+                          (is-implemented (Debug (T))))
+                         (is-implemented (WithDebug ((rigid-ty Foo (T)) T)))))
+             )))
    )
   )

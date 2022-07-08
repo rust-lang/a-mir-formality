@@ -42,8 +42,8 @@
                                       { Rust/ImplItem ... }))
    (impl KindedVarIds (TraitId [(user-ty UserTy) (user-parameter UserParameter) ...])
          where [(lower-to-decl/WhereClause Rust/WhereClause) ...
-                (well-formed (type (user-ty UserTy)))
-                (appropriate-well-formed-goal KindedVarIds UserParameter) ...
+                (in-scope (type (user-ty UserTy)))
+                (appropriate-in-scope-goal KindedVarIds UserParameter) ...
                 ]
          { (lower-to-decl/ImplItem Rust/ImplItem) ... })]
 
@@ -59,19 +59,19 @@
   )
 
 (define-metafunction formality-rust
-  ;; Creates a `well-formed (K P)` goal for some parameter `P`, determining the kind of
+  ;; Creates a `in-scope (K P)` goal for some parameter `P`, determining the kind of
   ;; the parameter based on the `KindedVarIds` in scope.
-  appropriate-well-formed-goal : KindedVarIds UserParameter -> Biformula
+  appropriate-in-scope-goal : KindedVarIds UserParameter -> Biformula
 
-  [(appropriate-well-formed-goal (_ ... (ParameterKind VarId) _ ...) VarId)
-   (well-formed (ParameterKind VarId))
+  [(appropriate-in-scope-goal (_ ... (ParameterKind VarId) _ ...) VarId)
+   (in-scope (ParameterKind VarId))
    ]
 
-  [(appropriate-well-formed-goal _ Ty)
-   (well-formed (type Ty))
+  [(appropriate-in-scope-goal _ Ty)
+   (in-scope (type Ty))
    ]
 
-  [(appropriate-well-formed-goal _ Lt)
-   (well-formed (lifetime Lt))
+  [(appropriate-in-scope-goal _ Lt)
+   (in-scope (lifetime Lt))
    ]
   )

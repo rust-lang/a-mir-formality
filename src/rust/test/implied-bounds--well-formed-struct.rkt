@@ -28,7 +28,7 @@
                                 ((well-formed (type (user-ty (Foo < x A >)))))
                                 (A -outlives- x)))
                               ))
-                       #t))
+                       #t)) ; FIXME
    )
   )
 

@@ -118,11 +118,11 @@
    ]
 
   [(well-formed-subgoals-for-ty CrateDecls (rigid-ty (tuple _) (Ty ...)))
-   [(well-formed-subgoal-for-ty CrateDecls Ty) ...]
+   [(well-formed (type Ty)) ...]
    ]
 
   [(well-formed-subgoals-for-ty CrateDecls (rigid-ty (fn-ptr _ _) (Ty ...)))
-   [(well-formed-subgoal-for-ty CrateDecls Ty) ...]
+   [(well-formed (Type Ty)) ...]
    ]
 
   [(well-formed-subgoals-for-ty CrateDecls (rigid-ty (ref _) (Lt Ty)))
@@ -147,7 +147,7 @@
   ;; PREDICATE TYPES
 
   [(well-formed-subgoals-for-ty CrateDecls (∀ KindedVarIds Ty))
-   [(∀ KindedVarIds (&& (well-formed-subgoals-for-ty Ty)))]
+   [(∀ KindedVarIds (well-formed (type Ty)))]
    ]
 
   [(well-formed-subgoals-for-ty CrateDecls (∃ KindedVarIds Ty))
@@ -156,10 +156,10 @@
 
   [(well-formed-subgoals-for-ty CrateDecls (implies Biformulas Ty))
    [(implies Biformulas
-             (well-formed-subgoal-for-ty CrateDecls Ty))]
+             (well-formed (type Ty)))]
    ]
 
-  [(well-formed-subgoals-for-ty CrateDecls (ensures Ty Biformulas))
-   (flatten [Biformulas (well-formed-subgoals-for-ty CrateDecls Ty)])
+  [(well-formed-subgoals-for-ty CrateDecls (ensures Ty [Biformula ...]))
+   [Biformula ... (well-formed (type Ty))]
    ]
   )

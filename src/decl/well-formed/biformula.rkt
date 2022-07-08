@@ -69,10 +69,24 @@
         (well-formed-goal-for-ty Ty)])
    ]
 
-  [; well-formed goals are added during lowering to represent implied bounds
+  [; well-formed goals are added during lowering to represent default  bounds
    ;
    ; no WF requirements per se
    (well-formed-goal-for-biformula CrateDecls _ (well-formed _))
+   true-goal
+   ]
+
+  [; well-formed trait-ref goals are added during lowering to represent default bounds
+   ;
+   ; no WF requirements per se
+   (well-formed-goal-for-biformula CrateDecls _ (well-formed-trait-ref _))
+   true-goal
+   ]
+
+  [; in-scope goals are added during lowering to represent default  bounds
+   ;
+   ; no WF requirements per se
+   (well-formed-goal-for-biformula CrateDecls _ (in-scope _))
    true-goal
    ]
 
