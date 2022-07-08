@@ -120,7 +120,7 @@
 
    ;; construct the typing environment
    (where/error (CrateDecls _) DeclProgram)
-   (where/error Γ (CrateDecls VarIds_∀ (Tys -> Ty where WhereClauses) LocalsAndBlocks_2))
+   (where/error Γ (CrateDecls VarIds_∀ (Tys -> Ty where WhereClauses) VarIds_∃ LocalsAndBlocks_2))
 
    ;; run the checks
    (well-formed/Γ Γ)
