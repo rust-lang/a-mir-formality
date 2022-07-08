@@ -100,24 +100,31 @@
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (lifetime 'a))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
    (crate-item-decl-rules CrateDecls CrateId  (trait TraitId KindedVarIds where (Biformula ...) (TraitItem ...)))
-   ((flatten ([Clause_is-impl] Clauses_item ...))
+   ((flatten ([Clause_is-impl Clause_is-wf] Clauses_item ...))
     (flatten ((Invariant_well-formed ... Invariant_where-clause ...) Invariants_item ...)))
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error TraitRef_me (TraitId (VarId ...)))
 
-   ; Clause for `(is-implemented Trait ...)` -- trait is implemented if
+   ; Clause for `(is-implemented (TraitId Parameters))` -- trait is implemented if
    ; (a) there's an impl for it,
-   ; (b) all where-clauses hold
-   ; (c) input types are well-formed
+   ; (b) it's well-formed (meets the where-clauses from the TraitId)
    (where/error Clause_is-impl (∀ KindedVarIds
                                   (implies
                                    ((has-impl TraitRef_me) ; (a)
-                                    Biformula ... ; (b)
-                                    (well-formed (ParameterKind VarId)) ... ; (c)
+                                    (well-formed-trait-ref TraitRef_me)
                                     )
                                    (is-implemented TraitRef_me))))
 
+   ; Clause for `(well-formed-trait-ref (TraitId Parameters))` -- trait is WF if
+   ; (a) all where-clauses hold
+   ; (b) input types are well-formed
+   (where/error Clause_is-wf (∀ KindedVarIds
+                                (implies
+                                 [Biformula ... ; (a)
+                                  (well-formed (ParameterKind VarId)) ... ; (b)
+                                  ]
+                                 (well-formed-trait-ref TraitRef_me))))
 
    ; Invariants: if you know that `T: Foo`, you also know `T: Bar`
    ; where `Bar` is a supertrait (normal) / where-clause (expanded-implied-bounds)

@@ -43,6 +43,8 @@
              ; that `TraitRef` is implemented, as the supertraits may not
              ; have impls.
              (has-impl TraitRef)
+             ; trait ref is well-formed (where-clauses from the trait are satisfied)
+             (well-formed-trait-ref TraitRef)
              ; the given type or lifetime is well-formed.
              (well-formed KindedParameter)
              ; the given adt is well-formed
@@ -58,6 +60,7 @@
   (Predicate/Skeleton ::=
                       (is-implemented TraitId)
                       (has-impl TraitId)
+                      (well-formed-trait-ref TraitId)
                       (well-formed ParameterKind)
                       (well-formed-adt AdtId)
                       (well-formed-alias AliasName)
