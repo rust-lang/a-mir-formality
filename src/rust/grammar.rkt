@@ -101,8 +101,9 @@
                          UserParameter : UserParameter)
                         (; <T as Iterator<'a>>::Item<'a> = u32
                          ;
-                         ; in Rust today, we write `T: Iterator<'a, Item<'a> = u32>`, but that's kind
-                         ; annoying and there is talk of enabling this more general syntax.
+                         ; This is roughly the syntax proposed in rust-lang/rust#20041.
+                         ;
+                         ; FIXME(#80). We should support the syntax used in stable Rust.
                          < UserTy as TraitId UserParameters > :: AssociatedTyId UserParameters == UserTy)
                         )
 
