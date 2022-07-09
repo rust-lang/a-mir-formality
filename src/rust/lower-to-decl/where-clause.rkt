@@ -3,7 +3,7 @@
          "../../logic/env.rkt"
          "../../ty/user-ty.rkt"
          "../grammar.rkt"
-
+         "parameter-kind.rkt"
          )
 (provide lower-to-decl/WhereClause
          )
@@ -46,10 +46,11 @@
    ]
 
   [(well-formed-requirements KindedVarIds (UserParameter_1 : UserParameter_2))
-   [; FIXME -- we need the KindedVarIds to classify userparameter as types or lifetimes.
-    ;
-    ; Maybe  even better if we modify the grammar to add the ParameterKind back in again?
+   [(well-formed (ParameterKind_1 (user-parameter UserParameter_1)))
+    (well-formed (ParameterKind_2 (user-parameter UserParameter_2)))
     ]
+   (where/error ParameterKind_1 (parameter-kind-of-user-parameter KindedVarIds UserParameter_1))
+   (where/error ParameterKind_2 (parameter-kind-of-user-parameter KindedVarIds UserParameter_1))
    ]
 
   [(well-formed-requirements KindedVarIds (< UserTy_s as TraitId UserParameters_1 > :: AssociatedTyId UserParameters_2 == UserTy_v))
