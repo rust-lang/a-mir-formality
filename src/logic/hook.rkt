@@ -3,6 +3,7 @@
 (provide formality-logic-hook
          env-clauses-for-predicate
          env-invariants
+         elaborate-relation
          relate-parameters
          solve-builtin-predicate
          debone-predicate
@@ -17,12 +18,14 @@
 ;; * `clauses`: a `Env Predicate -> Clauses` lambda that returns all clauses that could possibly
 ;;   prove `Predicate`.
 ;; * `invariants`: a `-> Invariants` lambda that returns all the invariants in the program
+;; * `elaborate-relations`: a `Env Relation -> AtomicGoals` lambda that takes a relation and finds the things that are implied by it
 ;; * `relate-parameters`: a `Env Relation -> (Env Goals) or Error` lambda that relates two parameters
 ;; * `solve-builtin-predicate`: a `Env Predicate -> (Env Goals) or Error` lambda that solves a builtin predicate
 ;; * `debone-predicate`: a `Predicate -> Predicate/Deboned` function that separates into skeleton, parameters
 ;; * `categorize-goal`: given a `Goal` returns a `Goal/Categorization` based on the refined grammar
 (struct formality-logic-hook (clauses
                               invariants
+                              elaborate-relation
                               relate-parameters
                               solve-builtin-predicate
                               debone-predicate
@@ -32,6 +35,8 @@
 (define-metafunction formality-logic
   ;; Returns all program clauses in the environment that are
   ;; potentially relevant to solving `Predicate`
+  ;;
+  ;; Defined by the decl layer.
   env-clauses-for-predicate : Env Predicate -> Clauses
 
   [(env-clauses-for-predicate Env Predicate)
@@ -43,6 +48,8 @@
 
 (define-metafunction formality-logic
   ;; Returns the invariants in the environment
+  ;;
+  ;; Defined by the decl layer.
   env-invariants : Env -> Invariants
 
   [(env-invariants Env)
@@ -53,7 +60,24 @@
   )
 
 (define-metafunction formality-logic
+  ;; Given a relation that is in the environment, elaborates to new
+  ;; hypotheses that follow from that relation. (e.g., `&'a T: 'b`
+  ;; implies `'a: 'b` and `T: 'b`).
+  ;;
+  ;; Defined by the ty layer.
+  elaborate-relation : Env Relation -> AtomicGoals
+
+  [(elaborate-relation Env Relation)
+   ,(let ((fn (formality-logic-hook-elaborate-relation (term any))))
+      (fn (term Env) (term Relation)))
+   (where/error (Hook: any) (env-hook Env))
+   ]
+  )
+
+(define-metafunction formality-logic
   ;; Apply the relation `Relation`, potentially binding existential variables in `Env`
+  ;;
+  ;; Defined by the ty layer.
   relate-parameters : Env Relation -> (Env Goals) or Error
 
   [(relate-parameters Env Relation)
@@ -65,6 +89,8 @@
 
 (define-metafunction formality-logic
   ;; Apply the relation `Relation`, potentially binding existential variables in `Env`
+  ;;
+  ;; Defined by the decl layer.
   solve-builtin-predicate : Env Predicate -> (Env Goals) or Error
 
   [(solve-builtin-predicate Env Predicate)
@@ -76,6 +102,8 @@
 
 (define-metafunction formality-logic
   ;; Separate a predicate into its skeleton and a list of parameters.
+  ;;
+  ;; Defined by the ty layer.
   debone-predicate : Env Predicate -> Predicate/Deboned
 
   [(debone-predicate Env Predicate)
@@ -88,6 +116,8 @@
 (define-metafunction formality-logic
   ;; Categories the `Goal` according to the grammar defined by the higher-level layers
   ;; (e.g., ty, decl)
+  ;;
+  ;; Defined by the decl layer.
   categorize-goal : Env Goal -> Goal/Categorization
 
   [(categorize-goal Env Goal)

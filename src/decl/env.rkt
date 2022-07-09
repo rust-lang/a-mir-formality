@@ -5,6 +5,7 @@
          "../ty/relate.rkt"
          "../ty/predicate.rkt"
          "../ty/hook.rkt"
+         "../ty/elaborate-relation.rkt"
          "decl-to-clause.rkt"
          "builtin-predicate.rkt"
          )
@@ -56,6 +57,8 @@
               (term (decl-clauses-for-predicate ,env DeclProgram ,predicate)))
             (lambda ()
               (term (decl-invariants DeclProgram)))
+            (lambda (env relation)
+              (term (ty:elaborate-relation ,env ,relation)))
             (lambda (env relation)
               (term (ty:relate-parameters ,env ,relation)))
             (lambda (env predicate)

@@ -50,7 +50,7 @@
                   (∀ [(type T) (lifetime a)]
                      (implies [((user-ty (tuple T)) -outlives- a)]
                               (well-formed (type (user-ty (& a T))))))))
-           #f ; FIXME(#63) -- we don't expand outlives bounds
+           #t
            ))
 
   )

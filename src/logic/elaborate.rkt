@@ -126,6 +126,12 @@
    (hypothesis-elaborates-one-step Env Predicate_in AtomicGoal_out)
    ]
 
+  [(where #t (is-relation? Env Relation))
+   (where [_ ... AtomicGoal _ ...] (elaborate-relation Env Relation))
+   -------------------- "elaborate-relation"
+   (hypothesis-elaborates-one-step Env Relation AtomicGoal)
+   ]
+
   [(hypothesis-elaborates-one-step Env
                                    Hypothesis_in
                                    Hypothesis_out)

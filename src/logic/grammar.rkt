@@ -106,6 +106,7 @@
   ;; in logic programming contexts with this meaning.
   (Goals = (Goal ...))
   (Goal ::= AtomicGoal BuiltinGoal)
+  (AtomicGoals ::= [AtomicGoal ...])
   (AtomicGoal ::=
               Predicate
               Relation)

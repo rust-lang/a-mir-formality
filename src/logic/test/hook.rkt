@@ -14,6 +14,7 @@
                             (formality-logic-hook
                              (lambda (env predicate) (term Clauses))
                              (lambda () (term Invariants))
+                             (lambda (env relation) (term [])) ; no elaborating relations in tests
                              (lambda (env relation) (term (test-relate-parameters ,env ,relation)))
                              (lambda (env predicate) (term Error)) ; no built-in predicates
                              (lambda (predicate) (term (logic:test-debone-predicate ,predicate)))

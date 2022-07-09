@@ -9,6 +9,7 @@
          "../relate.rkt"
          "../scheme.rkt"
          "../predicate.rkt"
+         "../elaborate-relation.rkt"
          )
 (provide env-with-clauses-invariants-and-generics
          EmptyEnv
@@ -28,6 +29,7 @@
                             (formality-ty-hook
                              (lambda (env predicate) (term Clauses))
                              (lambda () (term Invariants))
+                             (lambda (env relation) (term (ty:elaborate-relation ,env ,relation)))
                              (lambda (env relation) (term (ty:relate-parameters ,env ,relation)))
                              (lambda (env predicate) (term Error)) ; no built-in predicates
                              (lambda (predicate1) (term (ty:debone-predicate ,predicate1)))

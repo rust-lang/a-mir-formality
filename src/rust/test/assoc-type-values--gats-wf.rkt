@@ -62,8 +62,7 @@
 
    (traced '()
            (test-equal (term (rust:is-program-ok ([libcore Rust/CrateDecl_C] C)))
-                       #f ; FIXME(#63) -- we don't expand outlives bounds, so `Lend<T> : 'a` doesn't
-                       ; imply `T: 'a`
+                       #t
                        ))
 
    (traced '()
