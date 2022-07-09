@@ -94,9 +94,6 @@
                       (is-implemented (Debug ((user-ty i32))))))
                (term Clauses_test))
 
-   ; The "filtering" function we use at the logic level is ... not very precise.
-   ; (It always returns #t)
-
    (test-equal (term (filter-clauses
                       EmptyEnv
                       Clauses_test
@@ -107,6 +104,6 @@
                       EmptyEnv
                       Clauses_test
                       (has-impl (Debug ((user-ty i32))))))
-               (term Clauses_test))
+               (term ()))
    )
   )
