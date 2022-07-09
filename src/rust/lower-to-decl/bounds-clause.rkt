@@ -7,10 +7,10 @@
          )
 
 (define-metafunction formality-rust
-  lower-to-decl/BoundsClause : Rust/BoundsClause -> BoundsClause
+  lower-to-decl/BoundsClause : KindedVarIds Rust/BoundsClause -> BoundsClause
 
-  [(lower-to-decl/BoundsClause [Rust/Bound ...])
-   (: (type VarId_fresh) [(lower-to-decl/WhereClause Rust/WhereClause) ...])
+  [(lower-to-decl/BoundsClause KindedVarIds [Rust/Bound ...])
+   (: (type VarId_fresh) [(lower-to-decl/WhereClause KindedVarIds Rust/WhereClause) ...])
    ; we have to introduce a fresh variable VarId to become the bound variable that is present
    ; in decl syntax, but not in rust
    (where/error VarId_fresh ,(variable-not-in (term [Rust/Bound ...]) 'X))

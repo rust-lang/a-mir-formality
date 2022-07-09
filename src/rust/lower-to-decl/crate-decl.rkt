@@ -8,6 +8,7 @@
          )
 
 (define-metafunction formality-rust
+  ;; Lower an entire crate to the decl layer.
   lower-to-decl/CrateDecl : Rust/CrateDecl -> CrateDecl
 
   [(lower-to-decl/CrateDecl (crate CrateId (Rust/CrateItemDecl ...)))

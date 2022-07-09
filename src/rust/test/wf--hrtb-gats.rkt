@@ -32,6 +32,10 @@
              Rust/Program
              (∀ [(lifetime a)]
                 where []
+                ; key point here:
+                ;
+                ;     this is actually only valid for `l` where `a: l`, but the default
+                ;     bounds make it provable.
                 (for[(lifetime l)] (< (& a ()) as Ref[] > :: Item[l] == (& l (& a ()))))
                 )
              )

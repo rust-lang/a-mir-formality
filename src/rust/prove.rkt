@@ -44,14 +44,14 @@
   [(rust:can-prove-where-clause-in-program Rust/Program Rust/WhereClause)
    (decl:can-prove-goal CrateDecls CrateId Goal)
    (where/error (CrateDecls CrateId) (lower-to-decl/Program Rust/Program))
-   (where/error Goal (lower-to-decl/WhereClause Rust/WhereClause))
+   (where/error Goal (lower-to-decl/WhereClause [] Rust/WhereClause))
    ]
 
   [(rust:can-prove-where-clause-in-program Rust/Program (∀ KindedVarIds where [Rust/WhereClause_h ...] Rust/WhereClause_g))
    (decl:can-prove-goal CrateDecls CrateId (∀ KindedVarIds (implies Hypotheses Goal)))
    (where/error (CrateDecls CrateId) (lower-to-decl/Program Rust/Program))
-   (where/error Goal (lower-to-decl/WhereClause Rust/WhereClause_g))
-   (where/error Hypotheses [(lower-to-decl/WhereClause Rust/WhereClause_h) ...])
+   (where/error Goal (lower-to-decl/WhereClause KindedVarIds Rust/WhereClause_g))
+   (where/error Hypotheses [(lower-to-decl/WhereClause KindedVarIds Rust/WhereClause_h) ...])
    ]
 
   )

@@ -1,7 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar.rkt"
          "../logic/env.rkt"
+         "grammar.rkt"
          )
 (provide known-bounds
          known-relations
