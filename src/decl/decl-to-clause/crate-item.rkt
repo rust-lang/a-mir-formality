@@ -57,25 +57,29 @@
                                    Biformula ...)
                                   (well-formed-adt Ty_adt))))
 
+   ; if you have (well-formed (type (Foo T))) in env, you get the full where clauses
+   ;
+   ; with the expanded-implied-bounds flag, this is all the time, but otherwise it's
+   ; only in higher-ranked code
    (where/error [Invariant_well-formed-where-clause ...] ((∀ KindedVarIds
                                                              (implies
                                                               ((well-formed (type Ty_adt)))
                                                               Biformula))
                                                           ...))
-   (where/error [Biformula_implied ...] (if-crate-has-feature
-                                         CrateDecls
-                                         CrateId
-                                         expanded-implied-bounds
-                                         (; with the `expanded-implied-bounds` feature, you get all the where clauses
-                                          Biformula ...)
-                                         (; without the `expanded-implied-bounds` feature, you only get the super traits
-                                          outlives-clauses (Biformula ...))
-                                         ))
+
+   ; if you have (in-scope (type (Foo T))) in env, you get the full where clauses
+   ;
+   ; with the expanded-implied-bounds flag, this is all the time, but otherwise it's
+   ; only in higher-ranked code
+   (where/error [Biformula_outlives ...] (outlives-clauses (Biformula ...)))
    (where/error [Invariant_in-scope-where-clause ...] ((∀ KindedVarIds
                                                           (implies
                                                            ((in-scope (type Ty_adt)))
-                                                           Biformula_implied))
+                                                           Biformula_outlives))
                                                        ...))
+
+   ; if you have (in-scope (type (Foo T))) in env, you also know T is in-scope
+   ; and same with (well-formed)
    (where/error [Invariant_in-scope-component ...] ((∀ KindedVarIds
                                                        (implies
                                                         ((in-scope (type Ty_adt)))

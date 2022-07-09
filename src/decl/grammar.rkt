@@ -105,6 +105,7 @@
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
+  (FeatureIds ::= [FeatureId ...])
   ((CrateId
     TraitImplId
     ConstId
