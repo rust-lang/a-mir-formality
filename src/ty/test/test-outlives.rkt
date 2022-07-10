@@ -64,10 +64,12 @@
                ()
                ((∀
                  ((lifetime A))
-                 (rigid-ty
-                  (fn-ptr _ 1)
-                  ((rigid-ty (ref ()) (A (rigid-ty u32 ())))
-                   (rigid-ty (tuple 0) ()))))
+                 (implies
+                  [(well-formed (type _))]
+                  (rigid-ty
+                   (fn-ptr _ 1)
+                   ((rigid-ty (ref ()) (A (rigid-ty u32 ())))
+                    (rigid-ty (tuple 0) ())))))
                 -outlives-
                 static))))
 

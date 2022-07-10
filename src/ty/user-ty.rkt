@@ -49,7 +49,8 @@
   [(user-ty VarId) VarId]
 
   [(user-ty (for KindedVarIds UserTy))
-   (∀ KindedVarIds (user-ty UserTy))
+   (∀ KindedVarIds (implies [(well-formed (type Ty))] Ty))
+   (where/error Ty (user-ty UserTy))
    ]
   )
 
