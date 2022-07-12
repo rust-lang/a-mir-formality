@@ -15,7 +15,23 @@
 
   ((default-rules ())
    (()
-    ())
+    [(∀ [(type T) (lifetime a)]
+        (implies [(well-formed (type (user-ty (& a T))))]
+                 (T -outlives- a)
+                 ))
+     (∀ [(type T) (lifetime a)]
+        (implies [(in-scope (type (user-ty (& a T))))]
+                 (T -outlives- a)
+                 ))
+     (∀ [(type T) (lifetime a)]
+        (implies [(well-formed (type (user-ty (&mut a T))))]
+                 (T -outlives- a)
+                 ))
+     (∀ [(type T) (lifetime a)]
+        (implies [(in-scope (type (user-ty (&mut a T))))]
+                 (T -outlives- a)
+                 ))
+     ])
    )
 
   )

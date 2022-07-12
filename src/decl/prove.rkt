@@ -4,7 +4,6 @@
          "../ty/scheme.rkt"
          "decl-ok.rkt"
          "env.rkt"
-         "where-clauses.rkt"
          "grammar.rkt"
          )
 (provide (all-defined-out)
@@ -19,10 +18,10 @@
     ;; Then proves the goal and extracts a "scheme".
     ;;
     ;; Returns the resulting scheme(s), which you can test with `test-match`.
-    decl:prove-scheme-in-crate : CrateDecls CrateId ((Quantifier KindedVarIds) ...) WhereClauses Goal -> Schemes
+    decl:prove-scheme-in-crate : CrateDecls CrateId ((Quantifier KindedVarIds) ...) Biformulas Goal -> Schemes
 
-    [(decl:prove-scheme-in-crate CrateDecls CrateId ((Quantifier KindedVarIds) ...) WhereClauses Goal)
-     (ty:prove-scheme Env ((Quantifier KindedVarIds) ...) WhereClauses Goal)
+    [(decl:prove-scheme-in-crate CrateDecls CrateId ((Quantifier KindedVarIds) ...) Biformulas Goal)
+     (ty:prove-scheme Env ((Quantifier KindedVarIds) ...) Biformulas Goal)
      (where/error Env (env-for-crate-decls CrateDecls CrateId))
      ]
 

@@ -12,11 +12,11 @@
                   [(trait Debug[] where [] {})
                    (trait Display[] where [] {})
                    (trait Get[] where []
-                          {(fn get[(type T) (lifetime l)]((&mut l Self)) -> () where [(T : Debug[])] trusted-fn-body)
+                          {(fn get[(type T) (lifetime l)]((&mut l Self)) -> () where [(T : Debug[])] {trusted-fn-body})
                            ;                              -------------
                            })
                    (impl[] Get[] for () where []
-                        {(fn get[(type T) (lifetime l)]((& l ())) -> () where [(T : Debug[])] trusted-fn-body)
+                        {(fn get[(type T) (lifetime l)]((& l ())) -> () where [(T : Debug[])] {trusted-fn-body})
                          ;                              --------
                          })
                    ]

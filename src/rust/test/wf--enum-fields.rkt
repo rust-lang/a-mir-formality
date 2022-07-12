@@ -14,11 +14,11 @@
 
    ((; enum Foo<'a, T> where T: 'a { None, Some(r : &'a T) }
      Rust/AdtDecl_Foo (term (enum Foo[(lifetime a) (type T)]
-                                  where [((type T) : (lifetime a))]
+                                  where [(T : a)]
                                   { (None {})
                                     (Some { (r : (& a T)) })
                                     })))
-    (Rust/CrateDecl_C (term (crate C {Rust/AdtDecl_Foo})))
+    (Rust/CrateDecl_C (term (crate C { Rust/AdtDecl_Foo })))
     )
 
    (traced '() (test-equal (term (rust:is-program-ok ([Rust/CrateDecl_C] C)))
@@ -36,7 +36,7 @@
                                   { (None {})
                                     (Some { (r : (& a T)) })
                                     })))
-    (Rust/CrateDecl_C (term (crate C {Rust/AdtDecl_Foo})))
+    (Rust/CrateDecl_C (term (crate C { Rust/AdtDecl_Foo })))
     )
 
    (traced '() (test-equal (term (rust:is-program-ok ([Rust/CrateDecl_C] C)))

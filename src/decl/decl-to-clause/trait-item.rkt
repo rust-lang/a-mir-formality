@@ -1,7 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
          "../grammar.rkt"
-         "../where-clauses.rkt"
          "../feature-gate.rkt"
          "../../logic/env.rkt"
          )
@@ -29,7 +28,7 @@
    ([Clause_wf-alias] [Invariant_bound ... Invariant_X ...])
 
    (where/error ((ParameterKind_t VarId_t) ...) (KindedVarId_t ...))
-   (where/error (type AssociatedTyId (KindedVarId_i ...) BoundsClause_i where (WhereClause_i ...)) AssociatedTyDecl)
+   (where/error (type AssociatedTyId (KindedVarId_i ...) BoundsClause_i where (Biformula_i ...)) AssociatedTyDecl)
    (where/error ((ParameterKind_i VarId_i) ...) (KindedVarId_i ...))
    (where/error AliasTy (alias-ty (TraitId AssociatedTyId) (VarId_t ... VarId_i ...)))
 
@@ -39,7 +38,7 @@
    (where/error Clause_wf-alias (∀ (KindedVarId_t ... KindedVarId_i ...)
                                    (implies
                                     [(is-implemented (TraitId (VarId_t ...))) ; (a)
-                                     (where-clause->goal CrateDecls WhereClause_i) ... ; (b)
+                                     Biformula_i ... ; (b)
                                      ]
                                     (well-formed-alias AliasTy))))
 
@@ -51,14 +50,14 @@
    ;; (is-implemented Sized ((alias-ty (Iterator Item) (T)))) :-
    ;;     (well-formed (alias-ty (Iterator Item) (T)))
    ;; ```
-   (where/error [Clause_if-wf ...] (where-clauses->hypotheses CrateDecls (instantiate-bounds-clause BoundsClause_i AliasTy)))
+   (where/error [Clause_if-wf ...] (instantiate-bounds-clause BoundsClause_i AliasTy))
    (where/error [Invariant_bound ...] [(∀ (KindedVarId_t ... KindedVarId_i ...)
                                           (implies ((well-formed (type AliasTy))) Clause_if-wf)) ...])
 
    ;; if we know that an alias type normalizes to another type X, we know
    ;; that X meets the bounds of that alias type too (feature-gated)
    (where/error (VarId_X) (fresh-var-ids CrateDecls (X)))
-   (where/error (Clause_X ...) (where-clauses->hypotheses CrateDecls (instantiate-bounds-clause BoundsClause_i VarId_X)))
+   (where/error (Clause_X ...) (instantiate-bounds-clause BoundsClause_i VarId_X))
    (where/error [Invariant_X ...] (if-crate-has-feature
                                    CrateDecls
                                    CrateId

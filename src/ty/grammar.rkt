@@ -43,8 +43,12 @@
              ; that `TraitRef` is implemented, as the supertraits may not
              ; have impls.
              (has-impl TraitRef)
+             ; trait ref is well-formed (where-clauses from the trait are satisfied)
+             (well-formed-trait-ref TraitRef)
              ; the given type or lifetime is well-formed.
              (well-formed KindedParameter)
+             ; the given type or lifetime is in-scope.
+             (in-scope KindedParameter)
              ; the given adt is well-formed
              (well-formed-adt (rigid-ty AdtId Parameters))
              ; the given alias type is well-formed
@@ -58,20 +62,13 @@
   (Predicate/Skeleton ::=
                       (is-implemented TraitId)
                       (has-impl TraitId)
+                      (well-formed-trait-ref TraitId)
                       (well-formed ParameterKind)
+                      (in-scope ParameterKind)
                       (well-formed-adt AdtId)
                       (well-formed-alias AliasName)
                       (normalizes-to AliasName)
                       )
-
-  ;; WhereClause -- Rust where clauses. These are a subset of
-  ;; the logical Goals, Clauses, and Predicates. They
-  ;; can be translated into predicates.
-  ;;
-  ;; WhereClauseAtom represent "first-order" where clauses, without any
-  ;; quantification.
-  (WhereClauses ::= (WhereClause ...))
-  (WhereClause ::= Term)
 
   ;; UserTy -- rust user-facing types
   ;;
@@ -136,11 +133,11 @@
   ;; Implication types have an interesting twist: if the implication is false, the only
   ;; valid operation on the type is to drop it.
   (∀Ty ::= (∀ KindedVarIds Ty))
-  (ImplicationTy ::= (implies WhereClauses Ty))
+  (ImplicationTy ::= (implies Biformulas Ty))
 
   ;; ∃ and ensures types: These are used in Rust to model
   (∃Ty ::= (∃ KindedVarIds Ty))
-  (EnsuresTy ::= (ensures Ty WhereClauses))
+  (EnsuresTy ::= (ensures Ty Biformulas))
 
   ;; Treat ABIs as opaque strings (for now, at least)
   (Abi ::= string)
@@ -199,10 +196,10 @@
   ;; Signature
   ;;
   ;; Callable functions (with any ABI)
-  (Signature ::= (ForAll KindedVarIds (implies WhereClauses (Tys_formal -> Ty_ret))))
+  (Signature ::= (ForAll KindedVarIds (implies Biformulas (Tys_formal -> Ty_ret))))
 
   ;; Generic parameters
-  (Generics ::= (GenericParameters WhereClauses))
+  (Generics ::= (GenericParameters Biformulas))
   (GenericParameters ::= (GenericParameter ...))
   (GenericParameter ::= (VarId KindAndVariance))
   (KindAndVariance ::= (ParameterKind Variance))

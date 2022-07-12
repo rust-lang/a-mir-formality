@@ -9,7 +9,7 @@
          "../relate.rkt"
          "../scheme.rkt"
          "../predicate.rkt"
-         "../where-clauses-from-env.rkt"
+         "../elaborate-relation.rkt"
          )
 (provide env-with-clauses-invariants-and-generics
          EmptyEnv
@@ -29,12 +29,12 @@
                             (formality-ty-hook
                              (lambda (env predicate) (term Clauses))
                              (lambda () (term Invariants))
+                             (lambda (env relation) (term (ty:elaborate-relation ,env ,relation)))
                              (lambda (env relation) (term (ty:relate-parameters ,env ,relation)))
                              (lambda (env predicate) (term Error)) ; no built-in predicates
                              (lambda (predicate1) (term (ty:debone-predicate ,predicate1)))
                              (lambda (goal) (term (ty:categorize-goal ,goal)))
                              (lambda (adt-id) (term (find-adt-generics ,adt-id ((AdtId Generics) ...))))
-                             (lambda (where-clause) (term (where-clause->biformula-mock ,where-clause)))
                              ))))
    ]
   )
@@ -77,42 +77,17 @@
   ;; Then proves the goal and extracts a "scheme".
   ;;
   ;; Returns the resulting scheme(s), which you can test with `test-match`.
-  ty:prove-scheme : Env ((Quantifier KindedVarIds) ...) WhereClauses Goal -> Schemes
+  ty:prove-scheme : Env ((Quantifier KindedVarIds) ...) Biformulas Goal -> Schemes
 
-  [(ty:prove-scheme Env () WhereClauses Goal)
+  [(ty:prove-scheme Env () Biformulas Goal)
    (extract-schemes Envs_out Goal)
-   (where/error Env_h (env-with-hypotheses Env (where-clauses->hypotheses-from-env Env WhereClauses)))
+   (where/error Env_h (env-with-hypotheses Env Biformulas))
    (where/error Envs_out ,(judgment-holds (ty:prove-top-level-goal/cosld Env_h Goal Env_out) Env_out))
    ]
 
-  [(ty:prove-scheme Env ((Quantifier_0 KindedVarIds_0) (Quantifier KindedVarIds) ...) WhereClauses Goal)
-   (ty:prove-scheme Env_out ((Quantifier KindedVarIds) ...) WhereClauses_out Goal_out)
-   (where/error (Env_out (WhereClauses_out Goal_out) _) (instantiate-quantified Env (Quantifier_0 KindedVarIds_0 (WhereClauses Goal))))
-   ]
-
-  )
-
-(define-metafunction formality-ty
-  ;; Converts a where-clause into a `Biformula`.
-  ;;
-  ;; The REAL version of this is in formality-decl; this is a "mock" version for
-  ;; testing the typing code in isolation.
-  where-clause->biformula-mock : WhereClause -> Biformula
-
-  [(where-clause->biformula-mock (∀ KindedVarIds WhereClause))
-   (∀ KindedVarIds (where-clause->biformula WhereClause))
-   ]
-
-  [(where-clause->biformula-mock (Ty_self : TraitId[Parameter ...]))
-   (is-implemented (TraitId (Ty_self Parameter ...)))
-   ]
-
-  [(where-clause->biformula-mock (AliasTy == Ty))
-   (normalizes-to AliasTy Ty)
-   ]
-
-  [(where-clause->biformula-mock ((_ Parameter_a) : (_ Parameter_b)))
-   (Parameter_a -outlives- Parameter_b)
+  [(ty:prove-scheme Env ((Quantifier_0 KindedVarIds_0) (Quantifier KindedVarIds) ...) Biformulas Goal)
+   (ty:prove-scheme Env_out ((Quantifier KindedVarIds) ...) Biformulas_out Goal_out)
+   (where/error (Env_out (Biformulas_out Goal_out) _) (instantiate-quantified Env (Quantifier_0 KindedVarIds_0 (Biformulas Goal))))
    ]
 
   )

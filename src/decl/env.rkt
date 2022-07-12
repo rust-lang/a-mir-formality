@@ -1,11 +1,11 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
-         "where-clauses.rkt"
          "../logic/env.rkt"
          "../ty/relate.rkt"
          "../ty/predicate.rkt"
          "../ty/hook.rkt"
+         "../ty/elaborate-relation.rkt"
          "decl-to-clause.rkt"
          "builtin-predicate.rkt"
          )
@@ -58,6 +58,8 @@
             (lambda ()
               (term (decl-invariants DeclProgram)))
             (lambda (env relation)
+              (term (ty:elaborate-relation ,env ,relation)))
+            (lambda (env relation)
               (term (ty:relate-parameters ,env ,relation)))
             (lambda (env predicate)
               (term (decl:solve-builtin-predicate CrateDecls ,env ,predicate)))
@@ -67,8 +69,6 @@
               (term (decl:categorize-goal ,goal)))
             (lambda (adt-id)
               (term (generics-for-adt-id CrateDecls ,adt-id)))
-            (lambda (where-clause)
-              (term (where-clause->biformula CrateDecls ,where-clause)))
             ))
 
    (where/error (CrateDecls CrateId) DeclProgram)
@@ -83,7 +83,7 @@
   generics-for-adt-id : CrateDecls AdtId -> Generics
 
   [(generics-for-adt-id CrateDecls AdtId)
-   (((VarId (ParameterKind =)) ...) WhereClauses) ; for now we hardcode `=` (invariance) as the variance
-   (where/error (AdtKind AdtId ((ParameterKind VarId) ...) WhereClauses AdtVariants) (adt-with-id CrateDecls AdtId))
+   (((VarId (ParameterKind =)) ...) Biformulas) ; for now we hardcode `=` (invariance) as the variance
+   (where/error (AdtKind AdtId ((ParameterKind VarId) ...) Biformulas AdtVariants) (adt-with-id CrateDecls AdtId))
    ]
   )

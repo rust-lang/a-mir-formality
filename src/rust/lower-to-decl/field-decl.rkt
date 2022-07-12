@@ -7,6 +7,7 @@
          )
 
 (define-metafunction formality-rust
+  ;; Lower an field declaration to the decl layer.
   lower-to-decl/FieldDecl : Rust/FieldDecl -> FieldDecl
 
   [(lower-to-decl/FieldDecl (FieldId : UserTy))

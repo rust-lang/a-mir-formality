@@ -14,7 +14,7 @@
 
    ((; struct Foo<'a, T> where T: 'a { r : &'a T }
      Rust/AdtDecl_Foo (term (struct Foo[(lifetime a) (type T)]
-                              where [((type T) : (lifetime a))]
+                              where [(T : a)]
                               { (r : (& a T)) })))
     (Rust/CrateDecl_C (term (crate C {Rust/AdtDecl_Foo})))
     )

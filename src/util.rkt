@@ -19,3 +19,9 @@
                                         (let ((result a))
                                           (current-traced-metafunctions '())
                                           result)))
+
+(define-syntax-rule (test-term-true a)
+  (test-equal (term a) #t))
+
+(define-syntax-rule (test-term-false a)
+  (test-equal (term a) #f))

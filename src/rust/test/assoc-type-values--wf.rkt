@@ -40,7 +40,7 @@
              {})))
     ]
 
-   (; Impl supplies ?Copy, MyIter requires ?Copy: OK XXX
+   (; Impl supplies ?Copy, MyIter requires ?Copy: OK
     traced '()
            (test-equal
             (term (rust:is-program-ok ([libcore

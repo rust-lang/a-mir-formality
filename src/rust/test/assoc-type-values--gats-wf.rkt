@@ -23,7 +23,7 @@
 
    [(; trait LendingIterator { type Item<'a> where Self: 'a; }
      Rust/TraitDecl_LendingIterator_with_Item_where_Self:a
-     (term (trait-decl-of-LendingIterator [((type Self) : (lifetime a))])))
+     (term (trait-decl-of-LendingIterator [(Self : a)])))
 
     (; trait LendingIterator { type Item<'a>; }
      Rust/TraitDecl_LendingIterator_without_Item_where_Self:a
@@ -35,7 +35,7 @@
                 where []
                 {
                  (type Item[(lifetime a)] = (& a T)
-                       where [((type T) : (lifetime a))])
+                       where [(T : a)])
                  })))
 
     (; struct Lend<T> { }
@@ -62,8 +62,7 @@
 
    (traced '()
            (test-equal (term (rust:is-program-ok ([libcore Rust/CrateDecl_C] C)))
-                       #f ; FIXME(#63) -- we don't expand outlives bounds, so `Lend<T> : 'a` doesn't
-                       ; imply `T: 'a`
+                       #t
                        ))
 
    (traced '()

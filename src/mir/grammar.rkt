@@ -6,7 +6,7 @@
   ; Overridden from formality-decl
   (FnBody ::=
           (∃ KindedVarIds LocalsAndBlocks)
-          trusted-fn-body ; a special tag that is always considered to pass the type check
+          {trusted-fn-body} ; a special tag that is always considered to pass the type check
           )
   (LocalsAndBlocks ::= (LocalDecls BasicBlockDecls))
 

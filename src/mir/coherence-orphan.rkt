@@ -28,7 +28,7 @@
    ------------------------------- "orphan--trait-is-in-current-crate"
    (✅-OrphanRules DeclProgram TraitImplDecl)]
 
-  [(where/error (impl KindedVarIds (_ (Parameter_self Parameter_other ...)) where WhereClauses _) TraitImplDecl)
+  [(where/error (impl KindedVarIds (_ (Parameter_self Parameter_other ...)) where Biformulas _) TraitImplDecl)
    (is-local-parameter DeclProgram Parameter_self)
    ------------------------------- "orphan--self-is-local"
    (✅-OrphanRules DeclProgram TraitImplDecl)]

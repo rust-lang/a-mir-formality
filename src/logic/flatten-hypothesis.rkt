@@ -23,16 +23,16 @@
 (define-metafunction formality-logic
   flatten-hypothesis : KindedVarIds Goals Hypothesis -> FlatHypothesis
 
+  [(flatten-hypothesis KindedVarIds [Goal_0 ...] (implies [Goal_1 ...] AtomicGoal))
+   (flatten-hypothesis KindedVarIds [Goal_0 ... Goal_1 ...] AtomicGoal)
+   ]
+
+  [(flatten-hypothesis [KindedVarId_0 ...] Goals (∀ [KindedVarId_1 ...] Hypothesis))
+   (flatten-hypothesis [KindedVarId_0 ... KindedVarId_1 ...] Goals Hypothesis)
+   ]
+
   [(flatten-hypothesis KindedVarIds Goals AtomicGoal)
    (∀ KindedVarIds (implies Goals AtomicGoal))]
-
-  [(flatten-hypothesis KindedVarIds (Goal_0 ...) (implies (Goal_1 ...) AtomicGoal))
-   (flatten-hypothesis KindedVarIds (Goal_0 ... Goal_1 ...) AtomicGoal)
-   ]
-
-  [(flatten-hypothesis (KindedVarId_0 ...) Goals (∀ (KindedVarId_1 ...) Hypothesis))
-   (flatten-hypothesis (KindedVarId_0 ... KindedVarId_1 ...) Goals Hypothesis)
-   ]
 
   )
 

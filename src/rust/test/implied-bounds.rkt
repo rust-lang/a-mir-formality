@@ -57,8 +57,8 @@
    formality-rust
 
    [([Rust/CrateItemDecl ...] (term [(trait Foo[(lifetime l) (type T)]
-                                            where (((type T) : (lifetime l))
-                                                   ((type Self) : (lifetime l)))
+                                            where ((T : l)
+                                                   (Self : l))
                                             {})]))
 
     (Rust/Program_not-expanded (term ([(crate C { Rust/CrateItemDecl ... })]
@@ -76,7 +76,7 @@
                    Rust/Program_not-expanded
                    (∀ ((type A) (lifetime a) (type B))
                       where [(A : Foo[a B])]
-                      ((type A) : (lifetime a)))))))
+                      (A : a))))))
 
    (; Knowing that `A: Foo<'a, B>` does not imply that `B: 'a`
     traced '()
@@ -86,7 +86,7 @@
                    Rust/Program_not-expanded
                    (∀ ((type A) (lifetime a) (type B))
                       where [(A : Foo[a B])]
-                      ((type B) : (lifetime a)))))))
+                      (B : a))))))
 
    (; Knowing that `A: Foo<'a, B>` implies `B: 'a` w/ expanded-implied-bounds
     traced '()
@@ -96,6 +96,6 @@
                    Rust/Program_expanded
                    (∀ ((type A) (lifetime a) (type B))
                       where [(A : Foo[a B])]
-                      ((type B) : (lifetime a)))))))
+                      (B : a))))))
    )
   )

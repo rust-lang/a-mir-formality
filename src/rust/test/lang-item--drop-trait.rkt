@@ -58,15 +58,14 @@
   ;; are syntactically present on the struct, but they are entailed by
   ;; the predicates on the struct.
   (traced '()
-          (test-equal
-           (term (rust:is-core-crate-ok { (trait core:Drop[] where [] {})
-                                          (trait Eq[] where [] {})
-                                          (trait Ord[] where [(Self : Eq())] {})
-                                          (struct Foo[(type T)] where [(T : Ord[])] {})
-                                          (impl[(type U)] core:Drop[] for (Foo < U >)
-                                               where [(U : Ord[]) (U : Eq[])]
-                                               {})
-                                          }))
-           #t
-           ))
+          (test-term-true
+           (rust:is-core-crate-ok { (trait core:Drop[] where [] {})
+                                    (trait Eq[] where [] {})
+                                    (trait Ord[] where [(Self : Eq())] {})
+                                    (struct Foo[(type T)] where [(T : Ord[])] {})
+                                    (impl[(type U)] core:Drop[] for (Foo < U >)
+                                         where [(U : Ord[])
+                                                (U : Eq[])]
+                                         {})
+                                    })))
   )

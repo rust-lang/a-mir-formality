@@ -6,7 +6,7 @@
 
 (define-extended-language formality-mir-extended formality-mir
   ;; Typing context storing bindings from locals to types and `CrateDecls`.
-  (Γ ::= (CrateDecls VarIds_∀ (Tys -> Ty where WhereClauses) LocalsAndBlocks))
+  (Γ ::= (CrateDecls VarIds_∀ (Tys -> Ty where Biformulas) LocalsAndBlocks))
 
   ;; MaybeVariantId -- either a variant-id or nothing
   (MaybeVariantId ::= () (VariantId))
@@ -32,7 +32,7 @@
   ;;        type-parameters   arguments   return type           where-clauses
   ;; ```
   ;;
-  (MirBodySig ::= (∀ KindedVarIds (Tys -> Ty where WhereClauses FnBody)))
+  (MirBodySig ::= (∀ KindedVarIds (Tys -> Ty where Biformulas FnBody)))
 
   ;; Location --- identifies a particular statement or terminator within the MIR
   (Location ::= (BasicBlockId @ number))

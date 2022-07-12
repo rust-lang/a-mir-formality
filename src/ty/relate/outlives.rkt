@@ -5,7 +5,6 @@
          "../grammar.rkt"
          "../kind.rkt"
          "../inequalities.rkt"
-         "../where-clauses-from-env.rkt"
          "../extrude.rkt"
          "../../logic/env.rkt"
          )
@@ -228,14 +227,13 @@
    ]
 
   [; P0 : (WC => P1) if WC => (P0 : P1)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (implies WhereClauses Ty)))
-   (Env ((implies (where-clauses->goals-from-env Env WhereClauses) (Parameter -outlives- Ty))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (implies Biformulas Ty)))
+   (Env ((implies Biformulas (Parameter -outlives- Ty))))
    ]
 
   [; (WC => P0) : P1 if WC, (P0 : P1)
-   (outlives/one/substituted/reduce Env ((implies WhereClauses Ty) -outlives- Parameter))
-   (Env (Goal_wc ... (Parameter -outlives- Ty)))
-   (where (Goal_wc ...) (where-clauses->goals-from-env Env WhereClauses))
+   (outlives/one/substituted/reduce Env ((implies [Biformula ...] Ty) -outlives- Parameter))
+   (Env (Biformula ... (Parameter -outlives- Ty)))
    ]
 
   [; P0 : ∃ P1 if
@@ -294,15 +292,14 @@
 
   [; P0 : (P1 ensures WC) if
    ;    WC, (P0 : P1)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (ensures Ty WhereClauses)))
-   (Env (Goal_wc ... (Parameter -outlives- Ty)))
-   (where (Goal_wc ...) (where-clauses->goals-from-env Env WhereClauses))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (ensures Ty [Biformula ...])))
+   (Env (Biformula ... (Parameter -outlives- Ty)))
    ]
 
   [; (P0 ensures WC) : P1 if
    ;     WC => (P0 : P1)
-   (outlives/one/substituted/reduce Env (Parameter -outlives- (ensures Ty WhereClauses)))
-   (Env ((implies (where-clauses->goals-from-env Env WhereClauses) (Parameter -outlives- Ty))))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (ensures Ty Biformulas)))
+   (Env ((implies Biformulas (Parameter -outlives- Ty))))
    ]
 
   [(outlives/one/substituted/reduce Env (Parameter_a -outlives- Parameter_b))

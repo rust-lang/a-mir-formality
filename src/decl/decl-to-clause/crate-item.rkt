@@ -1,7 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
          "../grammar.rkt"
-         "../where-clauses.rkt"
          "../feature-gate.rkt"
          "../../logic/env.rkt"
          "trait-item.rkt"
@@ -43,36 +42,54 @@
    ;;
    ;;     (∀ ((type T))
    ;;         (well-formed (type (Foo (T)))) => (well-formed (type T)))
-   (crate-item-decl-rules CrateDecls CrateId (AdtKind AdtId KindedVarIds where (WhereClause ...) AdtVariants))
-   ([Clause_wf-adt] [Invariant_well-formed ... Invariant_where-clause ...])
+   (crate-item-decl-rules CrateDecls CrateId (AdtKind AdtId KindedVarIds where (Biformula ...) AdtVariants))
+   ([Clause_wf-adt] [Invariant_well-formed-where-clause ...
+                     Invariant_in-scope-where-clause ...
+                     Invariant_in-scope-component ...
+                     Invariant_well-formed-component ...
+                     ])
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error Ty_adt (rigid-ty AdtId (VarId ...)))
    (where/error Clause_wf-adt (∀ KindedVarIds
                                  (implies
                                   ((well-formed (ParameterKind VarId)) ...
-                                   (where-clause->goal CrateDecls WhereClause) ...)
+                                   Biformula ...)
                                   (well-formed-adt Ty_adt))))
 
-   (where/error [WhereClause_implied ...] (if-crate-has-feature
-                                           CrateDecls
-                                           CrateId
-                                           expanded-implied-bounds
-                                           (; with the `expanded-implied-bounds` feature, you get all the where clauses
-                                            WhereClause ...)
-                                           (; without the `expanded-implied-bounds` feature, you only get the super traits
-                                            outlives-clauses (WhereClause ...))
-                                           ))
-   (where/error [Invariant_where-clause ...] ((∀ KindedVarIds
-                                                 (implies
-                                                  ((well-formed (type Ty_adt)))
-                                                  (where-clause->hypothesis CrateDecls WhereClause_implied)))
-                                              ...))
-   (where/error [Invariant_well-formed ...] ((∀ KindedVarIds
-                                                (implies
-                                                 ((well-formed (type Ty_adt)))
-                                                 (well-formed (ParameterKind VarId))))
-                                             ...))
+   ; if you have (well-formed (type (Foo T))) in env, you get the full where clauses
+   ;
+   ; with the expanded-implied-bounds flag, this is all the time, but otherwise it's
+   ; only in higher-ranked code
+   (where/error [Invariant_well-formed-where-clause ...] ((∀ KindedVarIds
+                                                             (implies
+                                                              ((well-formed (type Ty_adt)))
+                                                              Biformula))
+                                                          ...))
+
+   ; if you have (in-scope (type (Foo T))) in env, you get the full where clauses
+   ;
+   ; with the expanded-implied-bounds flag, this is all the time, but otherwise it's
+   ; only in higher-ranked code
+   (where/error [Biformula_outlives ...] (outlives-clauses (Biformula ...)))
+   (where/error [Invariant_in-scope-where-clause ...] ((∀ KindedVarIds
+                                                          (implies
+                                                           ((in-scope (type Ty_adt)))
+                                                           Biformula_outlives))
+                                                       ...))
+
+   ; if you have (in-scope (type (Foo T))) in env, you also know T is in-scope
+   ; and same with (well-formed)
+   (where/error [Invariant_in-scope-component ...] ((∀ KindedVarIds
+                                                       (implies
+                                                        ((in-scope (type Ty_adt)))
+                                                        (in-scope (ParameterKind VarId))))
+                                                    ...))
+   (where/error [Invariant_well-formed-component ...] ((∀ KindedVarIds
+                                                          (implies
+                                                           ((well-formed (type Ty_adt)))
+                                                           (well-formed (ParameterKind VarId))))
+                                                       ...))
    ]
 
   [;; For a trait declaration declared in the crate C, like the following:
@@ -100,45 +117,57 @@
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type Self))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (lifetime 'a))
    ;;         (is-implemented (Foo (Self 'a T))) => (well-formed (type T)))
-   (crate-item-decl-rules CrateDecls CrateId  (trait TraitId KindedVarIds where (WhereClause ...) (TraitItem ...)))
-   ((flatten ([Clause_is-impl] Clauses_item ...))
+   (crate-item-decl-rules CrateDecls CrateId  (trait TraitId KindedVarIds where (Biformula ...) (TraitItem ...)))
+   ((flatten ([Clause_is-impl Clause_is-wf] Clauses_item ...))
     (flatten ((Invariant_well-formed ... Invariant_where-clause ...) Invariants_item ...)))
 
    (where/error ((ParameterKind VarId) ...) KindedVarIds)
    (where/error TraitRef_me (TraitId (VarId ...)))
 
-   ; Clause for `(is-implemented Trait ...)` -- trait is implemented if
+   ; Clause for `(is-implemented (TraitId Parameters))` -- trait is implemented if
    ; (a) there's an impl for it,
-   ; (b) all where-clauses hold
-   ; (c) input types are well-formed
+   ; (b) it's well-formed (meets the where-clauses from the TraitId)
    (where/error Clause_is-impl (∀ KindedVarIds
                                   (implies
                                    ((has-impl TraitRef_me) ; (a)
-                                    (where-clause->goal CrateDecls WhereClause) ... ; (b)
-                                    (well-formed (ParameterKind VarId)) ... ; (c)
+                                    (well-formed-trait-ref TraitRef_me)
                                     )
                                    (is-implemented TraitRef_me))))
 
+   ; Clause for `(well-formed-trait-ref (TraitId Parameters))` -- trait is WF if
+   ; (a) all where-clauses hold
+   ; (b) input types are well-formed
+   (where/error Clause_is-wf (∀ KindedVarIds
+                                (implies
+                                 [Biformula ... ; (a)
+                                  (well-formed (ParameterKind VarId)) ... ; (b)
+                                  ]
+                                 (well-formed-trait-ref TraitRef_me))))
 
    ; Invariants: if you know that `T: Foo`, you also know `T: Bar`
    ; where `Bar` is a supertrait (normal) / where-clause (expanded-implied-bounds)
-   (where/error [WhereClause_implied ...] (if-crate-has-feature
-                                           CrateDecls
-                                           CrateId
-                                           expanded-implied-bounds
-                                           [; with the `expanded-implied-bounds` feature, you get all the where clauses
-                                            WhereClause ...]
-                                           [; without the `expanded-implied-bounds` feature, you only get the super traits
-                                            super-where-clauses KindedVarIds (WhereClause ...)]
-                                           ))
+   (where/error [Biformula_implied ...] (if-crate-has-feature
+                                         CrateDecls
+                                         CrateId
+                                         expanded-implied-bounds
+                                         [; with the `expanded-implied-bounds` feature, you get all the where clauses
+                                          Biformula ...]
+                                         [; without the `expanded-implied-bounds` feature, you only get the super traits
+                                          super-where-clauses KindedVarIds (Biformula ...)]
+                                         ))
    (where/error [Invariant_where-clause ...] [(∀ KindedVarIds
                                                  (implies
                                                   ((is-implemented TraitRef_me))
-                                                  (where-clause->hypothesis CrateDecls WhereClause_implied))) ...])
-   (where/error [Invariant_well-formed ...] [(∀ KindedVarIds
-                                                (implies
-                                                 ((is-implemented TraitRef_me))
-                                                 (well-formed (ParameterKind VarId)))) ...])
+                                                  Biformula_implied)) ...])
+   (where/error [Invariant_well-formed ...] (if-crate-has-feature
+                                             CrateDecls
+                                             CrateId
+                                             expanded-implied-bounds
+                                             [(∀ KindedVarIds
+                                                 (implies
+                                                  ((is-implemented TraitRef_me))
+                                                  (well-formed (ParameterKind VarId)))) ...]
+                                             []))
 
    ; get program-clauses and invariants from the trait items
    (where/error [(Clauses_item Invariants_item) ...] [(trait-item-decl-rules CrateDecls CrateId (TraitId KindedVarIds) TraitItem) ...])
@@ -156,7 +185,7 @@
    ;;             (is-implemented (Ord T))
    ;;             (well-formed (type i32))
    ;;             (well-formed (lifetime 'a))
-   (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitRef where WhereClauses_impl [ImplItem ...]))
+   (crate-item-decl-rules CrateDecls CrateId (impl KindedVarIds_impl TraitRef where [Biformula_impl ...] [ImplItem ...]))
    ((flatten ([Clause]
               Clauses_item ...))
     (flatten (Invariants_item ...))
@@ -165,24 +194,23 @@
    (where/error (TraitId (Parameter_trait ...)) TraitRef)
    (where/error (trait TraitId KindedVarIds_trait where _ _) (trait-with-id CrateDecls TraitId))
    (where/error ((ParameterKind_trait _) ...) KindedVarIds_trait)
-   (where/error (Goal_wc ...) (where-clauses->goals CrateDecls WhereClauses_impl))
    (where/error Clause (∀ KindedVarIds_impl
                           (implies
-                           (Goal_wc ...
+                           (Biformula_impl ...
                             (well-formed (ParameterKind_trait Parameter_trait)) ...
                             )
                            (has-impl TraitRef))))
    (where/error [(Clauses_item Invariants_item) ...]
                 [(impl-item-decl-rules CrateDecls
                                        CrateId
-                                       (impl KindedVarIds_impl TraitRef where WhereClauses_impl)
+                                       (impl KindedVarIds_impl TraitRef where [Biformula_impl ...])
                                        ImplItem) ...])
    ]
 
   [;; For a function declared in the crate C, like the following
    ;;
    ;;     fn foo<'a, T>(&'a T) -> &'a T { ... }
-   (crate-item-decl-rules CrateDecls CrateId (fn _ KindedVarIds_fn Tys_arg -> Ty_ret where WhereClauses_fn FnBody))
+   (crate-item-decl-rules CrateDecls CrateId (fn _ KindedVarIds_fn Tys_arg -> Ty_ret where Biformulas_fn FnBody))
    (() ())
    ]
 
@@ -211,55 +239,55 @@
   )
 
 (define-metafunction formality-decl
-  super-where-clauses : KindedVarIds WhereClauses -> WhereClauses
+  super-where-clauses : KindedVarIds Biformulas -> Biformulas
 
-  ((super-where-clauses KindedVarIds (WhereClause ...))
-   (flatten ((filter-super-where-clauses KindedVarIds WhereClause) ...))
+  ((super-where-clauses KindedVarIds (Biformula ...))
+   (flatten ((filter-super-where-clauses KindedVarIds Biformula) ...))
    )
 
   )
 
 (define-metafunction formality-decl
-  filter-super-where-clauses : KindedVarIds WhereClause -> WhereClauses
+  filter-super-where-clauses : KindedVarIds Biformula -> Biformulas
 
   (; Keep `Self: Trait` bounds
-   (filter-super-where-clauses KindedVarIds (VarId_Self : TraitId Parameters))
-   ((VarId_Self : TraitId Parameters))
+   (filter-super-where-clauses KindedVarIds (is-implemented (TraitId [VarId_Self Parameter ...])))
+   ((is-implemented (TraitId [VarId_Self Parameter ...])))
    (where ((type VarId_Self) _ ...) KindedVarIds)
    )
 
   (; Keep `Self: 'a` bounds
-   (filter-super-where-clauses KindedVarIds ((type VarId_Self) : KindedParameter))
-   (((type VarId_Self) : KindedParameter))
+   (filter-super-where-clauses KindedVarIds (VarId_Self -outlives- Parameter))
+   ((VarId_Self -outlives- Parameter))
    (where ((type VarId_Self) _ ...) KindedVarIds)
    )
 
   (; Discard others
-   (filter-super-where-clauses KindedVarIds WhereClause)
+   (filter-super-where-clauses KindedVarIds Biformula)
    ()
    )
 
   )
 
 (define-metafunction formality-decl
-  outlives-clauses : WhereClauses -> WhereClauses
+  outlives-clauses : Biformulas -> Biformulas
 
-  ((outlives-clauses (WhereClause ...))
-   (flatten ((filter-outlives-where-clause WhereClause) ...))
+  ((outlives-clauses (Biformula ...))
+   (flatten ((filter-outlives-where-clause Biformula) ...))
    )
 
   )
 
 (define-metafunction formality-decl
-  filter-outlives-where-clause : WhereClause -> WhereClauses
+  filter-outlives-where-clause : Biformula -> Biformulas
 
-  (; Keep `Self: 'a` bounds
-   (filter-outlives-where-clause (KindedParameter_1 : KindedParameter_2))
-   ((KindedParameter_1 : KindedParameter_2))
+  (; Keep `P1 : P2` bounds
+   (filter-outlives-where-clause (Parameter_1 -outlives- Parameter_2))
+   ((Parameter_1 -outlives- Parameter_2))
    )
 
   (; Discard others
-   (filter-outlives-where-clause WhereClause)
+   (filter-outlives-where-clause Biformula)
    ()
    )
 

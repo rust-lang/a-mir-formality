@@ -15,7 +15,7 @@
 
    ((; struct Foo<'a, T> where T: 'a { }
      Rust/AdtDecl_Foo (term (struct Foo[(lifetime a) (type T)]
-                              where [((type T) : (lifetime a))] {})))
+                              where [(T : a)] {})))
     (Rust/CrateDecl_C (term (crate C { Rust/AdtDecl_Foo })))
     )
 
@@ -28,7 +28,7 @@
                                 ((well-formed (type (user-ty (Foo < x A >)))))
                                 (A -outlives- x)))
                               ))
-                       #t))
+                       #t)) ; FIXME
    )
   )
 
