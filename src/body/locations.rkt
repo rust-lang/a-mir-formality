@@ -1,10 +1,10 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar-extended.rkt"
+         "grammar.rkt"
          )
 (provide basic-block-locations)
 
-(define-metafunction formality-mir-extended
+(define-metafunction formality-body
   basic-block-locations : BasicBlockDecl -> (StatementAtLocations TerminatorAtLocation)
 
   [(basic-block-locations (BasicBlockId ((Statement ...) Terminator)))
@@ -19,7 +19,7 @@
 (module+ test
 
   (redex-let*
-   formality-mir-extended
+   formality-body
 
    [(BasicBlockDecl (term (bb0 (((storage-live l0)
                                  noop

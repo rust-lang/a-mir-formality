@@ -1,11 +1,10 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar-extended.rkt"
-         "type-check-goal.rkt"
+         "../logic/cosld-solve.rkt"
          "../decl/decl-ok.rkt"
          "../decl/env.rkt"
          "../decl/grammar.rkt"
-         "../logic/cosld-solve.rkt"
+         "grammar.rkt"
          )
 (provide prove-goal
          prove-crate-item-ok
@@ -13,7 +12,7 @@
 
 
 (define-judgment-form
-  formality-mir-extended
+  formality-check
 
   #:mode (prove-crate-item-ok I I)
   #:contract (prove-crate-item-ok DeclProgram CrateItemDecl)
@@ -28,7 +27,7 @@
   )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-check
 
   #:mode (prove-goal I I)
   #:contract (prove-goal DeclProgram Goal)

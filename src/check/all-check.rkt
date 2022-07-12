@@ -1,22 +1,22 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar-extended.rkt"
-         "type-check-goal.rkt"
-         "well-formed-mir.rkt"
-         "unsafe-check.rkt"
-         "borrow-check.rkt"
-         "coherence-orphan.rkt"
+         "../logic/instantiate.rkt"
          "../decl/decl-ok.rkt"
          "../decl/env.rkt"
          "../decl/grammar.rkt"
-         "../logic/instantiate.rkt"
+         "../body/type-check-goal.rkt"
+         "../body/well-formed-mir.rkt"
+         "../body/borrow-check.rkt"
+         "grammar.rkt"
+         "unsafe-check.rkt"
+         "coherence-orphan.rkt"
          "prove-goal.rkt"
          )
 (provide ✅-Program
          )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-check
 
   ;; Check an entire program for correctness.
   ;;
@@ -35,7 +35,7 @@
   )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-check
 
   ;; Check a particular item from within the current crate for correctness.
 
@@ -95,7 +95,7 @@
   )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-check
 
   ;; The "all-check" is the master checking rule that checks all correctness criteria
   ;; for a fn body.
