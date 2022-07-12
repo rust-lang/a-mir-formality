@@ -1,6 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
-         "../mir/grammar.rkt"
+         "../check/grammar.rkt"
          "../logic/substitution.rkt"
          )
 (provide formality-rust
