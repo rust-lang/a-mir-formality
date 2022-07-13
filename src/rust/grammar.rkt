@@ -1,12 +1,12 @@
 #lang racket
 (require redex/reduction-semantics
-         "../mir/grammar.rkt"
+         "../check/grammar.rkt"
          "../logic/substitution.rkt"
          )
 (provide formality-rust
          )
 
-(define-extended-language formality-rust formality-mir
+(define-extended-language formality-rust formality-check
   ;; A *program* in "decl" is a set of crates (`CrateDecls`) and a current crate (`CrateId`).
   (Rust/Program ::= (Rust/CrateDecls CrateId))
 

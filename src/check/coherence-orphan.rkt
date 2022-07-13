@@ -1,21 +1,21 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar-extended.rkt"
-         "type-check-goal.rkt"
-         "well-formed-mir.rkt"
-         "unsafe-check.rkt"
-         "borrow-check.rkt"
+         "../logic/instantiate.rkt"
          "../decl/decl-ok.rkt"
          "../decl/decl-to-clause.rkt"
          "../decl/grammar.rkt"
-         "../logic/instantiate.rkt"
+         "../body/type-check-goal.rkt"
+         "../body/well-formed-mir.rkt"
+         "../body/borrow-check.rkt"
+         "grammar.rkt"
+         "unsafe-check.rkt"
          "prove-goal.rkt"
          )
 (provide ✅-OrphanRules
          )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-check
 
   ;; The conditions under which an impl passes the orphan rules.
 
@@ -39,7 +39,7 @@
 
 
 (define-judgment-form
-  formality-mir-extended
+  formality-check
 
   ;; Defines when a parameter (type/lifetime) is considered "local" to the current crate.
 

@@ -33,7 +33,7 @@ like `forall<T> { is-implemented(T: Eq) => has-impl(Vec<T>: Eq) }`.
 This layer also defines the well-formedness checks for those items.
 For example, `struct Foo { f1: T1 }` is well-formed if `T` is well-formed.
 
-## The MIR type system layer (`formality-mir`)
+## The MIR type system layer (`formality-body`)
 
 Defines the MIR and rules for its type checker.
 This corresponds roughly to the MIR borrow checker + polonius.
@@ -42,7 +42,7 @@ This corresponds roughly to the MIR borrow checker + polonius.
 <!-- Niko: all the things  -->
 <!-- Niko: note that the MIR borrow checker includes a type checker -->
 
-## The MIR operational semantics layer (`formality-mir-op`)
+## The MIR operational semantics layer (`formality-body-op`)
 
 Extends the above level with an operational semantics.
 Basically equivalent to miri.

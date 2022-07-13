@@ -1,16 +1,16 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar-extended.rkt"
-         "locations.rkt"
-         "type-of.rkt"
          "../logic/grammar.rkt"
          "../logic/env.rkt"
+         "grammar.rkt"
+         "locations.rkt"
+         "type-of.rkt"
          )
 (provide type-check-goal/Γ
          )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
   #:mode (type-check-goal/Γ I O)
   #:contract (type-check-goal/Γ Γ GoalAtLocations)
 
@@ -34,7 +34,7 @@
 ;; }
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
   #:mode (type-check-goal/inputs-and-outputs I O)
   #:contract (type-check-goal/inputs-and-outputs Γ GoalAtLocations)
 
@@ -50,7 +50,7 @@
   )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
   #:mode (type-check-goal/BasicBlockDecl I I O)
   #:contract (type-check-goal/BasicBlockDecl Γ BasicBlockDecl GoalAtLocations)
 
@@ -65,7 +65,7 @@
   )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
   #:mode (type-check-goal/Statement I I O)
   #:contract (type-check-goal/Statement Γ Statement Goal)
 
@@ -81,7 +81,7 @@
   )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
   #:mode (type-check-goal/Terminator I I O)
   #:contract (type-check-goal/Terminator Γ Terminator Goal)
 

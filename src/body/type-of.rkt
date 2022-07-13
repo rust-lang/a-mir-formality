@@ -1,7 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar-extended.rkt"
          "../logic/substitution.rkt"
+         "grammar.rkt"
          )
 (provide type-of/Place
          type-of/Rvalue
@@ -14,7 +14,7 @@
 ;; * Output the type of a place, rvalue, etc
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
   #:mode (type-of/Place I I O)
   #:contract (type-of/Place Γ Place Ty)
 
@@ -26,7 +26,7 @@
   )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
   #:mode (place-type-of I I O O)
   #:contract (place-type-of Γ Place Ty MaybeVariantId)
 
@@ -72,7 +72,7 @@
   )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
   #:mode (type-of/LocalId I I O)
   #:contract (type-of/LocalId Γ LocalId Ty)
 
@@ -85,7 +85,7 @@
   )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
 
   ;; Get the type of a field from a given variant of a given ADT,
   ;; substituting type parameters.
@@ -105,7 +105,7 @@
 
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
 
   #:mode (type-of/Operand I I O)
   #:contract (type-of/Operand Γ Operand Ty)
@@ -129,7 +129,7 @@
    ]
   )
 
-(define-judgment-form formality-mir-extended
+(define-judgment-form formality-body
 
   ;; Apply type-of/Operand to a list of operands
 
@@ -142,7 +142,7 @@
    ]
   )
 
-(define-judgment-form formality-mir-extended
+(define-judgment-form formality-body
   ;; Computes the `Ty` of a `Rvalue`
 
   #:mode (type-of/Rvalue I I O)

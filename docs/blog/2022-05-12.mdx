@@ -52,10 +52,10 @@ Formality is structured into several layers. These layers are meant to also map 
         * e.g., `impl<T: Eq> Eq for Vec<T>` becomes a "program clause" (axiom) like `forall<T> { is-implemented(T: Eq) => has-impl(Vec<T: Eq>) }` (the distinction between `has-impl` and `is-implemented` is covered below).
     * Defines the well-formedness checks for those items
         * e.g., `struct Foo { f1: T1 }` is well-formed if 
-* **formality-mir:** the "type system for MIR" layer
+* **formality-body:** the "type system for MIR" layer
     * Defines MIR and rules for its type checker (corresponds roughly to the MIR borrow checker + polonius).
     * Caveat: I've sketched this out, but nothing more.
-* **formality-mir-op:** the "operational semantics for MIR" layer
+* **formality-body-op:** the "operational semantics for MIR" layer
     * Extends the above level with an operational semantics. Basically equivalent to miri.
     * Caveat: I haven't even sketched this out yet.
 

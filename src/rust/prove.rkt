@@ -1,7 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "../decl/prove.rkt"
-         "../mir/all-check.rkt"
+         "../check/all-check.rkt"
          "grammar.rkt"
          "lower-to-decl/program.rkt"
          "lower-to-decl/where-clause.rkt"

@@ -1,12 +1,12 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar-extended.rkt"
+         "grammar.rkt"
          )
 (provide borrow-check
          )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
   #:mode (borrow-check I I)
   #:contract (borrow-check Γ GoalAtLocations)
 
