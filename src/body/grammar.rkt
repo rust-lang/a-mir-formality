@@ -68,6 +68,7 @@
 
   (Constant ::= number)
 
+  (Places ::= [Place ...])
   (Place ::=
          LocalId
          (* Place)
