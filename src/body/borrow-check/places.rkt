@@ -1,9 +1,15 @@
 #lang racket
 (require redex/reduction-semantics
+         "../../logic/env.rkt"
          "../grammar.rkt"
          )
-(provide
- )
+(provide place-set-add
+         place-set-remove-any-suffix
+         place-is-prefix-of?
+         place-set-contains-intersecting-place?
+         place-set-contains-prefix-of?
+         place-set-contains-suffix-of?
+         )
 
 (define-metafunction formality-body
   ;; Adds a place to a place set; if the place, or some more general place, is already present,
@@ -31,6 +37,54 @@
    [Place_old1 ... ... Place_new]
    (where [Place_old ...] Places)
    (where [[Place_old1 ...] ...] [(place-if-not-prefixed-by Place_old Place_new) ...])
+   ]
+  )
+
+(define-metafunction formality-body
+  ;; Removes a place `Place` from the place-set, along with any places that are a suffix of `Place`.
+  ;;
+  ;; Examples:
+  ;;
+  ;; 1. `{x} - y = {x}`
+  ;; 2. `{x, y} - y = {x}`
+  ;; 3. `{x, y.f1, y.f2} - y = {x}`
+  ;; 4. `{x, y} - y.f1 - y.f2 = {x, y}`
+  place-set-remove-any-suffix : Places Place -> Places
+
+  [(place-set-remove-any-suffix Places Place_new)
+   [Place_old1 ... ...]
+   (where [Place_old ...] Places)
+   (where [[Place_old1 ...] ...] [(place-if-not-prefixed-by Place_old Place_new) ...])
+   ]
+  )
+
+(define-metafunction formality-body
+  ;; True if any member of the place-set is a prefix of the given place.
+  place-set-contains-prefix-of? : Places Place -> boolean
+
+  [(place-set-contains-prefix-of? Places Place)
+   (any? (place-is-prefix-of? Place_member Place) ...)
+   (where/error [Place_member ...] Places)
+   ]
+  )
+
+(define-metafunction formality-body
+  ;; True if any member of the place-set is a suffix of the given place.
+  place-set-contains-suffix-of? : Places Place -> boolean
+
+  [(place-set-contains-suffix-of? Places Place)
+   (any? (place-is-prefix-of? Place Place_member) ...)
+   (where/error [Place_member ...] Places)
+   ]
+  )
+
+(define-metafunction formality-body
+  ;; True if any member of the place-set is either a prefix or a suffix of the given place.
+  place-set-contains-intersecting-place? : Places Place -> boolean
+
+  [(place-set-contains-intersecting-place? Places Place)
+   (any? (place-set-contains-prefix-of? Places Place)
+         (place-set-contains-suffix-of? Places Place))
    ]
   )
 
@@ -99,5 +153,41 @@
   (test-equal
    (term (place-set-add [x y] (field x f1)))
    (term [x y]))
+
+  (test-equal
+   (term (place-set-remove-any-suffix [x] x))
+   (term []))
+
+  (test-equal
+   (term (place-set-remove-any-suffix [x y] x))
+   (term [y]))
+
+  (test-equal
+   (term (place-set-remove-any-suffix [x (field y f1) (field y f2)] y))
+   (term [x]))
+
+  (test-equal
+   (term (place-set-remove-any-suffix [x y] (field x f1)))
+   (term [x y]))
+
+  (test-equal
+   (term (place-set-contains-intersecting-place? [x (field y f1)] x))
+   (term #t))
+
+  (test-equal
+   (term (place-set-contains-intersecting-place? [x (field y f1)] y))
+   (term #t))
+
+  (test-equal
+   (term (place-set-contains-intersecting-place? [x (field y f1)] (field y f1)))
+   (term #t))
+
+  (test-equal
+   (term (place-set-contains-intersecting-place? [x (field y f1)] (field y f2)))
+   (term #f))
+
+  (test-equal
+   (term (place-set-contains-intersecting-place? [x (field y f1)] z))
+   (term #f))
 
   )
