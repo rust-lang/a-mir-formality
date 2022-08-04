@@ -61,13 +61,15 @@
 
   ;; An `Operand` is the argument to an rvalue.
   (Operand ::=
-           (copy Place)
-           (move Place)
+           (CopyMove Place)
            (const Constant)
            )
 
+  (CopyMove ::= copy move)
+
   (Constant ::= number)
 
+  (Places ::= [Place ...])
   (Place ::=
          LocalId
          (* Place)
@@ -143,6 +145,16 @@
   (GoalAtLocations ::= (GoalAtLocation ...))
   (GoalAtLocation ::= (Location Goal))
 
+  ;; A move set stores a set of places that are moved
+  (MoveSet ::= Places)
+
+  ;; Maps from a basic block to a moveset on entry to that block.
+  (MoveSetMap ::= [(BasicBlockId MoveSet) ...])
+
+  ;; The move-sets before each statement in a block, along with the final move-set
+  ;; (the state before the terminator is executed).
+  (MoveSetsForStatements ::= ([(MoveSet Statement) ...] MoveSet))
+
   ; identifiers of various kinds:
   (MirId BasicBlockId LocalId ::= variable-not-otherwise-mentioned)
   )
@@ -174,12 +186,39 @@
   )
 
 (define-metafunction formality-body
+  ;; Returns the types of the fn arguments from the environment Γ
+  argument-types-of-Γ : Γ -> Tys
+
+  [(argument-types-of-Γ Γ)
+   Tys
+   (where/error (_ _ (Tys -> Ty where Biformulas) _) Γ)]
+  )
+
+(define-metafunction formality-body
+  ;; Returns  the fn return type from the environment Γ
+  return-type-of-Γ : Γ -> Tys
+
+  [(return-type-of-Γ Γ)
+   Ty
+   (where/error (_ _ (Tys -> Ty where Biformulas) _) Γ)]
+  )
+
+(define-metafunction formality-body
   ;; Returns the `LocalDecls` from the MIR body of the environment Γ
   basic-block-decls-of-Γ : Γ -> BasicBlockDecls
 
   [(basic-block-decls-of-Γ Γ)
    BasicBlockDecls
    (where/error (_ BasicBlockDecls) (locals-and-blocks-of-Γ Γ))]
+  )
+
+(define-metafunction formality-body
+  ;; Returns the `LocalDecls` from the MIR body of the environment Γ
+  entry-basic-block-id-of-Γ : Γ -> BasicBlockId
+
+  [(entry-basic-block-id-of-Γ Γ)
+   BasicBlockId_entry
+   (where/error [(BasicBlockId_entry _) BasicBlockDecl ...] (basic-block-decls-of-Γ Γ))]
   )
 
 (define-metafunction formality-body

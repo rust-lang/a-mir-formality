@@ -1,6 +1,8 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
+         "borrow-check/initialization-check.rkt"
+         "borrow-check/initialization-infer.rkt"
          )
 (provide borrow-check
          )
@@ -10,9 +12,8 @@
   #:mode (borrow-check I I)
   #:contract (borrow-check Γ GoalAtLocations)
 
-  [; FIXME: Prove that GoalAtLocations are valid, yielding a set of constraints.
-   ;
-   ; FIXME: Feed those constraints into the borrow checker rules.
+  [(initialization-check Γ (infer-initialization Γ))
+   ; FIXME: ...the rest of the check
    ----------------------------------------
    (borrow-check Γ GoalAtLocations)
    ]
