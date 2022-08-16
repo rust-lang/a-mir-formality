@@ -60,6 +60,7 @@
              )
 
   ;; An `Operand` is the argument to an rvalue.
+  (Operands ::= [Operand ...])
   (Operand ::=
            (CopyMove Place)
            (const Constant)
