@@ -8,6 +8,7 @@
          )
 (provide prove-goal
          prove-crate-item-ok
+         cannot-prove-goal-in-env
          )
 
 
@@ -36,5 +37,23 @@
    (logic:prove-top-level-goal/cosld Env Goal Env_1)
    ----------------------------------------
    (prove-goal DeclProgram Goal)
+   ]
+  )
+
+(define-judgment-form
+  formality-check
+
+  ;; Checks that we cannot prove the given goal in the given environment.
+  ;;
+  ;; Relies on a property called "negation-as-failure" -- the caller has to interpret what this means.
+
+  #:mode (cannot-prove-goal-in-env I I)
+  #:contract (cannot-prove-goal-in-env Env Goal)
+
+  [(side-condition ,(empty? (judgment-holds (logic:prove-top-level-goal/cosld Env Goal Env_out)
+                                            Env_out
+                                            )))
+   ----------------------------------------
+   (cannot-prove-goal-in-env Env Goal)
    ]
   )
