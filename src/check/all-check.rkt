@@ -10,6 +10,7 @@
          "grammar.rkt"
          "unsafe-check.rkt"
          "coherence-orphan.rkt"
+         "coherence-overlap.rkt"
          "prove-goal.rkt"
          )
 (provide ✅-Program
@@ -64,6 +65,7 @@
   [; impl declarations
    (prove-crate-item-ok DeclProgram TraitImplDecl)
    (✅-OrphanRules DeclProgram TraitImplDecl)
+   (✅-OverlapRules DeclProgram TraitImplDecl)
    ; FIXME -- need to check the impl items
    ----------------------------------------
    (✅-CrateItemDecl DeclProgram TraitImplDecl)
