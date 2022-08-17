@@ -39,6 +39,7 @@
           (addr-of MaybeMut Place)
           (len Place)
           (BinaryOp Operand Operand)
+          unknown-rvalue
           )
 
   (BinaryOp ::= + - * /)
