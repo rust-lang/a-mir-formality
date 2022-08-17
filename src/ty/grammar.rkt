@@ -16,7 +16,7 @@
   ;;
   ;; FIXME: give a real explanation
   (Schemes ::= (Scheme ...))
-  (Scheme ::= (∃ KindedVarIds (implies Goals Term)))
+  (Scheme ::= (∃ KindedVarIds (implies Relations Term)))
 
   ;; ParameterKind: kind for a bound variable (type,
   ;; lifetime, etc)

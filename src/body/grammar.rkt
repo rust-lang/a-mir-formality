@@ -60,6 +60,7 @@
              )
 
   ;; An `Operand` is the argument to an rvalue.
+  (Operands ::= [Operand ...])
   (Operand ::=
            (CopyMove Place)
            (const Constant)
@@ -155,7 +156,20 @@
   ;; (the state before the terminator is executed).
   (MoveSetsForStatements ::= ([(MoveSet Statement) ...] MoveSet))
 
+  ;; Identifies the local variables live before entering a given basic block.
+  (LiveVariablesBeforeBlocks ::= [LiveVariablesBeforeBlock ...])
+  (LiveVariablesBeforeBlock ::= (BasicBlockId LiveVariables))
+  (LiveVariables ::= (reads: LocalIds drops: LocalIds))
+  (LivenessEffects ::= (reads: LocalIds drops: LocalIds writes: LocalIds))
+
+  ;; Summarizes one possible effect of a terminator:
+  ;;
+  ;; If control-flow goes backwards from the given basic block,
+  ;; then `LivenessEffects` are applied.
+  (TerminatorLivenessEffects ::= (BasicBlockId LivenessEffects))
+
   ; identifiers of various kinds:
+  (LocalIds ::= [LocalId ...])
   (MirId BasicBlockId LocalId ::= variable-not-otherwise-mentioned)
   )
 
