@@ -205,7 +205,7 @@
 
   [(argument-types-of-Γ Γ)
    Tys
-   (where/error (_ _ (Tys -> Ty where Biformulas) _) Γ)]
+   (where/error (_ _ (Tys -> Ty where Biformulas) _ _) Γ)]
   )
 
 (define-metafunction formality-body
@@ -214,7 +214,7 @@
 
   [(return-type-of-Γ Γ)
    Ty
-   (where/error (_ _ (Tys -> Ty where Biformulas) _) Γ)]
+   (where/error (_ _ (Tys -> Ty where Biformulas) _ _) Γ)]
   )
 
 (define-metafunction formality-body

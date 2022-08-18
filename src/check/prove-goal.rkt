@@ -42,7 +42,7 @@
   )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-check
 
   #:mode (prove-goal-in-env I I O)
   #:contract (prove-goal-in-env Env Goal Env_out)

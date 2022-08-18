@@ -191,10 +191,6 @@
    ]
 
   [----------------------------------------
-   (well-formed/Terminator Γ resume)
-   ]
-
-  [----------------------------------------
    (well-formed/Terminator Γ abort)
    ]
 
@@ -264,7 +260,7 @@
   )
 
 (define-judgment-form
-  formality-mir-extended
+  formality-body
   #:mode (well-formed/Lt I I)
   #:contract (well-formed/Lt Γ Lt)
 
