@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  racket-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -18,4 +18,4 @@ jobs:
           sudo apt install xvfb racket
       - name: Run Tests
         run: |
-          xvfb-run raco test .
+          xvfb-run ./test --all
