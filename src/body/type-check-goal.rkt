@@ -38,14 +38,16 @@
   #:mode (type-check-goal/inputs-and-outputs I O)
   #:contract (type-check-goal/inputs-and-outputs Γ GoalAtLocations)
 
-  [; FIXME: check that the "return local" has the same type as the one given in Γ
-   ;
-   ; FIXME: check that the types from the signature in Γ correspond to the types of the
-   ; corresponding local variables
-   ;
+  [(where/error (_ _ ((Ty_sigarg ..._n) -> Ty_sigret _ _) _ _) Γ)
+   (where/error ((_ Ty_locret _) (_ Ty_locarg _) ..._n _ ...) (local-decls-of-Γ Γ))
+   (where/error ((BasicBlockId_first _) _ ...) (basic-block-decls-of-Γ Γ))
+   ; TODO: the goals should hold at "all locations"
+   (where/error Location (BasicBlockId_first @ 0))
    ; FIXME: check that the where-clauses in signature are well-formed?
    ----------------------------------------
-   (type-check-goal/inputs-and-outputs Γ ())
+   (type-check-goal/inputs-and-outputs Γ ((Location (Ty_sigret == Ty_locret))
+                                          (Location (Ty_sigarg == Ty_locarg)) ...
+                                          ))
    ]
   )
 

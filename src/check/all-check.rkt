@@ -122,13 +122,13 @@
 
    ;; construct the typing environment
    (where/error (CrateDecls _) DeclProgram)
-   (where/error Γ (CrateDecls VarIds_∀ (Tys -> Ty where Biformulas) LocalsAndBlocks_2))
+   (where/error Γ (CrateDecls VarIds_∀ (Tys -> Ty where Biformulas) VarIds_∃ LocalsAndBlocks_2))
 
    ;; run the checks
    (well-formed/Γ Γ)
    (unsafe-check Γ)
    (type-check-goal/Γ Γ GoalAtLocations)
-   (borrow-check Γ GoalAtLocations)
+   (borrow-check Γ Env_2 GoalAtLocations)
    ---------------------------------------- "mir-fn-body"
    (✅-FnBody DeclProgram MirBodySig)
    ]

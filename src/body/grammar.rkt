@@ -95,7 +95,7 @@
   ;; Internal to type check:
   ;;
   ;; Typing context storing bindings from locals to types and `CrateDecls`.
-  (Γ ::= (CrateDecls VarIds_∀ (Tys -> Ty where Biformulas) LocalsAndBlocks))
+  (Γ ::= (CrateDecls VarIds_∀ (Tys -> Ty where Biformulas) VarIds_∃ LocalsAndBlocks))
 
   ;; Internal to type check:
   ;;
@@ -187,7 +187,7 @@
   ;; Returns the `MirBody` from the environment Γ
   locals-and-blocks-of-Γ : Γ -> LocalsAndBlocks
 
-  [(locals-and-blocks-of-Γ (_ _ _ LocalsAndBlocks)) LocalsAndBlocks]
+  [(locals-and-blocks-of-Γ (_ _ _ _ LocalsAndBlocks)) LocalsAndBlocks]
   )
 
 (define-metafunction formality-body
@@ -205,7 +205,7 @@
 
   [(argument-types-of-Γ Γ)
    Tys
-   (where/error (_ _ (Tys -> Ty where Biformulas) _) Γ)]
+   (where/error (_ _ (Tys -> Ty where Biformulas) _ _) Γ)]
   )
 
 (define-metafunction formality-body
@@ -214,7 +214,7 @@
 
   [(return-type-of-Γ Γ)
    Ty
-   (where/error (_ _ (Tys -> Ty where Biformulas) _) Γ)]
+   (where/error (_ _ (Tys -> Ty where Biformulas) _ _) Γ)]
   )
 
 (define-metafunction formality-body
@@ -237,7 +237,7 @@
 
 (define-metafunction formality-body
   ;; Returns the `CrateDecls` from the environment Γ
-  crate-decls-of-Γ : Γ -> MirBody
+  crate-decls-of-Γ : Γ -> CrateDecls
 
-  [(crate-decls-of-Γ (CrateDecls _ _ _)) CrateDecls]
+  [(crate-decls-of-Γ (CrateDecls _ _ _ _)) CrateDecls]
   )
