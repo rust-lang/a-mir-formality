@@ -19,3 +19,13 @@ jobs:
       - name: Run Tests
         run: |
           xvfb-run ./test --all
+  rust-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test --all
