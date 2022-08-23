@@ -1,10 +1,10 @@
 
 #lang racket
 (require redex/reduction-semantics
-         "../../../src/ty/user-ty.rkt"
-         "../../../src/rust/grammar.rkt"
-         "../../../src/rust/libcore.rkt"
-         "../../../src/rust/prove.rkt"
+         "../../racket-src/ty/user-ty.rkt"
+         "../../racket-src/rust/grammar.rkt"
+         "../../racket-src/rust/libcore.rkt"
+         "../../racket-src/rust/prove.rkt"
          )
 
 (module+ test
