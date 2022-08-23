@@ -12,7 +12,7 @@
   ;; fn foo(x: i32) -> u32 {
   ;;     x
   ;; }
-  (traced '(borrow-check)
+  (traced '()
           (test-equal
            #f
            (term (rust:is-core-crate-ok

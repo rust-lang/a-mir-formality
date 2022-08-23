@@ -13,7 +13,7 @@
   ;;     let x = 22;
   ;;     &x
   ;; }
-  (traced '(borrow-check)
+  (traced '()
           (test-equal
            #t
            (term (rust:is-core-crate-ok
