@@ -23,8 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run rustup
-        run: rustup update
+      - name: Install Racket
+        run: |
+          sudo add-apt-repository ppa:plt/racket
+          sudo apt install xvfb racket
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
