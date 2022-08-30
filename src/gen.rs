@@ -2,6 +2,8 @@ use rustc_hir::def_id::DefId;
 use rustc_middle::ty::TyCtxt;
 use rustc_span::Symbol;
 
+use crate::OutputFormat;
+
 mod decl;
 mod mir;
 mod ty;
@@ -18,10 +20,34 @@ impl<'tcx> FormalityGen<'tcx> {
         FormalityGen { tcx }
     }
 
-    pub fn generate(&self) -> String {
+    pub fn generate(&self, format: OutputFormat, expect_failure: bool) -> String {
         let program = self.emit_program();
-        format!(
-            r#"
+        let expected = if expect_failure { "#f" } else { "#t" };
+
+        match format {
+            OutputFormat::Expression => {
+                format!(
+                    r#"
+(require redex/reduction-semantics
+         "racket-src/ty/user-ty.rkt"
+         "racket-src/rust/grammar.rkt"
+         "racket-src/rust/libcore.rkt"
+         "racket-src/rust/prove.rkt"
+         )
+
+(redex-let*
+ formality-rust
+
+ [(Rust/Program (term {program}))
+  ]
+
+ (test-equal {expected} (term (rust:is-program-ok Rust/Program)))
+ )"#
+                )
+            }
+            OutputFormat::TestModule => {
+                format!(
+                    r#"
 #lang racket
 (require redex/reduction-semantics
          "../../racket-src/ty/user-ty.rkt"
@@ -37,10 +63,12 @@ impl<'tcx> FormalityGen<'tcx> {
    [(Rust/Program (term {program}))
     ]
 
-   (test-equal #t (term (rust:is-program-ok Rust/Program)))
+   (test-equal {expected} (term (rust:is-program-ok Rust/Program)))
    )
   )"#
-        )
+                )
+            }
+        }
     }
 
     pub fn emit_ident(&self, ident: &Symbol) -> String {

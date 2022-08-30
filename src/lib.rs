@@ -14,7 +14,12 @@ extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
 
-use std::{path, process, str};
+use std::{
+    io::{self, Write},
+    path,
+    process::{self, Command},
+    str,
+};
 
 use rustc_errors::registry;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -23,12 +28,20 @@ use rustc_session::config::{self, CheckCfg};
 mod gen;
 mod renumber_mir;
 
-pub fn run(input_path: &str) -> String {
+pub enum OutputFormat {
+    Expression,
+    TestModule,
+}
+
+pub fn run_rustc(
+    input_path: &str,
+    output_format: OutputFormat,
+    expect_failure: bool,
+) -> io::Result<String> {
     let out = process::Command::new("rustc")
         .arg("--print=sysroot")
         .current_dir(".")
-        .output()
-        .unwrap();
+        .output()?;
 
     let sysroot = str::from_utf8(&out.stdout).unwrap().trim();
 
@@ -66,13 +79,24 @@ pub fn run(input_path: &str) -> String {
         make_codegen_backend: None,
     };
 
-    rustc_interface::run_compiler(config, |compiler| {
+    Ok(rustc_interface::run_compiler(config, |compiler| {
         compiler.enter(|queries| {
             // Analyze the program and inspect the types of definitions.
             queries.global_ctxt().unwrap().take().enter(|tcx| {
                 let gen = gen::FormalityGen::new(tcx);
-                gen.generate()
+                gen.generate(output_format, expect_failure)
             })
         })
-    })
+    }))
+}
+
+/// Runs racket to evaluate the given expression.
+/// Returns true if there is no output on stderr, else false.
+pub fn run_racket(expr: &str) -> io::Result<bool> {
+    let output = Command::new("racket")
+        .args(["-l", "errortrace", "-l", "racket/base", "-e", expr])
+        .output()?;
+
+    io::stderr().write_all(&output.stderr)?;
+    Ok(output.stderr.is_empty())
 }
