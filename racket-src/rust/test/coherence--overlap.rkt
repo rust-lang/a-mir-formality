@@ -37,7 +37,7 @@
    (; two impls for the same struct is an error
     traced '()
            (test-equal
-            #t ; FIXME(#88) report an error if the same impl appears twice
+            #f
             (term (rust:is-core-crate-ok [Rust/TraitDecl_A
                                           Rust/StructDecl_A
                                           (impl[] TraitA[] for (StructA < >) where [] {})
