@@ -6,42 +6,69 @@
          "../logic/env.rkt"
          "../logic/substitution.rkt"
          )
-(provide extract-scheme
-         extract-schemes
+(provide extract-solution
+         extract-solutions
          )
 
 (define-metafunction formality-ty
   ;; Extract schemes from multiple environments for the same terms.
   ;; Just here to help with the testing macro.
-  extract-schemes : Envs Term -> Schemes
+  extract-solutions : Envs Term -> Schemes
 
-  [(extract-schemes (Env ...) Term)
-   ((extract-scheme Env Term) ...)
+  [(extract-solutions (Env ...) Term)
+   ((extract-solution Env Term) ...)
    ]
   )
 
 (define-metafunction formality-ty
-  ;; Used to extract the final answer after a goal has been solved.
-  ;; You invoke it with the final environment (`Env`) and the original goal (`Term`).
-  ;; The resulting `Scheme` will include the goal rephrased with anything we could infer,
-  ;; but this "rephrased" goal may include existential variables and relations between them.
-  ;;
-  ;; Example input goal
-  ;;
-  ;;    ?0 == Vec<?1>
-  ;; 
-  ;; Output
-  ;;
-  ;; 
+  ;; Given the final environment `Env` and the input `Term` that was proven,
+  ;; extracts the solution.
 
-  extract-scheme : Env Term -> Scheme
+  extract-solution : Env Term -> Solution
 
-  [(extract-scheme Env Term)
-   (∃ KindedVarIds (implies Relations Term_subst))
+  [(extract-solution Env Term)
+   (∃ KindedVarIds (Substitution_in Relations))
+
+   ; Find the existential variables that appeared in the original term
+   ; and, for those that have a fixed value now, created a substitution to that value.
+   (where/error [VarId_in ...] (free-existential-variables Env Term))
+   (where/error Substitution_in (substitution-concat-disjoint (variable-substitution Env VarId_in) ...))
+
+   ; Looking at the final value after substitution, extract the list of existential variables
+   ; that still appear (some of which we may have instantiated!) and the relationships between them.
+   ; This is a fixed point process because we may have something like
+   ;
+   ;     input term: (implemented (?T : Trait<?c>))
+   ;
+   ; where `?T := &?a u32` is our substitution and
+   ;
+   ;     ?a: ?b
+   ;     ?b: ?c
+   ;
+   ; is a relevant relation.
    (where/error Term_subst (apply-substitution-from-env Env Term))
    (where/error ((VarId_free ...) Relations) (extract-goals-for-vars-fix Env () () Term_subst))
-   (where/error KindedVarIds ((add-var-kind Env VarId_free) ...))
+
+   (where [VarId_new ...] ,(set-subtract (term [VarId_free ...]) (term [VarId_in ...])))
+   (where/error KindedVarIds ((add-var-kind Env VarId_new) ...))
    ]
+  )
+
+(define-metafunction formality-ty
+  ;; Given an environment and an existential variable `VarId`, returns...
+  ;;
+  ;; * an empty substitution, in the case that VarId is not mapped in Env
+  ;; * a substitution `[X -> P]` in the case that `Env` maps `X` to the parameter `P`.
+  variable-substitution : Env VarId -> Substitution
+
+  [(variable-substitution Env VarId)
+   []
+   (where VarId (apply-substitution-from-env Env VarId))]
+
+  [(variable-substitution Env VarId)
+   [(VarId Parameter)]
+   (where Parameter (apply-substitution-from-env Env VarId))]
+
   )
 
 (define-metafunction formality-ty

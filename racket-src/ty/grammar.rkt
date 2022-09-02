@@ -18,6 +18,13 @@
   (Schemes ::= (Scheme ...))
   (Scheme ::= (∃ KindedVarIds (implies Relations Term)))
 
+  ;; A *solution* consists of inference variables and relations between them.
+  ;; When the solver decides something is provable, it does so modulo the "solution",
+  ;; which may contain various relations that were not proven, and which must be
+  ;; proven at another level. Note that these are 'first-order' relations, though.
+  (Solutions ::= (Solution ...))
+  (Solution ::= (∃ KindedVarIds (Substitution Relations)))
+
   ;; ParameterKind: kind for a bound variable (type,
   ;; lifetime, etc)
   ;;
