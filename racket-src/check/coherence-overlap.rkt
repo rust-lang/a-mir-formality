@@ -25,6 +25,7 @@
 
   [(where/error (impl _ (TraitId _) where _ _) TraitImplDecl)
    (where/error [TraitImplDecl_all ...] (all-impls-of-trait DeclProgram TraitId))
+   (where #f (impl-appears-more-than-once [TraitImplDecl_all ...] TraitImplDecl))
    (✅-ImplsEqualOrNotOverlap DeclProgram TraitImplDecl TraitImplDecl_all) ...
    -------------------------------
    (✅-OverlapRules DeclProgram TraitImplDecl)]
@@ -121,5 +122,18 @@
 
   [(select-trait-item CrateItemDecl TraitId)
    []
+   ]
+  )
+
+(define-metafunction formality-check
+  ;; Given an impl decl and a list of existing impl decls, return true if that impl decl shows up more than once in the list.
+  ;; Else return false.
+  impl-appears-more-than-once : TraitImplDecls TraitImplDecl -> boolean
+
+  [(impl-appears-more-than-once [_ ... TraitImplDecl _ ... TraitImplDecl _ ...] TraitImplDecl)
+   #t
+   ]
+  [(impl-appears-more-than-once [_ ...] TraitImplDecl)
+   #f
    ]
   )

@@ -81,6 +81,7 @@
   ;; Trait impls
   ;;
   ;; Note that trait impls do not have names.
+  (TraitImplDecls ::= (TraitImplDecl ...))
   (TraitImplDecl ::= (impl KindedVarIds TraitRef where Biformulas ImplItems))
 
   ;; Named statics
