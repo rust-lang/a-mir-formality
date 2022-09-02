@@ -171,6 +171,6 @@
 }))})] issue25860)))
     ]
 
-   (test-equal #t (term (rust:is-program-ok Rust/Program)))
+   (test-equal #f (term (rust:is-program-ok Rust/Program)))
    )
   )
