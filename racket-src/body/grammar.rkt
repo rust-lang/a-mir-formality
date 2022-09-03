@@ -39,10 +39,16 @@
           (addr-of MaybeMut Place)
           (len Place)
           (BinaryOp Operand Operand)
+          (AggregateKind Operands)
           unknown-rvalue
           )
 
   (BinaryOp ::= + - * /)
+
+  (AggregateKind ::=
+                 tuple
+                 (adt AdtId VariantId Parameters)
+                 )
 
   ;; A `Terminator` ends a basic block and branches to other blocks.
   (Terminator ::=

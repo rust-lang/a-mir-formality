@@ -145,6 +145,11 @@
    (well-formed/Rvalue Γ (BinaryOp Operand_rhs Operand_lhs))
    ]
 
+  [(well-formed/Operand Γ Operand) ...
+   ----------------------------------------
+   (well-formed/Rvalue Γ (AggregateKind (Operand ...)))
+   ]
+
   )
 
 (define-judgment-form

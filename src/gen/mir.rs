@@ -82,6 +82,31 @@ impl<'tcx> FormalityGen<'tcx> {
                     self.emit_operand(&operands.1)
                 )
             }
+            mir::Rvalue::Aggregate(agg_kind, operands) => {
+                let kind = match &**agg_kind {
+                    mir::AggregateKind::Tuple => "tuple".to_string(),
+                    mir::AggregateKind::Adt(def_id, variant_index, substs, _, _) => {
+                        let adt_id = self.emit_def_path(*def_id);
+                        let variant = variant_index.index();
+                        let params = substs
+                            .iter()
+                            .map(|arg| self.emit_generic_arg(arg))
+                            .intersperse(" ".to_string())
+                            .collect::<String>();
+
+                        format!("(adt {adt_id} {variant} [{params}])")
+                    }
+                    _ => unimplemented!("unknown aggregate kind"),
+                };
+
+                let ops = operands
+                    .iter()
+                    .map(|op| self.emit_operand(op))
+                    .intersperse(" ".to_string())
+                    .collect::<String>();
+
+                format!("({kind} [{ops}])")
+            }
             _ => {
                 eprintln!("unknown rvalue: {rvalue:?}");
                 format!("unknown-rvalue")

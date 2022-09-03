@@ -36,7 +36,7 @@
      [(storage-live _1)
       (storage-live _2)
       (storage-live _3)
-      (_3 = unknown-rvalue)
+      (_3 = (tuple ()))
       (_2 = (ref ?0 () _3))
       (_1 = (ref ?1 () _2))
       (_0 = (ref ?2 () (* _1)))

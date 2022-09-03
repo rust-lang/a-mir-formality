@@ -8,6 +8,7 @@
          type-of/Rvalue
          type-of/Operands
          type-of/Operand
+         field-tys
          )
 
 ;; type-of judgments:
@@ -42,11 +43,11 @@
    ]
 
   [; field of a struct
-   ;
+   ;s
    ; extract the name of the singular variant
    (place-type-of Γ Place (rigid-ty AdtId Parameters) ())
    (where (struct AdtId _ where _ ((VariantId _))) (decl-of-adt Γ AdtId))
-   (field-ty Γ AdtId Parameters VariantId FieldId Ty_field)
+   (field-tys Γ AdtId Parameters VariantId (_ ... (FieldId Ty_field) _ ...))
    ----------------------------------
    (place-type-of Γ (field Place FieldId) Ty_field ())
    ]
@@ -56,7 +57,7 @@
    ; must have been downcast to a particular variant
    (place-type-of Γ Place (rigid-ty AdtId Parameters) (VariantId))
    (where (enum AdtId _ _ where _) (decl-of-adt Γ AdtId))
-   (field-ty Γ AdtId Parameters VariantId FieldId Ty_field)
+   (field-tys Γ AdtId Parameters VariantId (_ ... (FieldId Ty_field) _ ...))
    ----------------------------------
    (place-type-of Γ (field Place FieldId) Ty_field ())
 
@@ -91,15 +92,15 @@
   ;; Get the type of a field from a given variant of a given ADT,
   ;; substituting type parameters.
 
-  #:mode (field-ty I I I I I O)
-  #:contract (field-ty Γ AdtId Parameters VariantId FieldId Ty)
+  #:mode (field-tys I I I I O)
+  #:contract (field-tys Γ AdtId Parameters VariantId ((FieldId Ty) ...))
 
   [(where (_ AdtId KindedVarIds where _ (_ ... (VariantId FieldDecls) _ ...)) (decl-of-adt Γ AdtId))
    (where/error Substitution (create-substitution KindedVarIds Parameters))
-   (where (_ ... (FieldId Ty) _ ...) FieldDecls)
-   (where/error Ty_substituted (apply-substitution Substitution Ty))
+   (where ((FieldId Ty) ...) FieldDecls)
+   (where/error (Ty_substituted ...) ((apply-substitution Substitution Ty) ...))
    ----------------------------------
-   (field-ty Γ AdtId Parameters VariantId FieldId Ty_substituted)
+   (field-tys Γ AdtId Parameters VariantId ((FieldId Ty_substituted) ...))
    ]
 
   )
@@ -172,5 +173,17 @@
    (type-of/Operand Γ Operand_lhs (rigid-ty ScalarId_ty ()))
    ------------------------------------------
    (type-of/Rvalue Γ (BinaryOp Operand_rhs Operand_lhs) (rigid-ty ScalarId_ty ()))
+   ]
+
+  [; aggregate tuple
+   (type-of/Operands Γ Operands Tys)
+   ------------------------------------------
+   (type-of/Rvalue Γ (tuple Operands) (rigid-ty (tuple ,(length (term Operands))) Tys))
+   ]
+
+  [; aggregate adt
+   (where/error Ty_adt (rigid-ty AdtId Parameters))
+   ------------------------------------------
+   (type-of/Rvalue Γ ((adt AdtId VariantId Parameters) Operands) Ty_adt)
    ]
   )
