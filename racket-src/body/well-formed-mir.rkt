@@ -167,8 +167,9 @@
    (well-formed/Operand Γ (move Place))
    ]
 
-  [----------------------------------------
-   (well-formed/Operand Γ (const number))
+  [;; FIXME: check const well formedness
+   ----------------------------------------
+   (well-formed/Operand Γ (const Constant))
    ]
 
   )

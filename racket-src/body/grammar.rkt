@@ -75,7 +75,14 @@
 
   (CopyMove ::= copy move)
 
-  (Constant ::= number)
+  (Constant ::=
+            number
+            true
+            false
+            (fn-ptr FnId Parameters)
+            (static StaticId)
+            (tuple (Constant ...))
+            )
 
   (Places ::= [Place ...])
   (Place ::=
@@ -178,16 +185,6 @@
   ; identifiers of various kinds:
   (LocalIds ::= [LocalId ...])
   (MirId BasicBlockId LocalId ::= variable-not-otherwise-mentioned)
-  )
-
-
-(define-metafunction formality-body
-  ;; Returns the `AdtContents` of the ADT with the given `AdtId`.
-  decl-of-adt : Γ AdtId -> AdtDecl
-
-  [(decl-of-adt Γ AdtId)
-   (adt-with-id (crate-decls-of-Γ CrateDecls) AdtId)
-   ]
   )
 
 (define-metafunction formality-body

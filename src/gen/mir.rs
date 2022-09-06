@@ -21,18 +21,11 @@ impl<'tcx> FormalityGen<'tcx> {
             })
     }
 
-    fn emit_operand(&self, operand: &mir::Operand) -> String {
+    fn emit_operand(&self, operand: &mir::Operand<'tcx>) -> String {
         match operand {
             mir::Operand::Copy(place) => format!("(copy {})", self.emit_place(place)),
             mir::Operand::Move(place) => format!("(move {})", self.emit_place(place)),
-            mir::Operand::Constant(ct) => {
-                if let Some(int) = ct.literal.try_to_scalar().and_then(|s| s.try_to_int().ok()) {
-                    format!("(const {})", int)
-                } else {
-                    eprintln!("unknown const: {ct}");
-                    "(const 0)".to_string()
-                }
-            }
+            mir::Operand::Constant(ct) => format!("(const {})", self.emit_const(**ct)),
         }
     }
 
@@ -107,6 +100,9 @@ impl<'tcx> FormalityGen<'tcx> {
 
                 format!("({kind} [{ops}])")
             }
+            mir::Rvalue::Cast(_, op, ty) => {
+                format!("(cast {} as {})", self.emit_operand(op), self.emit_ty(*ty))
+            }
             _ => {
                 eprintln!("unknown rvalue: {rvalue:?}");
                 format!("unknown-rvalue")
@@ -139,7 +135,7 @@ impl<'tcx> FormalityGen<'tcx> {
         }
     }
 
-    fn emit_terminator(&self, term: &mir::Terminator) -> String {
+    fn emit_terminator(&self, term: &mir::Terminator<'tcx>) -> String {
         match &term.kind {
             mir::TerminatorKind::Goto { target } => format!("(goto bb{})", target.index()),
             mir::TerminatorKind::Resume => "resume".to_string(),

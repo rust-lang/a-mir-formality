@@ -46,7 +46,7 @@
    ;s
    ; extract the name of the singular variant
    (place-type-of Γ Place (rigid-ty AdtId Parameters) ())
-   (where (struct AdtId _ where _ ((VariantId _))) (decl-of-adt Γ AdtId))
+   (where (struct AdtId _ where _ ((VariantId _))) (find-adt Γ AdtId))
    (field-tys Γ AdtId Parameters VariantId (_ ... (FieldId Ty_field) _ ...))
    ----------------------------------
    (place-type-of Γ (field Place FieldId) Ty_field ())
@@ -56,7 +56,7 @@
    ;
    ; must have been downcast to a particular variant
    (place-type-of Γ Place (rigid-ty AdtId Parameters) (VariantId))
-   (where (enum AdtId _ _ where _) (decl-of-adt Γ AdtId))
+   (where (enum AdtId _ _ where _) (find-adt Γ AdtId))
    (field-tys Γ AdtId Parameters VariantId (_ ... (FieldId Ty_field) _ ...))
    ----------------------------------
    (place-type-of Γ (field Place FieldId) Ty_field ())
@@ -65,7 +65,7 @@
 
   [; downcast to an enum variant
    (place-type-of Γ Place (rigid-ty AdtId Parameters) ())
-   (where (enum AdtId _ where _ (_ ... (VariantId _) _ ...)) (decl-of-adt Γ AdtId))
+   (where (enum AdtId _ where _ (_ ... (VariantId _) _ ...)) (find-adt Γ AdtId))
    ----------------------------------
    (place-type-of Γ (downcast Place VariantId) (rigid-ty AdtId Parameters) (VariantId))
    ]
@@ -95,7 +95,7 @@
   #:mode (field-tys I I I I O)
   #:contract (field-tys Γ AdtId Parameters VariantId ((FieldId Ty) ...))
 
-  [(where (_ AdtId KindedVarIds where _ (_ ... (VariantId FieldDecls) _ ...)) (decl-of-adt Γ AdtId))
+  [(where (_ AdtId KindedVarIds where _ (_ ... (VariantId FieldDecls) _ ...)) (find-adt Γ AdtId))
    (where/error Substitution (create-substitution KindedVarIds Parameters))
    (where ((FieldId Ty) ...) FieldDecls)
    (where/error (Ty_substituted ...) ((apply-substitution Substitution Ty) ...))
@@ -105,6 +105,46 @@
 
   )
 
+(define-judgment-form
+  formality-body
+
+  #:mode (type-of/Constant I I O)
+  #:contract (type-of/Constant Γ Constant Ty)
+
+  [; integer
+   ; FIXME: choose proper int type
+   ------------------------------------------
+   (type-of/Constant Γ number (user-ty i32))]
+
+  [; true
+   ------------------------------------------
+   (type-of/Constant Γ true (user-ty bool))]
+
+  [; false
+   ------------------------------------------
+   (type-of/Constant Γ false (user-ty bool))]
+
+  [; function
+   (where/error (fn _ (KindedVarId ..._n _ ...) (Ty_arg ...) -> Ty_ret _ _ _) (find-fn Γ FnId))
+   (where/error Substitution (create-substitution (KindedVarId ...) (Parameter ...)))
+   (where/error (Ty_argsubst ...) ((apply-substitution Substitution Ty_arg) ...))
+   (where/error Ty_retsubst (apply-substitution Substitution Ty_ret))
+   (where/error number_args ,(length (term (Ty_arg ...))))
+   (where/error Ty_fnptr (rigid-ty (fn-ptr "Rust" number_args) (Ty_argsubst ... Ty_retsubst)))
+   ------------------------------------------
+   (type-of/Constant Γ (fn-ptr FnId (Parameter ..._n)) Ty_fnptr)]
+
+  [; static
+   (where/error (static _ _ _ _ : Ty = _) (find-static Γ StaticId))
+   ------------------------------------------
+   (type-of/Constant Γ (static StaticId) Ty)]
+
+  [; tuple
+   (type-of/Constant Γ Constant Ty) ...
+   (where/error number_args ,(length (term (Ty ...))))
+   ------------------------------------------
+   (type-of/Constant Γ (tuple [Constant ...]) (rigid-ty (tuple number_args) (Ty ...)))]
+  )
 
 (define-judgment-form
   formality-body
@@ -124,10 +164,9 @@
    ]
 
   [; constant
-   ;
-   ; FIXME
+   (type-of/Constant Γ Constant Ty)
    ------------------------------------------
-   (type-of/Operand Γ (const _) (user-ty i32))
+   (type-of/Operand Γ (const Constant) Ty)
    ]
   )
 
@@ -185,5 +224,32 @@
    (where/error Ty_adt (rigid-ty AdtId Parameters))
    ------------------------------------------
    (type-of/Rvalue Γ ((adt AdtId VariantId Parameters) Operands) Ty_adt)
+   ]
+  )
+
+(define-metafunction formality-body
+  ;; Returns the `AdtDecl` of the ADT with the given `AdtId`.
+  find-adt : Γ AdtId -> AdtDecl
+
+  [(find-adt Γ AdtId)
+   (adt-with-id (crate-decls-of-Γ Γ) AdtId)
+   ]
+  )
+
+(define-metafunction formality-body
+  ;; Returns the `FnDecl` of the function with the given `FnId`.
+  find-fn : Γ FnId -> FnDecl
+
+  [(find-fn Γ FnId)
+   (fn-with-id (crate-decls-of-Γ Γ) FnId)
+   ]
+  )
+
+(define-metafunction formality-body
+  ;; Returns the `StaticDecl` of the function with the given `StaticId`.
+  find-static : Γ StaticId -> StaticDecl
+
+  [(find-static Γ StaticId)
+   (static-with-id (crate-decls-of-Γ Γ) StaticId)
    ]
   )
