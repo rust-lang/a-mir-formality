@@ -40,6 +40,7 @@
           (len Place)
           (BinaryOp Operand Operand)
           (AggregateKind Operands)
+          (cast Operand as Ty)
           unknown-rvalue
           )
 

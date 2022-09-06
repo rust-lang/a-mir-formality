@@ -225,6 +225,11 @@
    ------------------------------------------
    (type-of/Rvalue Γ ((adt AdtId VariantId Parameters) Operands) Ty_adt)
    ]
+
+  [; cast
+   ------------------------------------------
+   (type-of/Rvalue Γ (cast _ as Ty) Ty)
+   ]
   )
 
 (define-metafunction formality-body
