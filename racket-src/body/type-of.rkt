@@ -43,7 +43,7 @@
    ]
 
   [; field of a struct
-   ;s
+   ;
    ; extract the name of the singular variant
    (place-type-of Γ Place (rigid-ty AdtId Parameters) ())
    (where (struct AdtId _ where _ ((VariantId _))) (find-adt Γ AdtId))
@@ -125,14 +125,16 @@
    (type-of/Constant Γ false (user-ty bool))]
 
   [; function
-   (where/error (fn _ (KindedVarId ..._n _ ...) (Ty_arg ...) -> Ty_ret _ _ _) (find-fn Γ FnId))
-   (where/error Substitution (create-substitution (KindedVarId ...) (Parameter ...)))
+   (where/error (fn _ KindedVarIds (Ty_arg ...) -> Ty_ret _ _ _) (find-fn Γ FnId))
+   (where/error (KindedVarId_subst ..._n KindedVarId_other ...) KindedVarIds)
+   (where/error Substitution (create-substitution (KindedVarId_subst ...) (Parameter ...)))
    (where/error (Ty_argsubst ...) ((apply-substitution Substitution Ty_arg) ...))
    (where/error Ty_retsubst (apply-substitution Substitution Ty_ret))
    (where/error number_args ,(length (term (Ty_arg ...))))
    (where/error Ty_fnptr (rigid-ty (fn-ptr "Rust" number_args) (Ty_argsubst ... Ty_retsubst)))
+   (where/error Ty (∀ (KindedVarId_other ...) Ty_fnptr))
    ------------------------------------------
-   (type-of/Constant Γ (fn-ptr FnId (Parameter ..._n)) Ty_fnptr)]
+   (type-of/Constant Γ (fn-ptr FnId (Parameter ..._n)) Ty)]
 
   [; static
    (where/error (static _ _ _ _ : Ty = _) (find-static Γ StaticId))

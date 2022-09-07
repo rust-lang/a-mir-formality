@@ -153,7 +153,7 @@
       (storage-live _4)
       (_4 = (ref ?0 () _2))
       (_3 = (ref ?1 () (* _4)))]
-     (call (const (fn-ptr bad [i32]))[(move _3)] _1 (bb1))
+     (call (const (fn-ptr bad [(mf-apply user-ty i32)]))[(move _3)] _1 (bb1))
    })
    (bb1 {
      [(storage-dead _3)

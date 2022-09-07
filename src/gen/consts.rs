@@ -44,7 +44,11 @@ impl<'tcx> FormalityGen<'tcx> {
         let fn_id = self.emit_def_path(def_id);
         let params = substs
             .iter()
-            .map(|arg| self.emit_generic_arg(arg))
+            .map(|arg| match arg.unpack() {
+                ty::subst::GenericArgKind::Lifetime(lt) => self.emit_lifetime(lt),
+                ty::subst::GenericArgKind::Type(ty) => self.emit_ty(ty),
+                ty::subst::GenericArgKind::Const(_) => unimplemented!(),
+            })
             .intersperse(" ".to_string())
             .collect::<String>();
 
