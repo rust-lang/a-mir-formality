@@ -8,6 +8,8 @@
          )
 (provide )
 
-#;(define-metafunction formality-logic
-    recursive-solve : CanonicalGoal ->
-    )
+(define-metafunction formality-logic
+  recursive-solve : QueryGoal -> Solution
+
+  [(recursive-solve QueryGoal) #f]
+  )

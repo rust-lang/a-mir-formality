@@ -208,13 +208,28 @@
   (Prove/Coinductive ::= + -)
   (Prove/Progress ::= no-progress made-progress)
 
-  (CanonicalTerm ::= (canonicalized VarBinders Term))
-  (CanonicalGoal ::= (canonicalized VarBinders (implies Hypotheses Goal)))
+  ;; `Query` -- A *query term* is a goal packaged up with variables that
+  ;; are referenced in the goal. Each variable carries its quantifier (∀ vs ∃)
+  ;; along with a universe.
+  ;;
+  ;; Given a query, one can create an environment that has all the given variables
+  ;; and universes in scope. This can be used to solve the canonical term and produce a result.
+  ;;
+  ;; The result of a query is a `Solution` (or set of `Solutions`).
+  (QueryTerm ::= (?- VarBinders Term))
+  (QueryGoal ::= (?- VarBinders (implies Hypotheses Goal)))
+
+  ;; A *solution* consists of inference variables and relations between them.
+  ;; When the solver decides something is provable, it does so modulo the "solution",
+  ;; which may contain various relations that were not proven, and which must be
+  ;; proven at another level. Note that these are 'first-order' relations, though.
+  (Solutions ::= (Solution ...))
+  (Solution ::= (∃ KindedVarIds (Substitution Relations)))
 
   #:binding-forms
   (∀ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   (∃ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
-  (canonicalized ((VarId ParameterKind Quantifier Universe) ...) any #:refers-to (shadow VarId ...))
+  (?- ((VarId ParameterKind Quantifier Universe) ...) any #:refers-to (shadow VarId ...))
   )
 
 (define-term
