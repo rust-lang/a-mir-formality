@@ -172,7 +172,7 @@ impl<'tcx> FormalityGen<'tcx> {
             .substs
             .iter()
             .skip(1) // skip self type
-            .map(|arg| self.emit_generic_arg(arg))
+            .map(|arg| self.emit_user_param(arg))
             .intersperse(" ".to_string())
             .collect::<String>();
 

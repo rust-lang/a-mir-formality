@@ -83,7 +83,7 @@ impl<'tcx> FormalityGen<'tcx> {
                         let variant = variant_index.index();
                         let params = substs
                             .iter()
-                            .map(|arg| self.emit_generic_arg(arg))
+                            .map(|arg| self.emit_param(arg))
                             .intersperse(" ".to_string())
                             .collect::<String>();
 
