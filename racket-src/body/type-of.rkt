@@ -125,14 +125,35 @@
    (type-of/Constant Γ false (user-ty bool))]
 
   [; function
-   (where/error (fn _ KindedVarIds (Ty_arg ...) -> Ty_ret _ _ _) (find-fn Γ FnId))
-   (where/error (KindedVarId_subst ..._n KindedVarId_other ...) KindedVarIds)
-   (where/error Substitution (create-substitution (KindedVarId_subst ...) (Parameter ...)))
-   (where/error (Ty_argsubst ...) ((apply-substitution Substitution Ty_arg) ...))
-   (where/error Ty_retsubst (apply-substitution Substitution Ty_ret))
-   (where/error number_args ,(length (term (Ty_arg ...))))
-   (where/error Ty_fnptr (rigid-ty (fn-ptr "Rust" number_args) (Ty_argsubst ... Ty_retsubst)))
-   (where/error Ty (∀ (KindedVarId_other ...) Ty_fnptr))
+   ;
+   ; Subtle: functions in Rust today have early/late-bound parameters,
+   ; but we include both in the FnDef type (unlike rustc). The current assumption
+   ; is that the first N parameters (however many are supplied) are early-bound,
+   ; and the remainder are late. Therefore, we want to result a type like
+   ;
+   ;     (∀ KindedVarIds_late (fn-def FnId (Parameter ... KindedVarIds_late)))Γ
+   (where/error (fn _ KindedVarIds _ -> _ where Biformulas _) (find-fn Γ FnId))
+
+   ; Split the generics from the function into early/late
+   (where/error (KindedVarId_early ..._n KindedVarId_late ...) KindedVarIds)
+
+   ; Create a substitution from early-bound parameters to the values from user
+   (where/error Substitution_early (create-substitution (KindedVarId_early ...) (Parameter ...)))
+   (where/error Biformulas_early (apply-substitution Substitution_early Biformulas))
+
+   ; Apply that substitution
+   (where/error Ty_fn (rigid-ty (fn-def FnId) (Parameter ... KindedVarId_late ...)))
+
+   ; Construct the final type
+   ;
+   ;   Note that it has implications to assert that the where-clauses hold.
+   ;   Is this quite right? We want them for at least the biformulas that relate
+   ;   to the late-bound lifetimes, and it seems wrong to do anything fancy, so
+   ;   I think we want them all.
+   ;
+   ;   The idea is that, when we apply the call, we'll have to discharge all those
+   ;   implications, and the same will be true to cast to a final type.
+   (where/error Ty (∀ (KindedVarId_late ...) (implies Biformulas_early Ty_fn)))
    ------------------------------------------
    (type-of/Constant Γ (fn-ptr FnId (Parameter ..._n)) Ty)]
 
