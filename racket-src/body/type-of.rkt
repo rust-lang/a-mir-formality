@@ -129,20 +129,25 @@
    ; Subtle: functions in Rust today have early/late-bound parameters,
    ; but we include both in the FnDef type (unlike rustc). The current assumption
    ; is that the first N parameters (however many are supplied) are early-bound,
-   ; and the remainder are late. Therefore, we want to result a type like
+   ; and the remainder are late. Therefore, the constant
    ;
-   ;     (∀ KindedVarIds_late (fn-def FnId (Parameter ... KindedVarIds_late)))Γ
+   ;     (fn-ptr foo [P_1 … P_n])
+   ;
+   ; referring to a function foo with the formal variables V_1, …, V_m gets the type
+   ;
+   ;     (∀ [V_n+1 … V_m] (implies Biformulas (rigid-ty (fn-def foo) [P_1 … P_n V_n+1 … V_m])))
+   ;
    (where/error (fn _ KindedVarIds _ -> _ where Biformulas _) (find-fn Γ FnId))
 
    ; Split the generics from the function into early/late
-   (where/error (KindedVarId_early ..._n KindedVarId_late ...) KindedVarIds)
+   (where/error (KindedVarId_early ..._n (ParameterKind_late VarId_late) ...) KindedVarIds)
 
    ; Create a substitution from early-bound parameters to the values from user
    (where/error Substitution_early (create-substitution (KindedVarId_early ...) (Parameter ...)))
    (where/error Biformulas_early (apply-substitution Substitution_early Biformulas))
 
    ; Apply that substitution
-   (where/error Ty_fn (rigid-ty (fn-def FnId) (Parameter ... KindedVarId_late ...)))
+   (where/error Ty_fn (rigid-ty (fn-def FnId) (Parameter ... VarId_late ...)))
 
    ; Construct the final type
    ;
@@ -153,7 +158,7 @@
    ;
    ;   The idea is that, when we apply the call, we'll have to discharge all those
    ;   implications, and the same will be true to cast to a final type.
-   (where/error Ty (∀ (KindedVarId_late ...) (implies Biformulas_early Ty_fn)))
+   (where/error Ty (∀ ((ParameterKind_late VarId_late) ...) (implies Biformulas_early Ty_fn)))
    ------------------------------------------
    (type-of/Constant Γ (fn-ptr FnId (Parameter ..._n)) Ty)]
 
