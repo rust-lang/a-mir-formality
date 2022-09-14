@@ -4,6 +4,7 @@
 // rustup component add rustc-dev llvm-tools-preview
 // version: rustc 1.65.0-nightly (29e4a9ee0 2022-08-10)
 
+extern crate rustc_const_eval;
 extern crate rustc_error_codes;
 extern crate rustc_errors;
 extern crate rustc_hash;

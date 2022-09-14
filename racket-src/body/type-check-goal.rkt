@@ -74,10 +74,11 @@
   [(type-of/Place Γ Place Ty_place)
    (type-of/Rvalue Γ Rvalue Ty_rvalue)
    #;(mutability/Place Γ Place mut)
+   (type-check-goal/Rvalue Γ Rvalue Goal_rvalue)
    ----------------------------------------
    (type-check-goal/Statement Γ
                               (Place = Rvalue)
-                              (Ty_rvalue <= Ty_place))
+                              (&& (Goal_rvalue (Ty_rvalue <= Ty_place))))
    ]
 
   )
@@ -117,6 +118,25 @@
                                     ))))
    ----------------------------------------
    (type-check-goal/Terminator Γ (call Operand_fn (Operand_arg ...) Place_dest TargetIds) Goal)
+   ]
+
+  )
+
+(define-judgment-form
+  formality-body
+  #:mode (type-check-goal/Rvalue I I O)
+  #:contract (type-check-goal/Rvalue Γ Rvalue Goal)
+
+  [(type-of/Operands Γ Operands (Ty_op ...))
+   (field-tys Γ AdtId Parameters VariantId ((_ Ty_field) ...))
+   ----------------------------------------
+   (type-check-goal/Rvalue Γ
+                           ((adt AdtId VariantId Parameters) Operands)
+                           (&& ((Ty_op <= Ty_field) ...)))
+   ]
+
+  [----------------------------------------
+   (type-check-goal/Rvalue Γ _ true-goal)
    ]
 
   )

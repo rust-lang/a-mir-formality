@@ -36,7 +36,7 @@
      [(storage-live _1)
       (storage-live _2)
       (storage-live _3)
-      (_3 = unknown-rvalue)
+      (_3 = (tuple []))
       (_2 = (ref ?0 () _3))
       (_1 = (ref ?1 () _2))
       (_0 = (ref ?2 () (* _1)))
@@ -104,14 +104,14 @@
 
   [(bb0 {
      [(storage-live _2)
-      (_2 = unknown-rvalue)
+      (_2 = (cast (const (fn-ptr foo [T])) as (mf-apply user-ty (for[(lifetime %a) (lifetime %b)] (fn ((& %a (& %b ())) (& %b T)) -> (& %a T))))))
       noop
       noop
       (storage-live _3)
       (_3 = (use (copy _2)))
       (storage-live _4)
       (storage-live _5)
-      (_5 = (use (const 0)))
+      (_5 = (use (const (static UNIT))))
       (_4 = (ref ?3 () (* (* _5))))
       (storage-live _6)
       (_6 = (use (copy _1)))]
@@ -153,14 +153,14 @@
       (storage-live _4)
       (_4 = (ref ?0 () _2))
       (_3 = (ref ?1 () (* _4)))]
-     (call (const 0)[(move _3)] _1 (bb1))
+     (call (const (fn-ptr bad [(mf-apply user-ty i32)]))[(move _3)] _1 (bb1))
    })
    (bb1 {
      [(storage-dead _3)
       (storage-dead _2)
       noop
       (storage-dead _4)
-      (_0 = (use (const 0)))
+      (_0 = (use (const (tuple []))))
       (storage-dead _1)]
      return
    })

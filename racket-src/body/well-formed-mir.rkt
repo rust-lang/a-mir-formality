@@ -145,6 +145,11 @@
    (well-formed/Rvalue Γ (BinaryOp Operand_rhs Operand_lhs))
    ]
 
+  [(well-formed/Operand Γ Operand) ...
+   ----------------------------------------
+   (well-formed/Rvalue Γ (AggregateKind (Operand ...)))
+   ]
+
   )
 
 (define-judgment-form
@@ -162,8 +167,9 @@
    (well-formed/Operand Γ (move Place))
    ]
 
-  [----------------------------------------
-   (well-formed/Operand Γ (const number))
+  [;; FIXME: check const well formedness
+   ----------------------------------------
+   (well-formed/Operand Γ (const Constant))
    ]
 
   )

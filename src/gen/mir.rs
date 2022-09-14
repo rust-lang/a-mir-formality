@@ -21,18 +21,11 @@ impl<'tcx> FormalityGen<'tcx> {
             })
     }
 
-    fn emit_operand(&self, operand: &mir::Operand) -> String {
+    fn emit_operand(&self, operand: &mir::Operand<'tcx>) -> String {
         match operand {
             mir::Operand::Copy(place) => format!("(copy {})", self.emit_place(place)),
             mir::Operand::Move(place) => format!("(move {})", self.emit_place(place)),
-            mir::Operand::Constant(ct) => {
-                if let Some(int) = ct.literal.try_to_scalar().and_then(|s| s.try_to_int().ok()) {
-                    format!("(const {})", int)
-                } else {
-                    eprintln!("unknown const: {ct}");
-                    "(const 0)".to_string()
-                }
-            }
+            mir::Operand::Constant(ct) => format!("(const {})", self.emit_const(**ct)),
         }
     }
 
@@ -82,6 +75,34 @@ impl<'tcx> FormalityGen<'tcx> {
                     self.emit_operand(&operands.1)
                 )
             }
+            mir::Rvalue::Aggregate(agg_kind, operands) => {
+                let kind = match &**agg_kind {
+                    mir::AggregateKind::Tuple => "tuple".to_string(),
+                    mir::AggregateKind::Adt(def_id, variant_index, substs, _, _) => {
+                        let adt_id = self.emit_def_path(*def_id);
+                        let variant = variant_index.index();
+                        let params = substs
+                            .iter()
+                            .map(|arg| self.emit_param(arg))
+                            .intersperse(" ".to_string())
+                            .collect::<String>();
+
+                        format!("(adt {adt_id} {variant} [{params}])")
+                    }
+                    _ => unimplemented!("unknown aggregate kind"),
+                };
+
+                let ops = operands
+                    .iter()
+                    .map(|op| self.emit_operand(op))
+                    .intersperse(" ".to_string())
+                    .collect::<String>();
+
+                format!("({kind} [{ops}])")
+            }
+            mir::Rvalue::Cast(_, op, ty) => {
+                format!("(cast {} as {})", self.emit_operand(op), self.emit_ty(*ty))
+            }
             _ => {
                 eprintln!("unknown rvalue: {rvalue:?}");
                 format!("unknown-rvalue")
@@ -114,7 +135,7 @@ impl<'tcx> FormalityGen<'tcx> {
         }
     }
 
-    fn emit_terminator(&self, term: &mir::Terminator) -> String {
+    fn emit_terminator(&self, term: &mir::Terminator<'tcx>) -> String {
         match &term.kind {
             mir::TerminatorKind::Goto { target } => format!("(goto bb{})", target.index()),
             mir::TerminatorKind::Resume => "resume".to_string(),

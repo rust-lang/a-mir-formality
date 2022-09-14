@@ -8,6 +8,8 @@
          trait-decl-id
          trait-with-id
          adt-with-id
+         fn-with-id
+         static-with-id
          crate-decls
          instantiate-bounds-clause
          crate-defining-trait-with-id
@@ -228,5 +230,31 @@
 
   [(instantiate-bounds-clause (: (ParameterKind VarId) Biformulas) Parameter)
    (apply-substitution ((VarId Parameter)) Biformulas)
+   ]
+  )
+
+(define-metafunction formality-decl
+  ;; Find the given function amongst all the declared crates.
+  ;;
+  ;; FIXME: search trait items and impl items
+  fn-with-id : CrateDecls FnId -> FnDecl
+
+  [(fn-with-id CrateDecls FnId)
+   (fn FnId KindedVarIds Tys -> Ty where Biformulas FnBody)
+
+   (where (_ ... CrateDecl _ ...) CrateDecls)
+   (where (crate _ (_ ... (fn FnId KindedVarIds Tys -> Ty where Biformulas FnBody) _ ...)) CrateDecl)
+   ]
+  )
+
+(define-metafunction formality-decl
+  ;; Find the given static variable amongst all the declared crates.
+  static-with-id : CrateDecls StaticId -> StaticDecl
+
+  [(static-with-id CrateDecls StaticId)
+   (static StaticId KindedVarIds where Biformulas : Ty = FnBody)
+
+   (where (_ ... CrateDecl _ ...) CrateDecls)
+   (where (crate _ (_ ... (static StaticId KindedVarIds where Biformulas : Ty = FnBody) _ ...)) CrateDecl)
    ]
   )

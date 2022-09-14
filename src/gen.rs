@@ -4,6 +4,7 @@ use rustc_span::Symbol;
 
 use crate::OutputFormat;
 
+mod consts;
 mod decl;
 mod mir;
 mod ty;

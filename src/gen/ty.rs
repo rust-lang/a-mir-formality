@@ -13,7 +13,7 @@ impl<'tcx> FormalityGen<'tcx> {
                     .substs
                     .iter()
                     .skip(1) // skip the self type
-                    .map(|arg| self.emit_generic_arg(arg))
+                    .map(|arg| self.emit_user_param(arg))
                     .intersperse(" ".to_string())
                     .collect::<String>();
 
@@ -79,7 +79,7 @@ impl<'tcx> FormalityGen<'tcx> {
                 let def_path = self.emit_def_path(adt_def.did());
                 let substs_str = substs
                     .iter()
-                    .map(|arg| self.emit_generic_arg(arg))
+                    .map(|arg| self.emit_user_param(arg))
                     .intersperse(" ".to_string())
                     .collect::<String>();
 
@@ -155,7 +155,7 @@ impl<'tcx> FormalityGen<'tcx> {
             .iter()
             .take(trait_generics.count())
             .skip(1) // skip self type
-            .map(|arg| self.emit_generic_arg(arg))
+            .map(|arg| self.emit_user_param(arg))
             .intersperse(" ".to_string())
             .collect::<String>();
 
@@ -163,7 +163,7 @@ impl<'tcx> FormalityGen<'tcx> {
             .substs
             .iter()
             .skip(trait_generics.count())
-            .map(|arg| self.emit_generic_arg(arg))
+            .map(|arg| self.emit_user_param(arg))
             .intersperse(" ".to_string())
             .collect::<String>();
 
@@ -190,10 +190,18 @@ impl<'tcx> FormalityGen<'tcx> {
         }
     }
 
-    pub fn emit_generic_arg(&self, generic_arg: ty::subst::GenericArg<'tcx>) -> String {
+    pub fn emit_user_param(&self, generic_arg: ty::subst::GenericArg<'tcx>) -> String {
         match generic_arg.unpack() {
             ty::subst::GenericArgKind::Lifetime(lt) => self.emit_lifetime(lt),
             ty::subst::GenericArgKind::Type(ty) => self.emit_user_ty(ty),
+            ty::subst::GenericArgKind::Const(_) => unimplemented!(),
+        }
+    }
+
+    pub fn emit_param(&self, generic_arg: ty::subst::GenericArg<'tcx>) -> String {
+        match generic_arg.unpack() {
+            ty::subst::GenericArgKind::Lifetime(lt) => self.emit_lifetime(lt),
+            ty::subst::GenericArgKind::Type(ty) => self.emit_ty(ty),
             ty::subst::GenericArgKind::Const(_) => unimplemented!(),
         }
     }
