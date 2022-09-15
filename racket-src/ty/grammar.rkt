@@ -191,7 +191,7 @@
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
-  (AdtId AliasId TraitId AssociatedTyId AliasTyId ::=
+  (AdtId AliasId TraitId AssociatedTyId AliasTyId FnId ::=
          variable-not-otherwise-mentioned)
 
   ;; Signature
