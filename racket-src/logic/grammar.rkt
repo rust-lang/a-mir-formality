@@ -216,7 +216,6 @@
   ;; and universes in scope. This can be used to solve the canonical term and produce a result.
   ;;
   ;; The result of a query is a `Solution` (or set of `Solutions`).
-  (QueryTerm ::= (?- VarBinders Term))
   (QueryGoal ::= (?- VarBinders (implies Hypotheses Goal)))
 
   ;; A *solution* consists of inference variables and relations between them.
@@ -229,7 +228,6 @@
   #:binding-forms
   (∀ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   (∃ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
-  (?- ((VarId ParameterKind Quantifier Universe) ...) any #:refers-to (shadow VarId ...))
   )
 
 (define-term

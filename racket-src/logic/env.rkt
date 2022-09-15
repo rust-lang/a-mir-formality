@@ -12,6 +12,30 @@
   )
 
 (define-metafunction formality-logic
+  ;; Given a query, creates and returns an environment for the query
+  ;; along with the goal that is supposed to be solved in that environment.
+  instantiate-query : Hook QueryGoal -> (Env Goal)
+
+  [(instantiate-query Hook QueryGoal)
+   (Env_query Goal)
+
+   ; extract out
+   (where/error (?- VarBinders_q (implies Hypotheses_q Goal)) QueryGoal)
+
+   ; find the maximum universe of any variable in the query
+   (where/error [(_ _ _ Universe_var) ...] VarBinders)
+   (where/error Universe_max (max-universe RootUniverse Universe_var ...))
+
+   ; initially our inference context is empty
+   (where/error VarInequalities [])
+   (where/error Substitution [])
+
+   ;
+   (where/error Env_query (Hook Universe_max VarBinders_q Substitution VarInequalities Hypotheses_q))
+   ]
+  )
+
+(define-metafunction formality-logic
   ;; Returns the hook in the environment
   env-hook : Env -> Hook
 
