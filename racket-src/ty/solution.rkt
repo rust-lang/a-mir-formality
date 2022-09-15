@@ -27,7 +27,7 @@
   extract-solution : Env Term -> Solution
 
   [(extract-solution Env Term)
-   (∃ KindedVarIds (Substitution_in Relations))
+   (∃VarBinders (Substitution_in Relations))
 
    ; Find the existential variables that appeared in the original term
    ; and, for those that have a fixed value now, created a substitution to that value.
@@ -50,7 +50,7 @@
    (where/error ((VarId_free ...) Relations) (extract-goals-for-vars-fix Env () () Term_subst))
 
    (where [VarId_new ...] ,(set-subtract (term [VarId_free ...]) (term [VarId_in ...])))
-   (where/error KindedVarIds ((add-var-kind Env VarId_new) ...))
+   (where/error ∃VarBinders ((var-binding-in-env Env VarId_new) ...))
    ]
   )
 
@@ -68,18 +68,6 @@
   [(variable-substitution Env VarId)
    [(VarId Parameter)]
    (where Parameter (apply-substitution-from-env Env VarId))]
-
-  )
-
-(define-metafunction formality-ty
-  ;; If `VarId` is an existential, return a 1-element list with `(ParameterKind VarId)`.
-  ;; Else return empty list.
-  add-var-kind : Env VarId -> KindedVarId
-
-  [(add-var-kind Env VarId)
-   (ParameterKind VarId)
-   (where/error (_ ParameterKind ∃ _) (var-binding-in-env Env VarId))
-   ]
 
   )
 

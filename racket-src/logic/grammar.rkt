@@ -56,6 +56,10 @@
   (VarBinders ::= (VarBinder ...))
   (VarBinder ::= (VarId ParameterKind Quantifier Universe))
 
+  ;; ∃VarBinder -- Specialized variant of `VarBinder` that must be existential
+  (∃VarBinders ::= [∃VarBinder ...])
+  (∃VarBinder ::= (VarId ParameterKind ∃ Universe))
+
   ;; VarInequality -- for variables that don't have a known
   ;; value (which would appear in the substitution), we may
   ;; have an *inequality*. These are opaque to the logic layer,
@@ -223,7 +227,7 @@
   ;; which may contain various relations that were not proven, and which must be
   ;; proven at another level. Note that these are 'first-order' relations, though.
   (Solutions ::= (Solution ...))
-  (Solution ::= (∃ KindedVarIds (Substitution Relations)))
+  (Solution ::= (∃VarBinders (Substitution Relations)))
 
   #:binding-forms
   (∀ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))

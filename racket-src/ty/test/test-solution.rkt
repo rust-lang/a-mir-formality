@@ -35,8 +35,7 @@
    (test-match-terms
     formality-ty
     (extract-solution Env_N (Ty_A Ty_B))
-    (∃
-     ((type VarId_C))
+    (((VarId_C type ∃ (universe 1)))
      (((Ty_A (rigid-ty Vec (VarId_C))))
       ((VarId_C <= Ty_B)))))
    )
