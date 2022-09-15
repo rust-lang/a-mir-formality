@@ -2,7 +2,6 @@
 (require racket/set
          redex/reduction-semantics
          "grammar.rkt"
-         "inequalities.rkt"
          "../logic/env.rkt"
          "../logic/substitution.rkt"
          )
