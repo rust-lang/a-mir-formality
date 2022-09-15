@@ -21,6 +21,7 @@
   (Predicate/Skeleton ::= Term) ; Variant of predicates that has no parameters (see Predicate/Deboned)
   (VarInequality ::= Term)      ; Variable relationships inferred and stored in the environment
   (InequalityOp ::= Term)       ; Relations between terms beyond `==`
+
   ;; Env: Typing environment
   ;;
   ;; * Hook -- the "hook" that lets us get program information
