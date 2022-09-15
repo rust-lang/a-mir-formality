@@ -7,6 +7,7 @@
          "../user-ty.rkt"
          "../../logic/substitution.rkt"
          "../../logic/instantiate.rkt"
+         "../../logic/env-inequalities.rkt"
          )
 
 (module+ test

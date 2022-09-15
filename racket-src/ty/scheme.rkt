@@ -4,6 +4,7 @@
          "grammar.rkt"
          "inequalities.rkt"
          "../logic/env.rkt"
+         "../logic/env-inequalities.rkt"
          "../logic/substitution.rkt"
          )
 (provide extract-scheme
@@ -29,10 +30,10 @@
   ;; Example input goal
   ;;
   ;;    ?0 == Vec<?1>
-  ;; 
+  ;;
   ;; Output
   ;;
-  ;; 
+  ;;
 
   extract-scheme : Env Term -> Scheme
 

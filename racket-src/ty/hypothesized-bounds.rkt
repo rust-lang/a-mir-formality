@@ -3,6 +3,7 @@
          "grammar.rkt"
          "inequalities.rkt"
          "../logic/env.rkt"
+         "../logic/env-inequalities.rkt"
          "../logic/flatten-hypothesis.rkt"
          "../logic/match.rkt"
          "../logic/substitution.rkt"

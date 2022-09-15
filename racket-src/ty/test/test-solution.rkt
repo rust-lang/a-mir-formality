@@ -1,6 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "../../util.rkt"
+         "../../logic/env-inequalities.rkt"
          "../../logic/substitution.rkt"
          "../../logic/instantiate.rkt"
          "../grammar.rkt"
