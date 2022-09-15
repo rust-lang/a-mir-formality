@@ -93,7 +93,6 @@ impl<'tcx> FormalityGen<'tcx> {
                     rustc_hir::Mutability::Mut => format!("(&mut {lifetime_str} {ty_str})"),
                 }
             }
-            ty::TyKind::FnDef(_, _) => todo!(),
             ty::TyKind::FnPtr(fn_sig) => {
                 let inputs = fn_sig
                     .skip_binder()
@@ -182,11 +181,21 @@ impl<'tcx> FormalityGen<'tcx> {
     }
 
     pub fn emit_ty(&self, ty: ty::Ty<'tcx>) -> String {
-        if let ty::TyKind::Param(param_ty) = ty.kind() {
-            format!("{}", param_ty.name)
-        } else {
-            // convert UserTy to Ty by calling the user-ty metafunction
-            format!("(mf-apply user-ty {})", self.emit_user_ty(ty))
+        match ty.kind() {
+            ty::TyKind::FnDef(def_id, substs) => {
+                let fn_id = self.emit_def_path(*def_id);
+                let params = substs
+                    .iter()
+                    .map(|arg| self.emit_param(arg))
+                    .intersperse(" ".to_string())
+                    .collect::<String>();
+                format!("(rigid-ty (fn-def {fn_id}) [{params}])")
+            }
+            ty::TyKind::Param(param_ty) => format!("{}", param_ty.name),
+            _ => {
+                // convert UserTy to Ty by calling the user-ty metafunction
+                format!("(mf-apply user-ty {})", self.emit_user_ty(ty))
+            }
         }
     }
 
