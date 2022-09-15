@@ -415,29 +415,6 @@
   )
 
 (define-metafunction formality-logic
-  ;; Given a variable `VarId_in` returns all known relations about `VarId_in`
-  ;; (e.g., `VarId_in <= Parameter` etc).
-  known-relations : Env_in VarId_in -> (Relation ...)
-  #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
-
-  [(known-relations Env VarId)
-   (Relation ... ...)
-   (where/error (VarInequality ...) (env-inequalities Env))
-   (where/error ((Relation ...) ...) ((filter-for-var VarInequality VarId) ...))
-   ]
-
-  )
-
-(define-metafunction formality-logic
-  ;; If `VarInequality` is a relation of `VarId`, return empty list.
-  ;; Else return `(VarInequality)`.
-  filter-for-var : VarInequality VarId -> (Relation ...)
-
-  [(filter-for-var (VarId InequalityOp (Parameter ...)) VarId) ((VarId InequalityOp Parameter) ...)]
-  [(filter-for-var VarInequality VarId) ()]
-  )
-
-(define-metafunction formality-logic
   ;; Boolean operator
   not? : boolean -> boolean
   [(not? #f) #t]

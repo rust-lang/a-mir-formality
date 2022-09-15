@@ -29,10 +29,10 @@
   ;; Example input goal
   ;;
   ;;    ?0 == Vec<?1>
-  ;;
+  ;; 
   ;; Output
   ;;
-  ;;
+  ;; 
 
   extract-scheme : Env Term -> Scheme
 
