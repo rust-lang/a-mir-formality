@@ -2,7 +2,6 @@
 (require racket/set
          redex/reduction-semantics
          "grammar.rkt"
-         "inequalities.rkt"
          "../logic/env.rkt"
          "../logic/env-inequalities.rkt"
          "../logic/substitution.rkt"
@@ -11,7 +10,10 @@
          extract-solutions
          )
 
-(define-metafunction formality-ty
+;; NB: Unit tests for this file live in racket-src/ty/test/test-solution.
+;; This lets us use the type layer to 
+
+(define-metafunction formality-logic
   ;; Extract schemes from multiple environments for the same terms.
   ;; Just here to help with the testing macro.
   extract-solutions : Envs Term -> Schemes
@@ -21,7 +23,7 @@
    ]
   )
 
-(define-metafunction formality-ty
+(define-metafunction formality-logic
   ;; Given the final environment `Env` and the input `Term` that was proven,
   ;; extracts the solution.
 
@@ -55,7 +57,7 @@
    ]
   )
 
-(define-metafunction formality-ty
+(define-metafunction formality-logic
   ;; Given an environment and an existential variable `VarId`, returns...
   ;;
   ;; * an empty substitution, in the case that VarId is not mapped in Env
@@ -72,7 +74,7 @@
 
   )
 
-(define-metafunction formality-ty
+(define-metafunction formality-logic
   ;; Find free variables appearing in either `Goals` or `Term` that are
   ;; not members of `VarIds`; extract any relevant bounds on them
   ;; from the environment and add those to `Goals`. Repeat until fixed point is reached.
