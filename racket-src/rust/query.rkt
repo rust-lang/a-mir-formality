@@ -33,13 +33,13 @@
   ;; * `QueryTest` -- query test given by user
   querify-test : KindedVarIds Env Rust/QueryTest -> (QueryGoal UniversePairs)
 
-  ;; Exists -- introduce new existential variables into the environment
+  ;; Exists -- introduce new existential variables into the environment.
+  ;; NB: We don't assume that these are well-formed.
   ;;
   ;; We do not rename them, so we assume no shadowing.
   [(querify-test [KindedVarId_in ...] Env (?∃ [KindedVarId ...] Rust/QueryTest))
-   (querify-test [KindedVarId_in ... KindedVarId ...] Env_2 Rust/QueryTest)
+   (querify-test [KindedVarId_in ... KindedVarId ...] Env_1 Rust/QueryTest)
    (where/error Env_1 (env-with-vars-in-current-universe Env ∃ [KindedVarId ...]))
-   (where/error Env_2 (env-with-hypotheses Env_1 [(well-formed KindedVarId) ...]))
    ]
 
   ;; ForAll -- introduce new placeholders into the environment, along with hypotheses that they are WF
