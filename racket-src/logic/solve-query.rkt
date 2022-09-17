@@ -15,47 +15,45 @@
   logic:solve-query : Hook QueryGoal -> Solutions
 
   [(logic:solve-query Hook QueryGoal)
-   (extract-unique-solutions VarIds_query [] Envs_1)
+   (extract-unique-solutions [] Solutions)
 
    (where/error (Env_0 Goal) (instantiate-query Hook QueryGoal))
    (where/error VarIds_query (existential-vars-in-env Env_0))
-   (where/error Envs_1 ,(judgment-holds (logic:prove-top-level-goal/cosld Env_0 Goal Env_1)
-                                        Env_1))
+   (where/error Solutions ,(judgment-holds (solve-top-level-query-goal VarIds_query Env_0 Goal Solution)
+                                           Solution))
    ]
 
   )
 
-(define-metafunction formality-logic
-  ;; Given the variables `VarIds_query` from the query and the final environments `Envs`,
-  ;; extract the solution from each of `Envs` and return the complete set.
-  ;; Alpha-equivalent duplicates are removed.
-  extract-unique-solutions : VarIds_query Solutions Envs -> Solutions
+(define-judgment-form formality-logic
+  ;; Prove the query goal and construct a solution.
+  #:mode (solve-top-level-query-goal I I I O)
+  #:contract (solve-top-level-query-goal VarIds Env Goal Solution)
 
-  [(extract-unique-solutions VarIds_query Solutions [])
-   Solutions
-   ]
-
-  [(extract-unique-solutions VarIds_query Solutions_in [Env_0 Env_1 ...])
-   (extract-unique-solutions VarIds_query Solutions_0 [Env_1 ...])
-   (where/error Solution_0 (extract-solution Env_0 VarIds_query))
-   (where/error Solutions_0 (add-solution Solutions_in Solution_0))
+  [(logic:prove-top-level-goal/cosld Env Goal Env_out)
+   (where/error Solution (extract-solution Env_out VarIds_query))
+   ---------------
+   (solve-top-level-query-goal VarIds_query Env Goal Solution)
    ]
   )
 
 (define-metafunction formality-logic
-  ;; Adds `Solution` to `Solutons`, unless there is already an alpha-equivalent solution present.
-  add-solution : Solutions Solution -> Solutions
+  ;; Adds `Solutions` to `Solutions_accum`, unless there is already an
+  ;; alpha-equivalent solution present.
+  extract-unique-solutions : Solutions_accum Solutions -> Solutions
 
-  [; Already a solution that is alpha-equivalent to `Solution_new`, skip it.
-   (add-solution Solutions_old Solution_new)
-   Solutions_old
-   (where [_ ... Solution_old _ ...] Solutions_old)
-   (side-condition (alpha-equivalent? (term Solution_old) (term Solution_new)))
+  [(extract-unique-solutions Solutions_accum [])
+   Solutions_accum
    ]
 
-  [; `Solution_new` looks new, append it to the list
-   (add-solution [Solution_old ...] Solution_new)
-   [Solution_old ... Solution_new]
+  [(extract-unique-solutions Solutions_accum [Solution_0 Solution_1 ...])
+   (extract-unique-solutions Solutions_accum [Solution_1 ...])
+   (where #t (in? Solution_0 Solutions_accum))
    ]
 
+  [(extract-unique-solutions Solutions_accum [Solution_0 Solution_1 ...])
+   (extract-unique-solutions [Solution_accum ... Solution_0] [Solution_1 ...])
+   (where #f (in? Solution_0 Solutions_accum))
+   (where/error [Solution_accum ...] Solutions_accum)
+   ]
   )
