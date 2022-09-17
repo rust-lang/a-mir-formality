@@ -18,7 +18,8 @@
                       (?∃ [(type T)]
                           ((Vec < X >) : Foo[T])))
                   ))
-           (term [([]           ; no new inference variables are introduced
+           (term [(:-
+                   []           ; no new inference variables are introduced
                    ([(T X)]     ; T => X
                     []))])      ; no additional constraints
            )
@@ -43,7 +44,7 @@
            ;
            ; Possibility 1. `'a` = `'body`
            ; Possibility 2. `'a` is something outlived by `'body`.
-           (term [(() (((a body)) ()))
-                  (() (() ((a -outlived-by- body))))
+           (term [(:- [] (((a body)) ()))
+                  (:- [] (() ((a -outlived-by- body))))
                   ])))
   )

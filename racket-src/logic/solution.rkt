@@ -19,7 +19,7 @@
   extract-solution : Env VarIds -> Solution
 
   [(extract-solution Env VarIds_in)
-   (∃VarBinders (Substitution_in Relations))
+   (:- ∃VarBinders (Substitution_in Relations))
 
    ; Find the existential variables that appeared in the original term
    ; and, for those that have a fixed value now, created a substitution to that value.

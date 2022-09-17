@@ -228,11 +228,12 @@
   ;; which may contain various relations that were not proven, and which must be
   ;; proven at another level. Note that these are 'first-order' relations, though.
   (Solutions ::= (Solution ...))
-  (Solution ::= (∃VarBinders (Substitution Relations)))
+  (Solution ::= (:- ∃VarBinders (Substitution Relations)))
 
   #:binding-forms
   (∀ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   (∃ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
+  (:- ((VarId ParameterKind ∃ Universe) ...) any #:refers-to (shadow VarId ...))
   )
 
 (define-term
