@@ -4,7 +4,6 @@
          "../logic/querify.rkt"
          "../logic/solve-query.rkt"
          "../decl/env.rkt"
-         "../check/all-check.rkt"
          "grammar.rkt"
          "lower-to-decl/program.rkt"
          "lower-to-decl/where-clause.rkt"
