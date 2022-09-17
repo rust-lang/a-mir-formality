@@ -9,7 +9,6 @@
          "../../logic/solve-query.rkt"
          "../hook.rkt"
          "../relate.rkt"
-         "../scheme.rkt"
          "../predicate.rkt"
          "../elaborate-relation.rkt"
          )

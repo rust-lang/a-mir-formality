@@ -2,10 +2,8 @@
 (require redex/reduction-semantics
          "hook.rkt"
          "../grammar.rkt"
-         "../scheme.rkt"
          "../user-ty.rkt"
          "../../util.rkt"
-         "../../logic/instantiate.rkt"
          )
 
 (module+ test

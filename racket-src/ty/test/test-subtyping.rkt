@@ -3,9 +3,7 @@
          "hook.rkt"
          "../grammar.rkt"
          "../user-ty.rkt"
-         "../scheme.rkt"
          "../../util.rkt"
-         "../../logic/instantiate.rkt"
          )
 
 (module+ test
