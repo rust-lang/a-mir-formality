@@ -25,3 +25,12 @@
 
 (define-syntax-rule (test-term-false a)
   (test-equal (term a) #f))
+
+(define (stringify terms)
+  ;; Useful function for making a list of terms into a deterministic order.
+  ;; Converts a list of terms into a list of pretty-printed strings, sorted.
+  (let* [(pretty-printed-terms (map pretty-format terms))
+         (sorted-pretty-printed-terms (sort pretty-printed-terms string<?))
+         ]
+    pretty-printed-terms
+    ))
