@@ -1,6 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "../../util.rkt"
+         "../../logic/alpha-eq-util.rkt"
          "../query.rkt"
          )
 
@@ -27,8 +28,8 @@
 
   (traced '()
           (test-equal
-           (stringify
-            (term (rust:query
+           (term (test-alpha-equivalent-sets
+                  (rust:query
                    ([(crate C {(struct Vec[(type T)] where [] { })
                                (trait Foo[(lifetime a)] where [] {  })
                                (impl[(type T) (lifetime a)] Foo[a] for (Vec < T >) where [(T : a)] { })
@@ -38,14 +39,15 @@
                        (?=> [(X : body)]
                             (?∃ [(lifetime a)]
                                 ((Vec < X >) : Foo[a]))))
-                   )))
+                   )
 
-           ; We find two possibilities. One of them is strictly better than the other
-           ; but we are not smart enough to reduce that yet.
-           ;
-           ; Possibility 1. `'a` = `'body`
-           ; Possibility 2. `'a` is something outlived by `'body`.
-           (term ["'(:- () (((a body)) ()))"
-                  "'(:- () (() ((a -outlived-by- body))))"
-                  ])))
+                  ; We find two possibilities. One of them is strictly better than the other
+                  ; but we are not smart enough to reduce that yet.
+                  ;
+                  ; Possibility 1. `'a` = `'body`
+                  ; Possibility 2. `'a` is something outlived by `'body`.
+                  [(:- () (((a body)) ()))
+                   (:- () (() ((a -outlived-by- body))))
+                   ]))
+           'ok))
   )
