@@ -32,7 +32,7 @@
            ; 'a -outlives- 'b
 
            (test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type T)))
                     (∃ ((lifetime A) (lifetime B))))
@@ -44,7 +44,7 @@
    (traced '()
            ; for<'a> fn(&'a T) -outlives- static
            (test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ()
                    ()
@@ -67,7 +67,7 @@
              [(Ty_fn (term (user-ty (for ((lifetime A)) (fn ((& A (& B i32))) -> ())))))
               (Goal (term (Ty_fn -outlives- B)))
               ]
-             (term (ty:prove-scheme
+             (term (ty:query
                     Env
                     ((∃ ((lifetime B))))
                     ()
@@ -86,7 +86,7 @@
             [(:- []
                  ([] [(A -outlives- static)]))]
 
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type T)))
                     (∃ ((lifetime A))))
@@ -105,7 +105,7 @@
            ; !A -outlives- !B
 
            (test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ()
@@ -120,7 +120,7 @@
            ; !A -outlives- !B
 
            (test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A -outlives- B))
@@ -133,7 +133,7 @@
            ; Given any !A and !B where !A:!B, cannot prove A == B
 
            (test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A -outlives- B)
@@ -147,7 +147,7 @@
            ; Given any !A and !B where !A:!B and !B:!A, can prove A == B
 
            (test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A -outlives- B)

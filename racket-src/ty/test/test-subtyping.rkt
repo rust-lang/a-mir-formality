@@ -70,7 +70,7 @@
 
    (traced '()
            (test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type T)))
                     (∃ ((type U))))
@@ -106,7 +106,7 @@
                 (VarId_b -outlives- a)]
                ))]
 
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type T)))
                     (∃ ((type U) (lifetime a))))
@@ -118,7 +118,7 @@
 
    (; Test for capture avoidance -- we should not be able to prove this!
     test-equal
-    (term (ty:prove-scheme
+    (term (ty:query
            Env
            ((∀ ((type T)))
             )
@@ -132,7 +132,7 @@
    (traced '()
            (; Test for ensures: we can add ensures for things we can prove
             test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type T)))
                     )
@@ -145,7 +145,7 @@
 
    (; Test for ensures: we cannot add ensures for things we cannot prove
     test-equal
-    (term (ty:prove-scheme
+    (term (ty:query
            Env
            ((∀ ((type T)))
             )
@@ -159,7 +159,7 @@
 
    (; Test for ensures: we can use ensures on LHS to prove ensures on RHS
     test-equal
-    (term (ty:prove-scheme
+    (term (ty:query
            Env
            ((∀ ((type T)))
             )
@@ -176,7 +176,7 @@
     test-match
     formality-ty
     () ; no solutions
-    (term (ty:prove-scheme
+    (term (ty:query
            Env
            ((∀ ((type T)))
             )
@@ -191,7 +191,7 @@
     ; can use an implication type whose premises
     ; we CAN prove
     test-equal
-    (term (ty:prove-scheme
+    (term (ty:query
            Env
            ((∀ ((type T)))
             )
@@ -207,7 +207,7 @@
     ;
     ; can add implications, no problem
     test-equal
-    (term (ty:prove-scheme
+    (term (ty:query
            Env
            ((∀ ((type T)))
             )
@@ -222,7 +222,7 @@
     ;
     ; base type must match
     test-equal
-    (term (ty:prove-scheme
+    (term (ty:query
            Env
            ((∀ ((type T) (type U)))
             )
@@ -235,7 +235,7 @@
 
    (; Test for implication on both sides
     test-equal
-    (term (ty:prove-scheme
+    (term (ty:query
            Env
            ((∀ ((type T)))
             )
@@ -249,7 +249,7 @@
    (; #25860 -- the buggy path we have today, where implied bounds
     ; are not reflected in the type -- subtyping works
     test-equal
-    (term (ty:prove-scheme
+    (term (ty:query
            Env
            ((∀ ((type T) (lifetime X)))
             )
@@ -270,7 +270,7 @@
             test-match
             formality-ty
             () ; no solutions
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type T) (lifetime X)))
                     )
@@ -290,7 +290,7 @@
    (traced '()
            (; #25860 -- an upcast that discharges implied bound successfully
             test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type T) (lifetime X)))
                     )

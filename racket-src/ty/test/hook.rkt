@@ -18,7 +18,7 @@
          ty:prove-top-level-goal/cosld
          ty:test-can-prove
          ty:test-cannot-prove
-         ty:prove-scheme
+         ty:query
          ty:provable
          )
 
@@ -81,22 +81,22 @@
   ;; Then proves the goal and extracts a "scheme".
   ;;
   ;; Returns the resulting scheme(s), which you can test with `test-match`.
-  ty:prove-scheme : Env ((Quantifier KindedVarIds) ...) Biformulas Goal -> Solutions
+  ty:query : Env ((Quantifier KindedVarIds) ...) Biformulas Goal -> Solutions
 
-  [(ty:prove-scheme Env_in () Biformulas Goal)
+  [(ty:query Env_in () Biformulas Goal)
    (logic:solve-query (env-hook Env_h) QueryGoal)
    (where/error Env_h (env-with-hypotheses Env_in Biformulas))
    (where/error (QueryGoal _) (querify-goal Env_h Goal))
    ]
 
-  [(ty:prove-scheme Env_in ((∀ [KindedVarId_0 ...]) (Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
-   (ty:prove-scheme Env_out ((Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
+  [(ty:query Env_in ((∀ [KindedVarId_0 ...]) (Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
+   (ty:query Env_out ((Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
    (where/error Env_∀ (env-with-incremented-universe Env_in))
    (where/error Env_out (env-with-vars-in-current-universe Env_∀ ∀ [KindedVarId_0 ...]))
    ]
 
-  [(ty:prove-scheme Env_in ((∃ [KindedVarId_0 ...]) (Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
-   (ty:prove-scheme Env_out ((Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
+  [(ty:query Env_in ((∃ [KindedVarId_0 ...]) (Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
+   (ty:query Env_out ((Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
    (where/error Env_out (env-with-vars-in-current-universe Env_in ∃ [KindedVarId_0 ...]))
    ]
 

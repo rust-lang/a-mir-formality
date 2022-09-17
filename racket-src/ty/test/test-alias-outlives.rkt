@@ -33,7 +33,7 @@
 
    (traced '()
            (test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ()
                    ()

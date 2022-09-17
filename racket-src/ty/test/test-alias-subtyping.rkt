@@ -35,7 +35,7 @@
 
    (traced '()
            (test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ()
                    ()
@@ -52,7 +52,7 @@
            (test-equal
             ;; Cannot prove that `item(T) == item(U)` for arbitrary
             ;; T and U.
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type T) (type U))))
                    ()
@@ -69,7 +69,7 @@
            (test-equal
             ;; Given that `item(T) = i32` and `item(U) = i32`,
             ;; we *can* prove that `item(T) == item(U)`.
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type T) (type U))))
                    ((normalizes-to (item T) (user-ty i32))
@@ -87,7 +87,7 @@
            (test-equal
             ;; We cannot prove that `item(&'a()) <= item(&'b ())`
             ;; even though `&'a () <= &'b ()`
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A -outlives- B))
@@ -104,7 +104,7 @@
            (test-equal
             ;; We CAN prove that `item(&'a()) <= item(&'b ())`
             ;; when `&'a () == &'b ()`
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A -outlives- B)
@@ -123,7 +123,7 @@
            (test-equal
             ;; We can ALSO prove that `item(Vec<&'a()>) <= item(Vec<&'b ()>)`
             ;; because we can normalize and `&'a () <= &'b ()`
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A -outlives- B))

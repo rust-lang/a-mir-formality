@@ -29,7 +29,7 @@
 
    (traced '()
            (test-equal
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type E) (lifetime l))) (∃ ((type U))))
                    ()
