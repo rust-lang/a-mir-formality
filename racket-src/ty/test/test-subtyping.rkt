@@ -68,20 +68,17 @@
                                    (∀ ((type T)) (implies ((is-implemented (NeverImpl [T]))) T))))
            )
 
-   (test-match
-    formality-ty
-
-    ((∃ ((type Ty_U)) (implies ((Ty_U >= Ty_T)) (Ty_T <= Ty_U)))
-     )
-
-    (term (ty:prove-scheme
-           Env
-           ((∀ ((type T)))
-            (∃ ((type U))))
-           ()
-           (T <= U)
-           ))
-    )
+   (traced '()
+           (test-equal
+            (term (ty:prove-scheme
+                   Env
+                   ((∀ ((type T)))
+                    (∃ ((type U))))
+                   ()
+                   (T <= U)
+                   ))
+            (term [(:- [] ([] ((U >= T))))])
+            ))
 
    (traced '()
            ; Test that, given some placeholder type T
@@ -102,32 +99,25 @@
            (test-match
             formality-ty
 
-            ((∃
-              ((lifetime VarId_A)
-               (type VarId_TheTy)
-               (lifetime VarId_TheLt))
-              (implies
-               ((VarId_TheTy <= VarId_T)
-                (VarId_TheLt -outlives- VarId_A))
-               ((rigid-ty (ref ()) (VarId_TheLt VarId_TheTy))
-                <=
-                (rigid-ty (ref ()) (VarId_A VarId_T)))))
-             )
+            [(:-
+              [(VarId_b lifetime ∃ (universe 1)) (VarId_V type ∃ (universe 1))]
+              ([(U (rigid-ty (ref ()) (VarId_b VarId_V)))] ; U = &'b V
+               [(VarId_V <= T)
+                (VarId_b -outlives- a)]
+               ))]
 
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T)))
-                    (∃ ((type U) (lifetime A))))
+                    (∃ ((type U) (lifetime a))))
                    ()
-                   (U <= (user-ty (& A T)))
+                   (U <= (user-ty (& a T)))
                    ))
             )
            )
 
    (; Test for capture avoidance -- we should not be able to prove this!
-    test-match
-    formality-ty
-    () ; no solutions
+    test-equal
     (term (ty:prove-scheme
            Env
            ((∀ ((type T)))
@@ -136,13 +126,12 @@
            ((user-ty (fn (T) -> ()))
             <=
             (user-ty (for ((type T)) (fn (T) -> ())))
-            ))))
+            )))
+    (term []))
 
    (traced '()
            (; Test for ensures: we can add ensures for things we can prove
-            test-match
-            formality-ty
-            ((∃ _ (implies _ _)))
+            test-equal
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T)))
@@ -151,12 +140,11 @@
                    (T
                     <=
                     (ensures T ((is-implemented (Debug [T]))))
-                    )))))
+                    )))
+            (term ty:provable)))
 
    (; Test for ensures: we cannot add ensures for things we cannot prove
-    test-match
-    formality-ty
-    () ; no solutions
+    test-equal
     (term (ty:prove-scheme
            Env
            ((∀ ((type T)))
@@ -165,13 +153,12 @@
            (T
             <=
             (ensures T ((is-implemented (Debug [T]))))
-            ))))
+            )))
+    (term []))
 
 
    (; Test for ensures: we can use ensures on LHS to prove ensures on RHS
-    test-match
-    formality-ty
-    ((∃ _ (implies _ _)))
+    test-equal
     (term (ty:prove-scheme
            Env
            ((∀ ((type T)))
@@ -180,7 +167,8 @@
            ((ensures T ((is-implemented (Debug [T]))))
             <=
             (ensures T ((is-implemented (Debug [T]))))
-            ))))
+            )))
+    (term ty:provable))
 
    (; Test for implication in subtype
     ;
@@ -202,9 +190,7 @@
     ;
     ; can use an implication type whose premises
     ; we CAN prove
-    test-match
-    formality-ty
-    ((∃ () (implies () _)))
+    test-equal
     (term (ty:prove-scheme
            Env
            ((∀ ((type T)))
@@ -213,15 +199,14 @@
            ((implies ((is-implemented (Debug [T]))) T)
             <=
             T
-            ))))
+            )))
+    (term ty:provable))
 
 
    (; Test for implication in supertype
     ;
     ; can add implications, no problem
-    test-match
-    formality-ty
-    ((∃ () (implies () _)))
+    test-equal
     (term (ty:prove-scheme
            Env
            ((∀ ((type T)))
@@ -230,14 +215,13 @@
            (T
             <=
             (implies ((is-implemented (Debug [T]))) T)
-            ))))
+            )))
+    (term ty:provable))
 
    (; Test for implication in supertype
     ;
     ; base type must match
-    test-match
-    formality-ty
-    () ; no solutions
+    test-equal
     (term (ty:prove-scheme
            Env
            ((∀ ((type T) (type U)))
@@ -246,12 +230,11 @@
            (U
             <=
             (implies ((is-implemented (Debug [T]))) T)
-            ))))
+            )))
+    (term []))
 
    (; Test for implication on both sides
-    test-match
-    formality-ty
-    ((∃ () (implies () _)))
+    test-equal
     (term (ty:prove-scheme
            Env
            ((∀ ((type T)))
@@ -260,13 +243,12 @@
            ((implies ((is-implemented (Debug [T]))) T)
             <=
             (implies ((is-implemented (Debug [T]))) T)
-            ))))
+            )))
+    (term ty:provable))
 
    (; #25860 -- the buggy path we have today, where implied bounds
     ; are not reflected in the type -- subtyping works
-    test-match
-    formality-ty
-    ((∃ () (implies () _))) ; provable! uh-oh!
+    test-equal
     (term (ty:prove-scheme
            Env
            ((∀ ((type T) (lifetime X)))
@@ -278,9 +260,8 @@
             <=
             (; fn(&'static &'x (), &'x T) -> &'static T
              user-ty (fn ((& static (& X ())) (& X T)) -> (& static T)))
-            )
-           )
-          )
+            )))
+    (term ty:provable) ; uh-oh!
     )
 
    (traced '()
@@ -308,9 +289,7 @@
 
    (traced '()
            (; #25860 -- an upcast that discharges implied bound successfully
-            test-match
-            formality-ty
-            ((∃ () (implies () _))) ; provable!
+            test-equal
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T) (lifetime X)))
@@ -326,6 +305,7 @@
                     )
                    )
                   )
+            (term ty:provable)
             ))
    )
   )

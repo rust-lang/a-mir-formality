@@ -28,9 +28,7 @@
     )
 
    (traced '()
-           (test-match
-            formality-ty
-            ((∃ () (implies () _))) ; provable!
+           (test-equal
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type E) (lifetime l))) (∃ ((type U))))
@@ -39,6 +37,7 @@
                                   (user-ty (& l E)))
                    )
                   )
+            (term ty:provable)
             ))
    )
   )

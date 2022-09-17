@@ -31,17 +31,7 @@
            ;
            ; 'a -outlives- 'b
 
-           (test-match
-            formality-ty
-
-            ((∃
-              ((lifetime VarId_B) (lifetime VarId_A))
-              (implies
-               ((VarId_A -outlives- VarId_B))
-               ((rigid-ty (ref ()) (VarId_A VarId_T))
-                -outlives-
-                (rigid-ty (ref ()) (VarId_B VarId_T))))))
-
+           (test-equal
             (term (ty:prove-scheme
                    Env
                    ((∀ ((type T)))
@@ -49,30 +39,11 @@
                    ()
                    ((rigid-ty (ref ()) (A T)) -outlives- (rigid-ty (ref ()) (B T)))
                    ))
-            )
-           )
+            (term [(:- () (() ((A -outlives- B))))])))
 
    (traced '()
-           (test-match
-            formality-ty
-
-            ; for<'a> fn(&'a T) -outlives- static
-
-            ((∃
-              ()
-              (implies
-               ()
-               ((∀
-                 ((lifetime A))
-                 (implies
-                  [(well-formed (type _))]
-                  (rigid-ty
-                   (fn-ptr _ 1)
-                   ((rigid-ty (ref ()) (A (rigid-ty u32 ())))
-                    (rigid-ty (tuple 0) ())))))
-                -outlives-
-                static))))
-
+           ; for<'a> fn(&'a T) -outlives- static
+           (test-equal
             (term (ty:prove-scheme
                    Env
                    ()
@@ -81,17 +52,16 @@
                     -outlives-
                     static)
                    ))
-            )
-           )
+            (term ty:provable)))
 
    (traced '()
+           ; for<'a> fn(&'a &'b T) -outlives- 'b
            (test-match
             formality-ty
-
-            ; for<'a> fn(&'a &'b T) -outlives- 'b
-
-            ((∃ _ _)) ; provable
-
+            [(:- [(VarId_a lifetime ∃ (universe 0))]
+                 ([] [(B -outlives- VarId_a)])
+                 )
+             ]
             (redex-let*
              formality-ty
              [(Ty_fn (term (user-ty (for ((lifetime A)) (fn ((& A (& B i32))) -> ())))))
@@ -103,9 +73,7 @@
                     ()
                     Goal
                     ))
-             )
-            )
-           )
+             )))
 
    (traced '()
            (test-match
@@ -115,11 +83,8 @@
             ;
             ; true if (A -outlives- 'static)
 
-            ((∃
-              ((lifetime VarId_A))
-              (implies
-               ((VarId_A -outlives- static))
-               (VarId_A -outlives- VarId_T))))
+            [(:- []
+                 ([] [(A -outlives- static)]))]
 
             (term (ty:prove-scheme
                    Env
@@ -139,19 +104,14 @@
            ;
            ; !A -outlives- !B
 
-           (test-match
-            formality-ty
-
-            ()
-
+           (test-equal
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ()
                    (A -outlives- B)
                    ))
-            )
-           )
+            (term [])))
 
    (traced '()
 
@@ -159,29 +119,20 @@
            ;
            ; !A -outlives- !B
 
-           (test-match
-            formality-ty
-
-            ((∃ () (implies () (VarId_A -outlives- VarId_B))))
-
+           (test-equal
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A -outlives- B))
                    (A -outlives- B)
                    ))
-            )
-           )
+            (term ty:provable)))
 
    (traced '()
 
            ; Given any !A and !B where !A:!B, cannot prove A == B
 
-           (test-match
-            formality-ty
-
-            ()
-
+           (test-equal
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
@@ -189,18 +140,13 @@
                     )
                    (A == B)
                    ))
-            )
-           )
+            (term [])))
 
    (traced '()
 
            ; Given any !A and !B where !A:!B and !B:!A, can prove A == B
 
-           (test-match
-            formality-ty
-
-            ((∃ () (implies () (VarId_A == VarId_B))))
-
+           (test-equal
             (term (ty:prove-scheme
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
@@ -209,7 +155,6 @@
                     )
                    (A == B)
                    ))
-            )
-           )
+            (term ty:provable)))
    )
   )
