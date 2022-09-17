@@ -43,7 +43,7 @@
            ;
            ; Possibility 1. `'a` = `'body`
            ; Possibility 2. `'a` is something outlived by `'body`.
-           (term [(() (() ((a -outlived-by- body))))
-                  (() (((a body)) ()))
+           (term [(() (((a body)) ()))
+                  (() (() ((a -outlived-by- body))))
                   ])))
   )
