@@ -23,4 +23,27 @@
                     []))])      ; no additional constraints
            )
           )
+
+  (traced '()
+          (test-equal
+           (term (rust:query
+                  ([(crate C {(struct Vec[(type T)] where [] { })
+                              (trait Foo[(lifetime a)] where [] {  })
+                              (impl[(type T) (lifetime a)] Foo[a] for (Vec < T >) where [(T : a)] { })
+                              })]
+                   C)
+                  (?∀ [(type X) (lifetime body)]
+                      (?=> [(X : body)]
+                           (?∃ [(lifetime a)]
+                               ((Vec < X >) : Foo[a]))))
+                  ))
+
+           ; We find two possibilities. One of them is strictly better than the other
+           ; but we are not smart enough to reduce that yet.
+           ;
+           ; Possibility 1. `'a` = `'body`
+           ; Possibility 2. `'a` is something outlived by `'body`.
+           (term [(() (() ((a -outlived-by- body))))
+                  (() (((a body)) ()))
+                  ])))
   )

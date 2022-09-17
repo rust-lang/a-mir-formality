@@ -123,7 +123,7 @@
   (Rust/QueryTest ::=
                   (?∃ KindedVarIds Rust/QueryTest)
                   (?∀ KindedVarIds Rust/QueryTest)
-                  (?=> Hypotheses Rust/QueryTest)
+                  (?=> Rust/WhereClauses Rust/QueryTest)
                   Rust/WhereClause
                   )
 

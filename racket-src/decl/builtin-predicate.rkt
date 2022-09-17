@@ -20,7 +20,7 @@
    builtin-predicate
    ]
 
-  [(decl:categorize-goal (in-scope (type _)))
+  [(decl:categorize-goal (in-scope _))
    builtin-predicate
    ]
 

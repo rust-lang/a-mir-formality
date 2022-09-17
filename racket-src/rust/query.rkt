@@ -38,8 +38,9 @@
   ;;
   ;; We do not rename them, so we assume no shadowing.
   [(querify-test [KindedVarId_in ...] Env (?∃ [KindedVarId ...] Rust/QueryTest))
-   (querify-test [KindedVarId_in ... KindedVarId ...] Env_1 Rust/QueryTest)
+   (querify-test [KindedVarId_in ... KindedVarId ...] Env_2 Rust/QueryTest)
    (where/error Env_1 (env-with-vars-in-current-universe Env ∃ [KindedVarId ...]))
+   (where/error Env_2 (env-with-hypotheses Env_1 [(well-formed KindedVarId) ...]))
    ]
 
   ;; ForAll -- introduce new placeholders into the environment, along with hypotheses that they are WF
@@ -53,9 +54,10 @@
    (where/error Env_3 (env-with-hypotheses Env_2 [(well-formed KindedVarId) ...]))
    ]
 
-  ;; Hypotheses
-  [(querify-test KindedVarIds_in Env (?=> Hypotheses Rust/QueryTest))
+  ;; Implication -- add where-clauses into the environment
+  [(querify-test KindedVarIds_in Env (?=> [Rust/WhereClause ...] Rust/QueryTest))
    (querify-test KindedVarIds_in Env_1 Rust/QueryTest)
+   (where/error Hypotheses [(lower-to-decl/WhereClause KindedVarIds_in Rust/WhereClause) ...])
    (where/error Env_1 (env-with-hypotheses Env Hypotheses))
    ]
 
