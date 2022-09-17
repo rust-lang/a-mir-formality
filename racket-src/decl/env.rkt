@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "../logic/env.rkt"
+         "../logic/solve-query.rkt"
          "../ty/relate.rkt"
          "../ty/predicate.rkt"
          "../ty/hook.rkt"
@@ -46,6 +47,16 @@
   )
 
 (define-metafunction formality-decl
+  ;; Solve the given query in the context of the given program.
+  decl:solve-query : DeclProgram QueryGoal -> Solutions
+
+  [(decl:solve-query DeclProgram QueryGoal)
+   (logic:solve-query Hook QueryGoal)
+   (where/error Hook (formality-decl-hook DeclProgram))
+   ]
+  )
+
+(define-metafunction formality-decl
   ;; The "hook" for a decl program -- given a set of create-decls and a current
   ;; crate, lowers those definitions to program clauses on demand using
   ;; decl-clauses-for-predicate.
@@ -84,6 +95,6 @@
 
   [(generics-for-adt-id CrateDecls AdtId)
    (((VarId (ParameterKind =)) ...) Biformulas) ; for now we hardcode `=` (invariance) as the variance
-   (where/error (AdtKind AdtId ((ParameterKind VarId) ...) Biformulas AdtVariants) (adt-with-id CrateDecls AdtId))
+   (where/error (AdtKind AdtId ((ParameterKind VarId) ...) where Biformulas AdtVariants) (adt-with-id CrateDecls AdtId))
    ]
   )

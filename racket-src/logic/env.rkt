@@ -23,7 +23,7 @@
    (where/error (?- VarBinders_q (implies Hypotheses_q Goal)) QueryGoal)
 
    ; find the maximum universe of any variable in the query
-   (where/error [(_ _ _ Universe_var) ...] VarBinders)
+   (where/error [(_ _ _ Universe_var) ...] VarBinders_q)
    (where/error Universe_max (max-universe RootUniverse Universe_var ...))
 
    ; initially our inference context is empty

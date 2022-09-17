@@ -213,7 +213,7 @@
   (Prove/Coinductive ::= + -)
   (Prove/Progress ::= no-progress made-progress)
 
-  ;; `Query` -- A *query term* is a goal packaged up with variables that
+  ;; `QueryGoal` -- A *query term* is a goal packaged up with variables that
   ;; are referenced in the goal. Each variable carries its quantifier (∀ vs ∃)
   ;; along with a universe.
   ;;

@@ -7,52 +7,46 @@
          "../logic/substitution.rkt"
          )
 (provide extract-solution
-         extract-solutions
          )
 
 ;; NB: Unit tests for this file live in racket-src/ty/test/test-solution.
-;; This lets us use the type layer to 
+;; This lets us use the type layer to
 
 (define-metafunction formality-logic
-  ;; Extract schemes from multiple environments for the same terms.
-  ;; Just here to help with the testing macro.
-  extract-solutions : Envs Term -> Schemes
-
-  [(extract-solutions (Env ...) Term)
-   ((extract-solution Env Term) ...)
-   ]
-  )
-
-(define-metafunction formality-logic
-  ;; Given the final environment `Env` and the input `Term` that was proven,
+  ;; Given the final environment `Env` that resulted from solving `QueryGoal`,
   ;; extracts the solution.
 
-  extract-solution : Env Term -> Solution
+  extract-solution : Env VarIds -> Solution
 
-  [(extract-solution Env Term)
+  [(extract-solution Env VarIds_in)
    (∃VarBinders (Substitution_in Relations))
 
    ; Find the existential variables that appeared in the original term
    ; and, for those that have a fixed value now, created a substitution to that value.
-   (where/error [VarId_in ...] (free-existential-variables Env Term))
+   (where/error [VarId_in ...] VarIds_in)
    (where/error Substitution_in (substitution-concat-disjoint (variable-substitution Env VarId_in) ...))
 
-   ; Looking at the final value after substitution, extract the list of existential variables
+   ; Looking at the final values of `VarIds_in`, extract the list of existential variables
    ; that still appear (some of which we may have instantiated!) and the relationships between them.
-   ; This is a fixed point process because we may have something like
+   ; This is a fixed point process because we may have an initial set of variables like
    ;
-   ;     input term: (implemented (?T : Trait<?c>))
+   ;     (?T ?c)
    ;
-   ; where `?T := &?a u32` is our substitution and
+   ; which, after we apply the substitution, becomes:
+   ;
+   ;        ((&?a u32) ?c)
+   ;
+   ; and where we have the following relations in the environment:
    ;
    ;     ?a: ?b
    ;     ?b: ?c
    ;
-   ; is a relevant relation.
-   (where/error Term_subst (apply-substitution-from-env Env Term))
-   (where/error ((VarId_free ...) Relations) (extract-goals-for-vars-fix Env () () Term_subst))
+   ; The `extract-goals-for-vars-fix` will expand the set of relevant variables
+   ; to include `?a` and then, because of the `?a: ?b` edge, `?b`.
+   (where/error Term_subst (apply-substitution-from-env Env VarIds))
+   (where/error (VarIds_free Relations) (extract-goals-for-vars-fix Env () () Term_subst))
 
-   (where [VarId_new ...] ,(set-subtract (term [VarId_free ...]) (term [VarId_in ...])))
+   (where [VarId_new ...] ,(set-subtract (term VarIds_free) (term VarIds_in)))
    (where/error ∃VarBinders ((var-binding-in-env Env VarId_new) ...))
    ]
   )

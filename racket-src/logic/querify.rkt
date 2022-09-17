@@ -6,7 +6,8 @@
          "instantiate.rkt"
          "substitution.rkt"
          )
-(provide querify-goal)
+(provide querify-goal
+         )
 
 (define-metafunction formality-logic
   ;; *Querifying* a term `Term` from an env `Env`
