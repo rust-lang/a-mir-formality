@@ -5,6 +5,7 @@
          "env.rkt"
          "cosld-solve.rkt"
          "solution.rkt"
+         "solution-simplify.rkt"
          )
 (provide logic:solve-query)
 
@@ -31,9 +32,10 @@
   #:contract (solve-top-level-query-goal VarIds Env Goal Solution)
 
   [(logic:prove-top-level-goal/cosld Env Goal Env_out)
-   (where/error Solution (extract-solution Env_out VarIds_query))
+   (where/error Solution_0 (extract-solution Env_out VarIds_query))
+   (where/error Solution_1 (simplify-solution Solution_0))
    ---------------
-   (solve-top-level-query-goal VarIds_query Env Goal Solution)
+   (solve-top-level-query-goal VarIds_query Env Goal Solution_1)
    ]
   )
 

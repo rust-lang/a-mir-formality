@@ -230,6 +230,9 @@
   (Solutions ::= (Solution ...))
   (Solution ::= (:- ∃VarBinders (Substitution Relations)))
 
+  ;; Appearances -- A mapping indicating how many times the given variable occurs.
+  (Appearances ::= [(VarId number) ...])
+
   #:binding-forms
   (∀ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   (∃ ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))

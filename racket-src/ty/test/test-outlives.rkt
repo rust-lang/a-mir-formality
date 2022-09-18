@@ -54,12 +54,7 @@
 
    (traced '()
            ; for<'a> fn(&'a &'b T) -outlives- 'b
-           (test-match
-            formality-ty
-            [(:- [(VarId_a lifetime ∃ (universe 0))]
-                 ([] [(B -outlives- VarId_a)])
-                 )
-             ]
+           (test-equal
             (redex-let*
              formality-ty
              [(Ty_fn (term (user-ty (for ((lifetime A)) (fn ((& A (& B i32))) -> ())))))
@@ -71,7 +66,9 @@
                     ()
                     Goal
                     ))
-             )))
+             )
+            (term ty:provable)
+            ))
 
    (traced '()
            (test-match
