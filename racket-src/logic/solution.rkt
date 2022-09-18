@@ -2,15 +2,14 @@
 (require racket/set
          redex/reduction-semantics
          "grammar.rkt"
-         "../logic/env.rkt"
-         "../logic/env-inequalities.rkt"
-         "../logic/substitution.rkt"
+         "env.rkt"
+         "env-inequalities.rkt"
+         "substitution.rkt"
          )
-(provide extract-solution
-         )
+(provide extract-solution)
 
 ;; NB: Unit tests for this file live in racket-src/ty/test/test-solution.
-;; This lets us use the type layer to
+;; This lets us use the type layer to test it.
 
 (define-metafunction formality-logic
   ;; Given the final environment `Env` that resulted from solving `QueryGoal`,

@@ -3,9 +3,9 @@
          racket/set
          "grammar.rkt"
          "env.rkt"
-         "cosld-solve.rkt"
          "solution.rkt"
          "solution-simplify.rkt"
+         "cosld-solve.rkt"
          )
 (provide logic:solve-query)
 
@@ -24,19 +24,6 @@
                                            Solution))
    ]
 
-  )
-
-(define-judgment-form formality-logic
-  ;; Prove the query goal and construct a solution.
-  #:mode (solve-top-level-query-goal I I I O)
-  #:contract (solve-top-level-query-goal VarIds Env Goal Solution)
-
-  [(logic:prove-top-level-goal/cosld Env Goal Env_out)
-   (where/error Solution_0 (extract-solution Env_out VarIds_query))
-   (where/error Solution_1 (simplify-solution Solution_0))
-   ---------------
-   (solve-top-level-query-goal VarIds_query Env Goal Solution_1)
-   ]
   )
 
 (define-metafunction formality-logic
