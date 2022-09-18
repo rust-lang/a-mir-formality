@@ -41,13 +41,6 @@
                                 ((Vec < X >) : Foo[a]))))
                    )
 
-                  ; We find two possibilities. One of them is strictly better than the other
-                  ; but we are not smart enough to reduce that yet.
-                  ;
-                  ; Possibility 1. `'a` = `'body`
-                  ; Possibility 2. `'a` is something outlived by `'body`.
-                  [(:- () (((a body)) ()))
-                   (:- () (() ((a -outlived-by- body))))
-                   ]))
+                  [(:- () (() ((a -outlived-by- body))))]))
            'ok))
   )
