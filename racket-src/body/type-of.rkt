@@ -9,6 +9,7 @@
          type-of/Operands
          type-of/Operand
          field-tys
+         find-fn
          )
 
 ;; type-of judgments:

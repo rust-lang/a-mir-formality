@@ -122,7 +122,7 @@
    ]
 
   [(well-formed-subgoals-for-ty CrateDecls (rigid-ty (fn-ptr _ _) (Ty ...)))
-   [(well-formed (Type Ty)) ...]
+   [(well-formed (type Ty)) ...]
    ]
 
   [(well-formed-subgoals-for-ty CrateDecls (rigid-ty (ref _) (Lt Ty)))
