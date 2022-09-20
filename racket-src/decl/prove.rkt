@@ -1,31 +1,12 @@
 #lang racket
 (require redex/reduction-semantics
          "../logic/cosld-solve.rkt"
-         "../ty/scheme.rkt"
          "decl-ok.rkt"
          "env.rkt"
          "grammar.rkt"
          )
 (provide (all-defined-out)
          )
-
-#;(define-metafunction formality-ty
-    ;; Convenient metafunction for tests:
-    ;;
-    ;; Creates an environment introducing the various quantifiers etc and then the
-    ;; given where-clauses (as hypotheses).
-    ;;
-    ;; Then proves the goal and extracts a "scheme".
-    ;;
-    ;; Returns the resulting scheme(s), which you can test with `test-match`.
-    decl:prove-scheme-in-crate : CrateDecls CrateId ((Quantifier KindedVarIds) ...) Biformulas Goal -> Schemes
-
-    [(decl:prove-scheme-in-crate CrateDecls CrateId ((Quantifier KindedVarIds) ...) Biformulas Goal)
-     (ty:prove-scheme Env ((Quantifier KindedVarIds) ...) Biformulas Goal)
-     (where/error Env (env-for-crate-decls CrateDecls CrateId))
-     ]
-
-    )
 
 (define-metafunction formality-decl
   ;; Convenient metafunction for tests:

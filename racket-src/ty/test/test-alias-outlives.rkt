@@ -32,10 +32,8 @@
     )
 
    (traced '()
-           (test-match
-            formality-ty
-            ((∃ () (implies () _))) ; provable!
-            (term (ty:prove-scheme
+           (test-equal
+            (term (ty:query
                    Env
                    ()
                    ()
@@ -45,6 +43,7 @@
                     )
                    )
                   )
+            (term ty:provable)
             ))
    )
   )

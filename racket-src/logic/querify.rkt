@@ -6,17 +6,32 @@
          "instantiate.rkt"
          "substitution.rkt"
          )
-(provide canonicalize-term)
+(provide querify-goal
+         )
 
 (define-metafunction formality-logic
-  canonicalize-term : Env Term -> (CanonicalTerm UniversePairs)
-  [(canonicalize-term Env Term_0)
-   ((canonicalized (VarBinder_map ...) Term_1) (reverse-universe-map UniversePairs_map))
+  ;; *Querifying* a term `Term` from an env `Env`
+  ;; returns a `Query` that is independent from the
+  ;; environment.
+  ;;
+  ;; Any free variable in `Term` that was bound
+  ;; in the environment is instead bound in the `Query`.
+  ;; The universes from `Query` are remapped to sequential
+  ;; universes that preserve the relative unvierse relationships.
+  ;;
+  ;; The `UniversePairs` mapping that is returned can be used to map
+  ;; back from the universes in `Query` to the original universes
+  ;; in `Env`.
+  querify-goal : Env Goal -> (QueryGoal UniversePairs)
+  [(querify-goal Env Goal_0)
+   ((?- (VarBinder_map ...) (implies Hypotheses_e Goal_e))
+    (reverse-universe-map UniversePairs_map))
 
-   (where/error Term_1 (apply-substitution-from-env Env Term_0))
+   (where/error Goal_e (apply-substitution-from-env Env Goal_0))
+   (where/error Hypotheses_e (apply-substitution-from-env Env (env-hypotheses Env)))
 
    ; find the free variables in Term and the binding info about them from env
-   (where/error (VarId_free ...) (free-variables Env Term_1))
+   (where/error (VarId_free ...) (free-variables Env (Goal_e Hypotheses_e)))
    (where/error (VarBinder_free ...) ((var-binding-in-env Env VarId_free) ...))
 
    ; find the universes that these free variables refer to
@@ -55,7 +70,7 @@
   )
 
 (define-metafunction formality-logic
-  ;; Given a set of universes extracted from some term that is being canonicalized,
+  ;; Given a set of universes extracted from some term that is being querifyd,
   ;; returns a "universe map" that maps from each distinct universe to a new, more company
   ;; universe to be used in the canonical form. The new universes preserve the relative ordering
   ;; from the input.
@@ -107,13 +122,38 @@
 
    (traced '()
            (test-equal
-            (term (canonicalize-term Env_2 (Parameter_A Parameter_Z)))
-            (term ((canonicalized
+            (term (querify-goal Env_2 (is-true (Parameter_A Parameter_Z))))
+            (term ((?-
                     ((Parameter_Z type ∀ (universe 2))
-                     (Parameter_A type ∀ (universe 1)))
-                    (Parameter_A Parameter_Z))
+                     (Parameter_A type ∀ (universe 1))
+                     )
+                    (implies ()
+                             (is-true (Parameter_A Parameter_Z))))
                    (((universe 0) (universe 0))
                     ((universe 1) (universe 1))
                     ((universe 2) (universe 3)))))))
+   )
+
+  (redex-let*
+   formality-logic
+
+   (((Env_0 () (Parameter_A Parameter_B)) (term (instantiate-quantified EmptyEnv (∀ ((type A) (type B)) ()))))
+    ((Env_1 () (Parameter_X)) (term (instantiate-quantified Env_0 (∀ ((type X)) ()))))
+    ((Env_2 () (Parameter_Z)) (term (instantiate-quantified Env_1 (∀ ((type Z)) ()))))
+    (Env_3 (term (env-with-hypotheses Env_2 [(is-true Parameter_X)])))
+    )
+
+   (traced '()
+           (test-equal
+            (term (querify-goal Env_3 (is-true Parameter_A)))
+            (term ((?-
+                    ((Parameter_X type ∀ (universe 2))
+                     (Parameter_A type ∀ (universe 1))
+                     )
+                    (implies [(is-true Parameter_X)]
+                             (is-true Parameter_A)))
+                   (((universe 0) (universe 0))
+                    ((universe 1) (universe 1))
+                    ((universe 2) (universe 2)))))))
    )
   )

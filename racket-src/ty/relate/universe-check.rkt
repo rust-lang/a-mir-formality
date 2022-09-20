@@ -6,6 +6,7 @@
          "../extrude.rkt"
          "../../logic/substitution.rkt"
          "../../logic/env.rkt"
+         "../../logic/env-inequalities.rkt"
          )
 (provide universe-check-ok?
          )

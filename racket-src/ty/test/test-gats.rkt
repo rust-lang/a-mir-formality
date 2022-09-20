@@ -2,10 +2,8 @@
 (require redex/reduction-semantics
          "hook.rkt"
          "../grammar.rkt"
-         "../scheme.rkt"
          "../user-ty.rkt"
          "../../util.rkt"
-         "../../logic/instantiate.rkt"
          )
 
 (module+ test
@@ -28,10 +26,8 @@
     )
 
    (traced '()
-           (test-match
-            formality-ty
-            ((∃ () (implies () _))) ; provable!
-            (term (ty:prove-scheme
+           (test-equal
+            (term (ty:query
                    Env
                    ((∀ ((type E) (lifetime l))) (∃ ((type U))))
                    ()
@@ -39,6 +35,7 @@
                                   (user-ty (& l E)))
                    )
                   )
+            (term ty:provable)
             ))
    )
   )

@@ -8,6 +8,7 @@
          "../../logic/grammar.rkt"
          "../../logic/substitution.rkt"
          "../../logic/env.rkt"
+         "../../logic/env-inequalities.rkt"
          )
 (provide equate/one/substituted
          )

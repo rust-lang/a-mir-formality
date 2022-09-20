@@ -7,6 +7,7 @@
          "../inequalities.rkt"
          "../extrude.rkt"
          "../../logic/env.rkt"
+         "../../logic/env-inequalities.rkt"
          )
 (provide outlives/one/substituted
          )

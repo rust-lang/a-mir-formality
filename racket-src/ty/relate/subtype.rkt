@@ -9,6 +9,7 @@
          "../extrude.rkt"
          "../hypothesized-bounds.rkt"
          "../../logic/env.rkt"
+         "../../logic/env-inequalities.rkt"
          )
 (provide compare/one/substituted
          )

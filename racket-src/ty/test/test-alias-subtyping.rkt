@@ -2,7 +2,6 @@
 (require redex/reduction-semantics
          "hook.rkt"
          "../grammar.rkt"
-         "../scheme.rkt"
          "../user-ty.rkt"
          "../../util.rkt"
          "../../logic/instantiate.rkt"
@@ -34,10 +33,8 @@
     )
 
    (traced '()
-           (test-match
-            formality-ty
-            ((∃ () (implies () _))) ; provable!
-            (term (ty:prove-scheme
+           (test-equal
+            (term (ty:query
                    Env
                    ()
                    ()
@@ -47,15 +44,14 @@
                     )
                    )
                   )
+            (term ty:provable)
             ))
 
    (traced '()
-           (test-match
-            formality-ty
+           (test-equal
             ;; Cannot prove that `item(T) == item(U)` for arbitrary
             ;; T and U.
-            () ; not provable!
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type T) (type U))))
                    ()
@@ -65,15 +61,14 @@
                     )
                    )
                   )
+            (term []) ; not provable!
             ))
 
    (traced '()
-           (test-match
-            formality-ty
+           (test-equal
             ;; Given that `item(T) = i32` and `item(U) = i32`,
             ;; we *can* prove that `item(T) == item(U)`.
-            ((∃ () (implies () _))) ; provable!
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((type T) (type U))))
                    ((normalizes-to (item T) (user-ty i32))
@@ -84,15 +79,14 @@
                     )
                    )
                   )
+            (term ty:provable)
             ))
 
    (traced '()
-           (test-match
-            formality-ty
+           (test-equal
             ;; We cannot prove that `item(&'a()) <= item(&'b ())`
             ;; even though `&'a () <= &'b ()`
-            () ; not provable
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A -outlives- B))
@@ -102,15 +96,14 @@
                     )
                    )
                   )
+            (term []) ; not provable!
             ))
 
    (traced '()
-           (test-match
-            formality-ty
+           (test-equal
             ;; We CAN prove that `item(&'a()) <= item(&'b ())`
             ;; when `&'a () == &'b ()`
-            ((∃ () (implies () _))) ; provable
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A -outlives- B)
@@ -122,15 +115,14 @@
                     )
                    )
                   )
+            (term ty:provable)
             ))
 
    (traced '()
-           (test-match
-            formality-ty
+           (test-equal
             ;; We can ALSO prove that `item(Vec<&'a()>) <= item(Vec<&'b ()>)`
             ;; because we can normalize and `&'a () <= &'b ()`
-            ((∃ () (implies () _))) ; provable
-            (term (ty:prove-scheme
+            (term (ty:query
                    Env
                    ((∀ ((lifetime A) (lifetime B))))
                    ((A -outlives- B))
@@ -140,6 +132,7 @@
                     )
                    )
                   )
-            ))
+            (term ty:provable)))
+
    )
   )

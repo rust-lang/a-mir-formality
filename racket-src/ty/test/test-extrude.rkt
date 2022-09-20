@@ -7,6 +7,7 @@
          "../user-ty.rkt"
          "../../logic/instantiate.rkt"
          "../../logic/env.rkt"
+         "../../logic/env-inequalities.rkt"
          "../../util.rkt"
          )
 

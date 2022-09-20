@@ -117,6 +117,16 @@
   (Rust/Tys ::= UserTys)
   (Rust/Ty ::= UserTy)
 
+  ;; `Rust/QueryTest` -- a shorthand form that can be converted to a QueryGoal, for use in tests
+  ;;
+  ;; Note that ?∃ and ?∀ are not converted into Redex binding forms, which avoids any renaming.
+  (Rust/QueryTest ::=
+                  (?∃ KindedVarIds Rust/QueryTest)
+                  (?∀ KindedVarIds Rust/QueryTest)
+                  (?=> Rust/WhereClauses Rust/QueryTest)
+                  Rust/WhereClause
+                  )
+
   ;; Fn bodies are not defined in this layer.
   (FnBody ::= Term)
   )

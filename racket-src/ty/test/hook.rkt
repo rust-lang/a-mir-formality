@@ -5,9 +5,10 @@
          "../../logic/cosld-solve.rkt"
          "../../logic/env.rkt"
          "../../logic/instantiate.rkt"
+         "../../logic/querify.rkt"
+         "../../logic/solve-query.rkt"
          "../hook.rkt"
          "../relate.rkt"
-         "../scheme.rkt"
          "../predicate.rkt"
          "../elaborate-relation.rkt"
          )
@@ -16,7 +17,8 @@
          ty:prove-top-level-goal/cosld
          ty:test-can-prove
          ty:test-cannot-prove
-         ty:prove-scheme
+         ty:query
+         ty:provable
          )
 
 (define-metafunction formality-ty
@@ -73,22 +75,33 @@
   ;; Convenient metafunction for tests:
   ;;
   ;; Creates an environment introducing the various quantifiers etc and then the
-  ;; given where-clauses (as hypotheses).
+  ;; given where-clauses (as hypotheses). We assume no shadowing amongst the
+  ;; given quantifies.
   ;;
   ;; Then proves the goal and extracts a "scheme".
   ;;
   ;; Returns the resulting scheme(s), which you can test with `test-match`.
-  ty:prove-scheme : Env ((Quantifier KindedVarIds) ...) Biformulas Goal -> Schemes
+  ty:query : Env ((Quantifier KindedVarIds) ...) Biformulas Goal -> Solutions
 
-  [(ty:prove-scheme Env () Biformulas Goal)
-   (extract-schemes Envs_out Goal)
-   (where/error Env_h (env-with-hypotheses Env Biformulas))
-   (where/error Envs_out ,(judgment-holds (ty:prove-top-level-goal/cosld Env_h Goal Env_out) Env_out))
+  [(ty:query Env_in () Biformulas Goal)
+   (logic:solve-query (env-hook Env_h) QueryGoal)
+   (where/error Env_h (env-with-hypotheses Env_in Biformulas))
+   (where/error (QueryGoal _) (querify-goal Env_h Goal))
    ]
 
-  [(ty:prove-scheme Env ((Quantifier_0 KindedVarIds_0) (Quantifier KindedVarIds) ...) Biformulas Goal)
-   (ty:prove-scheme Env_out ((Quantifier KindedVarIds) ...) Biformulas_out Goal_out)
-   (where/error (Env_out (Biformulas_out Goal_out) _) (instantiate-quantified Env (Quantifier_0 KindedVarIds_0 (Biformulas Goal))))
+  [(ty:query Env_in ((∀ [KindedVarId_0 ...]) (Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
+   (ty:query Env_out ((Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
+   (where/error Env_∀ (env-with-incremented-universe Env_in))
+   (where/error Env_out (env-with-vars-in-current-universe Env_∀ ∀ [KindedVarId_0 ...]))
+   ]
+
+  [(ty:query Env_in ((∃ [KindedVarId_0 ...]) (Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
+   (ty:query Env_out ((Quantifier_r KindedVarIds_r) ...) Biformulas Goal)
+   (where/error Env_out (env-with-vars-in-current-universe Env_in ∃ [KindedVarId_0 ...]))
    ]
 
   )
+
+; this is the "empty solution" produced
+; when something is always provable.
+(define-term ty:provable [(:- () ([] []))])

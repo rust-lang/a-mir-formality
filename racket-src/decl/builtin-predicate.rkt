@@ -20,7 +20,11 @@
    builtin-predicate
    ]
 
-  [(decl:categorize-goal (in-scope (type _)))
+  [(decl:categorize-goal (well-formed (lifetime _)))
+   builtin-predicate
+   ]
+
+  [(decl:categorize-goal (in-scope _))
    builtin-predicate
    ]
 
@@ -66,6 +70,11 @@
   [; (well-formed KP) for anything but unbound existential variables
    (decl:solve-builtin-predicate CrateDecls Env (well-formed (type Ty)))
    (Env (well-formed-subgoals-for-ty CrateDecls Ty))
+   ]
+
+  [; (well-formed (lifetime t)) is always true, we don't have ill-formed lifetimes
+   (decl:solve-builtin-predicate CrateDecls Env (well-formed (lifetime Ty)))
+   (Env [])
    ]
 
   [; (in-scope KP) :- (well-formed KP)

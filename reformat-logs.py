@@ -6,6 +6,7 @@
 #
 # Emits spaces and adds in a `>` and a `<` at the start of each line.
 
+from pdb import line_prefix
 import re
 import sys
 import fileinput
@@ -21,6 +22,10 @@ COUNT_RE = re.compile(r"^((c?[<> ]*)\[(\d+)\]) (.*)$")
 # Sometimes it also prints `> > > Bar` -- I *think* that
 # is when `Bar` is a subtask of `Foo`.
 INDENT_RE = re.compile(r"^(c?[<> ]*)(.*)$")
+
+# Backtraces sometimes appear in the middle of text and should be reproduced just as is.
+ERROR_RE = re.compile(
+    r"(?:^[a-zA-Z]|^  errortrace\.\.\.|^   /|^  context\.\.\.|^   \.\.\.)")
 
 
 class Section:
@@ -60,6 +65,12 @@ def main():
     current_section = None
 
     for line in fileinput.input():
+        # Backtraces should just print exactly as is.
+        # mo = ERROR_RE.match(line)
+        # if mo:
+        #     sys.stdout.write(line)
+        #     continue
+
         mo = COUNT_RE.match(line)
         if mo:
             input_indent_count = len(mo.group(1))
