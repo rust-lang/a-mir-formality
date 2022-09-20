@@ -2,6 +2,7 @@
 (require redex/reduction-semantics
          "grammar.rkt"
          "../logic/env.rkt"
+         "../logic/substitution.rkt"
          "../ty/hook.rkt"
          "well-formed/parameter.rkt"
          )
@@ -26,6 +27,13 @@
 
   [(decl:categorize-goal Env (in-scope _))
    builtin-predicate
+   ]
+
+  ; We don't let you prove `?T: Foo` where `?T` is an unbound inference variable.
+  [(decl:categorize-goal Env (is-implemented (TraitId [VarId _ ...])))
+   ambiguous-goal
+   (where VarId_1 (apply-substitution-from-env Env VarId))
+   (where #t (env-contains-unmapped-existential-var Env VarId_1))
    ]
 
   [(decl:categorize-goal Env Goal)

@@ -21,5 +21,10 @@
    ---------------
    (solve-top-level-query-goal VarIds_query Env Goal Solution_1)
    ]
+
+  [(logic:prove-top-level-goal/cosld Env Goal ambiguous)
+   ---------------
+   (solve-top-level-query-goal VarIds_query Env Goal ambiguous)
+   ]
   )
 
