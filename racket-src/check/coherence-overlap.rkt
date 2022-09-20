@@ -87,7 +87,8 @@
    ; check that we cannot make them equal
    (cannot-prove-goal-in-env Env_2 Goal_unified)
    -------------------------------
-   (✅-ImplsEqualOrNotOverlap DeclProgram TraitImplDecl_1 TraitImplDecl_2)]
+   (✅-ImplsEqualOrNotOverlap DeclProgram TraitImplDecl_1 TraitImplDecl_2)
+   ]
 
   ; FIXME: add the negative impl cases etc
 
