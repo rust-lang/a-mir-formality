@@ -12,8 +12,10 @@
          solve-builtin-predicate
          debone-predicate
          categorize-goal
-         is-predicate?
-         is-relation?
+         is-predicate-goal?
+         is-predicate-hypothesis?
+         is-relation-goal?
+         is-relation-hypothesis?
          is-atomic-goal?
          )
 
@@ -133,48 +135,119 @@
    ]
   )
 
+(define-metafunction formality-logic
+  ;; True if this `Hypothesis` is a user-predicate or builtin-predicate
+  is-predicate-hypothesis? : Env Hypothesis -> boolean
+
+  [(is-predicate-hypothesis? Env BuiltinHypothesis)
+   #f
+   ]
+
+  ; SUBTLE ORDERING: `Predicate` is defined in the logic grammar as `Term`,
+  ; so this arm *always* matches (as does the next one).
+  ; This is why we match `BuiltinHypothesis` first, to screen out `Hypothesis`
+  ; that would not *also* match as goals. Then we invoke the `categorize-goal` hook to
+  ; distinguish between predicates and relations.
+
+  [(is-predicate-hypothesis? Env Predicate)
+   #t
+   (where (user-predicate _) (categorize-goal Env Predicate))
+   ]
+
+  [(is-predicate-hypothesis? Env Predicate)
+   #t
+   (where builtin-predicate (categorize-goal Env Predicate))
+   ]
+
+  [(is-predicate-hypothesis? Env AtomicGoal)
+   #f
+   ]
+  )
 
 (define-metafunction formality-logic
   ;; True if this `Goal` is a user-predicate or builtin-predicate
-  is-predicate? : Env Goal -> boolean
+  is-predicate-goal? : Env Goal -> boolean
 
-  [(is-predicate? Env Goal)
-   #t
-   (where (user-predicate _) (categorize-goal Env Goal))
+  [(is-predicate-goal? Env BuiltinGoal)
+   #f
    ]
 
-  [(is-predicate? Env Goal)
+  ; SUBTLE: `Predicate` is defined in the logic grammar as `Term`,
+  ; so this arm *always* matches (as does the next one).
+  ; We invoke the `categorize-goal` hook to
+  ; distinguish between predicates and relations.
+
+  [(is-predicate-goal? Env AtomicGoal)
    #t
-   (where builtin-predicate (categorize-goal Env Goal))
+   (where (user-predicate _) (categorize-goal Env AtomicGoal))
    ]
 
-  [(is-predicate? Env Goal)
+  [(is-predicate-goal? Env AtomicGoal)
+   #t
+   (where builtin-predicate (categorize-goal Env AtomicGoal))
+   ]
+
+  [(is-predicate-goal? Env Goal)
+   #f
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; True if this `Hypothesis` is a user-predicate or builtin-predicate
+  is-relation-hypothesis? : Env Hypothesis -> boolean
+
+  [(is-relation-hypothesis? Env BuiltinHypothesis)
+   #f
+   ]
+
+  ; SUBTLE ORDERING: `Predicate` is defined in the logic grammar as `Term`,
+  ; so this arm *always* matches (as does the next one).
+  ; This is why we match `BuiltinHypothesis` first, to screen out `Hypothesis`
+  ; that would not *also* match as goals. Then we invoke the `categorize-goal` hook to
+  ; distinguish between predicates and relations.
+
+  [(is-relation-hypothesis? Env AtomicGoal)
+   #t
+   (where builtin-relation (categorize-goal Env AtomicGoal))
+   ]
+
+  ; Relation is also very broadly defined.
+  ; It doesn't *always* match, but it matches any 3-tuple.
+  [(is-relation-hypothesis? Env _)
    #f
    ]
   )
 
 (define-metafunction formality-logic
   ;; True if this `Goal` is a builtin relation
-  is-relation? : Env Goal -> boolean
+  is-relation-goal? : Env Goal -> boolean
 
-  [(is-relation? Env Goal)
+  [(is-relation-goal? Env BuiltinGoal)
+   #f
+   ]
+
+  ; SUBTLE: `Relation` is defined in the logic grammar as,
+  ; effectively, `(Term Term Term)`,
+  ; so must invoke the `categorize-goal` hook to
+  ; distinguish relations.
+
+  [(is-relation-goal? Env Goal)
    #t
    (where builtin-relation (categorize-goal Env Goal))
    ]
 
-  [(is-relation? Env Goal)
+  [(is-relation-goal? Env Goal)
    #f
    ]
   )
-
 
 (define-metafunction formality-logic
   ;; True if this `Goal` is a predicate or relation
   is-atomic-goal? : Env Goal -> boolean
 
   [(is-atomic-goal? Env Goal)
-   (any? (is-relation? Env Goal)
-         (is-predicate? Env Goal))
+   (any? (is-relation-goal? Env Goal)
+         (is-predicate-goal? Env Goal))
    ]
 
   )

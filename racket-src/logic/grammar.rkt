@@ -121,6 +121,13 @@
                (|| Goals)
                (implies Hypotheses Goal)
                (Quantifier KindedVarIds Goal)
+
+               ;; Prove the goal in coherence mode. This is a modal logic.
+               ;; It introduces `coherence-mode` into the hypotheses while
+               ;; proving goal, which affects some of our callbacks to introduce
+               ;; more ambiguity, reflecting semver-compatible changes that
+               ;; other crates could make.
+               (coherence-mode Goal)
                )
 
   ;; A `Goal` can be classified into the following categories.
@@ -155,9 +162,13 @@
   (Hypotheses Clauses ::= (Clause ...))
   (Hypothesis Clause ::=
               AtomicGoal
-              (implies Goals AtomicGoal)
-              (∀ KindedVarIds Clause)
+              BuiltinHypothesis
               )
+  (BuiltinHypothesis ::=
+                     coherence-mode
+                     (implies Goals AtomicGoal)
+                     (∀ KindedVarIds Clause)
+                     )
   ;; ANCHOR_END:GoalsAndHypotheses
 
 
