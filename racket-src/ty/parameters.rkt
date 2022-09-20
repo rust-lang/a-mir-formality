@@ -37,11 +37,26 @@
   ;; a `RigidName`.
   generics-for : Env RigidName -> Generics
 
-  [(generics-for Env AdtId) (env-adt-generics Env AdtId)]
-  [(generics-for Env ScalarId) (() ())]
-  [(generics-for Env (ref ())) (((TheLt (lifetime +)) (TheTy (type +)))
+  [; For an ADT like `Vec`, consult its definition to see what generic parameters it has.
+   (generics-for Env AdtId) (env-adt-generics Env AdtId)]
+
+  [; For a fn, consult its definition to see what generic parameters it has.
+   (generics-for Env (fn-def FnId)) (env-fn-generics Env FnId)]
+
+  [; Scalars like u32 have no generic parameters.
+   ;
+   ; Effectively they are modeled as `struct u32`.
+   (generics-for Env ScalarId) (() ())]
+
+  [; We model `&'a T` as a type with two parameters, `'a` and `T`,
+   ; where `T: 'a`.
+   ;
+   ; Kind of like `struct Ref<'a, T> where T: 'a`
+   (generics-for Env (ref ())) (((TheLt (lifetime +)) (TheTy (type +)))
                                 [(TheTy -outlives- TheLt)])]
-  [(generics-for Env (ref mut)) (((TheLt (lifetime +)) (TheTy (type =)))
+
+  [; We model `&'a mut T` the same way.
+   (generics-for Env (ref mut)) (((TheLt (lifetime +)) (TheTy (type =)))
                                  [(TheTy -outlives- TheLt)])]
 
   [; tuples are covariant in their elements P1...Pn

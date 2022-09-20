@@ -115,8 +115,7 @@
     StaticId
     VariantId
     FeatureId
-    FieldId
-    FnId) variable-not-otherwise-mentioned)
+    FieldId) variable-not-otherwise-mentioned)
 
   #:binding-forms
   (AdtKind AdtKind

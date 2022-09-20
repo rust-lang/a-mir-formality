@@ -69,6 +69,8 @@
               (term (decl:categorize-goal ,goal)))
             (lambda (adt-id)
               (term (generics-for-adt-id CrateDecls ,adt-id)))
+            (lambda (fn-id)
+              (term (generics-for-fn-id CrateDecls ,fn-id)))
             ))
 
    (where/error (CrateDecls CrateId) DeclProgram)
@@ -85,5 +87,18 @@
   [(generics-for-adt-id CrateDecls AdtId)
    (((VarId (ParameterKind =)) ...) Biformulas) ; for now we hardcode `=` (invariance) as the variance
    (where/error (AdtKind AdtId ((ParameterKind VarId) ...) Biformulas AdtVariants) (adt-with-id CrateDecls AdtId))
+   ]
+  )
+
+(define-metafunction formality-decl
+  ;; Part of the "hook" for a formality-decl program:
+  ;;
+  ;; Create the clauses for solving a given predicate
+  ;; (right now the predicate is not used).
+  generics-for-fn-id : CrateDecls FnId -> Generics
+
+  [(generics-for-fn-id CrateDecls FnId)
+   (((VarId (ParameterKind =)) ...) Biformulas) ; for now we hardcode `=` (invariance) as the variance
+   (where/error (fn FnId [(ParameterKind VarId) ...] _ -> _ where Biformulas _) (fn-with-id CrateDecls FnId))
    ]
   )

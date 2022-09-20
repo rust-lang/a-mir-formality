@@ -35,6 +35,7 @@
                              (lambda (predicate1) (term (ty:debone-predicate ,predicate1)))
                              (lambda (goal) (term (ty:categorize-goal ,goal)))
                              (lambda (adt-id) (term (find-adt-generics ,adt-id ((AdtId Generics) ...))))
+                             (lambda (fn-id) (term NotDefined))
                              ))))
    ]
   )

@@ -12,7 +12,9 @@
 ;; Extends the core logic hook with the ability to query variance:
 ;;
 ;; adt-generics : AdtId -> Generics
+;; fn-generics : FnId -> Generics
 (struct formality-ty-hook formality-logic-hook (adt-generics
+                                                fn-generics
                                                 ))
 
 (define-metafunction formality-ty
@@ -21,6 +23,16 @@
 
   [(env-adt-generics Env AdtId)
    ,((formality-ty-hook-adt-generics (term any)) (term AdtId))
+   (where/error (Hook: any) (env-hook Env))
+   ]
+  )
+
+(define-metafunction formality-ty
+  ;; Returns the variance for each of the parameters to an function
+  env-fn-generics : Env FnId -> Generics
+
+  [(env-fn-generics Env FnId)
+   ,((formality-ty-hook-fn-generics (term any)) (term FnId))
    (where/error (Hook: any) (env-hook Env))
    ]
   )

@@ -113,6 +113,7 @@
              (ref MaybeMut)  ; `&mut` or `&`, expects a lifetime + type parameter
              (tuple number)  ; tuple of given arity
              (fn-ptr Abi number) ; fn types
+             (fn-def FnId)       ; the zero-sized type derived from a type definition
              )
 
   ;; AliasTy -- an *alias* type is basically a *type lambda*. You can either *normalize* it
@@ -190,7 +191,7 @@
 
   ;; Identifiers -- these are all equivalent, but we give them fresh names to help
   ;; clarify their purpose
-  (AdtId AliasId TraitId AssociatedTyId AliasTyId ::=
+  (AdtId AliasId TraitId AssociatedTyId AliasTyId FnId ::=
          variable-not-otherwise-mentioned)
 
   ;; Signature
