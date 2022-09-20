@@ -1,5 +1,9 @@
 #lang racket
-(require redex/reduction-semantics "grammar.rkt" "env.rkt")
+(require redex/reduction-semantics
+         "grammar.rkt"
+         "env.rkt"
+         "substitution.rkt"
+         )
 (provide formality-logic-hook
          env-clauses-for-predicate
          env-invariants
@@ -23,6 +27,7 @@
 ;; * `solve-builtin-predicate`: a `Env Predicate -> (Env Goals) or Error` lambda that solves a builtin predicate
 ;; * `debone-predicate`: a `Predicate -> Predicate/Deboned` function that separates into skeleton, parameters
 ;; * `categorize-goal`: given a `Goal` returns a `Goal/Categorization` based on the refined grammar
+;;                      (the goal will always be fully updated w/r/t inference variables)
 (struct formality-logic-hook (clauses
                               invariants
                               elaborate-relation
@@ -122,8 +127,9 @@
 
   [(categorize-goal Env Goal)
    ,(let ((categorize-goal-fn (formality-logic-hook-categorize-goal (term Term_hook))))
-      (categorize-goal-fn (term Goal)))
+      (categorize-goal-fn (term Goal_1)))
    (where/error (Hook: Term_hook) (env-hook Env))
+   (where/error Goal_1 (apply-substitution-from-env Env Goal))
    ]
   )
 
