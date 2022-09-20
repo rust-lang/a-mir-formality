@@ -14,22 +14,22 @@
   ;;
   ;; Extends ty:categorize-goal with information about of which predicates
   ;; are builtin by the decl layer.
-  decl:categorize-goal : Goal -> Goal/Categorization
+  decl:categorize-goal : Env Goal -> Goal/Categorization
 
-  [(decl:categorize-goal (well-formed (type _)))
+  [(decl:categorize-goal Env (well-formed (type _)))
    builtin-predicate
    ]
 
-  [(decl:categorize-goal (well-formed (lifetime _)))
+  [(decl:categorize-goal Env (well-formed (lifetime _)))
    builtin-predicate
    ]
 
-  [(decl:categorize-goal (in-scope _))
+  [(decl:categorize-goal Env (in-scope _))
    builtin-predicate
    ]
 
-  [(decl:categorize-goal Goal)
-   (ty:categorize-goal Goal)]
+  [(decl:categorize-goal Env Goal)
+   (ty:categorize-goal Env Goal)]
 
   )
 
