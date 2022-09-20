@@ -127,10 +127,24 @@
   ;; Since the logic layer doesn't know the syntax of predicates it
   ;; has to use the hook-callback to get this classification.
   (Goal/Categorization ::=
+                       ; user-predicate: ask the hook for program clauses to solve the goal
                        (user-predicate Prove/Coinductive)
+
+                       ; builtin-predicate: invoke the metafunction from the hook to simplify it
                        builtin-predicate
+
+                       ; builtin-predicate: invoke the metafunction from the hook to simplify it
                        builtin-relation
+
+                       ; builtin-goal: a builtin logical connective, like `&&`
                        builtin-goal
+
+                       ; ambiguous-goal: a goal that must yield ambiguous. This is used to implement
+                       ; Rust rules that limit the inference we are willing to do:
+                       ; for example, `?T: Foo` always yields ambiguous, rather than trying to guess
+                       ; the value `?T`. It is also used for coherence, to prevent us from knowing
+                       ; too much about types not defined in our crate.
+                       ambiguous-goal
                        )
 
   ;; `Clause`, `Hypothesis` -- axioms. These are both built-in and derived from

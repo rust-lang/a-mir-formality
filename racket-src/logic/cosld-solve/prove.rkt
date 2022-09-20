@@ -33,10 +33,6 @@
   #:mode (prove I I I O)
   #:contract (prove Env Prove/Stacks Goal EnvOutput)
 
-  [--------------- "prove-ambiguous"
-   (prove Env Prove/Stacks ambiguous ambiguous)
-   ]
-
   [(where (user-predicate Prove/Coinductive) (categorize-goal Env Predicate))
    (not-in-stacks Env Predicate Prove/Stacks)
    (where (_ ... Clause _ ... ) (filter-clauses Env (env-clauses-for-predicate Env Predicate) Predicate))
@@ -73,6 +69,15 @@
    (prove-all Env_eq Prove/Stacks Goals_eq EnvOutput)
    --------------- "prove-relate"
    (prove Env Prove/Stacks Relation EnvOutput)
+   ]
+
+  [(where ambiguous-goal (categorize-goal Env Predicate))
+   --------------- "prove-ambiguous-goal"
+   (prove Env Prove/Stacks Predicate ambiguous)
+   ]
+
+  [--------------- "prove-ambiguous"
+   (prove Env Prove/Stacks ambiguous ambiguous)
    ]
 
   [(prove-all Env Prove/Stacks Goals EnvOutput)
