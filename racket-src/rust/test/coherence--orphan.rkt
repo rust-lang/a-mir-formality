@@ -52,4 +52,35 @@
                                        B)))))
 
    )
+
+  (; Uncovered type parameter *after* local type -- OK.
+   traced '()
+          (test-equal
+           (term (rust:is-program-ok ([(crate A { (trait ForeignTrait[(type T)] where [] {}) })
+                                       (crate B { (struct LocalStruct[] where [] {})
+                                                  (impl[(type T)] ForeignTrait[T] for (LocalStruct < >) where [] {}) })
+                                       ]
+                                      B)))
+           #t))
+
+  (; Uncovered type parameter before local type -- not OK.
+   traced '()
+          (test-equal
+           (term (rust:is-program-ok ([(crate A { (trait ForeignTrait[(type T)] where [] {}) })
+                                       (crate B { (struct LocalStruct[] where [] {})
+                                                  (impl[(type T)] ForeignTrait[(LocalStruct < >)] for T where [] {}) })
+                                       ]
+                                      B)))
+           #f))
+
+  (; Covered type parameter before local type -- OK.
+   traced '()
+          (test-equal
+           (term (rust:is-program-ok ([(crate A { (struct ForeignStruct[(type T)] where [] {})
+                                                  (trait ForeignTrait[(type T)] where [] {}) })
+                                       (crate B { (struct LocalStruct[] where [] {})
+                                                  (impl[(type T)] ForeignTrait[(LocalStruct < >)] for (ForeignStruct < T >) where [] {}) })
+                                       ]
+                                      B)))
+           #t))
   )
