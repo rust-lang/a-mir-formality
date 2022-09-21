@@ -237,11 +237,8 @@
   [(equate-predicates Env Predicate_1 Predicate_2)
    (equate-parameters/all Env () ((Parameter_in1 Parameter_in2) ... (Parameter_out1 Parameter_out2) ...))
 
-   (where/error (Predicate/Skeleton Parameters_in1 -> Parameters_out1) (debone-predicate Env Predicate_1))
-   (where (Predicate/Skeleton Parameters_in2 -> Parameters_out2) (debone-predicate Env Predicate_2))
-   (; check predicates have same number of input/output parameters
-    where ((Parameter_in1 ..._in) (Parameter_in2 ..._in) (Parameter_out1 ..._out) (Parameter_out2 ..._out))
-          (Parameters_in1 Parameters_in2 Parameters_out1 Parameters_out2))
+   (where/error (Predicate/Skeleton [Parameter_in1 ..._in] -> [Parameter_out1 ..._out]) (debone-predicate Env Predicate_1))
+   (where (Predicate/Skeleton [Parameter_in2 ..._in] -> [Parameter_out2 ..._out]) (debone-predicate Env Predicate_2))
    ]
 
   [(equate-predicates _ _ _) Error]
