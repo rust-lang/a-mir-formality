@@ -43,10 +43,30 @@
      ]
     (; one impl for `StructA` and one for for any type T where `T: TraitB`
      ;
-     ; should be ok because `StructA` does not implement `TraitB`
+     ; Not OK -- we cannot know whether `StructA: TraitB` as `StructA` is not in our crate.
      traced '()
             (test-equal
              (term (rust:is-program-ok Rust/Program))
-             #t ; FIXME: This should be #f, but we don't understand cross-crate rules
-             ))))
+             #f
+             )))
+
+   (; one impl for `StructA` and one for for any type T where `T: TraitC`
+    ;
+    ; Not OK -- `TraitC` is in our crate, but that impl depends on knowing `StructA: TraitB`,
+    ; and we don't know that.
+    traced '()
+           (test-equal
+            (term (rust:is-program-ok ([(crate one { Rust/TraitDecl_B
+                                                     Rust/StructDecl_A
+                                                     })
+                                        (crate two { (trait TraitC[] where [] {})
+                                                     (impl[(type T)] TraitC[] for T where [(T : TraitB[])] {})
+
+                                                     Rust/TraitDecl_A
+                                                     (impl[] TraitA[] for (StructA < >) where [] {})
+                                                     (impl[(type T)] TraitA[] for T where [(T : TraitC[])] {})
+                                                     })]
+                                       two)))
+            #f
+            )))
   )

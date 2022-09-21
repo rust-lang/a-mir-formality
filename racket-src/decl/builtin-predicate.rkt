@@ -1,9 +1,10 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar.rkt"
          "../logic/env.rkt"
          "../logic/substitution.rkt"
          "../ty/hook.rkt"
+         "grammar.rkt"
+         "orphan-rules.rkt"
          "well-formed/parameter.rkt"
          )
 (provide decl:categorize-goal
@@ -15,28 +16,35 @@
   ;;
   ;; Extends ty:categorize-goal with information about of which predicates
   ;; are builtin by the decl layer.
-  decl:categorize-goal : Env Goal -> Goal/Categorization
+  decl:categorize-goal : DeclProgram Env Goal -> Goal/Categorization
 
-  [(decl:categorize-goal Env (well-formed (type _)))
+  [(decl:categorize-goal DeclProgram Env (well-formed (type _)))
    builtin-predicate
    ]
 
-  [(decl:categorize-goal Env (well-formed (lifetime _)))
+  [(decl:categorize-goal DeclProgram Env (well-formed (lifetime _)))
    builtin-predicate
    ]
 
-  [(decl:categorize-goal Env (in-scope _))
+  [(decl:categorize-goal DeclProgram Env (in-scope _))
    builtin-predicate
    ]
 
   ; We don't let you prove `?T: Foo` where `?T` is an unbound inference variable.
-  [(decl:categorize-goal Env (is-implemented (TraitId [VarId _ ...])))
+  [(decl:categorize-goal DeclProgram Env (is-implemented (TraitId [VarId _ ...])))
    ambiguous-goal
    (where VarId_1 (apply-substitution-from-env Env VarId))
    (where #t (env-contains-unmapped-existential-var Env VarId_1))
    ]
 
-  [(decl:categorize-goal Env Goal)
+  ; In coherence mode, anything that fails orphan check is ambiguous.
+  [(decl:categorize-goal DeclProgram Env (is-implemented TraitRef))
+   ambiguous-goal
+   (where [_ ... coherence-mode _ ...] (env-hypotheses Env))
+   (where #f (orphan-check DeclProgram Env TraitRef))
+   ]
+
+  [(decl:categorize-goal DeclProgram Env Goal)
    (ty:categorize-goal Env Goal)]
 
   )

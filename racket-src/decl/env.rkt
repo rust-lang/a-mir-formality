@@ -77,7 +77,7 @@
             (lambda (predicate1)
               (term (ty:debone-predicate ,predicate1)))
             (lambda (env goal)
-              (term (decl:categorize-goal ,env ,goal)))
+              (term (decl:categorize-goal DeclProgram ,env ,goal)))
             (lambda (adt-id)
               (term (generics-for-adt-id CrateDecls ,adt-id)))
             (lambda (fn-id)
