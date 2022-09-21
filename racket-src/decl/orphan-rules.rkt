@@ -157,6 +157,8 @@
   ; but that's worth thinking over.
 
   [(has-uncovered-placeholder Env (Quantifier KindedVarIds Ty))
+   ; FIXME: We should not count these variables as uncovered. We should track universe of Env on entry
+   ; so we know we can ignore them.
    (has-uncovered-placeholder Env_1 Ty_1)
    (where/error (Env_1 Ty_1 _) (instantiate-quantified Env (Quantifier KindedVarIds Ty)))
    ]
