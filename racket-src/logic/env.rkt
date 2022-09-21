@@ -50,6 +50,26 @@
   )
 
 (define-metafunction formality-logic
+  ;; True if the environment is in coherence mode (i.e., we are solving a goal
+  ;; `(coherence-mode G)`). In coherence mode:
+  ;;
+  ;; * A true goal is true with crates as they are.
+  ;; * An ambiguous goal could be true either in this world or
+  ;;   with future, semver-compatible extension to other crates.
+  ;; * A false goal is not possible in any semver-compatible world.
+  env-in-coherence-mode : Env -> boolean
+
+  [(env-in-coherence-mode Env)
+   #t
+   (where [_ ... coherence-mode _ ...] (env-hypotheses Env))
+   ]
+
+  [(env-in-coherence-mode Env)
+   #f
+   ]
+  )
+
+(define-metafunction formality-logic
   ;; Returns the `VarId -> Universe` mapping from the environment
   env-var-binders : Env -> VarBinders
 

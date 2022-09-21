@@ -40,7 +40,7 @@
   ; In coherence mode, anything that fails orphan check is ambiguous.
   [(decl:categorize-goal DeclProgram Env (is-implemented TraitRef))
    ambiguous-goal
-   (where [_ ... coherence-mode _ ...] (env-hypotheses Env))
+   (where #t (env-in-coherence-mode Env))
    (where #f (orphan-check DeclProgram Env TraitRef))
    ]
 
