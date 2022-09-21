@@ -81,14 +81,21 @@
    (where/error (Env_2 ([Parameter_2inf ...] [Biformula_2inf ...]) _)
                 (instantiate-quantified Env_1 (∃ KindedVarIds_2 (Parameters_2 Biformulas_2))))
 
-   ; and require that the parameters are equal
-   (where/error Goal_unified (&& [(Parameter_1inf == Parameter_2inf) ...
-                                  (coherence-mode Biformula_1inf) ...
-                                  (coherence-mode Biformula_2inf) ...
+   ; This goal, if provable, indicates that overlap exists:
+   ;
+   ; * Parameters can be unified.
+   ; * Where clauses from both impls hold.
+   (where/error Goal_overlap (&& [(Parameter_1inf == Parameter_2inf) ...
+                                  Biformula_1inf ...
+                                  Biformula_2inf ...
                                   ]))
 
-   ; check that we cannot make them equal
-   (cannot-prove-goal-in-env Env_2 Goal_unified)
+   ; We check that goal in *coherence mode*. In coherence mode, anything
+   ; that may be possible in some future world (i.e., where other crates apart
+   ; from the local crate add impls which they are allowed to add), becomes
+   ; ambiguous. If we can prove that `Goal_overlap` is false in that mode,
+   ; we know that there does not exist a future world where overlap is possible.
+   (cannot-prove-goal-in-env Env_2 (coherence-mode Goal_overlap))
    -------------------------------
    (✅-ImplsEqualOrNotOverlap DeclProgram TraitImplDecl_1 TraitImplDecl_2)
    ]
