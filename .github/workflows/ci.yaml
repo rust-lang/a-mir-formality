@@ -16,6 +16,7 @@ jobs:
         run: |
           sudo add-apt-repository ppa:plt/racket
           sudo apt install xvfb racket
+          sh -c ./revert-redex-changes
       - name: Run Tests
         run: |
           xvfb-run ./test --all
@@ -27,6 +28,7 @@ jobs:
         run: |
           sudo add-apt-repository ppa:plt/racket
           sudo apt install xvfb racket
+          sh -c ./revert-redex-changes
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
