@@ -51,12 +51,12 @@
   ;; returning a non-empty set of selections.
 
   #:mode (prove-goal-in-env I I O)
-  #:contract (prove-goal-in-env Env Goal Solutions)
+  #:contract (prove-goal-in-env Env Goal TrueSolution)
 
   [(where/error (QueryGoal UniversePairs) (querify-goal Env Goal))
-   (where [Solution_0 Solution_1 ...] (logic:solve-query (env-hook Env) QueryGoal))
+   (where [_ ... TrueSolution _ ...] (logic:solve-query (env-hook Env) QueryGoal))
    ----------------------------------------
-   (prove-goal-in-env Env Goal [Solution_0 Solution_1 ...])
+   (prove-goal-in-env Env Goal TrueSolution)
    ]
   )
 

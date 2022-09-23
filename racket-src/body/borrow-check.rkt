@@ -27,7 +27,7 @@
 
   [(where/error [(Location Goal) ...] GoalAtLocations)
    (where/error Goal_master (&& [Goal ...]))
-   (prove-goal-in-env Env Goal_master Solutions)
+   (prove-goal-in-env Env Goal_master TrueSolution)
    ----------------------------------------
    (loan-check Γ Env GoalAtLocations)
    ]
