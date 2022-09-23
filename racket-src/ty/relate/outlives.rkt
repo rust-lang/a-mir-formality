@@ -68,23 +68,23 @@
   [; ?X -outlives- P where P in universe(?X):
    ;    * Adds `?X -outlives- P` as a constraint
    ;    * For each `P1 -outlives- ?X` constraint, require `P1 -outlives- P`
-   (outlives/one/substituted Env (VarId_?X OutlivesOp Parameter))
-   (Env_b ((Parameter_b OutlivesOp Parameter) ...))
+   (outlives/one/substituted Env (VarId_?X OutlivesOp VarIdOrStatic_?Y))
+   (Env_b ((Parameter_b OutlivesOp VarIdOrStatic_?Y) ...))
    (where #t (env-contains-existential-var Env VarId_?X))
-   (where #t (universe-check-ok? Env VarId_?X Parameter))
+   (where #t (universe-check-ok? Env VarId_?X VarIdOrStatic_?Y))
    (where/error (Parameter_b ...) (known-bounds Env OutlivesOp VarId_?X))
-   (where/error Env_b (env-with-var-related-to-parameter Env VarId_?X OutlivesOp Parameter))
+   (where/error Env_b (env-with-var-related-to-parameter Env VarId_?X OutlivesOp VarIdOrStatic_?Y))
    ]
 
   [; ?X -outlives- P where P NOT in universe(?X):
    ;    * Extrude a `P1` in `universe(?X)` such that `P1 -outlives- P`
    ;    * Require that `?X -outlives- P1`
-   (outlives/one/substituted Env (VarId_?X OutlivesOp Parameter))
+   (outlives/one/substituted Env (VarId_?X OutlivesOp VarIdOrStatic_?Y))
    (Env_e (Goal_e ... (VarId_?X OutlivesOp Parameter_e)))
    (where #t (env-contains-existential-var Env VarId_?X))
-   (where #f (universe-check-ok? Env VarId_?X Parameter))
+   (where #f (universe-check-ok? Env VarId_?X VarIdOrStatic_?Y))
    (where/error Universe_VarId (universe-of-var-in-env Env VarId_?X))
-   (where/error (Env_e Parameter_e (Goal_e ...)) (extrude-parameter Env Universe_VarId OutlivesOp VarId_?X Parameter))
+   (where/error (Env_e Parameter_e (Goal_e ...)) (extrude-parameter Env Universe_VarId OutlivesOp VarId_?X VarIdOrStatic_?Y))
    ]
 
   [; P -outlives- ?X (regardless of universe):
@@ -172,6 +172,8 @@
    (where/error Goal_n (∃ ((type T)) (&& ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
                                           (Parameter -outlives- T)))))
    ]
+
+  ; XXX alias ty on RHS?
 
   [; !X : T if
    ;    `T1 : T` for any `X : T1` (`X -outlives- T1` or `T1 -outlived-by- X`) from environment.

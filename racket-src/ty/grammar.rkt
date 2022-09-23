@@ -29,6 +29,11 @@
   ;; Overridden from formality-logic.
   (Parameter ::= Ty Lt)
 
+  ;; This is an internal category used in the outlives code -- it represents the
+  ;; kinds of nodes to which we add 'outlives' edges.
+  (VarIdOrStatics ::= [VarIdOrStatic ...])
+  (VarIdOrStatic ::= VarId static)
+
   ;; Combinaton of a parameter and its kind
   (KindedParameter ::= (ParameterKind Parameter))
 
@@ -168,8 +173,19 @@
   ;; VarInequality -- Stores the bounds for a variable (type, lifetime)
   ;; whose value is not known precisely.
   ;;
+  ;; This can be seen as a `(VarId InequalityOp Parameters)` list but the more
+  ;; precise grammar encodes some important constraints:
+  ;;
+  ;; * Subtyping constraints only apply to types, not lifetimes.
+  ;; * Outlives constraints are always between inference variables (though they could be type
+  ;;   variables) or static, nothing else. In particular, no outlives constraints are
+  ;;   added to compound types.
+  ;;
   ;; Overridden from formal-logic.
-  (VarInequality ::= (VarId InequalityOp Parameters))
+  (VarInequality ::=
+                 (VarId SubtypeOp Tys)
+                 (VarId OutlivesOp VarIdOrStatics)
+                 )
 
   ;; InequalityOp -- Relations beyond `==`
   ;;
