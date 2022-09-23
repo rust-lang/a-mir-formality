@@ -1,15 +1,8 @@
 #lang racket
 (require redex/reduction-semantics
          "../logic/instantiate.rkt"
-         "../decl/decl-ok.rkt"
-         "../decl/decl-to-clause.rkt"
-         "../decl/grammar.rkt"
          "../decl/env.rkt"
-         "../body/type-check-goal.rkt"
-         "../body/well-formed-mir.rkt"
-         "../body/borrow-check.rkt"
          "grammar.rkt"
-         "unsafe-check.rkt"
          "prove-goal.rkt"
          )
 (provide ✅-OverlapRules
