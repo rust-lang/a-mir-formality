@@ -14,9 +14,82 @@
   ;; * The invariants that hold
   trait-item-decl-rules : CrateDecls CrateId (TraitId KindedVarIds_trait) TraitItem -> (Clauses Invariants)
 
-  [;; For a method declared in a trait: currently no logical rules are created.
-   (trait-item-decl-rules CrateDecls CrateId (TraitId KindedVarIds_trait) FnDecl)
-   ([] [])
+  [;; For a method declared in the trait Bar with parameter Self, like the following:
+   ;;
+   ;;     fn foo<T>(x: T) -> T where T: Ord { ... }
+   ;;
+   ;; We generate the following clauses
+   ;;
+   ;;     (∀ [(type Self) (type T)]
+   ;;         (well-formed-fn foo[Self T]) :-
+   ;;            (well-formed (type Self))
+   ;;            (well-formed (type T))
+   ;;            (is-implemented (Bar Self)))
+   ;;            (is-implemented (Ord T)))
+   ;;
+   ;; And the following invariants local to the crate C:
+   ;;
+   ;;     (∀ [(type Self) (type T)]
+   ;;         (well-formed (type foo[Self T])) => (is-implemented (Ord T)))
+   ;;
+   ;; And the following global invariants:
+   ;;
+   ;;     (∀ [(type Self) (type T)]
+   ;;         (well-formed (type foo[Self T])) => (&& (well-formed (type Self))
+   ;;                                                 (well-formed (type T))))
+   (trait-item-decl-rules CrateDecls CrateId (TraitId (KindedVarId_trait ...)) FnDecl)
+   ([Clause_wf-fn] [Invariant_well-formed-where-clause ...
+                    Invariant_in-scope-where-clause ...
+                    Invariant_in-scope-component ...
+                    Invariant_well-formed-component ...
+                    ])
+
+   (where/error (fn FnId (KindedVarId_fn ...) _ -> _ where (Biformula ...) _) FnDecl)
+   (where/error (KindedVarId_all ...) (KindedVarId_trait ... KindedVarId_fn ...))
+   (where/error ((ParameterKind_t VarId_t) ...) (KindedVarId_trait ...))
+   (where/error ((ParameterKind_f VarId_f) ...) (KindedVarId_fn ...))
+   (where/error Ty_fn (rigid-ty (fn-def FnId) (VarId_t ... VarId_f ...)))
+
+   (where/error Clause_wf-fn (∀ (KindedVarId_all ...)
+                                 (implies
+                                  ((well-formed KindedVarId_all) ...
+                                   (is-implemented (TraitId (VarId_t ...)))
+                                   Biformula ...)
+                                  (well-formed-fn Ty_fn))))
+
+   ; if you have (well-formed (type (foo T))) in env, you get the full where clauses
+   ;
+   ; with the expanded-implied-bounds flag, this is all the time, but otherwise it's
+   ; only in higher-ranked code
+   (where/error [Invariant_well-formed-where-clause ...] ((∀ (KindedVarId_all ...)
+                                                             (implies
+                                                              ((well-formed (type Ty_fn)))
+                                                              Biformula))
+                                                          ...))
+
+   ; if you have (in-scope (type (foo T))) in env, you get the full where clauses
+   ;
+   ; with the expanded-implied-bounds flag, this is all the time, but otherwise it's
+   ; only in higher-ranked code
+   (where/error [Biformula_outlives ...] (outlives-clauses (Biformula ...)))
+   (where/error [Invariant_in-scope-where-clause ...] ((∀ (KindedVarId_all ...)
+                                                          (implies
+                                                           ((in-scope (type Ty_fn)))
+                                                           Biformula_outlives))
+                                                       ...))
+
+   ; if you have (in-scope (type (foo T))) in env, you also know T is in-scope
+   ; and same with (well-formed)
+   (where/error [Invariant_in-scope-component ...] ((∀ (KindedVarId_all ...)
+                                                       (implies
+                                                        ((in-scope (type Ty_fn)))
+                                                        (in-scope KindedVarId_all)))
+                                                    ...))
+   (where/error [Invariant_well-formed-component ...] ((∀ (KindedVarId_all ...)
+                                                          (implies
+                                                           ((well-formed (type Ty_fn)))
+                                                           (well-formed KindedVarId_all)))
+                                                       ...))
    ]
 
   [;; For an associated type declared in a trait, defines

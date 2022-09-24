@@ -209,24 +209,24 @@
 
   [;; For a function declared in the crate C, like the following:
    ;;
-   ;;     fn foo<'a, T>(&'a T) -> &'a T where T: Ord { ... }
+   ;;     fn foo<T>(x: T) -> T where T: Ord { ... }
    ;;
    ;; We generate the following clauses
    ;;
-   ;;     (∀ ((type T))
-   ;;         (well-formed-fn (foo (T))) :-
+   ;;     (∀ [(type T)]
+   ;;         (well-formed-fn foo[T]) :-
    ;;            (well-formed (type T))
    ;;            (is-implemented (Ord T)))
    ;;
    ;; And the following invariants local to the crate C:
    ;;
-   ;;     (∀ ((type T))
-   ;;         (well-formed (type (foo (T)))) => (is-implemented (Ord T)))
+   ;;     (∀ [(type T)]
+   ;;         (well-formed (type foo[T])) => (is-implemented (Ord T)))
    ;;
    ;; And the following global invariants:
    ;;
-   ;;     (∀ ((type T))
-   ;;         (well-formed (type (foo (T)))) => (well-formed (type T)))
+   ;;     (∀ [(type T)]
+   ;;         (well-formed (type foo[T])) => (well-formed (type T)))
    (crate-item-decl-rules CrateDecls CrateId (fn FnId KindedVarIds _ -> _ where (Biformula ...) _))
    ([Clause_wf-fn] [Invariant_well-formed-where-clause ...
                     Invariant_in-scope-where-clause ...
