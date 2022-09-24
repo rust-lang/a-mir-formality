@@ -38,6 +38,10 @@
    ((well-formed-alias AliasName) Parameters -> ())
    ]
 
+  [(ty:debone-predicate (well-formed-fn (rigid-ty (fn-def FnId) Parameters)))
+   ((well-formed-fn FnId) Parameters -> ())
+   ]
+
   [(ty:debone-predicate (normalizes-to (alias-ty AliasName (Parameter ...)) Ty))
    ((normalizes-to AliasName) (Parameter ...) -> (Ty))
    ]

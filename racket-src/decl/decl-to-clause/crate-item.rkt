@@ -207,11 +207,74 @@
                                        ImplItem) ...])
    ]
 
-  [;; For a function declared in the crate C, like the following
+  [;; For a function declared in the crate C, like the following:
    ;;
-   ;;     fn foo<'a, T>(&'a T) -> &'a T { ... }
-   (crate-item-decl-rules CrateDecls CrateId (fn _ KindedVarIds_fn Tys_arg -> Ty_ret where Biformulas_fn FnBody))
-   (() ())
+   ;;     fn foo<'a, T>(&'a T) -> &'a T where T: Ord { ... }
+   ;;
+   ;; We generate the following clauses
+   ;;
+   ;;     (∀ ((type T))
+   ;;         (well-formed-fn (foo (T))) :-
+   ;;            (well-formed (type T))
+   ;;            (is-implemented (Ord T)))
+   ;;
+   ;; And the following invariants local to the crate C:
+   ;;
+   ;;     (∀ ((type T))
+   ;;         (well-formed (type (foo (T)))) => (is-implemented (Ord T)))
+   ;;
+   ;; And the following global invariants:
+   ;;
+   ;;     (∀ ((type T))
+   ;;         (well-formed (type (foo (T)))) => (well-formed (type T)))
+   (crate-item-decl-rules CrateDecls CrateId (fn FnId KindedVarIds _ -> _ where (Biformula ...) _))
+   ([Clause_wf-fn] [Invariant_well-formed-where-clause ...
+                    Invariant_in-scope-where-clause ...
+                    Invariant_in-scope-component ...
+                    Invariant_well-formed-component ...
+                    ])
+
+   (where/error ((ParameterKind VarId) ...) KindedVarIds)
+   (where/error Ty_fn (rigid-ty (fn-def FnId) (VarId ...)))
+   (where/error Clause_wf-fn (∀ KindedVarIds
+                                 (implies
+                                  ((well-formed (ParameterKind VarId)) ...
+                                   Biformula ...)
+                                  (well-formed-fn Ty_fn))))
+
+   ; if you have (well-formed (type (foo T))) in env, you get the full where clauses
+   ;
+   ; with the expanded-implied-bounds flag, this is all the time, but otherwise it's
+   ; only in higher-ranked code
+   (where/error [Invariant_well-formed-where-clause ...] ((∀ KindedVarIds
+                                                             (implies
+                                                              ((well-formed (type Ty_fn)))
+                                                              Biformula))
+                                                          ...))
+
+   ; if you have (in-scope (type (foo T))) in env, you get the full where clauses
+   ;
+   ; with the expanded-implied-bounds flag, this is all the time, but otherwise it's
+   ; only in higher-ranked code
+   (where/error [Biformula_outlives ...] (outlives-clauses (Biformula ...)))
+   (where/error [Invariant_in-scope-where-clause ...] ((∀ KindedVarIds
+                                                          (implies
+                                                           ((in-scope (type Ty_fn)))
+                                                           Biformula_outlives))
+                                                       ...))
+
+   ; if you have (in-scope (type (foo T))) in env, you also know T is in-scope
+   ; and same with (well-formed)
+   (where/error [Invariant_in-scope-component ...] ((∀ KindedVarIds
+                                                       (implies
+                                                        ((in-scope (type Ty_fn)))
+                                                        (in-scope (ParameterKind VarId))))
+                                                    ...))
+   (where/error [Invariant_well-formed-component ...] ((∀ KindedVarIds
+                                                          (implies
+                                                           ((well-formed (type Ty_fn)))
+                                                           (well-formed (ParameterKind VarId))))
+                                                       ...))
    ]
 
   [;; For an named constant in the crate C, like the following

@@ -53,6 +53,8 @@
              (well-formed-adt (rigid-ty AdtId Parameters))
              ; the given alias type is well-formed
              (well-formed-alias (alias-ty AliasName Parameters))
+             ; the given function is well-formed
+             (well-formed-fn (rigid-ty (fn-def FnId) Parameters))
              ; normalize a given alias to another type
              (normalizes-to AliasTy Ty)
              )
@@ -67,6 +69,7 @@
                       (in-scope ParameterKind)
                       (well-formed-adt AdtId)
                       (well-formed-alias AliasName)
+                      (well-formed-fn FnId)
                       (normalizes-to AliasName)
                       )
 

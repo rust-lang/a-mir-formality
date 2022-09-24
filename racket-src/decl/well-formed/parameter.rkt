@@ -125,6 +125,10 @@
    [(well-formed (Type Ty)) ...]
    ]
 
+  [(well-formed-subgoals-for-ty CrateDecls (rigid-ty (fn-def FnId) Parameters))
+   [(well-formed-fn (rigid-ty (fn-def FnId) Parameters))]
+   ]
+
   [(well-formed-subgoals-for-ty CrateDecls (rigid-ty (ref _) (Lt Ty)))
    [(Ty -outlives- Lt)]
    ]
