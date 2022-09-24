@@ -140,11 +140,10 @@
    (fn-ty-signature Γ Ty_fn (∀ KindedVarIds (implies Biformulas ((Ty_arg ...) -> Ty_ret))))
    (where/error number_args ,(length (term (Ty_arg ...))))
    (where/error Ty_fnptr (rigid-ty (fn-ptr "Rust" number_args) (Ty_arg ... Ty_ret)))
-   (where/error Ty_reified (∀ KindedVarIds (implies Biformulas Ty_fnptr)))
    ----------------------------------------
    (type-check-goal/Rvalue Γ
                            (cast Operand as Ty_target)
-                           (&& (Ty_reified <= Ty_target)))
+                           (∀ KindedVarIds (implies Biformulas (Ty_fnptr <= Ty_target))))
    ]
 
   [----------------------------------------
