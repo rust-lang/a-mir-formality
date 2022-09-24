@@ -157,10 +157,24 @@
   #:mode (fn-ty-signature I I O)
   #:contract (fn-ty-signature Γ Ty Signature)
 
+  [(fn-ty-signature Γ Ty (∀ () (implies Biformulas (Tys_args -> Ty_ret))))
+   ----------------------------------------
+   (fn-ty-signature Γ
+                    (∀ KindedVarIds Ty)
+                    (∀ KindedVarIds (implies Biformulas (Tys_args -> Ty_ret))))
+   ]
+
+  [(fn-ty-signature Γ Ty (∀ () (implies () (Tys_args -> Ty_ret))))
+   ----------------------------------------
+   (fn-ty-signature Γ
+                    (implies Biformulas Ty)
+                    (∀ () (implies Biformulas (Tys_args -> Ty_ret))))
+   ]
+
   [----------------------------------------
    (fn-ty-signature Γ
-                    (∀ KindedVarIds (implies Biformulas (rigid-ty (fn-ptr _ _) (Ty_arg ... Ty_ret))))
-                    (∀ KindedVarIds (implies Biformulas ((Ty_arg ...) -> Ty_ret))))
+                    (rigid-ty (fn-ptr _ _) (Ty_arg ... Ty_ret))
+                    (∀ () (implies () ((Ty_arg ...) -> Ty_ret))))
    ]
 
   [(where/error (fn _ KindedVarIds_fn (Ty_arg ...) -> Ty_ret _ _ _) (find-fn Γ FnId))
@@ -169,8 +183,8 @@
    (where/error Ty_retsubst (apply-substitution Substitution Ty_ret))
    ----------------------------------------
    (fn-ty-signature Γ
-                    (∀ KindedVarIds (implies Biformulas (rigid-ty (fn-def FnId) Parameters)))
-                    (∀ KindedVarIds (implies Biformulas ((Ty_argsubst ...) -> Ty_retsubst))))
+                    (rigid-ty (fn-def FnId) Parameters)
+                    (∀ () (implies () ((Ty_argsubst ...) -> Ty_retsubst))))
    ]
 
   )
