@@ -331,27 +331,3 @@
    )
 
   )
-
-(define-metafunction formality-decl
-  outlives-clauses : Biformulas -> Biformulas
-
-  ((outlives-clauses (Biformula ...))
-   (flatten ((filter-outlives-where-clause Biformula) ...))
-   )
-
-  )
-
-(define-metafunction formality-decl
-  filter-outlives-where-clause : Biformula -> Biformulas
-
-  (; Keep `P1 : P2` bounds
-   (filter-outlives-where-clause (Parameter_1 -outlives- Parameter_2))
-   ((Parameter_1 -outlives- Parameter_2))
-   )
-
-  (; Discard others
-   (filter-outlives-where-clause Biformula)
-   ()
-   )
-
-  )
