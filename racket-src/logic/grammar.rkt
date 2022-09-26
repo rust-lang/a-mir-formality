@@ -121,16 +121,37 @@
                (|| Goals)
                (implies Hypotheses Goal)
                (Quantifier KindedVarIds Goal)
+
+               ;; Prove the goal in coherence mode. This is a modal logic.
+               ;; It introduces `coherence-mode` into the hypotheses while
+               ;; proving goal, which affects some of our callbacks to introduce
+               ;; more ambiguity, reflecting semver-compatible changes that
+               ;; other crates could make.
+               (coherence-mode Goal)
                )
 
   ;; A `Goal` can be classified into the following categories.
   ;; Since the logic layer doesn't know the syntax of predicates it
   ;; has to use the hook-callback to get this classification.
   (Goal/Categorization ::=
+                       ; user-predicate: ask the hook for program clauses to solve the goal
                        (user-predicate Prove/Coinductive)
+
+                       ; builtin-predicate: invoke the metafunction from the hook to simplify it
                        builtin-predicate
+
+                       ; builtin-predicate: invoke the metafunction from the hook to simplify it
                        builtin-relation
+
+                       ; builtin-goal: a builtin logical connective, like `&&`
                        builtin-goal
+
+                       ; ambiguous-goal: a goal that must yield ambiguous. This is used to implement
+                       ; Rust rules that limit the inference we are willing to do:
+                       ; for example, `?T: Foo` always yields ambiguous, rather than trying to guess
+                       ; the value `?T`. It is also used for coherence, to prevent us from knowing
+                       ; too much about types not defined in our crate.
+                       ambiguous-goal
                        )
 
   ;; `Clause`, `Hypothesis` -- axioms. These are both built-in and derived from
@@ -141,9 +162,13 @@
   (Hypotheses Clauses ::= (Clause ...))
   (Hypothesis Clause ::=
               AtomicGoal
-              (implies Goals AtomicGoal)
-              (∀ KindedVarIds Clause)
+              BuiltinHypothesis
               )
+  (BuiltinHypothesis ::=
+                     coherence-mode
+                     (implies Goals AtomicGoal)
+                     (∀ KindedVarIds Clause)
+                     )
   ;; ANCHOR_END:GoalsAndHypotheses
 
 
@@ -228,7 +253,10 @@
   ;; which may contain various relations that were not proven, and which must be
   ;; proven at another level. Note that these are 'first-order' relations, though.
   (Solutions ::= (Solution ...))
-  (Solution ::= (:- ∃VarBinders (Substitution Relations)))
+  (Solution ::=
+            (:- ∃VarBinders (Substitution Relations))
+            ambiguous
+            )
 
   ;; Appearances -- A mapping indicating how many times the given variable occurs.
   (Appearances ::= [(VarId number) ...])

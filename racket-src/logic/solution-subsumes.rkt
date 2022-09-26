@@ -35,6 +35,14 @@
   ;; Solution A *entails* Solution B if assuming that A holds implies that B must hold.
   solution-entails : Hook QueryGoal Solution_a Solution_b -> boolean
 
+  [(solution-entails Hook QueryGoal ambiguous Solution)
+   #f
+   ]
+
+  [(solution-entails Hook QueryGoal Solution ambiguous)
+   #f
+   ]
+
   [(solution-entails Hook QueryGoal Solution_a Solution_b)
    boolean
 

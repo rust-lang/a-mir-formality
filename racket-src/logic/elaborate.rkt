@@ -104,7 +104,7 @@
   #:mode (hypothesis-elaborates-one-step I I O)
   #:contract (hypothesis-elaborates-one-step Env Hypothesis Hypothesis)
 
-  [(where #t (is-predicate? Env Predicate_in))
+  [(where #t (is-predicate-hypothesis? Env Predicate_in))
    (where (_ ... Invariant _ ...) (env-invariants Env))
 
    ; the Invariant will have the form `∀ (Vars...) Term_bound`:
@@ -126,7 +126,7 @@
    (hypothesis-elaborates-one-step Env Predicate_in AtomicGoal_out)
    ]
 
-  [(where #t (is-relation? Env Relation))
+  [(where #t (is-relation-goal? Env Relation))
    (where [_ ... AtomicGoal _ ...] (elaborate-relation Env Relation))
    -------------------- "elaborate-relation"
    (hypothesis-elaborates-one-step Env Relation AtomicGoal)

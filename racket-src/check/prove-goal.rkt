@@ -1,6 +1,9 @@
 #lang racket
 (require redex/reduction-semantics
          "../logic/cosld-solve.rkt"
+         "../logic/querify.rkt"
+         "../logic/solve-query.rkt"
+         "../logic/env.rkt"
          "../decl/decl-ok.rkt"
          "../decl/env.rkt"
          "../decl/grammar.rkt"
@@ -63,9 +66,8 @@
   #:mode (cannot-prove-goal-in-env I I)
   #:contract (cannot-prove-goal-in-env Env Goal)
 
-  [(side-condition ,(empty? (judgment-holds (logic:prove-top-level-goal/cosld Env Goal Env_out)
-                                            Env_out
-                                            )))
+  [(where/error (QueryGoal UniversePairs) (querify-goal Env Goal))
+   (where [] (logic:solve-query (env-hook Env) QueryGoal))
    ----------------------------------------
    (cannot-prove-goal-in-env Env Goal)
    ]

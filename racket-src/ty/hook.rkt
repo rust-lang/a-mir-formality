@@ -38,17 +38,17 @@
   )
 
 (define-metafunction formality-ty
-  ty:categorize-goal : Goal -> Goal/Categorization
+  ty:categorize-goal : Env Goal -> Goal/Categorization
 
-  [(ty:categorize-goal BuiltinGoal) builtin-goal]
+  [(ty:categorize-goal Env BuiltinGoal) builtin-goal]
 
-  [(ty:categorize-goal Relation) builtin-relation]
+  [(ty:categorize-goal Env Relation) builtin-relation]
 
   ; Normalization is inductive: this prevents a cycle between impls
   ; that would otherwise permit an associated type to be equal to anything.
   ;
   ; See #68.
-  [(ty:categorize-goal (normalizes-to AliasTy Ty)) (user-predicate -)]
+  [(ty:categorize-goal Env (normalizes-to AliasTy Ty)) (user-predicate -)]
 
-  [(ty:categorize-goal Predicate) (user-predicate +)]
+  [(ty:categorize-goal Env Predicate) (user-predicate +)]
   )

@@ -33,10 +33,6 @@
   #:mode (prove I I I O)
   #:contract (prove Env Prove/Stacks Goal EnvOutput)
 
-  [--------------- "prove-ambiguous"
-   (prove Env Prove/Stacks ambiguous ambiguous)
-   ]
-
   [(where (user-predicate Prove/Coinductive) (categorize-goal Env Predicate))
    (not-in-stacks Env Predicate Prove/Stacks)
    (where (_ ... Clause _ ... ) (filter-clauses Env (env-clauses-for-predicate Env Predicate) Predicate))
@@ -53,7 +49,7 @@
    (prove Env Prove/Stacks Predicate EnvOutput)
    ]
 
-  [(where #t (is-predicate? Env Predicate))
+  [(where #t (is-predicate-goal? Env Predicate))
    (not-in-stacks Env Predicate Prove/Stacks)
    (where (_ ... Hypothesis _ ... ) (filter-clauses Env (env-hypotheses (elaborate-hypotheses Env)) Predicate))
    (clause-proves Env Prove/Stacks - Hypothesis Predicate EnvOutput)
@@ -61,7 +57,7 @@
    (prove Env Prove/Stacks Predicate EnvOutput)
    ]
 
-  [(where #t (is-predicate? Env Predicate))
+  [(where #t (is-predicate-goal? Env Predicate))
    (where #t (in? (apply-substitution-from-env Env Predicate)
                   (apply-substitution-from-env Env Predicates_co)))
    --------------- "prove-coinductive-cycle"
@@ -73,6 +69,15 @@
    (prove-all Env_eq Prove/Stacks Goals_eq EnvOutput)
    --------------- "prove-relate"
    (prove Env Prove/Stacks Relation EnvOutput)
+   ]
+
+  [(where ambiguous-goal (categorize-goal Env Predicate))
+   --------------- "prove-ambiguous-goal"
+   (prove Env Prove/Stacks Predicate ambiguous)
+   ]
+
+  [--------------- "prove-ambiguous"
+   (prove Env Prove/Stacks ambiguous ambiguous)
    ]
 
   [(prove-all Env Prove/Stacks Goals EnvOutput)
@@ -103,6 +108,11 @@
    (prove Env Prove/Stacks (∃ KindedVarIds Goal) (reset Env VarIds_new EnvOutput))
    ]
 
+  [(where/error Env_1 (env-with-hypotheses Env [coherence-mode]))
+   (prove Env_1 Prove/Stacks Goal EnvOutput)
+   --------------- "prove-coherence-mode"
+   (prove Env Prove/Stacks (coherence-mode Goal) EnvOutput)
+   ]
   )
 
 (define-judgment-form formality-logic
@@ -193,7 +203,7 @@
 
   ; FIXME: Do we want to push this predicate on the stack while we try to
   ; prove the `Goals_eq`? Does it ever even matter, given the sorts of predicates we generate?
-  [(where #t (is-predicate? Env Predicate_1))
+  [(where #t (is-predicate-goal? Env Predicate_1))
    (where (Env_eq Goals_eq) (equate-predicates Env Predicate_1 Predicate_2))
    (where/error Prove/Stacks_eq (apply-substitution-from-env Env_eq Prove/Stacks))
    (prove-all Env_eq Prove/Stacks_eq Goals_eq EnvOutput)
@@ -227,11 +237,8 @@
   [(equate-predicates Env Predicate_1 Predicate_2)
    (equate-parameters/all Env () ((Parameter_in1 Parameter_in2) ... (Parameter_out1 Parameter_out2) ...))
 
-   (where/error (Predicate/Skeleton Parameters_in1 -> Parameters_out1) (debone-predicate Env Predicate_1))
-   (where (Predicate/Skeleton Parameters_in2 -> Parameters_out2) (debone-predicate Env Predicate_2))
-   (; check predicates have same number of input/output parameters
-    where ((Parameter_in1 ..._in) (Parameter_in2 ..._in) (Parameter_out1 ..._out) (Parameter_out2 ..._out))
-          (Parameters_in1 Parameters_in2 Parameters_out1 Parameters_out2))
+   (where/error (Predicate/Skeleton [Parameter_in1 ..._in] -> [Parameter_out1 ..._out]) (debone-predicate Env Predicate_1))
+   (where (Predicate/Skeleton [Parameter_in2 ..._in] -> [Parameter_out2 ..._out]) (debone-predicate Env Predicate_2))
    ]
 
   [(equate-predicates _ _ _) Error]

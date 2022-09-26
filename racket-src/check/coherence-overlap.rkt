@@ -61,8 +61,8 @@
    ; * `TraitId` will be `Debug`
    ; * `Parameters_1` will be `[Vec<T>]`
    ; * `Biformulas_1` will be `T: Debug`
-   (where/error (impl KindedVarIds_1 (TraitId Parameters_1) where _ _) TraitImplDecl_1)
-   (where/error (impl KindedVarIds_2 (TraitId Parameters_2) where _ _) TraitImplDecl_2)
+   (where/error (impl KindedVarIds_1 (TraitId Parameters_1) where Biformulas_1 _) TraitImplDecl_1)
+   (where/error (impl KindedVarIds_2 (TraitId Parameters_2) where Biformulas_2 _) TraitImplDecl_2)
 
    ; get the base environment for the program
    (where/error Env_0 (env-for-decl-program DeclProgram))
@@ -74,20 +74,31 @@
    ;
    ; * `Parameters_1inf` will be `[Vec<?T>]`
    ; * `Biformulas_1` will be `?T: Debug`
-   (where/error (Env_1 [Parameter_1inf ...] _)
-                (instantiate-quantified Env_0 (∃ KindedVarIds_1 Parameters_1)))
+   (where/error (Env_1 ([Parameter_1inf ...] [Biformula_1inf ...]) _)
+                (instantiate-quantified Env_0 (∃ KindedVarIds_1 (Parameters_1 Biformulas_1))))
 
    ; ...same for impl 2.
-   (where/error (Env_2 [Parameter_2inf ...] _)
-                (instantiate-quantified Env_1 (∃ KindedVarIds_2 Parameters_2)))
+   (where/error (Env_2 ([Parameter_2inf ...] [Biformula_2inf ...]) _)
+                (instantiate-quantified Env_1 (∃ KindedVarIds_2 (Parameters_2 Biformulas_2))))
 
-   ; and require that the parameters are equal
-   (where/error Goal_unified (&& [(Parameter_1inf == Parameter_2inf) ...]))
+   ; This goal, if provable, indicates that overlap exists:
+   ;
+   ; * Parameters can be unified.
+   ; * Where clauses from both impls hold.
+   (where/error Goal_overlap (&& [(Parameter_1inf == Parameter_2inf) ...
+                                  Biformula_1inf ...
+                                  Biformula_2inf ...
+                                  ]))
 
-   ; check that we cannot make them equal
-   (cannot-prove-goal-in-env Env_2 Goal_unified)
+   ; We check that goal in *coherence mode*. In coherence mode, anything
+   ; that may be possible in some future world (i.e., where other crates apart
+   ; from the local crate add impls which they are allowed to add), becomes
+   ; ambiguous. If we can prove that `Goal_overlap` is false in that mode,
+   ; we know that there does not exist a future world where overlap is possible.
+   (cannot-prove-goal-in-env Env_2 (coherence-mode Goal_overlap))
    -------------------------------
-   (✅-ImplsEqualOrNotOverlap DeclProgram TraitImplDecl_1 TraitImplDecl_2)]
+   (✅-ImplsEqualOrNotOverlap DeclProgram TraitImplDecl_1 TraitImplDecl_2)
+   ]
 
   ; FIXME: add the negative impl cases etc
 
