@@ -44,6 +44,13 @@
    (where #f (orphan-check DeclProgram Env TraitRef))
    ]
 
+  ; In coherence mode, anything that fails orphan check is ambiguous.
+  [(decl:categorize-goal DeclProgram Env (normalizes-to (alias-ty (TraitId AssociatedTyId) Parameters) Ty_target))
+   ambiguous-goal
+   (where #t (env-in-coherence-mode Env))
+   (where #f (orphan-check-associated-ty DeclProgram Env TraitId AssociatedTyId Parameters))
+   ]
+
   [(decl:categorize-goal DeclProgram Env Goal)
    (ty:categorize-goal Env Goal)]
 
