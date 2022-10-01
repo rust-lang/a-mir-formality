@@ -5,6 +5,7 @@
          "grammar.rkt"
          )
 (provide orphan-check
+         orphan-check-associated-ty
          )
 
 (define-metafunction formality-decl
@@ -55,6 +56,20 @@
   [; Anything else fails.
    (orphan-check DeclProgram Env _)
    #f
+   ]
+  )
+
+(define-metafunction formality-decl
+  ;; Given a reference to an associated type `TraitId::AssociatedTyId`, extract out
+  ;; the first N parameters (the ones from the trait) and check whether that trait-reference
+  ;; passes the orphan check.
+  orphan-check-associated-ty : DeclProgram Env TraitId AssociatedTyId Parameters -> boolean
+
+  [(orphan-check-associated-ty DeclProgram Env TraitId AssociatedTyId Parameters)
+   (orphan-check DeclProgram Env (TraitId [Parameter_trait ...]))
+   (where/error (CrateDecls _) DeclProgram)
+   (where/error (trait TraitId [KindedVarId ..._n] where _ _) (trait-with-id CrateDecls TraitId))
+   (where/error [Parameter_trait ..._n Parameter_assoc ...] Parameters)
    ]
   )
 

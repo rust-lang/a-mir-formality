@@ -66,7 +66,7 @@
 
   [(well-formed-goal-for-biformula CrateDecls _ (normalizes-to AliasTy Ty))
    (&& [(well-formed-goal-for-ty CrateDecls AliasTy)
-        (well-formed-goal-for-ty Ty)])
+        (well-formed-goal-for-ty CrateDecls Ty)])
    ]
 
   [; well-formed goals are added during lowering to represent default  bounds

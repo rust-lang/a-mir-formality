@@ -12,25 +12,15 @@
 
    []
 
-   ; test from this comment:
+   ; Test from this comment:
    ;
    ; https://github.com/rust-lang/rust/issues/99940#issuecomment-1201504984
    ;
-   ; // crate `dep`
-   ; pub trait Assoc {
-   ;     type Ty;
-   ; }
-   ; impl Assoc for () {
-   ;     type Ty = ();
-   ; }
-   ;
-   ; pub trait Trait {}
-   ; impl Trait for <() as Assoc>::Ty {} // err
-   ; // impl Trait for () {} // ok
-   ;
-   ; // local crate
-   ; struct LocalTy;
-   ; impl dep::Trait for LocalTy {}
+   ; The test has one impl for `<() as Assoc>::Ty` and one impl for `LocalTy`.
+   ; In the downstream crate, we are not able to prove that `<() as Assoc>::Ty == LocalTy` is
+   ; false in coherence-mode: we get back ambiguous. This is weaker than necessary, in some sense,
+   ; because an impl DOES exist for `<() as Assoc>::Ty` and it cannot be taken back, but it falls
+   ; out from the way we've setup the coherence-mode structure.
 
    (traced '()
            (test-equal
@@ -44,7 +34,7 @@
                                                      (impl[] Trait[] for (LocalTy < >) where [] {})
                                                      })]
                                        two)))
-            #t
+            #f
             ))
 
    ; Related test: one crate (to sidestep orphan rule restrictions) using a `Mirror` trait where
@@ -58,7 +48,7 @@
 
                                                      (trait Trait[] where [] {})
                                                      (impl[] Trait[] for (< () as Mirror[] > :: Ty[]) where [] {})
-                                                     (impl[] Trait[] for () where u32 {})
+                                                     (impl[] Trait[] for u32 where [] {})
                                                      })
                                         ]
                                        one)))
