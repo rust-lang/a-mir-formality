@@ -141,8 +141,16 @@
    (Env ((Parameter -outlives- Lt)))
    ]
 
-  [; P : R<Pr_0...Pr_n> if
+  [; P : R<> if
+   ;     P : static
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (rigid-ty RigidName [])))
+   (Env ((Parameter -outlives- static)))
+   ]
+
+  [; P : R<Pr_0...Pr_n> where n > 0 if
    ;     ∃i (P0 : Pr_i)
+   ;
+   ; The n == 0 case is covered above.
    (outlives/one/substituted/reduce Env (Parameter -outlives- (rigid-ty RigidName (Parameter_r ...))))
    (Env ((|| ((Parameter -outlives- Parameter_r) ...))))
    ]
@@ -162,15 +170,17 @@
    ]
 
   [; P : A<Pa ...> if
-   ;      (A<Pa ...> ~~~> T; P : T)
+   ;      (A<Pa ...> ~~~> T; P : T) or
+   ;      P : static
    ;
    ; To establish that P outlives an alias type we *must* normalize.
    ; No matter what its arguments, the alias type could normalize to `i32` or some such thing,
    ; in which case only static outlives it.
-   (outlives/one/substituted/reduce Env ((alias-ty AliasName (Parameter_a ...)) -outlives- Parameter))
+   (outlives/one/substituted/reduce Env (Parameter -outlives- (alias-ty AliasName (Parameter_a ...))))
    (Env (Goal_n))
-   (where/error Goal_n (∃ ((type T)) (&& ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
-                                          (Parameter -outlives- T)))))
+   (where/error Goal_n (∃ ((type T)) (|| [(&& ((normalizes-to (alias-ty AliasName (Parameter_a ...)) T)
+                                               (Parameter -outlives- T)))
+                                          (Parameter -outlives- static)])))
    ]
 
   ; XXX alias ty on RHS?
