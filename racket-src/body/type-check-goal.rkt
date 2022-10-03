@@ -140,10 +140,11 @@
    (fn-ty-signature Γ Ty_fn (∀ KindedVarIds (implies Biformulas ((Ty_arg ...) -> Ty_ret))))
    (where/error number_args ,(length (term (Ty_arg ...))))
    (where/error Ty_fnptr (rigid-ty (fn-ptr "Rust" number_args) (Ty_arg ... Ty_ret)))
+   (where/error Ty_reified (∀ KindedVarIds (implies Biformulas Ty_fnptr)))
    ----------------------------------------
    (type-check-goal/Rvalue Γ
                            (cast Operand as Ty_target)
-                           (∀ KindedVarIds (implies Biformulas (Ty_fnptr <= Ty_target))))
+                           (Ty_reified <= Ty_target))
    ]
 
   [----------------------------------------
@@ -157,18 +158,18 @@
   #:mode (fn-ty-signature I I O)
   #:contract (fn-ty-signature Γ Ty Signature)
 
-  [(fn-ty-signature Γ Ty (∀ () (implies Biformulas (Tys_args -> Ty_ret))))
+  [(fn-ty-signature Γ Ty (∀ [KindedVarId_2 ...] (implies Biformulas (Tys_args -> Ty_ret))))
    ----------------------------------------
    (fn-ty-signature Γ
-                    (∀ KindedVarIds Ty)
-                    (∀ KindedVarIds (implies Biformulas (Tys_args -> Ty_ret))))
+                    (∀ [KindedVarId_1 ...] Ty)
+                    (∀ [KindedVarId_1 ... KindedVarId_2 ...] (implies Biformulas (Tys_args -> Ty_ret))))
    ]
 
-  [(fn-ty-signature Γ Ty (∀ () (implies () (Tys_args -> Ty_ret))))
+  [(fn-ty-signature Γ Ty (∀ () (implies [Biformula_2 ...] (Tys_args -> Ty_ret))))
    ----------------------------------------
    (fn-ty-signature Γ
-                    (implies Biformulas Ty)
-                    (∀ () (implies Biformulas (Tys_args -> Ty_ret))))
+                    (implies [Biformula_1 ...] Ty)
+                    (∀ () (implies [Biformula_1 ... Biformula_2 ...] (Tys_args -> Ty_ret))))
    ]
 
   [----------------------------------------
