@@ -4,6 +4,7 @@
          "type-of.rkt"
          "operand.rkt"
          "place.rkt"
+         "fn-ty-signature.rkt"
          )
 (provide type-check-goal/Rvalue
          )
@@ -35,10 +36,11 @@
    (type-check-goal/Rvalue Γ (repeat Operand Constant) Goals)
    ]
 
-  [; FIXME:
-   (type-check-goal/Place Γ Place Goals)
+  [(type-check-goal/Place Γ Place [Goal_0 ...])
+   (type-of/Place Γ Place Ty_Place)
+   (reborrow-goals Γ Place Lt [Goal_1 ...])
    ----------------------------------------
-   (type-check-goal/Rvalue Γ (ref Lt MaybeMut Place) Goals)
+   (type-check-goal/Rvalue Γ (ref Lt MaybeMut Place) [Goal_0 ... Goal_1 ...])
    ]
 
   [(type-check-goal/Place Γ Place Goals)
@@ -78,37 +80,38 @@
 
 (define-judgment-form
   formality-body
-  #:mode (fn-ty-signature I I O)
-  #:contract (fn-ty-signature Γ Ty Signature)
-
-  [(fn-ty-signature Γ Ty (∀ [KindedVarId_2 ...] (implies Biformulas (Tys_args -> Ty_ret))))
-   ----------------------------------------
-   (fn-ty-signature Γ
-                    (∀ [KindedVarId_1 ...] Ty)
-                    (∀ [KindedVarId_1 ... KindedVarId_2 ...] (implies Biformulas (Tys_args -> Ty_ret))))
-   ]
-
-  [(fn-ty-signature Γ Ty (∀ () (implies [Biformula_2 ...] (Tys_args -> Ty_ret))))
-   ----------------------------------------
-   (fn-ty-signature Γ
-                    (implies [Biformula_1 ...] Ty)
-                    (∀ () (implies [Biformula_1 ... Biformula_2 ...] (Tys_args -> Ty_ret))))
-   ]
+  #:mode (reborrow-goals I I I O)
+  #:contract (reborrow-goals Γ Place Lt Goals)
 
   [----------------------------------------
-   (fn-ty-signature Γ
-                    (rigid-ty (fn-ptr _ _) (Ty_arg ... Ty_ret))
-                    (∀ () (implies () ((Ty_arg ...) -> Ty_ret))))
+   (reborrow-goals Γ LocalId Lt [])
    ]
 
-  [(where/error (fn _ KindedVarIds_fn (Ty_arg ...) -> Ty_ret _ _ _) (find-fn Γ FnId))
-   (where/error Substitution (create-substitution KindedVarIds_fn Parameters))
-   (where/error (Ty_argsubst ...) ((apply-substitution Substitution Ty_arg) ...))
-   (where/error Ty_retsubst (apply-substitution Substitution Ty_ret))
+  [(type-of/Place Γ Place (rigid-ty (ref ()) [Lt_r _]))
    ----------------------------------------
-   (fn-ty-signature Γ
-                    (rigid-ty (fn-def FnId) Parameters)
-                    (∀ () (implies () ((Ty_argsubst ...) -> Ty_retsubst))))
+   (reborrow-goals Γ (* Place) Lt [(Lt_r -outlives- Lt)])
    ]
 
+  [(type-of/Place Γ Place (rigid-ty (ref mut) [Lt_r _]))
+   (reborrow-goals Γ Place Lt [Goal ...])
+   ----------------------------------------
+   (reborrow-goals Γ (* Place) Lt [Goal ... (Lt_r -outlives- Lt)])
+   ]
+
+  ; FIXME: Raw pointer derefs, box derefs
+
+  [(reborrow-goals Γ Place Lt Goals)
+   ----------------------------------------
+   (reborrow-goals Γ (field Place _) Lt Goals)
+   ]
+
+  [(reborrow-goals Γ Place Lt Goals)
+   ----------------------------------------
+   (reborrow-goals Γ (index Place _) Lt Goals)
+   ]
+
+  [(reborrow-goals Γ Place Lt Goals)
+   ----------------------------------------
+   (reborrow-goals Γ (downcast Place _) Lt Goals)
+   ]
   )

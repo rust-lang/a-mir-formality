@@ -3,6 +3,7 @@
          "../../logic/grammar.rkt"
          "../grammar.rkt"
          "type-of.rkt"
+         "fn-ty-signature.rkt"
          )
 (provide type-check-goal/Terminator
          )
@@ -35,7 +36,7 @@
   [(type-of/Operand Γ Operand_fn Ty_fn)
    (type-of/Operand Γ Operand_arg Ty_arg) ...
    (type-of/Place Γ Place_dest Ty_dest)
-   (where (∀ KindedVarIds (implies (Biformula ...) ((Ty_formal ...) -> Ty_ret))) (ty-signature Γ Ty_fn))
+   (fn-ty-signature Γ Ty_fn (∀ KindedVarIds (implies (Biformula ...) ((Ty_formal ...) -> Ty_ret))))
    (where Goal (∃ KindedVarIds (&& ((Ty_arg <= Ty_formal) ...
                                     (Ty_ret <= Ty_dest)
                                     Biformula ...
