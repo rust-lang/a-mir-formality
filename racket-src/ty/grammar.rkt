@@ -197,7 +197,7 @@
   ;; Signature
   ;;
   ;; Callable functions (with any ABI)
-  (Signature ::= (ForAll KindedVarIds (implies Biformulas (Tys_formal -> Ty_ret))))
+  (Signature ::= (∀ KindedVarIds (implies Biformulas (Tys -> Ty))))
 
   ;; Generic parameters
   (Generics ::= (GenericParameters Biformulas))
