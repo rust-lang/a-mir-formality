@@ -5,6 +5,17 @@
 (provide basic-block-locations)
 
 (define-metafunction formality-body
+  ;; Returns the set of all locations in the body.
+  all-locations : BasicBlockDecls -> Locations
+
+  [(all-locations [BasicBlockDecl ...])
+   (flatten [[Location_s ... Location_t] ...])
+   (where/error [([(Location_s Statement) ...] (Location_t Terminator)) ...] [(basic-block-locations BasicBlockDecl) ...])
+   ]
+  )
+
+(define-metafunction formality-body
+  ;; Returns the statements/terminator from the block, paired with their locations.
   basic-block-locations : BasicBlockDecl -> (StatementAtLocations TerminatorAtLocation)
 
   [(basic-block-locations (BasicBlockId ((Statement ...) Terminator)))

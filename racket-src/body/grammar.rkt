@@ -146,6 +146,7 @@
   ;; Internal to type check:
   ;;
   ;; Location --- identifies a particular statement or terminator within the MIR
+  (Locations ::= [Location ...])
   (Location ::= (BasicBlockId @ number))
 
   ;; Internal to type check:
@@ -184,6 +185,15 @@
   ;; then `LivenessEffects` are applied.
   (TerminatorLivenessEffects ::= (BasicBlockId LivenessEffects))
 
+  ;; Liveness constraints encode which lifetimes are live at each point in the source code.
+  ;; These are the basis for both the NLL and polonius analyses.
+  ;;
+  ;; A constraint like `VarId -outlives- L` indicates that the lifetime
+  ;; variable `VarId` appears in the type of some local variable `_n`
+  ;; which is live at the location `L`.
+  (LivenessConstraints ::= [LivenessConstraint ...])
+  (LivenessConstraint ::= (VarId -outlives- [Location]))
+
   ; identifiers of various kinds:
   (LocalIds ::= [LocalId ...])
   (MirId BasicBlockId LocalId ::= variable-not-otherwise-mentioned)
@@ -203,6 +213,17 @@
   [(local-decls-of-Γ Γ)
    LocalDecls
    (where/error (LocalDecls _) (locals-and-blocks-of-Γ Γ))]
+  )
+
+
+(define-metafunction formality-body
+  ;; Returns the type of the given local variable from the environment Γ
+  local-ty : Γ LocalId -> Ty
+
+  [(local-ty Γ LocalId)
+   Ty
+   (where/error (_ ... (LocalId Ty _) _ ...) (local-decls-of-Γ Γ))
+   ]
   )
 
 (define-metafunction formality-body

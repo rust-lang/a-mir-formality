@@ -6,6 +6,7 @@
          )
 (provide liveness-effects-of-terminator
          liveness-effects-of-evaluating-statements
+         liveness-effects-of-evaluating-statement
          )
 
 ;; Methods for computing the liveness effects of individual MIR terms.

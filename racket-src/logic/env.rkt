@@ -412,6 +412,35 @@
 
   )
 
+
+(define-metafunction formality-logic
+  ;; Returns the set of variables that appear free in the given term;
+  ;; only returns variables that are defined in the environment. This includes
+  ;; both existential (inference) and universal (placeholder) variables.
+  ;; Everything else is assumed to be a universal constant or keyword.
+  free-existential-variables-of-kind : Env ParameterKind Term -> (VarId ...)
+
+  [(free-existential-variables-of-kind Env ParameterKind (Quantifier ((ParameterKind_bound VarId_bound) ...) Term))
+   ,(set-subtract (term VarIds_free) (term (VarId_bound ...)))
+   (where/error VarIds_free (free-existential-variables-of-kind Env ParameterKind Term))
+   ]
+
+  [(free-existential-variables-of-kind Env ParameterKind VarId)
+   [VarId]
+   (where (_ ParameterKind ∃ _) (var-binding-in-env Env VarId))
+   ]
+
+  [(free-existential-variables-of-kind Env ParameterKind (Term ...))
+   ,(apply set-union (term (() VarIds ...)))
+   (where/error (VarIds ...) ((free-existential-variables-of-kind Env ParameterKind Term) ...))
+   ]
+
+  [(free-existential-variables-of-kind Env ParameterKind _)
+   ()
+   ]
+
+  )
+
 (define-metafunction formality-logic
   ;; Returns the set of universally quantified variables from
   ;; within the term -- this excludes global constants like

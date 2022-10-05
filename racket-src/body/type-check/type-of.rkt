@@ -79,10 +79,8 @@
   #:mode (type-of/LocalId I I O)
   #:contract (type-of/LocalId Γ LocalId Ty)
 
-  [(where/error LocalDecls (local-decls-of-Γ Γ))
-   (where (_ ... (LocalId Ty _) _ ...) LocalDecls)
-   ----------------------------------------
-   (type-of/LocalId Γ LocalId Ty)
+  [----------------------------------------
+   (type-of/LocalId Γ LocalId (local-ty Γ LocalId))
    ]
 
   )

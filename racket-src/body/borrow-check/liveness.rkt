@@ -1,12 +1,78 @@
 #lang racket
 (require redex/reduction-semantics
          "../../logic/env.rkt"
+         "../locations.rkt"
          "../grammar.rkt"
          "liveness-effects-of.rkt"
          "liveness-effects.rkt"
+         "liveness-constraints.rkt"
          )
 (provide liveness
+         liveness-constraints
          )
+
+(define-metafunction formality-body
+  ;; Generates a series of liveness constraints of the form `(?R -outlives- [L])` for each lifetime
+  ;; `?R` that is live at the location `L`. A lifetime is live if it appears in the type of
+  ;; some variable that is live.
+  liveness-constraints : Γ Env -> LivenessConstraints
+
+  [(liveness-constraints Γ Env)
+   [LivenessConstraint ... ...]
+
+   (where/error [BasicBlockDecl ...] (basic-block-decls-of-Γ Γ))
+   (where/error LiveVariablesBeforeBlocks (liveness [BasicBlockDecl ...]))
+   (where/error [[LivenessConstraint ...] ...] [(liveness-constraints-from-block Γ Env LiveVariablesBeforeBlocks BasicBlockDecl) ...])
+   ]
+  )
+
+(define-metafunction formality-body
+  ;; Generates liveness constraints resulting from the given block.
+  liveness-constraints-from-block : Γ Env LiveVariablesBeforeBlocks BasicBlockDecl -> LivenessConstraints
+
+  [(liveness-constraints-from-block Γ Env LiveVariablesBeforeBlocks BasicBlockDecl)
+   [LivenessConstraint_stmts ... LivenessConstraint_term ...]
+
+   (where/error (StatementAtLocations (Location_term Terminator)) (basic-block-locations BasicBlockDecl))
+
+   ; compute the live variables before the terminator
+   (where/error LiveVariables_term (live-variables-before-terminator LiveVariablesBeforeBlocks Terminator))
+
+   ; compute the constraints resulting from those live variables
+   (where/error [LivenessConstraint_term ...] (liveness-constraints-from-live-variables Γ Env Location_term LiveVariables_term))
+
+   ; compute the constriants from each statement
+   (where/error [LivenessConstraint_stmts ...] (liveness-constraints-from-statements Γ Env LiveVariables_term StatementAtLocations))
+   ]
+  )
+
+
+(define-metafunction formality-body
+  ;; Generates liveness constraints on entry to each of the given statements:
+  ;;
+  ;; * LiveVariables -- the variables live before the statements in the list
+  ;; * StatementAtLocations -- the statements in the block and their locations
+  liveness-constraints-from-statements : Γ Env LiveVariables StatementAtLocations -> LivenessConstraints
+
+  [(liveness-constraints-from-statements Γ Env LiveVariables [])
+   []
+   ]
+
+  [(liveness-constraints-from-statements Γ Env LiveVariables_succ [StatementAtLocation_pred ... (Location Statement)])
+   [LivenessConstraint_stmt ... LivenessConstraint_pred ...]
+
+   ; compute live variables on entry to the statement
+   (where/error LivenessEffects_stmt (liveness-effects-of-evaluating-statement Statement))
+   (where/error LiveVariables_stmt (apply-effects-to-live-variables LivenessEffects_stmt LiveVariables_succ))
+
+   ; compute constraints resulting from those live variables
+   (where/error [LivenessConstraint_stmt ...] (liveness-constraints-from-live-variables Γ Env Location LiveVariables_stmt))
+
+   ; compute the constraints from predecessor statements
+   (where/error [LivenessConstraint_pred ...] (liveness-constraints-from-statements Γ Env LiveVariables_stmt [StatementAtLocation_pred ...]))
+   ]
+
+  )
 
 (define-metafunction formality-body
   ;; Compute live variables on entry to each basic block.

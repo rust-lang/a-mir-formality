@@ -1,9 +1,10 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
+         "../check/prove-goal.rkt"
          "borrow-check/initialization-check.rkt"
          "borrow-check/initialization-infer.rkt"
-         "../check/prove-goal.rkt"
+         "borrow-check/liveness.rkt"
          )
 (provide borrow-check
          )
@@ -28,7 +29,19 @@
   [(where/error [(Location Goal) ...] GoalAtLocations)
    (where/error Goal_master (&& [Goal ...]))
    (prove-goal-in-env Env Goal_master TrueSolution)
+   (where/error LivenessConstraints_live (liveness-constraints Γ Env))
+   (snoop LivenessConstraints_live )
    ----------------------------------------
    (loan-check Γ Env GoalAtLocations)
+   ]
+  )
+
+(define-judgment-form
+  formality-body
+  #:mode (snoop I)
+  #:contract (snoop Term)
+
+  [----------------------------------------
+   (snoop Term)
    ]
   )
