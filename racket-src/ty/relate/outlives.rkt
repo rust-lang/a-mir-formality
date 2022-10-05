@@ -68,23 +68,25 @@
   [; ?X -outlives- P where P in universe(?X):
    ;    * Adds `?X -outlives- P` as a constraint
    ;    * For each `P1 -outlives- ?X` constraint, require `P1 -outlives- P`
-   (outlives/one/substituted Env (VarId_?X OutlivesOp VarIdOrStatic_?Y))
-   (Env_b ((Parameter_b OutlivesOp VarIdOrStatic_?Y) ...))
+   ;
+   ; NB. P cannot be a "complex" type like `
+   (outlives/one/substituted Env (VarId_?X OutlivesOp Parameter_?Y))
+   (Env_b ((Parameter_b OutlivesOp Parameter_?Y) ...))
    (where #t (env-contains-existential-var Env VarId_?X))
-   (where #t (universe-check-ok? Env VarId_?X VarIdOrStatic_?Y))
+   (where #t (universe-check-ok? Env VarId_?X Parameter_?Y))
    (where/error (Parameter_b ...) (known-bounds Env OutlivesOp VarId_?X))
-   (where/error Env_b (env-with-var-related-to-parameter Env VarId_?X OutlivesOp VarIdOrStatic_?Y))
+   (where/error Env_b (env-with-var-related-to-parameter Env VarId_?X OutlivesOp Parameter_?Y))
    ]
 
   [; ?X -outlives- P where P NOT in universe(?X):
    ;    * Extrude a `P1` in `universe(?X)` such that `P1 -outlives- P`
    ;    * Require that `?X -outlives- P1`
-   (outlives/one/substituted Env (VarId_?X OutlivesOp VarIdOrStatic_?Y))
+   (outlives/one/substituted Env (VarId_?X OutlivesOp Parameter_?Y))
    (Env_e (Goal_e ... (VarId_?X OutlivesOp Parameter_e)))
    (where #t (env-contains-existential-var Env VarId_?X))
-   (where #f (universe-check-ok? Env VarId_?X VarIdOrStatic_?Y))
+   (where #f (universe-check-ok? Env VarId_?X Parameter_?Y))
    (where/error Universe_VarId (universe-of-var-in-env Env VarId_?X))
-   (where/error (Env_e Parameter_e (Goal_e ...)) (extrude-parameter Env Universe_VarId OutlivesOp VarId_?X VarIdOrStatic_?Y))
+   (where/error (Env_e Parameter_e (Goal_e ...)) (extrude-parameter Env Universe_VarId OutlivesOp VarId_?X Parameter_?Y))
    ]
 
   [; P -outlives- ?X (regardless of universe):
@@ -315,7 +317,10 @@
    (Env ((implies Biformulas (Parameter -outlives- Ty))))
    ]
 
-  [(outlives/one/substituted/reduce Env (Parameter_a -outlives- Parameter_b))
+  [(outlives/one/substituted/reduce Env (VarId_1 -outlives- VarId_2))
    ()
+   (where (_ type ∃ _) (var-binding-in-env Env VarId_1))
    ]
   )
+
+  
