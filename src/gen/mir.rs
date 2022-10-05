@@ -128,6 +128,10 @@ impl<'tcx> FormalityGen<'tcx> {
             mir::StatementKind::StorageLive(local) => format!("(storage-live _{})", local.index()),
             mir::StatementKind::StorageDead(local) => format!("(storage-dead _{})", local.index()),
             mir::StatementKind::Nop => format!("noop"),
+            mir::StatementKind::FakeRead(fr) => {
+                let (_, place) = &**fr;
+                format!("(fake-read {})", self.emit_place(place),)
+            }
             _ => {
                 eprintln!("unknown stmt: {stmt:?}");
                 "noop".to_string()

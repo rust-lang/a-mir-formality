@@ -165,6 +165,11 @@
    ----------------------------------------
    (initialization-check-statement MoveSet noop)
    ]
+
+  [(place-fully-initialized MoveSet Place)
+   ----------------------------------------
+   (initialization-check-statement MoveSet (fake-read Place))
+   ]
   )
 
 (define-judgment-form

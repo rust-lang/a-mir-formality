@@ -94,6 +94,10 @@
    (reads: [] drops: [] writes: [])
    ]
 
+  [(liveness-effects-of-evaluating-statement (fake-read Place))
+   (liveness-effects-of-reading-place Place)
+   ]
+
   )
 
 (define-metafunction formality-body

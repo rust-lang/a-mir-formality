@@ -4,6 +4,7 @@
          "../grammar.rkt"
          "type-of.rkt"
          "rvalue.rkt"
+         "place.rkt"
          )
 (provide type-check-goal/Statement
          )
@@ -21,6 +22,23 @@
    (type-check-goal/Statement Γ
                               (Place = Rvalue)
                               [Goal_rvalue ... (Ty_rvalue <= Ty_place)])
+   ]
+
+  [----------------------------------------
+   (type-check-goal/Statement Γ (storage-live LocalId) [])
+   ]
+
+  [----------------------------------------
+   (type-check-goal/Statement Γ (storage-dead LocalId) [])
+   ]
+
+  [----------------------------------------
+   (type-check-goal/Statement Γ noop [])
+   ]
+
+  [(type-check-goal/Place Γ Place Goals)
+   ----------------------------------------
+   (type-check-goal/Statement Γ (fake-read Place) Goals)
    ]
 
   )

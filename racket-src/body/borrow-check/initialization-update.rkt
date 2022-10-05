@@ -129,6 +129,10 @@
    MoveSet
    ]
 
+  [(update-move-set-from-statement MoveSet (fake-read Place))
+   MoveSet
+   ]
+
   )
 
 (define-metafunction formality-body

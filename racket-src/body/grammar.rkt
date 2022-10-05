@@ -29,6 +29,7 @@
              (storage-live LocalId)
              (storage-dead LocalId)
              noop
+             (fake-read Place)
              )
 
   ;; A Rvalue indicates the set of expressions that can be evaluated into a place.

@@ -68,6 +68,15 @@
    ]
 
   [(well-formed/Place Γ Place)
+   ----------------------------------------
+   (well-formed/Statement Γ (fake-read Place))
+   ]
+
+  [----------------------------------------
+   (well-formed/Statement Γ noop)
+   ]
+
+  [(well-formed/Place Γ Place)
    (well-formed/Rvalue Γ Rvalue)
    ----------------------------------------
    (well-formed/Statement Γ (Place = Rvalue))
