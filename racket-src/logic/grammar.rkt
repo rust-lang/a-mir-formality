@@ -253,10 +253,8 @@
   ;; which may contain various relations that were not proven, and which must be
   ;; proven at another level. Note that these are 'first-order' relations, though.
   (Solutions ::= (Solution ...))
-  (Solution ::=
-            (:- ∃VarBinders (Substitution Relations))
-            ambiguous
-            )
+  (Solution ::= TrueSolution ambiguous)
+  (TrueSolution ::= (:- ∃VarBinders (Substitution Relations)))
 
   ;; Appearances -- A mapping indicating how many times the given variable occurs.
   (Appearances ::= [(VarId number) ...])

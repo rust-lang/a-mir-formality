@@ -47,12 +47,16 @@
 (define-judgment-form
   formality-check
 
-  #:mode (prove-goal-in-env I I O)
-  #:contract (prove-goal-in-env Env Goal Env_out)
+  ;; Prove the given goal in the given environment,
+  ;; returning a non-empty set of selections.
 
-  [(logic:prove-top-level-goal/cosld Env Goal Env_out)
+  #:mode (prove-goal-in-env I I O)
+  #:contract (prove-goal-in-env Env Goal TrueSolution)
+
+  [(where/error (QueryGoal UniversePairs) (querify-goal Env Goal))
+   (where [_ ... TrueSolution _ ...] (logic:solve-query (env-hook Env) QueryGoal))
    ----------------------------------------
-   (prove-goal-in-env Env Goal Env_out)
+   (prove-goal-in-env Env Goal TrueSolution)
    ]
   )
 

@@ -1,8 +1,8 @@
 #lang racket
 (require redex/reduction-semantics
-         "../logic/substitution.rkt"
-         "../ty/user-ty.rkt"
-         "grammar.rkt"
+         "../../logic/substitution.rkt"
+         "../../ty/user-ty.rkt"
+         "../grammar.rkt"
          )
 (provide type-of/Place
          type-of/Rvalue
