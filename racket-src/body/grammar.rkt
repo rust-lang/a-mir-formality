@@ -192,7 +192,7 @@
   ;; variable `VarId` appears in the type of some local variable `_n`
   ;; which is live at the location `L`.
   (LivenessConstraints ::= [LivenessConstraint ...])
-  (LivenessConstraint ::= (VarId -outlives- [Location]))
+  (LivenessConstraint ::= (VarId -outlives- Location))
 
   ; identifiers of various kinds:
   (LocalIds ::= [LocalId ...])

@@ -12,7 +12,7 @@
          )
 
 (define-metafunction formality-body
-  ;; Generates a series of liveness constraints of the form `(?R -outlives- [L])` for each lifetime
+  ;; Generates a series of liveness constraints of the form `(?R -outlives- L)` for each lifetime
   ;; `?R` that is live at the location `L`. A lifetime is live if it appears in the type of
   ;; some variable that is live.
   liveness-constraints : Γ Env -> LivenessConstraints

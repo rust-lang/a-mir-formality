@@ -8,9 +8,9 @@
 
 (define-metafunction formality-body
   ;; Generates a series of liveness constraints from the set of variables that are live at the
-  ;; given location. These constraints have the form `(?R -outlives- [Location])` for each lifetime
-  ;; `?R` that is live. A lifetime is live if it appears in the type of
-  ;; some variable that is live.
+  ;; given location. These constraints have the form `(?R -outlives- L)` for each lifetime
+  ;; `?R` that is live at L. A lifetime is live at L if it appears in the type of
+  ;; some variable that is live at L.
   liveness-constraints-from-live-variables : Γ Env Location LiveVariables -> LivenessConstraints
 
   [(liveness-constraints-from-live-variables Γ Env Location (reads: [LocalId_read ...] drops: [LocalId_drop ...]))
@@ -22,15 +22,15 @@
 
 (define-metafunction formality-body
   ;; Generates the liveness constraints from the fact that `LocalId` is read at `Location`.
-  ;; These all have the form `(?R -outlives- [Location])` for each lifetime `?R` that appears
+  ;; These all have the form `(?R -outlives- Location)` for each lifetime `?R` that appears
   ;; in the type of `LocalId`.
   ;;
   ;; E.g., if we have `_0: &?1 &?2 u32` and it is read at location `L`, this would create
-  ;; the constraint `[?1 -outlives- [L]]` and `[?2 -outlives- [L]]`.
+  ;; the constraint `[?1 -outlives- L]` and `[?2 -outlives- L]`.
   liveness-constraints-from-read-variable : Γ Env Location LocalId -> LivenessConstraints
 
   [(liveness-constraints-from-read-variable Γ Env Location LocalId)
-   [(VarId_lt -outlives- [Location]) ...]
+   [(VarId_lt -outlives- Location) ...]
    (where/error Ty (local-ty Γ LocalId))
    (where/error [VarId_lt ...] (free-existential-variables-of-kind Env lifetime Ty))
    ]
