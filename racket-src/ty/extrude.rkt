@@ -1,11 +1,10 @@
 #lang racket
 (require redex/reduction-semantics
-         "grammar.rkt"
-         "inequalities.rkt"
-         "hypothesized-bounds.rkt"
          "../logic/substitution.rkt"
          "../logic/env.rkt"
          "../logic/env-inequalities.rkt"
+         "grammar.rkt"
+         "hypothesized-bounds.rkt"
          )
 (provide extrude-parameter
          )
@@ -89,7 +88,7 @@
    (where/error Env_1 (env-with-var Env VarId_out ParameterKind ∃ Universe))
    (where/error VarIdPairs_new ((VarId VarId_out) VarIdPair ...))
    ; extract bounds `b_0...b_n` where `X ◃ b_i` for all `i`
-   (where/error (Parameter_b ...) (known-bounds Env InequalityOp_▹ VarId))
+   (where/error (Parameter_b ...) (known-bounds Env VarId InequalityOp_◃))
    ; create `extruded(b_i) ◃ b_i` for each bound `b_i`
    (where/error (Env_2 Parameters_be Goals_b) (extrude-terms Env_1
                                                              VarIdPairs_new

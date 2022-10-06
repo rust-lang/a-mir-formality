@@ -224,3 +224,16 @@
 
   (for ((ParameterKind VarId) ...) any #:refers-to (shadow VarId ...))
   )
+
+
+(define-metafunction formality-ty
+  ;; Returns the bounds on `VarId_in` found in the environment, or `(() ())` if none are found.
+  ;;
+  ;; `VarId_in` must be a variable declared in the environment and must not be unmapped.
+  invert-inequality-op : InequalityOp -> InequalityOp
+
+  [(invert-inequality-op <=) >=]
+  [(invert-inequality-op >=) <=]
+  [(invert-inequality-op -outlives-) -outlived-by-]
+  [(invert-inequality-op -outlived-by-) -outlives-]
+  )

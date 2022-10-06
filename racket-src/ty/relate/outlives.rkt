@@ -4,7 +4,6 @@
          "../hypothesized-bounds.rkt"
          "../grammar.rkt"
          "../kind.rkt"
-         "../inequalities.rkt"
          "../extrude.rkt"
          "../../logic/env.rkt"
          "../../logic/env-inequalities.rkt"
@@ -67,14 +66,14 @@
 
   [; ?X -outlives- P where P in universe(?X):
    ;    * Adds `?X -outlives- P` as a constraint
-   ;    * For each `P1 -outlives- ?X` constraint, require `P1 -outlives- P`
+   ;    * For each `?X -outlived-by- P1` constraint, require `P1 -outlives- P`
    ;
    ; NB. P cannot be a "complex" type like `
    (outlives/one/substituted Env (VarId_?X OutlivesOp Parameter_?Y))
    (Env_b ((Parameter_b OutlivesOp Parameter_?Y) ...))
    (where #t (env-contains-existential-var Env VarId_?X))
    (where #t (universe-check-ok? Env VarId_?X Parameter_?Y))
-   (where/error (Parameter_b ...) (known-bounds Env OutlivesOp VarId_?X))
+   (where/error (Parameter_b ...) (known-bounds Env VarId_?X (invert-inequality-op OutlivesOp)))
    (where/error Env_b (env-with-var-related-to-parameter Env VarId_?X OutlivesOp Parameter_?Y))
    ]
 
@@ -323,4 +322,3 @@
    ]
   )
 
-  

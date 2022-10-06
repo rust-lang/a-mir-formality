@@ -5,7 +5,6 @@
          "rigid.rkt"
          "../kind.rkt"
          "../grammar.rkt"
-         "../inequalities.rkt"
          "../extrude.rkt"
          "../hypothesized-bounds.rkt"
          "../../logic/env.rkt"
@@ -58,7 +57,7 @@
    ]
 
   [; `?X <= T` where occurs, universes ok:
-   ;   Add `X <= P` as a bound and, for each bound `B` where `B <= X`,
+   ;   Add `X <= P` as a bound and, for each bound `B` where `X >= B`,
    ;   require that `B <= P` (respectively `>=`).
    (compare/one/substituted Env (VarId SubtypeOp Parameter))
    (Env_1 ((Parameter_bound SubtypeOp Parameter) ...))
@@ -66,7 +65,7 @@
    (where #t (env-contains-existential-var Env VarId))
    (where #t (occurs-check-ok? Env VarId Parameter))
    (where #t (universe-check-ok? Env VarId Parameter))
-   (where/error (Parameter_bound ...) (known-bounds Env SubtypeOp VarId))
+   (where/error (Parameter_bound ...) (known-bounds Env VarId (invert-inequality-op SubtypeOp)))
    (where/error Env_1 (env-with-var-related-to-parameter Env VarId SubtypeOp Parameter))
    ]
 

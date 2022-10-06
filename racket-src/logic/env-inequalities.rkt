@@ -3,15 +3,34 @@
          "env.rkt"
          "grammar.rkt"
          )
-(provide known-relations
+(provide known-bounds
+         known-relations
          env-with-var-related-to-parameters
          env-with-var-related-to-parameter
          remove-var-bounds-from-env
          )
 
 (define-metafunction formality-logic
+  ;; Given a variable `VarId_in` and a inequality op `op` (e.g. `<=`), returns the known
+  ;; bounds `P` such that `VarId <= P` (e.g., `P <= VarId`).
+  known-bounds : Env_in VarId_in InequalityOp  -> Parameters_ub
+  #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
+
+  [(known-bounds Env VarId InequalityOp)
+   Parameters
+   (where (_ ... (VarId InequalityOp Parameters) _ ...) (env-inequalities Env))
+   ]
+
+  [(known-bounds Env VarId InequalityOp)
+   ()
+   ]
+
+  )
+
+(define-metafunction formality-logic
   ;; Given a variable `VarId_in` returns all known relations about `VarId_in`
-  ;; (e.g., `VarId_in <= Parameter` etc).
+  ;; (e.g., `VarId_in <= Parameter` etc). This is like `known-bounds` but not filtered
+  ;; to a particular kind.
   known-relations : Env_in VarId_in -> (Relation ...)
   #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
 
