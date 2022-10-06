@@ -1,8 +1,9 @@
 #lang racket
 (require redex/reduction-semantics
          "../grammar.rkt"
-         "initialization-update.rkt"
+         "../cfg.rkt"
          "move-set.rkt"
+         "dataflow/moved-places.rkt"
          )
 (provide initialization-check
          )
@@ -14,29 +15,10 @@
   #:mode (initialization-check I I)
   #:contract (initialization-check Γ MoveSetMap)
 
-  [(where/error [BasicBlockDecl ...] (basic-block-decls-of-Γ Γ))
-
-   ; each block and its successors must be consistent with `MoveSetMap`
-   (initialization-check-block MoveSetMap BasicBlockDecl) ...
-
-   ; the entry block must consider all local variables as moved
-   (initialization-check-entry Γ MoveSetMap)
+  [(where/error ([LocatedCfgNode ...] _) (control-flow-graph (basic-block-decls-of-Γ Γ)))
+   (initialization-check-located-cfg-node MoveSetMap LocatedCfgNode) ...
    ----------------------------------------
    (initialization-check Γ MoveSetMap)
-   ]
-  )
-
-
-(define-judgment-form
-  formality-body
-  ;; Check that the entry block doesn't assume anything is initialized on entry.
-  #:mode (initialization-check-entry I I)
-  #:contract (initialization-check-entry Γ MoveSetMap)
-
-  [(where/error BasicBlockId_entry (entry-basic-block-id-of-Γ Γ))
-   (initialization-check-successor MoveSetMap BasicBlockId_entry (initial-move-set Γ))
-   ----------------------------------------
-   (initialization-check-entry Γ MoveSetMap)
    ]
   )
 
@@ -45,130 +27,90 @@
   ;; Check that the block only uses initialized data, given the set `MoveSetMap` of
   ;; places moved on entry to each block. Also checks that the moved-on-entry sets
   ;; for the successors of this block account for moves performed during this block.
-  #:mode (initialization-check-block I I)
-  #:contract (initialization-check-block MoveSetMap BasicBlockDecl)
+  #:mode (initialization-check-located-cfg-node I I)
+  #:contract (initialization-check-located-cfg-node MoveSetMap LocatedCfgNode)
 
-  [(where/error [_ ... (BasicBlockId MoveSet) _ ...] MoveSetMap)
-   (initialization-check-block-data MoveSet BasicBlockData [(BasicBlockId_succ MoveSet_succ) ...])
-   (initialization-check-successor MoveSetMap BasicBlockId_succ MoveSet_succ) ...
+  [; find the move set on entry to this location
+   (where/error [_ ... (Location MoveSet) _ ...] MoveSetMap)
+   ; check that the cfgnode is correct given that modeset
+   (initialization-check-cfg-node MoveSet CfgNode)
    ----------------------------------------
-   (initialization-check-block MoveSetMap (BasicBlockId BasicBlockData))
+   (initialization-check-located-cfg-node MoveSetMap (Location CfgNode))
    ]
   )
 
-(define-judgment-form
-  formality-body
-  ;; Check that the move-set on entry to `BasicBlockId` lists
-  ;; each place in `Places` as moved.
-  #:mode (initialization-check-successor I I I)
-  #:contract (initialization-check-successor MoveSetMap BasicBlockId Places)
-
-  [(where/error [_ ... (BasicBlockId MoveSet_block) _ ...] MoveSetMap)
-   (place-fully-moved MoveSet_block Place_moved) ...
-   ----------------------------------------
-   (initialization-check-successor MoveSetMap BasicBlockId [Place_moved ...])
-   ]
-  )
 (define-judgment-form
   formality-body
   ;; Check that each piece of data accessed in the block body is fully initialized.
   ;; Output a `MoveSetMap` containing places that must be marked as moved in the successors.
   ;;
   ;; `MoveSet` contains the places that are moved on entry to the block.
-  #:mode (initialization-check-block-data I I O)
-  #:contract (initialization-check-block-data MoveSet BasicBlockData MoveSetMap_succ)
-
-  [(where/error ([(MoveSet_statement Statement) ...] MoveSet_terminator)
-                (move-sets-for-statements MoveSet_on-entry Statements))
-   (initialization-check-statement MoveSet_statement Statement) ...
-   (initialization-check-terminator MoveSet_terminator Terminator)
-   (where/error MoveSetMap_succ (move-sets-for-terminator MoveSet_terminator Terminator))
-   ----------------------------------------
-   (initialization-check-block-data MoveSet_on-entry (Statements Terminator) MoveSetMap_succ)
-   ]
-  )
-
-(define-judgment-form
-  formality-body
-  ;; Check that each piece of data accessed in `Terminator` is initialized.
-  ;;
-  ;; `MoveSet` contains the places that are moved on entry to the terminator.
-  #:mode (initialization-check-terminator I I)
-  #:contract (initialization-check-terminator MoveSet Terminator)
+  #:mode (initialization-check-cfg-node I I)
+  #:contract (initialization-check-cfg-node MoveSet CfgNode)
 
   [----------------------------------------
-   (initialization-check-terminator MoveSet (goto BasicBlockId))
+   (initialization-check-cfg-node MoveSet (goto BasicBlockId))
    ]
 
   [----------------------------------------
-   (initialization-check-terminator MoveSet resume)
+   (initialization-check-cfg-node MoveSet resume)
    ]
 
   [----------------------------------------
-   (initialization-check-terminator MoveSet abort)
+   (initialization-check-cfg-node MoveSet abort)
    ]
 
   [----------------------------------------
-   (initialization-check-terminator MoveSet return)
+   (initialization-check-cfg-node MoveSet return)
    ]
 
   [----------------------------------------
-   (initialization-check-terminator MoveSet unreachable)
+   (initialization-check-cfg-node MoveSet unreachable)
    ]
 
   [----------------------------------------
-   (initialization-check-terminator MoveSet (drop Place TargetIds))
+   (initialization-check-cfg-node MoveSet (drop Place TargetIds))
    ]
 
   [----------------------------------------
-   (initialization-check-terminator MoveSet (drop-and-replace Place TargetIds))
+   (initialization-check-cfg-node MoveSet (drop-and-replace Place TargetIds))
    ]
 
   [(initialization-check-operands MoveSet [Operand_f Operand_a ...])
    ----------------------------------------
-   (initialization-check-terminator MoveSet (call Operand_f [Operand_a ...] Place TargetIds))
+   (initialization-check-cfg-node MoveSet (call Operand_f [Operand_a ...] Place TargetIds))
    ]
-
-  )
-
-(define-judgment-form
-  formality-body
-  ;; Check that each piece of data accessed in `Statement` is initialized.
-  ;;
-  ;; `MoveSet` contains the places that are moved on entry to the statement.
-  #:mode (initialization-check-statement I I)
-  #:contract (initialization-check-statement MoveSet Statement)
 
   [(initialization-check-rvalue MoveSet Rvalue)
    (where/error MoveSet_rvalue (update-move-set-from-rvalue MoveSet Rvalue))
    (place-assignable MoveSet_rvalue Place)
    ----------------------------------------
-   (initialization-check-statement MoveSet (Place = Rvalue))
+   (initialization-check-cfg-node MoveSet (Place = Rvalue))
    ]
 
   [(place-fully-initialized MoveSet Place)
    ----------------------------------------
-   (initialization-check-statement MoveSet (set-discriminant Place VariantId))
+   (initialization-check-cfg-node MoveSet (set-discriminant Place VariantId))
    ]
 
   [; FIXME: What, if any, conditions should we check for storage-live?
    ----------------------------------------
-   (initialization-check-statement MoveSet (storage-live LocalId))
+   (initialization-check-cfg-node MoveSet (storage-live LocalId))
    ]
 
   [; FIXME: What, if any, conditions should we check for storage-dead?
    ----------------------------------------
-   (initialization-check-statement MoveSet (storage-dead LocalId))
+   (initialization-check-cfg-node MoveSet (storage-dead LocalId))
    ]
 
   [; FIXME: What, if any, conditions should we check for storage-dead?
    ----------------------------------------
-   (initialization-check-statement MoveSet noop)
+   (initialization-check-cfg-node MoveSet noop)
    ]
 
   [(place-fully-initialized MoveSet Place)
    ----------------------------------------
-   (initialization-check-statement MoveSet (fake-read Place))
+   (initialization-check-cfg-node MoveSet (fake-read Place))
    ]
   )
 

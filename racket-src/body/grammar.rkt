@@ -155,6 +155,7 @@
   (StatementAtLocations ::= (StatementAtLocation ...))
   (StatementAtLocation ::= (Location Statement))
   (TerminatorAtLocation ::= (Location Terminator))
+  (StatementOrTerminator ::= Statement Terminator)
 
   ;; Internal to type check:
   ;;
@@ -166,8 +167,8 @@
   ;; A move set stores a set of places that are moved
   (MoveSet ::= Places)
 
-  ;; Maps from a basic block to a moveset on entry to that block.
-  (MoveSetMap ::= [(BasicBlockId MoveSet) ...])
+  ;; Maps from a location to a moveset on entry to that point.
+  (MoveSetMap ::= [(Location MoveSet) ...])
 
   ;; The move-sets before each statement in a block, along with the final move-set
   ;; (the state before the terminator is executed).
@@ -193,6 +194,21 @@
   ;; which is live at the location `L`.
   (LivenessConstraints ::= [LivenessConstraint ...])
   (LivenessConstraint ::= (VarId -outlives- Location))
+
+  ;; Cfg -- representation of the control-flow-graph. Each node is either a statement
+  ;; or a terminator and there are edges. The first node in the list is the entry point.
+  (Cfg ::= (LocatedCfgNodes CfgEdges))
+  (LocatedCfgNodes ::= [LocatedCfgNode ...])
+  (LocatedCfgNode ::= (Location CfgNode))
+  (CfgNode ::= Statement Terminator)
+  (CfgEdges ::= [CfgEdge ...])
+  (CfgEdge ::= (Location Location))
+
+  (DataflowMode ::= moved-places)
+  (LocatedCfgValues ::= [LocatedCfgValue ...])
+  (LocatedCfgValue ::= (Location CfgValue))
+  (CfgValue ::= MoveSet ; for moved-places mode
+            )
 
   ; identifiers of various kinds:
   (LocalIds ::= [LocalId ...])
