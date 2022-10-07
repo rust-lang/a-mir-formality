@@ -4,11 +4,21 @@
          "locations.rkt"
          )
 (provide control-flow-graph
+         control-flow-graph-from-Γ
          cfg-node-at
          cfg-edges
          cfg-locations
          )
 
+(define-metafunction formality-body
+  control-flow-graph-from-Γ : Γ -> Cfg
+
+  [(control-flow-graph-from-Γ Γ)
+   (control-flow-graph BasicBlockDecls)
+   (where/error BasicBlockDecls (basic-block-decls-of-Γ Γ))
+   ]
+
+  )
 (define-metafunction formality-body
   control-flow-graph : BasicBlockDecls -> Cfg
 

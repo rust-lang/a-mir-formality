@@ -7,22 +7,30 @@
          "dataflow.rkt"
          )
 (provide variable-live-on-entry-to
+         variables-live-on-entry-to
          )
 
 (define-judgment-form
   formality-body
-  #:mode (variable-live-on-entry-to I I I I)
+  #:mode (variable-live-on-entry-to I I I O)
   #:contract (variable-live-on-entry-to LivenessMode Cfg Location LocalId)
 
 
-  [(where/error [_ ... (Location LocalIds_live) _ ...] (live-variables-map LivenessMode Cfg))
-   (where #t (in?/id LocalId LocalIds_live))
+  [(where/error [_ ... LocalId_live _ ...] (variables-live-on-entry-to LivenessMode Cfg Location ))
    ----------------------------------------
-   (variable-live-on-entry-to LivenessMode Cfg Location LocalId)
+   (variable-live-on-entry-to LivenessMode Cfg Location LocalId_live)
    ]
 
   )
 
+(define-metafunction formality-body
+  variables-live-on-entry-to : LivenessMode Cfg Location -> LocalIds
+
+  [(variables-live-on-entry-to LivenessMode Cfg Location)
+   LocalIds_live
+   (where/error [_ ... (Location LocalIds_live) _ ...] (live-variables-map LivenessMode Cfg))
+   ]
+  )
 (define-metafunction formality-body
   live-variables-map : LivenessMode Cfg -> LiveVariablesMap
 
