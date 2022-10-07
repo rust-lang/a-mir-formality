@@ -2,8 +2,6 @@
 (require redex/reduction-semantics
          "../../util.rkt"
          "../../logic/env.rkt"
-         "../../logic/env-inequalities.rkt"
-         "../locations.rkt"
          "../cfg.rkt"
          "../grammar.rkt"
          "dataflow.rkt"
