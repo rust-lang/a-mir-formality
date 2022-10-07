@@ -203,13 +203,22 @@
   (CfgEdge ::= (Location Location))
 
   (DataflowMode ::= ForwardDataflowMode ReverseDataflowMode)
-  (ForwardDataflowMode ::= moved-places)
+  (ForwardDataflowMode ::= moved-places active-loans)
   (ReverseDataflowMode ::= LivenessMode)
   (LivenessMode ::= use-live drop-live)
   (LocatedCfgValues ::= [LocatedCfgValue ...])
   (LocatedCfgValue ::= (Location CfgValue))
-  (CfgValue ::= MoveSet ; for moved-places mode
+  (CfgValue ::=
+            MoveSet ; for moved-places mode
+            LoanSet ; for active-loans mode
+            LocalIds ; for liveness analyses
             )
+
+  ; A *Loan* occurs when we have a borrow
+  (LocatedLoanSets ::= [LocatedLoanSet ...])
+  (LocatedLoanSet ::= (Location LoanSet))
+  (LoanSet ::= [Loan ...])
+  (Loan ::= (Lt MaybeMut Place))
 
   ; identifiers of various kinds:
   (LocalIds ::= [LocalId ...])

@@ -5,6 +5,7 @@
          "move-set.rkt"
          "dataflow/moved-places.rkt"
          "dataflow/liveness.rkt"
+         "dataflow/active-loans.rkt"
          )
 (provide dataflow
          )
@@ -89,6 +90,10 @@
    (dataflow-apply-node-liveness LivenessMode CfgNode Location MoveSet)
    ]
 
+  [(dataflow-apply-node active-loans CfgNode Location LoanSet)
+   (dataflow-apply-node-active-loans CfgNode Location LoanSet)
+   ]
+
   )
 
 
@@ -102,5 +107,9 @@
 
   [(dataflow-join LivenessMode LocalIds_a LocalIds_b)
    (union-sets LocalIds_a LocalIds_b)
+   ]
+
+  [(dataflow-join active-loans LoanSet_a LoanSet_b)
+   (union-sets LoanSet_a LoanSet_b)
    ]
   )
