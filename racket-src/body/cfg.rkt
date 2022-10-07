@@ -6,6 +6,7 @@
 (provide control-flow-graph
          cfg-node-at
          cfg-edges
+         cfg-locations
          )
 
 (define-metafunction formality-body
@@ -25,6 +26,16 @@
   [(cfg-node-at Cfg Location)
    CfgNode
    (where/error ([_ ... (Location CfgNode) _ ...] _) Cfg)
+   ]
+
+  )
+
+(define-metafunction formality-body
+  cfg-locations : Cfg -> Locations
+
+  [(cfg-locations Cfg)
+   [Location ...]
+   (where/error ([(Location CfgNode) ...] _) Cfg)
    ]
 
   )

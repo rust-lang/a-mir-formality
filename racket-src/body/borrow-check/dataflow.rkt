@@ -4,6 +4,7 @@
          "../grammar.rkt"
          "move-set.rkt"
          "dataflow/moved-places.rkt"
+         "dataflow/liveness.rkt"
          )
 (provide dataflow
          )
@@ -54,13 +55,22 @@
   ;; applies any diff based on the statement/terminator at that point, and then overwrites value of B.
   dataflow-apply-edge : DataflowMode LocatedCfgNodes CfgEdge LocatedCfgValues -> LocatedCfgValues
 
-  [(dataflow-apply-edge DataflowMode LocatedCfgNodes (Location_a Location_b) LocatedCfgValues)
+  [(dataflow-apply-edge ForwardDataflowMode LocatedCfgNodes (Location_a Location_b) LocatedCfgValues)
    [LocatedCfgValue_before ... (Location_b CfgValue_b1) LocatedCfgValue_after ...]
    (where/error [_ ... (Location_a CfgValue_a) _ ...] LocatedCfgValues)
    (where/error [LocatedCfgValue_before ... (Location_b CfgValue_b) LocatedCfgValue_after ...] LocatedCfgValues)
    (where/error [_ ... (Location_a CfgNode_a) _ ...] LocatedCfgNodes)
-   (where/error CfgValue_a1 (dataflow-apply-node DataflowMode CfgNode_a Location_b CfgValue_a))
-   (where/error CfgValue_b1 (dataflow-join DataflowMode CfgValue_a1 CfgValue_b))
+   (where/error CfgValue_a1 (dataflow-apply-node ForwardDataflowMode CfgNode_a Location_b CfgValue_a))
+   (where/error CfgValue_b1 (dataflow-join ForwardDataflowMode CfgValue_a1 CfgValue_b))
+   ]
+
+  [(dataflow-apply-edge ReverseDataflowMode LocatedCfgNodes (Location_a Location_b) LocatedCfgValues)
+   [LocatedCfgValue_before ... (Location_a CfgValue_a1) LocatedCfgValue_after ...]
+   (where/error [_ ... (Location_b CfgValue_b) _ ...] LocatedCfgValues)
+   (where/error [LocatedCfgValue_before ... (Location_a CfgValue_a) LocatedCfgValue_after ...] LocatedCfgValues)
+   (where/error [_ ... (Location_a CfgNode_a) _ ...] LocatedCfgNodes)
+   (where/error CfgValue_b1 (dataflow-apply-node ReverseDataflowMode CfgNode_a Location_b CfgValue_b))
+   (where/error CfgValue_a1 (dataflow-join ReverseDataflowMode CfgValue_b1 CfgValue_a))
    ]
 
   )
@@ -75,6 +85,10 @@
    (dataflow-apply-node-moved-places CfgNode Location MoveSet)
    ]
 
+  [(dataflow-apply-node LivenessMode CfgNode Location MoveSet)
+   (dataflow-apply-node-liveness LivenessMode CfgNode Location MoveSet)
+   ]
+
   )
 
 
@@ -86,11 +100,7 @@
    (union-move-sets MoveSet_a MoveSet_b)
    ]
 
-  [(dataflow-join use-live-locals LocalIds_a LocalIds_b)
-   (set-union LocalIds_a LocalIds_b)
-   ]
-
-  [(dataflow-join drop-live-locals LocalIds_a LocalIds_b)
-   (set-union LocalIds_a LocalIds_b)
+  [(dataflow-join LivenessMode LocalIds_a LocalIds_b)
+   (union-sets LocalIds_a LocalIds_b)
    ]
   )

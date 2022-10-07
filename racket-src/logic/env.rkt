@@ -560,9 +560,18 @@
 
 (define-metafunction formality-logic
   ;; Perform set union
-  union-of : Terms ... -> Terms
+  union-sets : Terms ... -> Terms
 
-  [(union-of Terms ...)
+  [(union-sets Terms ...)
    ,(apply set-union (term [Terms ...]))
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; Perform set union
+  subtract-sets : Terms_1 Terms_2 -> Terms
+
+  [(subtract-sets Terms_1 Terms_2)
+   ,(set-subtract (term Terms_1) (term Terms_2))
    ]
   )

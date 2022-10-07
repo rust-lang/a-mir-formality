@@ -175,9 +175,7 @@
   (MoveSetsForStatements ::= ([(MoveSet Statement) ...] MoveSet))
 
   ;; Identifies the local variables live before entering a given basic block.
-  (LiveVariablesBeforeBlocks ::= [LiveVariablesBeforeBlock ...])
-  (LiveVariablesBeforeBlock ::= (BasicBlockId LiveVariables))
-  (LiveVariables ::= (reads: LocalIds drops: LocalIds))
+  (LiveVariablesMap ::= [(Location LocalIds) ...])
   (LivenessEffects ::= (reads: LocalIds drops: LocalIds))
 
   ;; Summarizes one possible effect of a terminator:
@@ -204,9 +202,10 @@
   (CfgEdges ::= [CfgEdge ...])
   (CfgEdge ::= (Location Location))
 
+  (DataflowMode ::= ForwardDataflowMode ReverseDataflowMode)
+  (ForwardDataflowMode ::= moved-places)
+  (ReverseDataflowMode ::= LivenessMode)
   (LivenessMode ::= use-live drop-live)
-
-  (DataflowMode ::= moved-places)
   (LocatedCfgValues ::= [LocatedCfgValue ...])
   (LocatedCfgValue ::= (Location CfgValue))
   (CfgValue ::= MoveSet ; for moved-places mode
