@@ -9,6 +9,7 @@
          place-set-contains-intersecting-place?
          place-set-contains-prefix-of?
          place-set-contains-suffix-of?
+         places-intersect?
          )
 
 (define-metafunction formality-body
@@ -75,6 +76,25 @@
   [(place-set-contains-suffix-of? Places Place)
    (any? (place-is-prefix-of? Place Place_member) ...)
    (where/error [Place_member ...] Places)
+   ]
+  )
+
+(define-metafunction formality-body
+  ;; True if these two places intersect.
+  places-intersect? : Place Place -> boolean
+
+  [(places-intersect? Place_1 Place_2)
+   #t
+   (where #t (place-is-prefix-of? Place_1 Place_2))
+   ]
+
+  [(places-intersect? Place_1 Place_2)
+   #t
+   (where #t (place-is-prefix-of? Place_2 Place_1))
+   ]
+
+  [(places-intersect? Place_1 Place_2)
+   #f
    ]
   )
 

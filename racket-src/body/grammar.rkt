@@ -220,6 +220,13 @@
   (LoanSet ::= [Loan ...])
   (Loan ::= (Lt MaybeMut Place))
 
+  ;; An `RvalueAction` indicates the kind of things an rvalue can do
+  (RvalueActions ::= [RvalueAction ...])
+  (RvalueAction ::=
+                Operand
+                (ref MaybeMut Place)
+                )
+
   ; identifiers of various kinds:
   (LocalIds ::= [LocalId ...])
   (MirId BasicBlockId LocalId ::= variable-not-otherwise-mentioned)

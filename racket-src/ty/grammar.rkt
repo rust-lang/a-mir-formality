@@ -152,6 +152,7 @@
   ;;
   ;; Very similar to types `Ty` in terms of how they are represented
   ;; and the meaning of `VarId`.
+  (Lts ::= [Lt ...])
   (Lt ::=
       static                      ; 'static
       VarId                       ; Bound, inference (existential), or placeholder (universal) variable

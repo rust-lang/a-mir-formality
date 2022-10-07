@@ -124,8 +124,8 @@
            (test-equal
             (term (querify-goal Env_2 (is-true (Parameter_A Parameter_Z))))
             (term ((?-
-                    ((Parameter_Z type ∀ (universe 2))
-                     (Parameter_A type ∀ (universe 1))
+                    ((Parameter_A type ∀ (universe 1))
+                     (Parameter_Z type ∀ (universe 2))
                      )
                     (implies ()
                              (is-true (Parameter_A Parameter_Z))))

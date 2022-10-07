@@ -379,7 +379,7 @@
    (where #t (env-contains-var Env VarId))]
 
   [(free-variables Env (Term ...))
-   ,(apply set-union (term (() VarIds ...)))
+  (union-sets VarIds ...)
    (where/error (VarIds ...) ((free-variables Env Term) ...))
    ]
 
@@ -404,7 +404,7 @@
    (where #t (env-contains-existential-var Env VarId))]
 
   [(free-existential-variables Env (Term ...))
-   ,(apply set-union (term (() VarIds ...)))
+   (union-sets VarIds ...)
    (where/error (VarIds ...) ((free-existential-variables Env Term) ...))
    ]
 
@@ -432,7 +432,7 @@
    ]
 
   [(free-existential-variables-of-kind Env ParameterKind (Term ...))
-   ,(apply set-union (term (() VarIds ...)))
+   (union-sets VarIds ...)
    (where/error (VarIds ...) ((free-existential-variables-of-kind Env ParameterKind Term) ...))
    ]
 
@@ -455,7 +455,7 @@
    ]
 
   [(placeholder-variables Env (Term ...))
-   ,(apply set-union (term (() VarIds ...)))
+   (union-sets VarIds ...)
    (where/error (VarIds ...) ((placeholder-variables Env Term) ...))
    ]
 
@@ -561,6 +561,10 @@
 (define-metafunction formality-logic
   ;; Perform set union
   union-sets : Terms ... -> Terms
+
+  [(union-sets)
+   []
+   ]
 
   [(union-sets Terms ...)
    ,(apply set-union (term [Terms ...]))

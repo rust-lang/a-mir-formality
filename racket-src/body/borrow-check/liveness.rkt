@@ -15,8 +15,7 @@
   #:mode (variable-live-on-entry-to I I I O)
   #:contract (variable-live-on-entry-to LivenessMode Cfg Location LocalId)
 
-
-  [(where/error [_ ... LocalId_live _ ...] (variables-live-on-entry-to LivenessMode Cfg Location ))
+  [(where [_ ... LocalId_live _ ...] (variables-live-on-entry-to LivenessMode Cfg Location ))
    ----------------------------------------
    (variable-live-on-entry-to LivenessMode Cfg Location LocalId_live)
    ]

@@ -1,8 +1,8 @@
 #lang racket
 (require redex/reduction-semantics
          "../../logic/env.rkt"
+         "../../logic/substitution.rkt"
          "../../logic/env-inequalities.rkt"
-         "../locations.rkt"
          "../grammar.rkt"
          )
 (provide outlives-transitively
@@ -47,16 +47,21 @@
   ;; outlives (which may themselves be variables).
   outlives-immediately : Env Lt -> Lts
 
-  [(outlives-immediately Env Lt)
+  [(outlives-immediately Env VarId)
    (known-bounds Env VarId -outlives-)
-   (where #t (env-contains-unmapped-existential-var? Env VarId))
+   (where #t (env-contains-unmapped-existential-var Env VarId))
+   ]
+
+  [(outlives-immediately Env VarId)
+   (outlives-immediately Env (apply-substitution-from-env Env VarId))
+   (where #t (env-contains-existential-var Env VarId))
    ]
 
   [(outlives-immediately Env static)
    []
    ]
 
-  [(outlives-immediately Env static)
+  [(outlives-immediately Env VarId)
    []
    (where #t (env-contains-placeholder-var Env VarId))
    ]

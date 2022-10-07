@@ -57,7 +57,7 @@
   (redex-let*
    formality-rust
 
-   ; Baseline test, this should compile.
+   ; Mutation of `x` while borrowed, should not compile.
    ;
    ; fn main() {
    ;     let mut x = 22;
@@ -98,6 +98,6 @@
     ]
 
    (traced '()
-           (test-equal (term (rust:is-program-ok Rust/Program)) #t)) ; FIXME
+           (test-equal (term (rust:is-program-ok Rust/Program)) #f))
    )
   )
