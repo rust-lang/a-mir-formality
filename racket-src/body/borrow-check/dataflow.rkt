@@ -1,5 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
+         "../../logic/env.rkt"
          "../grammar.rkt"
          "move-set.rkt"
          "dataflow/moved-places.rkt"
@@ -86,10 +87,10 @@
    ]
 
   [(dataflow-join use-live-locals LocalIds_a LocalIds_b)
-   ,(set-union (term LocalIds_a) (term LocalIds_b))
+   (set-union LocalIds_a LocalIds_b)
    ]
 
   [(dataflow-join drop-live-locals LocalIds_a LocalIds_b)
-   ,(set-union (term LocalIds_a) (term LocalIds_b))
+   (set-union LocalIds_a LocalIds_b)
    ]
   )

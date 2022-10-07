@@ -82,7 +82,7 @@
 
   ((universe-map Universes)
    (number-universes 0 Universes_sorted)
-   (where/error Universes_dedup ,(set-union (term (RootUniverse)) (term Universes)))
+   (where/error Universes_dedup (set-union (RootUniverse) Universes))
    (where/error Universes_sorted ,(sort (term Universes_dedup) (lambda (a b) (term (universe-includes ,b ,a)))))
    )
   )

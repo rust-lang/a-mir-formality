@@ -1,5 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
+         racket/set
          "grammar.rkt")
 (provide (all-defined-out))
 
@@ -555,4 +556,13 @@
   flatten : ((Term ...) ...) -> (Term ...)
 
   [(flatten ((Term ...) ...)) (Term ... ...)]
+  )
+
+(define-metafunction formality-logic
+  ;; Perform set union
+  union-of : Terms ... -> Terms
+
+  [(union-of Terms ...)
+   ,(apply set-union (term [Terms ...]))
+   ]
   )

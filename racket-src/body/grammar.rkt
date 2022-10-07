@@ -87,13 +87,13 @@
             )
 
   (Places ::= [Place ...])
-  (Place ::=
-         LocalId
-         (* Place)
-         (field Place FieldId)
-         (index Place LocalId)
-         (downcast Place VariantId)
-         )
+  (Place ::= LocalId CompoundPlace)
+  (CompoundPlace ::=
+                 (* Place)
+                 (field Place FieldId)
+                 (index Place LocalId)
+                 (downcast Place VariantId)
+                 )
 
   (Projections ::= (Projection ...))
   (Projection ::=
@@ -178,7 +178,7 @@
   (LiveVariablesBeforeBlocks ::= [LiveVariablesBeforeBlock ...])
   (LiveVariablesBeforeBlock ::= (BasicBlockId LiveVariables))
   (LiveVariables ::= (reads: LocalIds drops: LocalIds))
-  (LivenessEffects ::= (reads: LocalIds drops: LocalIds writes: LocalIds))
+  (LivenessEffects ::= (reads: LocalIds drops: LocalIds))
 
   ;; Summarizes one possible effect of a terminator:
   ;;
@@ -203,6 +203,8 @@
   (CfgNode ::= Statement Terminator)
   (CfgEdges ::= [CfgEdge ...])
   (CfgEdge ::= (Location Location))
+
+  (LivenessMode ::= use-live drop-live)
 
   (DataflowMode ::= moved-places)
   (LocatedCfgValues ::= [LocatedCfgValue ...])

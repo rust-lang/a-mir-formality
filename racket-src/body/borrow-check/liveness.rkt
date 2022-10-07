@@ -1,301 +1,405 @@
 #lang racket
 (require redex/reduction-semantics
+         "../../util.rkt"
          "../../logic/env.rkt"
+         "../../logic/env-inequalities.rkt"
          "../locations.rkt"
+         "../cfg.rkt"
          "../grammar.rkt"
-         "liveness-effects-of.rkt"
-         "liveness-effects.rkt"
-         "liveness-constraints.rkt"
          )
-(provide liveness
-         liveness-constraints
+(provide variable-live-on-entry-to
          )
 
-(define-metafunction formality-body
-  ;; Generates a series of liveness constraints of the form `(?R -outlives- L)` for each lifetime
-  ;; `?R` that is live at the location `L`. A lifetime is live if it appears in the type of
-  ;; some variable that is live.
-  liveness-constraints : Γ Env -> LivenessConstraints
+(define-judgment-form
+  formality-body
+  #:mode (variable-live-on-entry-to I I I I)
+  #:contract (variable-live-on-entry-to LivenessMode Cfg Location LocalId)
 
-  [(liveness-constraints Γ Env)
-   [LivenessConstraint ... ...]
+  [(where/error CfgNode (cfg-node-at Cfg Location))
+   (where [_ ... (Location Location_succ) _ ...] (cfg-edges Cfg))
+   (variable-not-assigned-on-path-from CfgNode Location_succ LocalId)
+   (variable-live-on-entry-to LivenessMode Cfg Location_succ LocalId)
+   ----------------------------------------
+   (variable-live-on-entry-to LivenessMode Cfg Location LocalId)
+   ]
 
-   (where/error [BasicBlockDecl ...] (basic-block-decls-of-Γ Γ))
-   (where/error LiveVariablesBeforeBlocks (liveness [BasicBlockDecl ...]))
-   (where/error [[LivenessConstraint ...] ...] [(liveness-constraints-from-block Γ Env LiveVariablesBeforeBlocks BasicBlockDecl) ...])
+  [(where/error CfgNode (cfg-node-at Cfg Location))
+   (variable-read-by-node LivenessMode CfgNode Location LocalId)
+   ----------------------------------------
+   (variable-live-on-entry-to LivenessMode Cfg Location LocalId)
    ]
   )
 
-(define-metafunction formality-body
-  ;; Generates liveness constraints resulting from the given block.
-  liveness-constraints-from-block : Γ Env LiveVariablesBeforeBlocks BasicBlockDecl -> LivenessConstraints
+(define-judgment-form
+  formality-body
+  #:mode (variable-not-assigned-on-path-from I I I)
+  #:contract (variable-not-assigned-on-path-from CfgNode Location LocalId)
 
-  [(liveness-constraints-from-block Γ Env LiveVariablesBeforeBlocks BasicBlockDecl)
-   [LivenessConstraint_stmts ... LivenessConstraint_term ...]
-
-   (where/error (StatementAtLocations (Location_term Terminator)) (basic-block-locations BasicBlockDecl))
-
-   ; compute the live variables before the terminator
-   (where/error LiveVariables_term (live-variables-before-terminator LiveVariablesBeforeBlocks Terminator))
-
-   ; compute the constraints resulting from those live variables
-   (where/error [LivenessConstraint_term ...] (liveness-constraints-from-live-variables Γ Env Location_term LiveVariables_term))
-
-   ; compute the constriants from each statement
-   (where/error [LivenessConstraint_stmts ...] (liveness-constraints-from-statements Γ Env LiveVariables_term StatementAtLocations))
+  [(where #f (in?/id LocalId (written-by-node CfgNode Location)))
+   ----------------------------------------
+   (variable-not-assigned-on-path-from CfgNode Location LocalId)
    ]
+
   )
 
-
 (define-metafunction formality-body
-  ;; Generates liveness constraints on entry to each of the given statements:
-  ;;
-  ;; * LiveVariables -- the variables live before the statements in the list
-  ;; * StatementAtLocations -- the statements in the block and their locations
-  liveness-constraints-from-statements : Γ Env LiveVariables StatementAtLocations -> LivenessConstraints
+  ;; Returns list of local-ids that are overwritten entirely by
+  ;; `CfgNode` when it transitions to its successor `Location`.
+  written-by-node : CfgNode Location -> LocalIds
 
-  [(liveness-constraints-from-statements Γ Env LiveVariables [])
+  ; Calls only overwrite when passing to their first successor (the "ok" path).
+  [(written-by-node (call Operand_fn [Operand_arg ...] Place_dest [BasicBlockId _ ...]) (BasicBlockId @ 0))
+   (written-by-place Place_dest)
+   ]
+
+  ; Assignment statements are unconditional.
+  [(written-by-node (Place = Rvalue) _)
+   (written-by-place Place)
+   ]
+
+  [(written-by-node CfgNode Location)
    []
    ]
 
-  [(liveness-constraints-from-statements Γ Env LiveVariables_succ [StatementAtLocation_pred ... (Location Statement)])
-   [LivenessConstraint_stmt ... LivenessConstraint_pred ...]
+  )
 
-   ; compute live variables on entry to the statement
-   (where/error LivenessEffects_stmt (liveness-effects-of-evaluating-statement Statement))
-   (where/error LiveVariables_stmt (apply-effects-to-live-variables LivenessEffects_stmt LiveVariables_succ))
+(define-metafunction formality-body
+  written-by-place : Place -> LocalIds
 
-   ; compute constraints resulting from those live variables
-   (where/error [LivenessConstraint_stmt ...] (liveness-constraints-from-live-variables Γ Env Location LiveVariables_stmt))
+  ; writing to `x = foo` overwrites `x` entirely
+  [(written-by-place LocalId)
+   [LocalId]
+   ]
 
-   ; compute the constraints from predecessor statements
-   (where/error [LivenessConstraint_pred ...] (liveness-constraints-from-statements Γ Env LiveVariables_stmt [StatementAtLocation_pred ...]))
+  ; writing to `x.f = foo` means `x` is still live
+  [(written-by-place CompoundPlace)
+   []
+   ]
+
+  )
+
+(define-judgment-form
+  formality-body
+  #:mode (variable-read-by-node I I I I)
+  #:contract (variable-read-by-node LivenessMode CfgNode Location LocalId)
+
+  [(where/error (reads: LocalIds drops: _) (effects-of-node CfgNode))
+   (where #t (in?/id LocalId LocalIds))
+   ----------------------------------------
+   (variable-read-by-node use-live CfgNode Location LocalId)
+   ]
+
+  [(where/error (reads: _ drops: LocalIds) (effects-of-node CfgNode))
+   (where #t (in?/id LocalId LocalIds))
+   ----------------------------------------
+   (variable-read-by-node drop-live CfgNode Location LocalId)
    ]
 
   )
 
 (define-metafunction formality-body
-  ;; Compute live variables on entry to each basic block.
-  liveness : BasicBlockDecls -> LiveVariablesBeforeBlocks
+  effects-of-node : CfgNode -> LivenessEffects
 
-  [(liveness BasicBlockDecls)
-   (liveness-fix BasicBlockDecls LiveVariablesBeforeBlocks)
-
-   (where/error [(BasicBlockId _) ...] BasicBlockDecls)
-   (where/error LiveVariablesBeforeBlocks [(BasicBlockId (reads: [] drops: [])) ...])
-   ]
-  )
-
-(define-metafunction formality-body
-  ;; Compute liveness before each block by iterating until a fixed point is reached.
-  liveness-fix : BasicBlockDecls LiveVariablesBeforeBlocks -> LiveVariablesBeforeBlocks
-
-  [(liveness-fix BasicBlockDecls LiveVariablesBeforeBlocks)
-   LiveVariablesBeforeBlocks
-   (where LiveVariablesBeforeBlocks (liveness-step BasicBlockDecls LiveVariablesBeforeBlocks))
+  [(effects-of-node (goto BasicBlockId))
+   (reads: [] drops: [])
    ]
 
-  [(liveness-fix BasicBlockDecls LiveVariablesBeforeBlocks)
-   (liveness-fix BasicBlockDecls LiveVariablesBeforeBlocks_1)
-   (where LiveVariablesBeforeBlocks_1 (liveness-step BasicBlockDecls LiveVariablesBeforeBlocks))
-   ]
-  )
-
-(define-metafunction formality-body
-  ;; Improve computation of liveness before each block by 1 step.
-  liveness-step : BasicBlockDecls LiveVariablesBeforeBlocks -> LiveVariablesBeforeBlocks
-
-  [(liveness-step BasicBlockDecls LiveVariablesBeforeBlocks)
-   [(live-variables-before-block BasicBlockDecls LiveVariablesBeforeBlocks BasicBlockId) ...]
-   (where/error [(BasicBlockId _) ...] LiveVariablesBeforeBlocks)
-   ]
-  )
-
-(define-metafunction formality-body
-  ;; Computes the live variables before the given block starts to execute,
-  ;; given the current state of the live variables before each other block.
-  live-variables-before-block : BasicBlockDecls LiveVariablesBeforeBlocks BasicBlockId -> LiveVariablesBeforeBlock
-
-  [(live-variables-before-block BasicBlockDecls LiveVariablesBeforeBlocks BasicBlockId)
-   (BasicBlockId (apply-effects-to-live-variables LivenessEffects_s LiveVariables_term))
-
-   ; find the definition of this block
-   (where/error [_ ... (BasicBlockId (Statements Terminator)) _ ...] BasicBlockDecls)
-
-   ; compute the live variables before the terminator
-   (where/error LiveVariables_term (live-variables-before-terminator LiveVariablesBeforeBlocks Terminator))
-
-   ; compute effects of the statements
-   (where/error LivenessEffects_s (liveness-effects-of-evaluating-statements Statements))
+  [(effects-of-node resume)
+   (reads: [] drops: [])
    ]
 
-  )
+  [(effects-of-node abort)
+   (reads: [] drops: [])
+   ]
 
-(define-metafunction formality-body
-  ;; Compute the live values before the given terminator.
-  live-variables-before-terminator : LiveVariablesBeforeBlocks Terminator -> LiveVariables
+  [(effects-of-node return)
+   (reads: [] drops: [])
+   ]
 
-  [(live-variables-before-terminator LiveVariablesBeforeBlocks Terminator)
-   (union-live-variables LiveVariables ...)
-   (where/error [TerminatorLivenessEffects ...] (liveness-effects-of-terminator Terminator))
-   (where/error [LiveVariables ...] [(live-variables-before-successor LiveVariablesBeforeBlocks TerminatorLivenessEffects) ...])
+  [(effects-of-node unreachable)
+   (reads: [] drops: [])
+   ]
+
+  [(effects-of-node (drop Place [BasicBlockId ...]))
+   (drop-place Place)
+   ]
+
+  [(effects-of-node (call Operand_fn [Operand_arg ...] Place_dest TargetIds))
+   (union-liveness-effects (evaluate-operand Operand_fn)
+                           (evaluate-operand Operand_arg) ...
+                           )
+   ]
+
+  [(effects-of-node (Place = Rvalue))
+   (union-liveness-effects (evaluate-rvalue Rvalue)
+                           (write-place Place))
+   ]
+
+  [(effects-of-node (set-discriminant Place VariantId))
+   (read-place Place)
+   ]
+
+  [(effects-of-node (storage-live LocalId))
+   (reads: [] drops: [])
+   ]
+
+  [(effects-of-node (storage-dead LocalId))
+   (reads: [] drops: [])
+   ]
+
+  [(effects-of-node noop)
+   (reads: [] drops: [])
+   ]
+
+  [(effects-of-node (fake-read Place))
+   (read-place Place)
    ]
 
   )
 
 (define-metafunction formality-body
-  ;; Computes the live variables before the terminator when coming from the given successor.
-  live-variables-before-successor : LiveVariablesBeforeBlocks TerminatorLivenessEffects -> LiveVariables
+  evaluate-rvalue : Rvalue -> LivenessEffects
 
-  [(live-variables-before-successor LiveVariablesBeforeBlocks (BasicBlockId_succ LivenessEffects_term))
-   (apply-effects-to-live-variables LivenessEffects_term LiveVariables_succ)
+  [(evaluate-rvalue (use Operand))
+   (evaluate-operand Operand)
+   ]
 
-   ; find the read/drop-live values on entry to the succcessor
-   (where/error [_ ... (BasicBlockId_succ LiveVariables_succ) _ ...] LiveVariablesBeforeBlocks)
+  [(evaluate-rvalue (repeat Operand Constant))
+   (evaluate-operand Operand)
+   ]
+
+  [(evaluate-rvalue (ref Lt MaybeMut Place))
+   (read-place Place)
+   ]
+
+  [(evaluate-rvalue (addr-of MaybeMut Place))
+   (read-place Place)
+   ]
+
+  [(evaluate-rvalue (len Place))
+   (read-place Place)
+   ]
+
+  [(evaluate-rvalue (BinaryOp Operand_l Operand_r))
+   (union-liveness-effects (evaluate-operand Operand_l)
+                           (evaluate-operand Operand_r))
+   ]
+
+  )
+
+(define-metafunction formality-body
+  evaluate-operand : Operand -> LivenessEffects
+
+  [(evaluate-operand (CopyMove Place))
+   (read-place Place)
+   ]
+
+  [(evaluate-operand (const _))
+   (reads: [] drops: [])
    ]
   )
 
 (define-metafunction formality-body
-  ;; Given the liveness effects of some term, and the set of variables live after that term,
-  ;; computes the variables live before.
-  apply-effects-to-live-variables : LivenessEffects LiveVariables -> LiveVariables
+  read-place : Place -> LivenessEffects
 
-  [(apply-effects-to-live-variables LivenessEffects (reads: LocalIds_r_in drops: LocalIds_d_in))
-   (reads: LocalIds_r drops: LocalIds_d)
+  [(read-place LocalId)
+   (reads: [LocalId] drops: [])
+   ]
 
-   (where/error (reads: LocalIds_r drops: LocalIds_d writes: _)
-                (chain-liveness-effects LivenessEffects
-                                        (reads: LocalIds_r_in drops: LocalIds_d_in writes: [])))
+  [(read-place (* Place))
+   (read-place Place)
+   ]
+
+  [(read-place (field Place FieldId))
+   (read-place Place)
+   ]
+
+  [(read-place (index Place LocalId_index))
+   (union-liveness-effects (read-place Place)
+                           (reads: [LocalId_index] drops: []))
+   ]
+
+  [(read-place (downcast Place VariantId))
+   (read-place Place)
    ]
   )
 
 (define-metafunction formality-body
-  ;; Given the effect of two parallel paths, combine them.
-  union-live-variables : LiveVariables_0 ... -> LiveVariables
+  drop-place : Place -> LivenessEffects
 
-  [(union-live-variables (reads: LocalIds_r_in drops: LocalIds_d_in) ...)
-   (reads: LocalIds_r drops: LocalIds_d)
-
-   ; a variable is read if ANY path reads it
-   (where/error LocalIds_r (union-local-ids LocalIds_r_in ...))
-
-   ; a variable is dropped if ANY path reads it (unless it is read, which is more general)
-   (where/error LocalIds_d (minus-local-ids (union-local-ids LocalIds_d_in ...) LocalIds_r))
+  [(drop-place LocalId)
+   (reads: [] drops: [LocalId])
    ]
+
+  [(drop-place (* Place))
+   (drop-place Place)
+   ]
+
+  [(drop-place (field Place FieldId))
+   (drop-place Place)
+   ]
+
+  [(drop-place (index Place LocalId_index))
+   (union-liveness-effects (drop-place Place)
+                           (reads: [LocalId_index] drops: []))
+   ]
+
+  [(drop-place (downcast Place VariantId))
+   (drop-place Place)
+   ]
+  )
+
+(define-metafunction formality-body
+  write-place : Place -> LivenessEffects
+
+  [(write-place LocalId)
+   (reads: [] drops: [])
+   ]
+
+  [(write-place Place)
+   (read-place Place)
+   ]
+  )
+
+
+(define-metafunction formality-body
+  union-liveness-effects : LivenessEffects ... -> LivenessEffects
+
+  [(union-liveness-effects LivenessEffects ...)
+   (reads: (union-of LocalIds_r ...) drops: (union-of LocalIds_d ...))
+   (where/error [(reads: LocalIds_r drops: LocalIds_d) ...] [LivenessEffects ...])
+   ]
+
   )
 
 (module+ test
+  ; Writing to v1 makes it not live
+  (redex-let*
+   formality-body
+   [(BasicBlockDecls (term [(bb0 { [(v1 = (use (const 22)))
+                                    (v0 = (use (copy v1)))
+                                    ]
+                                   return
+                                   })
+                            ]))
+    (Cfg (term (control-flow-graph BasicBlockDecls)))
+    ]
 
-  (test-equal
-   (term (liveness [(bb0 { [(_0 = (use (copy _1))) ; _0 = _1
-                            ]
-                           return
-                           })
-                    ]))
-   (term [(bb0 (reads: [_1] drops: []))
-          ]))
+   ; False on entry to the block, because v1 is assigned
+   (traced '()
+           (test-judgment-false (variable-live-on-entry-to use-live Cfg (bb0 @ 0) v1)))
+   ; True at second statement
+   (traced '()
+           (test-judgment-holds (variable-live-on-entry-to use-live Cfg (bb0 @ 1) v1)))
+   )
 
-  (; reading `_1` generates `_1` in the read set
-   test-equal
-   (term (liveness [(bb0 { [(_1 = (use (const 22)))
-                            (_0 = (use (copy _1)))
-                            ]
-                           return
-                           })
-                    ]))
-   (term [(bb0 (reads: [] drops: []))
-          ]))
+  ; Writing to `v1.f` doesn't kill v1
+  (redex-let*
+   formality-body
+   [(BasicBlockDecls (term [(bb0 { [((field v1 f) = (use (const 22)))
+                                    (v0 = (use (copy v1)))
+                                    ]
+                                   return
+                                   })
+                            ]))
+    (Cfg (term (control-flow-graph BasicBlockDecls)))
+    ]
 
-  (; writing to `_1` kills `_1`
-   test-equal
-   (term (liveness [(bb0 { [(_1 = (use (const 22)))
-                            (_0 = (use (copy _1)))
-                            ]
-                           return
-                           })
-                    ]))
-   (term [(bb0 (reads: [] drops: []))
-          ]))
+   (traced '()
+           (test-judgment-holds (variable-live-on-entry-to use-live Cfg (bb0 @ 0) v1)))
+   )
 
-  (; writing to `_1.f` doesn't kill `_1`
-   test-equal
-   (term (liveness [(bb0 { [((field _1 f) = (use (const 22)))
-                            (_0 = (use (copy _1)))
-                            ]
-                           return
-                           })
-                    ]))
-   (term [(bb0 (reads: [_1] drops: []))
-          ]))
+  ; Dropping makes things drop-live, not use-live
+  (redex-let*
+   formality-body
+   [(BasicBlockDecls (term [(bb0 { []
+                                   (drop v0 [bb1])
+                                   })
 
-  (; dropping `_0` generates a drop set
-   test-equal
-   (term (liveness [(bb0 { []
-                           (drop _0 [bb1])
-                           })
+                            (bb1 { []
+                                   return
+                                   })
+                            ]))
+    (Cfg (term (control-flow-graph BasicBlockDecls)))
+    ]
 
-                    (bb1 { []
-                           return
-                           })
-                    ]))
-   (term [(bb0 (reads: [] drops: [_0]))
-          (bb1 (reads: [] drops: []))
-          ]))
+   (traced '()
+           (test-judgment-false (variable-live-on-entry-to use-live Cfg (bb0 @ 0) v0)))
+   (traced '()
+           (test-judgment-holds (variable-live-on-entry-to drop-live Cfg (bb0 @ 0) v0)))
+   )
 
-  (; reading `_0` upgrades from drop
-   test-equal
-   (term (liveness [(bb0 { [(_1 = (use (copy _0)))
-                            ]
-                           (drop _0 [bb1])
-                           })
+  ; Function calls write their destination
+  (redex-let*
+   formality-body
+   [(BasicBlockDecls (term [(bb0 { []
+                                   (call (copy some_func) [] v1 [bb1 bb2])
+                                   })
 
-                    (bb1 { []
-                           return
-                           })
-                    ]))
-   (term [(bb0 (reads: [_0] drops: []))
-          (bb1 (reads: [] drops: []))
-          ]))
+                            (bb1 { [(v0 = (use (copy v1)))]
+                                   return
+                                   })
 
+                            (bb2 { []
+                                   return
+                                   })
+                            ]))
+    (Cfg (term (control-flow-graph BasicBlockDecls)))
+    ]
 
-  (; when we call `_0`, that is a write to `_1`,
-   ; but only on the "ok" path
-   test-equal
-   (term (liveness [(bb0 { []
-                           (call (copy some_func) [] _1 [bb1 bb2])
-                           })
+   (traced '()
+           (test-judgment-false (variable-live-on-entry-to use-live Cfg (bb0 @ 0) v1)))
+   (traced '()
+           (test-judgment-holds (variable-live-on-entry-to use-live Cfg (bb1 @ 0) v1)))
+   )
 
-                    (bb1 { [(_0 = (use (copy _1)))]
-                           return
-                           })
+  ; Function calls write their destination, but only on success
+  (redex-let*
+   formality-body
+   [(BasicBlockDecls (term [(bb0 { []
+                                   (call (copy some_func) [] v1 [bb1 bb2])
+                                   })
 
-                    (bb2 { []
-                           return
-                           })
-                    ]))
-   (term [(bb0 (reads: [some_func] drops: []))
-          (bb1 (reads: [_1] drops: []))
-          (bb2 (reads: [] drops: []))
-          ]))
+                            (bb1 { [(v0 = (use (copy v1)))]
+                                   return
+                                   })
 
-  (; when we call `_0`, that is a write to `_1`,
-   ; but not on the error path
-   test-equal
-   (term (liveness [(bb0 { []
-                           (call (copy some_func) [] _1 [bb1 bb2])
-                           })
+                            (bb2 { [(v0 = (use (copy v1)))]
+                                   return
+                                   })
+                            ]))
+    (Cfg (term (control-flow-graph BasicBlockDecls)))
+    ]
 
-                    (bb1 { []
-                           return
-                           })
+   (traced '()
+           (test-judgment-holds (variable-live-on-entry-to use-live Cfg (bb0 @ 0) v1)))
+   (traced '()
+           (test-judgment-holds (variable-live-on-entry-to use-live Cfg (bb1 @ 0) v1)))
+   )
 
-                    (bb2 { [(_0 = (use (copy _1)))]
-                           return
-                           })
-                    ]))
-   (term [(bb0 (reads: [_1 some_func] drops: []))
-          (bb1 (reads: [] drops: []))
-          (bb2 (reads: [_1] drops: []))
-          ]))
+  ; loop
+  #;(redex-let*
+     formality-body
+     [(BasicBlockDecls (term [(bb0 { [(v1 = (use (const 22)))]
+                                     (goto bb1)
+                                     })
 
+                              (bb1 { [(v0 = (use (copy v1)))]
+                                     (goto bb1)
+                                     })
+
+                              (bb2 { []
+                                     return
+                                     })
+                              ]))
+      (Cfg (term (control-flow-graph BasicBlockDecls)))
+      ]
+
+     (traced '()
+             (test-judgment-false (variable-live-on-entry-to use-live Cfg (bb0 @ 0) v1)))
+     (traced '()
+             (test-judgment-false (variable-live-on-entry-to use-live Cfg (bb0 @ 1) v1)))
+     (traced '()
+             (test-judgment-holds (variable-live-on-entry-to use-live Cfg (bb1 @ 0) v1)))
+     )
   )

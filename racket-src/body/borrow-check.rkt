@@ -29,8 +29,6 @@
   [(where/error [(Location Goal) ...] GoalAtLocations)
    (where/error Goal_master (&& [Goal ...]))
    (prove-goal-in-env Env Goal_master TrueSolution)
-   (where/error LivenessConstraints_live (liveness-constraints Γ Env))
-   (snoop LivenessConstraints_live )
    ----------------------------------------
    (loan-check Γ Env GoalAtLocations)
    ]

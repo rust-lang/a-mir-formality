@@ -4,7 +4,8 @@
          "locations.rkt"
          )
 (provide control-flow-graph
-reverse-control-flow-graph
+         cfg-node-at
+         cfg-edges
          )
 
 (define-metafunction formality-body
@@ -19,10 +20,21 @@ reverse-control-flow-graph
   )
 
 (define-metafunction formality-body
-  reverse-control-flow-graph : Cfg -> Cfg
+  cfg-node-at : Cfg Location -> CfgNode
 
-  [(reverse-control-flow-graph (LocatedCfgNodes [(Location_a Location_b) ...]))
-   (LocatedCfgNodes [(Location_b Location_a) ...])
+  [(cfg-node-at Cfg Location)
+   CfgNode
+   (where/error ([_ ... (Location CfgNode) _ ...] _) Cfg)
+   ]
+
+  )
+
+(define-metafunction formality-body
+  cfg-edges : Cfg -> CfgEdges
+
+  [(cfg-edges Cfg)
+   CfgEdges
+   (where/error (_ CfgEdges) Cfg)
    ]
 
   )
