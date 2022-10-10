@@ -105,7 +105,7 @@
   [(bb0 {
      [(storage-live _2)
       (_2 = (cast (const (fn-ptr foo [T])) as (mf-apply user-ty (for[(lifetime %a) (lifetime %b)] (fn ((& %a (& %b ())) (& %b T)) -> (& %a T))))))
-      noop
+      (fake-read _2)
       noop
       (storage-live _3)
       (_3 = (use (copy _2)))
@@ -148,7 +148,7 @@
      [(storage-live _1)
       (storage-live _2)
       (_2 = (use (const 22)))
-      noop
+      (fake-read _2)
       (storage-live _3)
       (storage-live _4)
       (_4 = (ref ?0 () _2))
@@ -158,7 +158,7 @@
    (bb1 {
      [(storage-dead _3)
       (storage-dead _2)
-      noop
+      (fake-read _1)
       (storage-dead _4)
       (_0 = (use (const (tuple []))))
       (storage-dead _1)]
