@@ -82,7 +82,7 @@
 
   ;; FieldDecl -- type of a field
   (Rust/FieldDecls ::= {Rust/FieldDecl ...})
-  (Rust/FieldDecl ::= (FieldId : UserTy))
+  (Rust/FieldDecl ::= (FieldName : UserTy))
 
   ;; Pair of a kind + a parameter (e.g., `(type T)` or `(lifetime L)`)
   (KindedUserParameter ::= (ParameterKind UserParameter))
@@ -126,7 +126,4 @@
                   (?=> Rust/WhereClauses Rust/QueryTest)
                   Rust/WhereClause
                   )
-
-  ;; Fn bodies are not defined in this layer.
-  (FnBody ::= Term)
   )

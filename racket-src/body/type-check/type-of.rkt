@@ -1,6 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "../../logic/substitution.rkt"
+         "../../logic/env.rkt"
          "../../ty/user-ty.rkt"
          "../grammar.rkt"
          )
@@ -43,14 +44,22 @@
    (place-type-of Γ (* Place) Ty ())
    ]
 
+  [; field of a tuple
+   (place-type-of Γ Place (rigid-ty (tuple number_arity) Tys) ())
+   (where #t ,(< (term number_f) (term number_arity)))
+   (where Ty_field (nth-term number_f Tys))
+   ----------------------------------
+   (place-type-of Γ (field Place number_f) Ty_field ())
+   ]
+
   [; field of a struct
    ;
    ; extract the name of the singular variant
    (place-type-of Γ Place (rigid-ty AdtId Parameters) ())
    (where (struct AdtId _ where _ ((VariantId _))) (find-adt Γ AdtId))
-   (field-tys Γ AdtId Parameters VariantId (_ ... (FieldId Ty_field) _ ...))
+   (field-tys Γ AdtId Parameters VariantId (_ ... (FieldName Ty_field) _ ...))
    ----------------------------------
-   (place-type-of Γ (field Place FieldId) Ty_field ())
+   (place-type-of Γ (field Place FieldName) Ty_field ())
    ]
 
   [; field of an enum
@@ -58,9 +67,9 @@
    ; must have been downcast to a particular variant
    (place-type-of Γ Place (rigid-ty AdtId Parameters) (VariantId))
    (where (enum AdtId _ _ where _) (find-adt Γ AdtId))
-   (field-tys Γ AdtId Parameters VariantId (_ ... (FieldId Ty_field) _ ...))
+   (field-tys Γ AdtId Parameters VariantId (_ ... (FieldName Ty_field) _ ...))
    ----------------------------------
-   (place-type-of Γ (field Place FieldId) Ty_field ())
+   (place-type-of Γ (field Place FieldName) Ty_field ())
 
    ]
 
@@ -79,10 +88,8 @@
   #:mode (type-of/LocalId I I O)
   #:contract (type-of/LocalId Γ LocalId Ty)
 
-  [(where/error LocalDecls (local-decls-of-Γ Γ))
-   (where (_ ... (LocalId Ty _) _ ...) LocalDecls)
-   ----------------------------------------
-   (type-of/LocalId Γ LocalId Ty)
+  [----------------------------------------
+   (type-of/LocalId Γ LocalId (local-ty Γ LocalId))
    ]
 
   )
@@ -94,14 +101,14 @@
   ;; substituting type parameters.
 
   #:mode (field-tys I I I I O)
-  #:contract (field-tys Γ AdtId Parameters VariantId ((FieldId Ty) ...))
+  #:contract (field-tys Γ AdtId Parameters VariantId ((FieldName Ty) ...))
 
   [(where (_ AdtId KindedVarIds where _ (_ ... (VariantId FieldDecls) _ ...)) (find-adt Γ AdtId))
    (where/error Substitution (create-substitution KindedVarIds Parameters))
-   (where ((FieldId Ty) ...) FieldDecls)
+   (where ((FieldName Ty) ...) FieldDecls)
    (where/error (Ty_substituted ...) ((apply-substitution Substitution Ty) ...))
    ----------------------------------
-   (field-tys Γ AdtId Parameters VariantId ((FieldId Ty_substituted) ...))
+   (field-tys Γ AdtId Parameters VariantId ((FieldName Ty_substituted) ...))
    ]
 
   )
@@ -236,11 +243,24 @@
    (type-of/Rvalue Γ (ref Lt mut Place) (rigid-ty (ref mut) (Lt Ty)))
    ]
 
-  [; binop
-   (type-of/Operand Γ Operand_rhs (rigid-ty ScalarId_ty ()))
+  [; binop: x + y
    (type-of/Operand Γ Operand_lhs (rigid-ty ScalarId_ty ()))
+   ; NB. the type-check-goal checks that lhs + rhs are same type
    ------------------------------------------
-   (type-of/Rvalue Γ (BinaryOp Operand_rhs Operand_lhs) (rigid-ty ScalarId_ty ()))
+   (type-of/Rvalue Γ (BinaryMathOpUnchecked Operand_rhs Operand_lhs) (user-ty ScalarId_ty))
+   ]
+
+  [; binop: x (checked +) y
+   (type-of/Operand Γ Operand_lhs (rigid-ty ScalarId_ty ()))
+   ; NB. the type-check-goal checks that lhs + rhs are same type
+   ------------------------------------------
+   (type-of/Rvalue Γ ((checked BinaryMathOpUnchecked) Operand_rhs Operand_lhs) (user-ty (tuple ScalarId_ty
+                                                                                               bool)))
+   ]
+
+  [; binop: x > y
+   ------------------------------------------
+   (type-of/Rvalue Γ (BinaryComparisonOp Operand_rhs Operand_lhs) (user-ty bool))
    ]
 
   [; aggregate tuple

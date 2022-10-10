@@ -98,10 +98,12 @@
             formality-ty
 
             [(:-
-              [(VarId_b lifetime ∃ (universe 1)) (VarId_V type ∃ (universe 1))]
+              [(VarId_V type ∃ (universe 1))
+               (VarId_b lifetime ∃ (universe 1))]
               ([(U (rigid-ty (ref ()) (VarId_b VarId_V)))] ; U = &'b V
-               [(VarId_V <= T)
-                (VarId_b -outlives- a)]
+               [(VarId_b -outlives- a)
+                (VarId_V <= T)
+                ]
                ))]
 
             (term (ty:query

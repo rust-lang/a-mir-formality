@@ -29,6 +29,7 @@
              (storage-live LocalId)
              (storage-dead LocalId)
              noop
+             (fake-read Place)
              )
 
   ;; A Rvalue indicates the set of expressions that can be evaluated into a place.
@@ -44,7 +45,12 @@
           unknown-rvalue
           )
 
-  (BinaryOp ::= + - * /)
+  (BinaryOp ::=
+            BinaryMathOp
+            BinaryComparisonOp)
+  (BinaryMathOp ::= BinaryMathOpUnchecked (checked BinaryMathOpUnchecked))
+  (BinaryMathOpUnchecked ::= + - * /)
+  (BinaryComparisonOp ::= < <= > >=)
 
   (AggregateKind ::=
                  tuple
@@ -61,11 +67,23 @@
               (drop Place TargetIds)
               (drop-and-replace Place Operand TargetIds)
               (call Operand Operands Place TargetIds)
+              (assert Operand ; operand (must be bool)
+                      boolean ; should equal this value
+                      TargetIds ; if true, branch to first target; if false, panic and branch to second target
+                      )
+              (switch-int Operand ; operand to test, which must be integral
+                          Ty ; expected type of the operand (can be any scalar type)
+                          SwitchTargets ; values to jump to
+                          OtherwiseTarget ; place to jump if nothingin the list matches; if empty, exhaustive
+                          )
               )
   (TargetIds ::=
              (BasicBlockId) ; unwind not possible
              (BasicBlockId BasicBlockId) ; unwind possible
              )
+  (SwitchTargets ::= [SwitchTarget ...])
+  (SwitchTarget (number BasicBlockId))
+  (OtherwiseTarget ::= [] [BasicBlockId])
 
   ;; An `Operand` is the argument to an rvalue.
   (Operands ::= [Operand ...])
@@ -86,18 +104,18 @@
             )
 
   (Places ::= [Place ...])
-  (Place ::=
-         LocalId
-         (* Place)
-         (field Place FieldId)
-         (index Place LocalId)
-         (downcast Place VariantId)
-         )
+  (Place ::= LocalId CompoundPlace)
+  (CompoundPlace ::=
+                 (* Place)
+                 (field Place FieldName)
+                 (index Place LocalId)
+                 (downcast Place VariantId)
+                 )
 
   (Projections ::= (Projection ...))
   (Projection ::=
               *
-              (field FieldId)
+              (field FieldName)
               (index LocalId)
               (downcast VariantId)
               )
@@ -145,6 +163,7 @@
   ;; Internal to type check:
   ;;
   ;; Location --- identifies a particular statement or terminator within the MIR
+  (Locations ::= [Location ...])
   (Location ::= (BasicBlockId @ number))
 
   ;; Internal to type check:
@@ -153,6 +172,7 @@
   (StatementAtLocations ::= (StatementAtLocation ...))
   (StatementAtLocation ::= (Location Statement))
   (TerminatorAtLocation ::= (Location Terminator))
+  (StatementOrTerminator ::= Statement Terminator)
 
   ;; Internal to type check:
   ;;
@@ -164,24 +184,68 @@
   ;; A move set stores a set of places that are moved
   (MoveSet ::= Places)
 
-  ;; Maps from a basic block to a moveset on entry to that block.
-  (MoveSetMap ::= [(BasicBlockId MoveSet) ...])
+  ;; Maps from a location to a moveset on entry to that point.
+  (MoveSetMap ::= [(Location MoveSet) ...])
 
   ;; The move-sets before each statement in a block, along with the final move-set
   ;; (the state before the terminator is executed).
   (MoveSetsForStatements ::= ([(MoveSet Statement) ...] MoveSet))
 
   ;; Identifies the local variables live before entering a given basic block.
-  (LiveVariablesBeforeBlocks ::= [LiveVariablesBeforeBlock ...])
-  (LiveVariablesBeforeBlock ::= (BasicBlockId LiveVariables))
-  (LiveVariables ::= (reads: LocalIds drops: LocalIds))
-  (LivenessEffects ::= (reads: LocalIds drops: LocalIds writes: LocalIds))
+  (LiveVariablesMap ::= [(Location LocalIds) ...])
+  (LivenessEffects ::= (reads: LocalIds drops: LocalIds))
 
   ;; Summarizes one possible effect of a terminator:
   ;;
   ;; If control-flow goes backwards from the given basic block,
   ;; then `LivenessEffects` are applied.
   (TerminatorLivenessEffects ::= (BasicBlockId LivenessEffects))
+
+  ;; Liveness constraints encode which lifetimes are live at each point in the source code.
+  ;; These are the basis for both the NLL and polonius analyses.
+  ;;
+  ;; A constraint like `VarId -outlives- L` indicates that the lifetime
+  ;; variable `VarId` appears in the type of some local variable `_n`
+  ;; which is live at the location `L`.
+  (LivenessConstraints ::= [LivenessConstraint ...])
+  (LivenessConstraint ::= (VarId -outlives- Location))
+
+  ;; Cfg -- representation of the control-flow-graph. Each node is either a statement
+  ;; or a terminator and there are edges. The first node in the list is the entry point.
+  (Cfg ::= (LocatedCfgNodes CfgEdges))
+  (LocatedCfgNodes ::= [LocatedCfgNode ...])
+  (LocatedCfgNode ::= (Location CfgNode))
+  (CfgNode ::= Statement Terminator)
+  (CfgEdges ::= [CfgEdge ...])
+  (CfgEdge ::= (Location Location))
+
+  (DataflowMode ::= ForwardDataflowMode ReverseDataflowMode)
+  (ForwardDataflowMode ::= moved-places active-loans)
+  (ReverseDataflowMode ::= LivenessMode)
+  (LivenessMode ::= use-live drop-live)
+  (LocatedCfgValues ::= [LocatedCfgValue ...])
+  (LocatedCfgValue ::= (Location CfgValue))
+  (CfgValue ::=
+            MoveSet ; for moved-places mode
+            LoanSet ; for active-loans mode
+            LocalIds ; for liveness analyses
+            )
+
+  ; A *Loan* occurs when we have a borrow
+  (LocatedLoanSets ::= [LocatedLoanSet ...])
+  (LocatedLoanSet ::= (Location LoanSet))
+  (LoanSet ::= [Loan ...])
+  (Loan ::= (Lt MaybeMut Place))
+
+  ;; PlaceAccess -- the ways the code can access a place
+  (PlaceAccess ::= read-place write-place storage-dead)
+
+  ;; An `RvalueAction` indicates the kind of things an rvalue can do
+  (RvalueActions ::= [RvalueAction ...])
+  (RvalueAction ::=
+                Operand
+                (ref MaybeMut Place)
+                )
 
   ; identifiers of various kinds:
   (LocalIds ::= [LocalId ...])
@@ -202,6 +266,17 @@
   [(local-decls-of-Γ Γ)
    LocalDecls
    (where/error (LocalDecls _) (locals-and-blocks-of-Γ Γ))]
+  )
+
+
+(define-metafunction formality-body
+  ;; Returns the type of the given local variable from the environment Γ
+  local-ty : Γ LocalId -> Ty
+
+  [(local-ty Γ LocalId)
+   Ty
+   (where/error (_ ... (LocalId Ty _) _ ...) (local-decls-of-Γ Γ))
+   ]
   )
 
 (define-metafunction formality-body

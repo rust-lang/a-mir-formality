@@ -1,14 +1,13 @@
 #lang racket
 (require redex/reduction-semantics
-         "occurs-check.rkt"
-         "universe-check.rkt"
-         "rigid.rkt"
-         "../grammar.rkt"
-         "../inequalities.rkt"
          "../../logic/grammar.rkt"
          "../../logic/substitution.rkt"
          "../../logic/env.rkt"
          "../../logic/env-inequalities.rkt"
+         "occurs-check.rkt"
+         "universe-check.rkt"
+         "rigid.rkt"
+         "../grammar.rkt"
          )
 (provide equate/one/substituted
          )

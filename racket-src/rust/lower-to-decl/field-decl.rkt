@@ -10,7 +10,7 @@
   ;; Lower an field declaration to the decl layer.
   lower-to-decl/FieldDecl : Rust/FieldDecl -> FieldDecl
 
-  [(lower-to-decl/FieldDecl (FieldId : UserTy))
-   (FieldId (user-ty UserTy))]
+  [(lower-to-decl/FieldDecl (FieldName : UserTy))
+   (FieldName (user-ty UserTy))]
 
   )

@@ -1,7 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
-         "inequalities.rkt"
          "../logic/env.rkt"
          "../logic/env-inequalities.rkt"
          "../logic/flatten-hypothesis.rkt"

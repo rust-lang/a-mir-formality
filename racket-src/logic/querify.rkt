@@ -82,7 +82,7 @@
 
   ((universe-map Universes)
    (number-universes 0 Universes_sorted)
-   (where/error Universes_dedup ,(set-union (term (RootUniverse)) (term Universes)))
+   (where/error Universes_dedup (union-sets (RootUniverse) Universes))
    (where/error Universes_sorted ,(sort (term Universes_dedup) (lambda (a b) (term (universe-includes ,b ,a)))))
    )
   )
@@ -124,8 +124,8 @@
            (test-equal
             (term (querify-goal Env_2 (is-true (Parameter_A Parameter_Z))))
             (term ((?-
-                    ((Parameter_Z type ∀ (universe 2))
-                     (Parameter_A type ∀ (universe 1))
+                    ((Parameter_A type ∀ (universe 1))
+                     (Parameter_Z type ∀ (universe 2))
                      )
                     (implies ()
                              (is-true (Parameter_A Parameter_Z))))

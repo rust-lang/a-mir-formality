@@ -1,9 +1,10 @@
 #lang racket
 (require redex/reduction-semantics
          "grammar.rkt"
+         "../check/prove-goal.rkt"
          "borrow-check/initialization-check.rkt"
          "borrow-check/initialization-infer.rkt"
-         "../check/prove-goal.rkt"
+         "borrow-check/loan-check.rkt"
          )
 (provide borrow-check
          )
@@ -17,18 +18,5 @@
    (loan-check Γ Env GoalAtLocations)
    ----------------------------------------
    (borrow-check Γ Env GoalAtLocations)
-   ]
-  )
-
-(define-judgment-form
-  formality-body
-  #:mode (loan-check I I I)
-  #:contract (loan-check Γ Env GoalAtLocations)
-
-  [(where/error [(Location Goal) ...] GoalAtLocations)
-   (where/error Goal_master (&& [Goal ...]))
-   (prove-goal-in-env Env Goal_master TrueSolution)
-   ----------------------------------------
-   (loan-check Γ Env GoalAtLocations)
    ]
   )

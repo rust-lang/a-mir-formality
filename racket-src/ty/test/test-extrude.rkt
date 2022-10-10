@@ -3,7 +3,6 @@
          "hook.rkt"
          "../grammar.rkt"
          "../extrude.rkt"
-         "../inequalities.rkt"
          "../user-ty.rkt"
          "../../logic/instantiate.rkt"
          "../../logic/env.rkt"
@@ -21,8 +20,8 @@
     #:pre (env-contains-unmapped-existential-var Env_in VarId_in)
 
     [(variable-bounds Env VarId)
-     ((known-bounds Env <= VarId)
-      (known-bounds Env >= VarId)
+     ((known-bounds Env VarId >=)
+      (known-bounds Env VarId <=)
       )
      ]
     )

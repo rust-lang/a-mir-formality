@@ -1,5 +1,6 @@
 #lang racket
 (require redex/reduction-semantics
+         racket/set
          "grammar.rkt")
 (provide (all-defined-out))
 
@@ -378,7 +379,7 @@
    (where #t (env-contains-var Env VarId))]
 
   [(free-variables Env (Term ...))
-   ,(apply set-union (term (() VarIds ...)))
+   (union-sets VarIds ...)
    (where/error (VarIds ...) ((free-variables Env Term) ...))
    ]
 
@@ -403,12 +404,41 @@
    (where #t (env-contains-existential-var Env VarId))]
 
   [(free-existential-variables Env (Term ...))
-   ,(apply set-union (term (() VarIds ...)))
+   (union-sets VarIds ...)
    (where/error (VarIds ...) ((free-existential-variables Env Term) ...))
    ]
 
   [(free-existential-variables Env _)
    ()]
+
+  )
+
+
+(define-metafunction formality-logic
+  ;; Returns the set of variables that appear free in the given term;
+  ;; only returns variables that are defined in the environment. This includes
+  ;; both existential (inference) and universal (placeholder) variables.
+  ;; Everything else is assumed to be a universal constant or keyword.
+  free-existential-variables-of-kind : Env ParameterKind Term -> (VarId ...)
+
+  [(free-existential-variables-of-kind Env ParameterKind (Quantifier ((ParameterKind_bound VarId_bound) ...) Term))
+   ,(set-subtract (term VarIds_free) (term (VarId_bound ...)))
+   (where/error VarIds_free (free-existential-variables-of-kind Env ParameterKind Term))
+   ]
+
+  [(free-existential-variables-of-kind Env ParameterKind VarId)
+   [VarId]
+   (where (_ ParameterKind ∃ _) (var-binding-in-env Env VarId))
+   ]
+
+  [(free-existential-variables-of-kind Env ParameterKind (Term ...))
+   (union-sets VarIds ...)
+   (where/error (VarIds ...) ((free-existential-variables-of-kind Env ParameterKind Term) ...))
+   ]
+
+  [(free-existential-variables-of-kind Env ParameterKind _)
+   ()
+   ]
 
   )
 
@@ -425,7 +455,7 @@
    ]
 
   [(placeholder-variables Env (Term ...))
-   ,(apply set-union (term (() VarIds ...)))
+   (union-sets VarIds ...)
    (where/error (VarIds ...) ((placeholder-variables Env Term) ...))
    ]
 
@@ -526,4 +556,41 @@
   flatten : ((Term ...) ...) -> (Term ...)
 
   [(flatten ((Term ...) ...)) (Term ... ...)]
+  )
+
+(define-metafunction formality-logic
+  ;; Perform set union
+  union-sets : Terms ... -> Terms
+
+  [(union-sets)
+   []
+   ]
+
+  [(union-sets Terms ...)
+   ,(apply set-union (term [Terms ...]))
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; Perform set union
+  subtract-sets : Terms_1 Terms_2 -> Terms
+
+  [(subtract-sets Terms_1 Terms_2)
+   ,(set-subtract (term Terms_1) (term Terms_2))
+   ]
+  )
+
+(define-metafunction formality-logic
+  ;; Select the Nth term from the list
+  nth-term : number Terms -> Term
+
+  [(nth-term 0 [Term_0 Term_1 ...])
+   Term_0
+   ]
+
+  [(nth-term number [Term_0 Term_1 ...])
+   (nth-term ,(- (term number) 1) [Term_1 ...])
+   (where #t ,(> (term number) 0))
+   ]
+   
   )

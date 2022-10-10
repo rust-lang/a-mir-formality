@@ -6,7 +6,8 @@
          "env-inequalities.rkt"
          "substitution.rkt"
          )
-(provide extract-solution)
+(provide extract-solution
+         )
 
 ;; NB: Unit tests for this file live in racket-src/ty/test/test-solution.
 ;; This lets us use the type layer to test it.

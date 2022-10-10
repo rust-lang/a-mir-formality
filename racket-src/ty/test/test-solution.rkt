@@ -6,7 +6,6 @@
          "../../logic/instantiate.rkt"
          "../../logic/solution.rkt"
          "../grammar.rkt"
-         "../inequalities.rkt"
          "../user-ty.rkt"
          "hook.rkt"
          )
