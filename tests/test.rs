@@ -1,3 +1,4 @@
+use pretty_assertions::assert_eq;
 use rustc_formality::{self, OutputFormat};
 use std::fs::File;
 use std::io::{Read, Write};
