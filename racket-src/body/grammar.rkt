@@ -45,7 +45,12 @@
           unknown-rvalue
           )
 
-  (BinaryOp ::= + - * /)
+  (BinaryOp ::=
+            BinaryMathOp
+            BinaryComparisonOp)
+  (BinaryMathOp ::= BinaryMathOpUnchecked (checked BinaryMathOpUnchecked))
+  (BinaryMathOpUnchecked ::= + - * /)
+  (BinaryComparisonOp ::= < <= > >=)
 
   (AggregateKind ::=
                  tuple
@@ -62,11 +67,23 @@
               (drop Place TargetIds)
               (drop-and-replace Place Operand TargetIds)
               (call Operand Operands Place TargetIds)
+              (assert Operand ; operand (must be bool)
+                      boolean ; should equal this value
+                      TargetIds ; if true, branch to first target; if false, panic and branch to second target
+                      )
+              (switch-int Operand ; operand to test, which must be integral
+                          Ty ; expected type of the operand (can be any scalar type)
+                          SwitchTargets ; values to jump to
+                          OtherwiseTarget ; place to jump if nothingin the list matches; if empty, exhaustive
+                          )
               )
   (TargetIds ::=
              (BasicBlockId) ; unwind not possible
              (BasicBlockId BasicBlockId) ; unwind possible
              )
+  (SwitchTargets ::= [SwitchTarget ...])
+  (SwitchTarget (number BasicBlockId))
+  (OtherwiseTarget ::= [] [BasicBlockId])
 
   ;; An `Operand` is the argument to an rvalue.
   (Operands ::= [Operand ...])
@@ -90,7 +107,7 @@
   (Place ::= LocalId CompoundPlace)
   (CompoundPlace ::=
                  (* Place)
-                 (field Place FieldId)
+                 (field Place FieldName)
                  (index Place LocalId)
                  (downcast Place VariantId)
                  )
@@ -98,7 +115,7 @@
   (Projections ::= (Projection ...))
   (Projection ::=
               *
-              (field FieldId)
+              (field FieldName)
               (index LocalId)
               (downcast VariantId)
               )
@@ -219,6 +236,9 @@
   (LocatedLoanSet ::= (Location LoanSet))
   (LoanSet ::= [Loan ...])
   (Loan ::= (Lt MaybeMut Place))
+
+  ;; PlaceAccess -- the ways the code can access a place
+  (PlaceAccess ::= read-place write-place storage-dead)
 
   ;; An `RvalueAction` indicates the kind of things an rvalue can do
   (RvalueActions ::= [RvalueAction ...])

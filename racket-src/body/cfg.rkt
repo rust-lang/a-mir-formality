@@ -129,6 +129,15 @@
    [(Location_t (BasicBlockId @ 0)) ...]
    ]
 
+  [(control-flow-graph-terminator-edges Location_t (assert Operand boolean [BasicBlockId ...]))
+   [(Location_t (BasicBlockId @ 0)) ...]
+   ]
+
+  [(control-flow-graph-terminator-edges Location_t (switch-int Operand Ty [(number BasicBlockId_n) ...] [BasicBlockId_o ...]))
+   [(Location_t (BasicBlockId @ 0)) ...]
+   (where/error [BasicBlockId ...] [BasicBlockId_n ... BasicBlockId_o ...])
+   ]
+
   )
 
 (module+ test

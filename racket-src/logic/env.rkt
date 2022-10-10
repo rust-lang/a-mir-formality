@@ -379,7 +379,7 @@
    (where #t (env-contains-var Env VarId))]
 
   [(free-variables Env (Term ...))
-  (union-sets VarIds ...)
+   (union-sets VarIds ...)
    (where/error (VarIds ...) ((free-variables Env Term) ...))
    ]
 
@@ -578,4 +578,19 @@
   [(subtract-sets Terms_1 Terms_2)
    ,(set-subtract (term Terms_1) (term Terms_2))
    ]
+  )
+
+(define-metafunction formality-logic
+  ;; Select the Nth term from the list
+  nth-term : number Terms -> Term
+
+  [(nth-term 0 [Term_0 Term_1 ...])
+   Term_0
+   ]
+
+  [(nth-term number [Term_0 Term_1 ...])
+   (nth-term ,(- (term number) 1) [Term_1 ...])
+   (where #t ,(> (term number) 0))
+   ]
+   
   )

@@ -10,6 +10,7 @@
          place-set-contains-prefix-of?
          place-set-contains-suffix-of?
          places-intersect?
+         place-is-indirect?
          )
 
 (define-metafunction formality-body
@@ -77,6 +78,32 @@
    (any? (place-is-prefix-of? Place Place_member) ...)
    (where/error [Place_member ...] Places)
    ]
+  )
+
+(define-metafunction formality-body
+  ;; True if the place contains a pointer indirection.
+  place-is-indirect? : Place -> boolean
+
+  [(place-is-indirect? LocalId)
+   #f
+   ]
+
+  [(place-is-indirect? (* Place))
+   #t
+   ]
+
+  [(place-is-indirect? Place (field Place_1 _))
+   (place-is-indirect? Place_1)
+   ]
+
+  [(place-is-indirect? Place (index Place_1 _))
+   (place-is-indirect? Place_1)
+   ]
+
+  [(place-is-indirect? Place (downcast Place_1 _))
+   (place-is-indirect? Place_1)
+   ]
+
   )
 
 (define-metafunction formality-body

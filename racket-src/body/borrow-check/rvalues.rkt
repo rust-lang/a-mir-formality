@@ -25,15 +25,15 @@
    [(ref MaybeMut Place)]
    ]
 
-  [(rvalue-actions MoveSet (addr-of MaybeMut Place))
+  [(rvalue-actions (addr-of MaybeMut Place))
    [(ref MaybeMut Place)]
    ]
 
-  [(rvalue-actions MoveSet (len Place))
+  [(rvalue-actions (len Place))
    [(ref () Place)]
    ]
 
-  [(rvalue-actions MoveSet (BinaryOp Operand_l Operand_r))
+  [(rvalue-actions (BinaryOp Operand_l Operand_r))
    [Operand_l Operand_r]
    ]
 

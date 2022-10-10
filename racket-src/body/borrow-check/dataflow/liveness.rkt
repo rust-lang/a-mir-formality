@@ -101,6 +101,14 @@
                            )
    ]
 
+  [(evaluate-node (assert Operand boolean TargetIds))
+   (evaluate-operand Operand)
+   ]
+
+  [(evaluate-node (switch-int Operand Ty SwitchTargets OtherwiseTarget))
+   (evaluate-operand Operand)
+   ]
+
   [(evaluate-node (Place = Rvalue))
    (union-liveness-effects (evaluate-rvalue Rvalue)
                            (write-place Place))
@@ -181,7 +189,7 @@
    (read-place Place)
    ]
 
-  [(read-place (field Place FieldId))
+  [(read-place (field Place FieldName))
    (read-place Place)
    ]
 
@@ -206,7 +214,7 @@
    (drop-place Place)
    ]
 
-  [(drop-place (field Place FieldId))
+  [(drop-place (field Place FieldName))
    (drop-place Place)
    ]
 

@@ -1,6 +1,7 @@
 #lang racket
 (require redex/reduction-semantics
          "../../logic/grammar.rkt"
+         "../../ty/user-ty.rkt"
          "../grammar.rkt"
          "type-of.rkt"
          "fn-ty-signature.rkt"
@@ -43,6 +44,16 @@
                                     ))))
    ----------------------------------------
    (type-check-goal/Terminator Γ (call Operand_fn (Operand_arg ...) Place_dest TargetIds) [Goal])
+   ]
+
+  [(type-of/Operand Γ Operand Ty)
+   ----------------------------------------
+   (type-check-goal/Terminator Γ (assert Operand boolean TargetIds) [(Ty == (user-ty bool))])
+   ]
+
+  [(type-of/Operand Γ Operand Ty)
+   ----------------------------------------
+   (type-check-goal/Terminator Γ (switch-int Operand (rigid-ty ScalarId []) _ _) [(Ty == (rigid-ty ScalarId []))])
    ]
 
   )

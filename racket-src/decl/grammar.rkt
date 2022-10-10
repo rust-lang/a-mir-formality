@@ -42,7 +42,8 @@
 
   ;; FieldDecl -- type of a field
   (FieldDecls ::= (FieldDecl ...))
-  (FieldDecl ::= (FieldId Ty))
+  (FieldDecl ::= (FieldName Ty))
+  (FieldName ::= FieldId number)
 
   ;; ANCHOR:Traits
   ;; TraitDecl -- trait Foo { ... }

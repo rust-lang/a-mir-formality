@@ -242,6 +242,23 @@
    (well-formed/Terminator Γ (call Operand_fn (Operand_arg ...) Place TargetIds))
    ]
 
+  [(well-formed/Operand Γ Operand)
+   (well-formed/TargetIds Γ TargetIds)
+   ----------------------------------------
+   (well-formed/Terminator Γ (assert Operand boolean TargetIds))
+   ]
+
+  [(well-formed/Operand Γ Operand)
+   (well-formed/Ty Γ Ty)
+   (well-formed/BasicBlockId Γ BasicBlockId) ...
+   (well-formed/BasicBlockId Γ BasicBlockId_o) ...
+   ----------------------------------------
+   (well-formed/Terminator Γ (switch-int Operand
+                                         Ty
+                                         [(number BasicBlockId) ...]
+                                         [BasicBlockId_o ...]))
+   ]
+
   )
 
 (define-judgment-form
@@ -287,6 +304,19 @@
    (where (_ ... VarId _ ...) (VarId_∀ ... VarId_∃ ...))
    ----------------------------------------
    (well-formed/Lt Γ VarId)
+   ]
+
+  )
+
+(define-judgment-form
+  formality-body
+  #:mode (well-formed/Ty I I)
+  #:contract (well-formed/Ty Γ Ty)
+
+  [; FIXME: we should check that the `Ty` refers to named things,
+   ; has the right kinds, etc etc
+   ----------------------------------------
+   (well-formed/Ty Γ Ty)
    ]
 
   )

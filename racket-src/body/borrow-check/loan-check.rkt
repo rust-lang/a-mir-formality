@@ -72,6 +72,16 @@
    (loan-check-located-cfg-node Γ Env (Location (call Operand_f [Operand_a ...] Place TargetIds)))
    ]
 
+  [(loan-check-action Γ Env Location Operand)
+   ----------------------------------------
+   (loan-check-located-cfg-node Γ Env (Location (assert Operand boolean TargetIds)))
+   ]
+
+  [(loan-check-action Γ Env Location Operand)
+   ----------------------------------------
+   (loan-check-located-cfg-node Γ Env (Location (switch-int Operand Ty SwitchTargets OtherwiseTarget)))
+   ]
+
   [(loan-check-rvalue Γ Env Location Rvalue)
    (loan-check-place-assigned Γ Env Location Place)
    ----------------------------------------
@@ -88,7 +98,7 @@
    (loan-check-located-cfg-node Γ Env (Location (storage-live LocalId)))
    ]
 
-  [(loan-check-place-assigned Γ Env Location LocalId)
+  [(loan-check-place-access Γ Env Location storage-dead LocalId)
    ----------------------------------------
    (loan-check-located-cfg-node Γ Env (Location (storage-dead LocalId)))
    ]
@@ -147,7 +157,7 @@
   #:mode (loan-check-place-read I I I I)
   #:contract (loan-check-place-read Γ Env Location Place)
 
-  [(loan-check-place-access Γ Env Location () Place)
+  [(loan-check-place-access Γ Env Location read-place Place)
    ----------------------------------------
    (loan-check-place-read Γ Env Location Place)
    ]
@@ -159,7 +169,7 @@
   #:mode (loan-check-place-assigned I I I I)
   #:contract (loan-check-place-assigned Γ Env Location Place)
 
-  [(loan-check-place-access Γ Env Location mut Place)
+  [(loan-check-place-access Γ Env Location write-place Place)
    ----------------------------------------
    (loan-check-place-assigned Γ Env Location Place)
    ]
@@ -168,31 +178,37 @@
 (define-judgment-form
   formality-body
   #:mode (loan-check-place-access I I I I I)
-  #:contract (loan-check-place-access Γ Env Location MaybeMut Place)
+  #:contract (loan-check-place-access Γ Env Location PlaceAccess Place)
 
   [(where/error Cfg (control-flow-graph-from-Γ Γ))
    (where/error [Loan ...] (loans-active-on-entry-to Cfg Location))
-   (loan-check-place-access-against-loan Γ Env Location MaybeMut Place Loan) ...
+   (loan-check-place-access-against-loan Γ Env Location PlaceAccess Place Loan) ...
    ----------------------------------------
-   (loan-check-place-access Γ Env Location MaybeMut Place)
+   (loan-check-place-access Γ Env Location PlaceAccess Place)
    ]
   )
-
 
 (define-judgment-form
   formality-body
   #:mode (loan-check-place-access-against-loan I I I I I I)
-  #:contract (loan-check-place-access-against-loan Γ Env Location MaybeMut Place Loan)
+  #:contract (loan-check-place-access-against-loan Γ Env Location PlaceAccess Place Loan)
 
   [; Reading a shared loan? No error.
    ----------------------------------------
-   (loan-check-place-access-against-loan Γ Env Location () Place (Lt () Place_loaned))
+   (loan-check-place-access-against-loan Γ Env Location read-place Place (Lt () Place_loaned))
    ]
 
   [; Accessing distinct places? No error.
    (where #f (places-intersect? Place_accessed Place_loaned))
    ----------------------------------------
    (loan-check-place-access-against-loan Γ Env Location _ Place_accessed (_ _ Place_loaned))
+   ]
+
+  [; When killing the stack storage, it's ok to have a borrow if the data was not actually
+   ; stored on the stack (this occurs with e.g. a reborrow of an `&mut` stored on stack).
+   (where #t (place-is-indirect? Place_loaned))
+   ----------------------------------------
+   (loan-check-place-access-against-loan Γ Env Location storage-dead LocalId (_ _ Place_loaned))
    ]
 
   [; Lifetime doesn't include this location? Good!

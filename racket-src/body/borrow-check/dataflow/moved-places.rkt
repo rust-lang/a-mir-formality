@@ -37,6 +37,14 @@
    (update-move-set-from-operands MoveSet [Operand_fn Operand_arg ...])
    ]
 
+  [(dataflow-apply-node-moved-places (assert Operand boolean [_ ... BasicBlockId _ ...]) (BasicBlockId @ 0) MoveSet)
+   MoveSet
+   ]
+
+  [(dataflow-apply-node-moved-places (switch-int Operand Ty SwitchTargets OtherwiseTarget) (BasicBlockId @ 0) MoveSet)
+   MoveSet
+   ]
+
   [(dataflow-apply-node-moved-places (Place = Rvalue) _ MoveSet_0)
    (add-initialized-place MoveSet_1 Place)
    (where/error MoveSet_1 (update-move-set-from-rvalue MoveSet_0 Rvalue))
@@ -103,7 +111,7 @@
    ]
 
   [(update-move-set-from-operand MoveSet (move Place))
-   (place-set-add MoveSet Place)
+   (add-moved-place MoveSet Place)
    ]
 
   [(update-move-set-from-operand MoveSet (const Constant))
@@ -117,7 +125,7 @@
   update-move-set-from-operands : MoveSet Operands -> MoveSet
 
   [(update-move-set-from-operands MoveSet [])
-   Operand
+   MoveSet
    ]
 
   [(update-move-set-from-operands MoveSet [Operand_0 Operand_1 ...])

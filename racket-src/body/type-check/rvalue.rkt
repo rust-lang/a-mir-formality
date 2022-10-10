@@ -54,9 +54,21 @@
    ]
 
   [(type-check-goal/Operand Γ Operand_l [Goal_l ...])
+   (type-of/Operand Γ Operand_l Ty_l)
    (type-check-goal/Operand Γ Operand_r [Goal_r ...])
+   (type-of/Operand Γ Operand_l Ty_r)
+   (where (rigid-ty ScalarId []) Ty_l) ; FIXME: what about alias types?
    ----------------------------------------
-   (type-check-goal/Rvalue Γ (BinaryOp Operand_l Operand_r) [Goal_l ... Goal_r ...])
+   (type-check-goal/Rvalue Γ (BinaryMathOp Operand_l Operand_r) [(Ty_l == Ty_r) Goal_l ... Goal_r ...])
+   ]
+
+  [(type-check-goal/Operand Γ Operand_l [Goal_l ...])
+   (type-of/Operand Γ Operand_l Ty_l)
+   (type-check-goal/Operand Γ Operand_r [Goal_r ...])
+   (type-of/Operand Γ Operand_l Ty_r)
+   (where (rigid-ty ScalarId []) Ty_l) ; FIXME: what about alias types?
+   ----------------------------------------
+   (type-check-goal/Rvalue Γ (BinaryComparisonOp Operand_l Operand_r) [(Ty_l == Ty_r) Goal_l ... Goal_r ...])
    ]
 
   [; type-check ReifyFnPointer casts

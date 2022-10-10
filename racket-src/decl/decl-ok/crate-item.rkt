@@ -31,7 +31,7 @@
    Goal_wf
 
    (where/error (KindedVarId ...) KindedVarIds)
-   (where/error ((VariantId ((FieldId Ty_fv) ...)) ...) AdtVariants)
+   (where/error ((VariantId ((FieldName Ty_fv) ...)) ...) AdtVariants)
    (where/error [Ty ...] (Ty_fv ... ...))
    (where/error Goal_wf (∀ KindedVarIds
                            (implies

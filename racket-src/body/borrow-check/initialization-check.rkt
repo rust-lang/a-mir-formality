@@ -81,6 +81,16 @@
    (initialization-check-cfg-node MoveSet (call Operand_f [Operand_a ...] Place TargetIds))
    ]
 
+  [(initialization-check-operand MoveSet Operand)
+   ----------------------------------------
+   (initialization-check-cfg-node MoveSet (assert Operand boolean TargetIds))
+   ]
+
+  [(initialization-check-operand MoveSet Operand)
+   ----------------------------------------
+   (initialization-check-cfg-node MoveSet (switch-int Operand Ty SwitchTargets OtherwiseTarget))
+   ]
+
   [(initialization-check-rvalue MoveSet Rvalue)
    (where/error MoveSet_rvalue (update-move-set-from-rvalue MoveSet Rvalue))
    (place-assignable MoveSet_rvalue Place)
@@ -243,7 +253,7 @@
   [(; is this right? seems too strict
     place-fully-initialized MoveSet Place)
    ----------------------------------------
-   (place-assignable MoveSet (field Place FieldId))
+   (place-assignable MoveSet (field Place FieldName))
    ]
 
 

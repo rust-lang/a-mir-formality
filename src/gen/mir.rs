@@ -62,17 +62,19 @@ impl<'tcx> FormalityGen<'tcx> {
             }
             mir::Rvalue::Len(place) => format!("(len {})", self.emit_place(place)),
             mir::Rvalue::BinaryOp(bin_op, operands) => {
-                let op = match bin_op {
-                    mir::BinOp::Add => "+",
-                    mir::BinOp::Sub => "-",
-                    mir::BinOp::Mul => "*",
-                    mir::BinOp::Div => "/",
-                    _ => unimplemented!(),
-                };
+                let op = self.emit_bin_op(*bin_op);
                 format!(
                     "({op} {} {})",
                     self.emit_operand(&operands.0),
                     self.emit_operand(&operands.1)
+                )
+            }
+            mir::Rvalue::CheckedBinaryOp(bin_op, ops) => {
+                let op = self.emit_bin_op(*bin_op);
+                format!(
+                    "((checked {op}) {} {})",
+                    self.emit_operand(&ops.0),
+                    self.emit_operand(&ops.1),
                 )
             }
             mir::Rvalue::Aggregate(agg_kind, operands) => {
@@ -108,6 +110,18 @@ impl<'tcx> FormalityGen<'tcx> {
                 format!("unknown-rvalue")
             }
         }
+    }
+
+    fn emit_bin_op(&self, bin_op: mir::BinOp) -> String {
+        match bin_op {
+            mir::BinOp::Add => "+",
+            mir::BinOp::Sub => "-",
+            mir::BinOp::Mul => "*",
+            mir::BinOp::Div => "/",
+            mir::BinOp::Gt => ">",
+            _ => unimplemented!("{:?}", bin_op),
+        }
+        .to_string()
     }
 
     fn emit_statement(&self, stmt: &mir::Statement<'tcx>) -> String {
@@ -191,6 +205,44 @@ impl<'tcx> FormalityGen<'tcx> {
                     self.emit_operand(func),
                     self.emit_place(destination),
                     target.unwrap().index()
+                )
+            }
+            mir::TerminatorKind::SwitchInt {
+                discr,
+                switch_ty,
+                targets,
+            } => {
+                let switch_targets: String = targets
+                    .iter()
+                    .map(|(v, t)| format!("({} bb{})", v, t.index()))
+                    .collect();
+
+                let other_targets = format!("[bb{}]", targets.otherwise().index());
+
+                format!(
+                    "(switch-int {} {} [{}] {})",
+                    self.emit_operand(discr),
+                    self.emit_ty(*switch_ty),
+                    switch_targets,
+                    other_targets,
+                )
+            }
+            mir::TerminatorKind::Assert {
+                cond,
+                expected,
+                msg: _,
+                target,
+                cleanup,
+            } => {
+                let cleanup_str: String = cleanup
+                    .map(|b| format!(" bb{}", b.index()))
+                    .unwrap_or(String::new());
+                format!(
+                    "(assert {} {} [bb{}{}])",
+                    self.emit_operand(cond),
+                    if *expected { "#t" } else { "#f" },
+                    target.index(),
+                    cleanup_str
                 )
             }
             _ => {
