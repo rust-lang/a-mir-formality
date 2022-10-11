@@ -9,22 +9,22 @@
 
 (define-metafunction formality-body
   ;; Compute the effect on the move-set when transitioning from `CfgNode` to `Location`.
-  dataflow-apply-node-active-loans : CfgNode Location LoanSet -> LoanSet
+  dataflow-apply-node-active-loans : Γ Env CfgNode Location LoanSet -> LoanSet
 
-  [(dataflow-apply-node-active-loans (Place_dest = (ref Lt MaybeMut Place)) _ LoanSet)
+  [(dataflow-apply-node-active-loans Γ Env (Place_dest = (ref Lt MaybeMut Place)) _ LoanSet)
    (remove-killed-loans LoanSet_1 Place_dest)
    (where/error LoanSet_1 (union-sets LoanSet [(Lt MaybeMut Place)]))
    ]
 
-  [(dataflow-apply-node-active-loans (Place = Rvalue) _ LoanSet)
+  [(dataflow-apply-node-active-loans Γ Env (Place = Rvalue) _ LoanSet)
    (remove-killed-loans LoanSet Place)
    ]
 
-  [(dataflow-apply-node-active-loans (call Operand_fn [Operand_arg ...] Place_dest [BasicBlockId _ ...]) (BasicBlockId @ 0) MoveSet)
+  [(dataflow-apply-node-active-loans Γ Env (call Operand_fn [Operand_arg ...] Place_dest [BasicBlockId _ ...]) (BasicBlockId @ 0) MoveSet)
    (remove-killed-loans LoanSet Place_dest)
    ]
 
-  [(dataflow-apply-node-active-loans CfgNode _ LoanSet)
+  [(dataflow-apply-node-active-loans Γ Env CfgNode _ LoanSet)
    LoanSet
    ]
 

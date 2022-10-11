@@ -180,8 +180,8 @@
   #:mode (loan-check-place-access I I I I I)
   #:contract (loan-check-place-access Γ Env Location PlaceAccess Place)
 
-  [(where/error Cfg (control-flow-graph-from-Γ Γ))
-   (where/error [Loan ...] (loans-active-on-entry-to Cfg Location))
+  [
+   (where/error [Loan ...] (loans-active-on-entry-to Γ Env Location))
    (loan-check-place-access-against-loan Γ Env Location PlaceAccess Place Loan) ...
    ----------------------------------------
    (loan-check-place-access Γ Env Location PlaceAccess Place)

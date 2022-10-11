@@ -220,7 +220,7 @@
   (CfgEdge ::= (Location Location))
 
   (DataflowMode ::= ForwardDataflowMode ReverseDataflowMode)
-  (ForwardDataflowMode ::= moved-places active-loans)
+  (ForwardDataflowMode ::= moved-places (active-loans Γ Env))
   (ReverseDataflowMode ::= LivenessMode)
   (LivenessMode ::= use-live drop-live)
   (LocatedCfgValues ::= [LocatedCfgValue ...])
