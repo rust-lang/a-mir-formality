@@ -13,3 +13,10 @@ pretty_assertions = "1.3.0"
 
 [dependencies]
 clap = { version = "4.0.9", features = ["derive"] }
+
+[workspace]
+members = [
+    "crates/formality-macros",
+    "crates/formality-core",
+    "crates/formality-types",
+]

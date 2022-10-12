@@ -1,0 +1,10 @@
+[package]
+name = "formality-types"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+formality-core = { path = "../formality-core" }
+lazy_static = "1.4.0"
