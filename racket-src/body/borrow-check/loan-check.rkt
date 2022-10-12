@@ -4,7 +4,7 @@
          "../grammar.rkt"
          "../cfg.rkt"
          "active-loans.rkt"
-         "lifetime-excludes.rkt"
+         "lifetime-includes.rkt"
          "rvalues.rkt"
          "places.rkt"
          )
@@ -209,12 +209,6 @@
    (where #t (place-is-indirect? Place_loaned))
    ----------------------------------------
    (loan-check-place-access-against-loan Γ Env Location storage-dead LocalId (_ _ Place_loaned))
-   ]
-
-  [; Lifetime doesn't include this location? Good!
-   (lifetime-excludes Γ Env Lt Location)
-   ----------------------------------------
-   (loan-check-place-access-against-loan Γ Env Location _ Place_accessed (Lt _ Place_loaned))
    ]
 
   )

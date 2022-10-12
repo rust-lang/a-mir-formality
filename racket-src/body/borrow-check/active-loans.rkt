@@ -4,6 +4,7 @@
          "../cfg.rkt"
          "../grammar.rkt"
          "dataflow.rkt"
+         "liveness-compute.rkt"
          )
 (provide loans-active-on-entry-to
          )
@@ -21,10 +22,11 @@
   active-loans-map : Γ Env -> LocatedLoanSets
 
   [(active-loans-map Γ Env)
-   (dataflow (active-loans Γ Env) Cfg LocatedLoanSets_initial)
+   (dataflow (active-loans Γ Env LivenessAnalysis) Cfg LocatedLoanSets_initial)
    (where/error Cfg (control-flow-graph-from-Γ Γ))
    (where/error [Location_all ...] (cfg-locations Cfg))
    (where/error LocatedLoanSets_initial [(Location_all []) ...])
+   (where/error LivenessAnalysis (liveness-analysis Cfg))
    ]
   )
 

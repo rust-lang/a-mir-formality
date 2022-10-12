@@ -6,9 +6,23 @@
          "../grammar.rkt"
          "dataflow.rkt"
          )
-(provide variable-live-on-entry-to
-         variables-live-on-entry-to
+(provide liveness-analysis
          )
+
+(define-metafunction formality-body
+;; Code to compute the liveness analysis. This is stored in a variable
+;; which can be given to the active loans analysis.
+;;
+;; In theory, this analysis could be recomputed (and memoized) by the active
+;; loans analysis, but in practice that doesn't work because it creates
+;; cycles in the Racket module system.
+  liveness-analysis : Cfg -> LivenessAnalysis
+
+  [(liveness-analysis Cfg)
+  (reads: (live-variables-map use-live Cfg)
+  drops: (live-variables-map drop-live Cfg))
+   ]
+  )
 
 (define-judgment-form
   formality-body
@@ -30,6 +44,7 @@
    (where/error [_ ... (Location LocalIds_live) _ ...] (live-variables-map LivenessMode Cfg))
    ]
   )
+  
 (define-metafunction formality-body
   live-variables-map : LivenessMode Cfg -> LiveVariablesMap
 

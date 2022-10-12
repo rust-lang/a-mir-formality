@@ -90,8 +90,8 @@
    (dataflow-apply-node-liveness LivenessMode CfgNode Location MoveSet)
    ]
 
-  [(dataflow-apply-node (active-loans Γ Env) CfgNode Location LoanSet)
-   (dataflow-apply-node-active-loans Γ Env CfgNode Location LoanSet)
+  [(dataflow-apply-node (active-loans Γ Env LivenessAnalysis) CfgNode Location LoanSet)
+   (dataflow-apply-node-active-loans Γ Env LivenessAnalysis CfgNode Location LoanSet)
    ]
 
   )
@@ -109,7 +109,7 @@
    (union-sets LocalIds_a LocalIds_b)
    ]
 
-  [(dataflow-join (active-loans Γ Env) LoanSet_a LoanSet_b)
+  [(dataflow-join (active-loans Γ Env LivenessAnalysis) LoanSet_a LoanSet_b)
    (union-sets LoanSet_a LoanSet_b)
    ]
   )

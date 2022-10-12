@@ -195,6 +195,9 @@
   (LiveVariablesMap ::= [(Location LocalIds) ...])
   (LivenessEffects ::= (reads: LocalIds drops: LocalIds))
 
+  ;; The results of liveness analysis.
+  (LivenessAnalysis ::= (reads: LiveVariablesMap drops: LiveVariablesMap))
+
   ;; Summarizes one possible effect of a terminator:
   ;;
   ;; If control-flow goes backwards from the given basic block,
@@ -220,7 +223,7 @@
   (CfgEdge ::= (Location Location))
 
   (DataflowMode ::= ForwardDataflowMode ReverseDataflowMode)
-  (ForwardDataflowMode ::= moved-places (active-loans Γ Env))
+  (ForwardDataflowMode ::= moved-places (active-loans Γ Env LivenessAnalysis))
   (ReverseDataflowMode ::= LivenessMode)
   (LivenessMode ::= use-live drop-live)
   (LocatedCfgValues ::= [LocatedCfgValue ...])
