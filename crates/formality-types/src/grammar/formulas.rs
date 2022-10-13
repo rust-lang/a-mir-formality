@@ -15,6 +15,8 @@ use super::Parameters;
 use super::TraitId;
 use super::Ty;
 
+pub type Fallible<T> = anyhow::Result<T>;
+
 // QUESTION:
 // * Should we make this an "open-ended" set?
 // * Some kind of interned atomic predicate kind that is only considered

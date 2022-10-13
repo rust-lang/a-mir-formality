@@ -25,7 +25,6 @@ macro_rules! id {
     };
 }
 
-id!(VarId);
 id!(FnId);
 id!(AdtId);
 id!(TraitId);
