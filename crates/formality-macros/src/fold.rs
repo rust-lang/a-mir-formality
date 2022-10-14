@@ -1,53 +1,128 @@
 extern crate proc_macro;
 
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
-use quote::ToTokens;
-use syn::{parse_quote, DeriveInput, Ident, TypeParam, TypeParamBound};
 
-use synstructure::decl_derive;
-
-fn derive_fold(mut s: synstructure::Structure) -> TokenStream {
+pub(crate) fn derive_fold(mut s: synstructure::Structure) -> TokenStream {
     s.underscore_const(true);
-    s.bind_with(|_| synstructure::BindStyle::Ref);
+    s.bind_with(|_| synstructure::BindStyle::Move);
 
     let substitute_body = s.each_variant(|vi| {
         let bindings = vi.bindings();
         vi.construct(|_, index| {
             let bind = &bindings[index];
             quote! {
-                ::formality_types::fold::Fold::substitute(#bind, substitution_fn)
+                Fold::substitute(#bind, substitution_fn)
             }
         })
     });
 
-    let free_variables_body = s
-        .each(|field| quote!(output.extend(::formality_types::fold::Fold::free_variables(#field))));
+    let free_variables_body = s.each(|field| quote!(output.extend(Fold::free_variables(#field))));
 
-    let shift_in_body = s.each_variant(|vi| {
-        let bindings = vi.bindings();
-        vi.construct(|_, index| {
-            let bind = &bindings[index];
-            quote! {
-                ::formality_types::fold::Fold::shift_in(#bind)
-            }
-        })
-    });
-
-    s.add_bounds(synstructure::AddBounds::None);
+    // s.add_bounds(synstructure::AddBounds::None);
     s.gen_impl(quote! {
-        gen impl ::formality_types::fold::Fold for @Self {
-            fn substitute(&self, substitution_fn: &mut impl FnMut(Variable) -> Parameter) -> Self {
-                #substitute_body
+        use crate::derive_links::{Fold, SubstitutionFn, Variable, Parameter, ParameterKind};
+
+        gen impl Fold for @Self {
+            fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+                match self {
+                    #substitute_body
+                }
             }
 
-            fn free_variables(&self, substitution: &Substitution) -> Vec<Variable> {
-                #free_variables_body
-            }
-
-            fn shift_in(&self, binders: usize) -> Self {
-                #shift_in_body
+            fn free_variables(&self) -> Vec<Variable> {
+                let mut output = vec![];
+                match self {
+                    #free_variables_body
+                }
+                output
             }
         }
     })
+}
+
+#[test]
+fn test_me() {
+    synstructure::test_derive! {
+        derive_fold {
+            enum A<T> {
+                B(i32, T),
+                C(i32),
+            }
+        }
+        expands to {
+            const _ : (
+            )
+        = {
+            use crate :: derive_links :: {
+                Fold , Variable , Parameter , ParameterKind }
+            ;
+            impl < T > Fold for A < T > where T : Fold {
+                fn substitute (
+                    & self , substitution_fn : & mut impl FnMut (
+                        ParameterKind , &Variable)
+                    -> Parameter)
+                -> Self {
+                    match self {
+                        A :: B (
+                            __binding_0 , __binding_1 ,)
+                        => {
+                            A :: B (
+                                Fold :: substitute (
+                                    __binding_0 , substitution_fn)
+                                , Fold :: substitute (
+                                    __binding_1 , substitution_fn)
+                                ,)
+                            }
+                        A :: C (
+                            __binding_0 ,)
+                        => {
+                            A :: C (
+                                Fold :: substitute (
+                                    __binding_0 , substitution_fn)
+                                ,)
+                            }
+                        }
+                    }
+                fn free_variables (
+                    & self)
+                -> Vec < Variable > {
+                    let mut output = vec ! [
+                        ]
+                    ;
+                    match self {
+                        A :: B (
+                            __binding_0 , __binding_1 ,)
+                        => {
+                            {
+                                output . extend (
+                                    Fold :: free_variables (
+                                        __binding_0)
+                                    )
+                                }
+                            {
+                                output . extend (
+                                    Fold :: free_variables (
+                                        __binding_1)
+                                    )
+                                }
+                            }
+                        A :: C (
+                            __binding_0 ,)
+                        => {
+                            {
+                                output . extend (
+                                    Fold :: free_variables (
+                                        __binding_0)
+                                    )
+                                }
+                            }
+                        }
+                    output }
+                }
+            }
+        ;
+        }
+        no_build
+    }
 }

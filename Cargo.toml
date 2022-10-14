@@ -19,4 +19,5 @@ members = [
     "crates/formality-macros",
     "crates/formality-core",
     "crates/formality-types",
+    "crates/formality-logic",
 ]

@@ -86,9 +86,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "formality-logic"
+version = "0.1.0"
+dependencies = [
+ "formality-types",
+]
+
+[[package]]
 name = "formality-macros"
 version = "0.1.0"
 dependencies = [
+ "proc-macro2",
  "quote",
  "syn",
  "synstructure",
@@ -100,6 +108,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "formality-core",
+ "formality-macros",
  "lazy_static",
 ]
 

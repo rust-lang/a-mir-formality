@@ -1,4 +1,5 @@
-use formality_core::interned::{Interned, Interner};
+use crate::fold::{Fold, SubstitutionFn};
+use formality_core::interned::Interned;
 
 macro_rules! id {
     ($n:ident) => {
@@ -8,11 +9,10 @@ macro_rules! id {
         }
 
         fn $n(s: &str) -> $n {
-            lazy_static::lazy_static! {
-                static ref I: Interner<String> = Interner::default();
-            }
             let t = s.to_string();
-            $n { data: I.intern(&t) }
+            $n {
+                data: Interned::from(t),
+            }
         }
 
         impl std::ops::Deref for $n {
@@ -20,6 +20,16 @@ macro_rules! id {
 
             fn deref(&self) -> &String {
                 &self.data
+            }
+        }
+
+        impl Fold for $n {
+            fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {
+                self.clone()
+            }
+
+            fn free_variables(&self) -> Vec<super::Variable> {
+                vec![]
             }
         }
     };

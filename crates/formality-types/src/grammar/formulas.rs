@@ -6,7 +6,9 @@
 //
 // Hypothesis -- something
 
-use formality_core::interned::Interned;
+use formality_core::interned::Interner;
+use formality_core::interned::{Internable, Interned};
+use formality_macros::Fold;
 
 use super::AliasTy;
 use super::Binder;
@@ -21,12 +23,21 @@ pub type Fallible<T> = anyhow::Result<T>;
 // * Should we make this an "open-ended" set?
 // * Some kind of interned atomic predicate kind that is only considered
 //   equal if they are the same pointer.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AtomicPredicate {
     data: Interned<AtomicPredicateData>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+impl Internable for AtomicPredicateData {
+    fn table() -> &'static Interner<Self> {
+        lazy_static::lazy_static! {
+            static ref INTERNER: Interner<AtomicPredicateData> = Interner::default();
+        }
+        &*INTERNER
+    }
+}
+
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AtomicPredicateData {
     IsImplemented(TraitRef),
     NormalizesTo(AliasTy, Ty),
@@ -34,7 +45,7 @@ pub enum AtomicPredicateData {
     // more to come
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AtomicRelation {
     Equals(Parameter, Parameter),
 
@@ -45,18 +56,27 @@ pub enum AtomicRelation {
     Outlives(Parameter, Parameter),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TraitRef {
     pub trait_id: TraitId,
     pub parameters: Parameters,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Predicate {
     data: Interned<PredicateData>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+impl Internable for PredicateData {
+    fn table() -> &'static Interner<Self> {
+        lazy_static::lazy_static! {
+            static ref INTERNER: Interner<PredicateData> = Interner::default();
+        }
+        &*INTERNER
+    }
+}
+
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PredicateData {
     AtomicPredicate(AtomicPredicate),
     AtomicRelation(AtomicRelation),
@@ -64,12 +84,21 @@ pub enum PredicateData {
     Implies(Vec<Predicate>, Predicate),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Goal {
     data: Interned<GoalData>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+impl Internable for GoalData {
+    fn table() -> &'static Interner<Self> {
+        lazy_static::lazy_static! {
+            static ref INTERNER: Interner<GoalData> = Interner::default();
+        }
+        &*INTERNER
+    }
+}
+
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum GoalData {
     AtomicPredicate(AtomicPredicate),
     AtomicRelation(AtomicRelation),
@@ -81,12 +110,21 @@ pub enum GoalData {
     CoherenceMode(Goal),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Hypothesis {
     data: Interned<HypothesisData>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+impl Internable for HypothesisData {
+    fn table() -> &'static Interner<Self> {
+        lazy_static::lazy_static! {
+            static ref INTERNER: Interner<HypothesisData> = Interner::default();
+        }
+        &*INTERNER
+    }
+}
+
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum HypothesisData {
     AtomicPredicate(AtomicPredicate),
     AtomicRelation(AtomicRelation),
