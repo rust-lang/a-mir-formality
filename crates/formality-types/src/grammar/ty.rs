@@ -31,6 +31,12 @@ pub struct Universe {
     pub index: usize,
 }
 
+impl Universe {
+    /// The root universe contains only the names globally visible
+    /// (e.g., structs defined by user) and does not contain any [placeholders](`PlaceholderVar`).
+    pub const ROOT: Universe = Universe { index: 0 };
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ty {
     data: Interned<TyData>,
@@ -165,6 +171,9 @@ pub struct EnsuresTy {
     predicates: Vec<Predicate>,
 }
 
+/// A *placeholder* is a dummy variable about which nothing is known except
+/// that which we see in the environment. When we want to prove something
+/// is true for all `T`, we replace `T` with a placeholder.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PlaceholderVar {
     universe: Universe,

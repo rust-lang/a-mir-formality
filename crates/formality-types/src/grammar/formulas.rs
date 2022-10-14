@@ -47,12 +47,13 @@ pub enum AtomicPredicateData {
 
 #[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AtomicRelation {
+    /// `T1 == T2` etc
     Equals(Parameter, Parameter),
 
-    // `T1 <: T2` or `L1 <: L2`
+    /// `T1 <: T2` or `L1 <: L2`
     Sub(Parameter, Parameter),
 
-    // `P : P`
+    /// `P : P`
     Outlives(Parameter, Parameter),
 }
 
