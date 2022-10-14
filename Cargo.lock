@@ -86,6 +86,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "formality-decl"
+version = "0.1.0"
+dependencies = [
+ "formality-macros",
+ "formality-types",
+]
+
+[[package]]
 name = "formality-logic"
 version = "0.1.0"
 dependencies = [

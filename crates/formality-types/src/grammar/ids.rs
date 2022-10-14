@@ -39,3 +39,5 @@ id!(FnId);
 id!(AdtId);
 id!(TraitId);
 id!(AssociatedItemId);
+id!(CrateId);
+id!(FieldId);

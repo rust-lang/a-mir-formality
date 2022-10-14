@@ -99,6 +99,8 @@ impl Internable for GoalData {
     }
 }
 
+pub type Goals = Vec<Goal>;
+
 #[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum GoalData {
     AtomicPredicate(AtomicPredicate),
@@ -133,3 +135,18 @@ pub enum HypothesisData {
     Implies(Vec<Goal>, Hypothesis),
     CoherenceMode,
 }
+
+pub type Hypotheses = Vec<Hypothesis>;
+
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Invariant {
+    for_all: Binder<InvariantImplication>,
+}
+
+#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct InvariantImplication {
+    conditions: Vec<AtomicPredicate>,
+    consequence: AtomicPredicate,
+}
+
+pub type Invariants = Vec<Invariant>;

@@ -5,6 +5,7 @@ use crate::{collections::Map, fold::Fold};
 
 use super::{AdtId, AssociatedItemId, Binder, FnId, Predicate, TraitId};
 
+#[macro_export]
 macro_rules! from_impl {
     (impl From<$t:ident> for $e:ident) => {
         impl From<$t> for $e {

@@ -7,7 +7,7 @@ use crate::{
 
 mod simple_sub;
 
-pub struct Environment {
+pub struct Env {
     hook: Arc<dyn Hook>,
     universe: Universe,
     inference_data: Vec<InferenceVarData>,
@@ -40,4 +40,4 @@ struct InferenceVarData {
     outlives: Vec<Parameter>,
 }
 
-impl Environment {}
+impl Env {}
