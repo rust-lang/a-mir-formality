@@ -49,7 +49,7 @@ impl<T: Fold> Binder<T> {
 
     /// Given a set of variables (X, Y, Z) and a term referecing them,
     /// create a binder where those variables are bound.
-    pub fn new(variables: Vec<KindedVarIndex>, term: T) -> Self {
+    pub fn new(variables: &[KindedVarIndex], term: T) -> Self {
         let (kinds, substitution): (Vec<ParameterKind>, Substitution) = variables
             .iter()
             .zip(0..)
@@ -70,6 +70,16 @@ impl<T: Fold> Binder<T> {
 
         let term = substitution.apply(&term);
         Binder { kinds, term }
+    }
+
+    pub fn into<U>(self) -> Binder<U>
+    where
+        T: Into<U>,
+    {
+        Binder {
+            kinds: self.kinds,
+            term: self.term.into(),
+        }
     }
 }
 

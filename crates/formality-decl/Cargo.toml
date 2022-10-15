@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 formality-types = { path = "../formality-types" }
 formality-macros = { path = "../formality-macros" }
+formality-core = { path = "../formality-core" }

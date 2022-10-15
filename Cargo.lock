@@ -89,6 +89,7 @@ dependencies = [
 name = "formality-decl"
 version = "0.1.0"
 dependencies = [
+ "formality-core",
  "formality-macros",
  "formality-types",
 ]
