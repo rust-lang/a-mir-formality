@@ -6,10 +6,10 @@
 //
 // Hypothesis -- something
 
+use std::sync::Arc;
+
 use formality_core::all_into::AllInto;
-use formality_core::interned::Interner;
-use formality_core::interned::{Internable, Interned};
-use formality_macros::Fold;
+use formality_macros::{Fold, Parse};
 
 use crate::from_impl;
 
@@ -22,11 +22,15 @@ use super::{AliasTy, KindedVarIndex};
 
 pub type Fallible<T> = anyhow::Result<T>;
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AtomicPredicate {
+    #[grammar(is_implemented($v0))]
     IsImplemented(TraitRef),
+    #[grammar(has_impl($v0))]
     HasImpl(TraitRef),
+    #[grammar(normalizes_to($v0 -> $v1))]
     NormalizesTo(AliasTy, Ty),
+    #[grammar(well_formed($v0))]
     WellFormed(Ty),
     // more to come
 }
@@ -41,19 +45,23 @@ impl TraitRef {
     }
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AtomicRelation {
     /// `T1 == T2` etc
+    #[grammar(($v0 == $v1))]
     Equals(Parameter, Parameter),
 
     /// `T1 <: T2` or `L1 <: L2`
+    #[grammar(($v0 <: $v1))]
     Sub(Parameter, Parameter),
 
     /// `P : P`
+    #[grammar(($v0 : $v1))]
     Outlives(Parameter, Parameter),
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[grammar($trait_id < $,parameters >)]
 pub struct TraitRef {
     pub trait_id: TraitId,
     pub parameters: Parameters,
@@ -68,9 +76,9 @@ impl TraitRef {
     }
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Predicate {
-    data: Interned<PredicateData>,
+    data: Arc<PredicateData>,
 }
 
 impl Predicate {
@@ -85,35 +93,25 @@ where
 {
     fn from(v: T) -> Self {
         let v: PredicateData = v.into();
-        Predicate {
-            data: Interned::from(v),
-        }
+        Predicate { data: Arc::new(v) }
     }
 }
 
-impl Internable for PredicateData {
-    fn table() -> &'static Interner<Self> {
-        lazy_static::lazy_static! {
-            static ref INTERNER: Interner<PredicateData> = Interner::default();
-        }
-        &*INTERNER
-    }
-}
-
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PredicateData {
     AtomicPredicate(AtomicPredicate),
     AtomicRelation(AtomicRelation),
     ForAll(Binder<Predicate>),
+    #[grammar($v0 => $v1)]
     Implies(Vec<Predicate>, Predicate),
 }
 
 from_impl!(impl From<AtomicPredicate> for PredicateData);
 from_impl!(impl From<AtomicRelation> for PredicateData);
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Goal {
-    data: Interned<GoalData>,
+    data: Arc<GoalData>,
 }
 
 impl Goal {
@@ -128,29 +126,19 @@ where
 {
     fn from(v: T) -> Self {
         let v: GoalData = v.into();
-        Self {
-            data: Interned::from(v),
-        }
-    }
-}
-
-impl Internable for GoalData {
-    fn table() -> &'static Interner<Self> {
-        lazy_static::lazy_static! {
-            static ref INTERNER: Interner<GoalData> = Interner::default();
-        }
-        &*INTERNER
+        Self { data: Arc::new(v) }
     }
 }
 
 pub type Goals = Vec<Goal>;
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum GoalData {
     AtomicPredicate(AtomicPredicate),
     AtomicRelation(AtomicRelation),
     ForAll(Binder<Goal>),
     Exists(Binder<Goal>),
+    #[grammar($v0 => $v1)]
     Implies(Vec<Hypothesis>, Goal),
     Any(Vec<Goal>),
     All(Vec<Goal>),
@@ -188,9 +176,9 @@ impl Goal {
 
 pub type ProgramClause = Hypothesis;
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Hypothesis {
-    data: Interned<HypothesisData>,
+    data: Arc<HypothesisData>,
 }
 
 impl Hypothesis {
@@ -205,26 +193,16 @@ where
 {
     fn from(v: T) -> Self {
         let v: HypothesisData = v.into();
-        Hypothesis {
-            data: Interned::from(v),
-        }
+        Hypothesis { data: Arc::new(v) }
     }
 }
 
-impl Internable for HypothesisData {
-    fn table() -> &'static Interner<Self> {
-        lazy_static::lazy_static! {
-            static ref INTERNER: Interner<HypothesisData> = Interner::default();
-        }
-        &*INTERNER
-    }
-}
-
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum HypothesisData {
     AtomicPredicate(AtomicPredicate),
     AtomicRelation(AtomicRelation),
     ForAll(Binder<Hypothesis>),
+    #[grammar($v0 => $v1)]
     Implies(Vec<Goal>, Hypothesis),
     CoherenceMode,
 }
@@ -248,15 +226,17 @@ impl Hypothesis {
 
 pub type Hypotheses = Vec<Hypothesis>;
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[grammar(forall $for_all)]
 pub struct Invariant {
     for_all: Binder<InvariantImplication>,
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[grammar($conditions => $consequence)]
 pub struct InvariantImplication {
-    conditions: Vec<AtomicPredicate>,
-    consequence: AtomicPredicate,
+    pub conditions: Vec<AtomicPredicate>,
+    pub consequence: AtomicPredicate,
 }
 
 pub type Invariants = Vec<Invariant>;

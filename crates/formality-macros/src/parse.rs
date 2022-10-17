@@ -20,22 +20,15 @@ pub(crate) fn derive_parse(s: synstructure::Structure) -> TokenStream {
         stream.extend(parse_variant(&s.variants()[0]));
     } else {
         stream.extend(quote! {
-            let mut __results = vec![];
+            let __results = std::iter::empty();
         });
         for variant in s.variants() {
             let v = parse_variant(variant);
             stream.extend(quote! {
-                __results.push({
-                   parse::try_parse(|| { #v })
-                });
+                let __results = __results.chain(parse::try_parse(|| { #v }));
             });
         }
-        stream.extend(quote! {
-            if __results.len() > 1 {
-                panic!("ambiguous grammer, parsed: {:?}", __results);
-            }
-            __results.pop().unwrap()
-        });
+        stream.extend(quote! {parse::require_unambiguous(__results)});
     }
 
     s.gen_impl(quote! {
@@ -75,10 +68,14 @@ fn parse_variant(variant: &synstructure::VariantInfo) -> TokenStream {
             }
         }
 
-        [_] => variant.construct(|field, _| {
-            let field_ty = &field.ty;
-            quote!(<#field_ty as Parse > :: parse(scope, text)?)
-        }),
+        [binding] => {
+            let field_ty = &binding.ast().ty;
+            let construct = variant.construct(|_, _| quote!(__data));
+            quote! {
+                let (__data, text) = <#field_ty as parse::Parse > :: parse(scope, text)?;
+                Some((#construct, text))
+            }
+        }
 
         _ => syn::Error::new(
             ast.ident.span(),
@@ -109,13 +106,6 @@ fn parse_variant_with_attr(
     spec: &FormalitySpec,
 ) -> TokenStream {
     let mut stream = TokenStream::new();
-
-    for binding in variant.bindings() {
-        if binding.ast().ident.is_none() {
-            return syn::Error::new(binding.ast().ty.span(), "anonymous bindings not supported")
-                .into_compile_error();
-        }
-    }
 
     for op in &spec.ops {
         stream.extend(match op {
@@ -153,19 +143,19 @@ fn parse_variant_with_attr(
 
             spec::FormalitySpecOp::Char { punct } => {
                 let literal = Literal::character(punct.as_char());
-                quote_spanned!(punct.span() => let text = parse::expect(#literal)?;)
+                quote_spanned!(punct.span() => let text = parse::expect_char(text, #literal)?;)
             }
 
             spec::FormalitySpecOp::Text { text } => {
                 let literal = Literal::string(text);
-                quote!(let text = parse::expect_str(#literal)?;)
+                quote!(let text = parse::expect_str(text, #literal)?;)
             }
         });
     }
 
-    let c = variant.construct(|field, _| match &field.ident {
+    let c = variant.construct(|field, index| match &field.ident {
         Some(field_name) => field_name.clone(),
-        None => unreachable!(),
+        None => syn::Ident::new(&format!("v{}", index), field.span()),
     });
 
     stream.extend(quote! {
@@ -218,7 +208,7 @@ fn test_enum() {
                         parse :: try_parse (
                             || {
                                 A :: B (
-                                    < B as Parse > :: parse (
+                                    < B as parse::Parse > :: parse (
                                         scope , text)
                                     ? ,)
                                 }
@@ -231,7 +221,7 @@ fn test_enum() {
                         parse :: try_parse (
                             || {
                                 A :: C (
-                                    < C as Parse > :: parse (
+                                    < C as parse::Parse > :: parse (
                                         scope , text)
                                     ? ,)
                                 }
@@ -427,4 +417,99 @@ fn test_enum_grammar() {
                 }
                 no_build
             }
+}
+
+#[test]
+fn test_enum_grammar_on_variant() {
+    synstructure::test_derive! {
+            derive_parse {
+                enum Impl {
+                    Foo(Foo),
+                    #[grammar($v0 => $v1)]
+                    Bar(Bar, Baz),
+                }
+            }
+            expands to {
+                # [
+        allow (
+            non_upper_case_globals)
+        ]
+    const _DERIVE_parse_Parse_FOR_Impl : (
+        )
+    = {
+        use crate :: derive_links :: {
+            parse }
+        ;
+        impl parse :: Parse for Impl {
+            fn parse < 't > (
+                scope : & parse :: Scope , text : & 't str)
+            -> Option < (
+                Self , & 't str)
+            > {
+                let mut __results = vec ! [
+                    ]
+                ;
+                __results . push (
+                    {
+                        parse :: try_parse (
+                            || {
+                                Impl :: Foo (
+                                    < Foo as parse::Parse > :: parse (
+                                        scope , text)
+                                    ? ,)
+                                }
+                            )
+                        }
+                    )
+                ;
+                __results . push (
+                    {
+                        parse :: try_parse (
+                            || {
+                                let (
+                                    v0 , text)
+                                = parse :: Parse :: parse (
+                                    scope , text)
+                                ? ;
+                                let text = parse :: expect (
+                                    '=')
+                                ? ;
+                                let text = parse :: expect (
+                                    '>')
+                                ? ;
+                                let (
+                                    v1 , text)
+                                = parse :: Parse :: parse (
+                                    scope , text)
+                                ? ;
+                                Some (
+                                    (
+                                        Impl :: Bar (
+                                            v0 , v1 ,)
+                                        , text)
+                                    )
+                                }
+                            )
+                        }
+                    )
+                ;
+                if __results . len (
+                    )
+                > 1 {
+                    panic ! (
+                        "ambiguous grammer, parsed: {:?}" , __results)
+                    ;
+                    }
+                __results . pop (
+                    )
+                . unwrap (
+                    )
+                }
+            }
+        }
+    ;
+
+            }
+            no_build
+        }
 }

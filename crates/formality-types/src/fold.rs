@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use formality_core::interned::{Internable, Interned};
 
 use crate::grammar::{Lt, LtData, Parameter, ParameterKind, Ty, TyData, Variable};
@@ -46,6 +48,17 @@ impl<T: Fold + Internable> Fold for Interned<T> {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         let data = T::substitute(self, substitution_fn);
         Interned::new(data)
+    }
+
+    fn free_variables(&self) -> Vec<Variable> {
+        T::free_variables(self)
+    }
+}
+
+impl<T: Fold> Fold for Arc<T> {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+        let data = T::substitute(self, substitution_fn);
+        Arc::new(data)
     }
 
     fn free_variables(&self) -> Vec<Variable> {

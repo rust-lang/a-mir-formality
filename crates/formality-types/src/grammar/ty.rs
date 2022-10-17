@@ -1,5 +1,7 @@
-use formality_core::interned::{Internable, Interned, Interner};
 use formality_macros::{Fold, Parse};
+use std::sync::Arc;
+
+mod parse_impls;
 
 use crate::{collections::Map, fold::Fold};
 
@@ -40,21 +42,12 @@ impl Universe {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ty {
-    data: Interned<TyData>,
+    data: Arc<TyData>,
 }
 
 impl Ty {
     pub fn data(&self) -> &TyData {
         &self.data
-    }
-}
-
-impl Internable for TyData {
-    fn table() -> &'static Interner<Self> {
-        lazy_static::lazy_static! {
-            static ref INTERNER: Interner<TyData> = Interner::default();
-        }
-        &*INTERNER
     }
 }
 
@@ -64,9 +57,7 @@ where
 {
     fn from(v: T) -> Ty {
         let v: TyData = v.into();
-        Ty {
-            data: Interned::new(v),
-        }
+        Ty { data: Arc::new(v) }
     }
 }
 
@@ -93,29 +84,36 @@ pub struct InferenceVar {
     index: usize,
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[grammar($name[$*parameters])]
 pub struct RigidTy {
     name: RigidName,
     parameters: Parameters,
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RigidName {
+    #[grammar(adt($v0))]
     Adt(AdtId),
+    #[grammar(scalar($v0))]
     ScalarId(ScalarId),
+    #[grammar(&$v0)]
     Ref(RefKind),
+    #[grammar(tuple($v0))]
     Tuple(usize),
+    #[grammar(fnptr($v0))]
     FnPtr(usize),
+    #[grammar(fndef($v0))]
     FnDef(FnId),
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RefKind {
     Shared,
     Mut,
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ScalarId {
     U8,
     U16,
@@ -130,28 +128,32 @@ pub enum ScalarId {
     ISize,
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[grammar(alias $name < $,parameters >)]
 pub struct AliasTy {
     name: AliasName,
     parameters: Parameters,
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AliasName {
     AssociatedTyId(AssociatedTyId),
 }
 
 from_impl!(impl From<AssociatedTyId> for AliasName);
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[grammar(($trait_id :: $item_id))]
 pub struct AssociatedTyId {
     pub trait_id: TraitId,
     pub item_id: AssociatedItemId,
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PredicateTy {
+    #[grammar((forall $v0))]
     ForAllTy(Binder<Ty>),
+    #[grammar((exists $v0))]
     ExistsTy(Binder<Ty>),
     ImplicationTy(ImplicationTy),
     EnsuresTy(EnsuresTy),
@@ -160,13 +162,15 @@ pub enum PredicateTy {
 from_impl!(impl From<ImplicationTy> for PredicateTy);
 from_impl!(impl From<EnsuresTy> for PredicateTy);
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[grammar(($predicates => $ty))]
 pub struct ImplicationTy {
     pub predicates: Vec<Predicate>,
     pub ty: Ty,
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[grammar(($ty ensures $predicates))]
 pub struct EnsuresTy {
     ty: Ty,
     predicates: Vec<Predicate>,
@@ -193,7 +197,7 @@ pub struct KindedVarIndex {
     pub var_index: VarIndex,
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Parameter {
     Ty(Ty),
     Lt(Lt),
@@ -214,7 +218,7 @@ impl From<KindedVarIndex> for Parameter {
 
 pub type Parameters = Vec<Parameter>;
 
-#[derive(Parse, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ParameterKind {
     Ty,
     Lt,
@@ -222,21 +226,12 @@ pub enum ParameterKind {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Lt {
-    data: Interned<LtData>,
+    data: Arc<LtData>,
 }
 
 impl Lt {
     pub fn data(&self) -> &LtData {
         &self.data
-    }
-}
-
-impl Internable for LtData {
-    fn table() -> &'static Interner<Self> {
-        lazy_static::lazy_static! {
-            static ref INTERNER: Interner<LtData> = Interner::default();
-        }
-        &*INTERNER
     }
 }
 
@@ -247,7 +242,7 @@ where
     fn from(v: V) -> Self {
         let data: LtData = v.into();
         Lt {
-            data: Interned::from(data),
+            data: Arc::new(data),
         }
     }
 }

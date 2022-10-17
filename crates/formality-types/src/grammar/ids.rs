@@ -1,17 +1,18 @@
 use crate::fold::{Fold, SubstitutionFn};
+use crate::parse::{self, Parse};
 use formality_core::interned::Interned;
+use std::sync::Arc;
 
 macro_rules! id {
     ($n:ident) => {
         #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub struct $n {
-            data: Interned<String>,
+            data: Arc<String>,
         }
 
-        fn $n(s: &str) -> $n {
-            let t = s.to_string();
-            $n {
-                data: Interned::from(t),
+        impl $n {
+            fn new(s: String) -> $n {
+                $n { data: Arc::new(s) }
             }
         }
 
@@ -30,6 +31,14 @@ macro_rules! id {
 
             fn free_variables(&self) -> Vec<super::Variable> {
                 vec![]
+            }
+        }
+
+        impl Parse for $n {
+            fn parse<'t>(_scope: &parse::Scope, text: &'t str) -> Option<(Self, &'t str)> {
+                let (string, text) = parse::identifier(text)?;
+                let n = $n::new(string);
+                Some((n, text))
             }
         }
     };
