@@ -8,3 +8,4 @@ pub use crate::fold::SubstitutionFn;
 pub use crate::grammar::Parameter;
 pub use crate::grammar::ParameterKind;
 pub use crate::grammar::Variable;
+pub use crate::parse;

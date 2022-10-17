@@ -70,7 +70,7 @@ fn parse_variant(variant: &synstructure::VariantInfo) -> TokenStream {
             let literal = Literal::string(&ast.ident.to_string().to_lowercase());
             let construct = variant.construct(|_, _| quote! {});
             quote! {
-                let text = parse::expect_keyword(#literal)?;
+                let text = parse::expect_keyword(text, #literal)?;
                 Some((#construct, text))
             }
         }
@@ -148,7 +148,7 @@ fn parse_variant_with_attr(
 
             spec::FormalitySpecOp::Keyword { ident } => {
                 let literal = as_literal(ident);
-                quote_spanned!(ident.span() => let text = parse::expect_keyword(#literal)?;)
+                quote_spanned!(ident.span() => let text = parse::expect_keyword(text, #literal)?;)
             }
 
             spec::FormalitySpecOp::Char { punct } => {
@@ -260,90 +260,90 @@ fn test_enum() {
 #[test]
 fn test_enum_grammar() {
     synstructure::test_derive! {
-        derive_parse {
-            #[grammar(impl $name < $*ty > for $ty_self where $,wc { $*items })]
-            struct Impl {
-                name: Id,
-                ty: Vec<Ty>,
-                ty_self: Ty,
-                wc: Vec<WhereClause>,
-                items: Vec<Item>,
+            derive_parse {
+                #[grammar(impl $name < $*ty > for $ty_self where $,wc { $*items })]
+                struct Impl {
+                    name: Id,
+                    ty: Vec<Ty>,
+                    ty_self: Ty,
+                    wc: Vec<WhereClause>,
+                    items: Vec<Item>,
+                }
+            }
+            expands to {
+                # [
+        allow (
+            non_upper_case_globals)
+        ]
+    const _DERIVE_parse_Parse_FOR_Impl : (
+        )
+    = {
+        use crate :: derive_links :: {
+            parse }
+        ;
+        impl parse :: Parse for Impl {
+            fn parse < 't > (
+                scope : & Scope , text : & 't str)
+            -> Option < (
+                Self , & 't str)
+            > {
+                let text = parse :: expect_keyword (
+                    text , "impl")
+                ? ;
+                let (
+                    name , text)
+                = parse :: Parse :: parse (
+                    scope , text)
+                ? ;
+                let text = parse :: expect (
+                    '<')
+                ? ;
+                let (
+                    ty , text)
+                = parse :: Parse :: parse_many (
+                    scope , text)
+                ? ;
+                let text = parse :: expect (
+                    '>')
+                ? ;
+                let text = parse :: expect_keyword (
+                    text , "for")
+                ? ;
+                let (
+                    ty_self , text)
+                = parse :: Parse :: parse (
+                    scope , text)
+                ? ;
+                let text = parse :: expect_keyword (
+                    text , "where")
+                ? ;
+                let (
+                    wc , text)
+                = parse :: Parse :: parse_comma (
+                    scope , text)
+                ? ;
+                let text = parse :: expect_str (
+                    "[")
+                    ? ;
+                    let (
+                        items , text)
+                    = parse :: Parse :: parse_many (
+                        scope , text)
+                    ? ;
+                    let text = parse :: expect_str (
+                        "]")
+                ? ;
+                Some (
+                    (
+                        Impl {
+                            name : name , ty : ty , ty_self : ty_self , wc : wc , items : items , }
+                        , text)
+                    )
+                }
             }
         }
-        expands to {
-            # [
-                allow (
-                    non_upper_case_globals)
-                ]
-            const _DERIVE_parse_Parse_FOR_Impl : (
-                )
-            = {
-                use crate :: derive_links :: {
-                    parse }
-                ;
-                impl parse :: Parse for Impl {
-                    fn parse < 't > (
-                        scope : & Scope , text : & 't str)
-                    -> Option < (
-                        Self , & 't str)
-                    > {
-                        let text = parse :: expect_keyword (
-                            "impl")
-                        ? ;
-                        let (
-                            name , text)
-                        = parse :: Parse :: parse (
-                            scope , text)
-                        ? ;
-                        let text = parse :: expect (
-                            '<')
-                        ? ;
-                        let (
-                            ty , text)
-                        = parse :: Parse :: parse_many (
-                            scope , text)
-                        ? ;
-                        let text = parse :: expect (
-                            '>')
-                        ? ;
-                        let text = parse :: expect_keyword (
-                            "for")
-                        ? ;
-                        let (
-                            ty_self , text)
-                        = parse :: Parse :: parse (
-                            scope , text)
-                        ? ;
-                        let text = parse :: expect_keyword (
-                            "where")
-                        ? ;
-                        let (
-                            wc , text)
-                        = parse :: Parse :: parse_comma (
-                            scope , text)
-                        ? ;
-                        let text = parse :: expect_str (
-                            "[")
-                            ? ;
-                        let (
-                            items , text)
-                        = parse :: Parse :: parse_many (
-                            scope , text)
-                        ? ;
-                        let text = parse :: expect_str (
-                            "]")
-                        ? ;
-                        Some (
-                            (
-                                Impl {
-                                    name : name , ty : ty , ty_self : ty_self , wc : wc , items : items , }
-                                , text)
-                            )
-                        }
-                    }
-                }
-            ;
+    ;
+            }
+            no_build
         }
-        no_build
-    }
 }

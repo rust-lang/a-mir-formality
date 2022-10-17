@@ -1,5 +1,5 @@
 use formality_core::interned::{Internable, Interned, Interner};
-use formality_macros::Fold;
+use formality_macros::{Fold, Parse};
 
 use crate::{collections::Map, fold::Fold};
 
@@ -214,7 +214,7 @@ impl From<KindedVarIndex> for Parameter {
 
 pub type Parameters = Vec<Parameter>;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Parse, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ParameterKind {
     Ty,
     Lt,

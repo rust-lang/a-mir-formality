@@ -234,7 +234,7 @@ from_impl!(impl From<AtomicRelation> for HypothesisData);
 
 impl Hypothesis {
     pub fn for_all(names: &[KindedVarIndex], data: impl Into<Hypothesis>) -> Self {
-        HypothesisData::ForAll(Binder::new(names, data)).into()
+        HypothesisData::ForAll(Binder::new(names, data.into())).into()
     }
 
     pub fn implies(conditions: impl AllInto<Goal>, consequence: impl Into<Hypothesis>) -> Self {

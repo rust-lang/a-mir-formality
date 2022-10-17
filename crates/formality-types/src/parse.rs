@@ -128,9 +128,9 @@ pub fn identifier(mut text: &str) -> Option<(String, &str)> {
     Some((buffer, text))
 }
 
-pub fn expect_keyword(mut text: &str, expected: &str) -> Option<&str> {
+pub fn expect_keyword<'t>(mut text: &'t str, expected: &str) -> Option<&'t str> {
     let (ident, text) = identifier(text)?;
-    if *ident == expected {
+    if &*ident == expected {
         Some(text)
     } else {
         None
