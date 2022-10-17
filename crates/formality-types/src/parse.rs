@@ -49,10 +49,10 @@ impl<T> Parse for Vec<T>
 where
     T: Parse,
 {
-    fn parse<'t>(scope: &Scope, mut text: &'t str) -> Option<(Self, &'t str)> {
-        text = expect(text, '[')?;
+    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+        let text = expect(text, '[')?;
         let (v, text) = T::parse_many(scope, text);
-        text = expect(text, ']')?;
+        let text = expect(text, ']')?;
         Some((v, text))
     }
 }
@@ -107,7 +107,7 @@ pub fn expect(s: &str, ch: char) -> Option<&str> {
     }
 }
 
-pub fn identifier(mut text: &str) -> Option<(String, &str)> {
+pub fn identifier(text: &str) -> Option<(String, &str)> {
     let mut buffer = String::new();
 
     let (ch, text) = char(text)?;
@@ -116,6 +116,7 @@ pub fn identifier(mut text: &str) -> Option<(String, &str)> {
     }
     buffer.push(ch);
 
+    let mut text = text;
     while let Some((ch, t)) = char(text) {
         if !ch.is_alphanumeric() {
             break;
@@ -128,7 +129,7 @@ pub fn identifier(mut text: &str) -> Option<(String, &str)> {
     Some((buffer, text))
 }
 
-pub fn expect_keyword<'t>(mut text: &'t str, expected: &str) -> Option<&'t str> {
+pub fn expect_keyword<'t>(text: &'t str, expected: &str) -> Option<&'t str> {
     let (ident, text) = identifier(text)?;
     if &*ident == expected {
         Some(text)

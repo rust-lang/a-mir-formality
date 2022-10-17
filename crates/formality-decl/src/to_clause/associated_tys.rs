@@ -1,4 +1,4 @@
-use formality_types::grammar::ProgramClause;
+use formality_types::grammar::{ProgramClause, KindedVarIndex};
 
 use crate::grammar::{AssociatedTy, AssociatedTyValue, Fn};
 

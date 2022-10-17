@@ -60,9 +60,9 @@ pub struct TraitRef {
 }
 
 impl TraitRef {
-    pub fn new(id: TraitId, parameters: impl AllInto<Parameter>) -> Self {
+    pub fn new(id: &TraitId, parameters: impl AllInto<Parameter>) -> Self {
         Self {
-            trait_id: id,
+            trait_id: id.clone(),
             parameters: parameters.all_into(),
         }
     }

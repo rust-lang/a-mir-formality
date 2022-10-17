@@ -1,9 +1,6 @@
-use formality_core::all_into::AllInto;
-use formality_types::grammar::{Binder, HypothesisData, ProgramClause, TraitRef};
+use formality_types::grammar::{Hypothesis, ProgramClause, TraitRef};
 
-use crate::grammar::{TraitImpl, TraitImplBoundData};
-
-use super::ToClause;
+use crate::grammar::{Trait, TraitBoundData, TraitItem};
 
 impl Trait {
     pub fn to_clauses(&self, program: &crate::grammar::Program) -> Vec<ProgramClause> {
@@ -15,7 +12,7 @@ impl Trait {
             },
         ) = self.binder.open();
 
-        let trait_ref = TraitRef::new(self.id, &trait_kinded_var_ids);
+        let trait_ref = TraitRef::new(&self.id, &trait_kinded_var_ids);
 
         // The main rule for the trait:
         //
@@ -35,5 +32,7 @@ impl Trait {
 }
 
 impl TraitItem {
-    pub fn to_clauses(&self, program: &crate::grammar::Program) -> Vec<ProgramClause> {}
+    pub fn to_clauses(&self, program: &crate::grammar::Program) -> Vec<ProgramClause> {
+        unimplemented!()
+    }
 }

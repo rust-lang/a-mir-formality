@@ -1,9 +1,6 @@
-use formality_core::all_into::AllInto;
-use formality_types::grammar::{Binder, HypothesisData, ProgramClause};
+use formality_types::grammar::{Hypothesis, KindedVarIndex, ProgramClause};
 
 use crate::grammar::{ImplItem, Program, TraitImpl, TraitImplBoundData};
-
-use super::ToClause;
 
 impl TraitImpl {
     pub fn to_clauses(&self, program: &Program) -> Vec<ProgramClause> {

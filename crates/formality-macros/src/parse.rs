@@ -34,7 +34,7 @@ pub(crate) fn derive_parse(s: synstructure::Structure) -> TokenStream {
             if __results.len() > 1 {
                 panic!("ambiguous grammer, parsed: {:?}", __results);
             }
-            __results.pop()
+            __results.pop().unwrap()
         });
     }
 
@@ -42,7 +42,7 @@ pub(crate) fn derive_parse(s: synstructure::Structure) -> TokenStream {
         use crate::derive_links::{parse};
 
         gen impl parse::Parse for @Self {
-            fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)>
+            fn parse<'t>(scope: &parse::Scope, text: &'t str) -> Option<(Self, &'t str)>
             {
                 #stream
             }
@@ -77,7 +77,7 @@ fn parse_variant(variant: &synstructure::VariantInfo) -> TokenStream {
 
         [_] => variant.construct(|field, _| {
             let field_ty = &field.ty;
-            quote!(<#field_ty as Parse > :: parse(scope, text))
+            quote!(<#field_ty as Parse > :: parse(scope, text)?)
         }),
 
         _ => syn::Error::new(
@@ -133,7 +133,7 @@ fn parse_variant_with_attr(
                 mode: FieldMode::Many,
             } => {
                 quote_spanned! {
-                    name.span() => let (#name, text) = parse::Parse::parse_many(scope, text)?;
+                    name.span() => let (#name, text) = parse::Parse::parse_many(scope, text);
                 }
             }
 
@@ -142,7 +142,7 @@ fn parse_variant_with_attr(
                 mode: FieldMode::Comma,
             } => {
                 quote_spanned! {
-                    name.span() => let (#name, text) = parse::Parse::parse_comma(scope, text)?;
+                    name.span() => let (#name, text) = parse::Parse::parse_comma(scope, text);
                 }
             }
 
@@ -206,7 +206,7 @@ fn test_enum() {
         ;
         impl parse :: Parse for A {
             fn parse < 't > (
-                scope : & Scope , text : & 't str)
+                scope : & parse :: Scope , text : & 't str)
             -> Option < (
                 Self , & 't str)
             > {
@@ -220,7 +220,7 @@ fn test_enum() {
                                 A :: B (
                                     < B as Parse > :: parse (
                                         scope , text)
-                                    ,)
+                                    ? ,)
                                 }
                             )
                         }
@@ -233,7 +233,7 @@ fn test_enum() {
                                 A :: C (
                                     < C as Parse > :: parse (
                                         scope , text)
-                                    ,)
+                                    ? ,)
                                 }
                             )
                         }
@@ -248,6 +248,8 @@ fn test_enum() {
                     }
                 __results . pop (
                     )
+                . unwrap (
+                    )
                 }
             }
         }
@@ -258,20 +260,99 @@ fn test_enum() {
 }
 
 #[test]
-fn test_enum_grammar() {
+fn test_enum_units() {
     synstructure::test_derive! {
             derive_parse {
-                #[grammar(impl $name < $*ty > for $ty_self where $,wc { $*items })]
-                struct Impl {
-                    name: Id,
-                    ty: Vec<Ty>,
-                    ty_self: Ty,
-                    wc: Vec<WhereClause>,
-                    items: Vec<Item>,
+                pub enum ParameterKind {
+                    Ty,
+                    Lt,
                 }
             }
             expands to {
                 # [
+                    allow (
+                        non_upper_case_globals)
+                    ]
+                const _DERIVE_parse_Parse_FOR_ParameterKind : (
+                    )
+                = {
+                    use crate :: derive_links :: {
+                        parse }
+                    ;
+                    impl parse :: Parse for ParameterKind {
+                        fn parse < 't > (
+                            scope : & parse :: Scope , text : & 't str)
+                        -> Option < (
+                            Self , & 't str)
+                        > {
+                            let mut __results = vec ! [
+                                ]
+                            ;
+                            __results . push (
+                                {
+                                    parse :: try_parse (
+                                        || {
+                                            let text = parse :: expect_keyword (
+                                                text , "ty")
+                                            ? ;
+                                            Some (
+                                                (
+                                                    ParameterKind :: Ty , text)
+                                                )
+                                            }
+                                        )
+                                    }
+                                )
+                            ;
+                            __results . push (
+                                {
+                                    parse :: try_parse (
+                                        || {
+                                            let text = parse :: expect_keyword (
+                                                text , "lt")
+                                            ? ;
+                                            Some (
+                                                (
+                                                    ParameterKind :: Lt , text)
+                                                )
+                                            }
+                                        )
+                                    }
+                                )
+                            ;
+                            if __results . len (
+                                )
+                            > 1 {
+                                panic ! (
+                                    "ambiguous grammer, parsed: {:?}" , __results)
+                                ;
+                                }
+                            __results . pop (
+                                ) . unwrap()
+                            }
+                        }
+                    }
+                ;
+            }
+        no_build
+    }
+}
+
+#[test]
+fn test_enum_grammar() {
+    synstructure::test_derive! {
+                derive_parse {
+                    #[grammar(impl $name < $*ty > for $ty_self where $,wc { $*items })]
+                    struct Impl {
+                        name: Id,
+                        ty: Vec<Ty>,
+                        ty_self: Ty,
+                        wc: Vec<WhereClause>,
+                        items: Vec<Item>,
+                    }
+                }
+                expands to {
+                    # [
         allow (
             non_upper_case_globals)
         ]
@@ -283,7 +364,7 @@ fn test_enum_grammar() {
         ;
         impl parse :: Parse for Impl {
             fn parse < 't > (
-                scope : & Scope , text : & 't str)
+                scope : & parse :: Scope , text : & 't str)
             -> Option < (
                 Self , & 't str)
             > {
@@ -302,7 +383,7 @@ fn test_enum_grammar() {
                     ty , text)
                 = parse :: Parse :: parse_many (
                     scope , text)
-                ? ;
+                ;
                 let text = parse :: expect (
                     '>')
                 ? ;
@@ -321,7 +402,7 @@ fn test_enum_grammar() {
                     wc , text)
                 = parse :: Parse :: parse_comma (
                     scope , text)
-                ? ;
+                ;
                 let text = parse :: expect_str (
                     "[")
                     ? ;
@@ -329,7 +410,7 @@ fn test_enum_grammar() {
                         items , text)
                     = parse :: Parse :: parse_many (
                         scope , text)
-                    ? ;
+                    ;
                     let text = parse :: expect_str (
                         "]")
                 ? ;
@@ -343,7 +424,7 @@ fn test_enum_grammar() {
             }
         }
     ;
+                }
+                no_build
             }
-            no_build
-        }
 }
