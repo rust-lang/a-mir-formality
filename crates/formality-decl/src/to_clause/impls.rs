@@ -1,12 +1,12 @@
 use formality_core::all_into::AllInto;
 use formality_types::grammar::{Binder, HypothesisData, ProgramClause};
 
-use crate::grammar::{TraitImpl, TraitImplBoundData};
+use crate::grammar::{ImplItem, Program, TraitImpl, TraitImplBoundData};
 
 use super::ToClause;
 
-impl ToClause for TraitImpl {
-    fn to_clauses(&self, program: &crate::grammar::Program) -> Vec<ProgramClause> {
+impl TraitImpl {
+    pub fn to_clauses(&self, program: &Program) -> Vec<ProgramClause> {
         let (
             impl_kinded_var_ids,
             TraitImplBoundData {
@@ -18,12 +18,31 @@ impl ToClause for TraitImpl {
 
         // The main rule for the impl:
         //
-        // ∀. is_implemented(TraitRef) :- where_clauses
+        // ∀. has_impl(TraitRef) :- where_clauses
         let is_implemented = Hypothesis::for_all(
             &impl_kinded_var_ids,
-            Hypothesis::implies(where_clauses, trait_ref),
+            Hypothesis::implies(where_clauses, trait_ref.has_impl()),
         );
 
-        vec![is_implemented]
+        std::iter::once(is_implemented)
+            .chain(
+                impl_items
+                    .iter()
+                    .flat_map(|ii| ii.to_clauses(&impl_kinded_var_ids, program)),
+            )
+            .collect()
+    }
+}
+
+impl ImplItem {
+    pub fn to_clauses(
+        &self,
+        impl_kinded_var_ids: &[KindedVarIndex],
+        program: &Program,
+    ) -> Vec<ProgramClause> {
+        match self {
+            ImplItem::Fn(v) => v.to_clauses(impl_kinded_var_ids, program),
+            ImplItem::AssociatedTyValue(v) => v.to_clauses(impl_kinded_var_ids, program),
+        }
     }
 }

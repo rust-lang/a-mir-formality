@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    grammar::{Fallible, Goal, KindedVarIndex, Parameter, ParameterKind, Ty, Universe},
+    grammar::{Parameter, ParameterKind, Ty, Universe},
     hook::Hook,
 };
 

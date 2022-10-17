@@ -2,8 +2,10 @@ use formality_types::grammar::ProgramClause;
 
 use crate::grammar::Program;
 
+mod associated_tys;
 mod crate_items;
 mod crates;
+mod fns;
 mod impls;
 mod traits;
 

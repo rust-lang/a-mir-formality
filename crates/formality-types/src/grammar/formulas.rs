@@ -25,14 +25,19 @@ pub type Fallible<T> = anyhow::Result<T>;
 #[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum AtomicPredicate {
     IsImplemented(TraitRef),
+    HasImpl(TraitRef),
     NormalizesTo(AliasTy, Ty),
     WellFormed(Ty),
     // more to come
 }
 
-impl From<TraitRef> for AtomicPredicate {
-    fn from(v: TraitRef) -> Self {
-        AtomicPredicate::IsImplemented(v)
+impl TraitRef {
+    pub fn is_implemented(&self) -> AtomicPredicate {
+        AtomicPredicate::IsImplemented(self.clone())
+    }
+
+    pub fn has_impl(&self) -> AtomicPredicate {
+        AtomicPredicate::HasImpl(self.clone())
     }
 }
 
@@ -52,6 +57,15 @@ pub enum AtomicRelation {
 pub struct TraitRef {
     pub trait_id: TraitId,
     pub parameters: Parameters,
+}
+
+impl TraitRef {
+    pub fn new(id: TraitId, parameters: impl AllInto<Parameter>) -> Self {
+        Self {
+            trait_id: id,
+            parameters: parameters.all_into(),
+        }
+    }
 }
 
 #[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -95,7 +109,6 @@ pub enum PredicateData {
 }
 
 from_impl!(impl From<AtomicPredicate> for PredicateData);
-from_impl!(impl From<TraitRef> for PredicateData via AtomicPredicate);
 from_impl!(impl From<AtomicRelation> for PredicateData);
 
 #[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -145,7 +158,6 @@ pub enum GoalData {
 }
 
 from_impl!(impl From<AtomicPredicate> for GoalData);
-from_impl!(impl From<TraitRef> for GoalData via AtomicPredicate);
 from_impl!(impl From<AtomicRelation> for GoalData);
 
 impl Goal {
@@ -218,7 +230,6 @@ pub enum HypothesisData {
 }
 
 from_impl!(impl From<AtomicPredicate> for HypothesisData);
-from_impl!(impl From<TraitRef> for HypothesisData via AtomicPredicate);
 from_impl!(impl From<AtomicRelation> for HypothesisData);
 
 impl Hypothesis {

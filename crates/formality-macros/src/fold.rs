@@ -55,13 +55,11 @@ fn test_me() {
             )
         = {
             use crate :: derive_links :: {
-                Fold , Variable , Parameter , ParameterKind }
+                Fold , SubstitutionFn , Variable , Parameter , ParameterKind }
             ;
             impl < T > Fold for A < T > where T : Fold {
                 fn substitute (
-                    & self , substitution_fn : & mut impl FnMut (
-                        ParameterKind , &Variable)
-                    -> Parameter)
+                    & self , substitution_fn : SubstitutionFn < '_ >)
                 -> Self {
                     match self {
                         A :: B (

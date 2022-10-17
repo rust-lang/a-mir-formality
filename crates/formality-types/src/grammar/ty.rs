@@ -202,6 +202,16 @@ pub enum Parameter {
 from_impl!(impl From<Ty> for Parameter);
 from_impl!(impl From<Lt> for Parameter);
 
+impl From<KindedVarIndex> for Parameter {
+    fn from(kvi: KindedVarIndex) -> Self {
+        BoundVar {
+            debruijn: None,
+            var_index: kvi.var_index,
+        }
+        .into_parameter(kvi.kind)
+    }
+}
+
 pub type Parameters = Vec<Parameter>;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
