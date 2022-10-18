@@ -9,7 +9,7 @@
 use std::sync::Arc;
 
 use formality_core::all_into::AllInto;
-use formality_macros::{term, Fold, Parse};
+use formality_macros::term;
 
 use crate::from_impl;
 

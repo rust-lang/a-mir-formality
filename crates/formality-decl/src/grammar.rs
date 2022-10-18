@@ -1,4 +1,4 @@
-use formality_macros::{term, Fold, Parse};
+use formality_macros::term;
 use formality_types::from_impl;
 use formality_types::grammar::{
     AdtId, AssociatedTyId, Binder, CrateId, FieldId, FnId, Predicate, TraitId, TraitRef, Ty,

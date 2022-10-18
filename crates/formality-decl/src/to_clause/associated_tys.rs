@@ -1,4 +1,4 @@
-use formality_types::grammar::{ProgramClause, KindedVarIndex};
+use formality_types::grammar::{KindedVarIndex, ProgramClause};
 
 use crate::grammar::{AssociatedTy, AssociatedTyValue, Fn};
 
@@ -15,8 +15,8 @@ impl AssociatedTy {
 impl AssociatedTyValue {
     pub fn to_clauses(
         &self,
-        impl_kinded_var_ids: &[KindedVarIndex],
-        program: &crate::grammar::Program,
+        _impl_kinded_var_ids: &[KindedVarIndex],
+        _program: &crate::grammar::Program,
     ) -> Vec<ProgramClause> {
         unimplemented!()
     }

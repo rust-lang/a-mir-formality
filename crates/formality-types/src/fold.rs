@@ -44,17 +44,6 @@ impl<T: Fold> Fold for Option<T> {
     }
 }
 
-impl<T: Fold + Internable> Fold for Interned<T> {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
-        let data = T::substitute(self, substitution_fn);
-        Interned::new(data)
-    }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        T::free_variables(self)
-    }
-}
-
 impl<T: Fold> Fold for Arc<T> {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         let data = T::substitute(self, substitution_fn);

@@ -1,6 +1,5 @@
 use crate::fold::{Fold, SubstitutionFn};
 use crate::parse::{self, Parse};
-use formality_core::interned::Interned;
 use std::sync::Arc;
 
 macro_rules! id {

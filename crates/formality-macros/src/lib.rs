@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use spec::FormalitySpec;
-use syn::DeriveInput;
+// use syn::DeriveInput;
 
 extern crate proc_macro;
 
@@ -9,8 +9,8 @@ mod parse;
 mod spec;
 mod term;
 
-synstructure::decl_derive!([Fold] => fold::derive_fold);
-synstructure::decl_derive!([Parse, attributes(grammar)] => parse::derive_parse);
+// synstructure::decl_derive!([Fold] => fold::derive_fold);
+// synstructure::decl_derive!([Parse, attributes(grammar)] => parse::derive_parse);
 
 #[proc_macro_attribute]
 pub fn term(args: TokenStream, input: TokenStream) -> TokenStream {

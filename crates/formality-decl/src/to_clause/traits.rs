@@ -32,7 +32,7 @@ impl Trait {
 }
 
 impl TraitItem {
-    pub fn to_clauses(&self, program: &crate::grammar::Program) -> Vec<ProgramClause> {
+    pub fn to_clauses(&self, _program: &crate::grammar::Program) -> Vec<ProgramClause> {
         unimplemented!()
     }
 }
