@@ -99,10 +99,8 @@ where
 
 impl Parse for Binding {
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
-        let text = expect_char(text, '(')?;
         let (kind, text) = ParameterKind::parse(scope, text)?;
         let (name, text) = identifier(text)?;
-        let text = expect_char(text, ')')?;
         let (kvi, bound_var) = crate::grammar::fresh_bound_var(kind);
         Some((
             Binding {
@@ -120,8 +118,10 @@ where
     T: Parse + Fold,
 {
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+        eprintln!("parsing Binder: {text:?}");
         let text = expect_char(text, '<')?;
         let (bindings, text) = Binding::parse_many(scope, text);
+        eprintln!("parsing Binder: {bindings:?}");
         let text = expect_char(text, '>')?;
 
         // parse the contents with those names in scope
@@ -161,8 +161,7 @@ impl Parse for u64 {
     }
 }
 
-pub fn char(text: &str) -> Option<(char, &str)> {
-    let text = text.trim_start();
+fn char(text: &str) -> Option<(char, &str)> {
     let ch = text.chars().next()?;
     Some((ch, &text[char::len_utf8(ch)..]))
 }

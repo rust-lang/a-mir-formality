@@ -394,10 +394,7 @@ pub struct Substitution {
 
 impl Extend<(Variable, Parameter)> for Substitution {
     fn extend<T: IntoIterator<Item = (Variable, Parameter)>>(&mut self, iter: T) {
-        self.map.extend(iter.into_iter().map(|(v, p)| {
-            assert!(v.is_free());
-            (v, p)
-        }));
+        self.map.extend(iter.into_iter().map(|(v, p)| (v, p)));
     }
 }
 

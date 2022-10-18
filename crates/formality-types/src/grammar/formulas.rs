@@ -136,12 +136,17 @@ pub type Goals = Vec<Goal>;
 pub enum GoalData {
     AtomicPredicate(AtomicPredicate),
     AtomicRelation(AtomicRelation),
+    #[grammar(forall $v0)]
     ForAll(Binder<Goal>),
+    #[grammar(exists $v0)]
     Exists(Binder<Goal>),
     #[grammar($v0 => $v1)]
     Implies(Vec<Hypothesis>, Goal),
+    #[grammar(any($,v0))]
     Any(Vec<Goal>),
+    #[grammar(all($,v0))]
     All(Vec<Goal>),
+    #[grammar(coherence_mode($v0))]
     CoherenceMode(Goal),
 }
 
@@ -201,6 +206,7 @@ where
 pub enum HypothesisData {
     AtomicPredicate(AtomicPredicate),
     AtomicRelation(AtomicRelation),
+    #[grammar(forall $v0)]
     ForAll(Binder<Hypothesis>),
     #[grammar($v0 => $v1)]
     Implies(Vec<Goal>, Hypothesis),
