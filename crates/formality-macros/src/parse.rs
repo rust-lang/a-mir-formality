@@ -29,13 +29,16 @@ pub(crate) fn derive_parse(s: synstructure::Structure) -> TokenStream {
         stream.extend(quote! {parse::require_unambiguous(__results)});
     }
 
+    // let type_name = as_literal(&s.ast().ident);
     s.gen_impl(quote! {
         use crate::derive_links::{parse};
 
         gen impl parse::Parse for @Self {
             fn parse<'t>(scope: &parse::Scope, text: &'t str) -> Option<(Self, &'t str)>
             {
-                #stream
+                let __result = { #stream };
+                // eprintln!("parsed `{:?}` as {:?}, got {:?}", text, #type_name, __result);
+                __result
             }
         }
     })

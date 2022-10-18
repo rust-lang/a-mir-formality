@@ -8,6 +8,7 @@ mod crate_items;
 mod crates;
 mod fns;
 mod impls;
+mod test;
 mod traits;
 
 pub trait ToClause {

@@ -78,6 +78,7 @@ from_impl!(impl From<Variable> for TyData);
 from_impl!(impl From<PlaceholderVar> for TyData via Variable);
 from_impl!(impl From<InferenceVar> for TyData via Variable);
 from_impl!(impl From<BoundVar> for TyData via Variable);
+from_impl!(impl From<ScalarId> for TyData via RigidTy);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
@@ -91,10 +92,19 @@ pub struct RigidTy {
     parameters: Parameters,
 }
 
+impl From<ScalarId> for RigidTy {
+    fn from(s: ScalarId) -> Self {
+        RigidTy {
+            name: s.into(),
+            parameters: vec![],
+        }
+    }
+}
+
 #[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RigidName {
     #[grammar(adt($v0))]
-    Adt(AdtId),
+    AdtId(AdtId),
     #[grammar(scalar($v0))]
     ScalarId(ScalarId),
     #[grammar(&$v0)]
@@ -106,6 +116,9 @@ pub enum RigidName {
     #[grammar(fndef($v0))]
     FnDef(FnId),
 }
+
+from_impl!(impl From<AdtId> for RigidName);
+from_impl!(impl From<ScalarId> for RigidName);
 
 #[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RefKind {

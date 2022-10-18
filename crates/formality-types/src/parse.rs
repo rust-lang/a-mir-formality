@@ -4,8 +4,29 @@ use crate::{
     derive_links::{Fold, Parameter, ParameterKind},
     grammar::{Binder, BoundVar, KindedVarIndex},
 };
+use std::fmt::Debug;
 
-pub trait Parse: Sized {
+mod test;
+
+/// Parses `text` as a term with no bindings in scope.
+pub fn term<T>(text: &str) -> T
+where
+    T: Parse,
+{
+    let scope = Scope { bindings: vec![] };
+    let (t, remainder) = match T::parse(&scope, text) {
+        Some(v) => v,
+        None => {
+            panic!("failed to parse {text:?}");
+        }
+    };
+    if !remainder.trim().is_empty() {
+        panic!("extra tokens after parsing {text:?} to {t:?}: {remainder:?}");
+    }
+    t
+}
+
+pub trait Parse: Sized + Debug {
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)>;
 
     fn parse_many<'t>(scope: &Scope, mut text: &'t str) -> (Vec<Self>, &'t str) {
@@ -57,7 +78,7 @@ impl Scope {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Binding {
     pub name: String,
     pub kvi: KindedVarIndex,
@@ -140,9 +161,10 @@ impl Parse for u64 {
     }
 }
 
-pub fn char(s: &str) -> Option<(char, &str)> {
-    let ch = s.chars().next()?;
-    Some((ch, &s[char::len_utf8(ch)..]))
+pub fn char(text: &str) -> Option<(char, &str)> {
+    let text = text.trim_start();
+    let ch = text.chars().next()?;
+    Some((ch, &text[char::len_utf8(ch)..]))
 }
 
 pub fn number<T>(text: &str) -> Option<(T, &str)>
@@ -154,10 +176,11 @@ where
     Some((t, text))
 }
 
-pub fn expect_char(s: &str, ch: char) -> Option<&str> {
-    let (ch1, s) = char(s)?;
+pub fn expect_char(text: &str, ch: char) -> Option<&str> {
+    let text = text.trim_start();
+    let (ch1, text) = char(text)?;
     if ch == ch1 {
-        Some(s)
+        Some(text)
     } else {
         None
     }
@@ -167,6 +190,7 @@ pub fn expect_char(s: &str, ch: char) -> Option<&str> {
 /// Don't use this for keywords, since if `s` is `"foo"`
 /// and text is `"foobar"`, this would return `Some("bar")`.
 pub fn expect_str<'t>(text: &'t str, s: &str) -> Option<&'t str> {
+    let text = text.trim_start();
     if text.starts_with(s) {
         Some(&text[s.len()..])
     } else {
@@ -177,7 +201,17 @@ pub fn expect_str<'t>(text: &'t str, s: &str) -> Option<&'t str> {
 /// Extracts a maximal identifier from the start of text,
 /// following the usual rules.
 pub fn identifier(text: &str) -> Option<(String, &str)> {
-    accumulate(text, char::is_alphabetic, char::is_alphanumeric)
+    dbg!(accumulate(
+        text,
+        |ch| match ch {
+            'a'..='z' | 'A'..='Z' | '_' => true,
+            _ => false,
+        },
+        |ch| match ch {
+            'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => true,
+            _ => false,
+        }
+    ))
 }
 
 pub fn expect_keyword<'t>(text: &'t str, expected: &str) -> Option<&'t str> {
@@ -214,6 +248,7 @@ fn accumulate(
     start_test: impl Fn(char) -> bool,
     continue_test: impl Fn(char) -> bool,
 ) -> Option<(String, &str)> {
+    let text = text.trim_start();
     let mut buffer = String::new();
 
     let (ch, text) = char(text)?;

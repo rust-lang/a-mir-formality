@@ -4,13 +4,15 @@ use formality_types::grammar::{
     AdtId, AssociatedTyId, Binder, CrateId, FieldId, FnId, Predicate, TraitId, TraitRef, Ty,
 };
 
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Program {
     /// List of all crates.
     /// The last crate in the list is the current crate.
     pub crates: Vec<Crate>,
 }
 
-#[derive(Fold, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[grammar(crate $id { $*items })]
 pub struct Crate {
     pub id: CrateId,
     pub items: Vec<CrateItem>,
