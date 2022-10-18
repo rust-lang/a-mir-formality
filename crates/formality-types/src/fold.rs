@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use formality_core::interned::{Internable, Interned};
-
 use crate::grammar::{Lt, LtData, Parameter, ParameterKind, Ty, TyData, Variable};
 
 /// Invoked for each variable that we find when folding, ignoring variables bound by binders
