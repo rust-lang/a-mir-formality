@@ -9,6 +9,7 @@ use std::fmt::Debug;
 mod test;
 
 /// Parses `text` as a term with no bindings in scope.
+#[tracing::instrument(level = "Debug", ret)]
 pub fn term<T>(text: &str) -> T
 where
     T: Parse,
@@ -56,7 +57,7 @@ pub trait Parse: Sized + Debug {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Scope {
     bindings: Vec<Binding>,
 }
@@ -166,15 +167,17 @@ fn char(text: &str) -> Option<(char, &str)> {
     Some((ch, &text[char::len_utf8(ch)..]))
 }
 
+#[tracing::instrument(level = "trace", ret)]
 pub fn number<T>(text: &str) -> Option<(T, &str)>
 where
-    T: FromStr,
+    T: FromStr + Debug,
 {
     let (id, text) = accumulate(text, char::is_numeric, char::is_numeric)?;
     let t = T::from_str(&id).ok()?;
     Some((t, text))
 }
 
+#[tracing::instrument(level = "trace", ret)]
 pub fn expect_char(text: &str, ch: char) -> Option<&str> {
     let text = text.trim_start();
     let (ch1, text) = char(text)?;
@@ -188,6 +191,7 @@ pub fn expect_char(text: &str, ch: char) -> Option<&str> {
 /// If `text` starts with `s`, return the remainder of `text`.
 /// Don't use this for keywords, since if `s` is `"foo"`
 /// and text is `"foobar"`, this would return `Some("bar")`.
+#[tracing::instrument(level = "trace", ret)]
 pub fn expect_str<'t>(text: &'t str, s: &str) -> Option<&'t str> {
     let text = text.trim_start();
     if text.starts_with(s) {
@@ -199,8 +203,9 @@ pub fn expect_str<'t>(text: &'t str, s: &str) -> Option<&'t str> {
 
 /// Extracts a maximal identifier from the start of text,
 /// following the usual rules.
+#[tracing::instrument(level = "trace", ret)]
 pub fn identifier(text: &str) -> Option<(String, &str)> {
-    dbg!(accumulate(
+    accumulate(
         text,
         |ch| match ch {
             'a'..='z' | 'A'..='Z' | '_' => true,
@@ -209,10 +214,11 @@ pub fn identifier(text: &str) -> Option<(String, &str)> {
         |ch| match ch {
             'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => true,
             _ => false,
-        }
-    ))
+        },
+    )
 }
 
+#[tracing::instrument(level = "trace", ret)]
 pub fn expect_keyword<'t>(text: &'t str, expected: &str) -> Option<&'t str> {
     let (ident, text) = identifier(text)?;
     if &*ident == expected {

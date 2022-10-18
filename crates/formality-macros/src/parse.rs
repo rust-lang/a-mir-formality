@@ -21,23 +21,29 @@ pub(crate) fn derive_parse(s: synstructure::Structure) -> TokenStream {
             let __results = std::iter::empty();
         });
         for variant in s.variants() {
+            let variant_name = as_literal(&variant.ast().ident);
             let v = parse_variant(variant);
             stream.extend(quote! {
+                let __span = tracing::span!(tracing::Level::TRACE, "parse", variant_name = #variant_name);
+                let __guard = __span.enter();
                 let __results = __results.chain(parse::try_parse(|| { #v }));
+                drop(__guard);
             });
         }
         stream.extend(quote! {parse::require_unambiguous(__results)});
     }
 
-    // let type_name = as_literal(&s.ast().ident);
+    let type_name = as_literal(&s.ast().ident);
     s.gen_impl(quote! {
         use crate::derive_links::{parse};
 
         gen impl parse::Parse for @Self {
             fn parse<'t>(scope: &parse::Scope, text: &'t str) -> Option<(Self, &'t str)>
             {
+                let __span = tracing::span!(tracing::Level::TRACE, "parse", type_name = #type_name, ?scope, ?text);
+                let __guard = __span.enter();
                 let __result = { #stream };
-                // eprintln!("parsed `{:?}` as {:?}, got {:?}", text, #type_name, __result);
+                tracing::trace!("result = {:?}", __result);
                 __result
             }
         }

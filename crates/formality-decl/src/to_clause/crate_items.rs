@@ -1,9 +1,7 @@
 use crate::grammar::CrateItem;
 
-use super::ToClause;
-
-impl ToClause for CrateItem {
-    fn to_clauses(
+impl CrateItem {
+    pub fn to_clauses(
         &self,
         program: &crate::grammar::Program,
     ) -> Vec<formality_types::grammar::ProgramClause> {

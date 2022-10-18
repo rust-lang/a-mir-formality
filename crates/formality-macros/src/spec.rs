@@ -54,8 +54,8 @@ fn token_stream_to_ops(
             proc_macro2::TokenTree::Group(v) => {
                 let (open_text, close_text) = match v.delimiter() {
                     proc_macro2::Delimiter::Parenthesis => ("(", ")"),
-                    proc_macro2::Delimiter::Brace => ("[", "]"),
-                    proc_macro2::Delimiter::Bracket => ("{", "}"),
+                    proc_macro2::Delimiter::Brace => ("{", "}"),
+                    proc_macro2::Delimiter::Bracket => ("[", "]"),
                     proc_macro2::Delimiter::None => ("", ""),
                 };
 

@@ -11,24 +11,9 @@ mod impls;
 mod test;
 mod traits;
 
-pub trait ToClause {
-    fn to_clauses(&self, program: &Program) -> Vec<ProgramClause>;
-}
-
-impl<T> ToClause for Vec<T>
-where
-    T: ToClause,
-{
-    fn to_clauses(&self, program: &Program) -> Vec<ProgramClause> {
-        self.iter().flat_map(|e| e.to_clauses(program)).collect()
-    }
-}
-
-impl<T> ToClause for Option<T>
-where
-    T: ToClause,
-{
-    fn to_clauses(&self, program: &Program) -> Vec<ProgramClause> {
-        self.iter().flat_map(|e| e.to_clauses(program)).collect()
+impl Program {
+    pub fn to_clauses(&self) -> Vec<ProgramClause> {
+        let Program { crates } = self;
+        crates.iter().flat_map(|c| c.to_clauses(self)).collect()
     }
 }

@@ -5,6 +5,7 @@ use formality_types::grammar::{
 };
 
 #[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[grammar($*crates)]
 pub struct Program {
     /// List of all crates.
     /// The last crate in the list is the current crate.
