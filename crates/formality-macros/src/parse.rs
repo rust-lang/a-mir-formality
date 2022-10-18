@@ -4,9 +4,7 @@ use proc_macro2::{Ident, Literal, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{spanned::Spanned, Attribute};
 
-use self::spec::{FieldMode, FormalitySpec};
-
-mod spec;
+use crate::spec::{self, FieldMode, FormalitySpec};
 
 pub(crate) fn derive_parse(s: synstructure::Structure) -> TokenStream {
     if let syn::Data::Union(v) = &s.ast().data {
