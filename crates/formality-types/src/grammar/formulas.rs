@@ -9,7 +9,7 @@
 use std::sync::Arc;
 
 use formality_core::all_into::AllInto;
-use formality_macros::{Fold, Parse};
+use formality_macros::{term, Fold, Parse};
 
 use crate::from_impl;
 
@@ -22,7 +22,7 @@ use super::{AliasTy, KindedVarIndex};
 
 pub type Fallible<T> = anyhow::Result<T>;
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum AtomicPredicate {
     #[grammar(is_implemented($v0))]
     IsImplemented(TraitRef),
@@ -45,7 +45,7 @@ impl TraitRef {
     }
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum AtomicRelation {
     /// `T1 == T2` etc
     #[grammar(($v0 == $v1))]
@@ -60,8 +60,7 @@ pub enum AtomicRelation {
     Outlives(Parameter, Parameter),
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[grammar($trait_id < $,parameters >)]
+#[term($trait_id < $,parameters >)]
 pub struct TraitRef {
     pub trait_id: TraitId,
     pub parameters: Parameters,
@@ -76,7 +75,7 @@ impl TraitRef {
     }
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub struct Predicate {
     data: Arc<PredicateData>,
 }
@@ -97,7 +96,7 @@ where
     }
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum PredicateData {
     AtomicPredicate(AtomicPredicate),
     AtomicRelation(AtomicRelation),
@@ -109,7 +108,7 @@ pub enum PredicateData {
 from_impl!(impl From<AtomicPredicate> for PredicateData);
 from_impl!(impl From<AtomicRelation> for PredicateData);
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub struct Goal {
     data: Arc<GoalData>,
 }
@@ -132,7 +131,7 @@ where
 
 pub type Goals = Vec<Goal>;
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum GoalData {
     AtomicPredicate(AtomicPredicate),
     AtomicRelation(AtomicRelation),
@@ -181,7 +180,7 @@ impl Goal {
 
 pub type ProgramClause = Hypothesis;
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub struct Hypothesis {
     data: Arc<HypothesisData>,
 }
@@ -202,7 +201,7 @@ where
     }
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum HypothesisData {
     AtomicPredicate(AtomicPredicate),
     AtomicRelation(AtomicRelation),
@@ -232,14 +231,12 @@ impl Hypothesis {
 
 pub type Hypotheses = Vec<Hypothesis>;
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[grammar(forall $for_all)]
+#[term(forall $for_all)]
 pub struct Invariant {
     for_all: Binder<InvariantImplication>,
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[grammar($conditions => $consequence)]
+#[term($conditions => $consequence)]
 pub struct InvariantImplication {
     pub conditions: Vec<AtomicPredicate>,
     pub consequence: AtomicPredicate,

@@ -1,4 +1,4 @@
-use formality_macros::{Fold, Parse};
+use formality_macros::{term, Fold};
 use std::sync::Arc;
 
 mod parse_impls;
@@ -85,8 +85,7 @@ pub struct InferenceVar {
     index: usize,
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[grammar($name[$*parameters])]
+#[term($name[$*parameters])]
 pub struct RigidTy {
     name: RigidName,
     parameters: Parameters,
@@ -101,7 +100,7 @@ impl From<ScalarId> for RigidTy {
     }
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum RigidName {
     #[grammar(adt($v0))]
     AdtId(AdtId),
@@ -120,13 +119,13 @@ pub enum RigidName {
 from_impl!(impl From<AdtId> for RigidName);
 from_impl!(impl From<ScalarId> for RigidName);
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum RefKind {
     Shared,
     Mut,
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum ScalarId {
     U8,
     U16,
@@ -141,28 +140,26 @@ pub enum ScalarId {
     ISize,
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[grammar(alias $name < $,parameters >)]
+#[term(alias $name < $,parameters >)]
 pub struct AliasTy {
     name: AliasName,
     parameters: Parameters,
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum AliasName {
     AssociatedTyId(AssociatedTyId),
 }
 
 from_impl!(impl From<AssociatedTyId> for AliasName);
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[grammar(($trait_id :: $item_id))]
+#[term(($trait_id :: $item_id))]
 pub struct AssociatedTyId {
     pub trait_id: TraitId,
     pub item_id: AssociatedItemId,
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum PredicateTy {
     #[grammar((forall $v0))]
     ForAllTy(Binder<Ty>),
@@ -175,15 +172,13 @@ pub enum PredicateTy {
 from_impl!(impl From<ImplicationTy> for PredicateTy);
 from_impl!(impl From<EnsuresTy> for PredicateTy);
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[grammar(($predicates => $ty))]
+#[term(($predicates => $ty))]
 pub struct ImplicationTy {
     pub predicates: Vec<Predicate>,
     pub ty: Ty,
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[grammar(($ty ensures $predicates))]
+#[term(($ty ensures $predicates))]
 pub struct EnsuresTy {
     ty: Ty,
     predicates: Vec<Predicate>,
@@ -210,7 +205,7 @@ pub struct KindedVarIndex {
     pub var_index: VarIndex,
 }
 
-#[derive(Fold, Parse, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum Parameter {
     Ty(Ty),
     Lt(Lt),
@@ -231,7 +226,8 @@ impl From<KindedVarIndex> for Parameter {
 
 pub type Parameters = Vec<Parameter>;
 
-#[derive(Fold, Parse, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
+#[derive(Copy)]
 pub enum ParameterKind {
     Ty,
     Lt,

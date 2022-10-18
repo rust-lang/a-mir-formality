@@ -2,7 +2,7 @@ extern crate proc_macro;
 
 use proc_macro2::{Ident, Literal, TokenStream};
 use quote::{quote, quote_spanned};
-use syn::{spanned::Spanned, Attribute};
+use syn::{spanned::Spanned, Attribute, DeriveInput};
 
 use crate::spec::{self, FieldMode, FormalitySpec};
 
@@ -12,17 +12,26 @@ pub(crate) fn derive_parse(s: synstructure::Structure) -> TokenStream {
             .into_compile_error();
     }
 
+    derive_parse_with_spec(s, None)
+}
+
+/// Derive the `Parse` impl, using an optional grammar supplied "from the outside".
+/// This is used by the `#[term(G)]` macro, which supplies the grammar `G`.
+pub(crate) fn derive_parse_with_spec(
+    s: synstructure::Structure,
+    external_spec: Option<&FormalitySpec>,
+) -> TokenStream {
     let mut stream = TokenStream::new();
 
     if s.variants().len() == 1 {
-        stream.extend(parse_variant(&s.variants()[0]));
+        stream.extend(parse_variant(&s.variants()[0], external_spec));
     } else {
         stream.extend(quote! {
             let __results = std::iter::empty();
         });
         for variant in s.variants() {
             let variant_name = as_literal(&variant.ast().ident);
-            let v = parse_variant(variant);
+            let v = parse_variant(variant, None);
             stream.extend(quote! {
                 let __span = tracing::span!(tracing::Level::TRACE, "parse", variant_name = #variant_name);
                 let __guard = __span.enter();
@@ -50,8 +59,18 @@ pub(crate) fn derive_parse(s: synstructure::Structure) -> TokenStream {
     })
 }
 
-fn parse_variant(variant: &synstructure::VariantInfo) -> TokenStream {
+fn parse_variant(
+    variant: &synstructure::VariantInfo,
+    external_spec: Option<&FormalitySpec>,
+) -> TokenStream {
     let ast = variant.ast();
+
+    // When invoked like `#[term(foo)]`, use the spec from `foo`
+    if let Some(spec) = external_spec {
+        return parse_variant_with_attr(variant, &spec);
+    }
+
+    // Else, look for a `#[grammar]` attribute on the variant
     if let Some(attr) = get_grammar_attr(ast.attrs) {
         return match attr {
             Ok(spec) => parse_variant_with_attr(variant, &spec),
@@ -179,344 +198,4 @@ fn get_grammar_attr(attrs: &[Attribute]) -> Option<syn::Result<FormalitySpec>> {
 
 fn as_literal(ident: &Ident) -> Literal {
     Literal::string(&ident.to_string())
-}
-
-#[test]
-fn test_enum() {
-    synstructure::test_derive! {
-            derive_parse {
-                enum A {
-                    B(B),
-                    C(C),
-                }
-            }
-            expands to {
-                # [
-        allow (
-            non_upper_case_globals)
-        ]
-    const _DERIVE_parse_Parse_FOR_A : (
-        )
-    = {
-        use crate :: derive_links :: {
-            parse }
-        ;
-        impl parse :: Parse for A {
-            fn parse < 't > (
-                scope : & parse :: Scope , text : & 't str)
-            -> Option < (
-                Self , & 't str)
-            > {
-                let mut __results = vec ! [
-                    ]
-                ;
-                __results . push (
-                    {
-                        parse :: try_parse (
-                            || {
-                                A :: B (
-                                    < B as parse::Parse > :: parse (
-                                        scope , text)
-                                    ? ,)
-                                }
-                            )
-                        }
-                    )
-                ;
-                __results . push (
-                    {
-                        parse :: try_parse (
-                            || {
-                                A :: C (
-                                    < C as parse::Parse > :: parse (
-                                        scope , text)
-                                    ? ,)
-                                }
-                            )
-                        }
-                    )
-                ;
-                if __results . len (
-                    )
-                > 1 {
-                    panic ! (
-                        "ambiguous grammer, parsed: {:?}" , __results)
-                    ;
-                    }
-                __results . pop (
-                    )
-                . unwrap (
-                    )
-                }
-            }
-        }
-    ;
-        }
-        no_build
-    }
-}
-
-#[test]
-fn test_enum_units() {
-    synstructure::test_derive! {
-            derive_parse {
-                pub enum ParameterKind {
-                    Ty,
-                    Lt,
-                }
-            }
-            expands to {
-                # [
-                    allow (
-                        non_upper_case_globals)
-                    ]
-                const _DERIVE_parse_Parse_FOR_ParameterKind : (
-                    )
-                = {
-                    use crate :: derive_links :: {
-                        parse }
-                    ;
-                    impl parse :: Parse for ParameterKind {
-                        fn parse < 't > (
-                            scope : & parse :: Scope , text : & 't str)
-                        -> Option < (
-                            Self , & 't str)
-                        > {
-                            let mut __results = vec ! [
-                                ]
-                            ;
-                            __results . push (
-                                {
-                                    parse :: try_parse (
-                                        || {
-                                            let text = parse :: expect_keyword (
-                                                text , "ty")
-                                            ? ;
-                                            Some (
-                                                (
-                                                    ParameterKind :: Ty , text)
-                                                )
-                                            }
-                                        )
-                                    }
-                                )
-                            ;
-                            __results . push (
-                                {
-                                    parse :: try_parse (
-                                        || {
-                                            let text = parse :: expect_keyword (
-                                                text , "lt")
-                                            ? ;
-                                            Some (
-                                                (
-                                                    ParameterKind :: Lt , text)
-                                                )
-                                            }
-                                        )
-                                    }
-                                )
-                            ;
-                            if __results . len (
-                                )
-                            > 1 {
-                                panic ! (
-                                    "ambiguous grammer, parsed: {:?}" , __results)
-                                ;
-                                }
-                            __results . pop (
-                                ) . unwrap()
-                            }
-                        }
-                    }
-                ;
-            }
-        no_build
-    }
-}
-
-#[test]
-fn test_enum_grammar() {
-    synstructure::test_derive! {
-                derive_parse {
-                    #[grammar(impl $name < $*ty > for $ty_self where $,wc { $*items })]
-                    struct Impl {
-                        name: Id,
-                        ty: Vec<Ty>,
-                        ty_self: Ty,
-                        wc: Vec<WhereClause>,
-                        items: Vec<Item>,
-                    }
-                }
-                expands to {
-                    # [
-        allow (
-            non_upper_case_globals)
-        ]
-    const _DERIVE_parse_Parse_FOR_Impl : (
-        )
-    = {
-        use crate :: derive_links :: {
-            parse }
-        ;
-        impl parse :: Parse for Impl {
-            fn parse < 't > (
-                scope : & parse :: Scope , text : & 't str)
-            -> Option < (
-                Self , & 't str)
-            > {
-                let text = parse :: expect_keyword (
-                    text , "impl")
-                ? ;
-                let (
-                    name , text)
-                = parse :: Parse :: parse (
-                    scope , text)
-                ? ;
-                let text = parse :: expect (
-                    '<')
-                ? ;
-                let (
-                    ty , text)
-                = parse :: Parse :: parse_many (
-                    scope , text)
-                ;
-                let text = parse :: expect (
-                    '>')
-                ? ;
-                let text = parse :: expect_keyword (
-                    text , "for")
-                ? ;
-                let (
-                    ty_self , text)
-                = parse :: Parse :: parse (
-                    scope , text)
-                ? ;
-                let text = parse :: expect_keyword (
-                    text , "where")
-                ? ;
-                let (
-                    wc , text)
-                = parse :: Parse :: parse_comma (
-                    scope , text)
-                ;
-                let text = parse :: expect_str (
-                    "[")
-                    ? ;
-                    let (
-                        items , text)
-                    = parse :: Parse :: parse_many (
-                        scope , text)
-                    ;
-                    let text = parse :: expect_str (
-                        "]")
-                ? ;
-                Some (
-                    (
-                        Impl {
-                            name : name , ty : ty , ty_self : ty_self , wc : wc , items : items , }
-                        , text)
-                    )
-                }
-            }
-        }
-    ;
-                }
-                no_build
-            }
-}
-
-#[test]
-fn test_enum_grammar_on_variant() {
-    synstructure::test_derive! {
-            derive_parse {
-                enum Impl {
-                    Foo(Foo),
-                    #[grammar($v0 => $v1)]
-                    Bar(Bar, Baz),
-                }
-            }
-            expands to {
-                # [
-        allow (
-            non_upper_case_globals)
-        ]
-    const _DERIVE_parse_Parse_FOR_Impl : (
-        )
-    = {
-        use crate :: derive_links :: {
-            parse }
-        ;
-        impl parse :: Parse for Impl {
-            fn parse < 't > (
-                scope : & parse :: Scope , text : & 't str)
-            -> Option < (
-                Self , & 't str)
-            > {
-                let mut __results = vec ! [
-                    ]
-                ;
-                __results . push (
-                    {
-                        parse :: try_parse (
-                            || {
-                                Impl :: Foo (
-                                    < Foo as parse::Parse > :: parse (
-                                        scope , text)
-                                    ? ,)
-                                }
-                            )
-                        }
-                    )
-                ;
-                __results . push (
-                    {
-                        parse :: try_parse (
-                            || {
-                                let (
-                                    v0 , text)
-                                = parse :: Parse :: parse (
-                                    scope , text)
-                                ? ;
-                                let text = parse :: expect (
-                                    '=')
-                                ? ;
-                                let text = parse :: expect (
-                                    '>')
-                                ? ;
-                                let (
-                                    v1 , text)
-                                = parse :: Parse :: parse (
-                                    scope , text)
-                                ? ;
-                                Some (
-                                    (
-                                        Impl :: Bar (
-                                            v0 , v1 ,)
-                                        , text)
-                                    )
-                                }
-                            )
-                        }
-                    )
-                ;
-                if __results . len (
-                    )
-                > 1 {
-                    panic ! (
-                        "ambiguous grammer, parsed: {:?}" , __results)
-                    ;
-                    }
-                __results . pop (
-                    )
-                . unwrap (
-                    )
-                }
-            }
-        }
-    ;
-
-            }
-            no_build
-        }
 }

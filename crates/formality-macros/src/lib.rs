@@ -14,8 +14,13 @@ synstructure::decl_derive!([Parse, attributes(grammar)] => parse::derive_parse);
 
 #[proc_macro_attribute]
 pub fn term(args: TokenStream, input: TokenStream) -> TokenStream {
-    let spec = syn::parse_macro_input!(args as FormalitySpec);
+    let spec = if args.is_empty() {
+        None
+    } else {
+        Some(syn::parse_macro_input!(args as FormalitySpec))
+    };
     let input = syn::parse_macro_input!(input as syn::DeriveInput);
+
     match term::term(spec, input) {
         Ok(s) => s.into(),
         Err(e) => e.into_compile_error().into(),
