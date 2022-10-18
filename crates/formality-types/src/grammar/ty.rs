@@ -1,4 +1,4 @@
-use formality_macros::{term, Fold};
+use formality_macros::term;
 use std::sync::Arc;
 
 mod parse_impls;
@@ -29,7 +29,8 @@ macro_rules! from_impl {
     };
 }
 
-#[derive(Fold, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term(U($index))]
+#[derive(Copy)]
 pub struct Universe {
     pub index: usize,
 }
