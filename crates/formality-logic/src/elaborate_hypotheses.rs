@@ -3,8 +3,7 @@ use std::collections::BTreeSet;
 use formality_types::{
     self,
     grammar::{
-        AtomicPredicate, Hypothesis, HypothesisData, Invariant, InvariantImplication,
-        KindedVarIndex, Substitution,
+        AtomicPredicate, Hypothesis, HypothesisData, Invariant, InvariantImplication, Substitution,
     },
 };
 
@@ -12,17 +11,13 @@ use crate::Db;
 
 mod test;
 
-pub fn elaborate_hypotheses(
-    db: &dyn Db,
-    invariants: &[Invariant],
-    hypotheses: &[Hypothesis],
-) -> Vec<Hypothesis> {
+pub fn elaborate_hypotheses(db: &dyn Db, hypotheses: &[Hypothesis]) -> Vec<Hypothesis> {
     let mut set = BTreeSet::default();
     let mut stack: Vec<_> = hypotheses.iter().cloned().collect();
 
     while let Some(hypothesis) = stack.pop() {
         if set.insert(hypothesis.clone()) {
-            stack.extend(elaborate_hypothesis(db, invariants, &hypothesis));
+            stack.extend(elaborate_hypothesis(db, &hypothesis));
         }
     }
 
@@ -30,13 +25,10 @@ pub fn elaborate_hypotheses(
     set.iter().cloned().collect()
 }
 
-fn elaborate_hypothesis(
-    db: &dyn Db,
-    invariants: &[Invariant],
-    hypothesis: &Hypothesis,
-) -> Vec<Hypothesis> {
+fn elaborate_hypothesis(db: &dyn Db, hypothesis: &Hypothesis) -> Vec<Hypothesis> {
     match hypothesis.data() {
-        HypothesisData::AtomicPredicate(predicate) => invariants
+        HypothesisData::AtomicPredicate(predicate) => db
+            .invariants_for_predicate(predicate)
             .iter()
             .flat_map(|i| apply_invariant_to_predicate(db, i, predicate))
             .collect(),
@@ -45,18 +37,16 @@ fn elaborate_hypothesis(
 
         HypothesisData::ForAll(binder) => {
             let (kinded_var_indices, hypothesis) = binder.open();
-            elaborate_hypothesis(db, invariants, &hypothesis)
+            elaborate_hypothesis(db, &hypothesis)
                 .into_iter()
                 .map(|h| Hypothesis::for_all(&kinded_var_indices, h))
                 .collect()
         }
 
-        HypothesisData::Implies(conditions, consequence) => {
-            elaborate_hypothesis(db, invariants, consequence)
-                .into_iter()
-                .map(|h| Hypothesis::implies(conditions, h))
-                .collect()
-        }
+        HypothesisData::Implies(conditions, consequence) => elaborate_hypothesis(db, consequence)
+            .into_iter()
+            .map(|h| Hypothesis::implies(conditions, h))
+            .collect(),
 
         HypothesisData::CoherenceMode => vec![hypothesis.clone()],
     }

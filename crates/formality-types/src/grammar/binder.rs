@@ -1,6 +1,6 @@
 //! Manages binders so that the main rules can be nice and simple.
 
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
 use lazy_static::lazy_static;
 
@@ -81,13 +81,37 @@ impl<T: Fold> Binder<T> {
             term: self.term.into(),
         }
     }
+
+    /// Number of variables bound by this binder
+    pub fn len(&self) -> usize {
+        self.kinds.len()
+    }
+
+    /// Instantiate the term, replacing each bound variable with `op(i)`.
+    pub fn instantiate(&self, mut op: impl FnMut(ParameterKind, VarIndex) -> Parameter) -> T {
+        let substitution: Vec<Parameter> = self
+            .kinds
+            .iter()
+            .zip(0..)
+            .map(|(&kind, index)| op(kind, VarIndex { index }))
+            .collect();
+
+        self.term.substitute(&mut |kind, var| match var {
+            Variable::BoundVar(BoundVar {
+                debruijn: Some(DebruijnIndex::INNERMOST),
+                var_index,
+            }) => Some(substitution[var_index.index as usize].clone()),
+
+            _ => None,
+        })
+    }
 }
 
 /// Creates a fresh bound var of the given kind that is not yet part of a binder.
 /// You can put this into a term and then use `Binder::new`.
 pub fn fresh_bound_var(kind: ParameterKind) -> (KindedVarIndex, BoundVar) {
     lazy_static! {
-        static ref COUNTER: AtomicU64 = AtomicU64::new(0);
+        static ref COUNTER: AtomicUsize = AtomicUsize::new(0);
     }
 
     let index = COUNTER.fetch_add(1, Ordering::SeqCst);

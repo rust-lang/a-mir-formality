@@ -323,7 +323,7 @@ impl Invariant {
         ) = self.binder.open();
 
         // the set {0..n} of bound variables from the invariant (tracked by their index within binder)
-        let mut indices: BTreeSet<usize> = (0..kinded_var_indices.len()).collect();
+        let indices: BTreeSet<usize> = (0..kinded_var_indices.len()).collect();
 
         // the parameters to the condition: each parameter must be a distinct variable from that set
         let (_, parameters) = condition.debone();

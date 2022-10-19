@@ -18,8 +18,7 @@
   ;; enriched to handle [FOHH] predicates as well as to
   ;; support a simple form of coinduction.
   ;;
-  ;; [S
-  LD]: https://en.wikipedia.org/wiki/SLD_resolution
+  ;; [SLD]: https://en.wikipedia.org/wiki/SLD_resolution
   ;; [FOHH]: https://en.wikipedia.org/wiki/Harrop_formula
   #:mode (prove-top-level-goal/cosld I I O)
   #:contract (prove-top-level-goal/cosld Env Goal EnvOutput)

@@ -2,18 +2,24 @@
 
 use expect_test;
 use formality_types::{
-    grammar::{AtomicRelation, Hypothesis, Invariant},
+    grammar::{AtomicPredicate, AtomicRelation, Hypothesis, Invariant},
     parse::term,
 };
 use test_log::test;
 
 use super::elaborate_hypotheses;
 
-struct MockDb;
+struct MockDb {
+    invariants: Vec<Invariant>,
+}
 
 impl crate::Db for MockDb {
     fn elaborate_relation(&self, _r: &AtomicRelation) -> Vec<Hypothesis> {
         vec![]
+    }
+
+    fn invariants_for_predicate(&self, _predicate: &AtomicPredicate) -> Vec<Invariant> {
+        self.invariants.clone()
     }
 }
 
@@ -35,7 +41,7 @@ fn test_single_step() {
         ",
     );
 
-    let hypotheses1 = elaborate_hypotheses(&MockDb, &invariants, &hypotheses);
+    let hypotheses1 = elaborate_hypotheses(&MockDb { invariants }, &hypotheses);
 
     expect_test::expect![[r#"
         [
@@ -113,7 +119,7 @@ fn test_transitive() {
         ",
     );
 
-    let hypotheses1 = elaborate_hypotheses(&MockDb, &invariants, &hypotheses);
+    let hypotheses1 = elaborate_hypotheses(&MockDb { invariants }, &hypotheses);
 
     expect_test::expect![[r#"
         [

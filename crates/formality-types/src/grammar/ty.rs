@@ -94,7 +94,13 @@ from_impl!(impl From<ScalarId> for TyData via RigidTy);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
-    index: usize,
+    pub index: usize,
+}
+
+impl InferenceVar {
+    pub fn into_parameter(self, kind: ParameterKind) -> Parameter {
+        Variable::InferenceVar(self).into_parameter(kind)
+    }
 }
 
 #[term($name[$*parameters])]
@@ -201,8 +207,14 @@ pub struct EnsuresTy {
 /// is true for all `T`, we replace `T` with a placeholder.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PlaceholderVar {
-    universe: Universe,
-    index: usize,
+    pub universe: Universe,
+    pub var_index: VarIndex,
+}
+
+impl PlaceholderVar {
+    pub fn into_parameter(self, kind: ParameterKind) -> Parameter {
+        Variable::PlaceholderVar(self).into_parameter(kind)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -408,7 +420,7 @@ impl DebruijnIndex {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VarIndex {
-    pub index: u64,
+    pub index: usize,
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
