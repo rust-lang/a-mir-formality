@@ -6,6 +6,7 @@
 //
 // Hypothesis -- something
 
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use formality_core::all_into::AllInto;
@@ -13,6 +14,8 @@ use formality_macros::term;
 
 use crate::from_impl;
 
+use super::AdtId;
+use super::AliasName;
 use super::Binder;
 use super::Parameter;
 use super::Parameters;
@@ -31,8 +34,68 @@ pub enum AtomicPredicate {
     #[grammar(normalizes_to($v0 -> $v1))]
     NormalizesTo(AliasTy, Ty),
     #[grammar(well_formed($v0))]
-    WellFormed(Ty),
-    // more to come
+    WellFormedTy(Ty),
+    #[grammar(well_formed_trait_ref($v0))]
+    WellFormedTraitRef(TraitRef),
+}
+
+/// The "skeleton" of an atomic predicate is the kernel that contains
+/// nothing unifiable and identifies the kind of predicate.
+/// If the skeleton's don't match, they are distinct predicates.
+#[term]
+pub enum AtomicPredicateSkeleton {
+    #[grammar(is_implemented($v0))]
+    IsImplemented(TraitId),
+    #[grammar(has_impl($v0))]
+    HasImpl(TraitId),
+    #[grammar(normalizes_to($v0))]
+    NormalizesTo(AliasName),
+    #[grammar(well_formed_ty)]
+    WellFormedTy,
+    #[grammar(well_formed_trait_ref($v0))]
+    WellFormedTraitRef(TraitId),
+}
+
+impl AtomicPredicate {
+    /// Separate an atomic predicate into the "skeleton" (which can be compared for equality using `==`)
+    /// and the parameters (which must be related).
+    pub fn debone(&self) -> (AtomicPredicateSkeleton, Vec<Parameter>) {
+        match self {
+            AtomicPredicate::IsImplemented(TraitRef {
+                trait_id,
+                parameters,
+            }) => (
+                AtomicPredicateSkeleton::IsImplemented(trait_id.clone()),
+                parameters.clone(),
+            ),
+            AtomicPredicate::HasImpl(TraitRef {
+                trait_id,
+                parameters,
+            }) => (
+                AtomicPredicateSkeleton::HasImpl(trait_id.clone()),
+                parameters.clone(),
+            ),
+            AtomicPredicate::NormalizesTo(AliasTy { name, parameters }, ty) => (
+                AtomicPredicateSkeleton::NormalizesTo(name.clone()),
+                parameters
+                    .iter()
+                    .cloned()
+                    .chain(Some(ty.to_parameter()))
+                    .collect(),
+            ),
+            AtomicPredicate::WellFormedTy(ty) => (
+                AtomicPredicateSkeleton::WellFormedTy,
+                vec![ty.to_parameter()],
+            ),
+            AtomicPredicate::WellFormedTraitRef(TraitRef {
+                trait_id,
+                parameters,
+            }) => (
+                AtomicPredicateSkeleton::WellFormedTraitRef(trait_id.clone()),
+                parameters.clone(),
+            ),
+        }
+    }
 }
 
 impl TraitRef {
@@ -42,6 +105,10 @@ impl TraitRef {
 
     pub fn has_impl(&self) -> AtomicPredicate {
         AtomicPredicate::HasImpl(self.clone())
+    }
+
+    pub fn well_formed(&self) -> AtomicPredicate {
+        AtomicPredicate::WellFormedTraitRef(self.clone())
     }
 }
 
@@ -209,6 +276,7 @@ pub enum HypothesisData {
     ForAll(Binder<Hypothesis>),
     #[grammar($v0 => $v1)]
     Implies(Vec<Goal>, Hypothesis),
+    #[grammar(coherence_mode)]
     CoherenceMode,
 }
 
@@ -231,18 +299,49 @@ impl Hypothesis {
 
 pub type Hypotheses = Vec<Hypothesis>;
 
-#[term(forall $for_all)]
+#[term]
 pub struct Invariant {
-    for_all: Binder<InvariantImplication>,
+    pub binder: Binder<InvariantImplication>,
 }
 
-#[term($conditions => $consequence)]
+#[term($condition => $consequence)]
 pub struct InvariantImplication {
-    pub conditions: Vec<AtomicPredicate>,
+    /// Invariant: each parameter on the condition will be a distinct variable
+    /// that appears in the invariant binder.
+    pub condition: AtomicPredicate,
     pub consequence: AtomicPredicate,
 }
 
-pub type Invariants = Vec<Invariant>;
+impl Invariant {
+    pub fn assert(&self) {
+        let (
+            kinded_var_indices,
+            InvariantImplication {
+                condition,
+                consequence,
+            },
+        ) = self.binder.open();
+
+        // the set {0..n} of bound variables from the invariant (tracked by their index within binder)
+        let mut indices: BTreeSet<usize> = (0..kinded_var_indices.len()).collect();
+
+        // the parameters to the condition: each parameter must be a distinct variable from that set
+        let (_, parameters) = condition.debone();
+
+        let condition = {
+            // first, number of parameters should be equal to number of bound variables
+            parameters.len() == indices.len() &&
+
+        // second, each of the bound variables should appear in the parameter list
+        kinded_var_indices.iter().map(|&kvi| Parameter::from(kvi)).all(|p| parameters.contains(&p)) &&
+
+        // finally, each of the items in the parameter list must be distinct from the others
+        parameters.iter().collect::<BTreeSet<_>>().len() == parameters.len()
+        };
+
+        assert!(condition, "invalid invariant: {self:?}");
+    }
+}
 
 impl From<Predicate> for Goal {
     fn from(value: Predicate) -> Self {

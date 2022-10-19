@@ -8,7 +8,6 @@ use crate::{
 mod simple_sub;
 
 pub struct Env {
-    hook: Arc<dyn Hook>,
     universe: Universe,
     inference_data: Vec<InferenceVarData>,
 }

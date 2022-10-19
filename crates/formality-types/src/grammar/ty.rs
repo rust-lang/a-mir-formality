@@ -50,6 +50,17 @@ impl Ty {
     pub fn data(&self) -> &TyData {
         &self.data
     }
+
+    pub fn to_parameter(&self) -> Parameter {
+        Parameter::Ty(self.clone())
+    }
+
+    pub fn as_variable(&self) -> Option<Variable> {
+        match self.data() {
+            TyData::Variable(v) => Some(*v),
+            _ => None,
+        }
+    }
 }
 
 impl<T> From<T> for Ty
@@ -143,8 +154,8 @@ pub enum ScalarId {
 
 #[term(alias $name < $,parameters >)]
 pub struct AliasTy {
-    name: AliasName,
-    parameters: Parameters,
+    pub name: AliasName,
+    pub parameters: Parameters,
 }
 
 #[term]
@@ -212,6 +223,15 @@ pub enum Parameter {
     Lt(Lt),
 }
 
+impl Parameter {
+    pub fn as_variable(&self) -> Option<Variable> {
+        match self {
+            Parameter::Ty(v) => v.as_variable(),
+            Parameter::Lt(v) => v.as_variable(),
+        }
+    }
+}
+
 from_impl!(impl From<Ty> for Parameter);
 from_impl!(impl From<Lt> for Parameter);
 
@@ -242,6 +262,13 @@ pub struct Lt {
 impl Lt {
     pub fn data(&self) -> &LtData {
         &self.data
+    }
+
+    pub fn as_variable(&self) -> Option<Variable> {
+        match self.data() {
+            LtData::Variable(v) => Some(v.clone()),
+            _ => None,
+        }
     }
 }
 

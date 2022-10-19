@@ -10,6 +10,7 @@ mod test;
 
 /// Parses `text` as a term with no bindings in scope.
 #[tracing::instrument(level = "Debug", ret)]
+#[track_caller]
 pub fn term<T>(text: &str) -> T
 where
     T: Parse,
@@ -92,9 +93,21 @@ where
 {
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         let text = expect_char(text, '[')?;
-        let (v, text) = T::parse_many(scope, text);
+        let (v, text) = T::parse_comma(scope, text);
         let text = expect_char(text, ']')?;
         Some((v, text))
+    }
+}
+
+impl<T> Parse for Option<T>
+where
+    T: Parse,
+{
+    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+        match T::parse(scope, text) {
+            Some((value, text)) => Some((Some(value), text)),
+            None => Some((None, text)),
+        }
     }
 }
 

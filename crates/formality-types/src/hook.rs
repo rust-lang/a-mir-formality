@@ -1,5 +1,7 @@
 use crate::env::Env;
-use crate::grammar::{AtomicPredicate, AtomicRelation, Fallible, Goals, Hypotheses, Invariants};
+use crate::grammar::{
+    AtomicPredicate, AtomicRelation, Fallible, Goals, Hypotheses, Hypothesis, Invariant,
+};
 
 pub trait Hook {
     fn clauses(
@@ -7,14 +9,14 @@ pub trait Hook {
         env: &Env,
         hypotheses: &Hypotheses,
         predicate: &AtomicPredicate,
-    ) -> Hypotheses;
+    ) -> Vec<Hypothesis>;
 
     fn invariants(
         &self,
         env: &Env,
         hypotheses: &Hypotheses,
         predicate: &AtomicPredicate,
-    ) -> Invariants;
+    ) -> Vec<Invariant>;
 
     fn relate(&self, env: &Env, relation: &AtomicRelation) -> Fallible<(Env, Goals)>;
 }
