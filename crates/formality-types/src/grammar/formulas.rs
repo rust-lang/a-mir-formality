@@ -214,12 +214,17 @@ pub enum GoalData {
     All(Vec<Goal>),
     #[grammar(coherence_mode($v0))]
     CoherenceMode(Goal),
+    Ambiguous,
 }
 
 from_impl!(impl From<AtomicPredicate> for GoalData);
 from_impl!(impl From<AtomicRelation> for GoalData);
 
 impl Goal {
+    pub fn ambiguous() -> Self {
+        GoalData::Ambiguous.into()
+    }
+
     pub fn for_all(names: &[KindedVarIndex], data: impl Into<Goal>) -> Self {
         GoalData::ForAll(Binder::new(names, data.into())).into()
     }

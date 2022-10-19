@@ -53,6 +53,7 @@ impl CosldSolver {
             GoalData::CoherenceMode(subgoal) => self
                 .with_hypotheses(&[Hypothesis::coherence_mode()])
                 .prove_goal(subgoal),
+            GoalData::Ambiguous => std::iter::once(CosldResult::Maybe).boxed(),
         }
     }
 
