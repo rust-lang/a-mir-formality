@@ -1,8 +1,9 @@
 #![cfg(test)]
 
 use super::term;
-use crate::grammar::{AtomicPredicate, Goal};
+use crate::grammar::{AtomicPredicate, Goal, Ty};
 use expect_test::expect;
+use test_log::test;
 
 #[test]
 fn parse_atomic_predicate() {
@@ -273,4 +274,32 @@ fn parse_all() {
         }
     "#]]
     .assert_debug_eq(&program);
+}
+
+#[test]
+fn parse_scalar_id() {
+    let ty1: Ty = term("u8");
+    let ty2: Ty = term("(rigid (scalar u8))");
+    assert_eq!(ty1, ty2);
+}
+
+#[test]
+fn parse_adts_with_parameters() {
+    let ty1: Ty = term("Vec<String>");
+    let ty2: Ty = term("(rigid (adt Vec) (rigid (adt String)))");
+    assert_eq!(ty1, ty2);
+}
+
+#[test]
+fn parse_assoc_type() {
+    let ty1: Ty = term("<String as Iterator>::Item");
+    let ty2: Ty = term("(alias (Iterator::Item) String)");
+    assert_eq!(ty1, ty2);
+}
+
+#[test]
+fn parse_gat() {
+    let ty1: Ty = term("<String as Iterator>::Item<u32>");
+    let ty2: Ty = term("(alias (Iterator::Item) String (rigid (scalar u32)))");
+    assert_eq!(ty1, ty2);
 }

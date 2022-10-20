@@ -88,6 +88,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive-new"
+version = "0.5.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3418329ca0ad70234b9735dc4ceed10af4df60eff9c8e7b06cb5e520d92c3535"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "diff"
 version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -147,6 +158,7 @@ dependencies = [
 name = "formality-logic"
 version = "0.1.0"
 dependencies = [
+ "derive-new",
  "env_logger",
  "expect-test",
  "formality-types",
@@ -172,11 +184,14 @@ name = "formality-types"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "env_logger",
  "expect-test",
  "formality-core",
  "formality-macros",
  "lazy_static",
+ "test-log",
  "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

@@ -105,6 +105,12 @@ impl<T: Fold> Binder<T> {
             _ => None,
         })
     }
+
+    /// Accesses the data inside the binder. Use this for simple tests that extract data
+    /// that is independent of the bound variables. If that's not the case, use `open`.
+    pub fn peek(&self) -> &T {
+        &self.term
+    }
 }
 
 /// Creates a fresh bound var of the given kind that is not yet part of a binder.

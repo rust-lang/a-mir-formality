@@ -89,7 +89,7 @@ fn parse_variant(
             let literal = Literal::string(&ast.ident.to_string().to_lowercase());
             let construct = variant.construct(|_, _| quote! {});
             quote! {
-                let text = parse::expect_keyword(text, #literal)?;
+                let text = parse::expect_keyword(#literal, text)?;
                 Some((#construct, text))
             }
         }
@@ -164,17 +164,17 @@ fn parse_variant_with_attr(
 
             spec::FormalitySpecOp::Keyword { ident } => {
                 let literal = as_literal(ident);
-                quote_spanned!(ident.span() => let text = parse::expect_keyword(text, #literal)?;)
+                quote_spanned!(ident.span() => let text = parse::expect_keyword(#literal, text)?;)
             }
 
             spec::FormalitySpecOp::Char { punct } => {
                 let literal = Literal::character(punct.as_char());
-                quote_spanned!(punct.span() => let text = parse::expect_char(text, #literal)?;)
+                quote_spanned!(punct.span() => let text = parse::expect_char(#literal, text)?;)
             }
 
             spec::FormalitySpecOp::Text { text } => {
                 let literal = Literal::string(text);
-                quote!(let text = parse::expect_str(text, #literal)?;)
+                quote!(let text = parse::expect_str(#literal, text)?;)
             }
         });
     }

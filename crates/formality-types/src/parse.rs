@@ -47,7 +47,7 @@ pub trait Parse: Sized + Debug {
             result.push(e);
             text = t;
 
-            if let Some(t) = expect_char(text, ',') {
+            if let Some(t) = expect_char(',', text) {
                 text = t;
             } else {
                 break;
@@ -92,9 +92,9 @@ where
     T: Parse,
 {
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
-        let text = expect_char(text, '[')?;
+        let text = expect_char('[', text)?;
         let (v, text) = T::parse_comma(scope, text);
-        let text = expect_char(text, ']')?;
+        let text = expect_char(']', text)?;
         Some((v, text))
     }
 }
@@ -133,10 +133,10 @@ where
 {
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         eprintln!("parsing Binder: {text:?}");
-        let text = expect_char(text, '<')?;
+        let text = expect_char('<', text)?;
         let (bindings, text) = Binding::parse_many(scope, text);
         eprintln!("parsing Binder: {bindings:?}");
-        let text = expect_char(text, '>')?;
+        let text = expect_char('>', text)?;
 
         // parse the contents with those names in scope
         let scope1 = scope.with_bindings(&bindings);
@@ -191,7 +191,7 @@ where
 }
 
 #[tracing::instrument(level = "trace", ret)]
-pub fn expect_char(text: &str, ch: char) -> Option<&str> {
+pub fn expect_char(ch: char, text: &str) -> Option<&str> {
     let text = text.trim_start();
     let (ch1, text) = char(text)?;
     if ch == ch1 {
@@ -205,7 +205,7 @@ pub fn expect_char(text: &str, ch: char) -> Option<&str> {
 /// Don't use this for keywords, since if `s` is `"foo"`
 /// and text is `"foobar"`, this would return `Some("bar")`.
 #[tracing::instrument(level = "trace", ret)]
-pub fn expect_str<'t>(text: &'t str, s: &str) -> Option<&'t str> {
+pub fn expect_str<'t>(s: &str, text: &'t str) -> Option<&'t str> {
     let text = text.trim_start();
     if text.starts_with(s) {
         Some(&text[s.len()..])
@@ -232,7 +232,7 @@ pub fn identifier(text: &str) -> Option<(String, &str)> {
 }
 
 #[tracing::instrument(level = "trace", ret)]
-pub fn expect_keyword<'t>(text: &'t str, expected: &str) -> Option<&'t str> {
+pub fn expect_keyword<'t>(expected: &str, text: &'t str) -> Option<&'t str> {
     let (ident, text) = identifier(text)?;
     if &*ident == expected {
         Some(text)

@@ -1,3 +1,4 @@
+use formality_core::all_into::AllInto;
 use formality_macros::term;
 use std::sync::Arc;
 
@@ -61,6 +62,22 @@ impl Ty {
             _ => None,
         }
     }
+
+    pub fn rigid(name: impl Into<RigidName>, parameters: impl AllInto<Parameter>) -> Self {
+        RigidTy {
+            name: name.into(),
+            parameters: parameters.all_into(),
+        }
+        .into()
+    }
+
+    pub fn alias(name: impl Into<AliasName>, parameters: impl AllInto<Parameter>) -> Self {
+        AliasTy {
+            name: name.into(),
+            parameters: parameters.all_into(),
+        }
+        .into()
+    }
 }
 
 impl<T> From<T> for Ty
@@ -103,7 +120,7 @@ impl InferenceVar {
     }
 }
 
-#[term($name[$*parameters])]
+#[term((rigid $name $*parameters))]
 pub struct RigidTy {
     name: RigidName,
     parameters: Parameters,
@@ -120,17 +137,17 @@ impl From<ScalarId> for RigidTy {
 
 #[term]
 pub enum RigidName {
-    #[grammar(adt($v0))]
+    #[grammar((adt $v0))]
     AdtId(AdtId),
-    #[grammar(scalar($v0))]
+    #[grammar((scalar $v0))]
     ScalarId(ScalarId),
-    #[grammar(&$v0)]
+    #[grammar((& $v0))]
     Ref(RefKind),
-    #[grammar(tuple($v0))]
+    #[grammar((tuple $v0))]
     Tuple(usize),
-    #[grammar(fnptr($v0))]
+    #[grammar((fnptr $v0))]
     FnPtr(usize),
-    #[grammar(fndef($v0))]
+    #[grammar((fndef $v0))]
     FnDef(FnId),
 }
 
@@ -158,7 +175,7 @@ pub enum ScalarId {
     ISize,
 }
 
-#[term(alias $name < $,parameters >)]
+#[term((alias $name $*parameters))]
 pub struct AliasTy {
     pub name: AliasName,
     pub parameters: Parameters,
@@ -236,6 +253,13 @@ pub enum Parameter {
 }
 
 impl Parameter {
+    pub fn kind(&self) -> ParameterKind {
+        match self {
+            Parameter::Ty(_) => ParameterKind::Ty,
+            Parameter::Lt(_) => ParameterKind::Lt,
+        }
+    }
+
     pub fn as_variable(&self) -> Option<Variable> {
         match self {
             Parameter::Ty(v) => v.as_variable(),

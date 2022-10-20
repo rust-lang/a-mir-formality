@@ -248,6 +248,21 @@ impl Goal {
     pub fn coherence_mode(goal: impl Into<Goal>) -> Self {
         GoalData::CoherenceMode(goal.into()).into()
     }
+
+    /// Goal that `p1 == p2`
+    pub fn eq(p1: impl Into<Parameter>, p2: impl Into<Parameter>) -> Self {
+        AtomicRelation::Equals(p1.into(), p2.into()).into()
+    }
+
+    /// Goal that `p1 <: p2`
+    pub fn sub(p1: impl Into<Parameter>, p2: impl Into<Parameter>) -> Self {
+        AtomicRelation::Sub(p1.into(), p2.into()).into()
+    }
+
+    /// Goal that `p1: p2`
+    pub fn outlives(p1: impl Into<Parameter>, p2: impl Into<Parameter>) -> Self {
+        AtomicRelation::Outlives(p1.into(), p2.into()).into()
+    }
 }
 
 pub type ProgramClause = Hypothesis;
@@ -260,6 +275,20 @@ pub struct Hypothesis {
 impl Hypothesis {
     pub fn data(&self) -> &HypothesisData {
         &self.data
+    }
+
+    /// True if this hypotheses could possible match predicate, for some assignment
+    /// of its bound variables. This is used by solver to prune down the paths
+    /// we search, with the goal of improving readability (i.e., if this function
+    /// just returned `false`, the solver should still work).
+    pub fn could_match(&self, predicate: &AtomicPredicate) -> bool {
+        match self.data() {
+            HypothesisData::AtomicPredicate(p) => p.debone().0 == predicate.debone().0,
+            HypothesisData::AtomicRelation(_) => false,
+            HypothesisData::ForAll(binder) => binder.peek().could_match(predicate),
+            HypothesisData::Implies(_, consequence) => consequence.could_match(predicate),
+            HypothesisData::CoherenceMode => false,
+        }
     }
 }
 
