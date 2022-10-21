@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use crate::{
     fold::Fold,
     fold::SubstitutionFn,
-    from_into_term::{Upcast, UpcastFrom},
+    cast::{Upcast, UpcastFrom},
     grammar::VarIndex,
 };
 

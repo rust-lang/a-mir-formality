@@ -11,9 +11,9 @@ use std::sync::Arc;
 
 use formality_macros::term;
 
-use crate::from_into_term::To;
-use crate::from_into_term::Upcast;
-use crate::from_into_term::UpcastFrom;
+use crate::cast::To;
+use crate::cast::Upcast;
+use crate::cast::UpcastFrom;
 use crate::from_term_impl;
 
 use super::AliasName;

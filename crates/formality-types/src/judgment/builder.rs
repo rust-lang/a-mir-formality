@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{from_into_term::Upcast, matcher::Matcher};
+use crate::{cast::Upcast, matcher::Matcher};
 
 use super::{InferenceRule, Judgment};
 

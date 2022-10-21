@@ -6,7 +6,7 @@ mod parse_impls;
 use crate::{
     collections::Map,
     fold::Fold,
-    from_into_term::{To, Upcast, UpcastFrom},
+    cast::{To, Upcast, UpcastFrom},
     from_term_impl,
 };
 

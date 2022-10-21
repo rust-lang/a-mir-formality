@@ -2,7 +2,7 @@ use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 use crate::{
     fold::Fold,
-    from_into_term::UpcastFrom,
+    cast::UpcastFrom,
     grammar::{Lt, Ty},
     parse::Parse,
 };

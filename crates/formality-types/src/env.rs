@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use crate::{
     derive_links::Variable,
     fold::Fold,
-    from_into_term::Upcast,
+    cast::Upcast,
     grammar::{
         Binder, Fallible, Goal, InferenceVar, Parameter, ParameterKind, PlaceholderVar, Ty,
         Universe,

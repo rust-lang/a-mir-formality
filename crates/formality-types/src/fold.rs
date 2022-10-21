@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    from_into_term::Upcast,
+    cast::Upcast,
     grammar::{Lt, LtData, Parameter, ParameterKind, Ty, TyData, Variable},
 };
 

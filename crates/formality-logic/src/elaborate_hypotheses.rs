@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use formality_types::{
     self,
-    from_into_term::{To, Upcast},
+    cast::{To, Upcast},
     grammar::{
         AtomicPredicate, Hypothesis, HypothesisData, Invariant, InvariantImplication, Substitution,
     },

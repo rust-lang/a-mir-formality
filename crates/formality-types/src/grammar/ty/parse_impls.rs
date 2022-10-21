@@ -1,7 +1,7 @@
 //! Handwritten parser impls.
 
 use crate::{
-    from_into_term::Upcast,
+    cast::Upcast,
     grammar::{AdtId, AssociatedItemId, TraitId},
     parse::{self, expect_keyword, expect_str, Parse},
 };
