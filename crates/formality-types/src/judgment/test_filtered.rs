@@ -4,7 +4,7 @@ use std::{cell::RefCell, sync::Arc, thread::LocalKey};
 
 use formality_macros::term;
 
-use crate::matcher::Matcher;
+use crate::cast::Matcher;
 
 use super::{stack::JudgmentStack, Judgment, JudgmentBuilder};
 
