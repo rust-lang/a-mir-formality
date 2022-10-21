@@ -4,7 +4,7 @@ use std::{cell::RefCell, sync::Arc, thread::LocalKey};
 
 use formality_macros::term;
 
-use crate::cast::Matcher;
+use crate::cast::Downcast;
 
 use super::{stack::JudgmentStack, Judgment, JudgmentBuilder};
 
@@ -58,7 +58,7 @@ impl Judgment for TransitiveReachability {
     }
 }
 
-impl Matcher<TransitiveReachability> for TransitiveReachability {
+impl Downcast<TransitiveReachability> for TransitiveReachability {
     fn try_match(term: &TransitiveReachability) -> Option<TransitiveReachability> {
         Some(term.clone())
     }

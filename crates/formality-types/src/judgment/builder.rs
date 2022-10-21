@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::cast::{Matcher, Upcast};
+use crate::cast::{Downcast, Upcast};
 
 use super::{InferenceRule, Judgment};
 
@@ -18,7 +18,7 @@ where
 
     pub fn push_rule<M, R, O>(&mut self, closure: impl Fn(M) -> R + Send + 'static)
     where
-        M: Matcher<J>,
+        M: Downcast<J>,
         R: IntoIterator<Item = O>,
         O: Upcast<J::Output>,
     {
