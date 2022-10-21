@@ -57,7 +57,7 @@ impl Judgment for TransitiveReachability {
 }
 
 impl Downcast<TransitiveReachability> for TransitiveReachability {
-    fn try_match(term: &TransitiveReachability) -> Option<TransitiveReachability> {
+    fn downcast(term: &TransitiveReachability) -> Option<TransitiveReachability> {
         Some(term.clone())
     }
 }

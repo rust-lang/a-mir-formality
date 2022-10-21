@@ -43,15 +43,15 @@ pub trait UpcastFrom<T: Clone> {
 /// the value may not be an instance of the more
 /// specific type.
 pub trait Downcast<T>: Sized {
-    fn try_match(t: &T) -> Option<Self>;
+    fn downcast(t: &T) -> Option<Self>;
 }
 
 impl<A, B> Downcast<Vec<A>> for Vec<B>
 where
     B: Downcast<A>,
 {
-    fn try_match(t: &Vec<A>) -> Option<Self> {
-        t.iter().map(|a| B::try_match(a)).collect()
+    fn downcast(t: &Vec<A>) -> Option<Self> {
+        t.iter().map(|a| B::downcast(a)).collect()
     }
 }
 
@@ -104,9 +104,15 @@ where
 #[macro_export]
 macro_rules! self_from_term_impl {
     ($t:ty) => {
-        impl UpcastFrom<$t> for $t {
+        impl $crate::cast::UpcastFrom<$t> for $t {
             fn upcast_from(v: $t) -> $t {
                 v
+            }
+        }
+
+        impl $crate::cast::Downcast<$t> for $t {
+            fn downcast(v: &$t) -> $t {
+                v.clone()
             }
         }
     };

@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 use formality_macros::term;
 
+use crate::cast::Downcast;
 use crate::cast::To;
 use crate::cast::Upcast;
 use crate::cast::UpcastFrom;
@@ -157,6 +158,12 @@ impl Predicate {
 impl UpcastFrom<PredicateData> for Predicate {
     fn upcast_from(v: PredicateData) -> Self {
         Predicate { data: Arc::new(v) }
+    }
+}
+
+impl Downcast<Predicate> for PredicateData {
+    fn downcast(t: &Predicate) -> Option<Self> {
+        Some(t.data().clone())
     }
 }
 

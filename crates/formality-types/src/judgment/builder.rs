@@ -23,7 +23,7 @@ where
         O: Upcast<J::Output>,
     {
         let rule = move |input: &J| -> Vec<J::Output> {
-            match M::try_match(input) {
+            match M::downcast(input) {
                 Some(m) => closure(m).into_iter().map(|o1| o1.upcast()).collect(),
                 None => vec![],
             }
