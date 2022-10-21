@@ -37,6 +37,11 @@ pub trait UpcastFrom<T: Clone> {
     fn from_term(term: T) -> Self;
 }
 
+/// A "downcast" casts from a more general type
+/// (e.g., any Parameter) to a more specific type
+/// (e.g., a type). This returns an Option because
+/// the value may not be an instance of the more
+/// specific type.
 pub trait Downcast<T>: Sized {
     fn try_match(t: &T) -> Option<Self>;
 }
