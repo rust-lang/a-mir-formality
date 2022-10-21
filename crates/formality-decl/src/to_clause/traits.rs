@@ -39,16 +39,16 @@ impl Trait {
             .collect()
     }
 
-    pub fn invariants(&self, program: &crate::grammar::Program) -> Vec<Invariant> {
+    pub fn invariants(&self, _program: &crate::grammar::Program) -> Vec<Invariant> {
         let (
             trait_kinded_var_ids,
             TraitBoundData {
-                where_clauses,
-                trait_items,
+                where_clauses: _,
+                trait_items: _,
             },
         ) = self.binder.open();
 
-        let trait_ref = TraitRef::new(&self.id, &trait_kinded_var_ids);
+        let _trait_ref = TraitRef::new(&self.id, &trait_kinded_var_ids);
 
         vec![]
     }

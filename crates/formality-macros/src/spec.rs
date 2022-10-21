@@ -1,5 +1,4 @@
 use proc_macro2::{Ident, Punct, TokenStream, TokenTree};
-use syn::parenthesized;
 
 /// The "formality spec" guides parsing and serialization.
 ///

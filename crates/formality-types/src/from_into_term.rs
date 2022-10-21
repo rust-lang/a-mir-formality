@@ -1,5 +1,20 @@
 use std::sync::Arc;
 
+pub trait To {
+    fn to<T>(&self) -> T
+    where
+        Self: IntoTerm<T>;
+}
+
+impl<A> To for A {
+    fn to<T>(&self) -> T
+    where
+        Self: IntoTerm<T>,
+    {
+        self.to_term()
+    }
+}
+
 /// Our version of `From`. One twist: it is implemented for &T for all T.
 pub trait FromTerm<T: Clone> {
     fn from_term(term: T) -> Self;

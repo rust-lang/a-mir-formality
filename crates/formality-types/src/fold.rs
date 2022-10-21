@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-    grammar::{Lt, LtData, Parameter, ParameterKind, Ty, TyData, Variable},
     from_into_term::IntoTerm,
+    grammar::{Lt, LtData, Parameter, ParameterKind, Ty, TyData, Variable},
 };
 
 /// Invoked for each variable that we find when folding, ignoring variables bound by binders
@@ -113,7 +113,7 @@ impl Fold for Lt {
 }
 
 impl Fold for usize {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+    fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {
         *self
     }
 
@@ -123,7 +123,7 @@ impl Fold for usize {
 }
 
 impl Fold for u32 {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+    fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {
         *self
     }
 

@@ -6,21 +6,17 @@ use syn::{spanned::Spanned, Attribute};
 
 use crate::spec::{self, FieldMode, FormalitySpec};
 
-pub(crate) fn derive_parse(s: synstructure::Structure) -> TokenStream {
-    if let syn::Data::Union(v) = &s.ast().data {
-        return syn::Error::new(v.union_token.span, "unions are not supported")
-            .into_compile_error();
-    }
-
-    derive_parse_with_spec(s, None)
-}
-
 /// Derive the `Parse` impl, using an optional grammar supplied "from the outside".
 /// This is used by the `#[term(G)]` macro, which supplies the grammar `G`.
 pub(crate) fn derive_parse_with_spec(
     s: synstructure::Structure,
     external_spec: Option<&FormalitySpec>,
 ) -> TokenStream {
+    if let syn::Data::Union(v) = &s.ast().data {
+        return syn::Error::new(v.union_token.span, "unions are not supported")
+            .into_compile_error();
+    }
+
     let mut stream = TokenStream::new();
 
     if s.variants().len() == 1 {

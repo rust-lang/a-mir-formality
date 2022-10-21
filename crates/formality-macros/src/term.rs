@@ -2,11 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
 
-use crate::{
-    fold::derive_fold,
-    parse::{derive_parse, derive_parse_with_spec},
-    spec::{self, FormalitySpec},
-};
+use crate::{fold::derive_fold, parse::derive_parse_with_spec, spec::FormalitySpec};
 
 pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<TokenStream> {
     let fold_impl = derive_fold(synstructure::Structure::new(&input));

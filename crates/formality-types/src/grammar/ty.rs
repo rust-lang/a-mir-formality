@@ -1,13 +1,13 @@
 use formality_macros::term;
-use std::sync::Arc;
+use std::{collections::BTreeSet, sync::Arc};
 
 mod parse_impls;
 
 use crate::{
     collections::Map,
     fold::Fold,
+    from_into_term::{FromTerm, IntoTerm, To},
     from_term_impl,
-    from_into_term::{FromTerm, IntoTerm},
 };
 
 use super::{AdtId, AssociatedItemId, Binder, FnId, Predicate, TraitId};
@@ -246,6 +246,27 @@ pub struct KindedVarIndex {
     pub var_index: VarIndex,
 }
 
+impl FromTerm<KindedVarIndex> for BoundVar {
+    fn from_term(term: KindedVarIndex) -> Self {
+        BoundVar {
+            debruijn: None,
+            var_index: term.var_index,
+        }
+    }
+}
+
+impl FromTerm<KindedVarIndex> for Variable {
+    fn from_term(term: KindedVarIndex) -> Self {
+        term.to::<BoundVar>().to()
+    }
+}
+
+impl FromTerm<KindedVarIndex> for Parameter {
+    fn from_term(term: KindedVarIndex) -> Self {
+        term.to::<BoundVar>().into_parameter(term.kind)
+    }
+}
+
 #[term]
 pub enum Parameter {
     Ty(Ty),
@@ -270,16 +291,6 @@ impl Parameter {
 
 from_term_impl!(impl FromTerm<Ty> for Parameter);
 from_term_impl!(impl FromTerm<Lt> for Parameter);
-
-impl FromTerm<KindedVarIndex> for Parameter {
-    fn from_term(kvi: KindedVarIndex) -> Self {
-        BoundVar {
-            debruijn: None,
-            var_index: kvi.var_index,
-        }
-        .into_parameter(kvi.kind)
-    }
-}
 
 pub type Parameters = Vec<Parameter>;
 
@@ -459,6 +470,13 @@ pub struct VarIndex {
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Substitution {
     map: Map<Variable, Parameter>,
+}
+
+impl Substitution {
+    /// Returns the variables that will be substituted for a new value.
+    pub fn domain(&self) -> BTreeSet<Variable> {
+        self.map.keys().cloned().collect()
+    }
 }
 
 impl Extend<(Variable, Parameter)> for Substitution {

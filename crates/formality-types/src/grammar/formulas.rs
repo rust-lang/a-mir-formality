@@ -11,9 +11,10 @@ use std::sync::Arc;
 
 use formality_macros::term;
 
-use crate::from_term_impl;
 use crate::from_into_term::FromTerm;
 use crate::from_into_term::IntoTerm;
+use crate::from_into_term::To;
+use crate::from_term_impl;
 
 use super::AliasName;
 use super::Binder;
@@ -355,7 +356,7 @@ impl Invariant {
             kinded_var_indices,
             InvariantImplication {
                 condition,
-                consequence,
+                consequence: _,
             },
         ) = self.binder.open();
 
@@ -370,7 +371,7 @@ impl Invariant {
             parameters.len() == indices.len() &&
 
         // second, each of the bound variables should appear in the parameter list
-        kinded_var_indices.iter().map(|&kvi| Parameter::from_term(kvi)).all(|p| parameters.contains(&p)) &&
+        kinded_var_indices.iter().map(|&kvi| kvi.to()).all(|p: Parameter| parameters.contains(&p)) &&
 
         // finally, each of the items in the parameter list must be distinct from the others
         parameters.iter().collect::<BTreeSet<_>>().len() == parameters.len()

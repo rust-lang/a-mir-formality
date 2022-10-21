@@ -21,6 +21,7 @@ fn generate_and_run(input_path: &str, output_path: &str, expect_failure: bool) {
 }
 
 #[test]
+#[ignore = "slow"]
 fn test_issue25860() {
     generate_and_run(
         "tests/input/issue25860.rs",

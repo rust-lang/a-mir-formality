@@ -1,17 +1,14 @@
-use std::sync::Arc;
-
 use anyhow::anyhow;
 
 use crate::{
     derive_links::Variable,
     fold::Fold,
-    grammar::{
-        AtomicRelation, Binder, Fallible, Goal, InferenceVar, Parameter, ParameterKind,
-        PlaceholderVar, Ty, Universe, VarIndex,
-    },
-    hook::Hook,
-    term::Term,
     from_into_term::IntoTerm,
+    grammar::{
+        Binder, Fallible, Goal, InferenceVar, Parameter, ParameterKind, PlaceholderVar, Ty,
+        Universe,
+    },
+    term::Term,
 };
 
 mod simple_sub;
@@ -113,7 +110,7 @@ impl Env {
 
     /// Replace any mapped inference variables in `term` with the values they are mapped to.
     pub fn refresh_inference_variables<T: Term>(&self, term: T) -> T {
-        term.substitute(&mut |kind, var| {
+        term.substitute(&mut |_kind, var| {
             if let Variable::InferenceVar(var) = var {
                 self.data(*var).mapped_to.clone()
             } else {

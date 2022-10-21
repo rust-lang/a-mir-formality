@@ -2,10 +2,10 @@ use std::collections::BTreeSet;
 
 use formality_types::{
     self,
+    from_into_term::{IntoTerm, To},
     grammar::{
         AtomicPredicate, Hypothesis, HypothesisData, Invariant, InvariantImplication, Substitution,
     },
-    from_into_term::IntoTerm,
 };
 
 use crate::Db;
@@ -54,7 +54,7 @@ fn elaborate_hypothesis(db: &dyn Db, hypothesis: &Hypothesis) -> Vec<Hypothesis>
 }
 
 fn apply_invariant_to_predicate(
-    db: &dyn Db,
+    _db: &dyn Db,
     invariant: &Invariant,
     predicate: &AtomicPredicate,
 ) -> Option<Hypothesis> {
@@ -69,6 +69,12 @@ fn apply_invariant_to_predicate(
     ) = invariant.binder.open();
 
     let substitution = match_invariant_to_predicate(&condition, predicate)?;
+    assert!({
+        let domain = substitution.domain();
+        kinded_var_indices
+            .iter()
+            .all(|kvi| domain.contains(&kvi.to()))
+    });
 
     Some(substitution.apply(&consequence).into_term())
 }

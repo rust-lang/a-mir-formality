@@ -3,7 +3,7 @@ use std::{collections::VecDeque, sync::Arc};
 
 use formality_types::{
     env::Env,
-    grammar::{AtomicPredicate, AtomicRelation, Goal, GoalData, Hypothesis, HypothesisData},
+    grammar::{AtomicPredicate, Goal, GoalData, Hypothesis, HypothesisData},
 };
 
 use crate::elaborate_hypotheses;
@@ -152,12 +152,12 @@ impl CosldSolver {
                     let subgoals: Vec<Goal> = parameters1
                         .into_iter()
                         .zip(parameters2)
-                        .map(|(p1, p2)| AtomicRelation::Equals(p1, p2).into())
+                        .map(|(p1, p2)| Goal::eq(p1, p2))
                         .collect();
                     self.prove_all(&subgoals).boxed()
                 }
             }
-            HypothesisData::AtomicRelation(h) => todo!(),
+            HypothesisData::AtomicRelation(_h) => todo!(),
             HypothesisData::ForAll(b) => {
                 let h = self.env.instantiate_existentially(b);
                 self.prove_match_hypothesis(&h, predicate).boxed()

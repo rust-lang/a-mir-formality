@@ -1,14 +1,14 @@
 //! Manages binders so that the main rules can be nice and simple.
 
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use lazy_static::lazy_static;
 
 use crate::{
     fold::Fold,
     fold::SubstitutionFn,
-    grammar::VarIndex,
     from_into_term::{FromTerm, IntoTerm},
+    grammar::VarIndex,
 };
 
 use super::{
@@ -101,7 +101,7 @@ impl<T: Fold> Binder<T> {
             .map(|(&kind, index)| op(kind, VarIndex { index }))
             .collect();
 
-        self.term.substitute(&mut |kind, var| match var {
+        self.term.substitute(&mut |_kind, var| match var {
             Variable::BoundVar(BoundVar {
                 debruijn: Some(DebruijnIndex::INNERMOST),
                 var_index,
@@ -145,7 +145,7 @@ impl<T: Fold> Fold for Binder<T> {
             let v1 = v.shift_out()?;
 
             // Get the result of the subst (if any).
-            let parameter = substitution_fn(kind, v)?;
+            let parameter = substitution_fn(kind, &v1)?;
 
             // Shift that result in to account for this binder.
             Some(parameter.shift_in())
