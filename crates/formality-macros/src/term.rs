@@ -8,7 +8,7 @@ pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<
     let fold_impl = derive_fold(synstructure::Structure::new(&input));
     let parse_impl = derive_parse_with_spec(synstructure::Structure::new(&input), spec.as_ref());
     let term_impl = derive_term(synstructure::Structure::new(&input));
-    let from_term_impl = derive_from_term(synstructure::Structure::new(&input));
+    let from_term_impl = derive_upcast_from(synstructure::Structure::new(&input));
 
     remove_grammar_attributes(&mut input);
 
@@ -44,7 +44,7 @@ fn derive_term(mut s: synstructure::Structure) -> TokenStream {
     })
 }
 
-fn derive_from_term(mut s: synstructure::Structure) -> TokenStream {
+fn derive_upcast_from(mut s: synstructure::Structure) -> TokenStream {
     s.underscore_const(true);
     s.bind_with(|_| synstructure::BindStyle::Move);
 
@@ -53,7 +53,7 @@ fn derive_from_term(mut s: synstructure::Structure) -> TokenStream {
         use crate::derive_links::{UpcastFrom};
 
         gen impl UpcastFrom<Self> for @Self {
-            fn from_term(s: Self) -> Self {
+            fn upcast_from(s: Self) -> Self {
                 s
             }
         }

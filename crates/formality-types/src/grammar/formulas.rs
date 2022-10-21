@@ -155,7 +155,7 @@ impl Predicate {
 }
 
 impl UpcastFrom<PredicateData> for Predicate {
-    fn from_term(v: PredicateData) -> Self {
+    fn upcast_from(v: PredicateData) -> Self {
         Predicate { data: Arc::new(v) }
     }
 }
@@ -187,7 +187,7 @@ impl Goal {
 }
 
 impl UpcastFrom<GoalData> for Goal {
-    fn from_term(v: GoalData) -> Self {
+    fn upcast_from(v: GoalData) -> Self {
         Self { data: Arc::new(v) }
     }
 }
@@ -295,7 +295,7 @@ impl Hypothesis {
 }
 
 impl UpcastFrom<HypothesisData> for Hypothesis {
-    fn from_term(v: HypothesisData) -> Self {
+    fn upcast_from(v: HypothesisData) -> Self {
         Hypothesis { data: Arc::new(v) }
     }
 }
@@ -382,7 +382,7 @@ impl Invariant {
 }
 
 impl UpcastFrom<Predicate> for Goal {
-    fn from_term(value: Predicate) -> Self {
+    fn upcast_from(value: Predicate) -> Self {
         match value.data() {
             PredicateData::AtomicPredicate(a) => a.to(),
             PredicateData::AtomicRelation(a) => a.to(),
@@ -393,7 +393,7 @@ impl UpcastFrom<Predicate> for Goal {
 }
 
 impl UpcastFrom<Predicate> for Hypothesis {
-    fn from_term(value: Predicate) -> Self {
+    fn upcast_from(value: Predicate) -> Self {
         match value.data() {
             PredicateData::AtomicPredicate(a) => a.to(),
             PredicateData::AtomicRelation(a) => a.to(),

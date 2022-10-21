@@ -5,9 +5,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
 
 use crate::{
+    cast::{Upcast, UpcastFrom},
     fold::Fold,
     fold::SubstitutionFn,
-    cast::{Upcast, UpcastFrom},
     grammar::VarIndex,
 };
 
@@ -175,11 +175,11 @@ where
     T: Clone,
     U: UpcastFrom<T> + Clone,
 {
-    fn from_term(term: Binder<T>) -> Self {
+    fn upcast_from(term: Binder<T>) -> Self {
         let Binder { kinds, term } = term;
         Binder {
             kinds,
-            term: UpcastFrom::from_term(term),
+            term: UpcastFrom::upcast_from(term),
         }
     }
 }

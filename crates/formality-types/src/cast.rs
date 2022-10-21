@@ -27,14 +27,14 @@ where
     U: UpcastFrom<T>,
 {
     fn upcast(self) -> U {
-        U::from_term(self)
+        U::upcast_from(self)
     }
 }
 
 /// Our version of `From`. One twist: it is implemented for &T for all T.
 /// This is the trait you implement.
 pub trait UpcastFrom<T: Clone> {
-    fn from_term(term: T) -> Self;
+    fn upcast_from(term: T) -> Self;
 }
 
 /// A "downcast" casts from a more general type
@@ -59,7 +59,7 @@ impl<T: Clone, U> UpcastFrom<&T> for U
 where
     T: Upcast<U>,
 {
-    fn from_term(term: &T) -> Self {
+    fn upcast_from(term: &T) -> Self {
         T::upcast(T::clone(term))
     }
 }
@@ -68,7 +68,7 @@ impl<T: Clone, U> UpcastFrom<Vec<T>> for Vec<U>
 where
     T: Upcast<U>,
 {
-    fn from_term(term: Vec<T>) -> Self {
+    fn upcast_from(term: Vec<T>) -> Self {
         term.into_iter().map(|t| T::upcast(t)).collect()
     }
 }
@@ -77,7 +77,7 @@ impl<T: Clone, U> UpcastFrom<&[T]> for Vec<U>
 where
     T: Upcast<U>,
 {
-    fn from_term(term: &[T]) -> Self {
+    fn upcast_from(term: &[T]) -> Self {
         term.into_iter().map(|t| t.upcast()).collect()
     }
 }
@@ -86,7 +86,7 @@ impl<T: Clone, U> UpcastFrom<Option<T>> for Option<U>
 where
     T: Upcast<U>,
 {
-    fn from_term(term: Option<T>) -> Self {
+    fn upcast_from(term: Option<T>) -> Self {
         term.map(|t| t.upcast())
     }
 }
@@ -95,7 +95,7 @@ impl<T: Clone, U> UpcastFrom<Arc<T>> for Arc<U>
 where
     T: Upcast<U>,
 {
-    fn from_term(term: Arc<T>) -> Self {
+    fn upcast_from(term: Arc<T>) -> Self {
         let term: &T = &term;
         Arc::new(term.to())
     }
@@ -105,7 +105,7 @@ where
 macro_rules! self_from_term_impl {
     ($t:ty) => {
         impl UpcastFrom<$t> for $t {
-            fn from_term(v: $t) -> $t {
+            fn upcast_from(v: $t) -> $t {
                 v
             }
         }
@@ -116,7 +116,7 @@ macro_rules! self_from_term_impl {
 macro_rules! from_term_impl {
     (impl UpcastFrom<$t:ident> for $e:ident) => {
         impl $crate::derive_links::UpcastFrom<$t> for $e {
-            fn from_term(v: $t) -> $e {
+            fn upcast_from(v: $t) -> $e {
                 $e::$t(v)
             }
         }
@@ -124,11 +124,11 @@ macro_rules! from_term_impl {
 
     (impl UpcastFrom<$t:ident> for $e:ident $(via $via:ident)+) => {
         impl $crate::derive_links::UpcastFrom<$t> for $e {
-            fn from_term(v: $t) -> $e {
+            fn upcast_from(v: $t) -> $e {
                 $(
-                    let v: $via = $crate::derive_links::UpcastFrom::from_term(v);
+                    let v: $via = $crate::derive_links::UpcastFrom::upcast_from(v);
                 )+
-                <$e as $crate::derive_links::UpcastFrom<_>>::from_term(v)
+                <$e as $crate::derive_links::UpcastFrom<_>>::upcast_from(v)
             }
         }
     };
@@ -139,7 +139,7 @@ where
     A1: Upcast<A>,
     B1: Upcast<B>,
 {
-    fn from_term(term: (A1, B1)) -> Self {
+    fn upcast_from(term: (A1, B1)) -> Self {
         let (a1, b1) = term;
         (a1.upcast(), b1.upcast())
     }
@@ -151,7 +151,7 @@ where
     B1: Upcast<B>,
     C1: Upcast<C>,
 {
-    fn from_term(term: (A1, B1, C1)) -> Self {
+    fn upcast_from(term: (A1, B1, C1)) -> Self {
         let (a1, b1, c1) = term;
         (a1.upcast(), b1.upcast(), c1.upcast())
     }

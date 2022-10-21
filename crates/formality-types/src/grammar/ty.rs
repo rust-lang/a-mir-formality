@@ -4,9 +4,9 @@ use std::{collections::BTreeSet, sync::Arc};
 mod parse_impls;
 
 use crate::{
+    cast::{To, Upcast, UpcastFrom},
     collections::Map,
     fold::Fold,
-    cast::{To, Upcast, UpcastFrom},
     from_term_impl,
 };
 
@@ -69,7 +69,7 @@ impl Ty {
 }
 
 impl UpcastFrom<TyData> for Ty {
-    fn from_term(v: TyData) -> Ty {
+    fn upcast_from(v: TyData) -> Ty {
         Ty { data: Arc::new(v) }
     }
 }
@@ -89,7 +89,7 @@ pub enum TyData {
 }
 
 impl UpcastFrom<TyData> for TyData {
-    fn from_term(term: TyData) -> Self {
+    fn upcast_from(term: TyData) -> Self {
         term
     }
 }
@@ -121,7 +121,7 @@ pub struct RigidTy {
 }
 
 impl UpcastFrom<ScalarId> for RigidTy {
-    fn from_term(s: ScalarId) -> Self {
+    fn upcast_from(s: ScalarId) -> Self {
         RigidTy {
             name: s.upcast(),
             parameters: vec![],
@@ -241,7 +241,7 @@ pub struct KindedVarIndex {
 }
 
 impl UpcastFrom<KindedVarIndex> for BoundVar {
-    fn from_term(term: KindedVarIndex) -> Self {
+    fn upcast_from(term: KindedVarIndex) -> Self {
         BoundVar {
             debruijn: None,
             var_index: term.var_index,
@@ -250,13 +250,13 @@ impl UpcastFrom<KindedVarIndex> for BoundVar {
 }
 
 impl UpcastFrom<KindedVarIndex> for Variable {
-    fn from_term(term: KindedVarIndex) -> Self {
+    fn upcast_from(term: KindedVarIndex) -> Self {
         term.to::<BoundVar>().to()
     }
 }
 
 impl UpcastFrom<KindedVarIndex> for Parameter {
-    fn from_term(term: KindedVarIndex) -> Self {
+    fn upcast_from(term: KindedVarIndex) -> Self {
         term.to::<BoundVar>().into_parameter(term.kind)
     }
 }
@@ -320,7 +320,7 @@ impl Lt {
 }
 
 impl UpcastFrom<LtData> for Lt {
-    fn from_term(v: LtData) -> Self {
+    fn upcast_from(v: LtData) -> Self {
         Lt::new(v)
     }
 }
@@ -332,7 +332,7 @@ pub enum LtData {
 }
 
 impl UpcastFrom<LtData> for LtData {
-    fn from_term(term: LtData) -> Self {
+    fn upcast_from(term: LtData) -> Self {
         term
     }
 }
@@ -425,7 +425,7 @@ pub struct BoundVar {
 
 impl BoundVar {
     pub fn into_parameter(self, kind: ParameterKind) -> Parameter {
-        Variable::from_term(self).into_parameter(kind)
+        Variable::upcast_from(self).into_parameter(kind)
     }
 }
 
