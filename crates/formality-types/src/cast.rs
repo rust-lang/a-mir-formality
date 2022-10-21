@@ -15,7 +15,24 @@ impl<A> To for A {
     }
 }
 
+/// Our version of `Into`. This is the trait you use in where clauses,
+/// but you typically implement `UpcastFrom`.
+pub trait Upcast<T>: Clone {
+    fn upcast(self) -> T;
+}
+
+impl<T, U> Upcast<U> for T
+where
+    T: Clone,
+    U: UpcastFrom<T>,
+{
+    fn upcast(self) -> U {
+        U::from_term(self)
+    }
+}
+
 /// Our version of `From`. One twist: it is implemented for &T for all T.
+/// This is the trait you implement.
 pub trait UpcastFrom<T: Clone> {
     fn from_term(term: T) -> Self;
 }
@@ -63,21 +80,6 @@ where
     fn from_term(term: Arc<T>) -> Self {
         let term: &T = &term;
         Arc::new(term.to())
-    }
-}
-
-/// Our version of `Into`
-pub trait Upcast<T>: Clone {
-    fn upcast(self) -> T;
-}
-
-impl<T, U> Upcast<U> for T
-where
-    T: Clone,
-    U: UpcastFrom<T>,
-{
-    fn upcast(self) -> U {
-        U::from_term(self)
     }
 }
 
