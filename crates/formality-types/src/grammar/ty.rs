@@ -6,7 +6,7 @@ mod parse_impls;
 use crate::{
     collections::Map,
     fold::Fold,
-    from_into_term::{FromTerm, IntoTerm, To},
+    from_into_term::{To, Upcast, UpcastFrom},
     from_term_impl,
 };
 
@@ -30,9 +30,9 @@ pub struct Ty {
 }
 
 impl Ty {
-    pub fn new(data: impl IntoTerm<TyData>) -> Self {
+    pub fn new(data: impl Upcast<TyData>) -> Self {
         Ty {
-            data: Arc::new(data.into_term()),
+            data: Arc::new(data.upcast()),
         }
     }
 
@@ -51,38 +51,32 @@ impl Ty {
         }
     }
 
-    pub fn rigid(
-        name: impl IntoTerm<RigidName>,
-        parameters: impl IntoTerm<Vec<Parameter>>,
-    ) -> Self {
+    pub fn rigid(name: impl Upcast<RigidName>, parameters: impl Upcast<Vec<Parameter>>) -> Self {
         RigidTy {
-            name: name.into_term(),
-            parameters: parameters.into_term(),
+            name: name.upcast(),
+            parameters: parameters.upcast(),
         }
-        .into_term()
+        .upcast()
     }
 
-    pub fn alias(
-        name: impl IntoTerm<AliasName>,
-        parameters: impl IntoTerm<Vec<Parameter>>,
-    ) -> Self {
+    pub fn alias(name: impl Upcast<AliasName>, parameters: impl Upcast<Vec<Parameter>>) -> Self {
         AliasTy {
-            name: name.into_term(),
-            parameters: parameters.into_term(),
+            name: name.upcast(),
+            parameters: parameters.upcast(),
         }
-        .into_term()
+        .upcast()
     }
 }
 
-impl FromTerm<TyData> for Ty {
+impl UpcastFrom<TyData> for Ty {
     fn from_term(v: TyData) -> Ty {
         Ty { data: Arc::new(v) }
     }
 }
-from_term_impl!(impl FromTerm<RigidTy> for Ty via TyData);
-from_term_impl!(impl FromTerm<AliasTy> for Ty via TyData);
-from_term_impl!(impl FromTerm<ScalarId> for Ty via TyData);
-from_term_impl!(impl FromTerm<PredicateTy> for Ty via TyData);
+from_term_impl!(impl UpcastFrom<RigidTy> for Ty via TyData);
+from_term_impl!(impl UpcastFrom<AliasTy> for Ty via TyData);
+from_term_impl!(impl UpcastFrom<ScalarId> for Ty via TyData);
+from_term_impl!(impl UpcastFrom<PredicateTy> for Ty via TyData);
 
 // NB: TyData doesn't implement Fold; you fold types, not TyData,
 // because variables might not map to the same variant.
@@ -94,20 +88,20 @@ pub enum TyData {
     Variable(Variable),
 }
 
-impl FromTerm<TyData> for TyData {
+impl UpcastFrom<TyData> for TyData {
     fn from_term(term: TyData) -> Self {
         term
     }
 }
 
-from_term_impl!(impl FromTerm<RigidTy> for TyData);
-from_term_impl!(impl FromTerm<AliasTy> for TyData);
-from_term_impl!(impl FromTerm<PredicateTy> for TyData);
-from_term_impl!(impl FromTerm<Variable> for TyData);
-from_term_impl!(impl FromTerm<PlaceholderVar> for TyData via Variable);
-from_term_impl!(impl FromTerm<InferenceVar> for TyData via Variable);
-from_term_impl!(impl FromTerm<BoundVar> for TyData via Variable);
-from_term_impl!(impl FromTerm<ScalarId> for TyData via RigidTy);
+from_term_impl!(impl UpcastFrom<RigidTy> for TyData);
+from_term_impl!(impl UpcastFrom<AliasTy> for TyData);
+from_term_impl!(impl UpcastFrom<PredicateTy> for TyData);
+from_term_impl!(impl UpcastFrom<Variable> for TyData);
+from_term_impl!(impl UpcastFrom<PlaceholderVar> for TyData via Variable);
+from_term_impl!(impl UpcastFrom<InferenceVar> for TyData via Variable);
+from_term_impl!(impl UpcastFrom<BoundVar> for TyData via Variable);
+from_term_impl!(impl UpcastFrom<ScalarId> for TyData via RigidTy);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
@@ -126,10 +120,10 @@ pub struct RigidTy {
     parameters: Parameters,
 }
 
-impl FromTerm<ScalarId> for RigidTy {
+impl UpcastFrom<ScalarId> for RigidTy {
     fn from_term(s: ScalarId) -> Self {
         RigidTy {
-            name: s.into_term(),
+            name: s.upcast(),
             parameters: vec![],
         }
     }
@@ -151,8 +145,8 @@ pub enum RigidName {
     FnDef(FnId),
 }
 
-from_term_impl!(impl FromTerm<AdtId> for RigidName);
-from_term_impl!(impl FromTerm<ScalarId> for RigidName);
+from_term_impl!(impl UpcastFrom<AdtId> for RigidName);
+from_term_impl!(impl UpcastFrom<ScalarId> for RigidName);
 
 #[term]
 pub enum RefKind {
@@ -186,7 +180,7 @@ pub enum AliasName {
     AssociatedTyId(AssociatedTyId),
 }
 
-from_term_impl!(impl FromTerm<AssociatedTyId> for AliasName);
+from_term_impl!(impl UpcastFrom<AssociatedTyId> for AliasName);
 
 #[term(($trait_id :: $item_id))]
 pub struct AssociatedTyId {
@@ -204,8 +198,8 @@ pub enum PredicateTy {
     EnsuresTy(EnsuresTy),
 }
 
-from_term_impl!(impl FromTerm<ImplicationTy> for PredicateTy);
-from_term_impl!(impl FromTerm<EnsuresTy> for PredicateTy);
+from_term_impl!(impl UpcastFrom<ImplicationTy> for PredicateTy);
+from_term_impl!(impl UpcastFrom<EnsuresTy> for PredicateTy);
 
 #[term(($predicates => $ty))]
 pub struct ImplicationTy {
@@ -246,7 +240,7 @@ pub struct KindedVarIndex {
     pub var_index: VarIndex,
 }
 
-impl FromTerm<KindedVarIndex> for BoundVar {
+impl UpcastFrom<KindedVarIndex> for BoundVar {
     fn from_term(term: KindedVarIndex) -> Self {
         BoundVar {
             debruijn: None,
@@ -255,13 +249,13 @@ impl FromTerm<KindedVarIndex> for BoundVar {
     }
 }
 
-impl FromTerm<KindedVarIndex> for Variable {
+impl UpcastFrom<KindedVarIndex> for Variable {
     fn from_term(term: KindedVarIndex) -> Self {
         term.to::<BoundVar>().to()
     }
 }
 
-impl FromTerm<KindedVarIndex> for Parameter {
+impl UpcastFrom<KindedVarIndex> for Parameter {
     fn from_term(term: KindedVarIndex) -> Self {
         term.to::<BoundVar>().into_parameter(term.kind)
     }
@@ -289,8 +283,8 @@ impl Parameter {
     }
 }
 
-from_term_impl!(impl FromTerm<Ty> for Parameter);
-from_term_impl!(impl FromTerm<Lt> for Parameter);
+from_term_impl!(impl UpcastFrom<Ty> for Parameter);
+from_term_impl!(impl UpcastFrom<Lt> for Parameter);
 
 pub type Parameters = Vec<Parameter>;
 
@@ -307,9 +301,9 @@ pub struct Lt {
 }
 
 impl Lt {
-    pub fn new(data: impl IntoTerm<LtData>) -> Self {
+    pub fn new(data: impl Upcast<LtData>) -> Self {
         Lt {
-            data: Arc::new(data.into_term()),
+            data: Arc::new(data.upcast()),
         }
     }
 
@@ -325,7 +319,7 @@ impl Lt {
     }
 }
 
-impl FromTerm<LtData> for Lt {
+impl UpcastFrom<LtData> for Lt {
     fn from_term(v: LtData) -> Self {
         Lt::new(v)
     }
@@ -337,16 +331,16 @@ pub enum LtData {
     Variable(Variable),
 }
 
-impl FromTerm<LtData> for LtData {
+impl UpcastFrom<LtData> for LtData {
     fn from_term(term: LtData) -> Self {
         term
     }
 }
 
-from_term_impl!(impl FromTerm<Variable> for LtData);
-from_term_impl!(impl FromTerm<InferenceVar> for LtData via Variable);
-from_term_impl!(impl FromTerm<PlaceholderVar> for LtData via Variable);
-from_term_impl!(impl FromTerm<BoundVar> for LtData via Variable);
+from_term_impl!(impl UpcastFrom<Variable> for LtData);
+from_term_impl!(impl UpcastFrom<InferenceVar> for LtData via Variable);
+from_term_impl!(impl UpcastFrom<PlaceholderVar> for LtData via Variable);
+from_term_impl!(impl UpcastFrom<BoundVar> for LtData via Variable);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Variable {
@@ -355,15 +349,15 @@ pub enum Variable {
     BoundVar(BoundVar),
 }
 
-from_term_impl!(impl FromTerm<PlaceholderVar> for Variable);
-from_term_impl!(impl FromTerm<InferenceVar> for Variable);
-from_term_impl!(impl FromTerm<BoundVar> for Variable);
+from_term_impl!(impl UpcastFrom<PlaceholderVar> for Variable);
+from_term_impl!(impl UpcastFrom<InferenceVar> for Variable);
+from_term_impl!(impl UpcastFrom<BoundVar> for Variable);
 
 impl Variable {
     pub fn into_parameter(self, kind: ParameterKind) -> Parameter {
         match kind {
-            ParameterKind::Lt => Lt::new(self).into_term(),
-            ParameterKind::Ty => Ty::new(self).into_term(),
+            ParameterKind::Lt => Lt::new(self).upcast(),
+            ParameterKind::Ty => Ty::new(self).upcast(),
         }
     }
 
@@ -379,7 +373,7 @@ impl Variable {
                 debruijn: Some(db.shift_in()),
                 var_index: *var_index,
             }
-            .into_term()
+            .upcast()
         } else {
             self.clone()
         }
@@ -399,7 +393,7 @@ impl Variable {
                     debruijn: Some(db1),
                     var_index: *var_index,
                 }
-                .into_term()
+                .upcast()
             })
         } else {
             Some(self.clone())

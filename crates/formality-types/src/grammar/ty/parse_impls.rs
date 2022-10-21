@@ -1,9 +1,9 @@
 //! Handwritten parser impls.
 
 use crate::{
+    from_into_term::Upcast,
     grammar::{AdtId, AssociatedItemId, TraitId},
     parse::{self, expect_keyword, expect_str, Parse},
-    from_into_term::IntoTerm,
 };
 
 use super::{AliasTy, AssociatedTyId, Lt, LtData, Parameter, PredicateTy, RigidTy, ScalarId, Ty};
@@ -14,7 +14,7 @@ impl Parse for Ty {
     fn parse<'t>(scope: &crate::parse::Scope, text: &'t str) -> Option<(Self, &'t str)> {
         // Support writing `u8` etc and treat them as keywords
         if let Some((scalar_ty, text)) = ScalarId::parse(scope, text) {
-            return Some((scalar_ty.into_term(), text));
+            return Some((scalar_ty.upcast(), text));
         }
 
         // Support naming variables in scope and give that preference
@@ -67,7 +67,7 @@ fn parse_assoc_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> Option<(Ty,
     let (item_parameters, text) = parse_parameters(scope, text)?;
 
     let assoc_ty_id = AssociatedTyId { trait_id, item_id };
-    let parameters: Vec<Parameter> = std::iter::once(ty0.into_term())
+    let parameters: Vec<Parameter> = std::iter::once(ty0.upcast())
         .chain(trait_parameters1)
         .chain(item_parameters)
         .collect();

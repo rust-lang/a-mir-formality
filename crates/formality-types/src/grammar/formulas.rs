@@ -11,9 +11,9 @@ use std::sync::Arc;
 
 use formality_macros::term;
 
-use crate::from_into_term::FromTerm;
-use crate::from_into_term::IntoTerm;
 use crate::from_into_term::To;
+use crate::from_into_term::Upcast;
+use crate::from_into_term::UpcastFrom;
 use crate::from_term_impl;
 
 use super::AliasName;
@@ -135,10 +135,10 @@ pub struct TraitRef {
 }
 
 impl TraitRef {
-    pub fn new(id: &TraitId, parameters: impl IntoTerm<Vec<Parameter>>) -> Self {
+    pub fn new(id: &TraitId, parameters: impl Upcast<Vec<Parameter>>) -> Self {
         Self {
             trait_id: id.clone(),
-            parameters: parameters.into_term(),
+            parameters: parameters.upcast(),
         }
     }
 }
@@ -154,14 +154,14 @@ impl Predicate {
     }
 }
 
-impl FromTerm<PredicateData> for Predicate {
+impl UpcastFrom<PredicateData> for Predicate {
     fn from_term(v: PredicateData) -> Self {
         Predicate { data: Arc::new(v) }
     }
 }
 
-from_term_impl!(impl FromTerm<AtomicPredicate> for Predicate via PredicateData);
-from_term_impl!(impl FromTerm<AtomicRelation> for Predicate via PredicateData);
+from_term_impl!(impl UpcastFrom<AtomicPredicate> for Predicate via PredicateData);
+from_term_impl!(impl UpcastFrom<AtomicRelation> for Predicate via PredicateData);
 
 #[term]
 pub enum PredicateData {
@@ -172,8 +172,8 @@ pub enum PredicateData {
     Implies(Vec<Predicate>, Predicate),
 }
 
-from_term_impl!(impl FromTerm<AtomicPredicate> for PredicateData);
-from_term_impl!(impl FromTerm<AtomicRelation> for PredicateData);
+from_term_impl!(impl UpcastFrom<AtomicPredicate> for PredicateData);
+from_term_impl!(impl UpcastFrom<AtomicRelation> for PredicateData);
 
 #[term]
 pub struct Goal {
@@ -186,14 +186,14 @@ impl Goal {
     }
 }
 
-impl FromTerm<GoalData> for Goal {
+impl UpcastFrom<GoalData> for Goal {
     fn from_term(v: GoalData) -> Self {
         Self { data: Arc::new(v) }
     }
 }
 
-from_term_impl!(impl FromTerm<AtomicPredicate> for Goal via GoalData);
-from_term_impl!(impl FromTerm<AtomicRelation> for Goal via GoalData);
+from_term_impl!(impl UpcastFrom<AtomicPredicate> for Goal via GoalData);
+from_term_impl!(impl UpcastFrom<AtomicRelation> for Goal via GoalData);
 
 pub type Goals = Vec<Goal>;
 
@@ -216,54 +216,54 @@ pub enum GoalData {
     Ambiguous,
 }
 
-from_term_impl!(impl FromTerm<AtomicPredicate> for GoalData);
-from_term_impl!(impl FromTerm<AtomicRelation> for GoalData);
+from_term_impl!(impl UpcastFrom<AtomicPredicate> for GoalData);
+from_term_impl!(impl UpcastFrom<AtomicRelation> for GoalData);
 
 impl Goal {
     pub fn ambiguous() -> Self {
-        GoalData::Ambiguous.into_term()
+        GoalData::Ambiguous.upcast()
     }
 
-    pub fn for_all(names: &[KindedVarIndex], data: impl IntoTerm<Goal>) -> Self {
-        GoalData::ForAll(Binder::new(names, data.into_term())).into_term()
+    pub fn for_all(names: &[KindedVarIndex], data: impl Upcast<Goal>) -> Self {
+        GoalData::ForAll(Binder::new(names, data.upcast())).upcast()
     }
 
-    pub fn exists(names: &[KindedVarIndex], data: impl IntoTerm<Goal>) -> Self {
-        GoalData::Exists(Binder::new(names, data.into_term())).into_term()
+    pub fn exists(names: &[KindedVarIndex], data: impl Upcast<Goal>) -> Self {
+        GoalData::Exists(Binder::new(names, data.upcast())).upcast()
     }
 
     pub fn implies(
-        conditions: impl IntoTerm<Vec<Hypothesis>>,
-        consequence: impl IntoTerm<Goal>,
+        conditions: impl Upcast<Vec<Hypothesis>>,
+        consequence: impl Upcast<Goal>,
     ) -> Self {
-        GoalData::Implies(conditions.into_term(), consequence.into_term()).into_term()
+        GoalData::Implies(conditions.upcast(), consequence.upcast()).upcast()
     }
 
-    pub fn all(goals: impl IntoTerm<Vec<Goal>>) -> Self {
-        GoalData::All(goals.into_term()).into_term()
+    pub fn all(goals: impl Upcast<Vec<Goal>>) -> Self {
+        GoalData::All(goals.upcast()).upcast()
     }
 
-    pub fn any(goals: impl IntoTerm<Vec<Goal>>) -> Self {
-        GoalData::Any(goals.into_term()).into_term()
+    pub fn any(goals: impl Upcast<Vec<Goal>>) -> Self {
+        GoalData::Any(goals.upcast()).upcast()
     }
 
-    pub fn coherence_mode(goal: impl IntoTerm<Goal>) -> Self {
-        GoalData::CoherenceMode(goal.into_term()).into_term()
+    pub fn coherence_mode(goal: impl Upcast<Goal>) -> Self {
+        GoalData::CoherenceMode(goal.upcast()).upcast()
     }
 
     /// Goal that `p1 == p2`
-    pub fn eq(p1: impl IntoTerm<Parameter>, p2: impl IntoTerm<Parameter>) -> Self {
-        AtomicRelation::Equals(p1.into_term(), p2.into_term()).into_term()
+    pub fn eq(p1: impl Upcast<Parameter>, p2: impl Upcast<Parameter>) -> Self {
+        AtomicRelation::Equals(p1.upcast(), p2.upcast()).upcast()
     }
 
     /// Goal that `p1 <: p2`
-    pub fn sub(p1: impl IntoTerm<Parameter>, p2: impl IntoTerm<Parameter>) -> Self {
-        AtomicRelation::Sub(p1.into_term(), p2.into_term()).into_term()
+    pub fn sub(p1: impl Upcast<Parameter>, p2: impl Upcast<Parameter>) -> Self {
+        AtomicRelation::Sub(p1.upcast(), p2.upcast()).upcast()
     }
 
     /// Goal that `p1: p2`
-    pub fn outlives(p1: impl IntoTerm<Parameter>, p2: impl IntoTerm<Parameter>) -> Self {
-        AtomicRelation::Outlives(p1.into_term(), p2.into_term()).into_term()
+    pub fn outlives(p1: impl Upcast<Parameter>, p2: impl Upcast<Parameter>) -> Self {
+        AtomicRelation::Outlives(p1.upcast(), p2.upcast()).upcast()
     }
 }
 
@@ -294,14 +294,14 @@ impl Hypothesis {
     }
 }
 
-impl FromTerm<HypothesisData> for Hypothesis {
+impl UpcastFrom<HypothesisData> for Hypothesis {
     fn from_term(v: HypothesisData) -> Self {
         Hypothesis { data: Arc::new(v) }
     }
 }
 
-from_term_impl!(impl FromTerm<AtomicPredicate> for Hypothesis via HypothesisData);
-from_term_impl!(impl FromTerm<AtomicRelation> for Hypothesis via HypothesisData);
+from_term_impl!(impl UpcastFrom<AtomicPredicate> for Hypothesis via HypothesisData);
+from_term_impl!(impl UpcastFrom<AtomicRelation> for Hypothesis via HypothesisData);
 
 #[term]
 pub enum HypothesisData {
@@ -315,23 +315,23 @@ pub enum HypothesisData {
     CoherenceMode,
 }
 
-from_term_impl!(impl FromTerm<AtomicPredicate> for HypothesisData);
-from_term_impl!(impl FromTerm<AtomicRelation> for HypothesisData);
+from_term_impl!(impl UpcastFrom<AtomicPredicate> for HypothesisData);
+from_term_impl!(impl UpcastFrom<AtomicRelation> for HypothesisData);
 
 impl Hypothesis {
-    pub fn for_all(names: &[KindedVarIndex], data: impl IntoTerm<Hypothesis>) -> Self {
-        HypothesisData::ForAll(Binder::new(names, data.into_term())).into_term()
+    pub fn for_all(names: &[KindedVarIndex], data: impl Upcast<Hypothesis>) -> Self {
+        HypothesisData::ForAll(Binder::new(names, data.upcast())).upcast()
     }
 
     pub fn implies(
-        conditions: impl IntoTerm<Vec<Goal>>,
-        consequence: impl IntoTerm<Hypothesis>,
+        conditions: impl Upcast<Vec<Goal>>,
+        consequence: impl Upcast<Hypothesis>,
     ) -> Self {
-        HypothesisData::Implies(conditions.into_term(), consequence.into_term()).into_term()
+        HypothesisData::Implies(conditions.upcast(), consequence.upcast()).upcast()
     }
 
     pub fn coherence_mode() -> Self {
-        HypothesisData::CoherenceMode.into_term()
+        HypothesisData::CoherenceMode.upcast()
     }
 }
 
@@ -381,26 +381,24 @@ impl Invariant {
     }
 }
 
-impl FromTerm<Predicate> for Goal {
+impl UpcastFrom<Predicate> for Goal {
     fn from_term(value: Predicate) -> Self {
         match value.data() {
-            PredicateData::AtomicPredicate(a) => a.to_term(),
-            PredicateData::AtomicRelation(a) => a.to_term(),
-            PredicateData::ForAll(binder) => GoalData::ForAll(binder.to_term()).into_term(),
-            PredicateData::Implies(p, q) => GoalData::Implies(p.to_term(), q.to_term()).into_term(),
+            PredicateData::AtomicPredicate(a) => a.to(),
+            PredicateData::AtomicRelation(a) => a.to(),
+            PredicateData::ForAll(binder) => GoalData::ForAll(binder.to()).upcast(),
+            PredicateData::Implies(p, q) => GoalData::Implies(p.to(), q.to()).upcast(),
         }
     }
 }
 
-impl FromTerm<Predicate> for Hypothesis {
+impl UpcastFrom<Predicate> for Hypothesis {
     fn from_term(value: Predicate) -> Self {
         match value.data() {
-            PredicateData::AtomicPredicate(a) => a.to_term(),
-            PredicateData::AtomicRelation(a) => a.to_term(),
-            PredicateData::ForAll(binder) => HypothesisData::ForAll(binder.to_term()).into_term(),
-            PredicateData::Implies(p, q) => {
-                HypothesisData::Implies(p.to_term(), q.to_term()).into_term()
-            }
+            PredicateData::AtomicPredicate(a) => a.to(),
+            PredicateData::AtomicRelation(a) => a.to(),
+            PredicateData::ForAll(binder) => HypothesisData::ForAll(binder.to()).upcast(),
+            PredicateData::Implies(p, q) => HypothesisData::Implies(p.to(), q.to()).upcast(),
         }
     }
 }

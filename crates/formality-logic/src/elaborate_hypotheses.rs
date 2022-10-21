@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use formality_types::{
     self,
-    from_into_term::{IntoTerm, To},
+    from_into_term::{To, Upcast},
     grammar::{
         AtomicPredicate, Hypothesis, HypothesisData, Invariant, InvariantImplication, Substitution,
     },
@@ -76,7 +76,7 @@ fn apply_invariant_to_predicate(
             .all(|kvi| domain.contains(&kvi.to()))
     });
 
-    Some(substitution.apply(&consequence).into_term())
+    Some(substitution.apply(&consequence).upcast())
 }
 
 fn match_invariant_to_predicate(

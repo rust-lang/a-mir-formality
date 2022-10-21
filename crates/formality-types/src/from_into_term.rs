@@ -3,94 +3,88 @@ use std::sync::Arc;
 pub trait To {
     fn to<T>(&self) -> T
     where
-        Self: IntoTerm<T>;
+        Self: Upcast<T>;
 }
 
 impl<A> To for A {
     fn to<T>(&self) -> T
     where
-        Self: IntoTerm<T>,
+        Self: Upcast<T>,
     {
-        self.to_term()
+        <&A as Upcast<T>>::upcast(self)
     }
 }
 
 /// Our version of `From`. One twist: it is implemented for &T for all T.
-pub trait FromTerm<T: Clone> {
+pub trait UpcastFrom<T: Clone> {
     fn from_term(term: T) -> Self;
 }
 
-impl<T: Clone, U> FromTerm<&T> for U
+impl<T: Clone, U> UpcastFrom<&T> for U
 where
-    U: FromTerm<T>,
+    T: Upcast<U>,
 {
     fn from_term(term: &T) -> Self {
-        U::from_term(T::clone(term))
+        T::upcast(T::clone(term))
     }
 }
 
-impl<T: Clone, U> FromTerm<Vec<T>> for Vec<U>
+impl<T: Clone, U> UpcastFrom<Vec<T>> for Vec<U>
 where
-    U: FromTerm<T>,
+    T: Upcast<U>,
 {
     fn from_term(term: Vec<T>) -> Self {
-        term.into_iter().map(|t| U::from_term(t)).collect()
+        term.into_iter().map(|t| T::upcast(t)).collect()
     }
 }
 
-impl<T: Clone, U> FromTerm<&[T]> for Vec<U>
+impl<T: Clone, U> UpcastFrom<&[T]> for Vec<U>
 where
-    U: FromTerm<T>,
+    T: Upcast<U>,
 {
     fn from_term(term: &[T]) -> Self {
-        term.into_iter().map(|t| FromTerm::from_term(t)).collect()
+        term.into_iter().map(|t| t.upcast()).collect()
     }
 }
 
-impl<T: Clone, U> FromTerm<Option<T>> for Option<U>
+impl<T: Clone, U> UpcastFrom<Option<T>> for Option<U>
 where
-    U: FromTerm<T>,
+    T: Upcast<U>,
 {
     fn from_term(term: Option<T>) -> Self {
-        term.map(|t| U::from_term(t))
+        term.map(|t| t.upcast())
     }
 }
 
-impl<T: Clone, U> FromTerm<Arc<T>> for Arc<U>
+impl<T: Clone, U> UpcastFrom<Arc<T>> for Arc<U>
 where
-    U: FromTerm<T>,
+    T: Upcast<U>,
 {
     fn from_term(term: Arc<T>) -> Self {
         let term: &T = &term;
-        Arc::new(FromTerm::from_term(term))
+        Arc::new(term.to())
     }
 }
 
 /// Our version of `Into`
-pub trait IntoTerm<T>: Clone {
-    fn into_term(self) -> T;
-
-    fn to_term(&self) -> T;
+pub trait Upcast<T>: Clone {
+    fn upcast(self) -> T;
 }
 
-impl<T, U> IntoTerm<U> for T
+impl<T, U> Upcast<U> for T
 where
     T: Clone,
-    U: FromTerm<T>,
+    U: UpcastFrom<T>,
 {
-    fn into_term(self) -> U {
+    fn upcast(self) -> U {
         U::from_term(self)
-    }
-
-    fn to_term(&self) -> U {
-        <U as FromTerm<&T>>::from_term(self)
     }
 }
 
 #[macro_export]
 macro_rules! self_from_term_impl {
     ($t:ty) => {
-        impl FromTerm<$t> for $t {
+        impl UpcastFrom<$t> for $t {
             fn from_term(v: $t) -> $t {
                 v
             }
@@ -100,45 +94,45 @@ macro_rules! self_from_term_impl {
 
 #[macro_export]
 macro_rules! from_term_impl {
-    (impl FromTerm<$t:ident> for $e:ident) => {
-        impl $crate::derive_links::FromTerm<$t> for $e {
+    (impl UpcastFrom<$t:ident> for $e:ident) => {
+        impl $crate::derive_links::UpcastFrom<$t> for $e {
             fn from_term(v: $t) -> $e {
                 $e::$t(v)
             }
         }
     };
 
-    (impl FromTerm<$t:ident> for $e:ident $(via $via:ident)+) => {
-        impl $crate::derive_links::FromTerm<$t> for $e {
+    (impl UpcastFrom<$t:ident> for $e:ident $(via $via:ident)+) => {
+        impl $crate::derive_links::UpcastFrom<$t> for $e {
             fn from_term(v: $t) -> $e {
                 $(
-                    let v: $via = $crate::derive_links::FromTerm::from_term(v);
+                    let v: $via = $crate::derive_links::UpcastFrom::from_term(v);
                 )+
-                <$e as $crate::derive_links::FromTerm<_>>::from_term(v)
+                <$e as $crate::derive_links::UpcastFrom<_>>::from_term(v)
             }
         }
     };
 }
 
-impl<A, B, A1, B1> FromTerm<(A1, B1)> for (A, B)
+impl<A, B, A1, B1> UpcastFrom<(A1, B1)> for (A, B)
 where
-    A1: IntoTerm<A>,
-    B1: IntoTerm<B>,
+    A1: Upcast<A>,
+    B1: Upcast<B>,
 {
     fn from_term(term: (A1, B1)) -> Self {
         let (a1, b1) = term;
-        (a1.into_term(), b1.into_term())
+        (a1.upcast(), b1.upcast())
     }
 }
 
-impl<A, B, C, A1, B1, C1> FromTerm<(A1, B1, C1)> for (A, B, C)
+impl<A, B, C, A1, B1, C1> UpcastFrom<(A1, B1, C1)> for (A, B, C)
 where
-    A1: IntoTerm<A>,
-    B1: IntoTerm<B>,
-    C1: IntoTerm<C>,
+    A1: Upcast<A>,
+    B1: Upcast<B>,
+    C1: Upcast<C>,
 {
     fn from_term(term: (A1, B1, C1)) -> Self {
         let (a1, b1, c1) = term;
-        (a1.into_term(), b1.into_term(), c1.into_term())
+        (a1.upcast(), b1.upcast(), c1.upcast())
     }
 }

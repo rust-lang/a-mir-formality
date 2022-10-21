@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{from_into_term::IntoTerm, matcher::Matcher};
+use crate::{from_into_term::Upcast, matcher::Matcher};
 
 use super::{InferenceRule, Judgment};
 
@@ -20,11 +20,11 @@ where
     where
         M: Matcher<J>,
         R: IntoIterator<Item = O>,
-        O: IntoTerm<J::Output>,
+        O: Upcast<J::Output>,
     {
         let rule = move |input: &J| -> Vec<J::Output> {
             match M::try_match(input) {
-                Some(m) => closure(m).into_iter().map(|o1| o1.into_term()).collect(),
+                Some(m) => closure(m).into_iter().map(|o1| o1.upcast()).collect(),
                 None => vec![],
             }
         };

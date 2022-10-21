@@ -5,9 +5,9 @@
 
 pub use crate::fold::Fold;
 pub use crate::fold::SubstitutionFn;
+pub use crate::from_into_term::UpcastFrom;
 pub use crate::grammar::Parameter;
 pub use crate::grammar::ParameterKind;
 pub use crate::grammar::Variable;
 pub use crate::parse;
 pub use crate::term::Term;
-pub use crate::from_into_term::FromTerm;

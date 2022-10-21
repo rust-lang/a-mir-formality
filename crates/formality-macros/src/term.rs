@@ -50,9 +50,9 @@ fn derive_from_term(mut s: synstructure::Structure) -> TokenStream {
 
     // s.add_bounds(synstructure::AddBounds::None);
     s.gen_impl(quote! {
-        use crate::derive_links::{FromTerm};
+        use crate::derive_links::{UpcastFrom};
 
-        gen impl FromTerm<Self> for @Self {
+        gen impl UpcastFrom<Self> for @Self {
             fn from_term(s: Self) -> Self {
                 s
             }

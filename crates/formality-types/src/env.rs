@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use crate::{
     derive_links::Variable,
     fold::Fold,
-    from_into_term::IntoTerm,
+    from_into_term::Upcast,
     grammar::{
         Binder, Fallible, Goal, InferenceVar, Parameter, ParameterKind, PlaceholderVar, Ty,
         Universe,
@@ -125,9 +125,9 @@ impl Env {
     pub fn map_to(
         &mut self,
         var: InferenceVar,
-        value: impl IntoTerm<Parameter>,
+        value: impl Upcast<Parameter>,
     ) -> Fallible<Vec<Goal>> {
-        let value = value.into_term();
+        let value = value.upcast();
 
         assert_eq!(self.data(var).kind, value.kind());
 

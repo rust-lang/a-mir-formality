@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use crate::{
     fold::Fold,
     fold::SubstitutionFn,
-    from_into_term::{FromTerm, IntoTerm},
+    from_into_term::{Upcast, UpcastFrom},
     grammar::VarIndex,
 };
 
@@ -42,7 +42,7 @@ impl<T: Fold> Binder<T> {
                 (
                     kind_index,
                     (
-                        old_bound_var.into_term(),
+                        old_bound_var.upcast(),
                         new_bound_var.into_parameter(kind_index.kind),
                     ),
                 )
@@ -63,7 +63,7 @@ impl<T: Fold> Binder<T> {
                     debruijn: None,
                     var_index: kinded_index.var_index,
                 }
-                .into_term();
+                .upcast();
                 let new_bound_var: Parameter = BoundVar {
                     debruijn: Some(DebruijnIndex::INNERMOST),
                     var_index: VarIndex { index },
@@ -170,16 +170,16 @@ impl<T: Fold> Fold for Binder<T> {
     }
 }
 
-impl<T, U> FromTerm<Binder<T>> for Binder<U>
+impl<T, U> UpcastFrom<Binder<T>> for Binder<U>
 where
     T: Clone,
-    U: FromTerm<T> + Clone,
+    U: UpcastFrom<T> + Clone,
 {
     fn from_term(term: Binder<T>) -> Self {
         let Binder { kinds, term } = term;
         Binder {
             kinds,
-            term: FromTerm::from_term(term),
+            term: UpcastFrom::from_term(term),
         }
     }
 }

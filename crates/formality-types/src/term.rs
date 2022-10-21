@@ -2,13 +2,13 @@ use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 use crate::{
     fold::Fold,
-    from_into_term::FromTerm,
+    from_into_term::UpcastFrom,
     grammar::{Lt, Ty},
     parse::Parse,
 };
 
 pub trait Term:
-    Clone + Fold + Parse + Ord + Eq + Hash + Debug + FromTerm<Self> + 'static + Sized
+    Clone + Fold + Parse + Ord + Eq + Hash + Debug + UpcastFrom<Self> + 'static + Sized
 {
 }
 

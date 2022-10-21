@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    from_into_term::IntoTerm,
+    from_into_term::Upcast,
     grammar::{Lt, LtData, Parameter, ParameterKind, Ty, TyData, Variable},
 };
 
@@ -59,9 +59,9 @@ impl<T: Fold> Fold for Arc<T> {
 impl Fold for Ty {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         match self.data() {
-            TyData::RigidTy(v) => v.substitute(substitution_fn).into_term(),
-            TyData::AliasTy(v) => v.substitute(substitution_fn).into_term(),
-            TyData::PredicateTy(v) => v.substitute(substitution_fn).into_term(),
+            TyData::RigidTy(v) => v.substitute(substitution_fn).upcast(),
+            TyData::AliasTy(v) => v.substitute(substitution_fn).upcast(),
+            TyData::PredicateTy(v) => v.substitute(substitution_fn).upcast(),
             TyData::Variable(v) => match substitution_fn(ParameterKind::Ty, v) {
                 None => self.clone(),
                 Some(Parameter::Ty(t)) => t,
