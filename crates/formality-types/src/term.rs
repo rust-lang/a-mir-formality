@@ -2,12 +2,15 @@ use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 use crate::{
     fold::Fold,
+    from_into_term::FromTerm,
     grammar::{Lt, Ty},
     parse::Parse,
-    from_into_term::FromTerm,
 };
 
-pub trait Term: Clone + Fold + Parse + Ord + Eq + Hash + Debug + FromTerm<Self> {}
+pub trait Term:
+    Clone + Fold + Parse + Ord + Eq + Hash + Debug + FromTerm<Self> + 'static + Sized
+{
+}
 
 impl<T: Term> Term for Vec<T> {}
 
@@ -26,3 +29,7 @@ crate::self_from_term_impl!(usize);
 
 impl Term for u32 {}
 crate::self_from_term_impl!(u32);
+
+impl<A: Term, B: Term> Term for (A, B) {}
+
+impl<A: Term, B: Term, C: Term> Term for (A, B, C) {}

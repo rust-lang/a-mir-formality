@@ -119,3 +119,26 @@ macro_rules! from_term_impl {
         }
     };
 }
+
+impl<A, B, A1, B1> FromTerm<(A1, B1)> for (A, B)
+where
+    A1: IntoTerm<A>,
+    B1: IntoTerm<B>,
+{
+    fn from_term(term: (A1, B1)) -> Self {
+        let (a1, b1) = term;
+        (a1.into_term(), b1.into_term())
+    }
+}
+
+impl<A, B, C, A1, B1, C1> FromTerm<(A1, B1, C1)> for (A, B, C)
+where
+    A1: IntoTerm<A>,
+    B1: IntoTerm<B>,
+    C1: IntoTerm<C>,
+{
+    fn from_term(term: (A1, B1, C1)) -> Self {
+        let (a1, b1, c1) = term;
+        (a1.into_term(), b1.into_term(), c1.into_term())
+    }
+}

@@ -285,3 +285,29 @@ fn accumulate(
 
     Some((buffer, text))
 }
+
+impl<A: Parse, B: Parse> Parse for (A, B) {
+    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+        let text = expect_char('(', text)?;
+        let (a, text) = A::parse(scope, text)?;
+        let text = expect_char(',', text)?;
+        let (b, text) = B::parse(scope, text)?;
+        let text = expect_char(',', text).unwrap_or(text);
+        let text = expect_char(')', text)?;
+        Some(((a, b), text))
+    }
+}
+
+impl<A: Parse, B: Parse, C: Parse> Parse for (A, B, C) {
+    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+        let text = expect_char('(', text)?;
+        let (a, text) = A::parse(scope, text)?;
+        let text = expect_char(',', text)?;
+        let (b, text) = B::parse(scope, text)?;
+        let text = expect_char(',', text)?;
+        let (c, text) = C::parse(scope, text)?;
+        let text = expect_char(',', text).unwrap_or(text);
+        let text = expect_char(')', text)?;
+        Some(((a, b, c), text))
+    }
+}

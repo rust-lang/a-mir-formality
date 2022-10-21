@@ -131,3 +131,38 @@ impl Fold for u32 {
         vec![]
     }
 }
+
+impl<A: Fold, B: Fold> Fold for (A, B) {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+        let (a, b) = self;
+        (a.substitute(substitution_fn), b.substitute(substitution_fn))
+    }
+
+    fn free_variables(&self) -> Vec<Variable> {
+        let (a, b) = self;
+        let mut fv = vec![];
+        fv.extend(a.free_variables());
+        fv.extend(b.free_variables());
+        fv
+    }
+}
+
+impl<A: Fold, B: Fold, C: Fold> Fold for (A, B, C) {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+        let (a, b, c) = self;
+        (
+            a.substitute(substitution_fn),
+            b.substitute(substitution_fn),
+            c.substitute(substitution_fn),
+        )
+    }
+
+    fn free_variables(&self) -> Vec<Variable> {
+        let (a, b, c) = self;
+        let mut fv = vec![];
+        fv.extend(a.free_variables());
+        fv.extend(b.free_variables());
+        fv.extend(c.free_variables());
+        fv
+    }
+}
