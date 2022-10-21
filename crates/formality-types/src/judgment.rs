@@ -7,7 +7,8 @@ use self::stack::JudgmentStack;
 mod apply;
 mod builder;
 mod stack;
-mod test;
+mod test_filtered;
+mod test_reachable;
 
 pub use self::builder::JudgmentBuilder;
 
@@ -30,4 +31,49 @@ pub trait Judgment: Term {
 #[derive(Clone)]
 struct InferenceRule<I, O> {
     closure: Arc<dyn Fn(&I) -> Vec<O> + Send>,
+}
+
+#[macro_export]
+macro_rules! push_rules {
+    ($builder:expr, $($rule:tt)*) => {
+        $($crate::push_rules!(@rule ($builder) $rule);)*
+    };
+
+    (@rule ($builder:expr) ($p:pat = $($m:tt)*)) => {
+        $builder.push_rule(|$p| -> Vec<_> {
+            $crate::push_rules!(@body $($m)*).into_iter().collect()
+        })
+    };
+
+    (@body for $p:pat in $i:expr, $($m:tt)*) => {
+        $i.into_iter().flat_map(move |$p| {
+            $crate::push_rules!(@body $($m)*)
+        })
+    };
+
+    (@body let $p:pat = $i:expr, $($m:tt)*) => {
+        let $p = $i;
+        $crate::push_rules!(@body $($m)*)
+    };
+
+    (@body if $c:expr, $($m:tt)*) => {
+        if $c {
+            $crate::push_rules!(@body $($m)*)
+        } else {
+            vec![]
+        }
+    };
+
+    (@body in $i:expr) => {
+        $i.into_iter()
+    };
+
+    (@body return $i:expr) => {
+        vec![$i]
+    };
+
+    (@body yield $i:expr) => {
+        vec![$i]
+    };
+
 }

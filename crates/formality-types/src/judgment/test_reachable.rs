@@ -14,10 +14,11 @@ struct Graph {
 }
 
 impl Graph {
-    fn successors(&self, n: u32) -> impl Iterator<Item = u32> + '_ {
+    fn successors(&self, n: u32) -> Vec<u32> {
         self.edges
             .iter()
-            .flat_map(move |(a, b)| if *a == n { Some(*b) } else { None })
+            .flat_map(|(a, b)| if *a == n { Some(*b) } else { None })
+            .collect()
     }
 }
 
@@ -35,16 +36,23 @@ impl Judgment for TransitiveReachability {
     }
 
     fn build_rules(builder: &mut JudgmentBuilder<Self>) {
-        builder.push_rule(|TransitiveReachability(graph, start)| {
-            graph.successors(start).collect::<Vec<_>>()
-        });
+        crate::push_rules!(
+            builder,
 
-        // `reachable(start, c) :- reachable(start, b), reachable(b, c)`
-        builder.push_rule(|TransitiveReachability(graph, start)| {
-            TransitiveReachability(graph.clone(), start)
-                .into_iter()
-                .flat_map(move |b| TransitiveReachability(graph.clone(), b).apply())
-        });
+            // reachable(graph, start, s) :- successor(graph, start, s)
+            (TransitiveReachability(graph, start) =
+                for s in graph.successors(start),
+                yield s
+            )
+
+            // reachable(graph, a, c) :- reachable(graph, a, b), reachable(graph, b, c)
+            (TransitiveReachability(graph, a) =
+                for b in TransitiveReachability(graph.clone(), a),
+                for c in TransitiveReachability(graph.clone(), b),
+                yield c
+            )
+
+        );
     }
 }
 
@@ -67,5 +75,6 @@ fn judgment() {
             2,
             3,
         }
-    "#]].assert_debug_eq(&TransitiveReachability(graph, 0).apply());
+    "#]]
+    .assert_debug_eq(&TransitiveReachability(graph, 0).apply());
 }
