@@ -1,34 +1,16 @@
-use formality_core::all_into::AllInto;
 use formality_macros::term;
 use std::sync::Arc;
 
 mod parse_impls;
 
-use crate::{collections::Map, fold::Fold};
+use crate::{
+    collections::Map,
+    fold::Fold,
+    from_term_impl,
+    from_into_term::{FromTerm, IntoTerm},
+};
 
 use super::{AdtId, AssociatedItemId, Binder, FnId, Predicate, TraitId};
-
-#[macro_export]
-macro_rules! from_impl {
-    (impl From<$t:ident> for $e:ident) => {
-        impl From<$t> for $e {
-            fn from(v: $t) -> $e {
-                $e::$t(v)
-            }
-        }
-    };
-
-    (impl From<$t:ident> for $e:ident $(via $via:ident)+) => {
-        impl From<$t> for $e {
-            fn from(v: $t) -> $e {
-                $(
-                    let v: $via = v.into();
-                )+
-                v.into()
-            }
-        }
-    };
-}
 
 #[term(U($index))]
 #[derive(Copy)]
@@ -48,6 +30,12 @@ pub struct Ty {
 }
 
 impl Ty {
+    pub fn new(data: impl IntoTerm<TyData>) -> Self {
+        Ty {
+            data: Arc::new(data.into_term()),
+        }
+    }
+
     pub fn data(&self) -> &TyData {
         &self.data
     }
@@ -63,32 +51,38 @@ impl Ty {
         }
     }
 
-    pub fn rigid(name: impl Into<RigidName>, parameters: impl AllInto<Parameter>) -> Self {
+    pub fn rigid(
+        name: impl IntoTerm<RigidName>,
+        parameters: impl IntoTerm<Vec<Parameter>>,
+    ) -> Self {
         RigidTy {
-            name: name.into(),
-            parameters: parameters.all_into(),
+            name: name.into_term(),
+            parameters: parameters.into_term(),
         }
-        .into()
+        .into_term()
     }
 
-    pub fn alias(name: impl Into<AliasName>, parameters: impl AllInto<Parameter>) -> Self {
+    pub fn alias(
+        name: impl IntoTerm<AliasName>,
+        parameters: impl IntoTerm<Vec<Parameter>>,
+    ) -> Self {
         AliasTy {
-            name: name.into(),
-            parameters: parameters.all_into(),
+            name: name.into_term(),
+            parameters: parameters.into_term(),
         }
-        .into()
+        .into_term()
     }
 }
 
-impl<T> From<T> for Ty
-where
-    T: Into<TyData>,
-{
-    fn from(v: T) -> Ty {
-        let v: TyData = v.into();
+impl FromTerm<TyData> for Ty {
+    fn from_term(v: TyData) -> Ty {
         Ty { data: Arc::new(v) }
     }
 }
+from_term_impl!(impl FromTerm<RigidTy> for Ty via TyData);
+from_term_impl!(impl FromTerm<AliasTy> for Ty via TyData);
+from_term_impl!(impl FromTerm<ScalarId> for Ty via TyData);
+from_term_impl!(impl FromTerm<PredicateTy> for Ty via TyData);
 
 // NB: TyData doesn't implement Fold; you fold types, not TyData,
 // because variables might not map to the same variant.
@@ -100,14 +94,20 @@ pub enum TyData {
     Variable(Variable),
 }
 
-from_impl!(impl From<RigidTy> for TyData);
-from_impl!(impl From<AliasTy> for TyData);
-from_impl!(impl From<PredicateTy> for TyData);
-from_impl!(impl From<Variable> for TyData);
-from_impl!(impl From<PlaceholderVar> for TyData via Variable);
-from_impl!(impl From<InferenceVar> for TyData via Variable);
-from_impl!(impl From<BoundVar> for TyData via Variable);
-from_impl!(impl From<ScalarId> for TyData via RigidTy);
+impl FromTerm<TyData> for TyData {
+    fn from_term(term: TyData) -> Self {
+        term
+    }
+}
+
+from_term_impl!(impl FromTerm<RigidTy> for TyData);
+from_term_impl!(impl FromTerm<AliasTy> for TyData);
+from_term_impl!(impl FromTerm<PredicateTy> for TyData);
+from_term_impl!(impl FromTerm<Variable> for TyData);
+from_term_impl!(impl FromTerm<PlaceholderVar> for TyData via Variable);
+from_term_impl!(impl FromTerm<InferenceVar> for TyData via Variable);
+from_term_impl!(impl FromTerm<BoundVar> for TyData via Variable);
+from_term_impl!(impl FromTerm<ScalarId> for TyData via RigidTy);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
@@ -126,10 +126,10 @@ pub struct RigidTy {
     parameters: Parameters,
 }
 
-impl From<ScalarId> for RigidTy {
-    fn from(s: ScalarId) -> Self {
+impl FromTerm<ScalarId> for RigidTy {
+    fn from_term(s: ScalarId) -> Self {
         RigidTy {
-            name: s.into(),
+            name: s.into_term(),
             parameters: vec![],
         }
     }
@@ -151,8 +151,8 @@ pub enum RigidName {
     FnDef(FnId),
 }
 
-from_impl!(impl From<AdtId> for RigidName);
-from_impl!(impl From<ScalarId> for RigidName);
+from_term_impl!(impl FromTerm<AdtId> for RigidName);
+from_term_impl!(impl FromTerm<ScalarId> for RigidName);
 
 #[term]
 pub enum RefKind {
@@ -186,7 +186,7 @@ pub enum AliasName {
     AssociatedTyId(AssociatedTyId),
 }
 
-from_impl!(impl From<AssociatedTyId> for AliasName);
+from_term_impl!(impl FromTerm<AssociatedTyId> for AliasName);
 
 #[term(($trait_id :: $item_id))]
 pub struct AssociatedTyId {
@@ -204,8 +204,8 @@ pub enum PredicateTy {
     EnsuresTy(EnsuresTy),
 }
 
-from_impl!(impl From<ImplicationTy> for PredicateTy);
-from_impl!(impl From<EnsuresTy> for PredicateTy);
+from_term_impl!(impl FromTerm<ImplicationTy> for PredicateTy);
+from_term_impl!(impl FromTerm<EnsuresTy> for PredicateTy);
 
 #[term(($predicates => $ty))]
 pub struct ImplicationTy {
@@ -268,11 +268,11 @@ impl Parameter {
     }
 }
 
-from_impl!(impl From<Ty> for Parameter);
-from_impl!(impl From<Lt> for Parameter);
+from_term_impl!(impl FromTerm<Ty> for Parameter);
+from_term_impl!(impl FromTerm<Lt> for Parameter);
 
-impl From<KindedVarIndex> for Parameter {
-    fn from(kvi: KindedVarIndex) -> Self {
+impl FromTerm<KindedVarIndex> for Parameter {
+    fn from_term(kvi: KindedVarIndex) -> Self {
         BoundVar {
             debruijn: None,
             var_index: kvi.var_index,
@@ -296,6 +296,12 @@ pub struct Lt {
 }
 
 impl Lt {
+    pub fn new(data: impl IntoTerm<LtData>) -> Self {
+        Lt {
+            data: Arc::new(data.into_term()),
+        }
+    }
+
     pub fn data(&self) -> &LtData {
         &self.data
     }
@@ -308,15 +314,9 @@ impl Lt {
     }
 }
 
-impl<V> From<V> for Lt
-where
-    V: Into<LtData>,
-{
-    fn from(v: V) -> Self {
-        let data: LtData = v.into();
-        Lt {
-            data: Arc::new(data),
-        }
+impl FromTerm<LtData> for Lt {
+    fn from_term(v: LtData) -> Self {
+        Lt::new(v)
     }
 }
 
@@ -326,7 +326,16 @@ pub enum LtData {
     Variable(Variable),
 }
 
-from_impl!(impl From<Variable> for LtData);
+impl FromTerm<LtData> for LtData {
+    fn from_term(term: LtData) -> Self {
+        term
+    }
+}
+
+from_term_impl!(impl FromTerm<Variable> for LtData);
+from_term_impl!(impl FromTerm<InferenceVar> for LtData via Variable);
+from_term_impl!(impl FromTerm<PlaceholderVar> for LtData via Variable);
+from_term_impl!(impl FromTerm<BoundVar> for LtData via Variable);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Variable {
@@ -335,15 +344,15 @@ pub enum Variable {
     BoundVar(BoundVar),
 }
 
-from_impl!(impl From<PlaceholderVar> for Variable);
-from_impl!(impl From<InferenceVar> for Variable);
-from_impl!(impl From<BoundVar> for Variable);
+from_term_impl!(impl FromTerm<PlaceholderVar> for Variable);
+from_term_impl!(impl FromTerm<InferenceVar> for Variable);
+from_term_impl!(impl FromTerm<BoundVar> for Variable);
 
 impl Variable {
     pub fn into_parameter(self, kind: ParameterKind) -> Parameter {
         match kind {
-            ParameterKind::Lt => Lt::from(self).into(),
-            ParameterKind::Ty => Ty::from(self).into(),
+            ParameterKind::Lt => Lt::new(self).into_term(),
+            ParameterKind::Ty => Ty::new(self).into_term(),
         }
     }
 
@@ -359,7 +368,7 @@ impl Variable {
                 debruijn: Some(db.shift_in()),
                 var_index: *var_index,
             }
-            .into()
+            .into_term()
         } else {
             self.clone()
         }
@@ -379,7 +388,7 @@ impl Variable {
                     debruijn: Some(db1),
                     var_index: *var_index,
                 }
-                .into()
+                .into_term()
             })
         } else {
             Some(self.clone())
@@ -411,7 +420,7 @@ pub struct BoundVar {
 
 impl BoundVar {
     pub fn into_parameter(self, kind: ParameterKind) -> Parameter {
-        Variable::from(self).into_parameter(kind)
+        Variable::from_term(self).into_parameter(kind)
     }
 }
 

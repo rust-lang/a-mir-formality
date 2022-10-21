@@ -11,6 +11,7 @@ use crate::{
     },
     hook::Hook,
     term::Term,
+    from_into_term::IntoTerm,
 };
 
 mod simple_sub;
@@ -124,7 +125,13 @@ impl Env {
     /// Maps the inference var `var` to the value `value`. This may fail, if parameter contains
     /// values that are not in a suitable universe for `var`. It may also produce a list of goals that
     /// must be proven, if `var` had acquired constraints.
-    pub fn map_to(&mut self, var: InferenceVar, value: Parameter) -> Fallible<Vec<Goal>> {
+    pub fn map_to(
+        &mut self,
+        var: InferenceVar,
+        value: impl IntoTerm<Parameter>,
+    ) -> Fallible<Vec<Goal>> {
+        let value = value.into_term();
+
         assert_eq!(self.data(var).kind, value.kind());
 
         // If var is already mapped, then equate the value we were mapped to with the new value.

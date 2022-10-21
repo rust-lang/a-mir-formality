@@ -5,6 +5,7 @@ use formality_types::{
     grammar::{
         AtomicPredicate, Hypothesis, HypothesisData, Invariant, InvariantImplication, Substitution,
     },
+    from_into_term::IntoTerm,
 };
 
 use crate::Db;
@@ -69,7 +70,7 @@ fn apply_invariant_to_predicate(
 
     let substitution = match_invariant_to_predicate(&condition, predicate)?;
 
-    Some(substitution.apply(&consequence).into())
+    Some(substitution.apply(&consequence).into_term())
 }
 
 fn match_invariant_to_predicate(

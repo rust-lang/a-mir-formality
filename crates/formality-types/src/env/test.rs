@@ -18,7 +18,7 @@ fn occurs_check1() {
         _ => panic!(),
     };
     let t_u = env.instantiate_universally(&t);
-    assert!(env.map_to(v_e, t_u.into()).is_err());
+    assert!(env.map_to(v_e, t_u).is_err());
 }
 
 #[test]
@@ -32,6 +32,6 @@ fn occurs_check2() {
         TyData::Variable(Variable::InferenceVar(v)) => *v,
         _ => panic!(),
     };
-    assert!(env.map_to(v_e, t_u.clone().into()).is_ok());
+    assert!(env.map_to(v_e, &t_u).is_ok());
     assert_eq!(env.refresh_inference_variables(t_e), t_u);
 }

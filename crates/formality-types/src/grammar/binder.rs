@@ -4,7 +4,12 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
 use lazy_static::lazy_static;
 
-use crate::{fold::Fold, fold::SubstitutionFn, grammar::VarIndex};
+use crate::{
+    fold::Fold,
+    fold::SubstitutionFn,
+    grammar::VarIndex,
+    from_into_term::{FromTerm, IntoTerm},
+};
 
 use super::{
     BoundVar, DebruijnIndex, KindedVarIndex, Parameter, ParameterKind, Substitution, Variable,
@@ -37,7 +42,7 @@ impl<T: Fold> Binder<T> {
                 (
                     kind_index,
                     (
-                        old_bound_var.into(),
+                        old_bound_var.into_term(),
                         new_bound_var.into_parameter(kind_index.kind),
                     ),
                 )
@@ -58,7 +63,7 @@ impl<T: Fold> Binder<T> {
                     debruijn: None,
                     var_index: kinded_index.var_index,
                 }
-                .into();
+                .into_term();
                 let new_bound_var: Parameter = BoundVar {
                     debruijn: Some(DebruijnIndex::INNERMOST),
                     var_index: VarIndex { index },
@@ -161,6 +166,20 @@ impl<T: Fold> Fold for Binder<T> {
         Binder {
             kinds: self.kinds.clone(),
             term,
+        }
+    }
+}
+
+impl<T, U> FromTerm<Binder<T>> for Binder<U>
+where
+    T: Clone,
+    U: FromTerm<T> + Clone,
+{
+    fn from_term(term: Binder<T>) -> Self {
+        let Binder { kinds, term } = term;
+        Binder {
+            kinds,
+            term: FromTerm::from_term(term),
         }
     }
 }

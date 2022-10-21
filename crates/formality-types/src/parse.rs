@@ -132,10 +132,8 @@ where
     T: Parse + Fold,
 {
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
-        eprintln!("parsing Binder: {text:?}");
         let text = expect_char('<', text)?;
         let (bindings, text) = Binding::parse_many(scope, text);
-        eprintln!("parsing Binder: {bindings:?}");
         let text = expect_char('>', text)?;
 
         // parse the contents with those names in scope

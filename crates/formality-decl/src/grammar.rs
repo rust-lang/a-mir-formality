@@ -1,5 +1,5 @@
 use formality_macros::term;
-use formality_types::from_impl;
+use formality_types::from_term_impl;
 use formality_types::grammar::{
     AdtId, AssociatedTyId, Binder, CrateId, FieldId, FnId, Predicate, TraitId, TraitRef, Ty,
 };
@@ -24,8 +24,8 @@ pub enum CrateItem {
     TraitImpl(TraitImpl),
 }
 
-from_impl!(impl From<Adt> for CrateItem);
-from_impl!(impl From<Trait> for CrateItem);
+from_term_impl!(impl FromTerm<Adt> for CrateItem);
+from_term_impl!(impl FromTerm<Trait> for CrateItem);
 
 #[term($kind $id $binder)]
 pub struct Adt {
@@ -83,8 +83,8 @@ pub enum TraitItem {
     AssociatedTy(AssociatedTy),
 }
 
-from_impl!(impl From<Fn> for TraitItem);
-from_impl!(impl From<AssociatedTy> for TraitItem);
+from_term_impl!(impl FromTerm<Fn> for TraitItem);
+from_term_impl!(impl FromTerm<AssociatedTy> for TraitItem);
 
 #[term(fn $id $binder)]
 pub struct Fn {
@@ -134,8 +134,8 @@ pub enum ImplItem {
     AssociatedTyValue(AssociatedTyValue),
 }
 
-from_impl!(impl From<Fn> for ImplItem);
-from_impl!(impl From<AssociatedTyValue> for ImplItem);
+from_term_impl!(impl FromTerm<Fn> for ImplItem);
+from_term_impl!(impl FromTerm<AssociatedTyValue> for ImplItem);
 
 #[term(type $id $binder)]
 pub struct AssociatedTyValue {

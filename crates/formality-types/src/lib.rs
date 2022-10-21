@@ -7,3 +7,5 @@ pub mod parse;
 pub mod term;
 
 pub mod derive_links;
+
+pub mod from_into_term;

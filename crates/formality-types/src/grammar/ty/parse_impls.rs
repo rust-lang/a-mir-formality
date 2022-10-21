@@ -3,6 +3,7 @@
 use crate::{
     grammar::{AdtId, AssociatedItemId, TraitId},
     parse::{self, expect_keyword, expect_str, Parse},
+    from_into_term::IntoTerm,
 };
 
 use super::{AliasTy, AssociatedTyId, Lt, LtData, Parameter, PredicateTy, RigidTy, ScalarId, Ty};
@@ -13,7 +14,7 @@ impl Parse for Ty {
     fn parse<'t>(scope: &crate::parse::Scope, text: &'t str) -> Option<(Self, &'t str)> {
         // Support writing `u8` etc and treat them as keywords
         if let Some((scalar_ty, text)) = ScalarId::parse(scope, text) {
-            return Some((scalar_ty.into(), text));
+            return Some((scalar_ty.into_term(), text));
         }
 
         // Support naming variables in scope and give that preference
@@ -30,15 +31,15 @@ impl Parse for Ty {
                 .chain(parse::try_parse(|| parse_assoc_ty(scope, text)))
                 .chain(parse::try_parse(|| {
                     let (ty, text) = RigidTy::parse(scope, text)?;
-                    Some((Ty::from(ty), text))
+                    Some((Ty::new(ty), text))
                 }))
                 .chain(parse::try_parse(|| {
                     let (ty, text) = AliasTy::parse(scope, text)?;
-                    Some((Ty::from(ty), text))
+                    Some((Ty::new(ty), text))
                 }))
                 .chain(parse::try_parse(|| {
                     let (ty, text) = PredicateTy::parse(scope, text)?;
-                    Some((Ty::from(ty), text))
+                    Some((Ty::new(ty), text))
                 })),
         )
     }
@@ -66,7 +67,7 @@ fn parse_assoc_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> Option<(Ty,
     let (item_parameters, text) = parse_parameters(scope, text)?;
 
     let assoc_ty_id = AssociatedTyId { trait_id, item_id };
-    let parameters: Vec<Parameter> = std::iter::once(ty0.into())
+    let parameters: Vec<Parameter> = std::iter::once(ty0.into_term())
         .chain(trait_parameters1)
         .chain(item_parameters)
         .collect();
@@ -92,7 +93,7 @@ impl Parse for Lt {
         parse::require_unambiguous(
             parse::try_parse(|| {
                 let text = expect_keyword("static", text)?;
-                Some((Lt::from(LtData::Static), text))
+                Some((Lt::new(LtData::Static), text))
             })
             .into_iter()
             .chain(parse::try_parse(|| {

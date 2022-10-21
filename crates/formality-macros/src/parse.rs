@@ -2,7 +2,7 @@ extern crate proc_macro;
 
 use proc_macro2::{Ident, Literal, TokenStream};
 use quote::{quote, quote_spanned};
-use syn::{spanned::Spanned, Attribute, DeriveInput};
+use syn::{spanned::Spanned, Attribute};
 
 use crate::spec::{self, FieldMode, FormalitySpec};
 

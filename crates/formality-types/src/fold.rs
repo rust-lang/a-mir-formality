@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::grammar::{Lt, LtData, Parameter, ParameterKind, Ty, TyData, Variable};
+use crate::{
+    grammar::{Lt, LtData, Parameter, ParameterKind, Ty, TyData, Variable},
+    from_into_term::IntoTerm,
+};
 
 /// Invoked for each variable that we find when folding, ignoring variables bound by binders
 /// that we traverse. The arguments are as follows:
@@ -56,9 +59,9 @@ impl<T: Fold> Fold for Arc<T> {
 impl Fold for Ty {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         match self.data() {
-            TyData::RigidTy(v) => Ty::from(v.substitute(substitution_fn)),
-            TyData::AliasTy(v) => Ty::from(v.substitute(substitution_fn)),
-            TyData::PredicateTy(v) => Ty::from(v.substitute(substitution_fn)),
+            TyData::RigidTy(v) => v.substitute(substitution_fn).into_term(),
+            TyData::AliasTy(v) => v.substitute(substitution_fn).into_term(),
+            TyData::PredicateTy(v) => v.substitute(substitution_fn).into_term(),
             TyData::Variable(v) => match substitution_fn(ParameterKind::Ty, v) {
                 None => self.clone(),
                 Some(Parameter::Ty(t)) => t,
