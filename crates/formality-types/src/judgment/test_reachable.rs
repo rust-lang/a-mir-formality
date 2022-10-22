@@ -37,17 +37,13 @@ impl Judgment for TransitiveReachability {
         crate::push_rules!(
             builder,
 
-            // reachable(graph, start, s) :- successor(graph, start, s)
-            (TransitiveReachability(graph, start) =
-                for s in graph.successors(start),
-                yield s
+            ((TransitiveReachability(graph, start) => s) :-
+                graph.successors(start) => s,
             )
 
-            // reachable(graph, a, c) :- reachable(graph, a, b), reachable(graph, b, c)
-            (TransitiveReachability(graph, a) =
-                for b in TransitiveReachability(graph.clone(), a),
-                for c in TransitiveReachability(graph.clone(), b),
-                yield c
+            ((TransitiveReachability(graph, a) => c) :-
+                TransitiveReachability(graph.clone(), a) => b,
+                TransitiveReachability(graph.clone(), b) => c,
             )
 
         );
