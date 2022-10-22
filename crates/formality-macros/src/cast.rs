@@ -4,9 +4,10 @@ use syn::{Attribute, Type};
 use synstructure::VariantInfo;
 
 pub(crate) fn upcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
+    let num_variants = s.variants().len();
     s.variants()
         .iter()
-        .filter(|v| has_cast_attr(&v.ast().attrs))
+        .filter(|v| num_variants == 1 || has_cast_attr(&v.ast().attrs))
         .map(|v| upcast_to_variant(&s, v))
         .chain(Some(self_upcast(&s)))
         .collect()
@@ -34,7 +35,7 @@ fn upcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStrea
 
         gen impl UpcastFrom<(#(#binding_tys),*)> for @Self {
             fn upcast_from(term: (#(#binding_tys),*)) -> Self {
-                let #(#binding_names),* = term;
+                let (#(#binding_names),*) = term;
                 #variant_construct
             }
         }
@@ -42,9 +43,10 @@ fn upcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStrea
 }
 
 pub(crate) fn downcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
+    let num_variants = s.variants().len();
     s.variants()
         .iter()
-        .filter(|v| has_cast_attr(&v.ast().attrs))
+        .filter(|v| num_variants == 1 || has_cast_attr(&v.ast().attrs))
         .map(|v| downcast_to_variant(&s, v))
         .chain(Some(self_downcast(&s)))
         .collect()
