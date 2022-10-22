@@ -4,7 +4,9 @@ use std::{cell::RefCell, sync::Arc, thread::LocalKey};
 
 use formality_macros::term;
 
-use super::{stack::JudgmentStack, Judgment, JudgmentBuilder};
+use crate::judgment;
+
+use super::{stack::JudgmentStack, Judgment};
 
 #[term($edges)]
 struct Graph {
@@ -23,38 +25,24 @@ impl Graph {
 #[term(reachable($v0,$v1))]
 struct TransitiveReachability(Arc<Graph>, u32);
 
-impl Judgment for TransitiveReachability {
-    type Output = u32;
+judgment!(
+    (TransitiveReachability => u32)
 
-    fn stack() -> &'static LocalKey<RefCell<JudgmentStack<Self>>> {
-        thread_local! {
-            static R: RefCell<JudgmentStack<TransitiveReachability>> = Default::default()
-        }
-        &R
-    }
+    (
+        (graph.successors(a) => b)
+        (if b % 2 == 0)
+        ---------------------------------------
+        (TransitiveReachability(graph, a) => b)
+    )
 
-    fn build_rules(builder: &mut JudgmentBuilder<Self>) {
-        crate::push_rules!(
-            builder,
-
-            (
-                (graph.successors(a) => b)
-                (if b % 2 == 0)
-                ---------------------------------------
-                (TransitiveReachability(graph, a) => b)
-            )
-
-            ( 
-                (TransitiveReachability(graph.clone(), a) => b)
-                (TransitiveReachability(graph.clone(), b) => c)
-                (if c % 2 == 0)
-                ---------------------------------------
-                (TransitiveReachability(graph, a) => c)
-            )
-
-        );
-    }
-}
+    (
+        (TransitiveReachability(graph.clone(), a) => b)
+        (TransitiveReachability(graph.clone(), b) => c)
+        (if c % 2 == 0)
+        ---------------------------------------
+        (TransitiveReachability(graph, a) => c)
+    )
+);
 
 #[test]
 fn judgment() {

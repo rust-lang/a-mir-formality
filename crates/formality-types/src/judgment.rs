@@ -33,6 +33,29 @@ struct InferenceRule<I, O> {
     closure: Arc<dyn Fn(&I) -> Vec<O> + Send>,
 }
 
+#[macro_export]
+macro_rules! judgment {
+    (($judgment:ty => $output:ty) $(($($rule:tt)*))*) => {
+        impl $crate::judgment::Judgment for $judgment {
+            type Output = $output;
+
+            fn stack() -> &'static LocalKey<RefCell<JudgmentStack<$judgment>>> {
+                thread_local! {
+                    static R: RefCell<JudgmentStack<$judgment>> = Default::default()
+                }
+                &R
+            }
+
+            fn build_rules(builder: &mut $crate::judgment::JudgmentBuilder<Self>) {
+                $crate::push_rules!(
+                    builder,
+                    $(($($rule)*))*
+                );
+            }
+        }
+    };
+}
+
 /// push_rules! allows construction of inference rules using a more logic-like notation.
 ///
 /// The macro input looks like: `push_rules!(builder, (...) (...) (...))` where each

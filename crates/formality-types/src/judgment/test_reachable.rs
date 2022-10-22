@@ -23,35 +23,21 @@ impl Graph {
 #[term(reachable($v0,$v1))]
 struct TransitiveReachability(Arc<Graph>, u32);
 
-impl Judgment for TransitiveReachability {
-    type Output = u32;
+crate::judgment! {
+    (TransitiveReachability => u32)
 
-    fn stack() -> &'static LocalKey<RefCell<JudgmentStack<Self>>> {
-        thread_local! {
-            static R: RefCell<JudgmentStack<TransitiveReachability>> = Default::default()
-        }
-        &R
-    }
+    (
+        (graph.successors(start) => s)
+        ---------------------------------------
+        (TransitiveReachability(graph, start) => s)
+    )
 
-    fn build_rules(builder: &mut JudgmentBuilder<Self>) {
-        crate::push_rules!(
-            builder,
-
-            (
-                (graph.successors(start) => s)
-                ---------------------------------------
-                (TransitiveReachability(graph, start) => s)
-            )
-
-            (
-                (TransitiveReachability(graph.clone(), a) => b)
-                (TransitiveReachability(graph.clone(), b) => c)
-                ---------------------------------------
-                (TransitiveReachability(graph, a) => c)
-            )
-
-        );
-    }
+    (
+        (TransitiveReachability(graph.clone(), a) => b)
+        (TransitiveReachability(graph.clone(), b) => c)
+        ---------------------------------------
+        (TransitiveReachability(graph, a) => c)
+    )
 }
 
 #[test]
