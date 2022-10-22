@@ -37,21 +37,92 @@ pub trait UpcastFrom<T: Clone> {
     fn upcast_from(term: T) -> Self;
 }
 
-/// A "downcast" casts from a more general type
+/// Our version of "try-into". A "downcast" casts
+/// from a more general type
+/// (e.g., any Parameter) to a more specific type
+/// (e.g., a type).
+///
+/// This is the trait that you prefer to implement,
+/// but use `DowncastFrom` in where-clauses.
+pub trait Downcast<T>: Sized {
+    fn downcast(&self) -> Option<T>;
+}
+
+/// Our version of "try-from". A "downcast" casts
+/// from a more general type
 /// (e.g., any Parameter) to a more specific type
 /// (e.g., a type). This returns an Option because
 /// the value may not be an instance of the more
 /// specific type.
-pub trait Downcast<T>: Sized {
-    fn downcast(t: &T) -> Option<Self>;
+pub trait DowncastFrom<T>: Sized {
+    fn downcast_from(t: &T) -> Option<Self>;
 }
 
-impl<A, B> Downcast<Vec<A>> for Vec<B>
+impl<T, U> DowncastFrom<T> for U
 where
-    B: Downcast<A>,
+    T: Downcast<U>,
 {
-    fn downcast(t: &Vec<A>) -> Option<Self> {
-        t.iter().map(|a| B::downcast(a)).collect()
+    fn downcast_from(t: &T) -> Option<U> {
+        t.downcast()
+    }
+}
+
+impl<A, B> DowncastFrom<Vec<A>> for Vec<B>
+where
+    B: DowncastFrom<A>,
+{
+    fn downcast_from(t: &Vec<A>) -> Option<Self> {
+        t.iter().map(|a| B::downcast_from(a)).collect()
+    }
+}
+
+impl<T, U> DowncastFrom<Option<U>> for Option<T>
+where
+    T: DowncastFrom<U>,
+{
+    fn downcast_from(u: &Option<U>) -> Option<Self> {
+        match u {
+            Some(u) => Some(Some(T::downcast_from(u)?)),
+            None => None,
+        }
+    }
+}
+
+impl<T, U> DowncastFrom<Arc<U>> for Arc<T>
+where
+    T: DowncastFrom<U>,
+{
+    fn downcast_from(u: &Arc<U>) -> Option<Self> {
+        let t: T = T::downcast_from(u)?;
+        Some(Arc::new(t))
+    }
+}
+
+impl<A, B, A1, B1> DowncastFrom<(A1, B1)> for (A, B)
+where
+    A: DowncastFrom<A1>,
+    B: DowncastFrom<B1>,
+{
+    fn downcast_from(term: &(A1, B1)) -> Option<Self> {
+        let (a1, b1) = term;
+        let a = DowncastFrom::downcast_from(a1)?;
+        let b = DowncastFrom::downcast_from(b1)?;
+        Some((a, b))
+    }
+}
+
+impl<A, B, C, A1, B1, C1> DowncastFrom<(A1, B1, C1)> for (A, B, C)
+where
+    A: DowncastFrom<A1>,
+    B: DowncastFrom<B1>,
+    C: DowncastFrom<C1>,
+{
+    fn downcast_from(term: &(A1, B1, C1)) -> Option<Self> {
+        let (a1, b1, c1) = term;
+        let a = DowncastFrom::downcast_from(a1)?;
+        let b = DowncastFrom::downcast_from(b1)?;
+        let c = DowncastFrom::downcast_from(c1)?;
+        Some((a, b, c))
     }
 }
 
@@ -110,9 +181,9 @@ macro_rules! self_from_term_impl {
             }
         }
 
-        impl $crate::cast::Downcast<$t> for $t {
-            fn downcast(v: &$t) -> $t {
-                v.clone()
+        impl $crate::cast::DowncastFrom<$t> for $t {
+            fn downcast_from(v: &$t) -> Option<$t> {
+                Some(v.clone())
             }
         }
     };

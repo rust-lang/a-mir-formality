@@ -132,10 +132,13 @@ impl UpcastFrom<ScalarId> for RigidTy {
 #[term]
 pub enum RigidName {
     #[grammar((adt $v0))]
+    #[cast]
     AdtId(AdtId),
     #[grammar((scalar $v0))]
+    #[cast]
     ScalarId(ScalarId),
     #[grammar((& $v0))]
+    #[cast]
     Ref(RefKind),
     #[grammar((tuple $v0))]
     Tuple(usize),
@@ -144,9 +147,6 @@ pub enum RigidName {
     #[grammar((fndef $v0))]
     FnDef(FnId),
 }
-
-from_term_impl!(impl UpcastFrom<AdtId> for RigidName);
-from_term_impl!(impl UpcastFrom<ScalarId> for RigidName);
 
 #[term]
 pub enum RefKind {
@@ -177,10 +177,9 @@ pub struct AliasTy {
 
 #[term]
 pub enum AliasName {
+    #[cast]
     AssociatedTyId(AssociatedTyId),
 }
-
-from_term_impl!(impl UpcastFrom<AssociatedTyId> for AliasName);
 
 #[term(($trait_id :: $item_id))]
 pub struct AssociatedTyId {
@@ -194,12 +193,11 @@ pub enum PredicateTy {
     ForAllTy(Binder<Ty>),
     #[grammar((exists $v0))]
     ExistsTy(Binder<Ty>),
+    #[cast]
     ImplicationTy(ImplicationTy),
+    #[cast]
     EnsuresTy(EnsuresTy),
 }
-
-from_term_impl!(impl UpcastFrom<ImplicationTy> for PredicateTy);
-from_term_impl!(impl UpcastFrom<EnsuresTy> for PredicateTy);
 
 #[term(($predicates => $ty))]
 pub struct ImplicationTy {
@@ -263,7 +261,9 @@ impl UpcastFrom<KindedVarIndex> for Parameter {
 
 #[term]
 pub enum Parameter {
+    #[cast]
     Ty(Ty),
+    #[cast]
     Lt(Lt),
 }
 
@@ -282,9 +282,6 @@ impl Parameter {
         }
     }
 }
-
-from_term_impl!(impl UpcastFrom<Ty> for Parameter);
-from_term_impl!(impl UpcastFrom<Lt> for Parameter);
 
 pub type Parameters = Vec<Parameter>;
 

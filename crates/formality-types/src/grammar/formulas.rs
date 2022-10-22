@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use formality_macros::term;
 
-use crate::cast::Downcast;
+use crate::cast::DowncastFrom;
 use crate::cast::To;
 use crate::cast::Upcast;
 use crate::cast::UpcastFrom;
@@ -161,8 +161,8 @@ impl UpcastFrom<PredicateData> for Predicate {
     }
 }
 
-impl Downcast<Predicate> for PredicateData {
-    fn downcast(t: &Predicate) -> Option<Self> {
+impl DowncastFrom<Predicate> for PredicateData {
+    fn downcast_from(t: &Predicate) -> Option<Self> {
         Some(t.data().clone())
     }
 }
@@ -172,15 +172,14 @@ from_term_impl!(impl UpcastFrom<AtomicRelation> for Predicate via PredicateData)
 
 #[term]
 pub enum PredicateData {
+    #[cast]
     AtomicPredicate(AtomicPredicate),
+    #[cast]
     AtomicRelation(AtomicRelation),
     ForAll(Binder<Predicate>),
     #[grammar($v0 => $v1)]
     Implies(Vec<Predicate>, Predicate),
 }
-
-from_term_impl!(impl UpcastFrom<AtomicPredicate> for PredicateData);
-from_term_impl!(impl UpcastFrom<AtomicRelation> for PredicateData);
 
 #[term]
 pub struct Goal {

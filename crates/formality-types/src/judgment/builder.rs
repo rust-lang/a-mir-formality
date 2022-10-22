@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::cast::{Downcast, Upcast};
+use crate::cast::{DowncastFrom, Upcast};
 
 use super::{InferenceRule, Judgment};
 
@@ -18,12 +18,12 @@ where
 
     pub fn push_rule<M, R, O>(&mut self, closure: impl Fn(M) -> R + Send + 'static)
     where
-        M: Downcast<J>,
+        M: DowncastFrom<J>,
         R: IntoIterator<Item = O>,
         O: Upcast<J::Output>,
     {
         let rule = move |input: &J| -> Vec<J::Output> {
-            match M::downcast(input) {
+            match M::downcast_from(input) {
                 Some(m) => closure(m).into_iter().map(|o1| o1.upcast()).collect(),
                 None => vec![],
             }

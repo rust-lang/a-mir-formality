@@ -4,8 +4,6 @@ use std::{cell::RefCell, sync::Arc, thread::LocalKey};
 
 use formality_macros::term;
 
-use crate::cast::Downcast;
-
 use super::{stack::JudgmentStack, Judgment, JudgmentBuilder};
 
 #[term($edges)]
@@ -55,12 +53,6 @@ impl Judgment for TransitiveReachability {
             )
 
         );
-    }
-}
-
-impl Downcast<TransitiveReachability> for TransitiveReachability {
-    fn downcast(term: &TransitiveReachability) -> Option<TransitiveReachability> {
-        Some(term.clone())
     }
 }
 

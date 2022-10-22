@@ -1,14 +1,24 @@
 use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 use crate::{
+    cast::{DowncastFrom, UpcastFrom},
     fold::Fold,
-    cast::UpcastFrom,
     grammar::{Lt, Ty},
     parse::Parse,
 };
 
 pub trait Term:
-    Clone + Fold + Parse + Ord + Eq + Hash + Debug + UpcastFrom<Self> + 'static + Sized
+    Clone
+    + Fold
+    + Parse
+    + Ord
+    + Eq
+    + Hash
+    + Debug
+    + UpcastFrom<Self>
+    + DowncastFrom<Self>
+    + 'static
+    + Sized
 {
 }
 
