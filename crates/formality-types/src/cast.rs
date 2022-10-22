@@ -181,9 +181,9 @@ macro_rules! self_from_term_impl {
             }
         }
 
-        impl $crate::cast::DowncastFrom<$t> for $t {
-            fn downcast_from(v: &$t) -> Option<$t> {
-                Some(v.clone())
+        impl $crate::cast::Downcast<$t> for $t {
+            fn downcast(&self) -> Option<$t> {
+                Some(Self::clone(self))
             }
         }
     };
