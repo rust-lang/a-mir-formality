@@ -4,7 +4,7 @@ use std::{cell::RefCell, sync::Arc, thread::LocalKey};
 
 use formality_macros::term;
 
-use super::{stack::JudgmentStack, Judgment, JudgmentBuilder};
+use super::{stack::JudgmentStack, Judgment};
 
 #[term($edges)]
 struct Graph {

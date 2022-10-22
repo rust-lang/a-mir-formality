@@ -1,8 +1,9 @@
 extern crate proc_macro;
-
+use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Literal, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{spanned::Spanned, Attribute};
+use synstructure::BindingInfo;
 
 use crate::spec::{self, FieldMode, FormalitySpec};
 
@@ -74,36 +75,37 @@ fn parse_variant(
         };
     }
 
-    // If no `#[formality(...)]` attribute is provided, then we expect
-    // one of two situations:
-    //
-    // `Foo` -- just parse a keyword
-    // `Foo(Bar)` -- single field, just parse that and wrap it
+    // If no `#[grammar(...)]` attribute is provided, then we provide default behavior.
 
-    match variant.bindings() {
-        [] => {
-            let literal = Literal::string(&ast.ident.to_string().to_lowercase());
-            let construct = variant.construct(|_, _| quote! {});
-            quote! {
-                let text = parse::expect_keyword(#literal, text)?;
-                Some((#construct, text))
-            }
+    if variant.bindings().is_empty() {
+        // No bindings (e.g., `Foo`) -- just parse a keyword `foo`
+        let literal = Literal::string(&to_parse_ident(&ast.ident));
+        let construct = variant.construct(|_, _| quote! {});
+        quote! {
+            let text = parse::expect_keyword(#literal, text)?;
+            Some((#construct, text))
         }
-
-        [binding] => {
-            let field_ty = &binding.ast().ty;
-            let construct = variant.construct(|_, _| quote!(__data));
-            quote! {
-                let (__data, text) = <#field_ty as parse::Parse > :: parse(scope, text)?;
-                Some((#construct, text))
-            }
+    } else if crate::cast::has_cast_attr(variant.ast().attrs) {
+        // Has the `#[cast]` attribute -- just parse the bindings (comma separated, if needed)
+        let build: Vec<TokenStream> = parse_bindings(variant.bindings());
+        let construct = variant.construct(field_ident);
+        quote! {
+            #(#build)*
+            Some((#construct, text))
         }
-
-        _ => syn::Error::new(
-            ast.ident.span(),
-            "formality attribute required to guide parsing",
-        )
-        .into_compile_error(),
+    } else {
+        // Otherwise -- parse `variant(binding0, ..., bindingN)`
+        let literal = Literal::string(&to_parse_ident(&ast.ident));
+        let build: Vec<TokenStream> = parse_bindings(variant.bindings());
+        let construct = variant.construct(field_ident);
+        quote! {
+            let text = parse::expect_keyword(#literal, text)?;
+            let text = parse::expect_char('(', text)?;
+            #(#build)*
+            let text = parse::expect_char(',', text).unwrap_or(text); // optional trailing comma
+            let text = parse::expect_char(')', text)?;
+            Some((#construct, text))
+        }
     }
 }
 
@@ -175,10 +177,7 @@ fn parse_variant_with_attr(
         });
     }
 
-    let c = variant.construct(|field, index| match &field.ident {
-        Some(field_name) => field_name.clone(),
-        None => syn::Ident::new(&format!("v{}", index), field.span()),
-    });
+    let c = variant.construct(field_ident);
 
     stream.extend(quote! {
         Some((#c, text))
@@ -194,4 +193,38 @@ fn get_grammar_attr(attrs: &[Attribute]) -> Option<syn::Result<FormalitySpec>> {
 
 fn as_literal(ident: &Ident) -> Literal {
     Literal::string(&ident.to_string())
+}
+
+/// Convert a name like `Foo` into the name we expect to parse (`foo`).
+///
+/// Ideally we'd do `snake_case` conversion but I can't figure out best library for that.
+fn to_parse_ident(ident: &Ident) -> String {
+    ident.to_string().to_case(Case::Snake)
+}
+
+fn field_ident(field: &syn::Field, index: usize) -> syn::Ident {
+    match &field.ident {
+        Some(field_name) => field_name.clone(),
+        None => syn::Ident::new(&format!("v{}", index), field.span()),
+    }
+}
+
+/// Creates code to parse `b0, b1, ..., bN` where `bi` is a binding
+fn parse_bindings(bindings: &[BindingInfo]) -> Vec<TokenStream> {
+    bindings
+        .iter()
+        .zip(0..)
+        .map(|(b, index)| {
+            let name = field_ident(b.ast(), index);
+            let parse_comma = if index > 0 {
+                Some(quote!(let text = parse::expect_char(',', text)?;))
+            } else {
+                None
+            };
+            quote! {
+                #parse_comma
+                let (#name, text) = parse::Parse::parse(scope, text)?;
+            }
+        })
+        .collect()
 }

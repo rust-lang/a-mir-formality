@@ -1,9 +1,10 @@
 use anyhow::anyhow;
+use formality_macros::term;
 
 use crate::{
+    cast::Upcast,
     derive_links::Variable,
     fold::Fold,
-    cast::Upcast,
     grammar::{
         Binder, Fallible, Goal, InferenceVar, Parameter, ParameterKind, PlaceholderVar, Ty,
         Universe,
@@ -14,7 +15,7 @@ use crate::{
 mod simple_sub;
 mod test;
 
-#[derive(Clone)]
+#[term]
 pub struct Env {
     universe: Universe,
     inference_data: Vec<InferenceVarData>,
@@ -29,7 +30,7 @@ impl Default for Env {
     }
 }
 
-#[derive(Clone)]
+#[term]
 struct InferenceVarData {
     /// Type, lifetime, etc
     kind: ParameterKind,

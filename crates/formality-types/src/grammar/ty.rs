@@ -151,14 +151,10 @@ pub enum RigidName {
     #[grammar((scalar $v0))]
     #[cast]
     ScalarId(ScalarId),
-    #[grammar((& $v0))]
     #[cast]
     Ref(RefKind),
-    #[grammar((tuple $v0))]
     Tuple(usize),
-    #[grammar((fnptr $v0))]
     FnPtr(usize),
-    #[grammar((fndef $v0))]
     FnDef(FnId),
 }
 
@@ -170,17 +166,28 @@ pub enum RefKind {
 
 #[term]
 pub enum ScalarId {
+    #[grammar(u8)]
     U8,
+    #[grammar(u16)]
     U16,
+    #[grammar(u32)]
     U32,
+    #[grammar(u64)]
     U64,
+    #[grammar(i8)]
     I8,
+    #[grammar(i16)]
     I16,
+    #[grammar(i32)]
     I32,
+    #[grammar(i64)]
     I64,
+    #[grammar(bool)]
     Bool,
-    USize,
-    ISize,
+    #[grammar(usize)]
+    Usize,
+    #[grammar(isize)]
+    Isize,
 }
 
 #[term((alias $name $*parameters))]
@@ -203,23 +210,21 @@ pub struct AssociatedTyId {
 
 #[term]
 pub enum PredicateTy {
-    #[grammar((forall $v0))]
-    ForAllTy(Binder<Ty>),
-    #[grammar((exists $v0))]
-    ExistsTy(Binder<Ty>),
+    ForAll(Binder<Ty>),
+    Exists(Binder<Ty>),
     #[cast]
     ImplicationTy(ImplicationTy),
     #[cast]
     EnsuresTy(EnsuresTy),
 }
 
-#[term(($predicates => $ty))]
+#[term(implies($predicates, $ty))]
 pub struct ImplicationTy {
     pub predicates: Vec<Predicate>,
     pub ty: Ty,
 }
 
-#[term(($ty ensures $predicates))]
+#[term(ensures($ty, $predicates))]
 pub struct EnsuresTy {
     ty: Ty,
     predicates: Vec<Predicate>,

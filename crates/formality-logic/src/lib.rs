@@ -1,5 +1,6 @@
 #![allow(dead_code)] // still figuring things out
 
+use formality_types::derive_links;
 use formality_types::grammar::{AtomicPredicate, AtomicRelation, Hypothesis, Invariant};
 
 pub trait Db {

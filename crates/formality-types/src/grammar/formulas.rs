@@ -30,15 +30,10 @@ pub type Fallible<T> = anyhow::Result<T>;
 
 #[term]
 pub enum AtomicPredicate {
-    #[grammar(is_implemented($v0))]
     IsImplemented(TraitRef),
-    #[grammar(has_impl($v0))]
     HasImpl(TraitRef),
-    #[grammar(normalizes_to($v0 -> $v1))]
     NormalizesTo(AliasTy, Ty),
-    #[grammar(well_formed($v0))]
     WellFormedTy(Ty),
-    #[grammar(well_formed_trait_ref($v0))]
     WellFormedTraitRef(TraitRef),
 }
 
@@ -47,15 +42,10 @@ pub enum AtomicPredicate {
 /// If the skeleton's don't match, they are distinct predicates.
 #[term]
 pub enum AtomicPredicateSkeleton {
-    #[grammar(is_implemented($v0))]
     IsImplemented(TraitId),
-    #[grammar(has_impl($v0))]
     HasImpl(TraitId),
-    #[grammar(normalizes_to($v0))]
     NormalizesTo(AliasName),
-    #[grammar(well_formed_ty)]
     WellFormedTy,
-    #[grammar(well_formed_trait_ref($v0))]
     WellFormedTraitRef(TraitId),
 }
 
@@ -118,15 +108,12 @@ impl TraitRef {
 #[term]
 pub enum AtomicRelation {
     /// `T1 == T2` etc
-    #[grammar(($v0 == $v1))]
     Equals(Parameter, Parameter),
 
     /// `T1 <: T2` or `L1 <: L2`
-    #[grammar(($v0 <: $v1))]
     Sub(Parameter, Parameter),
 
     /// `P : P`
-    #[grammar(($v0 : $v1))]
     Outlives(Parameter, Parameter),
 }
 
@@ -145,7 +132,7 @@ impl TraitRef {
     }
 }
 
-#[term]
+#[term($data)]
 pub struct Predicate {
     data: Arc<PredicateData>,
 }
@@ -178,11 +165,10 @@ pub enum PredicateData {
     #[cast]
     AtomicRelation(AtomicRelation),
     ForAll(Binder<Predicate>),
-    #[grammar($v0 => $v1)]
     Implies(Vec<Predicate>, Predicate),
 }
 
-#[term]
+#[term($data)]
 pub struct Goal {
     data: Arc<GoalData>,
 }
@@ -216,17 +202,13 @@ pub enum GoalData {
     AtomicPredicate(AtomicPredicate),
     #[cast]
     AtomicRelation(AtomicRelation),
-    #[grammar(forall $v0)]
     ForAll(Binder<Goal>),
-    #[grammar(exists $v0)]
     Exists(Binder<Goal>),
-    #[grammar($v0 => $v1)]
     Implies(Vec<Hypothesis>, Goal),
     #[grammar(any($,v0))]
     Any(Vec<Goal>),
     #[grammar(all($,v0))]
     All(Vec<Goal>),
-    #[grammar(coherence_mode($v0))]
     CoherenceMode(Goal),
     Ambiguous,
 }
@@ -281,7 +263,7 @@ impl Goal {
 
 pub type ProgramClause = Hypothesis;
 
-#[term]
+#[term($data)]
 pub struct Hypothesis {
     data: Arc<HypothesisData>,
 }
@@ -327,11 +309,8 @@ pub enum HypothesisData {
     AtomicPredicate(AtomicPredicate),
     #[cast]
     AtomicRelation(AtomicRelation),
-    #[grammar(forall $v0)]
     ForAll(Binder<Hypothesis>),
-    #[grammar($v0 => $v1)]
     Implies(Vec<Goal>, Hypothesis),
-    #[grammar(coherence_mode)]
     CoherenceMode,
 }
 
@@ -354,7 +333,7 @@ impl Hypothesis {
 
 pub type Hypotheses = Vec<Hypothesis>;
 
-#[term]
+#[term($binder)]
 pub struct Invariant {
     pub binder: Binder<InvariantImplication>,
 }

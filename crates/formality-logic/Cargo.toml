@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 derive-new = "0.5.9"
 formality-types = { path = "../formality-types" }
+formality-macros = { path = "../formality-macros" }
 tracing = "0.1"
 
 [dev-dependencies]
