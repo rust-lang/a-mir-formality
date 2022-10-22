@@ -2,5 +2,4 @@
 
 use formality_types::derive_links;
 
-pub mod grammar;
-pub mod to_clause;
+mod grammar;

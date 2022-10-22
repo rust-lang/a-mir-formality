@@ -46,9 +46,11 @@ pub struct AdtBoundData {
     pub variants: Vec<AdtVariant>,
 }
 
+formality_types::id!(VariantId);
+
 #[term($name { $*fields })]
 pub struct AdtVariant {
-    pub name: AdtId,
+    pub name: VariantId,
     pub fields: Vec<Field>,
 }
 

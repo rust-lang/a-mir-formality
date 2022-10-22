@@ -143,6 +143,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "formality-body"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "expect-test",
+ "formality-decl",
+ "formality-macros",
+ "formality-types",
+ "test-log",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "formality-core"
 version = "0.1.0"
 dependencies = [
