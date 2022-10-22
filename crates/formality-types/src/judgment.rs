@@ -39,10 +39,18 @@ macro_rules! push_rules {
         $($crate::push_rules!(@rule ($builder) $rule);)*
     };
 
-    (@rule ($builder:expr) (($p:pat => $v:expr) :- $($m:tt)*)) => {
-        $builder.push_rule(|$p| -> Vec<_> {
+    (@rule ($builder:expr) ($($m:tt)*)) => {
+        $builder.push_rule($crate::push_rules!(@accum () $($m)*))
+    };
+
+    (@accum ($($m:tt)*) ---$(-)* ($p:pat => $v:expr)) => {
+        |$p| -> Vec<_> {
             $crate::push_rules!(@body ($v) $($m)*).into_iter().collect()
-        })
+        }
+    };
+
+    (@accum ($($m:tt)*) ($($n:tt)*) $($o:tt)*) => {
+        $crate::push_rules!(@accum ($($m)* ($($n)*)) $($o)*)
     };
 
     (@body ($v:expr) (if $c:expr) $($m:tt)*) => {
