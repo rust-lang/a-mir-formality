@@ -172,45 +172,6 @@ where
     }
 }
 
-#[macro_export]
-macro_rules! self_from_term_impl {
-    ($t:ty) => {
-        impl $crate::cast::UpcastFrom<$t> for $t {
-            fn upcast_from(v: $t) -> $t {
-                v
-            }
-        }
-
-        impl $crate::cast::Downcast<$t> for $t {
-            fn downcast(&self) -> Option<$t> {
-                Some(Self::clone(self))
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! from_term_impl {
-    (impl UpcastFrom<$t:ident> for $e:ident) => {
-        impl $crate::derive_links::UpcastFrom<$t> for $e {
-            fn upcast_from(v: $t) -> $e {
-                $e::$t(v)
-            }
-        }
-    };
-
-    (impl UpcastFrom<$t:ident> for $e:ident $(via $via:ident)+) => {
-        impl $crate::derive_links::UpcastFrom<$t> for $e {
-            fn upcast_from(v: $t) -> $e {
-                $(
-                    let v: $via = $crate::derive_links::UpcastFrom::upcast_from(v);
-                )+
-                <$e as $crate::derive_links::UpcastFrom<_>>::upcast_from(v)
-            }
-        }
-    };
-}
-
 impl<A, B, A1, B1> UpcastFrom<(A1, B1)> for (A, B)
 where
     A1: Upcast<A>,
@@ -233,3 +194,62 @@ where
         (a1.upcast(), b1.upcast(), c1.upcast())
     }
 }
+
+#[macro_export]
+macro_rules! cast_impl {
+    ($e:ident :: $v:ident ($u:ty)) => {
+        impl $crate::cast::UpcastFrom<$u> for $e {
+            fn upcast_from(v: $u) -> $e {
+                $e::$v(v)
+            }
+        }
+
+        impl $crate::cast::Downcast<$u> for $e {
+            fn downcast(&self) -> Option<$u> {
+                match self {
+                    $e::$v(u) => Some(Clone::clone(u)),
+                    _ => None,
+                }
+            }
+        }
+    };
+
+    ($t:ty) => {
+        impl $crate::cast::UpcastFrom<$t> for $t {
+            fn upcast_from(v: $t) -> $t {
+                v
+            }
+        }
+
+        impl $crate::cast::Downcast<$t> for $t {
+            fn downcast(&self) -> Option<$t> {
+                Some(Self::clone(self))
+            }
+        }
+    };
+
+
+    (($bot:ty) <: ($($mid:ty),*) <: ($top:ty)) => {
+        impl $crate::cast::UpcastFrom<$bot> for $top {
+            fn upcast_from(v: $bot) -> $top {
+                $(
+                    let v: $mid = $crate::cast::Upcast::upcast(v);
+                )*
+                $crate::cast::Upcast::upcast(v)
+            }
+        }
+
+        impl $crate::cast::Downcast<$bot> for $top {
+            fn downcast(&self) -> Option<$bot> {
+                let v: &$top = self;
+                $(
+                    let v: &$mid = &$crate::cast::DowncastFrom::downcast_from(v)?;
+                )*
+                $crate::cast::DowncastFrom::downcast_from(v)
+            }
+        }
+    };
+}
+
+cast_impl!(usize);
+cast_impl!(u32);

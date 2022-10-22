@@ -17,11 +17,6 @@ pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<
     let upcast_impls = upcast_impls(synstructure::Structure::new(&input));
     remove_formality_attributes(&mut input);
 
-    for downcast_impl in &downcast_impls {
-        println!("----------------");
-        println!("{downcast_impl}");
-    }
-
     Ok(quote! {
         #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
         #input

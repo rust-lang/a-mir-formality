@@ -4,10 +4,10 @@ use std::{collections::BTreeSet, sync::Arc};
 mod parse_impls;
 
 use crate::{
-    cast::{To, Upcast, UpcastFrom},
+    cast::{Downcast, To, Upcast, UpcastFrom},
+    cast_impl,
     collections::Map,
     fold::Fold,
-    from_term_impl,
 };
 
 use super::{AdtId, AssociatedItemId, Binder, FnId, Predicate, TraitId};
@@ -68,15 +68,23 @@ impl Ty {
     }
 }
 
+cast_impl!(Ty);
+cast_impl!((RigidTy) <: (TyData) <: (Ty));
+cast_impl!((AliasTy) <: (TyData) <: (Ty));
+cast_impl!((ScalarId) <: (TyData) <: (Ty));
+cast_impl!((PredicateTy) <: (TyData) <: (Ty));
+
 impl UpcastFrom<TyData> for Ty {
-    fn upcast_from(v: TyData) -> Ty {
-        Ty { data: Arc::new(v) }
+    fn upcast_from(v: TyData) -> Self {
+        Ty::new(v)
     }
 }
-from_term_impl!(impl UpcastFrom<RigidTy> for Ty via TyData);
-from_term_impl!(impl UpcastFrom<AliasTy> for Ty via TyData);
-from_term_impl!(impl UpcastFrom<ScalarId> for Ty via TyData);
-from_term_impl!(impl UpcastFrom<PredicateTy> for Ty via TyData);
+
+impl Downcast<TyData> for Ty {
+    fn downcast(&self) -> Option<TyData> {
+        Some(self.data().clone())
+    }
+}
 
 // NB: TyData doesn't implement Fold; you fold types, not TyData,
 // because variables might not map to the same variant.
@@ -94,14 +102,14 @@ impl UpcastFrom<TyData> for TyData {
     }
 }
 
-from_term_impl!(impl UpcastFrom<RigidTy> for TyData);
-from_term_impl!(impl UpcastFrom<AliasTy> for TyData);
-from_term_impl!(impl UpcastFrom<PredicateTy> for TyData);
-from_term_impl!(impl UpcastFrom<Variable> for TyData);
-from_term_impl!(impl UpcastFrom<PlaceholderVar> for TyData via Variable);
-from_term_impl!(impl UpcastFrom<InferenceVar> for TyData via Variable);
-from_term_impl!(impl UpcastFrom<BoundVar> for TyData via Variable);
-from_term_impl!(impl UpcastFrom<ScalarId> for TyData via RigidTy);
+cast_impl!(TyData::RigidTy(RigidTy));
+cast_impl!(TyData::AliasTy(AliasTy));
+cast_impl!(TyData::PredicateTy(PredicateTy));
+cast_impl!(TyData::Variable(Variable));
+cast_impl!((PlaceholderVar) <: (Variable) <: (TyData));
+cast_impl!((InferenceVar) <: (Variable) <: (TyData));
+cast_impl!((BoundVar) <: (Variable) <: (TyData));
+cast_impl!((ScalarId) <: (RigidTy) <: (TyData));
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
@@ -126,6 +134,12 @@ impl UpcastFrom<ScalarId> for RigidTy {
             name: s.upcast(),
             parameters: vec![],
         }
+    }
+}
+
+impl Downcast<ScalarId> for RigidTy {
+    fn downcast(&self) -> Option<ScalarId> {
+        self.name.downcast()
     }
 }
 
@@ -316,6 +330,8 @@ impl Lt {
     }
 }
 
+cast_impl!(Lt);
+
 impl UpcastFrom<LtData> for Lt {
     fn upcast_from(v: LtData) -> Self {
         Lt::new(v)
@@ -334,10 +350,10 @@ impl UpcastFrom<LtData> for LtData {
     }
 }
 
-from_term_impl!(impl UpcastFrom<Variable> for LtData);
-from_term_impl!(impl UpcastFrom<InferenceVar> for LtData via Variable);
-from_term_impl!(impl UpcastFrom<PlaceholderVar> for LtData via Variable);
-from_term_impl!(impl UpcastFrom<BoundVar> for LtData via Variable);
+cast_impl!(LtData::Variable(Variable));
+cast_impl!((InferenceVar) <: (Variable) <: (LtData));
+cast_impl!((PlaceholderVar) <: (Variable) <: (LtData));
+cast_impl!((BoundVar) <: (Variable) <: (LtData));
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Variable {
@@ -346,9 +362,9 @@ pub enum Variable {
     BoundVar(BoundVar),
 }
 
-from_term_impl!(impl UpcastFrom<PlaceholderVar> for Variable);
-from_term_impl!(impl UpcastFrom<InferenceVar> for Variable);
-from_term_impl!(impl UpcastFrom<BoundVar> for Variable);
+cast_impl!(Variable::PlaceholderVar(PlaceholderVar));
+cast_impl!(Variable::InferenceVar(InferenceVar));
+cast_impl!(Variable::BoundVar(BoundVar));
 
 impl Variable {
     pub fn into_parameter(self, kind: ParameterKind) -> Parameter {

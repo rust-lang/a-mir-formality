@@ -11,11 +11,12 @@ use std::sync::Arc;
 
 use formality_macros::term;
 
+use crate::cast::Downcast;
 use crate::cast::DowncastFrom;
 use crate::cast::To;
 use crate::cast::Upcast;
 use crate::cast::UpcastFrom;
-use crate::from_term_impl;
+use crate::cast_impl;
 
 use super::AliasName;
 use super::Binder;
@@ -167,8 +168,8 @@ impl DowncastFrom<Predicate> for PredicateData {
     }
 }
 
-from_term_impl!(impl UpcastFrom<AtomicPredicate> for Predicate via PredicateData);
-from_term_impl!(impl UpcastFrom<AtomicRelation> for Predicate via PredicateData);
+cast_impl!((AtomicPredicate) <: (PredicateData) <: (Predicate));
+cast_impl!((AtomicRelation) <: (PredicateData) <: (Predicate));
 
 #[term]
 pub enum PredicateData {
@@ -198,14 +199,22 @@ impl UpcastFrom<GoalData> for Goal {
     }
 }
 
-from_term_impl!(impl UpcastFrom<AtomicPredicate> for Goal via GoalData);
-from_term_impl!(impl UpcastFrom<AtomicRelation> for Goal via GoalData);
+impl Downcast<GoalData> for Goal {
+    fn downcast(&self) -> Option<GoalData> {
+        Some(self.data().clone())
+    }
+}
+
+cast_impl!((AtomicPredicate) <: (GoalData) <: (Goal));
+cast_impl!((AtomicRelation) <: (GoalData) <: (Goal));
 
 pub type Goals = Vec<Goal>;
 
 #[term]
 pub enum GoalData {
+    #[cast]
     AtomicPredicate(AtomicPredicate),
+    #[cast]
     AtomicRelation(AtomicRelation),
     #[grammar(forall $v0)]
     ForAll(Binder<Goal>),
@@ -221,9 +230,6 @@ pub enum GoalData {
     CoherenceMode(Goal),
     Ambiguous,
 }
-
-from_term_impl!(impl UpcastFrom<AtomicPredicate> for GoalData);
-from_term_impl!(impl UpcastFrom<AtomicRelation> for GoalData);
 
 impl Goal {
     pub fn ambiguous() -> Self {
@@ -306,12 +312,20 @@ impl UpcastFrom<HypothesisData> for Hypothesis {
     }
 }
 
-from_term_impl!(impl UpcastFrom<AtomicPredicate> for Hypothesis via HypothesisData);
-from_term_impl!(impl UpcastFrom<AtomicRelation> for Hypothesis via HypothesisData);
+impl Downcast<HypothesisData> for Hypothesis {
+    fn downcast(&self) -> Option<HypothesisData> {
+        Some(self.data().clone())
+    }
+}
+
+cast_impl!((AtomicPredicate) <: (HypothesisData) <: (Hypothesis));
+cast_impl!((AtomicRelation) <: (HypothesisData) <: (Hypothesis));
 
 #[term]
 pub enum HypothesisData {
+    #[cast]
     AtomicPredicate(AtomicPredicate),
+    #[cast]
     AtomicRelation(AtomicRelation),
     #[grammar(forall $v0)]
     ForAll(Binder<Hypothesis>),
@@ -320,9 +334,6 @@ pub enum HypothesisData {
     #[grammar(coherence_mode)]
     CoherenceMode,
 }
-
-from_term_impl!(impl UpcastFrom<AtomicPredicate> for HypothesisData);
-from_term_impl!(impl UpcastFrom<AtomicRelation> for HypothesisData);
 
 impl Hypothesis {
     pub fn for_all(names: &[KindedVarIndex], data: impl Upcast<Hypothesis>) -> Self {
