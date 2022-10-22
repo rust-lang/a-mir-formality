@@ -45,7 +45,7 @@ macro_rules! push_rules {
         })
     };
 
-    (@body ($v:expr) if $c:expr, $($m:tt)*) => {
+    (@body ($v:expr) (if $c:expr) $($m:tt)*) => {
         if $c {
             $crate::push_rules!(@body ($v) $($m)*)
         } else {
@@ -53,13 +53,13 @@ macro_rules! push_rules {
         }
     };
 
-    (@body ($v:expr) $i:expr => $p:pat, $($m:tt)*) => {
+    (@body ($v:expr) ($i:expr => $p:pat) $($m:tt)*) => {
         $i.into_iter().flat_map(move |$p| {
             $crate::push_rules!(@body ($v) $($m)*)
         })
     };
 
-    (@body ($v:expr) let $p:pat = $i:expr, $($m:tt)*) => {
+    (@body ($v:expr) (let $p:pat = $i:expr) $($m:tt)*) => {
         let $p = $i;
         $crate::push_rules!(@body ($v) $($m)*)
     };

@@ -38,12 +38,12 @@ impl Judgment for TransitiveReachability {
             builder,
 
             ((TransitiveReachability(graph, start) => s) :-
-                graph.successors(start) => s,
+                (graph.successors(start) => s)
             )
 
             ((TransitiveReachability(graph, a) => c) :-
-                TransitiveReachability(graph.clone(), a) => b,
-                TransitiveReachability(graph.clone(), b) => c,
+                (TransitiveReachability(graph.clone(), a) => b)
+                (TransitiveReachability(graph.clone(), b) => c)
             )
 
         );

@@ -39,15 +39,15 @@ impl Judgment for TransitiveReachability {
 
             // reachable(graph, start, s) :- successor(graph, start, s)
             ((TransitiveReachability(graph, a) => b) :-
-                graph.successors(a) => b,                
-                if b % 2 == 0,
+                (graph.successors(a) => b)
+                (if b % 2 == 0)
             )
 
             // reachable(graph, a, c) :- reachable(graph, a, b), reachable(graph, b, c)
             ((TransitiveReachability(graph, a) => c) :-
-                TransitiveReachability(graph.clone(), a) => b,
-                TransitiveReachability(graph.clone(), b) => c,
-                if c % 2 == 0,
+                (TransitiveReachability(graph.clone(), a) => b)
+                (TransitiveReachability(graph.clone(), b) => c)
+                (if c % 2 == 0)
             )
 
         );
