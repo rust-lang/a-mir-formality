@@ -13,14 +13,16 @@
 // generates:
 //
 // fn foo(k1: Key1, k2: &Key2) -> R {
-//     thread_local! { static _CACHE: ... = ... }
+//     thread_local! { static _CACHE: RefCell<FixedPointStack<(Key1, Key2), R>> = Default::default() }
 //     fixed_point(
 //         &_CACHE,
-//         (k1, k2),
+//         (k1, k2.clone()),
 //         |(k1, k2)| <E>,
-//         |(k1, k2)| <body>,
+//         |(k1, ref k2)| <body>,
 //     )
 // }
+
+use quote::quote;
 
 #[derive(Default)]
 pub(crate) struct FixedPointArgs {
@@ -54,22 +56,126 @@ impl syn::parse::Parse for FixedPointArgs {
     }
 }
 
-pub(crate) fn fixed_point(_args: FixedPointArgs, item_fn: syn::ItemFn) -> syn::Result<syn::ItemFn> {
+struct Input {
+    is_ref: bool,
+    is_mut: Option<syn::Token!(mut)>,
+    ident: syn::Ident,
+    ty: syn::Type,
+}
+
+pub(crate) fn fixed_point(
+    args: FixedPointArgs,
+    mut item_fn: syn::ItemFn,
+) -> syn::Result<syn::ItemFn> {
     let syn::ItemFn {
         attrs: _,
         vis: _,
         sig,
-        block: _,
+        block,
     } = &item_fn;
 
-    validate_fixed_point_sig(sig)?;
+    let (inputs, output_ty) = validate_fixed_point_sig(sig)?;
+
+    let input_tys: Vec<_> = inputs.iter().map(|i| &i.ty).collect();
+
+    let thread_local = quote! {
+        thread_local! {
+            static __CACHE:
+                std::cell::RefCell<
+                    crate::derive_links::FixedPointStack<
+                        (#(#input_tys),*),
+                        #output_ty
+                    >
+                >
+            = Default::default()
+        }
+    };
+
+    //         (k1, k2.clone()),
+    let input_expr = {
+        let input_keys: Vec<_> = inputs
+            .iter()
+            .map(|Input { is_ref, ident, .. }| {
+                if *is_ref {
+                    quote! {Clone::clone(#ident)}
+                } else {
+                    quote! {#ident}
+                }
+            })
+            .collect();
+        quote!((#(#input_keys),*))
+    };
+
+    //         |(k1, k2)| <E>,
+    let default_expr = {
+        let input_names: Vec<_> = inputs.iter().map(|input| &input.ident).collect();
+        let default_pattern = quote!((#(#input_names),*));
+        let default_body = args
+            .default
+            .map(|e| quote!(#e))
+            .unwrap_or(quote!(Default::default()));
+        quote!(|#default_pattern| #default_body)
+    };
+
+    //         |(k1, ref k2)| <body>,
+    let body_expr = {
+        let input_patterns: Vec<_> = inputs
+            .iter()
+            .map(
+                |Input {
+                     is_ref,
+                     ident,
+                     is_mut,
+                     ty: _,
+                 }| {
+                    if *is_ref {
+                        assert!(is_mut.is_none());
+                        quote! {ref #ident}
+                    } else {
+                        quote! {#is_mut #ident}
+                    }
+                },
+            )
+            .collect();
+        quote!(|(#(#input_patterns),*)| #block)
+    };
+
+    clear_mut_args(&mut item_fn.sig);
+    item_fn.block = syn::parse(
+        quote! {
+            {
+                #thread_local
+                crate::derive_links::fixed_point(
+                    &__CACHE,
+                    #input_expr,
+                    #default_expr,
+                    #body_expr,
+                )
+            }
+        }
+        .into(),
+    )
+    .unwrap();
 
     Ok(item_fn)
 }
 
-fn validate_fixed_point_sig(sig: &syn::Signature) -> syn::Result<()> {
-    for arg in &sig.inputs {
-        match arg {
+fn clear_mut_args(sig: &mut syn::Signature) {
+    for input in &mut sig.inputs {
+        match input {
+            syn::FnArg::Receiver(_) => {}
+            syn::FnArg::Typed(t) => match &mut *t.pat {
+                syn::Pat::Ident(i) => i.mutability = None,
+                _ => panic!("unexpected pattern"),
+            },
+        }
+    }
+}
+
+fn validate_fixed_point_sig(sig: &syn::Signature) -> syn::Result<(Vec<Input>, syn::Type)> {
+    let mut inputs = vec![];
+    for input in &sig.inputs {
+        match input {
             syn::FnArg::Receiver(r) => {
                 return Err(syn::Error::new_spanned(
                     r,
@@ -77,28 +183,59 @@ fn validate_fixed_point_sig(sig: &syn::Signature) -> syn::Result<()> {
                 ));
             }
             syn::FnArg::Typed(syn::PatType { pat, ty, .. }) => {
-                validate_arg_pattern(pat)?;
-                validate_arg_ty(ty)?;
+                let (ident, is_mut) = validate_arg_pattern(pat)?;
+                let (is_ref, ty) = validate_arg_ty(ty)?;
+
+                if is_mut.is_some() && is_ref {
+                    return Err(syn::Error::new_spanned(
+                        input,
+                        "variables can be mut or by-ref, but not both",
+                    ));
+                }
+
+                inputs.push(Input {
+                    is_ref,
+                    is_mut,
+                    ty,
+                    ident,
+                });
             }
         }
     }
-    Ok(())
-}
 
-fn validate_arg_pattern(pat: &syn::Pat) -> syn::Result<()> {
-    match pat {
-        syn::Pat::Ident(_) => (),
-        _ => {
-            return Err(syn::Error::new_spanned(
-                pat,
-                "argument patterns not accepted in fixed-point functions",
-            ))
+    let output_ty = match &sig.output {
+        syn::ReturnType::Default => {
+            return Err(syn::Error::new_spanned(sig, "return type required"));
         }
-    }
-    Ok(())
+        syn::ReturnType::Type(_, ty) => {
+            validate_ty(ty)?;
+            syn::Type::clone(ty)
+        }
+    };
+
+    Ok((inputs, output_ty))
 }
 
-fn validate_arg_ty(ty: &syn::Type) -> syn::Result<()> {
+fn validate_arg_pattern(pat: &syn::Pat) -> syn::Result<(syn::Ident, Option<syn::Token!(mut)>)> {
+    match pat {
+        syn::Pat::Ident(ident) => {
+            if let Some(r) = ident.by_ref {
+                return Err(syn::Error::new_spanned(
+                    r,
+                    "ref patterns not accepted in fixed-point functions",
+                ));
+            }
+
+            Ok((ident.ident.clone(), ident.mutability.clone()))
+        }
+        _ => Err(syn::Error::new_spanned(
+            pat,
+            "argument patterns not accepted in fixed-point functions",
+        )),
+    }
+}
+
+fn validate_arg_ty(ty: &syn::Type) -> syn::Result<(bool, syn::Type)> {
     match ty {
         syn::Type::Reference(r) => {
             if r.mutability.is_some() {
@@ -116,12 +253,14 @@ fn validate_arg_ty(ty: &syn::Type) -> syn::Result<()> {
             }
 
             validate_ty(&r.elem)?;
+
+            Ok((true, Clone::clone(&r.elem)))
         }
         _ => {
             validate_ty(ty)?;
+            Ok((false, ty.clone()))
         }
     }
-    Ok(())
 }
 
 fn validate_ty(ty: &syn::Type) -> syn::Result<()> {
