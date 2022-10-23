@@ -12,6 +12,7 @@ use crate::{
     term::Term,
 };
 
+mod query;
 mod simple_sub;
 mod test;
 
@@ -110,7 +111,7 @@ impl Env {
     }
 
     /// Replace any mapped inference variables in `term` with the values they are mapped to.
-    pub fn refresh_inference_variables<T: Term>(&self, term: T) -> T {
+    pub fn refresh_inference_variables<T: Term>(&self, term: &T) -> T {
         term.substitute(&mut |_kind, var| {
             if let Variable::InferenceVar(var) = var {
                 self.data(*var).mapped_to.clone()
@@ -118,6 +119,17 @@ impl Env {
                 None
             }
         })
+    }
+
+    /// Returns the universe of a (free) variable.
+    pub fn universe(&self, var: Variable) -> Universe {
+        assert!(var.is_free());
+
+        match var {
+            Variable::PlaceholderVar(pv) => pv.universe,
+            Variable::InferenceVar(iv) => self.data(iv).universe,
+            Variable::BoundVar(_) => panic!("bound variable not expected"),
+        }
     }
 
     /// Maps the inference var `var` to the value `value`. This may fail, if parameter contains

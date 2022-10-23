@@ -253,3 +253,10 @@ macro_rules! cast_impl {
 
 cast_impl!(usize);
 cast_impl!(u32);
+cast_impl!(String);
+
+impl UpcastFrom<&str> for String {
+    fn upcast_from(term: &str) -> Self {
+        term.into()
+    }
+}

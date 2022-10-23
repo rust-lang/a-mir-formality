@@ -479,6 +479,10 @@ pub struct VarIndex {
     pub index: usize,
 }
 
+impl VarIndex {
+    pub const ZERO: VarIndex = VarIndex { index: 0 };
+}
+
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Substitution {
     map: Map<Variable, Parameter>,
@@ -508,5 +512,35 @@ impl FromIterator<(Variable, Parameter)> for Substitution {
 impl Substitution {
     pub fn apply<T: Fold>(&self, t: &T) -> T {
         t.substitute(&mut |_kind, v| self.map.get(v).cloned())
+    }
+}
+
+/// A substitution that is only between variables.
+/// These are reversible.
+#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct VarSubstitution {
+    map: Map<Variable, Variable>,
+}
+
+impl Extend<(Variable, Variable)> for VarSubstitution {
+    fn extend<T: IntoIterator<Item = (Variable, Variable)>>(&mut self, iter: T) {
+        self.map.extend(iter.into_iter().map(|(v, p)| (v, p)));
+    }
+}
+
+impl FromIterator<(Variable, Variable)> for VarSubstitution {
+    fn from_iter<T: IntoIterator<Item = (Variable, Variable)>>(iter: T) -> Self {
+        let mut s = VarSubstitution::default();
+        s.extend(iter);
+        s
+    }
+}
+
+impl VarSubstitution {
+    pub fn reverse(&self) -> VarSubstitution {
+        self.map.iter().map(|(k, v)| (*v, *k)).collect()
+    }
+    pub fn apply<T: Fold>(&self, t: &T) -> T {
+        t.substitute(&mut |kind, v| Some(self.map.get(v)?.into_parameter(kind)))
     }
 }

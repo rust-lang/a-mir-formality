@@ -33,5 +33,5 @@ fn occurs_check2() {
         _ => panic!(),
     };
     assert!(env.map_to(v_e, &t_u).is_ok());
-    assert_eq!(env.refresh_inference_variables(t_e), t_u);
+    assert_eq!(env.refresh_inference_variables(&t_e), t_u);
 }

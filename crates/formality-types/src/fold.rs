@@ -17,6 +17,7 @@ pub trait Fold: Sized {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self;
 
     /// Extract the list of free variables (for the purposes of this function, defined by `Variable::is_free`).
+    /// The list may contain duplicates and must be in a determinstic order (though the order itself isn't important).
     fn free_variables(&self) -> Vec<Variable>;
 
     /// Produce a version of this term where any debruijn indices which appear free are incremented by one.

@@ -1,6 +1,7 @@
 use std::{str::FromStr, sync::Arc};
 
 use crate::{
+    cast::{To, Upcast},
     derive_links::{Fold, Parameter, ParameterKind},
     grammar::{Binder, BoundVar, KindedVarIndex},
 };
@@ -9,13 +10,21 @@ use std::fmt::Debug;
 mod test;
 
 /// Parses `text` as a term with no bindings in scope.
-#[tracing::instrument(level = "Debug", ret)]
 #[track_caller]
 pub fn term<T>(text: &str) -> T
 where
     T: Parse,
 {
-    let scope = Scope { bindings: vec![] };
+    term_with(None::<(String, Parameter)>, text)
+}
+
+#[track_caller]
+pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> T
+where
+    T: Parse,
+    B: Upcast<(String, Parameter)>,
+{
+    let scope = Scope::new(bindings.into_iter().map(|b| b.upcast()));
     let (t, remainder) = match T::parse(&scope, text) {
         Some(v) => v,
         None => {
@@ -60,22 +69,27 @@ pub trait Parse: Sized + Debug {
 
 #[derive(Clone, Debug)]
 pub struct Scope {
-    bindings: Vec<Binding>,
+    bindings: Vec<(String, Parameter)>,
 }
 
 impl Scope {
-    pub fn lookup(&self, name: &str) -> Option<Parameter> {
-        for binding in self.bindings.iter().rev() {
-            if binding.name == name {
-                return Some(binding.bound_var.into_parameter(binding.kvi.kind));
-            }
+    pub fn new(bindings: impl IntoIterator<Item = (String, Parameter)>) -> Self {
+        Self {
+            bindings: bindings.into_iter().collect(),
         }
-        None
     }
 
-    pub fn with_bindings(&self, bindings: &[Binding]) -> Self {
+    pub fn lookup(&self, name: &str) -> Option<Parameter> {
+        self.bindings
+            .iter()
+            .rev()
+            .flat_map(|(n, p)| if name == n { Some(p.clone()) } else { None })
+            .next()
+    }
+
+    pub fn with_bindings(&self, bindings: impl IntoIterator<Item = (String, Parameter)>) -> Self {
         let mut s = self.clone();
-        s.bindings.extend(bindings.iter().cloned());
+        s.bindings.extend(bindings);
         s
     }
 }
@@ -91,6 +105,7 @@ impl<T> Parse for Vec<T>
 where
     T: Parse,
 {
+    #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         let text = expect_char('[', text)?;
         let (v, text) = T::parse_comma(scope, text);
@@ -103,6 +118,7 @@ impl<T> Parse for Option<T>
 where
     T: Parse,
 {
+    #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         match T::parse(scope, text) {
             Some((value, text)) => Some((Some(value), text)),
@@ -112,6 +128,7 @@ where
 }
 
 impl Parse for Binding {
+    #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         let (kind, text) = ParameterKind::parse(scope, text)?;
         let (name, text) = identifier(text)?;
@@ -131,13 +148,14 @@ impl<T> Parse for Binder<T>
 where
     T: Parse + Fold,
 {
+    #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         let text = expect_char('<', text)?;
-        let (bindings, text) = Binding::parse_many(scope, text);
+        let (bindings, text) = Binding::parse_comma(scope, text);
         let text = expect_char('>', text)?;
 
         // parse the contents with those names in scope
-        let scope1 = scope.with_bindings(&bindings);
+        let scope1 = scope.with_bindings(bindings.iter().map(|b| (b.name.clone(), b.kvi.to())));
         let (data, text) = T::parse(&scope1, text)?;
 
         let kvis: Vec<KindedVarIndex> = bindings.iter().map(|b| b.kvi).collect();
@@ -156,18 +174,21 @@ where
 }
 
 impl Parse for usize {
+    #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(_scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         number(text)
     }
 }
 
 impl Parse for u32 {
+    #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(_scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         number(text)
     }
 }
 
 impl Parse for u64 {
+    #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(_scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         number(text)
     }
@@ -287,6 +308,7 @@ fn accumulate(
 }
 
 impl<A: Parse, B: Parse> Parse for (A, B) {
+    #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         let text = expect_char('(', text)?;
         let (a, text) = A::parse(scope, text)?;
@@ -299,6 +321,7 @@ impl<A: Parse, B: Parse> Parse for (A, B) {
 }
 
 impl<A: Parse, B: Parse, C: Parse> Parse for (A, B, C) {
+    #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         let text = expect_char('(', text)?;
         let (a, text) = A::parse(scope, text)?;
