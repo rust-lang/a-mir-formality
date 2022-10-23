@@ -28,7 +28,7 @@ fn test_single_step() {
     let invariants: Vec<Invariant> = term(
         "
         [
-            <ty X> is_implemented(Ord<X>) => is_implemented(PartialOrd<X>)
+            <ty X> is_implemented(Ord(X)) => is_implemented(PartialOrd(X))
         ]
         ",
     );
@@ -36,7 +36,7 @@ fn test_single_step() {
     let hypotheses: Vec<Hypothesis> = term(
         "
         [
-            is_implemented(Ord<u32>)
+            is_implemented(Ord(u32))
         ]
         ",
     );
@@ -105,8 +105,8 @@ fn test_transitive() {
     let invariants: Vec<Invariant> = term(
         "
         [
-            <ty X> is_implemented(A<X>) => is_implemented(B<X>),
-            <ty X> is_implemented(B<X>) => is_implemented(C<X>),
+            <ty X> is_implemented(A(X)) => is_implemented(B(X)),
+            <ty X> is_implemented(B(X)) => is_implemented(C(X)),
         ]
         ",
     );
@@ -114,7 +114,7 @@ fn test_transitive() {
     let hypotheses: Vec<Hypothesis> = term(
         "
         [
-            is_implemented(A<u32>)
+            is_implemented(A(u32))
         ]
         ",
     );

@@ -117,7 +117,7 @@ pub enum AtomicRelation {
     Outlives(Parameter, Parameter),
 }
 
-#[term($trait_id < $,parameters >)]
+#[term($trait_id ( $,parameters ))]
 pub struct TraitRef {
     pub trait_id: TraitId,
     pub parameters: Parameters,

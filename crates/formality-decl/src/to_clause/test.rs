@@ -11,7 +11,7 @@ fn to_clause() {
     let program: Program = term(
         "
         crate foo {
-            impl<ty X> Debug<X> where [] {}
+            impl<ty X> Debug(X) where [] {}
         } 
         ",
     );
@@ -65,5 +65,6 @@ fn to_clause() {
                 ),
             },
         ]
-    "#]].assert_debug_eq(&clauses);
+    "#]]
+    .assert_debug_eq(&clauses);
 }

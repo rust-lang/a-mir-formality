@@ -7,7 +7,7 @@ use test_log::test;
 
 #[test]
 fn parse_atomic_predicate() {
-    let program: AtomicPredicate = term("is_implemented(Debug<u32>)");
+    let program: AtomicPredicate = term("is_implemented(Debug(u32))");
     expect![[r#"
         IsImplemented(
             TraitRef {
@@ -36,7 +36,7 @@ fn parse_atomic_predicate() {
 
 #[test]
 fn parse_forall_goal() {
-    let program: Goal = term("for_all(<ty T> is_implemented(Debug<T>))");
+    let program: Goal = term("for_all(<ty T> is_implemented(Debug(T)))");
     expect![[r#"
         Goal {
             data: ForAll(
@@ -85,7 +85,7 @@ fn parse_forall_goal() {
 #[test]
 fn parse_nested_binders() {
     // T should have a debruijn index of 1, U should have a debruijn index of 0
-    let program: Goal = term("for_all(<ty T> exists(<ty U> is_implemented(Debug<T, U>)))");
+    let program: Goal = term("for_all(<ty T> exists(<ty U> is_implemented(Debug(T, U))))");
     expect![[r#"
         Goal {
             data: ForAll(
@@ -163,8 +163,8 @@ fn parse_all() {
     // T should have a debruijn index of 1 the first time, 0 the second time
     let program: Goal = term(
         "for_all(<ty T> all(
-            exists(<ty U> is_implemented(PartialEq<T, U>)), 
-            has_impl(Debug<T>),
+            exists(<ty U> is_implemented(PartialEq(T, U))), 
+            has_impl(Debug(T)),
         ))",
     );
     expect![[r#"
