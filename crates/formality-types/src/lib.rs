@@ -1,5 +1,8 @@
+#![allow(dead_code)]
+
 pub mod collections;
 pub mod env;
+pub mod fixed_point;
 pub mod fold;
 pub mod grammar;
 pub mod hook;

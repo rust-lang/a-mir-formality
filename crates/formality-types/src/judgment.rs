@@ -1,21 +1,20 @@
 use std::{cell::RefCell, collections::BTreeSet, sync::Arc, thread::LocalKey};
 
-use crate::derive_links::Term;
-
-use self::stack::JudgmentStack;
+use crate::{derive_links::Term, fixed_point::FixedPointStack};
 
 mod apply;
 mod builder;
-mod stack;
 mod test_filtered;
 mod test_reachable;
 
 pub use self::builder::JudgmentBuilder;
 
+type JudgmentStack<J, O> = RefCell<FixedPointStack<J, BTreeSet<O>>>;
+
 pub trait Judgment: Term {
     type Output: Term;
 
-    fn stack() -> &'static LocalKey<RefCell<JudgmentStack<Self>>>;
+    fn stack() -> &'static LocalKey<JudgmentStack<Self, Self::Output>>;
 
     fn build_rules(builder: &mut JudgmentBuilder<Self>);
 
@@ -39,9 +38,9 @@ macro_rules! judgment {
         impl $crate::judgment::Judgment for $judgment {
             type Output = $output;
 
-            fn stack() -> &'static LocalKey<RefCell<JudgmentStack<$judgment>>> {
+            fn stack() -> &'static LocalKey<$crate::judgment::JudgmentStack<$judgment, $output>> {
                 thread_local! {
-                    static R: RefCell<JudgmentStack<$judgment>> = Default::default()
+                    static R: $crate::judgment::JudgmentStack<$judgment, $output> = Default::default()
                 }
                 &R
             }

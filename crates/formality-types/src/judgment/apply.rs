@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use super::{stack::JudgmentStack, InferenceRule, Judgment, JudgmentBuilder};
+use crate::fixed_point::fixed_point;
+
+use super::{InferenceRule, Judgment, JudgmentBuilder};
 
 /// Dummy struct that exists to host methods, mostly.
 #[derive(Debug)]
@@ -13,29 +15,13 @@ where
     #[tracing::instrument(level = "Debug", ret)]
     pub(super) fn apply(self) -> BTreeSet<J::Output> {
         let JudgmentApply(input) = self;
-
-        if let Some(r) = Self::with_stack(|stack| stack.search(input)) {
-            return r;
-        }
-
-        Self::with_stack(|stack| stack.push(input));
-
         let rules = Self::rules();
-
-        loop {
-            let outputs: BTreeSet<J::Output> =
-                rules.iter().flat_map(|rule| rule.apply(input)).collect();
-            if !Self::with_stack(|stack| stack.update_outputs(input, outputs)) {
-                break;
-            }
-        }
-
-        Self::with_stack(|stack| stack.pop(input))
-    }
-
-    fn with_stack<R>(f: impl FnOnce(&mut JudgmentStack<J>) -> R) -> R {
-        let thread_local = J::stack();
-        thread_local.with(|v| f(&mut *v.borrow_mut()))
+        fixed_point(
+            J::stack(),
+            input.clone(),
+            |_| BTreeSet::default(),
+            |input| rules.iter().flat_map(|rule| rule.apply(&input)).collect(),
+        )
     }
 
     fn rules() -> Vec<InferenceRule<J, J::Output>> {

@@ -1,12 +1,12 @@
 #![cfg(test)]
 
-use std::{cell::RefCell, sync::Arc, thread::LocalKey};
+use std::{sync::Arc, thread::LocalKey};
 
 use formality_macros::term;
 
 use crate::judgment;
 
-use super::{stack::JudgmentStack, Judgment};
+use super::Judgment;
 
 #[term($edges)]
 struct Graph {

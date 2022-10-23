@@ -1,12 +1,10 @@
-use std::collections::BTreeSet;
+use super::Value;
 
-use super::Judgment;
-
-pub struct JudgmentStack<J: Judgment> {
-    entries: Vec<JudgmentStackEntry<J>>,
+pub struct FixedPointStack<Input, Output> {
+    entries: Vec<StackEntry<Input, Output>>,
 }
 
-impl<J: Judgment> Default for JudgmentStack<J> {
+impl<Input, Output> Default for FixedPointStack<Input, Output> {
     fn default() -> Self {
         Self {
             entries: Default::default(),
@@ -14,21 +12,25 @@ impl<J: Judgment> Default for JudgmentStack<J> {
     }
 }
 
-struct JudgmentStackEntry<J: Judgment> {
+struct StackEntry<Input, Output> {
     /// Input.
-    input: J,
+    input: Input,
 
-    /// Current outputs. Initially empty, but updated with results during computation.
-    outputs: BTreeSet<J::Output>,
+    /// Current output, updated during computation as we approach a fixed point.
+    output: Output,
 
     /// Initially false; set to true when the outputs of this rule
     /// are observed while it is being evaluated.
     has_dependents: bool,
 }
 
-impl<J: Judgment> JudgmentStack<J> {
+impl<Input, Output> FixedPointStack<Input, Output>
+where
+    Input: Value,
+    Output: Value,
+{
     /// Access the top frame on the stack, which should be for `input`.
-    fn top_frame(&mut self, input: &J) -> &mut JudgmentStackEntry<J> {
+    fn top_frame(&mut self, input: &Input) -> &mut StackEntry<Input, Output> {
         let top = self.entries.last_mut().unwrap();
         assert_eq!(top.input, *input);
         top
@@ -43,11 +45,11 @@ impl<J: Judgment> JudgmentStack<J> {
     ///
     /// The fixed-point mark is returned when the stack is [popped](`Self::pop`) and is used
     /// as part of the fixed point algorithm.
-    pub fn search(&mut self, input: &J) -> Option<BTreeSet<J::Output>> {
+    pub fn search(&mut self, input: &Input) -> Option<Output> {
         for entry in &mut self.entries {
             if entry.input == *input {
                 entry.has_dependents = true;
-                return Some(entry.outputs.clone());
+                return Some(entry.output.clone());
             }
         }
 
@@ -56,32 +58,32 @@ impl<J: Judgment> JudgmentStack<J> {
 
     /// Push an entry onto the stack, indicating it is currently being evaluated.
     /// There must not already be an entry for `input`.
-    pub fn push(&mut self, input: &J) {
+    pub fn push(&mut self, input: &Input, output: Output) {
         assert!(self.search(input).is_none());
 
-        self.entries.push(JudgmentStackEntry {
+        self.entries.push(StackEntry {
             input: input.clone(),
-            outputs: BTreeSet::new(),
+            output,
             has_dependents: false,
         });
     }
 
     /// Add outputs to the top-most stack entry, which must be for `input`.
     /// Returns true if another iteration is needed before reaching a fixed point.
-    pub fn update_outputs(&mut self, input: &J, outputs: BTreeSet<J::Output>) -> bool {
+    pub fn update_output(&mut self, input: &Input, output: Output) -> bool {
         let top = self.top_frame(input);
-        if top.outputs == outputs {
+        if top.output == output {
             return false;
         }
 
-        top.outputs = outputs;
+        top.output = output;
         return top.has_dependents;
     }
 
     /// Pops the top entry from the stack, returning the saved outputs.
-    pub fn pop(&mut self, input: &J) -> BTreeSet<J::Output> {
+    pub fn pop(&mut self, input: &Input) -> Output {
         let top = self.entries.pop().unwrap();
         assert_eq!(top.input, *input);
-        top.outputs
+        top.output
     }
 }
