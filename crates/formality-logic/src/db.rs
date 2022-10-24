@@ -1,11 +1,11 @@
 use std::{fmt::Debug, sync::Arc};
 
 use formality_types::grammar::{
-    AtomicPredicate, AtomicRelation, Goal, Hypothesis, Invariant, ProgramClause,
+    AtomicPredicate, AtomicRelation, Hypothesis, Invariant, ProgramClause,
 };
 
 pub trait Database: Debug {
-    fn program_clauses(&self, goal: &Goal) -> Vec<ProgramClause>;
+    fn program_clauses(&self, predicate: &AtomicPredicate) -> Vec<ProgramClause>;
     fn invariants_for_predicate(&self, predicate: &AtomicPredicate) -> Vec<Invariant>;
     fn elaborate_relation(&self, r: &AtomicRelation) -> Vec<Hypothesis>;
 }
@@ -63,7 +63,7 @@ impl Database for Db {
         self.db.elaborate_relation(r)
     }
 
-    fn program_clauses(&self, goal: &Goal) -> Vec<ProgramClause> {
-        self.db.program_clauses(goal)
+    fn program_clauses(&self, predicate: &AtomicPredicate) -> Vec<ProgramClause> {
+        self.db.program_clauses(predicate)
     }
 }
