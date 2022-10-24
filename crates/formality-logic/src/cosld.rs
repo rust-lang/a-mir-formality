@@ -3,9 +3,7 @@ use formality_macros::term;
 use formality_types::{
     collections::Set,
     env::Env,
-    grammar::{
-        AtomicPredicate, Coinductive, Goal, GoalData, Hypothesis, HypothesisData, ProgramClause,
-    },
+    grammar::{AtomicPredicate, Coinductive, Goal, GoalData, Hypothesis, HypothesisData},
     set,
 };
 

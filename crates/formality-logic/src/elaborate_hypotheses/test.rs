@@ -2,7 +2,7 @@
 
 use expect_test;
 use formality_types::{
-    grammar::{AtomicPredicate, AtomicRelation, Goal, Hypothesis, Invariant, ProgramClause},
+    grammar::{AtomicPredicate, AtomicRelation, Hypothesis, Invariant, ProgramClause},
     parse::term,
 };
 use test_log::test;
@@ -25,7 +25,7 @@ impl crate::db::Database for MockDb {
         self.invariants.clone()
     }
 
-    fn program_clauses(&self, _goal: &Goal) -> Vec<ProgramClause> {
+    fn program_clauses(&self, _: &AtomicPredicate) -> Vec<ProgramClause> {
         vec![]
     }
 }
