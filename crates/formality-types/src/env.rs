@@ -7,10 +7,12 @@ use crate::{
     fold::Fold,
     grammar::{
         Binder, Fallible, Goal, InferenceVar, Parameter, ParameterKind, PlaceholderVar, Ty,
-        Universe,
+        Universe, VarSubstitution,
     },
     term::Term,
 };
+
+use self::query::{querify, Query};
 
 mod query;
 mod simple_sub;
@@ -276,5 +278,18 @@ impl Env {
         }
 
         Ok(goals)
+    }
+
+    /// Creates a *query* from the given goal in this environment, along
+    /// with a mapping from the variables defined in that query to the
+    /// variables in this environment.
+    ///
+    /// A *query* packages up portions of this environment along with the goal
+    /// into a canonical wrapper that is independent of this environment.
+    ///
+    /// The goal can then be solved and the resulting solution can be applied
+    /// back onto this original environment via the `VarSubstitution`.
+    pub fn query(&self, goal: &Goal) -> (Query, VarSubstitution) {
+        querify(self, goal)
     }
 }

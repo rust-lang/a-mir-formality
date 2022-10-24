@@ -9,6 +9,8 @@ use formality_types::{
 
 use crate::{db::Database, elaborate_hypotheses::elaborate_hypotheses, Db};
 
+mod test;
+
 /// Prove a "top-level" goal is true in the given environment
 /// using the cosld solver. cosld is a basic [SLD] solving algorithm,
 /// enriched to handle [FOHH] predicates as well as to
@@ -16,7 +18,7 @@ use crate::{db::Database, elaborate_hypotheses::elaborate_hypotheses, Db};
 ///
 /// [SLD]: https://en.wikipedia.org/wiki/SLD_resolution
 /// [FOHH]: https://en.wikipedia.org/wiki/Harrop_formula
-pub fn prove(db: &Db, env: &Env, assumptions: &Vec<Hypothesis>, goal: &Goal) -> Set<CosldResult> {
+pub fn prove(db: &Db, env: &Env, assumptions: &[Hypothesis], goal: &Goal) -> Set<CosldResult> {
     let assumptions = &elaborate_hypotheses(db, assumptions);
     prove_goal(db, env, Stack::Empty, assumptions, goal)
 }
@@ -48,7 +50,9 @@ fn prove_goal(
                     .collect()
             }
         },
-        GoalData::AtomicRelation(_) => todo!(),
+        GoalData::AtomicRelation(_) => {
+            panic!("not yet implemented: {goal:?}")
+        }
         GoalData::ForAll(binder) => {
             let mut env = env.clone();
             let subgoal = env.instantiate_universally(binder);
