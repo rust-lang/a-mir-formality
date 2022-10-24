@@ -2,6 +2,7 @@ use std::{str::FromStr, sync::Arc};
 
 use crate::{
     cast::{To, Upcast},
+    collections::Set,
     derive_links::{Fold, Parameter, ParameterKind},
     grammar::{Binder, BoundVar, KindedVarIndex},
 };
@@ -111,6 +112,20 @@ where
         let (v, text) = T::parse_comma(scope, text);
         let text = expect_char(']', text)?;
         Some((v, text))
+    }
+}
+
+impl<T> Parse for Set<T>
+where
+    T: Parse + Ord,
+{
+    #[tracing::instrument(level = "trace", ret)]
+    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+        let text = expect_char('{', text)?;
+        let (v, text) = T::parse_comma(scope, text);
+        let text = expect_char('}', text)?;
+        let s = v.into_iter().collect();
+        Some((s, text))
     }
 }
 

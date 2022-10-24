@@ -2,18 +2,21 @@
 
 use expect_test;
 use formality_types::{
-    grammar::{AtomicPredicate, AtomicRelation, Hypothesis, Invariant},
+    grammar::{AtomicPredicate, AtomicRelation, Goal, Hypothesis, Invariant, ProgramClause},
     parse::term,
 };
 use test_log::test;
 
+use crate::Db;
+
 use super::elaborate_hypotheses;
 
+#[derive(Debug)]
 struct MockDb {
     invariants: Vec<Invariant>,
 }
 
-impl crate::Db for MockDb {
+impl crate::db::Database for MockDb {
     fn elaborate_relation(&self, _r: &AtomicRelation) -> Vec<Hypothesis> {
         vec![]
     }
@@ -21,17 +24,17 @@ impl crate::Db for MockDb {
     fn invariants_for_predicate(&self, _predicate: &AtomicPredicate) -> Vec<Invariant> {
         self.invariants.clone()
     }
+
+    fn program_clauses(&self, _goal: &Goal) -> Vec<ProgramClause> {
+        vec![]
+    }
 }
 
 #[test]
 fn test_single_step() {
-    let invariants: Vec<Invariant> = term(
-        "
-        [
-            <ty X> is_implemented(Ord(X)) => is_implemented(PartialOrd(X))
-        ]
-        ",
-    );
+    let db = Db::new(MockDb {
+        invariants: term("[<ty X> is_implemented(Ord(X)) => is_implemented(PartialOrd(X))]"),
+    });
 
     let hypotheses: Vec<Hypothesis> = term(
         "
@@ -41,10 +44,10 @@ fn test_single_step() {
         ",
     );
 
-    let hypotheses1 = elaborate_hypotheses(&MockDb { invariants }, &hypotheses);
+    let hypotheses1 = elaborate_hypotheses(&db, &hypotheses);
 
     expect_test::expect![[r#"
-        [
+        {
             Hypothesis {
                 data: AtomicPredicate(
                     IsImplemented(
@@ -95,21 +98,23 @@ fn test_single_step() {
                     ),
                 ),
             },
-        ]
+        }
     "#]]
     .assert_debug_eq(&hypotheses1);
 }
 
 #[test]
 fn test_transitive() {
-    let invariants: Vec<Invariant> = term(
-        "
+    let db = Db::new(MockDb {
+        invariants: term(
+            "
         [
             <ty X> is_implemented(A(X)) => is_implemented(B(X)),
             <ty X> is_implemented(B(X)) => is_implemented(C(X)),
         ]
         ",
-    );
+        ),
+    });
 
     let hypotheses: Vec<Hypothesis> = term(
         "
@@ -119,10 +124,10 @@ fn test_transitive() {
         ",
     );
 
-    let hypotheses1 = elaborate_hypotheses(&MockDb { invariants }, &hypotheses);
+    let hypotheses1 = elaborate_hypotheses(&db, &hypotheses);
 
     expect_test::expect![[r#"
-        [
+        {
             Hypothesis {
                 data: AtomicPredicate(
                     IsImplemented(
@@ -198,7 +203,7 @@ fn test_transitive() {
                     ),
                 ),
             },
-        ]
+        }
     "#]]
     .assert_debug_eq(&hypotheses1);
 }

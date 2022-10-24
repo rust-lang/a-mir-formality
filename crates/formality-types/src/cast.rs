@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use crate::collections::Set;
+
 pub trait To {
     fn to<T>(&self) -> T
     where
@@ -76,6 +78,16 @@ where
     }
 }
 
+impl<A, B> DowncastFrom<Set<A>> for Set<B>
+where
+    A: Ord,
+    B: DowncastFrom<A> + Ord,
+{
+    fn downcast_from(t: &Set<A>) -> Option<Self> {
+        t.iter().map(|a| B::downcast_from(a)).collect()
+    }
+}
+
 impl<T, U> DowncastFrom<Option<U>> for Option<T>
 where
     T: DowncastFrom<U>,
@@ -140,6 +152,16 @@ where
     T: Upcast<U>,
 {
     fn upcast_from(term: Vec<T>) -> Self {
+        term.into_iter().map(|t| T::upcast(t)).collect()
+    }
+}
+
+impl<T: Clone, U> UpcastFrom<Set<T>> for Set<U>
+where
+    T: Upcast<U> + Ord,
+    U: Ord,
+{
+    fn upcast_from(term: Set<T>) -> Self {
         term.into_iter().map(|t| T::upcast(t)).collect()
     }
 }

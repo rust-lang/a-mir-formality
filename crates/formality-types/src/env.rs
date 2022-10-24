@@ -20,6 +20,13 @@ mod test;
 pub struct Env {
     universe: Universe,
     inference_data: Vec<InferenceVarData>,
+    coherence_mode: CoherenceMode,
+}
+
+#[term]
+pub enum CoherenceMode {
+    Yes,
+    No,
 }
 
 impl Default for Env {
@@ -27,6 +34,7 @@ impl Default for Env {
         Self {
             universe: Universe::ROOT,
             inference_data: Default::default(),
+            coherence_mode: CoherenceMode::No,
         }
     }
 }
@@ -65,6 +73,14 @@ struct InferenceVarData {
 }
 
 impl Env {
+    /// Returns the same environment, but in coherence mode.
+    pub fn in_coherence_mode(self) -> Self {
+        Env {
+            coherence_mode: CoherenceMode::Yes,
+            ..self
+        }
+    }
+
     /// Increment the universe counter and return the resulting universe.
     fn next_universe(&mut self) -> Universe {
         self.universe.index += 1;

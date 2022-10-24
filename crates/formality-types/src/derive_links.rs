@@ -5,6 +5,7 @@
 
 pub use crate::cast::Downcast;
 pub use crate::cast::UpcastFrom;
+pub use crate::fixed_point;
 pub use crate::fold::Fold;
 pub use crate::fold::SubstitutionFn;
 pub use crate::grammar::Parameter;

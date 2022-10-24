@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     cast::Upcast,
+    collections::Set,
     grammar::{Lt, LtData, Parameter, ParameterKind, Ty, TyData, Variable},
 };
 
@@ -27,6 +28,16 @@ pub trait Fold: Sized {
 }
 
 impl<T: Fold> Fold for Vec<T> {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+        self.iter().map(|e| e.substitute(substitution_fn)).collect()
+    }
+
+    fn free_variables(&self) -> Vec<Variable> {
+        self.iter().flat_map(|e| e.free_variables()).collect()
+    }
+}
+
+impl<T: Fold + Ord> Fold for Set<T> {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         self.iter().map(|e| e.substitute(substitution_fn)).collect()
     }

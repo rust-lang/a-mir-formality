@@ -4,7 +4,7 @@ use crate::{
     cast::{DowncastFrom, Upcast},
     fold::Fold,
     grammar::{Lt, Ty},
-    parse::Parse,
+    parse::Parse, collections::Set,
 };
 
 pub trait Term:
@@ -13,6 +13,8 @@ pub trait Term:
 }
 
 impl<T: Term> Term for Vec<T> {}
+
+impl<T: Term> Term for Set<T> {}
 
 impl<T: Term> Term for Option<T> {}
 

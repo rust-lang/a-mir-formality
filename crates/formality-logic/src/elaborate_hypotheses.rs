@@ -3,18 +3,22 @@ use std::collections::BTreeSet;
 use formality_types::{
     self,
     cast::{To, Upcast},
+    collections::Set,
     grammar::{
         AtomicPredicate, Hypothesis, HypothesisData, Invariant, InvariantImplication, Substitution,
     },
 };
 
-use crate::Db;
+use crate::{db::Database, Db};
 
 mod test;
 
-pub fn elaborate_hypotheses(db: &dyn Db, hypotheses: &[Hypothesis]) -> Vec<Hypothesis> {
+pub fn elaborate_hypotheses<H>(db: &Db, hypotheses: impl IntoIterator<Item = H>) -> Set<Hypothesis>
+where
+    H: Upcast<Hypothesis>,
+{
     let mut set = BTreeSet::default();
-    let mut stack: Vec<_> = hypotheses.iter().cloned().collect();
+    let mut stack: Vec<_> = hypotheses.into_iter().map(|h| h.upcast()).collect();
 
     while let Some(hypothesis) = stack.pop() {
         if set.insert(hypothesis.clone()) {
@@ -22,11 +26,10 @@ pub fn elaborate_hypotheses(db: &dyn Db, hypotheses: &[Hypothesis]) -> Vec<Hypot
         }
     }
 
-    // The result will be in a sorted, deterministic order, which is nice.
-    set.iter().cloned().collect()
+    set
 }
 
-fn elaborate_hypothesis(db: &dyn Db, hypothesis: &Hypothesis) -> Vec<Hypothesis> {
+fn elaborate_hypothesis(db: &Db, hypothesis: &Hypothesis) -> Vec<Hypothesis> {
     match hypothesis.data() {
         HypothesisData::AtomicPredicate(predicate) => db
             .invariants_for_predicate(predicate)
@@ -54,7 +57,7 @@ fn elaborate_hypothesis(db: &dyn Db, hypothesis: &Hypothesis) -> Vec<Hypothesis>
 }
 
 fn apply_invariant_to_predicate(
-    _db: &dyn Db,
+    _db: &Db,
     invariant: &Invariant,
     predicate: &AtomicPredicate,
 ) -> Option<Hypothesis> {

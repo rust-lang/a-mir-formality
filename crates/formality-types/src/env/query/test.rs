@@ -209,6 +209,7 @@ fn test_existential_do_not_create_universe() {
                         outlived_by: [],
                     },
                 ],
+                coherence_mode: No,
             },
             VarSubstitution {
                 map: {
@@ -278,6 +279,7 @@ fn test_mix_existential_and_placeholder() {
                         outlived_by: [],
                     },
                 ],
+                coherence_mode: No,
             },
             VarSubstitution {
                 map: {
