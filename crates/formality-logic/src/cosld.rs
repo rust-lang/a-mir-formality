@@ -3,7 +3,9 @@ use formality_macros::term;
 use formality_types::{
     collections::Set,
     env::Env,
-    grammar::{AtomicPredicate, Goal, GoalData, Hypothesis, HypothesisData},
+    grammar::{
+        AtomicPredicate, Coinductive, Goal, GoalData, Hypothesis, HypothesisData, ProgramClause,
+    },
     set,
 };
 
@@ -18,69 +20,100 @@ use crate::{db::Database, elaborate_hypotheses::elaborate_hypotheses, Db};
 /// [FOHH]: https://en.wikipedia.org/wiki/Harrop_formula
 pub fn prove(db: &Db, env: &Env, assumptions: &Vec<Hypothesis>, goal: &Goal) -> Set<CosldResult> {
     let assumptions = &elaborate_hypotheses(db, assumptions);
-    prove_goal(db, env, assumptions, goal)
+    prove_goal(db, env, Stack::Empty, assumptions, goal)
 }
 
-fn prove_goal(db: &Db, env: &Env, assumptions: &Set<Hypothesis>, goal: &Goal) -> Set<CosldResult> {
+#[derive(Copy, Clone)]
+enum Stack<'s> {
+    Empty,
+    Link(&'s AtomicPredicate, &'s Stack<'s>),
+}
+
+fn prove_goal(
+    db: &Db,
+    env: &Env,
+    stack: Stack<'_>,
+    assumptions: &Set<Hypothesis>,
+    goal: &Goal,
+) -> Set<CosldResult> {
     match goal.data() {
-        GoalData::AtomicPredicate(predicate) => {
-            let clauses = db.program_clauses(predicate);
-            clauses
-                .iter()
-                .chain(assumptions)
-                .filter(|h| h.could_match(predicate))
-                .flat_map(|h| backchain(db, env, assumptions, h, predicate))
-                .collect()
-        }
+        GoalData::AtomicPredicate(predicate) => match stack.search(env, predicate) {
+            StackSearch::CoinductiveCycle => set![CosldResult::Yes(env.clone())],
+            StackSearch::InductiveCycle => set![],
+            StackSearch::NotFound => {
+                let clauses = db.program_clauses(predicate);
+                clauses
+                    .iter()
+                    .chain(assumptions)
+                    .filter(|h| h.could_match(predicate))
+                    .flat_map(|h| backchain(db, env, stack, assumptions, h, predicate))
+                    .collect()
+            }
+        },
         GoalData::AtomicRelation(_) => todo!(),
         GoalData::ForAll(binder) => {
             let mut env = env.clone();
             let subgoal = env.instantiate_universally(binder);
-            prove_goal(db, &env, assumptions, &subgoal)
+            prove_goal(db, &env, stack, assumptions, &subgoal)
         }
         GoalData::Exists(binder) => {
             let mut env = env.clone();
             let subgoal = env.instantiate_existentially(binder);
-            prove_goal(db, &env, assumptions, &subgoal)
+            prove_goal(db, &env, stack, assumptions, &subgoal)
         }
         GoalData::Implies(conditions, subgoal) => {
             let assumptions = elaborate_hypotheses(db, assumptions.iter().chain(conditions));
-            prove_goal(db, env, &assumptions, subgoal)
+            prove_goal(db, env, stack, &assumptions, subgoal)
         }
         GoalData::Any(subgoals) => subgoals
             .iter()
-            .flat_map(move |subgoal| prove_goal(db, env, assumptions, subgoal))
+            .flat_map(move |subgoal| prove_goal(db, env, stack, assumptions, subgoal))
             .collect(),
-        GoalData::All(subgoals) => prove_all(db, &env, assumptions, subgoals, &[]),
+        GoalData::All(subgoals) => prove_all(db, &env, stack, assumptions, subgoals, &[]),
         GoalData::CoherenceMode(subgoal) => {
             let env = env.clone();
             let env = env.in_coherence_mode();
-            prove_goal(db, &env, assumptions, subgoal)
+            prove_goal(db, &env, stack, assumptions, subgoal)
         }
         GoalData::Ambiguous => set![CosldResult::Maybe],
     }
 }
 
+/// Prove a sequence of subgoals to be true, yielding the final results.
+/// The order of the subgoals is immaterial.
+///
+/// To manage connections between subgoals (e.g., cases where proving one subgoal
+/// constraints inference variables found in another subgoal), we do a limited
+/// amount of reordering:
+///
+/// * If a subgoal is found to be ambiguous, then it is pushed into the "deferred" list.
+/// * When another subgoal succeeds, the deferred list is added back into the list of goals to be proven.
+/// * If we wind up with deferred goals and no more subgoals, the final result is ambiguous.
 fn prove_all(
     db: &Db,
     env: &Env,
+    stack: Stack<'_>,
     assumptions: &Set<Hypothesis>,
     subgoals: &[Goal],
     deferred: &[Goal],
 ) -> Set<CosldResult> {
     if let Some((subgoal, remainder)) = subgoals.split_first() {
-        prove_goal(db, env, assumptions, subgoal)
+        prove_goal(db, env, stack, assumptions, subgoal)
             .into_iter()
             .flat_map(|r| match r {
-                CosldResult::Yes(env1) => {
+                CosldResult::Yes(env) if deferred.is_empty() => {
+                    // Pointless microoptimization.
+                    prove_all(db, &env, stack, assumptions, remainder, &[])
+                }
+                CosldResult::Yes(env) => {
                     let mut subgoals = remainder.to_owned();
                     subgoals.extend(deferred.iter().cloned());
-                    prove_all(db, &env1, assumptions, &subgoals, &[])
+                    prove_all(db, &env, stack, assumptions, &subgoals, &[])
                 }
                 CosldResult::Maybe => {
                     let mut deferred = deferred.to_owned();
                     deferred.push(subgoal.clone());
-                    prove_all(db, env, assumptions, remainder, &deferred)
+                    prove_all(db, env, stack, assumptions, remainder, &deferred)
                 }
             })
             .collect()
@@ -101,6 +134,7 @@ fn prove_all(
 fn backchain(
     db: &Db,
     env: &Env,
+    stack: Stack<'_>,
     assumptions: &Set<Hypothesis>,
     clause: &Hypothesis,
     predicate: &AtomicPredicate,
@@ -118,20 +152,62 @@ fn backchain(
                     .zip(parameters2)
                     .map(|(p1, p2)| Goal::eq(p1, p2))
                     .collect();
-                prove_all(db, env, assumptions, &subgoals, &[])
+                prove_all(db, env, stack, assumptions, &subgoals, &[])
             }
         }
         HypothesisData::AtomicRelation(_h) => todo!(),
         HypothesisData::ForAll(b) => {
             let mut env = env.clone();
             let h = env.instantiate_existentially(b);
-            backchain(db, &env, assumptions, &h, predicate)
+            backchain(db, &env, stack, assumptions, &h, predicate)
         }
         HypothesisData::Implies(conditions, consequence) => {
-            backchain(db, env, assumptions, consequence, predicate)
-                .and_then(|env| prove_all(db, env, assumptions, &conditions, &[]))
+            backchain(db, env, stack, assumptions, consequence, predicate).and_then(|env| {
+                prove_all(
+                    db,
+                    env,
+                    Stack::Link(predicate, &stack),
+                    assumptions,
+                    &conditions,
+                    &[],
+                )
+            })
         }
         HypothesisData::CoherenceMode => set![],
+    }
+}
+
+enum StackSearch {
+    CoinductiveCycle,
+    InductiveCycle,
+    NotFound,
+}
+
+impl Stack<'_> {
+    /// Search the stack to see if it contains `predicate1`.
+    /// If so, returns coinductive cycle if all stack entries (including `predicate1`) are coinductive,
+    /// otherwise returns inductive cycle.
+    fn search(self, env: &Env, predicate1: &AtomicPredicate) -> StackSearch {
+        let predicate1 = env.refresh_inference_variables(predicate1);
+
+        let mut p = self;
+        let mut all_coinductive = Coinductive::Yes;
+        loop {
+            match p {
+                Stack::Empty => return StackSearch::NotFound,
+                Stack::Link(predicate2, link) => {
+                    all_coinductive = all_coinductive & predicate2.is_coinductive();
+                    if predicate1 == env.refresh_inference_variables(predicate2) {
+                        return match all_coinductive {
+                            Coinductive::Yes => StackSearch::CoinductiveCycle,
+                            Coinductive::No => StackSearch::InductiveCycle,
+                        };
+                    } else {
+                        p = *link;
+                    }
+                }
+            }
+        }
     }
 }
 

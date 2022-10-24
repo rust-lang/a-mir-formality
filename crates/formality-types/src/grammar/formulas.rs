@@ -37,6 +37,37 @@ pub enum AtomicPredicate {
     WellFormedTraitRef(TraitRef),
 }
 
+/// A coinductive predicate is one that can be proven via a cycle.
+pub enum Coinductive {
+    No,
+    Yes,
+}
+
+impl std::ops::BitAnd for Coinductive {
+    type Output = Coinductive;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Coinductive::Yes, Coinductive::Yes) => Coinductive::Yes,
+            _ => Coinductive::No,
+        }
+    }
+}
+
+impl AtomicPredicate {
+    /// True if this goal can be proven via a cycle. For example,
+    /// it is ok for a `T: Debug` impl to require `T: Debug`.
+    pub fn is_coinductive(&self) -> Coinductive {
+        match self {
+            AtomicPredicate::IsImplemented(_) => Coinductive::Yes,
+            AtomicPredicate::HasImpl(_) => Coinductive::Yes,
+            AtomicPredicate::NormalizesTo(_, _) => Coinductive::No,
+            AtomicPredicate::WellFormedTy(_) => Coinductive::Yes,
+            AtomicPredicate::WellFormedTraitRef(_) => Coinductive::Yes,
+        }
+    }
+}
+
 /// The "skeleton" of an atomic predicate is the kernel that contains
 /// nothing unifiable and identifies the kind of predicate.
 /// If the skeleton's don't match, they are distinct predicates.
