@@ -47,8 +47,8 @@ fn test_single_step() {
 
     expect_test::expect![[r#"
         {
-            is_implemented(Ord(RigidTy((rigid (scalar u32))))),
-            is_implemented(PartialOrd(RigidTy((rigid (scalar u32))))),
+            is_implemented(Ord((rigid (scalar u32)))),
+            is_implemented(PartialOrd((rigid (scalar u32)))),
         }
     "#]]
     .assert_debug_eq(&hypotheses1);
@@ -79,9 +79,9 @@ fn test_transitive() {
 
     expect_test::expect![[r#"
         {
-            is_implemented(A(RigidTy((rigid (scalar u32))))),
-            is_implemented(B(RigidTy((rigid (scalar u32))))),
-            is_implemented(C(RigidTy((rigid (scalar u32))))),
+            is_implemented(A((rigid (scalar u32)))),
+            is_implemented(B((rigid (scalar u32)))),
+            is_implemented(C((rigid (scalar u32)))),
         }
     "#]]
     .assert_debug_eq(&hypotheses1);

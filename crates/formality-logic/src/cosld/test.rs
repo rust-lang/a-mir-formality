@@ -62,7 +62,7 @@ fn simple_test() {
                                 ty,
                                 U(0),
                                 Some(
-                                    RigidTy((rigid (scalar u32))),
+                                    (rigid (scalar u32)),
                                 ),
                                 [],
                                 [],

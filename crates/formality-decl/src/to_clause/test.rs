@@ -19,7 +19,7 @@ fn to_clause() {
 
     expect![[r#"
         [
-            for_all(<ty> implies([], has_impl(Debug(Variable(^0_0))))),
+            for_all(<ty> implies([], has_impl(Debug(^0_0)))),
         ]
     "#]]
     .assert_debug_eq(&clauses);
