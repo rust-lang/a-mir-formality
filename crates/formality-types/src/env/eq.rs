@@ -47,14 +47,14 @@ fn eq_tys(env: &mut Env, a: &Ty, b: &Ty) -> Fallible<Vec<Goal>> {
                 let (kvi, bvar) = fresh_bound_var(ParameterKind::Ty);
                 let normalizes_a = alias_a.normalizes_to(bvar.ty());
                 let normalizes_b = alias_b.normalizes_to(bvar.ty());
-                Goal::exists(&[kvi], Goal::all((normalizes_a, normalizes_b)))
+                Goal::exists(&[kvi], Goal::all(vec![normalizes_a, normalizes_b]))
             };
 
             if alias_a.name == alias_b.name {
-                Ok(vec![Goal::any((
+                Ok(vec![Goal::any(vec![
                     normalizes_goal,
                     eq_parameters_goal(&alias_a.parameters, &alias_b.parameters),
-                ))])
+                ])])
             } else {
                 Ok(vec![normalizes_goal])
             }
@@ -87,7 +87,17 @@ fn eq_tys(env: &mut Env, a: &Ty, b: &Ty) -> Fallible<Vec<Goal>> {
             eq_vec_parameters(env, parameters_a, parameters_b)
         }
 
-        _ => bail!("not implemented: {a:?} == {b:?}"),
+        (TyData::Variable(Variable::PlaceholderVar(_)), _)
+        | (_, TyData::Variable(Variable::PlaceholderVar(_))) => {
+            bail!("not-eq({a:?}, {b:?})")
+        }
+
+        (TyData::Variable(Variable::BoundVar(_)), _)
+        | (_, TyData::Variable(Variable::BoundVar(_))) => {
+            panic!("found unexpected bound variable")
+        }
+
+        (TyData::PredicateTy(_), _) | (_, TyData::PredicateTy(_)) => todo!(),
     }
 }
 

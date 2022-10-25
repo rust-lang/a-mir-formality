@@ -197,14 +197,27 @@ pub struct AliasTy {
     pub parameters: Parameters,
 }
 
+impl AliasTy {
+    pub fn associated_ty(
+        trait_id: TraitId,
+        item_id: AssociatedItemId,
+        parameters: impl Upcast<Vec<Parameter>>,
+    ) -> Self {
+        AliasTy {
+            name: AssociatedTyName { trait_id, item_id }.upcast(),
+            parameters: parameters.upcast(),
+        }
+    }
+}
+
 #[term]
 pub enum AliasName {
     #[cast]
-    AssociatedTyId(AssociatedTyId),
+    AssociatedTyId(AssociatedTyName),
 }
 
 #[term(($trait_id :: $item_id))]
-pub struct AssociatedTyId {
+pub struct AssociatedTyName {
     pub trait_id: TraitId,
     pub item_id: AssociatedItemId,
 }
@@ -257,6 +270,8 @@ pub struct KindedVarIndex {
     pub kind: ParameterKind,
     pub var_index: VarIndex,
 }
+
+cast_impl!(KindedVarIndex);
 
 impl UpcastFrom<KindedVarIndex> for BoundVar {
     fn upcast_from(term: KindedVarIndex) -> Self {

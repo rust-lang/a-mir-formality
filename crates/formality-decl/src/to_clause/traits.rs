@@ -1,4 +1,4 @@
-use formality_types::grammar::{Hypothesis, Invariant, ProgramClause, TraitRef};
+use formality_types::grammar::{Hypothesis, Invariant, KindedVarIndex, ProgramClause, TraitRef};
 
 use crate::grammar::{Trait, TraitBoundData, TraitItem};
 
@@ -30,12 +30,16 @@ impl Trait {
         // ∀. well_formed(TraitRef) :- ...where_clauses...
         let well_formed = Hypothesis::for_all(
             &trait_kinded_var_ids,
-            Hypothesis::implies(where_clauses, trait_ref.well_formed()),
+            Hypothesis::implies(&where_clauses, trait_ref.well_formed()),
         );
 
         std::iter::once(is_implemented)
             .chain(Some(well_formed))
-            .chain(trait_items.iter().flat_map(|ii| ii.to_clauses(program)))
+            .chain(
+                trait_items
+                    .iter()
+                    .flat_map(|ii| ii.to_clauses(&trait_kinded_var_ids, program)),
+            )
             .collect()
     }
 
@@ -55,7 +59,14 @@ impl Trait {
 }
 
 impl TraitItem {
-    pub fn to_clauses(&self, _program: &crate::grammar::Program) -> Vec<ProgramClause> {
-        unimplemented!()
+    pub fn to_clauses(
+        &self,
+        trait_kinded_var_ids: &[KindedVarIndex],
+        program: &crate::grammar::Program,
+    ) -> Vec<ProgramClause> {
+        match self {
+            TraitItem::Fn(f) => f.to_clauses(trait_kinded_var_ids, program),
+            TraitItem::AssociatedTy(v) => v.to_clauses(trait_kinded_var_ids, program),
+        }
     }
 }

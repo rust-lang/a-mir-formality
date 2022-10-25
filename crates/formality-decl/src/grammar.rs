@@ -1,6 +1,6 @@
 use formality_macros::term;
 use formality_types::grammar::{
-    AdtId, AssociatedTyId, Binder, CrateId, FieldId, FnId, Predicate, TraitId, TraitRef, Ty,
+    AdtId, AssociatedItemId, Binder, CrateId, FieldId, FnId, Predicate, TraitId, TraitRef, Ty,
 };
 
 #[term($*crates)]
@@ -138,7 +138,7 @@ pub enum ImplItem {
 
 #[term(type $id $binder)]
 pub struct AssociatedTyValue {
-    pub id: AssociatedTyId,
+    pub id: AssociatedItemId,
     pub binder: Binder<AssociatedTyValueBoundData>,
 }
 

@@ -205,26 +205,19 @@ where
     }
 }
 
-impl<A, B, Z> UpcastFrom<(A, B)> for Vec<Z>
+impl<A, As, B, Bs, Z> UpcastFrom<(A, B)> for Vec<Z>
 where
-    A: Upcast<Z>,
-    B: Upcast<Z>,
+    A: IntoIterator<Item = As> + Clone,
+    As: Upcast<Z>,
+    B: IntoIterator<Item = Bs> + Clone,
+    Bs: Upcast<Z>,
 {
     fn upcast_from(term: (A, B)) -> Self {
         let (a, b) = term;
-        vec![a.upcast(), b.upcast()]
-    }
-}
-
-impl<A, B, C, A1, B1, C1> UpcastFrom<(A1, B1, C1)> for (A, B, C)
-where
-    A1: Upcast<A>,
-    B1: Upcast<B>,
-    C1: Upcast<C>,
-{
-    fn upcast_from(term: (A1, B1, C1)) -> Self {
-        let (a1, b1, c1) = term;
-        (a1.upcast(), b1.upcast(), c1.upcast())
+        let mut v: Self = vec![];
+        v.extend(a.into_iter().map(|a| a.upcast()));
+        v.extend(b.into_iter().map(|b| b.upcast()));
+        v
     }
 }
 

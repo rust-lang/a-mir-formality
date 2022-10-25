@@ -6,7 +6,7 @@ use crate::{
     parse::{self, expect_keyword, expect_str, Parse},
 };
 
-use super::{AliasTy, AssociatedTyId, Lt, LtData, Parameter, PredicateTy, RigidTy, ScalarId, Ty};
+use super::{AliasTy, AssociatedTyName, Lt, LtData, Parameter, PredicateTy, RigidTy, ScalarId, Ty};
 
 // For types, we invest some effort into parsing them decently because it makes
 // writing tests so much more pleasant.
@@ -66,7 +66,7 @@ fn parse_assoc_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> Option<(Ty,
     let (item_id, text) = AssociatedItemId::parse(scope, text)?;
     let (item_parameters, text) = parse_parameters(scope, text)?;
 
-    let assoc_ty_id = AssociatedTyId { trait_id, item_id };
+    let assoc_ty_id = AssociatedTyName { trait_id, item_id };
     let parameters: Vec<Parameter> = std::iter::once(ty0.upcast())
         .chain(trait_parameters1)
         .chain(item_parameters)

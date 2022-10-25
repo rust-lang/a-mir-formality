@@ -352,8 +352,9 @@ pub enum HypothesisData {
 }
 
 impl Hypothesis {
-    pub fn for_all(names: &[KindedVarIndex], data: impl Upcast<Hypothesis>) -> Self {
-        HypothesisData::ForAll(Binder::new(names, data.upcast())).upcast()
+    pub fn for_all(names: impl Upcast<Vec<KindedVarIndex>>, data: impl Upcast<Hypothesis>) -> Self {
+        let names = names.upcast();
+        HypothesisData::ForAll(Binder::new(&names, data.upcast())).upcast()
     }
 
     pub fn implies(
