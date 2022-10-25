@@ -54,39 +54,24 @@ fn simple_test() {
 
         expect_test::expect![[r#"
             {
-                Yes(
-                    Env {
-                        universe: Universe {
-                            index: 0,
-                        },
-                        inference_data: [
-                            InferenceVarData {
-                                kind: Ty,
-                                universe: Universe {
-                                    index: 0,
-                                },
-                                mapped_to: Some(
-                                    Ty(
-                                        Ty {
-                                            data: RigidTy(
-                                                RigidTy {
-                                                    name: ScalarId(
-                                                        U32,
-                                                    ),
-                                                    parameters: [],
-                                                },
-                                            ),
-                                        },
-                                    ),
+                yes(
+                    env(
+                        U(0),
+                        [
+                            inference_var_data(
+                                ty,
+                                U(0),
+                                Some(
+                                    RigidTy((rigid (scalar u32))),
                                 ),
-                                subtype_of: [],
-                                supertype_of: [],
-                                outlives: [],
-                                outlived_by: [],
-                            },
+                                [],
+                                [],
+                                [],
+                                [],
+                            ),
                         ],
-                        coherence_mode: No,
-                    },
+                        no,
+                    ),
                 ),
             }
         "#]].assert_debug_eq(&results);

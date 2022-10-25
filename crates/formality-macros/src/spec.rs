@@ -22,8 +22,8 @@ pub enum FormalitySpecOp {
     /// `<` -- indicates we should parse the given char. We currently ignoring the spacing rules.
     Char { punct: Punct },
 
-    /// Specific text we should parse
-    Text { text: String },
+    /// Specific delimeter (e.g., `(`) we should parse (sometimes `""`).
+    Delimeter { text: String },
 }
 
 pub enum FieldMode {
@@ -59,11 +59,11 @@ fn token_stream_to_ops(
                     proc_macro2::Delimiter::None => ("", ""),
                 };
 
-                ops.push(Text {
+                ops.push(Delimeter {
                     text: open_text.to_string(),
                 });
                 token_stream_to_ops(ops, v.stream())?;
-                ops.push(Text {
+                ops.push(Delimeter {
                     text: close_text.to_string(),
                 });
             }

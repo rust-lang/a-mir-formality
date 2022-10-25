@@ -1,6 +1,7 @@
 use formality_macros::term;
 use std::{collections::BTreeSet, sync::Arc};
 
+mod debug_impls;
 mod parse_impls;
 
 use crate::{
@@ -24,7 +25,7 @@ impl Universe {
     pub const ROOT: Universe = Universe { index: 0 };
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ty {
     data: Arc<TyData>,
 }
@@ -111,7 +112,7 @@ cast_impl!((InferenceVar) <: (Variable) <: (TyData));
 cast_impl!((BoundVar) <: (Variable) <: (TyData));
 cast_impl!((ScalarId) <: (RigidTy) <: (TyData));
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
     pub index: usize,
 }
@@ -233,7 +234,7 @@ pub struct EnsuresTy {
 /// A *placeholder* is a dummy variable about which nothing is known except
 /// that which we see in the environment. When we want to prove something
 /// is true for all `T`, we replace `T` with a placeholder.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PlaceholderVar {
     pub universe: Universe,
     pub var_index: VarIndex,
@@ -311,7 +312,7 @@ pub enum ParameterKind {
     Lt,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Lt {
     data: Arc<LtData>,
 }
@@ -360,7 +361,7 @@ cast_impl!((InferenceVar) <: (Variable) <: (LtData));
 cast_impl!((PlaceholderVar) <: (Variable) <: (LtData));
 cast_impl!((BoundVar) <: (Variable) <: (LtData));
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Variable {
     PlaceholderVar(PlaceholderVar),
     InferenceVar(InferenceVar),
@@ -432,7 +433,7 @@ impl Variable {
 }
 
 /// Identifies a bound variable.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BoundVar {
     /// Identifies the binder that contained this variable, counting "outwards".
     /// When you create a binder with `Binder::new`,
@@ -451,7 +452,7 @@ impl BoundVar {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DebruijnIndex {
     pub index: usize,
 }
@@ -478,7 +479,7 @@ impl DebruijnIndex {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VarIndex {
     pub index: usize,
 }

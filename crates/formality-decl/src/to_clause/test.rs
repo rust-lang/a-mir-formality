@@ -19,51 +19,7 @@ fn to_clause() {
 
     expect![[r#"
         [
-            Hypothesis {
-                data: ForAll(
-                    Binder {
-                        kinds: [
-                            Ty,
-                        ],
-                        term: Hypothesis {
-                            data: Implies(
-                                [],
-                                Hypothesis {
-                                    data: AtomicPredicate(
-                                        HasImpl(
-                                            TraitRef {
-                                                trait_id: TraitId {
-                                                    data: "Debug",
-                                                },
-                                                parameters: [
-                                                    Ty(
-                                                        Ty {
-                                                            data: Variable(
-                                                                BoundVar(
-                                                                    BoundVar {
-                                                                        debruijn: Some(
-                                                                            DebruijnIndex {
-                                                                                index: 0,
-                                                                            },
-                                                                        ),
-                                                                        var_index: VarIndex {
-                                                                            index: 0,
-                                                                        },
-                                                                    },
-                                                                ),
-                                                            ),
-                                                        },
-                                                    ),
-                                                ],
-                                            },
-                                        ),
-                                    ),
-                                },
-                            ),
-                        },
-                    },
-                ),
-            },
+            for_all(<ty> implies([], has_impl(Debug(Variable(^0_0))))),
         ]
     "#]]
     .assert_debug_eq(&clauses);

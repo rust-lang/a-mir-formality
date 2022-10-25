@@ -170,7 +170,7 @@ fn parse_variant_with_attr(
                 quote_spanned!(punct.span() => let text = parse::expect_char(#literal, text)?;)
             }
 
-            spec::FormalitySpecOp::Text { text } => {
+            spec::FormalitySpecOp::Delimeter { text } => {
                 let literal = Literal::string(text);
                 quote!(let text = parse::expect_str(#literal, text)?;)
             }

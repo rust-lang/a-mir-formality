@@ -15,7 +15,7 @@ use super::{
     BoundVar, DebruijnIndex, KindedVarIndex, Parameter, ParameterKind, Substitution, Variable,
 };
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Binder<T> {
     kinds: Vec<ParameterKind>,
     term: T,
@@ -181,5 +181,23 @@ where
             kinds,
             term: UpcastFrom::upcast_from(term),
         }
+    }
+}
+
+impl<T> std::fmt::Debug for Binder<T>
+where
+    T: std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<")?;
+        for (kind, i) in self.kinds.iter().zip(0..) {
+            if i > 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{:?}", kind)?;
+        }
+        write!(f, "> ")?;
+        write!(f, "{:?}", &self.term)?;
+        Ok(())
     }
 }

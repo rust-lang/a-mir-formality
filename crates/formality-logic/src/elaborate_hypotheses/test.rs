@@ -47,56 +47,8 @@ fn test_single_step() {
 
     expect_test::expect![[r#"
         {
-            Hypothesis {
-                data: AtomicPredicate(
-                    IsImplemented(
-                        TraitRef {
-                            trait_id: TraitId {
-                                data: "Ord",
-                            },
-                            parameters: [
-                                Ty(
-                                    Ty {
-                                        data: RigidTy(
-                                            RigidTy {
-                                                name: ScalarId(
-                                                    U32,
-                                                ),
-                                                parameters: [],
-                                            },
-                                        ),
-                                    },
-                                ),
-                            ],
-                        },
-                    ),
-                ),
-            },
-            Hypothesis {
-                data: AtomicPredicate(
-                    IsImplemented(
-                        TraitRef {
-                            trait_id: TraitId {
-                                data: "PartialOrd",
-                            },
-                            parameters: [
-                                Ty(
-                                    Ty {
-                                        data: RigidTy(
-                                            RigidTy {
-                                                name: ScalarId(
-                                                    U32,
-                                                ),
-                                                parameters: [],
-                                            },
-                                        ),
-                                    },
-                                ),
-                            ],
-                        },
-                    ),
-                ),
-            },
+            is_implemented(Ord(RigidTy((rigid (scalar u32))))),
+            is_implemented(PartialOrd(RigidTy((rigid (scalar u32))))),
         }
     "#]]
     .assert_debug_eq(&hypotheses1);
@@ -127,81 +79,9 @@ fn test_transitive() {
 
     expect_test::expect![[r#"
         {
-            Hypothesis {
-                data: AtomicPredicate(
-                    IsImplemented(
-                        TraitRef {
-                            trait_id: TraitId {
-                                data: "A",
-                            },
-                            parameters: [
-                                Ty(
-                                    Ty {
-                                        data: RigidTy(
-                                            RigidTy {
-                                                name: ScalarId(
-                                                    U32,
-                                                ),
-                                                parameters: [],
-                                            },
-                                        ),
-                                    },
-                                ),
-                            ],
-                        },
-                    ),
-                ),
-            },
-            Hypothesis {
-                data: AtomicPredicate(
-                    IsImplemented(
-                        TraitRef {
-                            trait_id: TraitId {
-                                data: "B",
-                            },
-                            parameters: [
-                                Ty(
-                                    Ty {
-                                        data: RigidTy(
-                                            RigidTy {
-                                                name: ScalarId(
-                                                    U32,
-                                                ),
-                                                parameters: [],
-                                            },
-                                        ),
-                                    },
-                                ),
-                            ],
-                        },
-                    ),
-                ),
-            },
-            Hypothesis {
-                data: AtomicPredicate(
-                    IsImplemented(
-                        TraitRef {
-                            trait_id: TraitId {
-                                data: "C",
-                            },
-                            parameters: [
-                                Ty(
-                                    Ty {
-                                        data: RigidTy(
-                                            RigidTy {
-                                                name: ScalarId(
-                                                    U32,
-                                                ),
-                                                parameters: [],
-                                            },
-                                        ),
-                                    },
-                                ),
-                            ],
-                        },
-                    ),
-                ),
-            },
+            is_implemented(A(RigidTy((rigid (scalar u32))))),
+            is_implemented(B(RigidTy((rigid (scalar u32))))),
+            is_implemented(C(RigidTy((rigid (scalar u32))))),
         }
     "#]]
     .assert_debug_eq(&hypotheses1);

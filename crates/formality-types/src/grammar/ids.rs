@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! id {
     ($n:ident) => {
-        #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub struct $n {
             data: std::sync::Arc<String>,
         }
@@ -42,6 +42,12 @@ macro_rules! id {
                     let (string, text) = parse::identifier(text)?;
                     let n = $n::new(string);
                     Some((n, text))
+                }
+            }
+
+            impl std::fmt::Debug for $n {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "{}", &self.data)
                 }
             }
         };

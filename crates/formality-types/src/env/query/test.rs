@@ -47,25 +47,7 @@ fn test_compress_universes() {
     expect_test::expect![[r#"
         VarSubstitution {
             map: {
-                PlaceholderVar(
-                    PlaceholderVar {
-                        universe: Universe {
-                            index: 1,
-                        },
-                        var_index: VarIndex {
-                            index: 0,
-                        },
-                    },
-                ): PlaceholderVar(
-                    PlaceholderVar {
-                        universe: Universe {
-                            index: 2,
-                        },
-                        var_index: VarIndex {
-                            index: 1,
-                        },
-                    },
-                ),
+                !U(1)_0: !U(2)_1,
             },
         }
     "#]]
@@ -86,44 +68,8 @@ fn test_placeholder_renamed_in_order_of_appearance() {
     expect_test::expect![[r#"
         VarSubstitution {
             map: {
-                PlaceholderVar(
-                    PlaceholderVar {
-                        universe: Universe {
-                            index: 1,
-                        },
-                        var_index: VarIndex {
-                            index: 0,
-                        },
-                    },
-                ): PlaceholderVar(
-                    PlaceholderVar {
-                        universe: Universe {
-                            index: 2,
-                        },
-                        var_index: VarIndex {
-                            index: 1,
-                        },
-                    },
-                ),
-                PlaceholderVar(
-                    PlaceholderVar {
-                        universe: Universe {
-                            index: 1,
-                        },
-                        var_index: VarIndex {
-                            index: 1,
-                        },
-                    },
-                ): PlaceholderVar(
-                    PlaceholderVar {
-                        universe: Universe {
-                            index: 2,
-                        },
-                        var_index: VarIndex {
-                            index: 0,
-                        },
-                    },
-                ),
+                !U(1)_0: !U(2)_1,
+                !U(1)_1: !U(2)_0,
             },
         }
     "#]]
@@ -141,44 +87,8 @@ fn test_mix_universes() {
     expect_test::expect![[r#"
         VarSubstitution {
             map: {
-                PlaceholderVar(
-                    PlaceholderVar {
-                        universe: Universe {
-                            index: 1,
-                        },
-                        var_index: VarIndex {
-                            index: 0,
-                        },
-                    },
-                ): PlaceholderVar(
-                    PlaceholderVar {
-                        universe: Universe {
-                            index: 1,
-                        },
-                        var_index: VarIndex {
-                            index: 0,
-                        },
-                    },
-                ),
-                PlaceholderVar(
-                    PlaceholderVar {
-                        universe: Universe {
-                            index: 2,
-                        },
-                        var_index: VarIndex {
-                            index: 0,
-                        },
-                    },
-                ): PlaceholderVar(
-                    PlaceholderVar {
-                        universe: Universe {
-                            index: 3,
-                        },
-                        var_index: VarIndex {
-                            index: 0,
-                        },
-                    },
-                ),
+                !U(1)_0: !U(1)_0,
+                !U(2)_0: !U(3)_0,
             },
         }
     "#]]
@@ -192,36 +102,24 @@ fn test_existential_do_not_create_universe() {
     let (query, substitution) = querify(&env, &term_with(&bindings, "is_implemented(Debug(E2_0))"));
     expect_test::expect![[r#"
         (
-            Env {
-                universe: Universe {
-                    index: 0,
-                },
-                inference_data: [
-                    InferenceVarData {
-                        kind: Ty,
-                        universe: Universe {
-                            index: 0,
-                        },
-                        mapped_to: None,
-                        subtype_of: [],
-                        supertype_of: [],
-                        outlives: [],
-                        outlived_by: [],
-                    },
+            env(
+                U(0),
+                [
+                    inference_var_data(
+                        ty,
+                        U(0),
+                        None,
+                        [],
+                        [],
+                        [],
+                        [],
+                    ),
                 ],
-                coherence_mode: No,
-            },
+                no,
+            ),
             VarSubstitution {
                 map: {
-                    InferenceVar(
-                        InferenceVar {
-                            index: 0,
-                        },
-                    ): InferenceVar(
-                        InferenceVar {
-                            index: 4,
-                        },
-                    ),
+                    ?0: ?4,
                 },
             },
         )
@@ -240,95 +138,45 @@ fn test_mix_existential_and_placeholder() {
     );
     expect_test::expect![[r#"
         (
-            Env {
-                universe: Universe {
-                    index: 1,
-                },
-                inference_data: [
-                    InferenceVarData {
-                        kind: Ty,
-                        universe: Universe {
-                            index: 0,
-                        },
-                        mapped_to: None,
-                        subtype_of: [],
-                        supertype_of: [],
-                        outlives: [],
-                        outlived_by: [],
-                    },
-                    InferenceVarData {
-                        kind: Ty,
-                        universe: Universe {
-                            index: 0,
-                        },
-                        mapped_to: None,
-                        subtype_of: [],
-                        supertype_of: [],
-                        outlives: [],
-                        outlived_by: [],
-                    },
-                    InferenceVarData {
-                        kind: Ty,
-                        universe: Universe {
-                            index: 1,
-                        },
-                        mapped_to: None,
-                        subtype_of: [],
-                        supertype_of: [],
-                        outlives: [],
-                        outlived_by: [],
-                    },
+            env(
+                U(1),
+                [
+                    inference_var_data(
+                        ty,
+                        U(0),
+                        None,
+                        [],
+                        [],
+                        [],
+                        [],
+                    ),
+                    inference_var_data(
+                        ty,
+                        U(0),
+                        None,
+                        [],
+                        [],
+                        [],
+                        [],
+                    ),
+                    inference_var_data(
+                        ty,
+                        U(1),
+                        None,
+                        [],
+                        [],
+                        [],
+                        [],
+                    ),
                 ],
-                coherence_mode: No,
-            },
+                no,
+            ),
             VarSubstitution {
                 map: {
-                    PlaceholderVar(
-                        PlaceholderVar {
-                            universe: Universe {
-                                index: 1,
-                            },
-                            var_index: VarIndex {
-                                index: 0,
-                            },
-                        },
-                    ): PlaceholderVar(
-                        PlaceholderVar {
-                            universe: Universe {
-                                index: 2,
-                            },
-                            var_index: VarIndex {
-                                index: 0,
-                            },
-                        },
-                    ),
-                    InferenceVar(
-                        InferenceVar {
-                            index: 0,
-                        },
-                    ): InferenceVar(
-                        InferenceVar {
-                            index: 0,
-                        },
-                    ),
-                    InferenceVar(
-                        InferenceVar {
-                            index: 1,
-                        },
-                    ): InferenceVar(
-                        InferenceVar {
-                            index: 3,
-                        },
-                    ),
-                    InferenceVar(
-                        InferenceVar {
-                            index: 2,
-                        },
-                    ): InferenceVar(
-                        InferenceVar {
-                            index: 6,
-                        },
-                    ),
+                    !U(1)_0: !U(2)_0,
+                    ?0: ?0,
+                    ?1: ?3,
+                    ?2: ?6,
                 },
             },
         )

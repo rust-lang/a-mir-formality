@@ -9,26 +9,8 @@ use test_log::test;
 fn parse_atomic_predicate() {
     let program: AtomicPredicate = term("is_implemented(Debug(u32))");
     expect![[r#"
-        IsImplemented(
-            TraitRef {
-                trait_id: TraitId {
-                    data: "Debug",
-                },
-                parameters: [
-                    Ty(
-                        Ty {
-                            data: RigidTy(
-                                RigidTy {
-                                    name: ScalarId(
-                                        U32,
-                                    ),
-                                    parameters: [],
-                                },
-                            ),
-                        },
-                    ),
-                ],
-            },
+        is_implemented(
+            Debug(RigidTy((rigid (scalar u32)))),
         )
     "#]]
     .assert_debug_eq(&program);
@@ -38,46 +20,7 @@ fn parse_atomic_predicate() {
 fn parse_forall_goal() {
     let program: Goal = term("for_all(<ty T> is_implemented(Debug(T)))");
     expect![[r#"
-        Goal {
-            data: ForAll(
-                Binder {
-                    kinds: [
-                        Ty,
-                    ],
-                    term: Goal {
-                        data: AtomicPredicate(
-                            IsImplemented(
-                                TraitRef {
-                                    trait_id: TraitId {
-                                        data: "Debug",
-                                    },
-                                    parameters: [
-                                        Ty(
-                                            Ty {
-                                                data: Variable(
-                                                    BoundVar(
-                                                        BoundVar {
-                                                            debruijn: Some(
-                                                                DebruijnIndex {
-                                                                    index: 0,
-                                                                },
-                                                            ),
-                                                            var_index: VarIndex {
-                                                                index: 0,
-                                                            },
-                                                        },
-                                                    ),
-                                                ),
-                                            },
-                                        ),
-                                    ],
-                                },
-                            ),
-                        ),
-                    },
-                },
-            ),
-        }
+        for_all(<ty> is_implemented(Debug(Variable(^0_0))))
     "#]]
     .assert_debug_eq(&program);
 }
@@ -87,73 +30,7 @@ fn parse_nested_binders() {
     // T should have a debruijn index of 1, U should have a debruijn index of 0
     let program: Goal = term("for_all(<ty T> exists(<ty U> is_implemented(Debug(T, U))))");
     expect![[r#"
-        Goal {
-            data: ForAll(
-                Binder {
-                    kinds: [
-                        Ty,
-                    ],
-                    term: Goal {
-                        data: Exists(
-                            Binder {
-                                kinds: [
-                                    Ty,
-                                ],
-                                term: Goal {
-                                    data: AtomicPredicate(
-                                        IsImplemented(
-                                            TraitRef {
-                                                trait_id: TraitId {
-                                                    data: "Debug",
-                                                },
-                                                parameters: [
-                                                    Ty(
-                                                        Ty {
-                                                            data: Variable(
-                                                                BoundVar(
-                                                                    BoundVar {
-                                                                        debruijn: Some(
-                                                                            DebruijnIndex {
-                                                                                index: 1,
-                                                                            },
-                                                                        ),
-                                                                        var_index: VarIndex {
-                                                                            index: 0,
-                                                                        },
-                                                                    },
-                                                                ),
-                                                            ),
-                                                        },
-                                                    ),
-                                                    Ty(
-                                                        Ty {
-                                                            data: Variable(
-                                                                BoundVar(
-                                                                    BoundVar {
-                                                                        debruijn: Some(
-                                                                            DebruijnIndex {
-                                                                                index: 0,
-                                                                            },
-                                                                        ),
-                                                                        var_index: VarIndex {
-                                                                            index: 0,
-                                                                        },
-                                                                    },
-                                                                ),
-                                                            ),
-                                                        },
-                                                    ),
-                                                ],
-                                            },
-                                        ),
-                                    ),
-                                },
-                            },
-                        ),
-                    },
-                },
-            ),
-        }
+        for_all(<ty> exists(<ty> is_implemented(Debug(Variable(^1_0), Variable(^0_0)))))
     "#]]
     .assert_debug_eq(&program);
 }
@@ -168,110 +45,7 @@ fn parse_all() {
         ))",
     );
     expect![[r#"
-        Goal {
-            data: ForAll(
-                Binder {
-                    kinds: [
-                        Ty,
-                    ],
-                    term: Goal {
-                        data: All(
-                            [
-                                Goal {
-                                    data: Exists(
-                                        Binder {
-                                            kinds: [
-                                                Ty,
-                                            ],
-                                            term: Goal {
-                                                data: AtomicPredicate(
-                                                    IsImplemented(
-                                                        TraitRef {
-                                                            trait_id: TraitId {
-                                                                data: "PartialEq",
-                                                            },
-                                                            parameters: [
-                                                                Ty(
-                                                                    Ty {
-                                                                        data: Variable(
-                                                                            BoundVar(
-                                                                                BoundVar {
-                                                                                    debruijn: Some(
-                                                                                        DebruijnIndex {
-                                                                                            index: 1,
-                                                                                        },
-                                                                                    ),
-                                                                                    var_index: VarIndex {
-                                                                                        index: 0,
-                                                                                    },
-                                                                                },
-                                                                            ),
-                                                                        ),
-                                                                    },
-                                                                ),
-                                                                Ty(
-                                                                    Ty {
-                                                                        data: Variable(
-                                                                            BoundVar(
-                                                                                BoundVar {
-                                                                                    debruijn: Some(
-                                                                                        DebruijnIndex {
-                                                                                            index: 0,
-                                                                                        },
-                                                                                    ),
-                                                                                    var_index: VarIndex {
-                                                                                        index: 0,
-                                                                                    },
-                                                                                },
-                                                                            ),
-                                                                        ),
-                                                                    },
-                                                                ),
-                                                            ],
-                                                        },
-                                                    ),
-                                                ),
-                                            },
-                                        },
-                                    ),
-                                },
-                                Goal {
-                                    data: AtomicPredicate(
-                                        HasImpl(
-                                            TraitRef {
-                                                trait_id: TraitId {
-                                                    data: "Debug",
-                                                },
-                                                parameters: [
-                                                    Ty(
-                                                        Ty {
-                                                            data: Variable(
-                                                                BoundVar(
-                                                                    BoundVar {
-                                                                        debruijn: Some(
-                                                                            DebruijnIndex {
-                                                                                index: 0,
-                                                                            },
-                                                                        ),
-                                                                        var_index: VarIndex {
-                                                                            index: 0,
-                                                                        },
-                                                                    },
-                                                                ),
-                                                            ),
-                                                        },
-                                                    ),
-                                                ],
-                                            },
-                                        ),
-                                    ),
-                                },
-                            ],
-                        ),
-                    },
-                },
-            ),
-        }
+        for_all(<ty> all(exists(<ty> is_implemented(PartialEq(Variable(^1_0), Variable(^0_0)))), has_impl(Debug(Variable(^0_0)))))
     "#]]
     .assert_debug_eq(&program);
 }
