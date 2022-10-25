@@ -2,9 +2,10 @@ use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 use crate::{
     cast::{DowncastFrom, Upcast},
+    collections::Set,
     fold::Fold,
     grammar::{Lt, Ty},
-    parse::Parse, collections::Set,
+    parse::Parse,
 };
 
 pub trait Term:

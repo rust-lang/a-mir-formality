@@ -7,3 +7,7 @@ edition = "2021"
 
 [dependencies]
 lazy_static = "1.4.0"
+env_logger = "*"
+tracing = "0.1"
+tracing-subscriber = {version = "0.3", default-features = false, features = ["env-filter", "fmt"]}
+tracing-tree = { version = "0.2" }

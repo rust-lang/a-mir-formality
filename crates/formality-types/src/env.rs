@@ -4,7 +4,6 @@ use formality_macros::term;
 use crate::{
     cast::Upcast,
     derive_links::Variable,
-    fold::Fold,
     grammar::{
         Binder, Fallible, Goal, InferenceVar, Parameter, ParameterKind, PlaceholderVar, Ty,
         Universe, VarSubstitution,
@@ -14,6 +13,7 @@ use crate::{
 
 use self::query::{querify, Query};
 
+mod eq;
 mod query;
 mod simple_sub;
 mod test;
@@ -106,6 +106,10 @@ impl Env {
 
     fn data(&self, var: InferenceVar) -> &InferenceVarData {
         &self.inference_data[var.index]
+    }
+
+    fn is_mapped(&self, var: InferenceVar) -> bool {
+        self.inference_data[var.index].mapped_to.is_some()
     }
 
     /// Replace all bound variables in `binder` with universal placeholders in a fresh universe.
@@ -221,7 +225,7 @@ impl Env {
     ///   (both now and, in the case of unmapped existential variables, for all future values).
     ///
     /// Returns a list of goals that must be proven for the above conditions to be true.
-    fn occurs_check(&mut self, mapped_var: InferenceVar, value: &Parameter) -> Fallible<Vec<Goal>> {
+    fn occurs_check(&mut self, mapped_var: InferenceVar, value: &impl Term) -> Fallible<Vec<Goal>> {
         // the `mapped_var` is not yet mapped
         assert!(self.data(mapped_var).mapped_to.is_none());
 
@@ -291,5 +295,12 @@ impl Env {
     /// back onto this original environment via the `VarSubstitution`.
     pub fn query(&self, goal: &Goal) -> (Query, VarSubstitution) {
         querify(self, goal)
+    }
+
+    /// Equate two parameters (which must be the same kind), returning
+    /// either an error (if they cannot be equated) or a new environment
+    /// plus a list of goals that must still be proven.
+    pub fn eq(&self, a: &Parameter, b: &Parameter) -> Fallible<(Env, Vec<Goal>)> {
+        eq::eq(self, a, b)
     }
 }

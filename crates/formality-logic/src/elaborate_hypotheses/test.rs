@@ -5,7 +5,6 @@ use formality_types::{
     grammar::{AtomicPredicate, AtomicRelation, Hypothesis, Invariant, ProgramClause},
     parse::term,
 };
-use test_log::test;
 
 use crate::Db;
 

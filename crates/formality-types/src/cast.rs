@@ -205,6 +205,17 @@ where
     }
 }
 
+impl<A, B, Z> UpcastFrom<(A, B)> for Vec<Z>
+where
+    A: Upcast<Z>,
+    B: Upcast<Z>,
+{
+    fn upcast_from(term: (A, B)) -> Self {
+        let (a, b) = term;
+        vec![a.upcast(), b.upcast()]
+    }
+}
+
 impl<A, B, C, A1, B1, C1> UpcastFrom<(A1, B1, C1)> for (A, B, C)
 where
     A1: Upcast<A>,
@@ -214,6 +225,18 @@ where
     fn upcast_from(term: (A1, B1, C1)) -> Self {
         let (a1, b1, c1) = term;
         (a1.upcast(), b1.upcast(), c1.upcast())
+    }
+}
+
+impl<A, B, C, Z> UpcastFrom<(A, B, C)> for Vec<Z>
+where
+    A: Upcast<Z>,
+    B: Upcast<Z>,
+    C: Upcast<Z>,
+{
+    fn upcast_from(term: (A, B, C)) -> Self {
+        let (a, b, c) = term;
+        vec![a.upcast(), b.upcast(), c.upcast()]
     }
 }
 

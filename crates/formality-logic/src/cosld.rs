@@ -3,7 +3,9 @@ use formality_macros::term;
 use formality_types::{
     collections::Set,
     env::Env,
-    grammar::{AtomicPredicate, Coinductive, Goal, GoalData, Hypothesis, HypothesisData},
+    grammar::{
+        AtomicPredicate, AtomicRelation, Coinductive, Goal, GoalData, Hypothesis, HypothesisData,
+    },
     set,
 };
 
@@ -23,12 +25,13 @@ pub fn prove(db: &Db, env: &Env, assumptions: &[Hypothesis], goal: &Goal) -> Set
     prove_goal(db, env, Stack::Empty, assumptions, goal)
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 enum Stack<'s> {
     Empty,
     Link(&'s AtomicPredicate, &'s Stack<'s>),
 }
 
+#[tracing::instrument(level = "debug", ret)]
 fn prove_goal(
     db: &Db,
     env: &Env,
@@ -36,6 +39,7 @@ fn prove_goal(
     assumptions: &Set<Hypothesis>,
     goal: &Goal,
 ) -> Set<CosldResult> {
+    eprintln!("goal = {goal:?}");
     match goal.data() {
         GoalData::AtomicPredicate(predicate) => match stack.search(env, predicate) {
             StackSearch::CoinductiveCycle => set![CosldResult::Yes(env.clone())],
@@ -50,9 +54,17 @@ fn prove_goal(
                     .collect()
             }
         },
-        GoalData::AtomicRelation(_) => {
-            panic!("not yet implemented: {goal:?}")
-        }
+        GoalData::AtomicRelation(r) => match r {
+            AtomicRelation::Equals(a, b) => match env.eq(a, b) {
+                Ok((env, goals)) => prove_all(db, &env, stack, assumptions, &goals, &[]),
+                Err(_) => {
+                    eprintln!("failed to unify: {a:?} and {b:?}");
+                    set![]
+                }
+            },
+            AtomicRelation::Sub(_, _) => todo!(),
+            AtomicRelation::Outlives(_, _) => todo!(),
+        },
         GoalData::ForAll(binder) => {
             let mut env = env.clone();
             let subgoal = env.instantiate_universally(binder);
@@ -91,6 +103,7 @@ fn prove_goal(
 /// * If a subgoal is found to be ambiguous, then it is pushed into the "deferred" list.
 /// * When another subgoal succeeds, the deferred list is added back into the list of goals to be proven.
 /// * If we wind up with deferred goals and no more subgoals, the final result is ambiguous.
+#[tracing::instrument(level = "debug", ret)]
 fn prove_all(
     db: &Db,
     env: &Env,
@@ -99,6 +112,7 @@ fn prove_all(
     subgoals: &[Goal],
     deferred: &[Goal],
 ) -> Set<CosldResult> {
+    eprintln!("prove_all(subgoals = {subgoals:?}, deferred = {deferred:?}");
     if let Some((subgoal, remainder)) = subgoals.split_first() {
         prove_goal(db, env, stack, assumptions, subgoal)
             .into_iter()
@@ -122,7 +136,7 @@ fn prove_all(
     } else if !deferred.is_empty() {
         set![CosldResult::Maybe]
     } else {
-        set![]
+        set![CosldResult::Yes(env.clone())]
     }
 }
 
@@ -133,6 +147,7 @@ fn prove_all(
 /// For example, if `clause` is `implies([P, Q], R)`,
 /// then we would match `predicate` against `R` and -- if that succeeds --
 /// try to prove `P` and `Q`.
+#[tracing::instrument(level = "debug", ret)]
 fn backchain(
     db: &Db,
     env: &Env,
@@ -141,6 +156,7 @@ fn backchain(
     clause: &Hypothesis,
     predicate: &AtomicPredicate,
 ) -> Set<CosldResult> {
+    eprintln!("backchain({clause:?}, {predicate:?}");
     match clause.data() {
         HypothesisData::AtomicPredicate(h) => {
             let (skeleton1, parameters1) = h.debone();
@@ -179,6 +195,7 @@ fn backchain(
     }
 }
 
+#[derive(Copy, Clone, Debug)]
 enum StackSearch {
     CoinductiveCycle,
     InductiveCycle,
@@ -189,6 +206,7 @@ impl Stack<'_> {
     /// Search the stack to see if it contains `predicate1`.
     /// If so, returns coinductive cycle if all stack entries (including `predicate1`) are coinductive,
     /// otherwise returns inductive cycle.
+    #[tracing::instrument(level = "debug", ret)]
     fn search(self, env: &Env, predicate1: &AtomicPredicate) -> StackSearch {
         let predicate1 = env.refresh_inference_variables(predicate1);
 

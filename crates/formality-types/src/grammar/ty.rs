@@ -124,8 +124,8 @@ impl InferenceVar {
 
 #[term((rigid $name $*parameters))]
 pub struct RigidTy {
-    name: RigidName,
-    parameters: Parameters,
+    pub name: RigidName,
+    pub parameters: Parameters,
 }
 
 impl UpcastFrom<ScalarId> for RigidTy {
@@ -444,6 +444,10 @@ pub struct BoundVar {
 impl BoundVar {
     pub fn into_parameter(self, kind: ParameterKind) -> Parameter {
         Variable::upcast_from(self).into_parameter(kind)
+    }
+
+    pub fn ty(self) -> Ty {
+        Ty::new(TyData::Variable(Variable::upcast_from(self)))
     }
 }
 

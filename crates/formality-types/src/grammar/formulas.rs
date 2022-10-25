@@ -68,6 +68,12 @@ impl AtomicPredicate {
     }
 }
 
+impl AliasTy {
+    pub fn normalizes_to(&self, t: impl Upcast<Ty>) -> AtomicPredicate {
+        AtomicPredicate::NormalizesTo(self.clone(), t.upcast())
+    }
+}
+
 /// The "skeleton" of an atomic predicate is the kernel that contains
 /// nothing unifiable and identifies the kind of predicate.
 /// If the skeleton's don't match, they are distinct predicates.

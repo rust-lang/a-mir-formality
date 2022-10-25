@@ -1,6 +1,6 @@
 #![cfg(test)]
-use test_log::test;
 
+use formality_core::with_tracing_logs;
 use formality_types::{
     env::Env,
     grammar::{AtomicPredicate, AtomicRelation, Hypothesis, Invariant, ProgramClause},
@@ -40,16 +40,55 @@ impl crate::db::Database for MockDb {
 
 #[test]
 fn simple_test() {
-    let db = Db::new(MockDb::new(
-        "[\
-        for_all(<ty T> implies([is_implemented(Debug(T))], is_implemented(Debug(Vec<T>)))),\
-        is_implemented(Debug(u32)),\
-        ]",
-        "[]",
-    ));
-    let env = Env::default();
+    with_tracing_logs(|| {
+        let db = Db::new(MockDb::new(
+            "[\
+            for_all(<ty T> implies([is_implemented(Debug(T))], is_implemented(Debug(Vec<T>)))),\
+            is_implemented(Debug(u32)),\
+            ]",
+            "[]",
+        ));
+        let env = Env::default();
 
-    let results = super::prove(&db, &env, &[], &term("is_implemented(Debug(Vec<u32>))"));
+        let results = super::prove(&db, &env, &[], &term("is_implemented(Debug(Vec<u32>))"));
 
-    expect_test::expect![].assert_debug_eq(&results);
+        expect_test::expect![[r#"
+            {
+                Yes(
+                    Env {
+                        universe: Universe {
+                            index: 0,
+                        },
+                        inference_data: [
+                            InferenceVarData {
+                                kind: Ty,
+                                universe: Universe {
+                                    index: 0,
+                                },
+                                mapped_to: Some(
+                                    Ty(
+                                        Ty {
+                                            data: RigidTy(
+                                                RigidTy {
+                                                    name: ScalarId(
+                                                        U32,
+                                                    ),
+                                                    parameters: [],
+                                                },
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                subtype_of: [],
+                                supertype_of: [],
+                                outlives: [],
+                                outlived_by: [],
+                            },
+                        ],
+                        coherence_mode: No,
+                    },
+                ),
+            }
+        "#]].assert_debug_eq(&results);
+    })
 }
