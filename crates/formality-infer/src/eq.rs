@@ -52,7 +52,7 @@ fn eq_tys(env: &mut Env, a: &Ty, b: &Ty) -> Fallible<Vec<Goal>> {
             if alias_a.name == alias_b.name {
                 Ok(vec![Goal::any(vec![
                     normalizes_goal,
-                    eq_parameters_goal(&alias_a.parameters, &alias_b.parameters),
+                    Goal::all(zip_eq(&alias_a.parameters, &alias_b.parameters)),
                 ])])
             } else {
                 Ok(vec![normalizes_goal])
@@ -83,7 +83,7 @@ fn eq_tys(env: &mut Env, a: &Ty, b: &Ty) -> Fallible<Vec<Goal>> {
                 anyhow::bail!("cannot equate `{a:?}` and `{b:?}`");
             }
 
-            eq_vec_parameters(env, parameters_a, parameters_b)
+            Ok(zip_eq(parameters_a, parameters_b))
         }
 
         (TyData::Variable(Variable::PlaceholderVar(_)), _)
@@ -104,16 +104,6 @@ fn eq_lts(_env: &mut Env, _a: &Lt, _b: &Lt) -> Fallible<Vec<Goal>> {
     unimplemented!("equate lifetimes")
 }
 
-fn eq_parameters_goal(a_s: &[Parameter], b_s: &[Parameter]) -> Goal {
-    let eq_goals: Vec<_> = a_s.iter().zip(b_s).map(|(a, b)| Goal::eq(a, b)).collect();
-    Goal::all(eq_goals)
-}
-
-fn eq_vec_parameters(env: &mut Env, a_s: &[Parameter], b_s: &[Parameter]) -> Fallible<Vec<Goal>> {
-    assert_eq!(a_s.len(), b_s.len());
-    let mut goals = vec![];
-    for (a, b) in a_s.iter().zip(b_s) {
-        goals.extend(eq_parameters(env, a, b)?);
-    }
-    Ok(goals)
+fn zip_eq(a_s: &[Parameter], b_s: &[Parameter]) -> Vec<Goal> {
+    a_s.iter().zip(b_s).map(|(a, b)| Goal::eq(a, b)).collect()
 }

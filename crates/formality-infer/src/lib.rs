@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use formality_macros::term;
 use formality_types::derive_links;
 use formality_types::{
@@ -17,6 +16,7 @@ mod eq;
 mod occurs;
 mod outlives;
 mod query;
+mod rigid;
 mod simple_sub;
 mod sub;
 mod test;
