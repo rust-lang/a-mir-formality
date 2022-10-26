@@ -4,7 +4,9 @@ use formality_types::{
     cast::Upcast,
     db::Db,
     derive_links::{Parameter, Variable},
-    grammar::{Fallible, Goal, RigidTy, Ty, TyData},
+    grammar::{
+        EnsuresTy, Fallible, Goal, ImplicationTy, PredicateTy, RigidTy, Ty, TyData, Variance,
+    },
 };
 
 use super::Env;
@@ -72,9 +74,20 @@ impl Env {
                     anyhow::bail!("cannot equate `{a:?}` and `{b:?}`");
                 }
 
-                // FIXME: variance
+                let generics = self.rigid_generics(db, name_a);
+                assert_eq!(parameters_a.len(), generics.len());
+                assert_eq!(parameters_b.len(), generics.len());
 
-                Ok(zip_eq(parameters_a, parameters_b))
+                Ok(parameters_a
+                    .iter()
+                    .zip(parameters_b)
+                    .zip(&generics)
+                    .map(|((p_a, p_b), (_, variance))| match variance {
+                        Variance::Covariant => Goal::sub(p_a, p_b),
+                        Variance::Contravariant => Goal::sub(p_b, p_a),
+                        Variance::Invariant => Goal::eq(p_a, p_b),
+                    })
+                    .collect())
             }
 
             (&TyData::Variable(Variable::InferenceVar(a)), _) => {
@@ -132,7 +145,49 @@ impl Env {
                 panic!("found unexpected bound variable")
             }
 
-            (TyData::PredicateTy(_), _) | (_, TyData::PredicateTy(_)) => todo!(),
+            (_, TyData::PredicateTy(PredicateTy::ForAll(binder))) => {
+                let b1 = self.instantiate_universally(binder);
+                Ok(vec![Goal::sub(a, b1)])
+            }
+
+            (TyData::PredicateTy(PredicateTy::ForAll(binder)), _) => {
+                let a1 = self.instantiate_existentially(binder);
+                Ok(vec![Goal::sub(a1, b)])
+            }
+
+            (TyData::PredicateTy(PredicateTy::Exists(binder)), _) => {
+                let a1 = self.instantiate_universally(binder);
+                Ok(vec![Goal::sub(a1, b)])
+            }
+
+            (_, TyData::PredicateTy(PredicateTy::Exists(binder))) => {
+                let b1 = self.instantiate_existentially(binder);
+                Ok(vec![Goal::sub(a, b1)])
+            }
+
+            (
+                _,
+                TyData::PredicateTy(PredicateTy::ImplicationTy(ImplicationTy {
+                    predicates,
+                    ty: b1,
+                })),
+            ) => Ok(vec![Goal::implies(predicates, Goal::sub(a, b1))]),
+
+            (
+                TyData::PredicateTy(PredicateTy::ImplicationTy(ImplicationTy {
+                    predicates,
+                    ty: a1,
+                })),
+                _,
+            ) => Ok(vec![Goal::all((predicates, vec![Goal::sub(a1, b)]))]),
+
+            (_, TyData::PredicateTy(PredicateTy::EnsuresTy(EnsuresTy { ty: b1, predicates }))) => {
+                Ok(vec![Goal::implies(predicates, Goal::sub(a, b1))])
+            }
+
+            (TyData::PredicateTy(PredicateTy::EnsuresTy(EnsuresTy { ty: a1, predicates })), _) => {
+                Ok(vec![Goal::all((predicates, vec![Goal::sub(a1, b)]))])
+            }
         }
     }
 }

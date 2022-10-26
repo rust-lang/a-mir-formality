@@ -240,8 +240,8 @@ pub struct ImplicationTy {
 
 #[term(ensures($ty, $predicates))]
 pub struct EnsuresTy {
-    ty: Ty,
-    predicates: Vec<Predicate>,
+    pub ty: Ty,
+    pub predicates: Vec<Predicate>,
 }
 
 /// A *placeholder* is a dummy variable about which nothing is known except

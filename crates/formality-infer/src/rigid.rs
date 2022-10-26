@@ -7,6 +7,8 @@ use formality_types::{
 use crate::Env;
 
 impl Env {
+    /// Instantiates a rigid-type with the given `name` and suitable inference variables
+    /// as its parameters. The variables will be in the given universe.
     pub(crate) fn fresh_rigid_ty(&mut self, db: &Db, name: &RigidName, universe: Universe) -> Ty {
         let parameters: Vec<_> = self
             .rigid_generics(db, name)
@@ -24,7 +26,12 @@ impl Env {
         .upcast()
     }
 
-    fn rigid_generics(&self, _db: &Db, name: &RigidName) -> Vec<(ParameterKind, Variance)> {
+    /// Returns the expected kinds and variance of the generic parameters for the given rigid type.
+    pub(super) fn rigid_generics(
+        &self,
+        _db: &Db,
+        name: &RigidName,
+    ) -> Vec<(ParameterKind, Variance)> {
         use ParameterKind::*;
         use Variance::*;
         match name {
