@@ -5,8 +5,8 @@ use crate::{
     cast::Upcast,
     derive_links::Variable,
     grammar::{
-        Binder, Fallible, Goal, InferenceVar, Parameter, ParameterKind, PlaceholderVar, Ty,
-        Universe, VarSubstitution,
+        AtomicRelation, Binder, Fallible, Goal, InferenceVar, Parameter, ParameterKind,
+        PlaceholderVar, Ty, Universe, VarSubstitution,
     },
     term::Term,
 };
@@ -14,8 +14,10 @@ use crate::{
 use self::query::{querify, Query};
 
 mod eq;
+mod outlives;
 mod query;
 mod simple_sub;
+mod sub;
 mod test;
 
 #[term]
@@ -297,10 +299,14 @@ impl Env {
         querify(self, goal)
     }
 
-    /// Equate two parameters (which must be the same kind), returning
+    /// Apply a relation using the builtin rules, returning
     /// either an error (if they cannot be equated) or a new environment
     /// plus a list of goals that must still be proven.
-    pub fn eq(&self, a: &Parameter, b: &Parameter) -> Fallible<(Env, Vec<Goal>)> {
-        eq::eq(self, a, b)
+    pub fn apply_relation(&self, r: &AtomicRelation) -> Fallible<(Env, Vec<Goal>)> {
+        match r {
+            AtomicRelation::Equals(a, b) => eq::eq(self, a, b),
+            AtomicRelation::Sub(a, b) => sub::sub(self, a, b),
+            AtomicRelation::Outlives(a, b) => outlives::outlives(self, a, b),
+        }
     }
 }

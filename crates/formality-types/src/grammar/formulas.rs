@@ -74,6 +74,12 @@ impl AliasTy {
     }
 }
 
+impl Ty {
+    pub fn well_formed(&self) -> AtomicPredicate {
+        AtomicPredicate::WellFormedTy(self.clone())
+    }
+}
+
 /// The "skeleton" of an atomic predicate is the kernel that contains
 /// nothing unifiable and identifies the kind of predicate.
 /// If the skeleton's don't match, they are distinct predicates.

@@ -3,9 +3,7 @@ use formality_macros::term;
 use formality_types::{
     collections::Set,
     env::Env,
-    grammar::{
-        AtomicPredicate, AtomicRelation, Coinductive, Goal, GoalData, Hypothesis, HypothesisData,
-    },
+    grammar::{AtomicPredicate, Coinductive, Goal, GoalData, Hypothesis, HypothesisData},
     set,
 };
 
@@ -54,16 +52,9 @@ fn prove_goal(
                     .collect()
             }
         },
-        GoalData::AtomicRelation(r) => match r {
-            AtomicRelation::Equals(a, b) => match env.eq(a, b) {
-                Ok((env, goals)) => prove_all(db, &env, stack, assumptions, &goals, &[]),
-                Err(_) => {
-                    eprintln!("failed to unify: {a:?} and {b:?}");
-                    set![]
-                }
-            },
-            AtomicRelation::Sub(_, _) => todo!(),
-            AtomicRelation::Outlives(_, _) => todo!(),
+        GoalData::AtomicRelation(r) => match env.apply_relation(r) {
+            Ok((env, goals)) => prove_all(db, &env, stack, assumptions, &goals, &[]),
+            Err(_) => set![],
         },
         GoalData::ForAll(binder) => {
             let mut env = env.clone();
