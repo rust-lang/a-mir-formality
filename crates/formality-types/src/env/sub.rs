@@ -2,8 +2,8 @@ use anyhow::bail;
 
 use crate::{
     cast::Upcast,
-    derive_links::{Parameter, ParameterKind, Variable},
-    grammar::{fresh_bound_var, Fallible, Goal, RigidName, RigidTy, Ty, TyData},
+    derive_links::{Parameter, Variable},
+    grammar::{Fallible, Goal, RigidName, RigidTy, Ty, TyData},
 };
 
 use super::Env;

@@ -2,12 +2,13 @@ use formality_macros::term;
 
 use formality_types::{
     collections::Set,
+    db::{Db, Database},
     env::Env,
     grammar::{AtomicPredicate, Coinductive, Goal, GoalData, Hypothesis, HypothesisData},
     set,
 };
 
-use crate::{db::Database, elaborate_hypotheses::elaborate_hypotheses, Db};
+use crate::elaborate_hypotheses::elaborate_hypotheses;
 
 mod test;
 

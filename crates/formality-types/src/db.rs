@@ -1,13 +1,12 @@
 use std::{fmt::Debug, sync::Arc};
 
-use formality_types::grammar::{
-    AtomicPredicate, AtomicRelation, Hypothesis, Invariant, ProgramClause,
-};
+use crate::grammar::{AtomicPredicate, Invariant, ProgramClause};
+
+pub mod mock;
 
 pub trait Database: Debug {
     fn program_clauses(&self, predicate: &AtomicPredicate) -> Vec<ProgramClause>;
     fn invariants_for_predicate(&self, predicate: &AtomicPredicate) -> Vec<Invariant>;
-    fn elaborate_relation(&self, r: &AtomicRelation) -> Vec<Hypothesis>;
 }
 
 /// A handle to the database. Only equal to itself.
@@ -57,10 +56,6 @@ impl std::hash::Hash for Db {
 impl Database for Db {
     fn invariants_for_predicate(&self, predicate: &AtomicPredicate) -> Vec<Invariant> {
         self.db.invariants_for_predicate(predicate)
-    }
-
-    fn elaborate_relation(&self, r: &AtomicRelation) -> Vec<Hypothesis> {
-        self.db.elaborate_relation(r)
     }
 
     fn program_clauses(&self, predicate: &AtomicPredicate) -> Vec<ProgramClause> {

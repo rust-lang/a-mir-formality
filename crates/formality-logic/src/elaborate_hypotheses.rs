@@ -4,12 +4,11 @@ use formality_types::{
     self,
     cast::{To, Upcast},
     collections::Set,
+    db::{Database, Db},
     grammar::{
         AtomicPredicate, Hypothesis, HypothesisData, Invariant, InvariantImplication, Substitution,
     },
 };
-
-use crate::{db::Database, Db};
 
 mod test;
 
@@ -37,7 +36,10 @@ fn elaborate_hypothesis(db: &Db, hypothesis: &Hypothesis) -> Vec<Hypothesis> {
             .flat_map(|i| apply_invariant_to_predicate(db, i, predicate))
             .collect(),
 
-        HypothesisData::AtomicRelation(relation) => db.elaborate_relation(relation),
+        HypothesisData::AtomicRelation(_relation) => {
+            // FIXME: elaborate relations
+            vec![]
+        }
 
         HypothesisData::ForAll(binder) => {
             let (kinded_var_indices, hypothesis) = binder.open();

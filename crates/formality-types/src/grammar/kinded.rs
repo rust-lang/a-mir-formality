@@ -1,6 +1,6 @@
 use crate::cast::Upcast;
 
-use super::{fresh_bound_var, KindedVarIndex, Lt, Parameter, ParameterKind, Ty};
+use super::{fresh_bound_var, KindedVarIndex, Lt, ParameterKind, Ty};
 
 /// Trait implemented by the various kinds of generic parameters.
 /// Used in some of the fluent APIs for creating binders to select

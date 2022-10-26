@@ -1,39 +1,15 @@
 #![cfg(test)]
 
 use expect_test;
-use formality_types::{
-    grammar::{AtomicPredicate, AtomicRelation, Hypothesis, Invariant, ProgramClause},
-    parse::term,
-};
-
-use crate::Db;
+use formality_types::{db::mock::MockDatabase, grammar::Hypothesis, parse::term};
 
 use super::elaborate_hypotheses;
 
-#[derive(Debug)]
-struct MockDb {
-    invariants: Vec<Invariant>,
-}
-
-impl crate::db::Database for MockDb {
-    fn elaborate_relation(&self, _r: &AtomicRelation) -> Vec<Hypothesis> {
-        vec![]
-    }
-
-    fn invariants_for_predicate(&self, _predicate: &AtomicPredicate) -> Vec<Invariant> {
-        self.invariants.clone()
-    }
-
-    fn program_clauses(&self, _: &AtomicPredicate) -> Vec<ProgramClause> {
-        vec![]
-    }
-}
-
 #[test]
 fn test_single_step() {
-    let db = Db::new(MockDb {
-        invariants: term("[<ty X> is_implemented(Ord(X)) => is_implemented(PartialOrd(X))]"),
-    });
+    let db = MockDatabase::new()
+        .with_invariant("<ty X> is_implemented(Ord(X)) => is_implemented(PartialOrd(X))")
+        .into_db();
 
     let hypotheses: Vec<Hypothesis> = term(
         "
@@ -56,16 +32,10 @@ fn test_single_step() {
 
 #[test]
 fn test_transitive() {
-    let db = Db::new(MockDb {
-        invariants: term(
-            "
-        [
-            <ty X> is_implemented(A(X)) => is_implemented(B(X)),
-            <ty X> is_implemented(B(X)) => is_implemented(C(X)),
-        ]
-        ",
-        ),
-    });
+    let db = MockDatabase::new()
+        .with_invariant("<ty X> is_implemented(A(X)) => is_implemented(B(X))")
+        .with_invariant("<ty X> is_implemented(B(X)) => is_implemented(C(X))")
+        .into_db();
 
     let hypotheses: Vec<Hypothesis> = term(
         "
