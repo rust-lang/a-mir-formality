@@ -99,13 +99,17 @@ fn sub_tys(env: &mut Env, a: &Ty, b: &Ty) -> Fallible<Vec<Goal>> {
         }
 
         (TyData::AliasTy(alias_a), _) => {
-            let normalizes_goal = alias_a.normalizes_to(b);
-            Ok(vec![normalizes_goal.upcast()])
+            let normalizes_goal = Goal::exists_f(|ty: Ty| {
+                Goal::all(vec![alias_a.normalizes_to(&ty).upcast(), Goal::sub(ty, b)])
+            });
+            Ok(vec![normalizes_goal])
         }
 
         (_, TyData::AliasTy(alias_b)) => {
-            let normalizes_goal = alias_b.normalizes_to(a);
-            Ok(vec![normalizes_goal.upcast()])
+            let normalizes_goal = Goal::exists_f(|ty: Ty| {
+                Goal::all(vec![alias_b.normalizes_to(&ty).upcast(), Goal::sub(a, ty)])
+            });
+            Ok(vec![normalizes_goal])
         }
 
         (TyData::Variable(Variable::PlaceholderVar(_)), _)
