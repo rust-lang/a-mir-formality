@@ -20,6 +20,7 @@ use crate::cast_impl;
 
 use super::AliasName;
 use super::Binder;
+use super::Kinded;
 use super::Parameter;
 use super::Parameters;
 use super::TraitId;
@@ -267,6 +268,16 @@ impl Goal {
 
     pub fn exists(names: &[KindedVarIndex], data: impl Upcast<Goal>) -> Self {
         GoalData::Exists(Binder::new(names, data.upcast())).upcast()
+    }
+
+    pub fn exists_f<A, G>(op: impl FnOnce(A) -> G) -> Goal
+    where
+        A: Kinded,
+        G: Upcast<Goal>,
+    {
+        let (names, value) = A::instantiate();
+        let data = op(value);
+        GoalData::Exists(Binder::new(&names, data.upcast())).upcast()
     }
 
     pub fn implies(

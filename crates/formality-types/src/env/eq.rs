@@ -43,12 +43,9 @@ fn eq_tys(env: &mut Env, a: &Ty, b: &Ty) -> Fallible<Vec<Goal>> {
         }
 
         (TyData::AliasTy(alias_a), TyData::AliasTy(alias_b)) => {
-            let normalizes_goal = {
-                let (kvi, bvar) = fresh_bound_var(ParameterKind::Ty);
-                let normalizes_a = alias_a.normalizes_to(bvar.ty());
-                let normalizes_b = alias_b.normalizes_to(bvar.ty());
-                Goal::exists(&[kvi], Goal::all(vec![normalizes_a, normalizes_b]))
-            };
+            let normalizes_goal = Goal::exists_f(|ty: Ty| {
+                Goal::all(vec![alias_a.normalizes_to(&ty), alias_b.normalizes_to(&ty)])
+            });
 
             if alias_a.name == alias_b.name {
                 Ok(vec![Goal::any(vec![

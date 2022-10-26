@@ -462,8 +462,18 @@ impl BoundVar {
         Variable::upcast_from(self).into_parameter(kind)
     }
 
+    /// Packages up this bound variable as a type.
+    /// Only appropriate to call this if the variable
+    /// does indeed represent a type.
     pub fn ty(self) -> Ty {
         Ty::new(TyData::Variable(Variable::upcast_from(self)))
+    }
+
+    /// Packages up this bound variable as a lifetime.
+    /// Only appropriate to call this if the variable
+    /// does indeed represent a lifetime.
+    pub fn lt(self) -> Lt {
+        Lt::new(LtData::Variable(Variable::upcast_from(self)))
     }
 }
 
