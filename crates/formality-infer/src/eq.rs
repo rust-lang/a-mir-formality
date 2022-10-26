@@ -8,6 +8,8 @@ use formality_types::{
 
 use super::Env;
 
+/// Equate two parameters, yielding a new environment + list of goals that must all be solved for the equate to be true.
+/// Returns `Err` if the two parameters can never be proven equal.
 pub(super) fn eq(env: &Env, a: &Parameter, b: &Parameter) -> Fallible<(Env, Vec<Goal>)> {
     let mut env = env.clone();
     let a = env.refresh_inference_variables(a);
