@@ -59,15 +59,9 @@ fn eq_tys(env: &mut Env, a: &Ty, b: &Ty) -> Fallible<Vec<Goal>> {
             }
         }
 
-        (TyData::AliasTy(alias_a), _) => {
-            let normalizes_goal = alias_a.normalizes_to(b);
-            Ok(vec![normalizes_goal.upcast()])
-        }
+        (TyData::AliasTy(alias_a), _) => Ok(vec![alias_a.normalizes_to(b).upcast()]),
 
-        (_, TyData::AliasTy(alias_b)) => {
-            let normalizes_goal = alias_b.normalizes_to(a);
-            Ok(vec![normalizes_goal.upcast()])
-        }
+        (_, TyData::AliasTy(alias_b)) => Ok(vec![alias_b.normalizes_to(a).upcast()]),
 
         (
             TyData::RigidTy(RigidTy {
