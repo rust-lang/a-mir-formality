@@ -92,7 +92,10 @@ impl Env {
                 panic!("found unexpected bound variable")
             }
 
-            (TyData::PredicateTy(_), _) | (_, TyData::PredicateTy(_)) => todo!(),
+            (TyData::PredicateTy(_), _) | (_, TyData::PredicateTy(_)) => {
+                // FIXME: Predicate types do not have canonical forms in this setup, but that mixes poorly with `TypeId`.
+                Ok(vec![Goal::sub(a, b), Goal::sub(b, a)])
+            }
         }
     }
 

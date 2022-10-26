@@ -284,9 +284,7 @@ where
     R: std::fmt::Debug,
 {
     let mut v: Vec<(R, &str)> = f.into_iter().collect();
-    if v.is_empty() {
-        None
-    } else if v.len() > 1 {
+    if v.len() > 1 {
         panic!("parsing ambiguity: {v:?}");
     } else {
         v.pop()

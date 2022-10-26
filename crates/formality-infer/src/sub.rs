@@ -36,6 +36,15 @@ impl Env {
         }
 
         match (a.data(), b.data()) {
+            // Bound variables should always be instantiated by the time we get here.
+            (TyData::Variable(Variable::BoundVar(_)), _)
+            | (_, TyData::Variable(Variable::BoundVar(_))) => {
+                panic!("found unexpected bound variable")
+            }
+
+            // The only way to be a subtype of a rigid type is to be another instance
+            // of that rigid type (but we may have distinct parameters). Therefore,
+            // given `?a <: b<...>`, we can instantiate `?a` as a version of `b`.
             (
                 &TyData::Variable(Variable::InferenceVar(a)),
                 TyData::RigidTy(RigidTy { name, .. }),
@@ -48,6 +57,7 @@ impl Env {
                 Ok(goals)
             }
 
+            // As in the previous rule, but reversed.
             (
                 TyData::RigidTy(RigidTy { name, .. }),
                 &TyData::Variable(Variable::InferenceVar(b)),
@@ -60,6 +70,18 @@ impl Env {
                 Ok(goals)
             }
 
+            // The only way to relate to a placeholder bariable is to be equal to it.
+            // This is an optimization of sorts.
+            (
+                TyData::Variable(Variable::PlaceholderVar(_)),
+                TyData::Variable(Variable::InferenceVar(_)),
+            )
+            | (
+                TyData::Variable(Variable::InferenceVar(_)),
+                TyData::Variable(Variable::PlaceholderVar(_)),
+            ) => Ok(vec![Goal::eq(a, b)]),
+
+            // Relating two rigid types: use variance.
             (
                 TyData::RigidTy(RigidTy {
                     name: name_a,
@@ -102,6 +124,9 @@ impl Env {
                 Ok(goals)
             }
 
+            // Two alias types can be a subtype if...
+            // * they normalize to subtypes
+            // * their parametes are equal, presuming they are the same alias
             (TyData::AliasTy(alias_a), TyData::AliasTy(alias_b)) => {
                 let normalizes_goal = Goal::exists_f(|(ty_a, ty_b): (Ty, Ty)| {
                     Goal::all(vec![
@@ -121,6 +146,7 @@ impl Env {
                 }
             }
 
+            // Otherwise, an alias is a subtype of T if we can normalize to some subtype of T.
             (TyData::AliasTy(alias_a), _) => {
                 let normalizes_goal = Goal::exists_f(|ty: Ty| {
                     Goal::all(vec![alias_a.normalizes_to(&ty).upcast(), Goal::sub(ty, b)])
@@ -128,6 +154,7 @@ impl Env {
                 Ok(vec![normalizes_goal])
             }
 
+            // As in the previous rule, but reversed.
             (_, TyData::AliasTy(alias_b)) => {
                 let normalizes_goal = Goal::exists_f(|ty: Ty| {
                     Goal::all(vec![alias_b.normalizes_to(&ty).upcast(), Goal::sub(a, ty)])
@@ -135,14 +162,15 @@ impl Env {
                 Ok(vec![normalizes_goal])
             }
 
-            (TyData::Variable(Variable::PlaceholderVar(_)), _)
-            | (_, TyData::Variable(Variable::PlaceholderVar(_))) => {
+            // Placeholder variables are not equal to rigid types or other placeholders.
+            (TyData::Variable(Variable::PlaceholderVar(_)), TyData::RigidTy(_))
+            | (TyData::RigidTy(_), TyData::Variable(Variable::PlaceholderVar(_)))
+            | (
+                TyData::Variable(Variable::PlaceholderVar(_)),
+                TyData::Variable(Variable::PlaceholderVar(_)),
+            ) => {
+                assert_ne!(a, b);
                 bail!("not-eq({a:?}, {b:?})")
-            }
-
-            (TyData::Variable(Variable::BoundVar(_)), _)
-            | (_, TyData::Variable(Variable::BoundVar(_))) => {
-                panic!("found unexpected bound variable")
             }
 
             (_, TyData::PredicateTy(PredicateTy::ForAll(binder))) => {
@@ -155,11 +183,13 @@ impl Env {
                 Ok(vec![Goal::sub(a1, b)])
             }
 
+            // FIXME: Can't actually permit existentials in this open-ended way. e.g., `&u32` is not a subtype of `&dyn Foo`.
             (TyData::PredicateTy(PredicateTy::Exists(binder)), _) => {
                 let a1 = self.instantiate_universally(binder);
                 Ok(vec![Goal::sub(a1, b)])
             }
 
+            // FIXME: Can't actually permit existentials in this open-ended way. e.g., `&u32` is not a subtype of `&dyn Foo`.
             (_, TyData::PredicateTy(PredicateTy::Exists(binder))) => {
                 let b1 = self.instantiate_existentially(binder);
                 Ok(vec![Goal::sub(a, b1)])
