@@ -1,16 +1,16 @@
 [package]
-name = "formality-logic"
+name = "formality-infer"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.65"
 derive-new = "0.5.9"
 formality-types = { path = "../formality-types" }
 formality-macros = { path = "../formality-macros" }
 formality-core = { path = "../formality-core" }
-formality-infer = { path = "../formality-infer" }
 tracing = "0.1"
 
 [dev-dependencies]

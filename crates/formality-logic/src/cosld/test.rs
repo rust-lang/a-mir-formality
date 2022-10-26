@@ -1,7 +1,8 @@
 #![cfg(test)]
 
 use formality_core::with_tracing_logs;
-use formality_types::{db::mock::MockDatabase, env::Env, parse::term};
+use formality_infer::Env;
+use formality_types::{db::mock::MockDatabase, parse::term};
 
 #[test]
 fn simple_test() {

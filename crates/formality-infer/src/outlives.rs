@@ -1,4 +1,4 @@
-use crate::{
+use formality_types::{
     derive_links::Parameter,
     grammar::{Fallible, Goal},
 };

@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate::{
+use formality_types::{
     grammar::{Binder, Ty, TyData, Variable},
     parse::term,
 };

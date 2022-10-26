@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use formality_macros::term;
-
-use crate::{
+use formality_types::derive_links;
+use formality_types::{
     cast::Upcast,
     derive_links::Variable,
     grammar::{

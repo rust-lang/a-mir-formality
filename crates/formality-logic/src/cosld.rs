@@ -1,9 +1,9 @@
+use formality_infer::Env;
 use formality_macros::term;
 
 use formality_types::{
     collections::Set,
-    db::{Db, Database},
-    env::Env,
+    db::{Database, Db},
     grammar::{AtomicPredicate, Coinductive, Goal, GoalData, Hypothesis, HypothesisData},
     set,
 };

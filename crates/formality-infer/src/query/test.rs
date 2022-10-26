@@ -1,12 +1,12 @@
 #![cfg(test)]
 
+use crate::Env;
+
 use super::querify;
-use crate::{
-    env::Env,
+use formality_types::{
     grammar::Ty,
     parse::{term, term_with},
 };
-use test_log::test;
 
 fn create_test_env() -> (Env, Vec<(&'static str, Ty)>) {
     let mut env = Env::default();

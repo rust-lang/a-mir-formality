@@ -191,12 +191,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "formality-infer"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "derive-new",
+ "expect-test",
+ "formality-core",
+ "formality-macros",
+ "formality-types",
+ "tracing",
+]
+
+[[package]]
 name = "formality-logic"
 version = "0.1.0"
 dependencies = [
  "derive-new",
  "expect-test",
  "formality-core",
+ "formality-infer",
  "formality-macros",
  "formality-types",
  "tracing",

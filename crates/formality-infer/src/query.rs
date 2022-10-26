@@ -1,14 +1,15 @@
 use std::collections::BTreeSet;
 
-use crate::{
+use formality_macros::term;
+use formality_types::{
     cast::Upcast,
     collections::{Map, Set},
     derive_links::Variable,
-    env::Env,
     fold::Fold,
     grammar::{Goal, PlaceholderVar, Universe, VarIndex, VarSubstitution},
 };
-use formality_macros::term;
+
+use crate::Env;
 
 mod test;
 

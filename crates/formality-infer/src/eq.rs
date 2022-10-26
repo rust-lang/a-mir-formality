@@ -1,6 +1,6 @@
 use anyhow::bail;
 
-use crate::{
+use formality_types::{
     cast::Upcast,
     derive_links::{Parameter, Variable},
     grammar::{Fallible, Goal, Lt, RigidTy, Ty, TyData},
