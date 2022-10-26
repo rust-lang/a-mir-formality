@@ -327,6 +327,17 @@ pub enum ParameterKind {
     Lt,
 }
 
+#[term]
+#[derive(Copy)]
+pub enum Variance {
+    #[grammar(+)]
+    Covariant,
+    #[grammar(-)]
+    Contravariant,
+    #[grammar(=)]
+    Invariant,
+}
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Lt {
     data: Arc<LtData>,

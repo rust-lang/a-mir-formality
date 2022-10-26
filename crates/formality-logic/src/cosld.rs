@@ -53,7 +53,7 @@ fn prove_goal(
                     .collect()
             }
         },
-        GoalData::AtomicRelation(r) => match env.apply_relation(r) {
+        GoalData::AtomicRelation(r) => match env.apply_relation(db, r) {
             Ok((env, goals)) => prove_all(db, &env, stack, assumptions, &goals, &[]),
             Err(_) => set![],
         },

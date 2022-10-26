@@ -1,4 +1,5 @@
 use formality_macros::term;
+use formality_types::db::Db;
 use formality_types::derive_links;
 use formality_types::{
     cast::Upcast,
@@ -233,11 +234,11 @@ impl Env {
     /// Apply a relation using the builtin rules, returning
     /// either an error (if they cannot be equated) or a new environment
     /// plus a list of goals that must still be proven.
-    pub fn apply_relation(&self, r: &AtomicRelation) -> Fallible<(Env, Vec<Goal>)> {
+    pub fn apply_relation(&self, db: &Db, r: &AtomicRelation) -> Fallible<(Env, Vec<Goal>)> {
         match r {
-            AtomicRelation::Equals(a, b) => eq::eq(self, a, b),
-            AtomicRelation::Sub(a, b) => sub::sub(self, a, b),
-            AtomicRelation::Outlives(a, b) => outlives::outlives(self, a, b),
+            AtomicRelation::Equals(a, b) => self.eq(db, a, b),
+            AtomicRelation::Sub(a, b) => self.sub(db, a, b),
+            AtomicRelation::Outlives(a, b) => self.outlives(db, a, b),
         }
     }
 }
