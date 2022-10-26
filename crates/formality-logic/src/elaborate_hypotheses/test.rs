@@ -37,13 +37,7 @@ fn test_transitive() {
         .with_invariant("<ty X> is_implemented(B(X)) => is_implemented(C(X))")
         .into_db();
 
-    let hypotheses: Vec<Hypothesis> = term(
-        "
-        [
-            is_implemented(A(u32))
-        ]
-        ",
-    );
+    let hypotheses: Vec<Hypothesis> = vec![term("is_implemented(A(u32))")];
 
     let hypotheses1 = elaborate_hypotheses(&db, &hypotheses);
 
