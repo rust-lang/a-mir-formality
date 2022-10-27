@@ -316,9 +316,21 @@ impl Parameter {
             Parameter::Lt(v) => v.as_variable(),
         }
     }
+
+    pub fn data(&self) -> ParameterData<'_> {
+        match self {
+            Parameter::Ty(v) => ParameterData::Ty(v.data()),
+            Parameter::Lt(v) => ParameterData::Lt(v.data()),
+        }
+    }
 }
 
 pub type Parameters = Vec<Parameter>;
+
+pub enum ParameterData<'me> {
+    Ty(&'me TyData),
+    Lt(&'me LtData),
+}
 
 #[term]
 #[derive(Copy)]

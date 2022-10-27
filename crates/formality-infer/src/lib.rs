@@ -14,11 +14,11 @@ use formality_types::{
 use self::query::{querify, Query};
 
 mod eq;
+mod extrude;
 mod occurs;
 mod outlives;
 mod query;
 mod rigid;
-mod simple_sub;
 mod sub;
 mod test;
 
@@ -114,6 +114,10 @@ impl Env {
 
     fn is_mapped(&self, var: InferenceVar) -> bool {
         self.inference_data[var.index].mapped_to.is_some()
+    }
+
+    fn data_mut(&mut self, var: InferenceVar) -> &mut InferenceVarData {
+        &mut self.inference_data[var.index]
     }
 
     /// Replace all bound variables in `binder` with universal placeholders in a fresh universe.

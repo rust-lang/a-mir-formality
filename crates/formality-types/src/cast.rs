@@ -307,3 +307,17 @@ where
         crate::parse::term(text)
     }
 }
+
+pub trait Upcasted<'a, T> {
+    fn upcasted(self) -> Box<dyn Iterator<Item = T> + 'a>;
+}
+
+impl<'a, T, I> Upcasted<'a, T> for I
+where
+    I: IntoIterator + 'a,
+    I::Item: Upcast<T>,
+{
+    fn upcasted(self) -> Box<dyn Iterator<Item = T> + 'a> {
+        Box::new(self.into_iter().map(|e| e.upcast()))
+    }
+}
