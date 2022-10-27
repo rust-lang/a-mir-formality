@@ -171,7 +171,8 @@ impl Env {
             return Ok(vec![Goal::eq(m.clone(), value)]);
         }
 
-        let mut goals = self.occurs_check(var, &value)?;
+        let variables = self.occurs_check(var, &value)?;
+        let mut goals = self.constrain_vars(var, variables);
 
         let InferenceVarData {
             kind: _,
