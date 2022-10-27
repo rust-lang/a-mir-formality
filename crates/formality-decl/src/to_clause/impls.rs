@@ -3,7 +3,7 @@ use formality_types::grammar::{Hypothesis, KindedVarIndex, Predicate, ProgramCla
 use crate::grammar::{ImplItem, Program, TraitImpl, TraitImplBoundData};
 
 impl TraitImpl {
-    pub fn to_clauses(&self, program: &Program) -> Vec<ProgramClause> {
+    pub(super) fn to_clauses(&self, program: &Program) -> Vec<ProgramClause> {
         let (
             impl_kinded_var_ids,
             TraitImplBoundData {

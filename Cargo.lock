@@ -183,6 +183,8 @@ dependencies = [
  "env_logger",
  "expect-test",
  "formality-core",
+ "formality-infer",
+ "formality-logic",
  "formality-macros",
  "formality-types",
  "test-log",

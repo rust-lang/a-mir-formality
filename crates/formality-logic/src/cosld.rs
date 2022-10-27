@@ -38,7 +38,6 @@ fn prove_goal(
     assumptions: &Set<Hypothesis>,
     goal: &Goal,
 ) -> Set<CosldResult> {
-    eprintln!("goal = {goal:?}");
     match goal.data() {
         GoalData::AtomicPredicate(predicate) => match stack.search(env, predicate) {
             StackSearch::CoinductiveCycle => set![CosldResult::Yes(env.clone())],
@@ -104,7 +103,6 @@ fn prove_all(
     subgoals: &[Goal],
     deferred: &[Goal],
 ) -> Set<CosldResult> {
-    eprintln!("prove_all(subgoals = {subgoals:?}, deferred = {deferred:?}");
     if let Some((subgoal, remainder)) = subgoals.split_first() {
         prove_goal(db, env, stack, assumptions, subgoal)
             .into_iter()
@@ -148,7 +146,6 @@ fn backchain(
     clause: &Hypothesis,
     predicate: &AtomicPredicate,
 ) -> Set<CosldResult> {
-    eprintln!("backchain({clause:?}, {predicate:?}");
     match clause.data() {
         HypothesisData::AtomicPredicate(h) => {
             let (skeleton1, parameters1) = h.debone();

@@ -10,6 +10,13 @@ pub struct Program {
     pub crates: Vec<Crate>,
 }
 
+impl Program {
+    /// Id of the current crate.
+    pub fn current_crate_id(&self) -> CrateId {
+        self.crates.last().unwrap().id.clone()
+    }
+}
+
 #[term(crate $id { $*items })]
 pub struct Crate {
     pub id: CrateId,

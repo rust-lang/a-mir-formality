@@ -1,26 +1,30 @@
 use formality_types::grammar::{
-    AliasTy, Hypothesis, KindedVarIndex, Predicate, ProgramClause, TraitRef,
+    AliasTy, Hypothesis, Invariant, KindedVarIndex, Predicate, ProgramClause, TraitRef,
 };
 
-use crate::grammar::{AssociatedTy, AssociatedTyValue, AssociatedTyValueBoundData};
+use crate::grammar::{AssociatedTy, AssociatedTyValue, AssociatedTyValueBoundData, Program};
 
 impl AssociatedTy {
-    pub fn to_clauses(
+    pub(super) fn to_clauses(
         &self,
         _trait_kinded_var_ids: &[KindedVarIndex],
-        _program: &crate::grammar::Program,
+        _program: &Program,
     ) -> Vec<ProgramClause> {
+        unimplemented!()
+    }
+
+    pub(super) fn to_invariants(&self, _program: &Program) -> Vec<Invariant> {
         unimplemented!()
     }
 }
 
 impl AssociatedTyValue {
-    pub fn to_clauses(
+    pub(super) fn to_clauses(
         &self,
         impl_kinded_var_ids: &[KindedVarIndex],
         trait_ref: &TraitRef,
         impl_where_clauses: &[Predicate],
-        _program: &crate::grammar::Program,
+        _program: &Program,
     ) -> Vec<ProgramClause> {
         let (atv_kinded_var_ids, AssociatedTyValueBoundData { where_clauses, ty }) =
             self.binder.open();
@@ -40,5 +44,9 @@ impl AssociatedTyValue {
         );
 
         vec![g]
+    }
+
+    pub(super) fn to_invariants(&self, _program: &Program) -> Vec<Invariant> {
+        unimplemented!()
     }
 }

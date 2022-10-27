@@ -2,5 +2,5 @@
 
 use formality_types::derive_links;
 
-mod cosld;
+pub mod cosld;
 mod elaborate_hypotheses;

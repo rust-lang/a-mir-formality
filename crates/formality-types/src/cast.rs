@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::collections::Set;
+use crate::{collections::Set, derive_links::Term};
 
 pub trait To {
     fn to<T>(&self) -> T
@@ -296,5 +296,14 @@ cast_impl!(String);
 impl UpcastFrom<&str> for String {
     fn upcast_from(term: &str) -> Self {
         term.into()
+    }
+}
+
+impl<T> UpcastFrom<&str> for T
+where
+    T: Term,
+{
+    fn upcast_from(text: &str) -> Self {
+        crate::parse::term(text)
     }
 }

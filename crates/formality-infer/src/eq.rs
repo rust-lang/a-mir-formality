@@ -4,7 +4,7 @@ use formality_types::{
     cast::Upcast,
     db::Db,
     derive_links::{Parameter, Variable},
-    grammar::{Fallible, Goal, Lt, RigidTy, Ty, TyData},
+    grammar::{Fallible, Goal, Lt, LtData, RigidTy, Ty, TyData},
 };
 
 use super::Env;
@@ -34,18 +34,25 @@ impl Env {
         }
 
         match (a.data(), b.data()) {
+            // Bound variables should always be instantiated by the time we get here.
+            (TyData::Variable(Variable::BoundVar(_)), _)
+            | (_, TyData::Variable(Variable::BoundVar(_))) => {
+                panic!("found unexpected bound variable")
+            }
+
+            // ?X == T: Map ?X to T.
             (&TyData::Variable(Variable::InferenceVar(a)), _) => {
                 assert!(!self.is_mapped(a));
-                let goals = self.map_to(a, b)?;
-                Ok(goals)
+                Ok(self.map_to(a, b)?)
             }
 
+            // T == ?X: Map ?X to T.
             (_, &TyData::Variable(Variable::InferenceVar(b))) => {
                 assert!(!self.is_mapped(b));
-                let goals = self.map_to(b, a)?;
-                Ok(goals)
+                Ok(self.map_to(b, a)?)
             }
 
+            // Two aliases must have same name/parameters *or* normalize to the same thing.
             (TyData::AliasTy(alias_a), TyData::AliasTy(alias_b)) => {
                 let normalizes_goal = Goal::exists_f(|ty: Ty| {
                     Goal::all(vec![alias_a.normalizes_to(&ty), alias_b.normalizes_to(&ty)])
@@ -61,10 +68,11 @@ impl Env {
                 }
             }
 
+            // An alias type is equal to another type if it normalizes to that type.
             (TyData::AliasTy(alias_a), _) => Ok(vec![alias_a.normalizes_to(b).upcast()]),
-
             (_, TyData::AliasTy(alias_b)) => Ok(vec![alias_b.normalizes_to(a).upcast()]),
 
+            // Rigid types are equal if their parameters are equal (regardless of variance).
             (
                 TyData::RigidTy(RigidTy {
                     name: name_a,
@@ -82,16 +90,17 @@ impl Env {
                 Ok(zip_eq(parameters_a, parameters_b))
             }
 
-            (TyData::Variable(Variable::PlaceholderVar(_)), _)
-            | (_, TyData::Variable(Variable::PlaceholderVar(_))) => {
+            // Placeholders are not equal to rigid types or other placeholders.
+            (TyData::Variable(Variable::PlaceholderVar(_)), TyData::RigidTy(_))
+            | (
+                TyData::Variable(Variable::PlaceholderVar(_)),
+                TyData::Variable(Variable::PlaceholderVar(_)),
+            )
+            | (TyData::RigidTy(_), TyData::Variable(Variable::PlaceholderVar(_))) => {
                 bail!("not-eq({a:?}, {b:?})")
             }
 
-            (TyData::Variable(Variable::BoundVar(_)), _)
-            | (_, TyData::Variable(Variable::BoundVar(_))) => {
-                panic!("found unexpected bound variable")
-            }
-
+            // Predicate types can only be managed through subtyping.
             (TyData::PredicateTy(_), _) | (_, TyData::PredicateTy(_)) => {
                 // FIXME: Predicate types do not have canonical forms in this setup, but that mixes poorly with `TypeId`.
                 Ok(vec![Goal::sub(a, b), Goal::sub(b, a)])
@@ -99,8 +108,29 @@ impl Env {
         }
     }
 
-    fn eq_lts(&mut self, _db: &Db, _a: &Lt, _b: &Lt) -> Fallible<Vec<Goal>> {
-        unimplemented!("equate lifetimes")
+    fn eq_lts(&mut self, _db: &Db, a: &Lt, b: &Lt) -> Fallible<Vec<Goal>> {
+        if a == b {
+            return Ok(vec![]);
+        }
+
+        match (a.data(), b.data()) {
+            (LtData::Static, LtData::Static) => Ok(vec![]),
+
+            // Map inference variables.
+            //
+            // FIXME: If this fails the occurs check... does that imply that it is unprovable?
+            (&LtData::Variable(Variable::InferenceVar(a)), _) => {
+                assert!(!self.is_mapped(a));
+                Ok(self.map_to(a, b)?)
+            }
+            (_, &LtData::Variable(Variable::InferenceVar(b))) => {
+                assert!(!self.is_mapped(b));
+                Ok(self.map_to(b, a)?)
+            }
+
+            // Otherwise convert to outlives relationships.
+            _ => Ok(vec![Goal::outlives(a, b), Goal::outlives(b, a)]),
+        }
     }
 }
 

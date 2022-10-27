@@ -3,7 +3,7 @@ use formality_types::grammar::{Hypothesis, Invariant, KindedVarIndex, ProgramCla
 use crate::grammar::{Trait, TraitBoundData, TraitItem};
 
 impl Trait {
-    pub fn to_clauses(&self, program: &crate::grammar::Program) -> Vec<ProgramClause> {
+    pub(super) fn to_clauses(&self, program: &crate::grammar::Program) -> Vec<ProgramClause> {
         let (
             trait_kinded_var_ids,
             TraitBoundData {
@@ -43,7 +43,7 @@ impl Trait {
             .collect()
     }
 
-    pub fn invariants(&self, _program: &crate::grammar::Program) -> Vec<Invariant> {
+    pub(super) fn to_invariants(&self, _program: &crate::grammar::Program) -> Vec<Invariant> {
         let (
             trait_kinded_var_ids,
             TraitBoundData {
@@ -59,7 +59,7 @@ impl Trait {
 }
 
 impl TraitItem {
-    pub fn to_clauses(
+    pub(super) fn to_clauses(
         &self,
         trait_kinded_var_ids: &[KindedVarIndex],
         program: &crate::grammar::Program,
