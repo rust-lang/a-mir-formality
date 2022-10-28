@@ -12,6 +12,7 @@ formality-types = { path = "../formality-types" }
 formality-macros = { path = "../formality-macros" }
 formality-core = { path = "../formality-core" }
 tracing = "0.1"
+contracts = "0.6.3"
 
 [dev-dependencies]
 expect-test = "1.4.0"

@@ -7,7 +7,10 @@ use formality_types::{
     grammar::{
         EnsuresTy, Fallible, Goal, ImplicationTy, PredicateTy, RigidTy, Ty, TyData, Variance,
     },
+    seq,
 };
+
+use crate::extrude::Relationship;
 
 use super::Env;
 
@@ -51,10 +54,12 @@ impl Env {
             ) => {
                 assert!(!self.is_mapped(a));
                 let a1: Ty = self.fresh_rigid_ty(db, name, self.data(a).universe);
-                let mut goals = vec![a1.well_formed().upcast()];
-                goals.extend(self.map_to(a, &a1)?);
-                goals.push(Goal::sub(a1, b));
-                Ok(goals)
+                let equate_goals = self.equate_var(a, &a1)?;
+                Ok(seq![
+                    a1.well_formed().upcast(),
+                    ..equate_goals,
+                    Goal::sub(a1, b),
+                ])
             }
 
             // As in the previous rule, but reversed.
@@ -64,13 +69,26 @@ impl Env {
             ) => {
                 assert!(!self.is_mapped(b));
                 let b1: Ty = self.fresh_rigid_ty(db, name, self.data(b).universe);
-                let mut goals = vec![b1.well_formed().upcast()];
-                goals.extend(self.map_to(b, &b1)?);
-                goals.push(Goal::sub(a, b1));
-                Ok(goals)
+                let equate_goals = self.equate_var(b, &b1)?;
+                Ok(seq![
+                    b1.well_formed().upcast(),
+                    ..equate_goals,
+                    Goal::sub(a, b1),
+                ])
             }
 
-            // The only way to relate to a placeholder bariable is to be equal to it.
+            (
+                &TyData::Variable(Variable::InferenceVar(var_a)),
+                &TyData::Variable(Variable::InferenceVar(var_b)),
+            ) => {
+                if self.data(var_a).universe < self.data(var_b).universe {
+                    Ok(self.relate_parameter(var_b, Relationship::SupertypeOf, a))
+                } else {
+                    Ok(self.relate_parameter(var_a, Relationship::SubtypeOf, b))
+                }
+            }
+
+            // The only way to relate to a placeholder variable is to be equal to it.
             // This is an optimization of sorts.
             (
                 TyData::Variable(Variable::PlaceholderVar(_)),
@@ -112,18 +130,6 @@ impl Env {
                     .collect())
             }
 
-            (&TyData::Variable(Variable::InferenceVar(a)), _) => {
-                assert!(!self.is_mapped(a));
-                let goals = self.map_to(a, b)?;
-                Ok(goals)
-            }
-
-            (_, &TyData::Variable(Variable::InferenceVar(b))) => {
-                assert!(!self.is_mapped(b));
-                let goals = self.map_to(b, a)?;
-                Ok(goals)
-            }
-
             // Two alias types can be a subtype if...
             // * they normalize to subtypes
             // * their parametes are equal, presuming they are the same alias
@@ -146,8 +152,45 @@ impl Env {
                 }
             }
 
+            // An alias `A <: T` if either `A == T` or we can normalize the alias
+            // to `A'` and `A' <: T`.
+            (TyData::AliasTy(alias_a), TyData::Variable(Variable::InferenceVar(_))) => {
+                let alternatives = Goal::any(seq![
+                    Goal::eq(a, b),
+                    Goal::exists_f(|a1: Ty| Goal::all(seq![
+                        alias_a.normalizes_to(&a1).upcast(),
+                        Goal::sub(a1, b),
+                    ]))
+                ]);
+                Ok(seq![alternatives])
+            }
+            (TyData::Variable(Variable::InferenceVar(_)), TyData::AliasTy(alias_b)) => {
+                let alternatives = Goal::any(seq![
+                    Goal::eq(a, b),
+                    Goal::exists_f(|b1: Ty| Goal::all(seq![
+                        alias_b.normalizes_to(&b1).upcast(),
+                        Goal::sub(a, b1),
+                    ]))
+                ]);
+                Ok(seq![alternatives])
+            }
+
+            // Overly conservative rule, but this is what the compiler does.
+            //
+            // FIXME. This is where simplesub would do something different.
+            // Could also use simplesub to change how alias types are handled
+            // here.
+            (&TyData::Variable(Variable::InferenceVar(var_a)), TyData::PredicateTy(_)) => {
+                self.equate_var(var_a, b)
+            }
+            (TyData::PredicateTy(_), &TyData::Variable(Variable::InferenceVar(var_b))) => {
+                self.equate_var(var_b, a)
+            }
+
             // Otherwise, an alias is a subtype of T if we can normalize to some subtype of T.
-            (TyData::AliasTy(alias_a), _) => {
+            (TyData::AliasTy(alias_a), TyData::PredicateTy(_))
+            | (TyData::AliasTy(alias_a), TyData::RigidTy(_))
+            | (TyData::AliasTy(alias_a), TyData::Variable(Variable::PlaceholderVar(_))) => {
                 let normalizes_goal = Goal::exists_f(|ty: Ty| {
                     Goal::all(vec![alias_a.normalizes_to(&ty).upcast(), Goal::sub(ty, b)])
                 });
@@ -155,7 +198,9 @@ impl Env {
             }
 
             // As in the previous rule, but reversed.
-            (_, TyData::AliasTy(alias_b)) => {
+            (TyData::PredicateTy(_), TyData::AliasTy(alias_b))
+            | (TyData::RigidTy(_), TyData::AliasTy(alias_b))
+            | (TyData::Variable(Variable::PlaceholderVar(_)), TyData::AliasTy(alias_b)) => {
                 let normalizes_goal = Goal::exists_f(|ty: Ty| {
                     Goal::all(vec![alias_b.normalizes_to(&ty).upcast(), Goal::sub(a, ty)])
                 });

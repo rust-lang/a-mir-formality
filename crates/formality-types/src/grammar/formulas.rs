@@ -161,6 +161,12 @@ pub enum AtomicRelation {
     Outlives(Parameter, Parameter),
 }
 
+impl AtomicRelation {
+    pub fn eq(p1: impl Upcast<Parameter>, p2: impl Upcast<Parameter>) -> Self {
+        Self::Equals(p1.upcast(), p2.upcast())
+    }
+}
+
 #[term($trait_id ( $,parameters ))]
 pub struct TraitRef {
     pub trait_id: TraitId,

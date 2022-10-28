@@ -1,7 +1,8 @@
 use formality_types::{
     cast::{Upcast, Upcasted},
     fold::Fold,
-    grammar::{Goal, InferenceVar, Parameter, ParameterKind, Universe, Variable},
+    grammar::{AtomicRelation, Goal, InferenceVar, Parameter, ParameterKind, Universe, Variable},
+    seq,
     term::Term,
 };
 
@@ -24,9 +25,40 @@ impl Relationship {
             Relationship::OutlivedBy => Relationship::Outlives,
         }
     }
+
+    fn relation(self, a: &Parameter, b: &Parameter) -> AtomicRelation {
+        match self {
+            Relationship::SubtypeOf => AtomicRelation::Sub(a.clone(), b.clone()),
+            Relationship::Outlives => AtomicRelation::Outlives(a.clone(), b.clone()),
+            Relationship::SupertypeOf => AtomicRelation::Sub(b.clone(), a.clone()),
+            Relationship::OutlivedBy => AtomicRelation::Outlives(b.clone(), a.clone()),
+        }
+    }
 }
 
 impl Env {
+    pub(super) fn relate_parameter(
+        &mut self,
+        variable_a: InferenceVar,
+        relationship: Relationship,
+        parameter_b: impl Upcast<Parameter>,
+    ) -> Vec<Goal> {
+        let parameter_b = parameter_b.upcast();
+
+        let known_bounds = self.known_bounds(variable_a, relationship);
+        if known_bounds.iter().any(|p| *p == parameter_b) {
+            return seq![];
+        }
+
+        self.bound_variable(variable_a, relationship, &parameter_b);
+
+        self.known_bounds(variable_a, relationship.invert())
+            .into_iter()
+            .map(|bound| relationship.relation(&bound, &parameter_b))
+            .upcasted()
+            .collect()
+    }
+
     /// Returns a new parameter `P` in `universe` such that `P (R) parameter`
     /// (assuming that the goals are proven).
     ///
@@ -36,10 +68,11 @@ impl Env {
         &mut self,
         universe: Universe,
         relationship: Relationship,
-        parameter: &Parameter,
+        parameter: impl Upcast<Parameter>,
     ) -> (Parameter, Vec<Goal>) {
+        let parameter = parameter.upcast();
         let mut stack = vec![];
-        self.extrude_parameter_with_stack(&mut stack, universe, relationship, parameter)
+        self.extrude_parameter_with_stack(&mut stack, universe, relationship, &parameter)
     }
 
     fn extrude_parameter_with_stack(

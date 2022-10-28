@@ -1,8 +1,8 @@
+use contracts::requires;
 use formality_macros::term;
 use formality_types::db::Db;
 use formality_types::derive_links;
 use formality_types::{
-    cast::Upcast,
     derive_links::Variable,
     grammar::{
         AtomicRelation, Binder, Fallible, Goal, InferenceVar, Parameter, ParameterKind,
@@ -151,6 +151,17 @@ impl Env {
         })
     }
 
+    /// True if all inference variables in `term` are unmapped.
+    fn fully_refreshed(&self, term: &impl Term) -> bool {
+        term.free_variables().iter().all(|var| {
+            if let Variable::InferenceVar(var) = var {
+                !self.is_mapped(*var)
+            } else {
+                true
+            }
+        })
+    }
+
     /// Returns the universe of a (free) variable.
     pub fn universe(&self, var: Variable) -> Universe {
         assert!(var.is_free());
@@ -162,22 +173,24 @@ impl Env {
         }
     }
 
-    /// Maps the inference var `var` to the value `value`. This may fail, if parameter contains
-    /// values that are not in a suitable universe for `var`. It may also produce a list of goals that
-    /// must be proven, if `var` had acquired constraints.
-    fn map_to(&mut self, var: InferenceVar, value: impl Upcast<Parameter>) -> Fallible<Vec<Goal>> {
-        let value = value.upcast();
+    /// Returns the maximum universe that appears in this term (or which could appear
+    /// in the future).
+    fn term_universe(&self, term: &impl Term) -> Universe {
+        self.refresh_inference_variables(term)
+            .free_variables()
+            .into_iter()
+            .map(|free_var| self.universe(free_var))
+            .max()
+            .unwrap_or(Universe::ROOT)
+    }
 
-        assert_eq!(self.data(var).kind, value.kind());
-
-        // If var is already mapped, then equate the value we were mapped to with the new value.
-        if let Some(m) = &self.data(var).mapped_to {
-            return Ok(vec![Goal::eq(m.clone(), value)]);
-        }
-
-        let variables = self.occurs_check(var, &value)?;
-        let mut goals = self.constrain_vars(var, variables);
-
+    /// Maps the inference var `var` to the value `value`.
+    #[requires(!self.is_mapped(var))]
+    #[requires(self.data(var).kind == value.kind())]
+    #[requires(!self.occurs_in(var, value))]
+    #[requires(self.data(var).universe >= self.term_universe(value))]
+    #[ensures(self.is_mapped(var))]
+    fn map_to(&mut self, var: InferenceVar, value: &Parameter) -> Vec<Goal> {
         let InferenceVarData {
             kind: _,
             universe: _,
@@ -190,7 +203,7 @@ impl Env {
 
         // Convert all the relations we've stored up on this variable to goals
         // that relate to the variable's mapped value.
-        goals.extend(
+        let goals = Vec::from_iter(
             std::iter::empty()
                 .chain(
                     std::mem::replace(subtype_of, vec![])
@@ -214,9 +227,9 @@ impl Env {
                 ),
         );
 
-        *mapped_to = Some(value);
+        *mapped_to = Some(value.clone());
 
-        Ok(goals)
+        goals
     }
 
     fn parameter(&self, var: InferenceVar) -> Parameter {

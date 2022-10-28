@@ -1,10 +1,12 @@
 use anyhow::bail;
 
+use contracts::requires;
 use formality_types::{
     cast::Upcast,
     db::Db,
     derive_links::{Parameter, Variable},
-    grammar::{Fallible, Goal, Lt, LtData, RigidTy, Ty, TyData},
+    grammar::{Fallible, Goal, InferenceVar, Lt, LtData, RigidTy, Ty, TyData},
+    seq,
 };
 
 use super::Env;
@@ -40,17 +42,37 @@ impl Env {
                 panic!("found unexpected bound variable")
             }
 
-            // ?X == T: Map ?X to T.
-            (&TyData::Variable(Variable::InferenceVar(a)), _) => {
-                assert!(!self.is_mapped(a));
-                Ok(self.map_to(a, b)?)
+            // ?X == !Y where !Y is in a universe ?X cannot name: unprovable.
+            (
+                &TyData::Variable(Variable::InferenceVar(i)),
+                TyData::Variable(Variable::PlaceholderVar(p)),
+            )
+            | (
+                TyData::Variable(Variable::PlaceholderVar(p)),
+                &TyData::Variable(Variable::InferenceVar(i)),
+            ) if self.data(i).universe < p.universe => {
+                bail!("cannot equate inference variable `{i:?}` with placeholder `{p:?}`")
             }
 
-            // T == ?X: Map ?X to T.
-            (_, &TyData::Variable(Variable::InferenceVar(b))) => {
-                assert!(!self.is_mapped(b));
-                Ok(self.map_to(b, a)?)
-            }
+            // ?X == ?Y, where ?X and ?Y are in distinct universes:
+            //
+            // Map the variable in the higher universe to the other.
+            (
+                &TyData::Variable(Variable::InferenceVar(i)),
+                &TyData::Variable(Variable::InferenceVar(j)),
+            ) if self.data(i).universe < self.data(j).universe => self.equate_var(j, a),
+            (
+                &TyData::Variable(Variable::InferenceVar(i)),
+                &TyData::Variable(Variable::InferenceVar(j)),
+            ) if self.data(j).universe < self.data(i).universe => self.equate_var(i, b),
+
+            // (?X == T) or (T == ?X): Map ?X to T.
+            //
+            // Subtle: if `b` is a variable in a universe unsuitable for `a`,
+            // this would simply result in a goal that `a == b`, which would
+            // yield an infinite. This is why we handle those cases above.
+            (&TyData::Variable(Variable::InferenceVar(a)), _) => self.equate_var(a, b),
+            (_, &TyData::Variable(Variable::InferenceVar(b))) => self.equate_var(b, a),
 
             // Two aliases must have same name/parameters *or* normalize to the same thing.
             (TyData::AliasTy(alias_a), TyData::AliasTy(alias_b)) => {
@@ -116,20 +138,42 @@ impl Env {
         match (a.data(), b.data()) {
             (LtData::Static, LtData::Static) => Ok(vec![]),
 
-            // Map inference variables.
-            //
-            // FIXME: If this fails the occurs check... does that imply that it is unprovable?
-            (&LtData::Variable(Variable::InferenceVar(a)), _) => {
-                assert!(!self.is_mapped(a));
-                Ok(self.map_to(a, b)?)
+            // Map inference variables if we can.
+            (&LtData::Variable(Variable::InferenceVar(a)), _)
+                if self.data(a).universe >= self.term_universe(b) =>
+            {
+                self.equate_var(a, b)
             }
-            (_, &LtData::Variable(Variable::InferenceVar(b))) => {
-                assert!(!self.is_mapped(b));
-                Ok(self.map_to(b, a)?)
+            (_, &LtData::Variable(Variable::InferenceVar(b)))
+                if self.data(b).universe >= self.term_universe(a) =>
+            {
+                self.equate_var(b, a)
             }
 
             // Otherwise convert to outlives relationships.
             _ => Ok(vec![Goal::outlives(a, b), Goal::outlives(b, a)]),
+        }
+    }
+
+    #[requires(!self.is_mapped(variable))]
+    pub(super) fn equate_var(
+        &mut self,
+        variable: InferenceVar,
+        value: &impl Upcast<Parameter>,
+    ) -> Fallible<Vec<Goal>> {
+        let value: &Parameter = &value.upcast();
+
+        if self.occurs_in(variable, value) {
+            bail!("unifying `{variable:?}` and `{value:?}` would create a cyclic type");
+        }
+
+        let variable_universe = self.data(variable).universe;
+        if self.term_universe(value) <= variable_universe {
+            Ok(self.map_to(variable, value))
+        } else {
+            let value_u = self.generalize_universe(variable_universe, value);
+            let map_to_goals = self.map_to(variable, &value_u);
+            Ok(seq![..map_to_goals, Goal::eq(value_u, value)])
         }
     }
 }

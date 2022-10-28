@@ -1,11 +1,44 @@
+use contracts::requires;
 use formality_types::{
-    grammar::{Fallible, Goal, InferenceVar, Variable},
+    grammar::{Fallible, Goal, InferenceVar, Universe, Variable},
     term::Term,
 };
 
 use crate::Env;
 
 impl Env {
+    #[requires(!self.is_mapped(mapped_var))]
+    #[requires(self.fully_refreshed(value))]
+    pub(crate) fn occurs_in(&self, mapped_var: InferenceVar, value: &impl Term) -> bool {
+        value
+            .free_variables()
+            .into_iter()
+            .any(|free_var| match free_var {
+                Variable::PlaceholderVar(_) => false,
+                Variable::InferenceVar(v) => {
+                    assert!(self.data(v).mapped_to.is_none()); // input is fully refreshed
+                    v == mapped_var // FIXME: check subtype-of / supertype-of?
+                }
+                Variable::BoundVar(_) => panic!("did not expect bound variable"),
+            })
+    }
+
+    /// Returns a version of `value` in which every variable whose universe
+    /// exceeds `universe` is replaced with a fresh inference variable.
+    #[requires(self.fully_refreshed(value))]
+    pub(crate) fn generalize_universe<T: Term>(&mut self, universe: Universe, value: &T) -> T {
+        value.substitute(&mut |kind, &var| {
+            if self.universe(var) > universe {
+                Some(
+                    self.next_inference_variable(kind, universe)
+                        .into_parameter(kind),
+                )
+            } else {
+                None
+            }
+        })
+    }
+
     /// Occurs check (part 1): given a variable `mapped_var` that is not yet mapped, ensures that
     ///
     /// * `mapped_var` does not appear in `value`
@@ -96,10 +129,7 @@ impl Env {
                     self.data(free_var).kind,
                     self.data(mapped_var).universe,
                 );
-                goals.extend(
-                    self.map_to(free_var, self.parameter(fresh_var))
-                        .expect("fresh variable cannot fail the occurs check"),
-                );
+                goals.extend(self.map_to(free_var, &self.parameter(fresh_var)));
             }
         }
         goals

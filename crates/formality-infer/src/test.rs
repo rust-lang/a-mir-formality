@@ -1,7 +1,8 @@
 #![cfg(test)]
 
 use formality_types::{
-    grammar::{Binder, Ty, TyData, Variable},
+    db::mock::MockDatabase,
+    grammar::{AtomicRelation, Binder, Ty},
     parse::term,
 };
 
@@ -13,12 +14,11 @@ fn occurs_check1() {
     let t: Binder<Ty> = term("<ty T> T");
     let mut env = Env::default();
     let t_e = env.instantiate_existentially(&t);
-    let v_e = match t_e.data() {
-        TyData::Variable(Variable::InferenceVar(v)) => *v,
-        _ => panic!(),
-    };
     let t_u = env.instantiate_universally(&t);
-    assert!(env.map_to(v_e, t_u).is_err());
+    let db = MockDatabase::empty();
+    assert!(env
+        .apply_relation(&db, &AtomicRelation::eq(t_e, t_u))
+        .is_err());
 }
 
 #[test]
@@ -28,10 +28,10 @@ fn occurs_check2() {
     let mut env = Env::default();
     let t_u = env.instantiate_universally(&t);
     let t_e = env.instantiate_existentially(&t);
-    let v_e = match t_e.data() {
-        TyData::Variable(Variable::InferenceVar(v)) => *v,
-        _ => panic!(),
-    };
-    assert!(env.map_to(v_e, &t_u).is_ok());
-    assert_eq!(env.refresh_inference_variables(&t_e), t_u);
+    let db = MockDatabase::empty();
+    let (env1, goals) = env
+        .apply_relation(&db, &AtomicRelation::eq(&t_e, &t_u))
+        .unwrap();
+    assert!(goals.is_empty());
+    assert_eq!(env1.refresh_inference_variables(&t_e), t_u);
 }
