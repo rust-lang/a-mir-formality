@@ -23,4 +23,6 @@ members = [
     "crates/formality-decl",
     "crates/formality-body",
     "crates/formality-infer",
+    "crates/formality-check",
+    "crates/formality-rust",
 ]

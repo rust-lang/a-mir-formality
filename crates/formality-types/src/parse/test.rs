@@ -3,7 +3,7 @@
 use super::term;
 use crate::grammar::{AtomicPredicate, Goal, Ty};
 use expect_test::expect;
-use test_log::test;
+use formality_macros::test;
 
 #[test]
 fn parse_atomic_predicate() {

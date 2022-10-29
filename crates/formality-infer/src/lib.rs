@@ -17,7 +17,7 @@ mod eq;
 mod extrude;
 mod occurs;
 mod outlives;
-mod query;
+pub mod query;
 mod rigid;
 mod sub;
 mod test;

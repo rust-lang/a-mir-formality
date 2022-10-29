@@ -14,6 +14,3 @@ tracing = "0.1"
 
 [dev-dependencies]
 expect-test = "1.4.0"
-test-log = { version = "0.2.11", features = ["trace"] }
-env_logger = "*"
-tracing-subscriber = {version = "0.3", default-features = false, features = ["env-filter", "fmt"]}

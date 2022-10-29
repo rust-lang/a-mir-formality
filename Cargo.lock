@@ -177,6 +177,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "formality-check"
+version = "0.1.0"
+
+[[package]]
 name = "formality-core"
 version = "0.1.0"
 dependencies = [
@@ -191,16 +195,13 @@ dependencies = [
 name = "formality-decl"
 version = "0.1.0"
 dependencies = [
- "env_logger",
  "expect-test",
  "formality-core",
  "formality-infer",
  "formality-logic",
  "formality-macros",
  "formality-types",
- "test-log",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -244,18 +245,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "formality-rust"
+version = "0.1.0"
+dependencies = [
+ "expect-test",
+ "formality-core",
+ "formality-infer",
+ "formality-logic",
+ "formality-macros",
+ "formality-types",
+ "tracing",
+]
+
+[[package]]
 name = "formality-types"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "env_logger",
  "expect-test",
  "formality-core",
  "formality-macros",
  "lazy_static",
- "test-log",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

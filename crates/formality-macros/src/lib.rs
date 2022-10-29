@@ -12,6 +12,7 @@ mod fold;
 mod parse;
 mod spec;
 mod term;
+mod test;
 
 // synstructure::decl_derive!([Fold] => fold::derive_fold);
 // synstructure::decl_derive!([Parse, attributes(grammar)] => parse::derive_parse);
@@ -37,6 +38,15 @@ pub fn fixed_point(args: TokenStream, input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as syn::ItemFn);
     match fixed_point::fixed_point(args, input) {
         Ok(s) => quote!(#s).into(),
+        Err(e) => e.into_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+pub fn test(args: TokenStream, input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as syn::ItemFn);
+    match test::test(args, input) {
+        Ok(s) => quote!(#[::core::prelude::v1::test] #s).into(),
         Err(e) => e.into_compile_error().into(),
     }
 }

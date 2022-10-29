@@ -1,8 +1,8 @@
 #![cfg(test)]
 
 use expect_test::expect;
+use formality_macros::test;
 use formality_types::parse::term;
-use test_log::test;
 
 use crate::grammar::Program;
 
