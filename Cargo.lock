@@ -250,6 +250,7 @@ version = "0.1.0"
 dependencies = [
  "expect-test",
  "formality-core",
+ "formality-decl",
  "formality-infer",
  "formality-logic",
  "formality-macros",
