@@ -12,7 +12,7 @@ use crate::{
 
 pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<TokenStream> {
     let fold_impl = derive_fold(synstructure::Structure::new(&input));
-    let parse_impl = derive_parse_with_spec(synstructure::Structure::new(&input), spec.as_ref());
+    let parse_impl = derive_parse_with_spec(synstructure::Structure::new(&input), spec.as_ref())?;
     let debug_impl = derive_debug_with_spec(synstructure::Structure::new(&input), spec.as_ref());
     let term_impl = derive_term(synstructure::Structure::new(&input));
     let downcast_impls = downcast_impls(synstructure::Structure::new(&input));

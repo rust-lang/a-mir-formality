@@ -12,10 +12,12 @@ use crate::spec::{self, FieldMode, FormalitySpec};
 pub(crate) fn derive_parse_with_spec(
     s: synstructure::Structure,
     external_spec: Option<&FormalitySpec>,
-) -> TokenStream {
+) -> syn::Result<TokenStream> {
     if let syn::Data::Union(v) = &s.ast().data {
-        return syn::Error::new(v.union_token.span, "unions are not supported")
-            .into_compile_error();
+        return Err(syn::Error::new(
+            v.union_token.span,
+            "unions are not supported",
+        ));
     }
 
     let mut stream = TokenStream::new();
@@ -28,7 +30,7 @@ pub(crate) fn derive_parse_with_spec(
         });
         for variant in s.variants() {
             let variant_name = as_literal(&variant.ast().ident);
-            let v = parse_variant(variant, None);
+            let v = parse_variant(variant, None)?;
             stream.extend(quote! {
                 let __span = tracing::span!(tracing::Level::TRACE, "parse", variant_name = #variant_name);
                 let __guard = __span.enter();
@@ -40,7 +42,7 @@ pub(crate) fn derive_parse_with_spec(
     }
 
     let type_name = as_literal(&s.ast().ident);
-    s.gen_impl(quote! {
+    Ok(s.gen_impl(quote! {
         use crate::derive_links::{parse};
 
         gen impl parse::Parse for @Self {
@@ -53,13 +55,13 @@ pub(crate) fn derive_parse_with_spec(
                 __result
             }
         }
-    })
+    }))
 }
 
 fn parse_variant(
     variant: &synstructure::VariantInfo,
     external_spec: Option<&FormalitySpec>,
-) -> TokenStream {
+) -> syn::Result<TokenStream> {
     let ast = variant.ast();
 
     // When invoked like `#[term(foo)]`, use the spec from `foo`
@@ -69,10 +71,7 @@ fn parse_variant(
 
     // Else, look for a `#[grammar]` attribute on the variant
     if let Some(attr) = get_grammar_attr(ast.attrs) {
-        return match attr {
-            Ok(spec) => parse_variant_with_attr(variant, &spec),
-            Err(err) => err.into_compile_error(),
-        };
+        return parse_variant_with_attr(variant, &attr?);
     }
 
     // If no `#[grammar(...)]` attribute is provided, then we provide default behavior.
@@ -81,31 +80,31 @@ fn parse_variant(
         // No bindings (e.g., `Foo`) -- just parse a keyword `foo`
         let literal = Literal::string(&to_parse_ident(&ast.ident));
         let construct = variant.construct(|_, _| quote! {});
-        quote! {
+        Ok(quote! {
             let text = parse::expect_keyword(#literal, text)?;
             Some((#construct, text))
-        }
+        })
     } else if crate::cast::has_cast_attr(variant.ast().attrs) {
         // Has the `#[cast]` attribute -- just parse the bindings (comma separated, if needed)
         let build: Vec<TokenStream> = parse_bindings(variant.bindings());
         let construct = variant.construct(field_ident);
-        quote! {
+        Ok(quote! {
             #(#build)*
             Some((#construct, text))
-        }
+        })
     } else {
         // Otherwise -- parse `variant(binding0, ..., bindingN)`
         let literal = Literal::string(&to_parse_ident(&ast.ident));
         let build: Vec<TokenStream> = parse_bindings(variant.bindings());
         let construct = variant.construct(field_ident);
-        quote! {
+        Ok(quote! {
             let text = parse::expect_keyword(#literal, text)?;
             let text = parse::expect_char('(', text)?;
             #(#build)*
             let text = parse::expect_char(',', text).unwrap_or(text); // optional trailing comma
             let text = parse::expect_char(')', text)?;
             Some((#construct, text))
-        }
+        })
     }
 }
 
@@ -128,10 +127,12 @@ fn parse_variant(
 fn parse_variant_with_attr(
     variant: &synstructure::VariantInfo,
     spec: &FormalitySpec,
-) -> TokenStream {
+) -> syn::Result<TokenStream> {
     let mut stream = TokenStream::new();
 
-    for op in &spec.ops {
+    for i in 0..spec.ops.len() {
+        let op = &spec.ops[i];
+        let next_op = spec.ops.get(i + 1);
         stream.extend(match op {
             spec::FormalitySpecOp::Field {
                 name,
@@ -183,7 +184,7 @@ fn parse_variant_with_attr(
         Some((#c, text))
     });
 
-    stream
+    Ok(stream)
 }
 
 fn get_grammar_attr(attrs: &[Attribute]) -> Option<syn::Result<FormalitySpec>> {
