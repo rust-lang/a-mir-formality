@@ -8,7 +8,7 @@ use crate::grammar::Program;
 #[test]
 fn test1() {
     let program: Program = term(
-        "
+        "[
         crate core {
             trait Debug<ty Self> where [] {}
 
@@ -23,7 +23,7 @@ fn test1() {
             impl<ty T> Debug(Vec<T>) where [] {}
             impl<> Debug(u32) where [] {}
         }
-    ",
+        ]",
     );
     let db = Db::new(program);
     let env = Env::default();
@@ -73,5 +73,6 @@ fn test1() {
                 ),
             ),
         }
-    "#]].assert_debug_eq(&result);
+    "#]]
+    .assert_debug_eq(&result);
 }

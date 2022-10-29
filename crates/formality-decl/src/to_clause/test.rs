@@ -9,11 +9,11 @@ use crate::grammar::Program;
 #[test]
 fn to_clause() {
     let program: Program = term(
-        "
+        "[
         crate foo {
             impl<ty X> Debug(X) where [] {}
         } 
-        ",
+        ]",
     );
     let clauses = program.to_clauses();
 

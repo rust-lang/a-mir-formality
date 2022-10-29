@@ -7,7 +7,7 @@ use formality_types::{
     term::Term,
 };
 
-#[term($*crates)]
+#[term($crates)]
 pub struct Program {
     /// List of all crates.
     /// The last crate in the list is the current crate.

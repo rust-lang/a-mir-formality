@@ -3,7 +3,7 @@ use formality_types::grammar::{
     AdtId, AssociatedItemId, Binder, CrateId, FieldId, FnId, Predicate, TraitId, TraitRef, Ty,
 };
 
-#[term($*crates)]
+#[term($crates)]
 pub struct Program {
     /// List of all crates.
     /// The last crate in the list is the current crate.
@@ -69,7 +69,9 @@ pub struct Field {
 
 #[term]
 pub enum FieldName {
+    #[cast]
     Id(FieldId),
+    #[cast]
     Index(usize),
 }
 

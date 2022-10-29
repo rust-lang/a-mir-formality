@@ -8,18 +8,18 @@ use crate::grammar::Program;
 #[test]
 fn test_parse_rust_like_trait_impl_syntax() {
     let r: Program = term(
-        "
-        crate core {
-            impl<ty A, ty B> PartialEq<A> for B where [] {
+        "[
+            crate core {
+                impl<ty A, ty B> PartialEq<A> for B where [] {
 
+                }
             }
-        }
-    ",
+        ]",
     );
 
     // Note: the for etc are correctly accounted.
     expect_test::expect![[r#"
-        crate core { impl <ty, ty> PartialEq < ^0_0 > for ^0_1 where [] { } }
+        [crate core { impl <ty, ty> PartialEq < ^0_0 > for ^0_1 where [] { } }]
     "#]]
     .assert_debug_eq(&r);
 }
@@ -27,18 +27,18 @@ fn test_parse_rust_like_trait_impl_syntax() {
 #[test]
 fn test_parse_rust_like_trait_syntax() {
     let r: Program = term(
-        "
-        crate core {
-            trait Foo<ty A> where [A : Bar<Self>] {
+        "[
+            crate core {
+                trait Foo<ty A> where [A : Bar<Self>] {
 
+                }
             }
-        }
-    ",
+        ]",
     );
 
     // Note: two type parameters, and the 0th one is self:
     expect_test::expect![[r#"
-        crate core { trait Foo <ty, ty> where [^0_1 : Bar < ^0_0 >] { } }
+        [crate core { trait Foo <ty, ty> where [^0_1 : Bar < ^0_0 >] { } }]
     "#]]
     .assert_debug_eq(&r);
 }
@@ -46,18 +46,18 @@ fn test_parse_rust_like_trait_syntax() {
 #[test]
 fn test_parse_rust_like_struct_syntax() {
     let r: Program = term(
-        "
-        crate core {
-            struct Foo<ty A> where [] {
-                a: A
+        "[
+            crate core {
+                struct Foo<ty A> where [] {
+                    a : A,
+                }
             }
-        }
-    ",
+        ]",
     );
 
     // Note: two type parameters, and the 0th one is self:
     expect_test::expect![[r#"
-        crate core { struct Foo <ty> where [] { a : ^0_0 } }
+        [crate core { struct Foo <ty> where [] { a : ^0_0 } }]
     "#]]
     .assert_debug_eq(&r);
 }
