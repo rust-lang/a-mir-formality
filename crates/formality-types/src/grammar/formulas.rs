@@ -188,6 +188,10 @@ pub struct Predicate {
 }
 
 impl Predicate {
+    pub fn for_all(names: &[KindedVarIndex], data: impl Upcast<Predicate>) -> Self {
+        PredicateData::ForAll(Binder::new(names, data.upcast())).upcast()
+    }
+
     pub fn data(&self) -> &PredicateData {
         &self.data
     }

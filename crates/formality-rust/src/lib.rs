@@ -1,5 +1,6 @@
 use formality_types::derive_links;
 
-mod grammar;
+pub mod grammar;
 mod test;
+mod to_decl;
 mod trait_binder;

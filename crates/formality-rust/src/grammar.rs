@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
-use formality_decl::grammar::VariantId;
+use formality_decl::grammar::{FieldName, VariantId};
 use formality_macros::term;
 use formality_types::{
-    grammar::{
-        AdtId, AssociatedItemId, Binder, CrateId, FieldId, FnId, Lt, Parameter, TraitId, Ty,
-    },
+    grammar::{AdtId, AssociatedItemId, Binder, CrateId, FnId, Lt, Parameter, TraitId, Ty},
     term::Term,
 };
 
@@ -55,7 +53,7 @@ pub struct Field {
 #[term(enum $id $binder)]
 pub struct Enum {
     pub id: AdtId,
-    pub binder: Binder<StructBoundData>,
+    pub binder: Binder<EnumBoundData>,
 }
 
 #[term(where $where_clauses { $,variants })]
@@ -68,14 +66,6 @@ pub struct EnumBoundData {
 pub struct Variant {
     pub name: VariantId,
     pub fields: Vec<Field>,
-}
-
-#[term]
-pub enum FieldName {
-    #[cast]
-    Id(FieldId),
-    #[cast]
-    Index(usize),
 }
 
 #[term(trait $id $binder)]
@@ -126,10 +116,8 @@ pub struct AssociatedTy {
 
 #[term(: $ensures where $where_clauses)]
 pub struct AssociatedTyBoundData {
-    /// The Binder binds a single variable that is the name for
-    /// associated type. So e.g. `type Item: Sized` would be encoded
-    /// as `<type I> (I: Sized)`.
-    pub ensures: Binder<Vec<WhereClause>>,
+    /// So e.g. `type Item : [Sized]` would be encoded as `<type I> (I: Sized)`.
+    pub ensures: Vec<WhereBound>,
 
     /// Where clauses that must hold.
     pub where_clauses: Vec<WhereClause>,
@@ -174,6 +162,12 @@ pub struct WhereClause {
     pub data: Arc<WhereClauseData>,
 }
 
+impl WhereClause {
+    pub fn data(&self) -> &WhereClauseData {
+        &self.data
+    }
+}
+
 #[term]
 pub enum WhereClauseData {
     #[grammar($v0 : $v1 < $,v2 >)]
@@ -184,4 +178,27 @@ pub enum WhereClauseData {
 
     #[grammar(for $v0)]
     ForAll(Binder<WhereClause>),
+}
+
+#[term($data)]
+pub struct WhereBound {
+    pub data: Arc<WhereBoundData>,
+}
+
+impl WhereBound {
+    pub fn data(&self) -> &WhereBoundData {
+        &self.data
+    }
+}
+
+#[term]
+pub enum WhereBoundData {
+    #[grammar($v0 < $,v1 >)]
+    IsImplemented(TraitId, Vec<Parameter>),
+
+    #[grammar($v0)]
+    Outlives(Lt),
+
+    #[grammar(for $v0)]
+    ForAll(Binder<WhereBound>),
 }

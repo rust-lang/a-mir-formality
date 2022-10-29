@@ -11,6 +11,15 @@ use formality_types::{
 
 use crate::grammar::TraitBinder;
 
+impl<T> TraitBinder<T>
+where
+    T: Term,
+{
+    pub fn open(&self) -> (Vec<KindedVarIndex>, T) {
+        self.explicit_binder.open()
+    }
+}
+
 impl<T> Term for TraitBinder<T> where T: Term {}
 
 impl<T> Downcast<TraitBinder<T>> for TraitBinder<T>

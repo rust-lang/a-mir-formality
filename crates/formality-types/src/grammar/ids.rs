@@ -12,9 +12,9 @@ macro_rules! id {
             use $crate::parse::{self, Parse};
 
             impl $n {
-                fn new(s: String) -> $n {
+                pub fn new(s: &str) -> $n {
                     $n {
-                        data: std::sync::Arc::new(s),
+                        data: std::sync::Arc::new(s.to_string()),
                     }
                 }
             }
@@ -40,7 +40,7 @@ macro_rules! id {
             impl Parse for $n {
                 fn parse<'t>(_scope: &parse::Scope, text: &'t str) -> Option<(Self, &'t str)> {
                     let (string, text) = parse::identifier(text)?;
-                    let n = $n::new(string);
+                    let n = $n::new(&string);
                     Some((n, text))
                 }
             }
