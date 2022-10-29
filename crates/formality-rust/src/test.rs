@@ -19,7 +19,7 @@ fn test_parse_rust_like_trait_impl_syntax() {
 
     // Note: the for etc are correctly accounted.
     expect_test::expect![[r#"
-        crate core{impl <ty, ty> PartialEq < ^0_0 > for ^0_1 where []{}}
+        crate core { impl <ty, ty> PartialEq < ^0_0 > for ^0_1 where [] { } }
     "#]]
     .assert_debug_eq(&r);
 }
@@ -38,7 +38,7 @@ fn test_parse_rust_like_trait_syntax() {
 
     // Note: two type parameters, and the 0th one is self:
     expect_test::expect![[r#"
-        crate core{trait Foo <ty, ty> where [^0_1 : Bar < ^0_0 >]{}}
+        crate core { trait Foo <ty, ty> where [^0_1 : Bar < ^0_0 >] { } }
     "#]]
     .assert_debug_eq(&r);
 }
@@ -57,7 +57,7 @@ fn test_parse_rust_like_struct_syntax() {
 
     // Note: two type parameters, and the 0th one is self:
     expect_test::expect![[r#"
-        crate core{struct Foo <ty> where []{a : ^0_0}}
+        crate core { struct Foo <ty> where [] { a : ^0_0 } }
     "#]]
     .assert_debug_eq(&r);
 }

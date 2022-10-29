@@ -207,7 +207,15 @@ fn debug_variant_with_attr(
             }
 
             spec::FormalitySpecOp::Delimeter { text } => match &text[..] {
-                "(" | "[" | "{" | "" => {
+                "{" | "}" => {
+                    let literal = Literal::string(text);
+                    quote!(
+                        write!(fmt, "{}", sep)?;
+                        write!(fmt, "{}", #literal)?;
+                        sep = " ";
+                    )
+                }
+                "(" | "[" | "" => {
                     let literal = Literal::string(text);
                     quote!(
                         write!(fmt, "{}", #literal)?;
