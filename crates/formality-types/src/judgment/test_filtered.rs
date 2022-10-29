@@ -59,7 +59,7 @@ fn judgment() {
         {
             4,
             8,
-            10,1
+            10,
         }
     "#]]
     .assert_debug_eq(&TransitiveReachability(graph.clone(), 2).apply());
