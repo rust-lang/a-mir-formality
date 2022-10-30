@@ -5,7 +5,7 @@ use formality_types::{
     derive_links::{Downcast, UpcastFrom},
     fold::Fold,
     grammar::{fresh_bound_var, Binder, KindedVarIndex, ParameterKind},
-    parse::{expect_char, Binding, Parse},
+    parse::{expect_char, Binding, Parse, ParseResult},
     term::Term,
 };
 
@@ -68,12 +68,12 @@ impl<T> Parse for TraitBinder<T>
 where
     T: Term,
 {
-    //#[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &formality_types::parse::Scope, text: &'t str) -> Option<(Self, &'t str)> {
+    #[tracing::instrument(level = "trace", ret)]
+    fn parse<'t>(scope: &formality_types::parse::Scope, text: &'t str) -> ParseResult<'t, Self> {
         // parse the explicit bindings written by the user
-        let text = expect_char('<', text)?;
+        let ((), text) = expect_char('<', text)?;
         let (mut bindings, text) = Binding::parse_comma(scope, text, '>')?;
-        let text = expect_char('>', text)?;
+        let ((), text) = expect_char('>', text)?;
 
         // insert the `Self` binding at position 0
         let (kvi, bound_var) = fresh_bound_var(ParameterKind::Ty);
@@ -93,6 +93,6 @@ where
         let kvis: Vec<KindedVarIndex> = bindings.iter().map(|b| b.kvi).collect();
         let explicit_binder = Binder::new(&kvis, data);
 
-        Some((TraitBinder { explicit_binder }, text))
+        Ok((TraitBinder { explicit_binder }, text))
     }
 }

@@ -5,6 +5,7 @@ use crate::{
     collections::Set,
     derive_links::{Fold, Parameter, ParameterKind},
     grammar::{Binder, BoundVar, KindedVarIndex},
+    set,
 };
 use std::fmt::Debug;
 
@@ -27,9 +28,9 @@ where
 {
     let scope = Scope::new(bindings.into_iter().map(|b| b.upcast()));
     let (t, remainder) = match T::parse(&scope, text) {
-        Some(v) => v,
-        None => {
-            panic!("failed to parse {text:?}");
+        Ok(v) => v,
+        Err(errors) => {
+            panic!("failed to parse {text:?}: {errors:#?}");
         }
     };
     if !remainder.trim().is_empty() {
@@ -39,7 +40,7 @@ where
 }
 
 pub trait Parse: Sized + Debug {
-    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)>;
+    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self>;
 
     /// Parse many instances of self, expecting `close_char` to appear after the last instance
     /// (`close_char` is not consumed).
@@ -47,14 +48,14 @@ pub trait Parse: Sized + Debug {
         scope: &Scope,
         mut text: &'t str,
         close_char: char,
-    ) -> Option<(Vec<Self>, &'t str)> {
+    ) -> ParseResult<'t, Vec<Self>> {
         let mut result = vec![];
         while !text.trim().starts_with(close_char) {
             let (e, t) = Self::parse(scope, text)?;
             result.push(e);
             text = t;
         }
-        Some((result, text))
+        Ok((result, text))
     }
 
     /// Comma separated list with optional trailing comma.
@@ -62,23 +63,49 @@ pub trait Parse: Sized + Debug {
         scope: &Scope,
         mut text: &'t str,
         close_char: char,
-    ) -> Option<(Vec<Self>, &'t str)> {
+    ) -> ParseResult<'t, Vec<Self>> {
         let mut result = vec![];
         while !text.trim().starts_with(close_char) {
             let (e, t) = Self::parse(scope, text)?;
             result.push(e);
             text = t;
 
-            if let Some(t) = expect_char(',', text) {
+            if let Ok(((), t)) = expect_char(',', text) {
                 text = t;
             } else {
                 break;
             }
         }
 
-        Some((result, text))
+        Ok((result, text))
     }
 }
+
+#[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
+pub struct ParseError<'t> {
+    pub text: &'t str,
+    pub message: String,
+}
+
+impl<'t> ParseError<'t> {
+    pub fn at(text: &'t str, message: String) -> Set<Self> {
+        set![ParseError { text, message }]
+    }
+
+    /// Offset of this error relative to `text`
+    pub fn offset(&self, text: &str) -> usize {
+        assert!(text.ends_with(self.text));
+        text.len() - self.text.len()
+    }
+
+    /// Returns the text that was consumed before this error occurred.
+    pub fn consumed_before<'s>(&self, text: &'s str) -> &'s str {
+        let o = self.offset(text);
+        &text[..o]
+    }
+}
+
+pub type ParseResult<'t, T> = Result<(T, &'t str), Set<ParseError<'t>>>;
 
 #[derive(Clone, Debug)]
 pub struct Scope {
@@ -119,11 +146,11 @@ where
     T: Parse,
 {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
-        let text = expect_char('[', text)?;
+    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+        let ((), text) = expect_char('[', text)?;
         let (v, text) = T::parse_comma(scope, text, ']')?;
-        let text = expect_char(']', text)?;
-        Some((v, text))
+        let ((), text) = expect_char(']', text)?;
+        Ok((v, text))
     }
 }
 
@@ -132,12 +159,12 @@ where
     T: Parse + Ord,
 {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
-        let text = expect_char('{', text)?;
+    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+        let ((), text) = expect_char('{', text)?;
         let (v, text) = T::parse_comma(scope, text, '}')?;
-        let text = expect_char('}', text)?;
+        let ((), text) = expect_char('}', text)?;
         let s = v.into_iter().collect();
-        Some((s, text))
+        Ok((s, text))
     }
 }
 
@@ -146,21 +173,21 @@ where
     T: Parse,
 {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
         match T::parse(scope, text) {
-            Some((value, text)) => Some((Some(value), text)),
-            None => Some((None, text)),
+            Ok((value, text)) => Ok((Some(value), text)),
+            Err(_) => Ok((None, text)),
         }
     }
 }
 
 impl Parse for Binding {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
         let (kind, text) = ParameterKind::parse(scope, text)?;
         let (name, text) = identifier(text)?;
         let (kvi, bound_var) = crate::grammar::fresh_bound_var(kind);
-        Some((
+        Ok((
             Binding {
                 name,
                 kvi,
@@ -176,17 +203,17 @@ where
     T: Parse + Fold,
 {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
-        let text = expect_char('<', text)?;
+    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+        let ((), text) = expect_char('<', text)?;
         let (bindings, text) = Binding::parse_comma(scope, text, '>')?;
-        let text = expect_char('>', text)?;
+        let ((), text) = expect_char('>', text)?;
 
         // parse the contents with those names in scope
         let scope1 = scope.with_bindings(bindings.iter().map(|b| (b.name.clone(), b.kvi.to())));
         let (data, text) = T::parse(&scope1, text)?;
 
         let kvis: Vec<KindedVarIndex> = bindings.iter().map(|b| b.kvi).collect();
-        Some((Binder::new(&kvis, data), text))
+        Ok((Binder::new(&kvis, data), text))
     }
 }
 
@@ -194,76 +221,77 @@ impl<T> Parse for Arc<T>
 where
     T: Parse,
 {
-    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
         let (data, text) = T::parse(scope, text)?;
-        Some((Arc::new(data), text))
+        Ok((Arc::new(data), text))
     }
 }
 
 impl Parse for usize {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(_scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+    fn parse<'t>(_scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
         number(text)
     }
 }
 
 impl Parse for u32 {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(_scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+    fn parse<'t>(_scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
         number(text)
     }
 }
 
 impl Parse for u64 {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(_scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
+    fn parse<'t>(_scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
         number(text)
     }
 }
 
-fn char(text: &str) -> Option<(char, &str)> {
-    let ch = text.chars().next()?;
-    Some((ch, &text[char::len_utf8(ch)..]))
+fn char(text: &str) -> ParseResult<'_, char> {
+    let ch = match text.chars().next() {
+        Some(c) => c,
+        None => return Err(ParseError::at(text, "unexpected end of input".to_string())),
+    };
+    Ok((ch, &text[char::len_utf8(ch)..]))
 }
 
 #[tracing::instrument(level = "trace", ret)]
-pub fn number<T>(text: &str) -> Option<(T, &str)>
+pub fn number<T>(text0: &str) -> ParseResult<'_, T>
 where
     T: FromStr + Debug,
 {
-    let (id, text) = accumulate(text, char::is_numeric, char::is_numeric)?;
-    let t = T::from_str(&id).ok()?;
-    Some((t, text))
-}
-
-#[tracing::instrument(level = "trace", ret)]
-pub fn expect_char(ch: char, text: &str) -> Option<&str> {
-    let text = text.trim_start();
-    let (ch1, text) = char(text)?;
-    if ch == ch1 {
-        Some(text)
-    } else {
-        None
+    let (id, text1) = accumulate(text0, char::is_numeric, char::is_numeric, "number")?;
+    match T::from_str(&id) {
+        Ok(t) => Ok((t, text1)),
+        Err(_) => Err(ParseError::at(text0, format!("invalid number"))),
     }
 }
 
-/// If `text` starts with `s`, return the remainder of `text`.
-/// Don't use this for keywords, since if `s` is `"foo"`
-/// and text is `"foobar"`, this would return `Some("bar")`.
 #[tracing::instrument(level = "trace", ret)]
-pub fn expect_str<'t>(s: &str, text: &'t str) -> Option<&'t str> {
-    let text = text.trim_start();
-    if text.starts_with(s) {
-        Some(&text[s.len()..])
+pub fn expect_char(ch: char, text0: &str) -> ParseResult<'_, ()> {
+    let text1 = text0.trim_start();
+    let (ch1, text1) = char(text1)?;
+    if ch == ch1 {
+        Ok(((), text1))
     } else {
-        None
+        Err(ParseError::at(text0, format!("expected `{}`", ch)))
+    }
+}
+
+#[tracing::instrument(level = "trace", ret)]
+pub fn skip_trailing_comma(text: &str) -> &str {
+    if text.starts_with(",") {
+        &text[1..]
+    } else {
+        text
     }
 }
 
 /// Extracts a maximal identifier from the start of text,
 /// following the usual rules.
 #[tracing::instrument(level = "trace", ret)]
-pub fn identifier(text: &str) -> Option<(String, &str)> {
+pub fn identifier(text: &str) -> ParseResult<'_, String> {
     accumulate(
         text,
         |ch| match ch {
@@ -274,88 +302,116 @@ pub fn identifier(text: &str) -> Option<(String, &str)> {
             'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => true,
             _ => false,
         },
+        "identifier",
     )
 }
 
 #[tracing::instrument(level = "trace", ret)]
-pub fn expect_keyword<'t>(expected: &str, text: &'t str) -> Option<&'t str> {
-    let (ident, text) = identifier(text)?;
+pub fn expect_keyword<'t>(expected: &str, text0: &'t str) -> ParseResult<'t, ()> {
+    let (ident, text1) = identifier(text0)?;
     if &*ident == expected {
-        Some(text)
+        Ok(((), text1))
     } else {
-        None
+        Err(ParseError::at(text0, format!("expected `{}`", expected)))
     }
 }
 
-pub fn try_parse<R>(f: impl Fn() -> Option<R>) -> Option<R> {
+pub fn try_parse<'a, R>(f: impl Fn() -> ParseResult<'a, R>) -> ParseResult<'a, R> {
     f()
 }
 
-pub fn require_unambiguous<'t, R>(f: impl IntoIterator<Item = (R, &'t str)>) -> Option<(R, &'t str)>
+pub fn require_unambiguous<'t, R>(
+    text: &'t str,
+    f: impl IntoIterator<Item = ParseResult<'t, R>>,
+    expected: &'static str,
+) -> ParseResult<'t, R>
 where
     R: std::fmt::Debug,
 {
-    let mut v: Vec<(R, &str)> = f.into_iter().collect();
-    if v.len() > 1 {
-        panic!("parsing ambiguity: {v:?}");
+    let mut errors = set![];
+    let mut results = vec![];
+    for result in f {
+        match result {
+            Ok(v) => results.push(v),
+            Err(es) => {
+                for e in es {
+                    // only include an error if the error resulted after at least
+                    // one non-whitespace character was consumed
+                    if !e.consumed_before(text).trim().is_empty() {
+                        errors.insert(e);
+                    }
+                }
+            }
+        }
+    }
+
+    if results.len() > 1 {
+        // More than one *positive* result indicates an ambiguous grammar, which is a programmer bug,
+        // not a fault of the input, so we panic (rather than returning Err)
+        panic!("parsing ambiguity: {results:?}");
+    } else if results.len() == 1 {
+        Ok(results.pop().unwrap())
+    } else if errors.len() == 0 {
+        Err(ParseError::at(text, format!("{} expected", expected)))
     } else {
-        v.pop()
+        Err(errors)
     }
 }
 
 /// Extracts a maximal identifier from the start of text,
 /// following the usual rules.
-fn accumulate(
-    text: &str,
+fn accumulate<'t>(
+    text0: &'t str,
     start_test: impl Fn(char) -> bool,
     continue_test: impl Fn(char) -> bool,
-) -> Option<(String, &str)> {
-    let text = text.trim_start();
+    description: &'static str,
+) -> ParseResult<'t, String> {
+    let text1 = text0.trim_start();
     let mut buffer = String::new();
 
-    let (ch, text) = char(text)?;
+    let (ch, text1) = char(text1)?;
     if !start_test(ch) {
-        return None;
+        return Err(ParseError::at(text0, format!("{} expected", description)));
     }
     buffer.push(ch);
 
-    let mut text = text;
-    while let Some((ch, t)) = char(text) {
+    let mut text1 = text1;
+    while let Ok((ch, t)) = char(text1) {
         if !continue_test(ch) {
             break;
         }
 
         buffer.push(ch);
-        text = t;
+        text1 = t;
     }
 
-    Some((buffer, text))
+    Ok((buffer, text1))
 }
 
 impl<A: Parse, B: Parse> Parse for (A, B) {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
-        let text = expect_char('(', text)?;
+    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+        let ((), text) = expect_char('(', text)?;
         let (a, text) = A::parse(scope, text)?;
-        let text = expect_char(',', text)?;
+        let ((), text) = expect_char(',', text)?;
         let (b, text) = B::parse(scope, text)?;
-        let text = expect_char(',', text).unwrap_or(text);
-        let text = expect_char(')', text)?;
-        Some(((a, b), text))
+        let text = skip_trailing_comma(text);
+        let ((), text) = expect_char(')', text)?;
+        Ok(((a, b), text))
     }
 }
 
 impl<A: Parse, B: Parse, C: Parse> Parse for (A, B, C) {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
-        let text = expect_char('(', text)?;
+    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+        let ((), text) = expect_char('(', text)?;
         let (a, text) = A::parse(scope, text)?;
-        let text = expect_char(',', text)?;
+        let ((), text) = expect_char(',', text)?;
         let (b, text) = B::parse(scope, text)?;
-        let text = expect_char(',', text)?;
+        let ((), text) = expect_char(',', text)?;
         let (c, text) = C::parse(scope, text)?;
-        let text = expect_char(',', text).unwrap_or(text);
-        let text = expect_char(')', text)?;
-        Some(((a, b, c), text))
+        let text = skip_trailing_comma(text);
+        let ((), text) = expect_char(')', text)?;
+        Ok(((a, b, c), text))
     }
 }

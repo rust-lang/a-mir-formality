@@ -3,7 +3,7 @@
 use crate::{
     cast::Upcast,
     grammar::{AdtId, AssociatedItemId, TraitId},
-    parse::{self, expect_keyword, expect_str, Parse},
+    parse::{self, expect_char, expect_keyword, Parse, ParseError, ParseResult},
 };
 
 use super::{AliasTy, AssociatedTyName, Lt, LtData, Parameter, PredicateTy, RigidTy, ScalarId, Ty};
@@ -11,58 +11,65 @@ use super::{AliasTy, AssociatedTyName, Lt, LtData, Parameter, PredicateTy, Rigid
 // For types, we invest some effort into parsing them decently because it makes
 // writing tests so much more pleasant.
 impl Parse for Ty {
-    fn parse<'t>(scope: &crate::parse::Scope, text: &'t str) -> Option<(Self, &'t str)> {
+    fn parse<'t>(scope: &crate::parse::Scope, text0: &'t str) -> ParseResult<'t, Self> {
         // Support writing `u8` etc and treat them as keywords
-        if let Some((scalar_ty, text)) = ScalarId::parse(scope, text) {
-            return Some((scalar_ty.upcast(), text));
+        if let Ok((scalar_ty, text1)) = ScalarId::parse(scope, text0) {
+            return Ok((scalar_ty.upcast(), text1));
         }
 
         // Support naming variables in scope and give that preference
-        if let Some((p, text)) = parse_variable(scope, text) {
+        if let Ok((p, text1)) = parse_variable(scope, text0) {
             return match p {
-                Parameter::Ty(ty) => Some((ty, text)),
-                _ => None,
+                Parameter::Ty(ty) => Ok((ty, text1)),
+                _ => Err(ParseError::at(
+                    text0,
+                    format!("expected type, found `{:?}`", p.kind()),
+                )),
             };
         }
 
         parse::require_unambiguous(
-            std::iter::empty()
-                .chain(parse::try_parse(|| parse_adt_ty(scope, text)))
-                .chain(parse::try_parse(|| parse_assoc_ty(scope, text)))
-                .chain(parse::try_parse(|| {
-                    let (ty, text) = RigidTy::parse(scope, text)?;
-                    Some((Ty::new(ty), text))
-                }))
-                .chain(parse::try_parse(|| {
-                    let (ty, text) = AliasTy::parse(scope, text)?;
-                    Some((Ty::new(ty), text))
-                }))
-                .chain(parse::try_parse(|| {
-                    let (ty, text) = PredicateTy::parse(scope, text)?;
-                    Some((Ty::new(ty), text))
-                })),
+            text0,
+            vec![
+                parse::try_parse(|| parse_adt_ty(scope, text0)),
+                parse::try_parse(|| parse_assoc_ty(scope, text0)),
+                parse::try_parse(|| {
+                    let (ty, text) = RigidTy::parse(scope, text0)?;
+                    Ok((Ty::new(ty), text))
+                }),
+                parse::try_parse(|| {
+                    let (ty, text) = AliasTy::parse(scope, text0)?;
+                    Ok((Ty::new(ty), text))
+                }),
+                parse::try_parse(|| {
+                    let (ty, text) = PredicateTy::parse(scope, text0)?;
+                    Ok((Ty::new(ty), text))
+                }),
+            ],
+            "`Ty`",
         )
     }
 }
 
 #[tracing::instrument(level = "trace", ret)]
-fn parse_adt_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> Option<(Ty, &'t str)> {
+fn parse_adt_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
     // Treat plain identifiers as adt ids, with or without parameters.
     let (name, text) = AdtId::parse(scope, text)?;
     let (parameters, text) = parse_parameters(scope, text)?;
-    Some((Ty::rigid(name, parameters), text))
+    Ok((Ty::rigid(name, parameters), text))
 }
 
 #[tracing::instrument(level = "trace", ret)]
-fn parse_assoc_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> Option<(Ty, &'t str)> {
+fn parse_assoc_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
     // Treat plain identifiers as adt ids, with or without parameters.
-    let text = expect_str("<", text)?;
+    let ((), text) = expect_char('<', text)?;
     let (ty0, text) = Ty::parse(scope, text)?;
-    let text = expect_keyword("as", text)?;
+    let ((), text) = expect_keyword("as", text)?;
     let (trait_id, text) = TraitId::parse(scope, text)?;
     let (trait_parameters1, text) = parse_parameters(scope, text)?;
-    let text = expect_str(">", text)?;
-    let text = expect_str("::", text)?;
+    let ((), text) = expect_char('>', text)?;
+    let ((), text) = expect_char(':', text)?;
+    let ((), text) = expect_char(':', text)?;
     let (item_id, text) = AssociatedItemId::parse(scope, text)?;
     let (item_parameters, text) = parse_parameters(scope, text)?;
 
@@ -71,44 +78,52 @@ fn parse_assoc_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> Option<(Ty,
         .chain(trait_parameters1)
         .chain(item_parameters)
         .collect();
-    Some((Ty::alias(assoc_ty_id, parameters), text))
+    Ok((Ty::alias(assoc_ty_id, parameters), text))
 }
 
 #[tracing::instrument(level = "trace", ret)]
 fn parse_parameters<'t>(
     scope: &crate::parse::Scope,
     text: &'t str,
-) -> Option<(Vec<Parameter>, &'t str)> {
-    let text = match expect_str("<", text) {
-        None => return Some((vec![], text)),
-        Some(text) => text,
+) -> ParseResult<'t, Vec<Parameter>> {
+    let text = match expect_char('<', text) {
+        Err(_) => return Ok((vec![], text)),
+        Ok(((), text)) => text,
     };
     let (parameters, text) = Parameter::parse_comma(scope, text, '>')?;
-    let text = expect_str(">", text)?;
-    Some((parameters, text))
+    let ((), text) = expect_char('>', text)?;
+    Ok((parameters, text))
 }
 
 impl Parse for Lt {
-    fn parse<'t>(scope: &crate::parse::Scope, text: &'t str) -> Option<(Self, &'t str)> {
+    fn parse<'t>(scope: &crate::parse::Scope, text0: &'t str) -> ParseResult<'t, Self> {
         parse::require_unambiguous(
-            parse::try_parse(|| {
-                let text = expect_keyword("static", text)?;
-                Some((Lt::new(LtData::Static), text))
-            })
-            .into_iter()
-            .chain(parse::try_parse(|| {
-                let (p, text) = parse_variable(scope, text)?;
-                match p {
-                    Parameter::Lt(lt) => Some((lt, text)),
-                    _ => None,
-                }
-            })),
+            text0,
+            vec![
+                parse::try_parse(|| {
+                    let ((), text) = expect_keyword("static", text0)?;
+                    Ok((Lt::new(LtData::Static), text))
+                }),
+                parse::try_parse(|| {
+                    let (p, text1) = parse_variable(scope, text0)?;
+                    match p {
+                        Parameter::Lt(lt) => Ok((lt, text1)),
+                        _ => Err(ParseError::at(
+                            text0,
+                            format!("expected lifetime, found `{:?}`", p.kind()),
+                        )),
+                    }
+                }),
+            ],
+            "`Lt`",
         )
     }
 }
 
-fn parse_variable<'t>(scope: &crate::parse::Scope, text: &'t str) -> Option<(Parameter, &'t str)> {
-    let (id, text) = parse::identifier(text)?;
-    let parameter = scope.lookup(&id)?;
-    Some((parameter, text))
+fn parse_variable<'t>(scope: &crate::parse::Scope, text0: &'t str) -> ParseResult<'t, Parameter> {
+    let (id, text1) = parse::identifier(text0)?;
+    match scope.lookup(&id) {
+        Some(parameter) => Ok((parameter, text1)),
+        None => Err(ParseError::at(text0, format!("unrecognized variable"))),
+    }
 }

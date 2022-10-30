@@ -38,10 +38,10 @@ macro_rules! id {
             }
 
             impl Parse for $n {
-                fn parse<'t>(_scope: &parse::Scope, text: &'t str) -> Option<(Self, &'t str)> {
+                fn parse<'t>(_scope: &parse::Scope, text: &'t str) -> parse::ParseResult<'t, Self> {
                     let (string, text) = parse::identifier(text)?;
                     let n = $n::new(&string);
-                    Some((n, text))
+                    Ok((n, text))
                 }
             }
 
