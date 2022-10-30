@@ -179,6 +179,16 @@ dependencies = [
 [[package]]
 name = "formality-check"
 version = "0.1.0"
+dependencies = [
+ "expect-test",
+ "formality-core",
+ "formality-decl",
+ "formality-infer",
+ "formality-logic",
+ "formality-macros",
+ "formality-types",
+ "tracing",
+]
 
 [[package]]
 name = "formality-core"
