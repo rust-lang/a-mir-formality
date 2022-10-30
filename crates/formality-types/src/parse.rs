@@ -20,6 +20,10 @@ where
     term_with(None::<(String, Parameter)>, text)
 }
 
+/// Parses `text` as a term with the given bindings in scope.
+///
+/// References to the given string will be replaced with the given parameter
+/// when parsing types, lifetimes, etc.
 #[track_caller]
 pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> T
 where
@@ -39,7 +43,10 @@ where
     t
 }
 
+/// Trait for parsing a [`Term`](`crate::term::Term`) as input.
 pub trait Parse: Sized + Debug {
+    /// Parse a single instance of this type, returning an error if no such
+    /// instance is present.
     fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self>;
 
     /// Parse many instances of self, expecting `close_char` to appear after the last instance
@@ -81,24 +88,39 @@ pub trait Parse: Sized + Debug {
     }
 }
 
+/// Tracks an error that occurred while parsing.
+/// The parse error records the input text it saw, which will be
+/// some suffix of the original input, along with a message.
+///
+/// The actual [`ParseResult`] type tracks a *set* of parse errors.
+/// When parse errors are generated, there is just one (e.g., "expected identifier"),
+/// but when there are choice points in the grammar (e.g., when parsing an enum),
+/// those errors can be combined by [`require_unambiguous`].
 #[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub struct ParseError<'t> {
+    /// Input that triggered the parse error. Some suffix
+    /// of the original input.
     pub text: &'t str,
+
+    /// Message describing what was expected.
     pub message: String,
 }
 
 impl<'t> ParseError<'t> {
+    /// Creates a single parse error at the given point. Returns
+    /// a set so that it can be wrapped as a [`ParseResult`].
     pub fn at(text: &'t str, message: String) -> Set<Self> {
         set![ParseError { text, message }]
     }
 
-    /// Offset of this error relative to `text`
+    /// Offset of this error relative to the starting point `text`
     pub fn offset(&self, text: &str) -> usize {
         assert!(text.ends_with(self.text));
         text.len() - self.text.len()
     }
 
-    /// Returns the text that was consumed before this error occurred.
+    /// Returns the text that was consumed before this error occurred,
+    /// with `text` is the starting point.
     pub fn consumed_before<'s>(&self, text: &'s str) -> &'s str {
         let o = self.offset(text);
         &text[..o]
@@ -107,18 +129,21 @@ impl<'t> ParseError<'t> {
 
 pub type ParseResult<'t, T> = Result<(T, &'t str), Set<ParseError<'t>>>;
 
+/// Tracks the variables in scope at this point in parsing.
 #[derive(Clone, Debug)]
 pub struct Scope {
     bindings: Vec<(String, Parameter)>,
 }
 
 impl Scope {
+    /// Creates a new scope with the given set of bindings.
     pub fn new(bindings: impl IntoIterator<Item = (String, Parameter)>) -> Self {
         Self {
             bindings: bindings.into_iter().collect(),
         }
     }
 
+    /// Look for a variable with the given name.
     pub fn lookup(&self, name: &str) -> Option<Parameter> {
         self.bindings
             .iter()
@@ -127,6 +152,7 @@ impl Scope {
             .next()
     }
 
+    /// Create a new scope that extends `self` with `bindings`.
     pub fn with_bindings(&self, bindings: impl IntoIterator<Item = (String, Parameter)>) -> Self {
         let mut s = self.clone();
         s.bindings.extend(bindings);
@@ -134,10 +160,16 @@ impl Scope {
     }
 }
 
+/// Records a single binding, used when parsing [`Binder`].
 #[derive(Clone, Debug)]
 pub struct Binding {
+    /// Name the user during during parsing
     pub name: String,
+
+    /// The [`ParameterKind`] combined with a unique var index
     pub kvi: KindedVarIndex,
+
+    /// The bound var representation (derivable from `kvi`).
     pub bound_var: BoundVar,
 }
 
@@ -181,6 +213,7 @@ where
     }
 }
 
+/// Binding grammar is `$kind $name`, e.g., `ty Foo`.
 impl Parse for Binding {
     #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
@@ -198,6 +231,8 @@ impl Parse for Binding {
     }
 }
 
+/// Parse a binder: find the names in scope, parse the contents, and then
+/// replace names with debruijn indices.
 impl<T> Parse for Binder<T>
 where
     T: Parse + Fold,
@@ -248,6 +283,9 @@ impl Parse for u64 {
     }
 }
 
+/// Extract the next character from input, returning an error if we've reached the input.
+///
+/// Warning: does not skip whitespace.
 fn char(text: &str) -> ParseResult<'_, char> {
     let ch = match text.chars().next() {
         Some(c) => c,
@@ -256,6 +294,7 @@ fn char(text: &str) -> ParseResult<'_, char> {
     Ok((ch, &text[char::len_utf8(ch)..]))
 }
 
+/// Extract a number from the input, erroring if the input does not start with a number.
 #[tracing::instrument(level = "trace", ret)]
 pub fn number<T>(text0: &str) -> ParseResult<'_, T>
 where
@@ -268,6 +307,7 @@ where
     }
 }
 
+/// Consume next character and require that it be `ch`.
 #[tracing::instrument(level = "trace", ret)]
 pub fn expect_char(ch: char, text0: &str) -> ParseResult<'_, ()> {
     let text1 = text0.trim_start();
@@ -279,6 +319,7 @@ pub fn expect_char(ch: char, text0: &str) -> ParseResult<'_, ()> {
     }
 }
 
+/// Consume a comma if one is present.
 #[tracing::instrument(level = "trace", ret)]
 pub fn skip_trailing_comma(text: &str) -> &str {
     if text.starts_with(",") {
@@ -306,6 +347,7 @@ pub fn identifier(text: &str) -> ParseResult<'_, String> {
     )
 }
 
+/// Consume next identifier, requiring that it be equal to `expected`.
 #[tracing::instrument(level = "trace", ret)]
 pub fn expect_keyword<'t>(expected: &str, text0: &'t str) -> ParseResult<'t, ()> {
     let (ident, text1) = identifier(text0)?;
@@ -316,10 +358,18 @@ pub fn expect_keyword<'t>(expected: &str, text0: &'t str) -> ParseResult<'t, ()>
     }
 }
 
+/// Convenience function for use when generating code: calls the closure it is given
+/// as argument. Used to introduce new scope for name bindings.
 pub fn try_parse<'a, R>(f: impl Fn() -> ParseResult<'a, R>) -> ParseResult<'a, R> {
     f()
 }
 
+/// Used at choice points in the grammar. Iterates over all possible parses, looking
+/// for a single successful parse. If there are multiple successful parses, that
+/// indicates an ambiguous grammar, so we panic. If there are no successful parses,
+/// tries to come up with the best error it can: it prefers errors that arise from "partially successful"
+/// parses (e.g., parses that consume some input before failing), but if there are none of those,
+/// it will give an error at `text` saying that we expected to find a `expected`.
 pub fn require_unambiguous<'t, R>(
     text: &'t str,
     f: impl IntoIterator<Item = ParseResult<'t, R>>,
