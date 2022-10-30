@@ -206,24 +206,24 @@ fn debug_variant_with_attr(
                 )
             }
 
-            spec::FormalitySpecOp::Delimeter { text } => match &text[..] {
-                "{" | "}" => {
-                    let literal = Literal::string(text);
+            spec::FormalitySpecOp::Delimeter { text } => match text {
+                '{' | '}' => {
+                    let literal = Literal::character(*text);
                     quote!(
                         write!(fmt, "{}", sep)?;
                         write!(fmt, "{}", #literal)?;
                         sep = " ";
                     )
                 }
-                "(" | "[" | "" => {
-                    let literal = Literal::string(text);
+                '(' | '[' => {
+                    let literal = Literal::character(*text);
                     quote!(
                         write!(fmt, "{}", #literal)?;
                         sep = "";
                     )
                 }
                 _ => {
-                    let literal = Literal::string(text);
+                    let literal = Literal::character(*text);
                     quote!(
                         write!(fmt, "{}", #literal)?;
                         sep = " ";

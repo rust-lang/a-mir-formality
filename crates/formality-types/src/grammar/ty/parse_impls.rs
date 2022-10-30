@@ -83,7 +83,7 @@ fn parse_parameters<'t>(
         None => return Some((vec![], text)),
         Some(text) => text,
     };
-    let (parameters, text) = Parameter::parse_comma(scope, text);
+    let (parameters, text) = Parameter::parse_comma(scope, text, '>')?;
     let text = expect_str(">", text)?;
     Some((parameters, text))
 }

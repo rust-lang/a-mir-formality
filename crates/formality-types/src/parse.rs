@@ -41,19 +41,31 @@ where
 pub trait Parse: Sized + Debug {
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)>;
 
-    fn parse_many<'t>(scope: &Scope, mut text: &'t str) -> (Vec<Self>, &'t str) {
+    /// Parse many instances of self, expecting `close_char` to appear after the last instance
+    /// (`close_char` is not consumed).
+    fn parse_many<'t>(
+        scope: &Scope,
+        mut text: &'t str,
+        close_char: char,
+    ) -> Option<(Vec<Self>, &'t str)> {
         let mut result = vec![];
-        while let Some((e, t)) = Self::parse(scope, text) {
+        while !text.trim().starts_with(close_char) {
+            let (e, t) = Self::parse(scope, text)?;
             result.push(e);
             text = t;
         }
-        (result, text)
+        Some((result, text))
     }
 
     /// Comma separated list with optional trailing comma.
-    fn parse_comma<'t>(scope: &Scope, mut text: &'t str) -> (Vec<Self>, &'t str) {
+    fn parse_comma<'t>(
+        scope: &Scope,
+        mut text: &'t str,
+        close_char: char,
+    ) -> Option<(Vec<Self>, &'t str)> {
         let mut result = vec![];
-        while let Some((e, t)) = Self::parse(scope, text) {
+        while !text.trim().starts_with(close_char) {
+            let (e, t) = Self::parse(scope, text)?;
             result.push(e);
             text = t;
 
@@ -64,7 +76,7 @@ pub trait Parse: Sized + Debug {
             }
         }
 
-        (result, text)
+        Some((result, text))
     }
 }
 
@@ -109,7 +121,7 @@ where
     #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         let text = expect_char('[', text)?;
-        let (v, text) = T::parse_comma(scope, text);
+        let (v, text) = T::parse_comma(scope, text, ']')?;
         let text = expect_char(']', text)?;
         Some((v, text))
     }
@@ -122,7 +134,7 @@ where
     #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         let text = expect_char('{', text)?;
-        let (v, text) = T::parse_comma(scope, text);
+        let (v, text) = T::parse_comma(scope, text, '}')?;
         let text = expect_char('}', text)?;
         let s = v.into_iter().collect();
         Some((s, text))
@@ -166,7 +178,7 @@ where
     #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> Option<(Self, &'t str)> {
         let text = expect_char('<', text)?;
-        let (bindings, text) = Binding::parse_comma(scope, text);
+        let (bindings, text) = Binding::parse_comma(scope, text, '>')?;
         let text = expect_char('>', text)?;
 
         // parse the contents with those names in scope

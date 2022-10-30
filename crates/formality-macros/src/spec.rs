@@ -22,8 +22,8 @@ pub enum FormalitySpecOp {
     /// `<` -- indicates we should parse the given char. We currently ignoring the spacing rules.
     Char { punct: Punct },
 
-    /// Specific delimeter (e.g., `(`) we should parse (sometimes `""`).
-    Delimeter { text: String },
+    /// Specific delimeter (e.g., `(`) we should parse.
+    Delimeter { text: char },
 }
 
 pub enum FieldMode {
@@ -53,19 +53,19 @@ fn token_stream_to_ops(
         match token {
             proc_macro2::TokenTree::Group(v) => {
                 let (open_text, close_text) = match v.delimiter() {
-                    proc_macro2::Delimiter::Parenthesis => ("(", ")"),
-                    proc_macro2::Delimiter::Brace => ("{", "}"),
-                    proc_macro2::Delimiter::Bracket => ("[", "]"),
-                    proc_macro2::Delimiter::None => ("", ""),
+                    proc_macro2::Delimiter::Parenthesis => (Some('('), Some(')')),
+                    proc_macro2::Delimiter::Brace => (Some('{'), Some('}')),
+                    proc_macro2::Delimiter::Bracket => (Some('['), Some(']')),
+                    proc_macro2::Delimiter::None => (None, None),
                 };
 
-                ops.push(Delimeter {
-                    text: open_text.to_string(),
-                });
+                if let Some(ch) = open_text {
+                    ops.push(Delimeter { text: ch });
+                }
                 token_stream_to_ops(ops, v.stream())?;
-                ops.push(Delimeter {
-                    text: close_text.to_string(),
-                });
+                if let Some(ch) = close_text {
+                    ops.push(Delimeter { text: ch });
+                }
             }
             proc_macro2::TokenTree::Ident(ident) => ops.push(Keyword { ident }),
             proc_macro2::TokenTree::Punct(punct) => match punct.as_char() {

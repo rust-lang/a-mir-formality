@@ -5,7 +5,7 @@ use quote::{quote, quote_spanned};
 use syn::{spanned::Spanned, Attribute};
 use synstructure::BindingInfo;
 
-use crate::spec::{self, FieldMode, FormalitySpec};
+use crate::spec::{self, FieldMode, FormalitySpec, FormalitySpecOp};
 
 /// Derive the `Parse` impl, using an optional grammar supplied "from the outside".
 /// This is used by the `#[term(G)]` macro, which supplies the grammar `G`.
@@ -147,8 +147,9 @@ fn parse_variant_with_attr(
                 name,
                 mode: FieldMode::Many,
             } => {
+                let lookahead = lookahead(name, next_op)?;
                 quote_spanned! {
-                    name.span() => let (#name, text) = parse::Parse::parse_many(scope, text);
+                    name.span() => let (#name, text) = parse::Parse::parse_many(scope, text, #lookahead)?;
                 }
             }
 
@@ -156,8 +157,9 @@ fn parse_variant_with_attr(
                 name,
                 mode: FieldMode::Comma,
             } => {
+                let lookahead = lookahead(name, next_op)?;
                 quote_spanned! {
-                    name.span() => let (#name, text) = parse::Parse::parse_comma(scope, text);
+                    name.span() => let (#name, text) = parse::Parse::parse_comma(scope, text, #lookahead)?;
                 }
             }
 
@@ -172,8 +174,8 @@ fn parse_variant_with_attr(
             }
 
             spec::FormalitySpecOp::Delimeter { text } => {
-                let literal = Literal::string(text);
-                quote!(let text = parse::expect_str(#literal, text)?;)
+                let literal = Literal::character(*text);
+                quote!(let text = parse::expect_char(#literal, text)?;)
             }
         });
     }
@@ -185,6 +187,19 @@ fn parse_variant_with_attr(
     });
 
     Ok(stream)
+}
+
+fn lookahead(for_field: &Ident, op: Option<&FormalitySpecOp>) -> syn::Result<Literal> {
+    match op {
+        Some(FormalitySpecOp::Char { punct }) => Ok(Literal::character(punct.as_char())),
+        Some(FormalitySpecOp::Delimeter { text }) => Ok(Literal::character(*text)),
+        Some(FormalitySpecOp::Keyword { .. }) | Some(FormalitySpecOp::Field { .. }) | None => {
+            Err(syn::Error::new_spanned(
+                for_field,
+                format!("cannot use `*` or `,` without lookahead"),
+            ))
+        }
+    }
 }
 
 fn get_grammar_attr(attrs: &[Attribute]) -> Option<syn::Result<FormalitySpec>> {

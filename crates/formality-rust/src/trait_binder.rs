@@ -68,11 +68,11 @@ impl<T> Parse for TraitBinder<T>
 where
     T: Term,
 {
-    #[tracing::instrument(level = "trace", ret)]
+    //#[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &formality_types::parse::Scope, text: &'t str) -> Option<(Self, &'t str)> {
         // parse the explicit bindings written by the user
         let text = expect_char('<', text)?;
-        let (mut bindings, text) = Binding::parse_comma(scope, text);
+        let (mut bindings, text) = Binding::parse_comma(scope, text, '>')?;
         let text = expect_char('>', text)?;
 
         // insert the `Self` binding at position 0
