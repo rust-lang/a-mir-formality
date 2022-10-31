@@ -127,6 +127,13 @@ impl super::Check<'_> {
             ii_ty.well_formed(),
         )?;
 
+        let ensures = ti_ensures.instantiate_with(&[ii_ty.upcast()])?;
+        self.prove_goal(
+            &env,
+            (impl_assumptions, &ii_where_clauses),
+            Goal::all(ensures),
+        )?;
+
         Ok(())
     }
 
