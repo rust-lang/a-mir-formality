@@ -13,23 +13,47 @@ pub trait Database: Debug {
 #[derive(Clone)]
 pub struct Db {
     db: Arc<dyn Database + Send>,
+    solver_config: SolverConfiguration,
+}
+
+#[derive(Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Debug, Hash)]
+pub enum SolverConfiguration {
+    Cosld,
 }
 
 impl Db {
     pub fn new(db: impl Database + Send + 'static) -> Self {
-        Self { db: Arc::new(db) }
+        Self {
+            db: Arc::new(db),
+            solver_config: SolverConfiguration::Cosld,
+        }
+    }
+
+    pub fn solver_config(&self) -> SolverConfiguration {
+        self.solver_config
+    }
+
+    fn fields(&self) -> (*const (dyn Database + Send), &SolverConfiguration) {
+        let Db { db, solver_config } = self;
+        (Arc::as_ptr(db), solver_config)
     }
 }
 
 impl Debug for Db {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Db").finish()
+        let Db {
+            db: _,
+            solver_config,
+        } = self;
+        f.debug_struct("Db")
+            .field("solver_config", solver_config)
+            .finish()
     }
 }
 
 impl PartialEq for Db {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.db, &other.db)
+        self.fields().eq(&other.fields())
     }
 }
 
@@ -37,19 +61,19 @@ impl Eq for Db {}
 
 impl PartialOrd for Db {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Arc::as_ptr(&self.db).partial_cmp(&Arc::as_ptr(&other.db))
+        self.fields().partial_cmp(&other.fields())
     }
 }
 
 impl Ord for Db {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        Arc::as_ptr(&self.db).cmp(&Arc::as_ptr(&other.db))
+        self.fields().cmp(&other.fields())
     }
 }
 
 impl std::hash::Hash for Db {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        Arc::as_ptr(&self.db).hash(state)
+        self.fields().hash(state)
     }
 }
 

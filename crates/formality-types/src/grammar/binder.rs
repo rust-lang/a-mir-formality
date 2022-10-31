@@ -2,6 +2,7 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use anyhow::bail;
 use lazy_static::lazy_static;
 
 use crate::{
@@ -12,7 +13,8 @@ use crate::{
 };
 
 use super::{
-    BoundVar, DebruijnIndex, KindedVarIndex, Parameter, ParameterKind, Substitution, Variable,
+    BoundVar, DebruijnIndex, Fallible, KindedVarIndex, Parameter, ParameterKind, Substitution,
+    Variable,
 };
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -92,6 +94,26 @@ impl<T: Fold> Binder<T> {
         self.kinds.len()
     }
 
+    /// Instantiate the binder with the given parameters, returning an err if the parameters
+    /// are the wrong number or ill-kinded.
+    pub fn instantiate_with(&self, parameters: &[Parameter]) -> Fallible<T> {
+        if parameters.len() != self.kinds.len() {
+            bail!("wrong number of parameters");
+        }
+
+        for ((p, k), i) in parameters.iter().zip(&self.kinds).zip(0..) {
+            if p.kind() != *k {
+                bail!(
+                    "parameter {i} has kind {:?} but should have kind {:?}",
+                    p.kind(),
+                    k
+                );
+            }
+        }
+
+        Ok(self.instantiate(|_kind, index| parameters[index.index].clone()))
+    }
+
     /// Instantiate the term, replacing each bound variable with `op(i)`.
     pub fn instantiate(&self, mut op: impl FnMut(ParameterKind, VarIndex) -> Parameter) -> T {
         let substitution: Vec<Parameter> = self
@@ -115,6 +137,11 @@ impl<T: Fold> Binder<T> {
     /// that is independent of the bound variables. If that's not the case, use `open`.
     pub fn peek(&self) -> &T {
         &self.term
+    }
+
+    /// Returns the kinds of each variable bound by this binder
+    pub fn kinds(&self) -> &[ParameterKind] {
+        &self.kinds
     }
 }
 

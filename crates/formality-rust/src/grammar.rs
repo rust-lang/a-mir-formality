@@ -110,7 +110,7 @@ pub struct FnBoundData {
 
 #[term(type $id $binder)]
 pub struct AssociatedTy {
-    pub id: FnId,
+    pub id: AssociatedItemId,
     pub binder: Binder<AssociatedTyBoundData>,
 }
 

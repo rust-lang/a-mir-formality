@@ -246,7 +246,7 @@ pub struct EnsuresTy {
 
 /// A *placeholder* is a dummy variable about which nothing is known except
 /// that which we see in the environment. When we want to prove something
-/// is true for all `T`, we replace `T` with a placeholder.
+/// is true for all `T` (`∀T`), we replace `T` with a placeholder.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PlaceholderVar {
     pub universe: Universe,

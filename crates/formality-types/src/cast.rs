@@ -50,6 +50,24 @@ pub trait Downcast<T>: Sized {
     fn downcast(&self) -> Option<T>;
 }
 
+impl<T: Clone, U> Downcast<T> for &U
+where
+    T: DowncastFrom<U>,
+{
+    fn downcast(&self) -> Option<T> {
+        T::downcast_from(self)
+    }
+}
+
+impl<A, B> Downcast<Vec<B>> for Vec<A>
+where
+    B: DowncastFrom<A>,
+{
+    fn downcast(&self) -> Option<Vec<B>> {
+        self.iter().map(|a| B::downcast_from(a)).collect()
+    }
+}
+
 /// Our version of "try-from". A "downcast" casts
 /// from a more general type
 /// (e.g., any Parameter) to a more specific type
@@ -66,15 +84,6 @@ where
 {
     fn downcast_from(t: &T) -> Option<U> {
         t.downcast()
-    }
-}
-
-impl<A, B> DowncastFrom<Vec<A>> for Vec<B>
-where
-    B: DowncastFrom<A>,
-{
-    fn downcast_from(t: &Vec<A>) -> Option<Self> {
-        t.iter().map(|a| B::downcast_from(a)).collect()
     }
 }
 
@@ -319,5 +328,23 @@ where
 {
     fn upcasted(self) -> Box<dyn Iterator<Item = T> + 'a> {
         Box::new(self.into_iter().map(|e| e.upcast()))
+    }
+}
+
+pub trait Downcasted<'a>: IntoIterator {
+    fn downcasted<T>(self) -> Box<dyn Iterator<Item = T> + 'a>
+    where
+        T: DowncastFrom<Self::Item>;
+}
+
+impl<'a, I> Downcasted<'a> for I
+where
+    I: IntoIterator + 'a,
+{
+    fn downcasted<T>(self) -> Box<dyn Iterator<Item = T> + 'a>
+    where
+        T: DowncastFrom<I::Item>,
+    {
+        Box::new(self.into_iter().filter_map(|e| T::downcast_from(&e)))
     }
 }

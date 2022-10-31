@@ -27,52 +27,14 @@ fn test1() {
     );
     let db = Db::new(program);
     let env = Env::default();
-    let result =
-        formality_logic::cosld::prove(&db, &env, &[], &term("is_implemented(Debug(Vec<u32>))"));
+    let result = formality_logic::prove_universal_goal(
+        &db,
+        &env,
+        &[],
+        &term("is_implemented(Debug(Vec<u32>))"),
+    );
     expect_test::expect![[r#"
-        {
-            yes(
-                env(
-                    U(0),
-                    [
-                        inference_var_data(
-                            ty,
-                            U(0),
-                            Some(
-                                (rigid (adt Vec) (rigid (scalar u32))),
-                            ),
-                            [],
-                            [],
-                            [],
-                            [],
-                        ),
-                        inference_var_data(
-                            ty,
-                            U(0),
-                            Some(
-                                (rigid (scalar u32)),
-                            ),
-                            [],
-                            [],
-                            [],
-                            [],
-                        ),
-                        inference_var_data(
-                            ty,
-                            U(0),
-                            Some(
-                                (rigid (adt Vec) (rigid (scalar u32))),
-                            ),
-                            [],
-                            [],
-                            [],
-                            [],
-                        ),
-                    ],
-                    no,
-                ),
-            ),
-        }
+        yes
     "#]]
     .assert_debug_eq(&result);
 }
