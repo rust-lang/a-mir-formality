@@ -22,6 +22,7 @@ pub enum UniversalGoalResult {
     Maybe,
 }
 
+#[tracing::instrument(ret)]
 #[requires(goal.references_only_placeholder_variables())]
 pub fn prove_universal_goal(
     db: &Db,

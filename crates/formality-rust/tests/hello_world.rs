@@ -1,6 +1,6 @@
 use formality_rust::test_program_ok;
 
-const PROGRAM: &str = "[
+const PROGRAM_BROKEN: &str = "[
     crate Foo {
         trait Foo<ty T> where [T: Bar<Self>] {}
 
@@ -10,8 +10,18 @@ const PROGRAM: &str = "[
     }
 ]";
 
+const PROGRAM_OK: &str = "[
+    crate Foo {
+        trait Foo<ty T> where [T: Bar<Self>, Self: Baz<>] {}
+
+        trait Bar<ty T> where [T: Baz<>] {}
+        
+        trait Baz<> where [] {}
+    }
+]";
+
 #[test]
-fn test() {
+fn test_broken() {
     expect_test::expect![[r#"
         Err(
             Error {
@@ -22,5 +32,14 @@ fn test() {
                 },
             },
         )
-    "#]].assert_debug_eq(&test_program_ok(PROGRAM));
+    "#]].assert_debug_eq(&test_program_ok(PROGRAM_BROKEN));
+}
+
+#[test]
+fn test_ok() {
+    expect_test::expect![[r#"
+        Ok(
+            (),
+        )
+    "#]].assert_debug_eq(&test_program_ok(PROGRAM_OK));
 }
