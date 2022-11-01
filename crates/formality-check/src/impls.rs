@@ -1,7 +1,7 @@
 use anyhow::bail;
 use formality_decl::grammar::{
     AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
-    ImplItem, Trait, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem,
+    ImplItem, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem,
 };
 use formality_infer::Env;
 use formality_types::{

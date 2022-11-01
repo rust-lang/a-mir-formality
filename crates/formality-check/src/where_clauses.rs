@@ -1,8 +1,8 @@
 use fn_error_context::context;
 use formality_infer::Env;
 use formality_types::{
-    cast::Upcast,
-    grammar::{AtomicPredicate, Fallible, Hypothesis, Predicate, PredicateData},
+    cast::{To, Upcast},
+    grammar::{AtomicPredicate, Fallible, Hypothesis, Predicate, PredicateData, Ty},
 };
 
 impl super::Check<'_> {
@@ -46,10 +46,15 @@ impl super::Check<'_> {
             AtomicPredicate::IsImplemented(trait_ref) => {
                 self.prove_goal(env, assumptions, trait_ref.well_formed())?;
             }
-            AtomicPredicate::HasImpl(trait_ref) => todo!(),
-            AtomicPredicate::NormalizesTo(alias_ty, ty) => todo!(),
-            AtomicPredicate::WellFormedTy(ty) => todo!(),
-            AtomicPredicate::WellFormedTraitRef(trait_ref) => todo!(),
+            AtomicPredicate::HasImpl(_trait_ref) => {
+                panic!("predicate would never appear directly in program text")
+            }
+            AtomicPredicate::NormalizesTo(alias_ty, ty) => {
+                self.prove_goal(env, assumptions, alias_ty.to::<Ty>().well_formed())?;
+                self.prove_goal(env, assumptions, ty.well_formed())?;
+            }
+            AtomicPredicate::WellFormedTy(_ty) => {}
+            AtomicPredicate::WellFormedTraitRef(_trait_ref) => {}
         }
         Ok(())
     }

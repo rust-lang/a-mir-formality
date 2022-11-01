@@ -1,5 +1,4 @@
-use formality_rust::check_program;
-use formality_types::parse::term;
+use formality_rust::test_program_ok;
 
 const PROGRAM: &str = "[
     crate Foo {
@@ -23,5 +22,5 @@ fn test() {
                 },
             },
         )
-    "#]].assert_debug_eq(&check_program(&term(PROGRAM)));
+    "#]].assert_debug_eq(&test_program_ok(PROGRAM));
 }

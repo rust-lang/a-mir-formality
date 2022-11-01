@@ -5,8 +5,7 @@ use formality_decl::grammar::{
 use formality_infer::Env;
 use formality_types::{
     cast::{To, Upcast},
-    collections::Set,
-    grammar::{Fallible, Goal, Hypothesis},
+    grammar::{Fallible, Hypothesis},
 };
 
 impl super::Check<'_> {
@@ -35,7 +34,7 @@ impl super::Check<'_> {
         Ok(())
     }
 
-    fn check_trait_items_have_unique_names(&self, trait_items: &[TraitItem]) -> Fallible<()> {
+    fn check_trait_items_have_unique_names(&self, _trait_items: &[TraitItem]) -> Fallible<()> {
         // FIXME:
         Ok(())
     }
@@ -64,9 +63,9 @@ impl super::Check<'_> {
     ) -> Fallible<()> {
         let mut env = trait_env.clone();
 
-        let AssociatedTy { id, binder } = associated_ty;
+        let AssociatedTy { id: _, binder } = associated_ty;
         let AssociatedTyBoundData {
-            ensures,
+            ensures: _,
             where_clauses,
         } = env.instantiate_universally(binder);
 

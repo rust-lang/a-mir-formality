@@ -1,6 +1,6 @@
 use anyhow::bail;
 use contracts::requires;
-use formality_decl::grammar::{Adt, Crate, CrateItem, Program, Trait};
+use formality_decl::grammar::{Crate, CrateItem, Program, Trait};
 use formality_infer::Env;
 use formality_logic::{prove_universal_goal, UniversalGoalResult};
 use formality_types::{
@@ -36,7 +36,7 @@ impl Check<'_> {
     }
 
     fn check_current_crate(&self, c: &Crate) -> Fallible<()> {
-        let Crate { id, items } = c;
+        let Crate { id: _, items } = c;
         for item in items {
             self.check_crate_item(item)?;
         }
@@ -68,7 +68,7 @@ impl Check<'_> {
     }
 
     fn trait_named(&self, id: &TraitId) -> Fallible<&Trait> {
-        let mut traits: Vec<&Trait> = self
+        let traits: Vec<&Trait> = self
             .program
             .crates
             .iter()
