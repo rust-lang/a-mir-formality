@@ -30,7 +30,7 @@ impl Check<'_> {
     fn check(&self) -> Fallible<()> {
         let Program { crates } = &self.program;
         if let Some(current_crate) = crates.last() {
-            self.check_current_crate(current_crate);
+            self.check_current_crate(current_crate)?;
         }
         Ok(())
     }

@@ -5,6 +5,7 @@ use formality_decl::grammar::{
 use formality_infer::Env;
 use formality_types::{
     cast::{To, Upcast},
+    collections::Set,
     grammar::{Fallible, Goal, Hypothesis},
 };
 
@@ -23,12 +24,19 @@ impl super::Check<'_> {
 
         let assumptions: Vec<Hypothesis> = where_clauses.to();
 
+        self.check_trait_items_have_unique_names(&trait_items)?;
+
         self.prove_where_clauses_well_formed(&env, &assumptions, &where_clauses)?;
 
         for trait_item in &trait_items {
             self.check_trait_item(&env, &assumptions, trait_item)?;
         }
 
+        Ok(())
+    }
+
+    fn check_trait_items_have_unique_names(&self, trait_items: &[TraitItem]) -> Fallible<()> {
+        // FIXME:
         Ok(())
     }
 
