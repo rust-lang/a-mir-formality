@@ -350,11 +350,9 @@ pub fn identifier(text: &str) -> ParseResult<'_, String> {
 /// Consume next identifier, requiring that it be equal to `expected`.
 #[tracing::instrument(level = "trace", ret)]
 pub fn expect_keyword<'t>(expected: &str, text0: &'t str) -> ParseResult<'t, ()> {
-    let (ident, text1) = identifier(text0)?;
-    if &*ident == expected {
-        Ok(((), text1))
-    } else {
-        Err(ParseError::at(text0, format!("expected `{}`", expected)))
+    match identifier(text0) {
+        Ok((ident, text1)) if &*ident == expected => Ok(((), text1)),
+        _ => Err(ParseError::at(text0, format!("expected `{}`", expected))),
     }
 }
 

@@ -26,7 +26,7 @@ impl Check<'_> {
 
         let assumptions: Vec<Hypothesis> = (in_assumptions, &where_clauses).upcast();
 
-        self.prove_where_clauses_well_formed(&env, &assumptions, &where_clauses);
+        self.prove_where_clauses_well_formed(&env, &assumptions, &where_clauses)?;
 
         for input_ty in &input_tys {
             self.prove_goal(&env, &assumptions, input_ty.well_formed())?;

@@ -13,6 +13,7 @@ formality-logic = { path = "../formality-logic" }
 formality-infer = { path = "../formality-infer" }
 formality-decl = { path = "../formality-decl" }
 tracing = "0.1"
+formality-check = { version = "0.1.0", path = "../formality-check" }
 
 [dev-dependencies]
 expect-test = "1.4.0"
