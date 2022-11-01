@@ -1,7 +1,8 @@
 use anyhow::bail;
+use fn_error_context::context;
 use formality_decl::grammar::{
     AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
-    ImplItem, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem,
+    FnBoundData, ImplItem, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem,
 };
 use formality_infer::Env;
 use formality_types::{
@@ -11,6 +12,7 @@ use formality_types::{
 };
 
 impl super::Check<'_> {
+    #[context("check_trait_impl({v:?})")]
     pub(super) fn check_trait_impl(&self, v: &TraitImpl) -> Fallible<()> {
         let TraitImpl { binder } = v;
 
@@ -59,21 +61,63 @@ impl super::Check<'_> {
     fn check_fn_in_impl(
         &self,
         env: &Env,
-        assumptions: &[Hypothesis],
+        impl_assumptions: &[Hypothesis],
         trait_items: &[TraitItem],
-        f: &Fn,
+        ii_fn: &Fn,
     ) -> Fallible<()> {
         // Find the corresponding function from the trait:
-        let trait_f = match trait_items
+        let ti_fn = match trait_items
             .iter()
             .downcasted::<Fn>()
-            .find(|trait_f| trait_f.id == f.id)
+            .find(|trait_f| trait_f.id == ii_fn.id)
         {
             Some(trait_f) => trait_f,
-            None => bail!("no fn `{:?}` in the trait", f.id),
+            None => bail!("no fn `{:?}` in the trait", ii_fn.id),
         };
 
-        self.check_fn(env, assumptions, f)?;
+        self.check_fn(env, impl_assumptions, ii_fn)?;
+
+        let mut env = env.clone();
+        let (
+            FnBoundData {
+                input_tys: ii_input_tys,
+                output_ty: ii_output_ty,
+                where_clauses: ii_where_clauses,
+            },
+            FnBoundData {
+                input_tys: ti_input_tys,
+                output_ty: ti_output_ty,
+                where_clauses: ti_where_clauses,
+            },
+        ) = env.instantiate_universally(&self.merge_binders(&ii_fn.binder, &ti_fn.binder)?);
+
+        self.prove_goal(
+            &env,
+            (impl_assumptions, &ti_where_clauses),
+            Goal::all(&ii_where_clauses),
+        )?;
+
+        if ii_input_tys.len() != ti_input_tys.len() {
+            bail!(
+                "impl has {} function arguments but trait has {} function arguments",
+                ii_input_tys.len(),
+                ti_input_tys.len()
+            )
+        }
+
+        for (ii_input_ty, ti_input_ty) in ii_input_tys.iter().zip(&ti_input_tys) {
+            self.prove_goal(
+                &env,
+                (impl_assumptions, &ii_where_clauses),
+                Goal::sub(ti_input_ty, ii_input_ty),
+            )?;
+        }
+
+        self.prove_goal(
+            &env,
+            (impl_assumptions, &ii_where_clauses),
+            Goal::sub(ii_output_ty, ti_output_ty),
+        )?;
 
         Ok(())
     }
