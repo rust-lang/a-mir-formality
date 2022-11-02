@@ -204,8 +204,8 @@ You might be curious about the distinction between goal and clause and why there
 
 Putting all this together, the types layer currently includes a relatively simple solver called `cosld-solve`. This is referencing the classic [SLD Resolution Algorithm](https://en.wikipedia.org/wiki/SLD_resolution) that powers prolog, although the version of it that we've implemented is extended in two ways:
 
-* It covers Hereditary Harrop predicates using the [techniques described by Gopalan Nadathur](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.107.2510&rep=rep1&type=pdf).
-* It is coinductive as [described by Luke Simon et al.](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.102.9618&rep=rep1&type=pdf) -- this means it permits cycles, roughly speaking.
+* It covers Hereditary Harrop predicates using the [techniques described by Gopalan Nadathur](https://www.researchgate.net/publication/2248171_A_Proof_Procedure_for_the_Logic_of_Hereditary_Harrop_Formulas).
+* It is coinductive as [described by Luke Simon et al.](https://www.researchgate.net/publication/220898377_Co-Logic_Programming_Extending_Logic_Programming_with_Coinduction) -- this means it permits cycles, roughly speaking.
 
 In terms of chalk solvers, it is "similar" to slg, but much simpler in its structure (it doesn't do any caching). 
 
@@ -465,7 +465,7 @@ The current code doesn't really model Rust as it is today. It actually models Ru
     * The trick is that we have to extend all trait matching to work like auto-traits does, and accept cycles. Consider deriving clone on
         * `struct List<T> { value: Rc<T>, next: Option<Rc<List<T>>> }`
         * here you would get `impl<T> Clone for List<T> where Rc<T>: Clone, Option<Rc<List<T>>>: Clone` -- if you try that today, you'll find it is a cycle error.
-    * We are going to refer to this "accept cycles" as coinductive; it's basically the [co-LP formulation by Luke Simon et al.](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.102.9618&rep=rep1&type=pdf) that I referred to earlier.
+    * We are going to refer to this "accept cycles" as coinductive; it's basically the [co-LP formulation by Luke Simon et al.](https://www.researchgate.net/publication/220898377_Co-Logic_Programming_Extending_Logic_Programming_with_Coinduction) that I referred to earlier.
 
 These two features are a bit tricky to integrate because accepting cycles, if you're not careful, can easily lead you into assuming implied bounds that are not true. The classic example is this:
 
