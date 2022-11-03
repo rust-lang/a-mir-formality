@@ -18,7 +18,7 @@ impl Kinded for Ty {
 
 impl Kinded for Lt {
     fn instantiate() -> (Vec<KindedVarIndex>, Self) {
-        let (name, bvar) = fresh_bound_var(ParameterKind::Ty);
+        let (name, bvar) = fresh_bound_var(ParameterKind::Lt);
         (vec![name], bvar.lt())
     }
 }

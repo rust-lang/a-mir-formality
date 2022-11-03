@@ -101,11 +101,21 @@ pub struct Fn {
     pub binder: Binder<FnBoundData>,
 }
 
-#[term($input_tys -> $output_ty where $where_clauses)]
+#[term(($,input_tys) -> $output_ty where $where_clauses $body)]
 pub struct FnBoundData {
     pub input_tys: Vec<Ty>,
     pub output_ty: Ty,
     pub where_clauses: Vec<WhereClause>,
+    pub body: FnBody,
+}
+
+#[term]
+pub enum FnBody {
+    #[grammar(;)]
+    NoFnBody,
+
+    #[grammar({trusted})]
+    TrustedFnBody,
 }
 
 #[term(type $id $binder)]

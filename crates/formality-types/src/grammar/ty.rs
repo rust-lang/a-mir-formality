@@ -67,6 +67,22 @@ impl Ty {
         }
         .upcast()
     }
+
+    pub fn ref_ty(&self, l: impl Upcast<Lt>) -> Self {
+        let l: Lt = l.upcast();
+        Self::rigid(
+            RefKind::Shared,
+            vec![l.to::<Parameter>(), self.to::<Parameter>()],
+        )
+    }
+
+    pub fn ref_mut_ty(&self, l: impl Upcast<Lt>) -> Self {
+        let l: Lt = l.upcast();
+        Self::rigid(
+            RefKind::Mut,
+            vec![l.to::<Parameter>(), self.to::<Parameter>()],
+        )
+    }
 }
 
 cast_impl!(Ty);
@@ -153,6 +169,7 @@ pub enum RigidName {
     #[cast]
     ScalarId(ScalarId),
     #[cast]
+    #[grammar(&($v0))]
     Ref(RefKind),
     Tuple(usize),
     FnPtr(usize),
@@ -379,6 +396,12 @@ cast_impl!(Lt);
 impl UpcastFrom<LtData> for Lt {
     fn upcast_from(v: LtData) -> Self {
         Lt::new(v)
+    }
+}
+
+impl UpcastFrom<LtData> for Parameter {
+    fn upcast_from(v: LtData) -> Self {
+        Lt::new(v).upcast()
     }
 }
 

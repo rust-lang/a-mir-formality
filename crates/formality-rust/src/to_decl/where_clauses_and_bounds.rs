@@ -9,7 +9,7 @@ impl rust::WhereClause {
     pub fn to_decl(&self) -> Fallible<types::Predicate> {
         match self.data() {
             rust::WhereClauseData::IsImplemented(ty, trait_id, parameters) => {
-                let trait_ref = TraitRef::new(trait_id, seq![ty.upcast(), ..parameters.clone()]);
+                let trait_ref = TraitRef::new(trait_id, (seq![ty], parameters));
                 Ok(trait_ref.is_implemented().upcast())
             }
 
@@ -29,7 +29,7 @@ impl rust::WhereBound {
     pub fn to_decl(&self, this: &Parameter) -> Fallible<types::Predicate> {
         match self.data() {
             rust::WhereBoundData::IsImplemented(trait_id, parameters) => {
-                let trait_ref = TraitRef::new(trait_id, seq![this.upcast(), ..parameters.clone()]);
+                let trait_ref = TraitRef::new(trait_id, (seq![this], parameters));
                 Ok(trait_ref.is_implemented().upcast())
             }
             rust::WhereBoundData::Outlives(lt) => {

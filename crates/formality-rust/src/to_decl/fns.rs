@@ -12,6 +12,7 @@ impl rust::Fn {
                 input_tys,
                 output_ty,
                 where_clauses,
+                body: _, // FIXME: function bodies
             },
         ) = binder.open();
 

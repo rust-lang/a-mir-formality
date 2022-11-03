@@ -2,8 +2,9 @@
 
 use crate::{
     cast::Upcast,
-    grammar::{AdtId, AssociatedItemId, TraitId},
-    parse::{self, expect_char, expect_keyword, Parse, ParseError, ParseResult},
+    grammar::{AdtId, AssociatedItemId, RigidName, TraitId},
+    parse::{self, expect_char, expect_keyword, reject_keyword, Parse, ParseError, ParseResult},
+    seq,
 };
 
 use super::{AliasTy, AssociatedTyName, Lt, LtData, Parameter, PredicateTy, RigidTy, ScalarId, Ty};
@@ -33,6 +34,9 @@ impl Parse for Ty {
             vec![
                 parse::try_parse(|| parse_adt_ty(scope, text0)),
                 parse::try_parse(|| parse_assoc_ty(scope, text0)),
+                parse::try_parse(|| parse_ref_ty(scope, text0)),
+                parse::try_parse(|| parse_ref_mut_ty(scope, text0)),
+                parse::try_parse(|| parse_tuple_ty(scope, text0)),
                 parse::try_parse(|| {
                     let (ty, text) = RigidTy::parse(scope, text0)?;
                     Ok((Ty::new(ty), text))
@@ -57,6 +61,58 @@ fn parse_adt_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'
     let (name, text) = AdtId::parse(scope, text)?;
     let (parameters, text) = parse_parameters(scope, text)?;
     Ok((Ty::rigid(name, parameters), text))
+}
+
+#[tracing::instrument(level = "trace", ret)]
+fn parse_ref_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
+    let ((), text) = expect_char('&', text)?;
+    let (lt, text) = Lt::parse(scope, text)?;
+    let (ty, text) = Ty::parse(scope, text)?;
+    let name = crate::grammar::RigidName::Ref(crate::grammar::RefKind::Shared);
+    Ok((
+        RigidTy {
+            name,
+            parameters: seq![lt.upcast(), ty.upcast()],
+        }
+        .upcast(),
+        text,
+    ))
+}
+
+#[tracing::instrument(level = "trace", ret)]
+fn parse_ref_mut_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
+    let ((), text) = expect_char('&', text)?;
+    let ((), text) = expect_keyword("mut", text)?;
+    let (lt, text) = Lt::parse(scope, text)?;
+    let (ty, text) = Ty::parse(scope, text)?;
+    let name = crate::grammar::RigidName::Ref(crate::grammar::RefKind::Mut);
+    Ok((
+        RigidTy {
+            name,
+            parameters: seq![lt.upcast(), ty.upcast()],
+        }
+        .upcast(),
+        text,
+    ))
+}
+
+#[tracing::instrument(level = "trace", ret)]
+fn parse_tuple_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
+    let ((), text) = expect_char('(', text)?;
+    let ((), text) = reject_keyword("rigid", text)?;
+    let ((), text) = reject_keyword("alias", text)?;
+    let ((), text) = reject_keyword("predicate", text)?;
+    let (types, text) = Ty::parse_comma(scope, text, ')')?;
+    let ((), text) = expect_char(')', text)?;
+    let name = RigidName::Tuple(types.len());
+    Ok((
+        RigidTy {
+            name,
+            parameters: types.upcast(),
+        }
+        .upcast(),
+        text,
+    ))
 }
 
 #[tracing::instrument(level = "trace", ret)]

@@ -8,6 +8,6 @@ impl Fn {
         _inherited_kinded_var_ids: &[KindedVarIndex],
         _program: &crate::grammar::Program,
     ) -> Vec<ProgramClause> {
-        unimplemented!()
+        vec![]
     }
 }

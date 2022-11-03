@@ -11,7 +11,10 @@ impl std::fmt::Debug for super::Ty {
 
 impl std::fmt::Debug for super::Lt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.data())
+        match self.data() {
+            super::LtData::Static => write!(f, "static"),
+            super::LtData::Variable(v) => write!(f, "{:?}", v),
+        }
     }
 }
 

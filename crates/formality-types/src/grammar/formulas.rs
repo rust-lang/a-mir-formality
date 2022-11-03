@@ -276,6 +276,16 @@ impl Goal {
         GoalData::ForAll(Binder::new(names, data.upcast())).upcast()
     }
 
+    pub fn for_all_f<A, G>(op: impl FnOnce(A) -> G) -> Goal
+    where
+        A: Kinded,
+        G: Upcast<Goal>,
+    {
+        let (names, value) = A::instantiate();
+        let data = op(value);
+        GoalData::ForAll(Binder::new(&names, data.upcast())).upcast()
+    }
+
     pub fn exists(names: &[KindedVarIndex], data: impl Upcast<Goal>) -> Self {
         GoalData::Exists(Binder::new(names, data.upcast())).upcast()
     }
@@ -347,7 +357,6 @@ impl Hypothesis {
             HypothesisData::AtomicRelation(_) => false,
             HypothesisData::ForAll(binder) => binder.peek().could_match(predicate),
             HypothesisData::Implies(_, consequence) => consequence.could_match(predicate),
-            HypothesisData::CoherenceMode => false,
         }
     }
 }
@@ -375,7 +384,6 @@ pub enum HypothesisData {
     AtomicRelation(AtomicRelation),
     ForAll(Binder<Hypothesis>),
     Implies(Vec<Goal>, Hypothesis),
-    CoherenceMode,
 }
 
 impl Hypothesis {
@@ -384,15 +392,21 @@ impl Hypothesis {
         HypothesisData::ForAll(Binder::new(&names, data.upcast())).upcast()
     }
 
+    pub fn for_all_f<A, G>(op: impl FnOnce(A) -> G) -> Hypothesis
+    where
+        A: Kinded,
+        G: Upcast<Hypothesis>,
+    {
+        let (names, value) = A::instantiate();
+        let data = op(value);
+        HypothesisData::ForAll(Binder::new(&names, data.upcast())).upcast()
+    }
+
     pub fn implies(
         conditions: impl Upcast<Vec<Goal>>,
         consequence: impl Upcast<Hypothesis>,
     ) -> Self {
         HypothesisData::Implies(conditions.upcast(), consequence.upcast()).upcast()
-    }
-
-    pub fn coherence_mode() -> Self {
-        HypothesisData::CoherenceMode.upcast()
     }
 }
 

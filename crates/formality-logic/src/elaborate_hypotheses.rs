@@ -53,8 +53,6 @@ fn elaborate_hypothesis(db: &Db, hypothesis: &Hypothesis) -> Vec<Hypothesis> {
             .into_iter()
             .map(|h| Hypothesis::implies(conditions, h))
             .collect(),
-
-        HypothesisData::CoherenceMode => vec![hypothesis.clone()],
     }
 }
 

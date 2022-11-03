@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use formality_rust::test_program_ok;
 
 const PROGRAM_BROKEN: &str = "[
@@ -41,5 +43,6 @@ fn test_ok() {
         Ok(
             (),
         )
-    "#]].assert_debug_eq(&test_program_ok(PROGRAM_OK));
+    "#]]
+    .assert_debug_eq(&test_program_ok(PROGRAM_OK));
 }

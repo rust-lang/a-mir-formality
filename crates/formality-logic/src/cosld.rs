@@ -180,7 +180,6 @@ fn backchain(
                 )
             })
         }
-        HypothesisData::CoherenceMode => set![],
     }
 }
 

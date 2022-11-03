@@ -356,6 +356,18 @@ pub fn expect_keyword<'t>(expected: &str, text0: &'t str) -> ParseResult<'t, ()>
     }
 }
 
+/// Reject next identifier if it is the given keyword. Consumes nothing.
+#[tracing::instrument(level = "trace", ret)]
+pub fn reject_keyword<'t>(expected: &str, text0: &'t str) -> ParseResult<'t, ()> {
+    match expect_keyword(expected, text0) {
+        Ok(_) => Err(ParseError::at(
+            text0,
+            format!("found keyword `{}`", expected),
+        )),
+        Err(_) => Ok(((), text0)),
+    }
+}
+
 /// Convenience function for use when generating code: calls the closure it is given
 /// as argument. Used to introduce new scope for name bindings.
 pub fn try_parse<'a, R>(f: impl Fn() -> ParseResult<'a, R>) -> ParseResult<'a, R> {
