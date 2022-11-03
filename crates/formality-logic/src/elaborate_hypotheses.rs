@@ -7,6 +7,7 @@ use formality_types::{
     db::{Database, Db},
     grammar::{
         AtomicPredicate, Hypothesis, HypothesisData, Invariant, InvariantImplication, Substitution,
+        APR,
     },
 };
 
@@ -30,13 +31,13 @@ where
 
 fn elaborate_hypothesis(db: &Db, hypothesis: &Hypothesis) -> Vec<Hypothesis> {
     match hypothesis.data() {
-        HypothesisData::AtomicPredicate(predicate) => db
+        HypothesisData::Atomic(APR::AtomicPredicate(predicate)) => db
             .invariants_for_predicate(predicate)
             .iter()
             .flat_map(|i| apply_invariant_to_predicate(db, i, predicate))
             .collect(),
 
-        HypothesisData::AtomicRelation(_relation) => {
+        HypothesisData::Atomic(APR::AtomicRelation(_relation)) => {
             // FIXME: elaborate relations
             vec![]
         }

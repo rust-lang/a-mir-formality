@@ -4,7 +4,7 @@ use formality_macros::term;
 use formality_types::{
     collections::Set,
     db::{Database, Db},
-    grammar::{AtomicPredicate, Coinductive, Goal, GoalData, Hypothesis, HypothesisData},
+    grammar::{AtomicPredicate, Coinductive, Goal, GoalData, Hypothesis, HypothesisData, APR},
     set,
 };
 
@@ -39,7 +39,7 @@ fn prove_goal(
     goal: &Goal,
 ) -> Set<CosldResult> {
     match goal.data() {
-        GoalData::AtomicPredicate(predicate) => match stack.search(env, predicate) {
+        GoalData::Atomic(APR::AtomicPredicate(predicate)) => match stack.search(env, predicate) {
             StackSearch::CoinductiveCycle => set![CosldResult::Yes(env.clone())],
             StackSearch::InductiveCycle => set![],
             StackSearch::NotFound => {
@@ -52,7 +52,7 @@ fn prove_goal(
                     .collect()
             }
         },
-        GoalData::AtomicRelation(r) => match env.apply_relation(db, r) {
+        GoalData::Atomic(APR::AtomicRelation(r)) => match env.apply_relation(db, r) {
             Ok((env, goals)) => prove_all(db, &env, stack, assumptions, &goals, &[]),
             Err(_) => set![],
         },
@@ -147,7 +147,7 @@ fn backchain(
     predicate: &AtomicPredicate,
 ) -> Set<CosldResult> {
     match clause.data() {
-        HypothesisData::AtomicPredicate(h) => {
+        HypothesisData::Atomic(APR::AtomicPredicate(h)) => {
             let (skeleton1, parameters1) = h.debone();
             let (skeleton2, parameters2) = predicate.debone();
             if skeleton1 != skeleton2 {
@@ -162,7 +162,7 @@ fn backchain(
                 prove_all(db, env, stack, assumptions, &subgoals, &[])
             }
         }
-        HypothesisData::AtomicRelation(_h) => todo!(),
+        HypothesisData::Atomic(APR::AtomicRelation(_h)) => todo!(),
         HypothesisData::ForAll(b) => {
             let mut env = env.clone();
             let h = env.instantiate_existentially(b);

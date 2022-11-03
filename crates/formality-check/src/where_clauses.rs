@@ -2,7 +2,7 @@ use fn_error_context::context;
 use formality_infer::Env;
 use formality_types::{
     cast::{To, Upcast},
-    grammar::{AtomicPredicate, Fallible, Hypothesis, Predicate, PredicateData, Ty},
+    grammar::{AtomicPredicate, Fallible, Hypothesis, Predicate, PredicateData, Ty, APR},
 };
 
 impl super::Check<'_> {
@@ -27,10 +27,10 @@ impl super::Check<'_> {
         where_clause: &Predicate,
     ) -> Fallible<()> {
         match where_clause.data() {
-            PredicateData::AtomicPredicate(p) => {
+            PredicateData::Atomic(APR::AtomicPredicate(p)) => {
                 self.prove_atomic_predicate_well_formed(env, assumptions, p)
             }
-            PredicateData::AtomicRelation(_) => todo!(),
+            PredicateData::Atomic(APR::AtomicRelation(_)) => todo!(),
             PredicateData::ForAll(_) => todo!(),
             PredicateData::Implies(_, _) => todo!(),
         }

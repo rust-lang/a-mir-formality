@@ -209,15 +209,21 @@ impl DowncastFrom<Predicate> for PredicateData {
     }
 }
 
-cast_impl!((AtomicPredicate) <: (PredicateData) <: (Predicate));
-cast_impl!((AtomicRelation) <: (PredicateData) <: (Predicate));
-
+/// "APR" == AtomicPredicateOrRelation
+///
+/// We need a better name for this lol.
 #[term]
-pub enum PredicateData {
+pub enum APR {
     #[cast]
     AtomicPredicate(AtomicPredicate),
     #[cast]
     AtomicRelation(AtomicRelation),
+}
+
+#[term]
+pub enum PredicateData {
+    #[cast]
+    Atomic(APR),
     ForAll(Binder<Predicate>),
     Implies(Vec<Predicate>, Predicate),
 }
@@ -245,17 +251,12 @@ impl Downcast<GoalData> for Goal {
     }
 }
 
-cast_impl!((AtomicPredicate) <: (GoalData) <: (Goal));
-cast_impl!((AtomicRelation) <: (GoalData) <: (Goal));
-
 pub type Goals = Vec<Goal>;
 
 #[term]
 pub enum GoalData {
     #[cast]
-    AtomicPredicate(AtomicPredicate),
-    #[cast]
-    AtomicRelation(AtomicRelation),
+    Atomic(APR),
     ForAll(Binder<Goal>),
     Exists(Binder<Goal>),
     Implies(Vec<Hypothesis>, Goal),
@@ -353,8 +354,8 @@ impl Hypothesis {
     /// just returned `false`, the solver should still work).
     pub fn could_match(&self, predicate: &AtomicPredicate) -> bool {
         match self.data() {
-            HypothesisData::AtomicPredicate(p) => p.debone().0 == predicate.debone().0,
-            HypothesisData::AtomicRelation(_) => false,
+            HypothesisData::Atomic(APR::AtomicPredicate(p)) => p.debone().0 == predicate.debone().0,
+            HypothesisData::Atomic(APR::AtomicRelation(_)) => false,
             HypothesisData::ForAll(binder) => binder.peek().could_match(predicate),
             HypothesisData::Implies(_, consequence) => consequence.could_match(predicate),
         }
@@ -373,15 +374,10 @@ impl Downcast<HypothesisData> for Hypothesis {
     }
 }
 
-cast_impl!((AtomicPredicate) <: (HypothesisData) <: (Hypothesis));
-cast_impl!((AtomicRelation) <: (HypothesisData) <: (Hypothesis));
-
 #[term]
 pub enum HypothesisData {
     #[cast]
-    AtomicPredicate(AtomicPredicate),
-    #[cast]
-    AtomicRelation(AtomicRelation),
+    Atomic(APR),
     ForAll(Binder<Hypothesis>),
     Implies(Vec<Goal>, Hypothesis),
 }
@@ -411,6 +407,17 @@ impl Hypothesis {
 }
 
 pub type Hypotheses = Vec<Hypothesis>;
+
+#[term($binder)]
+pub struct ElaboratedHypothesis {
+    pub binder: Binder<ElaboratedHypothesisImplication>,
+}
+
+#[term($conditions => $consequence)]
+pub struct ElaboratedHypothesisImplication {
+    pub conditions: Vec<Goal>,
+    pub consequence: APR,
+}
 
 #[term($binder)]
 pub struct Invariant {
@@ -459,8 +466,7 @@ impl Invariant {
 impl UpcastFrom<Predicate> for Goal {
     fn upcast_from(value: Predicate) -> Self {
         match value.data() {
-            PredicateData::AtomicPredicate(a) => a.to(),
-            PredicateData::AtomicRelation(a) => a.to(),
+            PredicateData::Atomic(a) => a.to(),
             PredicateData::ForAll(binder) => GoalData::ForAll(binder.to()).upcast(),
             PredicateData::Implies(p, q) => GoalData::Implies(p.to(), q.to()).upcast(),
         }
@@ -470,10 +476,27 @@ impl UpcastFrom<Predicate> for Goal {
 impl UpcastFrom<Predicate> for Hypothesis {
     fn upcast_from(value: Predicate) -> Self {
         match value.data() {
-            PredicateData::AtomicPredicate(a) => a.to(),
-            PredicateData::AtomicRelation(a) => a.to(),
+            PredicateData::Atomic(a) => a.to(),
             PredicateData::ForAll(binder) => HypothesisData::ForAll(binder.to()).upcast(),
             PredicateData::Implies(p, q) => HypothesisData::Implies(p.to(), q.to()).upcast(),
         }
     }
 }
+
+// Transitive casting impls:
+
+cast_impl!((AtomicPredicate) <: (APR) <: (PredicateData));
+cast_impl!((AtomicRelation) <: (APR) <: (PredicateData));
+cast_impl!((AtomicPredicate) <: (APR) <: (GoalData));
+cast_impl!((AtomicRelation) <: (APR) <: (GoalData));
+cast_impl!((AtomicPredicate) <: (APR) <: (HypothesisData));
+cast_impl!((AtomicRelation) <: (APR) <: (HypothesisData));
+cast_impl!((AtomicPredicate) <: (PredicateData) <: (Predicate));
+cast_impl!((AtomicRelation) <: (PredicateData) <: (Predicate));
+cast_impl!((AtomicPredicate) <: (GoalData) <: (Goal));
+cast_impl!((AtomicRelation) <: (GoalData) <: (Goal));
+cast_impl!((AtomicPredicate) <: (HypothesisData) <: (Hypothesis));
+cast_impl!((AtomicRelation) <: (HypothesisData) <: (Hypothesis));
+cast_impl!((APR) <: (PredicateData) <: (Predicate));
+cast_impl!((APR) <: (GoalData) <: (Goal));
+cast_impl!((APR) <: (HypothesisData) <: (Hypothesis));
