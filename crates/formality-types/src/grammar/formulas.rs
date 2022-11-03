@@ -81,6 +81,18 @@ impl Ty {
     }
 }
 
+impl Parameter {
+    /// Well-formed goal for a parameter
+    pub fn well_formed(&self) -> Goal {
+        match self {
+            Parameter::Ty(v) => v.well_formed().upcast(),
+
+            // we always assume lifetimes are well-formed
+            Parameter::Lt(_) => Goal::t(),
+        }
+    }
+}
+
 /// The "skeleton" of an atomic predicate is the kernel that contains
 /// nothing unifiable and identifies the kind of predicate.
 /// If the skeleton's don't match, they are distinct predicates.
@@ -306,6 +318,18 @@ impl Goal {
         consequence: impl Upcast<Goal>,
     ) -> Self {
         GoalData::Implies(conditions.upcast(), consequence.upcast()).upcast()
+    }
+
+    /// Goal that is always true.
+    pub fn t() -> Self {
+        let empty: Vec<Goal> = vec![];
+        Self::all(empty)
+    }
+
+    /// Goal that is always false.
+    pub fn f() -> Self {
+        let empty: Vec<Goal> = vec![];
+        Self::any(empty)
     }
 
     pub fn all(goals: impl Upcast<Vec<Goal>>) -> Self {
