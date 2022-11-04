@@ -4,7 +4,10 @@ use formality_macros::term;
 use formality_types::{
     collections::Set,
     db::{Database, Db},
-    grammar::{AtomicPredicate, Coinductive, Goal, GoalData, Hypothesis, HypothesisData, APR},
+    grammar::{
+        AtomicPredicate, Coinductive, ElaboratedHypotheses, Goal, GoalData, Hypothesis,
+        HypothesisData, APR,
+    },
     set,
 };
 
@@ -35,7 +38,7 @@ fn prove_goal(
     db: &Db,
     env: &Env,
     stack: Stack<'_>,
-    assumptions: &Set<Hypothesis>,
+    assumptions: &ElaboratedHypotheses,
     goal: &Goal,
 ) -> Set<CosldResult> {
     match goal.data() {
@@ -99,7 +102,7 @@ fn prove_all(
     db: &Db,
     env: &Env,
     stack: Stack<'_>,
-    assumptions: &Set<Hypothesis>,
+    assumptions: &ElaboratedHypotheses,
     subgoals: &[Goal],
     deferred: &[Goal],
 ) -> Set<CosldResult> {
@@ -142,7 +145,7 @@ fn backchain(
     db: &Db,
     env: &Env,
     stack: Stack<'_>,
-    assumptions: &Set<Hypothesis>,
+    assumptions: &ElaboratedHypotheses,
     clause: &Hypothesis,
     predicate: &AtomicPredicate,
 ) -> Set<CosldResult> {

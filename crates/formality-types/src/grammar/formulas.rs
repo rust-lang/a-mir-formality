@@ -17,6 +17,7 @@ use crate::cast::To;
 use crate::cast::Upcast;
 use crate::cast::UpcastFrom;
 use crate::cast_impl;
+use crate::collections::Set;
 
 use super::AliasName;
 use super::Binder;
@@ -395,6 +396,31 @@ impl UpcastFrom<HypothesisData> for Hypothesis {
 impl Downcast<HypothesisData> for Hypothesis {
     fn downcast(&self) -> Option<HypothesisData> {
         Some(self.data().clone())
+    }
+}
+
+/// A set of hypotheses that has been fully elaborated with respect
+/// to the invariants in the database.
+#[term]
+pub struct ElaboratedHypotheses {
+    pub set: Set<Hypothesis>,
+}
+
+impl std::ops::Deref for ElaboratedHypotheses {
+    type Target = Set<Hypothesis>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.set
+    }
+}
+
+impl<'a> IntoIterator for &'a ElaboratedHypotheses {
+    type Item = &'a Hypothesis;
+
+    type IntoIter = std::collections::btree_set::Iter<'a, Hypothesis>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.set.iter()
     }
 }
 

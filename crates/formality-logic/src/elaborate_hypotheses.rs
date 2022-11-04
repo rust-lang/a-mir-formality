@@ -3,17 +3,19 @@ use std::collections::BTreeSet;
 use formality_types::{
     self,
     cast::{To, Upcast},
-    collections::Set,
     db::{Database, Db},
     grammar::{
-        AtomicPredicate, Hypothesis, HypothesisData, Invariant, InvariantImplication, Substitution,
-        APR,
+        AtomicPredicate, ElaboratedHypotheses, Hypothesis, HypothesisData, Invariant,
+        InvariantImplication, Substitution, APR,
     },
 };
 
 mod test;
 
-pub fn elaborate_hypotheses<H>(db: &Db, hypotheses: impl IntoIterator<Item = H>) -> Set<Hypothesis>
+pub fn elaborate_hypotheses<H>(
+    db: &Db,
+    hypotheses: impl IntoIterator<Item = H>,
+) -> ElaboratedHypotheses
 where
     H: Upcast<Hypothesis>,
 {
@@ -26,7 +28,7 @@ where
         }
     }
 
-    set
+    ElaboratedHypotheses { set }
 }
 
 fn elaborate_hypothesis(db: &Db, hypothesis: &Hypothesis) -> Vec<Hypothesis> {

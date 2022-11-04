@@ -3,8 +3,8 @@ use formality_types::{
     db::Db,
     derive_links::Parameter,
     grammar::{
-        EnsuresTy, Fallible, Goal, ImplicationTy, LtData, ParameterData, PredicateTy, RigidName,
-        RigidTy, Ty, TyData, Variable,
+        EnsuresTy, Fallible, Goal, Hypothesis, ImplicationTy, LtData, ParameterData, PredicateTy,
+        RigidName, RigidTy, Ty, TyData, Variable,
     },
     seq,
 };
