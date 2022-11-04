@@ -433,17 +433,6 @@ impl Hypothesis {
 pub type Hypotheses = Vec<Hypothesis>;
 
 #[term($binder)]
-pub struct ElaboratedHypothesis {
-    pub binder: Binder<ElaboratedHypothesisImplication>,
-}
-
-#[term($conditions => $consequence)]
-pub struct ElaboratedHypothesisImplication {
-    pub conditions: Vec<Goal>,
-    pub consequence: APR,
-}
-
-#[term($binder)]
 pub struct Invariant {
     pub binder: Binder<InvariantImplication>,
 }
