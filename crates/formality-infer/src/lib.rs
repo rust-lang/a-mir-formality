@@ -2,6 +2,7 @@ use contracts::requires;
 use formality_macros::term;
 use formality_types::db::Db;
 use formality_types::derive_links;
+use formality_types::grammar::ElaboratedHypotheses;
 use formality_types::{
     derive_links::Variable,
     grammar::{
@@ -252,11 +253,16 @@ impl Env {
     /// Apply a relation using the builtin rules, returning
     /// either an error (if they cannot be equated) or a new environment
     /// plus a list of goals that must still be proven.
-    pub fn apply_relation(&self, db: &Db, r: &AtomicRelation) -> Fallible<(Env, Vec<Goal>)> {
+    pub fn apply_relation(
+        &self,
+        db: &Db,
+        assumptions: &ElaboratedHypotheses,
+        r: &AtomicRelation,
+    ) -> Fallible<(Env, Vec<Goal>)> {
         match r {
             AtomicRelation::Equals(a, b) => self.eq(db, a, b),
             AtomicRelation::Sub(a, b) => self.sub(db, a, b),
-            AtomicRelation::Outlives(a, b) => self.outlives(db, a, b),
+            AtomicRelation::Outlives(a, b) => self.outlives(db, assumptions, a, b),
         }
     }
 }

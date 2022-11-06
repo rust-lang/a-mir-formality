@@ -22,10 +22,12 @@ fn test_single_step() {
     let hypotheses1 = elaborate_hypotheses(&db, &hypotheses);
 
     expect_test::expect![[r#"
-        {
-            is_implemented(Ord((rigid (scalar u32)))),
-            is_implemented(PartialOrd((rigid (scalar u32)))),
-        }
+        elaborated_hypotheses(
+            {
+                is_implemented(Ord((rigid (scalar u32)))),
+                is_implemented(PartialOrd((rigid (scalar u32)))),
+            },
+        )
     "#]]
     .assert_debug_eq(&hypotheses1);
 }
@@ -42,11 +44,13 @@ fn test_transitive() {
     let hypotheses1 = elaborate_hypotheses(&db, &hypotheses);
 
     expect_test::expect![[r#"
-        {
-            is_implemented(A((rigid (scalar u32)))),
-            is_implemented(B((rigid (scalar u32)))),
-            is_implemented(C((rigid (scalar u32)))),
-        }
+        elaborated_hypotheses(
+            {
+                is_implemented(A((rigid (scalar u32)))),
+                is_implemented(B((rigid (scalar u32)))),
+                is_implemented(C((rigid (scalar u32)))),
+            },
+        )
     "#]]
     .assert_debug_eq(&hypotheses1);
 }

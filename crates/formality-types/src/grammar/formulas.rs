@@ -406,6 +406,15 @@ pub struct ElaboratedHypotheses {
     pub set: Set<Hypothesis>,
 }
 
+impl ElaboratedHypotheses {
+    /// An empty set of hypotheses
+    pub fn none() -> Self {
+        Self {
+            set: Set::default(),
+        }
+    }
+}
+
 impl std::ops::Deref for ElaboratedHypotheses {
     type Target = Set<Hypothesis>;
 

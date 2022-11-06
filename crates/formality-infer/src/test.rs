@@ -2,7 +2,7 @@
 
 use formality_types::{
     db::mock::MockDatabase,
-    grammar::{AtomicRelation, Binder, Ty},
+    grammar::{AtomicRelation, Binder, ElaboratedHypotheses, Ty},
     parse::term,
 };
 
@@ -16,8 +16,9 @@ fn occurs_check1() {
     let t_e = env.instantiate_existentially(&t);
     let t_u = env.instantiate_universally(&t);
     let db = MockDatabase::empty();
+    let assumptions = ElaboratedHypotheses::none();
     assert!(env
-        .apply_relation(&db, &AtomicRelation::eq(t_e, t_u))
+        .apply_relation(&db, &assumptions, &AtomicRelation::eq(t_e, t_u))
         .is_err());
 }
 
@@ -29,8 +30,9 @@ fn occurs_check2() {
     let t_u = env.instantiate_universally(&t);
     let t_e = env.instantiate_existentially(&t);
     let db = MockDatabase::empty();
+    let assumptions = ElaboratedHypotheses::none();
     let (env1, goals) = env
-        .apply_relation(&db, &AtomicRelation::eq(&t_e, &t_u))
+        .apply_relation(&db, &assumptions, &AtomicRelation::eq(&t_e, &t_u))
         .unwrap();
     assert!(goals.is_empty());
     assert_eq!(env1.refresh_inference_variables(&t_e), t_u);

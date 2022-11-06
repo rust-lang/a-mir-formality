@@ -3,8 +3,8 @@ use formality_types::{
     db::Db,
     derive_links::Parameter,
     grammar::{
-        EnsuresTy, Fallible, Goal, Hypothesis, ImplicationTy, LtData, ParameterData, PredicateTy,
-        RigidName, RigidTy, Ty, TyData, Variable,
+        ElaboratedHypotheses, EnsuresTy, Fallible, Goal, Hypothesis, ImplicationTy, LtData,
+        ParameterData, PredicateTy, RigidName, RigidTy, Ty, TyData, Variable,
     },
     seq,
 };
@@ -17,17 +17,19 @@ impl Env {
     pub(super) fn outlives(
         &self,
         db: &Db,
+        assumptions: &ElaboratedHypotheses,
         a: &Parameter,
         b: &Parameter,
     ) -> Fallible<(Env, Vec<Goal>)> {
         let mut env = self.clone();
-        let goals = env.outlives_parameters(db, a, b)?;
+        let goals = env.outlives_parameters(db, assumptions, a, b)?;
         Ok((env, goals))
     }
 
     fn outlives_parameters(
         &mut self,
         _db: &Db,
+        _assumptions: &ElaboratedHypotheses,
         a: &Parameter,
         b: &Parameter,
     ) -> Fallible<Vec<Goal>> {
