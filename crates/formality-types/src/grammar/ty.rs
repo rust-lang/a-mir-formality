@@ -389,6 +389,10 @@ impl Lt {
             _ => None,
         }
     }
+
+    pub fn static_() -> Self {
+        LtData::Static.upcast()
+    }
 }
 
 cast_impl!(Lt);

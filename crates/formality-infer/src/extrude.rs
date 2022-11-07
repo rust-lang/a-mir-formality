@@ -1,3 +1,5 @@
+use contracts::requires;
+use formality_macros::term;
 use formality_types::{
     cast::{Upcast, Upcasted},
     fold::Fold,
@@ -8,7 +10,8 @@ use formality_types::{
 
 use crate::Env;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[term]
+#[derive(Copy)]
 pub enum Relationship {
     SubtypeOf,
     SupertypeOf,
@@ -37,6 +40,7 @@ impl Relationship {
 }
 
 impl Env {
+    #[requires(!self.is_mapped(variable_a))]
     pub(super) fn relate_parameter(
         &mut self,
         variable_a: InferenceVar,

@@ -14,6 +14,7 @@ use formality_types::{
 
 use self::query::{querify, Query};
 
+mod bound;
 mod eq;
 mod extrude;
 mod occurs;

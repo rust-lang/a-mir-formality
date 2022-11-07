@@ -3,8 +3,7 @@ use formality_infer::Env;
 use formality_types::{
     cast::{To, Upcast},
     grammar::{
-        AtomicPredicate, AtomicRelation, Fallible, Hypothesis, ParameterData, Predicate,
-        PredicateData, Ty, APR,
+        AtomicPredicate, AtomicRelation, Fallible, Hypothesis, Predicate, PredicateData, Ty, APR,
     },
 };
 

@@ -3,10 +3,16 @@ use formality_types::{
     db::Db,
     derive_links::Parameter,
     grammar::{
-        ElaboratedHypotheses, EnsuresTy, Fallible, Goal, Hypothesis, ImplicationTy, LtData,
-        ParameterData, PredicateTy, RigidName, RigidTy, Ty, TyData, Variable,
+        Binder, ElaboratedHypotheses, EnsuresTy, Fallible, Goal, ImplicationTy, LtData,
+        ParameterData, ParameterKind, PlaceholderVar, PredicateTy, RigidName, RigidTy, Ty, TyData,
+        Variable,
     },
     seq,
+};
+
+use crate::{
+    bound::{Placeholder, PlaceholderBound, PlaceholderBoundData},
+    extrude::Relationship,
 };
 
 use super::Env;
@@ -22,14 +28,16 @@ impl Env {
         b: &Parameter,
     ) -> Fallible<(Env, Vec<Goal>)> {
         let mut env = self.clone();
-        let goals = env.outlives_parameters(db, assumptions, a, b)?;
+        let a = env.refresh_inference_variables(a);
+        let b = env.refresh_inference_variables(b);
+        let goals = env.outlives_parameters(db, assumptions, &a, &b)?;
         Ok((env, goals))
     }
 
     fn outlives_parameters(
         &mut self,
         _db: &Db,
-        _assumptions: &ElaboratedHypotheses,
+        assumptions: &ElaboratedHypotheses,
         a: &Parameter,
         b: &Parameter,
     ) -> Fallible<Vec<Goal>> {
@@ -171,14 +179,211 @@ impl Env {
                 }))),
             ) => Ok(seq![Goal::outlives(a, ty), ..predicates.upcasted()]),
 
-            (ParameterData::Ty(TyData::Variable(Variable::BoundVar(_))), _)
-            | (ParameterData::Lt(LtData::Variable(Variable::BoundVar(_))), _)
-            | (_, ParameterData::Ty(TyData::Variable(Variable::BoundVar(_))))
-            | (_, ParameterData::Lt(LtData::Variable(Variable::BoundVar(_)))) => {
+            (
+                ParameterData::Lt(LtData::Variable(a_var)),
+                ParameterData::Lt(LtData::Variable(b_var)),
+            )
+            | (
+                ParameterData::Ty(TyData::Variable(a_var)),
+                ParameterData::Ty(TyData::Variable(b_var)),
+            )
+            | (
+                ParameterData::Lt(LtData::Variable(a_var)),
+                ParameterData::Ty(TyData::Variable(b_var)),
+            )
+            | (
+                ParameterData::Ty(TyData::Variable(a_var)),
+                ParameterData::Lt(LtData::Variable(b_var)),
+            ) => Ok(self.variable_outlives(assumptions, a.kind(), *a_var, b.kind(), *b_var)),
+
+            (ParameterData::Lt(LtData::Variable(a_var)), ParameterData::Lt(LtData::Static))
+            | (ParameterData::Ty(TyData::Variable(a_var)), ParameterData::Lt(LtData::Static)) => {
+                Ok(self.variable_outlives_static(assumptions, a.kind(), *a_var))
+            }
+        }
+    }
+
+    fn variable_outlives(
+        &mut self,
+        assumptions: &ElaboratedHypotheses,
+        a_kind: ParameterKind,
+        a: Variable,
+        b_kind: ParameterKind,
+        b: Variable,
+    ) -> Vec<Goal> {
+        let a_parameter = a.into_parameter(a_kind);
+        let b_parameter = b.into_parameter(b_kind);
+
+        match (a, b) {
+            (Variable::BoundVar(_), _) | (_, Variable::BoundVar(_)) => {
                 panic!("unexpected bound variable")
             }
 
-            _ => todo!(),
+            (Variable::InferenceVar(a), Variable::InferenceVar(b)) => {
+                if self.data(a).universe <= self.data(b).universe {
+                    self.relate_parameter(a, Relationship::Outlives, b_parameter)
+                } else {
+                    self.relate_parameter(b, Relationship::OutlivedBy, a_parameter)
+                }
+            }
+
+            (Variable::PlaceholderVar(a), Variable::InferenceVar(b)) => {
+                if a.universe <= self.data(b).universe {
+                    self.relate_parameter(b, Relationship::OutlivedBy, a_parameter)
+                } else {
+                    seq![self.placeholder_outlives(ParameterKind::Lt, assumptions, a, &b_parameter)]
+                }
+            }
+
+            (Variable::InferenceVar(a), Variable::PlaceholderVar(b)) => {
+                if self.data(a).universe >= b.universe {
+                    self.relate_parameter(a, Relationship::Outlives, b_parameter)
+                } else {
+                    seq![self.placeholder_outlived_by(
+                        ParameterKind::Lt,
+                        assumptions,
+                        &a_parameter,
+                        b
+                    )]
+                }
+            }
+
+            (Variable::PlaceholderVar(a), Variable::PlaceholderVar(b)) => {
+                // Careful: It doesn't seem like both directions should be necessary, but you have to
+                // consider conditional goals or inference variables. It could happen that you have
+                // (for example) `!U2 : !U1` and `?U2 : !U1` in the environment. In that case, we have
+                // to search for "outlived by" bounds on `!U1` to find `?U2` (which can be equated with `!U2`).
+                // But we could also have `!U2 : ?U1` in the environment, so we have to serach the reverse.
+                // If you don't have variables in the environment, though, this is strictly extra work.
+                // e.g. If we have `!U2 : !U1`, or even `!U2 : X` and `X : !U1`, it doesn't matter which way
+                // you search, you'll find the path eventually.
+                let fwd =
+                    self.placeholder_outlives(ParameterKind::Lt, assumptions, a, &b_parameter);
+                let rev =
+                    self.placeholder_outlived_by(ParameterKind::Lt, assumptions, &a_parameter, b);
+                seq![Goal::any(seq![fwd, rev])]
+            }
         }
+    }
+
+    fn variable_outlives_static(
+        &mut self,
+        assumptions: &ElaboratedHypotheses,
+        a_kind: ParameterKind,
+        a: Variable,
+    ) -> Vec<Goal> {
+        match a {
+            Variable::PlaceholderVar(a) => {
+                seq![self.placeholder_outlives(a_kind, assumptions, a, LtData::Static)]
+            }
+            Variable::InferenceVar(a) => {
+                self.relate_parameter(a, Relationship::Outlives, LtData::Static)
+            }
+            Variable::BoundVar(_) => {
+                panic!("unexpected bound variable")
+            }
+        }
+    }
+
+    // We can prove `P_a : b` if we know `P_a : x` and we can prove `x : b`.
+    fn placeholder_outlives(
+        &self,
+        kind: ParameterKind,
+        assumptions: &ElaboratedHypotheses,
+        a: PlaceholderVar,
+        b: impl Upcast<Parameter>,
+    ) -> Goal {
+        let bounds = self.find_placeholder_bounds(
+            assumptions,
+            &Placeholder { kind, var: a },
+            crate::extrude::Relationship::Outlives,
+        );
+
+        Goal::any(
+            bounds
+                .iter()
+                .map(|bound| {
+                    let (
+                        names,
+                        PlaceholderBoundData {
+                            conditions,
+                            placeholder,
+                            relationship: _,
+                            bound,
+                        },
+                    ) = bound.for_all.open();
+
+                    Goal::exists(
+                        &names,
+                        Goal::all(seq![
+                            Goal::eq(a.into_parameter(kind), placeholder),
+                            Goal::outlives(bound, &b),
+                            ..conditions,
+                        ]),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        )
+    }
+
+    // We can prove `a : P_b` if we know `x : P_b` and we can prove `a : x`.
+    fn placeholder_outlived_by(
+        &self,
+        kind: ParameterKind,
+        assumptions: &ElaboratedHypotheses,
+        a: &Parameter,
+        b: PlaceholderVar,
+    ) -> Goal {
+        let mut bounds = self.find_placeholder_bounds(
+            assumptions,
+            &Placeholder { kind, var: b },
+            crate::extrude::Relationship::OutlivedBy,
+        );
+
+        // We always know that `static : P_b`, so add that as a bound,
+        // but -- as a microopt -- only do that if there's no other
+        // unconditional bound (which would be strictly better).
+        if !bounds
+            .iter()
+            .any(|b| b.for_all.peek().conditions.is_empty())
+        {
+            bounds.push(PlaceholderBound {
+                for_all: Binder::new(
+                    &[],
+                    PlaceholderBoundData {
+                        conditions: vec![],
+                        placeholder: b.into_parameter(kind),
+                        relationship: Relationship::OutlivedBy,
+                        bound: LtData::Static.upcast(),
+                    },
+                ),
+            });
+        }
+
+        Goal::any(
+            bounds
+                .iter()
+                .map(|bound| {
+                    let (
+                        names,
+                        PlaceholderBoundData {
+                            conditions,
+                            placeholder,
+                            relationship: _,
+                            bound,
+                        },
+                    ) = bound.for_all.open();
+
+                    Goal::exists(
+                        &names,
+                        Goal::all(seq![
+                            Goal::eq(b.into_parameter(kind), placeholder),
+                            Goal::outlives(a, bound),
+                            ..conditions,
+                        ]),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        )
     }
 }
