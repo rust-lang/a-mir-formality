@@ -1,4 +1,5 @@
 use anyhow::bail;
+use contracts::requires;
 use fn_error_context::context;
 use formality_decl::grammar::{
     AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
@@ -43,6 +44,7 @@ impl super::Check<'_> {
         Ok(())
     }
 
+    #[requires(assumptions.iter().all(|a| a.references_only_placeholder_variables()))]
     fn check_trait_impl_item(
         &self,
         env: &Env,
@@ -58,6 +60,7 @@ impl super::Check<'_> {
         }
     }
 
+    #[requires(impl_assumptions.iter().all(|a| a.references_only_placeholder_variables()))]
     fn check_fn_in_impl(
         &self,
         env: &Env,
@@ -74,6 +77,8 @@ impl super::Check<'_> {
             Some(trait_f) => trait_f,
             None => bail!("no fn `{:?}` in the trait", ii_fn.id),
         };
+
+        tracing::debug!(?ti_fn);
 
         self.check_fn(env, impl_assumptions, ii_fn)?;
 
@@ -202,10 +207,10 @@ impl super::Check<'_> {
         let (trait_names, trait_value) = trait_binder.open();
 
         assert_eq!(impl_names.len(), trait_names.len());
-        let trait_to_impl_subst: Substitution = impl_names
+        let trait_to_impl_subst: Substitution = trait_names
             .iter()
             .upcasted()
-            .zip(trait_names.iter().upcasted())
+            .zip(impl_names.iter().upcasted())
             .collect();
 
         Ok(Binder::new(

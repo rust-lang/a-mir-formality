@@ -490,9 +490,17 @@ impl Variable {
     /// you close it back up again).
     pub fn is_free(&self) -> bool {
         match self {
-            Variable::PlaceholderVar(_) | Variable::InferenceVar(_) => true,
+            Variable::PlaceholderVar(_)
+            | Variable::InferenceVar(_)
+            | Variable::BoundVar(BoundVar {
+                debruijn: None,
+                var_index: _,
+            }) => true,
 
-            Variable::BoundVar(_) => false,
+            Variable::BoundVar(BoundVar {
+                debruijn: Some(_),
+                var_index: _,
+            }) => false,
         }
     }
 }

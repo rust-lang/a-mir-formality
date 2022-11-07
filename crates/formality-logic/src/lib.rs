@@ -24,6 +24,7 @@ pub enum UniversalGoalResult {
 
 #[tracing::instrument(ret)]
 #[requires(goal.references_only_placeholder_variables())]
+#[requires(assumptions.iter().all(|a| a.references_only_placeholder_variables()))]
 pub fn prove_universal_goal(
     db: &Db,
     env: &Env,

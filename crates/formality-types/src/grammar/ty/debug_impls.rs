@@ -57,7 +57,7 @@ impl std::fmt::Debug for super::BoundVar {
             super::BoundVar {
                 debruijn: None,
                 var_index,
-            } => write!(f, "_{:?}", var_index),
+            } => write!(f, "^_{:?}", var_index),
             super::BoundVar {
                 debruijn: Some(db),
                 var_index,
