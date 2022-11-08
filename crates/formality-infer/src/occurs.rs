@@ -1,5 +1,6 @@
 use contracts::requires;
 use formality_types::{
+    cast::{To, Upcast},
     grammar::{Fallible, Goal, InferenceVar, Universe, Variable},
     term::Term,
 };
@@ -29,10 +30,7 @@ impl Env {
     pub(crate) fn generalize_universe<T: Term>(&mut self, universe: Universe, value: &T) -> T {
         value.substitute(&mut |kind, &var| {
             if self.universe(var) > universe {
-                Some(
-                    self.next_inference_variable(kind, universe)
-                        .into_parameter(kind),
-                )
+                Some(self.next_inference_variable(kind, universe).upcast())
             } else {
                 None
             }
@@ -129,7 +127,7 @@ impl Env {
                     self.data(free_var).kind,
                     self.data(mapped_var).universe,
                 );
-                goals.extend(self.map_to(free_var, &self.parameter(fresh_var)));
+                goals.extend(self.map_to(free_var, &fresh_var.to()));
             }
         }
         goals

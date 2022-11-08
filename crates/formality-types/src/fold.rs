@@ -23,7 +23,7 @@ pub trait Fold: Sized {
 
     /// Produce a version of this term where any debruijn indices which appear free are incremented by one.
     fn shift_in(&self) -> Self {
-        self.substitute(&mut |kind, v| Some(v.shift_in().into_parameter(kind)))
+        self.substitute(&mut |kind, v| Some(v.shift_in().upcast()))
     }
 }
 

@@ -13,10 +13,7 @@ impl Env {
         let parameters: Vec<_> = self
             .rigid_generics(db, name)
             .into_iter()
-            .map(|(kind, _)| {
-                self.next_inference_variable(kind, universe)
-                    .into_parameter(kind)
-            })
+            .map(|(kind, _)| self.next_inference_variable(kind, universe).upcast())
             .collect();
 
         RigidTy {

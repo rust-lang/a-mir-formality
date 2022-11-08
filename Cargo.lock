@@ -299,6 +299,7 @@ name = "formality-types"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "contracts",
  "expect-test",
  "formality-core",
  "formality-macros",

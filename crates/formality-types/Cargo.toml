@@ -11,6 +11,7 @@ lazy_static = "1.4.0"
 formality-core = { path = "../formality-core" }
 formality-macros = { path = "../formality-macros" }
 tracing = "0.1"
+contracts = "0.6.3"
 
 [dev-dependencies]
 expect-test = "1.4.0"

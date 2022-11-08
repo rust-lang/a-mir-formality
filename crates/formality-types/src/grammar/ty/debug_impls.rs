@@ -33,15 +33,16 @@ impl std::fmt::Debug for super::PlaceholderVar {
         let super::PlaceholderVar {
             universe,
             var_index,
+            kind,
         } = self;
-        write!(f, "!{:?}_{:?}", universe, var_index)
+        write!(f, "!{:?}{:?}_{:?}", kind, universe, var_index)
     }
 }
 
 impl std::fmt::Debug for super::InferenceVar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let super::InferenceVar { index } = self;
-        write!(f, "?{:?}", index)
+        let super::InferenceVar { index, kind } = self;
+        write!(f, "?{:?}{:?}", kind, index)
     }
 }
 
@@ -57,11 +58,13 @@ impl std::fmt::Debug for super::BoundVar {
             super::BoundVar {
                 debruijn: None,
                 var_index,
-            } => write!(f, "^_{:?}", var_index),
+                kind,
+            } => write!(f, "^{:?}_{:?}", kind, var_index),
             super::BoundVar {
                 debruijn: Some(db),
                 var_index,
-            } => write!(f, "{:?}_{:?}", db, var_index),
+                kind,
+            } => write!(f, "^{:?}{:?}_{:?}", kind, db.index, var_index),
         }
     }
 }

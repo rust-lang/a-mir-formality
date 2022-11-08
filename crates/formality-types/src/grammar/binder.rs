@@ -39,15 +39,10 @@ impl<T: Fold> Binder<T> {
                 let old_bound_var = BoundVar {
                     debruijn: Some(DebruijnIndex::INNERMOST),
                     var_index: VarIndex { index },
+                    kind: *kind,
                 };
                 let (kind_index, new_bound_var) = fresh_bound_var(*kind);
-                (
-                    kind_index,
-                    (
-                        old_bound_var.upcast(),
-                        new_bound_var.into_parameter(kind_index.kind),
-                    ),
-                )
+                (kind_index, (old_bound_var.upcast(), new_bound_var.upcast()))
             })
             .unzip();
 
@@ -64,13 +59,15 @@ impl<T: Fold> Binder<T> {
                 let old_bound_var: Variable = BoundVar {
                     debruijn: None,
                     var_index: kinded_index.var_index,
+                    kind: kinded_index.kind,
                 }
                 .upcast();
                 let new_bound_var: Parameter = BoundVar {
                     debruijn: Some(DebruijnIndex::INNERMOST),
                     var_index: VarIndex { index },
+                    kind: kinded_index.kind,
                 }
-                .into_parameter(kinded_index.kind);
+                .upcast();
                 (kinded_index.kind, (old_bound_var, new_bound_var))
             })
             .unzip();
@@ -127,6 +124,7 @@ impl<T: Fold> Binder<T> {
             Variable::BoundVar(BoundVar {
                 debruijn: Some(DebruijnIndex::INNERMOST),
                 var_index,
+                kind: _,
             }) => Some(substitution[var_index.index as usize].clone()),
 
             _ => None,
@@ -159,6 +157,7 @@ pub fn fresh_bound_var(kind: ParameterKind) -> (KindedVarIndex, BoundVar) {
         BoundVar {
             debruijn: None,
             var_index,
+            kind,
         },
     )
 }

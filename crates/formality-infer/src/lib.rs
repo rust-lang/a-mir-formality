@@ -1,6 +1,6 @@
 use contracts::requires;
 use formality_macros::term;
-use formality_types::cast::To;
+use formality_types::cast::{To, Upcast};
 use formality_types::db::Db;
 use formality_types::derive_links;
 use formality_types::grammar::ElaboratedHypotheses;
@@ -108,7 +108,7 @@ impl Env {
             outlives: vec![],
             outlived_by: vec![],
         });
-        InferenceVar { index }
+        InferenceVar { index, kind }
     }
 
     fn data(&self, var: InferenceVar) -> &InferenceVarData {
@@ -130,16 +130,16 @@ impl Env {
             PlaceholderVar {
                 universe,
                 var_index,
+                kind,
             }
-            .into_parameter(kind)
+            .upcast()
         })
     }
 
     /// Replace all bound variables in `binder` with existential inference variables in the current universe.
     pub fn instantiate_existentially<T: Term>(&mut self, binder: &Binder<T>) -> T {
         binder.instantiate(|kind, _var_index| {
-            self.next_inference_variable(kind, self.universe)
-                .into_parameter(kind)
+            self.next_inference_variable(kind, self.universe).upcast()
         })
     }
 
@@ -235,10 +235,6 @@ impl Env {
         goals
     }
 
-    fn parameter(&self, var: InferenceVar) -> Parameter {
-        var.into_parameter(self.data(var).kind)
-    }
-
     /// Creates a *query* from the given goal in this environment, along
     /// with a mapping from the variables defined in that query to the
     /// variables in this environment.
@@ -282,7 +278,7 @@ impl Env {
                     outlives,
                     outlived_by,
                 } = data;
-                let v = InferenceVar { index }.into_parameter(*kind);
+                let v = InferenceVar { index, kind: *kind };
 
                 std::iter::empty()
                     .chain(

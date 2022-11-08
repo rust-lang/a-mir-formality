@@ -19,9 +19,9 @@ fn to_clause() {
 
     expect![[r#"
         [
-            for_all(<ty> implies([], has_impl(Debug(^0_0)))),
-            for_all(<lt, ty> implies([outlives(^0_1, ^0_0)], well_formed_ty((rigid &(shared) ^0_0 ^0_1)))),
-            for_all(<lt, ty> implies([outlives(^0_1, ^0_0)], well_formed_ty((rigid &(mut) ^0_0 ^0_1)))),
+            for_all(<ty> implies([], has_impl(Debug(^ty0_0)))),
+            for_all(<lt, ty> implies([outlives(^ty0_1, ^lt0_0)], well_formed_ty((rigid &(shared) ^lt0_0 ^ty0_1)))),
+            for_all(<lt, ty> implies([outlives(^ty0_1, ^lt0_0)], well_formed_ty((rigid &(mut) ^lt0_0 ^ty0_1)))),
         ]
     "#]]
     .assert_debug_eq(&clauses);

@@ -71,6 +71,7 @@ pub fn querify(source_env: &Env, source_goal: &Goal) -> (Query, VarSubstitution)
                     Variable::PlaceholderVar(PlaceholderVar {
                         universe: source_universe,
                         var_index: _,
+                        kind,
                     }) => {
                         let target_universe = universes_map[&source_universe];
                         let next_var_index = universe_counters
@@ -81,6 +82,7 @@ pub fn querify(source_env: &Env, source_goal: &Goal) -> (Query, VarSubstitution)
                         PlaceholderVar {
                             universe: target_universe,
                             var_index,
+                            kind,
                         }
                         .upcast()
                     }

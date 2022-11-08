@@ -47,7 +47,7 @@ fn test_compress_universes() {
     expect_test::expect![[r#"
         VarSubstitution {
             map: {
-                !U(1)_0: !U(2)_1,
+                !tyU(1)_0: !tyU(2)_1,
             },
         }
     "#]]
@@ -68,8 +68,8 @@ fn test_placeholder_renamed_in_order_of_appearance() {
     expect_test::expect![[r#"
         VarSubstitution {
             map: {
-                !U(1)_0: !U(2)_1,
-                !U(1)_1: !U(2)_0,
+                !tyU(1)_0: !tyU(2)_1,
+                !tyU(1)_1: !tyU(2)_0,
             },
         }
     "#]]
@@ -87,8 +87,8 @@ fn test_mix_universes() {
     expect_test::expect![[r#"
         VarSubstitution {
             map: {
-                !U(1)_0: !U(1)_0,
-                !U(2)_0: !U(3)_0,
+                !tyU(1)_0: !tyU(1)_0,
+                !tyU(2)_0: !tyU(3)_0,
             },
         }
     "#]]
@@ -119,7 +119,7 @@ fn test_existential_do_not_create_universe() {
             ),
             VarSubstitution {
                 map: {
-                    ?0: ?4,
+                    ?ty0: ?ty4,
                 },
             },
         )
@@ -173,10 +173,10 @@ fn test_mix_existential_and_placeholder() {
             ),
             VarSubstitution {
                 map: {
-                    !U(1)_0: !U(2)_0,
-                    ?0: ?0,
-                    ?1: ?3,
-                    ?2: ?6,
+                    !tyU(1)_0: !tyU(2)_0,
+                    ?ty0: ?ty0,
+                    ?ty1: ?ty3,
+                    ?ty2: ?ty6,
                 },
             },
         )

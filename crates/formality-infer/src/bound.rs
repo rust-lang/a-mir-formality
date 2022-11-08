@@ -6,11 +6,6 @@ use formality_types::grammar::{
 
 use crate::{extrude::Relationship, Env};
 
-pub(crate) struct Placeholder {
-    pub(crate) kind: ParameterKind,
-    pub(crate) var: PlaceholderVar,
-}
-
 #[term]
 pub(crate) struct PlaceholderBound {
     pub(crate) for_all: Binder<PlaceholderBoundData>,
@@ -28,7 +23,7 @@ impl Env {
     pub(crate) fn find_placeholder_bounds(
         &self,
         assumptions: &ElaboratedHypotheses,
-        placeholder: &Placeholder,
+        placeholder: PlaceholderVar,
         relationship: Relationship,
     ) -> Vec<PlaceholderBound> {
         assumptions
@@ -42,7 +37,7 @@ impl Env {
         assumption: &Hypothesis,
         mut accumulated_for_all_names: Vec<KindedVarIndex>,
         mut accumulated_conditions: Vec<Goal>,
-        placeholder: &Placeholder,
+        placeholder: PlaceholderVar,
         relationship: Relationship,
     ) -> Option<PlaceholderBound> {
         match assumption.data() {
@@ -93,7 +88,7 @@ impl Env {
     fn could_bound_placeholder<'r>(
         &self,
         r: &'r AtomicRelation,
-        placeholder: &Placeholder,
+        placeholder: PlaceholderVar,
         relationship: Relationship,
     ) -> Option<(&'r Parameter, &'r Parameter)> {
         match (relationship, r) {
@@ -116,16 +111,16 @@ impl Env {
         }
     }
 
-    fn could_eq_placeholder(&self, placeholder: &Placeholder, parameter: &Parameter) -> bool {
+    fn could_eq_placeholder(&self, placeholder: PlaceholderVar, parameter: &Parameter) -> bool {
         if parameter.kind() != placeholder.kind {
             false
         } else if let Some(v) = parameter.as_variable() {
             match v {
                 Variable::BoundVar(_) => true,
-                Variable::PlaceholderVar(p) => placeholder.var == p,
+                Variable::PlaceholderVar(p) => placeholder == p,
                 Variable::InferenceVar(i) => match &self.data(i).mapped_to {
                     Some(p) => self.could_eq_placeholder(placeholder, p),
-                    None => self.data(i).universe >= placeholder.var.universe,
+                    None => self.data(i).universe >= placeholder.universe,
                 },
             }
         } else {

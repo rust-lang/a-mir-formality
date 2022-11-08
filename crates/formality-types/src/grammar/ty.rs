@@ -1,3 +1,4 @@
+use contracts::requires;
 use formality_macros::term;
 use std::{collections::BTreeSet, sync::Arc};
 
@@ -131,12 +132,7 @@ cast_impl!((ScalarId) <: (RigidTy) <: (TyData));
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
     pub index: usize,
-}
-
-impl InferenceVar {
-    pub fn into_parameter(self, kind: ParameterKind) -> Parameter {
-        Variable::InferenceVar(self).into_parameter(kind)
-    }
+    pub kind: ParameterKind,
 }
 
 #[term((rigid $name $*parameters))]
@@ -266,14 +262,9 @@ pub struct EnsuresTy {
 /// is true for all `T` (`∀T`), we replace `T` with a placeholder.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PlaceholderVar {
+    pub kind: ParameterKind,
     pub universe: Universe,
     pub var_index: VarIndex,
-}
-
-impl PlaceholderVar {
-    pub fn into_parameter(self, kind: ParameterKind) -> Parameter {
-        Variable::PlaceholderVar(self).into_parameter(kind)
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -295,6 +286,7 @@ impl UpcastFrom<KindedVarIndex> for BoundVar {
         BoundVar {
             debruijn: None,
             var_index: term.var_index,
+            kind: term.kind,
         }
     }
 }
@@ -307,7 +299,7 @@ impl UpcastFrom<KindedVarIndex> for Variable {
 
 impl UpcastFrom<KindedVarIndex> for Parameter {
     fn upcast_from(term: KindedVarIndex) -> Self {
-        term.to::<BoundVar>().into_parameter(term.kind)
+        term.to::<BoundVar>().upcast()
     }
 }
 
@@ -438,10 +430,11 @@ cast_impl!(Variable::InferenceVar(InferenceVar));
 cast_impl!(Variable::BoundVar(BoundVar));
 
 impl Variable {
-    pub fn into_parameter(self, kind: ParameterKind) -> Parameter {
-        match kind {
-            ParameterKind::Lt => Lt::new(self).upcast(),
-            ParameterKind::Ty => Ty::new(self).upcast(),
+    pub fn kind(&self) -> ParameterKind {
+        match self {
+            Variable::PlaceholderVar(v) => v.kind,
+            Variable::InferenceVar(v) => v.kind,
+            Variable::BoundVar(v) => v.kind,
         }
     }
 
@@ -451,11 +444,13 @@ impl Variable {
         if let Variable::BoundVar(BoundVar {
             debruijn: Some(db),
             var_index,
+            kind,
         }) = self
         {
             BoundVar {
                 debruijn: Some(db.shift_in()),
                 var_index: *var_index,
+                kind: *kind,
             }
             .upcast()
         } else {
@@ -470,12 +465,14 @@ impl Variable {
         if let Variable::BoundVar(BoundVar {
             debruijn: Some(db),
             var_index,
+            kind,
         }) = self
         {
             db.shift_out().map(|db1| {
                 BoundVar {
                     debruijn: Some(db1),
                     var_index: *var_index,
+                    kind: *kind,
                 }
                 .upcast()
             })
@@ -495,15 +492,36 @@ impl Variable {
             | Variable::BoundVar(BoundVar {
                 debruijn: None,
                 var_index: _,
+                kind: _,
             }) => true,
 
             Variable::BoundVar(BoundVar {
                 debruijn: Some(_),
                 var_index: _,
+                kind: _,
             }) => false,
         }
     }
 }
+
+impl UpcastFrom<Variable> for Parameter {
+    fn upcast_from(v: Variable) -> Parameter {
+        match v.kind() {
+            ParameterKind::Lt => Lt::new(v).upcast(),
+            ParameterKind::Ty => Ty::new(v).upcast(),
+        }
+    }
+}
+
+impl Downcast<Variable> for Parameter {
+    fn downcast(&self) -> Option<Variable> {
+        self.as_variable()
+    }
+}
+
+cast_impl!((InferenceVar) <: (Variable) <: (Parameter));
+cast_impl!((BoundVar) <: (Variable) <: (Parameter));
+cast_impl!((PlaceholderVar) <: (Variable) <: (Parameter));
 
 /// Identifies a bound variable.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -513,16 +531,14 @@ pub struct BoundVar {
     /// When you open a Binder, you get back `Bound
     pub debruijn: Option<DebruijnIndex>,
     pub var_index: VarIndex,
+    pub kind: ParameterKind,
 }
 
 impl BoundVar {
-    pub fn into_parameter(self, kind: ParameterKind) -> Parameter {
-        Variable::upcast_from(self).into_parameter(kind)
-    }
-
     /// Packages up this bound variable as a type.
     /// Only appropriate to call this if the variable
     /// does indeed represent a type.
+    #[requires(self.kind == ParameterKind::Ty)]
     pub fn ty(self) -> Ty {
         Ty::new(TyData::Variable(Variable::upcast_from(self)))
     }
@@ -530,6 +546,7 @@ impl BoundVar {
     /// Packages up this bound variable as a lifetime.
     /// Only appropriate to call this if the variable
     /// does indeed represent a lifetime.
+    #[requires(self.kind == ParameterKind::Lt)]
     pub fn lt(self) -> Lt {
         Lt::new(LtData::Variable(Variable::upcast_from(self)))
     }
@@ -629,6 +646,6 @@ impl VarSubstitution {
         self.map.iter().map(|(k, v)| (*v, *k)).collect()
     }
     pub fn apply<T: Fold>(&self, t: &T) -> T {
-        t.substitute(&mut |kind, v| Some(self.map.get(v)?.into_parameter(kind)))
+        t.substitute(&mut |kind, v| Some(self.map.get(v)?.upcast()))
     }
 }

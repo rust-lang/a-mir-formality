@@ -1,5 +1,5 @@
 use formality_types::{
-    cast::{Upcast, Upcasted},
+    cast::{To, Upcast, Upcasted},
     db::Db,
     derive_links::Parameter,
     grammar::{
@@ -11,7 +11,7 @@ use formality_types::{
 };
 
 use crate::{
-    bound::{Placeholder, PlaceholderBound, PlaceholderBoundData},
+    bound::{PlaceholderBound, PlaceholderBoundData},
     extrude::Relationship,
 };
 
@@ -194,11 +194,11 @@ impl Env {
             | (
                 ParameterData::Ty(TyData::Variable(a_var)),
                 ParameterData::Lt(LtData::Variable(b_var)),
-            ) => Ok(self.variable_outlives(assumptions, a.kind(), *a_var, b.kind(), *b_var)),
+            ) => Ok(self.variable_outlives(assumptions, *a_var, *b_var)),
 
             (ParameterData::Lt(LtData::Variable(a_var)), ParameterData::Lt(LtData::Static))
             | (ParameterData::Ty(TyData::Variable(a_var)), ParameterData::Lt(LtData::Static)) => {
-                Ok(self.variable_outlives_static(assumptions, a.kind(), *a_var))
+                Ok(self.variable_outlives_static(assumptions, *a_var))
             }
         }
     }
@@ -206,14 +206,9 @@ impl Env {
     fn variable_outlives(
         &mut self,
         assumptions: &ElaboratedHypotheses,
-        a_kind: ParameterKind,
         a: Variable,
-        b_kind: ParameterKind,
         b: Variable,
     ) -> Vec<Goal> {
-        let a_parameter = a.into_parameter(a_kind);
-        let b_parameter = b.into_parameter(b_kind);
-
         match (a, b) {
             (Variable::BoundVar(_), _) | (_, Variable::BoundVar(_)) => {
                 panic!("unexpected bound variable")
@@ -221,30 +216,25 @@ impl Env {
 
             (Variable::InferenceVar(a), Variable::InferenceVar(b)) => {
                 if self.data(a).universe <= self.data(b).universe {
-                    self.relate_parameter(a, Relationship::Outlives, b_parameter)
+                    self.relate_parameter(a, Relationship::Outlives, b)
                 } else {
-                    self.relate_parameter(b, Relationship::OutlivedBy, a_parameter)
+                    self.relate_parameter(b, Relationship::OutlivedBy, a)
                 }
             }
 
             (Variable::PlaceholderVar(a), Variable::InferenceVar(b)) => {
                 if a.universe <= self.data(b).universe {
-                    self.relate_parameter(b, Relationship::OutlivedBy, a_parameter)
+                    self.relate_parameter(b, Relationship::OutlivedBy, a)
                 } else {
-                    seq![self.placeholder_outlives(ParameterKind::Lt, assumptions, a, &b_parameter)]
+                    seq![self.placeholder_outlives(assumptions, a, &b)]
                 }
             }
 
             (Variable::InferenceVar(a), Variable::PlaceholderVar(b)) => {
                 if self.data(a).universe >= b.universe {
-                    self.relate_parameter(a, Relationship::Outlives, b_parameter)
+                    self.relate_parameter(a, Relationship::Outlives, b)
                 } else {
-                    seq![self.placeholder_outlived_by(
-                        ParameterKind::Lt,
-                        assumptions,
-                        &a_parameter,
-                        b
-                    )]
+                    seq![self.placeholder_outlived_by(assumptions, &a, b)]
                 }
             }
 
@@ -257,10 +247,8 @@ impl Env {
                 // If you don't have variables in the environment, though, this is strictly extra work.
                 // e.g. If we have `!U2 : !U1`, or even `!U2 : X` and `X : !U1`, it doesn't matter which way
                 // you search, you'll find the path eventually.
-                let fwd =
-                    self.placeholder_outlives(ParameterKind::Lt, assumptions, a, &b_parameter);
-                let rev =
-                    self.placeholder_outlived_by(ParameterKind::Lt, assumptions, &a_parameter, b);
+                let fwd = self.placeholder_outlives(assumptions, a, &b);
+                let rev = self.placeholder_outlived_by(assumptions, &a, b);
                 seq![Goal::any(seq![fwd, rev])]
             }
         }
@@ -269,12 +257,11 @@ impl Env {
     fn variable_outlives_static(
         &mut self,
         assumptions: &ElaboratedHypotheses,
-        a_kind: ParameterKind,
         a: Variable,
     ) -> Vec<Goal> {
         match a {
             Variable::PlaceholderVar(a) => {
-                seq![self.placeholder_outlives(a_kind, assumptions, a, LtData::Static)]
+                seq![self.placeholder_outlives(assumptions, a, LtData::Static)]
             }
             Variable::InferenceVar(a) => {
                 self.relate_parameter(a, Relationship::Outlives, LtData::Static)
@@ -288,16 +275,12 @@ impl Env {
     // We can prove `P_a : b` if we know `P_a : x` and we can prove `x : b`.
     fn placeholder_outlives(
         &self,
-        kind: ParameterKind,
         assumptions: &ElaboratedHypotheses,
         a: PlaceholderVar,
         b: impl Upcast<Parameter>,
     ) -> Goal {
-        let bounds = self.find_placeholder_bounds(
-            assumptions,
-            &Placeholder { kind, var: a },
-            crate::extrude::Relationship::Outlives,
-        );
+        let bounds =
+            self.find_placeholder_bounds(assumptions, a, crate::extrude::Relationship::Outlives);
 
         Goal::any(
             bounds
@@ -316,7 +299,7 @@ impl Env {
                     Goal::exists(
                         &names,
                         Goal::all(seq![
-                            Goal::eq(a.into_parameter(kind), placeholder),
+                            Goal::eq(a, placeholder),
                             Goal::outlives(bound, &b),
                             ..conditions,
                         ]),
@@ -329,16 +312,14 @@ impl Env {
     // We can prove `a : P_b` if we know `x : P_b` and we can prove `a : x`.
     fn placeholder_outlived_by(
         &self,
-        kind: ParameterKind,
         assumptions: &ElaboratedHypotheses,
-        a: &Parameter,
+        a: impl Upcast<Parameter>,
         b: PlaceholderVar,
     ) -> Goal {
-        let mut bounds = self.find_placeholder_bounds(
-            assumptions,
-            &Placeholder { kind, var: b },
-            crate::extrude::Relationship::OutlivedBy,
-        );
+        let a: Parameter = a.upcast();
+
+        let mut bounds =
+            self.find_placeholder_bounds(assumptions, b, crate::extrude::Relationship::OutlivedBy);
 
         // We always know that `static : P_b`, so add that as a bound,
         // but -- as a microopt -- only do that if there's no other
@@ -352,7 +333,7 @@ impl Env {
                     &[],
                     PlaceholderBoundData {
                         conditions: vec![],
-                        placeholder: b.into_parameter(kind),
+                        placeholder: b.to(),
                         relationship: Relationship::OutlivedBy,
                         bound: LtData::Static.upcast(),
                     },
@@ -377,8 +358,8 @@ impl Env {
                     Goal::exists(
                         &names,
                         Goal::all(seq![
-                            Goal::eq(b.into_parameter(kind), placeholder),
-                            Goal::outlives(a, bound),
+                            Goal::eq(b, placeholder),
+                            Goal::outlives(&a, bound),
                             ..conditions,
                         ]),
                     )

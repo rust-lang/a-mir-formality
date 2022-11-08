@@ -1,6 +1,9 @@
 use crate::grammar::{self as rust};
 use formality_decl::grammar as decl;
-use formality_types::grammar::{fresh_bound_var, Binder, Fallible, ParameterKind};
+use formality_types::{
+    cast::To,
+    grammar::{fresh_bound_var, Binder, Fallible, ParameterKind},
+};
 
 impl rust::AssociatedTy {
     pub(super) fn to_decl(&self) -> Fallible<decl::AssociatedTy> {
@@ -19,7 +22,7 @@ impl rust::AssociatedTy {
             &[name],
             ensures
                 .iter()
-                .map(|e| e.to_decl(&bound_var.into_parameter(ParameterKind::Ty)))
+                .map(|e| e.to_decl(&bound_var.to()))
                 .collect::<Fallible<_>>()?,
         );
 

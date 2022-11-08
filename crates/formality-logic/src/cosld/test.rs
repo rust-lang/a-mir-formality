@@ -72,8 +72,8 @@ fn outlives_refs() {
             Some(
                 [
                     outlives(
-                        ?0,
-                        ?1,
+                        ?lt0,
+                        ?lt1,
                     ),
                 ],
             ),
@@ -96,8 +96,8 @@ fn outlives_assoc_type() {
             Some(
                 [
                     outlives(
-                        ?0,
-                        ?1,
+                        ?lt0,
+                        ?lt1,
                     ),
                 ],
             ),
@@ -126,24 +126,24 @@ fn outlives_assoc_type_normalizes() {
             Some(
                 [
                     equals(
-                        ?2,
+                        ?ty2,
                         (rigid (scalar u32)),
                     ),
                     equals(
-                        ?3,
+                        ?ty3,
                         (rigid (scalar u32)),
                     ),
                     equals(
-                        ?4,
-                        ?0,
+                        ?lt4,
+                        ?lt0,
                     ),
                 ],
             ),
             Some(
                 [
                     outlives(
-                        ?0,
-                        ?1,
+                        ?lt0,
+                        ?lt1,
                     ),
                 ],
             ),

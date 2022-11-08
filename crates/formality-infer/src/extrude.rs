@@ -113,7 +113,7 @@ impl Env {
 
         // Variables visible from Universe are just mapped to themselves
         if self.universe(variable) <= universe {
-            return (variable.into_parameter(kind), vec![]);
+            return (variable.upcast(), vec![]);
         }
 
         match variable {
@@ -144,7 +144,7 @@ impl Env {
             Variable::InferenceVar(variable) => {
                 // Create the result variable `?X_e`.
                 let variable_extruded = self.next_inference_variable(kind, universe);
-                stack.push((variable.upcast(), variable_extruded.into_parameter(kind)));
+                stack.push((variable.upcast(), variable_extruded.upcast()));
 
                 // For each bound B where `?X (R) B`, extrude a bound `B_e` where `B_e (R) B`.
                 let bounds = self.known_bounds(variable, relationship);
@@ -164,16 +164,12 @@ impl Env {
                 //
                 // This preserves the invariant that a variable in universe U has no
                 // outgoing edge to anything in a higher universe.
-                self.bound_variable(
-                    variable,
-                    relationship.invert(),
-                    &variable_extruded.into_parameter(kind),
-                );
+                self.bound_variable(variable, relationship.invert(), &variable_extruded.upcast());
 
                 stack.pop();
 
                 (
-                    variable_extruded.into_parameter(kind),
+                    variable_extruded.upcast(),
                     bound_goals.into_iter().flatten().collect(),
                 )
             }
