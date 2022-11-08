@@ -28,9 +28,9 @@ impl Env {
     /// exceeds `universe` is replaced with a fresh inference variable.
     #[requires(self.fully_refreshed(value))]
     pub(crate) fn generalize_universe<T: Term>(&mut self, universe: Universe, value: &T) -> T {
-        value.substitute(&mut |kind, &var| {
+        value.substitute(&mut |var| {
             if self.universe(var) > universe {
-                Some(self.next_inference_variable(kind, universe).upcast())
+                Some(self.next_inference_variable(var.kind(), universe).upcast())
             } else {
                 None
             }

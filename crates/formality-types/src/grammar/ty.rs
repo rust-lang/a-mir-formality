@@ -616,7 +616,7 @@ impl FromIterator<(Variable, Parameter)> for Substitution {
 
 impl Substitution {
     pub fn apply<T: Fold>(&self, t: &T) -> T {
-        t.substitute(&mut |_kind, v| self.map.get(v).cloned())
+        t.substitute(&mut |v| self.map.get(&v).cloned())
     }
 }
 
@@ -646,6 +646,6 @@ impl VarSubstitution {
         self.map.iter().map(|(k, v)| (*v, *k)).collect()
     }
     pub fn apply<T: Fold>(&self, t: &T) -> T {
-        t.substitute(&mut |kind, v| Some(self.map.get(v)?.upcast()))
+        t.substitute(&mut |v| Some(self.map.get(&v)?.upcast()))
     }
 }

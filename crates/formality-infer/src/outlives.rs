@@ -4,8 +4,7 @@ use formality_types::{
     derive_links::Parameter,
     grammar::{
         Binder, ElaboratedHypotheses, EnsuresTy, Fallible, Goal, ImplicationTy, LtData,
-        ParameterData, ParameterKind, PlaceholderVar, PredicateTy, RigidName, RigidTy, Ty, TyData,
-        Variable,
+        ParameterData, PlaceholderVar, PredicateTy, RigidName, RigidTy, Ty, TyData, Variable,
     },
     seq,
 };

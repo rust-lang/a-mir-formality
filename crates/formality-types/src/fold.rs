@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     cast::Upcast,
     collections::Set,
-    grammar::{Lt, LtData, Parameter, ParameterKind, Ty, TyData, Variable},
+    grammar::{Lt, LtData, Parameter, Ty, TyData, Variable},
 };
 
 /// Invoked for each variable that we find when folding, ignoring variables bound by binders
@@ -11,7 +11,7 @@ use crate::{
 ///
 /// * ParameterKind -- the kind of term in which the variable appeared (type vs lifetime, etc)
 /// * Variable -- the variable we encountered
-pub type SubstitutionFn<'a> = &'a mut dyn FnMut(ParameterKind, &Variable) -> Option<Parameter>;
+pub type SubstitutionFn<'a> = &'a mut dyn FnMut(Variable) -> Option<Parameter>;
 
 pub trait Fold: Sized {
     /// Replace uses of variables with values from the substitution.
@@ -23,7 +23,7 @@ pub trait Fold: Sized {
 
     /// Produce a version of this term where any debruijn indices which appear free are incremented by one.
     fn shift_in(&self) -> Self {
-        self.substitute(&mut |kind, v| Some(v.shift_in().upcast()))
+        self.substitute(&mut |v| Some(v.shift_in().upcast()))
     }
 }
 
@@ -74,7 +74,7 @@ impl Fold for Ty {
             TyData::RigidTy(v) => v.substitute(substitution_fn).upcast(),
             TyData::AliasTy(v) => v.substitute(substitution_fn).upcast(),
             TyData::PredicateTy(v) => v.substitute(substitution_fn).upcast(),
-            TyData::Variable(v) => match substitution_fn(ParameterKind::Ty, v) {
+            TyData::Variable(v) => match substitution_fn(*v) {
                 None => self.clone(),
                 Some(Parameter::Ty(t)) => t,
                 Some(param) => panic!("ill-kinded substitute: expected type, got {param:?}"),
@@ -102,7 +102,7 @@ impl Fold for Lt {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         match self.data() {
             LtData::Static => self.clone(),
-            LtData::Variable(v) => match substitution_fn(ParameterKind::Lt, v) {
+            LtData::Variable(v) => match substitution_fn(*v) {
                 None => self.clone(),
                 Some(Parameter::Lt(t)) => t,
                 Some(param) => panic!("ill-kinded substitute: expected lifetime, got {param:?}"),

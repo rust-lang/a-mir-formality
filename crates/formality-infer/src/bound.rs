@@ -1,7 +1,7 @@
 use formality_macros::term;
 use formality_types::grammar::{
     AtomicRelation, Binder, ElaboratedHypotheses, Goal, Hypothesis, HypothesisData, KindedVarIndex,
-    Parameter, ParameterKind, PlaceholderVar, Variable, APR,
+    Parameter, PlaceholderVar, Variable, APR,
 };
 
 use crate::{extrude::Relationship, Env};

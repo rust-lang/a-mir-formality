@@ -120,7 +120,7 @@ impl<T: Fold> Binder<T> {
             .map(|(&kind, index)| op(kind, VarIndex { index }))
             .collect();
 
-        self.term.substitute(&mut |_kind, var| match var {
+        self.term.substitute(&mut |var| match var {
             Variable::BoundVar(BoundVar {
                 debruijn: Some(DebruijnIndex::INNERMOST),
                 var_index,
@@ -164,14 +164,14 @@ pub fn fresh_bound_var(kind: ParameterKind) -> (KindedVarIndex, BoundVar) {
 
 impl<T: Fold> Fold for Binder<T> {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
-        let term = self.term.substitute(&mut |kind, v| {
+        let term = self.term.substitute(&mut |v| {
             // Shift this variable out through the binder. If that fails,
             // it's a variable bound by this binder, so the substitution can't
             // affect it, and we can just return None.
             let v1 = v.shift_out()?;
 
             // Get the result of the subst (if any).
-            let parameter = substitution_fn(kind, &v1)?;
+            let parameter = substitution_fn(v1)?;
 
             // Shift that result in to account for this binder.
             Some(parameter.shift_in())

@@ -3,7 +3,7 @@ use formality_macros::term;
 use formality_types::{
     cast::{Upcast, Upcasted},
     fold::Fold,
-    grammar::{AtomicRelation, Goal, InferenceVar, Parameter, ParameterKind, Universe, Variable},
+    grammar::{AtomicRelation, Goal, InferenceVar, Parameter, Universe, Variable},
     seq,
     term::Term,
 };
@@ -88,9 +88,8 @@ impl Env {
     ) -> (Parameter, Vec<Goal>) {
         let mut goals = vec![];
 
-        let result = parameter.substitute(&mut |kind, variable| {
-            let (parameter, g) =
-                self.extrude_variable(stack, universe, relationship, kind, *variable);
+        let result = parameter.substitute(&mut |variable| {
+            let (parameter, g) = self.extrude_variable(stack, universe, relationship, variable);
             goals.extend(g);
             Some(parameter)
         });
@@ -103,7 +102,6 @@ impl Env {
         stack: &mut Vec<(Variable, Parameter)>,
         universe: Universe,
         relationship: Relationship,
-        kind: ParameterKind,
         variable: Variable,
     ) -> (Parameter, Vec<Goal>) {
         // Check if we are mapping a variable that's already on the stack.
@@ -143,7 +141,7 @@ impl Env {
             // and `?X_e` is registered as a supertype.
             Variable::InferenceVar(variable) => {
                 // Create the result variable `?X_e`.
-                let variable_extruded = self.next_inference_variable(kind, universe);
+                let variable_extruded = self.next_inference_variable(variable.kind, universe);
                 stack.push((variable.upcast(), variable_extruded.upcast()));
 
                 // For each bound B where `?X (R) B`, extrude a bound `B_e` where `B_e (R) B`.
