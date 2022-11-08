@@ -114,7 +114,6 @@ fn outlives_assoc_type_normalizes() {
     let mut env = Env::default();
 
     let b_goal: Binder<Goal> = term("<lt a, lt b> outlives(<u32 as Foo<a>>::Item, b)");
-    eprintln!("{b_goal:?}");
     let goal = env.instantiate_existentially(&b_goal);
     let results = super::prove(&db, &env, &[], &goal);
 
