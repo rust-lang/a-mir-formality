@@ -1,5 +1,6 @@
 use contracts::requires;
 use formality_macros::term;
+use formality_types::cast::To;
 use formality_types::db::Db;
 use formality_types::derive_links;
 use formality_types::grammar::ElaboratedHypotheses;
@@ -265,5 +266,52 @@ impl Env {
             AtomicRelation::Sub(a, b) => self.sub(db, a, b),
             AtomicRelation::Outlives(a, b) => self.outlives(db, assumptions, a, b),
         }
+    }
+
+    pub fn inference_var_relations(&self) -> Vec<AtomicRelation> {
+        self.inference_data
+            .iter()
+            .zip(0..)
+            .flat_map(|(data, index)| {
+                let InferenceVarData {
+                    kind,
+                    universe: _,
+                    mapped_to,
+                    subtype_of,
+                    supertype_of,
+                    outlives,
+                    outlived_by,
+                } = data;
+                let v = InferenceVar { index }.into_parameter(*kind);
+
+                std::iter::empty()
+                    .chain(
+                        mapped_to
+                            .iter()
+                            .map(|p| AtomicRelation::Equals(v.to(), p.to())),
+                    )
+                    .chain(
+                        subtype_of
+                            .iter()
+                            .map(|t| AtomicRelation::Sub(v.to(), t.to())),
+                    )
+                    .chain(
+                        supertype_of
+                            .iter()
+                            .map(|t| AtomicRelation::Sub(t.to(), v.to())),
+                    )
+                    .chain(
+                        outlives
+                            .iter()
+                            .map(|t| AtomicRelation::Outlives(v.to(), t.to())),
+                    )
+                    .chain(
+                        outlived_by
+                            .iter()
+                            .map(|t| AtomicRelation::Outlives(t.to(), v.to())),
+                    )
+                    .collect::<Vec<_>>()
+            })
+            .collect()
     }
 }

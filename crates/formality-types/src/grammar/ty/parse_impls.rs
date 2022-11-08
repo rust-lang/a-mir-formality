@@ -176,6 +176,7 @@ impl Parse for Lt {
     }
 }
 
+#[tracing::instrument(level = "trace", ret)]
 fn parse_variable<'t>(scope: &crate::parse::Scope, text0: &'t str) -> ParseResult<'t, Parameter> {
     let (id, text1) = parse::identifier(text0)?;
     match scope.lookup(&id) {

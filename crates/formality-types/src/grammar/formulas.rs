@@ -98,50 +98,53 @@ impl Parameter {
 /// nothing unifiable and identifies the kind of predicate.
 /// If the skeleton's don't match, they are distinct predicates.
 #[term]
-pub enum AtomicPredicateSkeleton {
+pub enum AtomicSkeleton {
     IsImplemented(TraitId),
     HasImpl(TraitId),
     NormalizesTo(AliasName),
     WellFormedTy,
     WellFormedTraitRef(TraitId),
+
+    Equals,
+    Sub,
+    Outlives,
 }
 
 impl AtomicPredicate {
     /// Separate an atomic predicate into the "skeleton" (which can be compared for equality using `==`)
     /// and the parameters (which must be related).
-    pub fn debone(&self) -> (AtomicPredicateSkeleton, Vec<Parameter>) {
+    pub fn debone(&self) -> (AtomicSkeleton, Vec<Parameter>) {
         match self {
             AtomicPredicate::IsImplemented(TraitRef {
                 trait_id,
                 parameters,
             }) => (
-                AtomicPredicateSkeleton::IsImplemented(trait_id.clone()),
+                AtomicSkeleton::IsImplemented(trait_id.clone()),
                 parameters.clone(),
             ),
             AtomicPredicate::HasImpl(TraitRef {
                 trait_id,
                 parameters,
             }) => (
-                AtomicPredicateSkeleton::HasImpl(trait_id.clone()),
+                AtomicSkeleton::HasImpl(trait_id.clone()),
                 parameters.clone(),
             ),
             AtomicPredicate::NormalizesTo(AliasTy { name, parameters }, ty) => (
-                AtomicPredicateSkeleton::NormalizesTo(name.clone()),
+                AtomicSkeleton::NormalizesTo(name.clone()),
                 parameters
                     .iter()
                     .cloned()
                     .chain(Some(ty.to_parameter()))
                     .collect(),
             ),
-            AtomicPredicate::WellFormedTy(ty) => (
-                AtomicPredicateSkeleton::WellFormedTy,
-                vec![ty.to_parameter()],
-            ),
+            AtomicPredicate::WellFormedTy(ty) => {
+                (AtomicSkeleton::WellFormedTy, vec![ty.to_parameter()])
+            }
             AtomicPredicate::WellFormedTraitRef(TraitRef {
                 trait_id,
                 parameters,
             }) => (
-                AtomicPredicateSkeleton::WellFormedTraitRef(trait_id.clone()),
+                AtomicSkeleton::WellFormedTraitRef(trait_id.clone()),
                 parameters.clone(),
             ),
         }
@@ -177,6 +180,16 @@ pub enum AtomicRelation {
 impl AtomicRelation {
     pub fn eq(p1: impl Upcast<Parameter>, p2: impl Upcast<Parameter>) -> Self {
         Self::Equals(p1.upcast(), p2.upcast())
+    }
+
+    pub fn debone(&self) -> (AtomicSkeleton, Vec<Parameter>) {
+        match self {
+            AtomicRelation::Equals(a, b) => (AtomicSkeleton::Equals, vec![a.clone(), b.clone()]),
+            AtomicRelation::Sub(a, b) => (AtomicSkeleton::Sub, vec![a.clone(), b.clone()]),
+            AtomicRelation::Outlives(a, b) => {
+                (AtomicSkeleton::Outlives, vec![a.clone(), b.clone()])
+            }
+        }
     }
 }
 
@@ -231,6 +244,15 @@ pub enum APR {
     AtomicPredicate(AtomicPredicate),
     #[cast]
     AtomicRelation(AtomicRelation),
+}
+
+impl APR {
+    pub fn debone(&self) -> (AtomicSkeleton, Vec<Parameter>) {
+        match self {
+            APR::AtomicPredicate(v) => v.debone(),
+            APR::AtomicRelation(v) => v.debone(),
+        }
+    }
 }
 
 #[term]
@@ -377,15 +399,32 @@ impl Hypothesis {
     /// of its bound variables. This is used by solver to prune down the paths
     /// we search, with the goal of improving readability (i.e., if this function
     /// just returned `false`, the solver should still work).
-    pub fn could_match(&self, predicate: &AtomicPredicate) -> bool {
+    pub fn could_match(&self, predicate: &impl Debone) -> bool {
         match self.data() {
-            HypothesisData::Atomic(APR::AtomicPredicate(p)) => p.debone().0 == predicate.debone().0,
-            HypothesisData::Atomic(APR::AtomicRelation(_)) => false,
+            HypothesisData::Atomic(apr) => apr.debone().0 == predicate.debone().0,
             HypothesisData::ForAll(binder) => binder.peek().could_match(predicate),
             HypothesisData::Implies(_, consequence) => consequence.could_match(predicate),
         }
     }
 }
+
+pub trait Debone {
+    fn debone(&self) -> (AtomicSkeleton, Vec<Parameter>);
+}
+
+macro_rules! debone_impl {
+    ($t:ty) => {
+        impl Debone for $t {
+            fn debone(&self) -> (AtomicSkeleton, Vec<Parameter>) {
+                self.debone()
+            }
+        }
+    };
+}
+
+debone_impl!(APR);
+debone_impl!(AtomicPredicate);
+debone_impl!(AtomicRelation);
 
 impl UpcastFrom<HypothesisData> for Hypothesis {
     fn upcast_from(v: HypothesisData) -> Self {
