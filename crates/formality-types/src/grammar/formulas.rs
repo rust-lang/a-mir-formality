@@ -253,6 +253,13 @@ impl APR {
             APR::AtomicRelation(v) => v.debone(),
         }
     }
+
+    pub fn is_coinductive(&self) -> Coinductive {
+        match self {
+            APR::AtomicPredicate(p) => p.is_coinductive(),
+            APR::AtomicRelation(_) => Coinductive::No, // ??
+        }
+    }
 }
 
 #[term]

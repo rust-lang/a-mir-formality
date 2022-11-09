@@ -4,10 +4,7 @@ use formality_macros::term;
 use formality_types::{
     collections::Set,
     db::{Database, Db},
-    grammar::{
-        AtomicPredicate, Coinductive, ElaboratedHypotheses, Goal, GoalData, Hypothesis,
-        HypothesisData, APR,
-    },
+    grammar::{Coinductive, ElaboratedHypotheses, Goal, GoalData, Hypothesis, HypothesisData, APR},
     set,
 };
 
@@ -30,7 +27,7 @@ pub fn prove(db: &Db, env: &Env, assumptions: &[Hypothesis], goal: &Goal) -> Set
 #[derive(Copy, Clone, Debug)]
 enum Stack<'s> {
     Empty,
-    Link(&'s AtomicPredicate, &'s Stack<'s>),
+    Link(&'s APR, &'s Stack<'s>),
 }
 
 #[tracing::instrument(level = "debug", ret)]
@@ -42,22 +39,27 @@ fn prove_goal(
     goal: &Goal,
 ) -> Set<CosldResult> {
     match goal.data() {
-        GoalData::Atomic(APR::AtomicPredicate(predicate)) => match stack.search(env, predicate) {
+        GoalData::Atomic(apr) => match stack.search(env, apr) {
             StackSearch::CoinductiveCycle => set![CosldResult::Yes(env.clone())],
             StackSearch::InductiveCycle => set![],
-            StackSearch::NotFound => {
-                let clauses = db.program_clauses(predicate);
-                clauses
-                    .iter()
-                    .chain(assumptions)
-                    .filter(|h| h.could_match(predicate))
-                    .flat_map(|h| backchain(db, env, stack, assumptions, h, predicate))
-                    .collect()
-            }
-        },
-        GoalData::Atomic(APR::AtomicRelation(r)) => match env.apply_relation(db, assumptions, r) {
-            Ok((env, goals)) => prove_all(db, &env, stack, assumptions, &goals, &[]),
-            Err(_) => set![],
+            StackSearch::NotFound => match apr {
+                APR::AtomicPredicate(predicate) => {
+                    let clauses = db.program_clauses(predicate);
+                    clauses
+                        .iter()
+                        .chain(assumptions)
+                        .filter(|h| h.could_match(predicate))
+                        .flat_map(|h| backchain(db, env, stack, assumptions, h, apr))
+                        .collect()
+                }
+
+                APR::AtomicRelation(r) => match env.apply_relation(db, assumptions, r) {
+                    Ok((env, goals)) => {
+                        prove_all(db, &env, Stack::Link(apr, &stack), assumptions, &goals, &[])
+                    }
+                    Err(_) => set![],
+                },
+            },
         },
         GoalData::ForAll(binder) => {
             let mut env = env.clone();
@@ -147,12 +149,12 @@ fn backchain(
     stack: Stack<'_>,
     assumptions: &ElaboratedHypotheses,
     clause: &Hypothesis,
-    predicate: &AtomicPredicate,
+    apr: &APR,
 ) -> Set<CosldResult> {
     match clause.data() {
-        HypothesisData::Atomic(APR::AtomicPredicate(h)) => {
+        HypothesisData::Atomic(h) => {
             let (skeleton1, parameters1) = h.debone();
-            let (skeleton2, parameters2) = predicate.debone();
+            let (skeleton2, parameters2) = apr.debone();
             if skeleton1 != skeleton2 {
                 set![]
             } else {
@@ -165,18 +167,17 @@ fn backchain(
                 prove_all(db, env, stack, assumptions, &subgoals, &[])
             }
         }
-        HypothesisData::Atomic(APR::AtomicRelation(_h)) => todo!(),
         HypothesisData::ForAll(b) => {
             let mut env = env.clone();
             let h = env.instantiate_existentially(b);
-            backchain(db, &env, stack, assumptions, &h, predicate)
+            backchain(db, &env, stack, assumptions, &h, apr)
         }
         HypothesisData::Implies(conditions, consequence) => {
-            backchain(db, env, stack, assumptions, consequence, predicate).and_then(|env| {
+            backchain(db, env, stack, assumptions, consequence, apr).and_then(|env| {
                 prove_all(
                     db,
                     env,
-                    Stack::Link(predicate, &stack),
+                    Stack::Link(apr, &stack),
                     assumptions,
                     &conditions,
                     &[],
@@ -198,7 +199,7 @@ impl Stack<'_> {
     /// If so, returns coinductive cycle if all stack entries (including `predicate1`) are coinductive,
     /// otherwise returns inductive cycle.
     #[tracing::instrument(level = "debug", ret)]
-    fn search(self, env: &Env, predicate1: &AtomicPredicate) -> StackSearch {
+    fn search(self, env: &Env, predicate1: &APR) -> StackSearch {
         let predicate1 = env.refresh_inference_variables(predicate1);
 
         let mut p = self;

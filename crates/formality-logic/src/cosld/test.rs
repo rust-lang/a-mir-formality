@@ -254,9 +254,7 @@ fn outlives_placeholder_implies_b_c() {
 
 #[test]
 fn outlives_placeholder_implies_b_d_c() {
-    let db = MockDatabase::new()
-        .with_program_clause("for_all(<ty T, lt a> normalizes_to((alias (Foo::Item) T a), T))")
-        .into_db();
+    let db = MockDatabase::new().into_db();
     let mut env = Env::default();
 
     let goal: Binder<Goal> =
@@ -287,9 +285,7 @@ fn outlives_placeholder_implies_b_d_c() {
 
 #[test]
 fn outlives_placeholder_implies_complex() {
-    let db = MockDatabase::new()
-        .with_program_clause("for_all(<ty T, lt a> normalizes_to((alias (Foo::Item) T a), T))")
-        .into_db();
+    let db = MockDatabase::new().into_db();
     let mut env = Env::default();
 
     let goal: Binder<Goal> =
@@ -318,6 +314,42 @@ fn outlives_placeholder_implies_complex() {
                 ],
             ),
         ]
+    "#]]
+    .assert_debug_eq(&extract_relations(&results, universe));
+}
+
+#[test]
+fn outlives_placeholder_implies_inf_var_in_env() {
+    let db = MockDatabase::new().into_db();
+    let mut env = Env::default();
+
+    let goal: Binder<Goal> =
+        term("<lt a, lt b> for_all(<lt c, lt d> implies([for_all(<lt x> implies([outlives(x, b)], outlives(x, c)))], equals(a, c)))");
+    let goal = env.instantiate_existentially(&goal);
+    let universe = env.term_universe(&goal);
+
+    let results = super::prove(&db, &env, &[], &goal);
+
+    expect_test::expect![[r#"
+        []
+    "#]]
+    .assert_debug_eq(&extract_relations(&results, universe));
+}
+
+#[test]
+fn outlives_placeholder_implies_silly() {
+    let db = MockDatabase::new().into_db();
+    let mut env = Env::default();
+
+    let goal: Binder<Goal> =
+        term("<lt a, lt b> for_all(<lt c> implies([outlives(c, c)], equals(a, c)))");
+    let goal = env.instantiate_existentially(&goal);
+    let universe = env.term_universe(&goal);
+
+    let results = super::prove(&db, &env, &[], &goal);
+
+    expect_test::expect![[r#"
+        []
     "#]]
     .assert_debug_eq(&extract_relations(&results, universe));
 }
