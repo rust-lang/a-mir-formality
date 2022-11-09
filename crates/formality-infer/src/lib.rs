@@ -178,7 +178,7 @@ impl Env {
 
     /// Returns the maximum universe that appears in this term (or which could appear
     /// in the future).
-    fn term_universe(&self, term: &impl Term) -> Universe {
+    pub fn term_universe(&self, term: &impl Term) -> Universe {
         self.refresh_inference_variables(term)
             .free_variables()
             .into_iter()
@@ -264,10 +264,12 @@ impl Env {
         }
     }
 
-    pub fn inference_var_relations(&self) -> Vec<AtomicRelation> {
+    /// Returns a set of relations affecting variables visible from the given universe.
+    pub fn inference_var_relations(&self, universe: Universe) -> Vec<AtomicRelation> {
         self.inference_data
             .iter()
             .zip(0..)
+            .filter(|(data, _)| data.universe <= universe)
             .flat_map(|(data, index)| {
                 let InferenceVarData {
                     kind,

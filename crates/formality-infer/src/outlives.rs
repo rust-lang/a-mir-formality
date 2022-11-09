@@ -214,7 +214,7 @@ impl Env {
             }
 
             (Variable::InferenceVar(a), Variable::InferenceVar(b)) => {
-                if self.data(a).universe <= self.data(b).universe {
+                if self.data(a).universe >= self.data(b).universe {
                     self.relate_parameter(a, Relationship::Outlives, b)
                 } else {
                     self.relate_parameter(b, Relationship::OutlivedBy, a)
@@ -222,7 +222,7 @@ impl Env {
             }
 
             (Variable::PlaceholderVar(a), Variable::InferenceVar(b)) => {
-                if a.universe <= self.data(b).universe {
+                if self.data(b).universe >= a.universe {
                     self.relate_parameter(b, Relationship::OutlivedBy, a)
                 } else {
                     seq![self.placeholder_outlives(assumptions, a, &b)]
