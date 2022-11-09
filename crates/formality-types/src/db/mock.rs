@@ -49,10 +49,7 @@ impl crate::db::Database for MockDatabase {
         self.program_clauses.clone()
     }
 
-    fn invariants_for_predicate(
-        &self,
-        _predicate: &crate::grammar::AtomicPredicate,
-    ) -> Vec<crate::grammar::Invariant> {
+    fn invariants_for_apr(&self, _: &crate::grammar::APR) -> Vec<crate::grammar::Invariant> {
         self.invariants.clone()
     }
 }

@@ -5,8 +5,8 @@ use formality_types::{
     cast::{To, Upcast},
     db::{Database, Db},
     grammar::{
-        AtomicPredicate, ElaboratedHypotheses, Hypothesis, HypothesisData, Invariant,
-        InvariantImplication, Substitution, APR,
+        ElaboratedHypotheses, Hypothesis, HypothesisData, Invariant, InvariantImplication,
+        Substitution, APR,
     },
 };
 
@@ -33,16 +33,11 @@ where
 
 fn elaborate_hypothesis(db: &Db, hypothesis: &Hypothesis) -> Vec<Hypothesis> {
     match hypothesis.data() {
-        HypothesisData::Atomic(APR::AtomicPredicate(predicate)) => db
-            .invariants_for_predicate(predicate)
+        HypothesisData::Atomic(apr) => db
+            .invariants_for_apr(apr)
             .iter()
-            .flat_map(|i| apply_invariant_to_predicate(db, i, predicate))
+            .flat_map(|i| apply_invariant_to_predicate(db, i, apr))
             .collect(),
-
-        HypothesisData::Atomic(APR::AtomicRelation(_relation)) => {
-            // FIXME: elaborate relations
-            vec![]
-        }
 
         HypothesisData::ForAll(binder) => {
             let (kinded_var_indices, hypothesis) = binder.open();
@@ -62,7 +57,7 @@ fn elaborate_hypothesis(db: &Db, hypothesis: &Hypothesis) -> Vec<Hypothesis> {
 fn apply_invariant_to_predicate(
     _db: &Db,
     invariant: &Invariant,
-    predicate: &AtomicPredicate,
+    predicate: &APR,
 ) -> Option<Hypothesis> {
     invariant.assert();
 
@@ -86,8 +81,8 @@ fn apply_invariant_to_predicate(
 }
 
 fn match_invariant_to_predicate(
-    invariant_predicate: &AtomicPredicate,
-    predicate: &AtomicPredicate,
+    invariant_predicate: &APR,
+    predicate: &APR,
 ) -> Option<Substitution> {
     let (invariant_skeleton, invariant_parameters) = invariant_predicate.debone();
     let (skeleton, parameters) = predicate.debone();

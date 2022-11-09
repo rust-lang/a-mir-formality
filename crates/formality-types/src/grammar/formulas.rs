@@ -522,11 +522,20 @@ pub struct Invariant {
 pub struct InvariantImplication {
     /// Invariant: each parameter on the condition will be a distinct variable
     /// that appears in the invariant binder.
-    pub condition: AtomicPredicate,
-    pub consequence: AtomicPredicate,
+    pub condition: APR,
+    pub consequence: Hypothesis,
 }
 
 impl Invariant {
+    pub fn for_all(
+        names: &[KindedVarIndex],
+        implication: impl Upcast<InvariantImplication>,
+    ) -> Invariant {
+        Invariant {
+            binder: Binder::new(names, implication.upcast()),
+        }
+    }
+
     pub fn assert(&self) {
         let (
             kinded_var_indices,
@@ -554,6 +563,15 @@ impl Invariant {
         };
 
         assert!(condition, "invalid invariant: {self:?}");
+    }
+}
+
+impl InvariantImplication {
+    pub fn new(condition: impl Upcast<APR>, consequence: impl Upcast<Hypothesis>) -> Self {
+        InvariantImplication {
+            condition: condition.upcast(),
+            consequence: consequence.upcast(),
+        }
     }
 }
 

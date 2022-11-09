@@ -1,4 +1,4 @@
-use formality_types::grammar::AtomicPredicate;
+use formality_types::grammar::{AtomicPredicate, APR};
 
 use crate::grammar::Program;
 
@@ -10,10 +10,7 @@ impl formality_types::db::Database for Program {
         self.to_clauses()
     }
 
-    fn invariants_for_predicate(
-        &self,
-        _predicate: &AtomicPredicate,
-    ) -> Vec<formality_types::grammar::Invariant> {
+    fn invariants_for_apr(&self, _predicate: &APR) -> Vec<formality_types::grammar::Invariant> {
         self.to_invariants()
     }
 }

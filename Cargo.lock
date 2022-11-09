@@ -219,6 +219,7 @@ dependencies = [
 name = "formality-decl"
 version = "0.1.0"
 dependencies = [
+ "contracts",
  "expect-test",
  "formality-core",
  "formality-infer",

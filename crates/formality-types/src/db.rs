@@ -1,12 +1,12 @@
 use std::{fmt::Debug, sync::Arc};
 
-use crate::grammar::{AtomicPredicate, Invariant, ProgramClause};
+use crate::grammar::{AtomicPredicate, Invariant, ProgramClause, APR};
 
 pub mod mock;
 
 pub trait Database: Debug {
     fn program_clauses(&self, predicate: &AtomicPredicate) -> Vec<ProgramClause>;
-    fn invariants_for_predicate(&self, predicate: &AtomicPredicate) -> Vec<Invariant>;
+    fn invariants_for_apr(&self, apr: &APR) -> Vec<Invariant>;
 }
 
 /// A handle to the database. Only equal to itself.
@@ -78,8 +78,8 @@ impl std::hash::Hash for Db {
 }
 
 impl Database for Db {
-    fn invariants_for_predicate(&self, predicate: &AtomicPredicate) -> Vec<Invariant> {
-        self.db.invariants_for_predicate(predicate)
+    fn invariants_for_apr(&self, apr: &APR) -> Vec<Invariant> {
+        self.db.invariants_for_apr(apr)
     }
 
     fn program_clauses(&self, predicate: &AtomicPredicate) -> Vec<ProgramClause> {
