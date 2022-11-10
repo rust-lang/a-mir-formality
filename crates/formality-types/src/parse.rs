@@ -37,7 +37,7 @@ where
             panic!("failed to parse {text:?}: {errors:#?}");
         }
     };
-    if !remainder.trim().is_empty() {
+    if !skip_whitespace(remainder).is_empty() {
         panic!("extra tokens after parsing {text:?} to {t:?}: {remainder:?}");
     }
     t
@@ -57,7 +57,7 @@ pub trait Parse: Sized + Debug {
         close_char: char,
     ) -> ParseResult<'t, Vec<Self>> {
         let mut result = vec![];
-        while !text.trim().starts_with(close_char) {
+        while !skip_whitespace(text).starts_with(close_char) {
             let (e, t) = Self::parse(scope, text)?;
             result.push(e);
             text = t;
@@ -72,7 +72,7 @@ pub trait Parse: Sized + Debug {
         close_char: char,
     ) -> ParseResult<'t, Vec<Self>> {
         let mut result = vec![];
-        while !text.trim().starts_with(close_char) {
+        while !skip_whitespace(text).starts_with(close_char) {
             let (e, t) = Self::parse(scope, text)?;
             result.push(e);
             text = t;
@@ -310,7 +310,7 @@ where
 /// Consume next character and require that it be `ch`.
 #[tracing::instrument(level = "trace", ret)]
 pub fn expect_char(ch: char, text0: &str) -> ParseResult<'_, ()> {
-    let text1 = text0.trim_start();
+    let text1 = skip_whitespace(text0);
     let (ch1, text1) = char(text1)?;
     if ch == ch1 {
         Ok(((), text1))
@@ -397,7 +397,7 @@ where
                 for e in es {
                     // only include an error if the error resulted after at least
                     // one non-whitespace character was consumed
-                    if !e.consumed_before(text).trim().is_empty() {
+                    if !skip_whitespace(e.consumed_before(text)).is_empty() {
                         errors.insert(e);
                     }
                 }
@@ -426,7 +426,7 @@ fn accumulate<'t>(
     continue_test: impl Fn(char) -> bool,
     description: &'static str,
 ) -> ParseResult<'t, String> {
-    let text1 = text0.trim_start();
+    let text1 = skip_whitespace(text0);
     let mut buffer = String::new();
 
     let (ch, text1) = char(text1)?;
@@ -473,5 +473,29 @@ impl<A: Parse, B: Parse, C: Parse> Parse for (A, B, C) {
         let text = skip_trailing_comma(text);
         let ((), text) = expect_char(')', text)?;
         Ok(((a, b, c), text))
+    }
+}
+
+/// Skips leading whitespace and comments.
+pub fn skip_whitespace(mut text: &str) -> &str {
+    loop {
+        let len = text.len();
+
+        text = text.trim_start();
+
+        if text.starts_with("//") {
+            match text.find('\n') {
+                Some(index) => {
+                    text = &text[index + 1..];
+                }
+                None => {
+                    text = "";
+                }
+            }
+        }
+
+        if text.len() == len {
+            return text;
+        }
     }
 }
