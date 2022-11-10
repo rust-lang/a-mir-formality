@@ -5,7 +5,7 @@ use formality_types::{
     term::Term,
 };
 
-use crate::Env;
+use super::Env;
 
 impl Env {
     #[requires(!self.is_mapped(mapped_var))]

@@ -4,7 +4,7 @@ use formality_types::grammar::{
     Parameter, PlaceholderVar, Variable, APR,
 };
 
-use crate::{extrude::Relationship, Env};
+use super::{extrude::Relationship, Env};
 
 #[term]
 pub(crate) struct PlaceholderBound {

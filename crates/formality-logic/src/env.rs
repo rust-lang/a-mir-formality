@@ -2,7 +2,6 @@ use contracts::requires;
 use formality_macros::term;
 use formality_types::cast::{To, Upcast};
 use formality_types::db::Db;
-use formality_types::derive_links;
 use formality_types::grammar::ElaboratedHypotheses;
 use formality_types::{
     derive_links::Variable,

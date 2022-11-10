@@ -1,6 +1,4 @@
-use formality_infer::Env;
 use formality_macros::term;
-
 use formality_types::{
     collections::Set,
     db::{Database, Db},
@@ -9,6 +7,7 @@ use formality_types::{
 };
 
 use crate::elaborate_hypotheses::elaborate_hypotheses;
+use crate::env::Env;
 
 mod test;
 

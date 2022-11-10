@@ -197,7 +197,6 @@ dependencies = [
  "fn-error-context",
  "formality-core",
  "formality-decl",
- "formality-infer",
  "formality-logic",
  "formality-macros",
  "formality-types",
@@ -222,22 +221,7 @@ dependencies = [
  "contracts",
  "expect-test",
  "formality-core",
- "formality-infer",
  "formality-logic",
- "formality-macros",
- "formality-types",
- "tracing",
-]
-
-[[package]]
-name = "formality-infer"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "contracts",
- "derive-new",
- "expect-test",
- "formality-core",
  "formality-macros",
  "formality-types",
  "tracing",
@@ -247,11 +231,11 @@ dependencies = [
 name = "formality-logic"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "contracts",
  "derive-new",
  "expect-test",
  "formality-core",
- "formality-infer",
  "formality-macros",
  "formality-types",
  "tracing",
@@ -288,7 +272,6 @@ dependencies = [
  "formality-check",
  "formality-core",
  "formality-decl",
- "formality-infer",
  "formality-logic",
  "formality-macros",
  "formality-types",

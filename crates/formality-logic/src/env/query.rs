@@ -9,7 +9,7 @@ use formality_types::{
     grammar::{Goal, PlaceholderVar, Universe, VarIndex, VarSubstitution},
 };
 
-use crate::Env;
+use super::Env;
 
 mod test;
 

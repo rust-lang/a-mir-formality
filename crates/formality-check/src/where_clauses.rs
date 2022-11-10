@@ -1,5 +1,5 @@
 use fn_error_context::context;
-use formality_infer::Env;
+use formality_logic::Env;
 use formality_types::{
     cast::{To, Upcast},
     grammar::{

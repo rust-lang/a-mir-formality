@@ -9,12 +9,11 @@ use formality_types::{
     seq,
 };
 
-use crate::{
+use super::{
     bound::{PlaceholderBound, PlaceholderBoundData},
     extrude::Relationship,
+    Env,
 };
-
-use super::Env;
 
 impl Env {
     /// Require `a : b`, yielding a new environment + list of goals that must all be solved for `a : b` to be true.
@@ -278,8 +277,7 @@ impl Env {
         a: PlaceholderVar,
         b: impl Upcast<Parameter>,
     ) -> Goal {
-        let bounds =
-            self.find_placeholder_bounds(assumptions, a, crate::extrude::Relationship::Outlives);
+        let bounds = self.find_placeholder_bounds(assumptions, a, Relationship::Outlives);
 
         Goal::any(
             bounds
@@ -317,8 +315,7 @@ impl Env {
     ) -> Goal {
         let a: Parameter = a.upcast();
 
-        let mut bounds =
-            self.find_placeholder_bounds(assumptions, b, crate::extrude::Relationship::OutlivedBy);
+        let mut bounds = self.find_placeholder_bounds(assumptions, b, Relationship::OutlivedBy);
 
         // We always know that `static : P_b`, so add that as a bound,
         // but -- as a microopt -- only do that if there's no other

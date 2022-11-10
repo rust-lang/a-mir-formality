@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use formality_infer::Env;
+use formality_logic::Env;
 use formality_types::{db::Db, parse::term};
 
 use crate::grammar::Program;

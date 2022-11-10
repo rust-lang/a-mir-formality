@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate::Env;
+use crate::env::Env;
 
 use super::querify;
 use formality_types::{

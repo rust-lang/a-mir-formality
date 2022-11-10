@@ -1,5 +1,5 @@
 use formality_decl::grammar::{Fn, FnBoundData};
-use formality_infer::Env;
+use formality_logic::Env;
 use formality_types::{
     cast::Upcast,
     grammar::{Fallible, Hypothesis},

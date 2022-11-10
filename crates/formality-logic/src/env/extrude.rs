@@ -8,7 +8,7 @@ use formality_types::{
     term::Term,
 };
 
-use crate::Env;
+use super::Env;
 
 #[term]
 #[derive(Copy)]

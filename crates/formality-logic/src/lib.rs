@@ -2,7 +2,6 @@
 
 use contracts::requires;
 use cosld::CosldResult;
-use formality_infer::Env;
 use formality_macros::term;
 use formality_types::{
     db::{Db, SolverConfiguration},
@@ -13,7 +12,10 @@ use formality_types::{
 
 mod cosld;
 mod elaborate_hypotheses;
+mod env;
 mod recursive;
+
+pub use crate::env::Env;
 
 #[term]
 pub enum UniversalGoalResult {

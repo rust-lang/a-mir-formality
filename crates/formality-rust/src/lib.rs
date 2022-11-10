@@ -1,4 +1,4 @@
-use formality_infer::Env;
+use formality_logic::Env;
 use formality_logic::{prove_universal_goal, UniversalGoalResult};
 use formality_types::{
     cast::Upcast,

@@ -4,7 +4,7 @@ use formality_types::{
     grammar::{ParameterKind, RefKind, RigidName, RigidTy, Ty, Universe, Variance},
 };
 
-use crate::Env;
+use super::Env;
 
 impl Env {
     /// Instantiates a rigid-type with the given `name` and suitable inference variables

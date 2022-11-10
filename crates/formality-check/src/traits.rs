@@ -2,7 +2,7 @@ use fn_error_context::context;
 use formality_decl::grammar::{
     AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem,
 };
-use formality_infer::Env;
+use formality_logic::Env;
 use formality_types::{
     cast::{To, Upcast},
     grammar::{Fallible, Hypothesis},

@@ -1,4 +1,4 @@
-use formality_infer::{query::Query, Env};
+use crate::env::{query::Query, Env};
 use formality_types::{
     db::Db,
     grammar::{Goal, Hypothesis},

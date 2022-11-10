@@ -5,7 +5,7 @@ use formality_decl::grammar::{
     AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
     FnBoundData, ImplItem, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem,
 };
-use formality_infer::Env;
+use formality_logic::Env;
 use formality_types::{
     cast::{Downcasted, To, Upcast, Upcasted},
     grammar::{Binder, Fallible, Goal, Hypothesis, Substitution},

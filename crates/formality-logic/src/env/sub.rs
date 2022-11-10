@@ -10,9 +10,7 @@ use formality_types::{
     seq,
 };
 
-use crate::extrude::Relationship;
-
-use super::Env;
+use super::{extrude::Relationship, Env};
 
 impl Env {
     /// Require `a <: b`, yielding a new environment + list of goals that must all be solved for `a <: b` to be true.

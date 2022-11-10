@@ -1,6 +1,5 @@
 #![cfg(test)]
 
-use formality_infer::Env;
 use formality_macros::test;
 use formality_types::{
     collections::Set,
@@ -10,6 +9,7 @@ use formality_types::{
 };
 
 use super::CosldResult;
+use crate::env::Env;
 
 #[test]
 fn simple_test() {
