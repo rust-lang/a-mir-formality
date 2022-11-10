@@ -3,7 +3,6 @@
 const PROGRAM: &str = "[
     crate core {
         trait Eq<> where [Self: PartialEq<>] { }
-
         trait PartialEq<> where [] { }
 
         // ComparableBase is a supertype, but `T: Eq` is not.
