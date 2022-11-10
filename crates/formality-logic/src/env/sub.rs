@@ -2,7 +2,6 @@ use anyhow::bail;
 
 use formality_types::{
     cast::Upcast,
-    db::Db,
     derive_links::{Parameter, Variable},
     grammar::{
         EnsuresTy, Fallible, Goal, ImplicationTy, PredicateTy, RigidTy, Ty, TyData, Variance,
@@ -11,6 +10,7 @@ use formality_types::{
 };
 
 use super::{extrude::Relationship, Env};
+use crate::Db;
 
 impl Env {
     /// Require `a <: b`, yielding a new environment + list of goals that must all be solved for `a <: b` to be true.

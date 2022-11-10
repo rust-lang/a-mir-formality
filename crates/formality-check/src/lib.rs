@@ -1,11 +1,11 @@
 use anyhow::bail;
 use contracts::requires;
 use formality_decl::grammar::{Crate, CrateItem, Program, Trait};
+use formality_logic::Db;
 use formality_logic::Env;
 use formality_logic::{prove_universal_goal, UniversalGoalResult};
 use formality_types::{
     cast::Upcast,
-    db::Db,
     grammar::{Fallible, Goal, Hypothesis, TraitId},
     term::Term,
 };

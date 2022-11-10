@@ -3,13 +3,13 @@
 use formality_macros::test;
 use formality_types::{
     collections::Set,
-    db::mock::MockDatabase,
     grammar::{AtomicRelation, Binder, Goal, Universe},
     parse::term,
 };
 
 use super::CosldResult;
 use crate::env::Env;
+use crate::MockDatabase;
 
 #[test]
 fn simple_test() {

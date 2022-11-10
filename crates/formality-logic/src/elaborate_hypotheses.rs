@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
+use crate::{Database, Db};
 use formality_types::{
     self,
     cast::{To, Upcast},
-    db::{Database, Db},
     grammar::{
         ElaboratedHypotheses, Hypothesis, HypothesisData, Invariant, InvariantImplication,
         Substitution, APR,

@@ -4,17 +4,18 @@ use contracts::requires;
 use cosld::CosldResult;
 use formality_macros::term;
 use formality_types::{
-    db::{Db, SolverConfiguration},
     derive_links,
     grammar::{Goal, Hypothesis},
     term::Term,
 };
 
 mod cosld;
+mod db;
 mod elaborate_hypotheses;
 mod env;
 mod recursive;
 
+pub use crate::db::{mock::MockDatabase, Database, Db, SolverConfiguration};
 pub use crate::env::Env;
 
 #[term]

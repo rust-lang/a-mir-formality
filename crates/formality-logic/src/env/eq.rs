@@ -3,13 +3,13 @@ use anyhow::bail;
 use contracts::requires;
 use formality_types::{
     cast::Upcast,
-    db::Db,
     derive_links::{Parameter, Variable},
     grammar::{Fallible, Goal, InferenceVar, Lt, LtData, RigidTy, Ty, TyData},
     seq,
 };
 
 use super::Env;
+use crate::Db;
 
 /// Equate two parameters, yielding a new environment + list of goals that must all be solved for the equate to be true.
 /// Returns `Err` if the two parameters can never be proven equal.

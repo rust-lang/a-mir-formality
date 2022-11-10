@@ -1,7 +1,7 @@
 #![cfg(test)]
 
-use formality_logic::Env;
-use formality_types::{db::Db, parse::term};
+use formality_logic::{Db, Env};
+use formality_types::parse::term;
 
 use crate::grammar::Program;
 

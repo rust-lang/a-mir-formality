@@ -1,9 +1,10 @@
 #![cfg(test)]
 
 use expect_test;
-use formality_types::{db::mock::MockDatabase, grammar::Hypothesis, parse::term};
+use formality_types::{grammar::Hypothesis, parse::term};
 
 use super::elaborate_hypotheses;
+use crate::MockDatabase;
 
 #[test]
 fn test_single_step() {

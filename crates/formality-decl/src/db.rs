@@ -2,7 +2,7 @@ use formality_types::grammar::{AtomicPredicate, APR};
 
 use crate::grammar::Program;
 
-impl formality_types::db::Database for Program {
+impl formality_logic::Database for Program {
     fn program_clauses(
         &self,
         _predicate: &AtomicPredicate,

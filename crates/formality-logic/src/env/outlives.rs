@@ -1,6 +1,5 @@
 use formality_types::{
     cast::{To, Upcast, Upcasted},
-    db::Db,
     derive_links::Parameter,
     grammar::{
         Binder, ElaboratedHypotheses, EnsuresTy, Fallible, Goal, ImplicationTy, LtData,
@@ -14,6 +13,7 @@ use super::{
     extrude::Relationship,
     Env,
 };
+use crate::Db;
 
 impl Env {
     /// Require `a : b`, yielding a new environment + list of goals that must all be solved for `a : b` to be true.

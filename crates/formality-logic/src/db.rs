@@ -1,6 +1,6 @@
 use std::{fmt::Debug, sync::Arc};
 
-use crate::grammar::{AtomicPredicate, Invariant, ProgramClause, APR};
+use formality_types::grammar::{AtomicPredicate, Invariant, ProgramClause, APR};
 
 pub mod mock;
 

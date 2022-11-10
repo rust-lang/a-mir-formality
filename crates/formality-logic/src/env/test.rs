@@ -1,12 +1,12 @@
 #![cfg(test)]
 
 use formality_types::{
-    db::mock::MockDatabase,
     grammar::{AtomicRelation, Binder, ElaboratedHypotheses, Ty},
     parse::term,
 };
 
 use super::Env;
+use crate::MockDatabase;
 
 #[test]
 fn occurs_check1() {

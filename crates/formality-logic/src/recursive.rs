@@ -1,8 +1,6 @@
 use crate::env::{query::Query, Env};
-use formality_types::{
-    db::Db,
-    grammar::{Goal, Hypothesis},
-};
+use crate::Db;
+use formality_types::grammar::{Goal, Hypothesis};
 
 pub fn solve(db: &Db, query: &Query) {
     let _solver = RecursiveSolver {

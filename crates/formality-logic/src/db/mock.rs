@@ -1,5 +1,5 @@
-use crate::{
-    grammar::{Hypothesis, Invariant},
+use formality_types::{
+    grammar::{AtomicPredicate, Hypothesis, Invariant, ProgramClause, APR},
     parse::term,
 };
 
@@ -42,14 +42,11 @@ impl MockDatabase {
 }
 
 impl crate::db::Database for MockDatabase {
-    fn program_clauses(
-        &self,
-        _predicate: &crate::grammar::AtomicPredicate,
-    ) -> Vec<crate::grammar::ProgramClause> {
+    fn program_clauses(&self, _predicate: &AtomicPredicate) -> Vec<ProgramClause> {
         self.program_clauses.clone()
     }
 
-    fn invariants_for_apr(&self, _: &crate::grammar::APR) -> Vec<crate::grammar::Invariant> {
+    fn invariants_for_apr(&self, _: &APR) -> Vec<Invariant> {
         self.invariants.clone()
     }
 }

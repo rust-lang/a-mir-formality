@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
 pub mod collections;
-pub mod db;
 pub mod fixed_point;
 pub mod fold;
 pub mod grammar;

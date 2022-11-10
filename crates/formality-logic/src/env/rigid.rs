@@ -1,10 +1,10 @@
 use formality_types::{
     cast::Upcast,
-    db::Db,
     grammar::{ParameterKind, RefKind, RigidName, RigidTy, Ty, Universe, Variance},
 };
 
 use super::Env;
+use crate::Db;
 
 impl Env {
     /// Instantiates a rigid-type with the given `name` and suitable inference variables
