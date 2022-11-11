@@ -2,10 +2,20 @@ use std::{fmt::Debug, sync::Arc};
 
 use formality_types::grammar::{AtomicPredicate, Invariant, ProgramClause, APR};
 
+use crate::Env;
+
 pub mod mock;
 
 pub trait Database: Debug {
+    /// Returns true if the solver should not attempt to prove `apr` but instead should return ambiguous.
+    /// Keep in mind that `apr` may contain unrefreshed inference variables.
+    fn force_ambiguous(&self, env: &Env, apr: &APR) -> bool;
+
+    /// Returns a superset of the program clauses that can be used to prove `predicate` is true.
+    /// These are derived from the program source (but may also include hard-coded rules).
     fn program_clauses(&self, predicate: &AtomicPredicate) -> Vec<ProgramClause>;
+
+    /// Returns
     fn invariants_for_apr(&self, apr: &APR) -> Vec<Invariant>;
 }
 
@@ -84,5 +94,9 @@ impl Database for Db {
 
     fn program_clauses(&self, predicate: &AtomicPredicate) -> Vec<ProgramClause> {
         self.db.program_clauses(predicate)
+    }
+
+    fn force_ambiguous(&self, env: &Env, apr: &APR) -> bool {
+        self.db.force_ambiguous(env, apr)
     }
 }

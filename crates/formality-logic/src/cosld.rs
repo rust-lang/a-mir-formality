@@ -38,28 +38,39 @@ fn prove_goal(
     goal: &Goal,
 ) -> Set<CosldResult> {
     match goal.data() {
-        GoalData::Atomic(apr) => match stack.search(env, apr) {
-            StackSearch::CoinductiveCycle => set![CosldResult::Yes(env.clone())],
-            StackSearch::InductiveCycle => set![],
-            StackSearch::NotFound => match apr {
-                APR::AtomicPredicate(predicate) => {
-                    let clauses = db.program_clauses(predicate);
-                    clauses
-                        .iter()
-                        .chain(assumptions)
-                        .filter(|h| h.could_match(predicate))
-                        .flat_map(|h| backchain(db, env, stack, assumptions, h, apr))
-                        .collect()
-                }
+        GoalData::Atomic(apr) => {
+            if db.force_ambiguous(env, apr) {
+                set![CosldResult::Maybe]
+            } else {
+                match stack.search(env, apr) {
+                    StackSearch::CoinductiveCycle => set![CosldResult::Yes(env.clone())],
+                    StackSearch::InductiveCycle => set![],
+                    StackSearch::NotFound => match apr {
+                        APR::AtomicPredicate(predicate) => {
+                            let clauses = db.program_clauses(predicate);
+                            clauses
+                                .iter()
+                                .chain(assumptions)
+                                .filter(|h| h.could_match(predicate))
+                                .flat_map(|h| backchain(db, env, stack, assumptions, h, apr))
+                                .collect()
+                        }
 
-                APR::AtomicRelation(r) => match env.apply_relation(db, assumptions, r) {
-                    Ok((env, goals)) => {
-                        prove_all(db, &env, Stack::Link(apr, &stack), assumptions, &goals, &[])
-                    }
-                    Err(_) => set![],
-                },
-            },
-        },
+                        APR::AtomicRelation(r) => match env.apply_relation(db, assumptions, r) {
+                            Ok((env, goals)) => prove_all(
+                                db,
+                                &env,
+                                Stack::Link(apr, &stack),
+                                assumptions,
+                                &goals,
+                                &[],
+                            ),
+                            Err(_) => set![],
+                        },
+                    },
+                }
+            }
+        }
         GoalData::ForAll(binder) => {
             let mut env = env.clone();
             let subgoal = env.instantiate_universally(binder);

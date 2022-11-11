@@ -2,7 +2,7 @@ use crate::Db;
 use contracts::requires;
 use formality_macros::term;
 use formality_types::cast::{To, Upcast};
-use formality_types::grammar::ElaboratedHypotheses;
+use formality_types::grammar::{ElaboratedHypotheses, LtData, ParameterData, TyData};
 use formality_types::{
     derive_links::Variable,
     grammar::{
@@ -310,5 +310,21 @@ impl Env {
                     .collect::<Vec<_>>()
             })
             .collect()
+    }
+
+    /// True if `parameter` is an unbound inference variable (i.e., a value not yet equated with
+    /// a specific value). Note that it may be a variable that has sub/super/outlives constraints.
+    pub fn is_unbound_inference_variable(&self, parameter: &Parameter) -> bool {
+        match parameter.data() {
+            ParameterData::Ty(TyData::Variable(Variable::InferenceVar(v)))
+            | ParameterData::Lt(LtData::Variable(Variable::InferenceVar(v))) => {
+                if let Some(p) = &self.data(*v).mapped_to {
+                    self.is_unbound_inference_variable(p)
+                } else {
+                    true
+                }
+            }
+            _ => false,
+        }
     }
 }

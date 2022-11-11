@@ -30,10 +30,15 @@ use super::{AliasTy, KindedVarIndex};
 
 pub type Fallible<T> = anyhow::Result<T>;
 
+/// Atomic predicates are the base goals we can try to prove; the rules for proving them
+/// are derived (at least in part) based on the Rust source declarations.
 #[term]
 pub enum AtomicPredicate {
+    /// True if a trait is fully implemented (along with all its where clauses).
     IsImplemented(TraitRef),
+    /// True if there is an impl for the given trait.
     HasImpl(TraitRef),
+    /// True if an alias normalizes to the given type.
     NormalizesTo(AliasTy, Ty),
     WellFormedTy(Ty),
     WellFormedTraitRef(TraitRef),
@@ -165,6 +170,7 @@ impl TraitRef {
     }
 }
 
+/// Relations are built-in goals which are implemented in custom Rust logic.
 #[term]
 pub enum AtomicRelation {
     /// `T1 == T2` etc

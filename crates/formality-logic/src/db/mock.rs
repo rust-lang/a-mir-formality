@@ -49,4 +49,8 @@ impl crate::db::Database for MockDatabase {
     fn invariants_for_apr(&self, _: &APR) -> Vec<Invariant> {
         self.invariants.clone()
     }
+
+    fn force_ambiguous(&self, _env: &crate::Env, _apr: &APR) -> bool {
+        false
+    }
 }
