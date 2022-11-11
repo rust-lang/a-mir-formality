@@ -14,7 +14,7 @@ mod trait_binder;
 
 pub fn check_program(program: &grammar::Program) -> Fallible<()> {
     let decl_program = program.to_decl()?;
-    formality_check::check_program(&decl_program)?;
+    formality_check::check_all_crates(&decl_program)?;
     Ok(())
 }
 

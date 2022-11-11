@@ -15,6 +15,11 @@ impl Program {
     pub fn current_crate_id(&self) -> CrateId {
         self.crates.last().unwrap().id.clone()
     }
+
+    /// Iterator over items from all crates.
+    pub fn items_from_all_crates(&self) -> impl Iterator<Item = &CrateItem> {
+        self.crates.iter().flat_map(|c| &c.items)
+    }
 }
 
 #[term(crate $id { $*items })]

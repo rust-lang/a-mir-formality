@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use anyhow::bail;
 use contracts::requires;
 use formality_decl::grammar::{Crate, CrateItem, Program, Trait};
@@ -10,12 +12,29 @@ use formality_types::{
     term::Term,
 };
 
-pub fn check_program(program: &Program) -> Fallible<()> {
+/// Check all crates in the program. The crates must be in dependency order
+/// such that any prefix of the crates is a complete program.
+pub fn check_all_crates(program: &Program) -> Fallible<()> {
+    let Program { crates } = program;
+    let mut crates: VecDeque<_> = crates.iter().cloned().collect();
+
+    let mut prefix_program = Program { crates: vec![] };
+    while let Some(c) = crates.pop_front() {
+        prefix_program.crates.push(c);
+        check_current_crate(&prefix_program)?;
+    }
+
+    Ok(())
+}
+
+/// Checks the current crate in the program, assuming all other crates are valid.
+fn check_current_crate(program: &Program) -> Fallible<()> {
     let db = Db::new(program.clone());
     Check { program, db }.check()
 }
 
 mod adts;
+mod coherence;
 mod fns;
 mod impls;
 mod traits;
@@ -40,6 +59,9 @@ impl Check<'_> {
         for item in items {
             self.check_crate_item(item)?;
         }
+
+        self.check_coherence(c)?;
+
         Ok(())
     }
 

@@ -15,6 +15,7 @@ tracing = "0.1"
 contracts = "0.6.3"
 anyhow = "1.0.66"
 fn-error-context = "0.2.0"
+itertools = "0.10.5"
 
 [dev-dependencies]
 expect-test = "1.4.0"
