@@ -1,9 +1,8 @@
 use anyhow::bail;
-use formality_decl::grammar::{Program, VariantId};
+use formality_decl::grammar::{FnBoundData, Program, VariantId};
 use formality_logic::{Db, Env, GoalResult};
 use formality_types::{
-    cast::Upcast,
-    derive_links::DowncastTo,
+    cast::{Downcast, To, Upcast},
     grammar::{
         Fallible, Goal, Hypothesis, ImplicationTy, Parameter, ParameterKind, PredicateTy,
         RigidName, RigidTy, ScalarId, Ty, TyData,
@@ -11,11 +10,17 @@ use formality_types::{
 };
 
 use crate::grammar::{
-    BasicBlockDecl, LocalDecl, LocalId, LocalsAndBlocks, MirFnBody, Place, PlaceTy, Projection,
-    Rvalue, Statement,
+    BasicBlockDecl, LocalDecl, LocalId, LocalsAndBlocks, MirFnBody, Operand, Place, PlaceTy,
+    Projection, Rvalue, Statement, Terminator,
 };
 
-pub fn type_check(db: &Db, program: &Program, env: &Env, fn_body: &MirFnBody) -> Fallible<()> {
+pub fn type_check(
+    db: &Db,
+    program: &Program,
+    env: &Env,
+    assumptions: &[Hypothesis],
+    fn_body: &MirFnBody,
+) -> Fallible<()> {
     let mut env = env.clone();
     let MirFnBody { binder } = fn_body;
     let LocalsAndBlocks {
@@ -26,10 +31,12 @@ pub fn type_check(db: &Db, program: &Program, env: &Env, fn_body: &MirFnBody) ->
         db,
         program,
         env,
+        assumptions,
+        deferred_goals: vec![],
         local_decls: &local_decls,
         basic_block_decls: &basic_block_decls,
     }
-    .check();
+    .check()
 }
 
 struct TypeChecker<'tc> {
@@ -59,7 +66,13 @@ impl<'tc> TypeChecker<'tc> {
         } else {
             bail!("unable to prove {:?}", self.deferred_goals);
         }
+    }
 
+    fn prove_goals(&mut self, goals: impl Upcast<Vec<Goal>>) -> Fallible<()> {
+        let goals = goals.upcast();
+        for g in goals {
+            self.prove_goal(g)?;
+        }
         Ok(())
     }
 
@@ -136,6 +149,96 @@ impl<'tc> TypeChecker<'tc> {
         }
     }
 
+    fn check_terminator(&mut self, t: &Terminator) -> Fallible<()> {
+        match t {
+            Terminator::Goto(_)
+            | Terminator::Resume
+            | Terminator::Abort
+            | Terminator::Return
+            | Terminator::Unreachable => Ok(()),
+
+            Terminator::Drop(place, _) | Terminator::DropAndReplace(place, _) => {
+                self.check_place(place)?;
+                Ok(())
+            }
+
+            Terminator::Call(func, args, destination, _) => {
+                let func_ty = self.check_operand(func)?;
+                let arg_tys = self.check_operands(args)?;
+                let destination_ty = self.check_place(destination)?;
+
+                let (input_tys, output_ty): (Vec<Ty>, Ty) = match self.inspect_ty(&func_ty)? {
+                    RigidTy {
+                        name: RigidName::FnDef(f),
+                        parameters,
+                    } => {
+                        let fn_decl = self.program.fn_named(&f)?;
+                        let FnBoundData {
+                            input_tys,
+                            output_ty,
+                            where_clauses,
+                        } = fn_decl.binder.instantiate_with(&parameters)?;
+
+                        self.prove_goals(where_clauses)?;
+
+                        (input_tys, output_ty)
+                    }
+
+                    RigidTy {
+                        name: RigidName::FnPtr(num_args),
+                        parameters,
+                    } => {
+                        if num_args != arg_tys.len() {
+                            bail!(
+                                "wrong number of arguments, expected {num_args:?} found {}",
+                                arg_tys.len()
+                            );
+                        }
+
+                        let (output_ty, input_tys) = parameters.split_last().unwrap();
+
+                        (
+                            input_tys
+                                .iter()
+                                .map(|i| {
+                                    i.downcast::<Ty>()
+                                        .ok_or_else(|| anyhow::format_err!("ill-kinded fn ptr"))
+                                })
+                                .collect::<Fallible<_>>()?,
+                            output_ty
+                                .downcast::<Ty>()
+                                .ok_or_else(|| anyhow::format_err!("ill-kinded fn ptr"))?,
+                        )
+                    }
+
+                    _ => bail!("cannot call values of type `{func_ty:?}`"),
+                };
+
+                self.prove_goals(
+                    input_tys
+                        .iter()
+                        .zip(&arg_tys)
+                        .map(|(e, a)| Goal::sub(a, e))
+                        .chain(Some(Goal::sub(output_ty, destination_ty)))
+                        .collect::<Vec<_>>(),
+                )?;
+
+                Ok(())
+            }
+        }
+    }
+
+    fn check_operands(&mut self, operands: &[Operand]) -> Fallible<Vec<Ty>> {
+        operands.iter().map(|o| self.check_operand(o)).collect()
+    }
+
+    fn check_operand(&mut self, operand: &Operand) -> Fallible<Ty> {
+        match operand {
+            Operand::Move(place) | Operand::Copy(place) => self.check_place(place),
+            Operand::Const(_) => todo!(),
+        }
+    }
+
     fn check_assignable(
         &mut self,
         value_ty: impl Upcast<Parameter>,
@@ -152,7 +255,7 @@ impl<'tc> TypeChecker<'tc> {
         self.prove_goal(Goal::eq(value_ty, place_ty))
     }
 
-    fn check_rvalue(&mut self, rvalue: &Rvalue) -> Fallible<Ty> {
+    fn check_rvalue(&mut self, _rvalue: &Rvalue) -> Fallible<Ty> {
         todo!()
     }
 
@@ -162,10 +265,17 @@ impl<'tc> TypeChecker<'tc> {
             projections,
         } = place;
 
-        let local_ty: PlaceTy = self.check_local(local_id)?.upcast();
-        for projection in projections {}
+        let mut place_ty: PlaceTy = self.check_local(local_id)?.upcast();
+        for projection in projections {
+            place_ty = self.check_projection(&place_ty, projection)?;
+        }
 
-        Ok(())
+        match place_ty {
+            PlaceTy::Ty(ty) => Ok(ty),
+            PlaceTy::VariantTy(..) => {
+                bail!("expected place with ordinary type, found `{place_ty:?}`")
+            }
+        }
     }
 
     fn check_local(&mut self, local_id: &LocalId) -> Fallible<Ty> {
@@ -185,7 +295,7 @@ impl<'tc> TypeChecker<'tc> {
                 RigidTy {
                     name: RigidName::Ref(_),
                     parameters,
-                } => Ok(parameters[1].downcast_to().unwrap()),
+                } => Ok(parameters[1].downcast().unwrap()),
                 _ => {
                     bail!("don't know how to dereference {:?}", base_ty);
                 }
@@ -200,7 +310,7 @@ impl<'tc> TypeChecker<'tc> {
                     let struct_defn = struct_defn.binder.instantiate_with(&parameters)?;
                     let variant_defn = struct_defn.variant_named(&variant_id)?;
                     let field_defn = variant_defn.field_named(f)?;
-                    Ok(field_defn.ty.upcast())
+                    Ok(field_defn.ty.to())
                 }
 
                 _ => {
@@ -209,12 +319,11 @@ impl<'tc> TypeChecker<'tc> {
             },
             Projection::Index(local_id) => {
                 let ty = self.check_local(local_id)?;
-                self.check_eq(ty, ScalarId::Usize)?;
-                match self.inspect_ty(&ty)?.data() {
-                    TyData::RigidTy(_) => todo!(),
-                    TyData::AliasTy(_) => todo!(),
-                    TyData::PredicateTy(_) => todo!(),
-                    TyData::Variable(_) => todo!(),
+                self.check_eq(&ty, ScalarId::Usize)?;
+                match self.inspect_ty(&ty)? {
+                    RigidTy { .. } => {
+                        bail!("FIXME: index paths not yet supported")
+                    }
                 }
             }
             Projection::Downcast(_) => todo!(),
@@ -234,7 +343,7 @@ impl<'tc> TypeChecker<'tc> {
                     .env
                     .new_existential_variable(ParameterKind::Ty)
                     .upcast();
-                self.prove_goal(a.normalizes_to(v))?;
+                self.prove_goal(a.normalizes_to(&v))?;
                 self.inspect_ty(&v)
             }
             TyData::PredicateTy(p) => match p {

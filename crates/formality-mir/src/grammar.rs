@@ -1,8 +1,7 @@
 use formality_decl::grammar::VariantId;
 use formality_macros::term;
 use formality_types::{
-    cast::{DowncastFrom, Upcast},
-    derive_links::DowncastTo,
+    cast::{Downcast, DowncastFrom, Upcast},
     grammar::{AdtId, Binder, FieldId, FnId, Lt, Parameter, RefKind, Ty},
 };
 
@@ -10,13 +9,13 @@ use formality_types::{
 pub struct MirFnBody {
     /// The binder binds existential lifetimes that appear in types
     /// but whose values are not computed by earlier phases.
-    binder: Binder<LocalsAndBlocks>,
+    pub binder: Binder<LocalsAndBlocks>,
 }
 
 #[term]
 pub struct LocalsAndBlocks {
-    local_decls: Vec<LocalDecl>,
-    basic_block_decls: Vec<BasicBlockDecl>,
+    pub local_decls: Vec<LocalDecl>,
+    pub basic_block_decls: Vec<BasicBlockDecl>,
 }
 
 #[term(($mutability $name: $ty))]
@@ -31,9 +30,9 @@ formality_types::id!(BasicBlockId);
 
 #[term]
 pub struct BasicBlockDecl {
-    id: BasicBlockId,
-    statements: Vec<Statement>,
-    terminator: Terminator,
+    pub id: BasicBlockId,
+    pub statements: Vec<Statement>,
+    pub terminator: Terminator,
 }
 
 #[term]
@@ -126,9 +125,10 @@ pub enum Constant {
 
 #[term(($local_id $*projections))]
 pub struct Place {
-    local_id: LocalId,
-    projections: Vec<Projection>,
+    pub local_id: LocalId,
+    pub projections: Vec<Projection>,
 }
+
 #[term]
 pub enum Projection {
     #[grammar(*)]
@@ -154,7 +154,7 @@ pub enum PlaceTy {
 
 impl DowncastFrom<Parameter> for PlaceTy {
     fn downcast_from(t: &Parameter) -> Option<Self> {
-        let t: Ty = t.downcast_to()?;
+        let t: Ty = t.downcast()?;
         Some(t.upcast())
     }
 }

@@ -8,6 +8,10 @@ use formality_types::{
 use crate::Check;
 
 impl Check<'_> {
+    pub(crate) fn check_free_fn(&self, _f: &Fn) -> Fallible<()> {
+        todo!()
+    }
+
     pub(crate) fn check_fn(
         &self,
         in_env: &Env,

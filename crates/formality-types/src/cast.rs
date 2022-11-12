@@ -39,21 +39,21 @@ pub trait UpcastFrom<T: Clone> {
     fn upcast_from(term: T) -> Self;
 }
 
-// /// This is the convenience trait whose method you should call to do a downcast.
-// pub trait Downcast {
-//     fn downcast<T>(&self) -> Option<T>
-//     where
-//         T: DowncastFrom<Self>;
-// }
+/// This is the convenience trait whose method you should call to do a downcast.
+pub trait Downcast: Sized {
+    fn downcast<T>(&self) -> Option<T>
+    where
+        T: DowncastFrom<Self>;
+}
 
-// impl<U> Downcast for U {
-//     fn downcast<T>(&self) -> Option<T>
-//     where
-//         T: DowncastFrom<Self>,
-//     {
-//         T::downcast_from(self)
-//     }
-// }
+impl<U> Downcast for U {
+    fn downcast<T>(&self) -> Option<T>
+    where
+        T: DowncastFrom<Self>,
+    {
+        T::downcast_from(self)
+    }
+}
 
 /// Our version of "try-into". A "downcast" casts
 /// from a more general type

@@ -31,7 +31,7 @@ impl super::Check<'_> {
 
         self.prove_goal(&env, &assumptions, trait_ref.is_implemented())?;
 
-        let trait_decl = self.trait_named(&trait_ref.trait_id)?;
+        let trait_decl = self.program.trait_named(&trait_ref.trait_id)?;
         let TraitBoundData {
             where_clauses: _,
             trait_items,

@@ -40,6 +40,14 @@ impl Program {
             .find(|t| t.id == *trait_id)
             .ok_or_else(|| anyhow::format_err!("no trait named `{trait_id:?}`"))
     }
+
+    /// Find the trait with the given name.
+    pub fn fn_named(&self, fn_id: &FnId) -> Fallible<Fn> {
+        self.items_from_all_crates()
+            .downcasted::<Fn>()
+            .find(|t| t.id == *fn_id)
+            .ok_or_else(|| anyhow::format_err!("no trait named `{fn_id:?}`"))
+    }
 }
 
 #[term(crate $id { $*items })]
@@ -56,6 +64,8 @@ pub enum CrateItem {
     Trait(Trait),
     #[cast]
     TraitImpl(TraitImpl),
+    #[cast]
+    Fn(Fn),
 }
 
 #[term($kind $id $binder)]

@@ -11,6 +11,7 @@ impl CrateItem {
             CrateItem::Adt(v) => v.to_clauses(program),
             CrateItem::Trait(v) => v.to_clauses(program),
             CrateItem::TraitImpl(v) => v.to_clauses(program),
+            CrateItem::Fn(v) => v.to_clauses(&[], program),
         }
     }
 
@@ -19,6 +20,7 @@ impl CrateItem {
             CrateItem::Adt(v) => v.to_invariants(program),
             CrateItem::Trait(v) => v.to_invariants(program),
             CrateItem::TraitImpl(_) => vec![],
+            CrateItem::Fn(_) => vec![],
         }
     }
 }

@@ -2,13 +2,13 @@ use std::collections::VecDeque;
 
 use anyhow::bail;
 use contracts::requires;
-use formality_decl::grammar::{Crate, CrateItem, Program, Trait};
+use formality_decl::grammar::{Crate, CrateItem, Program};
 use formality_logic::Db;
 use formality_logic::Env;
 use formality_logic::{prove_universal_goal, UniversalGoalResult};
 use formality_types::{
     cast::Upcast,
-    grammar::{Fallible, Goal, Hypothesis, TraitId},
+    grammar::{Fallible, Goal, Hypothesis},
     term::Term,
 };
 
@@ -56,6 +56,9 @@ impl Check<'_> {
 
     fn check_current_crate(&self, c: &Crate) -> Fallible<()> {
         let Crate { id: _, items } = c;
+
+        self.check_for_duplicate_items()?;
+
         for item in items {
             self.check_crate_item(item)?;
         }
@@ -65,11 +68,17 @@ impl Check<'_> {
         Ok(())
     }
 
+    fn check_for_duplicate_items(&self) -> Fallible<()> {
+        // FIXME: check for items with duplicate names, respecting the various Rust rules about namespaces
+        Ok(())
+    }
+
     fn check_crate_item(&self, c: &CrateItem) -> Fallible<()> {
         match c {
             CrateItem::Adt(v) => self.check_adt(v),
             CrateItem::Trait(v) => self.check_trait(v),
             CrateItem::TraitImpl(v) => self.check_trait_impl(v),
+            CrateItem::Fn(v) => self.check_free_fn(v),
         }
     }
 
@@ -86,29 +95,6 @@ impl Check<'_> {
             UniversalGoalResult::Yes => Ok(()),
             UniversalGoalResult::No => bail!("could not prove `{goal:?}`"),
             UniversalGoalResult::Maybe => bail!("could not prove `{goal:?}` (ambiguous)"),
-        }
-    }
-
-    fn trait_named(&self, id: &TraitId) -> Fallible<&Trait> {
-        let traits: Vec<&Trait> = self
-            .program
-            .crates
-            .iter()
-            .flat_map(|c| &c.items)
-            .filter_map(|ci| match ci {
-                CrateItem::Adt(_) => None,
-                CrateItem::Trait(v) => Some(v),
-                CrateItem::TraitImpl(_) => None,
-            })
-            .filter(|t| t.id == *id)
-            .collect();
-
-        if traits.len() == 1 {
-            Ok(traits[0])
-        } else if traits.len() > 1 {
-            bail!("multiple traits named `{id:?}`");
-        } else {
-            bail!("no trait named `{id:?}`")
         }
     }
 }

@@ -11,10 +11,8 @@ use formality_types::{
 impl super::Check<'_> {
     #[context("check_trait({:?})", t.id)]
     pub(super) fn check_trait(&self, t: &Trait) -> Fallible<()> {
-        let Trait { id, binder } = t;
+        let Trait { id: _, binder } = t;
         let mut env = Env::default();
-
-        assert_eq!(t, self.trait_named(id)?);
 
         let TraitBoundData {
             where_clauses,
