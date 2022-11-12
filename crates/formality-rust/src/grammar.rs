@@ -107,7 +107,7 @@ pub struct FnBoundData {
     pub input_tys: Vec<Ty>,
     pub output_ty: Ty,
     pub where_clauses: Vec<WhereClause>,
-    pub body: FnBody,
+    pub body: MaybeFnBody,
 }
 
 #[term]
