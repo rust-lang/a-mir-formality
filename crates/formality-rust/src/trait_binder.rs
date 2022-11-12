@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use formality_types::{
     cast::To,
-    derive_links::{Downcast, UpcastFrom},
+    derive_links::{DowncastTo, UpcastFrom},
     fold::Fold,
     grammar::{fresh_bound_var, Binder, KindedVarIndex, ParameterKind},
     parse::{expect_char, Binding, Parse, ParseResult},
@@ -22,11 +22,11 @@ where
 
 impl<T> Term for TraitBinder<T> where T: Term {}
 
-impl<T> Downcast<TraitBinder<T>> for TraitBinder<T>
+impl<T> DowncastTo<TraitBinder<T>> for TraitBinder<T>
 where
     T: Term,
 {
-    fn downcast(&self) -> Option<TraitBinder<T>> {
+    fn downcast_to(&self) -> Option<TraitBinder<T>> {
         Some(self.clone())
     }
 }

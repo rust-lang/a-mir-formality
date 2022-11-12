@@ -21,7 +21,7 @@ members = [
     "crates/formality-types",
     "crates/formality-logic",
     "crates/formality-decl",
-    "crates/formality-body",
+    "crates/formality-mir",
     "crates/formality-check",
     "crates/formality-rust",
     "crates/formality-main",

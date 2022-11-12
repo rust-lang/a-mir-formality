@@ -54,10 +54,10 @@ pub(crate) fn downcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
 
 fn self_downcast(s: &synstructure::Structure) -> TokenStream {
     s.gen_impl(quote! {
-        use crate::derive_links::{Downcast};
+        use crate::derive_links::{DowncastTo};
 
-        gen impl Downcast<Self> for @Self {
-            fn downcast(&self) -> Option<Self> {
+        gen impl DowncastTo<Self> for @Self {
+            fn downcast_to(&self) -> Option<Self> {
                 Some(Self::clone(self))
             }
         }
@@ -78,10 +78,10 @@ fn downcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStr
     });
 
     s.gen_impl(quote! {
-        use crate::derive_links::{Downcast};
+        use crate::derive_links::{DowncastTo};
 
-        gen impl Downcast<(#(#binding_tys),*)> for @Self {
-            fn downcast(&self) -> Option<(#(#binding_tys),*)> {
+        gen impl DowncastTo<(#(#binding_tys),*)> for @Self {
+            fn downcast_to(&self) -> Option<(#(#binding_tys),*)> {
                 match self {
                     #downcast_fn
                 }

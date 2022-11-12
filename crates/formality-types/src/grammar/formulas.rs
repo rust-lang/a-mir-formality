@@ -11,8 +11,8 @@ use std::sync::Arc;
 
 use formality_macros::term;
 
-use crate::cast::Downcast;
 use crate::cast::DowncastFrom;
+use crate::cast::DowncastTo;
 use crate::cast::To;
 use crate::cast::Upcast;
 use crate::cast::UpcastFrom;
@@ -293,8 +293,8 @@ impl UpcastFrom<GoalData> for Goal {
     }
 }
 
-impl Downcast<GoalData> for Goal {
-    fn downcast(&self) -> Option<GoalData> {
+impl DowncastTo<GoalData> for Goal {
+    fn downcast_to(&self) -> Option<GoalData> {
         Some(self.data().clone())
     }
 }
@@ -445,8 +445,8 @@ impl UpcastFrom<HypothesisData> for Hypothesis {
     }
 }
 
-impl Downcast<HypothesisData> for Hypothesis {
-    fn downcast(&self) -> Option<HypothesisData> {
+impl DowncastTo<HypothesisData> for Hypothesis {
+    fn downcast_to(&self) -> Option<HypothesisData> {
         Some(self.data().clone())
     }
 }

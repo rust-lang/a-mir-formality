@@ -1,6 +1,10 @@
 use formality_macros::term;
-use formality_types::grammar::{
-    AdtId, AssociatedItemId, Binder, CrateId, FieldId, FnId, Predicate, TraitId, TraitRef, Ty,
+use formality_types::{
+    cast::{Downcasted, Upcast},
+    grammar::{
+        AdtId, AssociatedItemId, Binder, CrateId, Fallible, FieldId, FnId, Predicate, TraitId,
+        TraitRef, Ty,
+    },
 };
 
 #[term($crates)]
@@ -19,6 +23,22 @@ impl Program {
     /// Iterator over items from all crates.
     pub fn items_from_all_crates(&self) -> impl Iterator<Item = &CrateItem> {
         self.crates.iter().flat_map(|c| &c.items)
+    }
+
+    /// Find the ADT with the given name.
+    pub fn adt_named(&self, adt_id: &AdtId) -> Fallible<Adt> {
+        self.items_from_all_crates()
+            .downcasted::<Adt>()
+            .find(|adt| adt.id == *adt_id)
+            .ok_or_else(|| anyhow::format_err!("no adt named `{adt_id:?}`"))
+    }
+
+    /// Find the trait with the given name.
+    pub fn trait_named(&self, trait_id: &TraitId) -> Fallible<Trait> {
+        self.items_from_all_crates()
+            .downcasted::<Trait>()
+            .find(|t| t.id == *trait_id)
+            .ok_or_else(|| anyhow::format_err!("no trait named `{trait_id:?}`"))
     }
 }
 
@@ -58,12 +78,38 @@ pub struct AdtBoundData {
     pub variants: Vec<AdtVariant>,
 }
 
+impl AdtBoundData {
+    pub fn variant_named(&self, variant_id: &VariantId) -> Fallible<&AdtVariant> {
+        self.variants
+            .iter()
+            .find(|v| v.name == *variant_id)
+            .ok_or_else(|| anyhow::format_err!("no ADT variant named `{variant_id:?}`"))
+    }
+}
+
 formality_types::id!(VariantId);
+
+impl VariantId {
+    /// Returns the special variant-id used for the single variant of a struct.
+    pub fn for_struct() -> Self {
+        VariantId::new("struct")
+    }
+}
 
 #[term($name { $*fields })]
 pub struct AdtVariant {
     pub name: VariantId,
     pub fields: Vec<Field>,
+}
+
+impl AdtVariant {
+    pub fn field_named(&self, name: impl Upcast<FieldName>) -> Fallible<&Field> {
+        let name = name.upcast();
+        self.fields
+            .iter()
+            .find(|f| f.name == name)
+            .ok_or_else(|| anyhow::format_err!("no field named `{name:?}`"))
+    }
 }
 
 #[term($name : $ty)]

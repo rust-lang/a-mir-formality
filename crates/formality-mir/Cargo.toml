@@ -1,5 +1,5 @@
 [package]
-name = "formality-body"
+name = "formality-mir"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,7 +9,9 @@ edition = "2021"
 formality-macros = { path = "../formality-macros" }
 formality-decl = { path = "../formality-decl" }
 formality-types = { path = "../formality-types" }
+formality-logic = { path = "../formality-logic" }
 tracing = "0.1"
+anyhow = "1.0.66"
 
 [dev-dependencies]
 expect-test = "1.4.0"

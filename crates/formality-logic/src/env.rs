@@ -122,6 +122,11 @@ impl Env {
         &mut self.inference_data[var.index]
     }
 
+    /// Creates a new existential inference variable in the current universe.
+    pub fn new_existential_variable(&mut self, kind: ParameterKind) -> InferenceVar {
+        self.next_inference_variable(kind, self.universe)
+    }
+
     /// Replace all bound variables in `binder` with universal placeholders in a fresh universe.
     pub fn instantiate_universally<T: Term>(&mut self, binder: &Binder<T>) -> T {
         let universe = self.next_universe();
@@ -314,7 +319,8 @@ impl Env {
 
     /// True if `parameter` is an unbound inference variable (i.e., a value not yet equated with
     /// a specific value). Note that it may be a variable that has sub/super/outlives constraints.
-    pub fn is_unbound_inference_variable(&self, parameter: &Parameter) -> bool {
+    pub fn is_unbound_inference_variable(&self, parameter: impl Upcast<Parameter>) -> bool {
+        let parameter: Parameter = parameter.upcast();
         match parameter.data() {
             ParameterData::Ty(TyData::Variable(Variable::InferenceVar(v)))
             | ParameterData::Lt(LtData::Variable(Variable::InferenceVar(v))) => {

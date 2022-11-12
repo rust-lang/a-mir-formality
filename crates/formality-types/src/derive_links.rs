@@ -3,7 +3,7 @@
 //! references to the Fold trait that work both in this crate and others.
 //! Other crates that wish to use the Fold macro must re-export this module.
 
-pub use crate::cast::Downcast;
+pub use crate::cast::DowncastTo;
 pub use crate::cast::UpcastFrom;
 pub use crate::fixed_point;
 pub use crate::fold::Fold;

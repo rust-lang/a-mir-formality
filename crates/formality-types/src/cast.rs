@@ -39,6 +39,22 @@ pub trait UpcastFrom<T: Clone> {
     fn upcast_from(term: T) -> Self;
 }
 
+// /// This is the convenience trait whose method you should call to do a downcast.
+// pub trait Downcast {
+//     fn downcast<T>(&self) -> Option<T>
+//     where
+//         T: DowncastFrom<Self>;
+// }
+
+// impl<U> Downcast for U {
+//     fn downcast<T>(&self) -> Option<T>
+//     where
+//         T: DowncastFrom<Self>,
+//     {
+//         T::downcast_from(self)
+//     }
+// }
+
 /// Our version of "try-into". A "downcast" casts
 /// from a more general type
 /// (e.g., any Parameter) to a more specific type
@@ -46,24 +62,24 @@ pub trait UpcastFrom<T: Clone> {
 ///
 /// This is the trait that you prefer to implement,
 /// but use `DowncastFrom` in where-clauses.
-pub trait Downcast<T>: Sized {
-    fn downcast(&self) -> Option<T>;
+pub trait DowncastTo<T>: Sized {
+    fn downcast_to(&self) -> Option<T>;
 }
 
-impl<T: Clone, U> Downcast<T> for &U
+impl<T: Clone, U> DowncastTo<T> for &U
 where
     T: DowncastFrom<U>,
 {
-    fn downcast(&self) -> Option<T> {
+    fn downcast_to(&self) -> Option<T> {
         T::downcast_from(self)
     }
 }
 
-impl<A, B> Downcast<Vec<B>> for Vec<A>
+impl<A, B> DowncastTo<Vec<B>> for Vec<A>
 where
     B: DowncastFrom<A>,
 {
-    fn downcast(&self) -> Option<Vec<B>> {
+    fn downcast_to(&self) -> Option<Vec<B>> {
         self.iter().map(|a| B::downcast_from(a)).collect()
     }
 }
@@ -80,10 +96,10 @@ pub trait DowncastFrom<T>: Sized {
 
 impl<T, U> DowncastFrom<T> for U
 where
-    T: Downcast<U>,
+    T: DowncastTo<U>,
 {
     fn downcast_from(t: &T) -> Option<U> {
-        t.downcast()
+        t.downcast_to()
     }
 }
 
@@ -251,8 +267,8 @@ macro_rules! cast_impl {
             }
         }
 
-        impl $crate::cast::Downcast<$u> for $e {
-            fn downcast(&self) -> Option<$u> {
+        impl $crate::cast::DowncastTo<$u> for $e {
+            fn downcast_to(&self) -> Option<$u> {
                 match self {
                     $e::$v(u) => Some(Clone::clone(u)),
                     _ => None,
@@ -268,8 +284,8 @@ macro_rules! cast_impl {
             }
         }
 
-        impl $crate::cast::Downcast<$t> for $t {
-            fn downcast(&self) -> Option<$t> {
+        impl $crate::cast::DowncastTo<$t> for $t {
+            fn downcast_to(&self) -> Option<$t> {
                 Some(Self::clone(self))
             }
         }
@@ -286,8 +302,8 @@ macro_rules! cast_impl {
             }
         }
 
-        impl $crate::cast::Downcast<$bot> for $top {
-            fn downcast(&self) -> Option<$bot> {
+        impl $crate::cast::DowncastTo<$bot> for $top {
+            fn downcast_to(&self) -> Option<$bot> {
                 let v: &$top = self;
                 $(
                     let v: &$mid = &$crate::cast::DowncastFrom::downcast_from(v)?;

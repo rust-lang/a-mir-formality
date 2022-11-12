@@ -25,7 +25,7 @@ impl rust::Struct {
                         .map(|wc| wc.to_decl())
                         .collect::<Fallible<_>>()?,
                     variants: vec![decl::AdtVariant {
-                        name: VariantId::new("struct"),
+                        name: VariantId::for_struct(),
                         fields: fields
                             .iter()
                             .map(|f| f.to_decl())

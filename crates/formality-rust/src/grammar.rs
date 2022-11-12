@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use formality_decl::grammar::{FieldName, VariantId};
 use formality_macros::term;
+use formality_mir::grammar::MirFnBody;
 use formality_types::{
     grammar::{AdtId, AssociatedItemId, Binder, CrateId, FnId, Lt, Parameter, TraitId, Ty},
     term::Term,
@@ -110,12 +111,22 @@ pub struct FnBoundData {
 }
 
 #[term]
-pub enum FnBody {
+pub enum MaybeFnBody {
     #[grammar(;)]
     NoFnBody,
 
+    #[cast]
+    FnBody(FnBody),
+}
+
+#[term]
+pub enum FnBody {
     #[grammar({trusted})]
     TrustedFnBody,
+
+    #[cast]
+    #[grammar(= $v0 ;)]
+    MirFnBody(MirFnBody),
 }
 
 #[term(type $id $binder)]

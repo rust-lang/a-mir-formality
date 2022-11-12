@@ -1,16 +1,17 @@
 use formality_decl::grammar::VariantId;
 use formality_macros::term;
-use formality_types::grammar::{FieldId, FnId, Lt, Parameter, RefKind, Ty};
+use formality_types::{
+    cast::{DowncastFrom, Upcast},
+    derive_links::DowncastTo,
+    grammar::{AdtId, Binder, FieldId, FnId, Lt, Parameter, RefKind, Ty},
+};
 
-#[term]
-pub enum FnBody {
-    TrustedFnBody,
-    #[cast]
-    MirFnBody(MirFnBody),
+#[term(mir($binder))]
+pub struct MirFnBody {
+    /// The binder binds existential lifetimes that appear in types
+    /// but whose values are not computed by earlier phases.
+    binder: Binder<LocalsAndBlocks>,
 }
-
-#[term]
-pub struct MirFnBody {}
 
 #[term]
 pub struct LocalsAndBlocks {
@@ -50,6 +51,49 @@ pub enum Rvalue {
     Repeat(Operand, Constant),
     Ref(Lt, RefKind, Place),
     AddrOf(RefKind, Place),
+    Len(Place),
+    Apply(Operand, BinaryOp, Operand),
+    Checked(Operand, BinaryOp, Operand),
+    Aggregate(AggregateKind, Vec<Operand>),
+    Cast(Operand, Ty),
+}
+
+#[term]
+pub enum BinaryOp {
+    #[cast]
+    Math(BinaryMathOp),
+    #[cast]
+    Comparison(BinaryComparisonOp),
+}
+
+#[term]
+pub enum BinaryMathOp {
+    #[grammar(+)]
+    Add,
+    #[grammar(-)]
+    Subtract,
+    #[grammar(*)]
+    Multiply,
+    #[grammar(/)]
+    Divide,
+}
+
+#[term]
+pub enum BinaryComparisonOp {
+    #[grammar(<)]
+    LessThan,
+    #[grammar(<=)]
+    LessEqual,
+    #[grammar(>)]
+    GreaterThan,
+    #[grammar(>=)]
+    GreaterEqual,
+}
+
+#[term]
+pub enum AggregateKind {
+    Tuple,
+    Adt(AdtId, VariantId, Vec<Parameter>),
 }
 
 #[term]
@@ -80,9 +124,9 @@ pub enum Constant {
     Tuple(Vec<Constant>),
 }
 
-#[term(($local $*projections))]
+#[term(($local_id $*projections))]
 pub struct Place {
-    local: LocalId,
+    local_id: LocalId,
     projections: Vec<Projection>,
 }
 #[term]
@@ -98,4 +142,19 @@ pub enum Projection {
 
     #[grammar((as $v0))]
     Downcast(VariantId),
+}
+
+#[term]
+pub enum PlaceTy {
+    #[cast]
+    Ty(Ty),
+
+    VariantTy(Ty, VariantId),
+}
+
+impl DowncastFrom<Parameter> for PlaceTy {
+    fn downcast_from(t: &Parameter) -> Option<Self> {
+        let t: Ty = t.downcast_to()?;
+        Some(t.upcast())
+    }
 }

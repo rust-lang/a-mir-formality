@@ -6,7 +6,7 @@ mod debug_impls;
 mod parse_impls;
 
 use crate::{
-    cast::{Downcast, To, Upcast, UpcastFrom},
+    cast::{DowncastTo, To, Upcast, UpcastFrom},
     cast_impl,
     collections::Map,
     fold::Fold,
@@ -86,20 +86,14 @@ impl Ty {
     }
 }
 
-cast_impl!(Ty);
-cast_impl!((RigidTy) <: (TyData) <: (Ty));
-cast_impl!((AliasTy) <: (TyData) <: (Ty));
-cast_impl!((ScalarId) <: (TyData) <: (Ty));
-cast_impl!((PredicateTy) <: (TyData) <: (Ty));
-
 impl UpcastFrom<TyData> for Ty {
     fn upcast_from(v: TyData) -> Self {
         Ty::new(v)
     }
 }
 
-impl Downcast<TyData> for Ty {
-    fn downcast(&self) -> Option<TyData> {
+impl DowncastTo<TyData> for Ty {
+    fn downcast_to(&self) -> Option<TyData> {
         Some(self.data().clone())
     }
 }
@@ -119,15 +113,6 @@ impl UpcastFrom<TyData> for TyData {
         term
     }
 }
-
-cast_impl!(TyData::RigidTy(RigidTy));
-cast_impl!(TyData::AliasTy(AliasTy));
-cast_impl!(TyData::PredicateTy(PredicateTy));
-cast_impl!(TyData::Variable(Variable));
-cast_impl!((PlaceholderVar) <: (Variable) <: (TyData));
-cast_impl!((InferenceVar) <: (Variable) <: (TyData));
-cast_impl!((BoundVar) <: (Variable) <: (TyData));
-cast_impl!((ScalarId) <: (RigidTy) <: (TyData));
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
@@ -150,9 +135,9 @@ impl UpcastFrom<ScalarId> for RigidTy {
     }
 }
 
-impl Downcast<ScalarId> for RigidTy {
-    fn downcast(&self) -> Option<ScalarId> {
-        self.name.downcast()
+impl DowncastTo<ScalarId> for RigidTy {
+    fn downcast_to(&self) -> Option<ScalarId> {
+        self.name.downcast_to()
     }
 }
 
@@ -279,8 +264,6 @@ pub struct KindedVarIndex {
     pub var_index: VarIndex,
 }
 
-cast_impl!(KindedVarIndex);
-
 impl UpcastFrom<KindedVarIndex> for BoundVar {
     fn upcast_from(term: KindedVarIndex) -> Self {
         BoundVar {
@@ -387,8 +370,6 @@ impl Lt {
     }
 }
 
-cast_impl!(Lt);
-
 impl UpcastFrom<LtData> for Lt {
     fn upcast_from(v: LtData) -> Self {
         Lt::new(v)
@@ -413,21 +394,12 @@ impl UpcastFrom<LtData> for LtData {
     }
 }
 
-cast_impl!(LtData::Variable(Variable));
-cast_impl!((InferenceVar) <: (Variable) <: (LtData));
-cast_impl!((PlaceholderVar) <: (Variable) <: (LtData));
-cast_impl!((BoundVar) <: (Variable) <: (LtData));
-
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Variable {
     PlaceholderVar(PlaceholderVar),
     InferenceVar(InferenceVar),
     BoundVar(BoundVar),
 }
-
-cast_impl!(Variable::PlaceholderVar(PlaceholderVar));
-cast_impl!(Variable::InferenceVar(InferenceVar));
-cast_impl!(Variable::BoundVar(BoundVar));
 
 impl Variable {
     pub fn kind(&self) -> ParameterKind {
@@ -513,8 +485,8 @@ impl UpcastFrom<Variable> for Parameter {
     }
 }
 
-impl Downcast<Variable> for Parameter {
-    fn downcast(&self) -> Option<Variable> {
+impl DowncastTo<Variable> for Parameter {
+    fn downcast_to(&self) -> Option<Variable> {
         self.as_variable()
     }
 }
@@ -649,3 +621,34 @@ impl VarSubstitution {
         t.substitute(&mut |v| Some(self.map.get(&v)?.upcast()))
     }
 }
+
+cast_impl!(Ty);
+cast_impl!((RigidTy) <: (TyData) <: (Ty));
+cast_impl!((AliasTy) <: (TyData) <: (Ty));
+cast_impl!((ScalarId) <: (TyData) <: (Ty));
+cast_impl!((PredicateTy) <: (TyData) <: (Ty));
+cast_impl!((RigidTy) <: (Ty) <: (Parameter));
+cast_impl!((AliasTy) <: (Ty) <: (Parameter));
+cast_impl!((ScalarId) <: (Ty) <: (Parameter));
+cast_impl!((PredicateTy) <: (Ty) <: (Parameter));
+cast_impl!(TyData::RigidTy(RigidTy));
+cast_impl!(TyData::AliasTy(AliasTy));
+cast_impl!(TyData::PredicateTy(PredicateTy));
+cast_impl!(TyData::Variable(Variable));
+cast_impl!((Variable) <: (TyData) <: (Ty));
+cast_impl!((PlaceholderVar) <: (Variable) <: (TyData));
+cast_impl!((InferenceVar) <: (Variable) <: (TyData));
+cast_impl!((BoundVar) <: (Variable) <: (TyData));
+cast_impl!((ScalarId) <: (RigidTy) <: (TyData));
+cast_impl!((PlaceholderVar) <: (Variable) <: (Ty));
+cast_impl!((InferenceVar) <: (Variable) <: (Ty));
+cast_impl!((BoundVar) <: (Variable) <: (Ty));
+cast_impl!(KindedVarIndex);
+cast_impl!(Lt);
+cast_impl!(LtData::Variable(Variable));
+cast_impl!((InferenceVar) <: (Variable) <: (LtData));
+cast_impl!((PlaceholderVar) <: (Variable) <: (LtData));
+cast_impl!((BoundVar) <: (Variable) <: (LtData));
+cast_impl!(Variable::PlaceholderVar(PlaceholderVar));
+cast_impl!(Variable::InferenceVar(InferenceVar));
+cast_impl!(Variable::BoundVar(BoundVar));
