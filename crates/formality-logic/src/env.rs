@@ -118,6 +118,11 @@ impl Env {
         self.inference_data[var.index].mapped_to.is_some()
     }
 
+    /// Returns what this inference variable is mapped to, if anything.
+    pub fn mapped_to(&self, var: InferenceVar) -> Option<Parameter> {
+        self.inference_data[var.index].mapped_to.clone()
+    }
+
     fn data_mut(&mut self, var: InferenceVar) -> &mut InferenceVarData {
         &mut self.inference_data[var.index]
     }
@@ -159,7 +164,7 @@ impl Env {
     }
 
     /// True if all inference variables in `term` are unmapped.
-    fn fully_refreshed(&self, term: &impl Term) -> bool {
+    pub fn fully_refreshed(&self, term: &impl Term) -> bool {
         term.free_variables().iter().all(|var| {
             if let Variable::InferenceVar(var) = var {
                 !self.is_mapped(*var)

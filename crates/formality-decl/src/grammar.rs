@@ -20,6 +20,11 @@ impl Program {
         self.crates.last().unwrap().id.clone()
     }
 
+    /// True if this is the "core" crate -- i.e., the only crate being compiled, with no dependencies.
+    pub fn is_core_crate(&self) -> bool {
+        self.crates.len() == 1
+    }
+
     /// Iterator over items from all crates.
     pub fn items_from_all_crates(&self) -> impl Iterator<Item = &CrateItem> {
         self.crates.iter().flat_map(|c| &c.items)
@@ -33,11 +38,34 @@ impl Program {
             .ok_or_else(|| anyhow::format_err!("no adt named `{adt_id:?}`"))
     }
 
+    /// Find the crate defining the trait with the given name.
+    pub fn crate_defining_adt_named(&self, adt_id: &AdtId) -> Fallible<CrateId> {
+        self.crates
+            .iter()
+            .find(|c| c.items.iter().downcasted::<Adt>().any(|t| t.id == *adt_id))
+            .map(|c| c.id.clone())
+            .ok_or_else(|| anyhow::format_err!("no adt named `{adt_id:?}`"))
+    }
+
     /// Find the trait with the given name.
     pub fn trait_named(&self, trait_id: &TraitId) -> Fallible<Trait> {
         self.items_from_all_crates()
             .downcasted::<Trait>()
             .find(|t| t.id == *trait_id)
+            .ok_or_else(|| anyhow::format_err!("no trait named `{trait_id:?}`"))
+    }
+
+    /// Find the crate defining the trait with the given name.
+    pub fn crate_defining_trait_named(&self, trait_id: &TraitId) -> Fallible<CrateId> {
+        self.crates
+            .iter()
+            .find(|c| {
+                c.items
+                    .iter()
+                    .downcasted::<Trait>()
+                    .any(|t| t.id == *trait_id)
+            })
+            .map(|c| c.id.clone())
             .ok_or_else(|| anyhow::format_err!("no trait named `{trait_id:?}`"))
     }
 
@@ -47,6 +75,15 @@ impl Program {
             .downcasted::<Fn>()
             .find(|t| t.id == *fn_id)
             .ok_or_else(|| anyhow::format_err!("no trait named `{fn_id:?}`"))
+    }
+
+    /// Find the crate defining the trait with the given name.
+    pub fn crate_defining_fn_named(&self, fn_id: &FnId) -> Fallible<CrateId> {
+        self.crates
+            .iter()
+            .find(|c| c.items.iter().downcasted::<Fn>().any(|t| t.id == *fn_id))
+            .map(|c| c.id.clone())
+            .ok_or_else(|| anyhow::format_err!("no fn named `{fn_id:?}`"))
     }
 }
 
