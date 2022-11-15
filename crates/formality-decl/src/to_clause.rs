@@ -1,4 +1,4 @@
-use formality_types::grammar::{Goal, Hypothesis, Invariant, Lt, ProgramClause, Ty};
+use formality_types::grammar::{Invariant, ProgramClause};
 
 use crate::grammar::Program;
 
@@ -15,16 +15,7 @@ impl Program {
     pub fn to_clauses(&self) -> Vec<ProgramClause> {
         let Program { crates } = self;
 
-        let hardcoded_clauses = vec![
-            Hypothesis::for_all_f(|(l, t): (Lt, Ty)| {
-                let ref_ty = t.ref_ty(&l);
-                Hypothesis::implies(vec![Goal::outlives(t, l)], ref_ty.well_formed())
-            }),
-            Hypothesis::for_all_f(|(l, t): (Lt, Ty)| {
-                let ref_ty = t.ref_mut_ty(&l);
-                Hypothesis::implies(vec![Goal::outlives(t, l)], ref_ty.well_formed())
-            }),
-        ];
+        let hardcoded_clauses = vec![];
 
         crates
             .iter()

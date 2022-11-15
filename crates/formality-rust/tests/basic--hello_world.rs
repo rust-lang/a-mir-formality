@@ -30,7 +30,7 @@ fn test_broken() {
                 context: "check_trait(Foo)",
                 source: Error {
                     context: "prove_where_clause_well_formed([is_implemented(Bar(!tyU(1)_1, !tyU(1)_0))] => is_implemented(Bar(!tyU(1)_1, !tyU(1)_0))",
-                    source: "could not prove `well_formed_trait_ref(Bar(!tyU(1)_1, !tyU(1)_0))`",
+                    source: "could not prove `well_formed_trait_ref(Bar(!tyU(1)_1, !tyU(1)_0))` given `[\n    is_implemented(Bar(!tyU(1)_1, !tyU(1)_0)),\n]`",
                 },
             },
         )

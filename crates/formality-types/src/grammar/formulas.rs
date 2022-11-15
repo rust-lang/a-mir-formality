@@ -19,6 +19,7 @@ use crate::cast::UpcastFrom;
 use crate::cast_impl;
 use crate::collections::Set;
 
+use super::AdtId;
 use super::AliasName;
 use super::Binder;
 use super::Kinded;
@@ -40,7 +41,8 @@ pub enum AtomicPredicate {
     HasImpl(TraitRef),
     /// True if an alias normalizes to the given type.
     NormalizesTo(AliasTy, Ty),
-    WellFormedTy(Ty),
+    WellFormedAdt(AdtId, Parameters),
+    WellFormedAlias(AliasName, Parameters),
     WellFormedTraitRef(TraitRef),
 }
 
@@ -69,9 +71,16 @@ impl AtomicPredicate {
             AtomicPredicate::IsImplemented(_) => Coinductive::Yes,
             AtomicPredicate::HasImpl(_) => Coinductive::Yes,
             AtomicPredicate::NormalizesTo(_, _) => Coinductive::No,
-            AtomicPredicate::WellFormedTy(_) => Coinductive::Yes,
-            AtomicPredicate::WellFormedTraitRef(_) => Coinductive::Yes,
+            AtomicPredicate::WellFormedAlias(_, _)
+            | AtomicPredicate::WellFormedAdt(_, _)
+            | AtomicPredicate::WellFormedTraitRef(_) => Coinductive::Yes,
         }
+    }
+}
+
+impl AliasName {
+    pub fn well_formed(&self, t: impl Upcast<Vec<Parameter>>) -> AtomicPredicate {
+        AtomicPredicate::WellFormedAlias(self.clone(), t.upcast())
     }
 }
 
@@ -82,20 +91,15 @@ impl AliasTy {
 }
 
 impl Ty {
-    pub fn well_formed(&self) -> AtomicPredicate {
-        AtomicPredicate::WellFormedTy(self.clone())
+    pub fn well_formed(&self) -> AtomicRelation {
+        AtomicRelation::WellFormed(self.upcast())
     }
 }
 
 impl Parameter {
     /// Well-formed goal for a parameter
-    pub fn well_formed(&self) -> Goal {
-        match self {
-            Parameter::Ty(v) => v.well_formed().upcast(),
-
-            // we always assume lifetimes are well-formed
-            Parameter::Lt(_) => Goal::t(),
-        }
+    pub fn well_formed(&self) -> AtomicRelation {
+        AtomicRelation::WellFormed(self.to())
     }
 }
 
@@ -107,7 +111,9 @@ pub enum AtomicSkeleton {
     IsImplemented(TraitId),
     HasImpl(TraitId),
     NormalizesTo(AliasName),
-    WellFormedTy,
+    WellFormed,
+    WellFormedAdt(AdtId),
+    WellFormedAlias(AliasName),
     WellFormedTraitRef(TraitId),
 
     Equals,
@@ -142,9 +148,14 @@ impl AtomicPredicate {
                     .chain(Some(ty.to_parameter()))
                     .collect(),
             ),
-            AtomicPredicate::WellFormedTy(ty) => {
-                (AtomicSkeleton::WellFormedTy, vec![ty.to_parameter()])
-            }
+            AtomicPredicate::WellFormedAdt(id, parameters) => (
+                AtomicSkeleton::WellFormedAdt(id.clone()),
+                parameters.clone(),
+            ),
+            AtomicPredicate::WellFormedAlias(id, parameters) => (
+                AtomicSkeleton::WellFormedAlias(id.clone()),
+                parameters.clone(),
+            ),
             AtomicPredicate::WellFormedTraitRef(TraitRef {
                 trait_id,
                 parameters,
@@ -170,6 +181,12 @@ impl TraitRef {
     }
 }
 
+impl AdtId {
+    pub fn well_formed(&self, parameters: impl Upcast<Vec<Parameter>>) -> AtomicPredicate {
+        AtomicPredicate::WellFormedAdt(self.clone(), parameters.upcast())
+    }
+}
+
 /// Relations are built-in goals which are implemented in custom Rust logic.
 #[term]
 pub enum AtomicRelation {
@@ -181,6 +198,9 @@ pub enum AtomicRelation {
 
     /// `P : P`
     Outlives(Parameter, Parameter),
+
+    /// `WF(Parameter)`
+    WellFormed(Parameter),
 }
 
 impl AtomicRelation {
@@ -195,6 +215,7 @@ impl AtomicRelation {
             AtomicRelation::Outlives(a, b) => {
                 (AtomicSkeleton::Outlives, vec![a.clone(), b.clone()])
             }
+            AtomicRelation::WellFormed(p) => (AtomicSkeleton::WellFormed, vec![p.clone()]),
         }
     }
 }

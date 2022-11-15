@@ -93,8 +93,10 @@ impl Check<'_> {
         let assumptions = assumptions.upcast();
         match prove_universal_goal(&self.db, env, &assumptions, &goal) {
             UniversalGoalResult::Yes => Ok(()),
-            UniversalGoalResult::No => bail!("could not prove `{goal:?}`"),
-            UniversalGoalResult::Maybe => bail!("could not prove `{goal:?}` (ambiguous)"),
+            UniversalGoalResult::No => bail!("could not prove `{goal:?}` given `{assumptions:#?}`"),
+            UniversalGoalResult::Maybe => {
+                bail!("could not prove `{goal:?}` (ambiguous) given `{assumptions:#?}`")
+            }
         }
     }
 }

@@ -1,7 +1,4 @@
-use formality_types::{
-    cast::{To, Upcast},
-    grammar::{Hypothesis, Invariant, ProgramClause, RigidTy, Ty},
-};
+use formality_types::grammar::{Hypothesis, Invariant, ProgramClause};
 
 use crate::grammar::{Adt, AdtBoundData, Program};
 
@@ -15,15 +12,9 @@ impl Adt {
             },
         ) = self.binder.open();
 
-        let self_ty: Ty = RigidTy {
-            name: self.id.to(),
-            parameters: kinded_var_ids.to(),
-        }
-        .upcast();
-
         vec![Hypothesis::for_all(
             &kinded_var_ids,
-            Hypothesis::implies(&where_clauses, self_ty.well_formed()),
+            Hypothesis::implies(&where_clauses, self.id.well_formed(&kinded_var_ids)),
         )]
     }
 

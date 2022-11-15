@@ -14,7 +14,7 @@ fn test_one_impl() {
         Err(
             Error {
                 context: "check_trait_impl(impl <> Eq((rigid (scalar u32))) where [] { })",
-                source: "could not prove `is_implemented(Eq((rigid (scalar u32))))`",
+                source: "could not prove `is_implemented(Eq((rigid (scalar u32))))` given `[]`",
             },
         )
     "#]]

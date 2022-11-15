@@ -60,6 +60,7 @@ impl super::Check<'_> {
         }
     }
 
+    #[context("check_fn_in_impl")]
     #[requires(impl_assumptions.iter().all(|a| a.references_only_placeholder_variables()))]
     fn check_fn_in_impl(
         &self,

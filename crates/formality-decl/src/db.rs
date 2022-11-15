@@ -1,7 +1,4 @@
-use formality_types::{
-    cast::Upcast,
-    grammar::{AliasTy, AtomicPredicate, AtomicRelation, Parameter, TraitRef, APR},
-};
+use formality_types::grammar::{AliasTy, AtomicPredicate, AtomicRelation, TraitRef, APR};
 
 use crate::grammar::Program;
 
@@ -36,17 +33,16 @@ impl formality_logic::Database for Program {
                     _,
                 ) => env.is_unbound_inference_variable(&parameters[0]),
 
-                AtomicPredicate::WellFormedTy(ty) => {
-                    let p: Parameter = ty.upcast();
-                    env.is_unbound_inference_variable(&p)
-                }
-
-                AtomicPredicate::WellFormedTraitRef(_) => false,
+                AtomicPredicate::WellFormedAlias(..)
+                | AtomicPredicate::WellFormedAdt(..)
+                | AtomicPredicate::WellFormedTraitRef(_) => false,
             },
             APR::AtomicRelation(relation) => match relation {
                 AtomicRelation::Equals(_, _)
                 | AtomicRelation::Sub(_, _)
                 | AtomicRelation::Outlives(_, _) => false,
+
+                AtomicRelation::WellFormed(p) => env.is_unbound_inference_variable(p),
             },
         }
     }

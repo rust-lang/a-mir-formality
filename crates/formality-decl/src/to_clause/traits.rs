@@ -117,9 +117,11 @@ fn is_superpredicate(self_ty: &Parameter, predicate: &Predicate) -> bool {
         // Users can't write these, so we don't expect them to appear on the trait where-clauses list.
         // If that changes, we can decide whether they should be considered a super predicate.
         PredicateData::Atomic(APR::AtomicPredicate(AtomicPredicate::HasImpl(..)))
-        | PredicateData::Atomic(APR::AtomicPredicate(AtomicPredicate::WellFormedTy(..)))
+        | PredicateData::Atomic(APR::AtomicPredicate(AtomicPredicate::WellFormedAdt(..)))
+        | PredicateData::Atomic(APR::AtomicPredicate(AtomicPredicate::WellFormedAlias(..)))
         | PredicateData::Atomic(APR::AtomicPredicate(AtomicPredicate::WellFormedTraitRef(..)))
         | PredicateData::Atomic(APR::AtomicRelation(AtomicRelation::Sub(..)))
+        | PredicateData::Atomic(APR::AtomicRelation(AtomicRelation::WellFormed(..)))
         | PredicateData::Atomic(APR::AtomicRelation(AtomicRelation::Equals(..))) => {
             panic!("unexepected relation in the trait super-predicates list")
         }

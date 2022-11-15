@@ -51,7 +51,9 @@ impl super::Check<'_> {
                 self.prove_goal(env, assumptions, alias_ty.to::<Ty>().well_formed())?;
                 self.prove_goal(env, assumptions, ty.well_formed())?;
             }
-            APR::AtomicPredicate(AtomicPredicate::WellFormedTy(_ty)) => {}
+            APR::AtomicRelation(AtomicRelation::WellFormed(_))
+            | APR::AtomicPredicate(AtomicPredicate::WellFormedAlias(..))
+            | APR::AtomicPredicate(AtomicPredicate::WellFormedAdt(..)) => {}
             APR::AtomicPredicate(AtomicPredicate::WellFormedTraitRef(_trait_ref)) => {}
             APR::AtomicRelation(AtomicRelation::Outlives(a, b)) => {
                 self.prove_goal(env, assumptions, a.well_formed())?;

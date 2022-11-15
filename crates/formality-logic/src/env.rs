@@ -23,6 +23,7 @@ pub mod query;
 mod rigid;
 mod sub;
 mod test;
+mod well_formed;
 
 #[term]
 pub struct Env {
@@ -270,6 +271,7 @@ impl Env {
             AtomicRelation::Equals(a, b) => self.eq(db, a, b),
             AtomicRelation::Sub(a, b) => self.sub(db, a, b),
             AtomicRelation::Outlives(a, b) => self.outlives(db, assumptions, a, b),
+            AtomicRelation::WellFormed(a) => self.well_formed(a),
         }
     }
 
