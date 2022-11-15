@@ -3,10 +3,11 @@ use std::collections::BTreeSet;
 use crate::{Database, Db};
 use formality_types::{
     self,
-    cast::{To, Upcast},
+    cast::{To, Upcast, Upcasted},
     grammar::{
-        ElaboratedHypotheses, Hypothesis, HypothesisData, Invariant, InvariantImplication,
-        Substitution, APR,
+        AliasTy, AtomicPredicate, AtomicRelation, ElaboratedHypotheses, Hypothesis, HypothesisData,
+        Invariant, InvariantImplication, ParameterData, RigidName, RigidTy, Substitution, TyData,
+        APR,
     },
 };
 
@@ -33,10 +34,12 @@ where
 
 fn elaborate_hypothesis(db: &Db, hypothesis: &Hypothesis) -> Vec<Hypothesis> {
     match hypothesis.data() {
-        HypothesisData::Atomic(apr) => db
-            .invariants_for_apr(apr)
+        HypothesisData::Atomic(APR::AtomicRelation(r)) => elaborate_relation(db, r),
+
+        HypothesisData::Atomic(APR::AtomicPredicate(p)) => db
+            .invariants_for_predicate(p)
             .iter()
-            .flat_map(|i| apply_invariant_to_predicate(db, i, apr))
+            .flat_map(|i| apply_invariant_to_predicate(db, i, p))
             .collect(),
 
         HypothesisData::ForAll(binder) => {
@@ -54,10 +57,60 @@ fn elaborate_hypothesis(db: &Db, hypothesis: &Hypothesis) -> Vec<Hypothesis> {
     }
 }
 
+fn elaborate_relation(_db: &Db, relation: &AtomicRelation) -> Vec<Hypothesis> {
+    match relation {
+        AtomicRelation::Equals(_, _) => vec![],
+        AtomicRelation::Sub(_, _) => vec![],
+        AtomicRelation::Outlives(a, b) => match a.data() {
+            ParameterData::Ty(a) => match a {
+                // If we know that (e.g.) `Vec<T>: b`, then we know that `T: b`
+                TyData::RigidTy(RigidTy {
+                    name: _,
+                    parameters,
+                }) => parameters
+                    .iter()
+                    .map(|a_p| a_p.outlives(b))
+                    .upcasted()
+                    .collect(),
+                TyData::AliasTy(_) => vec![],
+                TyData::PredicateTy(_) => vec![], // FIXME
+                TyData::Variable(_) => vec![],
+            },
+            ParameterData::Lt(_) => vec![],
+        },
+
+        AtomicRelation::WellFormed(p) => match p.data() {
+            // WF(Vec<T>) => WF[Vec](T)
+            ParameterData::Ty(TyData::RigidTy(RigidTy {
+                name: RigidName::AdtId(adt_id),
+                parameters,
+            })) => vec![adt_id.well_formed(parameters).upcast()],
+
+            // WF(<T as Iterator>::Item) => WF[Iterator::Item](T)
+            ParameterData::Ty(TyData::AliasTy(AliasTy { name, parameters })) => {
+                vec![name.well_formed(parameters).upcast()]
+            }
+
+            // WF(&'a T) => T: 'a
+            ParameterData::Ty(TyData::RigidTy(RigidTy {
+                name: RigidName::Ref(_),
+                parameters,
+            })) => {
+                assert_eq!(parameters.len(), 2);
+                vec![parameters[1].outlives(&parameters[0]).upcast()]
+            }
+
+            ParameterData::Ty(_) => vec![],
+
+            ParameterData::Lt(_) => vec![],
+        },
+    }
+}
+
 fn apply_invariant_to_predicate(
     _db: &Db,
     invariant: &Invariant,
-    predicate: &APR,
+    predicate: &AtomicPredicate,
 ) -> Option<Hypothesis> {
     invariant.assert();
 
@@ -81,8 +134,8 @@ fn apply_invariant_to_predicate(
 }
 
 fn match_invariant_to_predicate(
-    invariant_predicate: &APR,
-    predicate: &APR,
+    invariant_predicate: &AtomicPredicate,
+    predicate: &AtomicPredicate,
 ) -> Option<Substitution> {
     let (invariant_skeleton, invariant_parameters) = invariant_predicate.debone();
     let (skeleton, parameters) = predicate.debone();

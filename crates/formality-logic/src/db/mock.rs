@@ -46,7 +46,7 @@ impl crate::db::Database for MockDatabase {
         self.program_clauses.clone()
     }
 
-    fn invariants_for_apr(&self, _: &APR) -> Vec<Invariant> {
+    fn invariants_for_predicate(&self, _predicate: &AtomicPredicate) -> Vec<Invariant> {
         self.invariants.clone()
     }
 

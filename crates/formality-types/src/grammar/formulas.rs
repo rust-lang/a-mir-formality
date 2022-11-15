@@ -101,6 +101,10 @@ impl Parameter {
     pub fn well_formed(&self) -> AtomicRelation {
         AtomicRelation::WellFormed(self.to())
     }
+
+    pub fn outlives(&self, b: impl Upcast<Parameter>) -> AtomicRelation {
+        AtomicRelation::Outlives(self.clone(), b.upcast())
+    }
 }
 
 /// The "skeleton" of an atomic predicate is the kernel that contains
@@ -549,7 +553,7 @@ pub struct Invariant {
 pub struct InvariantImplication {
     /// Invariant: each parameter on the condition will be a distinct variable
     /// that appears in the invariant binder.
-    pub condition: APR,
+    pub condition: AtomicPredicate,
     pub consequence: Hypothesis,
 }
 
@@ -594,7 +598,10 @@ impl Invariant {
 }
 
 impl InvariantImplication {
-    pub fn new(condition: impl Upcast<APR>, consequence: impl Upcast<Hypothesis>) -> Self {
+    pub fn new(
+        condition: impl Upcast<AtomicPredicate>,
+        consequence: impl Upcast<Hypothesis>,
+    ) -> Self {
         InvariantImplication {
             condition: condition.upcast(),
             consequence: consequence.upcast(),

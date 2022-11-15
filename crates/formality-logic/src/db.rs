@@ -16,7 +16,7 @@ pub trait Database: Debug {
     fn program_clauses(&self, predicate: &AtomicPredicate) -> Vec<ProgramClause>;
 
     /// Returns
-    fn invariants_for_apr(&self, apr: &APR) -> Vec<Invariant>;
+    fn invariants_for_predicate(&self, predicate: &AtomicPredicate) -> Vec<Invariant>;
 }
 
 /// A handle to the database. Only equal to itself.
@@ -88,8 +88,8 @@ impl std::hash::Hash for Db {
 }
 
 impl Database for Db {
-    fn invariants_for_apr(&self, apr: &APR) -> Vec<Invariant> {
-        self.db.invariants_for_apr(apr)
+    fn invariants_for_predicate(&self, apr: &AtomicPredicate) -> Vec<Invariant> {
+        self.db.invariants_for_predicate(apr)
     }
 
     fn program_clauses(&self, predicate: &AtomicPredicate) -> Vec<ProgramClause> {
