@@ -20,11 +20,8 @@ fn absolutely_same() {
     ]";
 
     expect_test::expect![[r#"
-        Err(
-            Error {
-                context: "check_trait(Get)",
-                source: "could not prove `well_formed((rigid &(mut) !ltU(2)_1 !tyU(2)_0))` given `[\n    well_formed((rigid &(mut) !ltU(2)_1 !tyU(2)_0)),\n    well_formed((rigid tuple(0))),\n    is_implemented(Debug(!tyU(2)_0)),\n]`",
-            },
+        Ok(
+            (),
         )
     "#]]
     .assert_debug_eq(&formality_rust::test_program_ok(PROGRAM));
@@ -54,8 +51,11 @@ fn different_self_type_mut_vs_sh() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "check_trait(Get)",
-                source: "could not prove `well_formed((rigid &(mut) !ltU(2)_1 !tyU(2)_0))` given `[\n    well_formed((rigid &(mut) !ltU(2)_1 !tyU(2)_0)),\n    well_formed((rigid tuple(0))),\n    is_implemented(Debug(!tyU(2)_0)),\n]`",
+                context: "check_trait_impl(impl <> Get((rigid tuple(0))) where [] { fn get <ty, lt> [(rigid &(shared) ^lt0_1 ^ty0_0)] -> (rigid tuple(0)) where [well_formed((rigid &(shared) ^lt0_1 ^ty0_0)), well_formed((rigid tuple(0))), is_implemented(Debug(^ty0_0))] })",
+                source: Error {
+                    context: "check_fn_in_impl",
+                    source: "could not prove `sub((rigid &(mut) !ltU(2)_1 !tyU(2)_0), (rigid &(shared) !ltU(2)_1 !tyU(2)_0))` given `[\n    well_formed((rigid &(shared) !ltU(2)_1 !tyU(2)_0)),\n    well_formed((rigid tuple(0))),\n    is_implemented(Debug(!tyU(2)_0)),\n]`",
+                },
             },
         )
     "#]]
@@ -86,8 +86,11 @@ fn different_arg_type_u32_vs_i32() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "check_trait(Get)",
-                source: "could not prove `well_formed((rigid &(mut) !ltU(2)_1 !tyU(2)_0))` given `[\n    well_formed((rigid &(mut) !ltU(2)_1 !tyU(2)_0)),\n    well_formed((rigid (scalar u32))),\n    well_formed((rigid tuple(0))),\n    is_implemented(Debug(!tyU(2)_0)),\n]`",
+                context: "check_trait_impl(impl <> Get((rigid tuple(0))) where [] { fn get <ty, lt> [(rigid &(mut) ^lt0_1 ^ty0_0), (rigid (scalar i32))] -> (rigid tuple(0)) where [well_formed((rigid &(mut) ^lt0_1 ^ty0_0)), well_formed((rigid (scalar i32))), well_formed((rigid tuple(0))), is_implemented(Debug(^ty0_0))] })",
+                source: Error {
+                    context: "check_fn_in_impl",
+                    source: "could not prove `sub((rigid (scalar u32)), (rigid (scalar i32)))` given `[\n    well_formed((rigid &(mut) !ltU(2)_1 !tyU(2)_0)),\n    well_formed((rigid (scalar i32))),\n    well_formed((rigid tuple(0))),\n    is_implemented(Debug(!tyU(2)_0)),\n]`",
+                },
             },
         )
     "#]]

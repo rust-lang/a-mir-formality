@@ -39,6 +39,10 @@ impl Env {
         a: &Parameter,
         b: &Parameter,
     ) -> Fallible<Vec<Goal>> {
+        if a == b {
+            return Ok(vec![]);
+        }
+
         match (a.data(), b.data()) {
             (ParameterData::Lt(LtData::Static), _) => Ok(vec![]),
 
