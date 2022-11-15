@@ -58,6 +58,7 @@ impl Parse for Ty {
 #[tracing::instrument(level = "trace", ret)]
 fn parse_adt_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
     // Treat plain identifiers as adt ids, with or without parameters.
+    let ((), text) = reject_keyword("static", text)?;
     let (name, text) = AdtId::parse(scope, text)?;
     let (parameters, text) = parse_parameters(scope, text)?;
     Ok((Ty::rigid(name, parameters), text))

@@ -55,3 +55,60 @@ fn test_transitive() {
     "#]]
     .assert_debug_eq(&hypotheses1);
 }
+
+#[test]
+fn test_well_formed_adt() {
+    let db = MockDatabase::new().into_db();
+
+    let hypotheses: Vec<Hypothesis> = vec![term("well_formed(Vec<u32>)")];
+
+    let hypotheses1 = elaborate_hypotheses(&db, &hypotheses);
+
+    expect_test::expect![[r#"
+        elaborated_hypotheses(
+            {
+                well_formed_adt(Vec, [(rigid (scalar u32))]),
+                well_formed((rigid (adt Vec) (rigid (scalar u32)))),
+            },
+        )
+    "#]]
+    .assert_debug_eq(&hypotheses1);
+}
+
+#[test]
+fn test_well_formed_ref() {
+    let db = MockDatabase::new().into_db();
+
+    let hypotheses: Vec<Hypothesis> = vec![term("well_formed(& static u32)")];
+
+    let hypotheses1 = elaborate_hypotheses(&db, &hypotheses);
+
+    expect_test::expect![[r#"
+        elaborated_hypotheses(
+            {
+                outlives((rigid (scalar u32)), static),
+                well_formed((rigid &(shared) static (rigid (scalar u32)))),
+            },
+        )
+    "#]]
+    .assert_debug_eq(&hypotheses1);
+}
+
+#[test]
+fn test_rigid_outlives() {
+    let db = MockDatabase::new().into_db();
+
+    let hypotheses: Vec<Hypothesis> = vec![term("outlives(Vec<u32>, static)")];
+
+    let hypotheses1 = elaborate_hypotheses(&db, &hypotheses);
+
+    expect_test::expect![[r#"
+        elaborated_hypotheses(
+            {
+                outlives((rigid (adt Vec) (rigid (scalar u32))), static),
+                outlives((rigid (scalar u32)), static),
+            },
+        )
+    "#]]
+    .assert_debug_eq(&hypotheses1);
+}
