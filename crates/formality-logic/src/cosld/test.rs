@@ -207,12 +207,7 @@ fn outlives_placeholder_implies_a_c() {
     expect_test::expect![[r#"
         [
             Some(
-                [
-                    outlives(
-                        ?lt0,
-                        ?lt0,
-                    ),
-                ],
+                [],
             ),
         ]
     "#]]
