@@ -250,6 +250,9 @@ impl AndThen for Set<CosldResult> {
 
 #[term]
 pub enum CosldResult {
+    /// Used for both success and failure. The failure is passed outside this enum,
+    /// usually via an empty set, thus not containing any values of this enum.
     Yes(Env),
+    /// Unknown result (ambiguous).
     Maybe,
 }

@@ -29,6 +29,7 @@ impl super::Check<'_> {
 
         self.prove_where_clauses_well_formed(&env, &assumptions, &where_clauses)?;
 
+        // Implies proving the trait_ref's transitive obligations.
         self.prove_goal(&env, &assumptions, trait_ref.is_implemented())?;
 
         let trait_decl = self.program.trait_named(&trait_ref.trait_id)?;
@@ -103,6 +104,7 @@ impl super::Check<'_> {
             Goal::all(&ii_where_clauses),
         )?;
 
+        // FIXME: add equality for fn pointer and reuse here.
         if ii_input_tys.len() != ti_input_tys.len() {
             bail!(
                 "impl has {} function arguments but trait has {} function arguments",
