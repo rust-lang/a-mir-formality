@@ -162,9 +162,9 @@ Putting all this together, the types layer currently includes a relatively simpl
 The name refers to the classic [SLD Resolution Algorithm][] that powers Prolog,
 although the version of it that we've implemented is extended in two ways:
 
-* It is coinductive (hence `cosld`) as [described by Luke Simon et al.](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.102.9618&rep=rep1&type=pdf).
+* It is coinductive (hence `cosld`) as [described by Luke Simon et al.](https://www.researchgate.net/publication/220898377_Co-Logic_Programming_Extending_Logic_Programming_with_Coinduction).
   This means it permits cycles, roughly speaking.
-* It covers hereditary Harrop predicates using the [techniques described by Gopalan Nadathur](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.107.2510&rep=rep1&type=pdf).
+* It covers hereditary Harrop predicates using the [techniques described by Gopalan Nadathur](https://www.researchgate.net/publication/2248171_A_Proof_Procedure_for_the_Logic_of_Hereditary_Harrop_Formulas).
 
 In terms of chalk solvers, it is "similar" to slg, but much simpler in its structure (it doesn't do any caching).
 

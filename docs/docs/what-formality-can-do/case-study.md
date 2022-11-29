@@ -283,5 +283,5 @@ There is a nice thesis I've been slowly working through on this.
 The TL;DR is something like this: "we accept all cycles but require that for any proof of `is-implemented(T: Foo)`, `has-impl(T: Foo)` must appear somewhere in the cycle", but that's not quite stating it right.
 -->
 
-[Luke Simon et al.]: https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.102.9618&rep=rep1&type=pdf
+[Luke Simon et al.]: https://www.researchgate.net/publication/220898377_Co-Logic_Programming_Extending_Logic_Programming_with_Coinduction
 [current code]: https://github.com/nikomatsakis/rust-name-resolution-algorithm/tree/ccc9599e0db39afa3516cedf059e434d0810be6f
