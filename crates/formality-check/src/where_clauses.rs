@@ -24,15 +24,19 @@ impl super::Check<'_> {
     #[context("prove_where_clause_well_formed({assumptions:?} => {where_clause:?}")]
     fn prove_where_clause_well_formed(
         &self,
-        env: &Env,
+        in_env: &Env,
         assumptions: &[Hypothesis],
         where_clause: &Predicate,
     ) -> Fallible<()> {
         match where_clause.data() {
             PredicateData::Atomic(apr) => {
-                self.prove_atomic_predicate_well_formed(env, assumptions, apr)
+                self.prove_atomic_predicate_well_formed(in_env, assumptions, apr)
             }
-            PredicateData::ForAll(_) => todo!(),
+            PredicateData::ForAll(predicate) => {
+                let mut env = in_env.clone();
+                let predicate = env.instantiate_universally(predicate);
+                self.prove_where_clause_well_formed(&env, assumptions, &predicate)
+            }
             PredicateData::Implies(_, _) => todo!(),
         }
     }
