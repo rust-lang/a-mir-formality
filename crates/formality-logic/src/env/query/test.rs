@@ -4,7 +4,7 @@ use crate::env::Env;
 
 use super::querify;
 use formality_types::{
-    grammar::Ty,
+    grammar::{ElaboratedHypotheses, Ty},
     parse::{term, term_with},
 };
 
@@ -43,7 +43,11 @@ fn create_test_env() -> (Env, Vec<(&'static str, Ty)>) {
 #[test]
 fn test_compress_universes() {
     let (env, bindings) = create_test_env();
-    let (_, substitution) = querify(&env, &term_with(&bindings, "is_implemented(Debug(U2_1))"));
+    let (_, substitution) = querify(
+        &env,
+        &ElaboratedHypotheses::none(),
+        &term_with(&bindings, "is_implemented(Debug(U2_1))"),
+    );
     expect_test::expect![[r#"
         VarSubstitution {
             map: {
@@ -63,6 +67,7 @@ fn test_placeholder_renamed_in_order_of_appearance() {
     let (env, bindings) = create_test_env();
     let (_, substitution) = querify(
         &env,
+        &ElaboratedHypotheses::none(),
         &term_with(&bindings, "is_implemented(Debug(U2_1, U2_0))"),
     );
     expect_test::expect![[r#"
@@ -82,6 +87,7 @@ fn test_mix_universes() {
     let (env, bindings) = create_test_env();
     let (_, substitution) = querify(
         &env,
+        &ElaboratedHypotheses::none(),
         &term_with(&bindings, "is_implemented(Debug(U1_0, U3_0))"),
     );
     expect_test::expect![[r#"
@@ -99,7 +105,11 @@ fn test_mix_universes() {
 fn test_existential_do_not_create_universe() {
     // Although F is created in a higher universe, it is mapped to U0 because there are no placeholders.
     let (env, bindings) = create_test_env();
-    let (query, substitution) = querify(&env, &term_with(&bindings, "is_implemented(Debug(E2_0))"));
+    let (query, substitution) = querify(
+        &env,
+        &ElaboratedHypotheses::none(),
+        &term_with(&bindings, "is_implemented(Debug(E2_0))"),
+    );
     expect_test::expect![[r#"
         (
             env(
@@ -134,6 +144,7 @@ fn test_mix_existential_and_placeholder() {
     let (env, bindings) = create_test_env();
     let (query, substitution) = querify(
         &env,
+        &ElaboratedHypotheses::none(),
         &term_with(&bindings, "is_implemented(Debug(E0_0, E1_1, U2_0, E3_0))"),
     );
     expect_test::expect![[r#"

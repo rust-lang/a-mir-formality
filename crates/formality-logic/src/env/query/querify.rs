@@ -5,19 +5,29 @@ use formality_types::{
     collections::{Map, Set},
     derive_links::Variable,
     fold::Fold,
-    grammar::{Goal, PlaceholderVar, Universe, VarIndex, VarSubstitution},
+    grammar::{ElaboratedHypotheses, Goal, PlaceholderVar, Universe, VarIndex, VarSubstitution},
 };
 
 use crate::Env;
 
 use super::Query;
 
-pub fn querify(source_env: &Env, source_goal: &Goal) -> (Query, VarSubstitution) {
+/// Given an env, assumptions, and goal, returns a `Query`
+/// and a mapping from variables in the query back to the
+/// variables in `source_env`.
+pub fn querify(
+    source_env: &Env,
+    source_assumptions: &ElaboratedHypotheses,
+    source_goal: &Goal,
+) -> (Query, VarSubstitution) {
+    let source_assumptions = source_env.refresh_inference_variables(source_assumptions);
     let source_goal = source_env.refresh_inference_variables(source_goal);
 
     // Get a list of the free variables in `goal`, in some deterministic order
     // that will be true across invocations of `querify`.
-    let mut source_free_vars = source_goal.free_variables();
+    let mut source_free_vars = vec![];
+    source_free_vars.extend(source_assumptions.free_variables());
+    source_free_vars.extend(source_goal.free_variables());
     dedup(&mut source_free_vars);
 
     // Find the universes of each placeholder in the list, in ascending order,
@@ -91,10 +101,12 @@ pub fn querify(source_env: &Env, source_goal: &Goal) -> (Query, VarSubstitution)
         })
         .collect();
 
+    let target_assumptions = var_substitution.apply(&source_assumptions);
     let target_goal = var_substitution.apply(&source_goal);
     (
         Query {
             env: target_env,
+            assumptions: target_assumptions,
             goal: target_goal,
         },
         var_substitution.reverse(),

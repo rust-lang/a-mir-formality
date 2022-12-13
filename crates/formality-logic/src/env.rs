@@ -111,6 +111,18 @@ impl Env {
         InferenceVar { index, kind }
     }
 
+    /// Returns a list of all the existing inference variables.
+    pub fn inference_variables(&self) -> Vec<InferenceVar> {
+        self.inference_data
+            .iter()
+            .zip(0..)
+            .map(|(id, i)| InferenceVar {
+                index: i,
+                kind: id.kind,
+            })
+            .collect()
+    }
+
     fn data(&self, var: InferenceVar) -> &InferenceVarData {
         &self.inference_data[var.index]
     }
@@ -254,8 +266,12 @@ impl Env {
     ///
     /// The goal can then be solved and the resulting solution can be applied
     /// back onto this original environment via the `VarSubstitution`.
-    pub fn query(&self, goal: &Goal) -> (Query, VarSubstitution) {
-        querify(self, goal)
+    pub fn query(
+        &self,
+        assumptions: &ElaboratedHypotheses,
+        goal: &Goal,
+    ) -> (Query, VarSubstitution) {
+        querify(self, assumptions, goal)
     }
 
     /// Apply a relation using the builtin rules, returning

@@ -342,6 +342,13 @@ pub enum GoalData {
 }
 
 impl Goal {
+    pub fn is_coinductive(&self) -> Coinductive {
+        match self.data() {
+            GoalData::Atomic(apr) => apr.is_coinductive(),
+            _ => Coinductive::Yes,
+        }
+    }
+
     pub fn ambiguous() -> Self {
         GoalData::Ambiguous.upcast()
     }
