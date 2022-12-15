@@ -292,52 +292,58 @@ impl Env {
     }
 
     /// Returns a set of relations affecting variables visible from the given universe.
-    pub fn inference_var_relations(&self, universe: Universe) -> Vec<AtomicRelation> {
+    pub fn all_inference_var_relations(&self, universe: Universe) -> Vec<AtomicRelation> {
         self.inference_data
             .iter()
             .zip(0..)
             .filter(|(data, _)| data.universe <= universe)
             .flat_map(|(data, index)| {
-                let InferenceVarData {
-                    kind,
-                    universe: _,
-                    mapped_to,
-                    subtype_of,
-                    supertype_of,
-                    outlives,
-                    outlived_by,
-                } = data;
-                let v = InferenceVar { index, kind: *kind };
-
-                std::iter::empty()
-                    .chain(
-                        mapped_to
-                            .iter()
-                            .map(|p| AtomicRelation::Equals(v.to(), p.to())),
-                    )
-                    .chain(
-                        subtype_of
-                            .iter()
-                            .map(|t| AtomicRelation::Sub(v.to(), t.to())),
-                    )
-                    .chain(
-                        supertype_of
-                            .iter()
-                            .map(|t| AtomicRelation::Sub(t.to(), v.to())),
-                    )
-                    .chain(
-                        outlives
-                            .iter()
-                            .map(|t| AtomicRelation::Outlives(v.to(), t.to())),
-                    )
-                    .chain(
-                        outlived_by
-                            .iter()
-                            .map(|t| AtomicRelation::Outlives(t.to(), v.to())),
-                    )
-                    .collect::<Vec<_>>()
+                self.inference_var_relations(InferenceVar {
+                    index,
+                    kind: data.kind,
+                })
             })
             .collect()
+    }
+
+    pub fn inference_var_relations(&self, v: InferenceVar) -> Vec<AtomicRelation> {
+        let InferenceVarData {
+            kind,
+            universe: _,
+            mapped_to,
+            subtype_of,
+            supertype_of,
+            outlives,
+            outlived_by,
+        } = &self.inference_data[v.index];
+
+        std::iter::empty()
+            .chain(
+                mapped_to
+                    .iter()
+                    .map(|p| AtomicRelation::Equals(v.to(), p.to())),
+            )
+            .chain(
+                subtype_of
+                    .iter()
+                    .map(|t| AtomicRelation::Sub(v.to(), t.to())),
+            )
+            .chain(
+                supertype_of
+                    .iter()
+                    .map(|t| AtomicRelation::Sub(t.to(), v.to())),
+            )
+            .chain(
+                outlives
+                    .iter()
+                    .map(|t| AtomicRelation::Outlives(v.to(), t.to())),
+            )
+            .chain(
+                outlived_by
+                    .iter()
+                    .map(|t| AtomicRelation::Outlives(t.to(), v.to())),
+            )
+            .collect::<Vec<_>>()
     }
 
     /// True if `parameter` is an unbound inference variable (i.e., a value not yet equated with

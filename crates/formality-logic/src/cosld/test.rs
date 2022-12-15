@@ -53,7 +53,7 @@ fn extract_relations(s: &Set<CosldResult>, universe: Universe) -> Vec<Option<Vec
     s.iter()
         .map(|r| match r {
             CosldResult::Maybe => None,
-            CosldResult::Yes(env) => Some(env.inference_var_relations(universe)),
+            CosldResult::Yes(env) => Some(env.all_inference_var_relations(universe)),
         })
         .collect()
 }
