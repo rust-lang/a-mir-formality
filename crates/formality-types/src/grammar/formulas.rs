@@ -21,13 +21,14 @@ use crate::collections::Set;
 
 use super::AdtId;
 use super::AliasName;
+use super::AliasTy;
 use super::Binder;
+use super::BoundVar;
 use super::Kinded;
 use super::Parameter;
 use super::Parameters;
 use super::TraitId;
 use super::Ty;
-use super::{AliasTy, KindedVarIndex};
 
 pub type Fallible<T> = anyhow::Result<T>;
 
@@ -245,7 +246,7 @@ pub struct Predicate {
 }
 
 impl Predicate {
-    pub fn for_all(names: &[KindedVarIndex], data: impl Upcast<Predicate>) -> Self {
+    pub fn for_all(names: &[BoundVar], data: impl Upcast<Predicate>) -> Self {
         PredicateData::ForAll(Binder::new(names, data.upcast())).upcast()
     }
 
@@ -353,7 +354,7 @@ impl Goal {
         GoalData::Ambiguous.upcast()
     }
 
-    pub fn for_all(names: &[KindedVarIndex], data: impl Upcast<Goal>) -> Self {
+    pub fn for_all(names: &[BoundVar], data: impl Upcast<Goal>) -> Self {
         GoalData::ForAll(Binder::new(names, data.upcast())).upcast()
     }
 
@@ -367,7 +368,7 @@ impl Goal {
         GoalData::ForAll(Binder::new(&names, data.upcast())).upcast()
     }
 
-    pub fn exists(names: &[KindedVarIndex], data: impl Upcast<Goal>) -> Self {
+    pub fn exists(names: &[BoundVar], data: impl Upcast<Goal>) -> Self {
         GoalData::Exists(Binder::new(names, data.upcast())).upcast()
     }
 
@@ -526,7 +527,7 @@ pub enum HypothesisData {
 }
 
 impl Hypothesis {
-    pub fn for_all(names: impl Upcast<Vec<KindedVarIndex>>, data: impl Upcast<Hypothesis>) -> Self {
+    pub fn for_all(names: impl Upcast<Vec<BoundVar>>, data: impl Upcast<Hypothesis>) -> Self {
         let names = names.upcast();
         HypothesisData::ForAll(Binder::new(&names, data.upcast())).upcast()
     }
@@ -566,7 +567,7 @@ pub struct InvariantImplication {
 
 impl Invariant {
     pub fn for_all(
-        names: &[KindedVarIndex],
+        names: &[BoundVar],
         implication: impl Upcast<InvariantImplication>,
     ) -> Invariant {
         Invariant {

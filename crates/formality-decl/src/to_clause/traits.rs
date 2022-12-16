@@ -2,9 +2,8 @@ use contracts::requires;
 use formality_types::{
     cast::Upcast,
     grammar::{
-        AtomicPredicate, AtomicRelation, Hypothesis, Invariant, InvariantImplication,
-        KindedVarIndex, Parameter, ParameterKind, Predicate, PredicateData, ProgramClause,
-        TraitRef, APR,
+        AtomicPredicate, AtomicRelation, BoundVar, Hypothesis, Invariant, InvariantImplication,
+        Parameter, ParameterKind, Predicate, PredicateData, ProgramClause, TraitRef, APR,
     },
 };
 
@@ -78,22 +77,19 @@ impl Trait {
 impl TraitItem {
     pub(super) fn to_clauses(
         &self,
-        trait_kinded_var_ids: &[KindedVarIndex],
+        trait_bound_vars: &[BoundVar],
         program: &crate::grammar::Program,
     ) -> Vec<ProgramClause> {
         match self {
-            TraitItem::Fn(f) => f.to_clauses(trait_kinded_var_ids, program),
-            TraitItem::AssociatedTy(v) => v.to_clauses(trait_kinded_var_ids, program),
+            TraitItem::Fn(f) => f.to_clauses(trait_bound_vars, program),
+            TraitItem::AssociatedTy(v) => v.to_clauses(trait_bound_vars, program),
         }
     }
 }
 
-#[requires(trait_kinded_var_ids[0].kind == ParameterKind::Ty)]
-fn superbounds(
-    trait_kinded_var_ids: &[KindedVarIndex],
-    where_clauses: &[Predicate],
-) -> Vec<Predicate> {
-    let self_ty: Parameter = trait_kinded_var_ids[0].upcast();
+#[requires(trait_bound_vars[0].kind == ParameterKind::Ty)]
+fn superbounds(trait_bound_vars: &[BoundVar], where_clauses: &[Predicate]) -> Vec<Predicate> {
+    let self_ty: Parameter = trait_bound_vars[0].upcast();
 
     where_clauses
         .iter()

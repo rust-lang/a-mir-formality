@@ -308,7 +308,7 @@ impl Env {
 
     pub fn inference_var_relations(&self, v: InferenceVar) -> Vec<AtomicRelation> {
         let InferenceVarData {
-            kind,
+            kind: _,
             universe: _,
             mapped_to,
             subtype_of,

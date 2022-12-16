@@ -17,9 +17,9 @@ impl rust::AssociatedTy {
             },
         ) = binder.open();
 
-        let (name, bound_var) = fresh_bound_var(ParameterKind::Ty);
+        let bound_var = fresh_bound_var(ParameterKind::Ty);
         let ensures = Binder::new(
-            &[name],
+            &[bound_var],
             ensures
                 .iter()
                 .map(|e| e.to_decl(&bound_var.to()))

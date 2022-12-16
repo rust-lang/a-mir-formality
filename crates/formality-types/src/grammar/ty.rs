@@ -491,6 +491,7 @@ impl DowncastTo<Variable> for Parameter {
     }
 }
 
+cast_impl!(BoundVar);
 cast_impl!((InferenceVar) <: (Variable) <: (Parameter));
 cast_impl!((BoundVar) <: (Variable) <: (Parameter));
 cast_impl!((PlaceholderVar) <: (Variable) <: (Parameter));
