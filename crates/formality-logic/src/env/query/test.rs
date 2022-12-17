@@ -312,14 +312,14 @@ fn test_query_result_when_var_unified_with_i32() {
 }
 
 #[test]
-fn test_query_result_with_outlives() {
+fn test_query_result_when_var_sub_refi32() {
     // Should map both E0, E1 to universe 0
     // Should map E3 to universe 1
     let (env, bindings) = create_test_env();
     let (query, _substitution) = querify(
         &env,
         &ElaboratedHypotheses::none(),
-        &term_with(&bindings, "is_implemented(Debug(E0_0, E1_1, U2_0, E3_0))"),
+        &term_with(&bindings, "is_implemented(Debug(E0_0, E1_1))"),
     );
 
     let db = MockDatabase::empty();
@@ -336,7 +336,38 @@ fn test_query_result_with_outlives() {
     let result = extract_query_result(&query, &final_env);
     expect_test::expect![[r#"
         query_result(
-            <lt> query_result_bound_data([equals(?ty0, (rigid &(shared) ^lt0_0 (rigid (scalar u32))))]),
+            <lt, lt> query_result_bound_data([equals(?ty0, (rigid &(shared) ^lt0_0 (rigid (scalar u32)))), outlives(^lt0_0, ^lt0_1)]),
+        )
+    "#]]
+    .assert_debug_eq(&result);
+}
+
+#[test]
+fn test_query_result_when_var_sub_var() {
+    // Should map both E0, E1 to universe 0
+    // Should map E3 to universe 1
+    let (env, bindings) = create_test_env();
+    let (query, _substitution) = querify(
+        &env,
+        &ElaboratedHypotheses::none(),
+        &term_with(&bindings, "is_implemented(Debug(E0_0, E0_1, U2_0, E3_0))"),
+    );
+
+    let db = MockDatabase::empty();
+
+    let env_vars = query.env.inference_variables();
+    let bindings = vec![("QV0", env_vars[0]), ("QV1", env_vars[1])];
+
+    let final_env = expect_just_yes(cosld::prove(
+        &db,
+        &query.env,
+        &[],
+        &term_with(&bindings, "exists(<lt a> sub(QV0, QV1))"),
+    ));
+    let result = extract_query_result(&query, &final_env);
+    expect_test::expect![[r#"
+        query_result(
+            <> query_result_bound_data([sub(?ty0, ?ty1)]),
         )
     "#]]
     .assert_debug_eq(&result);
