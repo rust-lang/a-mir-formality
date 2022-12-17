@@ -1,6 +1,6 @@
 use formality_types::{
     cast::Upcast,
-    grammar::{ParameterKind, RefKind, RigidName, RigidTy, Ty, Universe, Variance},
+    grammar::{ParameterKind, RefKind, RigidName, RigidTy, Universe, Variance},
 };
 
 use super::Env;
@@ -9,7 +9,12 @@ use crate::Db;
 impl Env {
     /// Instantiates a rigid-type with the given `name` and suitable inference variables
     /// as its parameters. The variables will be in the given universe.
-    pub(crate) fn fresh_rigid_ty(&mut self, db: &Db, name: &RigidName, universe: Universe) -> Ty {
+    pub(crate) fn fresh_rigid_ty(
+        &mut self,
+        db: &Db,
+        name: &RigidName,
+        universe: Universe,
+    ) -> RigidTy {
         let parameters: Vec<_> = self
             .rigid_generics(db, name)
             .into_iter()
@@ -20,7 +25,6 @@ impl Env {
             name: name.clone(),
             parameters,
         }
-        .upcast()
     }
 
     /// Returns the expected kinds and variance of the generic parameters for the given rigid type.

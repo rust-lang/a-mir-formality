@@ -1,9 +1,15 @@
 #![cfg(test)]
 
-use crate::{env::Env, MockDatabase};
+use crate::{
+    cosld::{self, CosldResult},
+    env::Env,
+    MockDatabase,
+};
 
 use super::{extract_query_result::extract_query_result, querify};
+use formality_macros::test;
 use formality_types::{
+    collections::Set,
     grammar::{AtomicRelation, ElaboratedHypotheses, ScalarId, Ty},
     parse::{term, term_with},
 };
@@ -303,4 +309,48 @@ fn test_query_result_when_var_unified_with_i32() {
         )
     "#]]
     .assert_debug_eq(&result);
+}
+
+#[test]
+fn test_query_result_with_outlives() {
+    // Should map both E0, E1 to universe 0
+    // Should map E3 to universe 1
+    let (env, bindings) = create_test_env();
+    let (query, _substitution) = querify(
+        &env,
+        &ElaboratedHypotheses::none(),
+        &term_with(&bindings, "is_implemented(Debug(E0_0, E1_1, U2_0, E3_0))"),
+    );
+
+    let db = MockDatabase::empty();
+
+    let env_vars = query.env.inference_variables();
+    let bindings = vec![("QV0", env_vars[0])];
+
+    let final_env = expect_just_yes(cosld::prove(
+        &db,
+        &query.env,
+        &[],
+        &term_with(&bindings, "exists(<lt a> sub(QV0, &a u32))"),
+    ));
+    let result = extract_query_result(&query, &final_env);
+    expect_test::expect![[r#"
+        query_result(
+            <lt> query_result_bound_data([equals(?ty0, (rigid &(shared) ^lt0_0 (rigid (scalar u32))))]),
+        )
+    "#]]
+    .assert_debug_eq(&result);
+}
+
+#[track_caller]
+fn expect_just_yes(s: Set<CosldResult>) -> Env {
+    assert!(
+        s.len() == 1,
+        "didn't get 1 solution, as expected, but {}",
+        s.len()
+    );
+    match s.into_iter().next().unwrap() {
+        CosldResult::Yes(env) => env,
+        CosldResult::Maybe => panic!("got maybe result"),
+    }
 }

@@ -37,6 +37,8 @@ fn prove_goal(
     assumptions: &ElaboratedHypotheses,
     goal: &Goal,
 ) -> Set<CosldResult> {
+    tracing::debug!(?goal);
+
     match goal.data() {
         GoalData::Atomic(apr) => {
             if db.force_ambiguous(env, apr) {

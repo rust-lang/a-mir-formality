@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use formality_types::{
     cast::Upcast,
     collections::{Map, Set},
@@ -8,7 +6,7 @@ use formality_types::{
     grammar::{ElaboratedHypotheses, Goal, PlaceholderVar, Universe, VarIndex, VarSubstitution},
 };
 
-use crate::Env;
+use crate::{env::query::dedup, Env};
 
 use super::Query;
 
@@ -111,12 +109,6 @@ pub fn querify(
         },
         var_substitution.reverse(),
     )
-}
-
-/// Remove duplicates from `vec`, preserving the ordering.
-fn dedup<T: Clone + Ord>(vec: &mut Vec<T>) {
-    let mut set: BTreeSet<T> = BTreeSet::default();
-    vec.retain(|e| set.insert(e.clone()));
 }
 
 /// Find the largest universe in the universe map that

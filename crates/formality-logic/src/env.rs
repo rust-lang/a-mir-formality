@@ -167,13 +167,17 @@ impl Env {
 
     /// Replace any mapped inference variables in `term` with the values they are mapped to.
     pub fn refresh_inference_variables<T: Term>(&self, term: &T) -> T {
-        term.substitute(&mut |var| {
-            if let Variable::InferenceVar(var) = var {
-                self.data(var).mapped_to.clone()
-            } else {
-                None
-            }
-        })
+        let mut result = term.clone();
+        while !self.fully_refreshed(&result) {
+            result = result.substitute(&mut |var| {
+                if let Variable::InferenceVar(var) = var {
+                    self.data(var).mapped_to.clone()
+                } else {
+                    None
+                }
+            });
+        }
+        result
     }
 
     /// True if all inference variables in `term` are unmapped.

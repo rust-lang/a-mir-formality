@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use formality_macros::term;
 use formality_types::grammar::{
     AtomicRelation, Binder, ElaboratedHypotheses, Goal, InferenceVar, Universe,
@@ -53,3 +55,9 @@ pub struct QueryResultBoundData {
 }
 
 pub use querify::querify;
+
+/// Helper: Remove duplicates from `vec`, preserving the ordering.
+fn dedup<T: Clone + Ord>(vec: &mut Vec<T>) {
+    let mut set: BTreeSet<T> = BTreeSet::default();
+    vec.retain(|e| set.insert(e.clone()));
+}
