@@ -1,10 +1,10 @@
 #![cfg(test)]
 
-use crate::env::Env;
+use crate::{env::Env, MockDatabase};
 
-use super::querify;
+use super::{extract_query_result::extract_query_result, querify};
 use formality_types::{
-    grammar::{ElaboratedHypotheses, Ty},
+    grammar::{AtomicRelation, ElaboratedHypotheses, ScalarId, Ty},
     parse::{term, term_with},
 };
 
@@ -193,4 +193,114 @@ fn test_mix_existential_and_placeholder() {
         )
     "#]]
     .assert_debug_eq(&(query.env, substitution));
+}
+
+#[test]
+fn test_query_result() {
+    // Should map both E0, E1 to universe 0
+    // Should map E3 to universe 1
+    let (env, bindings) = create_test_env();
+    let (query, substitution) = querify(
+        &env,
+        &ElaboratedHypotheses::none(),
+        &term_with(&bindings, "is_implemented(Debug(E0_0, E1_1, U2_0, E3_0))"),
+    );
+    expect_test::expect![[r#"
+        (
+            env(
+                U(1),
+                [
+                    inference_var_data(
+                        ty,
+                        U(0),
+                        None,
+                        [],
+                        [],
+                        [],
+                        [],
+                    ),
+                    inference_var_data(
+                        ty,
+                        U(0),
+                        None,
+                        [],
+                        [],
+                        [],
+                        [],
+                    ),
+                    inference_var_data(
+                        ty,
+                        U(1),
+                        None,
+                        [],
+                        [],
+                        [],
+                        [],
+                    ),
+                ],
+                no,
+            ),
+            VarSubstitution {
+                map: {
+                    !tyU(1)_0: !tyU(2)_0,
+                    ?ty0: ?ty0,
+                    ?ty1: ?ty3,
+                    ?ty2: ?ty6,
+                },
+            },
+        )
+    "#]]
+    .assert_debug_eq(&(query.env, substitution));
+}
+
+#[test]
+fn test_query_result_noop() {
+    // Should map both E0, E1 to universe 0
+    // Should map E3 to universe 1
+    let (env, bindings) = create_test_env();
+    let (query, _substitution) = querify(
+        &env,
+        &ElaboratedHypotheses::none(),
+        &term_with(&bindings, "is_implemented(Debug(E0_0, E1_1, U2_0, E3_0))"),
+    );
+
+    // test result when we do nothing -- answer, no-op subst
+    let result = extract_query_result(&query, &query.env);
+    expect_test::expect![[r#"
+        query_result(
+            <> query_result_bound_data([]),
+        )
+    "#]]
+    .assert_debug_eq(&result);
+}
+
+#[test]
+fn test_query_result_when_var_unified_with_i32() {
+    // Should map both E0, E1 to universe 0
+    // Should map E3 to universe 1
+    let (env, bindings) = create_test_env();
+    let (query, _substitution) = querify(
+        &env,
+        &ElaboratedHypotheses::none(),
+        &term_with(&bindings, "is_implemented(Debug(E0_0, E1_1, U2_0, E3_0))"),
+    );
+
+    let final_env = query.env.clone();
+    let env_vars = final_env.inference_variables();
+    let qv0 = env_vars[0];
+
+    let db = MockDatabase::empty();
+    let assumptions = ElaboratedHypotheses::none();
+    let (final_env, goals) = final_env
+        .apply_relation(&db, &assumptions, &AtomicRelation::eq(qv0, ScalarId::I32))
+        .unwrap();
+    assert!(goals.is_empty());
+
+    let result = extract_query_result(&query, &final_env);
+    expect_test::expect![[r#"
+        query_result(
+            <> query_result_bound_data([equals(?ty0, (rigid (scalar i32)))]),
+        )
+    "#]]
+    .assert_debug_eq(&result);
 }

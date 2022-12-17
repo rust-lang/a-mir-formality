@@ -1,8 +1,11 @@
 use formality_macros::term;
-use formality_types::grammar::{ElaboratedHypotheses, Goal, InferenceVar, Universe};
+use formality_types::grammar::{
+    AtomicRelation, Binder, ElaboratedHypotheses, Goal, InferenceVar, Universe,
+};
 
 use super::Env;
 
+mod extract_query_result;
 mod querify;
 mod test;
 
@@ -33,6 +36,20 @@ impl Query {
 #[term]
 pub struct UniverseMap {
     pub universes: Vec<(Universe, Universe)>,
+}
+
+#[term]
+pub struct QueryResult {
+    /// "Forall" variables in the query result. These are to be
+    /// instantiated as existentials.
+    binder: Binder<QueryResultBoundData>,
+}
+
+#[term]
+pub struct QueryResultBoundData {
+    /// Non-equality relations between inference variables in the initial environment
+    /// or fresh variables. For example, `a: b`.
+    relations: Vec<AtomicRelation>,
 }
 
 pub use querify::querify;
