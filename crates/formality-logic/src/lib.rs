@@ -2,6 +2,7 @@
 
 use contracts::requires;
 use cosld::CosldResult;
+use env::query::{Query, QueryResult};
 use formality_macros::term;
 use formality_types::{
     derive_links,
@@ -85,6 +86,51 @@ pub fn prove_goal(db: &Db, env: &Env, assumptions: &[Hypothesis], goal: &Goal) -
                 match results.into_iter().next().unwrap() {
                     CosldResult::Yes(env) => GoalResult::Yes(env),
                     CosldResult::Maybe => GoalResult::Maybe(env.clone()),
+                }
+            }
+        }
+    }
+}
+
+#[term]
+pub enum Certainty {
+    Yes,
+    Maybe,
+}
+
+#[term]
+pub struct QueryProof {
+    certainty: Certainty,
+    result: QueryResult,
+}
+
+fn prove_query(db: &Db, query: &Query) -> Option<QueryProof> {
+    match db.solver_config() {
+        SolverConfiguration::Cosld => {
+            let results = cosld::prove(db, &query.env, &query.assumptions, &query.goal);
+            if results.len() == 0 {
+                None
+            } else if results.len() > 1 {
+                // This is overly simplistic, it may be that there are multiple Yes results but
+                // one is clearly better. I'm not going to deal with that right now.
+                Some(QueryProof {
+                    certainty: Certainty::Maybe,
+                    result: QueryResult::identity(),
+                })
+            } else {
+                match results.into_iter().next().unwrap() {
+                    CosldResult::Yes(env) => {
+                        let result = query.extract_result(&env);
+                        Some(QueryProof {
+                            certainty: Certainty::Yes,
+                            result: result,
+                        })
+                    }
+
+                    CosldResult::Maybe => Some(QueryProof {
+                        certainty: Certainty::Maybe,
+                        result: QueryResult::identity(),
+                    }),
                 }
             }
         }

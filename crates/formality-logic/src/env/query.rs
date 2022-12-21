@@ -30,8 +30,16 @@ pub struct Query {
 }
 
 impl Query {
+    /// Returns a list of the input variables of the query.
     pub fn query_variables(&self) -> Vec<InferenceVar> {
         self.env.inference_variables()
+    }
+
+    /// Given the final enviroment that resulted from attempting to prove a query,
+    /// returns the *query result*, which encodes the relations that have to be
+    /// added to the query caller's environment to recreate this final environment.
+    pub fn extract_result(&self, final_env: &Env) -> QueryResult {
+        extract_query_result::extract_query_result(self, final_env)
     }
 }
 
@@ -52,6 +60,20 @@ pub struct QueryResultBoundData {
     /// Non-equality relations between inference variables in the initial environment
     /// or fresh variables. For example, `a: b`.
     relations: Vec<AtomicRelation>,
+}
+
+impl QueryResult {
+    /// An "identity" result means that it adds no relations into the caller's environment.
+    ///
+    /// When the result is successful, this means it is true for any value of the query's inference variables.
+    ///
+    /// When the result is ambiguous, this means that it adds no information to the caller's environment that would help to resolve
+    /// the ambiguity.
+    pub fn identity() -> Self {
+        QueryResult {
+            binder: Binder::new(&[], QueryResultBoundData { relations: vec![] }),
+        }
+    }
 }
 
 pub use querify::querify;

@@ -13,6 +13,8 @@ use crate::{env::query::dedup, Env};
 
 use super::{Query, QueryResult, QueryResultBoundData};
 
+/// Extracts the *query result* from the final env that resulted from solving the query.
+/// This query result contains atomic relations that constrain the query env.
 #[tracing::instrument(level = "debug", ret)]
 pub fn extract_query_result(query: &Query, final_env: &Env) -> QueryResult {
     let query_variables = query.query_variables();
