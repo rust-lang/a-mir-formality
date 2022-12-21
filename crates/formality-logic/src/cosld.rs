@@ -18,8 +18,12 @@ mod test;
 ///
 /// [SLD]: https://en.wikipedia.org/wiki/SLD_resolution
 /// [FOHH]: https://en.wikipedia.org/wiki/Harrop_formula
-pub fn prove(db: &Db, env: &Env, assumptions: &[Hypothesis], goal: &Goal) -> Set<CosldResult> {
-    let assumptions = &elaborate_hypotheses(db, assumptions);
+pub fn prove(
+    db: &Db,
+    env: &Env,
+    assumptions: &ElaboratedHypotheses,
+    goal: &Goal,
+) -> Set<CosldResult> {
     prove_goal(db, env, Stack::Empty, assumptions, goal)
 }
 

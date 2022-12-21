@@ -36,6 +36,7 @@ pub fn prove_universal_goal(
     assumptions: &[Hypothesis],
     goal: &Goal,
 ) -> UniversalGoalResult {
+    let assumptions = &elaborate_hypotheses::elaborate_hypotheses(db, assumptions);
     match db.solver_config() {
         SolverConfiguration::Cosld => {
             let results = cosld::prove(db, env, assumptions, goal);
@@ -70,6 +71,7 @@ pub enum GoalResult {
 /// that contains conditions and unifications that had to be true for
 /// the goal to be true (this applies even if a "maybe" result is returned).
 pub fn prove_goal(db: &Db, env: &Env, assumptions: &[Hypothesis], goal: &Goal) -> GoalResult {
+    let assumptions = &elaborate_hypotheses::elaborate_hypotheses(db, assumptions);
     match db.solver_config() {
         SolverConfiguration::Cosld => {
             let results = cosld::prove(db, env, assumptions, goal);
