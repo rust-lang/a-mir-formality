@@ -258,34 +258,6 @@ pub enum QuantifierKind {
     Exists,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct KindedVarIndex {
-    pub kind: ParameterKind,
-    pub var_index: VarIndex,
-}
-
-impl UpcastFrom<KindedVarIndex> for BoundVar {
-    fn upcast_from(term: KindedVarIndex) -> Self {
-        BoundVar {
-            debruijn: None,
-            var_index: term.var_index,
-            kind: term.kind,
-        }
-    }
-}
-
-impl UpcastFrom<KindedVarIndex> for Variable {
-    fn upcast_from(term: KindedVarIndex) -> Self {
-        term.to::<BoundVar>().to()
-    }
-}
-
-impl UpcastFrom<KindedVarIndex> for Parameter {
-    fn upcast_from(term: KindedVarIndex) -> Self {
-        term.to::<BoundVar>().upcast()
-    }
-}
-
 #[term]
 pub enum Parameter {
     #[cast]
@@ -491,6 +463,7 @@ impl DowncastTo<Variable> for Parameter {
     }
 }
 
+cast_impl!(BoundVar);
 cast_impl!((InferenceVar) <: (Variable) <: (Parameter));
 cast_impl!((BoundVar) <: (Variable) <: (Parameter));
 cast_impl!((PlaceholderVar) <: (Variable) <: (Parameter));
@@ -643,7 +616,6 @@ cast_impl!((ScalarId) <: (RigidTy) <: (TyData));
 cast_impl!((PlaceholderVar) <: (Variable) <: (Ty));
 cast_impl!((InferenceVar) <: (Variable) <: (Ty));
 cast_impl!((BoundVar) <: (Variable) <: (Ty));
-cast_impl!(KindedVarIndex);
 cast_impl!(Lt);
 cast_impl!(LtData::Variable(Variable));
 cast_impl!((InferenceVar) <: (Variable) <: (LtData));

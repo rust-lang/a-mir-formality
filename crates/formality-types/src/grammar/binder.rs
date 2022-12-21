@@ -12,10 +12,7 @@ use crate::{
     grammar::VarIndex,
 };
 
-use super::{
-    BoundVar, DebruijnIndex, Fallible, KindedVarIndex, Parameter, ParameterKind, Substitution,
-    Variable,
-};
+use super::{BoundVar, DebruijnIndex, Fallible, Parameter, ParameterKind, Substitution, Variable};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Binder<T> {
@@ -30,8 +27,8 @@ impl<T: Fold> Binder<T> {
     /// that do not alias any other indices seen during this computation.
     ///
     /// The expectation is that you will create a term and use `Binder::new`.
-    pub fn open(&self) -> (Vec<KindedVarIndex>, T) {
-        let (var_kinds, substitution): (Vec<KindedVarIndex>, Substitution) = self
+    pub fn open(&self) -> (Vec<BoundVar>, T) {
+        let (bound_vars, substitution): (Vec<BoundVar>, Substitution) = self
             .kinds
             .iter()
             .zip(0..)
@@ -41,34 +38,32 @@ impl<T: Fold> Binder<T> {
                     var_index: VarIndex { index },
                     kind: *kind,
                 };
-                let (kind_index, new_bound_var) = fresh_bound_var(*kind);
-                (kind_index, (old_bound_var.upcast(), new_bound_var.upcast()))
+                let new_bound_var = fresh_bound_var(*kind);
+                (
+                    new_bound_var,
+                    (old_bound_var.upcast(), new_bound_var.upcast()),
+                )
             })
             .unzip();
 
-        (var_kinds, substitution.apply(&self.term))
+        (bound_vars, substitution.apply(&self.term))
     }
 
     /// Given a set of variables (X, Y, Z) and a term referecing them,
     /// create a binder where those variables are bound.
-    pub fn new(variables: &[KindedVarIndex], term: T) -> Self {
+    pub fn new(variables: &[BoundVar], term: T) -> Self {
         let (kinds, substitution): (Vec<ParameterKind>, Substitution) = variables
             .iter()
             .zip(0..)
-            .map(|(kinded_index, index)| {
-                let old_bound_var: Variable = BoundVar {
-                    debruijn: None,
-                    var_index: kinded_index.var_index,
-                    kind: kinded_index.kind,
-                }
-                .upcast();
+            .map(|(old_bound_var, index)| {
+                assert!(old_bound_var.debruijn.is_none());
                 let new_bound_var: Parameter = BoundVar {
                     debruijn: Some(DebruijnIndex::INNERMOST),
                     var_index: VarIndex { index },
-                    kind: kinded_index.kind,
+                    kind: old_bound_var.kind,
                 }
                 .upcast();
-                (kinded_index.kind, (old_bound_var, new_bound_var))
+                (old_bound_var.kind, (old_bound_var.upcast(), new_bound_var))
             })
             .unzip();
 
@@ -145,21 +140,18 @@ impl<T: Fold> Binder<T> {
 
 /// Creates a fresh bound var of the given kind that is not yet part of a binder.
 /// You can put this into a term and then use `Binder::new`.
-pub fn fresh_bound_var(kind: ParameterKind) -> (KindedVarIndex, BoundVar) {
+pub fn fresh_bound_var(kind: ParameterKind) -> BoundVar {
     lazy_static! {
         static ref COUNTER: AtomicUsize = AtomicUsize::new(0);
     }
 
     let index = COUNTER.fetch_add(1, Ordering::SeqCst);
     let var_index = VarIndex { index };
-    (
-        KindedVarIndex { kind, var_index },
-        BoundVar {
-            debruijn: None,
-            var_index,
-            kind,
-        },
-    )
+    BoundVar {
+        debruijn: None,
+        var_index,
+        kind,
+    }
 }
 
 impl<T: Fold> Fold for Binder<T> {

@@ -1,5 +1,5 @@
 use formality_types::grammar::{
-    AliasTy, Hypothesis, Invariant, KindedVarIndex, Predicate, ProgramClause, TraitRef,
+    AliasTy, BoundVar, Hypothesis, Invariant, Predicate, ProgramClause, TraitRef,
 };
 
 use crate::grammar::{AssociatedTy, AssociatedTyValue, AssociatedTyValueBoundData, Program};
@@ -7,7 +7,7 @@ use crate::grammar::{AssociatedTy, AssociatedTyValue, AssociatedTyValueBoundData
 impl AssociatedTy {
     pub(super) fn to_clauses(
         &self,
-        _trait_kinded_var_ids: &[KindedVarIndex],
+        _trait_bound_vars: &[BoundVar],
         _program: &Program,
     ) -> Vec<ProgramClause> {
         unimplemented!()
@@ -21,7 +21,7 @@ impl AssociatedTy {
 impl AssociatedTyValue {
     pub(super) fn to_clauses(
         &self,
-        impl_kinded_var_ids: &[KindedVarIndex],
+        impl_bound_vars: &[BoundVar],
         trait_ref: &TraitRef,
         impl_where_clauses: &[Predicate],
         _program: &Program,
@@ -36,7 +36,7 @@ impl AssociatedTyValue {
         );
 
         let g = Hypothesis::for_all(
-            (impl_kinded_var_ids, atv_kinded_var_ids),
+            (impl_bound_vars, atv_kinded_var_ids),
             Hypothesis::implies(
                 (impl_where_clauses, &where_clauses),
                 alias_ty.normalizes_to(&ty),

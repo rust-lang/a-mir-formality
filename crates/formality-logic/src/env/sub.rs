@@ -1,10 +1,11 @@
 use anyhow::bail;
 
 use formality_types::{
-    cast::Upcast,
+    cast::{To, Upcast},
     derive_links::{Parameter, Variable},
     grammar::{
-        EnsuresTy, Fallible, Goal, ImplicationTy, PredicateTy, RigidTy, Ty, TyData, Variance,
+        EnsuresTy, Fallible, Goal, ImplicationTy, PredicateTy, RigidName, RigidTy, Ty, TyData,
+        Variance,
     },
     seq,
 };
@@ -48,30 +49,39 @@ impl Env {
             // given `?a <: b<...>`, we can instantiate `?a` as a version of `b`.
             (
                 &TyData::Variable(Variable::InferenceVar(a)),
-                TyData::RigidTy(RigidTy { name, .. }),
+                TyData::RigidTy(RigidTy {
+                    name,
+                    parameters: parameters_b,
+                }),
             ) => {
                 assert!(!self.is_mapped(a));
-                let a1: Ty = self.fresh_rigid_ty(db, name, self.data(a).universe);
+                let a1 = self.fresh_rigid_ty(db, name, self.data(a).universe);
                 let equate_goals = self.equate_var(a, &a1)?;
+                let subty_goals = self.sub_rigid_tys(db, name, &a1.parameters, parameters_b);
                 Ok(seq![
-                    a1.well_formed().upcast(),
+                    a1.to::<Ty>().well_formed().upcast(),
                     ..equate_goals,
-                    Goal::sub(a1, b),
+                    ..subty_goals
                 ])
             }
 
             // As in the previous rule, but reversed.
             (
-                TyData::RigidTy(RigidTy { name, .. }),
+                TyData::RigidTy(RigidTy {
+                    name,
+                    parameters: parameters_a,
+                    ..
+                }),
                 &TyData::Variable(Variable::InferenceVar(b)),
             ) => {
                 assert!(!self.is_mapped(b));
-                let b1: Ty = self.fresh_rigid_ty(db, name, self.data(b).universe);
+                let b1 = self.fresh_rigid_ty(db, name, self.data(b).universe);
                 let equate_goals = self.equate_var(b, &b1)?;
+                let subty_goals = self.sub_rigid_tys(db, name, parameters_a, &b1.parameters);
                 Ok(seq![
-                    b1.well_formed().upcast(),
+                    b1.to::<Ty>().well_formed().upcast(),
                     ..equate_goals,
-                    Goal::sub(a, b1),
+                    ..subty_goals,
                 ])
             }
 
@@ -109,23 +119,12 @@ impl Env {
                 }),
             ) => {
                 if name_a != name_b {
-                    anyhow::bail!("cannot equate `{a:?}` and `{b:?}`");
+                    anyhow::bail!(
+                        "no subtyping relationship between `{name_a:?}` and `{name_b:?}`"
+                    );
                 }
 
-                let generics = self.rigid_generics(db, name_a);
-                assert_eq!(parameters_a.len(), generics.len());
-                assert_eq!(parameters_b.len(), generics.len());
-
-                Ok(parameters_a
-                    .iter()
-                    .zip(parameters_b)
-                    .zip(&generics)
-                    .map(|((p_a, p_b), (_, variance))| match variance {
-                        Variance::Covariant => Goal::sub(p_a, p_b),
-                        Variance::Contravariant => Goal::sub(p_b, p_a),
-                        Variance::Invariant => Goal::eq(p_a, p_b),
-                    })
-                    .collect())
+                Ok(self.sub_rigid_tys(db, name_a, parameters_a, parameters_b))
             }
 
             // Two alias types can be a subtype if...
@@ -262,6 +261,29 @@ impl Env {
                 Ok(vec![Goal::all((predicates, vec![Goal::sub(a1, b)]))])
             }
         }
+    }
+
+    fn sub_rigid_tys(
+        &mut self,
+        db: &Db,
+        name: &RigidName,
+        parameters_a: &[Parameter],
+        parameters_b: &[Parameter],
+    ) -> Vec<Goal> {
+        let generics = self.rigid_generics(db, name);
+        assert_eq!(parameters_a.len(), generics.len());
+        assert_eq!(parameters_b.len(), generics.len());
+
+        parameters_a
+            .iter()
+            .zip(parameters_b)
+            .zip(&generics)
+            .map(|((p_a, p_b), (_, variance))| match variance {
+                Variance::Covariant => Goal::sub(p_a, p_b),
+                Variance::Contravariant => Goal::sub(p_b, p_a),
+                Variance::Invariant => Goal::eq(p_a, p_b),
+            })
+            .collect()
     }
 }
 

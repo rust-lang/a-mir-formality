@@ -4,7 +4,7 @@ use crate::{
     cast::{To, Upcast},
     collections::Set,
     derive_links::{Fold, Parameter, ParameterKind},
-    grammar::{Binder, BoundVar, KindedVarIndex},
+    grammar::{Binder, BoundVar},
     set,
 };
 use std::fmt::Debug;
@@ -166,10 +166,7 @@ pub struct Binding {
     /// Name the user during during parsing
     pub name: String,
 
-    /// The [`ParameterKind`] combined with a unique var index
-    pub kvi: KindedVarIndex,
-
-    /// The bound var representation (derivable from `kvi`).
+    /// The bound var representation.
     pub bound_var: BoundVar,
 }
 
@@ -219,15 +216,8 @@ impl Parse for Binding {
     fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
         let (kind, text) = ParameterKind::parse(scope, text)?;
         let (name, text) = identifier(text)?;
-        let (kvi, bound_var) = crate::grammar::fresh_bound_var(kind);
-        Ok((
-            Binding {
-                name,
-                kvi,
-                bound_var,
-            },
-            text,
-        ))
+        let bound_var = crate::grammar::fresh_bound_var(kind);
+        Ok((Binding { name, bound_var }, text))
     }
 }
 
@@ -244,10 +234,11 @@ where
         let ((), text) = expect_char('>', text)?;
 
         // parse the contents with those names in scope
-        let scope1 = scope.with_bindings(bindings.iter().map(|b| (b.name.clone(), b.kvi.to())));
+        let scope1 =
+            scope.with_bindings(bindings.iter().map(|b| (b.name.clone(), b.bound_var.to())));
         let (data, text) = T::parse(&scope1, text)?;
 
-        let kvis: Vec<KindedVarIndex> = bindings.iter().map(|b| b.kvi).collect();
+        let kvis: Vec<BoundVar> = bindings.iter().map(|b| b.bound_var).collect();
         Ok((Binder::new(&kvis, data), text))
     }
 }

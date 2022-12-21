@@ -1,6 +1,6 @@
 use formality_macros::term;
 use formality_types::grammar::{
-    AtomicRelation, Binder, ElaboratedHypotheses, Goal, Hypothesis, HypothesisData, KindedVarIndex,
+    AtomicRelation, Binder, BoundVar, ElaboratedHypotheses, Goal, Hypothesis, HypothesisData,
     Parameter, PlaceholderVar, Variable, APR,
 };
 
@@ -35,7 +35,7 @@ impl Env {
     fn to_placeholder_bound(
         &self,
         assumption: &Hypothesis,
-        mut accumulated_for_all_names: Vec<KindedVarIndex>,
+        mut accumulated_for_all_names: Vec<BoundVar>,
         mut accumulated_conditions: Vec<Goal>,
         placeholder: PlaceholderVar,
         relationship: Relationship,

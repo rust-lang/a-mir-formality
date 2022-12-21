@@ -4,7 +4,7 @@ use formality_types::{
     cast::To,
     derive_links::{DowncastTo, UpcastFrom},
     fold::Fold,
-    grammar::{fresh_bound_var, Binder, KindedVarIndex, ParameterKind},
+    grammar::{fresh_bound_var, Binder, BoundVar, ParameterKind},
     parse::{expect_char, Binding, Parse, ParseResult},
     term::Term,
 };
@@ -15,7 +15,7 @@ impl<T> TraitBinder<T>
 where
     T: Term,
 {
-    pub fn open(&self) -> (Vec<KindedVarIndex>, T) {
+    pub fn open(&self) -> (Vec<BoundVar>, T) {
         self.explicit_binder.open()
     }
 }
@@ -76,22 +76,22 @@ where
         let ((), text) = expect_char('>', text)?;
 
         // insert the `Self` binding at position 0
-        let (kvi, bound_var) = fresh_bound_var(ParameterKind::Ty);
+        let bound_var = fresh_bound_var(ParameterKind::Ty);
         bindings.insert(
             0,
             Binding {
                 name: "Self".to_string(),
-                kvi,
                 bound_var,
             },
         );
 
         // parse the contents with those names in scope
-        let scope1 = scope.with_bindings(bindings.iter().map(|b| (b.name.clone(), b.kvi.to())));
+        let scope1 =
+            scope.with_bindings(bindings.iter().map(|b| (b.name.clone(), b.bound_var.to())));
         let (data, text) = T::parse(&scope1, text)?;
 
-        let kvis: Vec<KindedVarIndex> = bindings.iter().map(|b| b.kvi).collect();
-        let explicit_binder = Binder::new(&kvis, data);
+        let bound_vars: Vec<BoundVar> = bindings.iter().map(|b| b.bound_var).collect();
+        let explicit_binder = Binder::new(&bound_vars, data);
 
         Ok((TraitBinder { explicit_binder }, text))
     }
