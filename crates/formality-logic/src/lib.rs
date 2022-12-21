@@ -25,6 +25,8 @@ pub enum UniversalGoalResult {
     Maybe,
 }
 
+/// Proves a goal that references only univesal placeholders.
+/// This is an important special case because it has no inference side effects.
 #[tracing::instrument(ret)]
 #[requires(goal.references_only_placeholder_variables())]
 #[requires(assumptions.iter().all(|a| a.references_only_placeholder_variables()))]
