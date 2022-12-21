@@ -1,5 +1,4 @@
-use rustc_formality::{self, OutputFormat};
-use std::process::ExitCode;
+use formality_types::grammar::Fallible;
 
 use clap::Parser;
 
@@ -19,22 +18,9 @@ struct Args {
     input_path: String,
 }
 
-fn main() -> ExitCode {
+fn main() -> Fallible<()> {
     let args = Args::parse();
-    // the path to the Rust source file is specified as an argument to the program
-
-    let generated_code =
-        rustc_formality::run_rustc(&args.input_path, OutputFormat::Expression, args.fail)
-            .expect("Failed to run rustc");
-
-    if args.print {
-        println!("{generated_code}");
-        ExitCode::SUCCESS
-    } else {
-        if rustc_formality::run_racket(&generated_code).expect("Failed to run racket") {
-            ExitCode::SUCCESS
-        } else {
-            ExitCode::FAILURE
-        }
-    }
+    let input = std::fs::read_to_string(&args.input_path)?;
+    formality_rust::test_program_ok(&input)?;
+    Ok(())
 }

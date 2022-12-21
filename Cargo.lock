@@ -180,6 +180,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "formality"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "formality-core",
+ "formality-rust",
+ "formality-types",
+ "pretty_assertions",
+]
+
+[[package]]
 name = "formality-check"
 version = "0.1.0"
 dependencies = [
@@ -475,14 +486,6 @@ name = "regex-syntax"
 version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
-
-[[package]]
-name = "rustc-formality"
-version = "0.1.0"
-dependencies = [
- "clap",
- "pretty_assertions",
-]
 
 [[package]]
 name = "sharded-slab"
