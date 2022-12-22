@@ -44,14 +44,14 @@ pub struct UniverseMap {
 pub struct QueryResult {
     /// "Forall" variables in the query result. These are to be
     /// instantiated as existentials.
-    binder: Binder<QueryResultBoundData>,
+    pub binder: Binder<QueryResultBoundData>,
 }
 
 #[term]
 pub struct QueryResultBoundData {
     /// Non-equality relations between inference variables in the initial environment
     /// or fresh variables. For example, `a: b`.
-    relations: Vec<AtomicRelation>,
+    pub relations: Vec<AtomicRelation>,
 }
 
 pub use querify::querify;
