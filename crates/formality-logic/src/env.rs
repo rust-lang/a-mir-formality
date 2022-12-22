@@ -12,7 +12,7 @@ use formality_types::{
     term::Term,
 };
 
-use self::query::{querify, Query};
+use self::query::{querify, Query, QueryResult, QueryResultBoundData};
 
 mod bound;
 mod eq;
@@ -276,6 +276,40 @@ impl Env {
         goal: &Goal,
     ) -> (Query, VarSubstitution) {
         querify(self, assumptions, goal)
+    }
+
+    /// Applies the results of proving a query to this environment.
+    /// Yields a fresh environment and a list of goals that must be proven.
+    pub fn apply_query_results(
+        &self,
+        db: &Db,
+        assumptions: &ElaboratedHypotheses,
+        query_subst: &VarSubstitution,
+        query_result: &QueryResult,
+    ) -> Fallible<(Env, Vec<Goal>)> {
+        let mut env = self.clone();
+        let query_result = query_subst.apply(query_result);
+        let QueryResultBoundData { relations } =
+            env.instantiate_existentially(&query_result.binder);
+        env.apply_relations(db, assumptions, &relations)
+    }
+
+    /// Applies a sequence of relations using the builtin rules.
+    /// See `Self::apply_relation`.
+    pub fn apply_relations(
+        &self,
+        db: &Db,
+        assumptions: &ElaboratedHypotheses,
+        r: &[AtomicRelation],
+    ) -> Fallible<(Env, Vec<Goal>)> {
+        let mut env = self.clone();
+        let mut goals = vec![];
+        for relation in &relations {
+            let (env1, goals1) = env.apply_relation(db, assumptions, relation)?;
+            env = env1;
+            goals.extend(goals1);
+        }
+        Ok((env, goals))
     }
 
     /// Apply a relation using the builtin rules, returning
