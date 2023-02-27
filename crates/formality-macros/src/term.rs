@@ -8,10 +8,12 @@ use crate::{
     fold::derive_fold,
     parse::derive_parse_with_spec,
     spec::FormalitySpec,
+    visit::derive_visit,
 };
 
 pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<TokenStream> {
     let fold_impl = derive_fold(synstructure::Structure::new(&input));
+    let visit_impl = derive_visit(synstructure::Structure::new(&input));
     let parse_impl = derive_parse_with_spec(synstructure::Structure::new(&input), spec.as_ref())?;
     let debug_impl = derive_debug_with_spec(synstructure::Structure::new(&input), spec.as_ref());
     let term_impl = derive_term(synstructure::Structure::new(&input));
@@ -24,6 +26,7 @@ pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<
         #input
 
         #fold_impl
+        #visit_impl
         #parse_impl
         #debug_impl
         #term_impl

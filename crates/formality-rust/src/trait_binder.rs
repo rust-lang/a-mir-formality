@@ -7,6 +7,7 @@ use formality_types::{
     grammar::{fresh_bound_var, Binder, BoundVar, ParameterKind},
     parse::{expect_char, Binding, Parse, ParseResult},
     term::Term,
+    visit::Visit,
 };
 
 use crate::grammar::TraitBinder;
@@ -40,6 +41,15 @@ where
     }
 }
 
+impl<T> Visit for TraitBinder<T>
+where
+    T: Term,
+{
+    fn free_variables(&self) -> Vec<formality_types::grammar::Variable> {
+        self.explicit_binder.free_variables()
+    }
+}
+
 impl<T> Fold for TraitBinder<T>
 where
     T: Term,
@@ -48,10 +58,6 @@ where
         TraitBinder {
             explicit_binder: self.explicit_binder.substitute(substitution_fn),
         }
-    }
-
-    fn free_variables(&self) -> Vec<formality_types::grammar::Variable> {
-        self.explicit_binder.free_variables()
     }
 }
 

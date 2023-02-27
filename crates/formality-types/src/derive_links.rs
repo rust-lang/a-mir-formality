@@ -13,3 +13,4 @@ pub use crate::grammar::ParameterKind;
 pub use crate::grammar::Variable;
 pub use crate::parse;
 pub use crate::term::Term;
+pub use crate::visit::Visit;

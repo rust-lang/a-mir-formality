@@ -4,6 +4,7 @@ use crate::{
     cast::Upcast,
     collections::Set,
     grammar::{Lt, LtData, Parameter, Ty, TyData, Variable},
+    visit::Visit,
 };
 
 /// Invoked for each variable that we find when folding, ignoring variables bound by binders
@@ -13,13 +14,9 @@ use crate::{
 /// * Variable -- the variable we encountered
 pub type SubstitutionFn<'a> = &'a mut dyn FnMut(Variable) -> Option<Parameter>;
 
-pub trait Fold: Sized {
+pub trait Fold: Sized + Visit {
     /// Replace uses of variables with values from the substitution.
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self;
-
-    /// Extract the list of free variables (for the purposes of this function, defined by `Variable::is_free`).
-    /// The list may contain duplicates and must be in a determinstic order (though the order itself isn't important).
-    fn free_variables(&self) -> Vec<Variable>;
 
     /// Produce a version of this term where any debruijn indices which appear free are incremented by one.
     fn shift_in(&self) -> Self {
@@ -40,19 +37,11 @@ impl<T: Fold> Fold for Vec<T> {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         self.iter().map(|e| e.substitute(substitution_fn)).collect()
     }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        self.iter().flat_map(|e| e.free_variables()).collect()
-    }
 }
 
 impl<T: Fold + Ord> Fold for Set<T> {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         self.iter().map(|e| e.substitute(substitution_fn)).collect()
-    }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        self.iter().flat_map(|e| e.free_variables()).collect()
     }
 }
 
@@ -60,20 +49,12 @@ impl<T: Fold> Fold for Option<T> {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         self.as_ref().map(|e| e.substitute(substitution_fn))
     }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        self.iter().flat_map(|e| e.free_variables()).collect()
-    }
 }
 
 impl<T: Fold> Fold for Arc<T> {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         let data = T::substitute(self, substitution_fn);
         Arc::new(data)
-    }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        T::free_variables(self)
     }
 }
 
@@ -90,21 +71,6 @@ impl Fold for Ty {
             },
         }
     }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        match self.data() {
-            TyData::RigidTy(v) => v.free_variables(),
-            TyData::AliasTy(v) => v.free_variables(),
-            TyData::PredicateTy(v) => v.free_variables(),
-            TyData::Variable(v) => {
-                if v.is_free() {
-                    vec![v.clone()]
-                } else {
-                    vec![]
-                }
-            }
-        }
-    }
 }
 
 impl Fold for Lt {
@@ -118,28 +84,11 @@ impl Fold for Lt {
             },
         }
     }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        match self.data() {
-            LtData::Variable(v) => {
-                if v.is_free() {
-                    vec![v.clone()]
-                } else {
-                    vec![]
-                }
-            }
-            LtData::Static => vec![],
-        }
-    }
 }
 
 impl Fold for usize {
     fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {
         *self
-    }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        vec![]
     }
 }
 
@@ -147,24 +96,12 @@ impl Fold for u32 {
     fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {
         *self
     }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        vec![]
-    }
 }
 
 impl<A: Fold, B: Fold> Fold for (A, B) {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         let (a, b) = self;
         (a.substitute(substitution_fn), b.substitute(substitution_fn))
-    }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        let (a, b) = self;
-        let mut fv = vec![];
-        fv.extend(a.free_variables());
-        fv.extend(b.free_variables());
-        fv
     }
 }
 
@@ -176,14 +113,5 @@ impl<A: Fold, B: Fold, C: Fold> Fold for (A, B, C) {
             b.substitute(substitution_fn),
             c.substitute(substitution_fn),
         )
-    }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        let (a, b, c) = self;
-        let mut fv = vec![];
-        fv.extend(a.free_variables());
-        fv.extend(b.free_variables());
-        fv.extend(c.free_variables());
-        fv
     }
 }

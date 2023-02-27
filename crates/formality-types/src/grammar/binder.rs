@@ -10,6 +10,7 @@ use crate::{
     fold::Fold,
     fold::SubstitutionFn,
     grammar::VarIndex,
+    visit::Visit,
 };
 
 use super::{BoundVar, DebruijnIndex, Fallible, Parameter, ParameterKind, Substitution, Variable};
@@ -154,6 +155,12 @@ pub fn fresh_bound_var(kind: ParameterKind) -> BoundVar {
     }
 }
 
+impl<T: Visit> Visit for Binder<T> {
+    fn free_variables(&self) -> Vec<Variable> {
+        self.term.free_variables()
+    }
+}
+
 impl<T: Fold> Fold for Binder<T> {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         let term = self.term.substitute(&mut |v| {
@@ -173,10 +180,6 @@ impl<T: Fold> Fold for Binder<T> {
             kinds: self.kinds.clone(),
             term,
         }
-    }
-
-    fn free_variables(&self) -> Vec<Variable> {
-        self.term.free_variables()
     }
 
     fn shift_in(&self) -> Self {

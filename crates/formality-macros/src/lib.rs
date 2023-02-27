@@ -13,6 +13,7 @@ mod parse;
 mod spec;
 mod term;
 mod test;
+mod visit;
 
 // synstructure::decl_derive!([Fold] => fold::derive_fold);
 // synstructure::decl_derive!([Parse, attributes(grammar)] => parse::derive_parse);

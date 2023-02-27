@@ -10,6 +10,7 @@ macro_rules! id {
             use $crate::fold::{self, Fold};
             use $crate::grammar::Variable;
             use $crate::parse::{self, Parse};
+            use $crate::visit::Visit;
 
             impl $n {
                 pub fn new(s: &str) -> $n {
@@ -27,13 +28,15 @@ macro_rules! id {
                 }
             }
 
+            impl Visit for $n {
+                fn free_variables(&self) -> Vec<Variable> {
+                    vec![]
+                }
+            }
+
             impl Fold for $n {
                 fn substitute(&self, _substitution_fn: fold::SubstitutionFn<'_>) -> Self {
                     self.clone()
-                }
-
-                fn free_variables(&self) -> Vec<Variable> {
-                    vec![]
                 }
             }
 

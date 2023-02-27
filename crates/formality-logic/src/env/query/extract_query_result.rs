@@ -3,10 +3,10 @@ use std::collections::{BTreeSet, VecDeque};
 use formality_types::{
     cast::{Downcasted, Upcasted},
     collections::Set,
-    fold::Fold,
     grammar::{
         fresh_bound_var, AtomicRelation, Binder, BoundVar, InferenceVar, VarSubstitution, Variable,
     },
+    visit::Visit,
 };
 
 use crate::{env::query::dedup, Env};
