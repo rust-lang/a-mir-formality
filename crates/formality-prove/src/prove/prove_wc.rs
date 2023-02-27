@@ -26,21 +26,21 @@ judgment! {
     (ProveWc => ConstraintSet)
 
     (
-        (prove_apr(env, assumptions, a) => c)
+        (prove_apr(program, assumptions, a) => c)
         ---
-        (ProveWc(env, assumptions, WcData::Atomic(a)) => c)
+        (ProveWc(program, assumptions, WcData::Atomic(a)) => c)
     )
 
     (
-        (let p1 = env.instantiate_universally(&assumptions, &binder))
-        (prove_wc(env, assumptions, p1) => c)
+        (let p1 = program.instantiate_universally(&assumptions, &binder))
+        (prove_wc(program, assumptions, p1) => c)
         ---
-        (ProveWc(env, assumptions, WcData::ForAll(binder)) => c)
+        (ProveWc(program, assumptions, WcData::ForAll(binder)) => c)
     )
 
     (
-        (prove_wc(env, assumptions.and(p1), p2) => c)
+        (prove_wc(program, assumptions.and(p1), p2) => c)
         ---
-        (ProveWc(env, assumptions, WcData::Implies(p1, p2)) => c)
+        (ProveWc(program, assumptions, WcData::Implies(p1, p2)) => c)
     )
 }

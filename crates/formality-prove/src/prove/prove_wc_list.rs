@@ -12,11 +12,11 @@ use crate::{program::Program, prove::prove_after::prove_after};
 use super::{prove_wc::prove_wc, ConstraintSet};
 
 pub fn prove_wc_list(
-    env: impl Upcast<Program>,
+    program: impl Upcast<Program>,
     assumptions: impl Upcast<WcList>,
     goal: impl Upcast<WcListData>,
 ) -> Set<ConstraintSet> {
-    ProveWcListData(env.upcast(), assumptions.upcast(), goal.upcast()).apply()
+    ProveWcListData(program.upcast(), assumptions.upcast(), goal.upcast()).apply()
 }
 
 #[term]
@@ -31,15 +31,15 @@ judgment! {
     )
 
     (
-        (prove_wc(env, assumptions, wc) => c)
+        (prove_wc(program, assumptions, wc) => c)
         ---
-        (ProveWcListData(env, assumptions, WcListData::Wc(wc)) => c)
+        (ProveWcListData(program, assumptions, WcListData::Wc(wc)) => c)
     )
 
     (
-        (prove_wc_list(&env, assumptions.clone(), l1) => c1)
-        (prove_after(&env, &assumptions, c1, &l2) => c2)
+        (prove_wc_list(&program, assumptions.clone(), l1) => c1)
+        (prove_after(&program, &assumptions, c1, &l2) => c2)
         ---
-        (ProveWcListData(env, assumptions, WcListData::And(l1, l2)) => c2)
+        (ProveWcListData(program, assumptions, WcListData::And(l1, l2)) => c2)
     )
 }

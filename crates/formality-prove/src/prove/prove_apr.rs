@@ -1,5 +1,6 @@
 use formality_macros::term;
 use formality_types::{
+    cast::Upcast,
     collections::Set,
     grammar::{AtomicRelation, Parameter, WcList, APR},
     judgment,
@@ -13,8 +14,12 @@ use crate::{
 
 use super::ConstraintSet;
 
-pub fn prove_apr(env: Program, assumptions: WcList, goal: APR) -> Set<ConstraintSet> {
-    ProveApr(env, assumptions.clone(), goal).apply()
+pub fn prove_apr(
+    program: impl Upcast<Program>,
+    assumptions: impl Upcast<WcList>,
+    goal: impl Upcast<APR>,
+) -> Set<ConstraintSet> {
+    ProveApr(program.upcast(), assumptions.upcast(), goal.upcast()).apply()
 }
 
 #[term]
@@ -25,19 +30,19 @@ judgment! {
 
     (
         (assumptions.iter() => a)
-        (prove_apr_via(&env, &assumptions, a, &goal) => c)
+        (prove_apr_via(&program, &assumptions, a, &goal) => c)
         -----------------------------
-        (ProveApr(env, assumptions, goal) => c)
+        (ProveApr(program, assumptions, goal) => c)
     )
 
     // (
     //     -----------------------------
-    //     (ProveApr(env, assumptions, APR::AtomicPredicate(AtomicPredicate::IsImplemented(trait_ref))) => c)
+    //     (ProveApr(program, assumptions, APR::AtomicPredicate(AtomicPredicate::IsImplemented(trait_ref))) => c)
     // )
 
     (
-        (prove_ty_eq(env, assumptions, a, b) => c)
+        (prove_ty_eq(program, assumptions, a, b) => c)
         -----------------------------
-        (ProveApr(env, assumptions, APR::AtomicRelation(AtomicRelation::Equals(Parameter::Ty(a), Parameter::Ty(b)))) => c)
+        (ProveApr(program, assumptions, APR::AtomicRelation(AtomicRelation::Equals(Parameter::Ty(a), Parameter::Ty(b)))) => c)
     )
 }

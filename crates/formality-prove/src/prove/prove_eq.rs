@@ -13,21 +13,27 @@ use crate::program::Program;
 use super::{prove_wc_list::prove_wc_list, ConstraintSet};
 
 pub fn prove_ty_eq(
-    env: impl Upcast<Program>,
+    program: impl Upcast<Program>,
     assumptions: impl Upcast<WcList>,
     a: impl Upcast<TyData>,
     b: impl Upcast<TyData>,
 ) -> Set<ConstraintSet> {
-    ProveTyEq(env.upcast(), assumptions.upcast(), a.upcast(), b.upcast()).apply()
+    ProveTyEq(
+        program.upcast(),
+        assumptions.upcast(),
+        a.upcast(),
+        b.upcast(),
+    )
+    .apply()
 }
 
 pub fn prove_parameters_eq(
-    env: impl Upcast<Program>,
+    program: impl Upcast<Program>,
     assumptions: impl Upcast<WcList>,
     a: impl Upcast<Vec<Parameter>>,
     b: impl Upcast<Vec<Parameter>>,
 ) -> Set<ConstraintSet> {
-    let env = env.upcast();
+    let program = program.upcast();
     let assumptions = assumptions.upcast();
     let a: Vec<Parameter> = a.upcast();
     let b: Vec<Parameter> = b.upcast();
@@ -37,7 +43,7 @@ pub fn prove_parameters_eq(
         .map(|(a, b)| AtomicRelation::eq(a, b))
         .upcasted()
         .collect();
-    prove_wc_list(env, assumptions, goals)
+    prove_wc_list(program, assumptions, goals)
 }
 
 #[derive(Clone, Hash, Ord, Eq, PartialEq, PartialOrd, Debug)]
@@ -52,9 +58,9 @@ judgment! {
         (let RigidTy { name: a_name, parameters: a_parameters } = a)
         (let RigidTy { name: b_name, parameters: b_parameters } = b)
         (if a_name == b_name)
-        (prove_parameters_eq(env, assumptions, a_parameters, b_parameters) => c)
+        (prove_parameters_eq(program, assumptions, a_parameters, b_parameters) => c)
         -----------------------------
-        (ProveTyEq(env, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
+        (ProveTyEq(program, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
     )
 
     (
