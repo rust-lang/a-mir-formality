@@ -44,6 +44,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
+name = "cc"
+version = "1.0.79"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50d30906286121d95be3d479533b458f87493b30a4b5f79a607db8f5d11aa91f"
+
+[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -169,6 +175,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "extension-trait"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5129068fe3183546eaa0529af88ab0afbcddec2a373db69e94a20b8d5f6c4d74"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "fn-error-context"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -287,6 +304,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "formality-prove"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "contracts",
+ "derive-new",
+ "expect-test",
+ "formality-core",
+ "formality-macros",
+ "formality-types",
+ "tracing",
+]
+
+[[package]]
 name = "formality-rust"
 version = "0.1.0"
 dependencies = [
@@ -308,9 +339,11 @@ dependencies = [
  "anyhow",
  "contracts",
  "expect-test",
+ "extension-trait",
  "formality-core",
  "formality-macros",
  "lazy_static",
+ "stacker",
  "tracing",
 ]
 
@@ -453,6 +486,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "psm"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5787f7cda34e3033a72192c018bc5883100330f362ef279a8cbccfce8bb4e874"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -494,6 +536,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "900fba806f70c630b0a382d0d825e17a0f19fcd059a2ade1ff237bcddf446b31"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "stacker"
+version = "0.1.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c886bd4480155fd3ef527d45e9ac8dd7118a898a46530b7b94c3e21866259fce"
+dependencies = [
+ "cc",
+ "cfg-if",
+ "libc",
+ "psm",
+ "winapi",
 ]
 
 [[package]]

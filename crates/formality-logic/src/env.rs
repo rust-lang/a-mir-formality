@@ -2,7 +2,7 @@ use crate::Db;
 use contracts::requires;
 use formality_macros::term;
 use formality_types::cast::{To, Upcast};
-use formality_types::grammar::{ElaboratedHypotheses, LtData, ParameterData, TyData};
+use formality_types::grammar::{ElaboratedHypotheses, LtData, ParameterData, TyData, VarIndex};
 use formality_types::{
     derive_links::Variable,
     grammar::{
@@ -108,7 +108,11 @@ impl Env {
             outlives: vec![],
             outlived_by: vec![],
         });
-        InferenceVar { index, kind }
+        InferenceVar {
+            var_index: VarIndex { index },
+            universe,
+            kind,
+        }
     }
 
     /// Returns a list of all the existing inference variables.
@@ -116,28 +120,29 @@ impl Env {
         self.inference_data
             .iter()
             .zip(0..)
-            .map(|(id, i)| InferenceVar {
-                index: i,
+            .map(|(id, index)| InferenceVar {
+                var_index: VarIndex { index },
                 kind: id.kind,
+                universe: id.universe,
             })
             .collect()
     }
 
     fn data(&self, var: InferenceVar) -> &InferenceVarData {
-        &self.inference_data[var.index]
+        &self.inference_data[var.var_index.index]
     }
 
     fn is_mapped(&self, var: InferenceVar) -> bool {
-        self.inference_data[var.index].mapped_to.is_some()
+        self.inference_data[var.var_index.index].mapped_to.is_some()
     }
 
     /// Returns what this inference variable is mapped to, if anything.
     pub fn mapped_to(&self, var: InferenceVar) -> Option<Parameter> {
-        self.inference_data[var.index].mapped_to.clone()
+        self.inference_data[var.var_index.index].mapped_to.clone()
     }
 
     fn data_mut(&mut self, var: InferenceVar) -> &mut InferenceVarData {
-        &mut self.inference_data[var.index]
+        &mut self.inference_data[var.var_index.index]
     }
 
     /// Creates a new existential inference variable in the current universe.
@@ -228,7 +233,7 @@ impl Env {
             supertype_of,
             outlives,
             outlived_by,
-        } = &mut self.inference_data[var.index];
+        } = &mut self.inference_data[var.var_index.index];
 
         // Convert all the relations we've stored up on this variable to goals
         // that relate to the variable's mapped value.
@@ -303,7 +308,8 @@ impl Env {
             .filter(|(data, _)| data.universe <= universe)
             .flat_map(|(data, index)| {
                 self.inference_var_relations(InferenceVar {
-                    index,
+                    var_index: VarIndex { index },
+                    universe: data.universe,
                     kind: data.kind,
                 })
             })
@@ -319,7 +325,7 @@ impl Env {
             supertype_of,
             outlives,
             outlived_by,
-        } = &self.inference_data[v.index];
+        } = &self.inference_data[v.var_index.index];
 
         std::iter::empty()
             .chain(

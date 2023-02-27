@@ -25,6 +25,15 @@ pub trait Fold: Sized {
     fn shift_in(&self) -> Self {
         self.substitute(&mut |v| Some(v.shift_in().upcast()))
     }
+
+    /// Replace all appearances of free variable `v` with `p`.
+    fn replace_free_var(&self, v: impl Upcast<Variable>, p: impl Upcast<Parameter>) -> Self {
+        let v: Variable = v.upcast();
+        let p: Parameter = p.upcast();
+        assert!(v.is_free());
+        assert!(v.kind() == p.kind());
+        self.substitute(&mut |v1| if v == v1 { Some(p.clone()) } else { None })
+    }
 }
 
 impl<T: Fold> Fold for Vec<T> {

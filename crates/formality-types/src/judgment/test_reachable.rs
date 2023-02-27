@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use std::{sync::Arc, thread::LocalKey};
+use std::sync::Arc;
 
 use formality_macros::term;
 

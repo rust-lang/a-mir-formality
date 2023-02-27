@@ -16,12 +16,14 @@ where
     Input: Value,
     Output: Value,
 {
-    FixedPoint {
-        storage,
-        default_value,
-        next_value,
-    }
-    .apply(args)
+    stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
+        FixedPoint {
+            storage,
+            default_value,
+            next_value,
+        }
+        .apply(args)
+    })
 }
 
 struct FixedPoint<Input: Value, Output: Value, DefaultValue, NextValue> {

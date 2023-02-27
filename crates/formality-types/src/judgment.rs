@@ -1,6 +1,8 @@
-use std::{cell::RefCell, collections::BTreeSet, sync::Arc, thread::LocalKey};
+use std::{
+    cell::RefCell, collections::BTreeSet, fmt::Debug, hash::Hash, sync::Arc, thread::LocalKey,
+};
 
-use crate::{derive_links::Term, fixed_point::FixedPointStack};
+use crate::fixed_point::FixedPointStack;
 
 mod apply;
 mod builder;
@@ -9,10 +11,12 @@ mod test_reachable;
 
 pub use self::builder::JudgmentBuilder;
 
-type JudgmentStack<J, O> = RefCell<FixedPointStack<J, BTreeSet<O>>>;
+pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, BTreeSet<O>>>;
 
-pub trait Judgment: Term {
-    type Output: Term;
+pub trait Judgment:
+    Debug + Ord + Hash + Clone + Sized + 'static + IntoIterator<Item = Self::Output>
+{
+    type Output: Debug + Ord + Hash + Clone;
 
     fn stack() -> &'static LocalKey<JudgmentStack<Self, Self::Output>>;
 
@@ -20,10 +24,6 @@ pub trait Judgment: Term {
 
     fn apply(&self) -> BTreeSet<Self::Output> {
         apply::JudgmentApply(self).apply()
-    }
-
-    fn into_iter(self) -> std::collections::btree_set::IntoIter<Self::Output> {
-        self.apply().into_iter()
     }
 }
 
@@ -35,10 +35,20 @@ struct InferenceRule<I, O> {
 #[macro_export]
 macro_rules! judgment {
     (($judgment:ty => $output:ty) $(($($rule:tt)*))*) => {
+        impl std::iter::IntoIterator for $judgment {
+            type Item = $output;
+
+            type IntoIter = std::collections::btree_set::IntoIter<Self::Item>;
+
+            fn into_iter(self) ->  Self::IntoIter {
+                self.apply().into_iter()
+            }
+        }
+
         impl $crate::judgment::Judgment for $judgment {
             type Output = $output;
 
-            fn stack() -> &'static LocalKey<$crate::judgment::JudgmentStack<$judgment, $output>> {
+            fn stack() -> &'static std::thread::LocalKey<$crate::judgment::JudgmentStack<$judgment, $output>> {
                 thread_local! {
                     static R: $crate::judgment::JudgmentStack<$judgment, $output> = Default::default()
                 }
@@ -73,6 +83,7 @@ macro_rules! judgment {
 ///
 /// * `(<expr> => <binding>)` -- used to apply judgments, but really `<expr>` can be anything with an `into_iter` method.
 /// * `(if <expr>)`
+/// * `(if let <pat> = <expr>)`
 /// * `(let <binding> = <expr>)`
 ///
 /// The conclusions can be the following
@@ -95,8 +106,13 @@ macro_rules! push_rules {
 
     (@accum ($($m:tt)*) ---$(-)* ($p:pat => $v:expr)) => {
         // Found the conclusion.
-        |$p| -> Vec<_> {
-            $crate::push_rules!(@body ($v) $($m)*).into_iter().collect()
+        |v| -> Vec<_> {
+            let mut output = vec![];
+            #[allow(irrefutable_let_patterns)]
+            if let $p = v {
+                $crate::push_rules!(@body ($v, output) $($m)*);
+            }
+            output
         }
     };
 
@@ -110,26 +126,32 @@ macro_rules! push_rules {
     // expression `v` is carried in from the conclusion and forms the final
     // output of this rule, once all the conditions are evaluated.
 
-    (@body ($v:expr) (if $c:expr) $($m:tt)*) => {
+    (@body ($v:expr, $output:ident) (if $c:expr) $($m:tt)*) => {
         if $c {
-            $crate::push_rules!(@body ($v) $($m)*)
-        } else {
-            None
+            $crate::push_rules!(@body ($v, $output) $($m)*);
         }
     };
 
-    (@body ($v:expr) ($i:expr => $p:pat) $($m:tt)*) => {
-        $i.into_iter().flat_map(move |$p| {
-            $crate::push_rules!(@body ($v) $($m)*)
-        })
+    (@body ($v:expr, $output:ident) (if let $p:pat = $e:expr) $($m:tt)*) => {
+        if let $p = $e {
+            $crate::push_rules!(@body ($v, $output) $($m)*);
+        }
     };
 
-    (@body ($v:expr) (let $p:pat = $i:expr) $($m:tt)*) => {
-        let $p = $i;
-        $crate::push_rules!(@body ($v) $($m)*)
+    (@body ($v:expr, $output:ident) ($i:expr => $p:pat) $($m:tt)*) => {
+        for $p in $i {
+            $crate::push_rules!(@body ($v, $output) $($m)*);
+        }
     };
 
-    (@body ($v:expr)) => {
-        Some($v)
+    (@body ($v:expr, $output:ident) (let $p:pat = $i:expr) $($m:tt)*) => {
+        {
+            let $p = $i;
+            $crate::push_rules!(@body ($v, $output) $($m)*);
+        }
+    };
+
+    (@body ($v:expr, $output:ident)) => {
+        $output.push($v)
     };
 }

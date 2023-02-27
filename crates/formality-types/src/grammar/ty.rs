@@ -24,6 +24,12 @@ impl Universe {
     /// The root universe contains only the names globally visible
     /// (e.g., structs defined by user) and does not contain any [placeholders](`PlaceholderVar`).
     pub const ROOT: Universe = Universe { index: 0 };
+
+    pub fn next(&self) -> Universe {
+        Universe {
+            index: self.index + 1,
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -114,10 +120,17 @@ impl UpcastFrom<TyData> for TyData {
     }
 }
 
+impl UpcastFrom<Ty> for TyData {
+    fn upcast_from(term: Ty) -> Self {
+        term.data().clone()
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
-    pub index: usize,
     pub kind: ParameterKind,
+    pub universe: Universe,
+    pub var_index: VarIndex,
 }
 
 #[term((rigid $name $*parameters))]
@@ -604,6 +617,7 @@ cast_impl!((RigidTy) <: (Ty) <: (Parameter));
 cast_impl!((AliasTy) <: (Ty) <: (Parameter));
 cast_impl!((ScalarId) <: (Ty) <: (Parameter));
 cast_impl!((PredicateTy) <: (Ty) <: (Parameter));
+cast_impl!((TyData) <: (Ty) <: (Parameter));
 cast_impl!(TyData::RigidTy(RigidTy));
 cast_impl!(TyData::AliasTy(AliasTy));
 cast_impl!(TyData::PredicateTy(PredicateTy));

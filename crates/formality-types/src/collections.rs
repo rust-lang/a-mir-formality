@@ -9,11 +9,11 @@ pub type Set<E> = BTreeSet<E>;
 #[macro_export]
 macro_rules! set {
     () => {
-        Set::new()
+        $crate::collections::Set::new()
     };
 
-    ($($e:expr),*) => {
-        $crate::seq![$($e),*].into_iter().collect::<Set<_>>()
+    ($($t:tt)*) => {
+        $crate::seq![$($t)*].into_iter().collect::<$crate::collections::Set<_>>()
     };
 }
 
@@ -54,4 +54,24 @@ macro_rules! seq {
         }
     };
 
+}
+
+pub trait SetExt<T>: Sized {
+    fn split_first(self) -> Option<(T, Self)>;
+
+    fn union_with(&self, other: Self) -> Self;
+}
+
+impl<T: Ord + Clone> SetExt<T> for Set<T> {
+    fn split_first(mut self) -> Option<(T, Set<T>)> {
+        if let Some(e) = self.pop_first() {
+            Some((e, self))
+        } else {
+            None
+        }
+    }
+
+    fn union_with(&self, other: Self) -> Self {
+        self.iter().cloned().chain(other).collect()
+    }
 }
