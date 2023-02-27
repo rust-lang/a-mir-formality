@@ -32,7 +32,7 @@ judgment! {
     )
 
     (
-        (let p1 = program.instantiate_universally(&assumptions, &binder))
+        (let p1 = binder.instantiate_universally(&assumptions))
         (prove_wc(program, assumptions, p1) => c)
         ---
         (ProveWc(program, assumptions, WcData::ForAll(binder)) => c)

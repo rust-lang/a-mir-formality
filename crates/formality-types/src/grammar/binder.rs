@@ -13,7 +13,10 @@ use crate::{
     visit::Visit,
 };
 
-use super::{BoundVar, DebruijnIndex, Fallible, Parameter, ParameterKind, Substitution, Variable};
+use super::{
+    BoundVar, DebruijnIndex, Fallible, InferenceVar, Parameter, ParameterKind, PlaceholderVar,
+    Substitution, Variable,
+};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Binder<T> {
@@ -136,6 +139,49 @@ impl<T: Fold> Binder<T> {
     /// Returns the kinds of each variable bound by this binder
     pub fn kinds(&self) -> &[ParameterKind] {
         &self.kinds
+    }
+
+    /// Instantiates the give binder with universal placeholders that are
+    /// fresh in `(context, b)`.
+    pub fn instantiate_universally<C: Visit>(&self, context: &C) -> T {
+        // Find a universe that doesn't appear in `fresh_in` or `b`.
+        let universe = (context, self).max_universe().next();
+        let result = self.instantiate(|kind, var_index| {
+            PlaceholderVar {
+                kind,
+                universe,
+                var_index,
+            }
+            .upcast()
+        });
+        result
+    }
+
+    /// Instantiates the give binder with existential variables that are fresh in
+    /// `(context, b)` and which can name any universe appearing in `(context, b)`.
+    pub fn instantiate_existentially<C: Visit>(&self, context: &C) -> T {
+        let universe = (context, self).max_universe();
+        let start = (context, self)
+            .free_variables()
+            .into_iter()
+            .map(|v| match v {
+                Variable::PlaceholderVar(_) => 0,
+                Variable::InferenceVar(v) => v.var_index.index + 1,
+                Variable::BoundVar(_) => 0,
+            })
+            .max()
+            .unwrap_or(0);
+        let result = self.instantiate(|kind, var_index| {
+            InferenceVar {
+                kind,
+                universe,
+                var_index: VarIndex {
+                    index: var_index.index + start,
+                },
+            }
+            .upcast()
+        });
+        result
     }
 }
 

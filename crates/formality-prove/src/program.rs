@@ -1,13 +1,5 @@
 use formality_macros::term;
-use formality_types::{
-    cast::Upcast,
-    grammar::{
-        AliasName, Binder, InferenceVar, PlaceholderVar, TraitId, TraitRef, Ty, VarIndex, Variable,
-        Wc,
-    },
-    term::Term,
-    visit::Visit,
-};
+use formality_types::grammar::{AliasName, Binder, TraitId, TraitRef, Ty, Wc};
 
 #[term]
 pub struct Program {
@@ -41,49 +33,6 @@ impl Program {
 
     pub fn alias_bound_decls(&self) -> &[AliasBoundDecl] {
         &self.alias_bound_decls
-    }
-
-    /// Instantiates the give binder with universal placeholders that are
-    /// fresh in `(context, b)`.
-    pub fn instantiate_universally<C: Term, T: Term>(&self, context: &C, b: &Binder<T>) -> T {
-        // Find a universe that doesn't appear in `fresh_in` or `b`.
-        let universe = (context, b).max_universe().next();
-        let result = b.instantiate(|kind, var_index| {
-            PlaceholderVar {
-                kind,
-                universe,
-                var_index,
-            }
-            .upcast()
-        });
-        result
-    }
-
-    /// Instantiates the give binder with existential variables that are fresh in
-    /// `(context, b)` and which can name any universe appearing in `(context, b)`.
-    pub fn instantiate_existentially<C: Term, T: Term>(&self, context: &C, b: &Binder<T>) -> T {
-        let universe = (context, b).max_universe();
-        let start = (context, b)
-            .free_variables()
-            .into_iter()
-            .map(|v| match v {
-                Variable::PlaceholderVar(_) => 0,
-                Variable::InferenceVar(v) => v.var_index.index + 1,
-                Variable::BoundVar(_) => 0,
-            })
-            .max()
-            .unwrap_or(0);
-        let result = b.instantiate(|kind, var_index| {
-            InferenceVar {
-                kind,
-                universe,
-                var_index: VarIndex {
-                    index: var_index.index + start,
-                },
-            }
-            .upcast()
-        });
-        result
     }
 }
 

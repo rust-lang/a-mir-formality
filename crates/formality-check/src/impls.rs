@@ -10,6 +10,7 @@ use formality_types::{
     cast::{Downcasted, To, Upcast, Upcasted},
     grammar::{Binder, Fallible, Goal, Hypothesis, Substitution},
     term::Term,
+    visit::Visit,
 };
 
 impl super::Check<'_> {

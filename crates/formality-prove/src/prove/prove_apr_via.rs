@@ -45,7 +45,7 @@ judgment! {
     )
 
     (
-        (let via1 = program.instantiate_existentially(&assumptions, &binder))
+        (let via1 = binder.instantiate_existentially(&assumptions))
         (prove_apr_via(program, assumptions, via1, goal) => c)
         -----------------------------
         (ProveAprVia(program, assumptions, WcData::ForAll(binder), goal) => c)
