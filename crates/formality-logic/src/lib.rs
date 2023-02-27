@@ -6,7 +6,7 @@ use formality_macros::term;
 use formality_types::{
     derive_links,
     grammar::{Goal, Hypothesis},
-    term::Term,
+    visit::Visit,
 };
 
 mod cosld;
