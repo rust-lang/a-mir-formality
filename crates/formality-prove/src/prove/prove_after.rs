@@ -9,12 +9,12 @@ use formality_types::{
     set,
 };
 
-use crate::{env::Env, prove::prove_wc_list::prove_wc_list};
+use crate::{program::Program, prove::prove_wc_list::prove_wc_list};
 
 use super::ConstraintSet;
 
 pub fn prove_after(
-    env: impl Upcast<Env>,
+    env: impl Upcast<Program>,
     assumptions: impl Upcast<WcList>,
     constraints_in: ConstraintSet,
     goal: impl Upcast<WcList>,
@@ -23,7 +23,7 @@ pub fn prove_after(
 }
 
 fn prove_after_with_vars(
-    env: impl Upcast<Env>,
+    env: impl Upcast<Program>,
     assumptions: impl Upcast<WcList>,
     constraints_in: ConstraintSet,
     goal: impl Upcast<WcList>,
@@ -40,7 +40,7 @@ fn prove_after_with_vars(
 }
 
 #[term]
-struct ProveAfterWithVars(Env, WcList, ConstraintSet, WcList, ConstraintSet);
+struct ProveAfterWithVars(Program, WcList, ConstraintSet, WcList, ConstraintSet);
 
 judgment! {
     (ProveAfterWithVars => ConstraintSet)

@@ -1,5 +1,9 @@
 use formality_macros::term;
-use formality_types::grammar::{AliasName, Binder, TraitId, TraitRef, Ty, Wc};
+use formality_types::{
+    cast::Upcast,
+    grammar::{AliasName, Binder, InferenceVar, PlaceholderVar, TraitId, TraitRef, Ty, Wc},
+    term::Term,
+};
 
 #[term]
 pub struct Program {
@@ -33,6 +37,37 @@ impl Program {
 
     pub fn alias_bound_decls(&self) -> &[AliasBoundDecl] {
         &self.alias_bound_decls
+    }
+
+    /// Instantiates the give binder with universal placeholders that are
+    /// fresh in `context` and `b`.
+    pub fn instantiate_universally<C: Term, T: Term>(&self, context: &C, b: &Binder<T>) -> T {
+        // Find a universe that doesn't appear in `fresh_in` or `b`.
+        let universe = context.max_universe().max(b.max_universe()).next();
+        let result = b.instantiate(|kind, var_index| {
+            PlaceholderVar {
+                kind,
+                universe,
+                var_index,
+            }
+            .upcast()
+        });
+        result
+    }
+
+    /// Instantiates the give binder with existential variables that can
+    /// name any universe appearing in `fresh_in` and `b`.
+    pub fn instantiate_existentially<C: Term, T: Term>(&self, context: &C, b: &Binder<T>) -> T {
+        let universe = context.max_universe().max(b.max_universe());
+        let result = b.instantiate(|kind, var_index| {
+            InferenceVar {
+                kind,
+                universe,
+                var_index,
+            }
+            .upcast()
+        });
+        result
     }
 }
 

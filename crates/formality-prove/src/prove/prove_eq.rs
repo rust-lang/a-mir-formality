@@ -8,12 +8,12 @@ use formality_types::{
     set,
 };
 
-use crate::env::Env;
+use crate::program::Program;
 
 use super::{prove_wc_list::prove_wc_list, ConstraintSet};
 
 pub fn prove_ty_eq(
-    env: impl Upcast<Env>,
+    env: impl Upcast<Program>,
     assumptions: impl Upcast<WcList>,
     a: impl Upcast<TyData>,
     b: impl Upcast<TyData>,
@@ -22,7 +22,7 @@ pub fn prove_ty_eq(
 }
 
 pub fn prove_parameters_eq(
-    env: impl Upcast<Env>,
+    env: impl Upcast<Program>,
     assumptions: impl Upcast<WcList>,
     a: impl Upcast<Vec<Parameter>>,
     b: impl Upcast<Vec<Parameter>>,
@@ -41,7 +41,7 @@ pub fn prove_parameters_eq(
 }
 
 #[derive(Clone, Hash, Ord, Eq, PartialEq, PartialOrd, Debug)]
-struct ProveTyEq(Env, WcList, TyData, TyData);
+struct ProveTyEq(Program, WcList, TyData, TyData);
 
 cast_impl!(ProveTyEq);
 

@@ -7,20 +7,20 @@ use formality_types::{
     judgment::Judgment,
 };
 
-use crate::{env::Env, prove::prove_after::prove_after};
+use crate::{program::Program, prove::prove_after::prove_after};
 
 use super::{prove_wc::prove_wc, ConstraintSet};
 
 pub fn prove_wc_list(
-    env: Env,
+    env: impl Upcast<Program>,
     assumptions: impl Upcast<WcList>,
     goal: impl Upcast<WcListData>,
 ) -> Set<ConstraintSet> {
-    ProveWcListData(env, assumptions.upcast(), goal.upcast()).apply()
+    ProveWcListData(env.upcast(), assumptions.upcast(), goal.upcast()).apply()
 }
 
 #[term]
-struct ProveWcListData(Env, WcList, WcListData);
+struct ProveWcListData(Program, WcList, WcListData);
 
 judgment! {
     (ProveWcListData => ConstraintSet)
@@ -37,8 +37,8 @@ judgment! {
     )
 
     (
-        (prove_wc_list(env, assumptions.clone(), l1) => c1)
-        (prove_after(env, &assumptions, c1, &l2) => c2)
+        (prove_wc_list(&env, assumptions.clone(), l1) => c1)
+        (prove_after(&env, &assumptions, c1, &l2) => c2)
         ---
         (ProveWcListData(env, assumptions, WcListData::And(l1, l2)) => c2)
     )

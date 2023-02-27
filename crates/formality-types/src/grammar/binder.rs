@@ -6,7 +6,7 @@ use anyhow::bail;
 use lazy_static::lazy_static;
 
 use crate::{
-    cast::{Upcast, UpcastFrom},
+    cast::{Downcast, DowncastFrom, DowncastTo, Upcast, UpcastFrom},
     fold::Fold,
     fold::SubstitutionFn,
     grammar::VarIndex,
@@ -191,14 +191,29 @@ impl<T: Fold> Fold for Binder<T> {
 impl<T, U> UpcastFrom<Binder<T>> for Binder<U>
 where
     T: Clone,
-    U: UpcastFrom<T> + Clone,
+    U: Clone,
+    T: Upcast<U>,
 {
     fn upcast_from(term: Binder<T>) -> Self {
         let Binder { kinds, term } = term;
         Binder {
             kinds,
-            term: UpcastFrom::upcast_from(term),
+            term: term.upcast(),
         }
+    }
+}
+
+impl<T, U> DowncastTo<Binder<T>> for Binder<U>
+where
+    T: DowncastFrom<U>,
+{
+    fn downcast_to(&self) -> Option<Binder<T>> {
+        let Binder { kinds, term } = self;
+        let term = term.downcast()?;
+        Some(Binder {
+            kinds: kinds.clone(),
+            term,
+        })
     }
 }
 

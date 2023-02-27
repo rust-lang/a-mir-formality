@@ -7,25 +7,25 @@ use formality_types::{
 };
 
 use crate::{
-    env::Env,
+    program::Program,
     prove::{prove_apr_via::prove_apr_via, prove_eq::prove_ty_eq},
 };
 
 use super::ConstraintSet;
 
-pub fn prove_apr(env: Env, assumptions: WcList, goal: APR) -> Set<ConstraintSet> {
+pub fn prove_apr(env: Program, assumptions: WcList, goal: APR) -> Set<ConstraintSet> {
     ProveApr(env, assumptions.clone(), goal).apply()
 }
 
 #[term]
-struct ProveApr(Env, WcList, APR);
+struct ProveApr(Program, WcList, APR);
 
 judgment! {
     (ProveApr => ConstraintSet)
 
     (
         (assumptions.iter() => a)
-        (prove_apr_via(env, &assumptions, a, &goal) => c)
+        (prove_apr_via(&env, &assumptions, a, &goal) => c)
         -----------------------------
         (ProveApr(env, assumptions, goal) => c)
     )

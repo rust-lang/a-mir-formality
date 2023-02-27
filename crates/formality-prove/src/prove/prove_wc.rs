@@ -7,20 +7,20 @@ use formality_types::{
     judgment::Judgment,
 };
 
-use crate::{env::Env, prove::prove_apr::prove_apr};
+use crate::{program::Program, prove::prove_apr::prove_apr};
 
 use super::ConstraintSet;
 
 pub fn prove_wc(
-    env: impl Upcast<Env>,
+    program: impl Upcast<Program>,
     assumptions: impl Upcast<WcList>,
     goal: impl Upcast<WcData>,
 ) -> Set<ConstraintSet> {
-    ProveWc(env.upcast(), assumptions.upcast(), goal.upcast()).apply()
+    ProveWc(program.upcast(), assumptions.upcast(), goal.upcast()).apply()
 }
 
 #[term]
-struct ProveWc(Env, WcList, WcData);
+struct ProveWc(Program, WcList, WcData);
 
 judgment! {
     (ProveWc => ConstraintSet)
@@ -32,8 +32,8 @@ judgment! {
     )
 
     (
-        (let (p1, env1) = env.instantiate_universally(&binder))
-        (prove_wc(env1, assumptions, p1) => c)
+        (let p1 = env.instantiate_universally(&assumptions, &binder))
+        (prove_wc(env, assumptions, p1) => c)
         ---
         (ProveWc(env, assumptions, WcData::ForAll(binder)) => c)
     )

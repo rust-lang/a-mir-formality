@@ -3,7 +3,7 @@ use std::{str::FromStr, sync::Arc};
 use crate::{
     cast::{To, Upcast},
     collections::Set,
-    derive_links::{Fold, Parameter, ParameterKind},
+    derive_links::{Fold, Parameter, ParameterKind, Term},
     grammar::{Binder, BoundVar},
     set,
 };
@@ -225,7 +225,7 @@ impl Parse for Binding {
 /// replace names with debruijn indices.
 impl<T> Parse for Binder<T>
 where
-    T: Parse + Fold,
+    T: Term + Parse + Fold,
 {
     #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {

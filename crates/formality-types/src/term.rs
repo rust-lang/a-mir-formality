@@ -5,7 +5,7 @@ use crate::{
     collections::Set,
     derive_links::Variable,
     fold::Fold,
-    grammar::{Lt, Ty},
+    grammar::{Binder, Lt, Ty, Universe},
     parse::Parse,
 };
 
@@ -24,6 +24,19 @@ pub trait Term:
             Variable::InferenceVar(_) => false,
             Variable::BoundVar(_) => false,
         })
+    }
+
+    /// Maximum universe of of any placeholders appearing in this term
+    fn max_universe(&self) -> Universe {
+        self.free_variables()
+            .iter()
+            .map(|v| match v {
+                Variable::PlaceholderVar(p) => p.universe,
+                Variable::InferenceVar(_) => Universe::ROOT,
+                Variable::BoundVar(_) => Universe::ROOT,
+            })
+            .max()
+            .unwrap_or(Universe::ROOT)
     }
 }
 
@@ -44,3 +57,5 @@ impl Term for usize {}
 impl Term for u32 {}
 
 impl<A: Term, B: Term> Term for (A, B) {}
+
+impl<T: Term> Term for Binder<T> {}
