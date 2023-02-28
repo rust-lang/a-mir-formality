@@ -37,7 +37,7 @@ judgment! {
     (
         (&assumptions => a)
         (prove_apr_via(&program, &assumptions, a, &goal) => c)
-        -----------------------------
+        ----------------------------- ("assumption")
         (ProveApr(program, assumptions, goal) => c)
     )
 
@@ -51,7 +51,7 @@ judgment! {
             ..i.where_clause,
             ..t.where_clause,
         ]) => c)
-        -----------------------------
+        ----------------------------- ("impl")
         (ProveApr(program, assumptions, APR::AtomicPredicate(AtomicPredicate::IsImplemented(trait_ref))) => c)
     )
 
@@ -61,13 +61,13 @@ judgment! {
         (t_wcs => t_wc)
         (prove_apr_via(&program, &assumptions, &t_wc, trait_ref.is_implemented()) => c1)
         (prove_after(&program, &assumptions, c1, t.is_implemented()) => c2)
-        -----------------------------
+        ----------------------------- ("trait implied bound")
         (ProveApr(program, assumptions, APR::AtomicPredicate(AtomicPredicate::IsImplemented(trait_ref))) => c2)
     )
 
     (
         (prove_ty_eq(program, assumptions, a, b) => c)
-        -----------------------------
+        ----------------------------- ("eq")
         (ProveApr(program, assumptions, APR::AtomicRelation(AtomicRelation::Equals(Parameter::Ty(a), Parameter::Ty(b)))) => c)
     )
 }

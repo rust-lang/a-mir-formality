@@ -31,7 +31,7 @@ judgment!(
     (
         (graph.successors(a) => b)
         (if b % 2 == 0)
-        ---------------------------------------
+        --------------------------------------- ("base")
         (TransitiveReachability(graph, a) => b)
     )
 
@@ -39,7 +39,7 @@ judgment!(
         (TransitiveReachability(graph.clone(), a) => b)
         (TransitiveReachability(graph.clone(), b) => c)
         (if c % 2 == 0)
-        ---------------------------------------
+        --------------------------------------- ("transitive")
         (TransitiveReachability(graph, a) => c)
     )
 );

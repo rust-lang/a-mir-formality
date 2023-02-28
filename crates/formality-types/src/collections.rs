@@ -59,7 +59,9 @@ macro_rules! seq {
 pub trait SetExt<T>: Sized {
     fn split_first(self) -> Option<(T, Self)>;
 
-    fn union_with(&self, other: Self) -> Self;
+    fn union_with(self, other: Self) -> Self;
+
+    fn plus(self, other: T) -> Self;
 }
 
 impl<T: Ord + Clone> SetExt<T> for Set<T> {
@@ -71,7 +73,15 @@ impl<T: Ord + Clone> SetExt<T> for Set<T> {
         }
     }
 
-    fn union_with(&self, other: Self) -> Self {
-        self.iter().cloned().chain(other).collect()
+    fn union_with(mut self, other: Self) -> Self {
+        for item in other {
+            self.insert(item);
+        }
+        self
+    }
+
+    fn plus(mut self, other: T) -> Self {
+        self.insert(other);
+        self
     }
 }

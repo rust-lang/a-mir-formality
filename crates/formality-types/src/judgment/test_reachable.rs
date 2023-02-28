@@ -28,14 +28,14 @@ crate::judgment! {
 
     (
         (graph.successors(start) => s)
-        ---------------------------------------
+        --------------------------------------- ("base")
         (TransitiveReachability(graph, start) => s)
     )
 
     (
         (TransitiveReachability(graph.clone(), a) => b)
         (TransitiveReachability(graph.clone(), b) => c)
-        ---------------------------------------
+        --------------------------------------- ("transitive")
         (TransitiveReachability(graph, a) => c)
     )
 }

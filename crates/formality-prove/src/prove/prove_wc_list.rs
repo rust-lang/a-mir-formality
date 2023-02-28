@@ -21,7 +21,7 @@ judgment! {
 
     (
         (if let None = wcs.split_first())
-        ---
+        --- ("none")
         (ProveWcs(_env, _assumptions, wcs) => ConstraintSet::new())
     )
 
@@ -29,7 +29,7 @@ judgment! {
         (if let Some((wc0, wcs1)) = wcs.split_first())
         (prove_wc(&program, &assumptions, wc0) => c1)
         (prove_after(&program, &assumptions, c1, &wcs1) => c2)
-        ---
+        --- ("some")
         (ProveWcs(program, assumptions, wcs) => c2)
     )
 }

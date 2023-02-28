@@ -25,8 +25,8 @@ pub fn all_eq(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) ->
 }
 
 /// Goal(s) to prove `a` and `b` are equal
-pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> Wc {
-    AtomicRelation::eq(a, b).upcast()
+pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> AtomicRelation {
+    AtomicRelation::eq(a, b)
 }
 
 pub fn prove_parameters_eq(
@@ -69,7 +69,7 @@ judgment! {
         (let RigidTy { name: b_name, parameters: b_parameters } = b)
         (if a_name == b_name)
         (prove_parameters_eq(program, assumptions, a_parameters, b_parameters) => c)
-        -----------------------------
+        ----------------------------- ("rigid")
         (ProveTyEq(program, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
     )
 
@@ -78,14 +78,13 @@ judgment! {
         (let AliasTy { name: b_name, parameters: b_parameters } = b)
         (if a_name == b_name)
         (prove_parameters_eq(program, assumptions, a_parameters, b_parameters) => c)
-        -----------------------------
+        ----------------------------- ("alias-unnormalized")
         (ProveTyEq(program, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => c)
     )
 
     (
-        (let c = set![AtomicRelation::eq(v, r)])
-        -----------------------------
-        (ProveTyEq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(v)), TyData::RigidTy(r)) => c)
+        ----------------------------- ("existential-l")
+        (ProveTyEq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(v)), TyData::RigidTy(r)) => set![eq(v, r)])
     )
 
     (
@@ -100,32 +99,26 @@ judgment! {
             // Normalizing to a variable or alias: not productive
             assumptions.clone()
         })
-        (prove_wc_list(&program, &assumptions1, set![
-            ..all_eq(&a.parameters, &decl.alias.parameters),
+        (prove_wc_list(&program, &assumptions1, all![
+            all_eq(&a.parameters, &decl.alias.parameters),
             eq(&b, &decl.ty),
-            ..decl.where_clause
+            decl.where_clause,
         ]) => c)
-        -----------------------------
+        ----------------------------- ("alias-normalized")
         (ProveTyEq(program, assumptions, TyData::AliasTy(a), b) => c)
     )
 
     // Reorder so that *alias* and *variables* are on the LHS
 
     (
-        (prove_ty_eq(program, assumptions, v, r) => c)
-        -----------------------------
-        (ProveTyEq(program, assumptions, TyData::RigidTy(r), TyData::Variable(Variable::InferenceVar(v))) => c)
+        (prove_ty_eq(program, assumptions, v, t) => c)
+        ----------------------------- ("existential-r")
+        (ProveTyEq(program, assumptions, t, TyData::Variable(Variable::InferenceVar(v))) => c)
     )
 
     (
-        (prove_ty_eq(program, assumptions, v, a) => c)
-        -----------------------------
-        (ProveTyEq(program, assumptions, TyData::AliasTy(a), TyData::Variable(Variable::InferenceVar(v))) => c)
-    )
-
-    (
-        (prove_ty_eq(program, assumptions, a, b) => c)
-        -----------------------------
-        (ProveTyEq(program, assumptions, b, TyData::AliasTy(a)) => c)
+        (prove_ty_eq(program, assumptions, a, t) => c)
+        ----------------------------- ("alias-r")
+        (ProveTyEq(program, assumptions, t, TyData::AliasTy(a)) => c)
     )
 }

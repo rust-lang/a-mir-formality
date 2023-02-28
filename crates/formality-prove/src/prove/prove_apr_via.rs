@@ -40,21 +40,21 @@ judgment! {
         (let (skel_g, parameters_g) = goal.debone())
         (if skel_c == skel_g)
         (prove_parameters_eq(program, assumptions, parameters_c, parameters_g) => c)
-        -----------------------------
+        ----------------------------- ("axiom")
         (ProveAprVia(program, assumptions, WcData::Atomic(clause), goal) => c)
     )
 
     (
         (let via1 = binder.instantiate_existentially((&assumptions, &goal)))
         (prove_apr_via(program, assumptions, via1, goal) => c)
-        -----------------------------
+        ----------------------------- ("forall")
         (ProveAprVia(program, assumptions, WcData::ForAll(binder), goal) => c)
     )
 
     (
         (prove_apr_via(&program, &assumptions, wc_consequence, goal) => c1)
         (prove_after(&program, &assumptions, c1, &wc_condition) => c2)
-        -----------------------------
+        ----------------------------- ("implies")
         (ProveAprVia(program, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => c2)
     )
 }

@@ -53,7 +53,10 @@ where
         });
 
         loop {
+            let span = tracing::debug_span!("fixed-point iteration", ?input);
+            let _guard = span.enter();
             let output = (self.next_value)(input.clone());
+            tracing::debug!(?output);
             if !self.with_stack(|stack| stack.update_output(&input, output)) {
                 break;
             }

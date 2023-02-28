@@ -104,13 +104,15 @@ macro_rules! push_rules {
     // `@accum (conditions)` phase: accumulates the contents of a given rule,
     // pushing tokens into `conditions` until the `-----` and conclusion are found.
 
-    (@accum ($($m:tt)*) ---$(-)* ($p:pat => $v:expr)) => {
+    (@accum ($($m:tt)*) ---$(-)* ($n:literal) ($p:pat => $v:expr)) => {
         // Found the conclusion.
         |v| -> Vec<_> {
             let mut output = vec![];
             #[allow(irrefutable_let_patterns)]
             if let $p = v {
-                $crate::push_rules!(@body ($v, output) $($m)*);
+                tracing::debug_span!("matched rule", rule = $n).in_scope(|| {
+                    $crate::push_rules!(@body ($v, output) $($m)*);
+                });
             }
             output
         }

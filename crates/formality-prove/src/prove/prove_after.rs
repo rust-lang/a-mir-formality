@@ -56,8 +56,8 @@ judgment! {
         (let constraints_in_1 = constraints_in_1.replace_free_var(v, &p2))
         (let constraints_v = constraints_v.replace_free_var(v, &p2))
         (let goal = goal.replace_free_var(v, &p2))
-        (prove_after_with_vars(program, assumptions, constraints_in_1, goal, set![AtomicRelation::eq(v, p2), ..constraints_v]) => c)
-        ---
+        (prove_after_with_vars(program, assumptions, constraints_in_1, goal, constraints_v.plus(eq(v, p2))) => c)
+        --- ("unify-l")
         (ProveAfterWithVars(program, assumptions, constraints_in, goal, constraints_v) => c)
     )
 
@@ -65,8 +65,8 @@ judgment! {
         (if let Some((AtomicRelation::Equals(p1, p2), constraints_in_1)) = constraints_in.split_first())
         (if let None = p1.as_variable())
         (if let Some(_) = p2.as_variable())
-        (prove_after_with_vars(program, assumptions, set![..constraints_in_1, AtomicRelation::Equals(p2, p1)], goal, constraints_v) => c)
-        ---
+        (prove_after_with_vars(program, assumptions, set![..constraints_in_1, eq(p2, p1)], goal, constraints_v) => c)
+        --- ("unify-r")
         (ProveAfterWithVars(program, assumptions, constraints_in, goal, constraints_v) => c)
     )
 
@@ -74,15 +74,15 @@ judgment! {
         (if let Some((AtomicRelation::Equals(p1, p2), constraints_in_1)) = constraints_in.split_first())
         (if let None = p1.as_variable())
         (if let None = p2.as_variable())
-        (prove_after_with_vars(program, assumptions, constraints_in_1, set![..goals, eq(p1, p2)], constraints_v) => c)
-        ---
+        (prove_after_with_vars(program, assumptions, constraints_in_1, all![goals, eq(p1, p2)], constraints_v) => c)
+        --- ("prove")
         (ProveAfterWithVars(program, assumptions, constraints_in, goals, constraints_v) => c)
     )
 
     (
         (if let None = constraints_in.split_first())
         (prove_wc_list(program, assumptions, goal) => c)
-        ---
-        (ProveAfterWithVars(program, assumptions, constraints_in, goal, constraints_v) => constraints_v.union_with(c))
+        --- ("true")
+        (ProveAfterWithVars(program, assumptions, constraints_in, goal, constraints_v) => constraints_v.clone().union_with(c))
     )
 }

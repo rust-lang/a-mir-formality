@@ -28,20 +28,20 @@ judgment! {
 
     (
         (prove_apr(program, assumptions, a) => c)
-        ---
+        --- ("atomic")
         (ProveWc(program, assumptions, WcData::Atomic(a)) => c)
     )
 
     (
         (let p1 = binder.instantiate_universally(&assumptions))
         (prove_wc(program, assumptions, p1) => c)
-        ---
+        --- ("forall")
         (ProveWc(program, assumptions, WcData::ForAll(binder)) => c)
     )
 
     (
         (prove_wc(program, set![..assumptions, p1], p2) => c)
-        ---
+        --- ("implies")
         (ProveWc(program, assumptions, WcData::Implies(p1, p2)) => c)
     )
 }
