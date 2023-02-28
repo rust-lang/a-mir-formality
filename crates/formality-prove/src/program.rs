@@ -1,5 +1,7 @@
 use formality_macros::term;
-use formality_types::grammar::{AliasName, Binder, TraitId, TraitRef, Ty, Wc};
+use formality_types::grammar::{
+    AliasName, AliasTy, Binder, RigidName, TraitId, TraitRef, Ty, TyData, Wc, WcList,
+};
 
 #[term]
 pub struct Program {
@@ -27,8 +29,13 @@ impl Program {
         v.pop().unwrap()
     }
 
-    pub fn alias_eq_decls(&self) -> &[AliasEqDecl] {
-        &self.alias_eq_decls
+    pub fn alias_eq_decls<'s>(
+        &'s self,
+        name: &'s AliasName,
+    ) -> impl Iterator<Item = &'s AliasEqDecl> {
+        self.alias_eq_decls
+            .iter()
+            .filter(move |a| a.alias_name() == *name)
     }
 
     pub fn alias_bound_decls(&self) -> &[AliasBoundDecl] {
@@ -58,26 +65,48 @@ pub struct TraitDeclBoundData {
     pub where_clause: Wc,
 }
 
-#[term(alias $id $binder)]
+#[term(alias $binder)]
 pub struct AliasEqDecl {
-    pub id: AliasName,
     pub binder: Binder<AliasEqDeclBoundData>,
 }
 
-#[term(= $ty where $where_clause)]
-pub struct AliasEqDeclBoundData {
-    pub ty: Ty,
-    pub where_clause: Wc,
+impl AliasEqDecl {
+    pub fn alias_name(&self) -> AliasName {
+        self.binder.peek().alias.name.clone()
+    }
+
+    /// True if the target of this alias-eq declaration
+    /// is a rigid type.
+    pub fn target_is_rigid(&self) -> bool {
+        if let TyData::RigidTy(_) = self.binder.peek().ty.data() {
+            true
+        } else {
+            false
+        }
+    }
 }
 
-#[term(alias $id $binder)]
+#[term($alias = $ty where $where_clause)]
+pub struct AliasEqDeclBoundData {
+    pub alias: AliasTy,
+    pub ty: Ty,
+    pub where_clause: WcList,
+}
+
+#[term(alias $binder)]
 pub struct AliasBoundDecl {
-    pub id: AliasName,
     pub binder: Binder<AliasBoundDeclBoundData>,
 }
 
-#[term(: $ensures where $where_clause)]
+impl AliasBoundDecl {
+    pub fn alias_name(&self) -> AliasName {
+        self.binder.peek().alias.name.clone()
+    }
+}
+
+#[term($alias : $ensures where $where_clause)]
 pub struct AliasBoundDeclBoundData {
+    pub alias: AliasTy,
     // FIXME: this is currently encoded as something like `<T> [T: Foo]` where
     // `T` represents the alias.
     pub ensures: Binder<Wc>,

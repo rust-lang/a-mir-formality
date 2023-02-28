@@ -1,5 +1,5 @@
 use contracts::requires;
-use formality_macros::term;
+use formality_macros::{term, Visit};
 use std::{collections::BTreeSet, sync::Arc};
 
 mod debug_impls;
@@ -9,6 +9,7 @@ use crate::{
     cast::{DowncastTo, To, Upcast, UpcastFrom},
     cast_impl,
     collections::Map,
+    derive_links::Visit,
     fold::Fold,
 };
 
@@ -59,6 +60,10 @@ impl Ty {
         }
     }
 
+    pub fn is_rigid(&self) -> bool {
+        matches!(self.data(), TyData::RigidTy(_))
+    }
+
     pub fn rigid(name: impl Upcast<RigidName>, parameters: impl Upcast<Vec<Parameter>>) -> Self {
         RigidTy {
             name: name.upcast(),
@@ -106,7 +111,7 @@ impl DowncastTo<TyData> for Ty {
 
 // NB: TyData doesn't implement Fold; you fold types, not TyData,
 // because variables might not map to the same variant.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
 pub enum TyData {
     RigidTy(RigidTy),
     AliasTy(AliasTy),
@@ -457,6 +462,16 @@ impl Variable {
                 var_index: _,
                 kind: _,
             }) => false,
+        }
+    }
+}
+
+impl Visit for Variable {
+    fn free_variables(&self) -> Vec<Variable> {
+        if self.is_free() {
+            vec![*self]
+        } else {
+            vec![]
         }
     }
 }

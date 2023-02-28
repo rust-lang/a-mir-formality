@@ -132,6 +132,11 @@ macro_rules! push_rules {
         }
     };
 
+    (@body ($v:expr, $output:ident) (assert $c:expr) $($m:tt)*) => {
+        assert!($c);
+        $crate::push_rules!(@body ($v, $output) $($m)*);
+    };
+
     (@body ($v:expr, $output:ident) (if let $p:pat = $e:expr) $($m:tt)*) => {
         if let $p = $e {
             $crate::push_rules!(@body ($v, $output) $($m)*);

@@ -71,18 +71,7 @@ impl<T: Visit> Visit for Arc<T> {
 
 impl Visit for Ty {
     fn free_variables(&self) -> Vec<Variable> {
-        match self.data() {
-            TyData::RigidTy(v) => v.free_variables(),
-            TyData::AliasTy(v) => v.free_variables(),
-            TyData::PredicateTy(v) => v.free_variables(),
-            TyData::Variable(v) => {
-                if v.is_free() {
-                    vec![v.clone()]
-                } else {
-                    vec![]
-                }
-            }
-        }
+        self.data().free_variables()
     }
 }
 

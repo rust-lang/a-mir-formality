@@ -33,6 +33,8 @@ pub fn term(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 }
 
+synstructure::decl_derive!([Visit] => visit::derive_visit);
+
 #[proc_macro_attribute]
 pub fn fixed_point(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = syn::parse_macro_input!(args as fixed_point::FixedPointArgs);
