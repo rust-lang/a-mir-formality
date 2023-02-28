@@ -1,6 +1,7 @@
 use formality_macros::term;
-use formality_types::grammar::{
-    AliasName, AliasTy, Binder, TraitId, TraitRef, Ty, TyData, Wc, Wcs,
+use formality_types::{
+    collections::Set,
+    grammar::{AliasName, AliasTy, Binder, TraitId, TraitRef, Ty, TyData, Wc, Wcs},
 };
 
 #[term]
@@ -41,6 +42,15 @@ impl Program {
     pub fn alias_bound_decls(&self) -> &[AliasBoundDecl] {
         &self.alias_bound_decls
     }
+
+    /// Return the set of "trait invariants" for all traits.
+    /// See [`TraitDecl::trait_invariants`].
+    pub fn trait_invariants(&self) -> Set<TraitInvariant> {
+        self.trait_decls
+            .iter()
+            .flat_map(|td| td.trait_invariants())
+            .collect()
+    }
 }
 
 #[term(impl $binder)]
@@ -61,11 +71,35 @@ pub struct TraitDecl {
 }
 
 impl TraitDecl {
-    pub fn trait_ref_and_wc(&self) -> Binder<(TraitRef, Wcs)> {
+    /// Return the set of "trait invariants", i.e., things we know to be true
+    /// because of the trait where-clauses. For example, given `trait Ord<ty Self> where {PartialOrd(Self)}`,
+    /// this would return the set `{trait_invariant(<ty Self> Ord(Self) => PartialOrd(Self)}`
+    pub fn trait_invariants(&self) -> Set<TraitInvariant> {
         let (variables, TraitDeclBoundData { where_clause }) = self.binder.open();
-        let r = TraitRef::new(&self.id, &variables);
-        Binder::new(&variables, (r, where_clause))
+        where_clause
+            .into_iter()
+            .map(|where_clause| TraitInvariant {
+                binder: Binder::new(
+                    &variables,
+                    TraitInvariantBoundData {
+                        trait_ref: TraitRef::new(&self.id, &variables),
+                        where_clause,
+                    },
+                ),
+            })
+            .collect()
     }
+}
+
+#[term]
+pub struct TraitInvariant {
+    pub binder: Binder<TraitInvariantBoundData>,
+}
+
+#[term($trait_ref => $where_clause)]
+pub struct TraitInvariantBoundData {
+    pub trait_ref: TraitRef,
+    pub where_clause: Wc,
 }
 
 #[term(where $where_clause)]

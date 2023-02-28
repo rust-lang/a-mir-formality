@@ -1,8 +1,11 @@
 use formality_types::{
-    cast::{Upcast, Upcasted},
+    cast::{Downcast, Upcast, Upcasted},
     cast_impl,
     collections::Set,
-    grammar::{AliasTy, AtomicRelation, Parameter, RigidTy, TyData, Variable, Wc, Wcs},
+    derive_links::DowncastTo,
+    grammar::{
+        AliasTy, AtomicRelation, InferenceVar, Parameter, RigidTy, TyData, Variable, Wc, Wcs,
+    },
     judgment,
     judgment::Judgment,
     set,
@@ -65,6 +68,12 @@ judgment! {
     (ProveTyEq => ConstraintSet)
 
     (
+        (if l == r)
+        ----------------------------- ("reflexive")
+        (ProveTyEq(_env, _assumptions, l, r) => set![])
+    )
+
+    (
         (let RigidTy { name: a_name, parameters: a_parameters } = a)
         (let RigidTy { name: b_name, parameters: b_parameters } = b)
         (if a_name == b_name)
@@ -83,8 +92,27 @@ judgment! {
     )
 
     (
+        (if let None = t.downcast::<InferenceVar>())
         ----------------------------- ("existential-l")
-        (ProveTyEq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(v)), TyData::RigidTy(r)) => set![eq(v, r)])
+        (ProveTyEq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(v)), t) => set![eq(v, t)])
+    )
+
+    (
+        (if let None = t.downcast::<InferenceVar>())
+        ----------------------------- ("existential-r")
+        (ProveTyEq(_env, _assumptions, t, TyData::Variable(Variable::InferenceVar(v))) => set![eq(v, t)])
+    )
+
+    (
+        (if l < r)
+        ----------------------------- ("existential-both")
+        (ProveTyEq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(l)), TyData::Variable(Variable::InferenceVar(r))) => set![eq(l, r)])
+    )
+
+    (
+        (if r < l)
+        ----------------------------- ("existential-both-rev")
+        (ProveTyEq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(l)), TyData::Variable(Variable::InferenceVar(r))) => set![eq(r, l)])
     )
 
     (
@@ -106,14 +134,6 @@ judgment! {
         ]) => c)
         ----------------------------- ("alias-normalized")
         (ProveTyEq(program, assumptions, TyData::AliasTy(a), b) => c)
-    )
-
-    // Reorder so that *alias* and *variables* are on the LHS
-
-    (
-        (prove_ty_eq(program, assumptions, v, t) => c)
-        ----------------------------- ("existential-r")
-        (ProveTyEq(program, assumptions, t, TyData::Variable(Variable::InferenceVar(v))) => c)
     )
 
     (

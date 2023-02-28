@@ -19,3 +19,5 @@ mod prove_apr_via;
 mod prove_eq;
 mod prove_wc;
 mod prove_wc_list;
+
+pub use prove_wc_list::prove_wc_list;

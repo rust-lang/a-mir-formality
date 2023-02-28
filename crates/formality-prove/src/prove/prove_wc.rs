@@ -40,7 +40,7 @@ judgment! {
     )
 
     (
-        (prove_wc(program, set![..assumptions, p1], p2) => c)
+        (prove_wc(program, all![assumptions, p1], p2) => c)
         --- ("implies")
         (ProveWc(program, assumptions, WcData::Implies(p1, p2)) => c)
     )

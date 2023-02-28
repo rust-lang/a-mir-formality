@@ -9,7 +9,7 @@ use formality_types::{
 };
 
 use crate::{
-    program::Program,
+    program::{Program, TraitInvariantBoundData},
     prove::{
         prove_after::prove_after,
         prove_apr_via::prove_apr_via,
@@ -56,11 +56,10 @@ judgment! {
     )
 
     (
-        (let t = program.trait_decl(&trait_ref.trait_id))
-        (let (t, t_wcs) = t.trait_ref_and_wc().instantiate_existentially((&assumptions, &trait_ref)))
-        (t_wcs => t_wc)
-        (prove_apr_via(&program, &assumptions, &t_wc, trait_ref.is_implemented()) => c1)
-        (prove_after(&program, &assumptions, c1, t.is_implemented()) => c2)
+        (program.trait_invariants() => ti)
+        (let ti = ti.binder.instantiate_existentially((&assumptions, &trait_ref)))
+        (prove_apr_via(&program, &assumptions, &ti.where_clause, trait_ref.is_implemented()) => c1)
+        (prove_after(&program, &assumptions, c1, ti.trait_ref.is_implemented()) => c2)
         ----------------------------- ("trait implied bound")
         (ProveApr(program, assumptions, APR::AtomicPredicate(AtomicPredicate::IsImplemented(trait_ref))) => c2)
     )

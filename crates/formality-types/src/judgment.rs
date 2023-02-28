@@ -58,6 +58,7 @@ macro_rules! judgment {
             fn build_rules(builder: &mut $crate::judgment::JudgmentBuilder<Self>) {
                 $crate::push_rules!(
                     builder,
+                    $output,
                     $(($($rule)*))*
                 );
             }
@@ -91,22 +92,22 @@ macro_rules! judgment {
 /// * `(<pat> => <binding>)
 #[macro_export]
 macro_rules! push_rules {
-    ($builder:expr, $($rule:tt)*) => {
-        $($crate::push_rules!(@rule ($builder) $rule);)*
+    ($builder:expr, $output_ty:ty, $($rule:tt)*) => {
+        $($crate::push_rules!(@rule ($builder, $output_ty) $rule);)*
     };
 
     // `@rule (builder) rule` phase: invoked for each rule, emits `push_rule` call
 
-    (@rule ($builder:expr) ($($m:tt)*)) => {
-        $builder.push_rule($crate::push_rules!(@accum () $($m)*))
+    (@rule ($builder:expr, $output_ty:ty) ($($m:tt)*)) => {
+        $builder.push_rule($crate::push_rules!(@accum ($output_ty, ) $($m)*))
     };
 
     // `@accum (conditions)` phase: accumulates the contents of a given rule,
     // pushing tokens into `conditions` until the `-----` and conclusion are found.
 
-    (@accum ($($m:tt)*) ---$(-)* ($n:literal) ($p:pat => $v:expr)) => {
+    (@accum ($output_ty:ty, $($m:tt)*) ---$(-)* ($n:literal) ($p:pat => $v:expr)) => {
         // Found the conclusion.
-        |v| -> Vec<_> {
+        |v| -> Vec<$output_ty> {
             let mut output = vec![];
             #[allow(irrefutable_let_patterns)]
             if let $p = v {
@@ -118,9 +119,9 @@ macro_rules! push_rules {
         }
     };
 
-    (@accum ($($m:tt)*) ($($n:tt)*) $($o:tt)*) => {
+    (@accum ($output_ty:ty, $($m:tt)*) ($($n:tt)*) $($o:tt)*) => {
         // Push the condition into the list `$m`.
-        $crate::push_rules!(@accum ($($m)* ($($n)*)) $($o)*)
+        $crate::push_rules!(@accum ($output_ty, $($m)* ($($n)*)) $($o)*)
     };
 
     // `@body (v)` phase: processes the conditions, generating the code

@@ -12,7 +12,7 @@ use crate::{
 
 use super::{AtomicPredicate, AtomicRelation, Binder, BoundVar};
 
-#[term]
+#[term($set)]
 pub struct Wcs {
     set: Set<Wc>,
 }
@@ -81,8 +81,8 @@ pub enum WcData {
     #[grammar(for $v0)]
     ForAll(Binder<Wc>),
 
-    #[grammar(implies($v0 => $v1))]
-    Implies(Wc, Wc),
+    #[grammar(if $v0 $v1)]
+    Implies(Wcs, Wc),
 }
 
 // ---
