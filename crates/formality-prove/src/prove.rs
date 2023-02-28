@@ -13,6 +13,7 @@ macro_rules! all {
     };
 }
 
+mod forall;
 mod prove_after;
 mod prove_apr;
 mod prove_apr_via;

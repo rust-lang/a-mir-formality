@@ -9,7 +9,7 @@ use crate::{
     cast::{DowncastTo, To, Upcast, UpcastFrom},
     cast_impl,
     collections::Map,
-    derive_links::Visit,
+    derive_links::{Term, Visit},
     fold::Fold,
 };
 
