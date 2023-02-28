@@ -1,12 +1,12 @@
 use formality_macros::term;
 use formality_types::grammar::{
-    AliasName, AliasTy, Binder, RigidName, TraitId, TraitRef, Ty, TyData, Wc, WcList,
+    AliasName, AliasTy, Binder, TraitId, TraitRef, Ty, TyData, Wc, Wcs,
 };
 
 #[term]
 pub struct Program {
-    impl_decls: Vec<ImplDecl>,
     trait_decls: Vec<TraitDecl>,
+    impl_decls: Vec<ImplDecl>,
     alias_eq_decls: Vec<AliasEqDecl>,
     alias_bound_decls: Vec<AliasBoundDecl>,
 }
@@ -51,7 +51,7 @@ pub struct ImplDecl {
 #[term($trait_ref where $where_clause)]
 pub struct ImplDeclBoundData {
     pub trait_ref: TraitRef,
-    pub where_clause: Wc,
+    pub where_clause: Wcs,
 }
 
 #[term(trait $id $binder)]
@@ -60,9 +60,17 @@ pub struct TraitDecl {
     pub binder: Binder<TraitDeclBoundData>,
 }
 
+impl TraitDecl {
+    pub fn trait_ref_and_wc(&self) -> Binder<(TraitRef, Wcs)> {
+        let (variables, TraitDeclBoundData { where_clause }) = self.binder.open();
+        let r = TraitRef::new(&self.id, &variables);
+        Binder::new(&variables, (r, where_clause))
+    }
+}
+
 #[term(where $where_clause)]
 pub struct TraitDeclBoundData {
-    pub where_clause: Wc,
+    pub where_clause: Wcs,
 }
 
 #[term(alias $binder)]
@@ -90,7 +98,7 @@ impl AliasEqDecl {
 pub struct AliasEqDeclBoundData {
     pub alias: AliasTy,
     pub ty: Ty,
-    pub where_clause: WcList,
+    pub where_clause: Wcs,
 }
 
 #[term(alias $binder)]
@@ -110,5 +118,5 @@ pub struct AliasBoundDeclBoundData {
     // FIXME: this is currently encoded as something like `<T> [T: Foo]` where
     // `T` represents the alias.
     pub ensures: Binder<Wc>,
-    pub where_clause: Wc,
+    pub where_clause: Wcs,
 }

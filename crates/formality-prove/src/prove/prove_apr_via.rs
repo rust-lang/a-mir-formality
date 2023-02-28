@@ -2,7 +2,7 @@ use formality_macros::term;
 use formality_types::{
     cast::Upcast,
     collections::Set,
-    grammar::{WcData, WcList, APR},
+    grammar::{WcData, Wcs, APR},
     judgment,
     judgment::Judgment,
 };
@@ -16,7 +16,7 @@ use super::ConstraintSet;
 
 pub fn prove_apr_via(
     program: impl Upcast<Program>,
-    assumptions: impl Upcast<WcList>,
+    assumptions: impl Upcast<Wcs>,
     via: impl Upcast<WcData>,
     goal: impl Upcast<APR>,
 ) -> Set<ConstraintSet> {
@@ -30,7 +30,7 @@ pub fn prove_apr_via(
 }
 
 #[term]
-struct ProveAprVia(Program, WcList, WcData, APR);
+struct ProveAprVia(Program, Wcs, WcData, APR);
 
 judgment! {
     (ProveAprVia => ConstraintSet)

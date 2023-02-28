@@ -2,9 +2,10 @@ use formality_macros::term;
 use formality_types::{
     cast::Upcast,
     collections::Set,
-    grammar::{WcData, WcList},
+    grammar::{WcData, Wcs},
     judgment,
     judgment::Judgment,
+    set,
 };
 
 use crate::{program::Program, prove::prove_apr::prove_apr};
@@ -13,14 +14,14 @@ use super::ConstraintSet;
 
 pub fn prove_wc(
     program: impl Upcast<Program>,
-    assumptions: impl Upcast<WcList>,
+    assumptions: impl Upcast<Wcs>,
     goal: impl Upcast<WcData>,
 ) -> Set<ConstraintSet> {
     ProveWc(program.upcast(), assumptions.upcast(), goal.upcast()).apply()
 }
 
 #[term]
-struct ProveWc(Program, WcList, WcData);
+struct ProveWc(Program, Wcs, WcData);
 
 judgment! {
     (ProveWc => ConstraintSet)
@@ -39,7 +40,7 @@ judgment! {
     )
 
     (
-        (prove_wc(program, assumptions.and(p1), p2) => c)
+        (prove_wc(program, set![..assumptions, p1], p2) => c)
         ---
         (ProveWc(program, assumptions, WcData::Implies(p1, p2)) => c)
     )

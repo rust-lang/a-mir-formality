@@ -3,78 +3,58 @@ use std::sync::Arc;
 use formality_macros::term;
 
 use crate::{
-    cast::{DowncastFrom, Upcast, UpcastFrom},
+    cast::{DowncastFrom, DowncastTo, Upcast, UpcastFrom},
     cast_impl,
+    collections::{Set, SetExt},
     grammar::APR,
     set,
 };
 
 use super::{AtomicPredicate, AtomicRelation, Binder, BoundVar};
 
-#[term($data)]
-pub struct WcList {
-    data: Arc<WcListData>,
-}
-
 #[term]
-pub enum WcListData {
-    #[cast]
-    Wc(Wc),
-
-    #[grammar($v0, $v1)]
-    And(WcList, WcList),
-
-    #[grammar(true)]
-    True,
+pub struct Wcs {
+    set: Set<Wc>,
 }
 
-impl WcList {
-    pub fn data(&self) -> &WcListData {
-        &self.data
+impl Wcs {
+    pub fn split_first(self) -> Option<(Wc, Wcs)> {
+        let (wc, set) = self.set.split_first()?;
+        Some((wc, set.upcast()))
     }
 
-    pub fn and(self, other: impl Upcast<WcList>) -> WcList {
-        let other: WcList = other.upcast();
-        if let WcListData::True = self.data() {
-            other
-        } else if let WcListData::True = other.data() {
-            self
-        } else {
-            WcListData::And(self, other).upcast()
-        }
-    }
-
-    pub fn t() -> WcList {
-        WcListData::True.upcast()
-    }
-
-    /// Iterate over this list of where-clauses
-    pub fn iter(&self) -> impl Iterator<Item = Wc> {
-        let mut stack = vec![self];
-        let mut result = set![];
-        while let Some(l) = stack.pop() {
-            match l.data() {
-                WcListData::Wc(w) => {
-                    result.insert(w.clone());
-                }
-                WcListData::And(l1, l2) => {
-                    stack.push(l1);
-                    stack.push(l2);
-                }
-                WcListData::True => (),
-            }
-        }
-        result.into_iter()
+    pub fn union(&self, other: impl Upcast<Wcs>) -> Self {
+        let other: Wcs = other.upcast();
+        let set = self.set.iter().cloned().chain(other.set).collect();
+        Wcs { set }
     }
 }
 
-impl IntoIterator for WcList {
+impl<'w> IntoIterator for &'w Wcs {
+    type Item = Wc;
+
+    type IntoIter = Box<dyn Iterator<Item = Wc> + 'w>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Box::new(self.set.iter().cloned())
+    }
+}
+
+impl IntoIterator for Wcs {
     type Item = Wc;
 
     type IntoIter = Box<dyn Iterator<Item = Wc>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Box::new(self.iter())
+        Box::new(self.set.into_iter())
+    }
+}
+
+impl FromIterator<Wc> for Wcs {
+    fn from_iter<T: IntoIterator<Item = Wc>>(iter: T) -> Self {
+        Wcs {
+            set: iter.into_iter().collect(),
+        }
     }
 }
 
@@ -90,10 +70,6 @@ impl Wc {
 
     pub fn for_all(names: &[BoundVar], data: impl Upcast<Wc>) -> Self {
         WcData::ForAll(Binder::new(names, data.upcast())).upcast()
-    }
-
-    pub fn and(self, other: Wc) -> WcList {
-        WcListData::And(self.upcast(), other.upcast()).upcast()
     }
 }
 
@@ -131,35 +107,26 @@ impl DowncastFrom<Wc> for WcData {
 
 // ---
 
-impl UpcastFrom<WcListData> for WcList {
-    fn upcast_from(v: WcListData) -> Self {
-        WcList { data: Arc::new(v) }
-    }
-}
-
-impl UpcastFrom<WcList> for WcListData {
-    fn upcast_from(v: WcList) -> Self {
-        v.data().clone()
-    }
-}
-
-impl DowncastFrom<WcList> for WcListData {
-    fn downcast_from(t: &WcList) -> Option<Self> {
-        Some(t.data().clone())
-    }
-}
-
-cast_impl!((Wc) <: (WcListData) <: (WcList));
-cast_impl!((WcData) <: (Wc) <: (WcList));
-cast_impl!((APR) <: (WcData) <: (WcList));
 cast_impl!((APR) <: (WcData) <: (Wc));
 cast_impl!((AtomicRelation) <: (APR) <: (Wc));
 cast_impl!((AtomicPredicate) <: (APR) <: (Wc));
-cast_impl!((AtomicRelation) <: (Wc) <: (WcList));
-cast_impl!((AtomicPredicate) <: (Wc) <: (WcList));
 
-impl FromIterator<Wc> for WcList {
-    fn from_iter<T: IntoIterator<Item = Wc>>(iter: T) -> Self {
-        iter.into_iter().fold(WcList::t(), |l, v| l.and(v))
+impl UpcastFrom<Wc> for Wcs {
+    fn upcast_from(term: Wc) -> Self {
+        Wcs { set: set![term] }
     }
 }
+
+impl DowncastTo<Wc> for Wcs {
+    fn downcast_to(&self) -> Option<Wc> {
+        if self.set.len() == 1 {
+            self.set.iter().next().cloned()
+        } else {
+            None
+        }
+    }
+}
+
+cast_impl!((APR) <: (Wc) <: (Wcs));
+cast_impl!((AtomicRelation) <: (Wc) <: (Wcs));
+cast_impl!((AtomicPredicate) <: (Wc) <: (Wcs));

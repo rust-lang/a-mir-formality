@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     collections::Set,
-    grammar::{Lt, LtData, Parameter, Ty, TyData, Universe, Variable},
+    grammar::{Lt, LtData, Parameter, Ty, Universe, Variable},
 };
 
 /// Invoked for each variable that we find when Visiting, ignoring variables bound by binders

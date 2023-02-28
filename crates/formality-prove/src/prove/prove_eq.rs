@@ -2,7 +2,7 @@ use formality_types::{
     cast::{Upcast, Upcasted},
     cast_impl,
     collections::Set,
-    grammar::{AliasTy, AtomicRelation, Parameter, RigidTy, Ty, TyData, Variable, WcList},
+    grammar::{AliasTy, AtomicRelation, Parameter, RigidTy, TyData, Variable, Wc, Wcs},
     judgment,
     judgment::Judgment,
     set,
@@ -13,7 +13,7 @@ use crate::program::Program;
 use super::{prove_wc_list::prove_wc_list, ConstraintSet};
 
 /// Goal(s) to prove `a` and `b` are equal (they must have equal length)
-pub fn all_eq(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) -> WcList {
+pub fn all_eq(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) -> Wcs {
     let a: Vec<Parameter> = a.upcast();
     let b: Vec<Parameter> = b.upcast();
     assert_eq!(a.len(), b.len());
@@ -25,13 +25,13 @@ pub fn all_eq(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) ->
 }
 
 /// Goal(s) to prove `a` and `b` are equal
-pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> WcList {
+pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> Wc {
     AtomicRelation::eq(a, b).upcast()
 }
 
 pub fn prove_parameters_eq(
     program: impl Upcast<Program>,
-    assumptions: impl Upcast<WcList>,
+    assumptions: impl Upcast<Wcs>,
     a: impl Upcast<Vec<Parameter>>,
     b: impl Upcast<Vec<Parameter>>,
 ) -> Set<ConstraintSet> {
@@ -42,13 +42,13 @@ pub fn prove_parameters_eq(
 }
 
 #[derive(Clone, Hash, Ord, Eq, PartialEq, PartialOrd, Debug)]
-struct ProveTyEq(Program, WcList, TyData, TyData);
+struct ProveTyEq(Program, Wcs, TyData, TyData);
 
 cast_impl!(ProveTyEq);
 
 pub fn prove_ty_eq(
     program: impl Upcast<Program>,
-    assumptions: impl Upcast<WcList>,
+    assumptions: impl Upcast<Wcs>,
     a: impl Upcast<TyData>,
     b: impl Upcast<TyData>,
 ) -> Set<ConstraintSet> {
@@ -95,12 +95,16 @@ judgment! {
         (assert a.name == decl.alias.name)
         (let assumptions1 = if decl.ty.is_rigid() {
             // Normalizing to a rigid type: productive
-            assumptions.clone().and(eq(&a, &b))
+            assumptions.union(eq(&a, &b))
         } else {
             // Normalizing to a variable or alias: not productive
             assumptions.clone()
         })
-        (prove_wc_list(&program, &assumptions1, all_eq(&a.parameters, &decl.alias.parameters).and(eq(&b, &decl.ty)).and(&decl.where_clause)) => c)
+        (prove_wc_list(&program, &assumptions1, set![
+            ..all_eq(&a.parameters, &decl.alias.parameters),
+            eq(&b, &decl.ty),
+            ..decl.where_clause
+        ]) => c)
         -----------------------------
         (ProveTyEq(program, assumptions, TyData::AliasTy(a), b) => c)
     )

@@ -1,11 +1,5 @@
 use formality_macros::term;
-use formality_types::{
-    cast::Upcast,
-    collections::Set,
-    grammar::{WcList, WcListData},
-    judgment,
-    judgment::Judgment,
-};
+use formality_types::{cast::Upcast, collections::Set, grammar::Wcs, judgment, judgment::Judgment};
 
 use crate::{program::Program, prove::prove_after::prove_after};
 
@@ -13,33 +7,29 @@ use super::{prove_wc::prove_wc, ConstraintSet};
 
 pub fn prove_wc_list(
     program: impl Upcast<Program>,
-    assumptions: impl Upcast<WcList>,
-    goal: impl Upcast<WcListData>,
+    assumptions: impl Upcast<Wcs>,
+    goal: impl Upcast<Wcs>,
 ) -> Set<ConstraintSet> {
-    ProveWcListData(program.upcast(), assumptions.upcast(), goal.upcast()).apply()
+    ProveWcs(program.upcast(), assumptions.upcast(), goal.upcast()).apply()
 }
 
 #[term]
-struct ProveWcListData(Program, WcList, WcListData);
+struct ProveWcs(Program, Wcs, Wcs);
 
 judgment! {
-    (ProveWcListData => ConstraintSet)
+    (ProveWcs => ConstraintSet)
 
     (
+        (if let None = wcs.split_first())
         ---
-        (ProveWcListData(_env, _assumptions, WcListData::True) => ConstraintSet::new())
+        (ProveWcs(_env, _assumptions, wcs) => ConstraintSet::new())
     )
 
     (
-        (prove_wc(program, assumptions, wc) => c)
+        (if let Some((wc0, wcs1)) = wcs.split_first())
+        (prove_wc(&program, &assumptions, wc0) => c1)
+        (prove_after(&program, &assumptions, c1, &wcs1) => c2)
         ---
-        (ProveWcListData(program, assumptions, WcListData::Wc(wc)) => c)
-    )
-
-    (
-        (prove_wc_list(&program, assumptions.clone(), l1) => c1)
-        (prove_after(&program, &assumptions, c1, &l2) => c2)
-        ---
-        (ProveWcListData(program, assumptions, WcListData::And(l1, l2)) => c2)
+        (ProveWcs(program, assumptions, wcs) => c2)
     )
 }

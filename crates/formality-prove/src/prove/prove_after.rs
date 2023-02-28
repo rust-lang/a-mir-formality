@@ -3,30 +3,33 @@ use formality_types::{
     cast::Upcast,
     collections::{Set, SetExt},
     fold::Fold,
-    grammar::{AtomicRelation, Variable, WcList},
+    grammar::{AtomicRelation, Variable, Wcs},
     judgment,
     judgment::Judgment,
     set,
 };
 
-use crate::{program::Program, prove::prove_wc_list::prove_wc_list};
+use crate::{
+    program::Program,
+    prove::{prove_eq::eq, prove_wc_list::prove_wc_list},
+};
 
 use super::ConstraintSet;
 
 pub fn prove_after(
     program: impl Upcast<Program>,
-    assumptions: impl Upcast<WcList>,
+    assumptions: impl Upcast<Wcs>,
     constraints_in: ConstraintSet,
-    goal: impl Upcast<WcList>,
+    goal: impl Upcast<Wcs>,
 ) -> Set<ConstraintSet> {
     prove_after_with_vars(program, assumptions, constraints_in, goal, set![])
 }
 
 fn prove_after_with_vars(
     program: impl Upcast<Program>,
-    assumptions: impl Upcast<WcList>,
+    assumptions: impl Upcast<Wcs>,
     constraints_in: ConstraintSet,
-    goal: impl Upcast<WcList>,
+    goal: impl Upcast<Wcs>,
     constraints_v: ConstraintSet,
 ) -> Set<ConstraintSet> {
     ProveAfterWithVars(
@@ -40,7 +43,7 @@ fn prove_after_with_vars(
 }
 
 #[term]
-struct ProveAfterWithVars(Program, WcList, ConstraintSet, WcList, ConstraintSet);
+struct ProveAfterWithVars(Program, Wcs, ConstraintSet, Wcs, ConstraintSet);
 
 judgment! {
     (ProveAfterWithVars => ConstraintSet)
@@ -71,9 +74,9 @@ judgment! {
         (if let Some((AtomicRelation::Equals(p1, p2), constraints_in_1)) = constraints_in.split_first())
         (if let None = p1.as_variable())
         (if let None = p2.as_variable())
-        (prove_after_with_vars(program, assumptions, constraints_in_1, goal.and(AtomicRelation::Equals(p1, p2)), constraints_v) => c)
+        (prove_after_with_vars(program, assumptions, constraints_in_1, set![..goals, eq(p1, p2)], constraints_v) => c)
         ---
-        (ProveAfterWithVars(program, assumptions, constraints_in, goal, constraints_v) => c)
+        (ProveAfterWithVars(program, assumptions, constraints_in, goals, constraints_v) => c)
     )
 
     (
