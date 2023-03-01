@@ -1,10 +1,8 @@
-use formality_macros::term;
+
 use formality_types::{
     cast::Upcast,
-    collections::Set,
     grammar::{WcData, Wcs},
-    judgment,
-    judgment::Judgment,
+    judgment_fn,
     visit::Visit,
 };
 
@@ -15,38 +13,31 @@ use crate::{
 
 use super::ConstraintSet;
 
-pub fn prove_wc(
-    program: impl Upcast<Program>,
-    assumptions: impl Upcast<Wcs>,
-    goal: impl Upcast<WcData>,
-) -> Set<ConstraintSet> {
-    ProveWc(program.upcast(), assumptions.upcast(), goal.upcast()).apply()
-}
+judgment_fn! {
+    pub fn prove_wc(
+        program: Program,
+        assumptions: Wcs,
+        goal: WcData,
+    ) => ConstraintSet {
+        (
+            (prove_apr(program, assumptions, a) => c)
+            --- ("atomic")
+            (JudgmentStruct(program, assumptions, WcData::Atomic(a)) => c)
+        )
 
-#[term]
-struct ProveWc(Program, Wcs, WcData);
+        (
+            (let u = assumptions.max_universe())
+            (let p1 = binder.instantiate_universally(&assumptions))
+            (prove_wc(program, assumptions, p1) => c)
+            (let c1 = constraints_visible_from_universe(u, c))
+            --- ("forall")
+            (JudgmentStruct(program, assumptions, WcData::ForAll(binder)) => c1)
+        )
 
-judgment! {
-    (ProveWc => ConstraintSet)
-
-    (
-        (prove_apr(program, assumptions, a) => c)
-        --- ("atomic")
-        (ProveWc(program, assumptions, WcData::Atomic(a)) => c)
-    )
-
-    (
-        (let u = assumptions.max_universe())
-        (let p1 = binder.instantiate_universally(&assumptions))
-        (prove_wc(program, assumptions, p1) => c)
-        (let c1 = constraints_visible_from_universe(u, c))
-        --- ("forall")
-        (ProveWc(program, assumptions, WcData::ForAll(binder)) => c1)
-    )
-
-    (
-        (prove_wc(program, all![assumptions, p1], p2) => c)
-        --- ("implies")
-        (ProveWc(program, assumptions, WcData::Implies(p1, p2)) => c)
-    )
+        (
+            (prove_wc(program, all![assumptions, p1], p2) => c)
+            --- ("implies")
+            (JudgmentStruct(program, assumptions, WcData::Implies(p1, p2)) => c)
+        )
+    }
 }

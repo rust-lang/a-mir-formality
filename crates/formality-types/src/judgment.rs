@@ -33,6 +33,54 @@ struct InferenceRule<I, O> {
 }
 
 #[macro_export]
+macro_rules! judgment_fn {
+    (
+        $v:vis fn $name:ident($($input_name:ident : $input_ty:ty),* $(,)?) => $output:ty {
+            $(($($rule:tt)*))*
+        }
+    ) => {
+        $v fn $name($($input_name : impl $crate::cast::Upcast<$input_ty>),*) -> $crate::collections::Set<$output> {
+            #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Clone)]
+            struct JudgmentStruct($($input_ty),*);
+
+            $crate::cast_impl!(JudgmentStruct);
+
+            impl std::iter::IntoIterator for JudgmentStruct {
+                type Item = $output;
+
+                type IntoIter = std::collections::btree_set::IntoIter<Self::Item>;
+
+                fn into_iter(self) -> Self::IntoIter {
+                    $crate::judgment::Judgment::apply(&self).into_iter()
+                }
+            }
+
+            impl $crate::judgment::Judgment for JudgmentStruct {
+                type Output = $output;
+
+                fn stack() -> &'static std::thread::LocalKey<$crate::judgment::JudgmentStack<JudgmentStruct, $output>> {
+                    thread_local! {
+                        static R: $crate::judgment::JudgmentStack<JudgmentStruct, $output> = Default::default()
+                    }
+                    &R
+                }
+
+                fn build_rules(builder: &mut $crate::judgment::JudgmentBuilder<Self>) {
+                    $crate::push_rules!(
+                        builder,
+                        $output,
+                        $(($($rule)*))*
+                    );
+                }
+            }
+
+            $(let $input_name: $input_ty = $crate::cast::Upcast::upcast($input_name);)*
+            $crate::judgment::Judgment::apply(&JudgmentStruct($($input_name),*))
+        }
+    }
+}
+
+#[macro_export]
 macro_rules! judgment {
     (($judgment:ty => $output:ty) $(($($rule:tt)*))*) => {
         impl std::iter::IntoIterator for $judgment {
