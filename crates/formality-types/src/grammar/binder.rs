@@ -55,19 +55,20 @@ impl<T: Fold> Binder<T> {
 
     /// Given a set of variables (X, Y, Z) and a term referecing them,
     /// create a binder where those variables are bound.
-    pub fn new(variables: &[BoundVar], term: T) -> Self {
+    pub fn new(variables: &[impl Upcast<Variable>], term: T) -> Self {
         let (kinds, substitution): (Vec<ParameterKind>, Substitution) = variables
             .iter()
             .zip(0..)
             .map(|(old_bound_var, index)| {
-                assert!(old_bound_var.debruijn.is_none());
+                let old_bound_var: Variable = old_bound_var.upcast();
+                assert!(old_bound_var.is_free());
                 let new_bound_var: Parameter = BoundVar {
                     debruijn: Some(DebruijnIndex::INNERMOST),
                     var_index: VarIndex { index },
-                    kind: old_bound_var.kind,
+                    kind: old_bound_var.kind(),
                 }
                 .upcast();
-                (old_bound_var.kind, (old_bound_var.upcast(), new_bound_var))
+                (old_bound_var.kind(), (old_bound_var, new_bound_var))
             })
             .unzip();
 
