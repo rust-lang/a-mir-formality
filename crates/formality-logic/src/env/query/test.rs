@@ -135,7 +135,7 @@ fn test_existential_do_not_create_universe() {
             ),
             VarSubstitution {
                 map: {
-                    ?tyU(0)_0: ?tyU(2)_4,
+                    ?ty_0: ?ty_4,
                 },
             },
         )
@@ -191,9 +191,9 @@ fn test_mix_existential_and_placeholder() {
             VarSubstitution {
                 map: {
                     !tyU(1)_0: !tyU(2)_0,
-                    ?tyU(0)_0: ?tyU(0)_0,
-                    ?tyU(0)_1: ?tyU(1)_3,
-                    ?tyU(1)_2: ?tyU(3)_6,
+                    ?ty_0: ?ty_0,
+                    ?ty_1: ?ty_3,
+                    ?ty_2: ?ty_6,
                 },
             },
         )
@@ -249,9 +249,9 @@ fn test_query_result() {
             VarSubstitution {
                 map: {
                     !tyU(1)_0: !tyU(2)_0,
-                    ?tyU(0)_0: ?tyU(0)_0,
-                    ?tyU(0)_1: ?tyU(1)_3,
-                    ?tyU(1)_2: ?tyU(3)_6,
+                    ?ty_0: ?ty_0,
+                    ?ty_1: ?ty_3,
+                    ?ty_2: ?ty_6,
                 },
             },
         )
@@ -305,7 +305,7 @@ fn test_query_result_when_var_unified_with_i32() {
     let result = extract_query_result(&query, &final_env);
     expect_test::expect![[r#"
         query_result(
-            <> query_result_bound_data([equals(?tyU(0)_0, (rigid (scalar i32)))]),
+            <> query_result_bound_data([equals(?ty_0, (rigid (scalar i32)))]),
         )
     "#]]
     .assert_debug_eq(&result);
@@ -336,7 +336,7 @@ fn test_query_result_when_var_sub_refi32() {
     let result = extract_query_result(&query, &final_env);
     expect_test::expect![[r#"
         query_result(
-            <lt, lt> query_result_bound_data([equals(?tyU(0)_0, (rigid &(shared) ^lt0_0 (rigid (scalar u32)))), outlives(^lt0_0, ^lt0_1)]),
+            <lt, lt> query_result_bound_data([equals(?ty_0, (rigid &(shared) ^lt0_0 (rigid (scalar u32)))), outlives(^lt0_0, ^lt0_1)]),
         )
     "#]]
     .assert_debug_eq(&result);
@@ -367,7 +367,7 @@ fn test_query_result_when_var_sub_var() {
     let result = extract_query_result(&query, &final_env);
     expect_test::expect![[r#"
         query_result(
-            <> query_result_bound_data([sub(?tyU(0)_0, ?tyU(0)_1)]),
+            <> query_result_bound_data([sub(?ty_0, ?ty_1)]),
         )
     "#]]
     .assert_debug_eq(&result);

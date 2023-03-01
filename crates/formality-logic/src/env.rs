@@ -110,7 +110,6 @@ impl Env {
         });
         InferenceVar {
             var_index: VarIndex { index },
-            universe,
             kind,
         }
     }
@@ -123,7 +122,6 @@ impl Env {
             .map(|(id, index)| InferenceVar {
                 var_index: VarIndex { index },
                 kind: id.kind,
-                universe: id.universe,
             })
             .collect()
     }
@@ -309,7 +307,6 @@ impl Env {
             .flat_map(|(data, index)| {
                 self.inference_var_relations(InferenceVar {
                     var_index: VarIndex { index },
-                    universe: data.universe,
                     kind: data.kind,
                 })
             })

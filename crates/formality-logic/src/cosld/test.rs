@@ -73,8 +73,8 @@ fn outlives_refs() {
             Some(
                 [
                     outlives(
-                        ?ltU(0)_0,
-                        ?ltU(0)_1,
+                        ?lt_0,
+                        ?lt_1,
                     ),
                 ],
             ),
@@ -97,8 +97,8 @@ fn outlives_assoc_type() {
             Some(
                 [
                     outlives(
-                        ?ltU(0)_0,
-                        ?ltU(0)_1,
+                        ?lt_0,
+                        ?lt_1,
                     ),
                 ],
             ),
@@ -128,24 +128,24 @@ fn outlives_assoc_type_normalizes() {
             Some(
                 [
                     equals(
-                        ?tyU(0)_2,
+                        ?ty_2,
                         (rigid (scalar u32)),
                     ),
                     equals(
-                        ?tyU(0)_3,
+                        ?ty_3,
                         (rigid (scalar u32)),
                     ),
                     equals(
-                        ?ltU(0)_4,
-                        ?ltU(0)_0,
+                        ?lt_4,
+                        ?lt_0,
                     ),
                 ],
             ),
             Some(
                 [
                     outlives(
-                        ?ltU(0)_0,
-                        ?ltU(0)_1,
+                        ?lt_0,
+                        ?lt_1,
                     ),
                 ],
             ),
@@ -176,7 +176,7 @@ fn outlives_placeholder_no_facts() {
             Some(
                 [
                     outlives(
-                        ?ltU(0)_0,
+                        ?lt_0,
                         static,
                     ),
                 ],
@@ -237,8 +237,8 @@ fn outlives_placeholder_implies_b_c() {
             Some(
                 [
                     outlives(
-                        ?ltU(0)_0,
-                        ?ltU(0)_1,
+                        ?lt_0,
+                        ?lt_1,
                     ),
                 ],
             ),
@@ -268,8 +268,8 @@ fn outlives_placeholder_implies_b_d_c() {
             Some(
                 [
                     outlives(
-                        ?ltU(0)_0,
-                        ?ltU(0)_1,
+                        ?lt_0,
+                        ?lt_1,
                     ),
                 ],
             ),
@@ -295,7 +295,7 @@ fn outlives_placeholder_implies_complex() {
             Some(
                 [
                     outlives(
-                        ?ltU(0)_0,
+                        ?lt_0,
                         static,
                     ),
                 ],
@@ -303,8 +303,8 @@ fn outlives_placeholder_implies_complex() {
             Some(
                 [
                     outlives(
-                        ?ltU(0)_0,
-                        ?ltU(0)_1,
+                        ?lt_0,
+                        ?lt_1,
                     ),
                 ],
             ),

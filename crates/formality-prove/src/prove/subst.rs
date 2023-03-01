@@ -35,7 +35,6 @@ pub fn existential_substitution(
         .zip(start..)
         .map(|(&kind, index)| InferenceVar {
             kind,
-            universe,
             var_index: VarIndex { index },
         })
         .collect()

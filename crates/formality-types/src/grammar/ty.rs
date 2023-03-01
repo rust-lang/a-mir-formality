@@ -134,7 +134,6 @@ impl UpcastFrom<Ty> for TyData {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
     pub kind: ParameterKind,
-    pub universe: Universe,
     pub var_index: VarIndex,
 }
 
