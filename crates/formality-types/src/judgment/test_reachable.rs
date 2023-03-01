@@ -6,8 +6,6 @@ use formality_macros::term;
 
 use crate::judgment_fn;
 
-use super::Judgment;
-
 #[term($edges)]
 struct Graph {
     edges: Vec<(u32, u32)>,
@@ -33,14 +31,14 @@ judgment_fn! {
         (
             (graph.successors(start) => s)
             --------------------------------------- ("base")
-            (JudgmentStruct(graph, start) => s)
+            (transitive_reachable(graph, start) => s)
         )
 
         (
             (transitive_reachable(&graph, a) => b)
             (transitive_reachable(&graph, b) => c)
             --------------------------------------- ("transitive")
-            (JudgmentStruct(graph, a) => c)
+            (transitive_reachable(graph, a) => c)
         )
     }
 }

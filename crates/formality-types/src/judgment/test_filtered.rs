@@ -26,7 +26,7 @@ judgment_fn!(
             (graph.successors(a) => b)
             (if b % 2 == 0)
             --------------------------------------- ("base")
-            (JudgmentStruct(graph, a) => b)
+            (transitive_reachable(graph, a) => b)
         )
     
         (
@@ -34,7 +34,7 @@ judgment_fn!(
             (transitive_reachable(&graph, b) => c)
             (if c % 2 == 0)
             --------------------------------------- ("transitive")
-            (JudgmentStruct(graph, a) => c)
+            (transitive_reachable(graph, a) => c)
         )
     }
 );

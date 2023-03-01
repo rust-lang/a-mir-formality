@@ -1,4 +1,3 @@
-
 use formality_types::{
     grammar::{WcData, Wcs, APR},
     judgment_fn,
@@ -24,21 +23,21 @@ judgment_fn! {
             (if skel_c == skel_g)
             (prove_parameters_eq(program, assumptions, parameters_c, parameters_g) => c)
             ----------------------------- ("axiom")
-            (JudgmentStruct(program, assumptions, WcData::Atomic(clause), goal) => c)
+            (prove_apr_via(program, assumptions, WcData::Atomic(clause), goal) => c)
         )
 
         (
             (let via1 = binder.instantiate_existentially((&assumptions, &goal)))
             (prove_apr_via(program, assumptions, via1, goal) => c)
             ----------------------------- ("forall")
-            (JudgmentStruct(program, assumptions, WcData::ForAll(binder), goal) => c)
+            (prove_apr_via(program, assumptions, WcData::ForAll(binder), goal) => c)
         )
 
         (
             (prove_apr_via(&program, &assumptions, wc_consequence, goal) => c1)
             (prove_after(&program, &assumptions, c1, &wc_condition) => c2)
             ----------------------------- ("implies")
-            (JudgmentStruct(program, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => c2)
+            (prove_apr_via(program, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => c2)
         )
 }
 }

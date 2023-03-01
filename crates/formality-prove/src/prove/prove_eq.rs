@@ -48,7 +48,7 @@ judgment_fn! {
         (
             (if l == r)
             ----------------------------- ("reflexive")
-            (JudgmentStruct(_env, _assumptions, l, r) => set![])
+            (prove_ty_eq(_env, _assumptions, l, r) => set![])
         )
 
         (
@@ -57,7 +57,7 @@ judgment_fn! {
             (if a_name == b_name)
             (prove_parameters_eq(program, assumptions, a_parameters, b_parameters) => c)
             ----------------------------- ("rigid")
-            (JudgmentStruct(program, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
+            (prove_ty_eq(program, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
         )
 
         (
@@ -66,31 +66,31 @@ judgment_fn! {
             (if a_name == b_name)
             (prove_parameters_eq(program, assumptions, a_parameters, b_parameters) => c)
             ----------------------------- ("alias-unnormalized")
-            (JudgmentStruct(program, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => c)
+            (prove_ty_eq(program, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => c)
         )
 
         (
             (if let None = t.downcast::<InferenceVar>())
             ----------------------------- ("existential-l")
-            (JudgmentStruct(_env, _assumptions, TyData::Variable(Variable::InferenceVar(v)), t) => set![eq(v, t)])
+            (prove_ty_eq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(v)), t) => set![eq(v, t)])
         )
 
         (
             (if let None = t.downcast::<InferenceVar>())
             ----------------------------- ("existential-r")
-            (JudgmentStruct(_env, _assumptions, t, TyData::Variable(Variable::InferenceVar(v))) => set![eq(v, t)])
+            (prove_ty_eq(_env, _assumptions, t, TyData::Variable(Variable::InferenceVar(v))) => set![eq(v, t)])
         )
 
         (
             (if l < r)
             ----------------------------- ("existential-both")
-            (JudgmentStruct(_env, _assumptions, TyData::Variable(Variable::InferenceVar(l)), TyData::Variable(Variable::InferenceVar(r))) => set![eq(l, r)])
+            (prove_ty_eq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(l)), TyData::Variable(Variable::InferenceVar(r))) => set![eq(l, r)])
         )
 
         (
             (if r < l)
             ----------------------------- ("existential-both-rev")
-            (JudgmentStruct(_env, _assumptions, TyData::Variable(Variable::InferenceVar(l)), TyData::Variable(Variable::InferenceVar(r))) => set![eq(r, l)])
+            (prove_ty_eq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(l)), TyData::Variable(Variable::InferenceVar(r))) => set![eq(r, l)])
         )
 
         (
@@ -111,13 +111,13 @@ judgment_fn! {
                 decl.where_clause,
             ]) => c)
             ----------------------------- ("alias-normalized")
-            (JudgmentStruct(program, assumptions, TyData::AliasTy(a), b) => c)
+            (prove_ty_eq(program, assumptions, TyData::AliasTy(a), b) => c)
         )
 
         (
             (prove_ty_eq(program, assumptions, a, t) => c)
             ----------------------------- ("alias-r")
-            (JudgmentStruct(program, assumptions, t, TyData::AliasTy(a)) => c)
+            (prove_ty_eq(program, assumptions, t, TyData::AliasTy(a)) => c)
         )
     }
 }

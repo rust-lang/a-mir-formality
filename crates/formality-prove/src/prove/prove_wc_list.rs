@@ -13,7 +13,7 @@ judgment_fn! {
         (
             (if let None = wcs.split_first())
             --- ("none")
-            (JudgmentStruct(_env, _assumptions, wcs) => ConstraintSet::new())
+            (prove_wc_list(_env, _assumptions, wcs) => ConstraintSet::new())
         )
 
         (
@@ -21,7 +21,7 @@ judgment_fn! {
             (prove_wc(&program, &assumptions, wc0) => c1)
             (prove_after(&program, &assumptions, c1, &wcs1) => c2)
             --- ("some")
-            (JudgmentStruct(program, assumptions, wcs) => c2)
+            (prove_wc_list(program, assumptions, wcs) => c2)
         )
     }
 }

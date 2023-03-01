@@ -1,4 +1,3 @@
-
 use formality_types::{
     cast::Upcast,
     grammar::{WcData, Wcs},
@@ -22,7 +21,7 @@ judgment_fn! {
         (
             (prove_apr(program, assumptions, a) => c)
             --- ("atomic")
-            (JudgmentStruct(program, assumptions, WcData::Atomic(a)) => c)
+            (prove_wc(program, assumptions, WcData::Atomic(a)) => c)
         )
 
         (
@@ -31,13 +30,13 @@ judgment_fn! {
             (prove_wc(program, assumptions, p1) => c)
             (let c1 = constraints_visible_from_universe(u, c))
             --- ("forall")
-            (JudgmentStruct(program, assumptions, WcData::ForAll(binder)) => c1)
+            (prove_wc(program, assumptions, WcData::ForAll(binder)) => c1)
         )
 
         (
             (prove_wc(program, all![assumptions, p1], p2) => c)
             --- ("implies")
-            (JudgmentStruct(program, assumptions, WcData::Implies(p1, p2)) => c)
+            (prove_wc(program, assumptions, WcData::Implies(p1, p2)) => c)
         )
     }
 }

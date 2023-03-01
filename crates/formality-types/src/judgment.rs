@@ -41,11 +41,11 @@ macro_rules! judgment_fn {
     ) => {
         $v fn $name($($input_name : impl $crate::cast::Upcast<$input_ty>),*) -> $crate::collections::Set<$output> {
             #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Clone)]
-            struct JudgmentStruct($($input_ty),*);
+            struct __JudgmentStruct($($input_ty),*);
 
-            $crate::cast_impl!(JudgmentStruct);
+            $crate::cast_impl!(__JudgmentStruct);
 
-            impl std::iter::IntoIterator for JudgmentStruct {
+            impl std::iter::IntoIterator for __JudgmentStruct {
                 type Item = $output;
 
                 type IntoIter = std::collections::btree_set::IntoIter<Self::Item>;
@@ -55,18 +55,19 @@ macro_rules! judgment_fn {
                 }
             }
 
-            impl $crate::judgment::Judgment for JudgmentStruct {
+            impl $crate::judgment::Judgment for __JudgmentStruct {
                 type Output = $output;
 
-                fn stack() -> &'static std::thread::LocalKey<$crate::judgment::JudgmentStack<JudgmentStruct, $output>> {
+                fn stack() -> &'static std::thread::LocalKey<$crate::judgment::JudgmentStack<__JudgmentStruct, $output>> {
                     thread_local! {
-                        static R: $crate::judgment::JudgmentStack<JudgmentStruct, $output> = Default::default()
+                        static R: $crate::judgment::JudgmentStack<__JudgmentStruct, $output> = Default::default()
                     }
                     &R
                 }
 
                 fn build_rules(builder: &mut $crate::judgment::JudgmentBuilder<Self>) {
                     $crate::push_rules!(
+                        $name,
                         builder,
                         $output,
                         $(($($rule)*))*
@@ -75,7 +76,7 @@ macro_rules! judgment_fn {
             }
 
             $(let $input_name: $input_ty = $crate::cast::Upcast::upcast($input_name);)*
-            $crate::judgment::Judgment::apply(&JudgmentStruct($($input_name),*))
+            $crate::judgment::Judgment::apply(&__JudgmentStruct($($input_name),*))
         }
     }
 }
@@ -106,25 +107,38 @@ macro_rules! judgment_fn {
 /// * `(<pat> => <binding>)
 #[macro_export]
 macro_rules! push_rules {
-    ($builder:expr, $output_ty:ty, $($rule:tt)*) => {
-        $($crate::push_rules!(@rule ($builder, $output_ty) $rule);)*
+    ($judgment_name:ident, $builder:expr, $output_ty:ty, $($rule:tt)*) => {
+        $($crate::push_rules!(@rule ($judgment_name, $builder, $output_ty) $rule);)*
     };
 
     // `@rule (builder) rule` phase: invoked for each rule, emits `push_rule` call
 
-    (@rule ($builder:expr, $output_ty:ty) ($($m:tt)*)) => {
-        $builder.push_rule($crate::push_rules!(@accum ($output_ty, ) $($m)*))
+    (@rule ($judgment_name:ident, $builder:expr, $output_ty:ty) ($($m:tt)*)) => {
+        $builder.push_rule($crate::push_rules!(@accum ($judgment_name, $output_ty, ) $($m)*))
     };
 
     // `@accum (conditions)` phase: accumulates the contents of a given rule,
     // pushing tokens into `conditions` until the `-----` and conclusion are found.
 
-    (@accum ($output_ty:ty, $($m:tt)*) ---$(-)* ($n:literal) ($p:pat => $v:expr)) => {
+    (@accum ($judgment_name:ident, $output_ty:ty, $($m:tt)*)
+        ---$(-)* ($n:literal)
+        ($conclusion_name:ident($($p:pat),* $(,)?) => $v:expr)
+    ) => {
         // Found the conclusion.
         |v| -> Vec<$output_ty> {
             let mut output = vec![];
+
+            // give the user a type error if the name they gave
+            // in the conclusion is not the same as the name of the
+            // function
+            struct WrongJudgmentNameInConclusion;
+            const _: WrongJudgmentNameInConclusion = {
+                let $judgment_name = WrongJudgmentNameInConclusion;
+                $conclusion_name
+            };
+
             #[allow(irrefutable_let_patterns)]
-            if let $p = v {
+            if let __JudgmentStruct($($p),*) = v {
                 tracing::debug_span!("matched rule", rule = $n).in_scope(|| {
                     $crate::push_rules!(@body ($v, output) $($m)*);
                 });
@@ -133,9 +147,9 @@ macro_rules! push_rules {
         }
     };
 
-    (@accum ($output_ty:ty, $($m:tt)*) ($($n:tt)*) $($o:tt)*) => {
+    (@accum ($judgment_name:ident, $output_ty:ty, $($m:tt)*) ($($n:tt)*) $($o:tt)*) => {
         // Push the condition into the list `$m`.
-        $crate::push_rules!(@accum ($output_ty, $($m)* ($($n)*)) $($o)*)
+        $crate::push_rules!(@accum ($judgment_name, $output_ty, $($m)* ($($n)*)) $($o)*)
     };
 
     // `@body (v)` phase: processes the conditions, generating the code
