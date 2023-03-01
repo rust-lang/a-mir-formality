@@ -6,17 +6,14 @@ use anyhow::bail;
 use lazy_static::lazy_static;
 
 use crate::{
-    cast::{Downcast, DowncastFrom, DowncastTo, Upcast, UpcastFrom},
+    cast::{Downcast, DowncastFrom, DowncastTo, To, Upcast, UpcastFrom},
     fold::Fold,
     fold::SubstitutionFn,
     grammar::VarIndex,
     visit::Visit,
 };
 
-use super::{
-    BoundVar, DebruijnIndex, Fallible, Parameter, ParameterKind,
-    Substitution, Variable,
-};
+use super::{BoundVar, DebruijnIndex, Fallible, Parameter, ParameterKind, Substitution, Variable};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Binder<T> {
@@ -98,12 +95,13 @@ impl<T: Fold> Binder<T> {
 
     /// Instantiate the binder with the given parameters, returning an err if the parameters
     /// are the wrong number or ill-kinded.
-    pub fn instantiate_with(&self, parameters: &[Parameter]) -> Fallible<T> {
+    pub fn instantiate_with(&self, parameters: &[impl Upcast<Parameter>]) -> Fallible<T> {
         if parameters.len() != self.kinds.len() {
             bail!("wrong number of parameters");
         }
 
         for ((p, k), i) in parameters.iter().zip(&self.kinds).zip(0..) {
+            let p: Parameter = p.upcast();
             if p.kind() != *k {
                 bail!(
                     "parameter {i} has kind {:?} but should have kind {:?}",
@@ -113,7 +111,7 @@ impl<T: Fold> Binder<T> {
             }
         }
 
-        Ok(self.instantiate(|_kind, index| parameters[index.index].clone()))
+        Ok(self.instantiate(|_kind, index| parameters[index.index].to()))
     }
 
     /// Instantiate the term, replacing each bound variable with `op(i)`.

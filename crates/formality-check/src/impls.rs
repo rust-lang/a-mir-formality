@@ -7,7 +7,7 @@ use formality_decl::grammar::{
 };
 use formality_logic::Env;
 use formality_types::{
-    cast::{Downcasted, To, Upcast, Upcasted},
+    cast::{Downcasted, To, Upcasted},
     grammar::{Binder, Fallible, Goal, Hypothesis, Substitution},
     term::Term,
     visit::Visit,
@@ -178,7 +178,7 @@ impl super::Check<'_> {
             ii_ty.well_formed(),
         )?;
 
-        let ensures = ti_ensures.instantiate_with(&[ii_ty.upcast()])?;
+        let ensures = ti_ensures.instantiate_with(&[ii_ty])?;
         self.prove_goal(
             &env,
             (impl_assumptions, &ii_where_clauses),
