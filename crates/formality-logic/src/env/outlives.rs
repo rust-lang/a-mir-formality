@@ -329,15 +329,12 @@ impl Env {
             .any(|b| b.for_all.peek().conditions.is_empty())
         {
             bounds.push(PlaceholderBound {
-                for_all: Binder::new(
-                    &[],
-                    PlaceholderBoundData {
-                        conditions: vec![],
-                        placeholder: b.to(),
-                        relationship: Relationship::OutlivedBy,
-                        bound: LtData::Static.upcast(),
-                    },
-                ),
+                for_all: Binder::dummy(PlaceholderBoundData {
+                    conditions: vec![],
+                    placeholder: b.to(),
+                    relationship: Relationship::OutlivedBy,
+                    bound: LtData::Static.upcast(),
+                }),
             });
         }
 

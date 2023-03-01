@@ -391,6 +391,8 @@ pub enum Variable {
     BoundVar(BoundVar),
 }
 
+cast_impl!(Variable);
+
 impl Variable {
     pub fn kind(&self) -> ParameterKind {
         match self {

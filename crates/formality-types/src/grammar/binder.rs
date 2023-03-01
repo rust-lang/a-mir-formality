@@ -53,6 +53,11 @@ impl<T: Fold> Binder<T> {
         (bound_vars, substitution.apply(&self.term))
     }
 
+    pub fn dummy(term: T) -> Self {
+        let v: Vec<Variable> = vec![];
+        Self::new(&v, term)
+    }
+
     /// Given a set of variables (X, Y, Z) and a term referecing them,
     /// create a binder where those variables are bound.
     pub fn new(variables: &[impl Upcast<Variable>], term: T) -> Self {
