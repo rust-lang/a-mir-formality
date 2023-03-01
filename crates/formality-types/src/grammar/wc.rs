@@ -18,6 +18,10 @@ pub struct Wcs {
 }
 
 impl Wcs {
+    pub fn t() -> Self {
+        set![].upcast()
+    }
+
     pub fn split_first(self) -> Option<(Wc, Wcs)> {
         let (wc, set) = self.set.split_first()?;
         Some((wc, set.upcast()))
