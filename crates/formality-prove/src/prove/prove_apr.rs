@@ -5,11 +5,10 @@ use formality_types::{
     grammar::{AtomicPredicate, AtomicRelation, Parameter, Wcs, APR},
     judgment,
     judgment::Judgment,
-    set,
 };
 
 use crate::{
-    program::{Program, TraitInvariantBoundData},
+    program::Program,
     prove::{
         prove_after::prove_after,
         prove_apr_via::prove_apr_via,
@@ -46,10 +45,10 @@ judgment! {
         (let i = i.binder.instantiate_existentially((&assumptions, &trait_ref)))
         (let t = program.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
         (let assumptions_c = assumptions.union(trait_ref.is_implemented()))
-        (prove_wc_list(&program, &assumptions_c, set![
-            ..all_eq(&trait_ref.parameters, &i.trait_ref.parameters),
-            ..i.where_clause,
-            ..t.where_clause,
+        (prove_wc_list(&program, &assumptions_c, all![
+            all_eq(&trait_ref.parameters, &i.trait_ref.parameters),
+            i.where_clause,
+            t.where_clause,
         ]) => c)
         ----------------------------- ("impl")
         (ProveApr(program, assumptions, APR::AtomicPredicate(AtomicPredicate::IsImplemented(trait_ref))) => c)

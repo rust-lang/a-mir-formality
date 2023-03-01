@@ -5,10 +5,13 @@ use formality_types::{
     grammar::{WcData, Wcs},
     judgment,
     judgment::Judgment,
-    set,
+    visit::Visit,
 };
 
-use crate::{program::Program, prove::prove_apr::prove_apr};
+use crate::{
+    program::Program,
+    prove::{forall::constraints_visible_from_universe, prove_apr::prove_apr},
+};
 
 use super::ConstraintSet;
 
@@ -33,10 +36,12 @@ judgment! {
     )
 
     (
+        (let u = assumptions.max_universe())
         (let p1 = binder.instantiate_universally(&assumptions))
         (prove_wc(program, assumptions, p1) => c)
+        (let c1 = constraints_visible_from_universe(u, c))
         --- ("forall")
-        (ProveWc(program, assumptions, WcData::ForAll(binder)) => c)
+        (ProveWc(program, assumptions, WcData::ForAll(binder)) => c1)
     )
 
     (

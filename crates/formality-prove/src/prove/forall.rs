@@ -1,38 +1,23 @@
-use formality_macros::term;
 use formality_types::{
-    cast::Upcast,
-    collections::{Set, SetExt},
-    grammar::{Universe, WcData, Wcs},
-    judgment,
-    judgment::Judgment,
-    set,
+    grammar::{Universe, Variable},
     term::Term,
 };
 
-use crate::{program::Program, prove::prove_apr::prove_apr};
-
 use super::ConstraintSet;
 
-pub fn forall(universe: Universe, c: ConstraintSet) -> Set<ConstraintSet> {
-    ForAll(universe, c).apply()
+/// Returns the subset of `cs` that reference terms visible from `universe`.
+pub fn constraints_visible_from_universe(
+    universe: Universe,
+    mut cs: ConstraintSet,
+) -> ConstraintSet {
+    cs.retain(|c| visible_from_universe(c, universe));
+    cs
 }
 
-#[term]
-struct ForAll(Universe, ConstraintSet);
-
-judgment! {
-    (ForAll => ConstraintSet)
-
-    (
-        (if let None = cs.split_first())
-        --- ("empty")
-        (ForAll(u, cs) => cs)
-    )
-
-    (
-        (if let Some((c0, cs1)) = cs0.split_first())
-        
-        --- ("empty")
-        (ForAll(u, cs0) => cs)
-    )
+fn visible_from_universe<T: Term>(t: &T, u: Universe) -> bool {
+    t.free_variables().iter().all(|fv| match fv {
+        Variable::PlaceholderVar(p) => p.universe <= u,
+        Variable::InferenceVar(_) => false,
+        Variable::BoundVar(_) => false,
+    })
 }

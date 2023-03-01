@@ -2,9 +2,8 @@ use formality_types::{
     cast::{Downcast, Upcast, Upcasted},
     cast_impl,
     collections::Set,
-    derive_links::DowncastTo,
     grammar::{
-        AliasTy, AtomicRelation, InferenceVar, Parameter, RigidTy, TyData, Variable, Wc, Wcs,
+        AliasTy, AtomicRelation, InferenceVar, Parameter, RigidTy, TyData, Variable, Wcs,
     },
     judgment,
     judgment::Judgment,
