@@ -365,6 +365,12 @@ impl UpcastFrom<LtData> for Lt {
     }
 }
 
+impl DowncastTo<LtData> for Lt {
+    fn downcast_to(&self) -> Option<LtData> {
+        Some(self.data().clone())
+    }
+}
+
 impl UpcastFrom<LtData> for Parameter {
     fn upcast_from(v: LtData) -> Self {
         Lt::new(v).upcast()
@@ -651,6 +657,9 @@ cast_impl!(LtData::Variable(Variable));
 cast_impl!((InferenceVar) <: (Variable) <: (LtData));
 cast_impl!((PlaceholderVar) <: (Variable) <: (LtData));
 cast_impl!((BoundVar) <: (Variable) <: (LtData));
+cast_impl!((PlaceholderVar) <: (LtData) <: (Lt));
+cast_impl!((InferenceVar) <: (LtData) <: (Lt));
+cast_impl!((BoundVar) <: (LtData) <: (Lt));
 cast_impl!(Variable::PlaceholderVar(PlaceholderVar));
 cast_impl!(Variable::InferenceVar(InferenceVar));
 cast_impl!(Variable::BoundVar(BoundVar));

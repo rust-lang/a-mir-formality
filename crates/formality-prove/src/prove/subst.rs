@@ -12,9 +12,6 @@ pub fn existential_substitution(
     // or the context `fresh_in`, so create a tuple.
     let context = (binder, fresh_in);
 
-    // Our new existential variables can name anything appearing in the context.
-    let universe = context.max_universe();
-
     // We want to ensure every existential variable has a unique index,
     // so find the starting index that makes this different from every
     // existential variable in `fresh_in`.
