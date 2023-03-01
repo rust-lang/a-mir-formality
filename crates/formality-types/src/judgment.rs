@@ -80,40 +80,6 @@ macro_rules! judgment_fn {
     }
 }
 
-#[macro_export]
-macro_rules! judgment {
-    (($judgment:ty => $output:ty) $(($($rule:tt)*))*) => {
-        impl std::iter::IntoIterator for $judgment {
-            type Item = $output;
-
-            type IntoIter = std::collections::btree_set::IntoIter<Self::Item>;
-
-            fn into_iter(self) ->  Self::IntoIter {
-                self.apply().into_iter()
-            }
-        }
-
-        impl $crate::judgment::Judgment for $judgment {
-            type Output = $output;
-
-            fn stack() -> &'static std::thread::LocalKey<$crate::judgment::JudgmentStack<$judgment, $output>> {
-                thread_local! {
-                    static R: $crate::judgment::JudgmentStack<$judgment, $output> = Default::default()
-                }
-                &R
-            }
-
-            fn build_rules(builder: &mut $crate::judgment::JudgmentBuilder<Self>) {
-                $crate::push_rules!(
-                    builder,
-                    $output,
-                    $(($($rule)*))*
-                );
-            }
-        }
-    };
-}
-
 /// push_rules! allows construction of inference rules using a more logic-like notation.
 ///
 /// The macro input looks like: `push_rules!(builder, (...) (...) (...))` where each

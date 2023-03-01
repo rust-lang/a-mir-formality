@@ -4,9 +4,7 @@ use std::sync::Arc;
 
 use formality_macros::{term, test};
 
-use crate::judgment;
-
-use super::Judgment;
+use crate::{judgment_fn};
 
 #[term($edges)]
 struct Graph {
@@ -22,26 +20,23 @@ impl Graph {
     }
 }
 
-#[term(reachable($v0,$v1))]
-struct TransitiveReachability(Arc<Graph>, u32);
-
-judgment!(
-    (TransitiveReachability => u32)
-
-    (
-        (graph.successors(a) => b)
-        (if b % 2 == 0)
-        --------------------------------------- ("base")
-        (TransitiveReachability(graph, a) => b)
-    )
-
-    (
-        (TransitiveReachability(graph.clone(), a) => b)
-        (TransitiveReachability(graph.clone(), b) => c)
-        (if c % 2 == 0)
-        --------------------------------------- ("transitive")
-        (TransitiveReachability(graph, a) => c)
-    )
+judgment_fn!(
+    fn transitive_reachable(g: Arc<Graph>, node: u32) => u32 {
+        (
+            (graph.successors(a) => b)
+            (if b % 2 == 0)
+            --------------------------------------- ("base")
+            (JudgmentStruct(graph, a) => b)
+        )
+    
+        (
+            (transitive_reachable(&graph, a) => b)
+            (transitive_reachable(&graph, b) => c)
+            (if c % 2 == 0)
+            --------------------------------------- ("transitive")
+            (JudgmentStruct(graph, a) => c)
+        )
+    }
 );
 
 #[test]
@@ -53,7 +48,7 @@ fn judgment() {
     expect_test::expect![[r#"
         {}
     "#]]
-    .assert_debug_eq(&TransitiveReachability(graph.clone(), 0).apply());
+    .assert_debug_eq(&transitive_reachable(&graph, 0));
 
     expect_test::expect![[r#"
         {
@@ -62,5 +57,5 @@ fn judgment() {
             10,
         }
     "#]]
-    .assert_debug_eq(&TransitiveReachability(graph.clone(), 2).apply());
+    .assert_debug_eq(&transitive_reachable(&graph, 2));
 }

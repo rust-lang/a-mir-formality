@@ -4,6 +4,8 @@ use std::sync::Arc;
 
 use formality_macros::term;
 
+use crate::judgment_fn;
+
 use super::Judgment;
 
 #[term($edges)]
@@ -23,21 +25,24 @@ impl Graph {
 #[term(reachable($v0,$v1))]
 struct TransitiveReachability(Arc<Graph>, u32);
 
-crate::judgment! {
-    (TransitiveReachability => u32)
+judgment_fn! {
+    fn transitive_reachable(
+        graph: Arc<Graph>,
+        from: u32,
+    ) => u32 {
+        (
+            (graph.successors(start) => s)
+            --------------------------------------- ("base")
+            (JudgmentStruct(graph, start) => s)
+        )
 
-    (
-        (graph.successors(start) => s)
-        --------------------------------------- ("base")
-        (TransitiveReachability(graph, start) => s)
-    )
-
-    (
-        (TransitiveReachability(graph.clone(), a) => b)
-        (TransitiveReachability(graph.clone(), b) => c)
-        --------------------------------------- ("transitive")
-        (TransitiveReachability(graph, a) => c)
-    )
+        (
+            (transitive_reachable(&graph, a) => b)
+            (transitive_reachable(&graph, b) => c)
+            --------------------------------------- ("transitive")
+            (JudgmentStruct(graph, a) => c)
+        )
+    }
 }
 
 #[test]
@@ -54,5 +59,5 @@ fn judgment() {
             3,
         }
     "#]]
-    .assert_debug_eq(&TransitiveReachability(graph, 0).apply());
+    .assert_debug_eq(&transitive_reachable(graph, 0));
 }
