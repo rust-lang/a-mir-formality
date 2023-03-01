@@ -7,7 +7,10 @@ use formality_types::{
 
 use crate::{
     program::Program,
-    prove::{forall::constraints_visible_from_universe, prove_apr::prove_apr},
+    prove::{
+        forall::constraints_visible_from_universe, prove_apr::prove_apr,
+        subst::universal_substitution,
+    },
 };
 
 use super::ConstraintSet;
@@ -25,9 +28,10 @@ judgment_fn! {
         )
 
         (
-            (let u = assumptions.max_universe())
-            (let p1 = binder.instantiate_universally(&assumptions))
-            (prove_wc(program, assumptions, p1) => c)
+            (let subst = universal_substitution(&binder, &assumptions))
+            (let p1 = binder.instantiate_with(&subst).unwrap())
+            (prove_wc(program, &assumptions, p1) => c)
+            (let u = (&binder, &assumptions).max_universe())
             (let c1 = constraints_visible_from_universe(u, c))
             --- ("forall")
             (prove_wc(program, assumptions, WcData::ForAll(binder)) => c1)

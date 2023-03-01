@@ -5,7 +5,9 @@ use formality_types::{
 
 use crate::{
     program::Program,
-    prove::{prove_after::prove_after, prove_eq::prove_parameters_eq},
+    prove::{
+        prove_after::prove_after, prove_eq::prove_parameters_eq, subst::existential_substitution,
+    },
 };
 
 use super::ConstraintSet;
@@ -27,7 +29,8 @@ judgment_fn! {
         )
 
         (
-            (let via1 = binder.instantiate_existentially((&assumptions, &goal)))
+            (let subst = existential_substitution(&binder, (&assumptions, &goal)))
+            (let via1 = binder.instantiate_with(&subst).unwrap())
             (prove_apr_via(program, assumptions, via1, goal) => c)
             ----------------------------- ("forall")
             (prove_apr_via(program, assumptions, WcData::ForAll(binder), goal) => c)

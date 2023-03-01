@@ -5,7 +5,7 @@ use formality_types::{
     judgment_fn, set,
 };
 
-use crate::program::Program;
+use crate::{program::Program, prove::subst::existential_substitution};
 
 use super::{prove_wc_list::prove_wc_list, ConstraintSet};
 
@@ -96,7 +96,8 @@ judgment_fn! {
         (
             (if !matches!(b, TyData::Variable(Variable::InferenceVar(_))))
             (program.alias_eq_decls(&a.name) => decl)
-            (let decl = decl.binder.instantiate_existentially((&assumptions, &a, &b)))
+            (let subst = existential_substitution(&decl.binder, (&assumptions, &a, &b)))
+            (let decl = decl.binder.instantiate_with(&subst).unwrap())
             (assert a.name == decl.alias.name)
             (let assumptions1 = if decl.ty.is_rigid() {
                 // Normalizing to a rigid type: productive
