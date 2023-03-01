@@ -14,7 +14,7 @@ use crate::{
 };
 
 use super::{
-    BoundVar, DebruijnIndex, Fallible, InferenceVar, Parameter, ParameterKind, PlaceholderVar,
+    BoundVar, DebruijnIndex, Fallible, Parameter, ParameterKind,
     Substitution, Variable,
 };
 
