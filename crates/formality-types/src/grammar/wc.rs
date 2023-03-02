@@ -21,17 +21,6 @@ impl Wcs {
     pub fn t() -> Self {
         set![].upcast()
     }
-
-    pub fn split_first(self) -> Option<(Wc, Wcs)> {
-        let (wc, set) = self.set.split_first()?;
-        Some((wc, set.upcast()))
-    }
-
-    pub fn union(&self, other: impl Upcast<Wcs>) -> Self {
-        let other: Wcs = other.upcast();
-        let set = self.set.iter().cloned().chain(other.set).collect();
-        Wcs { set }
-    }
 }
 
 impl<'w> IntoIterator for &'w Wcs {
@@ -58,6 +47,56 @@ impl FromIterator<Wc> for Wcs {
     fn from_iter<T: IntoIterator<Item = Wc>>(iter: T) -> Self {
         Wcs {
             set: iter.into_iter().collect(),
+        }
+    }
+}
+
+macro_rules! tuple_upcast {
+    ($($name:ident),*) => {
+        #[allow(non_snake_case)]
+        impl<$($name,)*> UpcastFrom<($($name,)*)> for Wcs
+        where
+            $($name: Upcast<Wcs>,)*
+        {
+            fn upcast_from(($($name,)*): ($($name,)*)) -> Self {
+                let c = None.into_iter();
+                $(
+                    let $name: Wcs = $name.upcast();
+                    let c = c.chain($name);
+                )*
+                c.collect()
+            }
+        }
+    }
+}
+
+tuple_upcast!(A, B);
+tuple_upcast!(A, B, C);
+tuple_upcast!(A, B, C, D);
+
+impl DowncastTo<(Wc, Wcs)> for Wcs {
+    fn downcast_to(&self) -> Option<(Wc, Wcs)> {
+        if self.set.is_empty() {
+            None
+        } else {
+            let (wc, set) = self.set.clone().split_first().unwrap();
+            Some((wc, set.upcast()))
+        }
+    }
+}
+
+impl UpcastFrom<()> for Wcs {
+    fn upcast_from(term: ()) -> Self {
+        Wcs::t()
+    }
+}
+
+impl DowncastTo<()> for Wcs {
+    fn downcast_to(&self) -> Option<()> {
+        if self.set.is_empty() {
+            Some(())
+        } else {
+            None
         }
     }
 }

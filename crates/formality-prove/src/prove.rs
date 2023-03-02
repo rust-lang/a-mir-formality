@@ -1,20 +1,6 @@
-use formality_types::{
-    collections::Set,
-    grammar::{AtomicRelation},
-};
+use formality_types::{collections::Set, grammar::AtomicRelation};
 
 pub type ConstraintSet = Set<AtomicRelation>;
-
-macro_rules! all {
-    () => {
-        Wcs::t()
-    };
-
-    ($a:expr $(, $b:expr)* $(,)*) => {
-        <_ as Upcast<Wcs>>::upcast($a)
-        $(.union($b))*
-    };
-}
 
 mod forall;
 mod prove_after;

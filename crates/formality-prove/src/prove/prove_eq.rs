@@ -103,16 +103,16 @@ judgment_fn! {
             (assert a.name == decl.alias.name)
             (let assumptions1 = if decl.ty.is_rigid() {
                 // Normalizing to a rigid type: productive
-                assumptions.union(eq(&a, &b))
+                (&assumptions, eq(&a, &b)).upcast()
             } else {
                 // Normalizing to a variable or alias: not productive
                 assumptions.clone()
             })
-            (prove_wc_list(&program, &assumptions1, all![
+            (prove_wc_list(&program, &assumptions1, (
                 all_eq(&a.parameters, &decl.alias.parameters),
                 eq(&b, &decl.ty),
                 decl.where_clause,
-            ]) => c)
+            )) => c)
             ----------------------------- ("alias-normalized")
             (prove_ty_eq(program, assumptions, TyData::AliasTy(a), b) => c)
         )

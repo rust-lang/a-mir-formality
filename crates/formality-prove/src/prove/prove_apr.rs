@@ -35,12 +35,12 @@ judgment_fn! {
             (let subst = existential_substitution(&i.binder, (&assumptions, &trait_ref)))
             (let i = i.binder.instantiate_with(&subst).unwrap())
             (let t = program.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
-            (let assumptions_c = assumptions.union(trait_ref.is_implemented()))
-            (prove_wc_list(&program, &assumptions_c, all![
+            (let assumptions_c = (&assumptions, trait_ref.is_implemented()))
+            (prove_wc_list(&program, &assumptions_c, (
                 all_eq(&trait_ref.parameters, &i.trait_ref.parameters),
                 i.where_clause,
                 t.where_clause,
-            ]) => c)
+            )) => c)
             ----------------------------- ("impl")
             (prove_apr(program, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c)
         )

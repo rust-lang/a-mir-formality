@@ -61,7 +61,7 @@ judgment_fn! {
             (if let Some((AtomicRelation::Equals(p1, p2), constraints_in_1)) = constraints_in.split_first())
             (if let None = p1.as_variable())
             (if let None = p2.as_variable())
-            (prove_after_with_vars(program, assumptions, constraints_in_1, all![goals, eq(p1, p2)], constraints_v) => c)
+            (prove_after_with_vars(program, assumptions, constraints_in_1, (goals, eq(p1, p2)), constraints_v) => c)
             --- ("prove")
             (prove_after_with_vars(program, assumptions, constraints_in, goals, constraints_v) => c)
         )

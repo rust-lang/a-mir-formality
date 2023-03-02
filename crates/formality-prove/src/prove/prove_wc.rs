@@ -38,7 +38,7 @@ judgment_fn! {
         )
 
         (
-            (prove_wc(program, all![assumptions, p1], p2) => c)
+            (prove_wc(program, (assumptions, p1), p2) => c)
             --- ("implies")
             (prove_wc(program, assumptions, WcData::Implies(p1, p2)) => c)
         )
