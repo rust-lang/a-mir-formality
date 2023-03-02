@@ -69,7 +69,7 @@ macro_rules! judgment_fn {
                     $crate::push_rules!(
                         $name,
                         builder,
-                        $output,
+                        ($($input_name),*) => $output,
                         $(($($rule)*))*
                     );
                 }
@@ -107,22 +107,22 @@ macro_rules! judgment_fn {
 /// * `(<pat> => <binding>)
 #[macro_export]
 macro_rules! push_rules {
-    ($judgment_name:ident, $builder:expr, $output_ty:ty, $($rule:tt)*) => {
-        $($crate::push_rules!(@rule ($judgment_name, $builder, $output_ty) $rule);)*
+    ($judgment_name:ident, $builder:expr, $input_names:tt => $output_ty:ty, $($rule:tt)*) => {
+        $($crate::push_rules!(@rule ($judgment_name, $builder, $input_names => $output_ty) $rule);)*
     };
 
     // `@rule (builder) rule` phase: invoked for each rule, emits `push_rule` call
 
-    (@rule ($judgment_name:ident, $builder:expr, $output_ty:ty) ($($m:tt)*)) => {
-        $builder.push_rule($crate::push_rules!(@accum ($judgment_name, $output_ty, ) $($m)*))
+    (@rule ($judgment_name:ident, $builder:expr, $input_names:tt => $output_ty:ty) ($($m:tt)*)) => {
+        $builder.push_rule($crate::push_rules!(@accum ($judgment_name, $input_names => $output_ty, ) $($m)*))
     };
 
     // `@accum (conditions)` phase: accumulates the contents of a given rule,
     // pushing tokens into `conditions` until the `-----` and conclusion are found.
 
-    (@accum ($judgment_name:ident, $output_ty:ty, $($m:tt)*)
-        ---$(-)* ($n:literal)
-        ($conclusion_name:ident($($p:pat),* $(,)?) => $v:expr)
+    (@accum ($judgment_name:ident, ($($input_names:ident),*) => $output_ty:ty, $($m:tt)*)
+    ---$(-)* ($n:literal)
+        ($conclusion_name:ident($($patterns:tt)*) => $v:expr)
     ) => {
         // Found the conclusion.
         |v| -> Vec<$output_ty> {
@@ -138,19 +138,62 @@ macro_rules! push_rules {
             };
 
             #[allow(irrefutable_let_patterns)]
-            if let __JudgmentStruct($($p),*) = v {
-                tracing::debug_span!("matched rule", rule = $n).in_scope(|| {
-                    $crate::push_rules!(@body ($v, output) $($m)*);
-                });
+            if let __JudgmentStruct($($input_names),*) = v {
+                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*) args($n; $v; output; $($m)*));
             }
             output
         }
     };
 
-    (@accum ($judgment_name:ident, $output_ty:ty, $($m:tt)*) ($($n:tt)*) $($o:tt)*) => {
+    (@accum ($judgment_name:ident, $input_names:tt => $output_ty:ty, $($m:tt)*) ($($n:tt)*) $($o:tt)*) => {
         // Push the condition into the list `$m`.
-        $crate::push_rules!(@accum ($judgment_name, $output_ty, $($m)* ($($n)*)) $($o)*)
+        $crate::push_rules!(@accum ($judgment_name, $input_names => $output_ty, $($m)* ($($n)*)) $($o)*)
     };
+
+    // Matching phase: peel off the patterns one by one and match them against the values
+    // extracted from the input. For anything that is not an identity pattern, invoke `downcast`.
+
+    (@match inputs() patterns() args($n:literal; $v:expr; $output:ident; $($m:tt)*)) => {
+        tracing::debug_span!("matched rule", rule = $n).in_scope(|| {
+            $crate::push_rules!(@body ($v, $output) $($m)*);
+        });
+    };
+
+    (@match inputs() patterns(,) args $args:tt) => {
+        $crate::push_rules!(@match inputs() patterns() args $args);
+    };
+
+    (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident, $($pats:tt)*) args $args:tt) => {
+        {
+            let $pat0 = $in0;
+            $crate::push_rules!(@match inputs($($inputs)*) patterns($($pats)*) args $args);
+        }
+    };
+
+    (@match inputs($in0:ident) patterns($pat0:ident) args $args:tt) => {
+        {
+            let $pat0 = $in0;
+            $crate::push_rules!(@match inputs() patterns() args $args);
+        }
+    };
+
+    (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:pat, $($pats:tt)*) args $args:tt) => {
+        if let Some($pat0) = $crate::cast::Downcast::downcast(&$in0) {
+            $crate::push_rules!(@match inputs($($inputs)*) patterns($($pats)*) args $args);
+        }
+    };
+
+    (@match inputs($in0:ident) patterns($pat0:pat) args $args:tt) => {
+        if let Some($pat0) = $crate::cast::Downcast::downcast(&$in0) {
+            $crate::push_rules!(@match inputs() patterns() args $args);
+        }
+    };
+
+    // (@match (($arg0:ident @ $pat0:pat) $($args:tt)*) ($n:literal; $v:expr; $output:ident) $($m:tt)*) => {
+    //     if let Some($pat0) = $crate::cast::Downcast::downcast(&$arg0) {
+    //         $crate::push_rules!(@match ($($args)*) ($n; $v; $output) $($m)*);
+    //     }
+    // };
 
     // `@body (v)` phase: processes the conditions, generating the code
     // to evaluate the rule. This is effectively an iterator chain. The

@@ -1,6 +1,6 @@
 use formality_types::{
     cast::Upcast,
-    grammar::{InferenceVar, Lt, Parameter, ParameterKind, Ty, VarIndex},
+    grammar::{InferenceVar, Lt, ParameterKind, Ty, VarIndex},
 };
 
 mod eq_partial_eq;

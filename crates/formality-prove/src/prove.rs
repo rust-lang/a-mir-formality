@@ -1,6 +1,6 @@
 use formality_types::{
     collections::Set,
-    grammar::{AtomicRelation, Binder, Wcs},
+    grammar::{AtomicRelation},
 };
 
 pub type ConstraintSet = Set<AtomicRelation>;

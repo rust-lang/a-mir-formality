@@ -1,7 +1,9 @@
 use formality_types::{
     cast::{Downcast, Upcast, Upcasted},
     collections::Set,
-    grammar::{AliasTy, AtomicRelation, InferenceVar, Parameter, RigidTy, TyData, Variable, Wcs},
+    grammar::{
+        AliasTy, AtomicRelation, InferenceVar, Parameter, RigidTy, Ty, TyData, Variable, Wcs,
+    },
     judgment_fn, set,
 };
 
@@ -42,8 +44,8 @@ judgment_fn! {
     pub fn prove_ty_eq(
         program: Program,
         assumptions: Wcs,
-        a: TyData,
-        b: TyData,
+        a: Ty,
+        b: Ty,
     ) => ConstraintSet {
         (
             (if l == r)
@@ -72,29 +74,29 @@ judgment_fn! {
         (
             (if let None = t.downcast::<InferenceVar>())
             ----------------------------- ("existential-l")
-            (prove_ty_eq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(v)), t) => set![eq(v, t)])
+            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(v), t) => set![eq(v, t)])
         )
 
         (
             (if let None = t.downcast::<InferenceVar>())
             ----------------------------- ("existential-r")
-            (prove_ty_eq(_env, _assumptions, t, TyData::Variable(Variable::InferenceVar(v))) => set![eq(v, t)])
+            (prove_ty_eq(_env, _assumptions, t, Variable::InferenceVar(v)) => set![eq(v, t)])
         )
 
         (
             (if l < r)
             ----------------------------- ("existential-both")
-            (prove_ty_eq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(l)), TyData::Variable(Variable::InferenceVar(r))) => set![eq(l, r)])
+            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => set![eq(l, r)])
         )
 
         (
             (if r < l)
             ----------------------------- ("existential-both-rev")
-            (prove_ty_eq(_env, _assumptions, TyData::Variable(Variable::InferenceVar(l)), TyData::Variable(Variable::InferenceVar(r))) => set![eq(r, l)])
+            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => set![eq(r, l)])
         )
 
         (
-            (if !matches!(b, TyData::Variable(Variable::InferenceVar(_))))
+            (if !matches!(b.data(), TyData::Variable(Variable::InferenceVar(_))))
             (program.alias_eq_decls(&a.name) => decl)
             (let subst = existential_substitution(&decl.binder, (&assumptions, &a, &b)))
             (let decl = decl.binder.instantiate_with(&subst).unwrap())

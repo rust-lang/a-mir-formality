@@ -1,6 +1,6 @@
 use formality_types::{
     cast::Upcast,
-    grammar::{WcData, Wcs},
+    grammar::{Wc, WcData, Wcs},
     judgment_fn,
     visit::Visit,
 };
@@ -19,7 +19,7 @@ judgment_fn! {
     pub fn prove_wc(
         program: Program,
         assumptions: Wcs,
-        goal: WcData,
+        goal: Wc,
     ) => ConstraintSet {
         (
             (prove_apr(program, assumptions, a) => c)

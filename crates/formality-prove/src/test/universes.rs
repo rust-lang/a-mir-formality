@@ -1,11 +1,11 @@
 use expect_test::expect;
 use formality_macros::test;
 use formality_types::{
-    grammar::{Binder, Ty, Wc, Wcs},
+    grammar::{Ty, Wc, Wcs},
     parse::{term, term_with},
 };
 
-use crate::{program::Program, prove::prove_wc_list};
+use crate::program::Program;
 
 use super::with_bindings;
 
