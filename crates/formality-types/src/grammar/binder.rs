@@ -40,10 +40,7 @@ impl<T: Fold> Binder<T> {
                     kind: *kind,
                 };
                 let new_bound_var = fresh_bound_var(*kind);
-                (
-                    new_bound_var,
-                    (old_bound_var.upcast(), new_bound_var.upcast()),
-                )
+                (new_bound_var, (old_bound_var, new_bound_var))
             })
             .unzip();
 

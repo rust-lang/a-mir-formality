@@ -86,7 +86,7 @@ impl DowncastTo<(Wc, Wcs)> for Wcs {
 }
 
 impl UpcastFrom<()> for Wcs {
-    fn upcast_from(term: ()) -> Self {
+    fn upcast_from((): ()) -> Self {
         Wcs::t()
     }
 }

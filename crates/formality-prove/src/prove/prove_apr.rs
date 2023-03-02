@@ -1,5 +1,4 @@
 use formality_types::{
-    cast::Upcast,
     grammar::{AtomicPredicate, AtomicRelation, Parameter, Wcs, APR},
     judgment_fn,
 };

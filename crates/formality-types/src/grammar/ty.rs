@@ -580,23 +580,47 @@ impl Substitution {
     }
 }
 
-impl Extend<(Variable, Parameter)> for Substitution {
-    fn extend<T: IntoIterator<Item = (Variable, Parameter)>>(&mut self, iter: T) {
-        self.map.extend(iter.into_iter().map(|(v, p)| (v, p)));
+impl<A, B> Extend<(A, B)> for Substitution
+where
+    A: Upcast<Variable>,
+    B: Upcast<Parameter>,
+{
+    fn extend<T: IntoIterator<Item = (A, B)>>(&mut self, iter: T) {
+        self.map
+            .extend(iter.into_iter().map(|(v, p)| (v.upcast(), p.upcast())));
     }
 }
 
-impl FromIterator<(Variable, Parameter)> for Substitution {
-    fn from_iter<T: IntoIterator<Item = (Variable, Parameter)>>(iter: T) -> Self {
+impl<A, B> FromIterator<(A, B)> for Substitution
+where
+    A: Upcast<Variable>,
+    B: Upcast<Parameter>,
+{
+    fn from_iter<T: IntoIterator<Item = (A, B)>>(iter: T) -> Self {
         let mut s = Substitution::default();
         s.extend(iter);
         s
     }
 }
 
+impl<A, B> UpcastFrom<(A, B)> for Substitution
+where
+    A: Upcast<Variable>,
+    B: Upcast<Parameter>,
+{
+    fn upcast_from(term: (A, B)) -> Self {
+        let term: (Variable, Parameter) = term.upcast();
+        std::iter::once(term).collect()
+    }
+}
+
 impl Substitution {
     pub fn apply<T: Fold>(&self, t: &T) -> T {
         t.substitute(&mut |v| self.map.get(&v).cloned())
+    }
+
+    pub fn get(&self, v: Variable) -> Option<Parameter> {
+        self.map.get(&v).cloned()
     }
 }
 

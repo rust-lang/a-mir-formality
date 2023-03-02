@@ -1,5 +1,4 @@
 use formality_types::{
-    cast::Upcast,
     grammar::{Wc, WcData, Wcs},
     judgment_fn,
     visit::Visit,

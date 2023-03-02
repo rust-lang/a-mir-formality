@@ -7,7 +7,7 @@ use formality_decl::grammar::{
 };
 use formality_logic::Env;
 use formality_types::{
-    cast::{Downcasted, To, Upcasted},
+    cast::{Downcasted, To},
     grammar::{Binder, Fallible, Goal, Hypothesis, Substitution},
     term::Term,
     visit::Visit,
@@ -209,11 +209,7 @@ impl super::Check<'_> {
         let (trait_names, trait_value) = trait_binder.open();
 
         assert_eq!(impl_names.len(), trait_names.len());
-        let trait_to_impl_subst: Substitution = trait_names
-            .iter()
-            .upcasted()
-            .zip(impl_names.iter().upcasted())
-            .collect();
+        let trait_to_impl_subst: Substitution = trait_names.iter().zip(impl_names.iter()).collect();
 
         Ok(Binder::new(
             &impl_names,
