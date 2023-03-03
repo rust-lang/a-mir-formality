@@ -34,6 +34,7 @@ pub fn prove(
 
     let cs = prove_wc_list(program, assumptions, goal);
 
+    cs.assert_valid();
     cs.free_variables()
         .iter()
         .for_each(|fv| assert!(fv_in.contains(&fv)));
