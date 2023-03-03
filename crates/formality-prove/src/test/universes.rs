@@ -1,13 +1,8 @@
 use expect_test::expect;
 use formality_macros::test;
-use formality_types::{
-    grammar::{Ty, Wc, Wcs},
-    parse::{term, term_with},
-};
+use formality_types::parse::term;
 
 use crate::program::Program;
-
-use super::with_bindings;
 
 /// Simple example program consisting only of two trait declarations.
 const PROGRAM: &str = "
@@ -19,16 +14,14 @@ const PROGRAM: &str = "
     )
 ";
 
+/// There is no U that is equal to all T.
 #[test]
 fn exists_u_for_t() {
     let program: Program = term(PROGRAM);
-    let assumptions: Wcs = Wcs::t();
-    with_bindings(|u: Ty| {
-        let goal: Wc = term_with(&[("U", u)], "for<ty T> equals(T, U)");
-        let constraints = crate::prove::prove_wc_list(program, assumptions, goal);
-        expect![[r#"
+
+    let constraints = super::test_prove(&program, term("<ty U> ({}, {for<ty T> equals(T, U)})"));
+    expect![[r#"
             {}
         "#]]
-        .assert_debug_eq(&constraints);
-    });
+    .assert_debug_eq(&constraints);
 }
