@@ -5,7 +5,7 @@ use formality_types::{
     parse::term,
 };
 
-use crate::{program::Program, prove::prove_wc_list};
+use crate::{program::Program, prove::prove};
 
 /// Simple example program consisting only of two trait declarations.
 fn program() -> Program {
@@ -25,7 +25,7 @@ fn program() -> Program {
 fn eq_implies_partial_eq() {
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("for<ty T> if {is_implemented(Eq(T))} is_implemented(PartialEq(T))");
-    let constraints = prove_wc_list(program(), assumptions, goal);
+    let constraints = prove(program(), assumptions, goal);
     expect![[r#"
         {
             <> Constraints { known_true: true, substitution: Substitution { map: {} } },
@@ -38,7 +38,7 @@ fn eq_implies_partial_eq() {
 fn not_partial_eq_implies_eq() {
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("for<ty T> if {is_implemented(PartialEq(T))} is_implemented(Eq(T))");
-    let constraints = prove_wc_list(program(), assumptions, goal);
+    let constraints = prove(program(), assumptions, goal);
     expect![[r#"
         {}
     "#]]
@@ -49,7 +49,7 @@ fn not_partial_eq_implies_eq() {
 fn placeholders_not_eq() {
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("for<ty T, ty U> if {is_implemented(Eq(T))} is_implemented(PartialEq(U))");
-    let constraints = prove_wc_list(program(), assumptions, goal);
+    let constraints = prove(program(), assumptions, goal);
     expect![[r#"
         {}
     "#]]

@@ -12,6 +12,7 @@ use crate::{
     program::Program,
     prove::{
         constraints::{constrain, merge_constraints, no_constraints, occurs_in},
+        prove,
         subst::existential_substitution,
     },
 };
@@ -44,7 +45,7 @@ pub fn prove_parameters_eq(
     let program = program.upcast();
     let assumptions = assumptions.upcast();
     let goals = all_eq(a, b);
-    prove_wc_list(program, assumptions, goals)
+    prove(program, assumptions, goals)
 }
 
 judgment_fn! {
@@ -112,7 +113,7 @@ judgment_fn! {
                 // Normalizing to a variable or alias: not productive
                 assumptions.clone()
             })
-            (prove_wc_list(&program, &assumptions1, (
+            (prove(&program, &assumptions1, (
                 all_eq(&a.parameters, &decl.alias.parameters),
                 eq(&b, &decl.ty),
                 decl.where_clause,

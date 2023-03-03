@@ -5,7 +5,7 @@ use formality_types::{
     parse::term,
 };
 
-use crate::{program::Program, prove::prove_wc_list};
+use crate::{program::Program, prove::prove};
 
 /// Simple example program consisting only of two trait declarations.
 fn program() -> Program {
@@ -25,7 +25,7 @@ fn program() -> Program {
 fn vec_u32_debug() {
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("is_implemented(Debug(Vec<u32>))");
-    let constraints = prove_wc_list(program(), assumptions, goal);
+    let constraints = prove(program(), assumptions, goal);
     expect![[r#"
         {
             <> Constraints { known_true: true, substitution: Substitution { map: {} } },
@@ -38,7 +38,7 @@ fn vec_u32_debug() {
 fn vec_vec_u32_debug() {
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("is_implemented(Debug(Vec<Vec<u32>>))");
-    let constraints = prove_wc_list(program(), assumptions, goal);
+    let constraints = prove(program(), assumptions, goal);
     expect![[r#"
         {
             <> Constraints { known_true: true, substitution: Substitution { map: {} } },

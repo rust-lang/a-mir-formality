@@ -6,7 +6,7 @@ use formality_types::{
 
 use crate::{
     program::Program,
-    prove::{prove_wc_list, Constraints},
+    prove::{prove, Constraints},
 };
 
 mod eq_partial_eq;
@@ -22,5 +22,5 @@ mod universes;
 fn test_prove(program: Program, t: Binder<(Wcs, Wcs)>) -> Set<Binder<Constraints>> {
     let (assumptions, goals) =
         t.instantiate(|kind, var_index| InferenceVar { kind, var_index }.upcast());
-    prove_wc_list(program, assumptions, goals)
+    prove(program, assumptions, goals)
 }
