@@ -91,15 +91,10 @@ judgment_fn! {
         )
 
         (
-            (if l < r)
+            (let a = l.min(r))
+            (let b = l.max(r))
             ----------------------------- ("existential-both")
-            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => constrain(l, r))
-        )
-
-        (
-            (if r < l)
-            ----------------------------- ("existential-both-rev")
-            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => constrain(r, l))
+            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => constrain(a, b))
         )
 
         (
