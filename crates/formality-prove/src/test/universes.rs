@@ -28,7 +28,7 @@ fn exists_u_for_t() {
         let constraints = crate::prove::prove_wc_list(program, assumptions, goal);
         expect![[r#"
             {}
-        "#]] // FIXME: this should be `{}`
+        "#]]
         .assert_debug_eq(&constraints);
     });
 }
