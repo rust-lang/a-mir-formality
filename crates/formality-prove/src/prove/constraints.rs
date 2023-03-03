@@ -136,7 +136,19 @@ impl Fold for Constraints {
 
 impl Visit for Constraints {
     fn free_variables(&self) -> Vec<Variable> {
-        self.substitution.free_variables()
+        let Constraints {
+            known_true: _,
+            substitution,
+        } = self;
+        substitution.free_variables()
+    }
+
+    fn size(&self) -> usize {
+        let Constraints {
+            known_true: _,
+            substitution,
+        } = self;
+        substitution.size()
     }
 }
 

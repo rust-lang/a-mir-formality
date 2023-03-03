@@ -173,6 +173,10 @@ impl<T: Visit> Visit for Binder<T> {
     fn free_variables(&self) -> Vec<Variable> {
         self.term.free_variables()
     }
+
+    fn size(&self) -> usize {
+        self.term.size()
+    }
 }
 
 impl<T: Fold> Fold for Binder<T> {

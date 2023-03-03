@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     collections::Set,
-    grammar::{Lt, LtData, Parameter, Ty, Universe, Variable},
+    grammar::{Lt, Parameter, Ty, Universe, Variable},
 };
 
 /// Invoked for each variable that we find when Visiting, ignoring variables bound by binders
@@ -16,6 +16,10 @@ pub trait Visit: Sized {
     /// Extract the list of free variables (for the purposes of this function, defined by `Variable::is_free`).
     /// The list may contain duplicates and must be in a determinstic order (though the order itself isn't important).
     fn free_variables(&self) -> Vec<Variable>;
+
+    /// Measures the overall size of the term by counting constructors etc.
+    /// Used to determine overflow.
+    fn size(&self) -> usize;
 
     /// True if this term references only placeholder variables.
     /// This means that it contains no inference variables.
@@ -49,11 +53,19 @@ impl<T: Visit> Visit for Vec<T> {
     fn free_variables(&self) -> Vec<Variable> {
         self.iter().flat_map(|e| e.free_variables()).collect()
     }
+
+    fn size(&self) -> usize {
+        self.iter().map(|e| e.size()).sum()
+    }
 }
 
 impl<T: Visit + Ord> Visit for Set<T> {
     fn free_variables(&self) -> Vec<Variable> {
         self.iter().flat_map(|e| e.free_variables()).collect()
+    }
+
+    fn size(&self) -> usize {
+        self.iter().map(|e| e.size()).sum()
     }
 }
 
@@ -61,11 +73,19 @@ impl<T: Visit> Visit for Option<T> {
     fn free_variables(&self) -> Vec<Variable> {
         self.iter().flat_map(|e| e.free_variables()).collect()
     }
+
+    fn size(&self) -> usize {
+        self.as_ref().map(|e| e.size()).unwrap_or(0)
+    }
 }
 
 impl<T: Visit> Visit for Arc<T> {
     fn free_variables(&self) -> Vec<Variable> {
         T::free_variables(self)
+    }
+
+    fn size(&self) -> usize {
+        T::size(self)
     }
 }
 
@@ -73,20 +93,19 @@ impl Visit for Ty {
     fn free_variables(&self) -> Vec<Variable> {
         self.data().free_variables()
     }
+
+    fn size(&self) -> usize {
+        self.data().size()
+    }
 }
 
 impl Visit for Lt {
     fn free_variables(&self) -> Vec<Variable> {
-        match self.data() {
-            LtData::Variable(v) => {
-                if v.is_free() {
-                    vec![v.clone()]
-                } else {
-                    vec![]
-                }
-            }
-            LtData::Static => vec![],
-        }
+        self.data().free_variables()
+    }
+
+    fn size(&self) -> usize {
+        self.data().size()
     }
 }
 
@@ -94,11 +113,19 @@ impl Visit for usize {
     fn free_variables(&self) -> Vec<Variable> {
         vec![]
     }
+
+    fn size(&self) -> usize {
+        1
+    }
 }
 
 impl Visit for u32 {
     fn free_variables(&self) -> Vec<Variable> {
         vec![]
+    }
+
+    fn size(&self) -> usize {
+        1
     }
 }
 
@@ -109,6 +136,11 @@ impl<A: Visit, B: Visit> Visit for (A, B) {
         fv.extend(a.free_variables());
         fv.extend(b.free_variables());
         fv
+    }
+
+    fn size(&self) -> usize {
+        let (a, b) = self;
+        a.size() + b.size()
     }
 }
 
@@ -121,10 +153,19 @@ impl<A: Visit, B: Visit, C: Visit> Visit for (A, B, C) {
         fv.extend(c.free_variables());
         fv
     }
+
+    fn size(&self) -> usize {
+        let (a, b, c) = self;
+        a.size() + b.size() + c.size()
+    }
 }
 
 impl<A: Visit> Visit for &A {
     fn free_variables(&self) -> Vec<Variable> {
         A::free_variables(self)
+    }
+
+    fn size(&self) -> usize {
+        A::size(self)
     }
 }

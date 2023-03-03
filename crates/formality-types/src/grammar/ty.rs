@@ -143,6 +143,10 @@ impl Visit for InferenceVar {
     fn free_variables(&self) -> Vec<Variable> {
         vec![self.upcast()]
     }
+
+    fn size(&self) -> usize {
+        1
+    }
 }
 
 #[term((rigid $name $*parameters))]
@@ -397,6 +401,28 @@ impl UpcastFrom<LtData> for LtData {
     }
 }
 
+impl Visit for LtData {
+    fn free_variables(&self) -> Vec<Variable> {
+        match self {
+            LtData::Variable(v) => {
+                if v.is_free() {
+                    vec![v.clone()]
+                } else {
+                    vec![]
+                }
+            }
+            LtData::Static => vec![],
+        }
+    }
+
+    fn size(&self) -> usize {
+        match self {
+            LtData::Variable(v) => v.size(),
+            LtData::Static => 1,
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Variable {
     PlaceholderVar(PlaceholderVar),
@@ -488,6 +514,10 @@ impl Visit for Variable {
         } else {
             vec![]
         }
+    }
+
+    fn size(&self) -> usize {
+        1
     }
 }
 
@@ -669,6 +699,10 @@ impl Visit for Substitution {
         let mut v = self.range().free_variables();
         v.extend(self.domain());
         v
+    }
+
+    fn size(&self) -> usize {
+        self.range().iter().map(|r| r.size()).sum()
     }
 }
 

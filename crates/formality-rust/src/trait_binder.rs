@@ -48,6 +48,10 @@ where
     fn free_variables(&self) -> Vec<formality_types::grammar::Variable> {
         self.explicit_binder.free_variables()
     }
+
+    fn size(&self) -> usize {
+        self.explicit_binder.size()
+    }
 }
 
 impl<T> Fold for TraitBinder<T>

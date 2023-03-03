@@ -32,6 +32,10 @@ macro_rules! id {
                 fn free_variables(&self) -> Vec<Variable> {
                     vec![]
                 }
+
+                fn size(&self) -> usize {
+                    1
+                }
             }
 
             impl Fold for $n {
