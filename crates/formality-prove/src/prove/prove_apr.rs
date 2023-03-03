@@ -1,11 +1,12 @@
 use formality_types::{
-    grammar::{AtomicPredicate, AtomicRelation, Parameter, Wcs, APR},
+    grammar::{AtomicPredicate, AtomicRelation, Binder, Parameter, Wcs, APR},
     judgment_fn,
 };
 
 use crate::{
     program::Program,
     prove::{
+        constraints::merge_constraints,
         prove_after::prove_after,
         prove_apr_via::prove_apr_via,
         prove_eq::{all_eq, prove_ty_eq},
@@ -14,14 +15,14 @@ use crate::{
     },
 };
 
-use super::ConstraintSet;
+use super::constraints::Constraints;
 
 judgment_fn! {
     pub fn prove_apr(
         program: Program,
         assumptions: Wcs,
         goal: APR,
-    ) => ConstraintSet {
+    ) => Binder<Constraints> {
         (
             (&assumptions => a)
             (prove_apr_via(&program, &assumptions, a, &goal) => c)
@@ -41,7 +42,7 @@ judgment_fn! {
                 t.where_clause,
             )) => c)
             ----------------------------- ("impl")
-            (prove_apr(program, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c)
+            (prove_apr(program, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => merge_constraints(&subst, (), c))
         )
 
         (
@@ -49,9 +50,9 @@ judgment_fn! {
             (let subst = existential_substitution(&ti.binder, (&assumptions, &trait_ref)))
             (let ti = ti.binder.instantiate_with(&subst).unwrap())
             (prove_apr_via(&program, &assumptions, &ti.where_clause, trait_ref.is_implemented()) => c1)
-            (prove_after(&program, &assumptions, c1, ti.trait_ref.is_implemented()) => c2)
+            (prove_after(&program, c1, &assumptions, ti.trait_ref.is_implemented()) => c2)
             ----------------------------- ("trait implied bound")
-            (prove_apr(program, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c2)
+            (prove_apr(program, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => merge_constraints(&subst, (), c2))
         )
 
         (

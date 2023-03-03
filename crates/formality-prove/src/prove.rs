@@ -1,7 +1,6 @@
-use formality_types::{collections::Set, grammar::AtomicRelation};
 
-pub type ConstraintSet = Set<AtomicRelation>;
 
+mod constraints;
 mod forall;
 mod prove_after;
 mod prove_apr;

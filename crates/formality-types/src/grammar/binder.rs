@@ -15,7 +15,7 @@ use crate::{
 
 use super::{BoundVar, DebruijnIndex, Fallible, Parameter, ParameterKind, Substitution, Variable};
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Binder<T> {
     kinds: Vec<ParameterKind>,
     term: T,
@@ -52,8 +52,8 @@ impl<T: Fold> Binder<T> {
         Self::new(&v, term)
     }
 
-    /// Given a set of variables (X, Y, Z) and a term referecing them,
-    /// create a binder where those variables are bound.
+    /// Given a set of variables (X, Y, Z) and a term referecing some subset of them,
+    /// create a binder where exactly those variables are bound (even the ones not used).
     pub fn new(variables: &[impl Upcast<Variable>], term: T) -> Self {
         let (kinds, substitution): (Vec<ParameterKind>, Substitution) = variables
             .iter()
@@ -73,6 +73,16 @@ impl<T: Fold> Binder<T> {
 
         let term = substitution.apply(&term);
         Binder { kinds, term }
+    }
+
+    /// Given a set of variables (X, Y, Z) and a term referecing some subset of them,
+    /// create a binder for just those variables that are mentioned.
+    pub fn mentioned(variables: impl Upcast<Vec<Variable>>, term: T) -> Self {
+        let mut variables: Vec<Variable> = variables.upcast();
+        let fv = term.free_variables();
+        variables.retain(|v| fv.contains(&v));
+        let variables: Vec<Variable> = variables.into_iter().collect();
+        Binder::new(&variables, term)
     }
 
     pub fn into<U>(self) -> Binder<U>

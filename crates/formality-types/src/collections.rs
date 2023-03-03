@@ -3,6 +3,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::cast::{Downcast, DowncastFrom, DowncastTo, Upcast, UpcastFrom};
+
 pub type Map<K, V> = BTreeMap<K, V>;
 pub type Set<E> = BTreeSet<E>;
 
@@ -83,5 +85,56 @@ impl<T: Ord + Clone> SetExt<T> for Set<T> {
     fn plus(mut self, other: T) -> Self {
         self.insert(other);
         self
+    }
+}
+
+impl<T> DowncastTo<()> for Set<T> {
+    fn downcast_to(&self) -> Option<()> {
+        if self.is_empty() {
+            Some(())
+        } else {
+            None
+        }
+    }
+}
+
+macro_rules! tuple_upcast {
+    ($($name:ident),*) => {
+        #[allow(non_snake_case)]
+        impl<$($name,)* T> UpcastFrom<($($name,)*)> for Set<T>
+        where
+            $($name: Upcast<Set<T>>,)*
+            T: Ord + Clone,
+        {
+            fn upcast_from(($($name,)*): ($($name,)*)) -> Self {
+                let c = None.into_iter();
+                $(
+                    let $name: Set<T> = $name.upcast();
+                    let c = c.chain($name);
+                )*
+                c.collect()
+            }
+        }
+    }
+}
+
+tuple_upcast!(A, B);
+tuple_upcast!(A, B, C);
+tuple_upcast!(A, B, C, D);
+
+impl<A, T> DowncastTo<(A, Set<T>)> for Set<T>
+where
+    A: DowncastFrom<T>,
+    T: Ord + Clone,
+{
+    fn downcast_to(&self) -> Option<(A, Set<T>)> {
+        if self.is_empty() {
+            None
+        } else {
+            let r = self.clone();
+            let (a, bs) = r.split_first().unwrap();
+            let a: A = a.downcast()?;
+            Some((a, bs))
+        }
     }
 }

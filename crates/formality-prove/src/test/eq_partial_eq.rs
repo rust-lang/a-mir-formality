@@ -26,7 +26,7 @@ fn eq_implies_partial_eq() {
     let constraints = prove_wc_list(program, assumptions, goal);
     expect![[r#"
         {
-            {},
+            <> Constraints { substitution: Substitution { map: {} } },
         }
     "#]]
     .assert_debug_eq(&constraints);

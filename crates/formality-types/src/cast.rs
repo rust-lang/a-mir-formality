@@ -209,6 +209,15 @@ where
     }
 }
 
+impl<T> UpcastFrom<()> for T
+where
+    T: Default,
+{
+    fn upcast_from((): ()) -> Self {
+        Default::default()
+    }
+}
+
 impl<T: Clone, U> UpcastFrom<Arc<T>> for Arc<U>
 where
     T: Upcast<U>,

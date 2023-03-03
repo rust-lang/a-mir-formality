@@ -20,16 +20,14 @@ const PROGRAM: &str = "
 ";
 
 #[test]
-fn for_t_exists_u() {
+fn exists_u_for_t() {
     let program: Program = term(PROGRAM);
     let assumptions: Wcs = Wcs::t();
     with_bindings(|u: Ty| {
         let goal: Wc = term_with(&[("U", u)], "for<ty T> equals(T, U)");
         let constraints = crate::prove::prove_wc_list(program, assumptions, goal);
         expect![[r#"
-            {
-                {},
-            }
+            {}
         "#]] // FIXME: this should be `{}`
         .assert_debug_eq(&constraints);
     });

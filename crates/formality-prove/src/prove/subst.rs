@@ -1,11 +1,12 @@
 use formality_types::{
-    grammar::{Binder, InferenceVar, PlaceholderVar, VarIndex, Variable},
+    fold::Fold,
+    grammar::{Binder, InferenceVar, PlaceholderVar, Universe, VarIndex, Variable},
     term::Term,
     visit::Visit,
 };
 
 pub fn existential_substitution(
-    binder: &Binder<impl Term>,
+    binder: &Binder<impl Fold>,
     fresh_in: impl Visit,
 ) -> Vec<InferenceVar> {
     // We want to avoid any names that appear either in the binder term
@@ -40,7 +41,7 @@ pub fn existential_substitution(
 pub fn universal_substitution(
     binder: &Binder<impl Term>,
     fresh_in: impl Visit,
-) -> Vec<PlaceholderVar> {
+) -> (Universe, Vec<PlaceholderVar>) {
     // We want to avoid any names that appear either in the binder term
     // or the context `fresh_in`, so create a tuple.
     let context = (binder, fresh_in);
@@ -50,7 +51,7 @@ pub fn universal_substitution(
     let universe = context.max_universe().next();
 
     // New placeholders.
-    binder
+    let subst = binder
         .kinds()
         .iter()
         .zip(0..)
@@ -59,5 +60,7 @@ pub fn universal_substitution(
             universe,
             var_index: VarIndex { index },
         })
-        .collect()
+        .collect();
+
+    (universe, subst)
 }

@@ -1,16 +1,17 @@
 use formality_types::{
-    grammar::{WcData, Wcs, APR},
+    grammar::{Binder, WcData, Wcs, APR},
     judgment_fn,
 };
 
 use crate::{
     program::Program,
     prove::{
-        prove_after::prove_after, prove_eq::prove_parameters_eq, subst::existential_substitution,
+        constraints::{merge_constraints, Constraints},
+        prove_after::prove_after,
+        prove_eq::prove_parameters_eq,
+        subst::existential_substitution,
     },
 };
-
-use super::ConstraintSet;
 
 judgment_fn! {
     pub fn prove_apr_via(
@@ -18,7 +19,7 @@ judgment_fn! {
         assumptions: Wcs,
         via: WcData,
         goal: APR,
-    ) => ConstraintSet {
+    ) => Binder<Constraints> {
         (
             (let (skel_c, parameters_c) = clause.debone())
             (let (skel_g, parameters_g) = goal.debone())
@@ -33,12 +34,12 @@ judgment_fn! {
             (let via1 = binder.instantiate_with(&subst).unwrap())
             (prove_apr_via(program, assumptions, via1, goal) => c)
             ----------------------------- ("forall")
-            (prove_apr_via(program, assumptions, WcData::ForAll(binder), goal) => c)
+            (prove_apr_via(program, assumptions, WcData::ForAll(binder), goal) => merge_constraints(&subst, (), c))
         )
 
         (
             (prove_apr_via(&program, &assumptions, wc_consequence, goal) => c1)
-            (prove_after(&program, &assumptions, c1, &wc_condition) => c2)
+            (prove_after(&program, c1, &assumptions, &wc_condition) => c2)
             ----------------------------- ("implies")
             (prove_apr_via(program, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => c2)
         )

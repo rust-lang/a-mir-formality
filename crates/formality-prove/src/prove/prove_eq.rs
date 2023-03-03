@@ -2,14 +2,21 @@ use formality_types::{
     cast::{Downcast, Upcast, Upcasted},
     collections::Set,
     grammar::{
-        AliasTy, AtomicRelation, InferenceVar, Parameter, RigidTy, Ty, TyData, Variable, Wcs,
+        AliasTy, AtomicRelation, Binder, InferenceVar, Parameter, RigidTy, Ty, TyData, Variable,
+        Wcs,
     },
-    judgment_fn, set,
+    judgment_fn,
 };
 
-use crate::{program::Program, prove::subst::existential_substitution};
+use crate::{
+    program::Program,
+    prove::{
+        constraints::{constrain, merge_constraints, no_constraints},
+        subst::existential_substitution,
+    },
+};
 
-use super::{prove_wc_list::prove_wc_list, ConstraintSet};
+use super::{constraints::Constraints, prove_wc_list::prove_wc_list};
 
 /// Goal(s) to prove `a` and `b` are equal (they must have equal length)
 pub fn all_eq(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) -> Wcs {
@@ -33,7 +40,7 @@ pub fn prove_parameters_eq(
     assumptions: impl Upcast<Wcs>,
     a: impl Upcast<Vec<Parameter>>,
     b: impl Upcast<Vec<Parameter>>,
-) -> Set<ConstraintSet> {
+) -> Set<Binder<Constraints>> {
     let program = program.upcast();
     let assumptions = assumptions.upcast();
     let goals = all_eq(a, b);
@@ -46,11 +53,11 @@ judgment_fn! {
         assumptions: Wcs,
         a: Ty,
         b: Ty,
-    ) => ConstraintSet {
+    ) => Binder<Constraints> {
         (
             (if l == r)
             ----------------------------- ("reflexive")
-            (prove_ty_eq(_env, _assumptions, l, r) => set![])
+            (prove_ty_eq(_env, _assumptions, l, r) => no_constraints())
         )
 
         (
@@ -74,25 +81,25 @@ judgment_fn! {
         (
             (if let None = t.downcast::<InferenceVar>())
             ----------------------------- ("existential-l")
-            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(v), t) => set![eq(v, t)])
+            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(v), t) => constrain(v, t))
         )
 
         (
             (if let None = t.downcast::<InferenceVar>())
             ----------------------------- ("existential-r")
-            (prove_ty_eq(_env, _assumptions, t, Variable::InferenceVar(v)) => set![eq(v, t)])
+            (prove_ty_eq(_env, _assumptions, t, Variable::InferenceVar(v)) => constrain(v, t))
         )
 
         (
             (if l < r)
             ----------------------------- ("existential-both")
-            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => set![eq(l, r)])
+            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => constrain(l, r))
         )
 
         (
             (if r < l)
             ----------------------------- ("existential-both-rev")
-            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => set![eq(r, l)])
+            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => constrain(r, l))
         )
 
         (
@@ -114,7 +121,7 @@ judgment_fn! {
                 decl.where_clause,
             )) => c)
             ----------------------------- ("alias-normalized")
-            (prove_ty_eq(program, assumptions, TyData::AliasTy(a), b) => c)
+            (prove_ty_eq(program, assumptions, TyData::AliasTy(a), b) => merge_constraints(&subst, (), c))
         )
 
         (

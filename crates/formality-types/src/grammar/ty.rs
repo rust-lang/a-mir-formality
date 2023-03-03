@@ -137,6 +137,14 @@ pub struct InferenceVar {
     pub var_index: VarIndex,
 }
 
+cast_impl!(InferenceVar);
+
+impl Visit for InferenceVar {
+    fn free_variables(&self) -> Vec<Variable> {
+        vec![self.upcast()]
+    }
+}
+
 #[term((rigid $name $*parameters))]
 pub struct RigidTy {
     pub name: RigidName,
@@ -578,6 +586,30 @@ impl Substitution {
     pub fn domain(&self) -> BTreeSet<Variable> {
         self.map.keys().cloned().collect()
     }
+
+    /// Returns the parameters that that will be substituted for a new value.
+    pub fn range(&self) -> BTreeSet<Parameter> {
+        self.map.values().cloned().collect()
+    }
+
+    /// True if `v` is in this substitution's domain
+    pub fn maps(&self, v: Variable) -> bool {
+        self.map.contains_key(&v)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (Variable, Parameter)> + '_ {
+        self.map.iter().map(|(v, p)| (*v, p.clone()))
+    }
+}
+
+impl IntoIterator for Substitution {
+    type Item = (Variable, Parameter);
+
+    type IntoIter = std::collections::btree_map::IntoIter<Variable, Parameter>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.map.into_iter()
+    }
 }
 
 impl<A, B> Extend<(A, B)> for Substitution
@@ -621,6 +653,20 @@ impl Substitution {
 
     pub fn get(&self, v: Variable) -> Option<Parameter> {
         self.map.get(&v).cloned()
+    }
+}
+
+impl Fold for Substitution {
+    fn substitute(&self, substitution_fn: crate::fold::SubstitutionFn<'_>) -> Self {
+        self.iter()
+            .map(|(v, p)| (v, p.substitute(substitution_fn)))
+            .collect()
+    }
+}
+
+impl Visit for Substitution {
+    fn free_variables(&self) -> Vec<Variable> {
+        self.range().free_variables()
     }
 }
 
