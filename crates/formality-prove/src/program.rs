@@ -14,6 +14,9 @@ pub struct Program {
 }
 
 impl Program {
+    /// Max size used in unit tests that are not stress testing maximum size.
+    pub const DEFAULT_MAX_SIZE: usize = 222;
+
     pub fn impl_decls<'s>(&'s self, trait_id: &'s TraitId) -> impl Iterator<Item = &'s ImplDecl> {
         self.impl_decls
             .iter()

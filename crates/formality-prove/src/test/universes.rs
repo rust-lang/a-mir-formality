@@ -7,7 +7,7 @@ use crate::program::Program;
 /// Simple example program consisting only of two trait declarations.
 fn program() -> Program {
     Program {
-        max_size: 22,
+        max_size: Program::DEFAULT_MAX_SIZE,
         trait_decls: vec![],
         impl_decls: vec![],
         alias_eq_decls: vec![],

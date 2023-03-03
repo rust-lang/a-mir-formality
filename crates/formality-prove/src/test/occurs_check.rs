@@ -9,7 +9,7 @@ use super::test_prove;
 /// Simple example program consisting only of two trait declarations.
 fn program() -> Program {
     Program {
-        max_size: 22,
+        max_size: Program::DEFAULT_MAX_SIZE,
         trait_decls: vec![term("trait Foo<ty Self> where {}")],
         impl_decls: vec![term("impl<ty T> Foo(Vec<T>) where {}")],
         alias_eq_decls: vec![],

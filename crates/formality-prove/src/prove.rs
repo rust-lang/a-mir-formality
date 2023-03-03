@@ -13,8 +13,10 @@ use formality_types::{
     cast::Upcast,
     collections::Set,
     grammar::{Binder, Wcs},
+    set,
     visit::Visit,
 };
+use tracing::Level;
 
 use crate::program::Program;
 
@@ -30,7 +32,19 @@ pub fn prove(
     let assumptions: Wcs = assumptions.upcast();
     let goal: Wcs = goal.upcast();
 
-    let fv_in = (&assumptions, &goal).free_variables();
+    let span = tracing::span!(Level::DEBUG, "prove", ?goal, ?assumptions);
+    let _guard = span.enter();
+
+    let term_in = (&assumptions, &goal);
+    let fv_in = term_in.free_variables();
+    if term_in.size() > program.max_size {
+        tracing::debug!(
+            "term has size {} which exceeds max size of {}",
+            term_in.size(),
+            program.max_size
+        );
+        return set![Binder::dummy(Constraints::default().ambiguous())];
+    }
 
     let cs = prove_wc_list(program, assumptions, goal);
 
@@ -38,6 +52,8 @@ pub fn prove(
     cs.free_variables()
         .iter()
         .for_each(|fv| assert!(fv_in.contains(&fv)));
+
+    tracing::debug!(?cs);
 
     cs
 }

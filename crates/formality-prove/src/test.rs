@@ -11,6 +11,7 @@ use crate::{
 
 mod eq_partial_eq;
 mod exists_constraints;
+mod expanding;
 mod occurs_check;
 mod simple_impl;
 mod universes;

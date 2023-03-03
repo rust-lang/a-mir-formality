@@ -10,7 +10,7 @@ use crate::{program::Program, prove::prove};
 /// Simple example program consisting only of two trait declarations.
 fn program() -> Program {
     Program {
-        max_size: 22,
+        max_size: Program::DEFAULT_MAX_SIZE,
         trait_decls: vec![
             term("trait Eq<ty Self> where {is_implemented(PartialEq(Self))}"),
             term("trait PartialEq<ty Self> where {}"),
