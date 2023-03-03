@@ -6,10 +6,11 @@ use formality_types::{
 
 #[term]
 pub struct Program {
-    trait_decls: Vec<TraitDecl>,
-    impl_decls: Vec<ImplDecl>,
-    alias_eq_decls: Vec<AliasEqDecl>,
-    alias_bound_decls: Vec<AliasBoundDecl>,
+    pub max_size: usize,
+    pub trait_decls: Vec<TraitDecl>,
+    pub impl_decls: Vec<ImplDecl>,
+    pub alias_eq_decls: Vec<AliasEqDecl>,
+    pub alias_bound_decls: Vec<AliasBoundDecl>,
 }
 
 impl Program {

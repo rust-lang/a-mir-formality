@@ -19,7 +19,7 @@ mod universes;
 /// Returns the constraints that result from proving assumptions/goals. These will reference
 /// existential variables created for the bindings, so they're really just suitable for
 /// using with expect.
-fn test_prove(program: &Program, t: Binder<(Wcs, Wcs)>) -> Set<Binder<Constraints>> {
+fn test_prove(program: Program, t: Binder<(Wcs, Wcs)>) -> Set<Binder<Constraints>> {
     let (assumptions, goals) =
         t.instantiate(|kind, var_index| InferenceVar { kind, var_index }.upcast());
     prove_wc_list(program, assumptions, goals)

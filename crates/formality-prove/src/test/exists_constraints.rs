@@ -7,20 +7,20 @@ use crate::program::Program;
 use super::test_prove;
 
 /// Simple example program consisting only of two trait declarations.
-const PROGRAM: &str = "
-    program(
-        [trait Foo<ty Self> where {}],
-        [impl<ty T> Foo(Vec<T>) where {}],
-        [],
-        []
-    )
-";
+fn program() -> Program {
+    Program {
+        max_size: 22,
+        trait_decls: vec![term("trait Foo<ty Self> where {}")],
+        impl_decls: vec![term("impl<ty T> Foo(Vec<T>) where {}")],
+        alias_eq_decls: vec![],
+        alias_bound_decls: vec![],
+    }
+}
 
 /// Test that `exists<T> is_implemented(Foo(U))` yields `U = Vec<X>` for some fresh `X`
 #[test]
 fn exists_u_for_t() {
-    let program: Program = term(PROGRAM);
-    let constraints = test_prove(&program, term("<ty U> ({}, {is_implemented(Foo(U))})"));
+    let constraints = test_prove(program(), term("<ty U> ({}, {is_implemented(Foo(U))})"));
     expect![[r#"
         {
             <ty> Constraints { known_true: true, substitution: Substitution { map: {?ty_0: (rigid (adt Vec) ^ty0_0)} } },

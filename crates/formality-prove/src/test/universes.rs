@@ -5,21 +5,20 @@ use formality_types::parse::term;
 use crate::program::Program;
 
 /// Simple example program consisting only of two trait declarations.
-const PROGRAM: &str = "
-    program(
-        [],
-        [],
-        [],
-        []
-    )
-";
+fn program() -> Program {
+    Program {
+        max_size: 22,
+        trait_decls: vec![],
+        impl_decls: vec![],
+        alias_eq_decls: vec![],
+        alias_bound_decls: vec![],
+    }
+}
 
 /// There is no U that is equal to all T.
 #[test]
 fn exists_u_for_t() {
-    let program: Program = term(PROGRAM);
-
-    let constraints = super::test_prove(&program, term("<ty U> ({}, {for<ty T> equals(T, U)})"));
+    let constraints = super::test_prove(program(), term("<ty U> ({}, {for<ty T> equals(T, U)})"));
     expect![[r#"
             {}
         "#]]

@@ -8,26 +8,24 @@ use formality_types::{
 use crate::{program::Program, prove::prove_wc_list};
 
 /// Simple example program consisting only of two trait declarations.
-const PROGRAM: &str = "
-    program(
-        [
-            trait Debug<ty Self> where {},
+fn program() -> Program {
+    Program {
+        max_size: 22,
+        trait_decls: vec![term("trait Debug<ty Self> where {}")],
+        impl_decls: vec![
+            term("impl<ty T> Debug(Vec<T>) where {is_implemented(Debug(T))}"),
+            term("impl<> Debug(u32) where {}"),
         ],
-        [
-            impl<ty T> Debug(Vec<T>) where {is_implemented(Debug(T))},
-            impl<> Debug(u32) where {},
-        ],
-        [],
-        []
-    )
-";
+        alias_eq_decls: vec![],
+        alias_bound_decls: vec![],
+    }
+}
 
 #[test]
 fn vec_u32_debug() {
-    let program: Program = term(PROGRAM);
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("is_implemented(Debug(Vec<u32>))");
-    let constraints = prove_wc_list(program, assumptions, goal);
+    let constraints = prove_wc_list(program(), assumptions, goal);
     expect![[r#"
         {
             <> Constraints { known_true: true, substitution: Substitution { map: {} } },
@@ -38,10 +36,9 @@ fn vec_u32_debug() {
 
 #[test]
 fn vec_vec_u32_debug() {
-    let program: Program = term(PROGRAM);
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("is_implemented(Debug(Vec<Vec<u32>>))");
-    let constraints = prove_wc_list(program, assumptions, goal);
+    let constraints = prove_wc_list(program(), assumptions, goal);
     expect![[r#"
         {
             <> Constraints { known_true: true, substitution: Substitution { map: {} } },

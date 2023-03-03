@@ -8,22 +8,24 @@ use formality_types::{
 use crate::{program::Program, prove::prove_wc_list};
 
 /// Simple example program consisting only of two trait declarations.
-const EQ_PARTIAL_EQ: &str = "
-    program(
-        [trait Eq<ty Self> where {is_implemented(PartialEq(Self))},
-        trait PartialEq<ty Self> where {}],
-        [],
-        [],
-        []
-    )
-";
+fn program() -> Program {
+    Program {
+        max_size: 22,
+        trait_decls: vec![
+            term("trait Eq<ty Self> where {is_implemented(PartialEq(Self))}"),
+            term("trait PartialEq<ty Self> where {}"),
+        ],
+        impl_decls: vec![],
+        alias_eq_decls: vec![],
+        alias_bound_decls: vec![],
+    }
+}
 
 #[test]
 fn eq_implies_partial_eq() {
-    let program: Program = term(EQ_PARTIAL_EQ);
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("for<ty T> if {is_implemented(Eq(T))} is_implemented(PartialEq(T))");
-    let constraints = prove_wc_list(program, assumptions, goal);
+    let constraints = prove_wc_list(program(), assumptions, goal);
     expect![[r#"
         {
             <> Constraints { known_true: true, substitution: Substitution { map: {} } },
@@ -34,10 +36,9 @@ fn eq_implies_partial_eq() {
 
 #[test]
 fn not_partial_eq_implies_eq() {
-    let program: Program = term(EQ_PARTIAL_EQ);
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("for<ty T> if {is_implemented(PartialEq(T))} is_implemented(Eq(T))");
-    let constraints = prove_wc_list(program, assumptions, goal);
+    let constraints = prove_wc_list(program(), assumptions, goal);
     expect![[r#"
         {}
     "#]]
@@ -46,10 +47,9 @@ fn not_partial_eq_implies_eq() {
 
 #[test]
 fn placeholders_not_eq() {
-    let program: Program = term(EQ_PARTIAL_EQ);
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("for<ty T, ty U> if {is_implemented(Eq(T))} is_implemented(PartialEq(U))");
-    let constraints = prove_wc_list(program, assumptions, goal);
+    let constraints = prove_wc_list(program(), assumptions, goal);
     expect![[r#"
         {}
     "#]]
