@@ -36,13 +36,10 @@ judgment_fn! {
             (let i = i.binder.instantiate_with(&subst).unwrap())
             (let t = program.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
             (let assumptions_c = (&assumptions, trait_ref.is_implemented()))
-            (prove_wc_list(&program, &assumptions_c, (
-                all_eq(&trait_ref.parameters, &i.trait_ref.parameters),
-                i.where_clause,
-                t.where_clause,
-            )) => c)
+            (prove_wc_list(&program, &assumptions_c, all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c1)
+            (prove_after(&program, c1, &assumptions_c, (&i.where_clause, &t.where_clause)) => c2)
             ----------------------------- ("impl")
-            (prove_apr(program, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => merge_constraints(&subst, (), c))
+            (prove_apr(program, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => merge_constraints(&subst, (), c2))
         )
 
         (
