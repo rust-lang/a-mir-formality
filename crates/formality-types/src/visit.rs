@@ -21,6 +21,11 @@ pub trait Visit: Sized {
     /// Used to determine overflow.
     fn size(&self) -> usize;
 
+    /// Asserts various validity constraints and panics if they are not held.
+    /// These validition constraints should never fail unless there is a bug in our logic.
+    /// This is to aid with fuzzing and bug detection.
+    fn assert_valid(&self);
+
     /// True if this term references only placeholder variables.
     /// This means that it contains no inference variables.
     /// If this is a goal, then when we prove it true, we don't expect any substitution.
@@ -57,6 +62,10 @@ impl<T: Visit> Visit for Vec<T> {
     fn size(&self) -> usize {
         self.iter().map(|e| e.size()).sum()
     }
+
+    fn assert_valid(&self) {
+        self.iter().for_each(|e| e.assert_valid());
+    }
 }
 
 impl<T: Visit + Ord> Visit for Set<T> {
@@ -66,6 +75,10 @@ impl<T: Visit + Ord> Visit for Set<T> {
 
     fn size(&self) -> usize {
         self.iter().map(|e| e.size()).sum()
+    }
+
+    fn assert_valid(&self) {
+        self.iter().for_each(|e| e.assert_valid());
     }
 }
 
@@ -77,6 +90,10 @@ impl<T: Visit> Visit for Option<T> {
     fn size(&self) -> usize {
         self.as_ref().map(|e| e.size()).unwrap_or(0)
     }
+
+    fn assert_valid(&self) {
+        self.iter().for_each(|e| e.assert_valid());
+    }
 }
 
 impl<T: Visit> Visit for Arc<T> {
@@ -86,6 +103,10 @@ impl<T: Visit> Visit for Arc<T> {
 
     fn size(&self) -> usize {
         T::size(self)
+    }
+
+    fn assert_valid(&self) {
+        T::assert_valid(self)
     }
 }
 
@@ -97,6 +118,10 @@ impl Visit for Ty {
     fn size(&self) -> usize {
         self.data().size()
     }
+
+    fn assert_valid(&self) {
+        self.data().assert_valid()
+    }
 }
 
 impl Visit for Lt {
@@ -106,6 +131,10 @@ impl Visit for Lt {
 
     fn size(&self) -> usize {
         self.data().size()
+    }
+
+    fn assert_valid(&self) {
+        self.data().assert_valid()
     }
 }
 
@@ -117,6 +146,8 @@ impl Visit for usize {
     fn size(&self) -> usize {
         1
     }
+
+    fn assert_valid(&self) {}
 }
 
 impl Visit for u32 {
@@ -127,6 +158,8 @@ impl Visit for u32 {
     fn size(&self) -> usize {
         1
     }
+
+    fn assert_valid(&self) {}
 }
 
 impl<A: Visit, B: Visit> Visit for (A, B) {
@@ -141,6 +174,12 @@ impl<A: Visit, B: Visit> Visit for (A, B) {
     fn size(&self) -> usize {
         let (a, b) = self;
         a.size() + b.size()
+    }
+
+    fn assert_valid(&self) {
+        let (a, b) = self;
+        a.assert_valid();
+        b.assert_valid();
     }
 }
 
@@ -158,6 +197,13 @@ impl<A: Visit, B: Visit, C: Visit> Visit for (A, B, C) {
         let (a, b, c) = self;
         a.size() + b.size() + c.size()
     }
+
+    fn assert_valid(&self) {
+        let (a, b, c) = self;
+        a.assert_valid();
+        b.assert_valid();
+        c.assert_valid();
+    }
 }
 
 impl<A: Visit> Visit for &A {
@@ -167,5 +213,9 @@ impl<A: Visit> Visit for &A {
 
     fn size(&self) -> usize {
         A::size(self)
+    }
+
+    fn assert_valid(&self) {
+        A::assert_valid(self)
     }
 }

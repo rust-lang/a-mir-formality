@@ -1,11 +1,9 @@
-use contracts::requires;
 use formality_types::{
     cast::Upcast,
     cast_impl,
-    collections::Set,
     derive_links::UpcastFrom,
     fold::Fold,
-    grammar::{AtomicRelation, Binder, InferenceVar, Parameter, Substitution, Variable},
+    grammar::{Binder, InferenceVar, Parameter, Substitution, Variable},
     visit::Visit,
 };
 
@@ -40,29 +38,8 @@ impl Default for Constraints {
 }
 
 impl Constraints {
-    /// Check type invariant:
-    ///
-    /// * Domain of substitution is disjoint from range: meaning we don't have
-    ///   a substitution like `[X := Vec<Y>, Y := u32]`, but instead
-    ///   `[X := Vec<u32>, Y := u32]`
-    pub fn is_valid(&self) -> bool {
-        let domain = self.substitution.domain();
-        let range = self.substitution.range();
-        range
-            .iter()
-            .all(|t| domain.iter().all(|&v| !occurs_in(v, t)))
-    }
-
     pub fn substitution(&self) -> &Substitution {
         &self.substitution
-    }
-
-    #[requires(self.is_valid())]
-    pub fn as_relations(&self) -> Set<AtomicRelation> {
-        self.substitution
-            .iter()
-            .map(|(v, p)| AtomicRelation::eq(v, p))
-            .collect()
     }
 
     pub fn ambiguous(self) -> Constraints {
@@ -79,10 +56,10 @@ pub fn merge_constraints(
     c1: Binder<Constraints>,
 ) -> Binder<Constraints> {
     let c0: Constraints = c0.upcast();
-    assert!(c0.is_valid());
+    c0.assert_valid();
 
     let (c1_bound_vars, c1) = c1.open();
-    assert!(c1.is_valid());
+    c1.assert_valid();
 
     assert!(c0
         .substitution
@@ -125,10 +102,7 @@ impl Fold for Constraints {
         };
 
         // not all substitutions preserve the constraint set invariant
-        assert!(
-            c.is_valid(),
-            "folding `{self:?}` yielded invalid constraint set `{c:?}`"
-        );
+        c.assert_valid();
 
         c
     }
@@ -149,6 +123,14 @@ impl Visit for Constraints {
             substitution,
         } = self;
         substitution.size()
+    }
+
+    fn assert_valid(&self) {
+        let domain = self.substitution.domain();
+        let range = self.substitution.range();
+        range
+            .iter()
+            .for_each(|t| assert!(domain.iter().all(|&v| !occurs_in(v, t))));
     }
 }
 

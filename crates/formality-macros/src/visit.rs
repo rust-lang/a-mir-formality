@@ -11,6 +11,8 @@ pub(crate) fn derive_visit(mut s: synstructure::Structure) -> TokenStream {
 
     let size_body = s.each(|field| quote!(__sum += Visit::size(#field)));
 
+    let assert_valid_body = s.each(|field| quote!(Visit::assert_valid(#field)));
+
     // s.add_bounds(synstructure::AddBounds::None);
     s.gen_impl(quote! {
         use crate::derive_links::{Visit, Variable};
@@ -31,6 +33,12 @@ pub(crate) fn derive_visit(mut s: synstructure::Structure) -> TokenStream {
                     #size_body
                 }
                 __sum
+            }
+
+            fn assert_valid(&self) {
+                match self {
+                    #assert_valid_body
+                }
             }
         }
     })

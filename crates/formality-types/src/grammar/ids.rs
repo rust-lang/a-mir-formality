@@ -36,6 +36,8 @@ macro_rules! id {
                 fn size(&self) -> usize {
                     1
                 }
+
+                fn assert_valid(&self) {}
             }
 
             impl Fold for $n {

@@ -177,6 +177,10 @@ impl<T: Visit> Visit for Binder<T> {
     fn size(&self) -> usize {
         self.term.size()
     }
+
+    fn assert_valid(&self) {
+        self.term.assert_valid();
+    }
 }
 
 impl<T: Fold> Fold for Binder<T> {

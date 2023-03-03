@@ -147,6 +147,8 @@ impl Visit for InferenceVar {
     fn size(&self) -> usize {
         1
     }
+
+    fn assert_valid(&self) {}
 }
 
 #[term((rigid $name $*parameters))]
@@ -421,6 +423,13 @@ impl Visit for LtData {
             LtData::Static => 1,
         }
     }
+
+    fn assert_valid(&self) {
+        match self {
+            LtData::Variable(v) => v.assert_valid(),
+            LtData::Static => (),
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -519,6 +528,8 @@ impl Visit for Variable {
     fn size(&self) -> usize {
         1
     }
+
+    fn assert_valid(&self) {}
 }
 
 impl UpcastFrom<Variable> for Parameter {
@@ -703,6 +714,10 @@ impl Visit for Substitution {
 
     fn size(&self) -> usize {
         self.range().iter().map(|r| r.size()).sum()
+    }
+
+    fn assert_valid(&self) {
+        self.range().assert_valid()
     }
 }
 

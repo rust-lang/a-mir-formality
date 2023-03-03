@@ -17,7 +17,7 @@ use crate::{
     },
 };
 
-use super::{constraints::Constraints, prove_wc_list::prove_wc_list};
+use super::constraints::Constraints;
 
 /// Goal(s) to prove `a` and `b` are equal (they must have equal length)
 pub fn all_eq(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) -> Wcs {

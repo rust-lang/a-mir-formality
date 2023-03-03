@@ -52,6 +52,10 @@ where
     fn size(&self) -> usize {
         self.explicit_binder.size()
     }
+
+    fn assert_valid(&self) {
+        self.explicit_binder.assert_valid()
+    }
 }
 
 impl<T> Fold for TraitBinder<T>

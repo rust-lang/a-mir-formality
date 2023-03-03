@@ -11,7 +11,6 @@ use crate::{
         prove_after::prove_after,
         prove_apr_via::prove_apr_via,
         prove_eq::{all_eq, prove_ty_eq},
-        prove_wc_list::prove_wc_list,
         subst::existential_substitution,
     },
 };

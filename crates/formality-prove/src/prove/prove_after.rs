@@ -5,7 +5,7 @@ use formality_types::{
 
 use crate::{
     program::Program,
-    prove::{constraints::merge_constraints, prove, prove_wc_list::prove_wc_list},
+    prove::{constraints::merge_constraints, prove},
 };
 
 use super::{constraints::Constraints, subst::existential_substitution};
