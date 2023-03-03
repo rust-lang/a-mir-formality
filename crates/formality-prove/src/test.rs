@@ -4,6 +4,7 @@ use formality_types::{
 };
 
 mod eq_partial_eq;
+mod exists_constraints;
 mod universes;
 
 fn with_bindings<B: Bindings, R>(f: impl FnOnce(B) -> R) -> R {

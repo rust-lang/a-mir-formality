@@ -666,7 +666,9 @@ impl Fold for Substitution {
 
 impl Visit for Substitution {
     fn free_variables(&self) -> Vec<Variable> {
-        self.range().free_variables()
+        let mut v = self.range().free_variables();
+        v.extend(self.domain());
+        v
     }
 }
 
