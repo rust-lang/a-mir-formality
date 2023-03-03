@@ -9,8 +9,9 @@ use formality_types::{
     visit::Visit,
 };
 
-#[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Constraints {
+    known_true: bool,
     substitution: Substitution,
 }
 
@@ -24,6 +25,16 @@ where
     fn upcast_from(term: (A, B)) -> Self {
         Constraints {
             substitution: term.upcast(),
+            known_true: true,
+        }
+    }
+}
+
+impl Default for Constraints {
+    fn default() -> Self {
+        Self {
+            known_true: true,
+            substitution: Default::default(),
         }
     }
 }
@@ -52,6 +63,13 @@ impl Constraints {
             .iter()
             .map(|(v, p)| AtomicRelation::eq(v, p))
             .collect()
+    }
+
+    pub fn ambiguous(self) -> Constraints {
+        Self {
+            known_true: false,
+            ..self
+        }
     }
 }
 
@@ -89,12 +107,20 @@ pub fn merge_constraints(
         .filter(|(v, _)| !existentials.contains(&v.upcast()))
         .collect();
 
-    Binder::mentioned((c1_bound_vars, existentials), Constraints { substitution })
+    let known_true = c0.known_true && c1.known_true;
+    Binder::mentioned(
+        (c1_bound_vars, existentials),
+        Constraints {
+            known_true,
+            substitution,
+        },
+    )
 }
 
 impl Fold for Constraints {
     fn substitute(&self, substitution_fn: formality_types::fold::SubstitutionFn<'_>) -> Self {
         let c = Constraints {
+            known_true: self.known_true,
             substitution: self.substitution.substitute(substitution_fn),
         };
 

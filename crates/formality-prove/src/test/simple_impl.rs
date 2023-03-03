@@ -30,7 +30,7 @@ fn vec_u32_debug() {
     let constraints = prove_wc_list(program, assumptions, goal);
     expect![[r#"
         {
-            <> Constraints { substitution: Substitution { map: {} } },
+            <> Constraints { known_true: true, substitution: Substitution { map: {} } },
         }
     "#]]
     .assert_debug_eq(&constraints);
@@ -44,7 +44,7 @@ fn vec_vec_u32_debug() {
     let constraints = prove_wc_list(program, assumptions, goal);
     expect![[r#"
         {
-            <> Constraints { substitution: Substitution { map: {} } },
+            <> Constraints { known_true: true, substitution: Substitution { map: {} } },
         }
     "#]]
     .assert_debug_eq(&constraints);
