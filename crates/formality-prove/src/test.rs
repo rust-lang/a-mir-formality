@@ -11,6 +11,7 @@ use crate::{
 
 mod eq_partial_eq;
 mod exists_constraints;
+mod occurs_check;
 mod universes;
 
 /// `t` represents some set of existential bindings combined with (assumptions, goals).

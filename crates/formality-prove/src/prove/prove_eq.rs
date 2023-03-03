@@ -11,7 +11,7 @@ use formality_types::{
 use crate::{
     program::Program,
     prove::{
-        constraints::{constrain, merge_constraints, no_constraints},
+        constraints::{constrain, merge_constraints, no_constraints, occurs_in},
         subst::existential_substitution,
     },
 };
@@ -80,12 +80,14 @@ judgment_fn! {
 
         (
             (if let None = t.downcast::<InferenceVar>())
+            (if !occurs_in(v, &t))
             ----------------------------- ("existential-l")
             (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(v), t) => constrain(v, t))
         )
 
         (
             (if let None = t.downcast::<InferenceVar>())
+            (if !occurs_in(v, &t))
             ----------------------------- ("existential-r")
             (prove_ty_eq(_env, _assumptions, t, Variable::InferenceVar(v)) => constrain(v, t))
         )
