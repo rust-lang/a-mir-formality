@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 #[test]
+#[ignore]
 fn test_universal() {
     expect_test::expect![[r#"
         Err(

@@ -37,13 +37,20 @@ pub type Fallible<T> = anyhow::Result<T>;
 #[term]
 pub enum AtomicPredicate {
     /// True if a trait is fully implemented (along with all its where clauses).
+    #[cast]
     IsImplemented(TraitRef),
-    /// True if there is an impl for the given trait.
-    HasImpl(TraitRef),
+
     /// True if an alias normalizes to the given type.
+    #[grammar(@NormalizesTo($v0 -> $v1))]
     NormalizesTo(AliasTy, Ty),
+
+    #[grammar(@WellFormedAdt($v0, $v1))]
     WellFormedAdt(AdtId, Parameters),
+
+    #[grammar(@WellFormedAlias($v0, $v1))]
     WellFormedAlias(AliasName, Parameters),
+
+    #[grammar(@WellFormedTraitRef($v0))]
     WellFormedTraitRef(TraitRef),
 }
 
@@ -70,7 +77,6 @@ impl AtomicPredicate {
     pub fn is_coinductive(&self) -> Coinductive {
         match self {
             AtomicPredicate::IsImplemented(_) => Coinductive::Yes,
-            AtomicPredicate::HasImpl(_) => Coinductive::Yes,
             AtomicPredicate::NormalizesTo(_, _) => Coinductive::No,
             AtomicPredicate::WellFormedAlias(_, _)
             | AtomicPredicate::WellFormedAdt(_, _)
@@ -114,7 +120,6 @@ impl Parameter {
 #[term]
 pub enum AtomicSkeleton {
     IsImplemented(TraitId),
-    HasImpl(TraitId),
     NormalizesTo(AliasName),
     WellFormed,
     WellFormedAdt(AdtId),
@@ -136,13 +141,6 @@ impl AtomicPredicate {
                 parameters,
             }) => (
                 AtomicSkeleton::IsImplemented(trait_id.clone()),
-                parameters.clone(),
-            ),
-            AtomicPredicate::HasImpl(TraitRef {
-                trait_id,
-                parameters,
-            }) => (
-                AtomicSkeleton::HasImpl(trait_id.clone()),
                 parameters.clone(),
             ),
             AtomicPredicate::NormalizesTo(AliasTy { name, parameters }, ty) => (
@@ -177,10 +175,6 @@ impl TraitRef {
         AtomicPredicate::IsImplemented(self.clone())
     }
 
-    pub fn has_impl(&self) -> AtomicPredicate {
-        AtomicPredicate::HasImpl(self.clone())
-    }
-
     pub fn well_formed(&self) -> AtomicPredicate {
         AtomicPredicate::WellFormedTraitRef(self.clone())
     }
@@ -196,15 +190,19 @@ impl AdtId {
 #[term]
 pub enum AtomicRelation {
     /// `T1 == T2` etc
+    #[grammar($v0 == $v1)]
     Equals(Parameter, Parameter),
 
     /// `T1 <: T2` or `L1 <: L2`
+    #[grammar($v0 <: $v1)]
     Sub(Parameter, Parameter),
 
     /// `P : P`
+    #[grammar($v0 : $v1)]
     Outlives(Parameter, Parameter),
 
     /// `WF(Parameter)`
+    #[grammar(@wf($v0))]
     WellFormed(Parameter),
 }
 
@@ -654,6 +652,7 @@ impl UpcastFrom<Predicate> for Hypothesis {
 
 // Transitive casting impls:
 
+cast_impl!((TraitRef) <: (AtomicPredicate) <: (APR));
 cast_impl!((AtomicPredicate) <: (APR) <: (PredicateData));
 cast_impl!((AtomicRelation) <: (APR) <: (PredicateData));
 cast_impl!((AtomicPredicate) <: (APR) <: (GoalData));

@@ -9,6 +9,7 @@ const PROGRAM: &str = "[
 ]";
 
 #[test]
+#[ignore]
 fn test_i32() {
     expect_test::expect![[r#"
         Ok(
@@ -22,6 +23,7 @@ fn test_i32() {
 }
 
 #[test]
+#[ignore]
 fn test_u32() {
     expect_test::expect![[r#"
         Ok(

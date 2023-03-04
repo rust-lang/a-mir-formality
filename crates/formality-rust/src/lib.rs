@@ -1,11 +1,6 @@
-use formality_logic::{prove_universal_goal, UniversalGoalResult};
-use formality_logic::{Db, Env};
-use formality_types::{
-    cast::Upcast,
-    derive_links,
-    grammar::{Fallible, Goal},
-    parse::term,
-};
+use formality_logic::UniversalGoalResult;
+use formality_types::derive_links;
+use formality_types::{grammar::Fallible, parse::term};
 
 pub mod grammar;
 mod test;
@@ -23,27 +18,12 @@ pub fn test_program_ok(program_text: &str) -> Fallible<()> {
 }
 
 pub fn test_can_prove_where_clause(
-    program_text: &str,
-    where_clause: &str,
+    _program_text: &str,
+    _where_clause: &str,
 ) -> Fallible<UniversalGoalResult> {
-    formality_core::with_tracing_logs(|| -> Fallible<UniversalGoalResult> {
-        let rust_program: grammar::Program = term(program_text);
-        let decl_program = rust_program.to_decl()?;
-        let db = Db::new(decl_program);
-        let env = Env::default();
-        let goal: grammar::WhereClause = term(where_clause);
-        let predicate = goal.to_decl()?;
-        Ok(prove_universal_goal(&db, &env, &[], &predicate.upcast()))
-    })
+    todo!()
 }
 
-pub fn test_can_prove_goal(program_text: &str, goal: &str) -> Fallible<UniversalGoalResult> {
-    formality_core::with_tracing_logs(|| -> Fallible<UniversalGoalResult> {
-        let rust_program: grammar::Program = term(program_text);
-        let decl_program = rust_program.to_decl()?;
-        let db = Db::new(decl_program);
-        let env = Env::default();
-        let goal: Goal = term(goal);
-        Ok(prove_universal_goal(&db, &env, &[], &goal.upcast()))
-    })
+pub fn test_can_prove_goal(_program_text: &str, _goal: &str) -> Fallible<UniversalGoalResult> {
+    todo!()
 }

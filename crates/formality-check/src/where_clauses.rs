@@ -63,8 +63,7 @@ impl super::Check<'_> {
                 self.prove_goal(env, assumptions, a.well_formed())?;
                 self.prove_goal(env, assumptions, b.well_formed())?;
             }
-            APR::AtomicPredicate(AtomicPredicate::HasImpl(_))
-            | APR::AtomicRelation(AtomicRelation::Equals(_, _))
+            APR::AtomicRelation(AtomicRelation::Equals(_, _))
             | APR::AtomicRelation(AtomicRelation::Sub(_, _)) => {
                 panic!("predicate would never appear directly in program text")
             }

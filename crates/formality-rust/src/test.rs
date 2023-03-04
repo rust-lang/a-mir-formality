@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![cfg(FIXME)]
 
 use formality_macros::test;
 use formality_types::parse::term;

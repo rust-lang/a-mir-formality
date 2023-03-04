@@ -17,10 +17,10 @@ fn program() -> Program {
     }
 }
 
-/// Test that `exists<T> is_implemented(Foo(U))` yields `U = Vec<X>` for some fresh `X`
+/// Test that `exists<T> Foo(U)` yields `U = Vec<X>` for some fresh `X`
 #[test]
 fn exists_u_for_t() {
-    let constraints = test_prove(program(), term("<ty U> ({}, {is_implemented(Foo(U))})"));
+    let constraints = test_prove(program(), term("<ty U> ({}, {Foo(U)})"));
     expect![[r#"
         {
             <ty> Constraints { known_true: true, substitution: Substitution { map: {?ty_0: (rigid (adt Vec) ^ty0_0)} } },

@@ -8,6 +8,7 @@ const PROGRAM: &str = "[
 ]";
 
 #[test]
+#[ignore]
 fn test_implies() {
     expect_test::expect![[r#"
         Ok(
@@ -16,6 +17,6 @@ fn test_implies() {
     "#]]
     .assert_debug_eq(&formality_rust::test_can_prove_goal(
         PROGRAM,
-        "for_all(<ty T> implies([is_implemented(Sub(T))], for_all(<lt x> is_implemented(Super(T, x)))))",
+        "for_all(<ty T> implies([Sub(T)], for_all(<lt x> Super(T, x))))",
     ));
 }

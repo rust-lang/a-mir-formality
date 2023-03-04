@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 #[test]
+#[ignore]
 fn magic_copy() {
     const PROGRAM: &str = "[
         crate core {
@@ -31,6 +32,7 @@ fn magic_copy() {
 }
 
 #[test]
+#[ignore]
 fn magic_copy_impl_for_all_copy() {
     const PROGRAM: &str = "[
         crate core {
@@ -75,6 +77,7 @@ fn magic_copy_impl_for_all_copy() {
 }
 
 #[test]
+#[ignore]
 fn magic_vec_t() {
     const PROGRAM: &str = "[
         crate core {

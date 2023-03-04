@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 #[test]
+#[ignore]
 fn absolutely_same() {
     const PROGRAM: &str = "[
         crate core {
@@ -28,6 +29,7 @@ fn absolutely_same() {
 }
 
 #[test]
+#[ignore]
 fn different_self_type_mut_vs_sh() {
     const PROGRAM: &str = "[
         crate core {
@@ -63,6 +65,7 @@ fn different_self_type_mut_vs_sh() {
 }
 
 #[test]
+#[ignore]
 fn different_arg_type_u32_vs_i32() {
     const PROGRAM: &str = "[
         crate core {

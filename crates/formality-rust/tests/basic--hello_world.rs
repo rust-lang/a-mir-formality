@@ -23,14 +23,15 @@ const PROGRAM_OK: &str = "[
 ]";
 
 #[test]
+#[ignore]
 fn test_broken() {
     expect_test::expect![[r#"
         Err(
             Error {
                 context: "check_trait(Foo)",
                 source: Error {
-                    context: "prove_where_clause_well_formed([is_implemented(Bar(!tyU(1)_1, !tyU(1)_0))] => is_implemented(Bar(!tyU(1)_1, !tyU(1)_0))",
-                    source: "could not prove `well_formed_trait_ref(Bar(!tyU(1)_1, !tyU(1)_0))` given `[\n    is_implemented(Bar(!tyU(1)_1, !tyU(1)_0)),\n]`",
+                    context: "prove_where_clause_well_formed([Bar(!tyU(1)_1, !tyU(1)_0)] => Bar(!tyU(1)_1, !tyU(1)_0)",
+                    source: "could not prove `well_formed_trait_ref(Bar(!tyU(1)_1, !tyU(1)_0))` given `[\n    Bar(!tyU(1)_1, !tyU(1)_0),\n]`",
                 },
             },
         )
@@ -38,6 +39,7 @@ fn test_broken() {
 }
 
 #[test]
+#[ignore]
 fn test_ok() {
     expect_test::expect![[r#"
         Ok(

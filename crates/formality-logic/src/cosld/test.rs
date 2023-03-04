@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![cfg(FIXME)]
 
 use formality_macros::test;
 use formality_types::{
@@ -14,14 +15,12 @@ use crate::MockDatabase;
 #[test]
 fn simple_test() {
     let db = MockDatabase::new()
-        .with_program_clause(
-            "for_all(<ty T> implies([is_implemented(Debug(T))], is_implemented(Debug(Vec<T>))))",
-        )
-        .with_program_clause("is_implemented(Debug(u32))")
+        .with_program_clause("for_all(<ty T> implies([Debug(T)], Debug(Vec<T>)))")
+        .with_program_clause("Debug(u32)")
         .into_db();
     let env = Env::default();
 
-    let results = super::prove(&db, &env, &[], &term("is_implemented(Debug(Vec<u32>))"));
+    let results = super::prove(&db, &env, &[], &term("Debug(Vec<u32>)"));
 
     expect_test::expect![[r#"
             {

@@ -12,7 +12,7 @@ fn program() -> Program {
     Program {
         max_size: Program::DEFAULT_MAX_SIZE,
         trait_decls: vec![
-            term("trait Eq<ty Self> where {is_implemented(PartialEq(Self))}"),
+            term("trait Eq<ty Self> where {PartialEq(Self)}"),
             term("trait PartialEq<ty Self> where {}"),
         ],
         impl_decls: vec![],
@@ -24,7 +24,7 @@ fn program() -> Program {
 #[test]
 fn eq_implies_partial_eq() {
     let assumptions: Wcs = Wcs::t();
-    let goal: Wc = term("for<ty T> if {is_implemented(Eq(T))} is_implemented(PartialEq(T))");
+    let goal: Wc = term("for<ty T> if {Eq(T)} PartialEq(T)");
     let constraints = prove(program(), assumptions, goal);
     expect![[r#"
         {
@@ -37,7 +37,7 @@ fn eq_implies_partial_eq() {
 #[test]
 fn not_partial_eq_implies_eq() {
     let assumptions: Wcs = Wcs::t();
-    let goal: Wc = term("for<ty T> if {is_implemented(PartialEq(T))} is_implemented(Eq(T))");
+    let goal: Wc = term("for<ty T> if {PartialEq(T)} Eq(T)");
     let constraints = prove(program(), assumptions, goal);
     expect![[r#"
         {}
@@ -48,7 +48,7 @@ fn not_partial_eq_implies_eq() {
 #[test]
 fn placeholders_not_eq() {
     let assumptions: Wcs = Wcs::t();
-    let goal: Wc = term("for<ty T, ty U> if {is_implemented(Eq(T))} is_implemented(PartialEq(U))");
+    let goal: Wc = term("for<ty T, ty U> if {Eq(T)} PartialEq(U)");
     let constraints = prove(program(), assumptions, goal);
     expect![[r#"
         {}

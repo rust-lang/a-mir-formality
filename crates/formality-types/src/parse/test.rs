@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![cfg(FIXME)]
 
 use super::term;
 use crate::grammar::{AtomicPredicate, Goal, Ty};

@@ -10,7 +10,7 @@ use crate::{
     set,
 };
 
-use super::{AtomicPredicate, AtomicRelation, Binder, BoundVar};
+use super::{AtomicPredicate, AtomicRelation, Binder, BoundVar, TraitRef};
 
 #[term($set)]
 pub struct Wcs {
@@ -153,6 +153,7 @@ impl DowncastFrom<Wc> for WcData {
 cast_impl!((APR) <: (WcData) <: (Wc));
 cast_impl!((AtomicRelation) <: (APR) <: (Wc));
 cast_impl!((AtomicPredicate) <: (APR) <: (Wc));
+cast_impl!((TraitRef) <: (APR) <: (Wc));
 
 impl UpcastFrom<Wc> for Wcs {
     fn upcast_from(term: Wc) -> Self {
@@ -173,3 +174,4 @@ impl DowncastTo<Wc> for Wcs {
 cast_impl!((APR) <: (Wc) <: (Wcs));
 cast_impl!((AtomicRelation) <: (Wc) <: (Wcs));
 cast_impl!((AtomicPredicate) <: (Wc) <: (Wcs));
+cast_impl!((TraitRef) <: (Wc) <: (Wcs));

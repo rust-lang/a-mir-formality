@@ -13,7 +13,7 @@ fn program() -> Program {
         max_size: Program::DEFAULT_MAX_SIZE,
         trait_decls: vec![term("trait Debug<ty Self> where {}")],
         impl_decls: vec![
-            term("impl<ty T> Debug(Vec<T>) where {is_implemented(Debug(T))}"),
+            term("impl<ty T> Debug(Vec<T>) where {Debug(T)}"),
             term("impl<> Debug(u32) where {}"),
         ],
         alias_eq_decls: vec![],
@@ -24,7 +24,7 @@ fn program() -> Program {
 #[test]
 fn vec_u32_debug() {
     let assumptions: Wcs = Wcs::t();
-    let goal: Wc = term("is_implemented(Debug(Vec<u32>))");
+    let goal: Wc = term("Debug(Vec<u32>)");
     let constraints = prove(program(), assumptions, goal);
     expect![[r#"
         {
@@ -37,7 +37,7 @@ fn vec_u32_debug() {
 #[test]
 fn vec_vec_u32_debug() {
     let assumptions: Wcs = Wcs::t();
-    let goal: Wc = term("is_implemented(Debug(Vec<Vec<u32>>))");
+    let goal: Wc = term("Debug(Vec<Vec<u32>>)");
     let constraints = prove(program(), assumptions, goal);
     expect![[r#"
         {

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::collections::VecDeque;
 
 use anyhow::bail;
@@ -28,9 +30,8 @@ pub fn check_all_crates(program: &Program) -> Fallible<()> {
 }
 
 /// Checks the current crate in the program, assuming all other crates are valid.
-fn check_current_crate(program: &Program) -> Fallible<()> {
-    let db = Db::new(program.clone());
-    Check { program, db }.check()
+fn check_current_crate(_program: &Program) -> Fallible<()> {
+    todo!()
 }
 
 mod adts;

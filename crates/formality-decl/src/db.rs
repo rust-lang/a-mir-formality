@@ -24,10 +24,6 @@ impl formality_logic::Database for Program {
                     trait_id: _,
                     parameters,
                 })
-                | AtomicPredicate::HasImpl(TraitRef {
-                    trait_id: _,
-                    parameters,
-                })
                 | AtomicPredicate::NormalizesTo(
                     AliasTy {
                         name: _,
