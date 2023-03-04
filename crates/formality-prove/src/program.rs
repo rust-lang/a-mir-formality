@@ -55,6 +55,16 @@ impl Program {
             .flat_map(|td| td.trait_invariants())
             .collect()
     }
+
+    pub fn empty() -> Self {
+        Self {
+            max_size: Program::DEFAULT_MAX_SIZE,
+            trait_decls: vec![],
+            impl_decls: vec![],
+            alias_eq_decls: vec![],
+            alias_bound_decls: vec![],
+        }
+    }
 }
 
 #[term(impl $binder)]

@@ -20,9 +20,33 @@ fn program() -> Program {
 /// Test that `X = Vec<X>` cannot be solved
 #[test]
 fn direct_cycle() {
-    let constraints = test_prove(program(), term("<ty A> ({}, {equals(A, Vec<A>)})"));
+    let constraints = test_prove(program(), term("<ty A> ({}, {A = Vec<A>})"));
     expect![[r#"
         {}
+    "#]]
+    .assert_debug_eq(&constraints);
+}
+
+/// Test that `X = Vec<Y>` can be solved
+#[test]
+fn eq_variable_to_rigid() {
+    let constraints = test_prove(program(), term("<ty X, ty Y> ({}, {X = Vec<Y>})"));
+    expect![[r#"
+        {
+            <> Constraints { known_true: true, substitution: Substitution { map: {?ty_0: (rigid (adt Vec) ?ty_1)} } },
+        }
+    "#]]
+    .assert_debug_eq(&constraints);
+}
+
+/// Test that `Vec<Y> = X` can be solved
+#[test]
+fn eq_rigid_to_variable() {
+    let constraints = test_prove(program(), term("<ty X, ty Y> ({}, {Vec<Y> = X})"));
+    expect![[r#"
+        {
+            <> Constraints { known_true: true, substitution: Substitution { map: {?ty_0: (rigid (adt Vec) ?ty_1)} } },
+        }
     "#]]
     .assert_debug_eq(&constraints);
 }
@@ -30,10 +54,7 @@ fn direct_cycle() {
 /// Test that `X = Vec<X>` cannot be solved (when constructed over several steps)
 #[test]
 fn indirect_cycle_1() {
-    let constraints = test_prove(
-        program(),
-        term("<ty A, ty B> ({}, {equals(A, Vec<B>), equals(B, A)})"),
-    );
+    let constraints = test_prove(program(), term("<ty A, ty B> ({}, {A = Vec<B>, B = A})"));
     expect![[r#"
         {}
     "#]]
@@ -43,10 +64,7 @@ fn indirect_cycle_1() {
 /// Test that `X = Vec<X>` cannot be solved (when constructed over several steps)
 #[test]
 fn indirect_cycle_2() {
-    let constraints = test_prove(
-        program(),
-        term("<ty A, ty B> ({}, {equals(B, A), equals(A, Vec<B>)})"),
-    );
+    let constraints = test_prove(program(), term("<ty A, ty B> ({}, {B = A, A = Vec<B>})"));
     expect![[r#"
         {}
     "#]]

@@ -189,19 +189,15 @@ impl AdtId {
 /// Relations are built-in goals which are implemented in custom Rust logic.
 #[term]
 pub enum AtomicRelation {
-    /// `T1 == T2` etc
-    #[grammar($v0 == $v1)]
+    #[grammar($v0 = $v1)]
     Equals(Parameter, Parameter),
 
-    /// `T1 <: T2` or `L1 <: L2`
     #[grammar($v0 <: $v1)]
     Sub(Parameter, Parameter),
 
-    /// `P : P`
     #[grammar($v0 : $v1)]
     Outlives(Parameter, Parameter),
 
-    /// `WF(Parameter)`
     #[grammar(@wf($v0))]
     WellFormed(Parameter),
 }
