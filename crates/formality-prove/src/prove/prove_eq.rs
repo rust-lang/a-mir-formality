@@ -1,11 +1,14 @@
 use formality_types::{
     cast::{Downcast, Upcast, Upcasted},
-    collections::Set,
+    collections::Map,
+    fold::Fold,
     grammar::{
-        AliasTy, AtomicRelation, Binder, InferenceVar, Parameter, RigidTy, Ty, TyData, Variable,
-        Wcs,
+        AliasTy, AtomicRelation, Binder, InferenceVar, Parameter, PlaceholderVar, RigidTy, Ty,
+        TyData, Universe, Variable, Wcs,
     },
     judgment_fn,
+    term::Term,
+    visit::Visit,
 };
 
 use crate::{
@@ -13,11 +16,15 @@ use crate::{
     prove::{
         constraints::{constrain, merge_constraints, no_constraints, occurs_in},
         prove,
+        prove_normalize::prove_normalize,
         subst::existential_substitution,
     },
 };
 
-use super::constraints::Constraints;
+use super::{
+    constraints::{self, Constraints},
+    subst::{self, fresh_existential},
+};
 
 /// Goal(s) to prove `a` and `b` are equal (they must have equal length)
 pub fn all_eq(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) -> Wcs {
@@ -36,18 +43,6 @@ pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> AtomicRelatio
     AtomicRelation::eq(a, b)
 }
 
-pub fn prove_parameters_eq(
-    program: impl Upcast<Program>,
-    assumptions: impl Upcast<Wcs>,
-    a: impl Upcast<Vec<Parameter>>,
-    b: impl Upcast<Vec<Parameter>>,
-) -> Set<Binder<Constraints>> {
-    let program = program.upcast();
-    let assumptions = assumptions.upcast();
-    let goals = all_eq(a, b);
-    prove(program, assumptions, goals)
-}
-
 judgment_fn! {
     pub fn prove_ty_eq(
         program: Program,
@@ -58,14 +53,20 @@ judgment_fn! {
         (
             (if l == r)
             ----------------------------- ("reflexive")
-            (prove_ty_eq(_env, _assumptions, l, r) => no_constraints())
+            (prove_ty_eq(_program, _assumptions, l, r) => no_constraints(()))
+        )
+
+        (
+            (prove_ty_eq(program, assumptions, r, l) => c)
+            ----------------------------- ("symmetric")
+            (prove_ty_eq(program, assumptions, l, r) => c)
         )
 
         (
             (let RigidTy { name: a_name, parameters: a_parameters } = a)
             (let RigidTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)
-            (prove_parameters_eq(program, assumptions, a_parameters, b_parameters) => c)
+            (prove(program, assumptions, all_eq(a_parameters, b_parameters)) => c)
             ----------------------------- ("rigid")
             (prove_ty_eq(program, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
         )
@@ -74,16 +75,16 @@ judgment_fn! {
             (let AliasTy { name: a_name, parameters: a_parameters } = a)
             (let AliasTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)
-            (prove_parameters_eq(program, assumptions, a_parameters, b_parameters) => c)
-            ----------------------------- ("alias-unnormalized")
+            (prove(program, assumptions, all_eq(a_parameters, b_parameters)) => c)
+            ----------------------------- ("alias")
             (prove_ty_eq(program, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => c)
         )
 
         (
             (if let None = t.downcast::<InferenceVar>())
-            (if !occurs_in(v, &t))
+            (if let Some(c) = equate_variable(v, t, assumptions))
             ----------------------------- ("existential-l")
-            (prove_ty_eq(_env, _assumptions, Variable::InferenceVar(v), t) => constrain(v, t))
+            (prove_ty_eq(_env, assumptions, Variable::InferenceVar(v), t) => constrain(v, t))
         )
 
         (
@@ -101,31 +102,49 @@ judgment_fn! {
         )
 
         (
-            (if !matches!(b.data(), TyData::Variable(Variable::InferenceVar(_))))
-            (program.alias_eq_decls(&a.name) => decl)
-            (let subst = existential_substitution(&decl.binder, (&assumptions, &a, &b)))
-            (let decl = decl.binder.instantiate_with(&subst).unwrap())
-            (assert a.name == decl.alias.name)
-            (let assumptions1 = if decl.ty.is_rigid() {
-                // Normalizing to a rigid type: productive
-                (&assumptions, eq(&a, &b)).upcast()
-            } else {
-                // Normalizing to a variable or alias: not productive
-                assumptions.clone()
-            })
-            (prove(&program, &assumptions1, (
-                all_eq(&a.parameters, &decl.alias.parameters),
-                eq(&b, &decl.ty),
-                decl.where_clause,
-            )) => c)
-            ----------------------------- ("alias-normalized")
-            (prove_ty_eq(program, assumptions, TyData::AliasTy(a), b) => merge_constraints(&subst, (), c))
-        )
-
-        (
-            (prove_ty_eq(program, assumptions, a, t) => c)
-            ----------------------------- ("alias-r")
-            (prove_ty_eq(program, assumptions, t, TyData::AliasTy(a)) => c)
+            (prove_normalize(&program, &assumptions, &x) => nc1)
+            (let subst = existential_substitution(&nc1, (&assumptions, &x, &z)))
+            (let (y, c1) = nc1.instantiate_with(&subst).unwrap().split_result())
+            (prove(&program, &assumptions, eq(y, &z)) => c2)
+            ----------------------------- ("normalize-l")
+            (prove_ty_eq(program, assumptions, x, z) => merge_constraints(&subst, &c1, c2))
         )
     }
+}
+
+fn equate_variable(x: InferenceVar, p: &Parameter) -> Option<Binder<Constraints>> {
+    let mut replacements: Map<InferenceVar, Variable> = Map::default();
+
+    if occurs_in(x, p) {
+        return None;
+    }
+
+    let fv = p.free_variables().deduplicate();
+
+    let p1: Parameter = p.substitute(&mut |v| match v {
+        Variable::InferenceVar(v) => {
+            if v.universe <= x.universe {
+                None
+            } else if let Some(r) = replacements.get(&v) {
+                Some(r.upcast())
+            } else {
+                // For each inference variable `v` in a universe not nameable from `u`,
+                // replace with a fresh inference variable `v1` that IS in `u`,
+                // and create a binding `v := v1` (this binding is legal because
+                // v1 is fresh and `universe(v) >= universe(v1)`).
+                let v1: Variable = fresh_existential(x.universe, v.kind, &fresh_in).upcast();
+                replacements.insert(v, v1.clone());
+                Some(v1.upcast())
+            }
+        }
+        Variable::PlaceholderVar(_) | Variable::BoundVar(_) => None,
+    });
+
+    let mut existentials: Vec<Variable> = replacements.values().cloned().collect();
+    let constraints: Constraints = replacements
+        .into_iter()
+        .upcasted()
+        .chain(std::iter::once((x, p1)))
+        .collect();
+    Some(Binder::mentioned(existentials, constraints))
 }

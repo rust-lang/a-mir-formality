@@ -28,7 +28,7 @@ fn eq_implies_partial_eq() {
     let constraints = prove(program(), assumptions, goal);
     expect![[r#"
         {
-            <> Constraints { known_true: true, substitution: Substitution { map: {} } },
+            <> Constraints { result: (), known_true: true, substitution: Substitution { map: {} } },
         }
     "#]]
     .assert_debug_eq(&constraints);

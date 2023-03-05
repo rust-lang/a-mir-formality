@@ -151,6 +151,12 @@ impl<T: Fold> Binder<T> {
     pub fn kinds(&self) -> &[ParameterKind] {
         &self.kinds
     }
+
+    pub fn map<U: Fold>(&self, op: impl FnOnce(T) -> U) -> Binder<U> {
+        let (vars, t) = self.open();
+        let u = op(t);
+        Binder::new(&vars, u)
+    }
 }
 
 /// Creates a fresh bound var of the given kind that is not yet part of a binder.

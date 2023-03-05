@@ -21,7 +21,7 @@ judgment_fn! {
     ) => Binder<Constraints> {
         (
             --- ("none")
-            (prove_wc_list(_env, _assumptions, ()) => no_constraints())
+            (prove_wc_list(_env, _assumptions, ()) => no_constraints(()))
         )
 
         (

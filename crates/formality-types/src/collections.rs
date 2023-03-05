@@ -98,6 +98,16 @@ impl<T> DowncastTo<()> for Set<T> {
     }
 }
 
+impl<T> DowncastTo<()> for Vec<T> {
+    fn downcast_to(&self) -> Option<()> {
+        if self.is_empty() {
+            Some(())
+        } else {
+            None
+        }
+    }
+}
+
 macro_rules! tuple_upcast {
     ($($name:ident),*) => {
         #[allow(non_snake_case)]
@@ -136,5 +146,38 @@ where
             let a: A = a.downcast()?;
             Some((a, bs))
         }
+    }
+}
+
+impl<A, T> DowncastTo<(A, Vec<T>)> for Vec<T>
+where
+    A: DowncastFrom<T>,
+    T: Ord + Clone,
+{
+    fn downcast_to(&self) -> Option<(A, Vec<T>)> {
+        if self.is_empty() {
+            None
+        } else {
+            let r = self.clone();
+            let (a, bs) = r.split_first().unwrap();
+            let a: A = a.downcast()?;
+            Some((a, bs.to_vec()))
+        }
+    }
+}
+
+trait Deduplicate {
+    fn deduplicate(self) -> Self;
+}
+
+impl<T> Deduplicate for Vec<T>
+where
+    T: Ord + Clone,
+{
+    /// Remove duplicates of `v`
+    fn deduplicate<T: Ord + Clone>(mut self: Vec<T>) -> Vec<T> {
+        let mut s = Set::default();
+        self.retain(|e| s.insert(e.clone()));
+        self
     }
 }

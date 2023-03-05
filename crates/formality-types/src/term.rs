@@ -32,3 +32,5 @@ impl Term for u32 {}
 impl<A: Term, B: Term> Term for (A, B) {}
 
 impl<T: Term> Term for Binder<T> {}
+
+impl Term for () {}

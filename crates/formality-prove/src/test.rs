@@ -1,7 +1,7 @@
 use formality_types::{
     cast::Upcast,
     collections::Set,
-    grammar::{Binder, InferenceVar, Wcs},
+    grammar::{Binder, InferenceVar, Universe, Wcs},
 };
 
 use crate::{
@@ -9,6 +9,7 @@ use crate::{
     prove::{prove, Constraints},
 };
 
+mod eq_assumptions;
 mod eq_partial_eq;
 mod exists_constraints;
 mod expanding;
@@ -21,7 +22,13 @@ mod universes;
 /// existential variables created for the bindings, so they're really just suitable for
 /// using with expect.
 fn test_prove(program: Program, t: Binder<(Wcs, Wcs)>) -> Set<Binder<Constraints>> {
-    let (assumptions, goals) =
-        t.instantiate(|kind, var_index| InferenceVar { kind, var_index }.upcast());
+    let (assumptions, goals) = t.instantiate(|kind, var_index| {
+        InferenceVar {
+            kind,
+            universe: Universe::ROOT,
+            var_index,
+        }
+        .upcast()
+    });
     prove(program, assumptions, goals)
 }

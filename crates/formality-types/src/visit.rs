@@ -162,6 +162,18 @@ impl Visit for u32 {
     fn assert_valid(&self) {}
 }
 
+impl Visit for () {
+    fn free_variables(&self) -> Vec<Variable> {
+        vec![]
+    }
+
+    fn size(&self) -> usize {
+        0
+    }
+
+    fn assert_valid(&self) {}
+}
+
 impl<A: Visit, B: Visit> Visit for (A, B) {
     fn free_variables(&self) -> Vec<Variable> {
         let (a, b) = self;

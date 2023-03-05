@@ -209,6 +209,12 @@ where
     }
 }
 
+impl DowncastTo<()> for () {
+    fn downcast_to(&self) -> Option<()> {
+        Some(())
+    }
+}
+
 impl<T> UpcastFrom<()> for T
 where
     T: Default,
@@ -286,6 +292,20 @@ macro_rules! cast_impl {
         }
     };
 
+    (impl($($p:tt)*) $t:ty) => {
+        impl<$($p)*> $crate::cast::UpcastFrom<$t> for $t {
+            fn upcast_from(v: $t) -> $t {
+                v
+            }
+        }
+
+        impl<$($p)*> $crate::cast::DowncastTo<$t> for $t {
+            fn downcast_to(&self) -> Option<$t> {
+                Some(Self::clone(self))
+            }
+        }
+    };
+
     ($t:ty) => {
         impl $crate::cast::UpcastFrom<$t> for $t {
             fn upcast_from(v: $t) -> $t {
@@ -299,7 +319,6 @@ macro_rules! cast_impl {
             }
         }
     };
-
 
     (($bot:ty) <: ($($mid:ty),*) <: ($top:ty)) => {
         impl $crate::cast::UpcastFrom<$bot> for $top {

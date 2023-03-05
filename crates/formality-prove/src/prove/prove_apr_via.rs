@@ -6,9 +6,10 @@ use formality_types::{
 use crate::{
     program::Program,
     prove::{
-        constraints::{merge_constraints, Constraints},
+        constraints::{merge_constraints, no_constraints, Constraints},
+        prove,
         prove_after::prove_after,
-        prove_eq::prove_parameters_eq,
+        prove_eq::all_eq,
         subst::existential_substitution,
     },
 };
@@ -21,12 +22,21 @@ judgment_fn! {
         goal: APR,
     ) => Binder<Constraints> {
         (
-            (let (skel_c, parameters_c) = clause.debone())
+            (let (skel_c, parameters_c) = predicate.debone())
             (let (skel_g, parameters_g) = goal.debone())
             (if skel_c == skel_g)
-            (prove_parameters_eq(program, assumptions, parameters_c, parameters_g) => c)
-            ----------------------------- ("axiom")
-            (prove_apr_via(program, assumptions, WcData::Atomic(clause), goal) => c)
+            (prove(program, assumptions, all_eq(parameters_c, parameters_g)) => c)
+            ----------------------------- ("predicate-congruence-axiom")
+            (prove_apr_via(program, assumptions, APR::AtomicPredicate(predicate), goal) => c)
+        )
+
+        (
+            (let (skel_c, parameters_c) = relation.debone())
+            (let (skel_g, parameters_g) = goal.debone())
+            (if skel_c == skel_g)
+            (if parameters_c == parameters_g) // for relations, we require 100% match
+            ----------------------------- ("relation-axiom")
+            (prove_apr_via(_program, _assumptions, APR::AtomicRelation(relation), goal) => no_constraints(()))
         )
 
         (
@@ -43,5 +53,5 @@ judgment_fn! {
             ----------------------------- ("implies")
             (prove_apr_via(program, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => c2)
         )
-}
+    }
 }

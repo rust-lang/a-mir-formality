@@ -452,6 +452,15 @@ impl<A: Parse, B: Parse> Parse for (A, B) {
     }
 }
 
+impl Parse for () {
+    #[tracing::instrument(level = "trace", ret)]
+    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+        let ((), text) = expect_char('(', text)?;
+        let ((), text) = expect_char(')', text)?;
+        Ok(((), text))
+    }
+}
+
 impl<A: Parse, B: Parse, C: Parse> Parse for (A, B, C) {
     #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {

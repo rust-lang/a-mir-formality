@@ -134,6 +134,7 @@ impl UpcastFrom<Ty> for TyData {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
     pub kind: ParameterKind,
+    pub universe: Universe,
     pub var_index: VarIndex,
 }
 
@@ -718,6 +719,14 @@ impl Visit for Substitution {
 
     fn assert_valid(&self) {
         self.range().assert_valid()
+    }
+}
+
+impl std::ops::Index<Variable> for Substitution {
+    type Output = Parameter;
+
+    fn index(&self, index: Variable) -> &Self::Output {
+        &self.map[&index]
     }
 }
 

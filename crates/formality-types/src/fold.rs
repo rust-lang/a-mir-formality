@@ -98,6 +98,12 @@ impl Fold for u32 {
     }
 }
 
+impl Fold for () {
+    fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {
+        ()
+    }
+}
+
 impl<A: Fold, B: Fold> Fold for (A, B) {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         let (a, b) = self;

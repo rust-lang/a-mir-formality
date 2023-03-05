@@ -23,7 +23,7 @@ fn exists_u_for_t() {
     let constraints = test_prove(program(), term("<ty U> ({}, {Foo(U)})"));
     expect![[r#"
         {
-            <ty> Constraints { known_true: true, substitution: Substitution { map: {?ty_0: (rigid (adt Vec) ^ty0_0)} } },
+            <ty> Constraints { result: (), known_true: true, substitution: Substitution { map: {?ty_0: (rigid (adt Vec) ^ty0_0)} } },
         }
     "#]]
         .assert_debug_eq(&constraints);

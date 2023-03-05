@@ -35,14 +35,18 @@ impl std::fmt::Debug for super::PlaceholderVar {
             var_index,
             kind,
         } = self;
-        write!(f, "!{:?}{:?}_{:?}", kind, universe, var_index)
+        write!(f, "!{:?}_{:?}_{:?}", kind, var_index, universe)
     }
 }
 
 impl std::fmt::Debug for super::InferenceVar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let super::InferenceVar { var_index, kind } = self;
-        write!(f, "?{:?}_{:?}", kind, var_index)
+        let super::InferenceVar {
+            var_index,
+            kind,
+            universe,
+        } = self;
+        write!(f, "?{:?}_{:?}_{:?}", kind, var_index, universe)
     }
 }
 
