@@ -67,9 +67,10 @@ pub trait SetExt<T>: Sized {
 }
 
 impl<T: Ord + Clone> SetExt<T> for Set<T> {
-    fn split_first(mut self) -> Option<(T, Set<T>)> {
-        if let Some(e) = self.pop_first() {
-            Some((e, self))
+    fn split_first(self) -> Option<(T, Set<T>)> {
+        let mut iter = self.into_iter();
+        if let Some(e) = iter.next() {
+            Some((e, iter.collect()))
         } else {
             None
         }
@@ -166,7 +167,7 @@ where
     }
 }
 
-trait Deduplicate {
+pub trait Deduplicate {
     fn deduplicate(self) -> Self;
 }
 
@@ -175,7 +176,7 @@ where
     T: Ord + Clone,
 {
     /// Remove duplicates of `v`
-    fn deduplicate<T: Ord + Clone>(mut self: Vec<T>) -> Vec<T> {
+    fn deduplicate(mut self) -> Vec<T> {
         let mut s = Set::default();
         self.retain(|e| s.insert(e.clone()));
         self

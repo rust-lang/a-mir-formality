@@ -1,6 +1,6 @@
 use formality_types::{
     cast::{Downcast, Upcast, Upcasted},
-    collections::Map,
+    collections::{Deduplicate, Map},
     fold::Fold,
     grammar::{
         AliasTy, AtomicRelation, Binder, InferenceVar, Parameter, PlaceholderVar, RigidTy, Ty,
