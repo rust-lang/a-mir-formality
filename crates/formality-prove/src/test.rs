@@ -20,7 +20,7 @@ mod universes;
 /// Returns the constraints that result from proving assumptions/goals. These will reference
 /// existential variables created for the bindings, so they're really just suitable for
 /// using with expect.
-fn test_prove(program: Program, t: Binder<(Wcs, Wcs)>) -> Set<(Env, Constraints)> {
+fn test_prove(program: Program, t: Binder<(Wcs, Wcs)>) -> Set<Constraints> {
     let env = Env::default();
     let (env, subst) = env.existential_substitution(&t);
     let (assumptions, goals) = t.instantiate_with(&subst).unwrap();

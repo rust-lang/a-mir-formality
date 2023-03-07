@@ -12,10 +12,7 @@ use formality_types::{
 use crate::{
     program::Program,
     prove::{
-        constraints::{no_constraints, occurs_in},
-        prove,
-        prove_after::prove_after,
-        prove_normalize::prove_normalize,
+        constraints::occurs_in, prove, prove_after::prove_after, prove_normalize::prove_normalize,
     },
 };
 
@@ -45,11 +42,11 @@ judgment_fn! {
         assumptions: Wcs,
         a: Ty,
         b: Ty,
-    ) => (Env, Constraints) {
+    ) => Constraints {
         (
             (if l == r)
             ----------------------------- ("reflexive")
-            (prove_ty_eq(_program, env, _assumptions, l, r) => (env, no_constraints()))
+            (prove_ty_eq(_program, env, _assumptions, l, r) => Constraints::none(env))
         )
 
         (
@@ -78,9 +75,9 @@ judgment_fn! {
 
         (
             (if let None = t.downcast::<Variable>())
-            (equate_variable(program, env, assumptions, v, t) => (env, c))
+            (equate_variable(program, env, assumptions, v, t) => c)
             ----------------------------- ("existential-nonvar")
-            (prove_ty_eq(program, env, assumptions, Variable::InferenceVar(v), t) => (env, c))
+            (prove_ty_eq(program, env, assumptions, Variable::InferenceVar(v), t) => c)
         )
 
         (
@@ -97,10 +94,10 @@ judgment_fn! {
         )
 
         (
-            (prove_normalize(&program, env, &assumptions, &x) => (env1, y, c1))
-            (prove_after(&program, env1, c1, &assumptions, eq(y, &z)) => (env2, c2))
+            (prove_normalize(&program, env, &assumptions, &x) => (c, y))
+            (prove_after(&program, c, &assumptions, eq(y, &z)) => c)
             ----------------------------- ("normalize-l")
-            (prove_ty_eq(program, env, assumptions, x, z) => (env2, c2))
+            (prove_ty_eq(program, env, assumptions, x, z) => c)
         )
     }
 }
@@ -111,7 +108,7 @@ fn equate_variable(
     assumptions: Wcs,
     x: InferenceVar,
     p: impl Upcast<Parameter>,
-) -> Set<(Env, Constraints)> {
+) -> Set<Constraints> {
     let p: Parameter = p.upcast();
 
     let span = tracing::debug_span!("equate_variable", ?x, ?p, ?env);
@@ -154,11 +151,13 @@ fn equate_variable(
     //
     // * `fv = universe_subst(fv)` for each free existential variable `fv` in `p` (e.g., `Y => Z` in our example above)
     // * `x = universe_subst(p)` (e.g., `Vec<Z>` in our example above)
-    let constraints: Constraints = universe_subst
-        .iter()
-        .filter(|(v, _)| v.is_a::<InferenceVar>())
-        .chain(Some((x, universe_subst.apply(&p)).upcast()))
-        .collect();
+    let constraints: Constraints = Constraints::from(
+        env,
+        universe_subst
+            .iter()
+            .filter(|(v, _)| v.is_a::<InferenceVar>())
+            .chain(Some((x, universe_subst.apply(&p)).upcast())),
+    );
 
     // For each placeholder variable that we replaced with an inference variable
     // above, we now have to prove that goal. e.g., if we had `X = Vec<!Y>`, we would replace `!Y` with `?Z`
@@ -171,12 +170,7 @@ fn equate_variable(
         .upcasted()
         .collect();
 
-    tracing::debug!(
-        "equated: env={:?}, constraints={:?}, goals={:?}",
-        env,
-        constraints,
-        goals
-    );
+    tracing::debug!("equated: constraints={:?}, goals={:?}", constraints, goals);
 
-    prove_after(program, env, constraints, assumptions, goals)
+    prove_after(program, constraints, assumptions, goals)
 }

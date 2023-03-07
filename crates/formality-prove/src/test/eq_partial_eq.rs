@@ -28,16 +28,13 @@ fn eq_implies_partial_eq() {
     let constraints = prove(program(), (), assumptions, goal);
     expect![[r#"
         {
-            (
-                Env {
+            Constraints {
+                env: Env {
                     variables: [],
                 },
-                Constraints {
-                    result: (),
-                    known_true: true,
-                    substitution: {},
-                },
-            ),
+                known_true: true,
+                substitution: {},
+            },
         }
     "#]]
     .assert_debug_eq(&constraints);

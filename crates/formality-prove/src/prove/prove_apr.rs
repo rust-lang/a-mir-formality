@@ -22,7 +22,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: APR,
-    ) => (Env, Constraints) {
+    ) => Constraints {
         (
             (&assumptions => a)
             (prove_apr_via(&program, &env, &assumptions, a, &goal) => c)
@@ -36,22 +36,20 @@ judgment_fn! {
             (let i = i.binder.instantiate_with(&subst).unwrap())
             (let t = program.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
             (let assumptions_c = (&assumptions, &trait_ref))
-            (prove(&program, env, &assumptions_c, all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => (env, c))
-            (prove_after(&program, env, c, &assumptions_c, (&i.where_clause, &t.where_clause)) => (env, c))
-            (let (env, c) = c.pop_subst(env, &subst))
+            (prove(&program, env, &assumptions_c, all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
+            (prove_after(&program, c, &assumptions_c, (&i.where_clause, &t.where_clause)) => c)
             ----------------------------- ("impl")
-            (prove_apr(program, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => (env, c))
+            (prove_apr(program, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
             (program.trait_invariants() => ti)
             (let (env, subst) = env.existential_substitution(&ti.binder))
             (let ti = ti.binder.instantiate_with(&subst).unwrap())
-            (prove_apr_via(&program, env, &assumptions, &ti.where_clause, &trait_ref) => (env, c))
-            (prove_after(&program, env, c, &assumptions, &ti.trait_ref) => (env, c))
-            (let (env, c) = c.pop_subst(env, &subst))
+            (prove_apr_via(&program, env, &assumptions, &ti.where_clause, &trait_ref) => c)
+            (prove_after(&program, c, &assumptions, &ti.trait_ref) => c)
             ----------------------------- ("trait implied bound")
-            (prove_apr(program, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => (env, c))
+            (prove_apr(program, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (

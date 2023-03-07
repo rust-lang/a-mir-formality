@@ -33,23 +33,20 @@ fn eq_variable_to_rigid() {
     let constraints = test_prove(program(), term("<ty X, ty Y> ({}, {X = Vec<Y>})"));
     expect![[r#"
         {
-            (
-                Env {
+            Constraints {
+                env: Env {
                     variables: [
                         ?ty_3_U(0),
                         ?ty_1_U(0),
                         ?ty_2_U(0),
                     ],
                 },
-                Constraints {
-                    result: (),
-                    known_true: true,
-                    substitution: {
-                        ?ty_1_U(0) => (rigid (adt Vec) ?ty_3_U(0)),
-                        ?ty_2_U(0) => ?ty_3_U(0),
-                    },
+                known_true: true,
+                substitution: {
+                    ?ty_1_U(0) => (rigid (adt Vec) ?ty_3_U(0)),
+                    ?ty_2_U(0) => ?ty_3_U(0),
                 },
-            ),
+            },
         }
     "#]]
     .assert_debug_eq(&constraints);
@@ -61,23 +58,20 @@ fn eq_rigid_to_variable() {
     let constraints = test_prove(program(), term("<ty X, ty Y> ({}, {Vec<Y> = X})"));
     expect![[r#"
         {
-            (
-                Env {
+            Constraints {
+                env: Env {
                     variables: [
                         ?ty_3_U(0),
                         ?ty_1_U(0),
                         ?ty_2_U(0),
                     ],
                 },
-                Constraints {
-                    result: (),
-                    known_true: true,
-                    substitution: {
-                        ?ty_1_U(0) => (rigid (adt Vec) ?ty_3_U(0)),
-                        ?ty_2_U(0) => ?ty_3_U(0),
-                    },
+                known_true: true,
+                substitution: {
+                    ?ty_1_U(0) => (rigid (adt Vec) ?ty_3_U(0)),
+                    ?ty_2_U(0) => ?ty_3_U(0),
                 },
-            ),
+            },
         }
     "#]]
     .assert_debug_eq(&constraints);

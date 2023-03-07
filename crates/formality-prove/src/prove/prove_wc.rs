@@ -16,7 +16,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: Wc,
-    ) => (Env, Constraints) {
+    ) => Constraints {
         (
             (prove_apr(program, env, assumptions, a) => c)
             --- ("atomic")
@@ -24,12 +24,11 @@ judgment_fn! {
         )
 
         (
-            (let (env1, subst) = env.universal_substitution(&binder))
+            (let (env, subst) = env.universal_substitution(&binder))
             (let p1 = binder.instantiate_with(&subst).unwrap())
-            (prove_wc(program, env1, &assumptions, p1) => (env2, c2))
-            (let (env3, c3) = c2.pop_subst(env2, &subst))
+            (prove_wc(program, env, &assumptions, p1) => c)
             --- ("forall")
-            (prove_wc(program, env, assumptions, WcData::ForAll(binder)) => (env3, c3))
+            (prove_wc(program, env, assumptions, WcData::ForAll(binder)) => c.pop_subst(&subst))
         )
 
         (

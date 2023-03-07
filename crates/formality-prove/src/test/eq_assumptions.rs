@@ -14,16 +14,13 @@ fn test_a() {
     );
     expect![[r#"
         {
-            (
-                Env {
+            Constraints {
+                env: Env {
                     variables: [],
                 },
-                Constraints {
-                    result: (),
-                    known_true: true,
-                    substitution: {},
-                },
-            ),
+                known_true: true,
+                substitution: {},
+            },
         }
     "#]]
     .assert_debug_eq(&constraints);
@@ -37,22 +34,19 @@ fn test_b() {
     );
     expect![[r#"
         {
-            (
-                Env {
+            Constraints {
+                env: Env {
                     variables: [
                         ?ty_4_U(0),
                         ?ty_1_U(0),
                     ],
                 },
-                Constraints {
-                    result: (),
-                    known_true: true,
-                    substitution: {
-                        ?ty_1_U(0) => (rigid (adt Vec) (rigid (scalar u32))),
-                        ?ty_4_U(0) => (rigid (scalar u32)),
-                    },
+                known_true: true,
+                substitution: {
+                    ?ty_1_U(0) => (rigid (adt Vec) (rigid (scalar u32))),
+                    ?ty_4_U(0) => (rigid (scalar u32)),
                 },
-            ),
+            },
         }
     "#]]
     .assert_debug_eq(&constraints);

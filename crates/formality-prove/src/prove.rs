@@ -23,7 +23,7 @@ pub fn prove(
     env: impl Upcast<Env>,
     assumptions: impl Upcast<Wcs>,
     goal: impl Upcast<Wcs>,
-) -> Set<(Env, Constraints)> {
+) -> Set<Constraints> {
     let program: Program = program.upcast();
     let env0: Env = env.upcast();
     let assumptions: Wcs = assumptions.upcast();
@@ -39,18 +39,15 @@ pub fn prove(
             term_in.size(),
             program.max_size
         );
-        return set![(env0, Constraints::default().ambiguous())];
+        return set![Constraints::none(env0).ambiguous()];
     }
 
     env0.assert_encloses(term_in);
 
     let result_set = prove_wc_list(program, &env0, assumptions, goal);
 
-    result_set.iter().for_each(|(env1, constraints1)| {
-        env1.assert_valid();
-        env1.assert_valid_extension_of(&env0);
-        env1.assert_encloses(&constraints1);
-        constraints1.assert_valid();
+    result_set.iter().for_each(|constraints1| {
+        constraints1.assert_valid_extension_of(&env0);
     });
 
     tracing::debug!(?result_set);

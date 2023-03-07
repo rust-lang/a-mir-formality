@@ -2,7 +2,6 @@ use formality_types::{
     cast::{Downcast, Upcast},
     cast_impl,
     derive_links::UpcastFrom,
-    fold::Fold,
     grammar::{InferenceVar, Parameter, Substitution, Variable},
     visit::Visit,
 };
@@ -11,51 +10,49 @@ use super::env::Env;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Constraints {
+    env: Env,
     known_true: bool,
     substitution: Substitution,
 }
 
 cast_impl!(Constraints);
 
-impl<A, B> UpcastFrom<(A, B)> for Constraints
+impl<A, B> UpcastFrom<(Env, (A, B))> for Constraints
 where
     A: Upcast<Variable>,
     B: Upcast<Parameter>,
 {
-    fn upcast_from(term: (A, B)) -> Self {
-        Constraints {
-            substitution: term.upcast(),
-            known_true: true,
-        }
+    fn upcast_from((env, pair): (Env, (A, B))) -> Self {
+        Constraints::from(env, std::iter::once(pair))
     }
 }
 
-impl<A, B> FromIterator<(A, B)> for Constraints
-where
-    A: Upcast<Variable>,
-    B: Upcast<Parameter>,
-{
-    fn from_iter<T: IntoIterator<Item = (A, B)>>(iter: T) -> Self {
-        let substitution = iter.into_iter().collect();
+impl Constraints {
+    pub fn none(env: Env) -> Self {
+        let v: Vec<(Variable, Parameter)> = vec![];
+        Self::from(env, v)
+    }
+
+    pub fn from(
+        env: Env,
+        iter: impl IntoIterator<Item = (impl Upcast<Variable>, impl Upcast<Parameter>)>,
+    ) -> Self {
+        let substitution: Substitution = iter.into_iter().collect();
+        env.assert_encloses(substitution.range());
+        env.assert_encloses(substitution.domain());
         let c2 = Constraints {
+            env,
             substitution,
             known_true: true,
         };
         c2.assert_valid();
         c2
     }
-}
 
-impl Default for Constraints {
-    fn default() -> Self {
-        Self {
-            known_true: true,
-            substitution: Default::default(),
-        }
+    pub fn env(&self) -> &Env {
+        &self.env
     }
-}
 
-impl Constraints {
     pub fn substitution(&self) -> &Substitution {
         &self.substitution
     }
@@ -78,6 +75,7 @@ impl Constraints {
 
         self.assert_valid();
         c2.assert_valid();
+        c2.assert_valid_extension_of(&self.env);
 
         // This substitution should have already been applied to produce
         // `c2`, therefore we don't expect any bindings for *our* variables.
@@ -99,114 +97,93 @@ impl Constraints {
         let c1_substitution = c2.substitution.apply(&self.substitution);
 
         Constraints {
+            env: c2.env,
             known_true: self.known_true && c2.known_true,
             substitution: c1_substitution.into_iter().chain(c2.substitution).collect(),
         }
     }
 
-    pub fn assert_valid_in(&self, env: &Env) {
-        self.assert_valid();
-
-        // Each variable `x` is only bound to a term of strictly lower universe.
-        // This implies that `x` does not appear in `p`.
-        for (x, p) in self.substitution.iter() {
-            let fvs = p.free_variables();
-            fvs.iter()
-                .for_each(|fv| assert!(env.universe(fv) < env.universe(x)));
-        }
-    }
-
-    pub fn pop_subst<V>(mut self, mut env: Env, v: &[V]) -> (Env, Self)
+    pub fn pop_subst<V>(mut self, v: &[V]) -> Self
     where
         V: Upcast<Variable> + Copy,
     {
-        self.assert_valid_in(&env);
-
         if v.len() == 0 {
-            return (env, self);
+            return self;
         }
 
-        let vars = env.pop_vars(v);
+        let vars = self.env.pop_vars(v);
         self.substitution -= vars;
 
-        (env, self)
+        self
     }
-}
 
-impl Fold for Constraints {
-    fn substitute(&self, substitution_fn: formality_types::fold::SubstitutionFn<'_>) -> Self {
-        let c2 = Constraints {
-            known_true: self.known_true,
-            substitution: self.substitution.substitute(substitution_fn),
-        };
-
-        // not all substitutions preserve the constraint set invariant
-        c2.assert_valid();
-
-        c2
+    pub fn assert_valid_extension_of(&self, env0: &Env) {
+        self.env.assert_valid_extension_of(env0)
     }
 }
 
 impl Visit for Constraints {
     fn free_variables(&self) -> Vec<Variable> {
         let Constraints {
+            env,
             known_true: _,
             substitution,
         } = self;
 
-        substitution.free_variables().into_iter().collect()
+        // Debatable if `env.free_variables()` should be considered
+        // free here, env kind of acts as a binder. Don't think it matters.
+
+        env.free_variables()
+            .into_iter()
+            .chain(substitution.free_variables())
+            .collect()
     }
 
     fn size(&self) -> usize {
         let Constraints {
+            env,
             known_true: _,
             substitution,
         } = self;
-        substitution.size()
+        env.size() + substitution.size()
     }
 
     fn assert_valid(&self) {
         let Constraints {
+            env,
             known_true: _,
             substitution,
         } = self;
 
         let domain = substitution.domain();
-
-        for &v in &domain {
-            assert!(v.downcast::<InferenceVar>().is_some());
-            assert!(v.is_free());
-            assert!(is_valid_binding(v, &substitution[v]));
-        }
-
         let range = substitution.range();
+
+        env.assert_encloses(&domain);
+        env.assert_encloses(&range);
+
+        // No variable in the domain appears in any part of the range;
+        // this prevents the obvious occurs check violations like `X = Vec<X>`
+        // but also indirect ones like `X = Vec<Y>, Y = X`; it also implies that
+        // the substitution has been fully applied, so we don't have `X = Vec<Y>, Y = u32`.
         range
             .iter()
-            .for_each(|t| assert!(domain.iter().all(|&v| !occurs_in(v, t))));
+            .for_each(|p| assert!(domain.iter().all(|&v| !occurs_in(v, p))));
+
+        // Each variable `x` is only bound to a term of strictly lower universe.
+        // This implies that `x` does not appear in `p`.
+        for (x, p) in substitution.iter() {
+            assert!(x.is_a::<InferenceVar>());
+
+            assert!(!occurs_in(x, &p));
+
+            let fvs = p.free_variables();
+            fvs.iter()
+                .for_each(|fv| assert!(env.universe(fv) < env.universe(x)));
+        }
     }
 }
 
 pub fn occurs_in(v: impl Upcast<Variable>, t: &impl Visit) -> bool {
     let v: Variable = v.upcast();
     t.free_variables().contains(&v)
-}
-
-/// True if `t` would be a valid binding for `v`, meaning...
-/// * `v` does not appear in `t`; and,
-/// * all free variables in `t` are within the universe of `v`
-pub fn is_valid_binding(v: impl Upcast<Variable>, t: &impl Visit) -> bool {
-    let v: Variable = v.upcast();
-    assert!(v.is_free());
-
-    let v_universe = v.max_universe();
-    t.free_variables()
-        .into_iter()
-        .all(|fv| fv != v && fv.max_universe() <= v_universe)
-}
-
-pub fn no_constraints() -> Constraints {
-    Constraints {
-        known_true: true,
-        substitution: Substitution::default(),
-    }
 }

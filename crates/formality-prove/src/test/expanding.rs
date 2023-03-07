@@ -21,18 +21,15 @@ fn expanding() {
     let constraints = super::test_prove(program(), term("<ty T> ({}, {Debug(T)})"));
     expect![[r#"
         {
-            (
-                Env {
+            Constraints {
+                env: Env {
                     variables: [
                         ?ty_1_U(0),
                     ],
                 },
-                Constraints {
-                    result: (),
-                    known_true: false,
-                    substitution: {},
-                },
-            ),
+                known_true: false,
+                substitution: {},
+            },
         }
     "#]]
     .assert_debug_eq(&constraints);

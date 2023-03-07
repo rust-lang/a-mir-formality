@@ -24,16 +24,13 @@ fn vec_u32_debug() {
     let constraints = prove(program(), (), (), goal);
     expect![[r#"
         {
-            (
-                Env {
+            Constraints {
+                env: Env {
                     variables: [],
                 },
-                Constraints {
-                    result: (),
-                    known_true: true,
-                    substitution: {},
-                },
-            ),
+                known_true: true,
+                substitution: {},
+            },
         }
     "#]]
     .assert_debug_eq(&constraints);
@@ -45,16 +42,13 @@ fn vec_vec_u32_debug() {
     let constraints = prove(program(), (), (), goal);
     expect![[r#"
         {
-            (
-                Env {
+            Constraints {
+                env: Env {
                     variables: [],
                 },
-                Constraints {
-                    result: (),
-                    known_true: true,
-                    substitution: {},
-                },
-            ),
+                known_true: true,
+                substitution: {},
+            },
         }
     "#]]
     .assert_debug_eq(&constraints);
