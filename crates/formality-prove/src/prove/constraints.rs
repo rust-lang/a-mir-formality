@@ -1,23 +1,21 @@
 use formality_types::{
     cast::{Downcast, Upcast},
     cast_impl,
-    derive_links::{DowncastTo, UpcastFrom},
+    derive_links::UpcastFrom,
     fold::Fold,
     grammar::{InferenceVar, Parameter, Substitution, Variable},
-    term::Term,
     visit::Visit,
 };
 
 use super::env::Env;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Constraints<R: Term = ()> {
-    result: R,
+pub struct Constraints {
     known_true: bool,
     substitution: Substitution,
 }
 
-cast_impl!(impl(R: Term) Constraints<R>);
+cast_impl!(Constraints);
 
 impl<A, B> UpcastFrom<(A, B)> for Constraints
 where
@@ -28,7 +26,6 @@ where
         Constraints {
             substitution: term.upcast(),
             known_true: true,
-            result: (),
         }
     }
 }
@@ -43,7 +40,6 @@ where
         let c2 = Constraints {
             substitution,
             known_true: true,
-            result: (),
         };
         c2.assert_valid();
         c2
@@ -53,19 +49,18 @@ where
 impl Default for Constraints {
     fn default() -> Self {
         Self {
-            result: (),
             known_true: true,
             substitution: Default::default(),
         }
     }
 }
 
-impl<R: Term> Constraints<R> {
+impl Constraints {
     pub fn substitution(&self) -> &Substitution {
         &self.substitution
     }
 
-    pub fn ambiguous(self) -> Constraints<R> {
+    pub fn ambiguous(self) -> Constraints {
         Self {
             known_true: false,
             ..self
@@ -78,11 +73,8 @@ impl<R: Term> Constraints<R> {
     ///
     /// * `self` -- the constraints from solving `A`
     /// * `c2` -- the constraints from solving `B` (after applying substitution from `self` to `B`)
-    pub fn seq<R2: Term>(&self, c2: impl Upcast<Constraints<R2>>) -> Constraints<R2>
-    where
-        R: CombineResults<R2>,
-    {
-        let c2: Constraints<R2> = c2.upcast();
+    pub fn seq(&self, c2: impl Upcast<Constraints>) -> Constraints {
+        let c2: Constraints = c2.upcast();
 
         self.assert_valid();
         c2.assert_valid();
@@ -108,7 +100,6 @@ impl<R: Term> Constraints<R> {
 
         Constraints {
             known_true: self.known_true && c2.known_true,
-            result: R::combine(&self.result, c2.result),
             substitution: c1_substitution.into_iter().chain(c2.substitution).collect(),
         }
     }
@@ -125,7 +116,7 @@ impl<R: Term> Constraints<R> {
         }
     }
 
-    pub fn pop_subst<V>(mut self, mut env: Env, v: &[V]) -> (Env, Constraints<R>)
+    pub fn pop_subst<V>(mut self, mut env: Env, v: &[V]) -> (Env, Self)
     where
         V: Upcast<Variable> + Copy,
     {
@@ -142,12 +133,11 @@ impl<R: Term> Constraints<R> {
     }
 }
 
-impl<R: Term> Fold for Constraints<R> {
+impl Fold for Constraints {
     fn substitute(&self, substitution_fn: formality_types::fold::SubstitutionFn<'_>) -> Self {
         let c2 = Constraints {
             known_true: self.known_true,
             substitution: self.substitution.substitute(substitution_fn),
-            result: self.result.substitute(substitution_fn),
         };
 
         // not all substitutions preserve the constraint set invariant
@@ -157,35 +147,28 @@ impl<R: Term> Fold for Constraints<R> {
     }
 }
 
-impl<R: Term> Visit for Constraints<R> {
+impl Visit for Constraints {
     fn free_variables(&self) -> Vec<Variable> {
         let Constraints {
             known_true: _,
             substitution,
-            result,
         } = self;
 
-        substitution
-            .free_variables()
-            .into_iter()
-            .chain(result.free_variables())
-            .collect()
+        substitution.free_variables().into_iter().collect()
     }
 
     fn size(&self) -> usize {
         let Constraints {
             known_true: _,
             substitution,
-            result,
         } = self;
-        substitution.size() + result.size()
+        substitution.size()
     }
 
     fn assert_valid(&self) {
         let Constraints {
             known_true: _,
             substitution,
-            result,
         } = self;
 
         let domain = substitution.domain();
@@ -200,8 +183,6 @@ impl<R: Term> Visit for Constraints<R> {
         range
             .iter()
             .for_each(|t| assert!(domain.iter().all(|&v| !occurs_in(v, t))));
-
-        result.assert_valid();
     }
 }
 
@@ -225,25 +206,7 @@ pub fn is_valid_binding(v: impl Upcast<Variable>, t: &impl Visit) -> bool {
 
 pub fn no_constraints() -> Constraints {
     Constraints {
-        result: (),
         known_true: true,
         substitution: Substitution::default(),
-    }
-}
-
-pub trait CombineResults<R> {
-    fn combine(r0: &Self, r1: R) -> R;
-}
-
-impl<R> CombineResults<R> for () {
-    fn combine((): &(), r1: R) -> R {
-        r1
-    }
-}
-
-impl CombineResults<Vec<Parameter>> for Parameter {
-    fn combine(r0: &Self, mut r1: Vec<Parameter>) -> Vec<Parameter> {
-        r1.push(r0.clone());
-        r1
     }
 }
