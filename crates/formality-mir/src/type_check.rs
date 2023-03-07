@@ -1,3 +1,5 @@
+#![cfg(FIXME)]
+
 use anyhow::bail;
 use formality_decl::grammar::{FnBoundData, Program, VariantId};
 use formality_logic::{Db, Env, GoalResult};

@@ -15,24 +15,6 @@ use crate::{
 
 use super::{AdtId, AssociatedItemId, Binder, FnId, Predicate, TraitId};
 
-#[term(U($index))]
-#[derive(Copy)]
-pub struct Universe {
-    pub index: usize,
-}
-
-impl Universe {
-    /// The root universe contains only the names globally visible
-    /// (e.g., structs defined by user) and does not contain any [placeholders](`PlaceholderVar`).
-    pub const ROOT: Universe = Universe { index: 0 };
-
-    pub fn next(&self) -> Universe {
-        Universe {
-            index: self.index + 1,
-        }
-    }
-}
-
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ty {
     data: Arc<TyData>,
@@ -134,7 +116,6 @@ impl UpcastFrom<Ty> for TyData {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InferenceVar {
     pub kind: ParameterKind,
-    pub universe: Universe,
     pub var_index: VarIndex,
 }
 
@@ -280,7 +261,6 @@ pub struct EnsuresTy {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PlaceholderVar {
     pub kind: ParameterKind,
-    pub universe: Universe,
     pub var_index: VarIndex,
 }
 

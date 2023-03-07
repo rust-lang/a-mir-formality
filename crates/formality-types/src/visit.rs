@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     collections::Set,
-    grammar::{Lt, Parameter, Ty, Universe, Variable},
+    grammar::{Lt, Parameter, Ty, Variable},
 };
 
 /// Invoked for each variable that we find when Visiting, ignoring variables bound by binders
@@ -38,19 +38,6 @@ pub trait Visit {
             Variable::InferenceVar(_) => false,
             Variable::BoundVar(_) => false,
         })
-    }
-
-    /// Maximum universe of of any placeholders appearing in this term
-    fn max_universe(&self) -> Universe {
-        self.free_variables()
-            .iter()
-            .map(|v| match v {
-                Variable::PlaceholderVar(p) => p.universe,
-                Variable::InferenceVar(_) => Universe::ROOT,
-                Variable::BoundVar(_) => Universe::ROOT,
-            })
-            .max()
-            .unwrap_or(Universe::ROOT)
     }
 }
 

@@ -1,9 +1,10 @@
+use formality_macros::term;
 use formality_types::{
     cast::{To, Upcast},
     cast_impl,
     collections::Set,
     fold::Fold,
-    grammar::{Binder, InferenceVar, ParameterKind, PlaceholderVar, Universe, VarIndex, Variable},
+    grammar::{Binder, InferenceVar, ParameterKind, PlaceholderVar, VarIndex, Variable},
     visit::Visit,
 };
 
@@ -13,6 +14,12 @@ pub struct Env {
 }
 
 cast_impl!(Env);
+
+#[term(U($index))]
+#[derive(Copy)]
+pub struct Universe {
+    index: usize,
+}
 
 impl Env {
     /// A variable's *universe* in the environment determines what
@@ -46,11 +53,7 @@ impl Env {
 
     pub fn insert_fresh_before(&mut self, kind: ParameterKind, rank: Universe) -> InferenceVar {
         let var_index = self.fresh_index();
-        let v = InferenceVar {
-            kind,
-            universe: Universe::ROOT,
-            var_index,
-        };
+        let v = InferenceVar { kind, var_index };
         self.variables.insert(rank.index, v.upcast());
         v
     }
@@ -115,7 +118,6 @@ impl Env {
         let subst = env.fresh_substituion(b.kinds(), |kind, var_index| PlaceholderVar {
             kind,
             var_index,
-            universe: Universe::ROOT,
         });
         (env, subst)
     }
@@ -128,7 +130,6 @@ impl Env {
         let subst = env.fresh_substituion(b.kinds(), |kind, var_index| InferenceVar {
             kind,
             var_index,
-            universe: Universe::ROOT,
         });
         (env, subst)
     }

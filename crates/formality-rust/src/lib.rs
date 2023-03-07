@@ -1,3 +1,5 @@
+#![cfg(FIXME)]
+
 use formality_logic::UniversalGoalResult;
 use formality_types::derive_links;
 use formality_types::{grammar::Fallible, parse::term};

@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#![cfg(FIXME)]
 
 use formality_rust::test_program_ok;
 

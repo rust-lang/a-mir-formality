@@ -26,13 +26,13 @@ fn exists_u_for_t() {
             Constraints {
                 env: Env {
                     variables: [
-                        ?ty_3_U(0),
-                        ?ty_1_U(0),
+                        ?ty_3,
+                        ?ty_1,
                     ],
                 },
                 known_true: true,
                 substitution: {
-                    ?ty_1_U(0) => (rigid (adt Vec) ?ty_3_U(0)),
+                    ?ty_1 => (rigid (adt Vec) ?ty_3),
                 },
             },
         }

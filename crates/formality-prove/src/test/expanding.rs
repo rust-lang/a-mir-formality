@@ -24,7 +24,7 @@ fn expanding() {
             Constraints {
                 env: Env {
                     variables: [
-                        ?ty_1_U(0),
+                        ?ty_1,
                     ],
                 },
                 known_true: false,

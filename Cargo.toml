@@ -22,7 +22,6 @@ members = [
     "crates/formality-macros",
     "crates/formality-core",
     "crates/formality-types",
-    "crates/formality-logic",
     "crates/formality-decl",
     "crates/formality-mir",
     "crates/formality-check",

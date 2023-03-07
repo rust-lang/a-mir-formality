@@ -36,15 +36,15 @@ fn eq_variable_to_rigid() {
             Constraints {
                 env: Env {
                     variables: [
-                        ?ty_3_U(0),
-                        ?ty_1_U(0),
-                        ?ty_2_U(0),
+                        ?ty_3,
+                        ?ty_1,
+                        ?ty_2,
                     ],
                 },
                 known_true: true,
                 substitution: {
-                    ?ty_1_U(0) => (rigid (adt Vec) ?ty_3_U(0)),
-                    ?ty_2_U(0) => ?ty_3_U(0),
+                    ?ty_1 => (rigid (adt Vec) ?ty_3),
+                    ?ty_2 => ?ty_3,
                 },
             },
         }
@@ -61,15 +61,15 @@ fn eq_rigid_to_variable() {
             Constraints {
                 env: Env {
                     variables: [
-                        ?ty_3_U(0),
-                        ?ty_1_U(0),
-                        ?ty_2_U(0),
+                        ?ty_3,
+                        ?ty_1,
+                        ?ty_2,
                     ],
                 },
                 known_true: true,
                 substitution: {
-                    ?ty_1_U(0) => (rigid (adt Vec) ?ty_3_U(0)),
-                    ?ty_2_U(0) => ?ty_3_U(0),
+                    ?ty_1 => (rigid (adt Vec) ?ty_3),
+                    ?ty_2 => ?ty_3,
                 },
             },
         }

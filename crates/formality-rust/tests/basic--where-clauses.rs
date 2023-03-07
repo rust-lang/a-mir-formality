@@ -1,3 +1,4 @@
+#![cfg(FIXME)]
 #![allow(non_snake_case)]
 
 #[test]

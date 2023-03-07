@@ -9,7 +9,6 @@ edition = "2021"
 formality-types = { path = "../formality-types" }
 formality-macros = { path = "../formality-macros" }
 formality-core = { path = "../formality-core" }
-formality-logic = { path = "../formality-logic" }
 formality-mir = { path = "../formality-mir" }
 formality-decl = { path = "../formality-decl" }
 tracing = "0.1"
