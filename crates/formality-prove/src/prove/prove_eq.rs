@@ -1,5 +1,5 @@
 use formality_types::{
-    cast::{Downcast, Downcasted, Upcast, Upcasted},
+    cast::{Downcast, Upcast, Upcasted},
     collections::{Deduplicate, Set},
     grammar::{
         AliasTy, AtomicRelation, InferenceVar, Parameter, PlaceholderVar, RigidTy, Substitution,
@@ -79,27 +79,20 @@ judgment_fn! {
         (
             (if let None = t.downcast::<Variable>())
             (equate_variable(program, env, assumptions, v, t) => (env, c))
-            ----------------------------- ("existential-l")
+            ----------------------------- ("existential-nonvar")
             (prove_ty_eq(program, env, assumptions, Variable::InferenceVar(v), t) => (env, c))
-        )
-
-        (
-            (if let None = t.downcast::<Variable>())
-            (equate_variable(program, env, assumptions, v, t) => (env, c))
-            ----------------------------- ("existential-r")
-            (prove_ty_eq(program, env, assumptions, t, Variable::InferenceVar(v)) => (env, c))
         )
 
         (
             // Map the higher rank variable to the lower rank one.
             (let (a, b) = env.order_by_universe(l, r))
-            ----------------------------- ("existential-both")
+            ----------------------------- ("existential-existential")
             (prove_ty_eq(_program, env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => (env, (b, a)))
         )
 
         (
             (if env.universe(p) < env.universe(v))
-            ----------------------------- ("existential-vs-placeholder")
+            ----------------------------- ("existential-placeholder")
             (prove_ty_eq(_program, env, _assumptions, Variable::InferenceVar(v), Variable::PlaceholderVar(p)) => (env, (v, p)))
         )
 
@@ -124,9 +117,14 @@ fn equate_variable(
     let span = tracing::debug_span!("equate_variable", ?x, ?p, ?env);
     let _guard = span.enter();
 
-    let fvs = p.free_variables().deduplicate();
+    // Preconditions:
+    // * Environment contains all free variables
+    // * `p` is some compound type, not a variable
+    //   (variables are handled via special rules above)
+    env.assert_encloses((x, (&assumptions, &p)));
+    assert!(!p.is_a::<Variable>());
 
-    env.assert_encloses((x, &fvs));
+    let fvs = p.free_variables().deduplicate();
 
     // Ensure that `x` passes the occurs check for the free variables in `p`.
     if occurs_in(x, &fvs) {
@@ -154,7 +152,7 @@ fn equate_variable(
 
     // Introduce the following constraints:
     //
-    // * `fv = universe_subst(fv)` for each free variable `fv` in `p` (e.g., `Y => Z` in our example above)
+    // * `fv = universe_subst(fv)` for each free existential variable `fv` in `p` (e.g., `Y => Z` in our example above)
     // * `x = universe_subst(p)` (e.g., `Vec<Z>` in our example above)
     let constraints: Constraints = universe_subst
         .iter()
@@ -162,6 +160,10 @@ fn equate_variable(
         .chain(Some((x, universe_subst.apply(&p)).upcast()))
         .collect();
 
+    // For each placeholder variable that we replaced with an inference variable
+    // above, we now have to prove that goal. e.g., if we had `X = Vec<!Y>`, we would replace `!Y` with `?Z`
+    // (where `?Z` is in a lower universe than `X`), but now we must prove that `!Y = ?Z`
+    // (this may be posible due to assumptions).
     let goals: Wcs = universe_subst
         .iter()
         .filter(|(v, _)| v.is_a::<PlaceholderVar>())
