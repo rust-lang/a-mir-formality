@@ -27,7 +27,18 @@ fn eq_implies_partial_eq() {
     let goal: Wc = term("for<ty T> if {Eq(T)} PartialEq(T)");
     let constraints = prove(program(), (), assumptions, goal);
     expect![[r#"
-        {}
+        {
+            (
+                Env {
+                    variables: [],
+                },
+                Constraints {
+                    result: (),
+                    known_true: true,
+                    substitution: {},
+                },
+            ),
+        }
     "#]]
     .assert_debug_eq(&constraints);
 }
