@@ -12,7 +12,7 @@ use crate::{
 /// * Variable -- the variable we encountered
 pub type SubstitutionFn<'a> = &'a mut dyn FnMut(Variable) -> Option<Parameter>;
 
-pub trait Visit: Sized {
+pub trait Visit {
     /// Extract the list of free variables (for the purposes of this function, defined by `Variable::is_free`).
     /// The list may contain duplicates and must be in a determinstic order (though the order itself isn't important).
     fn free_variables(&self) -> Vec<Variable>;
@@ -96,7 +96,7 @@ impl<T: Visit> Visit for Option<T> {
     }
 }
 
-impl<T: Visit> Visit for Arc<T> {
+impl<T: Visit + ?Sized> Visit for Arc<T> {
     fn free_variables(&self) -> Vec<Variable> {
         T::free_variables(self)
     }
@@ -218,7 +218,7 @@ impl<A: Visit, B: Visit, C: Visit> Visit for (A, B, C) {
     }
 }
 
-impl<A: Visit> Visit for &A {
+impl<A: Visit + ?Sized> Visit for &A {
     fn free_variables(&self) -> Vec<Variable> {
         A::free_variables(self)
     }
@@ -229,5 +229,19 @@ impl<A: Visit> Visit for &A {
 
     fn assert_valid(&self) {
         A::assert_valid(self)
+    }
+}
+
+impl<A: Visit> Visit for [A] {
+    fn free_variables(&self) -> Vec<Variable> {
+        self.iter().flat_map(|e| A::free_variables(e)).collect()
+    }
+
+    fn size(&self) -> usize {
+        self.iter().map(|e| A::size(e)).sum()
+    }
+
+    fn assert_valid(&self) {
+        self.iter().for_each(|e| A::assert_valid(e));
     }
 }

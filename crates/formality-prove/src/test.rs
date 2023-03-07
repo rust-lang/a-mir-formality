@@ -1,12 +1,11 @@
 use formality_types::{
-    cast::Upcast,
     collections::Set,
-    grammar::{Binder, InferenceVar, Universe, Wcs},
+    grammar::{Binder, Wcs},
 };
 
 use crate::{
     program::Program,
-    prove::{prove, Constraints},
+    prove::{prove, Constraints, Env},
 };
 
 mod eq_assumptions;
@@ -21,14 +20,9 @@ mod universes;
 /// Returns the constraints that result from proving assumptions/goals. These will reference
 /// existential variables created for the bindings, so they're really just suitable for
 /// using with expect.
-fn test_prove(program: Program, t: Binder<(Wcs, Wcs)>) -> Set<Binder<Constraints>> {
-    let (assumptions, goals) = t.instantiate(|kind, var_index| {
-        InferenceVar {
-            kind,
-            universe: Universe::ROOT,
-            var_index,
-        }
-        .upcast()
-    });
-    prove(program, assumptions, goals)
+fn test_prove(program: Program, t: Binder<(Wcs, Wcs)>) -> Set<(Env, Constraints)> {
+    let env = Env::default();
+    let (env, subst) = env.existential_substitution(&t);
+    let (assumptions, goals) = t.instantiate_with(&subst).unwrap();
+    prove(program, env, assumptions, goals)
 }

@@ -618,6 +618,16 @@ impl VarIndex {
     pub const ZERO: VarIndex = VarIndex { index: 0 };
 }
 
+impl std::ops::Add<usize> for VarIndex {
+    type Output = VarIndex;
+
+    fn add(self, rhs: usize) -> Self::Output {
+        VarIndex {
+            index: self.index + rhs,
+        }
+    }
+}
+
 #[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Substitution {
     map: Map<Variable, Parameter>,
@@ -641,6 +651,19 @@ impl Substitution {
 
     pub fn iter(&self) -> impl Iterator<Item = (Variable, Parameter)> + '_ {
         self.map.iter().map(|(v, p)| (*v, p.clone()))
+    }
+}
+
+impl<Vs> std::ops::SubAssign<Vs> for Substitution
+where
+    Vs: Upcast<Vec<Variable>>,
+{
+    fn sub_assign(&mut self, rhs: Vs) {
+        let rhs: Vec<Variable> = rhs.upcast();
+
+        for v in rhs {
+            self.map.remove(&v);
+        }
     }
 }
 
@@ -737,14 +760,23 @@ pub struct VarSubstitution {
     map: Map<Variable, Variable>,
 }
 
-impl Extend<(Variable, Variable)> for VarSubstitution {
-    fn extend<T: IntoIterator<Item = (Variable, Variable)>>(&mut self, iter: T) {
-        self.map.extend(iter.into_iter().map(|(v, p)| (v, p)));
+impl<A, B> Extend<(A, B)> for VarSubstitution
+where
+    A: Upcast<Variable>,
+    B: Upcast<Variable>,
+{
+    fn extend<T: IntoIterator<Item = (A, B)>>(&mut self, iter: T) {
+        self.map
+            .extend(iter.into_iter().map(|(v, p)| (v.upcast(), p.upcast())));
     }
 }
 
-impl FromIterator<(Variable, Variable)> for VarSubstitution {
-    fn from_iter<T: IntoIterator<Item = (Variable, Variable)>>(iter: T) -> Self {
+impl<A, B> FromIterator<(A, B)> for VarSubstitution
+where
+    A: Upcast<Variable>,
+    B: Upcast<Variable>,
+{
+    fn from_iter<T: IntoIterator<Item = (A, B)>>(iter: T) -> Self {
         let mut s = VarSubstitution::default();
         s.extend(iter);
         s
@@ -755,6 +787,7 @@ impl VarSubstitution {
     pub fn reverse(&self) -> VarSubstitution {
         self.map.iter().map(|(k, v)| (*v, *k)).collect()
     }
+
     pub fn apply<T: Fold>(&self, t: &T) -> T {
         t.substitute(&mut |v| Some(self.map.get(&v)?.upcast()))
     }

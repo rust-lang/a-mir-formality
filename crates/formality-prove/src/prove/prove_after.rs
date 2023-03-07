@@ -1,14 +1,8 @@
-use formality_types::{
-    grammar::{Binder, Wcs},
-    judgment_fn,
-};
+use formality_types::{grammar::Wcs, judgment_fn};
 
 use crate::{
     program::Program,
-    prove::{
-        constraints::{instantiate_and_apply_constraints, merge_constraints},
-        prove,
-    },
+    prove::{env::Env, prove},
 };
 
 use super::constraints::Constraints;
@@ -16,15 +10,16 @@ use super::constraints::Constraints;
 judgment_fn! {
     pub fn prove_after(
         program: Program,
-        constraints_in: Binder<Constraints>,
+        env1: Env,
+        c1: Constraints,
         assumptions: Wcs,
         goal: Wcs,
-    ) => Binder<Constraints> {
+    ) => (Env, Constraints) {
         (
-            (let (existentials, c1, (assumptions, goal)) = instantiate_and_apply_constraints(c1, (assumptions, goal)))
-            (prove(program, assumptions, goal) => c2)
+            (let (assumptions, goal) = c1.substitution().apply(&(assumptions, goal)))
+            (prove(program, env1, assumptions, goal) => (env2, c2))
             --- ("prove_after")
-            (prove_after(program, c1, assumptions, goal) => merge_constraints(&existentials, &c1, c2))
+            (prove_after(program, env1, c1, assumptions, goal) => (env2, c1.seq(c2)))
         )
     }
 }

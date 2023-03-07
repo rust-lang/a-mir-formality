@@ -25,20 +25,17 @@ fn program() -> Program {
 fn eq_implies_partial_eq() {
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("for<ty T> if {Eq(T)} PartialEq(T)");
-    let constraints = prove(program(), assumptions, goal);
+    let constraints = prove(program(), (), assumptions, goal);
     expect![[r#"
-        {
-            <> Constraints { result: (), known_true: true, substitution: Substitution { map: {} } },
-        }
+        {}
     "#]]
     .assert_debug_eq(&constraints);
 }
 
 #[test]
 fn not_partial_eq_implies_eq() {
-    let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("for<ty T> if {PartialEq(T)} Eq(T)");
-    let constraints = prove(program(), assumptions, goal);
+    let constraints = prove(program(), (), (), goal);
     expect![[r#"
         {}
     "#]]
@@ -47,9 +44,8 @@ fn not_partial_eq_implies_eq() {
 
 #[test]
 fn placeholders_not_eq() {
-    let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("for<ty T, ty U> if {Eq(T)} PartialEq(U)");
-    let constraints = prove(program(), assumptions, goal);
+    let constraints = prove(program(), (), (), goal);
     expect![[r#"
         {}
     "#]]

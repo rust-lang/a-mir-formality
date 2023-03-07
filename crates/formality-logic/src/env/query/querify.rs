@@ -60,7 +60,7 @@ pub fn querify(
     let mut universe_counters: Map<Universe, VarIndex> = Map::default();
     let var_substitution: VarSubstitution = source_free_vars
         .iter()
-        .map(|&source_free_var| {
+        .map(|&source_free_var| -> (Variable, Variable) {
             (
                 source_free_var,
                 match source_free_var {

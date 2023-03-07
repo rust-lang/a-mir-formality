@@ -245,6 +245,18 @@ where
     }
 }
 
+impl<A, B, C, A1, B1, C1> UpcastFrom<(A1, B1, C1)> for (A, B, C)
+where
+    A1: Upcast<A>,
+    B1: Upcast<B>,
+    C1: Upcast<C>,
+{
+    fn upcast_from(term: (A1, B1, C1)) -> Self {
+        let (a1, b1, c1) = term;
+        (a1.upcast(), b1.upcast(), c1.upcast())
+    }
+}
+
 impl<A, As, B, Bs, Z> UpcastFrom<(A, B)> for Vec<Z>
 where
     A: IntoIterator<Item = As> + Clone,

@@ -14,7 +14,18 @@ fn test_a() {
     );
     expect![[r#"
         {
-            <> Constraints { result: (), known_true: true, substitution: Substitution { map: {} } },
+            (
+                Env {
+                    variables: [],
+                },
+                Constraints {
+                    result: (),
+                    known_true: true,
+                    substitution: Substitution {
+                        map: {},
+                    },
+                },
+            ),
         }
     "#]]
     .assert_debug_eq(&constraints);

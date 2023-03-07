@@ -1,5 +1,5 @@
 mod constraints;
-mod forall;
+mod env;
 mod prove_after;
 mod prove_apr;
 mod prove_apr_via;
@@ -7,29 +7,25 @@ mod prove_eq;
 mod prove_normalize;
 mod prove_wc;
 mod prove_wc_list;
-mod subst;
 
 pub use constraints::Constraints;
-use formality_types::{
-    cast::Upcast,
-    collections::Set,
-    grammar::{Binder, Wcs},
-    set,
-    visit::Visit,
-};
+use formality_types::{cast::Upcast, collections::Set, grammar::Wcs, set, visit::Visit};
 use tracing::Level;
 
 use crate::program::Program;
 
+pub use self::env::Env;
 use self::prove_wc_list::prove_wc_list;
 
 /// Top-level entry point for proving things; other rules recurse to this one.
 pub fn prove(
     program: impl Upcast<Program>,
+    env: impl Upcast<Env>,
     assumptions: impl Upcast<Wcs>,
     goal: impl Upcast<Wcs>,
-) -> Set<Binder<Constraints>> {
+) -> Set<(Env, Constraints)> {
     let program: Program = program.upcast();
+    let env0: Env = env.upcast();
     let assumptions: Wcs = assumptions.upcast();
     let goal: Wcs = goal.upcast();
 
@@ -37,24 +33,27 @@ pub fn prove(
     let _guard = span.enter();
 
     let term_in = (&assumptions, &goal);
-    let fv_in = term_in.free_variables();
     if term_in.size() > program.max_size {
         tracing::debug!(
             "term has size {} which exceeds max size of {}",
             term_in.size(),
             program.max_size
         );
-        return set![Binder::dummy(Constraints::default().ambiguous())];
+        return set![(env0, Constraints::default().ambiguous())];
     }
 
-    let cs = prove_wc_list(program, assumptions, goal);
+    env0.assert_encloses(term_in);
 
-    cs.assert_valid();
-    cs.free_variables()
-        .iter()
-        .for_each(|fv| assert!(fv_in.contains(&fv)));
+    let result_set = prove_wc_list(program, &env0, assumptions, goal);
 
-    tracing::debug!(?cs);
+    result_set.iter().for_each(|(env1, constraints1)| {
+        env1.assert_valid();
+        env1.assert_valid_extension_of(&env0);
+        env1.assert_encloses(&constraints1);
+        constraints1.assert_valid();
+    });
 
-    cs
+    tracing::debug!(?result_set);
+
+    result_set
 }

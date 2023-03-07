@@ -107,7 +107,6 @@ fn close_over(
     let to_bound_variables: VarSubstitution = new_inference_variables
         .iter()
         .zip(&fresh_bound_variables)
-        .upcasted()
         .collect();
 
     let bound_data = QueryResultBoundData {

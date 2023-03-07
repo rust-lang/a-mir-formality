@@ -1,9 +1,6 @@
 use expect_test::expect;
 use formality_macros::test;
-use formality_types::{
-    grammar::{Wc, Wcs},
-    parse::term,
-};
+use formality_types::{grammar::Wc, parse::term};
 
 use crate::{program::Program, prove::prove};
 
@@ -23,12 +20,22 @@ fn program() -> Program {
 
 #[test]
 fn vec_u32_debug() {
-    let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("Debug(Vec<u32>)");
-    let constraints = prove(program(), assumptions, goal);
+    let constraints = prove(program(), (), (), goal);
     expect![[r#"
         {
-            <> Constraints { result: (), known_true: true, substitution: Substitution { map: {} } },
+            (
+                Env {
+                    variables: [],
+                },
+                Constraints {
+                    result: (),
+                    known_true: true,
+                    substitution: Substitution {
+                        map: {},
+                    },
+                },
+            ),
         }
     "#]]
     .assert_debug_eq(&constraints);
@@ -36,12 +43,22 @@ fn vec_u32_debug() {
 
 #[test]
 fn vec_vec_u32_debug() {
-    let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("Debug(Vec<Vec<u32>>)");
-    let constraints = prove(program(), assumptions, goal);
+    let constraints = prove(program(), (), (), goal);
     expect![[r#"
         {
-            <> Constraints { result: (), known_true: true, substitution: Substitution { map: {} } },
+            (
+                Env {
+                    variables: [],
+                },
+                Constraints {
+                    result: (),
+                    known_true: true,
+                    substitution: Substitution {
+                        map: {},
+                    },
+                },
+            ),
         }
     "#]]
     .assert_debug_eq(&constraints);

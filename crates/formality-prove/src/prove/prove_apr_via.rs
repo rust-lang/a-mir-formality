@@ -1,33 +1,34 @@
 use formality_types::{
-    grammar::{Binder, WcData, Wcs, APR},
+    grammar::{WcData, Wcs, APR},
     judgment_fn,
 };
 
 use crate::{
     program::Program,
     prove::{
-        constraints::{merge_constraints, no_constraints, Constraints},
+        constraints::{no_constraints, Constraints},
+        env::Env,
         prove,
         prove_after::prove_after,
         prove_eq::all_eq,
-        subst::existential_substitution,
     },
 };
 
 judgment_fn! {
     pub fn prove_apr_via(
         program: Program,
+        env: Env,
         assumptions: Wcs,
         via: WcData,
         goal: APR,
-    ) => Binder<Constraints> {
+    ) => (Env, Constraints) {
         (
             (let (skel_c, parameters_c) = predicate.debone())
             (let (skel_g, parameters_g) = goal.debone())
             (if skel_c == skel_g)
-            (prove(program, assumptions, all_eq(parameters_c, parameters_g)) => c)
+            (prove(program, env, assumptions, all_eq(parameters_c, parameters_g)) => (env, c))
             ----------------------------- ("predicate-congruence-axiom")
-            (prove_apr_via(program, assumptions, APR::AtomicPredicate(predicate), goal) => c)
+            (prove_apr_via(program, env, assumptions, APR::AtomicPredicate(predicate), goal) => (env, c))
         )
 
         (
@@ -36,22 +37,23 @@ judgment_fn! {
             (if skel_c == skel_g)
             (if parameters_c == parameters_g) // for relations, we require 100% match
             ----------------------------- ("relation-axiom")
-            (prove_apr_via(_program, _assumptions, APR::AtomicRelation(relation), goal) => no_constraints(()))
+            (prove_apr_via(_program, env, _assumptions, APR::AtomicRelation(relation), goal) => (env, no_constraints()))
         )
 
         (
-            (let subst = existential_substitution(&binder, (&assumptions, &goal)))
+            (let (env, subst) = env.existential_substitution(&binder))
             (let via1 = binder.instantiate_with(&subst).unwrap())
-            (prove_apr_via(program, assumptions, via1, goal) => c)
+            (prove_apr_via(program, env, assumptions, via1, goal) => (env, c))
+            (let (env, c) = c.pop_subst(env, &subst))
             ----------------------------- ("forall")
-            (prove_apr_via(program, assumptions, WcData::ForAll(binder), goal) => merge_constraints(&subst, (), c))
+            (prove_apr_via(program, env, assumptions, WcData::ForAll(binder), goal) => (env, c))
         )
 
         (
-            (prove_apr_via(&program, &assumptions, wc_consequence, goal) => c1)
-            (prove_after(&program, c1, &assumptions, &wc_condition) => c2)
+            (prove_apr_via(&program, env, &assumptions, wc_consequence, goal) => (env, c))
+            (prove_after(&program, env, c, &assumptions, &wc_condition) => (env, c))
             ----------------------------- ("implies")
-            (prove_apr_via(program, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => c2)
+            (prove_apr_via(program, env, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => (env, c))
         )
     }
 }

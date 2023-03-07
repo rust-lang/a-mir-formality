@@ -231,6 +231,6 @@ macro_rules! push_rules {
     };
 
     (@body ($v:expr, $output:ident)) => {
-        $output.push($v)
+        $output.push($crate::cast::Upcast::upcast($v))
     };
 }
