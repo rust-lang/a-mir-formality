@@ -31,9 +31,7 @@ fn vec_u32_debug() {
                 Constraints {
                     result: (),
                     known_true: true,
-                    substitution: Substitution {
-                        map: {},
-                    },
+                    substitution: {},
                 },
             ),
         }
@@ -54,9 +52,7 @@ fn vec_vec_u32_debug() {
                 Constraints {
                     result: (),
                     known_true: true,
-                    substitution: Substitution {
-                        map: {},
-                    },
+                    substitution: {},
                 },
             ),
         }

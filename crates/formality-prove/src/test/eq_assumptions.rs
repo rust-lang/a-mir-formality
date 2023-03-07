@@ -21,9 +21,7 @@ fn test_a() {
                 Constraints {
                     result: (),
                     known_true: true,
-                    substitution: Substitution {
-                        map: {},
-                    },
+                    substitution: {},
                 },
             ),
         }

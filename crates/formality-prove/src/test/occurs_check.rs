@@ -44,11 +44,9 @@ fn eq_variable_to_rigid() {
                 Constraints {
                     result: (),
                     known_true: true,
-                    substitution: Substitution {
-                        map: {
-                            ?ty_1_U(0): (rigid (adt Vec) ?ty_3_U(0)),
-                            ?ty_2_U(0): ?ty_3_U(0),
-                        },
+                    substitution: {
+                        ?ty_1_U(0) => (rigid (adt Vec) ?ty_3_U(0)),
+                        ?ty_2_U(0) => ?ty_3_U(0),
                     },
                 },
             ),
@@ -74,11 +72,9 @@ fn eq_rigid_to_variable() {
                 Constraints {
                     result: (),
                     known_true: true,
-                    substitution: Substitution {
-                        map: {
-                            ?ty_1_U(0): (rigid (adt Vec) ?ty_3_U(0)),
-                            ?ty_2_U(0): ?ty_3_U(0),
-                        },
+                    substitution: {
+                        ?ty_1_U(0) => (rigid (adt Vec) ?ty_3_U(0)),
+                        ?ty_2_U(0) => ?ty_3_U(0),
                     },
                 },
             ),

@@ -30,9 +30,7 @@ fn expanding() {
                 Constraints {
                     result: (),
                     known_true: false,
-                    substitution: Substitution {
-                        map: {},
-                    },
+                    substitution: {},
                 },
             ),
         }

@@ -33,10 +33,8 @@ fn exists_u_for_t() {
                 Constraints {
                     result: (),
                     known_true: true,
-                    substitution: Substitution {
-                        map: {
-                            ?ty_1_U(0): (rigid (adt Vec) ?ty_3_U(0)),
-                        },
+                    substitution: {
+                        ?ty_1_U(0) => (rigid (adt Vec) ?ty_3_U(0)),
                     },
                 },
             ),

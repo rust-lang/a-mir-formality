@@ -111,6 +111,9 @@ fn equate_variable(
 ) -> Option<(Env, Constraints)> {
     let p: Parameter = p.upcast();
 
+    let span = tracing::debug_span!("equate_variable", ?x, ?p, ?env);
+    let _guard = span.enter();
+
     let fvs = p.free_variables().deduplicate();
 
     // Ensure that `x` passes the occurs check for the free variables in `p`.
@@ -146,6 +149,7 @@ fn equate_variable(
         .chain(Some((x, universe_subst.apply(&p)).upcast()))
         .collect();
 
+    tracing::debug!("success: env={:?}, constraints={:?}", env, constraints);
     Some((env, constraints))
 }
 
@@ -161,7 +165,7 @@ fn passes_occurs_check(env: &Env, x: InferenceVar, fvs: &[Variable]) -> bool {
     for fv in fvs {
         match fv {
             Variable::PlaceholderVar(pv) => {
-                if env.universe(pv) < universe_x {
+                if universe_x < env.universe(pv) {
                     return false;
                 } else {
                 }

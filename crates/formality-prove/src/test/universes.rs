@@ -29,7 +29,16 @@ fn for_t_exists_u() {
     let constraints = super::test_prove(program, term("<> ({}, {for<ty T> Test(T, T)})"));
     expect![[r#"
         {
-            <> Constraints { result: (), known_true: true, substitution: Substitution { map: {} } },
+            (
+                Env {
+                    variables: [],
+                },
+                Constraints {
+                    result: (),
+                    known_true: true,
+                    substitution: {},
+                },
+            ),
         }
     "#]]
     .assert_debug_eq(&constraints);

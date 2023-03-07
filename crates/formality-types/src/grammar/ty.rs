@@ -628,7 +628,7 @@ impl std::ops::Add<usize> for VarIndex {
     }
 }
 
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Substitution {
     map: Map<Variable, Parameter>,
 }
@@ -651,6 +651,25 @@ impl Substitution {
 
     pub fn iter(&self) -> impl Iterator<Item = (Variable, Parameter)> + '_ {
         self.map.iter().map(|(v, p)| (*v, p.clone()))
+    }
+}
+
+impl std::fmt::Debug for Substitution {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut f = f.debug_set();
+        for (v, p) in self.iter() {
+            f.entry(&Entry { v, p });
+            struct Entry {
+                v: Variable,
+                p: Parameter,
+            }
+            impl std::fmt::Debug for Entry {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "{:?} => {:?}", self.v, self.p)
+                }
+            }
+        }
+        f.finish()
     }
 }
 
