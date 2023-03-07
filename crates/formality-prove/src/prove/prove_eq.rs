@@ -1,18 +1,20 @@
 use formality_types::{
-    cast::{Downcast, Upcast, Upcasted},
-    collections::Deduplicate,
+    cast::{Downcast, Downcasted, Upcast, Upcasted},
+    collections::{Deduplicate, Set},
     grammar::{
-        AliasTy, AtomicRelation, InferenceVar, Parameter, RigidTy, Substitution, Ty, TyData,
-        Variable, Wcs,
+        AliasTy, AtomicRelation, InferenceVar, Parameter, PlaceholderVar, RigidTy, Substitution,
+        Ty, TyData, Variable, Wcs,
     },
-    judgment_fn,
+    judgment_fn, set,
     visit::Visit,
 };
 
 use crate::{
     program::Program,
     prove::{
-        constraints::no_constraints, prove, prove_after::prove_after,
+        constraints::{no_constraints, occurs_in},
+        prove,
+        prove_after::prove_after,
         prove_normalize::prove_normalize,
     },
 };
@@ -75,17 +77,17 @@ judgment_fn! {
         )
 
         (
-            (if let None = t.downcast::<InferenceVar>())
-            (if let Some(env_c) = equate_variable(env, v, t))
+            (if let None = t.downcast::<Variable>())
+            (equate_variable(program, env, assumptions, v, t) => (env, c))
             ----------------------------- ("existential-l")
-            (prove_ty_eq(_program, env, _assumptions, Variable::InferenceVar(v), t) => env_c)
+            (prove_ty_eq(program, env, assumptions, Variable::InferenceVar(v), t) => (env, c))
         )
 
         (
-            (if let None = t.downcast::<InferenceVar>())
-            (if let Some(env_c) = equate_variable(env, v, t))
+            (if let None = t.downcast::<Variable>())
+            (equate_variable(program, env, assumptions, v, t) => (env, c))
             ----------------------------- ("existential-r")
-            (prove_ty_eq(_program, env, _assumptions, t, Variable::InferenceVar(v)) => env_c)
+            (prove_ty_eq(program, env, assumptions, t, Variable::InferenceVar(v)) => (env, c))
         )
 
         (
@@ -93,6 +95,12 @@ judgment_fn! {
             (let (a, b) = env.order_by_universe(l, r))
             ----------------------------- ("existential-both")
             (prove_ty_eq(_program, env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => (env, (b, a)))
+        )
+
+        (
+            (if env.universe(p) < env.universe(v))
+            ----------------------------- ("existential-vs-placeholder")
+            (prove_ty_eq(_program, env, _assumptions, Variable::InferenceVar(v), Variable::PlaceholderVar(p)) => (env, (v, p)))
         )
 
         (
@@ -105,10 +113,12 @@ judgment_fn! {
 }
 
 fn equate_variable(
+    program: Program,
     mut env: Env,
+    assumptions: Wcs,
     x: InferenceVar,
     p: impl Upcast<Parameter>,
-) -> Option<(Env, Constraints)> {
+) -> Set<(Env, Constraints)> {
     let p: Parameter = p.upcast();
 
     let span = tracing::debug_span!("equate_variable", ?x, ?p, ?env);
@@ -116,9 +126,11 @@ fn equate_variable(
 
     let fvs = p.free_variables().deduplicate();
 
+    env.assert_encloses((x, &fvs));
+
     // Ensure that `x` passes the occurs check for the free variables in `p`.
-    if !passes_occurs_check(&env, x, &fvs) {
-        return None;
+    if occurs_in(x, &fvs) {
+        return set![];
     }
 
     // Map each free variable `fv` in `p` that is of higher universe than `x`
@@ -130,7 +142,7 @@ fn equate_variable(
     let universe_x = env.universe(x);
     let universe_subst: Substitution = fvs
         .iter()
-        .flat_map(|&fv| {
+        .flat_map(|fv| {
             if universe_x < env.universe(fv) {
                 let y = env.insert_fresh_before(fv.kind(), universe_x);
                 Some((fv, y))
@@ -146,41 +158,23 @@ fn equate_variable(
     // * `x = universe_subst(p)` (e.g., `Vec<Z>` in our example above)
     let constraints: Constraints = universe_subst
         .iter()
+        .filter(|(v, _)| v.is_a::<InferenceVar>())
         .chain(Some((x, universe_subst.apply(&p)).upcast()))
         .collect();
 
-    tracing::debug!("success: env={:?}, constraints={:?}", env, constraints);
-    Some((env, constraints))
-}
+    let goals: Wcs = universe_subst
+        .iter()
+        .filter(|(v, _)| v.is_a::<PlaceholderVar>())
+        .map(|(v, p)| eq(v, p))
+        .upcasted()
+        .collect();
 
-/// An existential variable `x` *passes the occurs check* with respect to
-/// a set of free variables `fvs` if
-///
-/// * `x` is not a member of `fvs`
-/// * all placeholders in `fvs` are in a lower universe than `v`
-fn passes_occurs_check(env: &Env, x: InferenceVar, fvs: &[Variable]) -> bool {
-    env.assert_encloses((x, fvs));
+    tracing::debug!(
+        "equated: env={:?}, constraints={:?}, goals={:?}",
+        env,
+        constraints,
+        goals
+    );
 
-    let universe_x = env.universe(x);
-    for fv in fvs {
-        match fv {
-            Variable::PlaceholderVar(pv) => {
-                if universe_x < env.universe(pv) {
-                    return false;
-                } else {
-                }
-            }
-            Variable::InferenceVar(iv) => {
-                if *iv == x {
-                    return false;
-                } else {
-                }
-            }
-            Variable::BoundVar(_) => {
-                panic!("unexpected bound variable");
-            }
-        }
-    }
-
-    true
+    prove_after(program, env, constraints, assumptions, goals)
 }

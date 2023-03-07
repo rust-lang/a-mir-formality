@@ -25,6 +25,8 @@ pub trait Judgment:
     fn apply(&self) -> BTreeSet<Self::Output> {
         apply::JudgmentApply(self).apply()
     }
+
+    fn tracing_span(&self) -> tracing::Span;
 }
 
 #[derive(Clone)]
@@ -40,10 +42,21 @@ macro_rules! judgment_fn {
         }
     ) => {
         $v fn $name($($input_name : impl $crate::cast::Upcast<$input_ty>),*) -> $crate::collections::Set<$output> {
-            #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Clone)]
+            #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone)]
             struct __JudgmentStruct($($input_ty),*);
 
             $crate::cast_impl!(__JudgmentStruct);
+
+            impl std::fmt::Debug for __JudgmentStruct {
+                fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    let mut f = fmt.debug_struct(stringify!($name));
+                    let __JudgmentStruct($($input_name),*) = self;
+                    $(
+                        f.field(stringify!($input_name), $input_name);
+                    )*
+                    f.finish()
+                }
+            }
 
             impl std::iter::IntoIterator for __JudgmentStruct {
                 type Item = $output;
@@ -72,6 +85,14 @@ macro_rules! judgment_fn {
                         ($($input_name),*) => $output,
                         $(($($rule)*))*
                     );
+                }
+
+                fn tracing_span(&self) -> tracing::Span {
+                    let __JudgmentStruct($($input_name),*) = self;
+                    tracing::debug_span!(
+                        stringify!($name),
+                        $(?$input_name),*
+                    )
                 }
             }
 
@@ -139,7 +160,7 @@ macro_rules! push_rules {
 
             #[allow(irrefutable_let_patterns)]
             if let __JudgmentStruct($($input_names),*) = v {
-                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*) args($n; $v; output; $($m)*));
+                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*) args($judgment_name; $n; $v; output; $($m)*));
             }
             output
         }
@@ -153,9 +174,9 @@ macro_rules! push_rules {
     // Matching phase: peel off the patterns one by one and match them against the values
     // extracted from the input. For anything that is not an identity pattern, invoke `downcast`.
 
-    (@match inputs() patterns() args($n:literal; $v:expr; $output:ident; $($m:tt)*)) => {
-        tracing::debug_span!("matched rule", rule = $n).in_scope(|| {
-            $crate::push_rules!(@body ($v, $output) $($m)*);
+    (@match inputs() patterns() args($judgment_name:ident; $n:literal; $v:expr; $output:ident; $($m:tt)*)) => {
+        tracing::trace_span!("matched rule", rule = $n, judgment = stringify!($judgment_name)).in_scope(|| {
+            $crate::push_rules!(@body ($judgment_name, $n, $v, $output) $($m)*);
         });
     };
 
@@ -200,37 +221,45 @@ macro_rules! push_rules {
     // expression `v` is carried in from the conclusion and forms the final
     // output of this rule, once all the conditions are evaluated.
 
-    (@body ($v:expr, $output:ident) (if $c:expr) $($m:tt)*) => {
+    (@body $args:tt (if $c:expr) $($m:tt)*) => {
         if $c {
-            $crate::push_rules!(@body ($v, $output) $($m)*);
+            $crate::push_rules!(@body $args $($m)*);
+        } else {
+            tracing::debug!("failed to match if condition {:?}", stringify!($c))
         }
     };
 
-    (@body ($v:expr, $output:ident) (assert $c:expr) $($m:tt)*) => {
+    (@body $args:tt (assert $c:expr) $($m:tt)*) => {
         assert!($c);
-        $crate::push_rules!(@body ($v, $output) $($m)*);
+        $crate::push_rules!(@body $args $($m)*);
     };
 
-    (@body ($v:expr, $output:ident) (if let $p:pat = $e:expr) $($m:tt)*) => {
+    (@body $args:tt (if let $p:pat = $e:expr) $($m:tt)*) => {
         if let $p = $e {
-            $crate::push_rules!(@body ($v, $output) $($m)*);
+            $crate::push_rules!(@body $args $($m)*);
+        } else {
+            tracing::debug!("failed to match pattern {:?}", stringify!($p))
         }
     };
 
-    (@body ($v:expr, $output:ident) ($i:expr => $p:pat) $($m:tt)*) => {
+    (@body $args:tt ($i:expr => $p:pat) $($m:tt)*) => {
         for $p in $i {
-            $crate::push_rules!(@body ($v, $output) $($m)*);
+            $crate::push_rules!(@body $args $($m)*);
         }
     };
 
-    (@body ($v:expr, $output:ident) (let $p:pat = $i:expr) $($m:tt)*) => {
+    (@body $args:tt (let $p:pat = $i:expr) $($m:tt)*) => {
         {
             let $p = $i;
-            $crate::push_rules!(@body ($v, $output) $($m)*);
+            $crate::push_rules!(@body $args $($m)*);
         }
     };
 
-    (@body ($v:expr, $output:ident)) => {
-        $output.push($crate::cast::Upcast::upcast($v))
+    (@body ($judgment_name:ident, $rule_name:literal, $v:expr, $output:ident)) => {
+        {
+            let result = $crate::cast::Upcast::upcast($v);
+            tracing::debug!("produced {:?} from rule {:?} in judgment {:?}", result, $rule_name, stringify!($judgment_name));
+            $output.push(result)
+        }
     };
 }

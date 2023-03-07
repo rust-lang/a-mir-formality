@@ -44,6 +44,13 @@ pub trait Downcast: Sized {
     fn downcast<T>(&self) -> Option<T>
     where
         T: DowncastFrom<Self>;
+
+    fn is_a<T>(&self) -> bool
+    where
+        T: DowncastFrom<Self>,
+    {
+        self.downcast::<T>().is_some()
+    }
 }
 
 impl<U> Downcast for U {

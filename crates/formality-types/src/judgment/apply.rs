@@ -12,16 +12,17 @@ impl<J> JudgmentApply<'_, J>
 where
     J: Judgment,
 {
-    #[tracing::instrument(level = "Debug", ret)]
     pub(super) fn apply(self) -> BTreeSet<J::Output> {
         let JudgmentApply(input) = self;
         let rules = Self::rules();
-        fixed_point(
+        let result = fixed_point(
+            J::tracing_span,
             J::stack(),
             input.clone(),
             |_| BTreeSet::default(),
             |input| rules.iter().flat_map(|rule| rule.apply(&input)).collect(),
-        )
+        );
+        result
     }
 
     fn rules() -> Vec<InferenceRule<J, J::Output>> {

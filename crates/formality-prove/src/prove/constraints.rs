@@ -1,9 +1,9 @@
 use formality_types::{
-    cast::Upcast,
+    cast::{Downcast, Upcast},
     cast_impl,
-    derive_links::UpcastFrom,
+    derive_links::{DowncastTo, UpcastFrom},
     fold::Fold,
-    grammar::{Parameter, Substitution, Variable},
+    grammar::{InferenceVar, Parameter, Substitution, Variable},
     term::Term,
     visit::Visit,
 };
@@ -191,6 +191,7 @@ impl<R: Term> Visit for Constraints<R> {
         let domain = substitution.domain();
 
         for &v in &domain {
+            assert!(v.downcast::<InferenceVar>().is_some());
             assert!(v.is_free());
             assert!(is_valid_binding(v, &substitution[v]));
         }

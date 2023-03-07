@@ -36,7 +36,24 @@ fn test_b() {
         term("<ty A> ({}, {for<ty T, ty U> if {T = u32, U = Vec<T>} A = U})"),
     );
     expect![[r#"
-        {}
-    "#]] // FIXME
+        {
+            (
+                Env {
+                    variables: [
+                        ?ty_4_U(0),
+                        ?ty_1_U(0),
+                    ],
+                },
+                Constraints {
+                    result: (),
+                    known_true: true,
+                    substitution: {
+                        ?ty_1_U(0) => (rigid (adt Vec) (rigid (scalar u32))),
+                        ?ty_4_U(0) => (rigid (scalar u32)),
+                    },
+                },
+            ),
+        }
+    "#]]
     .assert_debug_eq(&constraints);
 }
