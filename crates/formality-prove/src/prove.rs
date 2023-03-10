@@ -30,7 +30,7 @@ pub fn prove(
     let assumptions: Wcs = assumptions.upcast();
     let goal: Wcs = goal.upcast();
 
-    // let (env, (assumptions, goal)) = minimize::minimize(env, (assumptions, goal));
+    let (env, (assumptions, goal), min) = minimize::minimize(env, (assumptions, goal));
 
     let span = tracing::span!(Level::DEBUG, "prove", ?goal, ?assumptions, ?env, ?program);
     let _guard = span.enter();
@@ -54,6 +54,8 @@ pub fn prove(
     });
 
     tracing::debug!(?result_set);
+
+    let pair = min.reconstitute(env, term);
 
     result_set
 }

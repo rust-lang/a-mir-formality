@@ -1,7 +1,7 @@
 use formality_types::{
     cast::{Downcast, Upcast},
     collections::Deduplicate,
-    grammar::{InferenceVar, PlaceholderVar, VarIndex, VarSubstitution, Variable},
+    grammar::{InferenceVar, PlaceholderVar, Substitution, VarIndex, VarSubstitution, Variable},
     term::Term,
 };
 
@@ -81,23 +81,23 @@ impl Minimization {
 
         let mut env_out = self.env_max;
 
-        let mut fresh_vars = vec![];
+        let mut fresh_vars: Vec<InferenceVar> = vec![];
         let mut env2out_subst = self.min2max_subst;
         for &var in env.variables() {
-            if !env2out_subst.maps_var(var) {
-                // e.g., Z in the example above
-                let var: InferenceVar = var.downcast().unwrap(); // we only ever insert fresh existential variables
-                fresh_vars.push(var);
-            } else {
+            if let Some(var_out) = env2out_subst.map_var(var) {
                 // e.g., here next variable might be Y in the list above...
                 for fresh_var in fresh_vars.drain(..) {
                     // ...so we remove Z, create a fresh variable D for env_min
                     // and place it before Y...
-                    let universe = env_out.universe(var);
-                    let fresh_var_out = env_out.insert_fresh_before(fresh_var.kind, universe);
+                    let universe_out = env_out.universe(var_out);
+                    let fresh_var_out = env_out.insert_fresh_before(fresh_var.kind, universe_out);
                     // ...and map Z to D.
                     env2out_subst.insert_mapping(fresh_var, fresh_var_out);
                 }
+            } else {
+                // e.g., Z in the example above
+                let var: InferenceVar = var.downcast().unwrap(); // we only ever insert fresh existential variables
+                fresh_vars.push(var);
             }
         }
 
@@ -116,3 +116,9 @@ impl Minimization {
         (env_out, term_out)
     }
 }
+
+trait ApplyVarSubstitution {
+    fn substitute_vars(&self, v: &VarSubstitution) -> Self;
+}
+
+impl ApplyVarSubstitution for Substitution {}

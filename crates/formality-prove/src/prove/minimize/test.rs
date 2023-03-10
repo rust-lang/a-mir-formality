@@ -1,6 +1,7 @@
 use expect_test::expect;
 use formality_macros::test;
 use formality_types::{
+    cast::Upcast,
     grammar::{Binder, Parameter},
     parse::term,
 };
@@ -33,7 +34,7 @@ fn minimize_a() {
     "#]]
     .assert_debug_eq(&(&env, &term));
 
-    let (env_min, term_min, m) = minimize(env, term);
+    let (mut env_min, mut term_min, m) = minimize(env, term);
 
     expect![[r#"
         (
@@ -51,6 +52,13 @@ fn minimize_a() {
     "#]]
     .assert_debug_eq(&(&env_min, &term_min));
 
+    let ty1 = term_min[1].as_variable().unwrap();
+    let v_fresh = env_min.insert_fresh_before(
+        formality_types::grammar::ParameterKind::Ty,
+        env_min.universe(ty1),
+    );
+    term_min.push(v_fresh.upcast());
+
     let r = m.reconstitute(env_min, term_min);
 
     expect![[r#"
@@ -59,13 +67,16 @@ fn minimize_a() {
                 variables: [
                     ?ty_1,
                     ?ty_2,
+                    ?ty_4,
                     ?ty_3,
                 ],
             },
             [
                 ?ty_1,
                 ?ty_3,
+                ?ty_4,
             ],
         )
-    "#]].assert_debug_eq(&r);
+    "#]]
+    .assert_debug_eq(&r);
 }
