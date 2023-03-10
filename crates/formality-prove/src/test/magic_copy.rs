@@ -36,6 +36,23 @@ fn all_t_not_magic() {
                 substitution: {},
             },
         }
-    "#]]
+    "#]] // FIXME: should be `{}`
+    .assert_debug_eq(&constraints);
+}
+
+#[test]
+fn all_t_not_copy() {
+    let constraints = test_prove(program(), term("<> ({}, {for<ty T> Copy(T)})"));
+    expect![[r#"
+        {
+            Constraints {
+                env: Env {
+                    variables: [],
+                },
+                known_true: true,
+                substitution: {},
+            },
+        }
+    "#]] // FIXME: should be `{}`
     .assert_debug_eq(&constraints);
 }
