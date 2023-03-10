@@ -38,6 +38,7 @@ struct InferenceRule<I, O> {
 macro_rules! judgment_fn {
     (
         $v:vis fn $name:ident($($input_name:ident : $input_ty:ty),* $(,)?) => $output:ty {
+            debug($($debug_input_name:ident),*)
             $(($($rule:tt)*))*
         }
     ) => {
@@ -52,7 +53,7 @@ macro_rules! judgment_fn {
                     let mut f = fmt.debug_struct(stringify!($name));
                     let __JudgmentStruct($($input_name),*) = self;
                     $(
-                        f.field(stringify!($input_name), $input_name);
+                        f.field(stringify!($debug_input_name), $input_name);
                     )*
                     f.finish()
                 }
@@ -91,7 +92,7 @@ macro_rules! judgment_fn {
                     let __JudgmentStruct($($input_name),*) = self;
                     tracing::debug_span!(
                         stringify!($name),
-                        $(?$input_name),*
+                        $(?$debug_input_name),*
                     )
                 }
             }

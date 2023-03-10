@@ -1,5 +1,6 @@
 mod constraints;
 mod env;
+mod minimize;
 mod prove_after;
 mod prove_apr;
 mod prove_apr_via;
@@ -25,11 +26,13 @@ pub fn prove(
     goal: impl Upcast<Wcs>,
 ) -> Set<Constraints> {
     let program: Program = program.upcast();
-    let env0: Env = env.upcast();
+    let env: Env = env.upcast();
     let assumptions: Wcs = assumptions.upcast();
     let goal: Wcs = goal.upcast();
 
-    let span = tracing::span!(Level::DEBUG, "prove", ?goal, ?assumptions);
+    // let (env, (assumptions, goal)) = minimize::minimize(env, (assumptions, goal));
+
+    let span = tracing::span!(Level::DEBUG, "prove", ?goal, ?assumptions, ?env, ?program);
     let _guard = span.enter();
 
     let term_in = (&assumptions, &goal);
@@ -39,15 +42,15 @@ pub fn prove(
             term_in.size(),
             program.max_size
         );
-        return set![Constraints::none(env0).ambiguous()];
+        return set![Constraints::none(env).ambiguous()];
     }
 
-    env0.assert_encloses(term_in);
+    env.assert_encloses(term_in);
 
-    let result_set = prove_wc_list(program, &env0, assumptions, goal);
+    let result_set = prove_wc_list(program, &env, assumptions, goal);
 
     result_set.iter().for_each(|constraints1| {
-        constraints1.assert_valid_extension_of(&env0);
+        constraints1.assert_valid_extension_of(&env);
     });
 
     tracing::debug!(?result_set);

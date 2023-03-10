@@ -17,6 +17,8 @@ judgment_fn! {
         assumptions: Wcs,
         goal: Wc,
     ) => Constraints {
+        debug(goal, assumptions, env, program)
+
         (
             (prove_apr(program, env, assumptions, a) => c)
             --- ("atomic")

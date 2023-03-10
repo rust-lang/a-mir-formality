@@ -23,6 +23,8 @@ judgment_fn! {
         assumptions: Wcs,
         goal: APR,
     ) => Constraints {
+        debug(goal, assumptions, env, program)
+
         (
             (&assumptions => a)
             (prove_apr_via(&program, &env, &assumptions, a, &goal) => c)

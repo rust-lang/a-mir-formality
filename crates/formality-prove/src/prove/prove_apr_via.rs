@@ -18,6 +18,8 @@ judgment_fn! {
         via: WcData,
         goal: APR,
     ) => Constraints {
+        debug(goal, via, assumptions, env, program)
+
         (
             (let (skel_c, parameters_c) = predicate.debone())
             (let (skel_g, parameters_g) = goal.debone())

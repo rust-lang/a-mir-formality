@@ -4,7 +4,9 @@ use formality_types::{
     cast_impl,
     collections::Set,
     fold::Fold,
-    grammar::{Binder, InferenceVar, ParameterKind, PlaceholderVar, VarIndex, Variable},
+    grammar::{
+        Binder, InferenceVar, ParameterKind, PlaceholderVar, VarIndex, VarSubstitution, Variable,
+    },
     visit::Visit,
 };
 
@@ -153,6 +155,31 @@ impl Env {
         }
 
         self.variables.drain(universe_p0.index..).collect()
+    }
+
+    /// Retain only those variables found in `vs`, returns the discarded variables
+    pub fn remove_variables_unless_within(&mut self, vs: &[Variable]) -> Vec<Variable> {
+        let (kept, discarded) = self.variables.iter().partition(|v| vs.contains(v));
+        self.variables = kept;
+        discarded
+    }
+
+    pub fn variables(&self) -> &[Variable] {
+        &self.variables
+    }
+
+    pub fn substitute(&self, vs: &VarSubstitution) -> Self {
+        Self {
+            variables: self
+                .variables
+                .iter()
+                .map(|&v| vs.map_var(v).unwrap_or(v))
+                .collect(),
+        }
+    }
+
+    pub fn defines(&self, v: Variable) -> bool {
+        self.variables.contains(&v)
     }
 }
 

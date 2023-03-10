@@ -22,6 +22,8 @@ impl Graph {
 
 judgment_fn!(
     fn transitive_reachable(g: Arc<Graph>, node: u32) => u32 {
+        debug(node, g)
+        
         (
             (graph.successors(a) => b)
             (if b % 2 == 0)

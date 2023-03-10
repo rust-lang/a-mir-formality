@@ -14,6 +14,8 @@ judgment_fn! {
         assumptions: Wcs,
         goal: Wcs,
     ) => Constraints {
+        debug(goal, assumptions, env, program)
+
         (
             --- ("none")
             (prove_wc_list(_program, env, _assumptions, ()) => Constraints::none(env))

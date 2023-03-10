@@ -43,6 +43,8 @@ judgment_fn! {
         a: Ty,
         b: Ty,
     ) => Constraints {
+        debug(a, b, assumptions, env, program)
+
         (
             (if l == r)
             ----------------------------- ("reflexive")

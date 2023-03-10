@@ -28,6 +28,8 @@ judgment_fn! {
         graph: Arc<Graph>,
         from: u32,
     ) => u32 {
+        debug(from, graph)
+
         (
             (graph.successors(start) => s)
             --------------------------------------- ("base")

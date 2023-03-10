@@ -17,6 +17,8 @@ judgment_fn! {
         assumptions: Wcs,
         p: Parameter,
     ) => (Constraints, Parameter) {
+        debug(p, assumptions, env, program)
+
         (
             (&assumptions => a)
             (prove_normalize_via(&program, &env, &assumptions, a, &goal) => c)
@@ -49,6 +51,8 @@ judgment_fn! {
         via: Wc,
         goal: Parameter,
     ) => (Constraints, Parameter) {
+        debug(goal, via, assumptions, env, program)
+
         (
             (if goal == a && goal != b)
             ----------------------------- ("axiom-l")

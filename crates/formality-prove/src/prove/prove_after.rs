@@ -11,6 +11,8 @@ judgment_fn! {
         assumptions: Wcs,
         goal: Wcs,
     ) => Constraints {
+        debug(constraints, goal, assumptions, program)
+
         (
             (let (assumptions, goal) = c1.substitution().apply(&(assumptions, goal)))
             (prove(program, c1.env(), assumptions, goal) => c2)
