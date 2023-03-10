@@ -1,11 +1,13 @@
 use formality_types::{
     cast::{Downcast, Upcast},
     collections::Deduplicate,
-    grammar::{InferenceVar, PlaceholderVar, Substitution, VarIndex, VarSubstitution, Variable},
+    grammar::{
+        InferenceVar, Parameter, PlaceholderVar, Substitution, VarIndex, VarSubstitution, Variable,
+    },
     term::Term,
 };
 
-use super::Env;
+use super::{Constraints, Env};
 
 #[cfg(test)]
 mod test;
@@ -55,7 +57,7 @@ pub fn minimize<T: Term>(env_max: Env, term: T) -> (Env, T, Minimization) {
 }
 
 impl Minimization {
-    pub fn reconstitute<T: Term>(self, mut env: Env, term: T) -> (Env, T) {
+    pub fn reconstitute(&self, constraints: Constraints) -> Constraints {
         // Our task:
         //
         // For `env_min`, we had a set of variables like `A, B, C`
@@ -79,11 +81,11 @@ impl Minimization {
         //     * Else if the next `env_min` item was deleted, advance `env_min`
         //     * Else, the next `env` item is fresh, so create a fresh variable in `env_min` and insert it
 
-        let mut env_out = self.env_max;
+        let mut env_out = self.env_max.clone();
 
         let mut fresh_vars: Vec<InferenceVar> = vec![];
-        let mut env2out_subst = self.min2max_subst;
-        for &var in env.variables() {
+        let mut env2out_subst = self.min2max_subst.clone();
+        for &var in constraints.env().variables() {
             if let Some(var_out) = env2out_subst.map_var(var) {
                 // e.g., here next variable might be Y in the list above...
                 for fresh_var in fresh_vars.drain(..) {
@@ -103,7 +105,7 @@ impl Minimization {
 
         // Assert that we for each two consecutive variables A < B in env,
         // the same relative ordering exists in env_out.
-        let env_variables = env.variables();
+        let env_variables = constraints.env().variables();
         for i in 1..env_variables.len() {
             let a = env_variables[i - 1];
             let b = env_variables[i];
@@ -112,13 +114,21 @@ impl Minimization {
             assert!(env_out.universe(a_out) < env_out.universe(b_out));
         }
 
-        let term_out = env2out_subst.apply(&term);
-        (env_out, term_out)
+        let Constraints {
+            env: _,
+            known_true,
+            substitution,
+        } = constraints;
+        let substitution: Substitution = substitution
+            .iter()
+            .map(|(x, p)| -> (Variable, Parameter) {
+                (env2out_subst.map_var(x).unwrap(), env2out_subst.apply(&p))
+            })
+            .collect();
+        Constraints {
+            env: env_out,
+            known_true,
+            substitution,
+        }
     }
 }
-
-trait ApplyVarSubstitution {
-    fn substitute_vars(&self, v: &VarSubstitution) -> Self;
-}
-
-impl ApplyVarSubstitution for Substitution {}

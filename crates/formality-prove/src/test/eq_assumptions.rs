@@ -37,14 +37,14 @@ fn test_b() {
             Constraints {
                 env: Env {
                     variables: [
-                        ?ty_4,
+                        ?ty_2,
                         ?ty_1,
                     ],
                 },
                 known_true: true,
                 substitution: {
                     ?ty_1 => (rigid (adt Vec) (rigid (scalar u32))),
-                    ?ty_4 => (rigid (scalar u32)),
+                    ?ty_2 => (rigid (scalar u32)),
                 },
             },
         }

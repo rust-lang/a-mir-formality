@@ -55,7 +55,8 @@ pub fn prove(
 
     tracing::debug!(?result_set);
 
-    let pair = min.reconstitute(env, term);
-
     result_set
+        .into_iter()
+        .map(|r| min.reconstitute(r))
+        .collect()
 }

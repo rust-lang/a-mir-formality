@@ -10,9 +10,9 @@ use super::env::Env;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Constraints {
-    env: Env,
-    known_true: bool,
-    substitution: Substitution,
+    pub env: Env,
+    pub known_true: bool,
+    pub substitution: Substitution,
 }
 
 cast_impl!(Constraints);
