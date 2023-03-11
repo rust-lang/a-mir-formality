@@ -27,16 +27,8 @@ fn program() -> Program {
 fn all_t_not_magic() {
     let constraints = test_prove(program(), term("<> ({}, {for<ty T> Magic(T)})"));
     expect![[r#"
-        {
-            Constraints {
-                env: Env {
-                    variables: [],
-                },
-                known_true: true,
-                substitution: {},
-            },
-        }
-    "#]] // FIXME: should be `{}`
+        {}
+    "#]]
     .assert_debug_eq(&constraints);
 }
 
@@ -44,15 +36,7 @@ fn all_t_not_magic() {
 fn all_t_not_copy() {
     let constraints = test_prove(program(), term("<> ({}, {for<ty T> Copy(T)})"));
     expect![[r#"
-        {
-            Constraints {
-                env: Env {
-                    variables: [],
-                },
-                known_true: true,
-                substitution: {},
-            },
-        }
-    "#]] // FIXME: should be `{}`
+        {}
+    "#]]
     .assert_debug_eq(&constraints);
 }
