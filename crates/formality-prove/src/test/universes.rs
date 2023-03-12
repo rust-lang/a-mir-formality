@@ -8,7 +8,7 @@ use crate::program::Program;
 #[test]
 fn exists_u_for_t() {
     let program = Program::empty();
-    let constraints = super::test_prove(program, term("<ty U> ({}, {for<ty T> T = U})"));
+    let constraints = super::test_prove(program, term("exists<ty U> {} => {for<ty T> T = U}"));
     expect![[r#"
             {}
         "#]]
@@ -26,7 +26,7 @@ fn for_t_exists_u() {
         alias_bound_decls: vec![],
     };
 
-    let constraints = super::test_prove(program, term("<> ({}, {for<ty T> Test(T, T)})"));
+    let constraints = super::test_prove(program, term("{} => {for<ty T> Test(T, T)}"));
     expect![[r#"
         {
             Constraints {

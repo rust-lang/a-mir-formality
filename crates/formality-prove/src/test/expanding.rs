@@ -18,7 +18,7 @@ fn program() -> Program {
 /// There is no U that is equal to all T.
 #[test]
 fn expanding() {
-    let constraints = super::test_prove(program(), term("<ty T> ({}, {Debug(T)})"));
+    let constraints = super::test_prove(program(), term("exists<ty T> {} => {Debug(T)}"));
     expect![[r#"
         {
             Constraints {

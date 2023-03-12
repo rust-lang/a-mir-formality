@@ -72,23 +72,9 @@ judgment_fn! {
         )
 
         (
-            (if let None = t.downcast::<Variable>())
-            (equate_variable(program, env, assumptions, v, t) => c)
+            (prove_existential_var_eq(program, env, assumptions, v, r) => c)
             ----------------------------- ("existential-nonvar")
-            (prove_ty_eq(program, env, assumptions, Variable::InferenceVar(v), t) => c)
-        )
-
-        (
-            // Map the higher rank variable to the lower rank one.
-            (let (a, b) = env.order_by_universe(l, r))
-            ----------------------------- ("existential-existential")
-            (prove_ty_eq(_program, env, _assumptions, Variable::InferenceVar(l), Variable::InferenceVar(r)) => (env, (b, a)))
-        )
-
-        (
-            (if env.universe(p) < env.universe(v))
-            ----------------------------- ("existential-placeholder")
-            (prove_ty_eq(_program, env, _assumptions, Variable::InferenceVar(v), Variable::PlaceholderVar(p)) => (env, (v, p)))
+            (prove_ty_eq(program, env, assumptions, Variable::InferenceVar(v), r) => c)
         )
 
         (
@@ -96,6 +82,38 @@ judgment_fn! {
             (prove_after(&program, c, &assumptions, eq(y, &z)) => c)
             ----------------------------- ("normalize-l")
             (prove_ty_eq(program, env, assumptions, x, z) => c)
+        )
+    }
+}
+
+judgment_fn! {
+    pub fn prove_existential_var_eq(
+        program: Program,
+        env: Env,
+        assumptions: Wcs,
+        v: InferenceVar,
+        b: Parameter,
+    ) => Constraints {
+        debug(v, b, assumptions, env, program)
+
+        (
+            (if let None = t.downcast::<Variable>())
+            (equate_variable(program, env, assumptions, v, t) => c)
+            ----------------------------- ("existential-nonvar")
+            (prove_existential_var_eq(program, env, assumptions, v, t) => c)
+        )
+
+        (
+            // Map the higher rank variable to the lower rank one.
+            (let (a, b) = env.order_by_universe(l, r))
+            ----------------------------- ("existential-existential")
+            (prove_existential_var_eq(_program, env, _assumptions, l, Variable::InferenceVar(r)) => (env, (b, a)))
+        )
+
+        (
+            (if env.universe(p) < env.universe(v))
+            ----------------------------- ("existential-placeholder")
+            (prove_existential_var_eq(_program, env, _assumptions, v, Variable::PlaceholderVar(p)) => (env, (v, p)))
         )
     }
 }

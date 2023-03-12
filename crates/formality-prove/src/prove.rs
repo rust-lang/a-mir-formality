@@ -8,6 +8,7 @@ mod prove_eq;
 mod prove_normalize;
 mod prove_wc;
 mod prove_wc_list;
+mod zip;
 
 pub use constraints::Constraints;
 use formality_types::{cast::Upcast, collections::Set, grammar::Wcs, set, visit::Visit};

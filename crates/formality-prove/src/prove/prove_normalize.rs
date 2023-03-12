@@ -1,11 +1,17 @@
 use formality_types::{
-    grammar::{AliasTy, AtomicRelation, Parameter, TyData, Wc, WcData, Wcs},
+    grammar::{AliasTy, AtomicRelation, Parameter, RigidTy, TyData, Variable, Wc, WcData, Wcs},
     judgment_fn,
 };
 
 use crate::{
     program::{AliasEqDeclBoundData, Program},
-    prove::{env::Env, prove, prove_after::prove_after, prove_eq::all_eq},
+    prove::{
+        env::Env,
+        prove,
+        prove_after::prove_after,
+        prove_eq::{all_eq, prove_existential_var_eq},
+        zip::zip,
+    },
 };
 
 use super::constraints::Constraints;
@@ -54,15 +60,19 @@ judgment_fn! {
         debug(goal, via, assumptions, env, program)
 
         (
-            (if goal == a && goal != b)
+            (if goal != b)
+            (prove_syntactically_eq(program, env, assumptions, a, goal) => c)
+            (let b = c.substitution().apply(&b))
             ----------------------------- ("axiom-l")
-            (prove_normalize_via(_program, env, _assumptions, AtomicRelation::Equals(a, b), goal) => (Constraints::none(env), b))
+            (prove_normalize_via(program, env, assumptions, AtomicRelation::Equals(a, b), goal) => (c, b))
         )
 
         (
-            (if goal != a && goal == b)
+            (if goal != b)
+            (prove_syntactically_eq(program, env, assumptions, a, goal) => c)
+            (let b = c.substitution().apply(&b))
             ----------------------------- ("axiom-r")
-            (prove_normalize_via(_program, env, _assumptions, AtomicRelation::Equals(a, b), goal) => (Constraints::none(env), a))
+            (prove_normalize_via(program, env, assumptions, AtomicRelation::Equals(b, a), goal) => (c, b))
         )
 
         (
@@ -81,6 +91,50 @@ judgment_fn! {
             (let p = c.substitution().apply(&p))
             ----------------------------- ("implies")
             (prove_normalize_via(program, env, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => (c, p))
+        )
+    }
+}
+
+judgment_fn! {
+    fn prove_syntactically_eq(
+        program: Program,
+        env: Env,
+        assumptions: Wcs,
+        a: Parameter,
+        b: Parameter,
+    ) => Constraints {
+        debug(a, b, assumptions, env, program)
+
+        trivial(a == b => Constraints::none(env))
+
+        (
+            (prove_syntactically_eq(program, env, assumptions, b, a) => c)
+            ----------------------------- ("symmetric")
+            (prove_syntactically_eq(program, env, assumptions, a, b) => c)
+        )
+
+        (
+            (let RigidTy { name: a_name, parameters: a_parameters } = a)
+            (let RigidTy { name: b_name, parameters: b_parameters } = b)
+            (if a_name == b_name)
+            (zip(&program, &env, &assumptions, a_parameters, b_parameters, &prove_syntactically_eq) => c)
+            ----------------------------- ("rigid")
+            (prove_syntactically_eq(program, env, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
+        )
+
+        (
+            (let AliasTy { name: a_name, parameters: a_parameters } = a)
+            (let AliasTy { name: b_name, parameters: b_parameters } = b)
+            (if a_name == b_name)
+            (zip(&program, &env, &assumptions, a_parameters, b_parameters, &prove_syntactically_eq) => c)
+            ----------------------------- ("alias")
+            (prove_syntactically_eq(program, env, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => c)
+        )
+
+        (
+            (prove_existential_var_eq(program, env, assumptions, v, t) => c)
+            ----------------------------- ("existential-nonvar")
+            (prove_syntactically_eq(program, env, assumptions, Variable::InferenceVar(v), t) => c)
         )
     }
 }

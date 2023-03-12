@@ -20,7 +20,7 @@ fn program() -> Program {
 /// Test that `exists<T> Foo(U)` yields `U = Vec<X>` for some fresh `X`
 #[test]
 fn exists_u_for_t() {
-    let constraints = test_prove(program(), term("<ty U> ({}, {Foo(U)})"));
+    let constraints = test_prove(program(), term("exists<ty U> {} => {Foo(U)}"));
     expect![[r#"
         {
             Constraints {
@@ -37,5 +37,5 @@ fn exists_u_for_t() {
             },
         }
     "#]]
-        .assert_debug_eq(&constraints);
+    .assert_debug_eq(&constraints);
 }

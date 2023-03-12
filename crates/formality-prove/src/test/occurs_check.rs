@@ -20,7 +20,7 @@ fn program() -> Program {
 /// Test that `X = Vec<X>` cannot be solved
 #[test]
 fn direct_cycle() {
-    let constraints = test_prove(program(), term("<ty A> ({}, {A = Vec<A>})"));
+    let constraints = test_prove(program(), term("exists<ty A> {} => {A = Vec<A>}"));
     expect![[r#"
         {}
     "#]]
@@ -30,7 +30,7 @@ fn direct_cycle() {
 /// Test that `X = Vec<Y>` can be solved
 #[test]
 fn eq_variable_to_rigid() {
-    let constraints = test_prove(program(), term("<ty X, ty Y> ({}, {X = Vec<Y>})"));
+    let constraints = test_prove(program(), term("exists<ty X, ty Y> {} => {X = Vec<Y>}"));
     expect![[r#"
         {
             Constraints {
@@ -55,7 +55,7 @@ fn eq_variable_to_rigid() {
 /// Test that `Vec<Y> = X` can be solved
 #[test]
 fn eq_rigid_to_variable() {
-    let constraints = test_prove(program(), term("<ty X, ty Y> ({}, {Vec<Y> = X})"));
+    let constraints = test_prove(program(), term("exists<ty X, ty Y> {} => {Vec<Y> = X}"));
     expect![[r#"
         {
             Constraints {
@@ -80,7 +80,10 @@ fn eq_rigid_to_variable() {
 /// Test that `X = Vec<X>` cannot be solved (when constructed over several steps)
 #[test]
 fn indirect_cycle_1() {
-    let constraints = test_prove(program(), term("<ty A, ty B> ({}, {A = Vec<B>, B = A})"));
+    let constraints = test_prove(
+        program(),
+        term("exists<ty A, ty B> {} => {A = Vec<B>, B = A}"),
+    );
     expect![[r#"
         {}
     "#]]
@@ -90,7 +93,10 @@ fn indirect_cycle_1() {
 /// Test that `X = Vec<X>` cannot be solved (when constructed over several steps)
 #[test]
 fn indirect_cycle_2() {
-    let constraints = test_prove(program(), term("<ty A, ty B> ({}, {B = A, A = Vec<B>})"));
+    let constraints = test_prove(
+        program(),
+        term("exists<ty A, ty B> {} => {B = A, A = Vec<B>}"),
+    );
     expect![[r#"
         {}
     "#]]

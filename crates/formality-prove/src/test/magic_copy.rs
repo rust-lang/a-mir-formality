@@ -25,7 +25,7 @@ fn program() -> Program {
 
 #[test]
 fn all_t_not_magic() {
-    let constraints = test_prove(program(), term("<> ({}, {for<ty T> Magic(T)})"));
+    let constraints = test_prove(program(), term("{} => {for<ty T> Magic(T)}"));
     expect![[r#"
         {}
     "#]]
@@ -34,7 +34,7 @@ fn all_t_not_magic() {
 
 #[test]
 fn all_t_not_copy() {
-    let constraints = test_prove(program(), term("<> ({}, {for<ty T> Copy(T)})"));
+    let constraints = test_prove(program(), term("{} => {for<ty T> Copy(T)}"));
     expect![[r#"
         {}
     "#]]
