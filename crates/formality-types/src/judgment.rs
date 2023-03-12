@@ -4,30 +4,10 @@ use std::{
 
 use crate::fixed_point::FixedPointStack;
 
-mod apply;
-mod builder;
 mod test_filtered;
 mod test_reachable;
 
-pub use self::builder::JudgmentBuilder;
-
 pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, BTreeSet<O>>>;
-
-pub trait Judgment:
-    Debug + Ord + Hash + Clone + Sized + 'static + IntoIterator<Item = Self::Output>
-{
-    type Output: Debug + Ord + Hash + Clone;
-
-    fn stack() -> &'static LocalKey<JudgmentStack<Self, Self::Output>>;
-
-    fn build_rules(builder: &mut JudgmentBuilder<Self>);
-
-    fn apply(&self) -> BTreeSet<Self::Output> {
-        apply::JudgmentApply(self).apply()
-    }
-
-    fn tracing_span(&self) -> tracing::Span;
-}
 
 #[derive(Clone)]
 struct InferenceRule<I, O> {
@@ -59,46 +39,50 @@ macro_rules! judgment_fn {
                 }
             }
 
-            impl std::iter::IntoIterator for __JudgmentStruct {
-                type Item = $output;
+            $(let $input_name: $input_ty = $crate::cast::Upcast::upcast($input_name);)*
 
-                type IntoIter = std::collections::btree_set::IntoIter<Self::Item>;
-
-                fn into_iter(self) -> Self::IntoIter {
-                    $crate::judgment::Judgment::apply(&self).into_iter()
-                }
-            }
-
-            impl $crate::judgment::Judgment for __JudgmentStruct {
-                type Output = $output;
-
-                fn stack() -> &'static std::thread::LocalKey<$crate::judgment::JudgmentStack<__JudgmentStruct, $output>> {
-                    thread_local! {
-                        static R: $crate::judgment::JudgmentStack<__JudgmentStruct, $output> = Default::default()
-                    }
-                    &R
-                }
-
-                fn build_rules(builder: &mut $crate::judgment::JudgmentBuilder<Self>) {
-                    $crate::push_rules!(
-                        $name,
-                        builder,
-                        ($($input_name),*) => $output,
-                        $(($($rule)*))*
-                    );
-                }
-
-                fn tracing_span(&self) -> tracing::Span {
-                    let __JudgmentStruct($($input_name),*) = self;
+            $crate::fixed_point::fixed_point::<
+                __JudgmentStruct,
+                $crate::collections::Set<$output>,
+            >(
+                // Tracing span:
+                |input| {
+                    let __JudgmentStruct($($input_name),*) = input;
                     tracing::debug_span!(
                         stringify!($name),
                         $(?$debug_input_name),*
                     )
-                }
-            }
+                },
 
-            $(let $input_name: $input_ty = $crate::cast::Upcast::upcast($input_name);)*
-            $crate::judgment::Judgment::apply(&__JudgmentStruct($($input_name),*))
+                // Stack:
+                {
+                    thread_local! {
+                        static R: $crate::judgment::JudgmentStack<__JudgmentStruct, $output> = Default::default()
+                    }
+                    &R
+                },
+
+                // Input:
+                __JudgmentStruct($($input_name),*),
+
+                // Default value:
+                |_| Default::default(),
+
+                // Next value:
+                |input: __JudgmentStruct| {
+                    let mut output = $crate::collections::Set::new();
+
+                    $crate::push_rules!(
+                        $name,
+                        &input,
+                        output,
+                        ($($input_name),*) => $output,
+                        $(($($rule)*))*
+                    );
+
+                    output
+                },
+            )
         }
     }
 }
@@ -129,27 +113,31 @@ macro_rules! judgment_fn {
 /// * `(<pat> => <binding>)
 #[macro_export]
 macro_rules! push_rules {
-    ($judgment_name:ident, $builder:expr, $input_names:tt => $output_ty:ty, $($rule:tt)*) => {
-        $($crate::push_rules!(@rule ($judgment_name, $builder, $input_names => $output_ty) $rule);)*
+    ($judgment_name:ident, $input_value:expr, $output:expr, $input_names:tt => $output_ty:ty, $($rule:tt)*) => {
+        $($crate::push_rules!(@rule ($judgment_name, $input_value, $output, $input_names => $output_ty) $rule);)*
     };
 
     // `@rule (builder) rule` phase: invoked for each rule, emits `push_rule` call
 
-    (@rule ($judgment_name:ident, $builder:expr, $input_names:tt => $output_ty:ty) ($($m:tt)*)) => {
-        $builder.push_rule($crate::push_rules!(@accum ($judgment_name, $input_names => $output_ty, ) $($m)*))
+    (@rule ($judgment_name:ident, $input_value:expr, $output:expr, $input_names:tt => $output_ty:ty) ($($m:tt)*)) => {
+        $crate::push_rules!(@accum
+            args($judgment_name, $input_value, $output, $input_names => $output_ty)
+            accum()
+            $($m)*
+        );
     };
 
     // `@accum (conditions)` phase: accumulates the contents of a given rule,
     // pushing tokens into `conditions` until the `-----` and conclusion are found.
 
-    (@accum ($judgment_name:ident, ($($input_names:ident),*) => $output_ty:ty, $($m:tt)*)
-    ---$(-)* ($n:literal)
+    (@accum
+        args($judgment_name:ident, $input_value:expr, $output:expr, ($($input_names:ident),*) => $output_ty:ty)
+        accum($($m:tt)*)
+        ---$(-)* ($n:literal)
         ($conclusion_name:ident($($patterns:tt)*) => $v:expr)
     ) => {
         // Found the conclusion.
-        |v| -> Vec<$output_ty> {
-            let mut output = vec![];
-
+        {
             // give the user a type error if the name they gave
             // in the conclusion is not the same as the name of the
             // function
@@ -159,23 +147,21 @@ macro_rules! push_rules {
                 $conclusion_name
             };
 
-            #[allow(irrefutable_let_patterns)]
-            if let __JudgmentStruct($($input_names),*) = v {
-                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*) args($judgment_name; $n; $v; output; $($m)*));
+            if let Some(__JudgmentStruct($($input_names),*)) = Some($input_value) {
+                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*) args($judgment_name; $n; $v; $output; $($m)*));
             }
-            output
         }
     };
 
-    (@accum ($judgment_name:ident, $input_names:tt => $output_ty:ty, $($m:tt)*) ($($n:tt)*) $($o:tt)*) => {
+    (@accum args $args:tt accum($($m:tt)*) ($($n:tt)*) $($o:tt)*) => {
         // Push the condition into the list `$m`.
-        $crate::push_rules!(@accum ($judgment_name, $input_names => $output_ty, $($m)* ($($n)*)) $($o)*)
+        $crate::push_rules!(@accum args $args accum($($m)* ($($n)*)) $($o)*)
     };
 
     // Matching phase: peel off the patterns one by one and match them against the values
     // extracted from the input. For anything that is not an identity pattern, invoke `downcast`.
 
-    (@match inputs() patterns() args($judgment_name:ident; $n:literal; $v:expr; $output:ident; $($m:tt)*)) => {
+    (@match inputs() patterns() args($judgment_name:ident; $n:literal; $v:expr; $output:expr; $($m:tt)*)) => {
         tracing::trace_span!("matched rule", rule = $n, judgment = stringify!($judgment_name)).in_scope(|| {
             $crate::push_rules!(@body ($judgment_name, $n, $v, $output) $($m)*);
         });
@@ -187,14 +173,14 @@ macro_rules! push_rules {
 
     (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident, $($pats:tt)*) args $args:tt) => {
         {
-            let $pat0 = $in0;
+            let $pat0 = Clone::clone($in0);
             $crate::push_rules!(@match inputs($($inputs)*) patterns($($pats)*) args $args);
         }
     };
 
     (@match inputs($in0:ident) patterns($pat0:ident) args $args:tt) => {
         {
-            let $pat0 = $in0;
+            let $pat0 = Clone::clone($in0);
             $crate::push_rules!(@match inputs() patterns() args $args);
         }
     };
@@ -256,11 +242,11 @@ macro_rules! push_rules {
         }
     };
 
-    (@body ($judgment_name:ident, $rule_name:literal, $v:expr, $output:ident)) => {
+    (@body ($judgment_name:ident, $rule_name:literal, $v:expr, $output:expr)) => {
         {
             let result = $crate::cast::Upcast::upcast($v);
             tracing::debug!("produced {:?} from rule {:?} in judgment {:?}", result, $rule_name, stringify!($judgment_name));
-            $output.push(result)
+            $output.insert(result)
         }
     };
 }
