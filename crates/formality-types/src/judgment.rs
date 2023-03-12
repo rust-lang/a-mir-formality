@@ -1,5 +1,5 @@
 use std::{
-    cell::RefCell, collections::BTreeSet, fmt::Debug, hash::Hash, sync::Arc, thread::LocalKey,
+    cell::RefCell, collections::BTreeSet, sync::Arc,
 };
 
 use crate::fixed_point::FixedPointStack;
