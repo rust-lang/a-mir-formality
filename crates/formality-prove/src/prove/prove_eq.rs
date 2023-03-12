@@ -45,11 +45,7 @@ judgment_fn! {
     ) => Constraints {
         debug(a, b, assumptions, env, program)
 
-        (
-            (if l == r)
-            ----------------------------- ("reflexive")
-            (prove_ty_eq(_program, env, _assumptions, l, r) => Constraints::none(env))
-        )
+        trivial(a == b => Constraints::none(env))
 
         (
             (prove_ty_eq(program, env, assumptions, r, l) => env_c)

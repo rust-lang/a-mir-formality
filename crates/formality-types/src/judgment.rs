@@ -17,7 +17,8 @@ macro_rules! judgment_fn {
     (
         $v:vis fn $name:ident($($input_name:ident : $input_ty:ty),* $(,)?) => $output:ty {
             debug($($debug_input_name:ident),*)
-            $(assert $assert_expr:expr;)*
+            $(assert($assert_expr:expr))*
+            $(trivial($trivial_expr:expr => $trivial_result:expr))*
             $(($($rule:tt)*))*
         }
     ) => {
@@ -40,7 +41,18 @@ macro_rules! judgment_fn {
 
             $(let $input_name: $input_ty = $crate::cast::Upcast::upcast($input_name);)*
 
-            $(assert!($assert_expr);)*
+            $(
+                // Assertions are preconditions
+                assert!($assert_expr);
+            )*
+
+            $(
+                // Trivial cases are an (important) optimization that lets
+                // you cut out all the normal rules.
+                if $trivial_expr {
+                    return std::iter::once($trivial_result).collect();
+                }
+            )*
 
             $crate::fixed_point::fixed_point::<
                 __JudgmentStruct,

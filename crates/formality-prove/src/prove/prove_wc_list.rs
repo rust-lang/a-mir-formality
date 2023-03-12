@@ -16,7 +16,7 @@ judgment_fn! {
     ) => Constraints {
         debug(goal, assumptions, env, program)
 
-        assert env.encloses((&assumptions, &goal));
+        assert(env.encloses((&assumptions, &goal)))
 
         (
             --- ("none")
