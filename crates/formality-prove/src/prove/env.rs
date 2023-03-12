@@ -75,22 +75,22 @@ impl Env {
 
     /// An env A *encloses* a term `v` if all free variables in `v`
     /// are defined in A.
-    pub fn assert_encloses(&self, v: impl Visit) {
-        v.free_variables().into_iter().for_each(|v| {
-            assert!(self.variables.contains(&v));
-        });
+    pub fn encloses(&self, v: impl Visit) -> bool {
+        v.free_variables()
+            .into_iter()
+            .all(|v| self.variables.contains(&v))
     }
 
     /// An env A is a *valid extension* of an env B if
     /// it contains a superset of the variables in B and
     /// it respects the ordering of all variables in B.
-    pub fn assert_valid_extension_of(&self, env0: &Env) {
-        self.assert_encloses(env0);
-        for i in 1..env0.variables.len() {
-            let v0_a = env0.variables[i - 1];
-            let v0_b = env0.variables[i];
-            assert!(self.universe(v0_a) < self.universe(v0_b));
-        }
+    pub fn is_valid_extension_of(&self, env0: &Env) -> bool {
+        self.encloses(env0)
+            && (1..env0.variables.len()).all(|i| {
+                let v0_a = env0.variables[i - 1];
+                let v0_b = env0.variables[i];
+                self.universe(v0_a) < self.universe(v0_b)
+            })
     }
 
     fn fresh_substituion<V>(

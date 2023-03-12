@@ -16,6 +16,8 @@ judgment_fn! {
     ) => Constraints {
         debug(goal, assumptions, env, program)
 
+        assert env.encloses((&assumptions, &goal));
+
         (
             --- ("none")
             (prove_wc_list(_program, env, _assumptions, ()) => Constraints::none(env))

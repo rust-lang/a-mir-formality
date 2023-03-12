@@ -45,12 +45,12 @@ pub fn prove(
         return set![Constraints::none(env).ambiguous()];
     }
 
-    env.assert_encloses(term_in);
+    assert!(env.encloses(term_in));
 
     let result_set = prove_wc_list(program, &env, assumptions, goal);
 
     result_set.iter().for_each(|constraints1| {
-        constraints1.assert_valid_extension_of(&env);
+        assert!(constraints1.is_valid_extension_of(&env));
     });
 
     tracing::debug!(?result_set);

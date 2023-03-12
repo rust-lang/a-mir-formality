@@ -1,6 +1,4 @@
-use std::{
-    cell::RefCell, collections::BTreeSet, sync::Arc,
-};
+use std::{cell::RefCell, collections::BTreeSet, sync::Arc};
 
 use crate::fixed_point::FixedPointStack;
 
@@ -19,6 +17,7 @@ macro_rules! judgment_fn {
     (
         $v:vis fn $name:ident($($input_name:ident : $input_ty:ty),* $(,)?) => $output:ty {
             debug($($debug_input_name:ident),*)
+            $(assert $assert_expr:expr;)*
             $(($($rule:tt)*))*
         }
     ) => {
@@ -40,6 +39,8 @@ macro_rules! judgment_fn {
             }
 
             $(let $input_name: $input_ty = $crate::cast::Upcast::upcast($input_name);)*
+
+            $(assert!($assert_expr);)*
 
             $crate::fixed_point::fixed_point::<
                 __JudgmentStruct,

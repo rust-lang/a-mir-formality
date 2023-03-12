@@ -120,7 +120,7 @@ fn equate_variable(
     // * Environment contains all free variables
     // * `p` is some compound type, not a variable
     //   (variables are handled via special rules above)
-    env.assert_encloses((x, (&assumptions, &p)));
+    assert!(env.encloses((x, (&assumptions, &p))));
     assert!(!p.is_a::<Variable>());
 
     let fvs = p.free_variables().deduplicate();
