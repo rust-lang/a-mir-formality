@@ -34,7 +34,7 @@ fn minimize_a() {
     "#]]
     .assert_debug_eq(&(&env, &term));
 
-    let (mut env_min, mut term_min, m) = minimize(env, term);
+    let (mut env_min, term_min, m) = minimize(env, term);
 
     expect![[r#"
         (

@@ -1,6 +1,5 @@
 use formality_types::{
-    cast::{Downcast, DowncastFrom},
-    derive_links::DowncastTo,
+    cast::Downcast,
     grammar::{
         AliasTy, AtomicRelation, InferenceVar, Parameter, RigidTy, TyData, Variable, Wc, WcData,
         Wcs,
