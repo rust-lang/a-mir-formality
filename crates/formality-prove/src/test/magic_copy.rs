@@ -2,14 +2,14 @@ use expect_test::expect;
 use formality_macros::test;
 use formality_types::parse::term;
 
-use crate::program::Program;
+use crate::decls::Decls;
 
 use super::test_prove;
 
-/// Simple example program consisting only of two trait declarations.
-fn program() -> Program {
-    Program {
-        max_size: Program::DEFAULT_MAX_SIZE,
+/// Simple example decls consisting only of two trait declarations.
+fn decls() -> Decls {
+    Decls {
+        max_size: Decls::DEFAULT_MAX_SIZE,
         trait_decls: vec![
             term("trait Copy<ty Self> where {}"),
             term("trait Magic<ty Self> where {Copy(Self)}"),
@@ -25,7 +25,7 @@ fn program() -> Program {
 
 #[test]
 fn all_t_not_magic() {
-    let constraints = test_prove(program(), term("{} => {for<ty T> Magic(T)}"));
+    let constraints = test_prove(decls(), term("{} => {for<ty T> Magic(T)}"));
     expect![[r#"
         {}
     "#]]
@@ -34,7 +34,7 @@ fn all_t_not_magic() {
 
 #[test]
 fn all_t_not_copy() {
-    let constraints = test_prove(program(), term("{} => {for<ty T> Copy(T)}"));
+    let constraints = test_prove(decls(), term("{} => {for<ty T> Copy(T)}"));
     expect![[r#"
         {}
     "#]]

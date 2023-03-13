@@ -1,7 +1,7 @@
 use formality_types::{grammar::Wcs, judgment_fn};
 
 use crate::{
-    program::Program,
+    decls::Decls,
     prove::{constraints::Constraints, prove_after::prove_after},
 };
 
@@ -9,25 +9,25 @@ use super::{env::Env, prove_wc::prove_wc};
 
 judgment_fn! {
     pub fn prove_wc_list(
-        program: Program,
+        decls: Decls,
         env: Env,
         assumptions: Wcs,
         goal: Wcs,
     ) => Constraints {
-        debug(goal, assumptions, env, program)
+        debug(goal, assumptions, env, decls)
 
         assert(env.encloses((&assumptions, &goal)))
 
         (
             --- ("none")
-            (prove_wc_list(_program, env, _assumptions, ()) => Constraints::none(env))
+            (prove_wc_list(_decls, env, _assumptions, ()) => Constraints::none(env))
         )
 
         (
-            (prove_wc(&program, env, &assumptions, wc0) => c)
-            (prove_after(&program, c, &assumptions, &wcs1) => c)
+            (prove_wc(&decls, env, &assumptions, wc0) => c)
+            (prove_after(&decls, c, &assumptions, &wcs1) => c)
             --- ("some")
-            (prove_wc_list(program, env, assumptions, (wc0, wcs1)) => c)
+            (prove_wc_list(decls, env, assumptions, (wc0, wcs1)) => c)
         )
     }
 }

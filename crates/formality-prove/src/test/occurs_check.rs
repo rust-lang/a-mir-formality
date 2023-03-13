@@ -2,14 +2,14 @@ use expect_test::expect;
 use formality_macros::test;
 use formality_types::parse::term;
 
-use crate::program::Program;
+use crate::decls::Decls;
 
 use super::test_prove;
 
-/// Simple example program consisting only of two trait declarations.
-fn program() -> Program {
-    Program {
-        max_size: Program::DEFAULT_MAX_SIZE,
+/// Simple example decls consisting only of two trait declarations.
+fn decls() -> Decls {
+    Decls {
+        max_size: Decls::DEFAULT_MAX_SIZE,
         trait_decls: vec![term("trait Foo<ty Self> where {}")],
         impl_decls: vec![term("impl<ty T> Foo(Vec<T>) where {}")],
         alias_eq_decls: vec![],
@@ -20,7 +20,7 @@ fn program() -> Program {
 /// Test that `X = Vec<X>` cannot be solved
 #[test]
 fn direct_cycle() {
-    let constraints = test_prove(program(), term("exists<ty A> {} => {A = Vec<A>}"));
+    let constraints = test_prove(decls(), term("exists<ty A> {} => {A = Vec<A>}"));
     expect![[r#"
         {}
     "#]]
@@ -30,7 +30,7 @@ fn direct_cycle() {
 /// Test that `X = Vec<Y>` can be solved
 #[test]
 fn eq_variable_to_rigid() {
-    let constraints = test_prove(program(), term("exists<ty X, ty Y> {} => {X = Vec<Y>}"));
+    let constraints = test_prove(decls(), term("exists<ty X, ty Y> {} => {X = Vec<Y>}"));
     expect![[r#"
         {
             Constraints {
@@ -55,7 +55,7 @@ fn eq_variable_to_rigid() {
 /// Test that `Vec<Y> = X` can be solved
 #[test]
 fn eq_rigid_to_variable() {
-    let constraints = test_prove(program(), term("exists<ty X, ty Y> {} => {Vec<Y> = X}"));
+    let constraints = test_prove(decls(), term("exists<ty X, ty Y> {} => {Vec<Y> = X}"));
     expect![[r#"
         {
             Constraints {
@@ -81,7 +81,7 @@ fn eq_rigid_to_variable() {
 #[test]
 fn indirect_cycle_1() {
     let constraints = test_prove(
-        program(),
+        decls(),
         term("exists<ty A, ty B> {} => {A = Vec<B>, B = A}"),
     );
     expect![[r#"
@@ -94,7 +94,7 @@ fn indirect_cycle_1() {
 #[test]
 fn indirect_cycle_2() {
     let constraints = test_prove(
-        program(),
+        decls(),
         term("exists<ty A, ty B> {} => {B = A, A = Vec<B>}"),
     );
     expect![[r#"

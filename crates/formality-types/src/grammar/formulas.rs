@@ -218,6 +218,10 @@ impl AtomicRelation {
         Self::Equals(p1.upcast(), p2.upcast())
     }
 
+    pub fn outlives(p1: impl Upcast<Parameter>, p2: impl Upcast<Parameter>) -> Self {
+        Self::Outlives(p1.upcast(), p2.upcast())
+    }
+
     pub fn sub(p1: impl Upcast<Parameter>, p2: impl Upcast<Parameter>) -> Self {
         Self::Sub(p1.upcast(), p2.upcast())
     }
@@ -246,6 +250,18 @@ impl TraitRef {
             trait_id: id.clone(),
             parameters: parameters.upcast(),
         }
+    }
+}
+
+impl TraitId {
+    pub fn with(
+        &self,
+        self_ty: impl Upcast<Ty>,
+        parameters: impl Upcast<Vec<Parameter>>,
+    ) -> TraitRef {
+        let self_ty: Ty = self_ty.upcast();
+        let parameters: Vec<Parameter> = parameters.upcast();
+        TraitRef::new(self, (Some(self_ty), parameters))
     }
 }
 

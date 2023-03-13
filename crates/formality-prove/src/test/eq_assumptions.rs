@@ -2,14 +2,14 @@ use expect_test::expect;
 use formality_macros::test;
 use formality_types::parse::term;
 
-use crate::program::Program;
+use crate::decls::Decls;
 
 use super::test_prove;
 
 #[test]
 fn test_a() {
     let constraints = test_prove(
-        Program::empty(),
+        Decls::empty(),
         term("{} => {for<ty T, ty U> if {T = u32, U = Vec<T>} U = Vec<u32>}"),
     );
     expect![[r#"
@@ -29,7 +29,7 @@ fn test_a() {
 #[test]
 fn test_b() {
     let constraints = test_prove(
-        Program::empty(),
+        Decls::empty(),
         term("exists<ty A> {} => {for<ty T, ty U> if {T = u32, U = Vec<T>} A = U}"),
     );
     expect![[r#"
@@ -55,7 +55,7 @@ fn test_b() {
 #[test]
 fn test_normalize_assoc_ty() {
     let constraints = test_prove(
-        Program::empty(),
+        Decls::empty(),
         term("{} => {for<ty T> if { <T as Iterator>::Item = u32 } <T as Iterator>::Item = u32}"),
     );
     expect![[r#"
@@ -75,7 +75,7 @@ fn test_normalize_assoc_ty() {
 #[test]
 fn test_normalize_assoc_ty_inference0() {
     let constraints = test_prove(
-        Program::empty(),
+        Decls::empty(),
         term("exists<ty A> {} => {for<ty T> if { <T as Iterator>::Item = u32 } <A as Iterator>::Item = u32}"),
     );
     expect![[r#"
@@ -87,7 +87,7 @@ fn test_normalize_assoc_ty_inference0() {
 #[test]
 fn test_normalize_assoc_ty_inference1() {
     let constraints = test_prove(
-        Program::empty(),
+        Decls::empty(),
         term(
             "\
             forall<ty T> \

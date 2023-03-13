@@ -305,11 +305,10 @@ name = "formality-rust"
 version = "0.1.0"
 dependencies = [
  "expect-test",
- "formality-check",
  "formality-core",
- "formality-decl",
  "formality-macros",
  "formality-mir",
+ "formality-prove",
  "formality-types",
  "tracing",
 ]

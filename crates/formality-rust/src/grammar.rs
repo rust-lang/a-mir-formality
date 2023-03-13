@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
-use formality_decl::grammar::{FieldName, VariantId};
 use formality_macros::term;
 use formality_mir::grammar::MirFnBody;
 use formality_types::{
-    grammar::{AdtId, AssociatedItemId, Binder, CrateId, FnId, Lt, Parameter, TraitId, Ty},
+    grammar::{
+        AdtId, AssociatedItemId, Binder, CrateId, FieldId, FnId, Lt, Parameter, TraitId, Ty,
+    },
     term::Term,
 };
 
@@ -49,6 +50,23 @@ pub struct StructBoundData {
 pub struct Field {
     pub name: FieldName,
     pub ty: Ty,
+}
+
+#[term]
+pub enum FieldName {
+    #[cast]
+    Id(FieldId),
+    #[cast]
+    Index(usize),
+}
+
+formality_types::id!(VariantId);
+
+impl VariantId {
+    /// Returns the special variant-id used for the single variant of a struct.
+    pub fn for_struct() -> Self {
+        VariantId::new("struct")
+    }
 }
 
 #[term(enum $id $binder)]

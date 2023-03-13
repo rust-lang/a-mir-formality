@@ -10,9 +10,8 @@ formality-types = { path = "../formality-types" }
 formality-macros = { path = "../formality-macros" }
 formality-core = { path = "../formality-core" }
 formality-mir = { path = "../formality-mir" }
-formality-decl = { path = "../formality-decl" }
+formality-prove = { path = "../formality-prove" }
 tracing = "0.1"
-formality-check = { version = "0.1.0", path = "../formality-check" }
 
 [dev-dependencies]
 expect-test = "1.4.0"

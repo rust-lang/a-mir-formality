@@ -12,6 +12,8 @@ macro_rules! id {
             use $crate::parse::{self, Parse};
             use $crate::visit::Visit;
 
+            $crate::cast_impl!($n);
+
             impl $n {
                 pub fn new(s: &str) -> $n {
                     $n {

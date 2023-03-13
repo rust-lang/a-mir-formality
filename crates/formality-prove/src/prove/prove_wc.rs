@@ -4,7 +4,7 @@ use formality_types::{
 };
 
 use crate::{
-    program::Program,
+    decls::Decls,
     prove::{env::Env, prove_apr::prove_apr},
 };
 
@@ -12,31 +12,31 @@ use super::constraints::Constraints;
 
 judgment_fn! {
     pub fn prove_wc(
-        program: Program,
+        decls: Decls,
         env: Env,
         assumptions: Wcs,
         goal: Wc,
     ) => Constraints {
-        debug(goal, assumptions, env, program)
+        debug(goal, assumptions, env, decls)
 
         (
-            (prove_apr(program, env, assumptions, a) => c)
+            (prove_apr(decls, env, assumptions, a) => c)
             --- ("atomic")
-            (prove_wc(program, env, assumptions, WcData::Atomic(a)) => c)
+            (prove_wc(decls, env, assumptions, WcData::Atomic(a)) => c)
         )
 
         (
             (let (env, subst) = env.universal_substitution(&binder))
             (let p1 = binder.instantiate_with(&subst).unwrap())
-            (prove_wc(program, env, &assumptions, p1) => c)
+            (prove_wc(decls, env, &assumptions, p1) => c)
             --- ("forall")
-            (prove_wc(program, env, assumptions, WcData::ForAll(binder)) => c.pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, WcData::ForAll(binder)) => c.pop_subst(&subst))
         )
 
         (
-            (prove_wc(program, env, (assumptions, p1), p2) => c)
+            (prove_wc(decls, env, (assumptions, p1), p2) => c)
             --- ("implies")
-            (prove_wc(program, env, assumptions, WcData::Implies(p1, p2)) => c)
+            (prove_wc(decls, env, assumptions, WcData::Implies(p1, p2)) => c)
         )
     }
 }

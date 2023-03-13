@@ -54,7 +54,8 @@ impl<T: Fold> Binder<T> {
 
     /// Given a set of variables (X, Y, Z) and a term referecing some subset of them,
     /// create a binder where exactly those variables are bound (even the ones not used).
-    pub fn new(variables: &[impl Upcast<Variable>], term: T) -> Self {
+    pub fn new(variables: impl Upcast<Vec<Variable>>, term: T) -> Self {
+        let variables: Vec<Variable> = variables.upcast();
         let (kinds, substitution): (Vec<ParameterKind>, Substitution) = variables
             .iter()
             .zip(0..)

@@ -4,7 +4,7 @@ use formality_types::{
 };
 
 use crate::{
-    program::Program,
+    decls::Decls,
     prove::{
         env::Env,
         prove,
@@ -18,47 +18,47 @@ use super::constraints::Constraints;
 
 judgment_fn! {
     pub fn prove_apr(
-        program: Program,
+        decls: Decls,
         env: Env,
         assumptions: Wcs,
         goal: APR,
     ) => Constraints {
-        debug(goal, assumptions, env, program)
+        debug(goal, assumptions, env, decls)
 
         (
             (&assumptions => a)
-            (prove_apr_via(&program, &env, &assumptions, a, &goal) => c)
+            (prove_apr_via(&decls, &env, &assumptions, a, &goal) => c)
             ----------------------------- ("assumption")
-            (prove_apr(program, env, assumptions, goal) => c)
+            (prove_apr(decls, env, assumptions, goal) => c)
         )
 
         (
-            (program.impl_decls(&trait_ref.trait_id) => i)
+            (decls.impl_decls(&trait_ref.trait_id) => i)
             (let (env, subst) = env.existential_substitution(&i.binder))
             (let i = i.binder.instantiate_with(&subst).unwrap())
-            (let t = program.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
+            (let t = decls.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
             (let co_assumptions = (&assumptions, &trait_ref))
-            (prove(&program, env, &co_assumptions, all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
-            (prove_after(&program, c, &co_assumptions, &i.where_clause) => c)
-            (prove_after(&program, c, &assumptions, &t.where_clause) => c)
+            (prove(&decls, env, &co_assumptions, all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
+            (prove_after(&decls, c, &co_assumptions, &i.where_clause) => c)
+            (prove_after(&decls, c, &assumptions, &t.where_clause) => c)
             ----------------------------- ("impl")
-            (prove_apr(program, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_apr(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
-            (program.trait_invariants() => ti)
+            (decls.trait_invariants() => ti)
             (let (env, subst) = env.existential_substitution(&ti.binder))
             (let ti = ti.binder.instantiate_with(&subst).unwrap())
-            (prove_apr_via(&program, env, &assumptions, &ti.where_clause, &trait_ref) => c)
-            (prove_after(&program, c, &assumptions, &ti.trait_ref) => c)
+            (prove_apr_via(&decls, env, &assumptions, &ti.where_clause, &trait_ref) => c)
+            (prove_after(&decls, c, &assumptions, &ti.trait_ref) => c)
             ----------------------------- ("trait implied bound")
-            (prove_apr(program, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_apr(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
-            (prove_ty_eq(program, env, assumptions, a, b) => c)
+            (prove_ty_eq(decls, env, assumptions, a, b) => c)
             ----------------------------- ("eq")
-            (prove_apr(program, env, assumptions, AtomicRelation::Equals(Parameter::Ty(a), Parameter::Ty(b))) => c)
+            (prove_apr(decls, env, assumptions, AtomicRelation::Equals(Parameter::Ty(a), Parameter::Ty(b))) => c)
         )
     }
 }

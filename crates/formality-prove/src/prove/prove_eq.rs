@@ -10,7 +10,7 @@ use formality_types::{
 };
 
 use crate::{
-    program::Program,
+    decls::Decls,
     prove::{
         constraints::occurs_in, prove, prove_after::prove_after, prove_normalize::prove_normalize,
     },
@@ -37,89 +37,89 @@ pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> AtomicRelatio
 
 judgment_fn! {
     pub fn prove_ty_eq(
-        program: Program,
+        decls: Decls,
         env: Env,
         assumptions: Wcs,
         a: Ty,
         b: Ty,
     ) => Constraints {
-        debug(a, b, assumptions, env, program)
+        debug(a, b, assumptions, env, decls)
 
         trivial(a == b => Constraints::none(env))
 
         (
-            (prove_ty_eq(program, env, assumptions, r, l) => env_c)
+            (prove_ty_eq(decls, env, assumptions, r, l) => env_c)
             ----------------------------- ("symmetric")
-            (prove_ty_eq(program, env, assumptions, l, r) => env_c)
+            (prove_ty_eq(decls, env, assumptions, l, r) => env_c)
         )
 
         (
             (let RigidTy { name: a_name, parameters: a_parameters } = a)
             (let RigidTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)
-            (prove(program, env, assumptions, all_eq(a_parameters, b_parameters)) => c)
+            (prove(decls, env, assumptions, all_eq(a_parameters, b_parameters)) => c)
             ----------------------------- ("rigid")
-            (prove_ty_eq(program, env, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
+            (prove_ty_eq(decls, env, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
         )
 
         (
             (let AliasTy { name: a_name, parameters: a_parameters } = a)
             (let AliasTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)
-            (prove(program, env, assumptions, all_eq(a_parameters, b_parameters)) => env_c)
+            (prove(decls, env, assumptions, all_eq(a_parameters, b_parameters)) => env_c)
             ----------------------------- ("alias")
-            (prove_ty_eq(program, env, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => env_c)
+            (prove_ty_eq(decls, env, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => env_c)
         )
 
         (
-            (prove_existential_var_eq(program, env, assumptions, v, r) => c)
+            (prove_existential_var_eq(decls, env, assumptions, v, r) => c)
             ----------------------------- ("existential-nonvar")
-            (prove_ty_eq(program, env, assumptions, Variable::InferenceVar(v), r) => c)
+            (prove_ty_eq(decls, env, assumptions, Variable::InferenceVar(v), r) => c)
         )
 
         (
-            (prove_normalize(&program, env, &assumptions, &x) => (c, y))
-            (prove_after(&program, c, &assumptions, eq(y, &z)) => c)
+            (prove_normalize(&decls, env, &assumptions, &x) => (c, y))
+            (prove_after(&decls, c, &assumptions, eq(y, &z)) => c)
             ----------------------------- ("normalize-l")
-            (prove_ty_eq(program, env, assumptions, x, z) => c)
+            (prove_ty_eq(decls, env, assumptions, x, z) => c)
         )
     }
 }
 
 judgment_fn! {
     pub fn prove_existential_var_eq(
-        program: Program,
+        decls: Decls,
         env: Env,
         assumptions: Wcs,
         v: InferenceVar,
         b: Parameter,
     ) => Constraints {
-        debug(v, b, assumptions, env, program)
+        debug(v, b, assumptions, env, decls)
 
         (
             (if let None = t.downcast::<Variable>())
-            (equate_variable(program, env, assumptions, v, t) => c)
+            (equate_variable(decls, env, assumptions, v, t) => c)
             ----------------------------- ("existential-nonvar")
-            (prove_existential_var_eq(program, env, assumptions, v, t) => c)
+            (prove_existential_var_eq(decls, env, assumptions, v, t) => c)
         )
 
         (
             // Map the higher rank variable to the lower rank one.
             (let (a, b) = env.order_by_universe(l, r))
             ----------------------------- ("existential-existential")
-            (prove_existential_var_eq(_program, env, _assumptions, l, Variable::InferenceVar(r)) => (env, (b, a)))
+            (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::InferenceVar(r)) => (env, (b, a)))
         )
 
         (
             (if env.universe(p) < env.universe(v))
             ----------------------------- ("existential-placeholder")
-            (prove_existential_var_eq(_program, env, _assumptions, v, Variable::PlaceholderVar(p)) => (env, (v, p)))
+            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::PlaceholderVar(p)) => (env, (v, p)))
         )
     }
 }
 
 fn equate_variable(
-    program: Program,
+    decls: Decls,
     mut env: Env,
     assumptions: Wcs,
     x: InferenceVar,
@@ -188,5 +188,5 @@ fn equate_variable(
 
     tracing::debug!("equated: constraints={:?}, goals={:?}", constraints, goals);
 
-    prove_after(program, constraints, assumptions, goals)
+    prove_after(decls, constraints, assumptions, goals)
 }

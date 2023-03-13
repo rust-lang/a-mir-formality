@@ -210,12 +210,16 @@ pub struct AliasTy {
 
 impl AliasTy {
     pub fn associated_ty(
-        trait_id: TraitId,
-        item_id: AssociatedItemId,
+        trait_id: impl Upcast<TraitId>,
+        item_id: impl Upcast<AssociatedItemId>,
         parameters: impl Upcast<Vec<Parameter>>,
     ) -> Self {
         AliasTy {
-            name: AssociatedTyName { trait_id, item_id }.upcast(),
+            name: AssociatedTyName {
+                trait_id: trait_id.upcast(),
+                item_id: item_id.upcast(),
+            }
+            .upcast(),
             parameters: parameters.upcast(),
         }
     }

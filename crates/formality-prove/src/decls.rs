@@ -5,7 +5,7 @@ use formality_types::{
 };
 
 #[term]
-pub struct Program {
+pub struct Decls {
     pub max_size: usize,
     pub trait_decls: Vec<TraitDecl>,
     pub impl_decls: Vec<ImplDecl>,
@@ -13,7 +13,7 @@ pub struct Program {
     pub alias_bound_decls: Vec<AliasBoundDecl>,
 }
 
-impl Program {
+impl Decls {
     /// Max size used in unit tests that are not stress testing maximum size.
     pub const DEFAULT_MAX_SIZE: usize = 222;
 
@@ -58,7 +58,7 @@ impl Program {
 
     pub fn empty() -> Self {
         Self {
-            max_size: Program::DEFAULT_MAX_SIZE,
+            max_size: Decls::DEFAULT_MAX_SIZE,
             trait_decls: vec![],
             impl_decls: vec![],
             alias_eq_decls: vec![],

@@ -7,7 +7,7 @@ use formality_types::{
 };
 
 use crate::{
-    program::Program,
+    decls::Decls,
     prove::{prove, Constraints, Env},
 };
 
@@ -34,7 +34,7 @@ enum TestAssertion {
 /// Returns the constraints that result from proving assumptions/goals. These will reference
 /// existential variables created for the bindings, so they're really just suitable for
 /// using with expect.
-fn test_prove(program: Program, mut assertion: Arc<TestAssertion>) -> Set<Constraints> {
+fn test_prove(decls: Decls, mut assertion: Arc<TestAssertion>) -> Set<Constraints> {
     let mut env = Env::default();
 
     loop {
@@ -54,7 +54,7 @@ fn test_prove(program: Program, mut assertion: Arc<TestAssertion>) -> Set<Constr
             }
 
             TestAssertion::Prove(assumptions, goals) => {
-                return prove(program, env, assumptions, goals);
+                return prove(decls, env, assumptions, goals);
             }
         }
     }
