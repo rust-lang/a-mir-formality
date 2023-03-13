@@ -225,7 +225,7 @@ macro_rules! push_rules {
         if $c {
             $crate::push_rules!(@body $args $($m)*);
         } else {
-            tracing::debug!("failed to match if condition {:?}", stringify!($c))
+            tracing::trace!("failed to match if condition {:?}", stringify!($c))
         }
     };
 
@@ -238,7 +238,7 @@ macro_rules! push_rules {
         if let $p = $e {
             $crate::push_rules!(@body $args $($m)*);
         } else {
-            tracing::debug!("failed to match pattern {:?}", stringify!($p))
+            tracing::trace!("failed to match pattern {:?}", stringify!($p))
         }
     };
 

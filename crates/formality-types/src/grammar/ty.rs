@@ -286,6 +286,10 @@ impl Parameter {
         }
     }
 
+    pub fn is_variable(&self) -> bool {
+        self.as_variable().is_some()
+    }
+
     pub fn as_variable(&self) -> Option<Variable> {
         match self {
             Parameter::Ty(v) => v.as_variable(),

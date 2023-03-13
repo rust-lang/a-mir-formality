@@ -1,5 +1,10 @@
 use formality_types::{
-    grammar::{AliasTy, AtomicRelation, Parameter, RigidTy, TyData, Variable, Wc, WcData, Wcs},
+    cast::{Downcast, DowncastFrom},
+    derive_links::DowncastTo,
+    grammar::{
+        AliasTy, AtomicRelation, InferenceVar, Parameter, RigidTy, TyData, Variable, Wc, WcData,
+        Wcs,
+    },
     judgment_fn,
 };
 
@@ -59,7 +64,36 @@ judgment_fn! {
     ) => (Constraints, Parameter) {
         debug(goal, via, assumptions, env, program)
 
+        // The following 2 rules handle normalization of inference variables. We look specifically for
+        // the case of a assumption `?X = Y`, which lets us normalize `?X` to `Y`, and ignore
+        // everything else. In principle, we could allow the more general normalization rules
+        // below handle this case too, but that generates a LOT of false paths, and I *believe*
+        // it is unnecessary (FIXME: prove this).
+
         (
+            (if let Some(Variable::InferenceVar(v_a)) = a.downcast())
+            (if v_goal == v_a)
+            ----------------------------- ("var-axiom-l")
+            (prove_normalize_via(_program, env, _assumptions, AtomicRelation::Equals(a, b), Variable::InferenceVar(v_goal)) => (Constraints::none(env), b))
+        )
+
+        (
+            (if let Some(Variable::InferenceVar(v_a)) = a.downcast())
+            (if v_goal == v_a)
+            ----------------------------- ("var-axiom-r")
+            (prove_normalize_via(_program, env, _assumptions, AtomicRelation::Equals(b, a), Variable::InferenceVar(v_goal)) => (Constraints::none(env), b))
+        )
+
+        // The following 2 rules handle normalization of a type `X` given an assumption `X = Y`.
+        // We can't just check for `goal == a` though because we sometimes need to bind inference
+        // variables. Consider normalizing `R<?X>` given an assumption `R<u32> = Y`: this can be
+        // normalized to `Y` given the constraint `?X = u32`.
+        //
+        // We don't use these rules to normalize an inference variable `?X` because such a goal
+        // could be equated to everything, and thus generates a ton of spurious paths.
+
+        (
+            (if let None = goal.downcast::<InferenceVar>())
             (if goal != b)
             (prove_syntactically_eq(program, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(&b))
@@ -68,12 +102,15 @@ judgment_fn! {
         )
 
         (
+            (if let None = goal.downcast::<InferenceVar>())
             (if goal != b)
             (prove_syntactically_eq(program, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(&b))
             ----------------------------- ("axiom-r")
             (prove_normalize_via(program, env, assumptions, AtomicRelation::Equals(b, a), goal) => (c, b))
         )
+
+        // These rules handle the the ∀ and ⇒ cases.
 
         (
             (let (env, subst) = env.existential_substitution(&binder))
