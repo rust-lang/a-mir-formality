@@ -2,7 +2,7 @@ use formality_types::{
     cast::{Downcast, Upcast, Upcasted},
     collections::{Deduplicate, Set},
     grammar::{
-        AliasTy, InferenceVar, Parameter, PlaceholderVar, Relation, RigidTy, Substitution, Ty,
+        AliasTy, InferenceVar, Parameter, PlaceholderVar, Relation, RigidTy, Substitution,
         TyData, Variable, Wcs,
     },
     judgment_fn, set,

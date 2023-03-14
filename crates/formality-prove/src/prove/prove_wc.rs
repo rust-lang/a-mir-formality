@@ -1,5 +1,5 @@
 use formality_types::{
-    grammar::{Parameter, Predicate, Relation, Wc, WcData, Wcs},
+    grammar::{Predicate, Relation, Wc, WcData, Wcs},
     judgment_fn,
 };
 
