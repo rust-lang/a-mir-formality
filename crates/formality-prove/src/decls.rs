@@ -1,11 +1,15 @@
 use formality_macros::term;
 use formality_types::{
+    cast::Upcast,
     collections::Set,
-    grammar::{AliasName, AliasTy, Binder, TraitId, TraitRef, Ty, TyData, Wc, Wcs},
+    grammar::{
+        AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc, Wcs,
+        PR,
+    },
 };
 
 #[term]
-pub struct Program {
+pub struct Decls {
     pub max_size: usize,
     pub trait_decls: Vec<TraitDecl>,
     pub impl_decls: Vec<ImplDecl>,
@@ -13,7 +17,7 @@ pub struct Program {
     pub alias_bound_decls: Vec<AliasBoundDecl>,
 }
 
-impl Program {
+impl Decls {
     /// Max size used in unit tests that are not stress testing maximum size.
     pub const DEFAULT_MAX_SIZE: usize = 222;
 
@@ -58,7 +62,7 @@ impl Program {
 
     pub fn empty() -> Self {
         Self {
-            max_size: Program::DEFAULT_MAX_SIZE,
+            max_size: Decls::DEFAULT_MAX_SIZE,
             trait_decls: vec![],
             impl_decls: vec![],
             alias_eq_decls: vec![],
@@ -90,8 +94,27 @@ impl TraitDecl {
     /// this would return the set `{trait_invariant(<ty Self> Ord(Self) => PartialOrd(Self)}`
     pub fn trait_invariants(&self) -> Set<TraitInvariant> {
         let (variables, TraitDeclBoundData { where_clause }) = self.binder.open();
+        let self_var: Parameter = variables[0].upcast();
+
+        fn is_supertrait(self_var: &Parameter, wc: &Wc) -> bool {
+            match wc.data() {
+                formality_types::grammar::WcData::PR(PR::Predicate(Predicate::IsImplemented(
+                    trait_ref,
+                ))) => trait_ref.parameters[0] == *self_var,
+                formality_types::grammar::WcData::PR(PR::Relation(Relation::Outlives(a, _))) => {
+                    *a == *self_var
+                }
+                formality_types::grammar::WcData::PR(_) => false,
+                formality_types::grammar::WcData::ForAll(binder) => {
+                    is_supertrait(self_var, binder.peek())
+                }
+                formality_types::grammar::WcData::Implies(_, c) => is_supertrait(self_var, c),
+            }
+        }
+
         where_clause
             .into_iter()
+            .filter(|where_clause| is_supertrait(&self_var, where_clause))
             .map(|where_clause| TraitInvariant {
                 binder: Binder::new(
                     &variables,
@@ -129,16 +152,6 @@ pub struct AliasEqDecl {
 impl AliasEqDecl {
     pub fn alias_name(&self) -> AliasName {
         self.binder.peek().alias.name.clone()
-    }
-
-    /// True if the target of this alias-eq declaration
-    /// is a rigid type.
-    pub fn target_is_rigid(&self) -> bool {
-        if let TyData::RigidTy(_) = self.binder.peek().ty.data() {
-            true
-        } else {
-            false
-        }
     }
 }
 

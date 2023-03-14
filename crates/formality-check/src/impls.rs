@@ -1,14 +1,14 @@
 use anyhow::bail;
 use contracts::requires;
 use fn_error_context::context;
-use formality_decl::grammar::{
+use formality_prove::Env;
+use formality_rust::grammar::{
     AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
-    FnBoundData, ImplItem, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem,
+    FnBoundData, ImplItem, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem, WhereClause,
 };
-use formality_logic::Env;
 use formality_types::{
-    cast::{Downcasted, To},
-    grammar::{Binder, Fallible, Goal, Hypothesis, Substitution},
+    cast::Downcasted,
+    grammar::{Binder, Fallible, Relation, Substitution, Wcs},
     term::Term,
     visit::Visit,
 };
@@ -21,16 +21,18 @@ impl super::Check<'_> {
         let mut env = Env::default();
 
         let TraitImplBoundData {
-            trait_ref,
+            trait_id,
+            self_ty,
+            trait_parameters,
             where_clauses,
             impl_items,
         } = env.instantiate_universally(binder);
 
-        let assumptions: Vec<Hypothesis> = where_clauses.to();
+        let trait_ref = trait_id.with(self_ty, trait_parameters);
 
-        self.prove_where_clauses_well_formed(&env, &assumptions, &where_clauses)?;
+        self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?;
 
-        self.prove_goal(&env, &assumptions, trait_ref.is_implemented())?;
+        self.prove_goal(&env, &where_clauses, trait_ref.is_implemented())?;
 
         let trait_decl = self.program.trait_named(&trait_ref.trait_id)?;
         let TraitBoundData {
@@ -39,7 +41,7 @@ impl super::Check<'_> {
         } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?;
 
         for impl_item in &impl_items {
-            self.check_trait_impl_item(&env, &assumptions, &trait_items, impl_item)?;
+            self.check_trait_impl_item(&env, &where_clauses, &trait_items, impl_item)?;
         }
 
         Ok(())
@@ -49,7 +51,7 @@ impl super::Check<'_> {
     fn check_trait_impl_item(
         &self,
         env: &Env,
-        assumptions: &[Hypothesis],
+        assumptions: &[WhereClause],
         trait_items: &[TraitItem],
         impl_item: &ImplItem,
     ) -> Fallible<()> {
@@ -61,15 +63,17 @@ impl super::Check<'_> {
         }
     }
 
-    #[context("check_fn_in_impl")]
-    #[requires(impl_assumptions.iter().all(|a| a.references_only_placeholder_variables()))]
     fn check_fn_in_impl(
         &self,
         env: &Env,
-        impl_assumptions: &[Hypothesis],
+        impl_assumptions: &[WhereClause],
         trait_items: &[TraitItem],
         ii_fn: &Fn,
     ) -> Fallible<()> {
+        assert!(
+            env.only_universal_variables() && env.encloses((impl_assumptions, trait_items, ii_fn))
+        );
+
         // Find the corresponding function from the trait:
         let ti_fn = match trait_items
             .iter()
@@ -90,18 +94,20 @@ impl super::Check<'_> {
                 input_tys: ii_input_tys,
                 output_ty: ii_output_ty,
                 where_clauses: ii_where_clauses,
+                body: _,
             },
             FnBoundData {
                 input_tys: ti_input_tys,
                 output_ty: ti_output_ty,
                 where_clauses: ti_where_clauses,
+                body: _,
             },
         ) = env.instantiate_universally(&self.merge_binders(&ii_fn.binder, &ti_fn.binder)?);
 
         self.prove_goal(
             &env,
             (impl_assumptions, &ti_where_clauses),
-            Goal::all(&ii_where_clauses),
+            &ii_where_clauses,
         )?;
 
         if ii_input_tys.len() != ti_input_tys.len() {
@@ -116,14 +122,14 @@ impl super::Check<'_> {
             self.prove_goal(
                 &env,
                 (impl_assumptions, &ii_where_clauses),
-                Goal::sub(ti_input_ty, ii_input_ty),
+                Relation::sub(ti_input_ty, ii_input_ty),
             )?;
         }
 
         self.prove_goal(
             &env,
             (impl_assumptions, &ii_where_clauses),
-            Goal::sub(ii_output_ty, ti_output_ty),
+            Relation::sub(ii_output_ty, ti_output_ty),
         )?;
 
         Ok(())
@@ -132,7 +138,7 @@ impl super::Check<'_> {
     fn check_associated_ty_value(
         &self,
         impl_env: &Env,
-        impl_assumptions: &[Hypothesis],
+        impl_assumptions: &[WhereClause],
         trait_items: &[TraitItem],
         impl_value: &AssociatedTyValue,
     ) -> Fallible<()> {
@@ -169,7 +175,7 @@ impl super::Check<'_> {
         self.prove_goal(
             &env,
             (impl_assumptions, &ti_where_clauses),
-            Goal::all(&ii_where_clauses),
+            &ii_where_clauses,
         )?;
 
         self.prove_goal(
@@ -178,12 +184,8 @@ impl super::Check<'_> {
             ii_ty.well_formed(),
         )?;
 
-        let ensures = ti_ensures.instantiate_with(&[ii_ty])?;
-        self.prove_goal(
-            &env,
-            (impl_assumptions, &ii_where_clauses),
-            Goal::all(ensures),
-        )?;
+        let ensures: Wcs = ti_ensures.iter().map(|e| e.to_wc(&ii_ty)).collect();
+        self.prove_goal(&env, (impl_assumptions, &ii_where_clauses), ensures)?;
 
         Ok(())
     }

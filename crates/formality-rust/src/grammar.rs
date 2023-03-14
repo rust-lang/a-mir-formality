@@ -1,18 +1,47 @@
 use std::sync::Arc;
 
-use formality_decl::grammar::{FieldName, VariantId};
 use formality_macros::term;
-use formality_mir::grammar::MirFnBody;
 use formality_types::{
-    grammar::{AdtId, AssociatedItemId, Binder, CrateId, FnId, Lt, Parameter, TraitId, Ty},
+    cast::Upcast,
+    grammar::{
+        AdtId, AssociatedItemId, Binder, CrateId, Fallible, FieldId, FnId, Lt, Parameter, TraitId,
+        TraitRef, Ty,
+    },
     term::Term,
 };
+
+use crate::grammar::mir::MirFnBody;
+
+pub mod mir;
 
 #[term($crates)]
 pub struct Program {
     /// List of all crates.
     /// The last crate in the list is the current crate.
     pub crates: Vec<Crate>,
+}
+
+impl Program {
+    pub fn items_from_all_crates(&self) -> impl Iterator<Item = &CrateItem> {
+        self.crates.iter().flat_map(|c| &c.items)
+    }
+
+    pub fn trait_named(&self, trait_id: &TraitId) -> Fallible<&Trait> {
+        let mut traits: Vec<&Trait> = self
+            .items_from_all_crates()
+            .filter_map(|crate_item| match crate_item {
+                CrateItem::Trait(t) if t.id == *trait_id => Some(t),
+                _ => None,
+            })
+            .collect();
+        if traits.len() < 1 {
+            anyhow::bail!("no trait named `{trait_id:?}`")
+        } else if traits.len() > 1 {
+            anyhow::bail!("multiple traits named `{trait_id:?}`")
+        } else {
+            Ok(traits.pop().unwrap())
+        }
+    }
 }
 
 #[term(crate $id { $*items })]
@@ -31,12 +60,39 @@ pub enum CrateItem {
     Trait(Trait),
     #[cast]
     TraitImpl(TraitImpl),
+    #[cast]
+    Fn(Fn),
 }
 
 #[term(struct $id $binder)]
 pub struct Struct {
     pub id: AdtId,
     pub binder: Binder<StructBoundData>,
+}
+
+impl Struct {
+    pub fn to_adt(&self) -> Adt {
+        let (
+            vars,
+            StructBoundData {
+                where_clauses,
+                fields,
+            },
+        ) = self.binder.open();
+        Adt {
+            id: self.id.clone(),
+            binder: Binder::new(
+                &vars,
+                AdtBoundData {
+                    where_clauses: where_clauses,
+                    variants: vec![Variant {
+                        name: VariantId::for_struct(),
+                        fields,
+                    }],
+                },
+            ),
+        }
+    }
 }
 
 #[term(where $where_clauses { $,fields })]
@@ -51,14 +107,48 @@ pub struct Field {
     pub ty: Ty,
 }
 
+#[term]
+pub enum FieldName {
+    #[cast]
+    Id(FieldId),
+    #[cast]
+    Index(usize),
+}
+
+formality_types::id!(VariantId);
+
+impl VariantId {
+    /// Returns the special variant-id used for the single variant of a struct.
+    pub fn for_struct() -> Self {
+        VariantId::new("struct")
+    }
+}
+
 #[term(enum $id $binder)]
 pub struct Enum {
     pub id: AdtId,
-    pub binder: Binder<EnumBoundData>,
+    pub binder: Binder<AdtBoundData>,
+}
+
+impl Enum {
+    pub fn to_adt(&self) -> Adt {
+        Adt {
+            id: self.id.clone(),
+            binder: self.binder.clone(),
+        }
+    }
+}
+
+/// Not directly part of the grammar, but structs/enums
+/// can be converted to this.
+#[term(adt $id $binder)]
+pub struct Adt {
+    pub id: AdtId,
+    pub binder: Binder<AdtBoundData>,
 }
 
 #[term(where $where_clauses { $,variants })]
-pub struct EnumBoundData {
+pub struct AdtBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub variants: Vec<Variant>,
 }
@@ -80,6 +170,12 @@ pub struct Trait {
 #[derive(Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct TraitBinder<T: Term> {
     pub explicit_binder: Binder<T>,
+}
+
+impl<T: Term> TraitBinder<T> {
+    pub fn instantiate_with(&self, parameters: &[impl Upcast<Parameter>]) -> Fallible<T> {
+        self.explicit_binder.instantiate_with(parameters)
+    }
 }
 
 #[term(where $where_clauses { $*trait_items })]
@@ -156,6 +252,12 @@ pub struct TraitImplBoundData {
     pub trait_parameters: Vec<Parameter>,
     pub where_clauses: Vec<WhereClause>,
     pub impl_items: Vec<ImplItem>,
+}
+
+impl TraitImplBoundData {
+    pub fn trait_ref(&self) -> TraitRef {
+        self.trait_id.with(&self.self_ty, &self.trait_parameters)
+    }
 }
 
 #[term]

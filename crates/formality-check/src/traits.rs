@@ -1,12 +1,9 @@
 use fn_error_context::context;
-use formality_decl::grammar::{
-    AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem,
+use formality_prove::Env;
+use formality_rust::grammar::{
+    AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, WhereClause,
 };
-use formality_logic::Env;
-use formality_types::{
-    cast::{To, Upcast},
-    grammar::{Fallible, Hypothesis},
-};
+use formality_types::grammar::Fallible;
 
 impl super::Check<'_> {
     #[context("check_trait({:?})", t.id)]
@@ -17,16 +14,14 @@ impl super::Check<'_> {
         let TraitBoundData {
             where_clauses,
             trait_items,
-        } = env.instantiate_universally(binder);
-
-        let assumptions: Vec<Hypothesis> = where_clauses.to();
+        } = env.instantiate_universally(&binder.explicit_binder);
 
         self.check_trait_items_have_unique_names(&trait_items)?;
 
-        self.prove_where_clauses_well_formed(&env, &assumptions, &where_clauses)?;
+        self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?;
 
         for trait_item in &trait_items {
-            self.check_trait_item(&env, &assumptions, trait_item)?;
+            self.check_trait_item(&env, &where_clauses, trait_item)?;
         }
 
         Ok(())
@@ -40,23 +35,23 @@ impl super::Check<'_> {
     fn check_trait_item(
         &self,
         env: &Env,
-        assumptions: &[Hypothesis],
+        where_clauses: &[WhereClause],
         trait_item: &TraitItem,
     ) -> Fallible<()> {
         match trait_item {
-            TraitItem::Fn(v) => self.check_fn_in_trait(env, assumptions, v),
-            TraitItem::AssociatedTy(v) => self.check_associated_ty(env, assumptions, v),
+            TraitItem::Fn(v) => self.check_fn_in_trait(env, where_clauses, v),
+            TraitItem::AssociatedTy(v) => self.check_associated_ty(env, where_clauses, v),
         }
     }
 
-    fn check_fn_in_trait(&self, env: &Env, assumptions: &[Hypothesis], f: &Fn) -> Fallible<()> {
-        self.check_fn(env, assumptions, f)
+    fn check_fn_in_trait(&self, env: &Env, where_clauses: &[WhereClause], f: &Fn) -> Fallible<()> {
+        self.check_fn(env, where_clauses, f)
     }
 
     fn check_associated_ty(
         &self,
         trait_env: &Env,
-        trait_assumptions: &[Hypothesis],
+        trait_where_clauses: &[WhereClause],
         associated_ty: &AssociatedTy,
     ) -> Fallible<()> {
         let mut env = trait_env.clone();
@@ -67,9 +62,11 @@ impl super::Check<'_> {
             where_clauses,
         } = env.instantiate_universally(binder);
 
-        let assumptions: Vec<Hypothesis> = (trait_assumptions, &where_clauses).upcast();
-
-        self.prove_where_clauses_well_formed(&env, &assumptions, &where_clauses)?;
+        self.prove_where_clauses_well_formed(
+            &env,
+            (trait_where_clauses, &where_clauses),
+            &where_clauses,
+        )?;
 
         // FIXME: Do we prove ensures WF? And what do we assume when we do so?
 

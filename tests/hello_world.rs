@@ -1,7 +1,4 @@
-#![allow(non_snake_case)]
-#![cfg(FIXME)]
-
-use formality_rust::test_program_ok;
+use formality::test_program_ok;
 
 const PROGRAM_BROKEN: &str = "[
     crate Foo {
@@ -24,23 +21,18 @@ const PROGRAM_OK: &str = "[
 ]";
 
 #[test]
-#[ignore]
 fn test_broken() {
     expect_test::expect![[r#"
         Err(
             Error {
                 context: "check_trait(Foo)",
-                source: Error {
-                    context: "prove_where_clause_well_formed([Bar(!tyU(1)_1, !tyU(1)_0)] => Bar(!tyU(1)_1, !tyU(1)_0)",
-                    source: "could not prove `well_formed_trait_ref(Bar(!tyU(1)_1, !tyU(1)_0))` given `[\n    Bar(!tyU(1)_1, !tyU(1)_0),\n]`",
-                },
+                source: "failed to prove {@ WellFormedTraitRef(Bar(!ty_2, !ty_1))} given [!ty_2 : Bar < !ty_1 >], got {}",
             },
         )
     "#]].assert_debug_eq(&test_program_ok(PROGRAM_BROKEN));
 }
 
 #[test]
-#[ignore]
 fn test_ok() {
     expect_test::expect![[r#"
         Ok(

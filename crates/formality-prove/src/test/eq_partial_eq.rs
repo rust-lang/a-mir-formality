@@ -5,12 +5,12 @@ use formality_types::{
     parse::term,
 };
 
-use crate::{program::Program, prove::prove};
+use crate::{decls::Decls, prove::prove};
 
-/// Simple example program consisting only of two trait declarations.
-fn program() -> Program {
-    Program {
-        max_size: Program::DEFAULT_MAX_SIZE,
+/// Simple example decls consisting only of two trait declarations.
+fn decls() -> Decls {
+    Decls {
+        max_size: Decls::DEFAULT_MAX_SIZE,
         trait_decls: vec![
             term("trait Eq<ty Self> where {PartialEq(Self)}"),
             term("trait PartialEq<ty Self> where {}"),
@@ -25,7 +25,7 @@ fn program() -> Program {
 fn eq_implies_partial_eq() {
     let assumptions: Wcs = Wcs::t();
     let goal: Wc = term("for<ty T> if {Eq(T)} PartialEq(T)");
-    let constraints = prove(program(), (), assumptions, goal);
+    let constraints = prove(decls(), (), assumptions, goal);
     expect![[r#"
         {
             Constraints {
@@ -43,7 +43,7 @@ fn eq_implies_partial_eq() {
 #[test]
 fn not_partial_eq_implies_eq() {
     let goal: Wc = term("for<ty T> if {PartialEq(T)} Eq(T)");
-    let constraints = prove(program(), (), (), goal);
+    let constraints = prove(decls(), (), (), goal);
     expect![[r#"
         {}
     "#]]
@@ -53,7 +53,7 @@ fn not_partial_eq_implies_eq() {
 #[test]
 fn placeholders_not_eq() {
     let goal: Wc = term("for<ty T, ty U> if {Eq(T)} PartialEq(U)");
-    let constraints = prove(program(), (), (), goal);
+    let constraints = prove(decls(), (), (), goal);
     expect![[r#"
         {}
     "#]]

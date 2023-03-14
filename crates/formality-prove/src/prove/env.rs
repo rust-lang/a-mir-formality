@@ -4,13 +4,21 @@ use formality_types::{
     cast_impl,
     collections::Set,
     fold::Fold,
-    grammar::{Binder, InferenceVar, ParameterKind, PlaceholderVar, VarIndex, Variable},
+    grammar::{
+        Binder, InferenceVar, ParameterKind, PlaceholderVar, VarIndex, VarSubstitution, Variable,
+    },
     visit::Visit,
 };
 
 #[derive(Default, Debug, Clone, Hash, Ord, Eq, PartialEq, PartialOrd)]
 pub struct Env {
     variables: Vec<Variable>,
+}
+
+impl Env {
+    pub fn only_universal_variables(&self) -> bool {
+        self.variables.iter().all(|v| v.is_universal())
+    }
 }
 
 cast_impl!(Env);
@@ -51,6 +59,13 @@ impl Env {
         }
     }
 
+    pub fn fresh_existential(&mut self, kind: ParameterKind) -> InferenceVar {
+        let var_index = self.fresh_index();
+        let v = InferenceVar { kind, var_index };
+        self.variables.push(v.upcast());
+        v
+    }
+
     pub fn insert_fresh_before(&mut self, kind: ParameterKind, rank: Universe) -> InferenceVar {
         let var_index = self.fresh_index();
         let v = InferenceVar { kind, var_index };
@@ -73,22 +88,22 @@ impl Env {
 
     /// An env A *encloses* a term `v` if all free variables in `v`
     /// are defined in A.
-    pub fn assert_encloses(&self, v: impl Visit) {
-        v.free_variables().into_iter().for_each(|v| {
-            assert!(self.variables.contains(&v));
-        });
+    pub fn encloses(&self, v: impl Visit) -> bool {
+        v.free_variables()
+            .into_iter()
+            .all(|v| self.variables.contains(&v))
     }
 
     /// An env A is a *valid extension* of an env B if
     /// it contains a superset of the variables in B and
     /// it respects the ordering of all variables in B.
-    pub fn assert_valid_extension_of(&self, env0: &Env) {
-        self.assert_encloses(env0);
-        for i in 1..env0.variables.len() {
-            let v0_a = env0.variables[i - 1];
-            let v0_b = env0.variables[i];
-            assert!(self.universe(v0_a) < self.universe(v0_b));
-        }
+    pub fn is_valid_extension_of(&self, env0: &Env) -> bool {
+        self.encloses(env0)
+            && (1..env0.variables.len()).all(|i| {
+                let v0_a = env0.variables[i - 1];
+                let v0_b = env0.variables[i];
+                self.universe(v0_a) < self.universe(v0_b)
+            })
     }
 
     fn fresh_substituion<V>(
@@ -122,6 +137,17 @@ impl Env {
         (env, subst)
     }
 
+    pub fn instantiate_universally<T>(&mut self, b: &Binder<T>) -> T
+    where
+        T: Fold,
+    {
+        let subst = self.fresh_substituion(b.kinds(), |kind, var_index| PlaceholderVar {
+            kind,
+            var_index,
+        });
+        b.instantiate_with(&subst).unwrap()
+    }
+
     pub fn existential_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<InferenceVar>)
     where
         T: Fold,
@@ -153,6 +179,31 @@ impl Env {
         }
 
         self.variables.drain(universe_p0.index..).collect()
+    }
+
+    /// Retain only those variables found in `vs`, returns the discarded variables
+    pub fn remove_variables_unless_within(&mut self, vs: &[Variable]) -> Vec<Variable> {
+        let (kept, discarded) = self.variables.iter().partition(|v| vs.contains(v));
+        self.variables = kept;
+        discarded
+    }
+
+    pub fn variables(&self) -> &[Variable] {
+        &self.variables
+    }
+
+    pub fn substitute(&self, vs: &VarSubstitution) -> Self {
+        Self {
+            variables: self
+                .variables
+                .iter()
+                .map(|&v| vs.map_var(v).unwrap_or(v))
+                .collect(),
+        }
+    }
+
+    pub fn defines(&self, v: Variable) -> bool {
+        self.variables.contains(&v)
     }
 }
 

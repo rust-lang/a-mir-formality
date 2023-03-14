@@ -1,4 +1,4 @@
-use formality_decl::grammar::VariantId;
+use super::VariantId;
 use formality_macros::term;
 use formality_types::{
     cast::{Downcast, DowncastFrom, Upcast},

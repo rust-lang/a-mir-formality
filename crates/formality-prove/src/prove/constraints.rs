@@ -10,9 +10,9 @@ use super::env::Env;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Constraints {
-    env: Env,
-    known_true: bool,
-    substitution: Substitution,
+    pub env: Env,
+    pub known_true: bool,
+    pub substitution: Substitution,
 }
 
 cast_impl!(Constraints);
@@ -33,13 +33,17 @@ impl Constraints {
         Self::from(env, v)
     }
 
+    pub fn unconditionally_true(&self) -> bool {
+        self.known_true && self.substitution.is_empty()
+    }
+
     pub fn from(
         env: Env,
         iter: impl IntoIterator<Item = (impl Upcast<Variable>, impl Upcast<Parameter>)>,
     ) -> Self {
         let substitution: Substitution = iter.into_iter().collect();
-        env.assert_encloses(substitution.range());
-        env.assert_encloses(substitution.domain());
+        assert!(env.encloses(substitution.range()));
+        assert!(env.encloses(substitution.domain()));
         let c2 = Constraints {
             env,
             substitution,
@@ -75,7 +79,7 @@ impl Constraints {
 
         self.assert_valid();
         c2.assert_valid();
-        c2.assert_valid_extension_of(&self.env);
+        assert!(c2.is_valid_extension_of(&self.env));
 
         // This substitution should have already been applied to produce
         // `c2`, therefore we don't expect any bindings for *our* variables.
@@ -117,8 +121,8 @@ impl Constraints {
         self
     }
 
-    pub fn assert_valid_extension_of(&self, env0: &Env) {
-        self.env.assert_valid_extension_of(env0)
+    pub fn is_valid_extension_of(&self, env0: &Env) -> bool {
+        self.env.is_valid_extension_of(env0)
     }
 }
 
@@ -158,8 +162,8 @@ impl Visit for Constraints {
         let domain = substitution.domain();
         let range = substitution.range();
 
-        env.assert_encloses(&domain);
-        env.assert_encloses(&range);
+        assert!(env.encloses(&domain));
+        assert!(env.encloses(&range));
 
         // No variable in the domain appears in any part of the range;
         // this prevents the obvious occurs check violations like `X = Vec<X>`

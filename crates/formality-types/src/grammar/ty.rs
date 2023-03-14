@@ -13,7 +13,7 @@ use crate::{
     fold::Fold,
 };
 
-use super::{AdtId, AssociatedItemId, Binder, FnId, Predicate, TraitId};
+use super::{AdtId, AssociatedItemId, Binder, FnId, TraitId};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ty {
@@ -210,12 +210,16 @@ pub struct AliasTy {
 
 impl AliasTy {
     pub fn associated_ty(
-        trait_id: TraitId,
-        item_id: AssociatedItemId,
+        trait_id: impl Upcast<TraitId>,
+        item_id: impl Upcast<AssociatedItemId>,
         parameters: impl Upcast<Vec<Parameter>>,
     ) -> Self {
         AliasTy {
-            name: AssociatedTyName { trait_id, item_id }.upcast(),
+            name: AssociatedTyName {
+                trait_id: trait_id.upcast(),
+                item_id: item_id.upcast(),
+            }
+            .upcast(),
             parameters: parameters.upcast(),
         }
     }
@@ -236,23 +240,6 @@ pub struct AssociatedTyName {
 #[term]
 pub enum PredicateTy {
     ForAll(Binder<Ty>),
-    Exists(Binder<Ty>),
-    #[cast]
-    ImplicationTy(ImplicationTy),
-    #[cast]
-    EnsuresTy(EnsuresTy),
-}
-
-#[term(implies($predicates, $ty))]
-pub struct ImplicationTy {
-    pub predicates: Vec<Predicate>,
-    pub ty: Ty,
-}
-
-#[term(ensures($ty, $predicates))]
-pub struct EnsuresTy {
-    pub ty: Ty,
-    pub predicates: Vec<Predicate>,
 }
 
 /// A *placeholder* is a dummy variable about which nothing is known except
@@ -284,6 +271,10 @@ impl Parameter {
             Parameter::Ty(_) => ParameterKind::Ty,
             Parameter::Lt(_) => ParameterKind::Lt,
         }
+    }
+
+    pub fn is_variable(&self) -> bool {
+        self.as_variable().is_some()
     }
 
     pub fn as_variable(&self) -> Option<Variable> {
@@ -495,6 +486,14 @@ impl Variable {
             }) => false,
         }
     }
+
+    pub fn is_universal(&self) -> bool {
+        match self {
+            Variable::PlaceholderVar(_) => true,
+            Variable::InferenceVar(_) => false,
+            Variable::BoundVar(_) => false,
+        }
+    }
 }
 
 impl Visit for Variable {
@@ -631,6 +630,11 @@ impl Substitution {
 
     pub fn iter(&self) -> impl Iterator<Item = (Variable, Parameter)> + '_ {
         self.map.iter().map(|(v, p)| (*v, p.clone()))
+    }
+
+    /// An empty substitution is just the identity function.
+    pub fn is_empty(&self) -> bool {
+        self.map.is_empty()
     }
 }
 
@@ -789,6 +793,19 @@ impl VarSubstitution {
 
     pub fn apply<T: Fold>(&self, t: &T) -> T {
         t.substitute(&mut |v| Some(self.map.get(&v)?.upcast()))
+    }
+
+    pub fn map_var(&self, v: Variable) -> Option<Variable> {
+        self.map.get(&v).copied()
+    }
+
+    pub fn maps_var(&self, v: Variable) -> bool {
+        self.map.contains_key(&v)
+    }
+
+    pub fn insert_mapping(&mut self, from: impl Upcast<Variable>, to: impl Upcast<Variable>) {
+        let x = self.map.insert(from.upcast(), to.upcast());
+        assert!(x.is_none());
     }
 }
 

@@ -3,14 +3,14 @@ use std::sync::Arc;
 use formality_macros::term;
 
 use crate::{
-    cast::{DowncastFrom, DowncastTo, Upcast, UpcastFrom},
+    cast::{DowncastFrom, DowncastTo, Upcast, UpcastFrom, Upcasted},
     cast_impl,
     collections::{Set, SetExt},
-    grammar::APR,
+    grammar::PR,
     set,
 };
 
-use super::{AtomicPredicate, AtomicRelation, Binder, BoundVar, TraitRef};
+use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef};
 
 #[term($set)]
 pub struct Wcs {
@@ -20,6 +20,18 @@ pub struct Wcs {
 impl Wcs {
     pub fn t() -> Self {
         set![].upcast()
+    }
+
+    /// Goal(s) to prove `a` and `b` are equal (they must have equal length)
+    pub fn all_eq(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) -> Wcs {
+        let a: Vec<Parameter> = a.upcast();
+        let b: Vec<Parameter> = b.upcast();
+        assert_eq!(a.len(), b.len());
+        a.into_iter()
+            .zip(b)
+            .map(|(a, b)| Relation::eq(a, b))
+            .upcasted()
+            .collect()
     }
 }
 
@@ -119,7 +131,7 @@ impl Wc {
 #[term]
 pub enum WcData {
     #[cast]
-    Atomic(APR),
+    PR(PR),
 
     #[grammar(for $v0)]
     ForAll(Binder<Wc>),
@@ -150,10 +162,10 @@ impl DowncastFrom<Wc> for WcData {
 
 // ---
 
-cast_impl!((APR) <: (WcData) <: (Wc));
-cast_impl!((AtomicRelation) <: (APR) <: (Wc));
-cast_impl!((AtomicPredicate) <: (APR) <: (Wc));
-cast_impl!((TraitRef) <: (APR) <: (Wc));
+cast_impl!((PR) <: (WcData) <: (Wc));
+cast_impl!((Relation) <: (PR) <: (Wc));
+cast_impl!((Predicate) <: (PR) <: (Wc));
+cast_impl!((TraitRef) <: (PR) <: (Wc));
 
 impl UpcastFrom<Wc> for Wcs {
     fn upcast_from(term: Wc) -> Self {
@@ -171,7 +183,7 @@ impl DowncastTo<Wc> for Wcs {
     }
 }
 
-cast_impl!((APR) <: (Wc) <: (Wcs));
-cast_impl!((AtomicRelation) <: (Wc) <: (Wcs));
-cast_impl!((AtomicPredicate) <: (Wc) <: (Wcs));
+cast_impl!((PR) <: (Wc) <: (Wcs));
+cast_impl!((Relation) <: (Wc) <: (Wcs));
+cast_impl!((Predicate) <: (Wc) <: (Wcs));
 cast_impl!((TraitRef) <: (Wc) <: (Wcs));

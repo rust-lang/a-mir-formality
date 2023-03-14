@@ -200,8 +200,10 @@ dependencies = [
 name = "formality"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "clap",
- "formality-core",
+ "expect-test",
+ "formality-check",
  "formality-rust",
  "formality-types",
  "pretty_assertions",
@@ -216,9 +218,9 @@ dependencies = [
  "expect-test",
  "fn-error-context",
  "formality-core",
- "formality-decl",
  "formality-macros",
- "formality-mir",
+ "formality-prove",
+ "formality-rust",
  "formality-types",
  "itertools",
  "tracing",
@@ -236,19 +238,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "formality-decl"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "contracts",
- "expect-test",
- "formality-core",
- "formality-macros",
- "formality-types",
- "tracing",
-]
-
-[[package]]
 name = "formality-macros"
 version = "0.1.0"
 dependencies = [
@@ -259,31 +248,6 @@ dependencies = [
  "syn",
  "synstructure",
  "tracing",
-]
-
-[[package]]
-name = "formality-main"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "formality-rust",
- "formality-types",
-]
-
-[[package]]
-name = "formality-mir"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "env_logger",
- "expect-test",
- "formality-decl",
- "formality-macros",
- "formality-types",
- "test-log",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -304,12 +268,11 @@ dependencies = [
 name = "formality-rust"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "expect-test",
- "formality-check",
  "formality-core",
- "formality-decl",
  "formality-macros",
- "formality-mir",
+ "formality-prove",
  "formality-types",
  "tracing",
 ]
@@ -569,17 +532,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bab24d30b911b2376f3a13cc2cd443142f0c81dda04c118693e35b3835757755"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "test-log"
-version = "0.2.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38f0c854faeb68a048f0f2dc410c5ddae3bf83854ef0e4977d58306a5edef50e"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
