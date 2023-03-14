@@ -8,7 +8,7 @@ use formality_rust::grammar::{
 };
 use formality_types::{
     cast::Downcasted,
-    grammar::{AtomicRelation, Binder, Fallible, Substitution, Wcs},
+    grammar::{Binder, Fallible, Relation, Substitution, Wcs},
     term::Term,
     visit::Visit,
 };
@@ -122,14 +122,14 @@ impl super::Check<'_> {
             self.prove_goal(
                 &env,
                 (impl_assumptions, &ii_where_clauses),
-                AtomicRelation::sub(ti_input_ty, ii_input_ty),
+                Relation::sub(ti_input_ty, ii_input_ty),
             )?;
         }
 
         self.prove_goal(
             &env,
             (impl_assumptions, &ii_where_clauses),
-            AtomicRelation::sub(ii_output_ty, ti_output_ty),
+            Relation::sub(ii_output_ty, ti_output_ty),
         )?;
 
         Ok(())

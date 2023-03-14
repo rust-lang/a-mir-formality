@@ -1,5 +1,5 @@
 use formality_types::{
-    grammar::{AtomicRelation, Parameter, Predicate, Wcs, APR},
+    grammar::{Parameter, Predicate, Relation, Wcs, PR},
     judgment_fn,
 };
 
@@ -21,7 +21,7 @@ judgment_fn! {
         decls: Decls,
         env: Env,
         assumptions: Wcs,
-        goal: APR,
+        goal: PR,
     ) => Constraints {
         debug(goal, assumptions, env, decls)
 
@@ -58,7 +58,7 @@ judgment_fn! {
         (
             (prove_ty_eq(decls, env, assumptions, a, b) => c)
             ----------------------------- ("eq")
-            (prove_apr(decls, env, assumptions, AtomicRelation::Equals(Parameter::Ty(a), Parameter::Ty(b))) => c)
+            (prove_apr(decls, env, assumptions, Relation::Equals(Parameter::Ty(a), Parameter::Ty(b))) => c)
         )
     }
 }

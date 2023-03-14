@@ -1,8 +1,7 @@
 use formality_types::{
     cast::Downcast,
     grammar::{
-        AliasTy, AtomicRelation, InferenceVar, Parameter, RigidTy, TyData, Variable, Wc, WcData,
-        Wcs,
+        AliasTy, InferenceVar, Parameter, Relation, RigidTy, TyData, Variable, Wc, WcData, Wcs,
     },
     judgment_fn,
 };
@@ -73,14 +72,14 @@ judgment_fn! {
             (if let Some(Variable::InferenceVar(v_a)) = a.downcast())
             (if v_goal == v_a)
             ----------------------------- ("var-axiom-l")
-            (prove_normalize_via(_decls, env, _assumptions, AtomicRelation::Equals(a, b), Variable::InferenceVar(v_goal)) => (Constraints::none(env), b))
+            (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(a, b), Variable::InferenceVar(v_goal)) => (Constraints::none(env), b))
         )
 
         (
             (if let Some(Variable::InferenceVar(v_a)) = a.downcast())
             (if v_goal == v_a)
             ----------------------------- ("var-axiom-r")
-            (prove_normalize_via(_decls, env, _assumptions, AtomicRelation::Equals(b, a), Variable::InferenceVar(v_goal)) => (Constraints::none(env), b))
+            (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(b, a), Variable::InferenceVar(v_goal)) => (Constraints::none(env), b))
         )
 
         // The following 2 rules handle normalization of a type `X` given an assumption `X = Y`.
@@ -97,7 +96,7 @@ judgment_fn! {
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(&b))
             ----------------------------- ("axiom-l")
-            (prove_normalize_via(decls, env, assumptions, AtomicRelation::Equals(a, b), goal) => (c, b))
+            (prove_normalize_via(decls, env, assumptions, Relation::Equals(a, b), goal) => (c, b))
         )
 
         (
@@ -106,7 +105,7 @@ judgment_fn! {
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(&b))
             ----------------------------- ("axiom-r")
-            (prove_normalize_via(decls, env, assumptions, AtomicRelation::Equals(b, a), goal) => (c, b))
+            (prove_normalize_via(decls, env, assumptions, Relation::Equals(b, a), goal) => (c, b))
         )
 
         // These rules handle the the ∀ and ⇒ cases.

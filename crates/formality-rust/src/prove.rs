@@ -7,8 +7,7 @@ use formality_prove as prove;
 use formality_types::{
     cast::{To, Upcast, Upcasted},
     grammar::{
-        fresh_bound_var, AliasTy, AtomicRelation, Binder, ParameterKind, Predicate, Ty, Wc, Wcs,
-        APR,
+        fresh_bound_var, AliasTy, Binder, ParameterKind, Predicate, Relation, Ty, Wc, Wcs, PR,
     },
     seq,
 };
@@ -257,9 +256,9 @@ macro_rules! upcast_to_wcs {
 upcast_to_wcs! {
     Wc,
     Wcs,
-    APR,
+    PR,
     Predicate,
-    AtomicRelation,
+    Relation,
 }
 
 impl<A, B> ToWcs for (A, B)
@@ -293,7 +292,7 @@ impl ToWcs for WhereClause {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
                 trait_id.with(self_ty, parameters).upcast()
             }
-            WhereClauseData::Outlives(a, b) => AtomicRelation::outlives(a, b).upcast(),
+            WhereClauseData::Outlives(a, b) => Relation::outlives(a, b).upcast(),
             WhereClauseData::ForAll(binder) => {
                 let (vars, wc) = binder.open();
                 wc.to_wcs()
@@ -313,7 +312,7 @@ impl WhereBound {
             WhereBoundData::IsImplemented(trait_id, parameters) => {
                 trait_id.with(self_ty, parameters).upcast()
             }
-            WhereBoundData::Outlives(lt) => AtomicRelation::outlives(self_ty, lt).upcast(),
+            WhereBoundData::Outlives(lt) => Relation::outlives(self_ty, lt).upcast(),
             WhereBoundData::ForAll(binder) => {
                 let (vars, bound) = binder.open();
                 Wc::for_all(&vars, bound.to_wc(self_ty))

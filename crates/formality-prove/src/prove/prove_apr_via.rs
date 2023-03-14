@@ -1,5 +1,5 @@
 use formality_types::{
-    grammar::{WcData, Wcs, APR},
+    grammar::{WcData, Wcs, PR},
     judgment_fn,
 };
 
@@ -16,7 +16,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         via: WcData,
-        goal: APR,
+        goal: PR,
     ) => Constraints {
         debug(goal, via, assumptions, env, decls)
 
@@ -26,7 +26,7 @@ judgment_fn! {
             (if skel_c == skel_g)
             (prove(decls, env, assumptions, all_eq(parameters_c, parameters_g)) => c)
             ----------------------------- ("predicate-congruence-axiom")
-            (prove_apr_via(decls, env, assumptions, APR::AtomicPredicate(predicate), goal) => c)
+            (prove_apr_via(decls, env, assumptions, PR::Predicate(predicate), goal) => c)
         )
 
         (
@@ -35,7 +35,7 @@ judgment_fn! {
             (if skel_c == skel_g)
             (if parameters_c == parameters_g) // for relations, we require 100% match
             ----------------------------- ("relation-axiom")
-            (prove_apr_via(_decls, env, _assumptions, APR::AtomicRelation(relation), goal) => Constraints::none(env))
+            (prove_apr_via(_decls, env, _assumptions, PR::Relation(relation), goal) => Constraints::none(env))
         )
 
         (

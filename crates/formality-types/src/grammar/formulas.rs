@@ -80,19 +80,19 @@ impl AliasTy {
 }
 
 impl Ty {
-    pub fn well_formed(&self) -> AtomicRelation {
-        AtomicRelation::WellFormed(self.upcast())
+    pub fn well_formed(&self) -> Relation {
+        Relation::WellFormed(self.upcast())
     }
 }
 
 impl Parameter {
     /// Well-formed goal for a parameter
-    pub fn well_formed(&self) -> AtomicRelation {
-        AtomicRelation::WellFormed(self.to())
+    pub fn well_formed(&self) -> Relation {
+        Relation::WellFormed(self.to())
     }
 
-    pub fn outlives(&self, b: impl Upcast<Parameter>) -> AtomicRelation {
-        AtomicRelation::Outlives(self.clone(), b.upcast())
+    pub fn outlives(&self, b: impl Upcast<Parameter>) -> Relation {
+        Relation::Outlives(self.clone(), b.upcast())
     }
 }
 
@@ -168,7 +168,7 @@ impl AdtId {
 
 /// Relations are built-in goals which are implemented in custom Rust logic.
 #[term]
-pub enum AtomicRelation {
+pub enum Relation {
     #[grammar($v0 = $v1)]
     Equals(Parameter, Parameter),
 
@@ -182,15 +182,15 @@ pub enum AtomicRelation {
     WellFormed(Parameter),
 }
 
-impl AtomicRelation {
+impl Relation {
     /// Capture a few trivial cases; we screen these out to cleanup the results
     /// from queries.
     pub fn is_trivially_true(&self) -> bool {
         match self {
-            AtomicRelation::Equals(a, b) => a == b,
-            AtomicRelation::Sub(a, b) => a == b,
-            AtomicRelation::Outlives(a, b) => a == b,
-            AtomicRelation::WellFormed(_) => false,
+            Relation::Equals(a, b) => a == b,
+            Relation::Sub(a, b) => a == b,
+            Relation::Outlives(a, b) => a == b,
+            Relation::WellFormed(_) => false,
         }
     }
 
@@ -208,10 +208,10 @@ impl AtomicRelation {
 
     pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
         match self {
-            AtomicRelation::Equals(a, b) => (Skeleton::Equals, vec![a.clone(), b.clone()]),
-            AtomicRelation::Sub(a, b) => (Skeleton::Sub, vec![a.clone(), b.clone()]),
-            AtomicRelation::Outlives(a, b) => (Skeleton::Outlives, vec![a.clone(), b.clone()]),
-            AtomicRelation::WellFormed(p) => (Skeleton::WellFormed, vec![p.clone()]),
+            Relation::Equals(a, b) => (Skeleton::Equals, vec![a.clone(), b.clone()]),
+            Relation::Sub(a, b) => (Skeleton::Sub, vec![a.clone(), b.clone()]),
+            Relation::Outlives(a, b) => (Skeleton::Outlives, vec![a.clone(), b.clone()]),
+            Relation::WellFormed(p) => (Skeleton::WellFormed, vec![p.clone()]),
         }
     }
 }
@@ -243,22 +243,22 @@ impl TraitId {
     }
 }
 
-/// "APR" == AtomicPredicateOrRelation
+/// "PR" == Predicate or Relation
 ///
 /// We need a better name for this lol.
 #[term]
-pub enum APR {
+pub enum PR {
     #[cast]
-    AtomicPredicate(Predicate),
+    Predicate(Predicate),
     #[cast]
-    AtomicRelation(AtomicRelation),
+    Relation(Relation),
 }
 
-impl APR {
+impl PR {
     pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
         match self {
-            APR::AtomicPredicate(v) => v.debone(),
-            APR::AtomicRelation(v) => v.debone(),
+            PR::Predicate(v) => v.debone(),
+            PR::Relation(v) => v.debone(),
         }
     }
 }
@@ -277,10 +277,10 @@ macro_rules! debone_impl {
     };
 }
 
-debone_impl!(APR);
+debone_impl!(PR);
 debone_impl!(Predicate);
-debone_impl!(AtomicRelation);
+debone_impl!(Relation);
 
 // Transitive casting impls:
 
-cast_impl!((TraitRef) <: (Predicate) <: (APR));
+cast_impl!((TraitRef) <: (Predicate) <: (PR));

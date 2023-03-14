@@ -6,11 +6,11 @@ use crate::{
     cast::{DowncastFrom, DowncastTo, Upcast, UpcastFrom},
     cast_impl,
     collections::{Set, SetExt},
-    grammar::APR,
+    grammar::PR,
     set,
 };
 
-use super::{AtomicRelation, Binder, BoundVar, Predicate, TraitRef};
+use super::{Binder, BoundVar, Predicate, Relation, TraitRef};
 
 #[term($set)]
 pub struct Wcs {
@@ -119,7 +119,7 @@ impl Wc {
 #[term]
 pub enum WcData {
     #[cast]
-    Atomic(APR),
+    Atomic(PR),
 
     #[grammar(for $v0)]
     ForAll(Binder<Wc>),
@@ -150,10 +150,10 @@ impl DowncastFrom<Wc> for WcData {
 
 // ---
 
-cast_impl!((APR) <: (WcData) <: (Wc));
-cast_impl!((AtomicRelation) <: (APR) <: (Wc));
-cast_impl!((Predicate) <: (APR) <: (Wc));
-cast_impl!((TraitRef) <: (APR) <: (Wc));
+cast_impl!((PR) <: (WcData) <: (Wc));
+cast_impl!((Relation) <: (PR) <: (Wc));
+cast_impl!((Predicate) <: (PR) <: (Wc));
+cast_impl!((TraitRef) <: (PR) <: (Wc));
 
 impl UpcastFrom<Wc> for Wcs {
     fn upcast_from(term: Wc) -> Self {
@@ -171,7 +171,7 @@ impl DowncastTo<Wc> for Wcs {
     }
 }
 
-cast_impl!((APR) <: (Wc) <: (Wcs));
-cast_impl!((AtomicRelation) <: (Wc) <: (Wcs));
+cast_impl!((PR) <: (Wc) <: (Wcs));
+cast_impl!((Relation) <: (Wc) <: (Wcs));
 cast_impl!((Predicate) <: (Wc) <: (Wcs));
 cast_impl!((TraitRef) <: (Wc) <: (Wcs));
