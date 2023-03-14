@@ -100,7 +100,7 @@ impl Parameter {
 /// nothing unifiable and identifies the kind of predicate.
 /// If the skeleton's don't match, they are distinct predicates.
 #[term]
-pub enum AtomicSkeleton {
+pub enum Skeleton {
     IsImplemented(TraitId),
     NormalizesTo(AliasName),
     WellFormed,
@@ -116,36 +116,34 @@ pub enum AtomicSkeleton {
 impl Predicate {
     /// Separate an atomic predicate into the "skeleton" (which can be compared for equality using `==`)
     /// and the parameters (which must be related).
-    pub fn debone(&self) -> (AtomicSkeleton, Vec<Parameter>) {
+    pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
         match self {
             Predicate::IsImplemented(TraitRef {
                 trait_id,
                 parameters,
             }) => (
-                AtomicSkeleton::IsImplemented(trait_id.clone()),
+                Skeleton::IsImplemented(trait_id.clone()),
                 parameters.clone(),
             ),
             Predicate::NormalizesTo(AliasTy { name, parameters }, ty) => (
-                AtomicSkeleton::NormalizesTo(name.clone()),
+                Skeleton::NormalizesTo(name.clone()),
                 parameters
                     .iter()
                     .cloned()
                     .chain(Some(ty.to_parameter()))
                     .collect(),
             ),
-            Predicate::WellFormedAdt(id, parameters) => (
-                AtomicSkeleton::WellFormedAdt(id.clone()),
-                parameters.clone(),
-            ),
-            Predicate::WellFormedAlias(id, parameters) => (
-                AtomicSkeleton::WellFormedAlias(id.clone()),
-                parameters.clone(),
-            ),
+            Predicate::WellFormedAdt(id, parameters) => {
+                (Skeleton::WellFormedAdt(id.clone()), parameters.clone())
+            }
+            Predicate::WellFormedAlias(id, parameters) => {
+                (Skeleton::WellFormedAlias(id.clone()), parameters.clone())
+            }
             Predicate::WellFormedTraitRef(TraitRef {
                 trait_id,
                 parameters,
             }) => (
-                AtomicSkeleton::WellFormedTraitRef(trait_id.clone()),
+                Skeleton::WellFormedTraitRef(trait_id.clone()),
                 parameters.clone(),
             ),
         }
@@ -208,14 +206,12 @@ impl AtomicRelation {
         Self::Sub(p1.upcast(), p2.upcast())
     }
 
-    pub fn debone(&self) -> (AtomicSkeleton, Vec<Parameter>) {
+    pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
         match self {
-            AtomicRelation::Equals(a, b) => (AtomicSkeleton::Equals, vec![a.clone(), b.clone()]),
-            AtomicRelation::Sub(a, b) => (AtomicSkeleton::Sub, vec![a.clone(), b.clone()]),
-            AtomicRelation::Outlives(a, b) => {
-                (AtomicSkeleton::Outlives, vec![a.clone(), b.clone()])
-            }
-            AtomicRelation::WellFormed(p) => (AtomicSkeleton::WellFormed, vec![p.clone()]),
+            AtomicRelation::Equals(a, b) => (Skeleton::Equals, vec![a.clone(), b.clone()]),
+            AtomicRelation::Sub(a, b) => (Skeleton::Sub, vec![a.clone(), b.clone()]),
+            AtomicRelation::Outlives(a, b) => (Skeleton::Outlives, vec![a.clone(), b.clone()]),
+            AtomicRelation::WellFormed(p) => (Skeleton::WellFormed, vec![p.clone()]),
         }
     }
 }
@@ -259,7 +255,7 @@ pub enum APR {
 }
 
 impl APR {
-    pub fn debone(&self) -> (AtomicSkeleton, Vec<Parameter>) {
+    pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
         match self {
             APR::AtomicPredicate(v) => v.debone(),
             APR::AtomicRelation(v) => v.debone(),
@@ -268,13 +264,13 @@ impl APR {
 }
 
 pub trait Debone {
-    fn debone(&self) -> (AtomicSkeleton, Vec<Parameter>);
+    fn debone(&self) -> (Skeleton, Vec<Parameter>);
 }
 
 macro_rules! debone_impl {
     ($t:ty) => {
         impl Debone for $t {
-            fn debone(&self) -> (AtomicSkeleton, Vec<Parameter>) {
+            fn debone(&self) -> (Skeleton, Vec<Parameter>) {
                 self.debone()
             }
         }
