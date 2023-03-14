@@ -10,7 +10,7 @@ use formality_types::{
 };
 
 impl Program {
-    pub fn to_prove_program(&self) -> prove::Decls {
+    pub fn to_prove_decls(&self) -> prove::Decls {
         formality_prove::Decls {
             max_size: formality_prove::Decls::DEFAULT_MAX_SIZE,
             trait_decls: self.trait_decls(),

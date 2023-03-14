@@ -1,13 +1,16 @@
 use std::sync::Arc;
 
 use formality_macros::term;
-use formality_mir::grammar::MirFnBody;
 use formality_types::{
     grammar::{
         AdtId, AssociatedItemId, Binder, CrateId, FieldId, FnId, Lt, Parameter, TraitId, Ty,
     },
     term::Term,
 };
+
+use crate::grammar::mir::MirFnBody;
+
+pub mod mir;
 
 #[term($crates)]
 pub struct Program {
