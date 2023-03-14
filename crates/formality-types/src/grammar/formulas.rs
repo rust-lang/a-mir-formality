@@ -17,7 +17,7 @@ pub type Fallible<T> = anyhow::Result<T>;
 /// Atomic predicates are the base goals we can try to prove; the rules for proving them
 /// are derived (at least in part) based on the Rust source declarations.
 #[term]
-pub enum AtomicPredicate {
+pub enum Predicate {
     /// True if a trait is fully implemented (along with all its where clauses).
     #[cast]
     IsImplemented(TraitRef),
@@ -53,29 +53,29 @@ impl std::ops::BitAnd for Coinductive {
     }
 }
 
-impl AtomicPredicate {
+impl Predicate {
     /// True if this goal can be proven via a cycle. For example,
     /// it is ok for a `T: Debug` impl to require `T: Debug`.
     pub fn is_coinductive(&self) -> Coinductive {
         match self {
-            AtomicPredicate::IsImplemented(_) => Coinductive::Yes,
-            AtomicPredicate::NormalizesTo(_, _) => Coinductive::No,
-            AtomicPredicate::WellFormedAlias(_, _)
-            | AtomicPredicate::WellFormedAdt(_, _)
-            | AtomicPredicate::WellFormedTraitRef(_) => Coinductive::Yes,
+            Predicate::IsImplemented(_) => Coinductive::Yes,
+            Predicate::NormalizesTo(_, _) => Coinductive::No,
+            Predicate::WellFormedAlias(_, _)
+            | Predicate::WellFormedAdt(_, _)
+            | Predicate::WellFormedTraitRef(_) => Coinductive::Yes,
         }
     }
 }
 
 impl AliasName {
-    pub fn well_formed(&self, t: impl Upcast<Vec<Parameter>>) -> AtomicPredicate {
-        AtomicPredicate::WellFormedAlias(self.clone(), t.upcast())
+    pub fn well_formed(&self, t: impl Upcast<Vec<Parameter>>) -> Predicate {
+        Predicate::WellFormedAlias(self.clone(), t.upcast())
     }
 }
 
 impl AliasTy {
-    pub fn normalizes_to(&self, t: impl Upcast<Ty>) -> AtomicPredicate {
-        AtomicPredicate::NormalizesTo(self.clone(), t.upcast())
+    pub fn normalizes_to(&self, t: impl Upcast<Ty>) -> Predicate {
+        Predicate::NormalizesTo(self.clone(), t.upcast())
     }
 }
 
@@ -113,19 +113,19 @@ pub enum AtomicSkeleton {
     Outlives,
 }
 
-impl AtomicPredicate {
+impl Predicate {
     /// Separate an atomic predicate into the "skeleton" (which can be compared for equality using `==`)
     /// and the parameters (which must be related).
     pub fn debone(&self) -> (AtomicSkeleton, Vec<Parameter>) {
         match self {
-            AtomicPredicate::IsImplemented(TraitRef {
+            Predicate::IsImplemented(TraitRef {
                 trait_id,
                 parameters,
             }) => (
                 AtomicSkeleton::IsImplemented(trait_id.clone()),
                 parameters.clone(),
             ),
-            AtomicPredicate::NormalizesTo(AliasTy { name, parameters }, ty) => (
+            Predicate::NormalizesTo(AliasTy { name, parameters }, ty) => (
                 AtomicSkeleton::NormalizesTo(name.clone()),
                 parameters
                     .iter()
@@ -133,15 +133,15 @@ impl AtomicPredicate {
                     .chain(Some(ty.to_parameter()))
                     .collect(),
             ),
-            AtomicPredicate::WellFormedAdt(id, parameters) => (
+            Predicate::WellFormedAdt(id, parameters) => (
                 AtomicSkeleton::WellFormedAdt(id.clone()),
                 parameters.clone(),
             ),
-            AtomicPredicate::WellFormedAlias(id, parameters) => (
+            Predicate::WellFormedAlias(id, parameters) => (
                 AtomicSkeleton::WellFormedAlias(id.clone()),
                 parameters.clone(),
             ),
-            AtomicPredicate::WellFormedTraitRef(TraitRef {
+            Predicate::WellFormedTraitRef(TraitRef {
                 trait_id,
                 parameters,
             }) => (
@@ -153,18 +153,18 @@ impl AtomicPredicate {
 }
 
 impl TraitRef {
-    pub fn is_implemented(&self) -> AtomicPredicate {
-        AtomicPredicate::IsImplemented(self.clone())
+    pub fn is_implemented(&self) -> Predicate {
+        Predicate::IsImplemented(self.clone())
     }
 
-    pub fn well_formed(&self) -> AtomicPredicate {
-        AtomicPredicate::WellFormedTraitRef(self.clone())
+    pub fn well_formed(&self) -> Predicate {
+        Predicate::WellFormedTraitRef(self.clone())
     }
 }
 
 impl AdtId {
-    pub fn well_formed(&self, parameters: impl Upcast<Vec<Parameter>>) -> AtomicPredicate {
-        AtomicPredicate::WellFormedAdt(self.clone(), parameters.upcast())
+    pub fn well_formed(&self, parameters: impl Upcast<Vec<Parameter>>) -> Predicate {
+        Predicate::WellFormedAdt(self.clone(), parameters.upcast())
     }
 }
 
@@ -253,7 +253,7 @@ impl TraitId {
 #[term]
 pub enum APR {
     #[cast]
-    AtomicPredicate(AtomicPredicate),
+    AtomicPredicate(Predicate),
     #[cast]
     AtomicRelation(AtomicRelation),
 }
@@ -282,9 +282,9 @@ macro_rules! debone_impl {
 }
 
 debone_impl!(APR);
-debone_impl!(AtomicPredicate);
+debone_impl!(Predicate);
 debone_impl!(AtomicRelation);
 
 // Transitive casting impls:
 
-cast_impl!((TraitRef) <: (AtomicPredicate) <: (APR));
+cast_impl!((TraitRef) <: (Predicate) <: (APR));

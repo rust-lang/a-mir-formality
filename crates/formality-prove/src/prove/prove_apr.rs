@@ -1,5 +1,5 @@
 use formality_types::{
-    grammar::{AtomicPredicate, AtomicRelation, Parameter, Wcs, APR},
+    grammar::{AtomicRelation, Parameter, Predicate, Wcs, APR},
     judgment_fn,
 };
 
@@ -42,7 +42,7 @@ judgment_fn! {
             (prove_after(&decls, c, &co_assumptions, &i.where_clause) => c)
             (prove_after(&decls, c, &assumptions, &t.where_clause) => c)
             ----------------------------- ("impl")
-            (prove_apr(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_apr(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
@@ -52,7 +52,7 @@ judgment_fn! {
             (prove_apr_via(&decls, env, &assumptions, &ti.where_clause, &trait_ref) => c)
             (prove_after(&decls, c, &assumptions, &ti.trait_ref) => c)
             ----------------------------- ("trait implied bound")
-            (prove_apr(decls, env, assumptions, AtomicPredicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_apr(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (

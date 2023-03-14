@@ -7,8 +7,8 @@ use formality_prove as prove;
 use formality_types::{
     cast::{To, Upcast, Upcasted},
     grammar::{
-        fresh_bound_var, AliasTy, AtomicPredicate, AtomicRelation, Binder, ParameterKind, Ty, Wc,
-        Wcs, APR,
+        fresh_bound_var, AliasTy, AtomicRelation, Binder, ParameterKind, Predicate, Ty, Wc, Wcs,
+        APR,
     },
     seq,
 };
@@ -258,7 +258,7 @@ upcast_to_wcs! {
     Wc,
     Wcs,
     APR,
-    AtomicPredicate,
+    Predicate,
     AtomicRelation,
 }
 
