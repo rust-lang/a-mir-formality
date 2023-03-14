@@ -65,14 +65,14 @@ fn test_u32_T_where_T_Not_impls() {
     "#]]
     .assert_debug_eq(&test_program_ok(
         "[
-        crate Foo {
-            trait Foo<> where [] {}
-            impl<> Foo<> for u32 where [] {}
-            impl<ty T> Foo<> for T where [T: Not<>] {}
+            crate Foo {
+                trait Foo<> where [] {}
+                impl<> Foo<> for u32 where [] {}
+                impl<ty T> Foo<> for T where [T: Not<>] {}
 
-            trait Not<> where [] {}
-        }
-    ]",
+                trait Not<> where [] {}
+            }
+        ]",
     ));
 }
 
@@ -86,14 +86,14 @@ fn test_u32_T_where_T_Is_impls() {
     "#]]
     .assert_debug_eq(&test_program_ok(
         "[
-        crate Foo {
-            trait Foo<> where [] {}
-            impl<> Foo<> for u32 where [] {}
-            impl<ty T> Foo<> for T where [T: Is<>] {}
+            crate Foo {
+                trait Foo<> where [] {}
+                impl<> Foo<> for u32 where [] {}
+                impl<ty T> Foo<> for T where [T: Is<>] {}
 
-            trait Is<> where [] {}
-            impl<> Is<> for u32 where [] {}
-        }
-    ]",
+                trait Is<> where [] {}
+                impl<> Is<> for u32 where [] {}
+            }
+        ]",
     ));
 }
