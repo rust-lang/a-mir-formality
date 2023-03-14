@@ -202,6 +202,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "expect-test",
  "formality-check",
  "formality-rust",
  "formality-types",

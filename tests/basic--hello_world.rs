@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
-#![cfg(FIXME)]
 
-use formality_rust::test_program_ok;
+use formality::test_program_ok;
 
 const PROGRAM_BROKEN: &str = "[
     crate Foo {
@@ -24,7 +23,6 @@ const PROGRAM_OK: &str = "[
 ]";
 
 #[test]
-#[ignore]
 fn test_broken() {
     expect_test::expect![[r#"
         Err(
@@ -40,7 +38,6 @@ fn test_broken() {
 }
 
 #[test]
-#[ignore]
 fn test_ok() {
     expect_test::expect![[r#"
         Ok(

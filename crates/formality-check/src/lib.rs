@@ -29,8 +29,13 @@ pub fn check_all_crates(program: &Program) -> Fallible<()> {
 }
 
 /// Checks the current crate in the program, assuming all other crates are valid.
-fn check_current_crate(_program: &Program) -> Fallible<()> {
-    todo!()
+fn check_current_crate(program: &Program) -> Fallible<()> {
+    let decls = program.to_prove_decls();
+    Check {
+        program,
+        decls: &decls,
+    }
+    .check()
 }
 
 mod adts;
@@ -100,6 +105,6 @@ impl Check<'_> {
             return Ok(());
         }
 
-        bail!("failed to prove {goal:?} from {assumptions:?}, got {cs:?}")
+        bail!("failed to prove {goal:?} given {assumptions:?}, got {cs:?}")
     }
 }

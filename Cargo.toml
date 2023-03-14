@@ -10,6 +10,7 @@ rustc_private=true
 
 [dev-dependencies]
 pretty_assertions = "1.3.0"
+expect-test = "1.4.0"
 
 [dependencies]
 anyhow = "1"
