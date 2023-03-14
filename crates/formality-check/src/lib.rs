@@ -1,18 +1,16 @@
 #![allow(dead_code)]
-#![cfg(FIXME)]
 
 use std::collections::VecDeque;
 
 use anyhow::bail;
-use contracts::requires;
-use formality_decl::grammar::{Crate, CrateItem, Program};
-use formality_logic::Db;
-use formality_logic::Env;
-use formality_logic::{prove_universal_goal, UniversalGoalResult};
+use formality_prove::{Decls, Env};
+use formality_rust::{
+    grammar::{Crate, CrateItem, Program, WhereClause},
+    prove::ToWcs,
+};
 use formality_types::{
     cast::Upcast,
-    grammar::{Fallible, Goal, Hypothesis},
-    term::Term,
+    grammar::{Fallible, Wcs},
 };
 
 /// Check all crates in the program. The crates must be in dependency order
@@ -44,7 +42,7 @@ mod where_clauses;
 
 struct Check<'p> {
     program: &'p Program,
-    db: Db,
+    decls: &'p Decls,
 }
 
 impl Check<'_> {
@@ -77,28 +75,31 @@ impl Check<'_> {
 
     fn check_crate_item(&self, c: &CrateItem) -> Fallible<()> {
         match c {
-            CrateItem::Adt(v) => self.check_adt(v),
             CrateItem::Trait(v) => self.check_trait(v),
             CrateItem::TraitImpl(v) => self.check_trait_impl(v),
-            CrateItem::Fn(v) => self.check_free_fn(v),
+            CrateItem::Struct(s) => self.check_adt(&s.to_adt()),
+            CrateItem::Enum(e) => self.check_adt(&e.to_adt()),
+            CrateItem::Fn(f) => self.check_free_fn(f),
         }
     }
 
-    #[requires(goal.references_only_placeholder_variables())]
     fn prove_goal(
         &self,
         env: &Env,
-        assumptions: impl Upcast<Vec<Hypothesis>>,
-        goal: impl Term + Upcast<Goal>,
+        assumptions: impl Upcast<Vec<WhereClause>>,
+        goal: impl ToWcs,
     ) -> Fallible<()> {
-        let goal: Goal = goal.upcast();
-        let assumptions = assumptions.upcast();
-        match prove_universal_goal(&self.db, env, &assumptions, &goal) {
-            UniversalGoalResult::Yes => Ok(()),
-            UniversalGoalResult::No => bail!("could not prove `{goal:?}` given `{assumptions:#?}`"),
-            UniversalGoalResult::Maybe => {
-                bail!("could not prove `{goal:?}` (ambiguous) given `{assumptions:#?}`")
-            }
+        let goal: Wcs = goal.to_wcs();
+        let assumptions: Vec<WhereClause> = assumptions.upcast();
+
+        assert!(env.only_universal_variables());
+        assert!(env.encloses((&assumptions, &goal)));
+
+        let cs = formality_prove::prove(self.decls, env, assumptions.to_wcs(), &goal);
+        if cs.iter().any(|c| c.unconditionally_true()) {
+            return Ok(());
         }
+
+        bail!("failed to prove {goal:?} from {assumptions:?}, got {cs:?}")
     }
 }

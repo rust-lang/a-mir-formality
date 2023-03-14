@@ -33,6 +33,10 @@ impl Constraints {
         Self::from(env, v)
     }
 
+    pub fn unconditionally_true(&self) -> bool {
+        self.known_true && self.substitution.is_empty()
+    }
+
     pub fn from(
         env: Env,
         iter: impl IntoIterator<Item = (impl Upcast<Variable>, impl Upcast<Parameter>)>,

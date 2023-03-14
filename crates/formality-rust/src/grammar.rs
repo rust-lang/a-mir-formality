@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use formality_macros::term;
 use formality_types::{
+    cast::Upcast,
     grammar::{
-        AdtId, AssociatedItemId, Binder, CrateId, FieldId, FnId, Lt, Parameter, TraitId, Ty,
+        AdtId, AssociatedItemId, Binder, CrateId, Fallible, FieldId, FnId, Lt, Parameter, TraitId,
+        Ty,
     },
     term::Term,
 };
@@ -17,6 +19,29 @@ pub struct Program {
     /// List of all crates.
     /// The last crate in the list is the current crate.
     pub crates: Vec<Crate>,
+}
+
+impl Program {
+    pub fn items_from_all_crates(&self) -> impl Iterator<Item = &CrateItem> {
+        self.crates.iter().flat_map(|c| &c.items)
+    }
+
+    pub fn trait_named(&self, trait_id: &TraitId) -> Fallible<&Trait> {
+        let mut traits: Vec<&Trait> = self
+            .items_from_all_crates()
+            .filter_map(|crate_item| match crate_item {
+                CrateItem::Trait(t) if t.id == *trait_id => Some(t),
+                _ => None,
+            })
+            .collect();
+        if traits.len() < 1 {
+            anyhow::bail!("no trait named `{trait_id:?}`")
+        } else if traits.len() > 1 {
+            anyhow::bail!("multiple traits named `{trait_id:?}`")
+        } else {
+            Ok(traits.pop().unwrap())
+        }
+    }
 }
 
 #[term(crate $id { $*items })]
@@ -35,12 +60,39 @@ pub enum CrateItem {
     Trait(Trait),
     #[cast]
     TraitImpl(TraitImpl),
+    #[cast]
+    Fn(Fn),
 }
 
 #[term(struct $id $binder)]
 pub struct Struct {
     pub id: AdtId,
     pub binder: Binder<StructBoundData>,
+}
+
+impl Struct {
+    pub fn to_adt(&self) -> Adt {
+        let (
+            vars,
+            StructBoundData {
+                where_clauses,
+                fields,
+            },
+        ) = self.binder.open();
+        Adt {
+            id: self.id.clone(),
+            binder: Binder::new(
+                &vars,
+                AdtBoundData {
+                    where_clauses: where_clauses,
+                    variants: vec![Variant {
+                        name: VariantId::for_struct(),
+                        fields,
+                    }],
+                },
+            ),
+        }
+    }
 }
 
 #[term(where $where_clauses { $,fields })]
@@ -75,11 +127,28 @@ impl VariantId {
 #[term(enum $id $binder)]
 pub struct Enum {
     pub id: AdtId,
-    pub binder: Binder<EnumBoundData>,
+    pub binder: Binder<AdtBoundData>,
+}
+
+impl Enum {
+    pub fn to_adt(&self) -> Adt {
+        Adt {
+            id: self.id.clone(),
+            binder: self.binder.clone(),
+        }
+    }
+}
+
+/// Not directly part of the grammar, but structs/enums
+/// can be converted to this.
+#[term(adt $id $binder)]
+pub struct Adt {
+    pub id: AdtId,
+    pub binder: Binder<AdtBoundData>,
 }
 
 #[term(where $where_clauses { $,variants })]
-pub struct EnumBoundData {
+pub struct AdtBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub variants: Vec<Variant>,
 }
@@ -101,6 +170,12 @@ pub struct Trait {
 #[derive(Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct TraitBinder<T: Term> {
     pub explicit_binder: Binder<T>,
+}
+
+impl<T: Term> TraitBinder<T> {
+    pub fn instantiate_with(&self, parameters: &[impl Upcast<Parameter>]) -> Fallible<T> {
+        self.explicit_binder.instantiate_with(parameters)
+    }
 }
 
 #[term(where $where_clauses { $*trait_items })]

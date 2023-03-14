@@ -1,5 +1,5 @@
 use anyhow::bail;
-use formality_decl::grammar::{Crate, TraitImpl};
+use formality_rust::grammar::{Crate, TraitImpl};
 use formality_types::{cast::Downcasted, grammar::Fallible};
 use itertools::Itertools;
 

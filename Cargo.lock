@@ -217,6 +217,7 @@ dependencies = [
  "fn-error-context",
  "formality-core",
  "formality-macros",
+ "formality-prove",
  "formality-rust",
  "formality-types",
  "itertools",
@@ -275,6 +276,7 @@ dependencies = [
 name = "formality-rust"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "expect-test",
  "formality-core",
  "formality-macros",

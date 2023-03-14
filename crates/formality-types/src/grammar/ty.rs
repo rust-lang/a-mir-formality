@@ -13,7 +13,7 @@ use crate::{
     fold::Fold,
 };
 
-use super::{AdtId, AssociatedItemId, Binder, FnId, Predicate, TraitId};
+use super::{AdtId, AssociatedItemId, Binder, FnId, TraitId};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ty {
@@ -240,23 +240,6 @@ pub struct AssociatedTyName {
 #[term]
 pub enum PredicateTy {
     ForAll(Binder<Ty>),
-    Exists(Binder<Ty>),
-    #[cast]
-    ImplicationTy(ImplicationTy),
-    #[cast]
-    EnsuresTy(EnsuresTy),
-}
-
-#[term(implies($predicates, $ty))]
-pub struct ImplicationTy {
-    pub predicates: Vec<Predicate>,
-    pub ty: Ty,
-}
-
-#[term(ensures($ty, $predicates))]
-pub struct EnsuresTy {
-    pub ty: Ty,
-    pub predicates: Vec<Predicate>,
 }
 
 /// A *placeholder* is a dummy variable about which nothing is known except
@@ -639,6 +622,11 @@ impl Substitution {
 
     pub fn iter(&self) -> impl Iterator<Item = (Variable, Parameter)> + '_ {
         self.map.iter().map(|(v, p)| (*v, p.clone()))
+    }
+
+    /// An empty substitution is just the identity function.
+    pub fn is_empty(&self) -> bool {
+        self.map.is_empty()
     }
 }
 

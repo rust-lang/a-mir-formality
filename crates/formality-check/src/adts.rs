@@ -1,16 +1,10 @@
-use formality_decl::grammar::{Adt, AdtBoundData, AdtVariant, Field};
-use formality_types::{
-    cast::To,
-    grammar::{Fallible, Hypothesis},
-};
+use formality_prove::Env;
+use formality_rust::grammar::{Adt, AdtBoundData, Field, Variant};
+use formality_types::grammar::Fallible;
 
 impl super::Check<'_> {
     pub(super) fn check_adt(&self, adt: &Adt) -> Fallible<()> {
-        let Adt {
-            kind: _,
-            id: _,
-            binder,
-        } = adt;
+        let Adt { id: _, binder } = adt;
 
         let mut env = Env::default();
 
@@ -19,15 +13,13 @@ impl super::Check<'_> {
             variants,
         } = env.instantiate_universally(binder);
 
-        let assumptions: Vec<Hypothesis> = where_clauses.to();
-
-        self.prove_where_clauses_well_formed(&env, &assumptions, &where_clauses)?;
+        self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?;
 
         // FIXME: check names are unique or integers from 0..n
 
-        for AdtVariant { name: _, fields } in &variants {
+        for Variant { name: _, fields } in &variants {
             for Field { name: _, ty } in fields {
-                self.prove_goal(&env, &assumptions, ty.well_formed())?;
+                self.prove_goal(&env, &where_clauses, ty.well_formed())?;
             }
         }
 

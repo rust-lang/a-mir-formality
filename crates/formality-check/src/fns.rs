@@ -1,9 +1,6 @@
-use formality_decl::grammar::{Fn, FnBoundData};
-use formality_logic::Env;
-use formality_types::{
-    cast::Upcast,
-    grammar::{Fallible, Hypothesis},
-};
+use formality_prove::Env;
+use formality_rust::grammar::{Fn, FnBoundData, WhereClause};
+use formality_types::{cast::Upcast, grammar::Fallible};
 
 use crate::Check;
 
@@ -15,7 +12,7 @@ impl Check<'_> {
     pub(crate) fn check_fn(
         &self,
         in_env: &Env,
-        in_assumptions: &[Hypothesis],
+        in_assumptions: &[WhereClause],
         f: &Fn,
     ) -> Fallible<()> {
         let mut env = in_env.clone();
@@ -26,9 +23,10 @@ impl Check<'_> {
             input_tys,
             output_ty,
             where_clauses,
+            body: _,
         } = env.instantiate_universally(binder);
 
-        let assumptions: Vec<Hypothesis> = (in_assumptions, &where_clauses).upcast();
+        let assumptions: Vec<WhereClause> = (in_assumptions, &where_clauses).upcast();
 
         self.prove_where_clauses_well_formed(&env, &assumptions, &where_clauses)?;
 

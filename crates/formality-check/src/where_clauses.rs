@@ -1,73 +1,68 @@
-use fn_error_context::context;
-use formality_logic::Env;
+use formality_prove::Env;
+use formality_rust::grammar::{WhereClause, WhereClauseData};
 use formality_types::{
-    cast::{To, Upcast},
-    grammar::{
-        AtomicPredicate, AtomicRelation, Fallible, Hypothesis, Predicate, PredicateData, Ty, APR,
-    },
+    cast::Upcast,
+    grammar::{Fallible, Parameter, TraitRef},
 };
 
 impl super::Check<'_> {
     pub(crate) fn prove_where_clauses_well_formed(
         &self,
         env: &Env,
-        assumptions: impl Upcast<Vec<Hypothesis>>,
-        where_clauses: &[Predicate],
+        assumptions: impl Upcast<Vec<WhereClause>>,
+        where_clauses: &[WhereClause],
     ) -> Fallible<()> {
-        let assumptions = assumptions.upcast();
+        let assumptions: Vec<WhereClause> = assumptions.upcast();
         for where_clause in where_clauses {
             self.prove_where_clause_well_formed(env, &assumptions, where_clause)?;
         }
         Ok(())
     }
 
-    #[context("prove_where_clause_well_formed({assumptions:?} => {where_clause:?}")]
     fn prove_where_clause_well_formed(
         &self,
         in_env: &Env,
-        assumptions: &[Hypothesis],
-        where_clause: &Predicate,
+        assumptions: impl Upcast<Vec<WhereClause>>,
+        where_clause: &WhereClause,
     ) -> Fallible<()> {
+        let assumptions: Vec<WhereClause> = assumptions.upcast();
         match where_clause.data() {
-            PredicateData::Atomic(apr) => {
-                self.prove_atomic_predicate_well_formed(in_env, assumptions, apr)
+            WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => self
+                .prove_trait_ref_well_formed(
+                    in_env,
+                    assumptions,
+                    trait_id.with(self_ty, parameters),
+                ),
+            WhereClauseData::Outlives(a, b) => {
+                self.prove_parameter_well_formed(in_env, &assumptions, a)?;
+                self.prove_parameter_well_formed(in_env, assumptions, b)
             }
-            PredicateData::ForAll(predicate) => {
-                let mut env = in_env.clone();
-                let predicate = env.instantiate_universally(predicate);
-                self.prove_where_clause_well_formed(&env, assumptions, &predicate)
+            WhereClauseData::ForAll(binder) => {
+                let mut e = in_env.clone();
+                let wc = e.instantiate_universally(binder);
+                self.prove_where_clause_well_formed(&e, assumptions, &wc)
             }
-            PredicateData::Implies(_, _) => todo!(),
         }
     }
 
-    fn prove_atomic_predicate_well_formed(
+    fn prove_parameter_well_formed(
         &self,
         env: &Env,
-        assumptions: &[Hypothesis],
-        predicate: &APR,
+        assumptions: impl Upcast<Vec<WhereClause>>,
+        parameter: impl Upcast<Parameter>,
     ) -> Fallible<()> {
-        match predicate {
-            APR::AtomicPredicate(AtomicPredicate::IsImplemented(trait_ref)) => {
-                self.prove_goal(env, assumptions, trait_ref.well_formed())?;
-            }
-            APR::AtomicPredicate(AtomicPredicate::NormalizesTo(alias_ty, ty)) => {
-                self.prove_goal(env, assumptions, alias_ty.to::<Ty>().well_formed())?;
-                self.prove_goal(env, assumptions, ty.well_formed())?;
-            }
-            APR::AtomicRelation(AtomicRelation::WellFormed(_))
-            | APR::AtomicPredicate(AtomicPredicate::WellFormedAlias(..))
-            | APR::AtomicPredicate(AtomicPredicate::WellFormedAdt(..)) => {}
-            APR::AtomicPredicate(AtomicPredicate::WellFormedTraitRef(_trait_ref)) => {}
-            APR::AtomicRelation(AtomicRelation::Outlives(a, b)) => {
-                self.prove_goal(env, assumptions, a.well_formed())?;
-                self.prove_goal(env, assumptions, b.well_formed())?;
-            }
-            APR::AtomicRelation(AtomicRelation::Equals(_, _))
-            | APR::AtomicRelation(AtomicRelation::Sub(_, _)) => {
-                panic!("predicate would never appear directly in program text")
-            }
-        }
+        let parameter: Parameter = parameter.upcast();
+        self.prove_goal(env, assumptions, parameter.well_formed())
+    }
+
+    fn prove_trait_ref_well_formed(
+        &self,
+        env: &Env,
+        assumptions: impl Upcast<Vec<WhereClause>>,
+        trait_ref: impl Upcast<TraitRef>,
+    ) -> Fallible<()> {
+        let trait_ref: TraitRef = trait_ref.upcast();
+        self.prove_goal(env, assumptions, trait_ref.well_formed())?;
         Ok(())
     }
 }

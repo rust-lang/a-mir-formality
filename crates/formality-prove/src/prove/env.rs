@@ -5,7 +5,8 @@ use formality_types::{
     collections::Set,
     fold::Fold,
     grammar::{
-        Binder, InferenceVar, ParameterKind, PlaceholderVar, VarIndex, VarSubstitution, Variable,
+        Binder, InferenceVar, ParameterKind, PlaceholderVar, VarIndex, VarSubstitution,
+        Variable,
     },
     visit::Visit,
 };
@@ -13,6 +14,16 @@ use formality_types::{
 #[derive(Default, Debug, Clone, Hash, Ord, Eq, PartialEq, PartialOrd)]
 pub struct Env {
     variables: Vec<Variable>,
+}
+
+impl Env {
+    pub fn only_universal_variables(&self) -> bool {
+        self.variables.iter().all(|v| match v {
+            Variable::PlaceholderVar(_) => true,
+            Variable::InferenceVar(_) => false,
+            Variable::BoundVar(_) => false,
+        })
+    }
 }
 
 cast_impl!(Env);
@@ -122,6 +133,17 @@ impl Env {
             var_index,
         });
         (env, subst)
+    }
+
+    pub fn instantiate_universally<T>(&mut self, b: &Binder<T>) -> T
+    where
+        T: Fold,
+    {
+        let subst = self.fresh_substituion(b.kinds(), |kind, var_index| PlaceholderVar {
+            kind,
+            var_index,
+        });
+        b.instantiate_with(&subst).unwrap()
     }
 
     pub fn existential_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<InferenceVar>)
