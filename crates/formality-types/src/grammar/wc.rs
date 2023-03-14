@@ -10,7 +10,7 @@ use crate::{
     set,
 };
 
-use super::{Binder, BoundVar, Predicate, Relation, TraitRef};
+use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef, Ty};
 
 #[term($set)]
 pub struct Wcs {

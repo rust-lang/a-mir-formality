@@ -74,5 +74,14 @@ judgment_fn! {
             ----------------------------- ("eq")
             (prove_wc(decls, env, assumptions, Relation::Equals(a, b)) => c)
         )
+
+
+        (
+            (let t = decls.trait_decl(&trait_ref.trait_id))
+            (let t = t.binder.instantiate_with(&trait_ref.parameters).unwrap())
+            (prove(decls, env, assumptions, t.where_clause) => c)
+            ----------------------------- ("trait well formed")
+            (prove_wc(decls, env, assumptions, Predicate::WellFormedTraitRef(trait_ref)) => c)
+        )
     }
 }

@@ -22,16 +22,6 @@ pub enum Predicate {
     #[cast]
     IsImplemented(TraitRef),
 
-    /// True if an alias normalizes to the given type.
-    #[grammar(@NormalizesTo($v0 -> $v1))]
-    NormalizesTo(AliasTy, Ty),
-
-    #[grammar(@WellFormedAdt($v0, $v1))]
-    WellFormedAdt(AdtId, Parameters),
-
-    #[grammar(@WellFormedAlias($v0, $v1))]
-    WellFormedAlias(AliasName, Parameters),
-
     #[grammar(@WellFormedTraitRef($v0))]
     WellFormedTraitRef(TraitRef),
 }
@@ -50,32 +40,6 @@ impl std::ops::BitAnd for Coinductive {
             (Coinductive::Yes, Coinductive::Yes) => Coinductive::Yes,
             _ => Coinductive::No,
         }
-    }
-}
-
-impl Predicate {
-    /// True if this goal can be proven via a cycle. For example,
-    /// it is ok for a `T: Debug` impl to require `T: Debug`.
-    pub fn is_coinductive(&self) -> Coinductive {
-        match self {
-            Predicate::IsImplemented(_) => Coinductive::Yes,
-            Predicate::NormalizesTo(_, _) => Coinductive::No,
-            Predicate::WellFormedAlias(_, _)
-            | Predicate::WellFormedAdt(_, _)
-            | Predicate::WellFormedTraitRef(_) => Coinductive::Yes,
-        }
-    }
-}
-
-impl AliasName {
-    pub fn well_formed(&self, t: impl Upcast<Vec<Parameter>>) -> Predicate {
-        Predicate::WellFormedAlias(self.clone(), t.upcast())
-    }
-}
-
-impl AliasTy {
-    pub fn normalizes_to(&self, t: impl Upcast<Ty>) -> Predicate {
-        Predicate::NormalizesTo(self.clone(), t.upcast())
     }
 }
 
@@ -102,10 +66,7 @@ impl Parameter {
 #[term]
 pub enum Skeleton {
     IsImplemented(TraitId),
-    NormalizesTo(AliasName),
     WellFormed,
-    WellFormedAdt(AdtId),
-    WellFormedAlias(AliasName),
     WellFormedTraitRef(TraitId),
 
     Equals,
@@ -125,20 +86,6 @@ impl Predicate {
                 Skeleton::IsImplemented(trait_id.clone()),
                 parameters.clone(),
             ),
-            Predicate::NormalizesTo(AliasTy { name, parameters }, ty) => (
-                Skeleton::NormalizesTo(name.clone()),
-                parameters
-                    .iter()
-                    .cloned()
-                    .chain(Some(ty.to_parameter()))
-                    .collect(),
-            ),
-            Predicate::WellFormedAdt(id, parameters) => {
-                (Skeleton::WellFormedAdt(id.clone()), parameters.clone())
-            }
-            Predicate::WellFormedAlias(id, parameters) => {
-                (Skeleton::WellFormedAlias(id.clone()), parameters.clone())
-            }
             Predicate::WellFormedTraitRef(TraitRef {
                 trait_id,
                 parameters,
@@ -157,12 +104,6 @@ impl TraitRef {
 
     pub fn well_formed(&self) -> Predicate {
         Predicate::WellFormedTraitRef(self.clone())
-    }
-}
-
-impl AdtId {
-    pub fn well_formed(&self, parameters: impl Upcast<Vec<Parameter>>) -> Predicate {
-        Predicate::WellFormedAdt(self.clone(), parameters.upcast())
     }
 }
 
