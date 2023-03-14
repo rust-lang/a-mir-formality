@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 use formality::test_program_ok;
 
 #[test]
