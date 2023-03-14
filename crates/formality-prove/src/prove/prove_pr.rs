@@ -9,15 +9,15 @@ use crate::{
         env::Env,
         prove,
         prove_after::prove_after,
-        prove_apr_via::prove_apr_via,
         prove_eq::{all_eq, prove_ty_eq},
+        prove_pr_via::prove_pr_via,
     },
 };
 
 use super::constraints::Constraints;
 
 judgment_fn! {
-    pub fn prove_apr(
+    pub fn prove_pr(
         decls: Decls,
         env: Env,
         assumptions: Wcs,
@@ -27,9 +27,9 @@ judgment_fn! {
 
         (
             (&assumptions => a)
-            (prove_apr_via(&decls, &env, &assumptions, a, &goal) => c)
+            (prove_pr_via(&decls, &env, &assumptions, a, &goal) => c)
             ----------------------------- ("assumption")
-            (prove_apr(decls, env, assumptions, goal) => c)
+            (prove_pr(decls, env, assumptions, goal) => c)
         )
 
         (
@@ -42,23 +42,23 @@ judgment_fn! {
             (prove_after(&decls, c, &co_assumptions, &i.where_clause) => c)
             (prove_after(&decls, c, &assumptions, &t.where_clause) => c)
             ----------------------------- ("impl")
-            (prove_apr(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_pr(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
             (decls.trait_invariants() => ti)
             (let (env, subst) = env.existential_substitution(&ti.binder))
             (let ti = ti.binder.instantiate_with(&subst).unwrap())
-            (prove_apr_via(&decls, env, &assumptions, &ti.where_clause, &trait_ref) => c)
+            (prove_pr_via(&decls, env, &assumptions, &ti.where_clause, &trait_ref) => c)
             (prove_after(&decls, c, &assumptions, &ti.trait_ref) => c)
             ----------------------------- ("trait implied bound")
-            (prove_apr(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_pr(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
             (prove_ty_eq(decls, env, assumptions, a, b) => c)
             ----------------------------- ("eq")
-            (prove_apr(decls, env, assumptions, Relation::Equals(Parameter::Ty(a), Parameter::Ty(b))) => c)
+            (prove_pr(decls, env, assumptions, Relation::Equals(Parameter::Ty(a), Parameter::Ty(b))) => c)
         )
     }
 }

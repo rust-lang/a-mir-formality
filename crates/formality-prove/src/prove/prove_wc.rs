@@ -5,7 +5,7 @@ use formality_types::{
 
 use crate::{
     decls::Decls,
-    prove::{env::Env, prove_apr::prove_apr},
+    prove::{env::Env, prove_pr::prove_pr},
 };
 
 use super::constraints::Constraints;
@@ -20,9 +20,9 @@ judgment_fn! {
         debug(goal, assumptions, env, decls)
 
         (
-            (prove_apr(decls, env, assumptions, a) => c)
+            (prove_pr(decls, env, assumptions, a) => c)
             --- ("atomic")
-            (prove_wc(decls, env, assumptions, WcData::Atomic(a)) => c)
+            (prove_wc(decls, env, assumptions, WcData::PR(a)) => c)
         )
 
         (

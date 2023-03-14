@@ -119,7 +119,7 @@ impl Wc {
 #[term]
 pub enum WcData {
     #[cast]
-    Atomic(PR),
+    PR(PR),
 
     #[grammar(for $v0)]
     ForAll(Binder<Wc>),
