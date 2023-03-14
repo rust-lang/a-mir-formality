@@ -61,6 +61,8 @@ pub enum CrateItem {
     #[cast]
     TraitImpl(TraitImpl),
     #[cast]
+    NegTraitImpl(NegTraitImpl),
+    #[cast]
     Fn(Fn),
 }
 
@@ -258,6 +260,19 @@ impl TraitImplBoundData {
     pub fn trait_ref(&self) -> TraitRef {
         self.trait_id.with(&self.self_ty, &self.trait_parameters)
     }
+}
+
+#[term(impl $binder)]
+pub struct NegTraitImpl {
+    pub binder: Binder<NegTraitImplBoundData>,
+}
+
+#[term(!$trait_id < $,trait_parameters > for $self_ty where $where_clauses { })]
+pub struct NegTraitImplBoundData {
+    pub trait_id: TraitId,
+    pub self_ty: Ty,
+    pub trait_parameters: Vec<Parameter>,
+    pub where_clauses: Vec<WhereClause>,
 }
 
 #[term]

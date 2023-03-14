@@ -1,7 +1,8 @@
 use crate::grammar::{
     AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Crate,
-    CrateItem, ImplItem, Program, Trait, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem,
-    WhereBound, WhereBoundData, WhereClause, WhereClauseData,
+    CrateItem, ImplItem, NegTraitImpl, NegTraitImplBoundData, Program, Trait, TraitBoundData,
+    TraitImpl, TraitImplBoundData, TraitItem, WhereBound, WhereBoundData, WhereClause,
+    WhereClauseData,
 };
 use formality_prove as prove;
 use formality_types::{
@@ -18,6 +19,7 @@ impl Program {
             max_size: formality_prove::Decls::DEFAULT_MAX_SIZE,
             trait_decls: self.trait_decls(),
             impl_decls: self.impl_decls(),
+            neg_impl_decls: self.neg_impl_decls(),
             alias_eq_decls: self.alias_eq_decls(),
             alias_bound_decls: self.alias_bound_decls(),
         }
@@ -29,6 +31,13 @@ impl Program {
 
     fn impl_decls(&self) -> Vec<prove::ImplDecl> {
         self.crates.iter().flat_map(|c| c.impl_decls()).collect()
+    }
+
+    fn neg_impl_decls(&self) -> Vec<prove::NegImplDecl> {
+        self.crates
+            .iter()
+            .flat_map(|c| c.neg_impl_decls())
+            .collect()
     }
 
     fn alias_eq_decls(&self) -> Vec<prove::AliasEqDecl> {
@@ -72,10 +81,7 @@ impl Crate {
                         ),
                     })
                 }
-                CrateItem::Struct(_)
-                | CrateItem::Enum(_)
-                | CrateItem::TraitImpl(_)
-                | CrateItem::Fn(_) => None,
+                _ => None,
             })
             .collect()
     }
@@ -105,10 +111,36 @@ impl Crate {
                         ),
                     })
                 }
-                CrateItem::Struct(_)
-                | CrateItem::Enum(_)
-                | CrateItem::Trait(_)
-                | CrateItem::Fn(_) => None,
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn neg_impl_decls(&self) -> Vec<prove::NegImplDecl> {
+        self.items
+            .iter()
+            .flat_map(|item| match item {
+                CrateItem::NegTraitImpl(NegTraitImpl { binder }) => {
+                    let (
+                        vars,
+                        NegTraitImplBoundData {
+                            trait_id,
+                            self_ty,
+                            trait_parameters,
+                            where_clauses,
+                        },
+                    ) = binder.open();
+                    Some(prove::NegImplDecl {
+                        binder: Binder::new(
+                            &vars,
+                            prove::NegImplDeclBoundData {
+                                trait_ref: trait_id.with(self_ty, trait_parameters),
+                                where_clause: where_clauses.to_wcs(),
+                            },
+                        ),
+                    })
+                }
+                _ => None,
             })
             .collect()
     }

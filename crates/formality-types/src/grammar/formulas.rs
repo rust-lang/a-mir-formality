@@ -19,6 +19,9 @@ pub enum Predicate {
     #[cast]
     IsImplemented(TraitRef),
 
+    #[grammar(!$v0)]
+    NotImplemented(TraitRef),
+
     #[grammar(@WellFormedTraitRef($v0))]
     WellFormedTraitRef(TraitRef),
 }
@@ -37,6 +40,12 @@ impl std::ops::BitAnd for Coinductive {
             (Coinductive::Yes, Coinductive::Yes) => Coinductive::Yes,
             _ => Coinductive::No,
         }
+    }
+}
+
+impl TraitRef {
+    pub fn not_implemented(self) -> Predicate {
+        Predicate::NotImplemented(self)
     }
 }
 
@@ -63,6 +72,7 @@ impl Parameter {
 #[term]
 pub enum Skeleton {
     IsImplemented(TraitId),
+    NotImplemented(TraitId),
     WellFormed,
     WellFormedTraitRef(TraitId),
 
@@ -81,6 +91,13 @@ impl Predicate {
                 parameters,
             }) => (
                 Skeleton::IsImplemented(trait_id.clone()),
+                parameters.clone(),
+            ),
+            Predicate::NotImplemented(TraitRef {
+                trait_id,
+                parameters,
+            }) => (
+                Skeleton::NotImplemented(trait_id.clone()),
                 parameters.clone(),
             ),
             Predicate::WellFormedTraitRef(TraitRef {

@@ -4,7 +4,8 @@ use fn_error_context::context;
 use formality_prove::Env;
 use formality_rust::grammar::{
     AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
-    FnBoundData, ImplItem, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem, WhereClause,
+    FnBoundData, ImplItem, NegTraitImpl, NegTraitImplBoundData, TraitBoundData, TraitImpl,
+    TraitImplBoundData, TraitItem, WhereClause,
 };
 use formality_types::{
     cast::Downcasted,
@@ -43,6 +44,25 @@ impl super::Check<'_> {
         for impl_item in &impl_items {
             self.check_trait_impl_item(&env, &where_clauses, &trait_items, impl_item)?;
         }
+
+        Ok(())
+    }
+
+    pub(super) fn check_neg_trait_impl(&self, i: &NegTraitImpl) -> Fallible<()> {
+        let mut env = Env::default();
+
+        let NegTraitImplBoundData {
+            trait_id,
+            self_ty,
+            trait_parameters,
+            where_clauses,
+        } = env.instantiate_universally(&i.binder);
+
+        let trait_ref = trait_id.with(self_ty, trait_parameters);
+
+        self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?;
+
+        self.prove_goal(&env, &where_clauses, trait_ref.not_implemented())?;
 
         Ok(())
     }

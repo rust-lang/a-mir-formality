@@ -85,6 +85,7 @@ impl Check<'_> {
             CrateItem::Struct(s) => self.check_adt(&s.to_adt()),
             CrateItem::Enum(e) => self.check_adt(&e.to_adt()),
             CrateItem::Fn(f) => self.check_free_fn(f),
+            CrateItem::NegTraitImpl(i) => self.check_neg_trait_impl(i),
         }
     }
 

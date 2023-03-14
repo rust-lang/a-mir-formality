@@ -9,11 +9,9 @@ use super::test_prove;
 /// Simple example decls consisting only of two trait declarations.
 fn decls() -> Decls {
     Decls {
-        max_size: Decls::DEFAULT_MAX_SIZE,
         trait_decls: vec![term("trait Foo<ty Self> where {}")],
         impl_decls: vec![term("impl<ty T> Foo(Vec<T>) where {}")],
-        alias_eq_decls: vec![],
-        alias_bound_decls: vec![],
+        ..Decls::empty()
     }
 }
 

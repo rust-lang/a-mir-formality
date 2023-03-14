@@ -7,14 +7,12 @@ use crate::{decls::Decls, prove::prove};
 /// Simple example decls consisting only of two trait declarations.
 fn decls() -> Decls {
     Decls {
-        max_size: Decls::DEFAULT_MAX_SIZE,
         trait_decls: vec![term("trait Debug<ty Self> where {}")],
         impl_decls: vec![
             term("impl<ty T> Debug(Vec<T>) where {Debug(T)}"),
             term("impl<> Debug(u32) where {}"),
         ],
-        alias_eq_decls: vec![],
-        alias_bound_decls: vec![],
+        ..Decls::empty()
     }
 }
 

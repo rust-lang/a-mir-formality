@@ -13,6 +13,7 @@ pub struct Decls {
     pub max_size: usize,
     pub trait_decls: Vec<TraitDecl>,
     pub impl_decls: Vec<ImplDecl>,
+    pub neg_impl_decls: Vec<NegImplDecl>,
     pub alias_eq_decls: Vec<AliasEqDecl>,
     pub alias_bound_decls: Vec<AliasBoundDecl>,
 }
@@ -23,6 +24,15 @@ impl Decls {
 
     pub fn impl_decls<'s>(&'s self, trait_id: &'s TraitId) -> impl Iterator<Item = &'s ImplDecl> {
         self.impl_decls
+            .iter()
+            .filter(move |i| i.binder.peek().trait_ref.trait_id == *trait_id)
+    }
+
+    pub fn neg_impl_decls<'s>(
+        &'s self,
+        trait_id: &'s TraitId,
+    ) -> impl Iterator<Item = &'s NegImplDecl> {
+        self.neg_impl_decls
             .iter()
             .filter(move |i| i.binder.peek().trait_ref.trait_id == *trait_id)
     }
@@ -65,6 +75,7 @@ impl Decls {
             max_size: Decls::DEFAULT_MAX_SIZE,
             trait_decls: vec![],
             impl_decls: vec![],
+            neg_impl_decls: vec![],
             alias_eq_decls: vec![],
             alias_bound_decls: vec![],
         }
@@ -78,6 +89,17 @@ pub struct ImplDecl {
 
 #[term($trait_ref where $where_clause)]
 pub struct ImplDeclBoundData {
+    pub trait_ref: TraitRef,
+    pub where_clause: Wcs,
+}
+
+#[term(impl $binder)]
+pub struct NegImplDecl {
+    pub binder: Binder<NegImplDeclBoundData>,
+}
+
+#[term(!$trait_ref where $where_clause)]
+pub struct NegImplDeclBoundData {
     pub trait_ref: TraitRef,
     pub where_clause: Wcs,
 }

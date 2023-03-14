@@ -19,11 +19,9 @@ fn exists_u_for_t() {
 #[test]
 fn for_t_exists_u() {
     let decls = Decls {
-        max_size: Decls::DEFAULT_MAX_SIZE,
         trait_decls: vec![term("trait Test<ty Self, ty T> where {}")],
         impl_decls: vec![term("impl<ty X, ty Y> Test(X, Y) where {X = Y}")],
-        alias_eq_decls: vec![],
-        alias_bound_decls: vec![],
+        ..Decls::empty()
     };
 
     let constraints = super::test_prove(decls, term("{} => {for<ty T> Test(T, T)}"));

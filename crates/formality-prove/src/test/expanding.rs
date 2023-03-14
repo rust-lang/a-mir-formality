@@ -10,8 +10,7 @@ fn decls() -> Decls {
         max_size: 10,
         trait_decls: vec![term("trait Debug<ty Self> where {}")],
         impl_decls: vec![term("impl<ty T> Debug(Vec<T>) where {Debug(T)}")],
-        alias_eq_decls: vec![],
-        alias_bound_decls: vec![],
+        ..Decls::empty()
     }
 }
 
