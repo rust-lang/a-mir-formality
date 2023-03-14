@@ -9,7 +9,7 @@ use crate::{
         env::Env,
         prove,
         prove_after::prove_after,
-        prove_eq::{all_eq, prove_ty_eq},
+        prove_eq::{all_eq, prove_eq},
         prove_via::prove_via,
     },
 };
@@ -70,9 +70,9 @@ judgment_fn! {
         )
 
         (
-            (prove_ty_eq(decls, env, assumptions, a, b) => c)
+            (prove_eq(decls, env, assumptions, a, b) => c)
             ----------------------------- ("eq")
-            (prove_wc(decls, env, assumptions, Relation::Equals(Parameter::Ty(a), Parameter::Ty(b))) => c)
+            (prove_wc(decls, env, assumptions, Relation::Equals(a, b)) => c)
         )
     }
 }

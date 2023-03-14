@@ -36,21 +36,23 @@ pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> Relation {
 }
 
 judgment_fn! {
-    pub fn prove_ty_eq(
+    pub fn prove_eq(
         decls: Decls,
         env: Env,
         assumptions: Wcs,
-        a: Ty,
-        b: Ty,
+        a: Parameter,
+        b: Parameter,
     ) => Constraints {
         debug(a, b, assumptions, env, decls)
+
+        assert(a.kind() == b.kind())
 
         trivial(a == b => Constraints::none(env))
 
         (
-            (prove_ty_eq(decls, env, assumptions, r, l) => env_c)
+            (prove_eq(decls, env, assumptions, r, l) => env_c)
             ----------------------------- ("symmetric")
-            (prove_ty_eq(decls, env, assumptions, l, r) => env_c)
+            (prove_eq(decls, env, assumptions, l, r) => env_c)
         )
 
         (
@@ -59,7 +61,7 @@ judgment_fn! {
             (if a_name == b_name)
             (prove(decls, env, assumptions, all_eq(a_parameters, b_parameters)) => c)
             ----------------------------- ("rigid")
-            (prove_ty_eq(decls, env, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
+            (prove_eq(decls, env, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
         )
 
         (
@@ -68,20 +70,20 @@ judgment_fn! {
             (if a_name == b_name)
             (prove(decls, env, assumptions, all_eq(a_parameters, b_parameters)) => env_c)
             ----------------------------- ("alias")
-            (prove_ty_eq(decls, env, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => env_c)
+            (prove_eq(decls, env, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => env_c)
         )
 
         (
             (prove_existential_var_eq(decls, env, assumptions, v, r) => c)
             ----------------------------- ("existential-nonvar")
-            (prove_ty_eq(decls, env, assumptions, Variable::InferenceVar(v), r) => c)
+            (prove_eq(decls, env, assumptions, Variable::InferenceVar(v), r) => c)
         )
 
         (
             (prove_normalize(&decls, env, &assumptions, &x) => (c, y))
             (prove_after(&decls, c, &assumptions, eq(y, &z)) => c)
             ----------------------------- ("normalize-l")
-            (prove_ty_eq(decls, env, assumptions, x, z) => c)
+            (prove_eq(decls, env, assumptions, x, z) => c)
         )
     }
 }
