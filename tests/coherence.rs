@@ -37,6 +37,7 @@ fn test_u32_u32_impls() {
 }
 
 #[test]
+#[allow(non_snake_case)]
 fn test_u32_T_impls() {
     expect_test::expect![[r#"
         Err(
@@ -55,6 +56,7 @@ fn test_u32_T_impls() {
 }
 
 #[test]
+#[allow(non_snake_case)]
 fn test_u32_T_where_T_Not_impls() {
     expect_test::expect![[r#"
         Ok(
@@ -75,6 +77,7 @@ fn test_u32_T_where_T_Not_impls() {
 }
 
 #[test]
+#[allow(non_snake_case)]
 fn test_u32_T_where_T_Is_impls() {
     expect_test::expect![[r#"
         Err(
