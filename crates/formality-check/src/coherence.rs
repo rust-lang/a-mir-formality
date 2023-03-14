@@ -60,6 +60,15 @@ impl Check<'_> {
             return Ok(());
         }
 
+        // If we can disprove the where clauses, then they do not overlap.
+        if let Ok(()) = self.prove_not_goal(
+            &env,
+            Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
+            (&a.where_clauses, &b.where_clauses),
+        ) {
+            return Ok(());
+        }
+
         bail!("impls may overlap: `{impl_a:?}` vs `{impl_b:?}`")
     }
 }
