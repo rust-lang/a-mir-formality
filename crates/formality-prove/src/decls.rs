@@ -1,7 +1,7 @@
 use formality_macros::term;
 use formality_types::{
     collections::Set,
-    grammar::{AliasName, AliasTy, Binder, TraitId, TraitRef, Ty, TyData, Wc, Wcs},
+    grammar::{AliasName, AliasTy, Binder, TraitId, TraitRef, Ty, Wc, Wcs},
 };
 
 #[term]
@@ -129,16 +129,6 @@ pub struct AliasEqDecl {
 impl AliasEqDecl {
     pub fn alias_name(&self) -> AliasName {
         self.binder.peek().alias.name.clone()
-    }
-
-    /// True if the target of this alias-eq declaration
-    /// is a rigid type.
-    pub fn target_is_rigid(&self) -> bool {
-        if let TyData::RigidTy(_) = self.binder.peek().ty.data() {
-            true
-        } else {
-            false
-        }
     }
 }
 

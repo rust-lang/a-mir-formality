@@ -200,8 +200,9 @@ dependencies = [
 name = "formality"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "clap",
- "formality-core",
+ "formality-check",
  "formality-rust",
  "formality-types",
  "pretty_assertions",
@@ -246,16 +247,6 @@ dependencies = [
  "syn",
  "synstructure",
  "tracing",
-]
-
-[[package]]
-name = "formality-main"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "formality-rust",
- "formality-types",
 ]
 
 [[package]]

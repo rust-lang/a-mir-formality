@@ -1,30 +1,25 @@
-// use formality_types::grammar::Fallible;
+use clap::Parser;
+use formality_check::check_all_crates;
+use formality_rust::grammar::Program;
+use formality_types::parse::term;
 
-// use clap::Parser;
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    #[arg(long)]
+    print_rust: bool,
 
-// /// Formality test generator: convert Rust programs into redex tests
-// #[derive(Parser, Debug)]
-// #[command(author, version, about, long_about = None)]
-// struct Args {
-//     /// If set, print the racket program to stdout and quit.
-//     /// Otherwise, we will invoke racket.
-//     #[arg(long)]
-//     print: bool,
+    input_path: String,
+}
 
-//     /// If set, generate a test that expects the program not to compile.
-//     #[arg(long)]
-//     fail: bool,
+fn main() -> anyhow::Result<()> {
+    let args = Args::parse();
+    let input: String = std::fs::read_to_string(&args.input_path)?;
+    let program: Program = term(&input);
 
-//     input_path: String,
-// }
+    if args.print_rust {
+        eprintln!("{:#?}", program);
+    }
 
-// fn main() -> Fallible<()> {
-//     let args = Args::parse();
-//     let input = std::fs::read_to_string(&args.input_path)?;
-//     formality_rust::test_program_ok(&input)?;
-//     Ok(())
-// }
-
-fn main() {
-    println!("FIXME");
+    check_all_crates(&program)
 }
