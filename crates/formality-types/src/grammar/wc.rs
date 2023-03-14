@@ -3,14 +3,14 @@ use std::sync::Arc;
 use formality_macros::term;
 
 use crate::{
-    cast::{DowncastFrom, DowncastTo, Upcast, UpcastFrom},
+    cast::{DowncastFrom, DowncastTo, Upcast, UpcastFrom, Upcasted},
     cast_impl,
     collections::{Set, SetExt},
     grammar::PR,
     set,
 };
 
-use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef, Ty};
+use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef};
 
 #[term($set)]
 pub struct Wcs {
@@ -20,6 +20,18 @@ pub struct Wcs {
 impl Wcs {
     pub fn t() -> Self {
         set![].upcast()
+    }
+
+    /// Goal(s) to prove `a` and `b` are equal (they must have equal length)
+    pub fn all_eq(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) -> Wcs {
+        let a: Vec<Parameter> = a.upcast();
+        let b: Vec<Parameter> = b.upcast();
+        assert_eq!(a.len(), b.len());
+        a.into_iter()
+            .zip(b)
+            .map(|(a, b)| Relation::eq(a, b))
+            .upcasted()
+            .collect()
     }
 }
 

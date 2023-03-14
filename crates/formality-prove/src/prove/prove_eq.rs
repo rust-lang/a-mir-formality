@@ -2,8 +2,8 @@ use formality_types::{
     cast::{Downcast, Upcast, Upcasted},
     collections::{Deduplicate, Set},
     grammar::{
-        AliasTy, InferenceVar, Parameter, PlaceholderVar, Relation, RigidTy, Substitution,
-        TyData, Variable, Wcs,
+        AliasTy, InferenceVar, Parameter, PlaceholderVar, Relation, RigidTy, Substitution, TyData,
+        Variable, Wcs,
     },
     judgment_fn, set,
     visit::Visit,
@@ -17,18 +17,6 @@ use crate::{
 };
 
 use super::{constraints::Constraints, env::Env};
-
-/// Goal(s) to prove `a` and `b` are equal (they must have equal length)
-pub fn all_eq(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) -> Wcs {
-    let a: Vec<Parameter> = a.upcast();
-    let b: Vec<Parameter> = b.upcast();
-    assert_eq!(a.len(), b.len());
-    a.into_iter()
-        .zip(b)
-        .map(|(a, b)| Relation::eq(a, b))
-        .upcasted()
-        .collect()
-}
 
 /// Goal(s) to prove `a` and `b` are equal
 pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> Relation {
@@ -59,7 +47,7 @@ judgment_fn! {
             (let RigidTy { name: a_name, parameters: a_parameters } = a)
             (let RigidTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)
-            (prove(decls, env, assumptions, all_eq(a_parameters, b_parameters)) => c)
+            (prove(decls, env, assumptions, Wcs::all_eq(a_parameters, b_parameters)) => c)
             ----------------------------- ("rigid")
             (prove_eq(decls, env, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
         )
@@ -68,7 +56,7 @@ judgment_fn! {
             (let AliasTy { name: a_name, parameters: a_parameters } = a)
             (let AliasTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)
-            (prove(decls, env, assumptions, all_eq(a_parameters, b_parameters)) => env_c)
+            (prove(decls, env, assumptions, Wcs::all_eq(a_parameters, b_parameters)) => env_c)
             ----------------------------- ("alias")
             (prove_eq(decls, env, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => env_c)
         )

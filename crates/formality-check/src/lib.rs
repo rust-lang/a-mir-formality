@@ -10,7 +10,7 @@ use formality_rust::{
 };
 use formality_types::{
     cast::Upcast,
-    grammar::{Fallible, Wcs},
+    grammar::{Fallible, Substitution, Wcs},
 };
 
 /// Check all crates in the program. The crates must be in dependency order
@@ -106,5 +106,46 @@ impl Check<'_> {
         }
 
         bail!("failed to prove {goal:?} given {assumptions:?}, got {cs:?}")
+    }
+
+    fn prove_not_goal(&self, env: &Env, assumptions: impl ToWcs, goal: impl ToWcs) -> Fallible<()> {
+        let goal: Wcs = goal.to_wcs();
+        let assumptions: Wcs = assumptions.to_wcs();
+
+        assert!(env.only_universal_variables());
+        assert!(env.encloses((&assumptions, &goal)));
+
+        // Proving `∀X. not(F(X))` is the same as proving: `not(∃X. F(X))`.
+        // Therefore, since we have only universal variables, we can change them all to
+        // existential and then try to prove. If we get back no solutions, we know that
+        // we've proven the negation. (This is called the "negation as failure" property,
+        // and it relies on our solver being complete -- i.e., if there is a solution,
+        // we'll find it, or at least return ambiguous.)
+        let mut existential_env = Env::default();
+        let universal_to_existential: Substitution = env
+            .variables()
+            .iter()
+            .map(|v| {
+                assert!(v.is_universal());
+                let v1 = existential_env.fresh_existential(v.kind());
+                (v, v1)
+            })
+            .collect();
+
+        let existential_assumptions = universal_to_existential.apply(&assumptions);
+        let existential_goal = universal_to_existential.apply(&goal);
+
+        let cs = formality_prove::prove(
+            self.decls,
+            &existential_env,
+            existential_assumptions.to_wcs(),
+            &existential_goal,
+        );
+
+        if cs.is_empty() {
+            return Ok(());
+        }
+
+        bail!("failed to disprove {goal:?} given {assumptions:?}, got {cs:?}")
     }
 }

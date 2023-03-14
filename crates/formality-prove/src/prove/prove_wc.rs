@@ -5,13 +5,7 @@ use formality_types::{
 
 use crate::{
     decls::Decls,
-    prove::{
-        env::Env,
-        prove,
-        prove_after::prove_after,
-        prove_eq::{all_eq, prove_eq},
-        prove_via::prove_via,
-    },
+    prove::{env::Env, prove, prove_after::prove_after, prove_eq::prove_eq, prove_via::prove_via},
 };
 
 use super::constraints::Constraints;
@@ -52,7 +46,7 @@ judgment_fn! {
             (let i = i.binder.instantiate_with(&subst).unwrap())
             (let t = decls.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
             (let co_assumptions = (&assumptions, &trait_ref))
-            (prove(&decls, env, &co_assumptions, all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
+            (prove(&decls, env, &co_assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
             (prove_after(&decls, c, &co_assumptions, &i.where_clause) => c)
             (prove_after(&decls, c, &assumptions, &t.where_clause) => c)
             ----------------------------- ("impl")

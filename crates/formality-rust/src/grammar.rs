@@ -5,7 +5,7 @@ use formality_types::{
     cast::Upcast,
     grammar::{
         AdtId, AssociatedItemId, Binder, CrateId, Fallible, FieldId, FnId, Lt, Parameter, TraitId,
-        Ty,
+        TraitRef, Ty,
     },
     term::Term,
 };
@@ -252,6 +252,12 @@ pub struct TraitImplBoundData {
     pub trait_parameters: Vec<Parameter>,
     pub where_clauses: Vec<WhereClause>,
     pub impl_items: Vec<ImplItem>,
+}
+
+impl TraitImplBoundData {
+    pub fn trait_ref(&self) -> TraitRef {
+        self.trait_id.with(&self.self_ty, &self.trait_parameters)
+    }
 }
 
 #[term]

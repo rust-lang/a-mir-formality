@@ -1,6 +1,10 @@
 use anyhow::bail;
+use formality_prove::Env;
 use formality_rust::grammar::{Crate, TraitImpl};
-use formality_types::{cast::Downcasted, grammar::Fallible};
+use formality_types::{
+    cast::Downcasted,
+    grammar::{Fallible, Wcs},
+};
 use itertools::Itertools;
 
 use crate::Check;
@@ -38,7 +42,24 @@ impl Check<'_> {
         Ok(())
     }
 
-    fn overlap_check(&self, _impl_a: &TraitImpl, _impl_b: &TraitImpl) -> Fallible<()> {
-        Ok(())
+    fn overlap_check(&self, impl_a: &TraitImpl, impl_b: &TraitImpl) -> Fallible<()> {
+        let mut env = Env::default();
+
+        let a = env.instantiate_universally(&impl_a.binder);
+        let b = env.instantiate_universally(&impl_b.binder);
+
+        let trait_ref_a = a.trait_ref();
+        let trait_ref_b = b.trait_ref();
+
+        // If the parameters from the two impls cannot be equal, then they do not overlap.
+        if let Ok(()) = self.prove_not_goal(
+            &env,
+            (&a.where_clauses, &b.where_clauses),
+            Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
+        ) {
+            return Ok(());
+        }
+
+        bail!("impls may overlap: `{impl_a:?}` vs `{impl_b:?}`")
     }
 }

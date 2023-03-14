@@ -5,8 +5,7 @@ use formality_types::{
     collections::Set,
     fold::Fold,
     grammar::{
-        Binder, InferenceVar, ParameterKind, PlaceholderVar, VarIndex, VarSubstitution,
-        Variable,
+        Binder, InferenceVar, ParameterKind, PlaceholderVar, VarIndex, VarSubstitution, Variable,
     },
     visit::Visit,
 };
@@ -18,11 +17,7 @@ pub struct Env {
 
 impl Env {
     pub fn only_universal_variables(&self) -> bool {
-        self.variables.iter().all(|v| match v {
-            Variable::PlaceholderVar(_) => true,
-            Variable::InferenceVar(_) => false,
-            Variable::BoundVar(_) => false,
-        })
+        self.variables.iter().all(|v| v.is_universal())
     }
 }
 
@@ -62,6 +57,13 @@ impl Env {
         VarIndex {
             index: max_index + 1,
         }
+    }
+
+    pub fn fresh_existential(&mut self, kind: ParameterKind) -> InferenceVar {
+        let var_index = self.fresh_index();
+        let v = InferenceVar { kind, var_index };
+        self.variables.push(v.upcast());
+        v
     }
 
     pub fn insert_fresh_before(&mut self, kind: ParameterKind, rank: Universe) -> InferenceVar {

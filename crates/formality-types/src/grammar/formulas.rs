@@ -4,9 +4,6 @@ use crate::cast::To;
 use crate::cast::Upcast;
 use crate::cast_impl;
 
-use super::AdtId;
-use super::AliasName;
-use super::AliasTy;
 use super::Parameter;
 use super::Parameters;
 use super::TraitId;

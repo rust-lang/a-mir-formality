@@ -486,6 +486,14 @@ impl Variable {
             }) => false,
         }
     }
+
+    pub fn is_universal(&self) -> bool {
+        match self {
+            Variable::PlaceholderVar(_) => true,
+            Variable::InferenceVar(_) => false,
+            Variable::BoundVar(_) => false,
+        }
+    }
 }
 
 impl Visit for Variable {
