@@ -1,11 +1,17 @@
 use formality_types::{
-    grammar::{Wc, WcData, Wcs},
+    grammar::{Parameter, Predicate, Relation, Wc, WcData, Wcs},
     judgment_fn,
 };
 
 use crate::{
     decls::Decls,
-    prove::{env::Env, prove_pr::prove_pr},
+    prove::{
+        env::Env,
+        prove,
+        prove_after::prove_after,
+        prove_eq::{all_eq, prove_ty_eq},
+        prove_via::prove_via,
+    },
 };
 
 use super::constraints::Constraints;
@@ -20,12 +26,6 @@ judgment_fn! {
         debug(goal, assumptions, env, decls)
 
         (
-            (prove_pr(decls, env, assumptions, a) => c)
-            --- ("atomic")
-            (prove_wc(decls, env, assumptions, WcData::PR(a)) => c)
-        )
-
-        (
             (let (env, subst) = env.universal_substitution(&binder))
             (let p1 = binder.instantiate_with(&subst).unwrap())
             (prove_wc(decls, env, &assumptions, p1) => c)
@@ -37,6 +37,42 @@ judgment_fn! {
             (prove_wc(decls, env, (assumptions, p1), p2) => c)
             --- ("implies")
             (prove_wc(decls, env, assumptions, WcData::Implies(p1, p2)) => c)
+        )
+
+        (
+            (&assumptions => a)
+            (prove_via(&decls, &env, &assumptions, a, &goal) => c)
+            ----------------------------- ("assumption")
+            (prove_wc(decls, env, assumptions, WcData::PR(goal)) => c)
+        )
+
+        (
+            (decls.impl_decls(&trait_ref.trait_id) => i)
+            (let (env, subst) = env.existential_substitution(&i.binder))
+            (let i = i.binder.instantiate_with(&subst).unwrap())
+            (let t = decls.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
+            (let co_assumptions = (&assumptions, &trait_ref))
+            (prove(&decls, env, &co_assumptions, all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
+            (prove_after(&decls, c, &co_assumptions, &i.where_clause) => c)
+            (prove_after(&decls, c, &assumptions, &t.where_clause) => c)
+            ----------------------------- ("impl")
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+        )
+
+        (
+            (decls.trait_invariants() => ti)
+            (let (env, subst) = env.existential_substitution(&ti.binder))
+            (let ti = ti.binder.instantiate_with(&subst).unwrap())
+            (prove_via(&decls, env, &assumptions, &ti.where_clause, &trait_ref) => c)
+            (prove_after(&decls, c, &assumptions, &ti.trait_ref) => c)
+            ----------------------------- ("trait implied bound")
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+        )
+
+        (
+            (prove_ty_eq(decls, env, assumptions, a, b) => c)
+            ----------------------------- ("eq")
+            (prove_wc(decls, env, assumptions, Relation::Equals(Parameter::Ty(a), Parameter::Ty(b))) => c)
         )
     }
 }
