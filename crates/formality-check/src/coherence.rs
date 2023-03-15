@@ -3,7 +3,7 @@ use formality_prove::Env;
 use formality_rust::grammar::{Crate, TraitImpl};
 use formality_types::{
     cast::Downcasted,
-    grammar::{Fallible, Wcs},
+    grammar::{Fallible, Wc, Wcs},
 };
 use itertools::Itertools;
 
@@ -69,6 +69,27 @@ impl Check<'_> {
             return Ok(());
         }
 
+        // If we can disprove the where clauses, then they do not overlap.
+        let inverted: Vec<Wc> = a
+            .where_clauses
+            .iter()
+            .chain(&b.where_clauses)
+            .flat_map(|wc| wc.invert())
+            .collect();
+        if inverted.iter().any(|inverted_wc| {
+            self.prove_goal(
+                &env,
+                (
+                    Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
+                    &a.where_clauses,
+                    &b.where_clauses,
+                ),
+                inverted_wc,
+            )
+            .is_ok()
+        }) {
+            return Ok(());
+        }
         bail!("impls may overlap: `{impl_a:?}` vs `{impl_b:?}`")
     }
 }

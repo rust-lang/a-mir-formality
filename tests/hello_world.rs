@@ -26,7 +26,7 @@ fn test_broken() {
         Err(
             Error {
                 context: "check_trait(Foo)",
-                source: "failed to prove {@ WellFormedTraitRef(Bar(!ty_2, !ty_1))} given [!ty_2 : Bar < !ty_1 >], got {}",
+                source: "failed to prove {@ WellFormedTraitRef(Bar(!ty_2, !ty_1))} given {Bar(!ty_2, !ty_1)}, got {}",
             },
         )
     "#]].assert_debug_eq(&test_program_ok(PROGRAM_BROKEN));

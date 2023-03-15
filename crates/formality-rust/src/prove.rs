@@ -306,6 +306,20 @@ where
     }
 }
 
+impl<A, B, C> ToWcs for (A, B, C)
+where
+    A: ToWcs,
+    B: ToWcs,
+    C: ToWcs,
+{
+    fn to_wcs(&self) -> Wcs {
+        let (a, b, c) = self;
+        let a = a.to_wcs();
+        let b = b.to_wcs();
+        let c = c.to_wcs();
+        (a, b, c).upcast()
+    }
+}
 impl ToWcs for Vec<WhereClause> {
     fn to_wcs(&self) -> Wcs {
         self.iter().flat_map(|wc| wc.to_wcs()).collect()

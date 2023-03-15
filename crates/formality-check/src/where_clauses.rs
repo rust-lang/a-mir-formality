@@ -1,5 +1,8 @@
 use formality_prove::Env;
-use formality_rust::grammar::{WhereClause, WhereClauseData};
+use formality_rust::{
+    grammar::{WhereClause, WhereClauseData},
+    prove::ToWcs,
+};
 use formality_types::{
     cast::Upcast,
     grammar::{Fallible, Parameter, TraitRef},
@@ -48,7 +51,7 @@ impl super::Check<'_> {
     fn prove_parameter_well_formed(
         &self,
         env: &Env,
-        assumptions: impl Upcast<Vec<WhereClause>>,
+        assumptions: impl ToWcs,
         parameter: impl Upcast<Parameter>,
     ) -> Fallible<()> {
         let parameter: Parameter = parameter.upcast();
@@ -58,7 +61,7 @@ impl super::Check<'_> {
     fn prove_trait_ref_well_formed(
         &self,
         env: &Env,
-        assumptions: impl Upcast<Vec<WhereClause>>,
+        assumptions: impl ToWcs,
         trait_ref: impl Upcast<TraitRef>,
     ) -> Fallible<()> {
         let trait_ref: TraitRef = trait_ref.upcast();

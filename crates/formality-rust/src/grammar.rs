@@ -5,7 +5,7 @@ use formality_types::{
     cast::Upcast,
     grammar::{
         AdtId, AssociatedItemId, Binder, CrateId, Fallible, FieldId, FnId, Lt, Parameter, TraitId,
-        TraitRef, Ty,
+        TraitRef, Ty, Wc,
     },
     term::Term,
 };
@@ -303,6 +303,23 @@ pub struct WhereClause {
 impl WhereClause {
     pub fn data(&self) -> &WhereClauseData {
         &self.data
+    }
+
+    pub fn invert(&self) -> Option<Wc> {
+        match self.data() {
+            WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => Some(
+                trait_id
+                    .with(self_ty, parameters)
+                    .not_implemented()
+                    .upcast(),
+            ),
+            WhereClauseData::Outlives(_, _) => None,
+            WhereClauseData::ForAll(binder) => {
+                let (vars, where_clause) = binder.open();
+                let wc = where_clause.invert()?;
+                Some(Wc::for_all(&vars, wc))
+            }
+        }
     }
 }
 
