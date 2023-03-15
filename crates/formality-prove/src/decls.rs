@@ -3,9 +3,10 @@ use formality_types::{
     cast::Upcast,
     collections::Set,
     grammar::{
-        AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc, Wcs,
-        PR,
+        AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty,
+        Wc, Wcs, PR,
     },
+    set,
 };
 
 #[term]
@@ -16,11 +17,21 @@ pub struct Decls {
     pub neg_impl_decls: Vec<NegImplDecl>,
     pub alias_eq_decls: Vec<AliasEqDecl>,
     pub alias_bound_decls: Vec<AliasBoundDecl>,
+    pub local_trait_ids: Set<TraitId>,
+    pub local_adt_ids: Set<AdtId>,
 }
 
 impl Decls {
     /// Max size used in unit tests that are not stress testing maximum size.
     pub const DEFAULT_MAX_SIZE: usize = 222;
+
+    pub fn is_local_trait_id(&self, trait_id: &TraitId) -> bool {
+        self.local_trait_ids.contains(trait_id)
+    }
+
+    pub fn is_local_adt_id(&self, adt_id: &AdtId) -> bool {
+        self.local_adt_ids.contains(adt_id)
+    }
 
     pub fn impl_decls<'s>(&'s self, trait_id: &'s TraitId) -> impl Iterator<Item = &'s ImplDecl> {
         self.impl_decls
@@ -78,6 +89,8 @@ impl Decls {
             neg_impl_decls: vec![],
             alias_eq_decls: vec![],
             alias_bound_decls: vec![],
+            local_trait_ids: set![],
+            local_adt_ids: set![],
         }
     }
 }

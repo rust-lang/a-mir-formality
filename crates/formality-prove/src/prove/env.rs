@@ -13,11 +13,23 @@ use formality_types::{
 #[derive(Default, Debug, Clone, Hash, Ord, Eq, PartialEq, PartialOrd)]
 pub struct Env {
     variables: Vec<Variable>,
+    coherence_mode: bool,
 }
 
 impl Env {
     pub fn only_universal_variables(&self) -> bool {
         self.variables.iter().all(|v| v.is_universal())
+    }
+
+    pub fn is_coherence_mode(&self) -> bool {
+        self.coherence_mode
+    }
+
+    pub fn coherence_mode(self) -> Env {
+        Env {
+            coherence_mode: true,
+            ..self
+        }
     }
 }
 
@@ -199,6 +211,7 @@ impl Env {
                 .iter()
                 .map(|&v| vs.map_var(v).unwrap_or(v))
                 .collect(),
+            coherence_mode: self.coherence_mode,
         }
     }
 
