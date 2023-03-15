@@ -97,3 +97,46 @@ fn test_u32_T_where_T_Is_impls() {
         ]",
     ));
 }
+
+#[test]
+fn test_u32_not_u32_impls() {
+    expect_test::expect![[r#"
+        Err(
+            Error {
+                context: "check_trait_impl(impl <> Foo < > for (rigid (scalar u32)) where [] { })",
+                source: "failed to disprove {! Foo((rigid (scalar u32)))} given {}, got {Constraints { env: Env { variables: [] }, known_true: true, substitution: {} }}",
+            },
+        )
+    "#]] // FIXME
+    .assert_debug_eq(&test_program_ok(
+        "[
+            crate Foo {
+                trait Foo<> where [] {}
+                impl<> Foo<> for u32 where [] {}
+                impl<> !Foo<> for u32 where [] {}
+            }
+        ]",
+    ));
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn test_T_where_Foo_not_u32_impls() {
+    expect_test::expect![[r#"
+        Err(
+            Error {
+                context: "check_trait_impl(impl <ty> Foo < > for ^ty0_0 where [^ty0_0 : Foo < >] { })",
+                source: "failed to disprove {! Foo(!ty_1)} given {Foo(!ty_1)}, got {Constraints { env: Env { variables: [?ty_1] }, known_true: true, substitution: {?ty_1 => (rigid (scalar u32))} }}",
+            },
+        )
+    "#]] // FIXME
+    .assert_debug_eq(&test_program_ok(
+        "[
+            crate Foo {
+                trait Foo<> where [] {}
+                impl<ty T> Foo<> for T where [T: Foo<>] {}
+                impl<> !Foo<> for u32 where [] {}
+            }
+        ]",
+    ));
+}

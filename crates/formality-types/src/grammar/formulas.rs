@@ -44,8 +44,8 @@ impl std::ops::BitAnd for Coinductive {
 }
 
 impl TraitRef {
-    pub fn not_implemented(self) -> Predicate {
-        Predicate::NotImplemented(self)
+    pub fn not_implemented(&self) -> Predicate {
+        Predicate::NotImplemented(self.clone())
     }
 }
 

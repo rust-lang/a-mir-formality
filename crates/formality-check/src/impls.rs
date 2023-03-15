@@ -35,6 +35,8 @@ impl super::Check<'_> {
 
         self.prove_goal(&env, &where_clauses, trait_ref.is_implemented())?;
 
+        self.prove_not_goal(&env, &where_clauses, trait_ref.not_implemented())?;
+
         let trait_decl = self.program.trait_named(&trait_ref.trait_id)?;
         let TraitBoundData {
             where_clauses: _,
