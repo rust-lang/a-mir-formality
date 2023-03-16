@@ -1,3 +1,5 @@
+#![allow(non_snake_case)] // we embed type names into the names for our test functions
+
 use formality::test_program_ok;
 use formality_macros::test;
 
@@ -38,7 +40,6 @@ fn test_u32_u32_impls() {
 }
 
 #[test]
-#[allow(non_snake_case)]
 fn test_u32_T_impls() {
     expect_test::expect![[r#"
         Err(
@@ -57,7 +58,6 @@ fn test_u32_T_impls() {
 }
 
 #[test]
-#[allow(non_snake_case)]
 fn test_u32_T_where_T_Not_impls() {
     expect_test::expect![[r#"
         Ok(
@@ -78,7 +78,6 @@ fn test_u32_T_where_T_Not_impls() {
 }
 
 #[test]
-#[allow(non_snake_case)]
 fn test_u32_T_where_T_Is_impls() {
     expect_test::expect![[r#"
         Err(
@@ -121,8 +120,12 @@ fn test_u32_not_u32_impls() {
 }
 
 #[test]
-#[allow(non_snake_case)]
 fn test_T_where_Foo_not_u32_impls() {
+    // Test positive impl that has a where-clause which checks for itself,
+    // i.e., `T: Foo where T: Foo`. This `T: Foo` where-clause isn't harmful
+    // in the coinductive interpretation of trait matching, it actually
+    // doesn't change the meaning of the impl at all. However, this formulation
+    // was erroneously accepted by an earlier variant of negative impls.
     expect_test::expect![[r#"
         Err(
             Error {
@@ -143,8 +146,7 @@ fn test_T_where_Foo_not_u32_impls() {
 }
 
 #[test]
-#[allow(non_snake_case)]
-fn test_non_local() {
+fn test_foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait() {
     expect_test::expect![[r#"
         Err(
             "impls may overlap: `impl <ty> FooTrait < > for ^ty0_0 where [^ty0_0 : CoreTrait < >] { }` vs `impl <> FooTrait < > for (rigid (adt CoreStruct)) where [] { }`",
@@ -166,7 +168,7 @@ fn test_non_local() {
 }
 
 #[test]
-fn test_orphan() {
+fn test_orphan_basic() {
     expect_test::expect![[r#"
         Err(
             Error {
@@ -183,6 +185,32 @@ fn test_orphan() {
             },
             crate foo {
                 impl<> CoreTrait<> for CoreStruct<> where [] {}
+            }
+        ]",
+    ));
+}
+
+#[test]
+fn test_neg_CoreTrait_for_CoreStruct_implies_no_overlap() {
+    // Variant of test_foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait
+    // where there is a negative impl, so it is accepted.
+
+    expect_test::expect![[r#"
+        Ok(
+            (),
+        )
+    "#]]
+    .assert_debug_eq(&test_program_ok(
+        "[
+            crate core {
+                trait CoreTrait<> where [] {}
+                struct CoreStruct<> where [] {}
+                impl<> !CoreTrait<> for CoreStruct<> where [] {}
+            },
+            crate foo {
+                trait FooTrait<> where [] {}
+                impl<ty T> FooTrait<> for T where [T: CoreTrait<>] {}
+                impl<> FooTrait<> for CoreStruct<> where [] {}
             }
         ]",
     ));
