@@ -114,7 +114,7 @@ impl Check<'_> {
         // we've proven the negation. (This is called the "negation as failure" property,
         // and it relies on our solver being complete -- i.e., if there is a solution,
         // we'll find it, or at least return ambiguous.)
-        let mut existential_env = Env::default();
+        let mut existential_env = Env::default().with_coherence_mode(env.is_in_coherence_mode());
         let universal_to_existential: Substitution = env
             .variables()
             .iter()

@@ -25,6 +25,7 @@ fn minimize_a() {
                     ?ty_2,
                     ?ty_3,
                 ],
+                coherence_mode: false,
             },
             [
                 ?ty_1,
@@ -43,6 +44,7 @@ fn minimize_a() {
                     ?ty_0,
                     ?ty_1,
                 ],
+                coherence_mode: false,
             },
             [
                 ?ty_0,
@@ -77,6 +79,7 @@ fn minimize_a() {
                     ?ty_4,
                     ?ty_3,
                 ],
+                coherence_mode: false,
             },
             known_true: true,
             substitution: {

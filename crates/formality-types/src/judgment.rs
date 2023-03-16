@@ -198,6 +198,22 @@ macro_rules! push_rules {
         }
     };
 
+    (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident : $ty0:ty, $($pats:tt)*) args $args:tt) => {
+        {
+            if let Some($pat0) = $crate::cast::Downcast::downcast::<$ty0>($in0) {
+                $crate::push_rules!(@match inputs($($inputs)*) patterns($($pats)*) args $args);
+            }
+        }
+    };
+
+    (@match inputs($in0:ident) patterns($pat0:ident : $ty0:ty) args $args:tt) => {
+        {
+            if let Some($pat0) = $crate::cast::Downcast::downcast::<$ty0>($in0) {
+                $crate::push_rules!(@match inputs() patterns() args $args);
+            }
+        }
+    };
+
     (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:pat, $($pats:tt)*) args $args:tt) => {
         if let Some($pat0) = $crate::cast::Downcast::downcast(&$in0) {
             $crate::push_rules!(@match inputs($($inputs)*) patterns($($pats)*) args $args);

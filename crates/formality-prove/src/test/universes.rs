@@ -30,6 +30,7 @@ fn for_t_exists_u() {
             Constraints {
                 env: Env {
                     variables: [],
+                    coherence_mode: false,
                 },
                 known_true: true,
                 substitution: {},

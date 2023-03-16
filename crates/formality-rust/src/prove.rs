@@ -7,8 +7,10 @@ use crate::grammar::{
 use formality_prove as prove;
 use formality_types::{
     cast::{To, Upcast, Upcasted},
+    collections::Set,
     grammar::{
-        fresh_bound_var, AliasTy, Binder, ParameterKind, Predicate, Relation, Ty, Wc, Wcs, PR,
+        fresh_bound_var, AdtId, AliasTy, Binder, ParameterKind, Predicate, Relation, TraitId, Ty,
+        Wc, Wcs, PR,
     },
     seq,
 };
@@ -22,6 +24,8 @@ impl Program {
             neg_impl_decls: self.neg_impl_decls(),
             alias_eq_decls: self.alias_eq_decls(),
             alias_bound_decls: self.alias_bound_decls(),
+            local_trait_ids: self.local_trait_ids(),
+            local_adt_ids: self.local_adt_ids(),
         }
     }
 
@@ -51,6 +55,22 @@ impl Program {
         self.crates
             .iter()
             .flat_map(|c| c.alias_bound_decls())
+            .collect()
+    }
+
+    fn local_trait_ids(&self) -> Set<TraitId> {
+        self.crates
+            .last()
+            .into_iter()
+            .flat_map(|c| c.trait_decls().into_iter().map(|decl| decl.id))
+            .collect()
+    }
+
+    fn local_adt_ids(&self) -> Set<AdtId> {
+        self.crates
+            .last()
+            .into_iter()
+            .flat_map(|c| c.adt_ids())
             .collect()
     }
 }
@@ -258,6 +278,20 @@ impl Crate {
                     }))
                 }
                 _ => vec![],
+            })
+            .collect()
+    }
+
+    fn adt_ids(&self) -> Set<AdtId> {
+        self.items
+            .iter()
+            .flat_map(|item| match item {
+                CrateItem::Struct(v) => Some(v.id.clone()),
+                CrateItem::Enum(v) => Some(v.id.clone()),
+                CrateItem::Trait(_) => None,
+                CrateItem::TraitImpl(_) => None,
+                CrateItem::NegTraitImpl(_) => None,
+                CrateItem::Fn(_) => None,
             })
             .collect()
     }

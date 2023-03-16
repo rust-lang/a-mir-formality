@@ -28,6 +28,7 @@ fn eq_implies_partial_eq() {
             Constraints {
                 env: Env {
                     variables: [],
+                    coherence_mode: false,
                 },
                 known_true: true,
                 substitution: {},

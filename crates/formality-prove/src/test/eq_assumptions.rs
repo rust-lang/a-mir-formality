@@ -17,6 +17,7 @@ fn test_a() {
             Constraints {
                 env: Env {
                     variables: [],
+                    coherence_mode: false,
                 },
                 known_true: true,
                 substitution: {},
@@ -40,6 +41,7 @@ fn test_b() {
                         ?ty_2,
                         ?ty_1,
                     ],
+                    coherence_mode: false,
                 },
                 known_true: true,
                 substitution: {
@@ -63,6 +65,7 @@ fn test_normalize_assoc_ty() {
             Constraints {
                 env: Env {
                     variables: [],
+                    coherence_mode: false,
                 },
                 known_true: true,
                 substitution: {},
@@ -103,6 +106,7 @@ fn test_normalize_assoc_ty_inference1() {
                         !ty_1,
                         ?ty_2,
                     ],
+                    coherence_mode: false,
                 },
                 known_true: true,
                 substitution: {

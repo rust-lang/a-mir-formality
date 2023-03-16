@@ -204,6 +204,8 @@ dependencies = [
  "clap",
  "expect-test",
  "formality-check",
+ "formality-core",
+ "formality-macros",
  "formality-rust",
  "formality-types",
  "pretty_assertions",

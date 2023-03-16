@@ -15,6 +15,7 @@ mod eq_assumptions;
 mod eq_partial_eq;
 mod exists_constraints;
 mod expanding;
+mod is_local;
 mod magic_copy;
 mod occurs_check;
 mod simple_impl;
@@ -22,6 +23,8 @@ mod universes;
 
 #[term]
 enum TestAssertion {
+    #[grammar(coherence_mode $v0)]
+    CoherenceMode(Arc<TestAssertion>),
     #[grammar(forall $v0)]
     ForAll(Binder<Arc<TestAssertion>>),
     #[grammar(exists $v0)]
@@ -55,6 +58,11 @@ fn test_prove(decls: Decls, mut assertion: Arc<TestAssertion>) -> Set<Constraint
 
             TestAssertion::Prove(assumptions, goals) => {
                 return prove(decls, env, assumptions, goals);
+            }
+
+            TestAssertion::CoherenceMode(assertion1) => {
+                env = env.with_coherence_mode(true);
+                assertion = assertion1.clone();
             }
         }
     }

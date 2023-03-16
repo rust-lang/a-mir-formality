@@ -1,25 +1,5 @@
 use formality::test_program_ok;
 
-const PROGRAM_BROKEN: &str = "[
-    crate Foo {
-        trait Foo<ty T> where [T: Bar<Self>] {}
-
-        trait Bar<ty T> where [T: Baz<>] {}
-        
-        trait Baz<> where [] {}
-    }
-]";
-
-const PROGRAM_OK: &str = "[
-    crate Foo {
-        trait Foo<ty T> where [T: Bar<Self>, Self: Baz<>] {}
-
-        trait Bar<ty T> where [T: Baz<>] {}
-        
-        trait Baz<> where [] {}
-    }
-]";
-
 #[test]
 fn test_broken() {
     expect_test::expect![[r#"
@@ -29,7 +9,17 @@ fn test_broken() {
                 source: "failed to prove {@ WellFormedTraitRef(Bar(!ty_2, !ty_1))} given {Bar(!ty_2, !ty_1)}, got {}",
             },
         )
-    "#]].assert_debug_eq(&test_program_ok(PROGRAM_BROKEN));
+    "#]].assert_debug_eq(&test_program_ok(
+        "[
+            crate Foo {
+                trait Foo<ty T> where [T: Bar<Self>] {}
+        
+                trait Bar<ty T> where [T: Baz<>] {}
+                
+                trait Baz<> where [] {}
+            }
+        ]",
+    ));
 }
 
 #[test]
@@ -39,5 +29,15 @@ fn test_ok() {
             (),
         )
     "#]]
-    .assert_debug_eq(&test_program_ok(PROGRAM_OK));
+    .assert_debug_eq(&test_program_ok(
+        "[
+            crate Foo {
+                trait Foo<ty T> where [T: Bar<Self>, Self: Baz<>] {}
+        
+                trait Bar<ty T> where [T: Baz<>] {}
+                
+                trait Baz<> where [] {}
+            }
+        ]",
+    ));
 }
