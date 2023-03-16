@@ -227,7 +227,7 @@ pub enum FnBody {
     MirFnBody(MirFnBody),
 }
 
-#[term(type $id $binder)]
+#[term(type $id $binder ;)]
 pub struct AssociatedTy {
     pub id: AssociatedItemId,
     pub binder: Binder<AssociatedTyBoundData>,
@@ -283,13 +283,13 @@ pub enum ImplItem {
     AssociatedTyValue(AssociatedTyValue),
 }
 
-#[term(type $id $binder)]
+#[term(type $id $binder ;)]
 pub struct AssociatedTyValue {
     pub id: AssociatedItemId,
     pub binder: Binder<AssociatedTyValueBoundData>,
 }
 
-#[term(where $where_clauses = $ty)]
+#[term(= $ty where $where_clauses)]
 pub struct AssociatedTyValueBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub ty: Ty,

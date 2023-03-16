@@ -157,6 +157,7 @@ impl super::Check<'_> {
         Ok(())
     }
 
+    #[context("check_associated_ty_value({impl_value:?})")]
     fn check_associated_ty_value(
         &self,
         impl_env: &Env,

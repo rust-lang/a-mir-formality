@@ -4,7 +4,7 @@ use formality_types::parse::term;
 
 use crate::decls::Decls;
 
-use super::test_prove;
+use crate::test_util::test_prove;
 
 /// Simple example decls consisting only of two trait declarations.
 fn decls() -> Decls {
