@@ -1,4 +1,5 @@
 use anyhow::bail;
+use fn_error_context::context;
 use formality_prove::Env;
 use formality_rust::grammar::{Crate, TraitImpl};
 use formality_types::{
@@ -38,8 +39,18 @@ impl Check<'_> {
         Ok(())
     }
 
-    fn orphan_check(&self, _impl_a: &TraitImpl) -> Fallible<()> {
-        Ok(())
+    #[context("orphan_check({impl_a:?})")]
+    fn orphan_check(&self, impl_a: &TraitImpl) -> Fallible<()> {
+        let mut env = Env::default();
+
+        let a = env.instantiate_universally(&impl_a.binder);
+        let trait_ref = a.trait_ref();
+
+        self.prove_goal(
+            &env.with_coherence_mode(true),
+            &a.where_clauses,
+            trait_ref.is_local(),
+        )
     }
 
     #[tracing::instrument(level = "Debug", skip(self))]

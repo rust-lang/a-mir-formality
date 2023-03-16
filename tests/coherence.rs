@@ -108,7 +108,7 @@ fn test_u32_not_u32_impls() {
                 source: "failed to disprove {! Foo((rigid (scalar u32)))} given {}, got {Constraints { env: Env { variables: [], coherence_mode: false }, known_true: true, substitution: {} }}",
             },
         )
-    "#]] // FIXME
+    "#]]
     .assert_debug_eq(&test_program_ok(
         "[
             crate core {
@@ -130,7 +130,7 @@ fn test_T_where_Foo_not_u32_impls() {
                 source: "failed to disprove {! Foo(!ty_1)} given {Foo(!ty_1)}, got {Constraints { env: Env { variables: [?ty_1], coherence_mode: false }, known_true: true, substitution: {?ty_1 => (rigid (scalar u32))} }}",
             },
         )
-    "#]] // FIXME
+    "#]]
     .assert_debug_eq(&test_program_ok(
         "[
             crate core {
@@ -160,6 +160,29 @@ fn test_non_local() {
                 trait FooTrait<> where [] {}
                 impl<ty T> FooTrait<> for T where [T: CoreTrait<>] {}
                 impl<> FooTrait<> for CoreStruct<> where [] {}
+            }
+        ]",
+    ));
+}
+
+#[test]
+fn test_orphan() {
+    expect_test::expect![[r#"
+        Err(
+            Error {
+                context: "orphan_check(impl <> CoreTrait < > for (rigid (adt CoreStruct)) where [] { })",
+                source: "failed to prove {@ IsLocal(CoreTrait((rigid (adt CoreStruct))))} given {}, got {}",
+            },
+        )
+    "#]]
+    .assert_debug_eq(&test_program_ok(
+        "[
+            crate core {
+                trait CoreTrait<> where [] {}
+                struct CoreStruct<> where [] {}
+            },
+            crate foo {
+                impl<> CoreTrait<> for CoreStruct<> where [] {}
             }
         ]",
     ));
