@@ -42,6 +42,7 @@ impl Check<'_> {
         Ok(())
     }
 
+    #[tracing::instrument(level = "Debug", skip(self))]
     fn overlap_check(&self, impl_a: &TraitImpl, impl_b: &TraitImpl) -> Fallible<()> {
         let mut env = Env::default();
 
@@ -53,7 +54,7 @@ impl Check<'_> {
 
         // If the parameters from the two impls cannot be equal, then they do not overlap.
         if let Ok(()) = self.prove_not_goal(
-            &env,
+            &env.with_coherence_mode(true),
             (&a.where_clauses, &b.where_clauses),
             Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
         ) {
@@ -62,7 +63,7 @@ impl Check<'_> {
 
         // If we can disprove the where clauses, then they do not overlap.
         if let Ok(()) = self.prove_not_goal(
-            &env,
+            &env.with_coherence_mode(true),
             Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
             (&a.where_clauses, &b.where_clauses),
         ) {

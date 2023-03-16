@@ -1,4 +1,5 @@
 use formality::test_program_ok;
+use formality_macros::test;
 
 #[test]
 fn test_u32_i32_impls() {
@@ -145,10 +146,10 @@ fn test_T_where_Foo_not_u32_impls() {
 #[allow(non_snake_case)]
 fn test_non_local() {
     expect_test::expect![[r#"
-        Ok(
-            (),
+        Err(
+            "impls may overlap: `impl <ty> FooTrait < > for ^ty0_0 where [^ty0_0 : CoreTrait < >] { }` vs `impl <> FooTrait < > for (rigid (adt CoreStruct)) where [] { }`",
         )
-    "#]] // FIXME
+    "#]]
     .assert_debug_eq(&test_program_ok(
         "[
             crate core {
