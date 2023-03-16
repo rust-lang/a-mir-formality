@@ -5,7 +5,14 @@ use formality_types::{
 
 use crate::{
     decls::Decls,
-    prove::{env::Env, prove, prove_after::prove_after, prove_eq::prove_eq, prove_via::prove_via},
+    prove::{
+        env::Env,
+        is_local::{is_local_trait_ref, may_be_remote},
+        prove,
+        prove_after::prove_after,
+        prove_eq::prove_eq,
+        prove_via::prove_via,
+    },
 };
 
 use super::constraints::Constraints;
@@ -54,6 +61,13 @@ judgment_fn! {
         )
 
         (
+            (if env.is_in_coherence_mode())
+            (may_be_remote(decls, env, assumptions, trait_ref) => c)
+            ----------------------------- ("impl")
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.ambiguous())
+        )
+
+        (
             (decls.neg_impl_decls(&trait_ref.trait_id) => i)
             (let (env, subst) = env.existential_substitution(&i.binder))
             (let i = i.binder.instantiate_with(&subst).unwrap())
@@ -79,13 +93,18 @@ judgment_fn! {
             (prove_wc(decls, env, assumptions, Relation::Equals(a, b)) => c)
         )
 
-
         (
             (let t = decls.trait_decl(&trait_ref.trait_id))
             (let t = t.binder.instantiate_with(&trait_ref.parameters).unwrap())
             (prove(decls, env, assumptions, t.where_clause) => c)
             ----------------------------- ("trait well formed")
             (prove_wc(decls, env, assumptions, Predicate::WellFormedTraitRef(trait_ref)) => c)
+        )
+
+        (
+            (is_local_trait_ref(decls, env, assumptions, trait_ref) => c)
+            ----------------------------- ("trait ref is local")
+            (prove_wc(decls, env, assumptions, Predicate::IsLocal(trait_ref)) => c)
         )
     }
 }

@@ -25,6 +25,7 @@ fn vec_u32_debug() {
             Constraints {
                 env: Env {
                     variables: [],
+                    coherence_mode: false,
                 },
                 known_true: true,
                 substitution: {},
@@ -43,6 +44,7 @@ fn vec_vec_u32_debug() {
             Constraints {
                 env: Env {
                     variables: [],
+                    coherence_mode: false,
                 },
                 known_true: true,
                 substitution: {},

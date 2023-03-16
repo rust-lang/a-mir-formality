@@ -27,6 +27,7 @@ fn exists_u_for_t() {
                         ?ty_2,
                         ?ty_1,
                     ],
+                    coherence_mode: false,
                 },
                 known_true: true,
                 substitution: {

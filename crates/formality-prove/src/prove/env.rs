@@ -21,14 +21,14 @@ impl Env {
         self.variables.iter().all(|v| v.is_universal())
     }
 
-    pub fn is_coherence_mode(&self) -> bool {
+    pub fn is_in_coherence_mode(&self) -> bool {
         self.coherence_mode
     }
 
-    pub fn coherence_mode(self) -> Env {
+    pub fn with_coherence_mode(&self, b: bool) -> Env {
         Env {
-            coherence_mode: true,
-            ..self
+            coherence_mode: b,
+            ..self.clone()
         }
     }
 }

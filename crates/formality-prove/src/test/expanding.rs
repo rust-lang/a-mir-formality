@@ -25,6 +25,7 @@ fn expanding() {
                     variables: [
                         ?ty_0,
                     ],
+                    coherence_mode: false,
                 },
                 known_true: false,
                 substitution: {},

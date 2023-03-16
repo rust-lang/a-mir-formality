@@ -9,7 +9,7 @@ use formality_types::{
 use crate::{
     decls::{AliasEqDeclBoundData, Decls},
     prove::{
-        env::Env, prove, prove_after::prove_after, prove_eq::prove_existential_var_eq, zip::zip,
+        env::Env, prove, prove_after::prove_after, prove_eq::prove_existential_var_eq, combinators::zip,
     },
 };
 

@@ -38,6 +38,7 @@ fn eq_variable_to_rigid() {
                         ?ty_1,
                         ?ty_2,
                     ],
+                    coherence_mode: false,
                 },
                 known_true: true,
                 substitution: {
@@ -63,6 +64,7 @@ fn eq_rigid_to_variable() {
                         ?ty_1,
                         ?ty_2,
                     ],
+                    coherence_mode: false,
                 },
                 known_true: true,
                 substitution: {

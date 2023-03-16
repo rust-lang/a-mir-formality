@@ -3,8 +3,8 @@ use formality_types::{
     cast::Upcast,
     collections::Set,
     grammar::{
-        AdtId, AliasName, AliasTy, Binder, Parameter, ParameterData, Predicate, Relation,
-        RigidName, TraitId, TraitRef, Ty, TyData, Variable, Wc, Wcs, PR,
+        AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty,
+        Wc, Wcs, PR,
     },
     set,
 };
@@ -25,104 +25,12 @@ impl Decls {
     /// Max size used in unit tests that are not stress testing maximum size.
     pub const DEFAULT_MAX_SIZE: usize = 222;
 
-    pub fn is_local_trait_ref(&self, trait_ref: &TraitRef) -> bool {
-        // From https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html:
-        //
-        // Given `impl<P1..=Pn> Trait<T1..=Tn> for T0`, an impl is valid only if at least one of the following is true:
-        //
-        // - `Trait` is a local trait
-        // - All of
-        //  - At least one of the types `T0..=Tn` must be a local type. Let `Ti` be the
-        //    first such type.
-        //  - No uncovered type parameters `P1..=Pn` may appear in `T0..Ti` (excluding
-        //    `Ti`)
-        //
-        // Given the following definitions:
-        //
-        // Covered Type: A type which appears as a parameter to another type. For example,
-        // `T` is uncovered, but the `T` in `Vec<T>` is covered. This is only relevant for
-        // type parameters.
-        //
-        // Fundamental Type: A type for which you cannot add a blanket impl backwards
-        // compatibly. This includes `&`, `&mut`, and `Box`. Any time a type `T` is
-        // considered local, `&T`, `&mut T`, and `Box<T>` are also considered local.
-        // Fundamental types cannot cover other types. Any time the term "covered type" is
-        // used, `&T`, `&mut T`, and `Box<T>` are not considered covered.
-        //
-        // Local Type: A struct, enum, or union which was defined in the current crate.
-        // This is not affected by type parameters. `struct Foo` is considered local, but
-        // `Vec<Foo>` is not. `LocalType<ForeignType>` is local. Type aliases and trait
-        // aliases do not affect locality.
-        self.is_local_trait_id(&trait_ref.trait_id) || {
-            if let Some(first_local) = trait_ref
-                .parameters
-                .iter()
-                .position(|p| self.is_local_parameter(p))
-            {
-                let parameters_before = &trait_ref.parameters[..first_local];
-                !parameters_before
-                    .iter()
-                    .any(|p| self.may_have_downstream_type(p))
-            } else {
-                false
-            }
-        }
-    }
-
-    pub fn is_local_parameter(&self, parameter: impl Upcast<Parameter>) -> bool {
-        let parameter: Parameter = parameter.upcast();
-        match parameter.data() {
-            ParameterData::Ty(t) => match t {
-                TyData::RigidTy(r) => {
-                    if self.is_fundamental(&r.name) {
-                        r.parameters.iter().all(|p| self.is_local_parameter(p))
-                    } else {
-                        match &r.name {
-                            RigidName::AdtId(a) => self.is_local_adt_id(a),
-                            RigidName::ScalarId(_) => false,
-                            RigidName::Ref(_) => unreachable!("refs are fundamental"),
-                            RigidName::Tuple(_) => todo!(),
-                            RigidName::FnPtr(_) => false,
-                            RigidName::FnDef(_) => todo!(),
-                        }
-                    }
-                }
-                TyData::AliasTy(_) => todo!(),
-                TyData::PredicateTy(_) => todo!(),
-                TyData::Variable(v) => match v {
-                    Variable::PlaceholderVar(_) | Variable::InferenceVar(_) => false,
-                    Variable::BoundVar(_) => todo!(),
-                },
-            },
-            ParameterData::Lt(_) => false,
-        }
-    }
-
     pub fn is_local_trait_id(&self, trait_id: &TraitId) -> bool {
         self.local_trait_ids.contains(trait_id)
     }
 
     pub fn is_local_adt_id(&self, adt_id: &AdtId) -> bool {
         self.local_adt_ids.contains(adt_id)
-    }
-
-    pub fn is_fundamental(&self, name: &RigidName) -> bool {
-        // Fundamental Type: A type for which you cannot add a blanket impl backwards
-        // compatibly. This includes `&`, `&mut`, and `Box`. Any time a type `T` is
-        // considered local, `&T`, `&mut T`, and `Box<T>` are also considered local.
-        // Fundamental types cannot cover other types. Any time the term "covered type" is
-        // used, `&T`, `&mut T`, and `Box<T>` are not considered covered.
-
-        match name {
-            RigidName::AdtId(_) => false, // FIXME
-
-            RigidName::Ref(_) => true,
-
-            RigidName::ScalarId(_)
-            | RigidName::Tuple(_)
-            | RigidName::FnPtr(_)
-            | RigidName::FnDef(_) => false,
-        }
     }
 
     pub fn impl_decls<'s>(&'s self, trait_id: &'s TraitId) -> impl Iterator<Item = &'s ImplDecl> {
