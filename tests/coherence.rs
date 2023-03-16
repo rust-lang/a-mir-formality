@@ -5,6 +5,7 @@ use formality_macros::test;
 
 #[test]
 fn test_u32_i32_impls() {
+    // Test that we permit impls for distinct types.
     expect_test::expect![[r#"
         Ok(
             (),
@@ -23,6 +24,7 @@ fn test_u32_i32_impls() {
 
 #[test]
 fn test_u32_u32_impls() {
+    // Test that we detect duplicate impls.
     expect_test::expect![[r#"
         Err(
             "duplicate impl in current crate: impl <> Foo < > for (rigid (scalar u32)) where [] { }",
@@ -41,6 +43,7 @@ fn test_u32_u32_impls() {
 
 #[test]
 fn test_u32_T_impls() {
+    // Test that we detect overlap involving generic parameters.
     expect_test::expect![[r#"
         Err(
             "impls may overlap: `impl <> Foo < > for (rigid (scalar u32)) where [] { }` vs `impl <ty> Foo < > for ^ty0_0 where [] { }`",
@@ -59,6 +62,10 @@ fn test_u32_T_impls() {
 
 #[test]
 fn test_u32_T_where_T_Not_impls() {
+    // Test that, within a crate, we are able to rely on the fact
+    // that `u32: Not` is not implemented.
+    //
+    // See also test_foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait
     expect_test::expect![[r#"
         Ok(
             (),
@@ -79,6 +86,8 @@ fn test_u32_T_where_T_Not_impls() {
 
 #[test]
 fn test_u32_T_where_T_Is_impls() {
+    // Test that we detect "indirect" overlap -- here `Foo` is implemented for `u32`
+    // and also all `T: Is`, and `u32: Is`.
     expect_test::expect![[r#"
         Err(
             "impls may overlap: `impl <> Foo < > for (rigid (scalar u32)) where [] { }` vs `impl <ty> Foo < > for ^ty0_0 where [^ty0_0 : Is < >] { }`",
@@ -100,6 +109,7 @@ fn test_u32_T_where_T_Is_impls() {
 
 #[test]
 fn test_u32_not_u32_impls() {
+    // Test that a positive and negative impl for the same type (`u32`, here) is rejected.
     expect_test::expect![[r#"
         Err(
             Error {
