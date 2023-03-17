@@ -1,10 +1,19 @@
 use formality::test_where_clause;
 
+const MIRROR: &str = "[
+    crate core {
+        trait Mirror<> where [] {
+            type Assoc<> : [] where [];
+        }
+
+        impl<ty T> Mirror<> for T where [] {
+            type Assoc<> = T where [];
+        }
+    }
+]";
+
 #[test]
 fn test_mirror_normalizes_u32_to_u32() {
-    // Variant of test_foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait
-    // where there is a negative impl, so it is accepted.
-
     expect_test::expect![[r#"
         Ok(
             {
@@ -36,17 +45,7 @@ fn test_mirror_normalizes_u32_to_u32() {
         )
     "#]]
     .assert_debug_eq(&test_where_clause(
-        "[
-            crate core {
-                trait Mirror<> where [] {
-                    type Assoc<> : [] where [];
-                }
-
-                impl<ty T> Mirror<> for T where [] {
-                    type Assoc<> = T where [];
-                }
-            }
-        ]",
+        MIRROR,
         "exists<ty T> {} => {<u32 as Mirror>::Assoc<> = T}",
     ));
 }
