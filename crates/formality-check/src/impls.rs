@@ -1,17 +1,19 @@
 use anyhow::bail;
-use contracts::requires;
+
 use fn_error_context::context;
 use formality_prove::Env;
-use formality_rust::grammar::{
-    AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
-    FnBoundData, ImplItem, NegTraitImpl, NegTraitImplBoundData, TraitBoundData, TraitImpl,
-    TraitImplBoundData, TraitItem, WhereClause,
+use formality_rust::{
+    grammar::{
+        AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
+        FnBoundData, ImplItem, NegTraitImpl, NegTraitImplBoundData, TraitBoundData, TraitImpl,
+        TraitImplBoundData, TraitItem,
+    },
+    prove::ToWcs,
 };
 use formality_types::{
     cast::Downcasted,
     grammar::{Binder, Fallible, Relation, Substitution, Wcs},
     term::Term,
-    visit::Visit,
 };
 
 impl super::Check<'_> {
@@ -69,16 +71,20 @@ impl super::Check<'_> {
         Ok(())
     }
 
-    #[requires(assumptions.iter().all(|a| a.references_only_placeholder_variables()))]
     fn check_trait_impl_item(
         &self,
         env: &Env,
-        assumptions: &[WhereClause],
+        assumptions: impl ToWcs,
         trait_items: &[TraitItem],
         impl_item: &ImplItem,
     ) -> Fallible<()> {
+        let assumptions: Wcs = assumptions.to_wcs();
+        assert!(
+            env.only_universal_variables() && env.encloses((&assumptions, trait_items, impl_item))
+        );
+
         match impl_item {
-            ImplItem::Fn(v) => self.check_fn_in_impl(env, assumptions, trait_items, v),
+            ImplItem::Fn(v) => self.check_fn_in_impl(env, &assumptions, trait_items, v),
             ImplItem::AssociatedTyValue(v) => {
                 self.check_associated_ty_value(env, assumptions, trait_items, v)
             }
@@ -88,12 +94,13 @@ impl super::Check<'_> {
     fn check_fn_in_impl(
         &self,
         env: &Env,
-        impl_assumptions: &[WhereClause],
+        impl_assumptions: impl ToWcs,
         trait_items: &[TraitItem],
         ii_fn: &Fn,
     ) -> Fallible<()> {
+        let impl_assumptions: Wcs = impl_assumptions.to_wcs();
         assert!(
-            env.only_universal_variables() && env.encloses((impl_assumptions, trait_items, ii_fn))
+            env.only_universal_variables() && env.encloses((&impl_assumptions, trait_items, ii_fn))
         );
 
         // Find the corresponding function from the trait:
@@ -108,7 +115,7 @@ impl super::Check<'_> {
 
         tracing::debug!(?ti_fn);
 
-        self.check_fn(env, impl_assumptions, ii_fn)?;
+        self.check_fn(env, &impl_assumptions, ii_fn)?;
 
         let mut env = env.clone();
         let (
@@ -128,7 +135,7 @@ impl super::Check<'_> {
 
         self.prove_goal(
             &env,
-            (impl_assumptions, &ti_where_clauses),
+            (&impl_assumptions, &ti_where_clauses),
             &ii_where_clauses,
         )?;
 
@@ -143,14 +150,14 @@ impl super::Check<'_> {
         for (ii_input_ty, ti_input_ty) in ii_input_tys.iter().zip(&ti_input_tys) {
             self.prove_goal(
                 &env,
-                (impl_assumptions, &ii_where_clauses),
+                (&impl_assumptions, &ii_where_clauses),
                 Relation::sub(ti_input_ty, ii_input_ty),
             )?;
         }
 
         self.prove_goal(
             &env,
-            (impl_assumptions, &ii_where_clauses),
+            (&impl_assumptions, &ii_where_clauses),
             Relation::sub(ii_output_ty, ti_output_ty),
         )?;
 
@@ -161,10 +168,17 @@ impl super::Check<'_> {
     fn check_associated_ty_value(
         &self,
         impl_env: &Env,
-        impl_assumptions: &[WhereClause],
+        impl_assumptions: impl ToWcs,
         trait_items: &[TraitItem],
         impl_value: &AssociatedTyValue,
     ) -> Fallible<()> {
+        let impl_assumptions: Wcs = impl_assumptions.to_wcs();
+
+        assert!(
+            impl_env.only_universal_variables()
+                && impl_env.encloses((&impl_assumptions, trait_items, impl_value))
+        );
+
         let AssociatedTyValue { id, binder } = impl_value;
 
         let trait_associated_ty = match trait_items
@@ -191,24 +205,24 @@ impl super::Check<'_> {
 
         self.prove_where_clauses_well_formed(
             &env,
-            (impl_assumptions, &ii_where_clauses),
+            (&impl_assumptions, &ii_where_clauses),
             &ii_where_clauses,
         )?;
 
         self.prove_goal(
             &env,
-            (impl_assumptions, &ti_where_clauses),
+            (&impl_assumptions, &ti_where_clauses),
             &ii_where_clauses,
         )?;
 
         self.prove_goal(
             &env,
-            (impl_assumptions, &ii_where_clauses),
+            (&impl_assumptions, &ii_where_clauses),
             ii_ty.well_formed(),
         )?;
 
         let ensures: Wcs = ti_ensures.iter().map(|e| e.to_wc(&ii_ty)).collect();
-        self.prove_goal(&env, (impl_assumptions, &ii_where_clauses), ensures)?;
+        self.prove_goal(&env, (&impl_assumptions, &ii_where_clauses), ensures)?;
 
         Ok(())
     }

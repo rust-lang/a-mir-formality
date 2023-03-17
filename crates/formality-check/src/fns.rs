@@ -1,20 +1,28 @@
 use formality_prove::Env;
-use formality_rust::grammar::{Fn, FnBoundData, WhereClause};
-use formality_types::{cast::Upcast, grammar::Fallible};
+use formality_rust::{
+    grammar::{Fn, FnBoundData},
+    prove::ToWcs,
+};
+use formality_types::{
+    grammar::{Fallible, Wcs},
+};
 
 use crate::Check;
 
 impl Check<'_> {
-    pub(crate) fn check_free_fn(&self, _f: &Fn) -> Fallible<()> {
-        todo!()
+    pub(crate) fn check_free_fn(&self, f: &Fn) -> Fallible<()> {
+        self.check_fn(&Env::default(), Wcs::t(), f)
     }
 
     pub(crate) fn check_fn(
         &self,
         in_env: &Env,
-        in_assumptions: &[WhereClause],
+        in_assumptions: impl ToWcs,
         f: &Fn,
     ) -> Fallible<()> {
+        let in_assumptions = in_assumptions.to_wcs();
+        assert!(in_env.only_universal_variables() && in_env.encloses((&in_assumptions, f)));
+
         let mut env = in_env.clone();
 
         let Fn { id: _, binder } = f;
@@ -26,15 +34,15 @@ impl Check<'_> {
             body: _,
         } = env.instantiate_universally(binder);
 
-        let assumptions: Vec<WhereClause> = (in_assumptions, &where_clauses).upcast();
+        let fn_assumptions: Wcs = (in_assumptions, &where_clauses).to_wcs();
 
-        self.prove_where_clauses_well_formed(&env, &assumptions, &where_clauses)?;
+        self.prove_where_clauses_well_formed(&env, &fn_assumptions, &where_clauses)?;
 
         for input_ty in &input_tys {
-            self.prove_goal(&env, &assumptions, input_ty.well_formed())?;
+            self.prove_goal(&env, &fn_assumptions, input_ty.well_formed())?;
         }
 
-        self.prove_goal(&env, &assumptions, output_ty.well_formed())?;
+        self.prove_goal(&env, &fn_assumptions, output_ty.well_formed())?;
 
         Ok(())
     }
