@@ -3,12 +3,13 @@ use std::sync::Arc;
 use formality_macros::term;
 use formality_types::{
     collections::Set,
-    grammar::{Binder, Wcs},
+    grammar::{Binder, TraitRef, Wcs},
 };
 
 use crate::{
     decls::Decls,
     prove::{prove, Constraints, Env},
+    prove_is_local_trait_ref,
 };
 
 mod eq_assumptions;
@@ -31,6 +32,8 @@ enum TestAssertion {
     Exists(Binder<Arc<TestAssertion>>),
     #[grammar($v0 => $v1)]
     Prove(Wcs, Wcs),
+    #[grammar($v0 => @IsLocal($v1))]
+    IsLocal(Wcs, TraitRef),
 }
 
 /// `t` represents some set of existential bindings combined with (assumptions, goals).
@@ -58,6 +61,10 @@ fn test_prove(decls: Decls, mut assertion: Arc<TestAssertion>) -> Set<Constraint
 
             TestAssertion::Prove(assumptions, goals) => {
                 return prove(decls, env, assumptions, goals);
+            }
+
+            TestAssertion::IsLocal(assumptions, goal) => {
+                return prove_is_local_trait_ref(decls, env, assumptions, goal);
             }
 
             TestAssertion::CoherenceMode(assertion1) => {

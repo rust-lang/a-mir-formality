@@ -46,24 +46,31 @@ impl Check<'_> {
         let a = env.instantiate_universally(&impl_a.binder);
         let trait_ref = a.trait_ref();
 
-        self.prove_goal(
-            &env.with_coherence_mode(true),
-            &a.where_clauses,
-            trait_ref.is_local(),
-        )
+        self.prove_is_local_trait_ref(&env.with_coherence_mode(true), &a.where_clauses, trait_ref)
     }
 
     #[tracing::instrument(level = "Debug", skip(self))]
     fn overlap_check(&self, impl_a: &TraitImpl, impl_b: &TraitImpl) -> Fallible<()> {
         let mut env = Env::default();
 
+        // Example:
+        //
+        // Given two impls...
+        //
+        //   impl<P_a..> SomeTrait<T_a...> for T_a0 where Wc_a { }
+        //   impl<P_b..> SomeTrait<T_b...> for T_b0 where Wc_b { }
+
+        // ∀P_a, ∀P_b....
         let a = env.instantiate_universally(&impl_a.binder);
         let b = env.instantiate_universally(&impl_b.binder);
 
+        // ...get the trait refs from each impl...
         let trait_ref_a = a.trait_ref();
         let trait_ref_b = b.trait_ref();
 
         // If the parameters from the two impls cannot be equal, then they do not overlap.
+        //
+        // If we can prove `∀P_a, ∀P_b. not (T_a = T_b, Wc_a, Wc_b)`, then they do not overlap.
         if let Ok(()) = self.prove_not_goal(
             &env.with_coherence_mode(true),
             (&a.where_clauses, &b.where_clauses),
@@ -73,6 +80,8 @@ impl Check<'_> {
         }
 
         // If we can disprove the where clauses, then they do not overlap.
+        //
+        // If we can prove `∀P_a, ∀P_b. not [(T_a = T_b) => (Wc_a, Wc_b)]`, then they do not overlap.
         if let Ok(()) = self.prove_not_goal(
             &env.with_coherence_mode(true),
             Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
@@ -82,6 +91,11 @@ impl Check<'_> {
         }
 
         // If we can disprove the where clauses, then they do not overlap.
+        //
+        // Given some inverted where-clause Wc_i from (invert(Wc_a), invert(Wc_b))...e.g.
+        // if `T: Debug` is in `Wc_a`, then `Wc_i` might be `T: !Debug`.
+        //
+        // If we can prove `∀P_a, ∀P_b, (T_a = T_b, Wc_a, Wc_b) => Wc_i`, then contradiction, no overlap.
         let inverted: Vec<Wc> = a
             .where_clauses
             .iter()

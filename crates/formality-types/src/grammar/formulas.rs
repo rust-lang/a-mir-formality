@@ -24,9 +24,6 @@ pub enum Predicate {
 
     #[grammar(@WellFormedTraitRef($v0))]
     WellFormedTraitRef(TraitRef),
-
-    #[grammar(@IsLocal($v0))]
-    IsLocal(TraitRef),
 }
 
 /// A coinductive predicate is one that can be proven via a cycle.
@@ -78,7 +75,6 @@ pub enum Skeleton {
     NotImplemented(TraitId),
     WellFormed,
     WellFormedTraitRef(TraitId),
-    IsLocal(TraitId),
 
     Equals,
     Sub,
@@ -111,10 +107,6 @@ impl Predicate {
                 Skeleton::WellFormedTraitRef(trait_id.clone()),
                 parameters.clone(),
             ),
-            Predicate::IsLocal(TraitRef {
-                trait_id,
-                parameters,
-            }) => (Skeleton::IsLocal(trait_id.clone()), parameters.clone()),
         }
     }
 }
@@ -126,10 +118,6 @@ impl TraitRef {
 
     pub fn well_formed(&self) -> Predicate {
         Predicate::WellFormedTraitRef(self.clone())
-    }
-
-    pub fn is_local(&self) -> Predicate {
-        Predicate::IsLocal(self.clone())
     }
 }
 
