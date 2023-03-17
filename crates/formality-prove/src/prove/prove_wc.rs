@@ -12,6 +12,7 @@ use crate::{
         prove_after::prove_after,
         prove_eq::prove_eq,
         prove_via::prove_via,
+        prove_wf::prove_wf,
     },
 };
 
@@ -105,6 +106,13 @@ judgment_fn! {
             (is_local_trait_ref(decls, env, assumptions, trait_ref) => c)
             ----------------------------- ("trait ref is local")
             (prove_wc(decls, env, assumptions, Predicate::IsLocal(trait_ref)) => c)
+        )
+
+
+        (
+            (prove_wf(decls, env, assumptions, p) => c)
+            ----------------------------- ("trait ref is local")
+            (prove_wc(decls, env, assumptions, Relation::WellFormed(p)) => c)
         )
     }
 }

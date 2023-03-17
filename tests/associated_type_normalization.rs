@@ -6,12 +6,31 @@ fn test_mirror_normalizes_u32_to_u32() {
     // where there is a negative impl, so it is accepted.
 
     expect_test::expect![[r#"
-        Err(
-            Error {
-                context: "check_trait_impl(impl <ty> Mirror < > for ^ty0_0 where [] { type Assoc <> = ^ty1_0 where [] ; })",
-                source: Error {
-                    context: "check_associated_ty_value(type Assoc <> = !ty_1 where [] ;)",
-                    source: "failed to prove {@ wf(!ty_1)} given {}, got {}",
+        Ok(
+            {
+                Constraints {
+                    env: Env {
+                        variables: [
+                            ?ty_1,
+                        ],
+                        coherence_mode: false,
+                    },
+                    known_true: true,
+                    substitution: {
+                        ?ty_1 => (rigid (scalar u32)),
+                    },
+                },
+                Constraints {
+                    env: Env {
+                        variables: [
+                            ?ty_1,
+                        ],
+                        coherence_mode: false,
+                    },
+                    known_true: true,
+                    substitution: {
+                        ?ty_1 => (alias (Mirror :: Assoc) (rigid (scalar u32))),
+                    },
                 },
             },
         )
