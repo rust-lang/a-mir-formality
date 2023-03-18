@@ -1,6 +1,0 @@
-#!/bin/bash
-
-raco pkg install --force --scope user --catalog https://pkgs.racket-lang.org redex-lib
-git clone -b v8.5 --single-branch --depth 1 https://github.com/racket/redex.git
-cd redex
-raco pkg update redex-lib/
