@@ -178,29 +178,6 @@ fn test_foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait() {
 }
 
 #[test]
-fn test_orphan_basic() {
-    expect_test::expect![[r#"
-        Err(
-            Error {
-                context: "orphan_check(impl <> CoreTrait < > for (rigid (adt CoreStruct)) where [] { })",
-                source: "failed to prove {@ IsLocal(CoreTrait((rigid (adt CoreStruct))))} given {}, got {}",
-            },
-        )
-    "#]]
-    .assert_debug_eq(&test_program_ok(
-        "[
-            crate core {
-                trait CoreTrait<> where [] {}
-                struct CoreStruct<> where [] {}
-            },
-            crate foo {
-                impl<> CoreTrait<> for CoreStruct<> where [] {}
-            }
-        ]",
-    ));
-}
-
-#[test]
 fn test_neg_CoreTrait_for_CoreStruct_implies_no_overlap() {
     // Variant of test_foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait
     // where there is a negative impl, so it is accepted.

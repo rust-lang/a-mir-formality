@@ -86,6 +86,13 @@ judgment_fn! {
 }
 
 judgment_fn! {
+    /// "not_downstream(..., P)" means that `P` cannot be instantiated with a type from
+    /// a downstream crate (i.e., a crate that has us as a dependency).
+    ///
+    /// NB. Since RFC 2451, the judgment applies to the outermost type only. In other words,
+    /// the judgment holds for (e.g.) `Vec<T>`, which could be instantiated
+    /// with something like `Vec<DownstreamType>`, but that is not considered downstream
+    /// as the outermost type (`Vec`) is upstream.
     fn not_downstream(
         decls: Decls,
         env: Env,
@@ -95,17 +102,21 @@ judgment_fn! {
         debug(parameter, assumptions, env, decls)
 
         (
-            (for_all(&decls, &env, &assumptions, &parameters, &not_downstream) => c)
+            // Since https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html,
+            // any rigid type is adequate.
             --- ("rigid")
-            (not_downstream(decls, env, assumptions, RigidTy { name: _, parameters }) => c)
+            (not_downstream(_decls, env, _assumptions, RigidTy { .. }) => Constraints::none(env))
         )
 
         (
+            // Lifetimes are not relevant.
             --- ("lifetime")
             (not_downstream(_decls, env, _assumptions, _l: Lt) => Constraints::none(env))
         )
 
         (
+            // Inference variables *could* be inferred to downstream types; depends on the substitution
+            // we ultimately have.
             --- ("type variable")
             (not_downstream(_decls, env, _assumptions, TyData::Variable(Variable::InferenceVar(_))) => Constraints::none(env).ambiguous())
         )

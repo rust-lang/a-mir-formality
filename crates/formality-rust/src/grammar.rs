@@ -247,6 +247,12 @@ pub struct TraitImpl {
     pub binder: Binder<TraitImplBoundData>,
 }
 
+impl TraitImpl {
+    pub fn trait_id(&self) -> &TraitId {
+        &self.binder.peek().trait_id
+    }
+}
+
 #[term($trait_id < $,trait_parameters > for $self_ty where $where_clauses { $*impl_items })]
 pub struct TraitImplBoundData {
     pub trait_id: TraitId,

@@ -32,6 +32,7 @@ impl Check<'_> {
             .iter()
             .cartesian_product(&all_crate_impls)
             .filter(|(impl_a, impl_b)| impl_a != impl_b)
+            .filter(|(impl_a, impl_b)| impl_a.trait_id() == impl_b.trait_id())
         {
             self.overlap_check(impl_a, impl_b)?;
         }
@@ -71,6 +72,8 @@ impl Check<'_> {
         // ...get the trait refs from each impl...
         let trait_ref_a = a.trait_ref();
         let trait_ref_b = b.trait_ref();
+
+        assert_eq!(trait_ref_a.trait_id, trait_ref_b.trait_id);
 
         // If the parameters from the two impls cannot be equal, then they do not overlap.
         //

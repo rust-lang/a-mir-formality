@@ -1,9 +1,9 @@
 use formality_types::{
-    grammar::{Parameter, PlaceholderVar, Wcs},
+    grammar::{Parameter, PlaceholderVar, RigidName, RigidTy, Wcs},
     judgment_fn,
 };
 
-use crate::decls::Decls;
+use crate::{decls::Decls, prove::combinators::for_all};
 
 use super::{constraints::Constraints, env::Env};
 
@@ -25,6 +25,12 @@ judgment_fn! {
             // for every universal variable. That just seems tedious.
             --- ("universal variables")
             (prove_wf(_decls, env, _assumptions, PlaceholderVar { .. }) => Constraints::none(env))
+        )
+
+        (
+            (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
+            --- ("tuples")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Tuple(_), parameters }) => c)
         )
     }
 }
