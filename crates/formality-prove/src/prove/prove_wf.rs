@@ -26,7 +26,7 @@ judgment_fn! {
             --- ("universal variables")
             (prove_wf(_decls, env, _assumptions, PlaceholderVar { .. }) => Constraints::none(env))
         )
-
+ 
         (
             (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
             --- ("tuples")
