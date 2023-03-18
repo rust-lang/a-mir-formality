@@ -281,6 +281,12 @@ pub struct NegTraitImplBoundData {
     pub where_clauses: Vec<WhereClause>,
 }
 
+impl NegTraitImplBoundData {
+    pub fn trait_ref(&self) -> TraitRef {
+        self.trait_id.with(&self.self_ty, &self.trait_parameters)
+    }
+}
+
 #[term]
 pub enum ImplItem {
     #[cast]

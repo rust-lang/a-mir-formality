@@ -1,7 +1,7 @@
 use anyhow::bail;
 use fn_error_context::context;
 use formality_prove::Env;
-use formality_rust::grammar::{Crate, TraitImpl};
+use formality_rust::grammar::{Crate, NegTraitImpl, TraitImpl};
 use formality_types::{
     cast::Downcasted,
     grammar::{Fallible, Wc, Wcs},
@@ -15,9 +15,15 @@ impl Check<'_> {
         let all_crate_impls: Vec<TraitImpl> =
             self.program.items_from_all_crates().downcasted().collect();
         let current_crate_impls: Vec<TraitImpl> = current_crate.items.iter().downcasted().collect();
+        let current_crate_neg_impls: Vec<NegTraitImpl> =
+            current_crate.items.iter().downcasted().collect();
 
         for impl_a in &current_crate_impls {
             self.orphan_check(impl_a)?;
+        }
+
+        for impl_a in &current_crate_neg_impls {
+            self.orphan_check_neg(impl_a)?;
         }
 
         // check for duplicate impls in the current crate
@@ -42,6 +48,20 @@ impl Check<'_> {
 
     #[context("orphan_check({impl_a:?})")]
     fn orphan_check(&self, impl_a: &TraitImpl) -> Fallible<()> {
+        let mut env = Env::default();
+
+        let a = env.instantiate_universally(&impl_a.binder);
+        let trait_ref = a.trait_ref();
+
+        self.prove_goal(
+            &env.with_coherence_mode(true),
+            &a.where_clauses,
+            trait_ref.is_local(),
+        )
+    }
+
+    #[context("orphan_check_neg({impl_a:?})")]
+    fn orphan_check_neg(&self, impl_a: &NegTraitImpl) -> Fallible<()> {
         let mut env = Env::default();
 
         let a = env.instantiate_universally(&impl_a.binder);

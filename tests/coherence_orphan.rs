@@ -4,7 +4,7 @@ use formality::test_program_ok;
 use formality_macros::test;
 
 #[test]
-fn test_orphan_basic() {
+fn test_orphan_CoreTrait_for_CoreStruct_in_Foo() {
     expect_test::expect![[r#"
         Err(
             Error {
@@ -21,6 +21,29 @@ fn test_orphan_basic() {
             },
             crate foo {
                 impl<> CoreTrait<> for CoreStruct<> where [] {}
+            }
+        ]",
+    ));
+}
+
+#[test]
+fn test_orphan_neg_CoreTrait_for_CoreStruct_in_Foo() {
+    expect_test::expect![[r#"
+        Err(
+            Error {
+                context: "orphan_check_neg(impl <> ! CoreTrait < > for (rigid (adt CoreStruct)) where [] {})",
+                source: "failed to prove {@ IsLocal(CoreTrait((rigid (adt CoreStruct))))} given {}, got {}",
+            },
+        )
+    "#]]
+    .assert_debug_eq(&test_program_ok(
+        "[
+            crate core {
+                trait CoreTrait<> where [] {}
+                struct CoreStruct<> where [] {}
+            },
+            crate foo {
+                impl<> !CoreTrait<> for CoreStruct<> where [] {}
             }
         ]",
     ));
