@@ -202,3 +202,105 @@ fn test_neg_CoreTrait_for_CoreStruct_implies_no_overlap() {
         ]",
     ));
 }
+
+#[test]
+fn test_overlap_normalize_alias_to_LocalType() {
+    // `LocalTrait` has a blanket impl for all `T: Iterator`
+    // and then an impl for `<LocalType as Mirror>::T`...
+
+    let gen_program = |addl: &str| {
+        const BASE_PROGRAM: &str = "[
+            crate core {
+                trait Iterator<> where [] {
+                }
+
+                trait Mirror<> where [] {
+                    type T<> : [] where [];
+                }
+                
+                impl<ty A> Mirror<> for A where [] {
+                    type T<> = A where [];
+                }
+                
+                struct LocalType<> where [] {}
+                
+                trait LocalTrait<> where [] { }
+                
+                impl<ty T> LocalTrait<> for T where [T: Iterator<>] { }
+                
+                impl<> LocalTrait<> for <LocalType as Mirror>::T where [] { }
+
+                ADDITIONAL
+            }
+        ]";
+
+        BASE_PROGRAM.replace("ADDITIONAL", addl)
+    };
+
+    // ...on its own, this is OK. Figuring this out, though, requires proving
+    // `<LocalType as Mirror>::T: Iterator` which requires normalizing
+    // the alias to `LocalType`...
+
+    expect_test::expect![[r#"
+        Ok(
+            (),
+        )
+    "#]]
+    .assert_debug_eq(&test_program_ok(&gen_program("")));
+
+    // ...but it's an error if LocalType implements Iterator (figuring *this* out also
+    // requires normalizing).
+
+    expect_test::expect![[r#"
+        Err(
+            "impls may overlap: `impl <ty> LocalTrait < > for ^ty0_0 where [^ty0_0 : Iterator < >] { }` vs `impl <> LocalTrait < > for (alias (Mirror :: T) (rigid (adt LocalType))) where [] { }`",
+        )
+    "#]]
+    .assert_debug_eq(&test_program_ok(&gen_program("impl<> Iterator<> for LocalType<> where [] {}")));
+}
+
+#[test]
+fn test_overlap_alias_not_normalizable() {
+    // `LocalTrait` has a blanket impl for all `T: Iterator`
+    // and then an impl for `<LocalType as Mirror>::T`...
+
+    let gen_program = |addl: &str| {
+        const BASE_PROGRAM: &str = "[
+            crate core {
+                trait Iterator<> where [] {
+                }
+
+                trait Mirror<> where [] {
+                    type T<> : [] where [];
+                }
+                
+                impl<ty A> Mirror<> for A where [] {
+                    type T<> = A where [];
+                }
+                
+                struct LocalType<> where [] {}
+                
+                trait LocalTrait<> where [] { }
+                
+                impl<ty T> LocalTrait<> for T where [T: Iterator<>] { }
+                
+                impl<ty T> LocalTrait<> for <T as Mirror>::T where [T: Mirror<>] { }
+
+                ADDITIONAL
+            }
+        ]";
+
+        BASE_PROGRAM.replace("ADDITIONAL", addl)
+    };
+
+    // ...on its own, this is OK. Figuring this out, though, requires proving
+    // `<LocalType as Mirror>::T: Iterator` which requires normalizing
+    // the alias to `LocalType`...
+
+    expect_test::expect![[r#"
+        Ok(
+            (),
+        )
+    "#]] // FIXME
+    .assert_debug_eq(&test_program_ok(&gen_program("")));
+}
