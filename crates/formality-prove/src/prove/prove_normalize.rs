@@ -1,7 +1,7 @@
 use formality_types::{
     cast::Downcast,
     grammar::{
-        AliasTy, InferenceVar, Parameter, Relation, RigidTy, TyData, Variable, Wc, WcData, Wcs,
+        AliasTy, ExistentialVar, Parameter, Relation, RigidTy, TyData, Variable, Wc, WcData, Wcs,
     },
     judgment_fn,
 };
@@ -9,7 +9,8 @@ use formality_types::{
 use crate::{
     decls::{AliasEqDeclBoundData, Decls},
     prove::{
-        env::Env, prove, prove_after::prove_after, prove_eq::prove_existential_var_eq, combinators::zip,
+        combinators::zip, env::Env, prove, prove_after::prove_after,
+        prove_eq::prove_existential_var_eq,
     },
 };
 
@@ -58,36 +59,36 @@ judgment_fn! {
     ) => (Constraints, Parameter) {
         debug(goal, via, assumptions, env, decls)
 
-        // The following 2 rules handle normalization of inference variables. We look specifically for
+        // The following 2 rules handle normalization of existential variables. We look specifically for
         // the case of a assumption `?X = Y`, which lets us normalize `?X` to `Y`, and ignore
         // everything else. In principle, we could allow the more general normalization rules
         // below handle this case too, but that generates a LOT of false paths, and I *believe*
         // it is unnecessary (FIXME: prove this).
 
         (
-            (if let Some(Variable::InferenceVar(v_a)) = a.downcast())
+            (if let Some(Variable::ExistentialVar(v_a)) = a.downcast())
             (if v_goal == v_a)
             ----------------------------- ("var-axiom-l")
-            (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(a, b), Variable::InferenceVar(v_goal)) => (Constraints::none(env), b))
+            (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(a, b), Variable::ExistentialVar(v_goal)) => (Constraints::none(env), b))
         )
 
         (
-            (if let Some(Variable::InferenceVar(v_a)) = a.downcast())
+            (if let Some(Variable::ExistentialVar(v_a)) = a.downcast())
             (if v_goal == v_a)
             ----------------------------- ("var-axiom-r")
-            (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(b, a), Variable::InferenceVar(v_goal)) => (Constraints::none(env), b))
+            (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(b, a), Variable::ExistentialVar(v_goal)) => (Constraints::none(env), b))
         )
 
         // The following 2 rules handle normalization of a type `X` given an assumption `X = Y`.
-        // We can't just check for `goal == a` though because we sometimes need to bind inference
+        // We can't just check for `goal == a` though because we sometimes need to bind existential
         // variables. Consider normalizing `R<?X>` given an assumption `R<u32> = Y`: this can be
         // normalized to `Y` given the constraint `?X = u32`.
         //
-        // We don't use these rules to normalize an inference variable `?X` because such a goal
+        // We don't use these rules to normalize an existential variable `?X` because such a goal
         // could be equated to everything, and thus generates a ton of spurious paths.
 
         (
-            (if let None = goal.downcast::<InferenceVar>())
+            (if let None = goal.downcast::<ExistentialVar>())
             (if goal != b)
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(&b))
@@ -96,7 +97,7 @@ judgment_fn! {
         )
 
         (
-            (if let None = goal.downcast::<InferenceVar>())
+            (if let None = goal.downcast::<ExistentialVar>())
             (if goal != b)
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(&b))
@@ -165,7 +166,7 @@ judgment_fn! {
         (
             (prove_existential_var_eq(decls, env, assumptions, v, t) => c)
             ----------------------------- ("existential-nonvar")
-            (prove_syntactically_eq(decls, env, assumptions, Variable::InferenceVar(v), t) => c)
+            (prove_syntactically_eq(decls, env, assumptions, Variable::ExistentialVar(v), t) => c)
         )
     }
 }

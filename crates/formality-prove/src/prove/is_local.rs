@@ -115,10 +115,10 @@ judgment_fn! {
         )
 
         (
-            // Inference variables *could* be inferred to downstream types; depends on the substitution
+            // existential variables *could* be inferred to downstream types; depends on the substitution
             // we ultimately have.
             --- ("type variable")
-            (not_downstream(_decls, env, _assumptions, TyData::Variable(Variable::InferenceVar(_))) => Constraints::none(env).ambiguous())
+            (not_downstream(_decls, env, _assumptions, TyData::Variable(Variable::ExistentialVar(_))) => Constraints::none(env).ambiguous())
         )
     }
 }
@@ -159,10 +159,10 @@ judgment_fn! {
             (is_local_parameter(decls, env, _assumptions, RigidTy { name: RigidName::AdtId(a), parameters: _ }) => Constraints::none(env))
         )
 
-        // Inference variables might or might not be local, depending on how they are instantiated.
+        // existential variables might or might not be local, depending on how they are instantiated.
         (
             --- ("existential variable")
-            (is_local_parameter(_decls, env, _assumptions, TyData::Variable(Variable::InferenceVar(_))) => Constraints::none(env).ambiguous())
+            (is_local_parameter(_decls, env, _assumptions, TyData::Variable(Variable::ExistentialVar(_))) => Constraints::none(env).ambiguous())
         )
     }
 }

@@ -114,14 +114,14 @@ impl UpcastFrom<Ty> for TyData {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct InferenceVar {
+pub struct ExistentialVar {
     pub kind: ParameterKind,
     pub var_index: VarIndex,
 }
 
-cast_impl!(InferenceVar);
+cast_impl!(ExistentialVar);
 
-impl Visit for InferenceVar {
+impl Visit for ExistentialVar {
     fn free_variables(&self) -> Vec<Variable> {
         vec![self.upcast()]
     }
@@ -407,7 +407,7 @@ impl Visit for LtData {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Variable {
     UniversalVar(UniversalVar),
-    InferenceVar(InferenceVar),
+    ExistentialVar(ExistentialVar),
     BoundVar(BoundVar),
 }
 
@@ -417,7 +417,7 @@ impl Variable {
     pub fn kind(&self) -> ParameterKind {
         match self {
             Variable::UniversalVar(v) => v.kind,
-            Variable::InferenceVar(v) => v.kind,
+            Variable::ExistentialVar(v) => v.kind,
             Variable::BoundVar(v) => v.kind,
         }
     }
@@ -466,13 +466,13 @@ impl Variable {
     }
 
     /// A variable is *free* (i.e., not bound by any internal binder)
-    /// if it is an inference variable, a universal, or has a debruijn
+    /// if it is an existential variable, a universal, or has a debruijn
     /// index of `None`. The latter occurs when you `open` a binder (and before
     /// you close it back up again).
     pub fn is_free(&self) -> bool {
         match self {
             Variable::UniversalVar(_)
-            | Variable::InferenceVar(_)
+            | Variable::ExistentialVar(_)
             | Variable::BoundVar(BoundVar {
                 debruijn: None,
                 var_index: _,
@@ -490,7 +490,7 @@ impl Variable {
     pub fn is_universal(&self) -> bool {
         match self {
             Variable::UniversalVar(_) => true,
-            Variable::InferenceVar(_) => false,
+            Variable::ExistentialVar(_) => false,
             Variable::BoundVar(_) => false,
         }
     }
@@ -528,7 +528,7 @@ impl DowncastTo<Variable> for Parameter {
 }
 
 cast_impl!(BoundVar);
-cast_impl!((InferenceVar) <: (Variable) <: (Parameter));
+cast_impl!((ExistentialVar) <: (Variable) <: (Parameter));
 cast_impl!((BoundVar) <: (Variable) <: (Parameter));
 cast_impl!((UniversalVar) <: (Variable) <: (Parameter));
 
@@ -825,20 +825,20 @@ cast_impl!(TyData::PredicateTy(PredicateTy));
 cast_impl!(TyData::Variable(Variable));
 cast_impl!((Variable) <: (TyData) <: (Ty));
 cast_impl!((UniversalVar) <: (Variable) <: (TyData));
-cast_impl!((InferenceVar) <: (Variable) <: (TyData));
+cast_impl!((ExistentialVar) <: (Variable) <: (TyData));
 cast_impl!((BoundVar) <: (Variable) <: (TyData));
 cast_impl!((ScalarId) <: (RigidTy) <: (TyData));
 cast_impl!((UniversalVar) <: (Variable) <: (Ty));
-cast_impl!((InferenceVar) <: (Variable) <: (Ty));
+cast_impl!((ExistentialVar) <: (Variable) <: (Ty));
 cast_impl!((BoundVar) <: (Variable) <: (Ty));
 cast_impl!(Lt);
 cast_impl!(LtData::Variable(Variable));
-cast_impl!((InferenceVar) <: (Variable) <: (LtData));
+cast_impl!((ExistentialVar) <: (Variable) <: (LtData));
 cast_impl!((UniversalVar) <: (Variable) <: (LtData));
 cast_impl!((BoundVar) <: (Variable) <: (LtData));
 cast_impl!((UniversalVar) <: (LtData) <: (Lt));
-cast_impl!((InferenceVar) <: (LtData) <: (Lt));
+cast_impl!((ExistentialVar) <: (LtData) <: (Lt));
 cast_impl!((BoundVar) <: (LtData) <: (Lt));
 cast_impl!(Variable::UniversalVar(UniversalVar));
-cast_impl!(Variable::InferenceVar(InferenceVar));
+cast_impl!(Variable::ExistentialVar(ExistentialVar));
 cast_impl!(Variable::BoundVar(BoundVar));

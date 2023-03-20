@@ -27,7 +27,7 @@ pub trait Visit {
     fn assert_valid(&self);
 
     /// True if this term references only universal variables.
-    /// This means that it contains no inference variables.
+    /// This means that it contains no existential variables.
     /// If this is a goal, then when we prove it true, we don't expect any substitution.
     /// This is similar, but not *identical*, to the commonly used term "ground term",
     /// which in Prolog refers to a term that contains no variables. The difference here
@@ -35,7 +35,7 @@ pub trait Visit {
     fn references_only_universal_variables(&self) -> bool {
         self.free_variables().iter().all(|v| match v {
             Variable::UniversalVar(_) => true,
-            Variable::InferenceVar(_) => false,
+            Variable::ExistentialVar(_) => false,
             Variable::BoundVar(_) => false,
         })
     }

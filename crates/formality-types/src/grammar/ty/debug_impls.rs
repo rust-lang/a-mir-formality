@@ -22,7 +22,7 @@ impl std::fmt::Debug for super::Variable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UniversalVar(arg0) => write!(f, "{:?}", arg0),
-            Self::InferenceVar(arg0) => write!(f, "{:?}", arg0),
+            Self::ExistentialVar(arg0) => write!(f, "{:?}", arg0),
             Self::BoundVar(arg0) => write!(f, "{:?}", arg0),
         }
     }
@@ -35,9 +35,9 @@ impl std::fmt::Debug for super::UniversalVar {
     }
 }
 
-impl std::fmt::Debug for super::InferenceVar {
+impl std::fmt::Debug for super::ExistentialVar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let super::InferenceVar { var_index, kind } = self;
+        let super::ExistentialVar { var_index, kind } = self;
         write!(f, "?{:?}_{:?}", kind, var_index)
     }
 }
