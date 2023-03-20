@@ -42,7 +42,7 @@ use crate::{
 pub fn may_be_remote(decls: Decls, env: Env, assumptions: Wcs, goal: TraitRef) -> Set<Constraints> {
     assert!(env.is_in_coherence_mode());
 
-    let c = prove_is_local_trait_ref(decls, &env, assumptions, goal);
+    let c = is_local_trait_ref(decls, &env, assumptions, goal);
 
     if c.is_empty() {
         // Cannot possibly be local, so always remote.
@@ -59,7 +59,7 @@ pub fn may_be_remote(decls: Decls, env: Env, assumptions: Wcs, goal: TraitRef) -
 }
 
 judgment_fn! {
-    pub fn prove_is_local_trait_ref(
+    pub fn is_local_trait_ref(
         decls: Decls,
         env: Env,
         assumptions: Wcs,
@@ -70,7 +70,7 @@ judgment_fn! {
         (
             (if decls.is_local_trait_id(&goal.trait_id))
             --- ("local trait")
-            (prove_is_local_trait_ref(decls, env, _assumptions, goal) => Constraints::none(env))
+            (is_local_trait_ref(decls, env, _assumptions, goal) => Constraints::none(env))
         )
 
         (
@@ -80,7 +80,7 @@ judgment_fn! {
             (let goal = c1.substitution().apply(&goal))
             (for_all(&decls, &env, &assumptions, &goal.parameters[..i], &not_downstream) => c2)
             --- ("local parameter")
-            (prove_is_local_trait_ref(decls, env, assumptions, goal) => c1.seq(c2))
+            (is_local_trait_ref(decls, env, assumptions, goal) => c1.seq(c2))
         )
     }
 }

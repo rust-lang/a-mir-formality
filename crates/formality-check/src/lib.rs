@@ -8,10 +8,7 @@ use formality_rust::{
     grammar::{Crate, CrateItem, Program},
     prove::ToWcs,
 };
-use formality_types::{
-    cast::Upcast,
-    grammar::{Fallible, Substitution, TraitRef, Wcs},
-};
+use formality_types::grammar::{Fallible, Substitution, Wcs};
 
 /// Check all crates in the program. The crates must be in dependency order
 /// such that any prefix of the crates is a complete program.
@@ -101,27 +98,7 @@ impl Check<'_> {
             return Ok(());
         }
 
-        bail!("failed to prove {goal:?} given {assumptions:?}; got {cs:?}")
-    }
-
-    fn prove_is_local_trait_ref(
-        &self,
-        env: &Env,
-        assumptions: impl ToWcs,
-        goal: impl Upcast<TraitRef>,
-    ) -> Fallible<()> {
-        let goal: TraitRef = goal.upcast();
-        let assumptions: Wcs = assumptions.to_wcs();
-
-        assert!(env.only_universal_variables());
-        assert!(env.encloses((&assumptions, &goal)));
-
-        let cs = formality_prove::prove_is_local_trait_ref(self.decls, env, &assumptions, &goal);
-        if cs.iter().any(|c| c.unconditionally_true()) {
-            return Ok(());
-        }
-
-        bail!("failed to prove {goal:?} is local, given {assumptions:?}; got {cs:?}")
+        bail!("failed to prove {goal:?} given {assumptions:?}, got {cs:?}")
     }
 
     fn prove_not_goal(&self, env: &Env, assumptions: impl ToWcs, goal: impl ToWcs) -> Fallible<()> {

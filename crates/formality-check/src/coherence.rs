@@ -46,7 +46,11 @@ impl Check<'_> {
         let a = env.instantiate_universally(&impl_a.binder);
         let trait_ref = a.trait_ref();
 
-        self.prove_is_local_trait_ref(&env.with_coherence_mode(true), &a.where_clauses, trait_ref)
+        self.prove_goal(
+            &env.with_coherence_mode(true),
+            &a.where_clauses,
+            trait_ref.is_local(),
+        )
     }
 
     #[tracing::instrument(level = "Debug", skip(self))]

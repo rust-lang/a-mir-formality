@@ -1,4 +1,3 @@
-mod combinators;
 mod constraints;
 mod env;
 mod is_local;
@@ -9,6 +8,7 @@ mod prove_normalize;
 mod prove_via;
 mod prove_wc;
 mod prove_wc_list;
+mod combinators;
 
 pub use constraints::Constraints;
 use formality_types::{cast::Upcast, collections::Set, grammar::Wcs, set, visit::Visit};
@@ -18,8 +18,6 @@ use crate::decls::Decls;
 
 pub use self::env::Env;
 use self::prove_wc_list::prove_wc_list;
-
-pub use is_local::prove_is_local_trait_ref;
 
 /// Top-level entry point for proving things; other rules recurse to this one.
 pub fn prove(

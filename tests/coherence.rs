@@ -183,7 +183,7 @@ fn test_orphan_basic() {
         Err(
             Error {
                 context: "orphan_check(impl <> CoreTrait < > for (rigid (adt CoreStruct)) where [] { })",
-                source: "failed to prove CoreTrait((rigid (adt CoreStruct))) is local, given {}; got {}",
+                source: "failed to prove {@ IsLocal(CoreTrait((rigid (adt CoreStruct))))} given {}, got {}",
             },
         )
     "#]]

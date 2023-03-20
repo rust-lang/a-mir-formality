@@ -6,7 +6,11 @@ use formality_types::{
 use crate::{
     decls::Decls,
     prove::{
-        env::Env, is_local::may_be_remote, prove, prove_after::prove_after, prove_eq::prove_eq,
+        env::Env,
+        is_local::{is_local_trait_ref, may_be_remote},
+        prove,
+        prove_after::prove_after,
+        prove_eq::prove_eq,
         prove_via::prove_via,
     },
 };
@@ -95,6 +99,12 @@ judgment_fn! {
             (prove(decls, env, assumptions, t.where_clause) => c)
             ----------------------------- ("trait well formed")
             (prove_wc(decls, env, assumptions, Predicate::WellFormedTraitRef(trait_ref)) => c)
+        )
+
+        (
+            (is_local_trait_ref(decls, env, assumptions, trait_ref) => c)
+            ----------------------------- ("trait ref is local")
+            (prove_wc(decls, env, assumptions, Predicate::IsLocal(trait_ref)) => c)
         )
     }
 }
