@@ -8,6 +8,7 @@ mod prove_normalize;
 mod prove_via;
 mod prove_wc;
 mod prove_wc_list;
+mod prove_wf;
 mod combinators;
 
 pub use constraints::Constraints;

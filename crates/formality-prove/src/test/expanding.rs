@@ -2,7 +2,7 @@ use expect_test::expect;
 use formality_macros::test;
 use formality_types::parse::term;
 
-use crate::decls::Decls;
+use crate::{test_util::test_prove, Decls};
 
 /// Simple example decls consisting only of two trait declarations.
 fn decls() -> Decls {
@@ -17,7 +17,7 @@ fn decls() -> Decls {
 /// There is no U that is equal to all T.
 #[test]
 fn expanding() {
-    let constraints = super::test_prove(decls(), term("exists<ty T> {} => {Debug(T)}"));
+    let constraints = test_prove(decls(), term("exists<ty T> {} => {Debug(T)}"));
     expect![[r#"
         {
             Constraints {

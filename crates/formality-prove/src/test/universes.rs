@@ -4,11 +4,13 @@ use formality_types::parse::term;
 
 use crate::decls::Decls;
 
+use crate::test_util::test_prove;
+
 /// There is no U that is equal to all T.
 #[test]
 fn exists_u_for_t() {
     let decls = Decls::empty();
-    let constraints = super::test_prove(decls, term("exists<ty U> {} => {for<ty T> T = U}"));
+    let constraints = test_prove(decls, term("exists<ty U> {} => {for<ty T> T = U}"));
     expect![[r#"
             {}
         "#]]
@@ -24,7 +26,7 @@ fn for_t_exists_u() {
         ..Decls::empty()
     };
 
-    let constraints = super::test_prove(decls, term("{} => {for<ty T> Test(T, T)}"));
+    let constraints = test_prove(decls, term("{} => {for<ty T> Test(T, T)}"));
     expect![[r#"
         {
             Constraints {

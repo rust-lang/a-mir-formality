@@ -15,6 +15,7 @@ struct InferenceRule<I, O> {
 #[macro_export]
 macro_rules! judgment_fn {
     (
+        $(#[$attr:meta])*
         $v:vis fn $name:ident($($input_name:ident : $input_ty:ty),* $(,)?) => $output:ty {
             debug($($debug_input_name:ident),*)
             $(assert($assert_expr:expr))*
@@ -22,6 +23,7 @@ macro_rules! judgment_fn {
             $(($($rule:tt)*))*
         }
     ) => {
+        $(#[$attr])*
         $v fn $name($($input_name : impl $crate::cast::Upcast<$input_ty>),*) -> $crate::collections::Set<$output> {
             #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone)]
             struct __JudgmentStruct($($input_ty),*);

@@ -2,7 +2,7 @@ use formality_types::{
     cast::{Downcast, Upcast},
     collections::Deduplicate,
     grammar::{
-        InferenceVar, Parameter, PlaceholderVar, Substitution, VarIndex, VarSubstitution, Variable,
+        ExistentialVar, Parameter, Substitution, UniversalVar, VarIndex, VarSubstitution, Variable,
     },
     term::Term,
 };
@@ -24,12 +24,12 @@ pub fn minimize<T: Term>(env_max: Env, term: T) -> (Env, T, Minimization) {
         .iter()
         .zip(0..)
         .map(|(&fv, index)| match fv {
-            Variable::PlaceholderVar(PlaceholderVar { kind, var_index: _ }) => PlaceholderVar {
+            Variable::UniversalVar(UniversalVar { kind, var_index: _ }) => UniversalVar {
                 kind,
                 var_index: VarIndex { index },
             }
             .upcast(),
-            Variable::InferenceVar(InferenceVar { kind, var_index: _ }) => InferenceVar {
+            Variable::ExistentialVar(ExistentialVar { kind, var_index: _ }) => ExistentialVar {
                 kind,
                 var_index: VarIndex { index },
             }
@@ -83,7 +83,7 @@ impl Minimization {
 
         let mut env_out = self.env_max.clone();
 
-        let mut fresh_vars: Vec<InferenceVar> = vec![];
+        let mut fresh_vars: Vec<ExistentialVar> = vec![];
         let mut env2out_subst = self.min2max_subst.clone();
         for &var in constraints.env().variables() {
             if let Some(var_out) = env2out_subst.map_var(var) {
@@ -98,7 +98,7 @@ impl Minimization {
                 }
             } else {
                 // e.g., Z in the example above
-                let var: InferenceVar = var.downcast().unwrap(); // we only ever insert fresh existential variables
+                let var: ExistentialVar = var.downcast().unwrap(); // we only ever insert fresh existential variables
                 fresh_vars.push(var);
             }
         }

@@ -327,6 +327,12 @@ upcast_to_wcs! {
     Relation,
 }
 
+impl ToWcs for () {
+    fn to_wcs(&self) -> Wcs {
+        Wcs::t()
+    }
+}
+
 impl<A, B> ToWcs for (A, B)
 where
     A: ToWcs,

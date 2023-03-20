@@ -206,6 +206,7 @@ dependencies = [
  "formality-check",
  "formality-core",
  "formality-macros",
+ "formality-prove",
  "formality-rust",
  "formality-types",
  "pretty_assertions",

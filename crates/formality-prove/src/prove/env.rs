@@ -5,7 +5,7 @@ use formality_types::{
     collections::Set,
     fold::Fold,
     grammar::{
-        Binder, InferenceVar, ParameterKind, PlaceholderVar, VarIndex, VarSubstitution, Variable,
+        Binder, ExistentialVar, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable,
     },
     visit::Visit,
 };
@@ -59,8 +59,8 @@ impl Env {
             .variables
             .iter()
             .map(|v| match v {
-                Variable::PlaceholderVar(pv) => pv.var_index.index,
-                Variable::InferenceVar(iv) => iv.var_index.index,
+                Variable::UniversalVar(pv) => pv.var_index.index,
+                Variable::ExistentialVar(iv) => iv.var_index.index,
                 Variable::BoundVar(_) => panic!(),
             })
             .max()
@@ -71,16 +71,16 @@ impl Env {
         }
     }
 
-    pub fn fresh_existential(&mut self, kind: ParameterKind) -> InferenceVar {
+    pub fn fresh_existential(&mut self, kind: ParameterKind) -> ExistentialVar {
         let var_index = self.fresh_index();
-        let v = InferenceVar { kind, var_index };
+        let v = ExistentialVar { kind, var_index };
         self.variables.push(v.upcast());
         v
     }
 
-    pub fn insert_fresh_before(&mut self, kind: ParameterKind, rank: Universe) -> InferenceVar {
+    pub fn insert_fresh_before(&mut self, kind: ParameterKind, rank: Universe) -> ExistentialVar {
         let var_index = self.fresh_index();
-        let v = InferenceVar { kind, var_index };
+        let v = ExistentialVar { kind, var_index };
         self.variables.insert(rank.index, v.upcast());
         v
     }
@@ -137,12 +137,12 @@ impl Env {
         vars
     }
 
-    pub fn universal_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<PlaceholderVar>)
+    pub fn universal_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<UniversalVar>)
     where
         T: Fold,
     {
         let mut env = self.clone();
-        let subst = env.fresh_substituion(b.kinds(), |kind, var_index| PlaceholderVar {
+        let subst = env.fresh_substituion(b.kinds(), |kind, var_index| UniversalVar {
             kind,
             var_index,
         });
@@ -153,19 +153,19 @@ impl Env {
     where
         T: Fold,
     {
-        let subst = self.fresh_substituion(b.kinds(), |kind, var_index| PlaceholderVar {
+        let subst = self.fresh_substituion(b.kinds(), |kind, var_index| UniversalVar {
             kind,
             var_index,
         });
         b.instantiate_with(&subst).unwrap()
     }
 
-    pub fn existential_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<InferenceVar>)
+    pub fn existential_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<ExistentialVar>)
     where
         T: Fold,
     {
         let mut env = self.clone();
-        let subst = env.fresh_substituion(b.kinds(), |kind, var_index| InferenceVar {
+        let subst = env.fresh_substituion(b.kinds(), |kind, var_index| ExistentialVar {
             kind,
             var_index,
         });

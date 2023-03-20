@@ -1,7 +1,7 @@
 use anyhow::bail;
 use fn_error_context::context;
 use formality_prove::Env;
-use formality_rust::grammar::{Crate, TraitImpl};
+use formality_rust::grammar::{Crate, NegTraitImpl, TraitImpl};
 use formality_types::{
     cast::Downcasted,
     grammar::{Fallible, Wc, Wcs},
@@ -15,9 +15,15 @@ impl Check<'_> {
         let all_crate_impls: Vec<TraitImpl> =
             self.program.items_from_all_crates().downcasted().collect();
         let current_crate_impls: Vec<TraitImpl> = current_crate.items.iter().downcasted().collect();
+        let current_crate_neg_impls: Vec<NegTraitImpl> =
+            current_crate.items.iter().downcasted().collect();
 
         for impl_a in &current_crate_impls {
             self.orphan_check(impl_a)?;
+        }
+
+        for impl_a in &current_crate_neg_impls {
+            self.orphan_check_neg(impl_a)?;
         }
 
         // check for duplicate impls in the current crate
@@ -32,6 +38,7 @@ impl Check<'_> {
             .iter()
             .cartesian_product(&all_crate_impls)
             .filter(|(impl_a, impl_b)| impl_a != impl_b)
+            .filter(|(impl_a, impl_b)| impl_a.trait_id() == impl_b.trait_id())
         {
             self.overlap_check(impl_a, impl_b)?;
         }
@@ -41,6 +48,20 @@ impl Check<'_> {
 
     #[context("orphan_check({impl_a:?})")]
     fn orphan_check(&self, impl_a: &TraitImpl) -> Fallible<()> {
+        let mut env = Env::default();
+
+        let a = env.instantiate_universally(&impl_a.binder);
+        let trait_ref = a.trait_ref();
+
+        self.prove_goal(
+            &env.with_coherence_mode(true),
+            &a.where_clauses,
+            trait_ref.is_local(),
+        )
+    }
+
+    #[context("orphan_check_neg({impl_a:?})")]
+    fn orphan_check_neg(&self, impl_a: &NegTraitImpl) -> Fallible<()> {
         let mut env = Env::default();
 
         let a = env.instantiate_universally(&impl_a.binder);
@@ -72,25 +93,28 @@ impl Check<'_> {
         let trait_ref_a = a.trait_ref();
         let trait_ref_b = b.trait_ref();
 
-        // If the parameters from the two impls cannot be equal, then they do not overlap.
-        //
-        // If we can prove `∀P_a, ∀P_b. not (T_a = T_b, Wc_a, Wc_b)`, then they do not overlap.
-        if let Ok(()) = self.prove_not_goal(
-            &env.with_coherence_mode(true),
-            (&a.where_clauses, &b.where_clauses),
-            Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
-        ) {
-            return Ok(());
-        }
+        assert_eq!(trait_ref_a.trait_id, trait_ref_b.trait_id);
 
-        // If we can disprove the where clauses, then they do not overlap.
-        //
-        // If we can prove `∀P_a, ∀P_b. not [(T_a = T_b) => (Wc_a, Wc_b)]`, then they do not overlap.
+        // If we can prove that the parameters cannot be equated *or* the where-clauses don't hold,
+        // in coherence mode, then they do not overlap.
         if let Ok(()) = self.prove_not_goal(
             &env.with_coherence_mode(true),
-            Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
-            (&a.where_clauses, &b.where_clauses),
+            (),
+            (
+                Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
+                &a.where_clauses,
+                &b.where_clauses,
+            ),
         ) {
+            tracing::debug!(
+                "proved not {:?}",
+                (
+                    Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
+                    &a.where_clauses,
+                    &b.where_clauses,
+                )
+            );
+
             return Ok(());
         }
 
@@ -106,7 +130,7 @@ impl Check<'_> {
             .chain(&b.where_clauses)
             .flat_map(|wc| wc.invert())
             .collect();
-        if inverted.iter().any(|inverted_wc| {
+        if let Some(inverted_wc) = inverted.iter().find(|inverted_wc| {
             self.prove_goal(
                 &env,
                 (
@@ -114,10 +138,20 @@ impl Check<'_> {
                     &a.where_clauses,
                     &b.where_clauses,
                 ),
-                inverted_wc,
+                &inverted_wc,
             )
             .is_ok()
         }) {
+            tracing::debug!(
+                "proved {:?} assuming {:?}",
+                &inverted_wc,
+                (
+                    Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
+                    &a.where_clauses,
+                    &b.where_clauses,
+                )
+            );
+
             return Ok(());
         }
         bail!("impls may overlap: `{impl_a:?}` vs `{impl_b:?}`")

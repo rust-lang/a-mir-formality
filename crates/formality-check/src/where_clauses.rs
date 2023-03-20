@@ -12,10 +12,9 @@ impl super::Check<'_> {
     pub(crate) fn prove_where_clauses_well_formed(
         &self,
         env: &Env,
-        assumptions: impl Upcast<Vec<WhereClause>>,
+        assumptions: impl ToWcs,
         where_clauses: &[WhereClause],
     ) -> Fallible<()> {
-        let assumptions: Vec<WhereClause> = assumptions.upcast();
         for where_clause in where_clauses {
             self.prove_where_clause_well_formed(env, &assumptions, where_clause)?;
         }
@@ -25,10 +24,9 @@ impl super::Check<'_> {
     fn prove_where_clause_well_formed(
         &self,
         in_env: &Env,
-        assumptions: impl Upcast<Vec<WhereClause>>,
+        assumptions: impl ToWcs,
         where_clause: &WhereClause,
     ) -> Fallible<()> {
-        let assumptions: Vec<WhereClause> = assumptions.upcast();
         match where_clause.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => self
                 .prove_trait_ref_well_formed(

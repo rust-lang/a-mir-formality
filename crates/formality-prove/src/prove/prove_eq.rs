@@ -2,7 +2,7 @@ use formality_types::{
     cast::{Downcast, Upcast, Upcasted},
     collections::{Deduplicate, Set},
     grammar::{
-        AliasTy, InferenceVar, Parameter, PlaceholderVar, Relation, RigidTy, Substitution, TyData,
+        AliasTy, ExistentialVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar,
         Variable, Wcs,
     },
     judgment_fn, set,
@@ -64,7 +64,7 @@ judgment_fn! {
         (
             (prove_existential_var_eq(decls, env, assumptions, v, r) => c)
             ----------------------------- ("existential-nonvar")
-            (prove_eq(decls, env, assumptions, Variable::InferenceVar(v), r) => c)
+            (prove_eq(decls, env, assumptions, Variable::ExistentialVar(v), r) => c)
         )
 
         (
@@ -81,7 +81,7 @@ judgment_fn! {
         decls: Decls,
         env: Env,
         assumptions: Wcs,
-        v: InferenceVar,
+        v: ExistentialVar,
         b: Parameter,
     ) => Constraints {
         debug(v, b, assumptions, env, decls)
@@ -97,13 +97,13 @@ judgment_fn! {
             // Map the higher rank variable to the lower rank one.
             (let (a, b) = env.order_by_universe(l, r))
             ----------------------------- ("existential-existential")
-            (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::InferenceVar(r)) => (env, (b, a)))
+            (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::ExistentialVar(r)) => (env, (b, a)))
         )
 
         (
             (if env.universe(p) < env.universe(v))
             ----------------------------- ("existential-placeholder")
-            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::PlaceholderVar(p)) => (env, (v, p)))
+            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) => (env, (v, p)))
         )
     }
 }
@@ -112,7 +112,7 @@ fn equate_variable(
     decls: Decls,
     mut env: Env,
     assumptions: Wcs,
-    x: InferenceVar,
+    x: ExistentialVar,
     p: impl Upcast<Parameter>,
 ) -> Set<Constraints> {
     let p: Parameter = p.upcast();
@@ -161,17 +161,17 @@ fn equate_variable(
         env,
         universe_subst
             .iter()
-            .filter(|(v, _)| v.is_a::<InferenceVar>())
+            .filter(|(v, _)| v.is_a::<ExistentialVar>())
             .chain(Some((x, universe_subst.apply(&p)).upcast())),
     );
 
-    // For each placeholder variable that we replaced with an inference variable
+    // For each universal variable that we replaced with an existential variable
     // above, we now have to prove that goal. e.g., if we had `X = Vec<!Y>`, we would replace `!Y` with `?Z`
     // (where `?Z` is in a lower universe than `X`), but now we must prove that `!Y = ?Z`
     // (this may be posible due to assumptions).
     let goals: Wcs = universe_subst
         .iter()
-        .filter(|(v, _)| v.is_a::<PlaceholderVar>())
+        .filter(|(v, _)| v.is_a::<UniversalVar>())
         .map(|(v, p)| eq(v, p))
         .upcasted()
         .collect();

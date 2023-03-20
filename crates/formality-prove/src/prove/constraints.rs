@@ -2,7 +2,7 @@ use formality_types::{
     cast::{Downcast, Upcast},
     cast_impl,
     derive_links::UpcastFrom,
-    grammar::{InferenceVar, Parameter, Substitution, Variable},
+    grammar::{ExistentialVar, Parameter, Substitution, Variable},
     visit::Visit,
 };
 
@@ -183,7 +183,7 @@ impl Visit for Constraints {
         // Each variable `x` is only bound to a term of strictly lower universe.
         // This implies that `x` does not appear in `p`.
         for (x, p) in substitution.iter() {
-            assert!(x.is_a::<InferenceVar>());
+            assert!(x.is_a::<ExistentialVar>());
 
             assert!(!occurs_in(x, &p));
 

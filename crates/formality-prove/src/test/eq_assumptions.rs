@@ -4,7 +4,7 @@ use formality_types::parse::term;
 
 use crate::decls::Decls;
 
-use super::test_prove;
+use crate::test_util::test_prove;
 
 #[test]
 fn test_a() {
@@ -76,7 +76,7 @@ fn test_normalize_assoc_ty() {
 }
 
 #[test]
-fn test_normalize_assoc_ty_inference0() {
+fn test_normalize_assoc_ty_existential0() {
     let constraints = test_prove(
         Decls::empty(),
         term("exists<ty A> {} => {for<ty T> if { <T as Iterator>::Item = u32 } <A as Iterator>::Item = u32}"),
@@ -88,7 +88,7 @@ fn test_normalize_assoc_ty_inference0() {
 }
 
 #[test]
-fn test_normalize_assoc_ty_inference1() {
+fn test_normalize_assoc_ty_existential1() {
     let constraints = test_prove(
         Decls::empty(),
         term(

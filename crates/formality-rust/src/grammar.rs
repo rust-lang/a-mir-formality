@@ -227,7 +227,7 @@ pub enum FnBody {
     MirFnBody(MirFnBody),
 }
 
-#[term(type $id $binder)]
+#[term(type $id $binder ;)]
 pub struct AssociatedTy {
     pub id: AssociatedItemId,
     pub binder: Binder<AssociatedTyBoundData>,
@@ -245,6 +245,12 @@ pub struct AssociatedTyBoundData {
 #[term(impl $binder)]
 pub struct TraitImpl {
     pub binder: Binder<TraitImplBoundData>,
+}
+
+impl TraitImpl {
+    pub fn trait_id(&self) -> &TraitId {
+        &self.binder.peek().trait_id
+    }
 }
 
 #[term($trait_id < $,trait_parameters > for $self_ty where $where_clauses { $*impl_items })]
@@ -275,6 +281,12 @@ pub struct NegTraitImplBoundData {
     pub where_clauses: Vec<WhereClause>,
 }
 
+impl NegTraitImplBoundData {
+    pub fn trait_ref(&self) -> TraitRef {
+        self.trait_id.with(&self.self_ty, &self.trait_parameters)
+    }
+}
+
 #[term]
 pub enum ImplItem {
     #[cast]
@@ -283,13 +295,13 @@ pub enum ImplItem {
     AssociatedTyValue(AssociatedTyValue),
 }
 
-#[term(type $id $binder)]
+#[term(type $id $binder ;)]
 pub struct AssociatedTyValue {
     pub id: AssociatedItemId,
     pub binder: Binder<AssociatedTyValueBoundData>,
 }
 
-#[term(where $where_clauses = $ty)]
+#[term(= $ty where $where_clauses)]
 pub struct AssociatedTyValueBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub ty: Ty,
