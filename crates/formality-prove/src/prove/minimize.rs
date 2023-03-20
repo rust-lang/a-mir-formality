@@ -2,7 +2,7 @@ use formality_types::{
     cast::{Downcast, Upcast},
     collections::Deduplicate,
     grammar::{
-        InferenceVar, Parameter, PlaceholderVar, Substitution, VarIndex, VarSubstitution, Variable,
+        InferenceVar, Parameter, Substitution, UniversalVar, VarIndex, VarSubstitution, Variable,
     },
     term::Term,
 };
@@ -24,7 +24,7 @@ pub fn minimize<T: Term>(env_max: Env, term: T) -> (Env, T, Minimization) {
         .iter()
         .zip(0..)
         .map(|(&fv, index)| match fv {
-            Variable::PlaceholderVar(PlaceholderVar { kind, var_index: _ }) => PlaceholderVar {
+            Variable::UniversalVar(UniversalVar { kind, var_index: _ }) => UniversalVar {
                 kind,
                 var_index: VarIndex { index },
             }

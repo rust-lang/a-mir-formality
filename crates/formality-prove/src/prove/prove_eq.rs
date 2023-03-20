@@ -2,7 +2,7 @@ use formality_types::{
     cast::{Downcast, Upcast, Upcasted},
     collections::{Deduplicate, Set},
     grammar::{
-        AliasTy, InferenceVar, Parameter, PlaceholderVar, Relation, RigidTy, Substitution, TyData,
+        AliasTy, InferenceVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar,
         Variable, Wcs,
     },
     judgment_fn, set,
@@ -103,7 +103,7 @@ judgment_fn! {
         (
             (if env.universe(p) < env.universe(v))
             ----------------------------- ("existential-placeholder")
-            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::PlaceholderVar(p)) => (env, (v, p)))
+            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) => (env, (v, p)))
         )
     }
 }
@@ -165,13 +165,13 @@ fn equate_variable(
             .chain(Some((x, universe_subst.apply(&p)).upcast())),
     );
 
-    // For each placeholder variable that we replaced with an inference variable
+    // For each universal variable that we replaced with an inference variable
     // above, we now have to prove that goal. e.g., if we had `X = Vec<!Y>`, we would replace `!Y` with `?Z`
     // (where `?Z` is in a lower universe than `X`), but now we must prove that `!Y = ?Z`
     // (this may be posible due to assumptions).
     let goals: Wcs = universe_subst
         .iter()
-        .filter(|(v, _)| v.is_a::<PlaceholderVar>())
+        .filter(|(v, _)| v.is_a::<UniversalVar>())
         .map(|(v, p)| eq(v, p))
         .upcasted()
         .collect();

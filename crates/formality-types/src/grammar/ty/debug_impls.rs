@@ -21,29 +21,23 @@ impl std::fmt::Debug for super::Lt {
 impl std::fmt::Debug for super::Variable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::PlaceholderVar(arg0) => write!(f, "{:?}", arg0),
+            Self::UniversalVar(arg0) => write!(f, "{:?}", arg0),
             Self::InferenceVar(arg0) => write!(f, "{:?}", arg0),
             Self::BoundVar(arg0) => write!(f, "{:?}", arg0),
         }
     }
 }
 
-impl std::fmt::Debug for super::PlaceholderVar {
+impl std::fmt::Debug for super::UniversalVar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let super::PlaceholderVar {
-            var_index,
-            kind,
-        } = self;
+        let super::UniversalVar { var_index, kind } = self;
         write!(f, "!{:?}_{:?}", kind, var_index)
     }
 }
 
 impl std::fmt::Debug for super::InferenceVar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let super::InferenceVar {
-            var_index,
-            kind,
-        } = self;
+        let super::InferenceVar { var_index, kind } = self;
         write!(f, "?{:?}_{:?}", kind, var_index)
     }
 }

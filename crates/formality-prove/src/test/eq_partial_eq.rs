@@ -49,7 +49,7 @@ fn not_partial_eq_implies_eq() {
 }
 
 #[test]
-fn placeholders_not_eq() {
+fn universals_not_eq() {
     let goal: Wc = term("for<ty T, ty U> if {Eq(T)} PartialEq(U)");
     let constraints = prove(decls(), (), (), goal);
     expect![[r#"

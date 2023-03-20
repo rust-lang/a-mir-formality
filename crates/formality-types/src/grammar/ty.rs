@@ -242,11 +242,11 @@ pub enum PredicateTy {
     ForAll(Binder<Ty>),
 }
 
-/// A *placeholder* is a dummy variable about which nothing is known except
+/// A *universal variable* is a dummy variable about which nothing is known except
 /// that which we see in the environment. When we want to prove something
-/// is true for all `T` (`∀T`), we replace `T` with a placeholder.
+/// is true for all `T` (`∀T`), we replace `T` with a universal variable.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct PlaceholderVar {
+pub struct UniversalVar {
     pub kind: ParameterKind,
     pub var_index: VarIndex,
 }
@@ -406,7 +406,7 @@ impl Visit for LtData {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Variable {
-    PlaceholderVar(PlaceholderVar),
+    UniversalVar(UniversalVar),
     InferenceVar(InferenceVar),
     BoundVar(BoundVar),
 }
@@ -416,7 +416,7 @@ cast_impl!(Variable);
 impl Variable {
     pub fn kind(&self) -> ParameterKind {
         match self {
-            Variable::PlaceholderVar(v) => v.kind,
+            Variable::UniversalVar(v) => v.kind,
             Variable::InferenceVar(v) => v.kind,
             Variable::BoundVar(v) => v.kind,
         }
@@ -466,12 +466,12 @@ impl Variable {
     }
 
     /// A variable is *free* (i.e., not bound by any internal binder)
-    /// if it is an inference variable, a placeholder, or has a debruijn
+    /// if it is an inference variable, a universal, or has a debruijn
     /// index of `None`. The latter occurs when you `open` a binder (and before
     /// you close it back up again).
     pub fn is_free(&self) -> bool {
         match self {
-            Variable::PlaceholderVar(_)
+            Variable::UniversalVar(_)
             | Variable::InferenceVar(_)
             | Variable::BoundVar(BoundVar {
                 debruijn: None,
@@ -489,7 +489,7 @@ impl Variable {
 
     pub fn is_universal(&self) -> bool {
         match self {
-            Variable::PlaceholderVar(_) => true,
+            Variable::UniversalVar(_) => true,
             Variable::InferenceVar(_) => false,
             Variable::BoundVar(_) => false,
         }
@@ -530,7 +530,7 @@ impl DowncastTo<Variable> for Parameter {
 cast_impl!(BoundVar);
 cast_impl!((InferenceVar) <: (Variable) <: (Parameter));
 cast_impl!((BoundVar) <: (Variable) <: (Parameter));
-cast_impl!((PlaceholderVar) <: (Variable) <: (Parameter));
+cast_impl!((UniversalVar) <: (Variable) <: (Parameter));
 
 /// Identifies a bound variable.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -824,21 +824,21 @@ cast_impl!(TyData::AliasTy(AliasTy));
 cast_impl!(TyData::PredicateTy(PredicateTy));
 cast_impl!(TyData::Variable(Variable));
 cast_impl!((Variable) <: (TyData) <: (Ty));
-cast_impl!((PlaceholderVar) <: (Variable) <: (TyData));
+cast_impl!((UniversalVar) <: (Variable) <: (TyData));
 cast_impl!((InferenceVar) <: (Variable) <: (TyData));
 cast_impl!((BoundVar) <: (Variable) <: (TyData));
 cast_impl!((ScalarId) <: (RigidTy) <: (TyData));
-cast_impl!((PlaceholderVar) <: (Variable) <: (Ty));
+cast_impl!((UniversalVar) <: (Variable) <: (Ty));
 cast_impl!((InferenceVar) <: (Variable) <: (Ty));
 cast_impl!((BoundVar) <: (Variable) <: (Ty));
 cast_impl!(Lt);
 cast_impl!(LtData::Variable(Variable));
 cast_impl!((InferenceVar) <: (Variable) <: (LtData));
-cast_impl!((PlaceholderVar) <: (Variable) <: (LtData));
+cast_impl!((UniversalVar) <: (Variable) <: (LtData));
 cast_impl!((BoundVar) <: (Variable) <: (LtData));
-cast_impl!((PlaceholderVar) <: (LtData) <: (Lt));
+cast_impl!((UniversalVar) <: (LtData) <: (Lt));
 cast_impl!((InferenceVar) <: (LtData) <: (Lt));
 cast_impl!((BoundVar) <: (LtData) <: (Lt));
-cast_impl!(Variable::PlaceholderVar(PlaceholderVar));
+cast_impl!(Variable::UniversalVar(UniversalVar));
 cast_impl!(Variable::InferenceVar(InferenceVar));
 cast_impl!(Variable::BoundVar(BoundVar));

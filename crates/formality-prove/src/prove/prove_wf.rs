@@ -1,5 +1,5 @@
 use formality_types::{
-    grammar::{Parameter, PlaceholderVar, RigidName, RigidTy, Wcs},
+    grammar::{Parameter, RigidName, RigidTy, UniversalVar, Wcs},
     judgment_fn,
 };
 
@@ -24,9 +24,9 @@ judgment_fn! {
             // are WF. An alternative would be to add explicit assumptions into the environment
             // for every universal variable. That just seems tedious.
             --- ("universal variables")
-            (prove_wf(_decls, env, _assumptions, PlaceholderVar { .. }) => Constraints::none(env))
+            (prove_wf(_decls, env, _assumptions, UniversalVar { .. }) => Constraints::none(env))
         )
- 
+
         (
             (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
             --- ("tuples")
