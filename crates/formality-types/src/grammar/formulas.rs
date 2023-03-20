@@ -150,17 +150,6 @@ pub enum Relation {
 }
 
 impl Relation {
-    /// Capture a few trivial cases; we screen these out to cleanup the results
-    /// from queries.
-    pub fn is_trivially_true(&self) -> bool {
-        match self {
-            Relation::Equals(a, b) => a == b,
-            Relation::Sub(a, b) => a == b,
-            Relation::Outlives(a, b) => a == b,
-            Relation::WellFormed(_) => false,
-        }
-    }
-
     pub fn eq(p1: impl Upcast<Parameter>, p2: impl Upcast<Parameter>) -> Self {
         Self::Equals(p1.upcast(), p2.upcast())
     }
