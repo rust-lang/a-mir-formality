@@ -57,14 +57,14 @@ judgment_fn! {
             (prove(&decls, env, &co_assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
             (prove_after(&decls, c, &co_assumptions, &i.where_clause) => c)
             (prove_after(&decls, c, &assumptions, &t.where_clause) => c)
-            ----------------------------- ("impl")
+            ----------------------------- ("positive impl")
             (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
             (if env.is_in_coherence_mode())
             (may_be_remote(decls, env, assumptions, trait_ref) => c)
-            ----------------------------- ("impl")
+            ----------------------------- ("coherence / remote impl")
             (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.ambiguous())
         )
 
@@ -74,7 +74,7 @@ judgment_fn! {
             (let i = i.binder.instantiate_with(&subst).unwrap())
             (prove(&decls, env, &assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
             (prove_after(&decls, c, &assumptions, &i.where_clause) => c)
-            ----------------------------- ("impl")
+            ----------------------------- ("negative impl")
             (prove_wc(decls, env, assumptions, Predicate::NotImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
