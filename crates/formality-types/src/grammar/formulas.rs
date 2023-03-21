@@ -1,8 +1,8 @@
-use formality_macros::term;
-
 use crate::cast::To;
 use crate::cast::Upcast;
 use crate::cast_impl;
+use bolero_generator::TypeGenerator;
+use formality_macros::term;
 
 use super::Parameter;
 use super::Parameters;
@@ -14,6 +14,7 @@ pub type Fallible<T> = anyhow::Result<T>;
 /// Atomic predicates are the base goals we can try to prove; the rules for proving them
 /// are derived (at least in part) based on the Rust source declarations.
 #[term]
+#[derive(TypeGenerator)]
 pub enum Predicate {
     /// True if a trait is fully implemented (along with all its where clauses).
     #[cast]
@@ -135,6 +136,7 @@ impl TraitRef {
 
 /// Relations are built-in goals which are implemented in custom Rust logic.
 #[term]
+#[derive(TypeGenerator)]
 pub enum Relation {
     #[grammar($v0 = $v1)]
     Equals(Parameter, Parameter),
@@ -203,6 +205,7 @@ impl TraitId {
 ///
 /// We need a better name for this lol.
 #[term]
+#[derive(TypeGenerator)]
 pub enum PR {
     #[cast]
     Predicate(Predicate),

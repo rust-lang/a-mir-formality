@@ -16,8 +16,20 @@ macro_rules! id {
 
             impl $n {
                 pub fn new(s: &str) -> $n {
+                    $n::from(s.to_string())
+                }
+            }
+
+            impl From<&str> for $n {
+                fn from(v: &str) -> $n {
+                    $n::new(v)
+                }
+            }
+
+            impl From<String> for $n {
+                fn from(v: String) -> $n {
                     $n {
-                        data: std::sync::Arc::new(s.to_string()),
+                        data: std::sync::Arc::new(v),
                     }
                 }
             }

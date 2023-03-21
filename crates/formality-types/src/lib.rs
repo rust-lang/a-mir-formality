@@ -3,6 +3,7 @@
 pub mod collections;
 pub mod fixed_point;
 pub mod fold;
+pub mod fuzz;
 pub mod grammar;
 pub mod judgment;
 pub mod matcher;

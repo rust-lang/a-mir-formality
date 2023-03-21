@@ -6,6 +6,10 @@ and develop it as an official part of the language definition.
 
 ## Quickstart guide
 
+Install bolero:
+
+* `cargo install -f cargo-bolero`
+
 Like any Rust project:
 
 * Clone

@@ -1,3 +1,4 @@
+use bolero_generator::TypeGenerator;
 use contracts::requires;
 use formality_macros::{term, Visit};
 use std::{collections::BTreeSet, sync::Arc};
@@ -171,12 +172,14 @@ pub enum RigidName {
 }
 
 #[term]
+#[derive(TypeGenerator)]
 pub enum RefKind {
     Shared,
     Mut,
 }
 
 #[term]
+#[derive(TypeGenerator)]
 pub enum ScalarId {
     #[grammar(u8)]
     U8,
@@ -226,6 +229,7 @@ impl AliasTy {
 }
 
 #[term]
+#[derive(TypeGenerator)]
 pub enum AliasName {
     #[cast]
     AssociatedTyId(AssociatedTyName),
@@ -238,6 +242,7 @@ pub struct AssociatedTyName {
 }
 
 #[term]
+#[derive(TypeGenerator)]
 pub enum PredicateTy {
     ForAll(Binder<Ty>),
 }
@@ -258,6 +263,7 @@ pub enum QuantifierKind {
 }
 
 #[term]
+#[derive(TypeGenerator)]
 pub enum Parameter {
     #[cast]
     Ty(Ty),
@@ -300,14 +306,14 @@ pub enum ParameterData<'me> {
 }
 
 #[term]
-#[derive(Copy)]
+#[derive(Copy, TypeGenerator)]
 pub enum ParameterKind {
     Ty,
     Lt,
 }
 
 #[term]
-#[derive(Copy)]
+#[derive(Copy, TypeGenerator)]
 pub enum Variance {
     #[grammar(+)]
     Covariant,
@@ -363,7 +369,7 @@ impl UpcastFrom<LtData> for Parameter {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, TypeGenerator)]
 pub enum LtData {
     Static,
     Variable(Variable),
