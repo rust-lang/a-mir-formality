@@ -2,12 +2,13 @@
 //!
 //! Must be customized by a `FuzzDecls` trait that gives context, to avoid generating nonsense.
 
-use crate::cast::UpcastFrom;
+use crate::cast::{Upcast, UpcastFrom};
 use crate::derive_links::{Parameter, ParameterKind, Variable};
 use crate::fold::Fold;
 use crate::grammar::{
-    fresh_bound_var, AdtId, AssociatedItemId, Binder, BoundVar, Lt, LtData, RigidName, RigidTy,
-    ScalarId, TraitId, TraitRef, Ty, TyData, Wc, WcData,
+    fresh_bound_var, AdtId, AliasTy, AssociatedItemId, AssociatedTyName, Binder, BoundVar, Lt,
+    LtData, Predicate, PredicateTy, Relation, RigidName, RigidTy, ScalarId, TraitId, TraitRef, Ty,
+    TyData, Wc, WcData, PR,
 };
 use bolero_generator::{Driver, TypeGenerator};
 use std::{cell::RefCell, ops::Bound};
@@ -19,9 +20,9 @@ pub trait FuzzDecls {
     fn adt_ids(&self) -> &[AdtId];
     fn kinds_for_adt_id(&self, id: &AdtId) -> &[ParameterKind];
 
-    fn associated_item_ids(&self) -> &[AssociatedItemId];
-    fn kinds_for_associated_item_id(&self, id: &AssociatedItemId) -> &[ParameterKind];
-    fn trait_for_associated_item_id(&self, id: &AssociatedItemId) -> TraitId;
+    fn associated_type_ids(&self) -> &[AssociatedItemId];
+    fn kinds_for_associated_type_id(&self, id: &AssociatedItemId) -> &[ParameterKind];
+    fn trait_for_associated_type_id(&self, id: &AssociatedItemId) -> TraitId;
 }
 
 thread_local! {
@@ -40,11 +41,11 @@ pub fn with_fuzz_decls<R>(d: impl FuzzDecls + 'static, op: impl FnOnce() -> R) -
 struct NoFuzzDecls;
 
 impl FuzzDecls for NoFuzzDecls {
-    fn trait_ids(&self) -> Vec<TraitId> {
+    fn trait_ids(&self) -> &[TraitId] {
         panic!("no fuzz decls in scope")
     }
 
-    fn kinds_for_trait_id(&self, id: &TraitId) -> &[ParameterKind] {
+    fn kinds_for_trait_id(&self, _id: &TraitId) -> &[ParameterKind] {
         panic!("no fuzz decls in scope")
     }
 
@@ -52,28 +53,39 @@ impl FuzzDecls for NoFuzzDecls {
         panic!("no fuzz decls in scope")
     }
 
-    fn kinds_for_adt_id(&self, id: &AdtId) -> Vec<ParameterKind> {
+    fn kinds_for_adt_id(&self, _id: &AdtId) -> &[ParameterKind] {
         panic!("no fuzz decls in scope")
     }
 
-    fn associated_item_ids(&self) -> Vec<AssociatedItemId> {
+    fn associated_type_ids(&self) -> &[AssociatedItemId] {
         panic!("no fuzz decls in scope")
     }
 
-    fn kinds_for_associated_item_id(&self, id: &AssociatedItemId) -> Vec<ParameterKind> {
+    fn kinds_for_associated_type_id(&self, _id: &AssociatedItemId) -> &[ParameterKind] {
         panic!("no fuzz decls in scope")
     }
 
-    fn trait_for_associated_item_id(&self, id: &AssociatedItemId) -> TraitId {
+    fn trait_for_associated_type_id(&self, _id: &AssociatedItemId) -> TraitId {
         panic!("no fuzz decls in scope")
     }
+}
+
+// --------------------------------------------------------------------------------
+// Bound variables
+
+thread_local! {
+    static BOUND_VARIABLES_IN_SCOPE: RefCell<Vec<BoundVar>> = RefCell::new(vec![]);
+}
+
+fn with_bound_variable_in_scope<R>(e: &[BoundVar], op: impl FnOnce() -> R) -> R {
+    BOUND_VARIABLES_IN_SCOPE.with(|v| with(v, e, op))
 }
 
 struct InScopeFuzzDecls;
 
 impl InScopeFuzzDecls {
     fn has_trait_ids(&self) -> bool {
-        FUZZ_DECLS.with(|fd| fd.borrow().trait_ids().is_empty())
+        FUZZ_DECLS.with(|fd| !fd.borrow().trait_ids().is_empty())
     }
 
     fn pick_trait_id(&self, driver: &mut impl Driver) -> Option<TraitId> {
@@ -86,7 +98,7 @@ impl InScopeFuzzDecls {
     }
 
     fn has_adt_ids(&self) -> bool {
-        FUZZ_DECLS.with(|fd| fd.borrow().adt_ids().is_empty())
+        FUZZ_DECLS.with(|fd| !fd.borrow().adt_ids().is_empty())
     }
 
     fn pick_adt_id(&self, driver: &mut impl Driver) -> Option<AdtId> {
@@ -96,6 +108,34 @@ impl InScopeFuzzDecls {
 
     fn kinds_for_adt_id(&self, id: &AdtId) -> Vec<ParameterKind> {
         FUZZ_DECLS.with(|fd| fd.borrow().kinds_for_adt_id(id).to_vec())
+    }
+
+    fn has_associated_types(&self) -> bool {
+        FUZZ_DECLS.with(|fd| !fd.borrow().associated_type_ids().is_empty())
+    }
+
+    fn pick_associated_type_name(&self, driver: &mut impl Driver) -> Option<AssociatedTyName> {
+        FUZZ_DECLS.with(|fd| {
+            let item_id = pick(fd.borrow().associated_type_ids(), driver)?;
+            let trait_id = fd.borrow().trait_for_associated_type_id(&item_id);
+            Some(AssociatedTyName { item_id, trait_id })
+        })
+    }
+
+    fn kinds_for_associated_type_name(&self, name: &AssociatedTyName) -> Vec<ParameterKind> {
+        FUZZ_DECLS.with(|fd| {
+            fd.borrow()
+                .kinds_for_associated_type_id(&name.item_id)
+                .to_vec()
+        })
+    }
+
+    fn has_variables(&self) -> bool {
+        BOUND_VARIABLES_IN_SCOPE.with(|v| !v.borrow().is_empty())
+    }
+
+    fn pick_variable(&self, driver: &mut impl Driver) -> Option<BoundVar> {
+        BOUND_VARIABLES_IN_SCOPE.with(|v| pick(&v.borrow(), driver))
     }
 }
 
@@ -123,15 +163,39 @@ where
     Some(v[index].clone())
 }
 
-/// Pick a string randomly, so long as the associated bool is true.
-/// The boolean is used to avoid picking a variant when it's not available -- e.g., if there
-/// are no AdtIds to pick from, we don't want to generate an ADT type.
-fn pick_variant(v: &[(&'static str, bool)], driver: &mut impl Driver) -> Option<&'static str> {
-    let variants: Vec<&str> = v
-        .iter()
-        .filter_map(|(s, b)| if b { Some(s) } else { None })
-        .collect();
-    pick(&variants, driver)
+struct PickVariant<'d, T, D> {
+    driver: &'d mut D,
+    v: Vec<Box<dyn FnOnce(&mut D) -> Option<T>>>,
+}
+
+impl<'d, T, D> PickVariant<'d, T, D>
+where
+    D: Driver,
+{
+    pub fn new(driver: &'d mut D) -> Self {
+        Self { driver, v: vec![] }
+    }
+
+    pub fn variant<U>(mut self, cond: bool, f: impl FnOnce(&mut D) -> Option<U> + 'static) -> Self
+    where
+        U: Upcast<T>,
+    {
+        if cond {
+            self.v
+                .push(Box::new(move |driver| Some(f(driver)?.upcast())));
+        }
+        self
+    }
+
+    pub fn finish(mut self) -> Option<T> {
+        assert!(self.v.len() > 0);
+        let l = self.v.len();
+        let index = self
+            .driver
+            .gen_usize(Bound::Included(&0), Bound::Excluded(&l))?;
+        let f = self.v.remove(index);
+        f(self.driver)
+    }
 }
 
 fn fuzz_parameters<D: Driver>(kinds: &[ParameterKind], driver: &mut D) -> Option<Vec<Parameter>> {
@@ -139,8 +203,8 @@ fn fuzz_parameters<D: Driver>(kinds: &[ParameterKind], driver: &mut D) -> Option
         .iter()
         .map(|k| -> Option<Parameter> {
             match k {
-                ParameterKind::Ty => Some(driver.gen::<Ty>()?),
-                ParameterKind::Lt => Some(driver.gen::<Lt>()?),
+                ParameterKind::Ty => Some(driver.gen::<Ty>()?.upcast()),
+                ParameterKind::Lt => Some(driver.gen::<Lt>()?.upcast()),
             }
         })
         .collect()
@@ -157,59 +221,54 @@ impl TypeGenerator for TraitRef {
 
 impl TypeGenerator for RigidTy {
     fn generate<D: Driver>(driver: &mut D) -> Option<Self> {
-        let v = pick_variant(
-            &[
-                ("adt", InScopeFuzzDecls.has_adt_ids()),
-                ("scalar", true),
-                ("ref", true),
-                ("tuple", true),
-                ("fnptr", true),
-                ("fndef", false), // FIXME
-            ],
-            driver,
-        )?;
-
-        match v {
-            "adt" => {
+        PickVariant::new(driver)
+            .variant(InScopeFuzzDecls.has_adt_ids(), |driver| {
                 let adt_id = InScopeFuzzDecls.pick_adt_id(driver)?;
                 let kinds = InScopeFuzzDecls.kinds_for_adt_id(&adt_id);
                 Some(RigidTy {
                     name: adt_id.upcast(),
                     parameters: fuzz_parameters(&kinds, driver)?,
                 })
-            }
-
-            "scalar" => Some(driver.gen::<ScalarId>()?.upcast()),
-
-            "ref" => Some(RigidTy {
-                name: RigidName::Ref(driver.gen()?),
-                parameters: fuzz_parameters(&[ParameterKind::Ty], driver)?,
-            }),
-
-            "tuple" => {
+            })
+            .variant(true, |driver| Some(driver.gen::<ScalarId>()?))
+            .variant(true, |driver| {
+                Some(RigidTy {
+                    name: RigidName::Ref(driver.gen()?),
+                    parameters: fuzz_parameters(&[ParameterKind::Ty], driver)?,
+                })
+            })
+            .variant(true, |driver| {
                 let arity: Arity = driver.gen()?;
                 let kinds = vec![ParameterKind::Ty; arity.0];
                 Some(RigidTy {
                     name: RigidName::Tuple(arity.0),
                     parameters: fuzz_parameters(&kinds, driver)?,
                 })
-            }
-
-            "fnptr" => {
+            })
+            .variant(true, |driver| {
                 let num_args: Arity = driver.gen()?;
                 let kinds = vec![ParameterKind::Ty; num_args.0 + 1];
                 Some(RigidTy {
                     name: RigidName::FnPtr(num_args.0),
                     parameters: fuzz_parameters(&kinds, driver)?,
                 })
-            }
+            })
+            .finish()
+    }
+}
 
-            "fndef" => {
-                panic!()
-            }
-
-            _ => panic!("unhandled variant"),
-        }
+impl TypeGenerator for AliasTy {
+    fn generate<D: Driver>(driver: &mut D) -> Option<Self> {
+        PickVariant::new(driver)
+            .variant(InScopeFuzzDecls.has_associated_types(), |driver| {
+                let name: AssociatedTyName = InScopeFuzzDecls.pick_associated_type_name(driver)?;
+                let kinds = InScopeFuzzDecls.kinds_for_associated_type_name(&name);
+                Some(AliasTy {
+                    name: name.upcast(),
+                    parameters: fuzz_parameters(&kinds, driver)?,
+                })
+            })
+            .finish()
     }
 }
 
@@ -222,6 +281,21 @@ impl TypeGenerator for Ty {
     fn generate<D: Driver>(driver: &mut D) -> Option<Self> {
         let data: TyData = driver.gen()?;
         Some(Ty::upcast_from(data))
+    }
+}
+
+impl TypeGenerator for TyData {
+    fn generate<D: Driver>(driver: &mut D) -> Option<Self> {
+        PickVariant::new(driver)
+            .variant(true, |driver| driver.gen::<RigidTy>())
+            .variant(InScopeFuzzDecls.has_variables(), |driver| {
+                driver.gen::<Variable>()
+            })
+            .variant(InScopeFuzzDecls.has_associated_types(), |driver| {
+                driver.gen::<AliasTy>()
+            })
+            .variant(true, |driver| driver.gen::<PredicateTy>())
+            .finish()
     }
 }
 
@@ -239,20 +313,9 @@ impl TypeGenerator for Wc {
     }
 }
 
-// --------------------------------------------------------------------------------
-// Bound variables
-
-thread_local! {
-    static BOUND_VARIABLES_IN_SCOPE: RefCell<Vec<BoundVar>> = RefCell::new(vec![]);
-}
-
-fn with_bound_variable_in_scope<R>(e: &[BoundVar], op: impl FnOnce() -> R) -> R {
-    BOUND_VARIABLES_IN_SCOPE.with(|v| with(v, e, op))
-}
-
 impl TypeGenerator for Variable {
     fn generate<D: bolero_generator::Driver>(driver: &mut D) -> Option<Self> {
-        let bv: BoundVar = BOUND_VARIABLES_IN_SCOPE.with(|u| pick(&u.borrow(), driver))?;
+        let bv: BoundVar = InScopeFuzzDecls.pick_variable(driver)?;
         Some(bv.upcast())
     }
 }
@@ -266,6 +329,17 @@ where
         let bound_vars: Vec<BoundVar> = kinds.iter().map(|&k| fresh_bound_var(k)).collect();
         let data = with_bound_variable_in_scope(&bound_vars, || driver.gen::<T>())?;
         Some(Binder::new(bound_vars, data))
+    }
+}
+
+impl TypeGenerator for PR {
+    fn generate<D: Driver>(driver: &mut D) -> Option<Self> {
+        PickVariant::new(driver)
+            .variant(InScopeFuzzDecls.has_trait_ids(), |driver| {
+                driver.gen::<Predicate>()
+            })
+            .variant(true, |driver| driver.gen::<Relation>())
+            .finish()
     }
 }
 

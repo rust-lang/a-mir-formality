@@ -205,7 +205,6 @@ impl TraitId {
 ///
 /// We need a better name for this lol.
 #[term]
-#[derive(TypeGenerator)]
 pub enum PR {
     #[cast]
     Predicate(Predicate),

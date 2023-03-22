@@ -229,7 +229,6 @@ impl AliasTy {
 }
 
 #[term]
-#[derive(TypeGenerator)]
 pub enum AliasName {
     #[cast]
     AssociatedTyId(AssociatedTyName),
