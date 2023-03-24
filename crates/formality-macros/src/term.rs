@@ -8,6 +8,7 @@ use crate::{
     fold::derive_fold,
     parse::derive_parse_with_spec,
     spec::FormalitySpec,
+    variants::variants_impls,
     visit::derive_visit,
 };
 
@@ -19,6 +20,7 @@ pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<
     let term_impl = derive_term(synstructure::Structure::new(&input));
     let downcast_impls = downcast_impls(synstructure::Structure::new(&input));
     let upcast_impls = upcast_impls(synstructure::Structure::new(&input));
+    let variants_impls = variants_impls(synstructure::Structure::new(&input));
     remove_formality_attributes(&mut input);
 
     Ok(quote! {
@@ -32,6 +34,7 @@ pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<
         #term_impl
         #(#downcast_impls)*
         #(#upcast_impls)*
+        #(#variants_impls)*
     })
 }
 
