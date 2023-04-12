@@ -8,8 +8,8 @@ use crate::derive_links::{Parameter, ParameterKind, Variable};
 use crate::fold::Fold;
 use crate::grammar::{
     fresh_bound_var, AdtId, AliasName, AliasTy, AssociatedItemId, AssociatedTyName, Binder,
-    BoundVar, Lt, LtData, PredicateTy, RefKind, RigidName, RigidTy, ScalarId, TraitId, TraitRef,
-    Ty,
+    BoundVar, FieldId, Lt, LtData, PredicateTy, RefKind, RigidName, RigidTy, ScalarId, TraitId,
+    TraitRef, Ty, VariantId,
 };
 use std::ops::Range;
 use std::rc::Rc;
@@ -36,15 +36,26 @@ pub struct Fuzzer<'f> {
     pub adts: Map<AdtId, Vec<ParameterKind>>,
     pub associated_types: Map<AssociatedItemId, (TraitId, Vec<ParameterKind>)>,
     pub variables: Vec<BoundVar>,
+    pub field_ids: Vec<FieldId>,
+    pub variant_ids: Vec<VariantId>,
 }
 
 impl<'f> Fuzzer<'f> {
-    fn with_bound_vars<R>(&mut self, vars: &[BoundVar], op: impl FnOnce(&mut Self) -> R) -> R {
+    pub fn binder<R>(
+        &mut self,
+        kinds: &[ParameterKind],
+        op: impl FnOnce(&mut Self) -> Option<R>,
+    ) -> Option<Binder<R>>
+    where
+        R: Fold,
+    {
+        let vars: Vec<BoundVar> = kinds.iter().map(|&kind| fresh_bound_var(kind)).collect();
         let len = self.variables.len();
-        self.variables.extend(vars);
+        self.variables.extend(&vars);
         let result = op(self);
         self.variables.truncate(len);
-        result
+        let result = result?;
+        Some(Binder::new(vars, result))
     }
 
     fn has_trait_ids(&self) -> bool {
@@ -124,9 +135,9 @@ pub trait Fuzz: Sized {
     fn fuzz(fuzzer: &mut Fuzzer<'_>) -> Option<Self>;
 }
 
-struct PickVariant<'d, 'f, T> {
+pub struct PickVariant<'d, 'f, T> {
     fuzzer: &'d mut Fuzzer<'f>,
-    options: Vec<Rc<dyn Fn(&mut Fuzzer<'f>) -> Option<T>>>,
+    options: Vec<Rc<dyn Fn(&mut Fuzzer<'f>) -> Option<T> + 'd>>,
 }
 
 impl<'d, 'f, T> PickVariant<'d, 'f, T> {
@@ -139,8 +150,8 @@ impl<'d, 'f, T> PickVariant<'d, 'f, T> {
 
     pub fn variant<U: Upcast<T>>(
         mut self,
-        inhabited: impl Fn(&Fuzzer<'_>) -> bool + 'static,
-        fuzz: impl Fn(&mut Fuzzer<'_>) -> Option<U> + 'static,
+        inhabited: impl Fn(&Fuzzer<'_>) -> bool + 'd,
+        fuzz: impl Fn(&mut Fuzzer<'_>) -> Option<U> + 'd,
     ) -> Self {
         if inhabited(&self.fuzzer) {
             self.options
@@ -320,12 +331,7 @@ where
         let kinds = (0..num_vars)
             .map(|_| ParameterKind::fuzz(fuzzer))
             .collect::<Option<Vec<_>>>()?;
-        let vars = kinds
-            .iter()
-            .map(|&kind| fresh_bound_var(kind))
-            .collect::<Vec<_>>();
-        let value = fuzzer.with_bound_vars(&vars, T::fuzz)?;
-        Some(Binder::new(vars, value))
+        fuzzer.binder(&kinds, T::fuzz)
     }
 }
 
@@ -379,5 +385,92 @@ impl Fuzz for Lt {
             .variant(|_| true, |_| Some(LtData::Static))
             .variant(Variable::inhabited, Variable::fuzz)
             .finish()
+    }
+}
+
+const MAX_VEC_LEN: usize = 64;
+
+impl<T> Fuzz for Vec<T>
+where
+    T: Fuzz,
+{
+    fn inhabited(_fuzzer: &Fuzzer<'_>) -> bool {
+        true
+    }
+
+    fn fuzz(fuzzer: &mut Fuzzer<'_>) -> Option<Self> {
+        if T::inhabited(fuzzer) {
+            let l = fuzzer.gen_usize(0..MAX_VEC_LEN)?;
+            (0..l).map(|_| T::fuzz(fuzzer)).collect()
+        } else {
+            Some(vec![])
+        }
+    }
+}
+
+impl<A, B> Fuzz for (A, B)
+where
+    A: Fuzz,
+    B: Fuzz,
+{
+    fn inhabited(fuzzer: &Fuzzer<'_>) -> bool {
+        A::inhabited(fuzzer) && B::inhabited(fuzzer)
+    }
+
+    fn fuzz(fuzzer: &mut Fuzzer<'_>) -> Option<Self> {
+        let a = A::fuzz(fuzzer)?;
+        let b = B::fuzz(fuzzer)?;
+        Some((a, b))
+    }
+}
+
+impl<A, B, C> Fuzz for (A, B, C)
+where
+    A: Fuzz,
+    B: Fuzz,
+    C: Fuzz,
+{
+    fn inhabited(fuzzer: &Fuzzer<'_>) -> bool {
+        A::inhabited(fuzzer) && B::inhabited(fuzzer)
+    }
+
+    fn fuzz(fuzzer: &mut Fuzzer<'_>) -> Option<Self> {
+        let a = A::fuzz(fuzzer)?;
+        let b = B::fuzz(fuzzer)?;
+        let c = C::fuzz(fuzzer)?;
+        Some((a, b, c))
+    }
+}
+
+impl Fuzz for Parameter {
+    fn inhabited(fuzzer: &Fuzzer<'_>) -> bool {
+        Ty::inhabited(fuzzer) || Lt::inhabited(fuzzer)
+    }
+
+    fn fuzz(fuzzer: &mut Fuzzer<'_>) -> Option<Self> {
+        PickVariant::new(fuzzer)
+            .variant(Ty::inhabited, Ty::fuzz)
+            .variant(Lt::inhabited, Lt::fuzz)
+            .finish()
+    }
+}
+
+impl Fuzz for FieldId {
+    fn inhabited(fuzzer: &Fuzzer<'_>) -> bool {
+        !fuzzer.field_ids.is_empty()
+    }
+
+    fn fuzz(fuzzer: &mut Fuzzer<'_>) -> Option<Self> {
+        fuzzer.driver.pick(fuzzer.field_ids.iter())
+    }
+}
+
+impl Fuzz for VariantId {
+    fn inhabited(fuzzer: &Fuzzer<'_>) -> bool {
+        !fuzzer.variant_ids.is_empty()
+    }
+
+    fn fuzz(fuzzer: &mut Fuzzer<'_>) -> Option<Self> {
+        fuzzer.driver.pick(fuzzer.variant_ids.iter())
     }
 }

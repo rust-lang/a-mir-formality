@@ -3,9 +3,10 @@ use std::sync::Arc;
 use formality_macros::term;
 use formality_types::{
     cast::Upcast,
+    derive_links::UpcastFrom,
     grammar::{
         AdtId, AssociatedItemId, Binder, CrateId, Fallible, FieldId, FnId, Lt, Parameter, TraitId,
-        TraitRef, Ty, Wc,
+        TraitRef, Ty, VariantId, Wc,
     },
     term::Term,
 };
@@ -115,15 +116,6 @@ pub enum FieldName {
     Id(FieldId),
     #[cast]
     Index(usize),
-}
-
-formality_types::id!(VariantId);
-
-impl VariantId {
-    /// Returns the special variant-id used for the single variant of a struct.
-    pub fn for_struct() -> Self {
-        VariantId::new("struct")
-    }
 }
 
 #[term(enum $id $binder)]
@@ -347,6 +339,14 @@ pub enum WhereClauseData {
     ForAll(Binder<WhereClause>),
 }
 
+impl UpcastFrom<WhereClauseData> for WhereClause {
+    fn upcast_from(term: WhereClauseData) -> Self {
+        WhereClause {
+            data: Arc::new(term),
+        }
+    }
+}
+
 #[term($data)]
 pub struct WhereBound {
     pub data: Arc<WhereBoundData>,
@@ -368,4 +368,12 @@ pub enum WhereBoundData {
 
     #[grammar(for $v0)]
     ForAll(Binder<WhereBound>),
+}
+
+impl UpcastFrom<WhereBoundData> for WhereBound {
+    fn upcast_from(term: WhereBoundData) -> Self {
+        WhereBound {
+            data: Arc::new(term),
+        }
+    }
 }
