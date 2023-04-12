@@ -407,7 +407,6 @@ name = "formality-types"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bolero-generator",
  "contracts",
  "expect-test",
  "extension-trait",

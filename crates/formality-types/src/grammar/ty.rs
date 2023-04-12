@@ -1,4 +1,3 @@
-use bolero_generator::TypeGenerator;
 use contracts::requires;
 use formality_macros::{term, Visit};
 use std::{collections::BTreeSet, sync::Arc};
@@ -172,14 +171,12 @@ pub enum RigidName {
 }
 
 #[term]
-#[derive(TypeGenerator)]
 pub enum RefKind {
     Shared,
     Mut,
 }
 
 #[term]
-#[derive(TypeGenerator)]
 pub enum ScalarId {
     #[grammar(u8)]
     U8,
@@ -241,7 +238,6 @@ pub struct AssociatedTyName {
 }
 
 #[term]
-#[derive(TypeGenerator)]
 pub enum PredicateTy {
     ForAll(Binder<Ty>),
 }
@@ -262,7 +258,6 @@ pub enum QuantifierKind {
 }
 
 #[term]
-#[derive(TypeGenerator)]
 pub enum Parameter {
     #[cast]
     Ty(Ty),
@@ -305,14 +300,14 @@ pub enum ParameterData<'me> {
 }
 
 #[term]
-#[derive(Copy, TypeGenerator)]
+#[derive(Copy)]
 pub enum ParameterKind {
     Ty,
     Lt,
 }
 
 #[term]
-#[derive(Copy, TypeGenerator)]
+#[derive(Copy)]
 pub enum Variance {
     #[grammar(+)]
     Covariant,
@@ -368,7 +363,7 @@ impl UpcastFrom<LtData> for Parameter {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, TypeGenerator)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LtData {
     Static,
     Variable(Variable),
@@ -844,6 +839,7 @@ cast_impl!((BoundVar) <: (Variable) <: (LtData));
 cast_impl!((UniversalVar) <: (LtData) <: (Lt));
 cast_impl!((ExistentialVar) <: (LtData) <: (Lt));
 cast_impl!((BoundVar) <: (LtData) <: (Lt));
+cast_impl!((Variable) <: (LtData) <: (Lt));
 cast_impl!(Variable::UniversalVar(UniversalVar));
 cast_impl!(Variable::ExistentialVar(ExistentialVar));
 cast_impl!(Variable::BoundVar(BoundVar));

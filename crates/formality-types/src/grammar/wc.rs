@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use bolero_generator::TypeGenerator;
 use formality_macros::term;
 
 use crate::{
@@ -14,7 +13,6 @@ use crate::{
 use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef};
 
 #[term($set)]
-#[derive(TypeGenerator)]
 pub struct Wcs {
     set: Set<Wc>,
 }
@@ -131,7 +129,6 @@ impl Wc {
 }
 
 #[term]
-#[derive(TypeGenerator)]
 pub enum WcData {
     #[cast]
     PR(PR),

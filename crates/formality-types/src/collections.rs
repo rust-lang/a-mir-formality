@@ -169,6 +169,7 @@ where
 
 pub trait Deduplicate {
     fn deduplicate(self) -> Self;
+    fn remove_dups(&mut self);
 }
 
 impl<T> Deduplicate for Vec<T>
@@ -177,8 +178,12 @@ where
 {
     /// Remove duplicates of `v`
     fn deduplicate(mut self) -> Vec<T> {
+        self.remove_dups();
+        self
+    }
+
+    fn remove_dups(&mut self) {
         let mut s = Set::default();
         self.retain(|e| s.insert(e.clone()));
-        self
     }
 }
