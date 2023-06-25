@@ -11,5 +11,20 @@ Like any Rust project:
 * Clone
 * `cargo test --all`
 
-<!-- TODO -->
-<!-- ## Structure of the repository -->
+## Layers of formality
+
+Formality is structured into several layers. These layers are meant to also map
+fairly closely onto chalk and the eventual Rust trait solver implementation.
+Ideally, one should be able to map back and forth between formality and the code
+with ease.
+
+* **formality-check**: *todo*
+* **formality-core**: *todo*
+* **formality-macros**: *todo*
+* **formality-prove**: *todo*
+* **formality-rust:** This is the "Rust declarations" layer, defining Rust
+  "top-level items" and their semantics. This includes crates, structs, traits,
+  impls, but excludes function bodies.
+* **formality-types:** This is the "types" layer, defining Rust types and
+  functions for equating/relating them. The representation is meant to cover
+  all Rust types, but is optimized for extracting their "essential properties".
