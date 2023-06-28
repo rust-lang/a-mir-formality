@@ -2,7 +2,7 @@
 
 use crate::{
     cast::Upcast,
-    grammar::{AdtId, AssociatedItemId, RigidName, TraitId},
+    grammar::{AdtId, AssociatedItemId, Bool, Const, RigidName, TraitId},
     parse::{self, expect_char, expect_keyword, reject_keyword, Parse, ParseError, ParseResult},
     seq,
 };
@@ -59,6 +59,7 @@ impl Parse for Ty {
 fn parse_adt_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
     // Treat plain identifiers as adt ids, with or without parameters.
     let ((), text) = reject_keyword("static", text)?;
+    let ((), text) = reject_keyword("const", text)?;
     let (name, text) = AdtId::parse(scope, text)?;
     let (parameters, text) = parse_parameters(scope, text)?;
     Ok((Ty::rigid(name, parameters), text))
@@ -183,5 +184,27 @@ fn parse_variable<'t>(scope: &crate::parse::Scope, text0: &'t str) -> ParseResul
     match scope.lookup(&id) {
         Some(parameter) => Ok((parameter, text1)),
         None => Err(ParseError::at(text0, format!("unrecognized variable"))),
+    }
+}
+
+// For consts, we invest some effort into parsing them decently because it makes
+// writing tests so much more pleasant.
+impl Parse for Const {
+    fn parse<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Self> {
+        let ((), text) = expect_keyword("const", text)?;
+        if let Ok((bool, text)) = Bool::parse(scope, text) {
+            return Ok((bool.upcast(), text));
+        }
+        // Support naming variables in scope and give that preference
+        if let Ok((p, text1)) = parse_variable(scope, text) {
+            return match p {
+                Parameter::Const(c) => Ok((c, text1)),
+                _ => Err(ParseError::at(
+                    text,
+                    format!("expected type, found `{:?}`", p.kind()),
+                )),
+            };
+        }
+        parse::require_unambiguous(text, vec![], "`Const`")
     }
 }
