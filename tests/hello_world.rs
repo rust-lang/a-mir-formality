@@ -37,6 +37,11 @@ fn test_ok() {
                 trait Bar<ty T> where [T: Baz<>] {}
                 
                 trait Baz<> where [] {}
+
+                impl<> Baz<> for u32 where [] {}
+
+                impl<> Bar<u32> for u32 where [] {}
+                impl<ty T> Bar<T> for () where [T: Baz<>] {}
             }
         ]",
     ));
