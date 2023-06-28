@@ -209,7 +209,7 @@ impl Env {
             variables: self
                 .variables
                 .iter()
-                .map(|&v| vs.map_var(v).unwrap_or(v))
+                .map(|v| vs.map_var(v).unwrap_or(*v))
                 .collect(),
             coherence_mode: self.coherence_mode,
         }

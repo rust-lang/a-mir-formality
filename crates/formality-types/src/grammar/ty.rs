@@ -795,12 +795,12 @@ impl VarSubstitution {
         t.substitute(&mut |v| Some(self.map.get(&v)?.upcast()))
     }
 
-    pub fn map_var(&self, v: Variable) -> Option<Variable> {
-        self.map.get(&v).copied()
+    pub fn map_var(&self, v: &Variable) -> Option<Variable> {
+        self.map.get(v).copied()
     }
 
-    pub fn maps_var(&self, v: Variable) -> bool {
-        self.map.contains_key(&v)
+    pub fn maps_var(&self, v: &Variable) -> bool {
+        self.map.contains_key(v)
     }
 
     pub fn insert_mapping(&mut self, from: impl Upcast<Variable>, to: impl Upcast<Variable>) {
