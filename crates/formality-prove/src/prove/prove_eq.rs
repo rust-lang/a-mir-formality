@@ -101,7 +101,7 @@ judgment_fn! {
         )
 
         (
-            (if env.universe(p) < env.universe(v))
+            (if env.universe(p.clone()) < env.universe(v.clone()))
             ----------------------------- ("existential-placeholder")
             (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) => (env, (v, p)))
         )
@@ -124,13 +124,13 @@ fn equate_variable(
     // * Environment contains all free variables
     // * `p` is some compound type, not a variable
     //   (variables are handled via special rules above)
-    assert!(env.encloses((x, (&assumptions, &p))));
+    assert!(env.encloses((&x, (&assumptions, &p))));
     assert!(!p.is_a::<Variable>());
 
     let fvs = p.free_variables().deduplicate();
 
     // Ensure that `x` passes the occurs check for the free variables in `p`.
-    if occurs_in(x, &fvs) {
+    if occurs_in(x.clone(), &fvs) {
         return set![];
     }
 
@@ -140,7 +140,7 @@ fn equate_variable(
     // e.g., in an environment `[X, Y]`, if we have `X = Vec<Y>`:
     // * we would create `Z` before `X` (so new env is `[Z, X, Y]`)
     // * and map `Y` to `Z`
-    let universe_x = env.universe(x);
+    let universe_x = env.universe(x.clone());
     let universe_subst: Substitution = fvs
         .iter()
         .flat_map(|fv| {

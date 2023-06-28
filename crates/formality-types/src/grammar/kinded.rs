@@ -12,14 +12,14 @@ pub trait Kinded {
 impl Kinded for Ty {
     fn instantiate() -> (Vec<BoundVar>, Self) {
         let bvar = fresh_bound_var(ParameterKind::Ty);
-        (vec![bvar], bvar.ty())
+        (vec![bvar.clone()], bvar.ty())
     }
 }
 
 impl Kinded for Lt {
     fn instantiate() -> (Vec<BoundVar>, Self) {
         let bvar = fresh_bound_var(ParameterKind::Lt);
-        (vec![bvar], bvar.lt())
+        (vec![bvar.clone()], bvar.lt())
     }
 }
 

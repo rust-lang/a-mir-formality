@@ -116,7 +116,7 @@ impl Constraints {
 
     pub fn pop_subst<V>(mut self, v: &[V]) -> Self
     where
-        V: Upcast<Variable> + Copy,
+        V: Upcast<Variable> + Clone,
     {
         if v.len() == 0 {
             return self;
@@ -178,18 +178,18 @@ impl Visit for Constraints {
         // the substitution has been fully applied, so we don't have `X = Vec<Y>, Y = u32`.
         range
             .iter()
-            .for_each(|p| assert!(domain.iter().all(|&v| !occurs_in(v, p))));
+            .for_each(|p| assert!(domain.iter().all(|v| !occurs_in(v.clone(), p))));
 
         // Each variable `x` is only bound to a term of strictly lower universe.
         // This implies that `x` does not appear in `p`.
         for (x, p) in substitution.iter() {
             assert!(x.is_a::<ExistentialVar>());
 
-            assert!(!occurs_in(x, &p));
+            assert!(!occurs_in(x.clone(), &p));
 
             let fvs = p.free_variables();
             fvs.iter()
-                .for_each(|fv| assert!(env.universe(fv) < env.universe(x)));
+                .for_each(|fv| assert!(env.universe(fv) < env.universe(x.clone())));
         }
     }
 }

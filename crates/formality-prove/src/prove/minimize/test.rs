@@ -58,7 +58,7 @@ fn minimize_a() {
     let ty1 = term_min[1].as_variable().unwrap();
     let ty2 = env_min.insert_fresh_before(
         formality_types::grammar::ParameterKind::Ty,
-        env_min.universe(ty1),
+        env_min.universe(ty1.clone()),
     );
 
     let c_min = Constraints {

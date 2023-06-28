@@ -37,10 +37,10 @@ impl<T: Fold> Binder<T> {
                 let old_bound_var = BoundVar {
                     debruijn: Some(DebruijnIndex::INNERMOST),
                     var_index: VarIndex { index },
-                    kind: *kind,
+                    kind: kind.clone(),
                 };
-                let new_bound_var = fresh_bound_var(*kind);
-                (new_bound_var, (old_bound_var, new_bound_var))
+                let new_bound_var = fresh_bound_var(kind.clone());
+                (new_bound_var.clone(), (old_bound_var, new_bound_var))
             })
             .unzip();
 
@@ -128,7 +128,7 @@ impl<T: Fold> Binder<T> {
             .kinds
             .iter()
             .zip(0..)
-            .map(|(&kind, index)| op(kind, VarIndex { index }))
+            .map(|(kind, index)| op(kind.clone(), VarIndex { index }))
             .collect();
 
         self.term.substitute(&mut |var| match var {

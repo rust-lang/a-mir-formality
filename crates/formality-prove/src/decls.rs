@@ -129,7 +129,7 @@ impl TraitDecl {
     /// this would return the set `{trait_invariant(<ty Self> Ord(Self) => PartialOrd(Self)}`
     pub fn trait_invariants(&self) -> Set<TraitInvariant> {
         let (variables, TraitDeclBoundData { where_clause }) = self.binder.open();
-        let self_var: Parameter = variables[0].upcast();
+        let self_var: Parameter = variables[0].clone().upcast();
 
         fn is_supertrait(self_var: &Parameter, wc: &Wc) -> bool {
             match wc.data() {

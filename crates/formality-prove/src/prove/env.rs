@@ -74,23 +74,23 @@ impl Env {
     pub fn fresh_existential(&mut self, kind: ParameterKind) -> ExistentialVar {
         let var_index = self.fresh_index();
         let v = ExistentialVar { kind, var_index };
-        self.variables.push(v.upcast());
+        self.variables.push(v.clone().upcast());
         v
     }
 
     pub fn insert_fresh_before(&mut self, kind: ParameterKind, rank: Universe) -> ExistentialVar {
         let var_index = self.fresh_index();
         let v = ExistentialVar { kind, var_index };
-        self.variables.insert(rank.index, v.upcast());
+        self.variables.insert(rank.index, (&v).upcast());
         v
     }
 
     pub fn order_by_universe<V>(&self, v1: V, v2: V) -> (V, V)
     where
-        V: Upcast<Variable> + Copy,
+        V: Upcast<Variable> + Clone,
     {
-        let r1 = self.universe(v1);
-        let r2 = self.universe(v2);
+        let r1 = self.universe(v1.clone());
+        let r2 = self.universe(v2.clone());
         if r1 < r2 {
             (v1, v2)
         } else {
@@ -112,8 +112,8 @@ impl Env {
     pub fn is_valid_extension_of(&self, env0: &Env) -> bool {
         self.encloses(env0)
             && (1..env0.variables.len()).all(|i| {
-                let v0_a = env0.variables[i - 1];
-                let v0_b = env0.variables[i];
+                let v0_a = &env0.variables[i - 1];
+                let v0_b = &env0.variables[i];
                 self.universe(v0_a) < self.universe(v0_b)
             })
     }
@@ -129,8 +129,9 @@ impl Env {
         let fresh_index = self.fresh_index();
         let vars: Vec<_> = kinds
             .iter()
+            .cloned()
             .zip(0..)
-            .map(|(&kind, offset)| v(kind, fresh_index + offset))
+            .map(|(kind, offset)| v(kind, fresh_index + offset))
             .collect();
         self.variables
             .extend(vars.iter().map(|v| v.to::<Variable>()));
@@ -178,16 +179,16 @@ impl Env {
     /// Returns the list of variables created since the universal subst.
     pub(crate) fn pop_vars<V>(&mut self, v: &[V]) -> Vec<Variable>
     where
-        V: Upcast<Variable> + Copy,
+        V: Upcast<Variable> + Clone,
     {
         if v.len() == 0 {
             return vec![];
         }
 
-        let p0 = v[0];
+        let p0 = v[0].clone();
         let universe_p0 = self.universe(p0);
         for i in 1..v.len() {
-            assert_eq!(self.universe(v[i]).index, universe_p0.index + i);
+            assert_eq!(self.universe(v[i].clone()).index, universe_p0.index + i);
         }
 
         self.variables.drain(universe_p0.index..).collect()
@@ -195,7 +196,7 @@ impl Env {
 
     /// Retain only those variables found in `vs`, returns the discarded variables
     pub fn remove_variables_unless_within(&mut self, vs: &[Variable]) -> Vec<Variable> {
-        let (kept, discarded) = self.variables.iter().partition(|v| vs.contains(v));
+        let (kept, discarded) = self.variables.iter().cloned().partition(|v| vs.contains(v));
         self.variables = kept;
         discarded
     }
@@ -209,7 +210,7 @@ impl Env {
             variables: self
                 .variables
                 .iter()
-                .map(|v| vs.map_var(v).unwrap_or(*v))
+                .map(|v| vs.map_var(v).unwrap_or(v.clone()))
                 .collect(),
             coherence_mode: self.coherence_mode,
         }
@@ -231,7 +232,7 @@ impl Visit for Env {
 
     fn assert_valid(&self) {
         // no duplicates in `self.variables`
-        let s: Set<Variable> = self.variables.iter().copied().collect();
+        let s: Set<Variable> = self.variables.iter().cloned().collect();
         assert_eq!(s.len(), self.variables.len());
     }
 }

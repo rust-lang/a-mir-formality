@@ -64,7 +64,7 @@ impl Fold for Ty {
             TyData::RigidTy(v) => v.substitute(substitution_fn).upcast(),
             TyData::AliasTy(v) => v.substitute(substitution_fn).upcast(),
             TyData::PredicateTy(v) => v.substitute(substitution_fn).upcast(),
-            TyData::Variable(v) => match substitution_fn(*v) {
+            TyData::Variable(v) => match substitution_fn(v.clone()) {
                 None => self.clone(),
                 Some(Parameter::Ty(t)) => t,
                 Some(param) => panic!("ill-kinded substitute: expected type, got {param:?}"),
@@ -77,7 +77,7 @@ impl Fold for Lt {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         match self.data() {
             LtData::Static => self.clone(),
-            LtData::Variable(v) => match substitution_fn(*v) {
+            LtData::Variable(v) => match substitution_fn(v.clone()) {
                 None => self.clone(),
                 Some(Parameter::Lt(t)) => t,
                 Some(param) => panic!("ill-kinded substitute: expected lifetime, got {param:?}"),

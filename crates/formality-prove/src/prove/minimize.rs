@@ -23,14 +23,14 @@ pub fn minimize<T: Term>(env_max: Env, term: T) -> (Env, T, Minimization) {
     let renamed_fv: Vec<Variable> = fv
         .iter()
         .zip(0..)
-        .map(|(&fv, index)| match fv {
+        .map(|(fv, index)| match fv {
             Variable::UniversalVar(UniversalVar { kind, var_index: _ }) => UniversalVar {
-                kind,
+                kind: kind.clone(),
                 var_index: VarIndex { index },
             }
             .upcast(),
             Variable::ExistentialVar(ExistentialVar { kind, var_index: _ }) => ExistentialVar {
-                kind,
+                kind: kind.clone(),
                 var_index: VarIndex { index },
             }
             .upcast(),
@@ -38,7 +38,7 @@ pub fn minimize<T: Term>(env_max: Env, term: T) -> (Env, T, Minimization) {
         })
         .collect();
 
-    let max2min_subst: VarSubstitution = fv.iter().copied().zip(renamed_fv).collect();
+    let max2min_subst: VarSubstitution = fv.iter().cloned().zip(renamed_fv).collect();
 
     let mut env_min = env_max.clone();
 
@@ -91,8 +91,9 @@ impl Minimization {
                 for fresh_var in fresh_vars.drain(..) {
                     // ...so we remove Z, create a fresh variable D for env_min
                     // and place it before Y...
-                    let universe_out = env_out.universe(var_out);
-                    let fresh_var_out = env_out.insert_fresh_before(fresh_var.kind, universe_out);
+                    let universe_out = env_out.universe(var_out.clone());
+                    let fresh_var_out =
+                        env_out.insert_fresh_before(fresh_var.kind.clone(), universe_out);
                     // ...and map Z to D.
                     env2out_subst.insert_mapping(fresh_var, fresh_var_out);
                 }

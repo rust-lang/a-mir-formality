@@ -37,7 +37,7 @@ impl Ty {
 
     pub fn as_variable(&self) -> Option<Variable> {
         match self.data() {
-            TyData::Variable(v) => Some(*v),
+            TyData::Variable(v) => Some(v.clone()),
             _ => None,
         }
     }
@@ -77,6 +77,10 @@ impl Ty {
             vec![l.to::<Parameter>(), self.to::<Parameter>()],
         )
     }
+
+    pub(crate) fn bool() -> Ty {
+        Self::new(ScalarId::Bool)
+    }
 }
 
 impl UpcastFrom<TyData> for Ty {
@@ -113,7 +117,7 @@ impl UpcastFrom<Ty> for TyData {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ExistentialVar {
     pub kind: ParameterKind,
     pub var_index: VarIndex,
@@ -245,7 +249,7 @@ pub enum PredicateTy {
 /// A *universal variable* is a dummy variable about which nothing is known except
 /// that which we see in the environment. When we want to prove something
 /// is true for all `T` (`∀T`), we replace `T` with a universal variable.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UniversalVar {
     pub kind: ParameterKind,
     pub var_index: VarIndex,
@@ -294,13 +298,14 @@ impl Parameter {
 
 pub type Parameters = Vec<Parameter>;
 
+/// Data about a concrete value given for a generic parameter.
 pub enum ParameterData<'me> {
     Ty(&'me TyData),
     Lt(&'me LtData),
 }
 
+/// Abstract kind of a generic parameter
 #[term]
-#[derive(Copy)]
 pub enum ParameterKind {
     Ty,
     Lt,
@@ -404,7 +409,7 @@ impl Visit for LtData {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Variable {
     UniversalVar(UniversalVar),
     ExistentialVar(ExistentialVar),
@@ -416,9 +421,9 @@ cast_impl!(Variable);
 impl Variable {
     pub fn kind(&self) -> ParameterKind {
         match self {
-            Variable::UniversalVar(v) => v.kind,
-            Variable::ExistentialVar(v) => v.kind,
-            Variable::BoundVar(v) => v.kind,
+            Variable::UniversalVar(v) => v.kind.clone(),
+            Variable::ExistentialVar(v) => v.kind.clone(),
+            Variable::BoundVar(v) => v.kind.clone(),
         }
     }
 
@@ -434,7 +439,7 @@ impl Variable {
             BoundVar {
                 debruijn: Some(db.shift_in()),
                 var_index: *var_index,
-                kind: *kind,
+                kind: kind.clone(),
             }
             .upcast()
         } else {
@@ -456,7 +461,7 @@ impl Variable {
                 BoundVar {
                     debruijn: Some(db1),
                     var_index: *var_index,
-                    kind: *kind,
+                    kind: kind.clone(),
                 }
                 .upcast()
             })
@@ -499,7 +504,7 @@ impl Variable {
 impl Visit for Variable {
     fn free_variables(&self) -> Vec<Variable> {
         if self.is_free() {
-            vec![*self]
+            vec![self.clone()]
         } else {
             vec![]
         }
@@ -533,7 +538,7 @@ cast_impl!((BoundVar) <: (Variable) <: (Parameter));
 cast_impl!((UniversalVar) <: (Variable) <: (Parameter));
 
 /// Identifies a bound variable.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BoundVar {
     /// Identifies the binder that contained this variable, counting "outwards".
     /// When you create a binder with `Binder::new`,
@@ -629,7 +634,7 @@ impl Substitution {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Variable, Parameter)> + '_ {
-        self.map.iter().map(|(v, p)| (*v, p.clone()))
+        self.map.iter().map(|(v, p)| (v.clone(), p.clone()))
     }
 
     /// An empty substitution is just the identity function.
@@ -788,7 +793,10 @@ where
 
 impl VarSubstitution {
     pub fn reverse(&self) -> VarSubstitution {
-        self.map.iter().map(|(k, v)| (*v, *k)).collect()
+        self.map
+            .iter()
+            .map(|(k, v)| (v.clone(), k.clone()))
+            .collect()
     }
 
     pub fn apply<T: Fold>(&self, t: &T) -> T {
@@ -796,7 +804,7 @@ impl VarSubstitution {
     }
 
     pub fn map_var(&self, v: &Variable) -> Option<Variable> {
-        self.map.get(v).copied()
+        self.map.get(v).cloned()
     }
 
     pub fn maps_var(&self, v: &Variable) -> bool {

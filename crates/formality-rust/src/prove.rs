@@ -259,8 +259,8 @@ impl Crate {
                                 .iter()
                                 .map(|e| {
                                     let fresh_var = fresh_bound_var(ParameterKind::Ty);
-                                    let ensures =
-                                        Binder::new(&vec![fresh_var], e.to_wc(&fresh_var));
+                                    let term = e.to_wc(&fresh_var);
+                                    let ensures = Binder::new(&vec![fresh_var], term);
 
                                     prove::AliasBoundDecl {
                                         binder: Binder::new(

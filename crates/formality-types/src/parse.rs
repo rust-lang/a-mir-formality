@@ -238,7 +238,7 @@ where
             scope.with_bindings(bindings.iter().map(|b| (b.name.clone(), b.bound_var.to())));
         let (data, text) = T::parse(&scope1, text)?;
 
-        let kvis: Vec<BoundVar> = bindings.iter().map(|b| b.bound_var).collect();
+        let kvis: Vec<BoundVar> = bindings.iter().map(|b| b.bound_var.clone()).collect();
         Ok((Binder::new(&kvis, data), text))
     }
 }
