@@ -21,8 +21,8 @@ fn exists_u_for_t() {
 #[test]
 fn for_t_exists_u() {
     let decls = Decls {
-        trait_decls: vec![term("safe trait Test<ty Self, ty T> where {}")],
-        impl_decls: vec![term("safe impl<ty X, ty Y> Test(X, Y) where {X = Y}")],
+        trait_decls: vec![term("trait Test<ty Self, ty T> where {}")],
+        impl_decls: vec![term("impl<ty X, ty Y> Test(X, Y) where {X = Y}")],
         ..Decls::empty()
     };
 

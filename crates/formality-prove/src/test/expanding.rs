@@ -8,8 +8,8 @@ use crate::{test_util::test_prove, Decls};
 fn decls() -> Decls {
     Decls {
         max_size: 10,
-        trait_decls: vec![term("safe trait Debug<ty Self> where {}")],
-        impl_decls: vec![term("safe impl<ty T> Debug(Vec<T>) where {Debug(T)}")],
+        trait_decls: vec![term("trait Debug<ty Self> where {}")],
+        impl_decls: vec![term("impl<ty T> Debug(Vec<T>) where {Debug(T)}")],
         ..Decls::empty()
     }
 }

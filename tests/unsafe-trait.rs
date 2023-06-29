@@ -5,7 +5,7 @@ fn unsafe_trait_requires_unsafe_impl_err() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "check_trait_impl(safe impl <> SendTrait < > for (rigid (adt SendStruct)) where [] { })",
+                context: "check_trait_impl(Safe impl <> SendTrait < > for (rigid (adt SendStruct)) where [] { })",
                 source: "the trait requires an `unsafe impl` declaration",
             },
         )
@@ -15,7 +15,7 @@ fn unsafe_trait_requires_unsafe_impl_err() {
             crate core {
                 unsafe trait SendTrait<> where [] {}
                 struct SendStruct<> where [] {}
-                safe impl<> SendTrait<> for SendStruct<> where [] {}
+                impl<> SendTrait<> for SendStruct<> where [] {}
             }
         ]",
     ));

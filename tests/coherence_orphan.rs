@@ -8,7 +8,7 @@ fn test_orphan_CoreTrait_for_CoreStruct_in_Foo() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "orphan_check(safe impl <> CoreTrait < > for (rigid (adt CoreStruct)) where [] { })",
+                context: "orphan_check(Safe impl <> CoreTrait < > for (rigid (adt CoreStruct)) where [] { })",
                 source: "failed to prove {@ IsLocal(CoreTrait((rigid (adt CoreStruct))))} given {}, got {}",
             },
         )
@@ -16,11 +16,11 @@ fn test_orphan_CoreTrait_for_CoreStruct_in_Foo() {
     .assert_debug_eq(&test_program_ok(
         "[
             crate core {
-                safe trait CoreTrait<> where [] {}
+                trait CoreTrait<> where [] {}
                 struct CoreStruct<> where [] {}
             },
             crate foo {
-                safe impl<> CoreTrait<> for CoreStruct<> where [] {}
+                impl<> CoreTrait<> for CoreStruct<> where [] {}
             }
         ]",
     ));
@@ -31,7 +31,7 @@ fn test_orphan_neg_CoreTrait_for_CoreStruct_in_Foo() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "orphan_check_neg(safe impl <> ! CoreTrait < > for (rigid (adt CoreStruct)) where [] {})",
+                context: "orphan_check_neg(Safe impl <> ! CoreTrait < > for (rigid (adt CoreStruct)) where [] {})",
                 source: "failed to prove {@ IsLocal(CoreTrait((rigid (adt CoreStruct))))} given {}, got {}",
             },
         )
@@ -39,11 +39,11 @@ fn test_orphan_neg_CoreTrait_for_CoreStruct_in_Foo() {
     .assert_debug_eq(&test_program_ok(
         "[
             crate core {
-                safe trait CoreTrait<> where [] {}
+                trait CoreTrait<> where [] {}
                 struct CoreStruct<> where [] {}
             },
             crate foo {
-                safe impl<> !CoreTrait<> for CoreStruct<> where [] {}
+                impl<> !CoreTrait<> for CoreStruct<> where [] {}
             }
         ]",
     ));
@@ -54,7 +54,7 @@ fn test_orphan_mirror_CoreStruct() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "orphan_check(safe impl <> CoreTrait < > for (alias (Mirror :: Assoc) (rigid (adt CoreStruct))) where [] { })",
+                context: "orphan_check(Safe impl <> CoreTrait < > for (alias (Mirror :: Assoc) (rigid (adt CoreStruct))) where [] { })",
                 source: "failed to prove {@ IsLocal(CoreTrait((alias (Mirror :: Assoc) (rigid (adt CoreStruct)))))} given {}, got {}",
             },
         )
@@ -62,19 +62,19 @@ fn test_orphan_mirror_CoreStruct() {
     .assert_debug_eq(&test_program_ok(
         "[
             crate core {
-                safe trait CoreTrait<> where [] {}
+                trait CoreTrait<> where [] {}
                 struct CoreStruct<> where [] {}
 
-                safe trait Mirror<> where [] {
+                trait Mirror<> where [] {
                     type Assoc<> : [] where [];
                 }
         
-                safe impl<ty T> Mirror<> for T where [] {
+                impl<ty T> Mirror<> for T where [] {
                     type Assoc<> = T where [];
                 }
             },
             crate foo {
-                safe impl<> CoreTrait<> for <CoreStruct<> as Mirror<>>::Assoc<> where [] {}
+                impl<> CoreTrait<> for <CoreStruct<> as Mirror<>>::Assoc<> where [] {}
             }
         ]",
     ));
@@ -93,19 +93,19 @@ fn test_orphan_mirror_FooStruct() {
     .assert_debug_eq(&test_program_ok(
         "[
             crate core {
-                safe trait CoreTrait<> where [] {}
+                trait CoreTrait<> where [] {}
 
-                safe trait Mirror<> where [] {
+                trait Mirror<> where [] {
                     type Assoc<> : [] where [];
                 }
         
-                safe impl<ty T> Mirror<> for T where [] {
+                impl<ty T> Mirror<> for T where [] {
                     type Assoc<> = T where [];
                 }
             },
             crate foo {
                 struct FooStruct<> where [] {}
-                safe impl<> CoreTrait<> for <FooStruct<> as Mirror<>>::Assoc<> where [] {}
+                impl<> CoreTrait<> for <FooStruct<> as Mirror<>>::Assoc<> where [] {}
             }
         ]",
     ));
@@ -119,7 +119,7 @@ fn test_orphan_alias_to_unit() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "orphan_check(safe impl <> CoreTrait < > for (alias (Unit :: Assoc) (rigid (adt FooStruct))) where [] { })",
+                context: "orphan_check(Safe impl <> CoreTrait < > for (alias (Unit :: Assoc) (rigid (adt FooStruct))) where [] { })",
                 source: "failed to prove {@ IsLocal(CoreTrait((alias (Unit :: Assoc) (rigid (adt FooStruct)))))} given {}, got {}",
             },
         )
@@ -127,19 +127,19 @@ fn test_orphan_alias_to_unit() {
     .assert_debug_eq(&test_program_ok(
         "[
             crate core {
-                safe trait CoreTrait<> where [] {}
+                trait CoreTrait<> where [] {}
 
-                safe trait Unit<> where [] {
+                trait Unit<> where [] {
                     type Assoc<> : [] where [];
                 }
         
-                safe impl<ty T> Unit<> for T where [] {
+                impl<ty T> Unit<> for T where [] {
                     type Assoc<> = () where [];
                 }
             },
             crate foo {
                 struct FooStruct<> where [] {}
-                safe impl<> CoreTrait<> for <FooStruct<> as Unit<>>::Assoc<> where [] {}
+                impl<> CoreTrait<> for <FooStruct<> as Unit<>>::Assoc<> where [] {}
             }
         ]",
     ));
@@ -150,7 +150,7 @@ fn test_orphan_uncovered_T() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "orphan_check(safe impl <ty> CoreTrait < (rigid (adt FooStruct)) > for ^ty0_0 where [] { })",
+                context: "orphan_check(Safe impl <ty> CoreTrait < (rigid (adt FooStruct)) > for ^ty0_0 where [] { })",
                 source: "failed to prove {@ IsLocal(CoreTrait(!ty_1, (rigid (adt FooStruct))))} given {}, got {}",
             },
         )
@@ -158,11 +158,11 @@ fn test_orphan_uncovered_T() {
     .assert_debug_eq(&test_program_ok(
         "[
             crate core {
-                safe trait CoreTrait<ty T> where [] {}
+                trait CoreTrait<ty T> where [] {}
             },
             crate foo {
                 struct FooStruct<> where [] {}
-                safe impl<ty T> CoreTrait<FooStruct<>> for T where [] {}
+                impl<ty T> CoreTrait<FooStruct<>> for T where [] {}
             }
         ]",
     ));
@@ -178,12 +178,12 @@ fn test_orphan_covered_VecT() {
     .assert_debug_eq(&test_program_ok(
         "[
             crate core {
-                safe trait CoreTrait<ty T> where [] {}
+                trait CoreTrait<ty T> where [] {}
                 struct Vec<ty T> where [] {}
             },
             crate foo {
                 struct FooStruct<> where [] {}
-                safe impl<ty T> CoreTrait<FooStruct<>> for Vec<T> where [] {}
+                impl<ty T> CoreTrait<FooStruct<>> for Vec<T> where [] {}
             }
         ]",
     ));

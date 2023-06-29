@@ -9,8 +9,8 @@ use crate::test_util::test_prove;
 /// Simple example decls consisting only of two trait declarations.
 fn decls() -> Decls {
     Decls {
-        trait_decls: vec![term("safe trait Foo<ty Self> where {}")],
-        impl_decls: vec![term("safe impl<ty T> Foo(Vec<T>) where {}")],
+        trait_decls: vec![term("trait Foo<ty Self> where {}")],
+        impl_decls: vec![term("impl<ty T> Foo(Vec<T>) where {}")],
         ..Decls::empty()
     }
 }

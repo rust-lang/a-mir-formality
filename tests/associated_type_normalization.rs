@@ -2,11 +2,11 @@ use formality::test_where_clause;
 
 const MIRROR: &str = "[
     crate core {
-        safe trait Mirror<> where [] {
+        trait Mirror<> where [] {
             type Assoc<> : [] where [];
         }
 
-        safe impl<ty T> Mirror<> for T where [] {
+        impl<ty T> Mirror<> for T where [] {
             type Assoc<> = T where [];
         }
     }
