@@ -125,10 +125,21 @@ pub struct NegImplDeclBoundData {
 }
 
 /// Mark a trait or trait impl as `unsafe`.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Safety {
     Safe,
     Unsafe,
+}
+
+// NOTE(yosh): `Debug` is currently used to print error messages with. In order
+// to not print `safe impl` / `safe trait` where none is written, we leave the impl blank.
+impl std::fmt::Debug for Safety {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Safe => write!(f, ""),
+            Self::Unsafe => write!(f, "unsafe"),
+        }
+    }
 }
 
 impl Term for Safety {}

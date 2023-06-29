@@ -8,7 +8,7 @@ fn test_orphan_CoreTrait_for_CoreStruct_in_Foo() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "orphan_check(Safe impl <> CoreTrait < > for (rigid (adt CoreStruct)) where [] { })",
+                context: "orphan_check( impl <> CoreTrait < > for (rigid (adt CoreStruct)) where [] { })",
                 source: "failed to prove {@ IsLocal(CoreTrait((rigid (adt CoreStruct))))} given {}, got {}",
             },
         )
@@ -31,7 +31,7 @@ fn test_orphan_neg_CoreTrait_for_CoreStruct_in_Foo() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "orphan_check_neg(Safe impl <> ! CoreTrait < > for (rigid (adt CoreStruct)) where [] {})",
+                context: "orphan_check_neg( impl <> ! CoreTrait < > for (rigid (adt CoreStruct)) where [] {})",
                 source: "failed to prove {@ IsLocal(CoreTrait((rigid (adt CoreStruct))))} given {}, got {}",
             },
         )
@@ -54,7 +54,7 @@ fn test_orphan_mirror_CoreStruct() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "orphan_check(Safe impl <> CoreTrait < > for (alias (Mirror :: Assoc) (rigid (adt CoreStruct))) where [] { })",
+                context: "orphan_check( impl <> CoreTrait < > for (alias (Mirror :: Assoc) (rigid (adt CoreStruct))) where [] { })",
                 source: "failed to prove {@ IsLocal(CoreTrait((alias (Mirror :: Assoc) (rigid (adt CoreStruct)))))} given {}, got {}",
             },
         )
@@ -119,7 +119,7 @@ fn test_orphan_alias_to_unit() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "orphan_check(Safe impl <> CoreTrait < > for (alias (Unit :: Assoc) (rigid (adt FooStruct))) where [] { })",
+                context: "orphan_check( impl <> CoreTrait < > for (alias (Unit :: Assoc) (rigid (adt FooStruct))) where [] { })",
                 source: "failed to prove {@ IsLocal(CoreTrait((alias (Unit :: Assoc) (rigid (adt FooStruct)))))} given {}, got {}",
             },
         )
@@ -150,7 +150,7 @@ fn test_orphan_uncovered_T() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "orphan_check(Safe impl <ty> CoreTrait < (rigid (adt FooStruct)) > for ^ty0_0 where [] { })",
+                context: "orphan_check( impl <ty> CoreTrait < (rigid (adt FooStruct)) > for ^ty0_0 where [] { })",
                 source: "failed to prove {@ IsLocal(CoreTrait(!ty_1, (rigid (adt FooStruct))))} given {}, got {}",
             },
         )

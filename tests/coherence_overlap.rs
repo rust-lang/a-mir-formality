@@ -27,7 +27,7 @@ fn test_u32_u32_impls() {
     // Test that we detect duplicate impls.
     expect_test::expect![[r#"
         Err(
-            "duplicate impl in current crate: Safe impl <> Foo < > for (rigid (scalar u32)) where [] { }",
+            "duplicate impl in current crate:  impl <> Foo < > for (rigid (scalar u32)) where [] { }",
         )
     "#]]
     .assert_debug_eq(&test_program_ok(
@@ -46,7 +46,7 @@ fn test_u32_T_impls() {
     // Test that we detect overlap involving generic parameters.
     expect_test::expect![[r#"
         Err(
-            "impls may overlap: `Safe impl <> Foo < > for (rigid (scalar u32)) where [] { }` vs `Safe impl <ty> Foo < > for ^ty0_0 where [] { }`",
+            "impls may overlap: ` impl <> Foo < > for (rigid (scalar u32)) where [] { }` vs ` impl <ty> Foo < > for ^ty0_0 where [] { }`",
         )
     "#]]
     .assert_debug_eq(&test_program_ok(
@@ -90,7 +90,7 @@ fn test_u32_T_where_T_Is_impls() {
     // and also all `T: Is`, and `u32: Is`.
     expect_test::expect![[r#"
         Err(
-            "impls may overlap: `Safe impl <> Foo < > for (rigid (scalar u32)) where [] { }` vs `Safe impl <ty> Foo < > for ^ty0_0 where [^ty0_0 : Is < >] { }`",
+            "impls may overlap: ` impl <> Foo < > for (rigid (scalar u32)) where [] { }` vs ` impl <ty> Foo < > for ^ty0_0 where [^ty0_0 : Is < >] { }`",
         )
     "#]]
     .assert_debug_eq(&test_program_ok(
@@ -113,7 +113,7 @@ fn test_u32_not_u32_impls() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "check_trait_impl(Safe impl <> Foo < > for (rigid (scalar u32)) where [] { })",
+                context: "check_trait_impl( impl <> Foo < > for (rigid (scalar u32)) where [] { })",
                 source: "failed to disprove {! Foo((rigid (scalar u32)))} given {}, got {Constraints { env: Env { variables: [], coherence_mode: false }, known_true: true, substitution: {} }}",
             },
         )
@@ -139,7 +139,7 @@ fn test_T_where_Foo_not_u32_impls() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "check_trait_impl(Safe impl <ty> Foo < > for ^ty0_0 where [^ty0_0 : Foo < >] { })",
+                context: "check_trait_impl( impl <ty> Foo < > for ^ty0_0 where [^ty0_0 : Foo < >] { })",
                 source: "failed to disprove {! Foo(!ty_1)} given {Foo(!ty_1)}, got {Constraints { env: Env { variables: [?ty_1], coherence_mode: false }, known_true: true, substitution: {?ty_1 => (rigid (scalar u32))} }}",
             },
         )
@@ -159,7 +159,7 @@ fn test_T_where_Foo_not_u32_impls() {
 fn test_foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait() {
     expect_test::expect![[r#"
         Err(
-            "impls may overlap: `Safe impl <ty> FooTrait < > for ^ty0_0 where [^ty0_0 : CoreTrait < >] { }` vs `Safe impl <> FooTrait < > for (rigid (adt CoreStruct)) where [] { }`",
+            "impls may overlap: ` impl <ty> FooTrait < > for ^ty0_0 where [^ty0_0 : CoreTrait < >] { }` vs ` impl <> FooTrait < > for (rigid (adt CoreStruct)) where [] { }`",
         )
     "#]]
     .assert_debug_eq(&test_program_ok(
@@ -253,7 +253,7 @@ fn test_overlap_normalize_alias_to_LocalType() {
 
     expect_test::expect![[r#"
         Err(
-            "impls may overlap: `Safe impl <ty> LocalTrait < > for ^ty0_0 where [^ty0_0 : Iterator < >] { }` vs `Safe impl <> LocalTrait < > for (alias (Mirror :: T) (rigid (adt LocalType))) where [] { }`",
+            "impls may overlap: ` impl <ty> LocalTrait < > for ^ty0_0 where [^ty0_0 : Iterator < >] { }` vs ` impl <> LocalTrait < > for (alias (Mirror :: T) (rigid (adt LocalType))) where [] { }`",
         )
     "#]]
     .assert_debug_eq(&test_program_ok(&gen_program("impl<> Iterator<> for LocalType<> where [] {}")));
@@ -312,7 +312,7 @@ fn test_overlap_alias_not_normalizable() {
 
     expect_test::expect![[r#"
         Err(
-            "impls may overlap: `Safe impl <ty> LocalTrait < > for ^ty0_0 where [^ty0_0 : Iterator < >] { }` vs `Safe impl <ty> LocalTrait < > for (alias (Mirror :: T) ^ty0_0) where [^ty0_0 : Mirror < >] { }`",
+            "impls may overlap: ` impl <ty> LocalTrait < > for ^ty0_0 where [^ty0_0 : Iterator < >] { }` vs ` impl <ty> LocalTrait < > for (alias (Mirror :: T) ^ty0_0) where [^ty0_0 : Mirror < >] { }`",
         )
     "#]] // FIXME
     .assert_debug_eq(&test_program_ok(&gen_program(

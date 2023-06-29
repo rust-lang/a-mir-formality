@@ -5,7 +5,7 @@ fn unsafe_trait_requires_unsafe_impl_err() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "check_trait_impl(Safe impl <> SendTrait < > for (rigid (adt SendStruct)) where [] { })",
+                context: "check_trait_impl( impl <> SendTrait < > for (rigid (adt SendStruct)) where [] { })",
                 source: "the trait requires an `unsafe impl` declaration",
             },
         )
