@@ -2,11 +2,16 @@ use formality_macros::term;
 use formality_types::{
     cast::Upcast,
     collections::Set,
+    derive_links::{DowncastTo, UpcastFrom},
+    fold::Fold,
     grammar::{
         AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty,
         Wc, Wcs, PR,
     },
+    parse::{self, Parse},
     set,
+    term::Term,
+    visit::Visit,
 };
 
 #[term]
@@ -119,10 +124,55 @@ pub struct NegImplDeclBoundData {
     pub where_clause: Wcs,
 }
 
-#[term]
+/// Mark a trait or trait impl as `unsafe`.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Safety {
     Safe,
     Unsafe,
+}
+
+impl Term for Safety {}
+
+impl DowncastTo<Self> for Safety {
+    fn downcast_to(&self) -> Option<Self> {
+        Some(Self::clone(self))
+    }
+}
+
+impl UpcastFrom<Self> for Safety {
+    fn upcast_from(term: Self) -> Self {
+        term
+    }
+}
+
+impl Fold for Safety {
+    fn substitute(&self, _substitution_fn: formality_types::fold::SubstitutionFn<'_>) -> Self {
+        self.clone()
+    }
+}
+
+impl Visit for Safety {
+    fn free_variables(&self) -> Vec<formality_types::grammar::Variable> {
+        vec![]
+    }
+
+    fn size(&self) -> usize {
+        1
+    }
+
+    fn assert_valid(&self) {}
+}
+
+impl Parse for Safety {
+    fn parse<'t>(
+        _scope: &formality_types::parse::Scope,
+        text0: &'t str,
+    ) -> formality_types::parse::ParseResult<'t, Self> {
+        match parse::expect_optional_keyword("unsafe", text0) {
+            Some(text1) => Ok((Self::Unsafe, text1)),
+            None => Ok((Self::Safe, text0)),
+        }
+    }
 }
 
 #[term($safety trait $id $binder)]

@@ -347,6 +347,15 @@ pub fn expect_keyword<'t>(expected: &str, text0: &'t str) -> ParseResult<'t, ()>
     }
 }
 
+/// Attempt to consume next identifier if it is equal to `expected`.
+#[tracing::instrument(level = "trace", ret)]
+pub fn expect_optional_keyword<'t>(expected: &str, text0: &'t str) -> Option<&'t str> {
+    match identifier(text0) {
+        Ok((ident, text1)) if &*ident == expected => Some(text1),
+        _ => None,
+    }
+}
+
 /// Reject next identifier if it is the given keyword. Consumes nothing.
 #[tracing::instrument(level = "trace", ret)]
 pub fn reject_keyword<'t>(expected: &str, text0: &'t str) -> ParseResult<'t, ()> {
