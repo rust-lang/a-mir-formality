@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use formality_core::{term, Upcast};
+use formality_prove::Safety;
 use formality_types::{
     grammar::{
         AdtId, AliasTy, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId, FnId, Lt,
@@ -160,8 +161,9 @@ pub struct Variant {
     pub fields: Vec<Field>,
 }
 
-#[term(trait $id $binder)]
+#[term($?safety trait $id $binder)]
 pub struct Trait {
+    pub safety: Safety,
     pub id: TraitId,
     pub binder: TraitBinder<TraitBoundData>,
 }
@@ -241,8 +243,9 @@ pub struct AssociatedTyBoundData {
     pub where_clauses: Vec<WhereClause>,
 }
 
-#[term(impl $binder)]
+#[term($?safety impl $binder)]
 pub struct TraitImpl {
+    pub safety: Safety,
     pub binder: Binder<TraitImplBoundData>,
 }
 
@@ -267,8 +270,9 @@ impl TraitImplBoundData {
     }
 }
 
-#[term(impl $binder)]
+#[term($?safety impl $binder)]
 pub struct NegTraitImpl {
+    pub safety: Safety,
     pub binder: Binder<NegTraitImplBoundData>,
 }
 
