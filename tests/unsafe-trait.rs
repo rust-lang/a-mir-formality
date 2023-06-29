@@ -4,7 +4,10 @@ use formality::test_program_ok;
 fn unsafe_trait_requires_unsafe_impl_err() {
     expect_test::expect![[r#"
         Err(
-            (),
+            Error {
+                context: "check_trait_impl(safe impl <> SendTrait < > for (rigid (adt SendStruct)) where [] { })",
+                source: "the trait requires an `unsafe impl` declaration",
+            },
         )
     "#]]
     .assert_debug_eq(&test_program_ok(
@@ -12,7 +15,7 @@ fn unsafe_trait_requires_unsafe_impl_err() {
             crate core {
                 unsafe trait SendTrait<> where [] {}
                 struct SendStruct<> where [] {}
-                impl<> SendTrait for SendStruct where [] {}
+                safe impl<> SendTrait<> for SendStruct<> where [] {}
             }
         ]",
     ));
@@ -28,9 +31,9 @@ fn unsafe_trait_requires_unsafe_impl() {
     .assert_debug_eq(&test_program_ok(
         "[
             crate core {
-                unsafe trait SendTrait<> where [] {}
-                struct SendStruct<> where [] {}
-                unsafe impl<> SendTrait for SendStruct where [] {}
+                unsafe trait CoreTrait<> where [] {}
+                struct CoreStruct<> where [] {}
+                unsafe impl<> CoreTrait<> for CoreStruct<> where [] {}
             }
         ]",
     ));

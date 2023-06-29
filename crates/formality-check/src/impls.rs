@@ -1,7 +1,7 @@
 use anyhow::bail;
 
 use fn_error_context::context;
-use formality_prove::Env;
+use formality_prove::{Env, Safety};
 use formality_rust::{
     grammar::{
         AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
@@ -19,7 +19,7 @@ use formality_types::{
 impl super::Check<'_> {
     #[context("check_trait_impl({v:?})")]
     pub(super) fn check_trait_impl(&self, v: &TraitImpl) -> Fallible<()> {
-        let TraitImpl { binder } = v;
+        let TraitImpl { binder, safety } = v;
 
         let mut env = Env::default();
 
@@ -45,6 +45,8 @@ impl super::Check<'_> {
             trait_items,
         } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?;
 
+        self.check_safety_matches(&trait_decl.safety, safety)?;
+
         for impl_item in &impl_items {
             self.check_trait_impl_item(&env, &where_clauses, &trait_items, impl_item)?;
         }
@@ -68,6 +70,21 @@ impl super::Check<'_> {
 
         self.prove_goal(&env, &where_clauses, trait_ref.not_implemented())?;
 
+        Ok(())
+    }
+
+    /// Validate `unsafe trait` and `unsafe impl` line up
+    fn check_safety_matches(&self, trait_decl: &Safety, trait_impl: &Safety) -> Fallible<()> {
+        match trait_decl {
+            Safety::Safe => anyhow::ensure!(
+                matches!(trait_impl, Safety::Safe),
+                "implementing the trait is not `unsafe`"
+            ),
+            Safety::Unsafe => anyhow::ensure!(
+                matches!(trait_impl, Safety::Unsafe),
+                "the trait requires an `unsafe impl` declaration"
+            ),
+        }
         Ok(())
     }
 

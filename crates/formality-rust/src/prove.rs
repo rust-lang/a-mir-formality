@@ -80,7 +80,7 @@ impl Crate {
         self.items
             .iter()
             .flat_map(|item| match item {
-                CrateItem::Trait(Trait { id, binder }) => {
+                CrateItem::Trait(Trait { id, binder, safety }) => {
                     let (
                         vars,
                         TraitBoundData {
@@ -89,6 +89,7 @@ impl Crate {
                         },
                     ) = binder.open();
                     Some(prove::TraitDecl {
+                        safety: safety.clone(),
                         id: id.clone(),
                         binder: Binder::new(
                             &vars,
@@ -110,7 +111,7 @@ impl Crate {
         self.items
             .iter()
             .flat_map(|item| match item {
-                CrateItem::TraitImpl(TraitImpl { binder }) => {
+                CrateItem::TraitImpl(TraitImpl { binder, safety }) => {
                     let (
                         vars,
                         TraitImplBoundData {
@@ -122,6 +123,7 @@ impl Crate {
                         },
                     ) = binder.open();
                     Some(prove::ImplDecl {
+                        safety: safety.clone(),
                         binder: Binder::new(
                             &vars,
                             prove::ImplDeclBoundData {
@@ -140,7 +142,7 @@ impl Crate {
         self.items
             .iter()
             .flat_map(|item| match item {
-                CrateItem::NegTraitImpl(NegTraitImpl { binder }) => {
+                CrateItem::NegTraitImpl(NegTraitImpl { binder, safety }) => {
                     let (
                         vars,
                         NegTraitImplBoundData {
@@ -151,6 +153,7 @@ impl Crate {
                         },
                     ) = binder.open();
                     Some(prove::NegImplDecl {
+                        safety: safety.clone(),
                         binder: Binder::new(
                             &vars,
                             prove::NegImplDeclBoundData {
@@ -169,7 +172,7 @@ impl Crate {
         self.items
             .iter()
             .flat_map(|item| match item {
-                CrateItem::TraitImpl(TraitImpl { binder }) => {
+                CrateItem::TraitImpl(TraitImpl { binder, safety: _ }) => {
                     let (
                         impl_vars,
                         TraitImplBoundData {
@@ -225,6 +228,7 @@ impl Crate {
             .iter()
             .flat_map(|item| match item {
                 CrateItem::Trait(Trait {
+                    safety: _,
                     id: trait_id,
                     binder,
                 }) => {

@@ -95,8 +95,9 @@ impl Decls {
     }
 }
 
-#[term(impl $binder)]
+#[term($safety impl $binder)]
 pub struct ImplDecl {
+    pub safety: Safety,
     pub binder: Binder<ImplDeclBoundData>,
 }
 
@@ -106,8 +107,9 @@ pub struct ImplDeclBoundData {
     pub where_clause: Wcs,
 }
 
-#[term(impl $binder)]
+#[term($safety impl $binder)]
 pub struct NegImplDecl {
+    pub safety: Safety,
     pub binder: Binder<NegImplDeclBoundData>,
 }
 
@@ -117,8 +119,15 @@ pub struct NegImplDeclBoundData {
     pub where_clause: Wcs,
 }
 
-#[term(trait $id $binder)]
+#[term]
+pub enum Safety {
+    Safe,
+    Unsafe,
+}
+
+#[term($safety trait $id $binder)]
 pub struct TraitDecl {
+    pub safety: Safety,
     pub id: TraitId,
     pub binder: Binder<TraitDeclBoundData>,
 }
