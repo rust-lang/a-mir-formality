@@ -11,8 +11,8 @@ use crate::{decls::Decls, prove::prove};
 fn decls() -> Decls {
     Decls {
         trait_decls: vec![
-            term("trait Eq<ty Self> where {PartialEq(Self)}"),
-            term("trait PartialEq<ty Self> where {}"),
+            term("safe trait Eq<ty Self> where {PartialEq(Self)}"),
+            term("safe trait PartialEq<ty Self> where {}"),
         ],
         ..Decls::empty()
     }

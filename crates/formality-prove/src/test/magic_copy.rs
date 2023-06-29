@@ -10,12 +10,12 @@ use crate::test_util::test_prove;
 fn decls() -> Decls {
     Decls {
         trait_decls: vec![
-            term("trait Copy<ty Self> where {}"),
-            term("trait Magic<ty Self> where {Copy(Self)}"),
+            term("safe trait Copy<ty Self> where {}"),
+            term("safe trait Magic<ty Self> where {Copy(Self)}"),
         ],
         impl_decls: vec![
-            term("impl<ty T> Magic(T) where {Magic(T)}"),
-            term("impl<> Copy(u32) where {}"),
+            term("safe impl<ty T> Magic(T) where {Magic(T)}"),
+            term("safe impl<> Copy(u32) where {}"),
         ],
         ..Decls::empty()
     }

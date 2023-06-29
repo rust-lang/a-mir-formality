@@ -12,11 +12,11 @@ fn test_broken() {
     "#]].assert_debug_eq(&test_program_ok(
         "[
             crate Foo {
-                trait Foo<ty T> where [T: Bar<Self>] {}
+                safe trait Foo<ty T> where [T: Bar<Self>] {}
         
-                trait Bar<ty T> where [T: Baz<>] {}
+                safe trait Bar<ty T> where [T: Baz<>] {}
                 
-                trait Baz<> where [] {}
+                safe trait Baz<> where [] {}
             }
         ]",
     ));
@@ -32,11 +32,11 @@ fn test_ok() {
     .assert_debug_eq(&test_program_ok(
         "[
             crate Foo {
-                trait Foo<ty T> where [T: Bar<Self>, Self: Baz<>] {}
+                safe trait Foo<ty T> where [T: Bar<Self>, Self: Baz<>] {}
         
-                trait Bar<ty T> where [T: Baz<>] {}
+                safe trait Bar<ty T> where [T: Baz<>] {}
                 
-                trait Baz<> where [] {}
+                safe trait Baz<> where [] {}
             }
         ]",
     ));
