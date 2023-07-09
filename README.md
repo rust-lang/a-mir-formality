@@ -18,10 +18,12 @@ fairly closely onto chalk and the eventual Rust trait solver implementation.
 Ideally, one should be able to map back and forth between formality and the code
 with ease.
 
-* **formality-check**: *todo*
-* **formality-core**: *todo*
-* **formality-macros**: *todo*
-* **formality-prove**: *todo*
+* **formality-check**: Defines the top-level routines for checking Rust programs.
+  `check_all_crates` is effectively the `main`, so it's a good place to start reading.
+* **formality-core**: Defines logging macros.
+* **formality-macros**: Defines procedural macros like `#[term]` as well as various derives.
+  These are used to generate the boilerplate code for parsing, pretty printing, folding, etc.
+* **formality-prove**: Defines the rules for proving goals (e.g., is this trait implemented?)
 * **formality-rust:** This is the "Rust declarations" layer, defining Rust
   "top-level items" and their semantics. This includes crates, structs, traits,
   impls, but excludes function bodies.
