@@ -97,6 +97,8 @@ impl Check<'_> {
 
         // If we can prove that the parameters cannot be equated *or* the where-clauses don't hold,
         // in coherence mode, then they do not overlap.
+        //
+        // ∀P_a, ∀P_b. ⌐ (coherence_mode => (Ts_a = Ts_b && WC_a && WC_b))
         if let Ok(()) = self.prove_not_goal(
             &env.with_coherence_mode(true),
             (),

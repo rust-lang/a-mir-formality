@@ -12,6 +12,8 @@ use formality_types::{
 #[term]
 pub struct Decls {
     pub max_size: usize,
+
+    /// Each trait in the program
     pub trait_decls: Vec<TraitDecl>,
     pub impl_decls: Vec<ImplDecl>,
     pub neg_impl_decls: Vec<NegImplDecl>,
@@ -95,31 +97,49 @@ impl Decls {
     }
 }
 
+/// An "impl decl" indicates that a trait is implemented for a given set of types.
+/// One "impl decl" is created for each impl in the Rust source.
 #[term(impl $binder)]
 pub struct ImplDecl {
+    /// The binder covers the generic variables from the impl
     pub binder: Binder<ImplDeclBoundData>,
 }
 
+/// Data bound under the generics from [`ImplDecl`][]
 #[term($trait_ref where $where_clause)]
 pub struct ImplDeclBoundData {
+    /// The trait ref that is implemented
     pub trait_ref: TraitRef,
+
+    ///
     pub where_clause: Wcs,
 }
 
+/// A declaration that some trait will *not* be implemented for a type; derived from negative impls
+/// like `impl !Foo for Bar`.
 #[term(impl $binder)]
 pub struct NegImplDecl {
+    /// Binder comes the generics on the impl
     pub binder: Binder<NegImplDeclBoundData>,
 }
 
+/// Data bound under the impl generics for a negative impl
 #[term(!$trait_ref where $where_clause)]
 pub struct NegImplDeclBoundData {
     pub trait_ref: TraitRef,
     pub where_clause: Wcs,
 }
 
+/// A "trait declaration" declares a trait that exists, its generics, and its where-clauses.
+/// It doesn't capture the trait items, which will be transformed into other sorts of rules.
+///
+/// In Rust syntax, it covers the `trait Foo: Bar` part of the declaration, but not what appears in the `{...}`.
 #[term(trait $id $binder)]
 pub struct TraitDecl {
+    /// The name of the trait
     pub id: TraitId,
+
+    /// The binder here captures the generics of the trait; it always begins with a `Self` type.
     pub binder: Binder<TraitDeclBoundData>,
 }
 
@@ -163,24 +183,39 @@ impl TraitDecl {
     }
 }
 
+/// A trait *invariant* is a rule like `<T> Implemented(T: Ord) => Implemented(T: PartialOrd)`.
+/// It indices that, if we know that `T: Ord` from the environment,
+/// we also know that `T: PartialOrd`.
+/// Invariants are produced from trait declarations during lowering; they derive from the
+/// where-clauses on the trait.
 #[term]
 pub struct TraitInvariant {
     pub binder: Binder<TraitInvariantBoundData>,
 }
 
+/// The "bound data" for a [`TraitInvariant`][] -- i.e., what is covered by the forall.
 #[term($trait_ref => $where_clause)]
 pub struct TraitInvariantBoundData {
+    /// Knowing that this trait-ref is implemented...
     pub trait_ref: TraitRef,
+
+    /// ...implies that these where-clauses hold.
     pub where_clause: Wc,
 }
 
+/// The "bound data" for a [`TraitDecl`][] -- i.e., what is covered by the forall.
 #[term(where $where_clause)]
 pub struct TraitDeclBoundData {
+    /// The where-clauses declared on the trait
     pub where_clause: Wcs,
 }
 
+/// An "alias equal declaration" declares when an alias type can be normalized
+/// to something else. They are derived from `type Foo = Bar` declarations in
+/// impls, which would generate an alias eq decl saying that `<T as SomeTrait>::Foo = Bar`.
 #[term(alias $binder)]
 pub struct AliasEqDecl {
+    /// The binder includes the generics from the impl and also any generics on the GAT.
     pub binder: Binder<AliasEqDeclBoundData>,
 }
 
@@ -190,13 +225,23 @@ impl AliasEqDecl {
     }
 }
 
+/// Data bound under the impl generics for a [`AliasEqDecl`][]
 #[term($alias = $ty where $where_clause)]
 pub struct AliasEqDeclBoundData {
+    /// The alias that is equal
     pub alias: AliasTy,
+
+    /// The type the alias is equal to
     pub ty: Ty,
+
+    /// The where-clauses that must hold for this rule to be applicable; derived from the impl and the GAT
     pub where_clause: Wcs,
 }
 
+/// Alias bounds indicate things that are always known to be true of an alias type,
+/// even when its precise value is not known.
+/// For example given a trait `trait Foo { type Bar: Baz; }`
+/// we know that `<T as Foo>::Bar: Baz` must hold.
 #[term(alias $binder)]
 pub struct AliasBoundDecl {
     pub binder: Binder<AliasBoundDeclBoundData>,
