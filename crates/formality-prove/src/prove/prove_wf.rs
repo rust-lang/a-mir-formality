@@ -32,5 +32,11 @@ judgment_fn! {
             --- ("tuples")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Tuple(_), parameters }) => c)
         )
+
+        (
+            (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
+            --- ("integers and booleans")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::ScalarId(_), parameters }) => c)
+        )
     }
 }

@@ -4,6 +4,7 @@ use crate::cast::To;
 use crate::cast::Upcast;
 use crate::cast_impl;
 
+use super::Const;
 use super::Parameter;
 use super::Parameters;
 use super::TraitId;
@@ -27,6 +28,9 @@ pub enum Predicate {
 
     #[grammar(@IsLocal($v0))]
     IsLocal(TraitRef),
+
+    #[grammar(@ConstHasType($v0, $v1))]
+    ConstHasType(Const, Ty),
 }
 
 /// A coinductive predicate is one that can be proven via a cycle.
@@ -79,6 +83,7 @@ pub enum Skeleton {
     WellFormed,
     WellFormedTraitRef(TraitId),
     IsLocal(TraitId),
+    ConstHasType,
 
     Equals,
     Sub,
@@ -115,6 +120,10 @@ impl Predicate {
                 trait_id,
                 parameters,
             }) => (Skeleton::IsLocal(trait_id.clone()), parameters.clone()),
+            Predicate::ConstHasType(ct, ty) => (
+                Skeleton::ConstHasType,
+                vec![ct.clone().upcast(), ty.clone().upcast()],
+            ),
         }
     }
 }

@@ -149,6 +149,18 @@ impl Visit for u32 {
     fn assert_valid(&self) {}
 }
 
+impl Visit for u128 {
+    fn free_variables(&self) -> Vec<Variable> {
+        vec![]
+    }
+
+    fn size(&self) -> usize {
+        std::mem::size_of::<Self>()
+    }
+
+    fn assert_valid(&self) {}
+}
+
 impl Visit for () {
     fn free_variables(&self) -> Vec<Variable> {
         vec![]

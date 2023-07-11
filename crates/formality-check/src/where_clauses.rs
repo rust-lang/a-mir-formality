@@ -22,7 +22,7 @@ impl super::Check<'_> {
         Ok(())
     }
 
-    #[context("prove_where_clauses_well_formed({where_clause:?})")]
+    #[context("prove_where_clause_well_formed({where_clause:?})")]
     fn prove_where_clause_well_formed(
         &self,
         in_env: &Env,
@@ -44,6 +44,10 @@ impl super::Check<'_> {
                 let mut e = in_env.clone();
                 let wc = e.instantiate_universally(binder);
                 self.prove_where_clause_well_formed(&e, assumptions, &wc)
+            }
+            WhereClauseData::TypeOfConst(ct, ty) => {
+                self.prove_parameter_well_formed(in_env, &assumptions, ct.clone())?;
+                self.prove_parameter_well_formed(in_env, assumptions, ty.clone())
             }
         }
     }

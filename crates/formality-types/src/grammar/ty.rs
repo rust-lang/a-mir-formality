@@ -13,7 +13,10 @@ use crate::{
     fold::Fold,
 };
 
-use super::{AdtId, AssociatedItemId, Binder, FnId, TraitId};
+use super::{
+    consts::{Const, ConstData},
+    AdtId, AssociatedItemId, Binder, FnId, TraitId,
+};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ty {
@@ -263,6 +266,8 @@ pub enum Parameter {
     Ty(Ty),
     #[cast]
     Lt(Lt),
+    #[grammar(const $v0)]
+    Const(Const),
 }
 
 impl Parameter {
@@ -270,6 +275,7 @@ impl Parameter {
         match self {
             Parameter::Ty(_) => ParameterKind::Ty,
             Parameter::Lt(_) => ParameterKind::Lt,
+            Parameter::Const(_) => ParameterKind::Const,
         }
     }
 
@@ -281,6 +287,7 @@ impl Parameter {
         match self {
             Parameter::Ty(v) => v.as_variable(),
             Parameter::Lt(v) => v.as_variable(),
+            Parameter::Const(v) => v.as_variable(),
         }
     }
 
@@ -288,6 +295,7 @@ impl Parameter {
         match self {
             Parameter::Ty(v) => ParameterData::Ty(v.data()),
             Parameter::Lt(v) => ParameterData::Lt(v.data()),
+            Parameter::Const(v) => ParameterData::Const(v.data()),
         }
     }
 }
@@ -297,6 +305,7 @@ pub type Parameters = Vec<Parameter>;
 pub enum ParameterData<'me> {
     Ty(&'me TyData),
     Lt(&'me LtData),
+    Const(&'me ConstData),
 }
 
 #[term]
@@ -304,6 +313,7 @@ pub enum ParameterData<'me> {
 pub enum ParameterKind {
     Ty,
     Lt,
+    Const,
 }
 
 #[term]
@@ -517,6 +527,7 @@ impl UpcastFrom<Variable> for Parameter {
         match v.kind() {
             ParameterKind::Lt => Lt::new(v).upcast(),
             ParameterKind::Ty => Ty::new(v).upcast(),
+            ParameterKind::Const => Const::new(v).upcast(),
         }
     }
 }

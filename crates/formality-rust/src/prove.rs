@@ -386,6 +386,9 @@ impl ToWcs for WhereClause {
                     .map(|wc| Wc::for_all(&vars, wc))
                     .collect()
             }
+            WhereClauseData::TypeOfConst(ct, ty) => {
+                Predicate::ConstHasType(ct.clone(), ty.clone()).upcast()
+            }
         }
     }
 }
