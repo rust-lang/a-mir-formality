@@ -32,6 +32,13 @@ impl Const {
             ConstData::Variable(var) => Some(var.clone()),
         }
     }
+
+    pub fn as_value(&self) -> Option<(ValTree, Ty)> {
+        match self.data() {
+            ConstData::Value(v, t) => Some((v.clone(), t.clone())),
+            ConstData::Variable(_) => None,
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]

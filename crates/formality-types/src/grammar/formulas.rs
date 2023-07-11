@@ -93,6 +93,7 @@ pub enum Skeleton {
 impl Predicate {
     /// Separate an atomic predicate into the "skeleton" (which can be compared for equality using `==`)
     /// and the parameters (which must be related).
+    #[tracing::instrument(level = "trace", ret)]
     pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
         match self {
             Predicate::IsImplemented(TraitRef {
@@ -171,6 +172,7 @@ impl Relation {
         Self::Sub(p1.upcast(), p2.upcast())
     }
 
+    #[tracing::instrument(level = "trace", ret)]
     pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
         match self {
             Relation::Equals(a, b) => (Skeleton::Equals, vec![a.clone(), b.clone()]),

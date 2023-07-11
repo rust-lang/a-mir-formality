@@ -114,5 +114,12 @@ judgment_fn! {
             ----------------------------- ("trait ref is local")
             (prove_wc(decls, env, assumptions, Relation::WellFormed(p)) => c)
         )
+
+        (
+            (if ct.as_value().is_some())
+            (prove(decls, env, assumptions, Wcs::all_eq(vec![ct.as_value().unwrap().1], vec![ty])) => c)
+            ----------------------------- ("const has ty")
+            (prove_wc(decls, env, assumptions, Predicate::ConstHasType(ct, ty)) => c)
+        )
     }
 }
