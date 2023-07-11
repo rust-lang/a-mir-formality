@@ -1,3 +1,4 @@
+use fn_error_context::context;
 use formality_prove::Env;
 use formality_rust::{
     grammar::{WhereClause, WhereClauseData},
@@ -21,6 +22,7 @@ impl super::Check<'_> {
         Ok(())
     }
 
+    #[context("prove_where_clauses_well_formed({where_clause:?})")]
     fn prove_where_clause_well_formed(
         &self,
         in_env: &Env,

@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::collections::VecDeque;
+use std::{collections::VecDeque, fmt::Debug};
 
 use anyhow::bail;
 use formality_prove::{Decls, Env};
@@ -86,7 +86,12 @@ impl Check<'_> {
         }
     }
 
-    fn prove_goal(&self, env: &Env, assumptions: impl ToWcs, goal: impl ToWcs) -> Fallible<()> {
+    fn prove_goal(
+        &self,
+        env: &Env,
+        assumptions: impl ToWcs,
+        goal: impl ToWcs + Debug,
+    ) -> Fallible<()> {
         let goal: Wcs = goal.to_wcs();
         let assumptions: Wcs = assumptions.to_wcs();
 
@@ -101,7 +106,12 @@ impl Check<'_> {
         bail!("failed to prove {goal:?} given {assumptions:?}, got {cs:?}")
     }
 
-    fn prove_not_goal(&self, env: &Env, assumptions: impl ToWcs, goal: impl ToWcs) -> Fallible<()> {
+    fn prove_not_goal(
+        &self,
+        env: &Env,
+        assumptions: impl ToWcs,
+        goal: impl ToWcs + Debug,
+    ) -> Fallible<()> {
         let goal: Wcs = goal.to_wcs();
         let assumptions: Wcs = assumptions.to_wcs();
 
