@@ -81,6 +81,8 @@ fn test_generic_mismatch() {
 }
 
 #[test]
+/// This test is the short version of `test_holds`, skipping
+/// substituting and directly going to a rigid constant.
 fn test_rigid_const_bound() {
     expect_test::expect![[r#"
         Ok(
@@ -97,6 +99,8 @@ fn test_rigid_const_bound() {
 }
 
 #[test]
+/// This test is the short version of `test_generic_mismatch`, skipping
+/// substituting and directly going to a wrong constant.
 fn test_nonsense_rigid_const_bound() {
     expect_test::expect![[r#"
         Err(
@@ -119,6 +123,8 @@ fn test_nonsense_rigid_const_bound() {
 }
 
 #[test]
+/// This test is wrong, but it's also not something rustc ever generates.
+/// Types on const generics only get exactly one `type_of_const` bound.
 fn test_multiple_type_of_const() {
     expect_test::expect![[r#"
         Ok(
