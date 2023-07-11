@@ -6,7 +6,7 @@ use formality_rust::{
 };
 use formality_types::{
     cast::Upcast,
-    grammar::{Fallible, Parameter, TraitRef},
+    grammar::{ConstData, Fallible, Parameter, Relation, TraitRef},
 };
 
 impl super::Check<'_> {
@@ -23,6 +23,7 @@ impl super::Check<'_> {
     }
 
     #[context("prove_where_clause_well_formed({where_clause:?})")]
+    // FIXME(oli-obk): figure out why is this a function and not a `judgment_fn`.
     fn prove_where_clause_well_formed(
         &self,
         in_env: &Env,
@@ -46,6 +47,13 @@ impl super::Check<'_> {
                 self.prove_where_clause_well_formed(&e, assumptions, &wc)
             }
             WhereClauseData::TypeOfConst(ct, ty) => {
+                match ct.data() {
+                    ConstData::Value(_, t) => {
+                        self.prove_goal(in_env, &assumptions, Relation::eq(ty, t))?
+                    }
+                    ConstData::Variable(_) => {}
+                }
+                // FIXME(oli-obk): prove that there is no `TypeOfConst` bound for a different type.
                 self.prove_parameter_well_formed(in_env, &assumptions, ct.clone())?;
                 self.prove_parameter_well_formed(in_env, assumptions, ty.clone())
             }

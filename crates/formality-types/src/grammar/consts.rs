@@ -1,6 +1,6 @@
 mod valtree;
 
-use crate::cast::{Upcast, UpcastFrom};
+use crate::cast::{DowncastTo, Upcast, UpcastFrom};
 
 use super::{Parameter, Ty, Variable};
 use formality_macros::{term, Visit};
@@ -50,6 +50,28 @@ pub enum ConstData {
 impl UpcastFrom<Self> for ConstData {
     fn upcast_from(term: Self) -> Self {
         term
+    }
+}
+
+impl DowncastTo<ConstData> for Const {
+    fn downcast_to(&self) -> Option<ConstData> {
+        Some(self.data().clone())
+    }
+}
+
+impl DowncastTo<Const> for Parameter {
+    fn downcast_to(&self) -> Option<Const> {
+        match self {
+            Parameter::Ty(_) | Parameter::Lt(_) => None,
+            Parameter::Const(c) => Some(c.clone()),
+        }
+    }
+}
+
+impl DowncastTo<ConstData> for Parameter {
+    fn downcast_to(&self) -> Option<ConstData> {
+        let c: Const = self.downcast_to()?;
+        c.downcast_to()
     }
 }
 

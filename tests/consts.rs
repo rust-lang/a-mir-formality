@@ -79,3 +79,57 @@ fn test_generic_mismatch() {
         ]",
     ));
 }
+
+#[test]
+fn test_rigid_const_bound() {
+    expect_test::expect![[r#"
+        Ok(
+            (),
+        )
+    "#]]
+    .assert_debug_eq(&test_program_ok(
+        "[
+            crate Foo {
+                trait Foo<> where [type_of_const true is bool] {}
+            }
+        ]",
+    ));
+}
+
+#[test]
+fn test_nonsense_rigid_const_bound() {
+    expect_test::expect![[r#"
+        Err(
+            Error {
+                context: "check_trait(Foo)",
+                source: Error {
+                    context: "prove_where_clause_well_formed(type_of_const 0_(rigid (scalar bool)) is (rigid (scalar u32)))",
+                    source: "failed to prove {(rigid (scalar u32)) = (rigid (scalar bool))} given {@ ConstHasType(0_(rigid (scalar bool)) , (rigid (scalar u32)))}, got {}",
+                },
+            },
+        )
+    "#]]
+    .assert_debug_eq(&test_program_ok(
+        "[
+            crate Foo {
+                trait Foo<> where [type_of_const true is u32] {}
+            }
+        ]",
+    ));
+}
+
+#[test]
+fn test_multiple_type_of_const() {
+    expect_test::expect![[r#"
+        Ok(
+            (),
+        )
+    "#]]
+    .assert_debug_eq(&test_program_ok(
+        "[
+            crate Foo {
+                trait Foo<const C> where [type_of_const C is bool, type_of_const C is u32] {}
+            }
+        ]",
+    ));
+}
