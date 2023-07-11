@@ -9,8 +9,8 @@ use formality_types::{
     cast::{To, Upcast, Upcasted},
     collections::Set,
     grammar::{
-        fresh_bound_var, AdtId, AliasTy, Binder, ConstData, ParameterKind, Predicate, Relation,
-        TraitId, Ty, Wc, Wcs, PR,
+        fresh_bound_var, AdtId, AliasTy, Binder, ParameterKind, Predicate, Relation, TraitId, Ty,
+        Wc, Wcs, PR,
     },
     seq,
 };
@@ -386,12 +386,9 @@ impl ToWcs for WhereClause {
                     .map(|wc| Wc::for_all(&vars, wc))
                     .collect()
             }
-            WhereClauseData::TypeOfConst(ct, ty) => match ct.data() {
-                // Concrete constants must have equal types
-                ConstData::Value(_, t) => Relation::eq(ty, t).upcast(),
-                // Generic constants must have where bounds constraining their type
-                ConstData::Variable(_) => Predicate::ConstHasType(ct.clone(), ty.clone()).upcast(),
-            },
+            WhereClauseData::TypeOfConst(ct, ty) => {
+                Predicate::ConstHasType(ct.clone(), ty.clone()).upcast()
+            }
         }
     }
 }
