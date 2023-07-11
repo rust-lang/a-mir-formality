@@ -25,8 +25,8 @@ fn test_holds() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "check_trait_impl(impl <> Foo < const 0 > for (rigid (scalar u32)) where [] { })",
-                source: "failed to prove {Foo((rigid (scalar u32)), const 0)} given {}, got {}",
+                context: "check_trait_impl(impl <> Foo < const 0_(rigid (scalar bool)) > for (rigid (scalar u32)) where [] { })",
+                source: "failed to prove {Foo((rigid (scalar u32)), const 0_(rigid (scalar bool)))} given {}, got {}",
             },
         )
     "#]]
@@ -46,8 +46,8 @@ fn test_mismatch() {
     expect_test::expect![[r#"
         Err(
             Error {
-                context: "check_trait_impl(impl <> Foo < const 42 > for (rigid (scalar u32)) where [] { })",
-                source: "failed to prove {Foo((rigid (scalar u32)), const 42)} given {}, got {}",
+                context: "check_trait_impl(impl <> Foo < const 42_(rigid (scalar u32)) > for (rigid (scalar u32)) where [] { })",
+                source: "failed to prove {Foo((rigid (scalar u32)), const 42_(rigid (scalar u32)))} given {}, got {}",
             },
         )
     "#]]
@@ -56,7 +56,7 @@ fn test_mismatch() {
             crate Foo {
                 trait Foo<const C> where [type_of_const C is bool] {}
 
-                impl<> Foo<const 42> for u32 where [] {}
+                impl<> Foo<const 42_u32> for u32 where [] {}
             }
         ]",
     ));

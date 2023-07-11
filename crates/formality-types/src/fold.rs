@@ -76,7 +76,10 @@ impl Fold for Ty {
 impl Fold for Const {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
         match self.data() {
-            ConstData::Value(v) => Self::new(v.substitute(substitution_fn)),
+            ConstData::Value(v, ty) => Self::valtree(
+                v.substitute(substitution_fn),
+                ty.substitute(substitution_fn),
+            ),
             ConstData::Variable(v) => match substitution_fn(v.clone()) {
                 None => self.clone(),
                 Some(Parameter::Const(c)) => c,

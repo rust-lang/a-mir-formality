@@ -215,13 +215,15 @@ impl Parse for Const {
 
 #[tracing::instrument(level = "trace", ret)]
 fn parse_int<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Const> {
-    let (pos, _) = text
-        .match_indices(|c: char| !c.is_numeric())
-        .next()
-        .unwrap_or((text.len(), text));
-    let (num, text) = text.split_at(pos);
+    let (num, text) = text.split_once('_').ok_or_else(|| {
+        ParseError::at(
+            text,
+            format!("numeric constants must be followed by an `_` and their type"),
+        )
+    })?;
     let n: u128 = num
         .parse()
         .map_err(|err| ParseError::at(num, format!("could not parse number: {err}")))?;
-    Ok((Const::new(Scalar::new(n)), text))
+    let (ty, text) = Ty::parse(scope, text)?;
+    Ok((Const::valtree(Scalar::new(n), ty), text))
 }

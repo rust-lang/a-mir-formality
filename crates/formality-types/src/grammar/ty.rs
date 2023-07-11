@@ -80,6 +80,14 @@ impl Ty {
             vec![l.to::<Parameter>(), self.to::<Parameter>()],
         )
     }
+
+    pub fn bool() -> Ty {
+        RigidTy {
+            name: RigidName::ScalarId(ScalarId::Bool),
+            parameters: vec![],
+        }
+        .upcast()
+    }
 }
 
 impl UpcastFrom<TyData> for Ty {

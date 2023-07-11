@@ -2,7 +2,7 @@ mod valtree;
 
 use crate::cast::{Upcast, UpcastFrom};
 
-use super::{Parameter, Variable};
+use super::{Parameter, Ty, Variable};
 use formality_macros::{term, Visit};
 use std::sync::Arc;
 pub use valtree::*;
@@ -21,9 +21,14 @@ impl Const {
             data: Arc::new(data.upcast()),
         }
     }
+
+    pub fn valtree(vt: impl Upcast<ValTree>, ty: impl Upcast<Ty>) -> Self {
+        Self::new(ConstData::Value(vt.upcast(), ty.upcast()))
+    }
+
     pub fn as_variable(&self) -> Option<Variable> {
         match self.data() {
-            ConstData::Value(_) => None,
+            ConstData::Value(_, _) => None,
             ConstData::Variable(var) => Some(var.clone()),
         }
     }
@@ -31,8 +36,14 @@ impl Const {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
 pub enum ConstData {
-    Value(ValTree),
+    Value(ValTree, Ty),
     Variable(Variable),
+}
+
+impl UpcastFrom<Self> for ConstData {
+    fn upcast_from(term: Self) -> Self {
+        term
+    }
 }
 
 #[term]
@@ -45,13 +56,7 @@ pub enum Bool {
 
 impl UpcastFrom<Bool> for Const {
     fn upcast_from(term: Bool) -> Self {
-        Self::new(ValTree::upcast_from(term))
-    }
-}
-
-impl UpcastFrom<ValTree> for ConstData {
-    fn upcast_from(v: ValTree) -> Self {
-        Self::Value(v)
+        Self::new(ConstData::Value(term.upcast(), Ty::bool()))
     }
 }
 

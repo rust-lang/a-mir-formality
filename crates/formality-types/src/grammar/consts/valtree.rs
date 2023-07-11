@@ -2,7 +2,7 @@ use formality_macros::Visit;
 
 use crate::cast::{Upcast, UpcastFrom};
 
-use super::{Bool, ConstData};
+use super::Bool;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
 pub enum ValTree {
@@ -48,9 +48,9 @@ impl UpcastFrom<Scalar> for ValTree {
     }
 }
 
-impl UpcastFrom<Scalar> for ConstData {
-    fn upcast_from(s: Scalar) -> Self {
-        ValTree::upcast_from(s).upcast()
+impl UpcastFrom<Self> for ValTree {
+    fn upcast_from(s: Self) -> Self {
+        s
     }
 }
 
