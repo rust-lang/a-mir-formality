@@ -116,8 +116,8 @@ judgment_fn! {
         )
 
         (
-            (if ct.as_value().is_some())
-            (prove(decls, env, assumptions, Wcs::all_eq(vec![ct.as_value().unwrap().1], vec![ty])) => c)
+            (if let Some((_, const_ty)) = ct.as_value())
+            (prove(decls, env, assumptions, Wcs::all_eq(vec![const_ty], vec![ty])) => c)
             ----------------------------- ("const has ty")
             (prove_wc(decls, env, assumptions, Predicate::ConstHasType(ct, ty)) => c)
         )
