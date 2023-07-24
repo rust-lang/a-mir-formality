@@ -13,10 +13,7 @@ use crate::{
     fold::Fold,
 };
 
-use super::{
-    consts::{Const, ConstData},
-    AdtId, AssociatedItemId, Binder, FnId, TraitId,
-};
+use super::{consts::Const, AdtId, AssociatedItemId, Binder, FnId, TraitId};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ty {
@@ -298,23 +295,9 @@ impl Parameter {
             Parameter::Const(v) => v.as_variable(),
         }
     }
-
-    pub fn data(&self) -> ParameterData<'_> {
-        match self {
-            Parameter::Ty(v) => ParameterData::Ty(v.data()),
-            Parameter::Lt(v) => ParameterData::Lt(v.data()),
-            Parameter::Const(v) => ParameterData::Const(v.data()),
-        }
-    }
 }
 
 pub type Parameters = Vec<Parameter>;
-
-pub enum ParameterData<'me> {
-    Ty(&'me TyData),
-    Lt(&'me LtData),
-    Const(&'me ConstData),
-}
 
 #[term]
 #[derive(Copy)]
