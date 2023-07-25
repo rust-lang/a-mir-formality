@@ -6,7 +6,10 @@ fn test_broken() {
         Err(
             Error {
                 context: "check_trait(Foo)",
-                source: "failed to prove {@ WellFormedTraitRef(Bar(!ty_2, !ty_1))} given {Bar(!ty_2, !ty_1)}, got {}",
+                source: Error {
+                    context: "prove_where_clause_well_formed(!ty_2 : Bar < !ty_1 >)",
+                    source: "failed to prove {@ WellFormedTraitRef(Bar(!ty_2, !ty_1))} given {Bar(!ty_2, !ty_1)}, got {}",
+                },
             },
         )
     "#]].assert_debug_eq(&test_program_ok(
@@ -37,6 +40,11 @@ fn test_ok() {
                 trait Bar<ty T> where [T: Baz<>] {}
                 
                 trait Baz<> where [] {}
+
+                impl<> Baz<> for u32 where [] {}
+
+                impl<> Bar<u32> for u32 where [] {}
+                impl<ty T> Bar<T> for () where [T: Baz<>] {}
             }
         ]",
     ));

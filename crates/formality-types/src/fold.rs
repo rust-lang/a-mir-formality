@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     cast::Upcast,
     collections::Set,
-    grammar::{Lt, LtData, Parameter, Ty, TyData, Variable},
+    grammar::{Const, ConstData, Lt, LtData, Parameter, Ty, TyData, ValTree, Variable},
     visit::Visit,
 };
 
@@ -70,6 +70,28 @@ impl Fold for Ty {
                 Some(param) => panic!("ill-kinded substitute: expected type, got {param:?}"),
             },
         }
+    }
+}
+
+impl Fold for Const {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+        match self.data() {
+            ConstData::Value(v, ty) => Self::valtree(
+                v.substitute(substitution_fn),
+                ty.substitute(substitution_fn),
+            ),
+            ConstData::Variable(v) => match substitution_fn(v.clone()) {
+                None => self.clone(),
+                Some(Parameter::Const(c)) => c,
+                Some(param) => panic!("ill-kinded substitute: expected const, got {param:?}"),
+            },
+        }
+    }
+}
+
+impl Fold for ValTree {
+    fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {
+        self.clone()
     }
 }
 

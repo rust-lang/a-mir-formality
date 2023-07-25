@@ -13,7 +13,7 @@ use crate::{
     fold::Fold,
 };
 
-use super::{AdtId, AssociatedItemId, Binder, FnId, TraitId};
+use super::{consts::Const, AdtId, AssociatedItemId, Binder, FnId, TraitId};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ty {
@@ -76,6 +76,14 @@ impl Ty {
             RefKind::Mut,
             vec![l.to::<Parameter>(), self.to::<Parameter>()],
         )
+    }
+
+    pub fn bool() -> Ty {
+        RigidTy {
+            name: RigidName::ScalarId(ScalarId::Bool),
+            parameters: vec![],
+        }
+        .upcast()
     }
 }
 
@@ -263,6 +271,8 @@ pub enum Parameter {
     Ty(Ty),
     #[cast]
     Lt(Lt),
+    #[grammar(const $v0)]
+    Const(Const),
 }
 
 impl Parameter {
@@ -270,6 +280,7 @@ impl Parameter {
         match self {
             Parameter::Ty(_) => ParameterKind::Ty,
             Parameter::Lt(_) => ParameterKind::Lt,
+            Parameter::Const(_) => ParameterKind::Const,
         }
     }
 
@@ -281,29 +292,19 @@ impl Parameter {
         match self {
             Parameter::Ty(v) => v.as_variable(),
             Parameter::Lt(v) => v.as_variable(),
-        }
-    }
-
-    pub fn data(&self) -> ParameterData<'_> {
-        match self {
-            Parameter::Ty(v) => ParameterData::Ty(v.data()),
-            Parameter::Lt(v) => ParameterData::Lt(v.data()),
+            Parameter::Const(v) => v.as_variable(),
         }
     }
 }
 
 pub type Parameters = Vec<Parameter>;
 
-pub enum ParameterData<'me> {
-    Ty(&'me TyData),
-    Lt(&'me LtData),
-}
-
 #[term]
 #[derive(Copy)]
 pub enum ParameterKind {
     Ty,
     Lt,
+    Const,
 }
 
 #[term]
@@ -517,6 +518,7 @@ impl UpcastFrom<Variable> for Parameter {
         match v.kind() {
             ParameterKind::Lt => Lt::new(v).upcast(),
             ParameterKind::Ty => Ty::new(v).upcast(),
+            ParameterKind::Const => Const::new(v).upcast(),
         }
     }
 }

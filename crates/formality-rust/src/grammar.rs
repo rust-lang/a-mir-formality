@@ -4,8 +4,8 @@ use formality_macros::term;
 use formality_types::{
     cast::Upcast,
     grammar::{
-        AdtId, AssociatedItemId, Binder, CrateId, Fallible, FieldId, FnId, Lt, Parameter, TraitId,
-        TraitRef, Ty, Wc,
+        AdtId, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId, FnId, Lt, Parameter,
+        TraitId, TraitRef, Ty, Wc,
     },
     term::Term,
 };
@@ -331,6 +331,7 @@ impl WhereClause {
                 let wc = where_clause.invert()?;
                 Some(Wc::for_all(&vars, wc))
             }
+            WhereClauseData::TypeOfConst(_, _) => None,
         }
     }
 }
@@ -345,6 +346,9 @@ pub enum WhereClauseData {
 
     #[grammar(for $v0)]
     ForAll(Binder<WhereClause>),
+
+    #[grammar(type_of_const $v0 is $v1)]
+    TypeOfConst(Const, Ty),
 }
 
 #[term($data)]

@@ -1,5 +1,5 @@
 use formality_types::{
-    grammar::{Parameter, RigidName, RigidTy, UniversalVar, Wcs},
+    grammar::{ConstData, Parameter, RigidName, RigidTy, UniversalVar, Wcs},
     judgment_fn,
 };
 
@@ -31,6 +31,18 @@ judgment_fn! {
             (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
             --- ("tuples")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Tuple(_), parameters }) => c)
+        )
+
+        (
+            (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
+            --- ("integers and booleans")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::ScalarId(_), parameters }) => c)
+        )
+
+        (
+            (prove_wf(&decls, &env, &assumptions, ty) => c)
+            --- ("rigid constants")
+            (prove_wf(decls, env, assumptions, ConstData::Value(_, ty)) => c)
         )
     }
 }
