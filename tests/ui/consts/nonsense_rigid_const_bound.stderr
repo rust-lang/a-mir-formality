@@ -1,0 +1,5 @@
+Error: check_trait(Foo)
+
+Caused by:
+    0: prove_where_clause_well_formed(type_of_const 0_(rigid (scalar bool)) is (rigid (scalar u32)))
+    1: failed to prove {(rigid (scalar u32)) = (rigid (scalar bool))} given {@ ConstHasType(0_(rigid (scalar bool)) , (rigid (scalar u32)))}, got {}

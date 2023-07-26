@@ -1,0 +1,8 @@
+/// This test is the short version of `holds`, skipping
+/// substituting and directly going to a rigid constant.
+//@check-pass
+[
+    crate Foo {
+        trait Foo<> where [type_of_const true is bool] {}
+    }
+]

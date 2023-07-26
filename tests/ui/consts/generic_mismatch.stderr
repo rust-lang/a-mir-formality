@@ -1,0 +1,4 @@
+Error: check_trait_impl(impl <const> Foo < const ^const0_0 > for (rigid (scalar u32)) where [type_of_const ^const0_0 is (rigid (scalar u32))] { })
+
+Caused by:
+    failed to prove {Foo((rigid (scalar u32)), const !const_1)} given {@ ConstHasType(!const_1 , (rigid (scalar u32)))}, got {}
