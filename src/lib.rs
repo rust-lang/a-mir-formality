@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use clap::Parser;
 use formality_check::check_all_crates;
@@ -11,6 +11,18 @@ use formality_types::{collections::Set, parse::term};
 struct Args {
     #[arg(long)]
     print_rust: bool,
+
+    #[arg(long, default_value = "")]
+    error_format: String,
+
+    #[arg(long, default_value = "")]
+    crate_type: String,
+
+    #[arg(long, default_value = "")]
+    edition: String,
+
+    #[arg(long)]
+    out_dir: Option<PathBuf>,
 
     input_path: String,
 }
