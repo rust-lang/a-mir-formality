@@ -1,0 +1,1 @@
+Error: impls may overlap: `impl <ty> FooTrait < > for ^ty0_0 where [^ty0_0 : CoreTrait < >] { }` vs `impl <> FooTrait < > for (rigid (adt CoreStruct)) where [] { }`

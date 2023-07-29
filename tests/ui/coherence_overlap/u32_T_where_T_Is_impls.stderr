@@ -1,0 +1,1 @@
+Error: impls may overlap: `impl <> Foo < > for (rigid (scalar u32)) where [] { }` vs `impl <ty> Foo < > for ^ty0_0 where [^ty0_0 : Is < >] { }`

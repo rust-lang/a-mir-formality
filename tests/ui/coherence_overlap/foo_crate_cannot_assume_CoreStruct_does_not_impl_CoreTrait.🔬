@@ -1,0 +1,11 @@
+[
+    crate core {
+        trait CoreTrait<> where [] {}
+        struct CoreStruct<> where [] {}
+    },
+    crate foo {
+        trait FooTrait<> where [] {}
+        impl<ty T> FooTrait<> for T where [T: CoreTrait<>] {}
+        impl<> FooTrait<> for CoreStruct<> where [] {}
+    }
+]

@@ -1,0 +1,15 @@
+//@check-pass
+
+// Test that, within a crate, we are able to rely on the fact
+// that `u32: Not` is not implemented.
+//
+// See also test_foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait
+[
+    crate core {
+        trait Foo<> where [] {}
+        impl<> Foo<> for u32 where [] {}
+        impl<ty T> Foo<> for T where [T: Not<>] {}
+
+        trait Not<> where [] {}
+    }
+]

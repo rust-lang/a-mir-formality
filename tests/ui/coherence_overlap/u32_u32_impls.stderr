@@ -1,0 +1,1 @@
+Error: duplicate impl in current crate: impl <> Foo < > for (rigid (scalar u32)) where [] { }

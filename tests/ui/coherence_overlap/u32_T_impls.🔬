@@ -1,0 +1,7 @@
+[
+    crate core {
+        trait Foo<> where [] {}
+        impl<> Foo<> for u32 where [] {}
+        impl<ty T> Foo<> for T where [] {}
+    }
+]
