@@ -1,4 +1,22 @@
 Error: check_trait_impl(impl <ty> Foo < > for ^ty0_0 where [^ty0_0 : Foo < >] { })
 
 Caused by:
-    failed to disprove {! Foo(!ty_1)} given {Foo(!ty_1)}, got {Constraints { env: Env { variables: [?ty_1], coherence_mode: false }, known_true: true, substitution: {?ty_1 => (rigid (scalar u32))} }}
+    failed to disprove
+        {! Foo(!ty_1)}
+    given
+        {Foo(!ty_1)}
+    got
+    {
+        Constraints {
+            env: Env {
+                variables: [
+                    ?ty_1,
+                ],
+                coherence_mode: false,
+            },
+            known_true: true,
+            substitution: {
+                ?ty_1 => (rigid (scalar u32)),
+            },
+        },
+    }
