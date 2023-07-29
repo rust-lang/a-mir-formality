@@ -1,0 +1,4 @@
+Error: orphan_check(impl <> CoreTrait < > for (alias (Mirror :: Assoc) (rigid (adt CoreStruct))) where [] { })
+
+Caused by:
+    failed to prove {@ IsLocal(CoreTrait((alias (Mirror :: Assoc) (rigid (adt CoreStruct)))))} given {}, got {}

@@ -1,0 +1,4 @@
+Error: orphan_check(impl <> CoreTrait < > for (alias (Unit :: Assoc) (rigid (adt FooStruct))) where [] { })
+
+Caused by:
+    failed to prove {@ IsLocal(CoreTrait((alias (Unit :: Assoc) (rigid (adt FooStruct)))))} given {}, got {}

@@ -1,0 +1,17 @@
+[
+    crate core {
+        trait CoreTrait<> where [] {}
+
+        trait Unit<> where [] {
+            type Assoc<> : [] where [];
+        }
+
+        impl<ty T> Unit<> for T where [] {
+            type Assoc<> = () where [];
+        }
+    },
+    crate foo {
+        struct FooStruct<> where [] {}
+        impl<> CoreTrait<> for <FooStruct<> as Unit<>>::Assoc<> where [] {}
+    }
+]
