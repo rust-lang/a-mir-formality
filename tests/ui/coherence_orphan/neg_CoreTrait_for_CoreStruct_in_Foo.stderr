@@ -4,7 +4,7 @@ Caused by:
     judgment `prove_wc_list { goal: {@ IsLocal(CoreTrait(CoreStruct))}, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
       the rule "some" failed at step #0 (crates/formality-prove/src/prove/prove_wc_list.rs:28:14) because
         judgment `prove_wc { goal: @ IsLocal(CoreTrait(CoreStruct)), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
-          the rule "trait ref is local" failed at step #0 (crates/formality-prove/src/prove/prove_wc.rs:110:14) because
+          the rule "trait ref is local" failed at step #0 (crates/formality-prove/src/prove/prove_wc.rs:153:14) because
             judgment `is_local_trait_ref { goal: CoreTrait(CoreStruct), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
               the rule "local parameter" failed at step #1 (crates/formality-prove/src/prove/is_local.rs:77:14) because
                 judgment `is_local_parameter { goal: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):

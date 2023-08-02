@@ -1,0 +1,11 @@
+//@check-pass
+[
+    crate Foo {
+        trait Foo<const C> where type_of_const C is bool {}
+
+        trait Bar<ty T> where T: Foo<const true> {}
+
+        impl<> Foo<const true> for u32 {}
+        impl<> Bar<u32> for u32 {}
+    }
+]
