@@ -1,0 +1,4 @@
+Error: check_trait_impl(impl <> Foo < const 42_(rigid (scalar u32)) > for (rigid (scalar u32)) where [] { })
+
+Caused by:
+    failed to prove {Foo((rigid (scalar u32)), const 42_(rigid (scalar u32)))} given {}, got {}

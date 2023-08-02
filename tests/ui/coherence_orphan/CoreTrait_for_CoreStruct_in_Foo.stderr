@@ -1,0 +1,4 @@
+Error: orphan_check(impl <> CoreTrait < > for (rigid (adt CoreStruct)) where [] { })
+
+Caused by:
+    failed to prove {@ IsLocal(CoreTrait((rigid (adt CoreStruct))))} given {}, got {}

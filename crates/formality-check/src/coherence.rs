@@ -154,6 +154,6 @@ impl Check<'_> {
 
             return Ok(());
         }
-        bail!("impls may overlap: `{impl_a:?}` vs `{impl_b:?}`")
+        bail!("impls may overlap:\n{impl_a:?}\n{impl_b:?}")
     }
 }

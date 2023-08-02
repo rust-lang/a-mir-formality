@@ -1,0 +1,18 @@
+Error: check_trait_impl(impl <> Foo < > for (rigid (scalar u32)) where [] { })
+
+Caused by:
+    failed to disprove
+        {! Foo((rigid (scalar u32)))}
+    given
+        {}
+    got
+    {
+        Constraints {
+            env: Env {
+                variables: [],
+                coherence_mode: false,
+            },
+            known_true: true,
+            substitution: {},
+        },
+    }

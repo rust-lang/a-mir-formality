@@ -1,0 +1,8 @@
+//@check-pass
+[
+    crate core {
+        trait Foo<> where [] {}
+        impl<> Foo<> for u32 where [] {}
+        impl<> Foo<> for i32 where [] {}
+    }
+]

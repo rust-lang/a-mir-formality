@@ -1,0 +1,17 @@
+[
+    crate core {
+        trait CoreTrait<> where [] {}
+        struct CoreStruct<> where [] {}
+
+        trait Mirror<> where [] {
+            type Assoc<> : [] where [];
+        }
+
+        impl<ty T> Mirror<> for T where [] {
+            type Assoc<> = T where [];
+        }
+    },
+    crate foo {
+        impl<> CoreTrait<> for <CoreStruct<> as Mirror<>>::Assoc<> where [] {}
+    }
+]

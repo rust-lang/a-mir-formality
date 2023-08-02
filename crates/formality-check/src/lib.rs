@@ -149,6 +149,6 @@ impl Check<'_> {
             return Ok(());
         }
 
-        bail!("failed to disprove {goal:?} given {assumptions:?}, got {cs:?}")
+        bail!("failed to disprove\n    {goal:?}\ngiven\n    {assumptions:?}\ngot\n{cs:#?}")
     }
 }
