@@ -1,0 +1,6 @@
+Error: failed to parse "[\n    crate Foo {        \n        trait Baz<> where [ cake ] {}\n    }\n]\n": {
+    ParseError {
+        text: " ] {}\n    }\n]\n",
+        message: "expected `:`",
+    },
+}
