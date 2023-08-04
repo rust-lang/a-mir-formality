@@ -43,7 +43,11 @@ where
     let (t, remainder) = match T::parse(&scope, text) {
         Ok(v) => v,
         Err(errors) => {
-            anyhow::bail!("failed to parse {text:?}: {errors:#?}");
+            let mut err = anyhow::anyhow!("failed to parse {text}");
+            for error in errors {
+                err = err.context(error.text.to_owned()).context(error.message);
+            }
+            return Err(err);
         }
     };
     if !skip_whitespace(remainder).is_empty() {
