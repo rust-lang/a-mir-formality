@@ -1,3 +1,3 @@
 fn main() -> anyhow::Result<()> {
-    formality::main()
+    formality_core::with_tracing_logs(|| formality::main())
 }

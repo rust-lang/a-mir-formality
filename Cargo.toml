@@ -22,6 +22,7 @@ formality-rust = { version = "0.1.0", path = "crates/formality-rust" }
 formality-types = { version = "0.1.0", path = "crates/formality-types" }
 formality-check = { version = "0.1.0", path = "crates/formality-check" }
 formality-prove = { version = "0.1.0", path = "crates/formality-prove" }
+formality-core = { version = "0.1.0", path = "crates/formality-core" }
 ui_test = "0.12"
 
 [workspace]

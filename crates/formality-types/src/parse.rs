@@ -17,6 +17,15 @@ pub fn term<T>(text: &str) -> T
 where
     T: Parse,
 {
+    try_term(text).unwrap()
+}
+
+/// Parses `text` as a term with no bindings in scope.
+#[track_caller]
+pub fn try_term<T>(text: &str) -> anyhow::Result<T>
+where
+    T: Parse,
+{
     term_with(None::<(String, Parameter)>, text)
 }
 
@@ -25,7 +34,7 @@ where
 /// References to the given string will be replaced with the given parameter
 /// when parsing types, lifetimes, etc.
 #[track_caller]
-pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> T
+pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> anyhow::Result<T>
 where
     T: Parse,
     B: Upcast<(String, Parameter)>,
@@ -34,13 +43,17 @@ where
     let (t, remainder) = match T::parse(&scope, text) {
         Ok(v) => v,
         Err(errors) => {
-            panic!("failed to parse {text:?}: {errors:#?}");
+            let mut err = anyhow::anyhow!("failed to parse {text}");
+            for error in errors {
+                err = err.context(error.text.to_owned()).context(error.message);
+            }
+            return Err(err);
         }
     };
     if !skip_whitespace(remainder).is_empty() {
-        panic!("extra tokens after parsing {text:?} to {t:?}: {remainder:?}");
+        anyhow::bail!("extra tokens after parsing {text:?} to {t:?}: {remainder:?}");
     }
-    t
+    Ok(t)
 }
 
 /// Trait for parsing a [`Term`](`crate::term::Term`) as input.
