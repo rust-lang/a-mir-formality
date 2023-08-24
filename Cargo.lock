@@ -611,6 +611,9 @@ dependencies = [
 [[package]]
 name = "formality-smir"
 version = "0.1.0"
+dependencies = [
+ "formality-types",
+]
 
 [[package]]
 name = "formality-types"
