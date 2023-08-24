@@ -23,6 +23,7 @@ formality-types = { version = "0.1.0", path = "crates/formality-types" }
 formality-check = { version = "0.1.0", path = "crates/formality-check" }
 formality-prove = { version = "0.1.0", path = "crates/formality-prove" }
 formality-core = { version = "0.1.0", path = "crates/formality-core" }
+formality-smir = { version = "0.1.0", path = "crates/formality-smir" }
 ui_test = "0.12"
 
 [workspace]
@@ -33,6 +34,7 @@ members = [
     "crates/formality-check",
     "crates/formality-rust",
     "crates/formality-prove",
+    "crates/formality-smir",
 ]
 
 [[test]]

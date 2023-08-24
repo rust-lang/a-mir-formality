@@ -534,6 +534,7 @@ dependencies = [
  "formality-macros",
  "formality-prove",
  "formality-rust",
+ "formality-smir",
  "formality-types",
  "pretty_assertions",
  "ui_test",
@@ -606,6 +607,10 @@ dependencies = [
  "formality-types",
  "tracing",
 ]
+
+[[package]]
+name = "formality-smir"
+version = "0.1.0"
 
 [[package]]
 name = "formality-types"
