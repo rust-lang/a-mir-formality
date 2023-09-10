@@ -3,9 +3,7 @@ use formality_rust::{
     grammar::{Fn, FnBoundData},
     prove::ToWcs,
 };
-use formality_types::{
-    grammar::{Fallible, Wcs},
-};
+use formality_types::grammar::{Fallible, Wcs};
 
 use crate::Check;
 

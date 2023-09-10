@@ -1,0 +1,7 @@
+// Test lifetimes on function
+[
+    crate Foo {
+        // fn one_lt_arg<'a, T>(_: &'a T) -> () {}
+        fn one_lt_arg<lt a, ty T>(&a T) -> () where [] { trusted }
+    }
+]
