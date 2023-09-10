@@ -415,7 +415,7 @@ where
         panic!("parsing ambiguity: {results:?}");
     } else if results.len() == 1 {
         Ok(results.pop().unwrap())
-    } else if errors.len() == 0 {
+    } else if errors.is_empty() {
         Err(ParseError::at(text, format!("{} expected", expected)))
     } else {
         Err(errors)

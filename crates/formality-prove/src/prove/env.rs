@@ -180,7 +180,7 @@ impl Env {
     where
         V: Upcast<Variable> + Copy,
     {
-        if v.len() == 0 {
+        if v.is_empty() {
             return vec![];
         }
 
