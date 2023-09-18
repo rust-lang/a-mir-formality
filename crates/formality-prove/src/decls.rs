@@ -54,7 +54,7 @@ impl Decls {
             .iter()
             .filter(|t| t.id == *trait_id)
             .collect();
-        assert!(v.len() > 0, "no traits named `{trait_id:?}`");
+        assert!(!v.is_empty(), "no traits named `{trait_id:?}`");
         assert!(v.len() <= 1, "multiple traits named `{trait_id:?}`");
         v.pop().unwrap()
     }
