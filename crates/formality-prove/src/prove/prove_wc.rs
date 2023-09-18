@@ -111,7 +111,7 @@ judgment_fn! {
 
         (
             (prove_wf(decls, env, assumptions, p) => c)
-            ----------------------------- ("trait ref is local")
+            ----------------------------- ("parameter well formed")
             (prove_wc(decls, env, assumptions, Relation::WellFormed(p)) => c)
         )
 

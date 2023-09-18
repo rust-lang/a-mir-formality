@@ -63,7 +63,7 @@ judgment_fn! {
 
         (
             (prove_existential_var_eq(decls, env, assumptions, v, r) => c)
-            ----------------------------- ("existential-nonvar")
+            ----------------------------- ("existential")
             (prove_eq(decls, env, assumptions, Variable::ExistentialVar(v), r) => c)
         )
 
@@ -102,7 +102,7 @@ judgment_fn! {
 
         (
             (if env.universe(p) < env.universe(v))
-            ----------------------------- ("existential-placeholder")
+            ----------------------------- ("existential-universal")
             (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) => (env, (v, p)))
         )
     }
