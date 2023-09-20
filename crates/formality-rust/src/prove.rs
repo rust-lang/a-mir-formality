@@ -91,7 +91,7 @@ impl Crate {
                     Some(prove::TraitDecl {
                         id: id.clone(),
                         binder: Binder::new(
-                            &vars,
+                            vars,
                             prove::TraitDeclBoundData {
                                 where_clause: where_clauses
                                     .iter()
@@ -123,7 +123,7 @@ impl Crate {
                     ) = binder.open();
                     Some(prove::ImplDecl {
                         binder: Binder::new(
-                            &vars,
+                            vars,
                             prove::ImplDeclBoundData {
                                 trait_ref: trait_id.with(self_ty, trait_parameters),
                                 where_clause: where_clauses.to_wcs(),
@@ -152,7 +152,7 @@ impl Crate {
                     ) = binder.open();
                     Some(prove::NegImplDecl {
                         binder: Binder::new(
-                            &vars,
+                            vars,
                             prove::NegImplDeclBoundData {
                                 trait_ref: trait_id.with(self_ty, trait_parameters),
                                 where_clause: where_clauses.to_wcs(),
@@ -259,8 +259,7 @@ impl Crate {
                                 .iter()
                                 .map(|e| {
                                     let fresh_var = fresh_bound_var(ParameterKind::Ty);
-                                    let ensures =
-                                        Binder::new(&vec![fresh_var], e.to_wc(&fresh_var));
+                                    let ensures = Binder::new(vec![fresh_var], e.to_wc(fresh_var));
 
                                     prove::AliasBoundDecl {
                                         binder: Binder::new(

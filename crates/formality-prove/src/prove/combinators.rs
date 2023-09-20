@@ -31,7 +31,7 @@ where
             let context = c1.substitution().apply(context);
             let a = c1.substitution().apply(&a);
             let b = c1.substitution().apply(&b);
-            zip(&decls, c1.env(), &context, a, b, op)
+            zip(decls, c1.env(), &context, a, b, op)
                 .into_iter()
                 .map(move |c2| c1.seq(c2))
         })
@@ -60,7 +60,7 @@ where
         .flat_map(|c1| {
             let context = c1.substitution().apply(context);
             let a_remaining = c1.substitution().apply(&a_remaining);
-            for_all(&decls, c1.env(), &context, &a_remaining, op)
+            for_all(decls, c1.env(), &context, &a_remaining, op)
                 .into_iter()
                 .map(move |c2| c1.seq(c2))
         })

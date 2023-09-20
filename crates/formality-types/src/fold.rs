@@ -80,7 +80,7 @@ impl Fold for Const {
                 v.substitute(substitution_fn),
                 ty.substitute(substitution_fn),
             ),
-            ConstData::Variable(v) => match substitution_fn(v.clone()) {
+            ConstData::Variable(v) => match substitution_fn(*v) {
                 None => self.clone(),
                 Some(Parameter::Const(c)) => c,
                 Some(param) => panic!("ill-kinded substitute: expected const, got {param:?}"),
@@ -121,9 +121,7 @@ impl Fold for u32 {
 }
 
 impl Fold for () {
-    fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {
-        ()
-    }
+    fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {}
 }
 
 impl<A: Fold, B: Fold> Fold for (A, B) {

@@ -43,7 +43,7 @@ fn debug_variant(
 
     // When invoked like `#[term(foo)]`, use the spec from `foo`
     if let Some(spec) = external_spec {
-        return debug_variant_with_attr(variant, &spec);
+        return debug_variant_with_attr(variant, spec);
     }
 
     // Else, look for a `#[grammar]` attribute on the variant
@@ -58,7 +58,7 @@ fn debug_variant(
 
     if variant.bindings().is_empty() {
         // No bindings (e.g., `Foo`) -- just parse a keyword `foo`
-        let literal = Literal::string(&to_parse_ident(&ast.ident));
+        let literal = Literal::string(&to_parse_ident(ast.ident));
         quote! {
             write!(fmt, #literal)?;
         }
@@ -79,7 +79,7 @@ fn debug_variant(
         quote!(#(#streams)*)
     } else {
         // Otherwise -- parse `variant(binding0, ..., bindingN)`
-        let literal = Literal::string(&to_parse_ident(&ast.ident));
+        let literal = Literal::string(&to_parse_ident(ast.ident));
         let binding_names: Vec<_> = variant.bindings().iter().map(|b| &b.binding).collect();
         quote! {
             fmt.debug_tuple(#literal)

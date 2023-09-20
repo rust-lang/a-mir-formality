@@ -186,8 +186,8 @@ impl Env {
 
         let p0 = v[0];
         let universe_p0 = self.universe(p0);
-        for i in 1..v.len() {
-            assert_eq!(self.universe(v[i]).index, universe_p0.index + i);
+        for (i, item) in v.iter().enumerate().skip(1) {
+            assert_eq!(self.universe(item).index, universe_p0.index + i);
         }
 
         self.variables.drain(universe_p0.index..).collect()

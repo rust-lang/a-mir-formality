@@ -34,7 +34,7 @@ impl Program {
                 _ => None,
             })
             .collect();
-        if traits.len() < 1 {
+        if traits.is_empty() {
             anyhow::bail!("no trait named `{trait_id:?}`")
         } else if traits.len() > 1 {
             anyhow::bail!("multiple traits named `{trait_id:?}`")
@@ -84,9 +84,9 @@ impl Struct {
         Adt {
             id: self.id.clone(),
             binder: Binder::new(
-                &vars,
+                vars,
                 AdtBoundData {
-                    where_clauses: where_clauses,
+                    where_clauses,
                     variants: vec![Variant {
                         name: VariantId::for_struct(),
                         fields,

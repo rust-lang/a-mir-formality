@@ -129,5 +129,5 @@ fn parse_variable_binding(
         _ => return error(),
     };
 
-    Ok(FormalitySpecOp::Field { name, mode: mode })
+    Ok(FormalitySpecOp::Field { name, mode })
 }

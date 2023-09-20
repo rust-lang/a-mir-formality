@@ -77,7 +77,7 @@ where
         }
 
         top.output = output;
-        return top.has_dependents;
+        top.has_dependents
     }
 
     /// Pops the top entry from the stack, returning the saved outputs.

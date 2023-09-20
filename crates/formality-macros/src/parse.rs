@@ -31,7 +31,7 @@ pub(crate) fn derive_parse_with_spec(
             let mut __results = vec![];
         });
         for variant in s.variants() {
-            let variant_name = as_literal(&variant.ast().ident);
+            let variant_name = as_literal(variant.ast().ident);
             let v = parse_variant(variant, None)?;
             stream.extend(quote! {
                 __results.push({
@@ -69,7 +69,7 @@ fn parse_variant(
 
     // When invoked like `#[term(foo)]`, use the spec from `foo`
     if let Some(spec) = external_spec {
-        return parse_variant_with_attr(variant, &spec);
+        return parse_variant_with_attr(variant, spec);
     }
 
     // Else, look for a `#[grammar]` attribute on the variant
@@ -81,7 +81,7 @@ fn parse_variant(
 
     if variant.bindings().is_empty() {
         // No bindings (e.g., `Foo`) -- just parse a keyword `foo`
-        let literal = Literal::string(&to_parse_ident(&ast.ident));
+        let literal = Literal::string(&to_parse_ident(ast.ident));
         let construct = variant.construct(|_, _| quote! {});
         Ok(quote! {
             let ((), text) = parse::expect_keyword(#literal, text)?;
@@ -97,7 +97,7 @@ fn parse_variant(
         })
     } else {
         // Otherwise -- parse `variant(binding0, ..., bindingN)`
-        let literal = Literal::string(&to_parse_ident(&ast.ident));
+        let literal = Literal::string(&to_parse_ident(ast.ident));
         let build: Vec<TokenStream> = parse_bindings(variant.bindings());
         let construct = variant.construct(field_ident);
         Ok(quote! {
@@ -199,7 +199,7 @@ fn lookahead(for_field: &Ident, op: Option<&FormalitySpecOp>) -> syn::Result<Lit
         Some(FormalitySpecOp::Keyword { .. }) | Some(FormalitySpecOp::Field { .. }) | None => {
             Err(syn::Error::new_spanned(
                 for_field,
-                format!("cannot use `*` or `,` without lookahead"),
+                "cannot use `*` or `,` without lookahead".to_string(),
             ))
         }
     }

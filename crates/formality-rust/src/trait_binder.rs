@@ -105,7 +105,7 @@ where
         let (data, text) = T::parse(&scope1, text)?;
 
         let bound_vars: Vec<BoundVar> = bindings.iter().map(|b| b.bound_var).collect();
-        let explicit_binder = Binder::new(&bound_vars, data);
+        let explicit_binder = Binder::new(bound_vars, data);
 
         Ok((TraitBinder { explicit_binder }, text))
     }

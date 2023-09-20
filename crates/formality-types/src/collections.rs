@@ -69,11 +69,7 @@ pub trait SetExt<T>: Sized {
 impl<T: Ord + Clone> SetExt<T> for Set<T> {
     fn split_first(self) -> Option<(T, Set<T>)> {
         let mut iter = self.into_iter();
-        if let Some(e) = iter.next() {
-            Some((e, iter.collect()))
-        } else {
-            None
-        }
+        iter.next().map(|e| (e, iter.collect()))
     }
 
     fn union_with(mut self, other: Self) -> Self {
