@@ -40,12 +40,12 @@ pub fn main() -> anyhow::Result<()> {
 }
 
 pub fn test_program_ok(input: &str) -> anyhow::Result<()> {
-    let program: Program = try_term(&input)?;
+    let program: Program = try_term(input)?;
     check_all_crates(&program)
 }
 
 pub fn test_where_clause(program: &str, assertion: &str) -> anyhow::Result<Set<Constraints>> {
-    let program: Program = try_term(&program)?;
+    let program: Program = try_term(program)?;
     check_all_crates(&program)?;
     let assertion: Arc<TestAssertion> = try_term(assertion)?;
     let decls = program.to_prove_decls();

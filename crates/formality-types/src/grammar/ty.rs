@@ -336,7 +336,7 @@ impl Lt {
 
     pub fn as_variable(&self) -> Option<Variable> {
         match self.data() {
-            LtData::Variable(v) => Some(v.clone()),
+            LtData::Variable(v) => Some(*v),
             _ => None,
         }
     }
@@ -381,7 +381,7 @@ impl Visit for LtData {
         match self {
             LtData::Variable(v) => {
                 if v.is_free() {
-                    vec![v.clone()]
+                    vec![*v]
                 } else {
                     vec![]
                 }
@@ -439,7 +439,7 @@ impl Variable {
             }
             .upcast()
         } else {
-            self.clone()
+            *self
         }
     }
 
@@ -462,7 +462,7 @@ impl Variable {
                 .upcast()
             })
         } else {
-            Some(self.clone())
+            Some(*self)
         }
     }
 

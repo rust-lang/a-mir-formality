@@ -49,7 +49,7 @@ impl<T: Fold> Binder<T> {
 
     pub fn dummy(term: T) -> Self {
         let v: Vec<Variable> = vec![];
-        Self::new(&v, term)
+        Self::new(v, term)
     }
 
     /// Given a set of variables (X, Y, Z) and a term referecing some subset of them,
@@ -81,9 +81,9 @@ impl<T: Fold> Binder<T> {
     pub fn mentioned(variables: impl Upcast<Vec<Variable>>, term: T) -> Self {
         let mut variables: Vec<Variable> = variables.upcast();
         let fv = term.free_variables();
-        variables.retain(|v| fv.contains(&v));
+        variables.retain(|v| fv.contains(v));
         let variables: Vec<Variable> = variables.into_iter().collect();
-        Binder::new(&variables, term)
+        Binder::new(variables, term)
     }
 
     pub fn into<U>(self) -> Binder<U>
@@ -99,6 +99,10 @@ impl<T: Fold> Binder<T> {
     /// Number of variables bound by this binder
     pub fn len(&self) -> usize {
         self.kinds.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.kinds.is_empty()
     }
 
     /// Instantiate the binder with the given parameters, returning an err if the parameters
@@ -136,7 +140,7 @@ impl<T: Fold> Binder<T> {
                 debruijn: Some(DebruijnIndex::INNERMOST),
                 var_index,
                 kind: _,
-            }) => Some(substitution[var_index.index as usize].clone()),
+            }) => Some(substitution[var_index.index].clone()),
 
             _ => None,
         })
@@ -156,7 +160,7 @@ impl<T: Fold> Binder<T> {
     pub fn map<U: Fold>(&self, op: impl FnOnce(T) -> U) -> Binder<U> {
         let (vars, t) = self.open();
         let u = op(t);
-        Binder::new(&vars, u)
+        Binder::new(vars, u)
     }
 }
 

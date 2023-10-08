@@ -29,7 +29,7 @@ impl Const {
     pub fn as_variable(&self) -> Option<Variable> {
         match self.data() {
             ConstData::Value(_, _) => None,
-            ConstData::Variable(var) => Some(var.clone()),
+            ConstData::Variable(var) => Some(*var),
         }
     }
 

@@ -35,7 +35,7 @@ impl syn::parse::Parse for FixedPointArgs {
         while !input.is_empty() {
             let ident: syn::Ident = input.parse()?;
             let _: syn::Token!(=) = input.parse()?;
-            if ident.to_string() == "default" {
+            if ident == "default" {
                 let expr: syn::Expr = input.parse()?;
                 args.default = Some(expr);
             } else {
@@ -226,7 +226,7 @@ fn validate_arg_pattern(pat: &syn::Pat) -> syn::Result<(syn::Ident, Option<syn::
                 ));
             }
 
-            Ok((ident.ident.clone(), ident.mutability.clone()))
+            Ok((ident.ident.clone(), ident.mutability))
         }
         _ => Err(syn::Error::new_spanned(
             pat,
@@ -245,7 +245,7 @@ fn validate_arg_ty(ty: &syn::Type) -> syn::Result<(bool, syn::Type)> {
                 ));
             }
 
-            if let Some(_) = &r.lifetime {
+            if r.lifetime.is_some() {
                 return Err(syn::Error::new_spanned(
                     ty,
                     "named lifetimes not permitted in fixed-point functions",
@@ -265,19 +265,15 @@ fn validate_arg_ty(ty: &syn::Type) -> syn::Result<(bool, syn::Type)> {
 
 fn validate_ty(ty: &syn::Type) -> syn::Result<()> {
     match ty {
-        syn::Type::ImplTrait(_) => {
-            return Err(syn::Error::new_spanned(
-                ty,
-                "impl Trait types not allowed in fixed-point functions",
-            ));
-        }
+        syn::Type::ImplTrait(_) => Err(syn::Error::new_spanned(
+            ty,
+            "impl Trait types not allowed in fixed-point functions",
+        )),
 
-        syn::Type::Reference(_) => {
-            return Err(syn::Error::new_spanned(
-                ty,
-                "reference types only allowed at the top-level in fixed-point functions",
-            ));
-        }
+        syn::Type::Reference(_) => Err(syn::Error::new_spanned(
+            ty,
+            "reference types only allowed at the top-level in fixed-point functions",
+        )),
 
         _ => Ok(()),
     }

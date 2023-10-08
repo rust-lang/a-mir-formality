@@ -140,7 +140,7 @@ impl Check<'_> {
                     &a.where_clauses,
                     &b.where_clauses,
                 ),
-                &inverted_wc,
+                inverted_wc,
             )
             .is_ok()
         }) {

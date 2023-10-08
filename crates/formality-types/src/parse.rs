@@ -252,7 +252,7 @@ where
         let (data, text) = T::parse(&scope1, text)?;
 
         let kvis: Vec<BoundVar> = bindings.iter().map(|b| b.bound_var).collect();
-        Ok((Binder::new(&kvis, data), text))
+        Ok((Binder::new(kvis, data), text))
     }
 }
 
@@ -326,11 +326,7 @@ pub fn expect_char(ch: char, text0: &str) -> ParseResult<'_, ()> {
 /// Consume a comma if one is present.
 #[tracing::instrument(level = "trace", ret)]
 pub fn skip_trailing_comma(text: &str) -> &str {
-    if text.starts_with(",") {
-        &text[1..]
-    } else {
-        text
-    }
+    text.strip_prefix(',').unwrap_or(text)
 }
 
 /// Extracts a maximal identifier from the start of text,
@@ -339,14 +335,8 @@ pub fn skip_trailing_comma(text: &str) -> &str {
 pub fn identifier(text: &str) -> ParseResult<'_, String> {
     accumulate(
         text,
-        |ch| match ch {
-            'a'..='z' | 'A'..='Z' | '_' => true,
-            _ => false,
-        },
-        |ch| match ch {
-            'a'..='z' | 'A'..='Z' | '_' | '0'..='9' => true,
-            _ => false,
-        },
+        |ch| matches!(ch, 'a'..='z' | 'A'..='Z' | '_'),
+        |ch| matches!(ch, 'a'..='z' | 'A'..='Z' | '_' | '0'..='9'),
         "identifier",
     )
 }

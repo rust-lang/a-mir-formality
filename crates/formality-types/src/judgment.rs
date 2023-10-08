@@ -7,9 +7,11 @@ mod test_reachable;
 
 pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, BTreeSet<O>>>;
 
+type InferenceRuleClosure<I, O> = Arc<dyn Fn(&I) -> Vec<O> + Send>;
+
 #[derive(Clone)]
 struct InferenceRule<I, O> {
-    closure: Arc<dyn Fn(&I) -> Vec<O> + Send>,
+    closure: InferenceRuleClosure<I, O>,
 }
 
 #[macro_export]

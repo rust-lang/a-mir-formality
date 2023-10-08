@@ -203,7 +203,7 @@ where
     T: Upcast<U>,
 {
     fn upcast_from(term: &[T]) -> Self {
-        term.into_iter().map(|t| t.upcast()).collect()
+        term.iter().map(|t| t.upcast()).collect()
     }
 }
 

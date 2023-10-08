@@ -7,7 +7,7 @@ pub(crate) fn upcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
     let num_variants = s.variants().len();
     s.variants()
         .iter()
-        .filter(|v| num_variants == 1 || has_cast_attr(&v.ast().attrs))
+        .filter(|v| num_variants == 1 || has_cast_attr(v.ast().attrs))
         .map(|v| upcast_to_variant(&s, v))
         .chain(Some(self_upcast(&s)))
         .collect()
@@ -46,7 +46,7 @@ pub(crate) fn downcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
     let num_variants = s.variants().len();
     s.variants()
         .iter()
-        .filter(|v| num_variants == 1 || has_cast_attr(&v.ast().attrs))
+        .filter(|v| num_variants == 1 || has_cast_attr(v.ast().attrs))
         .map(|v| downcast_to_variant(&s, v))
         .chain(Some(self_downcast(&s)))
         .collect()
@@ -91,5 +91,5 @@ fn downcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStr
 }
 
 pub(crate) fn has_cast_attr(attrs: &[Attribute]) -> bool {
-    attrs.iter().find(|a| a.path.is_ident("cast")).is_some()
+    attrs.iter().any(|a| a.path.is_ident("cast"))
 }
