@@ -1,9 +1,6 @@
 #![feature(rustc_private)]
 
-extern crate rustc_driver;
-extern crate rustc_smir;
-
-use rustc_smir::stable_mir;
+extern crate stable_mir;
 
 /// Trait used to convert from Stable MIR to Formality types.
 pub trait ToFormality {
