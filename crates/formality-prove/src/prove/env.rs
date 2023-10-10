@@ -118,7 +118,7 @@ impl Env {
             })
     }
 
-    fn fresh_substituion<V>(
+    fn fresh_substitution<V>(
         &mut self,
         kinds: &[ParameterKind],
         v: impl Fn(ParameterKind, VarIndex) -> V,
@@ -142,7 +142,7 @@ impl Env {
         T: Fold,
     {
         let mut env = self.clone();
-        let subst = env.fresh_substituion(b.kinds(), |kind, var_index| UniversalVar {
+        let subst = env.fresh_substitution(b.kinds(), |kind, var_index| UniversalVar {
             kind,
             var_index,
         });
@@ -153,7 +153,7 @@ impl Env {
     where
         T: Fold,
     {
-        let subst = self.fresh_substituion(b.kinds(), |kind, var_index| UniversalVar {
+        let subst = self.fresh_substitution(b.kinds(), |kind, var_index| UniversalVar {
             kind,
             var_index,
         });
@@ -165,7 +165,7 @@ impl Env {
         T: Fold,
     {
         let mut env = self.clone();
-        let subst = env.fresh_substituion(b.kinds(), |kind, var_index| ExistentialVar {
+        let subst = env.fresh_substitution(b.kinds(), |kind, var_index| ExistentialVar {
             kind,
             var_index,
         });
