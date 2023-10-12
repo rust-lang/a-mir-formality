@@ -37,6 +37,10 @@ impl super::Check<'_> {
                     assumptions,
                     trait_id.with(self_ty, parameters),
                 ),
+            WhereClauseData::AliasEq(alias_ty, ty) => {
+                self.prove_parameter_well_formed(in_env, &assumptions, alias_ty)?;
+                self.prove_parameter_well_formed(in_env, &assumptions, ty)
+            }
             WhereClauseData::Outlives(a, b) => {
                 self.prove_parameter_well_formed(in_env, &assumptions, a)?;
                 self.prove_parameter_well_formed(in_env, assumptions, b)

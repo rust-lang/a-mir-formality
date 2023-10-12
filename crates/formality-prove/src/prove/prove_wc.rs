@@ -79,6 +79,12 @@ judgment_fn! {
         )
 
         (
+            (prove_eq(decls, env, assumptions, alias_ty, ty) => c)
+            ----------------------------- ("alias eq")
+            (prove_wc(decls, env, assumptions, Predicate::AliasEq(alias_ty, ty)) => c)
+        )
+
+        (
             (decls.trait_invariants() => ti)
             (let (env, subst) = env.existential_substitution(&ti.binder))
             (let ti = ti.binder.instantiate_with(&subst).unwrap())

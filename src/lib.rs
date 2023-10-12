@@ -45,9 +45,11 @@ pub fn test_program_ok(input: &str) -> anyhow::Result<()> {
 }
 
 pub fn test_where_clause(program: &str, assertion: &str) -> anyhow::Result<Set<Constraints>> {
-    let program: Program = try_term(program)?;
-    check_all_crates(&program)?;
-    let assertion: Arc<TestAssertion> = try_term(assertion)?;
-    let decls = program.to_prove_decls();
-    Ok(formality_prove::test_util::test_prove(decls, assertion))
+    formality_core::with_tracing_logs(|| {
+        let program: Program = try_term(program)?;
+        check_all_crates(&program)?;
+        let assertion: Arc<TestAssertion> = try_term(assertion)?;
+        let decls = program.to_prove_decls();
+        Ok(formality_prove::test_util::test_prove(decls, assertion))
+    })
 }

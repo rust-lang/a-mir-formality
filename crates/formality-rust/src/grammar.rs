@@ -5,7 +5,7 @@ use formality_types::{
     cast::Upcast,
     grammar::{
         AdtId, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId, FnId, Lt, Parameter,
-        TraitId, TraitRef, Ty, Wc,
+        TraitId, TraitRef, Ty, Wc, AliasTy,
     },
     term::Term,
 };
@@ -325,6 +325,7 @@ impl WhereClause {
                     .not_implemented()
                     .upcast(),
             ),
+            WhereClauseData::AliasEq(_, _) => None,
             WhereClauseData::Outlives(_, _) => None,
             WhereClauseData::ForAll(binder) => {
                 let (vars, where_clause) = binder.open();
@@ -340,6 +341,9 @@ impl WhereClause {
 pub enum WhereClauseData {
     #[grammar($v0 : $v1 < $,v2 >)]
     IsImplemented(Ty, TraitId, Vec<Parameter>),
+
+    #[grammar($v0 => $v1)]
+    AliasEq(AliasTy, Ty),
 
     #[grammar($v0 : $v1)]
     Outlives(Parameter, Lt),

@@ -41,7 +41,7 @@ impl Const {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
 pub enum ConstData {
     Value(ValTree, Ty),
     Variable(Variable),

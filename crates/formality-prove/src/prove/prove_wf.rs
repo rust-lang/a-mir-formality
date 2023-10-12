@@ -1,6 +1,6 @@
 use formality_types::{
-    grammar::{ConstData, Parameter, RigidName, RigidTy, UniversalVar, Wcs},
-    judgment_fn,
+    grammar::{ConstData, Parameter, RigidName, RigidTy, UniversalVar, Wcs, AliasTy, Parameters, AliasName},
+    judgment_fn, collections::Set,
 };
 
 use crate::{decls::Decls, prove::combinators::for_all};
@@ -40,9 +40,32 @@ judgment_fn! {
         )
 
         (
+            (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
+            --- ("integers and booleans")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::AdtId(_), parameters }) => c)
+        )
+
+        (
             (prove_wf(&decls, &env, &assumptions, ty) => c)
             --- ("rigid constants")
             (prove_wf(decls, env, assumptions, ConstData::Value(_, ty)) => c)
         )
+
+        (
+            (prove_alias_wf(&decls, &env, &assumptions, name, parameters) => c)
+            --- ("aliases")
+            (prove_wf(decls, env, assumptions, AliasTy { name, parameters }) => c)
+        )
     }
+}
+
+pub fn prove_alias_wf(
+    decls: &Decls,
+    env: &Env,
+    assumptions: &Wcs,
+    _name: AliasName,
+    parameters: Parameters,
+) -> Set<Constraints> {
+    // FIXME: verify self type implements trait
+    for_all(decls, env, assumptions, &parameters, &prove_wf)
 }
