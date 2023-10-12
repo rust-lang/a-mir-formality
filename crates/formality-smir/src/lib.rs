@@ -1,5 +1,8 @@
 #![feature(rustc_private)]
 
+/// This import is needed, because `stable_mir` on its own doesn't have the `scoped_tls` rlib.
+extern crate rustc_driver;
+/// Access to the pre-0.1 stable_mir crate
 extern crate stable_mir;
 
 /// Trait used to convert from Stable MIR to Formality types.
