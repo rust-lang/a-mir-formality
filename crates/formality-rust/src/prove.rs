@@ -377,6 +377,9 @@ impl ToWcs for WhereClause {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
                 trait_id.with(self_ty, parameters).upcast()
             }
+            WhereClauseData::AliasEq(alias_ty, ty) => {
+                Predicate::AliasEq(alias_ty.clone(), ty.clone()).upcast()
+            }
             WhereClauseData::Outlives(a, b) => Relation::outlives(a, b).upcast(),
             WhereClauseData::ForAll(binder) => {
                 let (vars, wc) = binder.open();

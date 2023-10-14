@@ -4,6 +4,8 @@ use crate::cast::To;
 use crate::cast::Upcast;
 use crate::cast_impl;
 
+use super::AliasName;
+use super::AliasTy;
 use super::Const;
 use super::Parameter;
 use super::Parameters;
@@ -22,6 +24,9 @@ pub enum Predicate {
 
     #[grammar(!$v0)]
     NotImplemented(TraitRef),
+
+    #[cast]
+    AliasEq(AliasTy, Ty),
 
     #[grammar(@WellFormedTraitRef($v0))]
     WellFormedTraitRef(TraitRef),
@@ -80,6 +85,7 @@ impl Parameter {
 pub enum Skeleton {
     IsImplemented(TraitId),
     NotImplemented(TraitId),
+    AliasEq(AliasName),
     WellFormed,
     WellFormedTraitRef(TraitId),
     IsLocal(TraitId),
@@ -110,6 +116,15 @@ impl Predicate {
                 Skeleton::NotImplemented(trait_id.clone()),
                 parameters.clone(),
             ),
+            Predicate::AliasEq(AliasTy { name, parameters }, ty) => {
+                let mut params = parameters.clone();
+                params.push(ty.clone().upcast());
+                (
+                    Skeleton::AliasEq(name.clone()),
+                    params,
+                )
+                
+            }
             Predicate::WellFormedTraitRef(TraitRef {
                 trait_id,
                 parameters,
