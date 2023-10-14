@@ -19,6 +19,7 @@ pub struct Decls {
     pub neg_impl_decls: Vec<NegImplDecl>,
     pub alias_eq_decls: Vec<AliasEqDecl>,
     pub alias_bound_decls: Vec<AliasBoundDecl>,
+    pub adt_decls: Vec<AdtDecl>,
     pub local_trait_ids: Set<TraitId>,
     pub local_adt_ids: Set<AdtId>,
 }
@@ -74,6 +75,13 @@ impl Decls {
         &self.alias_bound_decls
     }
 
+    pub fn adt_decl(&self, adt_id: &AdtId) -> &AdtDecl {
+        let mut v: Vec<_> = self.adt_decls.iter().filter(|t| t.id == *adt_id).collect();
+        assert!(!v.is_empty(), "no ADT named `{adt_id:?}`");
+        assert!(v.len() <= 1, "multiple ADTs named `{adt_id:?}`");
+        v.pop().unwrap()
+    }
+
     /// Return the set of "trait invariants" for all traits.
     /// See [`TraitDecl::trait_invariants`].
     pub fn trait_invariants(&self) -> Set<TraitInvariant> {
@@ -91,6 +99,7 @@ impl Decls {
             neg_impl_decls: vec![],
             alias_eq_decls: vec![],
             alias_bound_decls: vec![],
+            adt_decls: vec![],
             local_trait_ids: set![],
             local_adt_ids: set![],
         }
@@ -259,5 +268,25 @@ pub struct AliasBoundDeclBoundData {
     // FIXME: this is currently encoded as something like `<T> [T: Foo]` where
     // `T` represents the alias.
     pub ensures: Binder<Wc>,
+    pub where_clause: Wcs,
+}
+
+/// An "ADT declaration" declares an ADT name, its generics, and its where-clauses.
+/// It doesn't capture the ADT fields, yet.
+///
+/// In Rust syntax, it covers the `struct Foo<X> where X: Bar` part of the declaration, but not what appears in the `{...}`.
+#[term(adt $id $binder)]
+pub struct AdtDecl {
+    /// The name of the ADT.
+    pub id: AdtId,
+
+    /// The binder here captures the generics of the ADT.
+    pub binder: Binder<AdtDeclBoundData>,
+}
+
+/// The "bound data" for a [`AdtDecl`][].
+#[term(where $where_clause)]
+pub struct AdtDeclBoundData {
+    /// The where-clauses declared on the ADT,
     pub where_clause: Wcs,
 }

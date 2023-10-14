@@ -1,8 +1,8 @@
 use crate::grammar::{
-    AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Crate,
-    CrateItem, ImplItem, NegTraitImpl, NegTraitImplBoundData, Program, Trait, TraitBoundData,
-    TraitImpl, TraitImplBoundData, TraitItem, WhereBound, WhereBoundData, WhereClause,
-    WhereClauseData,
+    Adt, AdtBoundData, AssociatedTy, AssociatedTyBoundData, AssociatedTyValue,
+    AssociatedTyValueBoundData, Crate, CrateItem, ImplItem, NegTraitImpl, NegTraitImplBoundData,
+    Program, Trait, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem, WhereBound,
+    WhereBoundData, WhereClause, WhereClauseData,
 };
 use formality_prove as prove;
 use formality_types::{
@@ -24,6 +24,7 @@ impl Program {
             neg_impl_decls: self.neg_impl_decls(),
             alias_eq_decls: self.alias_eq_decls(),
             alias_bound_decls: self.alias_bound_decls(),
+            adt_decls: self.adt_decls(),
             local_trait_ids: self.local_trait_ids(),
             local_adt_ids: self.local_adt_ids(),
         }
@@ -56,6 +57,10 @@ impl Program {
             .iter()
             .flat_map(|c| c.alias_bound_decls())
             .collect()
+    }
+
+    fn adt_decls(&self) -> Vec<prove::AdtDecl> {
+        self.crates.iter().flat_map(|c| c.adt_decls()).collect()
     }
 
     fn local_trait_ids(&self) -> Set<TraitId> {
@@ -277,6 +282,35 @@ impl Crate {
                     }))
                 }
                 _ => vec![],
+            })
+            .collect()
+    }
+
+    fn adt_decls(&self) -> Vec<prove::AdtDecl> {
+        self.items
+            .iter()
+            .flat_map(|item| match item {
+                CrateItem::Struct(s) => Some(s.to_adt()),
+                CrateItem::Enum(e) => Some(e.to_adt()),
+                _ => None,
+            })
+            .map(|Adt { id, binder }| {
+                let (
+                    vars,
+                    AdtBoundData {
+                        where_clauses,
+                        variants: _,
+                    },
+                ) = binder.open();
+                prove::AdtDecl {
+                    id: id.clone(),
+                    binder: Binder::new(
+                        vars,
+                        prove::AdtDeclBoundData {
+                            where_clause: where_clauses.iter().flat_map(|wc| wc.to_wcs()).collect(),
+                        },
+                    ),
+                }
             })
             .collect()
     }
