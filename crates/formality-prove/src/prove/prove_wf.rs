@@ -41,7 +41,7 @@ judgment_fn! {
 
         (
             (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
-            --- ("integers and booleans")
+            --- ("ADT")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::AdtId(_), parameters }) => c)
         )
 
