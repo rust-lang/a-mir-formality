@@ -562,6 +562,7 @@ name = "formality-core"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "formality-macros",
  "lazy_static",
  "tracing",
  "tracing-subscriber",

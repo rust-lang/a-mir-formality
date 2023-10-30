@@ -11,3 +11,4 @@ env_logger = "*"
 tracing = "0.1"
 tracing-subscriber = {version = "0.3", default-features = false, features = ["env-filter", "fmt"]}
 tracing-tree = { version = "0.2" }
+formality-macros = { path = "../formality-macros" }
