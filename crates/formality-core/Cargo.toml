@@ -8,7 +8,10 @@ edition = "2021"
 [dependencies]
 lazy_static = "1.4.0"
 env_logger = "*"
+stacker = "0.1.15"
 tracing = "0.1"
 tracing-subscriber = {version = "0.3", default-features = false, features = ["env-filter", "fmt"]}
 tracing-tree = { version = "0.2" }
 formality-macros = { path = "../formality-macros" }
+anyhow = "1.0.75"
+contracts = "0.6.3"

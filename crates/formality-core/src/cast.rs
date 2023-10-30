@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{collections::Set, derive_links::Term};
+use crate::collections::Set;
 
 pub trait To {
     fn to<T>(&self) -> T
@@ -311,6 +311,23 @@ macro_rules! cast_impl {
         }
     };
 
+    (impl($($p:tt)*) $e:ident ($($ep:tt)*) :: $v:ident ($u:ty)) => {
+        impl<$($p)*> $crate::cast::UpcastFrom<$u> for $e<$($ep)*> {
+            fn upcast_from(v: $u) -> $e<$($ep)*> {
+                $e::$v(v)
+            }
+        }
+
+        impl<$($p)*> $crate::cast::DowncastTo<$u> for $e<$($ep)*> {
+            fn downcast_to(&self) -> Option<$u> {
+                match self {
+                    $e::$v(u) => Some(Clone::clone(u)),
+                    _ => None,
+                }
+            }
+        }
+    };
+
     (impl($($p:tt)*) $t:ty) => {
         impl<$($p)*> $crate::cast::UpcastFrom<$t> for $t {
             fn upcast_from(v: $t) -> $t {
@@ -339,8 +356,8 @@ macro_rules! cast_impl {
         }
     };
 
-    (($bot:ty) <: ($($mid:ty),*) <: ($top:ty)) => {
-        impl $crate::cast::UpcastFrom<$bot> for $top {
+    ($(impl($($p:tt)*))? ($bot:ty) <: ($($mid:ty),*) <: ($top:ty)) => {
+        impl$(<$($p)*>)? $crate::cast::UpcastFrom<$bot> for $top {
             fn upcast_from(v: $bot) -> $top {
                 $(
                     let v: $mid = $crate::cast::Upcast::upcast(v);
@@ -349,7 +366,7 @@ macro_rules! cast_impl {
             }
         }
 
-        impl $crate::cast::DowncastTo<$bot> for $top {
+        impl$(<$($p)*>)? $crate::cast::DowncastTo<$bot> for $top {
             fn downcast_to(&self) -> Option<$bot> {
                 let v: &$top = self;
                 $(
@@ -368,15 +385,6 @@ cast_impl!(String);
 impl UpcastFrom<&str> for String {
     fn upcast_from(term: &str) -> Self {
         term.into()
-    }
-}
-
-impl<T> UpcastFrom<&str> for T
-where
-    T: Term,
-{
-    fn upcast_from(text: &str) -> Self {
-        crate::parse::term(text)
     }
 }
 

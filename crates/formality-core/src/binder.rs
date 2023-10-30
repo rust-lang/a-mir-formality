@@ -9,27 +9,28 @@ use crate::{
     cast::{Downcast, DowncastFrom, DowncastTo, To, Upcast, UpcastFrom},
     fold::Fold,
     fold::SubstitutionFn,
-    grammar::VarIndex,
+    language::{HasKind, Kind, Language, Parameter},
+    substitution::Substitution,
+    variable::{BoundVar, DebruijnIndex, VarIndex, Variable},
     visit::Visit,
+    Fallible,
 };
 
-use super::{BoundVar, DebruijnIndex, Fallible, Parameter, ParameterKind, Substitution, Variable};
-
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct Binder<T> {
-    kinds: Vec<ParameterKind>,
+pub struct Binder<L: Language, T> {
+    kinds: Vec<Kind<L>>,
     term: T,
 }
 
-impl<T: Fold> Binder<T> {
+impl<L: Language, T: Fold<L>> Binder<L, T> {
     /// Accesses the contents of the binder.
     ///
     /// The variables inside will be renamed to fresh var indices
     /// that do not alias any other indices seen during this computation.
     ///
     /// The expectation is that you will create a term and use `Binder::new`.
-    pub fn open(&self) -> (Vec<BoundVar>, T) {
-        let (bound_vars, substitution): (Vec<BoundVar>, Substitution) = self
+    pub fn open(&self) -> (Vec<BoundVar<L>>, T) {
+        let (bound_vars, substitution): (Vec<BoundVar<L>>, Substitution<L>) = self
             .kinds
             .iter()
             .zip(0..)
@@ -48,21 +49,21 @@ impl<T: Fold> Binder<T> {
     }
 
     pub fn dummy(term: T) -> Self {
-        let v: Vec<Variable> = vec![];
+        let v: Vec<Variable<L>> = vec![];
         Self::new(v, term)
     }
 
     /// Given a set of variables (X, Y, Z) and a term referecing some subset of them,
     /// create a binder where exactly those variables are bound (even the ones not used).
-    pub fn new(variables: impl Upcast<Vec<Variable>>, term: T) -> Self {
-        let variables: Vec<Variable> = variables.upcast();
-        let (kinds, substitution): (Vec<ParameterKind>, Substitution) = variables
+    pub fn new(variables: impl Upcast<Vec<Variable<L>>>, term: T) -> Self {
+        let variables: Vec<Variable<L>> = variables.upcast();
+        let (kinds, substitution): (Vec<Kind<L>>, Substitution<L>) = variables
             .iter()
             .zip(0..)
             .map(|(old_bound_var, index)| {
-                let old_bound_var: Variable = old_bound_var.upcast();
+                let old_bound_var: Variable<L> = old_bound_var.upcast();
                 assert!(old_bound_var.is_free());
-                let new_bound_var: Parameter = BoundVar {
+                let new_bound_var: Parameter<L> = BoundVar {
                     debruijn: Some(DebruijnIndex::INNERMOST),
                     var_index: VarIndex { index },
                     kind: old_bound_var.kind(),
@@ -78,15 +79,15 @@ impl<T: Fold> Binder<T> {
 
     /// Given a set of variables (X, Y, Z) and a term referecing some subset of them,
     /// create a binder for just those variables that are mentioned.
-    pub fn mentioned(variables: impl Upcast<Vec<Variable>>, term: T) -> Self {
-        let mut variables: Vec<Variable> = variables.upcast();
+    pub fn mentioned(variables: impl Upcast<Vec<Variable<L>>>, term: T) -> Self {
+        let mut variables: Vec<Variable<L>> = variables.upcast();
         let fv = term.free_variables();
         variables.retain(|v| fv.contains(v));
-        let variables: Vec<Variable> = variables.into_iter().collect();
+        let variables: Vec<Variable<L>> = variables.into_iter().collect();
         Binder::new(variables, term)
     }
 
-    pub fn into<U>(self) -> Binder<U>
+    pub fn into<U>(self) -> Binder<L, U>
     where
         T: Into<U>,
     {
@@ -107,13 +108,13 @@ impl<T: Fold> Binder<T> {
 
     /// Instantiate the binder with the given parameters, returning an err if the parameters
     /// are the wrong number or ill-kinded.
-    pub fn instantiate_with(&self, parameters: &[impl Upcast<Parameter>]) -> Fallible<T> {
+    pub fn instantiate_with(&self, parameters: &[impl Upcast<Parameter<L>>]) -> Fallible<T> {
         if parameters.len() != self.kinds.len() {
             bail!("wrong number of parameters");
         }
 
         for ((p, k), i) in parameters.iter().zip(&self.kinds).zip(0..) {
-            let p: Parameter = p.upcast();
+            let p: Parameter<L> = p.upcast();
             if p.kind() != *k {
                 bail!(
                     "parameter {i} has kind {:?} but should have kind {:?}",
@@ -127,8 +128,8 @@ impl<T: Fold> Binder<T> {
     }
 
     /// Instantiate the term, replacing each bound variable with `op(i)`.
-    pub fn instantiate(&self, mut op: impl FnMut(ParameterKind, VarIndex) -> Parameter) -> T {
-        let substitution: Vec<Parameter> = self
+    pub fn instantiate(&self, mut op: impl FnMut(Kind<L>, VarIndex) -> Parameter<L>) -> T {
+        let substitution: Vec<Parameter<L>> = self
             .kinds
             .iter()
             .zip(0..)
@@ -153,11 +154,11 @@ impl<T: Fold> Binder<T> {
     }
 
     /// Returns the kinds of each variable bound by this binder
-    pub fn kinds(&self) -> &[ParameterKind] {
+    pub fn kinds(&self) -> &[Kind<L>] {
         &self.kinds
     }
 
-    pub fn map<U: Fold>(&self, op: impl FnOnce(T) -> U) -> Binder<U> {
+    pub fn map<U: Fold<L>>(&self, op: impl FnOnce(T) -> U) -> Binder<L, U> {
         let (vars, t) = self.open();
         let u = op(t);
         Binder::new(vars, u)
@@ -166,7 +167,7 @@ impl<T: Fold> Binder<T> {
 
 /// Creates a fresh bound var of the given kind that is not yet part of a binder.
 /// You can put this into a term and then use `Binder::new`.
-pub fn fresh_bound_var(kind: ParameterKind) -> BoundVar {
+pub fn fresh_bound_var<L: Language>(kind: Kind<L>) -> BoundVar<L> {
     lazy_static! {
         static ref COUNTER: AtomicUsize = AtomicUsize::new(0);
     }
@@ -180,8 +181,8 @@ pub fn fresh_bound_var(kind: ParameterKind) -> BoundVar {
     }
 }
 
-impl<T: Visit> Visit for Binder<T> {
-    fn free_variables(&self) -> Vec<Variable> {
+impl<L: Language, T: Visit<L>> Visit<L> for Binder<L, T> {
+    fn free_variables(&self) -> Vec<Variable<L>> {
         self.term.free_variables()
     }
 
@@ -194,8 +195,8 @@ impl<T: Visit> Visit for Binder<T> {
     }
 }
 
-impl<T: Fold> Fold for Binder<T> {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+impl<L: Language, T: Fold<L>> Fold<L> for Binder<L, T> {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_, L>) -> Self {
         let term = self.term.substitute(&mut |v| {
             // Shift this variable out through the binder. If that fails,
             // it's a variable bound by this binder, so the substitution can't
@@ -224,13 +225,13 @@ impl<T: Fold> Fold for Binder<T> {
     }
 }
 
-impl<T, U> UpcastFrom<Binder<T>> for Binder<U>
+impl<L: Language, T, U> UpcastFrom<Binder<L, T>> for Binder<L, U>
 where
     T: Clone,
     U: Clone,
     T: Upcast<U>,
 {
-    fn upcast_from(term: Binder<T>) -> Self {
+    fn upcast_from(term: Binder<L, T>) -> Self {
         let Binder { kinds, term } = term;
         Binder {
             kinds,
@@ -239,11 +240,11 @@ where
     }
 }
 
-impl<T, U> DowncastTo<Binder<T>> for Binder<U>
+impl<L: Language, T, U> DowncastTo<Binder<L, T>> for Binder<L, U>
 where
     T: DowncastFrom<U>,
 {
-    fn downcast_to(&self) -> Option<Binder<T>> {
+    fn downcast_to(&self) -> Option<Binder<L, T>> {
         let Binder { kinds, term } = self;
         let term = term.downcast()?;
         Some(Binder {
@@ -253,7 +254,7 @@ where
     }
 }
 
-impl<T> std::fmt::Debug for Binder<T>
+impl<L: Language, T> std::fmt::Debug for Binder<L, T>
 where
     T: std::fmt::Debug,
 {

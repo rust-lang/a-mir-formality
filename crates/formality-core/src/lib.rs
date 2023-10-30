@@ -3,16 +3,28 @@
 //! to
 //!
 
+#![allow(type_alias_bounds)]
+
+// Re-export things from dependencies to avoid everybody repeating same set
+// in their Cargo.toml.
+pub use anyhow::bail;
+pub use contracts::requires;
 pub use tracing::debug;
 pub use tracing::instrument;
 pub use tracing::trace;
 
+pub type Fallible<T> = anyhow::Result<T>;
+
 pub mod binder;
 pub mod cast;
 pub mod collections;
+pub mod derive_links;
+pub mod fixed_point;
 pub mod fold;
 pub mod language;
 pub mod parse;
+pub mod substitution;
+pub mod term;
 pub mod variable;
 pub mod visit;
 

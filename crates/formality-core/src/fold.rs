@@ -1,17 +1,24 @@
 use std::sync::Arc;
 
-use crate::{cast::Upcast, collections::Set, visit::Visit};
+use crate::{
+    cast::Upcast,
+    collections::Set,
+    language::{HasKind, Language, Parameter},
+    variable::Variable,
+    visit::Visit,
+};
 
 /// Invoked for each variable that we find when folding, ignoring variables bound by binders
 /// that we traverse. The arguments are as follows:
 ///
 /// * ParameterKind -- the kind of term in which the variable appeared (type vs lifetime, etc)
 /// * Variable -- the variable we encountered
-pub type SubstitutionFn<'a> = &'a mut dyn FnMut(Variable) -> Option<Parameter>;
+#[allow(type_alias_bounds)]
+pub type SubstitutionFn<'a, L: Language> = &'a mut dyn FnMut(Variable<L>) -> Option<Parameter<L>>;
 
-pub trait Fold<L: Language>: Sized + Visit {
+pub trait Fold<L: Language>: Sized + Visit<L> {
     /// Replace uses of variables with values from the substitution.
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self;
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_, L>) -> Self;
 
     /// Produce a version of this term where any debruijn indices which appear free are incremented by one.
     fn shift_in(&self) -> Self {
@@ -19,115 +26,65 @@ pub trait Fold<L: Language>: Sized + Visit {
     }
 
     /// Replace all appearances of free variable `v` with `p`.
-    fn replace_free_var(&self, v: impl Upcast<Variable>, p: impl Upcast<Parameter>) -> Self {
-        let v: Variable = v.upcast();
-        let p: Parameter = p.upcast();
+    fn replace_free_var(&self, v: impl Upcast<Variable<L>>, p: impl Upcast<Parameter<L>>) -> Self {
+        let v: Variable<L> = v.upcast();
+        let p: Parameter<L> = p.upcast();
         assert!(v.is_free());
         assert!(v.kind() == p.kind());
         self.substitute(&mut |v1| if v == v1 { Some(p.clone()) } else { None })
     }
 }
 
-impl<T: Fold> Fold for Vec<T> {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+impl<L: Language, T: Fold<L>> Fold<L> for Vec<T> {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_, L>) -> Self {
         self.iter().map(|e| e.substitute(substitution_fn)).collect()
     }
 }
 
-impl<T: Fold + Ord> Fold for Set<T> {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+impl<L: Language, T: Fold<L> + Ord> Fold<L> for Set<T> {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_, L>) -> Self {
         self.iter().map(|e| e.substitute(substitution_fn)).collect()
     }
 }
 
-impl<T: Fold> Fold for Option<T> {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+impl<L: Language, T: Fold<L>> Fold<L> for Option<T> {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_, L>) -> Self {
         self.as_ref().map(|e| e.substitute(substitution_fn))
     }
 }
 
-impl<T: Fold> Fold for Arc<T> {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+impl<L: Language, T: Fold<L>> Fold<L> for Arc<T> {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_, L>) -> Self {
         let data = T::substitute(self, substitution_fn);
         Arc::new(data)
     }
 }
 
-impl Fold for Ty {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
-        match self.data() {
-            TyData::RigidTy(v) => v.substitute(substitution_fn).upcast(),
-            TyData::AliasTy(v) => v.substitute(substitution_fn).upcast(),
-            TyData::PredicateTy(v) => v.substitute(substitution_fn).upcast(),
-            TyData::Variable(v) => match substitution_fn(*v) {
-                None => self.clone(),
-                Some(Parameter::Ty(t)) => t,
-                Some(param) => panic!("ill-kinded substitute: expected type, got {param:?}"),
-            },
-        }
-    }
-}
-
-impl Fold for Const {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
-        match self.data() {
-            ConstData::Value(v, ty) => Self::valtree(
-                v.substitute(substitution_fn),
-                ty.substitute(substitution_fn),
-            ),
-            ConstData::Variable(v) => match substitution_fn(*v) {
-                None => self.clone(),
-                Some(Parameter::Const(c)) => c,
-                Some(param) => panic!("ill-kinded substitute: expected const, got {param:?}"),
-            },
-        }
-    }
-}
-
-impl Fold for ValTree {
-    fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {
-        self.clone()
-    }
-}
-
-impl Fold for Lt {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
-        match self.data() {
-            LtData::Static => self.clone(),
-            LtData::Variable(v) => match substitution_fn(*v) {
-                None => self.clone(),
-                Some(Parameter::Lt(t)) => t,
-                Some(param) => panic!("ill-kinded substitute: expected lifetime, got {param:?}"),
-            },
-        }
-    }
-}
-
-impl Fold for usize {
-    fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {
+impl<L: Language> Fold<L> for usize {
+    fn substitute(&self, _substitution_fn: SubstitutionFn<'_, L>) -> Self {
         *self
     }
 }
 
-impl Fold for u32 {
-    fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {
+impl<L: Language> Fold<L> for u32 {
+    fn substitute(&self, _substitution_fn: SubstitutionFn<'_, L>) -> Self {
         *self
     }
 }
 
-impl Fold for () {
-    fn substitute(&self, _substitution_fn: SubstitutionFn<'_>) -> Self {}
+impl<L: Language> Fold<L> for () {
+    fn substitute(&self, _substitution_fn: SubstitutionFn<'_, L>) -> Self {}
 }
 
-impl<A: Fold, B: Fold> Fold for (A, B) {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+impl<L: Language, A: Fold<L>, B: Fold<L>> Fold<L> for (A, B) {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_, L>) -> Self {
         let (a, b) = self;
         (a.substitute(substitution_fn), b.substitute(substitution_fn))
     }
 }
 
-impl<A: Fold, B: Fold, C: Fold> Fold for (A, B, C) {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+impl<L: Language, A: Fold<L>, B: Fold<L>, C: Fold<L>> Fold<L> for (A, B, C) {
+    fn substitute(&self, substitution_fn: SubstitutionFn<'_, L>) -> Self {
         let (a, b, c) = self;
         (
             a.substitute(substitution_fn),
