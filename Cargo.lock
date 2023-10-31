@@ -628,7 +628,6 @@ dependencies = [
  "expect-test",
  "extension-trait",
  "formality-core",
- "formality-macros",
  "lazy_static",
  "stacker",
  "tracing",

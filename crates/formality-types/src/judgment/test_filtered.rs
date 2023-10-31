@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use formality_macros::{term, test};
+use formality_core::{term, test};
 
-use crate::{judgment_fn};
+use crate::judgment_fn;
 
 #[term($edges)]
 struct Graph {

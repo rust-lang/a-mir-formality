@@ -1,4 +1,4 @@
-use formality_macros::Visit;
+use formality_core::Visit;
 
 use crate::cast::{Upcast, UpcastFrom};
 

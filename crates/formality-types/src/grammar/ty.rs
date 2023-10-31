@@ -1,5 +1,5 @@
 use contracts::requires;
-use formality_macros::{term, Visit};
+use formality_core::{term, Visit};
 use std::{collections::BTreeSet, sync::Arc};
 
 mod debug_impls;

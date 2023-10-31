@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use formality_macros::term;
+use formality_core::term;
 
 use crate::{
     cast::{DowncastFrom, DowncastTo, Upcast, UpcastFrom, Upcasted},

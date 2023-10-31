@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use formality_macros::term;
+use formality_core::term;
 
 use crate::judgment_fn;
 
