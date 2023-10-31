@@ -1,8 +1,8 @@
-use formality_macros::term;
+use formality_core::term;
 
-use crate::cast::To;
-use crate::cast::Upcast;
-use crate::cast_impl;
+use formality_core::cast_impl;
+use formality_core::To;
+use formality_core::Upcast;
 
 use super::AliasName;
 use super::AliasTy;
@@ -119,11 +119,7 @@ impl Predicate {
             Predicate::AliasEq(AliasTy { name, parameters }, ty) => {
                 let mut params = parameters.clone();
                 params.push(ty.clone().upcast());
-                (
-                    Skeleton::AliasEq(name.clone()),
-                    params,
-                )
-                
+                (Skeleton::AliasEq(name.clone()), params)
             }
             Predicate::WellFormedTraitRef(TraitRef {
                 trait_id,

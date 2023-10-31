@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
+use formality_core::Set;
 use formality_macros::term;
-use formality_types::{
-    collections::Set,
-    grammar::{Binder, Wcs},
-};
+use formality_types::grammar::{Binder, Wcs};
 
 use crate::{
     decls::Decls,

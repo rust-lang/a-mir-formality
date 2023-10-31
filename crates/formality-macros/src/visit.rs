@@ -7,18 +7,22 @@ pub(crate) fn derive_visit(mut s: synstructure::Structure) -> TokenStream {
     s.underscore_const(true);
     s.bind_with(|_| synstructure::BindStyle::Move);
 
-    let free_variables_body = s.each(|field| quote!(output.extend(Visit::free_variables(#field))));
+    let free_variables_body = s.each(
+        |field| quote!(output.extend(<_ as CoreVisit<crate::FormalityLang>>::free_variables(#field))),
+    );
 
-    let size_body = s.each(|field| quote!(__sum += Visit::size(#field)));
+    let size_body =
+        s.each(|field| quote!(__sum += <_ as CoreVisit<crate::FormalityLang>>::size(#field)));
 
-    let assert_valid_body = s.each(|field| quote!(Visit::assert_valid(#field)));
+    let assert_valid_body =
+        s.each(|field| quote!(<_ as CoreVisit<crate::FormalityLang>>::assert_valid(#field)));
 
     // s.add_bounds(synstructure::AddBounds::None);
     s.gen_impl(quote! {
-        use crate::derive_links::{Visit, Variable};
+        use formality_core::{visit::CoreVisit, variable::CoreVariable};
 
-        gen impl Visit for @Self {
-            fn free_variables(&self) -> Vec<Variable> {
+        gen impl CoreVisit<crate::FormalityLang> for @Self {
+            fn free_variables(&self) -> Vec<CoreVariable<crate::FormalityLang>> {
                 let mut output = vec![];
                 match self {
                     #free_variables_body

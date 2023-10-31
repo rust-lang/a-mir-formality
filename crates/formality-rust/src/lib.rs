@@ -1,4 +1,7 @@
-use formality_types::derive_links;
+// ANCHOR: use_rust_language
+// Defines the language used by derive(term) and friends.
+use formality_types::rust::FormalityLang;
+// ANCHOR_END: use_rust_language
 
 pub mod grammar;
 pub mod prove;

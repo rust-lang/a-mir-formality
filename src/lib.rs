@@ -2,9 +2,10 @@ use std::{path::PathBuf, sync::Arc};
 
 use clap::Parser;
 use formality_check::check_all_crates;
+use formality_core::Set;
 use formality_prove::{test_util::TestAssertion, Constraints};
 use formality_rust::grammar::Program;
-use formality_types::{collections::Set, parse::try_term};
+use formality_types::rust::try_term;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

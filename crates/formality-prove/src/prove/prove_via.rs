@@ -1,13 +1,9 @@
-use formality_types::{
-    grammar::{WcData, Wcs, PR},
-    judgment_fn,
-};
+use formality_core::judgment_fn;
+use formality_types::grammar::{WcData, Wcs, PR};
 
 use crate::{
     decls::Decls,
-    prove::{
-        constraints::Constraints, env::Env, prove, prove_after::prove_after, 
-    },
+    prove::{constraints::Constraints, env::Env, prove, prove_after::prove_after},
 };
 
 judgment_fn! {

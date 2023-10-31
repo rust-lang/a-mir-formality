@@ -1,6 +1,7 @@
 use anyhow::bail;
 
 use fn_error_context::context;
+use formality_core::Downcasted;
 use formality_prove::Env;
 use formality_rust::{
     grammar::{
@@ -11,9 +12,8 @@ use formality_rust::{
     prove::ToWcs,
 };
 use formality_types::{
-    cast::Downcasted,
     grammar::{Binder, Fallible, Relation, Substitution, Wcs},
-    term::Term,
+    rust::Term,
 };
 
 impl super::Check<'_> {

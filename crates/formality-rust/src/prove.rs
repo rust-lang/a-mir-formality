@@ -4,15 +4,13 @@ use crate::grammar::{
     TraitImpl, TraitImplBoundData, TraitItem, WhereBound, WhereBoundData, WhereClause,
     WhereClauseData,
 };
+use formality_core::{seq, Set, To, Upcast, Upcasted};
 use formality_prove as prove;
 use formality_types::{
-    cast::{To, Upcast, Upcasted},
-    collections::Set,
     grammar::{
-        fresh_bound_var, AdtId, AliasTy, Binder, ParameterKind, Predicate, Relation, TraitId, Ty,
-        Wc, Wcs, PR,
+        AdtId, AliasTy, Binder, ParameterKind, Predicate, Relation, TraitId, Ty, Wc, Wcs, PR,
     },
-    seq,
+    rust::BoundVar,
 };
 
 impl Program {
@@ -258,7 +256,7 @@ impl Crate {
                             ensures
                                 .iter()
                                 .map(|e| {
-                                    let fresh_var = fresh_bound_var(ParameterKind::Ty);
+                                    let fresh_var = BoundVar::fresh(ParameterKind::Ty);
                                     let ensures = Binder::new(vec![fresh_var], e.to_wc(fresh_var));
 
                                     prove::AliasBoundDecl {

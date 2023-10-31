@@ -46,10 +46,10 @@ pub(crate) fn derive_parse_with_spec(
 
     let type_name = as_literal(&s.ast().ident);
     Ok(s.gen_impl(quote! {
-        use crate::derive_links::{parse};
+        use formality_core::parse;
 
-        gen impl parse::Parse for @Self {
-            fn parse<'t>(scope: &parse::Scope, text: &'t str) -> parse::ParseResult<'t, Self>
+        gen impl parse::CoreParse<crate::FormalityLang> for @Self {
+            fn parse<'t>(scope: &parse::Scope<crate::FormalityLang>, text: &'t str) -> parse::ParseResult<'t, Self>
             {
                 let __span = tracing::span!(tracing::Level::TRACE, "parse", type_name = #type_name, ?scope, ?text);
                 let __guard = __span.enter();
@@ -142,7 +142,7 @@ fn parse_variant_with_attr(
                 mode: FieldMode::Single,
             } => {
                 quote_spanned! {
-                    name.span() => let (#name, text) = parse::Parse::parse(scope, text)?;
+                    name.span() => let (#name, text) = parse::CoreParse::parse(scope, text)?;
                 }
             }
 
@@ -152,7 +152,7 @@ fn parse_variant_with_attr(
             } => {
                 let lookahead = lookahead(name, next_op)?;
                 quote_spanned! {
-                    name.span() => let (#name, text) = parse::Parse::parse_many(scope, text, #lookahead)?;
+                    name.span() => let (#name, text) = parse::CoreParse::parse_many(scope, text, #lookahead)?;
                 }
             }
 
@@ -162,7 +162,7 @@ fn parse_variant_with_attr(
             } => {
                 let lookahead = lookahead(name, next_op)?;
                 quote_spanned! {
-                    name.span() => let (#name, text) = parse::Parse::parse_comma(scope, text, #lookahead)?;
+                    name.span() => let (#name, text) = parse::CoreParse::parse_comma(scope, text, #lookahead)?;
                 }
             }
 
@@ -242,7 +242,7 @@ fn parse_bindings(bindings: &[BindingInfo]) -> Vec<TokenStream> {
             };
             quote! {
                 #parse_comma
-                let (#name, text) = parse::Parse::parse(scope, text)?;
+                let (#name, text) = parse::CoreParse::parse(scope, text)?;
             }
         })
         .collect()

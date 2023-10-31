@@ -1,12 +1,8 @@
+use formality_core::{set, Set, Upcast};
 use formality_macros::term;
-use formality_types::{
-    cast::Upcast,
-    collections::Set,
-    grammar::{
-        AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty,
-        Wc, Wcs, PR,
-    },
-    set,
+use formality_types::grammar::{
+    AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc,
+    Wcs, PR,
 };
 
 #[term]

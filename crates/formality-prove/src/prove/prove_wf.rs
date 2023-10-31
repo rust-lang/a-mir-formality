@@ -1,6 +1,6 @@
-use formality_types::{
-    grammar::{ConstData, Parameter, RigidName, RigidTy, UniversalVar, Wcs, AliasTy, Parameters, AliasName},
-    judgment_fn, collections::Set,
+use formality_core::{judgment_fn, Set};
+use formality_types::grammar::{
+    AliasName, AliasTy, ConstData, Parameter, Parameters, RigidName, RigidTy, UniversalVar, Wcs,
 };
 
 use crate::{decls::Decls, prove::combinators::for_all};

@@ -1,15 +1,19 @@
 #![allow(dead_code)]
 
-pub mod collections;
-pub mod fixed_point;
-pub mod fold;
 pub mod grammar;
-pub mod judgment;
-pub mod matcher;
-pub mod parse;
-pub mod term;
-pub mod visit;
 
-pub mod derive_links;
+// ANCHOR: declare_rust_language
+formality_core::declare_language! {
+    pub mod rust {
+        const NAME = "Rust";
+        type Kind = crate::grammar::ParameterKind;
+        type Parameter = crate::grammar::Parameter;
+        const BINDING_OPEN = '<';
+        const BINDING_CLOSE = '>';
+    }
+}
+// ANCHOR_END: declare_rust_language
 
-pub mod cast;
+// ANCHOR: use_rust_language
+use crate::rust::FormalityLang;
+// ANCHOR_END: use_rust_language

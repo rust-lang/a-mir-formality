@@ -1,10 +1,9 @@
+use formality_core::{Deduplicate, Downcast, Upcast};
 use formality_types::{
-    cast::{Downcast, Upcast},
-    collections::Deduplicate,
     grammar::{
         ExistentialVar, Parameter, Substitution, UniversalVar, VarIndex, VarSubstitution, Variable,
     },
-    term::Term,
+    rust::Term,
 };
 
 use super::{Constraints, Env};
