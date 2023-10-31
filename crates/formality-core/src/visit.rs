@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use crate::{collections::Set, language::Language, variable::Variable};
+use crate::{collections::Set, language::Language, variable::CoreVariable};
 
-pub trait Visit<L: Language> {
+pub trait CoreVisit<L: Language> {
     /// Extract the list of free variables (for the purposes of this function, defined by `Variable::is_free`).
     /// The list may contain duplicates and must be in a determinstic order (though the order itself isn't important).
-    fn free_variables(&self) -> Vec<Variable<L>>;
+    fn free_variables(&self) -> Vec<CoreVariable<L>>;
 
     /// Measures the overall size of the term by counting constructors etc.
     /// Used to determine overflow.
@@ -24,15 +24,15 @@ pub trait Visit<L: Language> {
     /// is that the term may contain variables, but only those instantiated universally (∀).
     fn references_only_universal_variables(&self) -> bool {
         self.free_variables().iter().all(|v| match v {
-            Variable::UniversalVar(_) => true,
-            Variable::ExistentialVar(_) => false,
-            Variable::BoundVar(_) => false,
+            CoreVariable::UniversalVar(_) => true,
+            CoreVariable::ExistentialVar(_) => false,
+            CoreVariable::BoundVar(_) => false,
         })
     }
 }
 
-impl<L: Language, T: Visit<L>> Visit<L> for Vec<T> {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language, T: CoreVisit<L>> CoreVisit<L> for Vec<T> {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         self.iter().flat_map(|e| e.free_variables()).collect()
     }
 
@@ -45,8 +45,8 @@ impl<L: Language, T: Visit<L>> Visit<L> for Vec<T> {
     }
 }
 
-impl<L: Language, T: Visit<L> + Ord> Visit<L> for Set<T> {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language, T: CoreVisit<L> + Ord> CoreVisit<L> for Set<T> {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         self.iter().flat_map(|e| e.free_variables()).collect()
     }
 
@@ -59,8 +59,8 @@ impl<L: Language, T: Visit<L> + Ord> Visit<L> for Set<T> {
     }
 }
 
-impl<L: Language, T: Visit<L>> Visit<L> for Option<T> {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language, T: CoreVisit<L>> CoreVisit<L> for Option<T> {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         self.iter().flat_map(|e| e.free_variables()).collect()
     }
 
@@ -73,8 +73,8 @@ impl<L: Language, T: Visit<L>> Visit<L> for Option<T> {
     }
 }
 
-impl<L: Language, T: Visit<L> + ?Sized> Visit<L> for Arc<T> {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language, T: CoreVisit<L> + ?Sized> CoreVisit<L> for Arc<T> {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         T::free_variables(self)
     }
 
@@ -87,8 +87,8 @@ impl<L: Language, T: Visit<L> + ?Sized> Visit<L> for Arc<T> {
     }
 }
 
-impl<L: Language> Visit<L> for usize {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language> CoreVisit<L> for usize {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         vec![]
     }
 
@@ -99,8 +99,8 @@ impl<L: Language> Visit<L> for usize {
     fn assert_valid(&self) {}
 }
 
-impl<L: Language> Visit<L> for u32 {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language> CoreVisit<L> for u32 {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         vec![]
     }
 
@@ -111,8 +111,8 @@ impl<L: Language> Visit<L> for u32 {
     fn assert_valid(&self) {}
 }
 
-impl<L: Language> Visit<L> for u128 {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language> CoreVisit<L> for u128 {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         vec![]
     }
 
@@ -123,8 +123,8 @@ impl<L: Language> Visit<L> for u128 {
     fn assert_valid(&self) {}
 }
 
-impl<L: Language> Visit<L> for () {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language> CoreVisit<L> for () {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         vec![]
     }
 
@@ -135,8 +135,8 @@ impl<L: Language> Visit<L> for () {
     fn assert_valid(&self) {}
 }
 
-impl<L: Language, A: Visit<L>, B: Visit<L>> Visit<L> for (A, B) {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language, A: CoreVisit<L>, B: CoreVisit<L>> CoreVisit<L> for (A, B) {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         let (a, b) = self;
         let mut fv = vec![];
         fv.extend(a.free_variables());
@@ -156,8 +156,8 @@ impl<L: Language, A: Visit<L>, B: Visit<L>> Visit<L> for (A, B) {
     }
 }
 
-impl<L: Language, A: Visit<L>, B: Visit<L>, C: Visit<L>> Visit<L> for (A, B, C) {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language, A: CoreVisit<L>, B: CoreVisit<L>, C: CoreVisit<L>> CoreVisit<L> for (A, B, C) {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         let (a, b, c) = self;
         let mut fv = vec![];
         fv.extend(a.free_variables());
@@ -179,8 +179,8 @@ impl<L: Language, A: Visit<L>, B: Visit<L>, C: Visit<L>> Visit<L> for (A, B, C) 
     }
 }
 
-impl<L: Language, A: Visit<L> + ?Sized> Visit<L> for &A {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language, A: CoreVisit<L> + ?Sized> CoreVisit<L> for &A {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         A::free_variables(self)
     }
 
@@ -193,8 +193,8 @@ impl<L: Language, A: Visit<L> + ?Sized> Visit<L> for &A {
     }
 }
 
-impl<L: Language, A: Visit<L>> Visit<L> for [A] {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language, A: CoreVisit<L>> CoreVisit<L> for [A] {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         self.iter().flat_map(|e| A::free_variables(e)).collect()
     }
 

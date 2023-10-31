@@ -1,6 +1,6 @@
 use super::*;
 
-impl<L: Language> std::fmt::Debug for Variable<L> {
+impl<L: Language> std::fmt::Debug for CoreVariable<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UniversalVar(arg0) => write!(f, "{:?}", arg0),
@@ -10,16 +10,16 @@ impl<L: Language> std::fmt::Debug for Variable<L> {
     }
 }
 
-impl<L: Language> std::fmt::Debug for UniversalVar<L> {
+impl<L: Language> std::fmt::Debug for CoreUniversalVar<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let UniversalVar { var_index, kind } = self;
+        let CoreUniversalVar { var_index, kind } = self;
         write!(f, "!{:?}_{:?}", kind, var_index)
     }
 }
 
-impl<L: Language> std::fmt::Debug for ExistentialVar<L> {
+impl<L: Language> std::fmt::Debug for CoreExistentialVar<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let ExistentialVar { var_index, kind } = self;
+        let CoreExistentialVar { var_index, kind } = self;
         write!(f, "?{:?}_{:?}", kind, var_index)
     }
 }
@@ -30,15 +30,15 @@ impl std::fmt::Debug for VarIndex {
     }
 }
 
-impl<L: Language> std::fmt::Debug for BoundVar<L> {
+impl<L: Language> std::fmt::Debug for CoreBoundVar<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BoundVar {
+            CoreBoundVar {
                 debruijn: None,
                 var_index,
                 kind,
             } => write!(f, "^{:?}_{:?}", kind, var_index),
-            BoundVar {
+            CoreBoundVar {
                 debruijn: Some(db),
                 var_index,
                 kind,

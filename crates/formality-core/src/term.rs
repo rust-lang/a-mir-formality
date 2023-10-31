@@ -1,18 +1,18 @@
 use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 use crate::{
-    binder::Binder,
+    binder::CoreBinder,
     cast::{DowncastFrom, Upcast},
     collections::Set,
-    fold::Fold,
+    fold::CoreFold,
     language::Language,
-    parse::Parse,
+    parse::CoreParse,
 };
 
-pub trait Term<L: Language>:
+pub trait CoreTerm<L: Language>:
     Clone
-    + Fold<L>
-    + Parse<L>
+    + CoreFold<L>
+    + CoreParse<L>
     + Ord
     + Eq
     + Hash
@@ -24,20 +24,20 @@ pub trait Term<L: Language>:
 {
 }
 
-impl<L: Language, T: Term<L>> Term<L> for Vec<T> {}
+impl<L: Language, T: CoreTerm<L>> CoreTerm<L> for Vec<T> {}
 
-impl<L: Language, T: Term<L>> Term<L> for Set<T> {}
+impl<L: Language, T: CoreTerm<L>> CoreTerm<L> for Set<T> {}
 
-impl<L: Language, T: Term<L>> Term<L> for Option<T> {}
+impl<L: Language, T: CoreTerm<L>> CoreTerm<L> for Option<T> {}
 
-impl<L: Language, T: Term<L>> Term<L> for Arc<T> {}
+impl<L: Language, T: CoreTerm<L>> CoreTerm<L> for Arc<T> {}
 
-impl<L: Language> Term<L> for usize {}
+impl<L: Language> CoreTerm<L> for usize {}
 
-impl<L: Language> Term<L> for u32 {}
+impl<L: Language> CoreTerm<L> for u32 {}
 
-impl<L: Language, A: Term<L>, B: Term<L>> Term<L> for (A, B) {}
+impl<L: Language, A: CoreTerm<L>, B: CoreTerm<L>> CoreTerm<L> for (A, B) {}
 
-impl<L: Language, T: Term<L>> Term<L> for Binder<L, T> {}
+impl<L: Language, T: CoreTerm<L>> CoreTerm<L> for CoreBinder<L, T> {}
 
-impl<L: Language> Term<L> for () {}
+impl<L: Language> CoreTerm<L> for () {}

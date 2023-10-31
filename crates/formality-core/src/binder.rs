@@ -7,35 +7,35 @@ use lazy_static::lazy_static;
 
 use crate::{
     cast::{Downcast, DowncastFrom, DowncastTo, To, Upcast, UpcastFrom},
-    fold::Fold,
+    fold::CoreFold,
     fold::SubstitutionFn,
-    language::{HasKind, Kind, Language, Parameter},
-    substitution::Substitution,
-    variable::{BoundVar, DebruijnIndex, VarIndex, Variable},
-    visit::Visit,
+    language::{CoreKind, CoreParameter, HasKind, Language},
+    substitution::CoreSubstitution,
+    variable::{CoreBoundVar, CoreVariable, DebruijnIndex, VarIndex},
+    visit::CoreVisit,
     Fallible,
 };
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct Binder<L: Language, T> {
-    kinds: Vec<Kind<L>>,
+pub struct CoreBinder<L: Language, T> {
+    kinds: Vec<CoreKind<L>>,
     term: T,
 }
 
-impl<L: Language, T: Fold<L>> Binder<L, T> {
+impl<L: Language, T: CoreFold<L>> CoreBinder<L, T> {
     /// Accesses the contents of the binder.
     ///
     /// The variables inside will be renamed to fresh var indices
     /// that do not alias any other indices seen during this computation.
     ///
     /// The expectation is that you will create a term and use `Binder::new`.
-    pub fn open(&self) -> (Vec<BoundVar<L>>, T) {
-        let (bound_vars, substitution): (Vec<BoundVar<L>>, Substitution<L>) = self
+    pub fn open(&self) -> (Vec<CoreBoundVar<L>>, T) {
+        let (bound_vars, substitution): (Vec<CoreBoundVar<L>>, CoreSubstitution<L>) = self
             .kinds
             .iter()
             .zip(0..)
             .map(|(kind, index)| {
-                let old_bound_var = BoundVar {
+                let old_bound_var = CoreBoundVar {
                     debruijn: Some(DebruijnIndex::INNERMOST),
                     var_index: VarIndex { index },
                     kind: *kind,
@@ -49,21 +49,21 @@ impl<L: Language, T: Fold<L>> Binder<L, T> {
     }
 
     pub fn dummy(term: T) -> Self {
-        let v: Vec<Variable<L>> = vec![];
+        let v: Vec<CoreVariable<L>> = vec![];
         Self::new(v, term)
     }
 
     /// Given a set of variables (X, Y, Z) and a term referecing some subset of them,
     /// create a binder where exactly those variables are bound (even the ones not used).
-    pub fn new(variables: impl Upcast<Vec<Variable<L>>>, term: T) -> Self {
-        let variables: Vec<Variable<L>> = variables.upcast();
-        let (kinds, substitution): (Vec<Kind<L>>, Substitution<L>) = variables
+    pub fn new(variables: impl Upcast<Vec<CoreVariable<L>>>, term: T) -> Self {
+        let variables: Vec<CoreVariable<L>> = variables.upcast();
+        let (kinds, substitution): (Vec<CoreKind<L>>, CoreSubstitution<L>) = variables
             .iter()
             .zip(0..)
             .map(|(old_bound_var, index)| {
-                let old_bound_var: Variable<L> = old_bound_var.upcast();
+                let old_bound_var: CoreVariable<L> = old_bound_var.upcast();
                 assert!(old_bound_var.is_free());
-                let new_bound_var: Parameter<L> = BoundVar {
+                let new_bound_var: CoreParameter<L> = CoreBoundVar {
                     debruijn: Some(DebruijnIndex::INNERMOST),
                     var_index: VarIndex { index },
                     kind: old_bound_var.kind(),
@@ -74,24 +74,24 @@ impl<L: Language, T: Fold<L>> Binder<L, T> {
             .unzip();
 
         let term = substitution.apply(&term);
-        Binder { kinds, term }
+        CoreBinder { kinds, term }
     }
 
     /// Given a set of variables (X, Y, Z) and a term referecing some subset of them,
     /// create a binder for just those variables that are mentioned.
-    pub fn mentioned(variables: impl Upcast<Vec<Variable<L>>>, term: T) -> Self {
-        let mut variables: Vec<Variable<L>> = variables.upcast();
+    pub fn mentioned(variables: impl Upcast<Vec<CoreVariable<L>>>, term: T) -> Self {
+        let mut variables: Vec<CoreVariable<L>> = variables.upcast();
         let fv = term.free_variables();
         variables.retain(|v| fv.contains(v));
-        let variables: Vec<Variable<L>> = variables.into_iter().collect();
-        Binder::new(variables, term)
+        let variables: Vec<CoreVariable<L>> = variables.into_iter().collect();
+        CoreBinder::new(variables, term)
     }
 
-    pub fn into<U>(self) -> Binder<L, U>
+    pub fn into<U>(self) -> CoreBinder<L, U>
     where
         T: Into<U>,
     {
-        Binder {
+        CoreBinder {
             kinds: self.kinds,
             term: self.term.into(),
         }
@@ -108,13 +108,13 @@ impl<L: Language, T: Fold<L>> Binder<L, T> {
 
     /// Instantiate the binder with the given parameters, returning an err if the parameters
     /// are the wrong number or ill-kinded.
-    pub fn instantiate_with(&self, parameters: &[impl Upcast<Parameter<L>>]) -> Fallible<T> {
+    pub fn instantiate_with(&self, parameters: &[impl Upcast<CoreParameter<L>>]) -> Fallible<T> {
         if parameters.len() != self.kinds.len() {
             bail!("wrong number of parameters");
         }
 
         for ((p, k), i) in parameters.iter().zip(&self.kinds).zip(0..) {
-            let p: Parameter<L> = p.upcast();
+            let p: CoreParameter<L> = p.upcast();
             if p.kind() != *k {
                 bail!(
                     "parameter {i} has kind {:?} but should have kind {:?}",
@@ -128,8 +128,8 @@ impl<L: Language, T: Fold<L>> Binder<L, T> {
     }
 
     /// Instantiate the term, replacing each bound variable with `op(i)`.
-    pub fn instantiate(&self, mut op: impl FnMut(Kind<L>, VarIndex) -> Parameter<L>) -> T {
-        let substitution: Vec<Parameter<L>> = self
+    pub fn instantiate(&self, mut op: impl FnMut(CoreKind<L>, VarIndex) -> CoreParameter<L>) -> T {
+        let substitution: Vec<CoreParameter<L>> = self
             .kinds
             .iter()
             .zip(0..)
@@ -137,7 +137,7 @@ impl<L: Language, T: Fold<L>> Binder<L, T> {
             .collect();
 
         self.term.substitute(&mut |var| match var {
-            Variable::BoundVar(BoundVar {
+            CoreVariable::BoundVar(CoreBoundVar {
                 debruijn: Some(DebruijnIndex::INNERMOST),
                 var_index,
                 kind: _,
@@ -154,35 +154,35 @@ impl<L: Language, T: Fold<L>> Binder<L, T> {
     }
 
     /// Returns the kinds of each variable bound by this binder
-    pub fn kinds(&self) -> &[Kind<L>] {
+    pub fn kinds(&self) -> &[CoreKind<L>] {
         &self.kinds
     }
 
-    pub fn map<U: Fold<L>>(&self, op: impl FnOnce(T) -> U) -> Binder<L, U> {
+    pub fn map<U: CoreFold<L>>(&self, op: impl FnOnce(T) -> U) -> CoreBinder<L, U> {
         let (vars, t) = self.open();
         let u = op(t);
-        Binder::new(vars, u)
+        CoreBinder::new(vars, u)
     }
 }
 
 /// Creates a fresh bound var of the given kind that is not yet part of a binder.
 /// You can put this into a term and then use `Binder::new`.
-pub fn fresh_bound_var<L: Language>(kind: Kind<L>) -> BoundVar<L> {
+pub fn fresh_bound_var<L: Language>(kind: CoreKind<L>) -> CoreBoundVar<L> {
     lazy_static! {
         static ref COUNTER: AtomicUsize = AtomicUsize::new(0);
     }
 
     let index = COUNTER.fetch_add(1, Ordering::SeqCst);
     let var_index = VarIndex { index };
-    BoundVar {
+    CoreBoundVar {
         debruijn: None,
         var_index,
         kind,
     }
 }
 
-impl<L: Language, T: Visit<L>> Visit<L> for Binder<L, T> {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language, T: CoreVisit<L>> CoreVisit<L> for CoreBinder<L, T> {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         self.term.free_variables()
     }
 
@@ -195,7 +195,7 @@ impl<L: Language, T: Visit<L>> Visit<L> for Binder<L, T> {
     }
 }
 
-impl<L: Language, T: Fold<L>> Fold<L> for Binder<L, T> {
+impl<L: Language, T: CoreFold<L>> CoreFold<L> for CoreBinder<L, T> {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_, L>) -> Self {
         let term = self.term.substitute(&mut |v| {
             // Shift this variable out through the binder. If that fails,
@@ -210,7 +210,7 @@ impl<L: Language, T: Fold<L>> Fold<L> for Binder<L, T> {
             Some(parameter.shift_in())
         });
 
-        Binder {
+        CoreBinder {
             kinds: self.kinds.clone(),
             term,
         }
@@ -218,43 +218,43 @@ impl<L: Language, T: Fold<L>> Fold<L> for Binder<L, T> {
 
     fn shift_in(&self) -> Self {
         let term = self.term.shift_in();
-        Binder {
+        CoreBinder {
             kinds: self.kinds.clone(),
             term,
         }
     }
 }
 
-impl<L: Language, T, U> UpcastFrom<Binder<L, T>> for Binder<L, U>
+impl<L: Language, T, U> UpcastFrom<CoreBinder<L, T>> for CoreBinder<L, U>
 where
     T: Clone,
     U: Clone,
     T: Upcast<U>,
 {
-    fn upcast_from(term: Binder<L, T>) -> Self {
-        let Binder { kinds, term } = term;
-        Binder {
+    fn upcast_from(term: CoreBinder<L, T>) -> Self {
+        let CoreBinder { kinds, term } = term;
+        CoreBinder {
             kinds,
             term: term.upcast(),
         }
     }
 }
 
-impl<L: Language, T, U> DowncastTo<Binder<L, T>> for Binder<L, U>
+impl<L: Language, T, U> DowncastTo<CoreBinder<L, T>> for CoreBinder<L, U>
 where
     T: DowncastFrom<U>,
 {
-    fn downcast_to(&self) -> Option<Binder<L, T>> {
-        let Binder { kinds, term } = self;
+    fn downcast_to(&self) -> Option<CoreBinder<L, T>> {
+        let CoreBinder { kinds, term } = self;
         let term = term.downcast()?;
-        Some(Binder {
+        Some(CoreBinder {
             kinds: kinds.clone(),
             term,
         })
     }
 }
 
-impl<L: Language, T> std::fmt::Debug for Binder<L, T>
+impl<L: Language, T> std::fmt::Debug for CoreBinder<L, T>
 where
     T: std::fmt::Debug,
 {

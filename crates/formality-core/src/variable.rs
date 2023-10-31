@@ -1,18 +1,18 @@
 use crate::cast::Upcast;
-use crate::language::Kind;
+use crate::language::CoreKind;
 use crate::language::Language;
-use crate::visit::Visit;
+use crate::visit::CoreVisit;
 
 /// A term representing a variable.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Variable<L: Language> {
+pub enum CoreVariable<L: Language> {
     /// A "universal free variable" is a variable that appears
     /// free in all terms because it is bound in the environment.
     /// Universal means that it arose from a "forall" binder.
     /// Universal variables are a kind of placeholder meant to represent
     /// "some value" about which you know nothing except what you are
     /// told to assume.
-    UniversalVar(UniversalVar<L>),
+    UniversalVar(CoreUniversalVar<L>),
 
     /// An "existential free variable" is a variable that appears
     /// free in all terms because it is bound in the environment.
@@ -20,32 +20,32 @@ pub enum Variable<L: Language> {
     /// Existential variables are a kind of placeholder for which
     /// you will eventually find some specific value, so the rules typically
     /// accumulate constraints.
-    ExistentialVar(ExistentialVar<L>),
+    ExistentialVar(CoreExistentialVar<L>),
 
     /// A bound variable is one that is bound by some enclosing `Binder`
     /// in this term (or a binder about to be constructex; see `fresh_bound_var`).
-    BoundVar(BoundVar<L>),
+    BoundVar(CoreBoundVar<L>),
 }
 
-impl<L: Language> Variable<L> {
-    pub fn kind(&self) -> Kind<L> {
+impl<L: Language> CoreVariable<L> {
+    pub fn kind(&self) -> CoreKind<L> {
         match self {
-            Variable::UniversalVar(v) => v.kind,
-            Variable::ExistentialVar(v) => v.kind,
-            Variable::BoundVar(v) => v.kind,
+            CoreVariable::UniversalVar(v) => v.kind,
+            CoreVariable::ExistentialVar(v) => v.kind,
+            CoreVariable::BoundVar(v) => v.kind,
         }
     }
 
     /// Shift a variable in through `binders` binding levels.
     /// Only affects bound variables.
     pub fn shift_in(&self) -> Self {
-        if let Variable::BoundVar(BoundVar {
+        if let CoreVariable::BoundVar(CoreBoundVar {
             debruijn: Some(db),
             var_index,
             kind,
         }) = self
         {
-            BoundVar {
+            CoreBoundVar {
                 debruijn: Some(db.shift_in()),
                 var_index: *var_index,
                 kind: *kind,
@@ -60,14 +60,14 @@ impl<L: Language> Variable<L> {
     /// Only affects bound variables. Returns None if the variable
     /// is bound within those binding levels.
     pub fn shift_out(&self) -> Option<Self> {
-        if let Variable::BoundVar(BoundVar {
+        if let CoreVariable::BoundVar(CoreBoundVar {
             debruijn: Some(db),
             var_index,
             kind,
         }) = self
         {
             db.shift_out().map(|db1| {
-                BoundVar {
+                CoreBoundVar {
                     debruijn: Some(db1),
                     var_index: *var_index,
                     kind: *kind,
@@ -85,15 +85,15 @@ impl<L: Language> Variable<L> {
     /// you close it back up again).
     pub fn is_free(&self) -> bool {
         match self {
-            Variable::UniversalVar(_)
-            | Variable::ExistentialVar(_)
-            | Variable::BoundVar(BoundVar {
+            CoreVariable::UniversalVar(_)
+            | CoreVariable::ExistentialVar(_)
+            | CoreVariable::BoundVar(CoreBoundVar {
                 debruijn: None,
                 var_index: _,
                 kind: _,
             }) => true,
 
-            Variable::BoundVar(BoundVar {
+            CoreVariable::BoundVar(CoreBoundVar {
                 debruijn: Some(_),
                 var_index: _,
                 kind: _,
@@ -103,15 +103,15 @@ impl<L: Language> Variable<L> {
 
     pub fn is_universal(&self) -> bool {
         match self {
-            Variable::UniversalVar(_) => true,
-            Variable::ExistentialVar(_) => false,
-            Variable::BoundVar(_) => false,
+            CoreVariable::UniversalVar(_) => true,
+            CoreVariable::ExistentialVar(_) => false,
+            CoreVariable::BoundVar(_) => false,
         }
     }
 }
 
-impl<L: Language> Visit<L> for Variable<L> {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language> CoreVisit<L> for CoreVariable<L> {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         if self.is_free() {
             vec![*self]
         } else {
@@ -127,13 +127,13 @@ impl<L: Language> Visit<L> for Variable<L> {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExistentialVar<L: Language> {
-    pub kind: Kind<L>,
+pub struct CoreExistentialVar<L: Language> {
+    pub kind: CoreKind<L>,
     pub var_index: VarIndex,
 }
 
-impl<L: Language> Visit<L> for ExistentialVar<L> {
-    fn free_variables(&self) -> Vec<Variable<L>> {
+impl<L: Language> CoreVisit<L> for CoreExistentialVar<L> {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
         vec![self.upcast()]
     }
 
@@ -148,20 +148,20 @@ impl<L: Language> Visit<L> for ExistentialVar<L> {
 /// that which we see in the environment. When we want to prove something
 /// is true for all `T` (`∀T`), we replace `T` with a universal variable.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct UniversalVar<L: Language> {
-    pub kind: Kind<L>,
+pub struct CoreUniversalVar<L: Language> {
+    pub kind: CoreKind<L>,
     pub var_index: VarIndex,
 }
 
 /// Identifies a bound variable.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct BoundVar<L: Language> {
+pub struct CoreBoundVar<L: Language> {
     /// Identifies the binder that contained this variable, counting "outwards".
     /// When you create a binder with `Binder::new`,
     /// When you open a Binder, you get back `Bound
     pub debruijn: Option<DebruijnIndex>,
     pub var_index: VarIndex,
-    pub kind: Kind<L>,
+    pub kind: CoreKind<L>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

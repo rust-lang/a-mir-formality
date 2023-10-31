@@ -1,6 +1,6 @@
 use crate::cast::UpcastFrom;
-use crate::term::Term;
-use crate::variable::{BoundVar, ExistentialVar, UniversalVar, Variable};
+use crate::term::CoreTerm;
+use crate::variable::{CoreBoundVar, CoreExistentialVar, CoreUniversalVar, CoreVariable};
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -11,16 +11,16 @@ pub trait Language: 'static + Copy + Ord + Hash + Debug + Default {
 
     /// An enum defining the *kinds* of generic parameters (e.g., for Rust,
     /// types, lifetimes, and constants).
-    type Kind: Copy + Term<Self>;
+    type Kind: Copy + CoreTerm<Self>;
 
     /// An enum defining the *value* of a generic parameter (e.g., a
     /// type, a lifetime, etc)
     type Parameter: HasKind<Self>
-        + Term<Self>
-        + UpcastFrom<Variable<Self>>
-        + UpcastFrom<UniversalVar<Self>>
-        + UpcastFrom<ExistentialVar<Self>>
-        + UpcastFrom<BoundVar<Self>>;
+        + CoreTerm<Self>
+        + UpcastFrom<CoreVariable<Self>>
+        + UpcastFrom<CoreUniversalVar<Self>>
+        + UpcastFrom<CoreExistentialVar<Self>>
+        + UpcastFrom<CoreBoundVar<Self>>;
 
     /// The character (typically `<`) used to open binders.
     const BINDING_OPEN: char;
@@ -29,12 +29,12 @@ pub trait Language: 'static + Copy + Ord + Hash + Debug + Default {
     const BINDING_CLOSE: char;
 }
 
-/// For consistency with types like `Variable<L>`, we write `Kind<L>` instead of `Kind<L>`.
-pub type Kind<L: Language> = L::Kind;
+/// For consistency with types like `CoreVariable<L>`, we write `CoreKind<L>` instead of `Kind<L>`.
+pub type CoreKind<L: Language> = L::Kind;
 
-/// For consistency with types like `Variable<L>`, we write `Parameter<L>` instead of `Parameter<L>`.
-pub type Parameter<L: Language> = L::Parameter;
+/// For consistency with types like `CoreVariable<L>`, we write `CoreParameter<L>` instead of `Parameter<L>`.
+pub type CoreParameter<L: Language> = L::Parameter;
 
 pub trait HasKind<L: Language> {
-    fn kind(&self) -> Kind<L>;
+    fn kind(&self) -> CoreKind<L>;
 }
