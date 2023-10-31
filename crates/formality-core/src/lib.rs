@@ -13,6 +13,9 @@ pub use tracing::debug;
 pub use tracing::instrument;
 pub use tracing::trace;
 
+// Re-export things from formality-macros.
+pub use formality_macros::*;
+
 pub type Fallible<T> = anyhow::Result<T>;
 
 pub mod binder;
