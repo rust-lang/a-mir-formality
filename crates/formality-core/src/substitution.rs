@@ -1,9 +1,10 @@
 use crate::{
     cast::{Upcast, UpcastFrom},
     collections::{Map, Set},
-    derive_links::{Variable, Visit},
     fold::Fold,
     language::{Language, Parameter},
+    variable::Variable,
+    visit::Visit,
 };
 
 #[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]

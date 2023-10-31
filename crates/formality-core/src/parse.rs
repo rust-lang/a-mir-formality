@@ -4,9 +4,9 @@ use crate::{
     binder::{fresh_bound_var, Binder},
     cast::To,
     collections::Set,
-    derive_links::Term,
     language::{Kind, Language, Parameter},
     set,
+    term::Term,
     variable::BoundVar,
 };
 use std::fmt::Debug;

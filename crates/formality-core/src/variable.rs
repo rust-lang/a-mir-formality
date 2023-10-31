@@ -1,6 +1,7 @@
 use crate::cast::Upcast;
 use crate::language::Kind;
-use crate::{derive_links::Visit, language::Language};
+use crate::language::Language;
+use crate::visit::Visit;
 
 /// A term representing a variable.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

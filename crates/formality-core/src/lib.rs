@@ -21,7 +21,6 @@ pub type Fallible<T> = anyhow::Result<T>;
 pub mod binder;
 pub mod cast;
 pub mod collections;
-pub mod derive_links;
 pub mod fixed_point;
 pub mod fold;
 pub mod language;

@@ -1,6 +1,6 @@
 use crate::cast::UpcastFrom;
-use crate::derive_links::{Term, Variable};
-use crate::variable::{BoundVar, ExistentialVar, UniversalVar};
+use crate::term::Term;
+use crate::variable::{BoundVar, ExistentialVar, UniversalVar, Variable};
 use std::fmt::Debug;
 use std::hash::Hash;
 
