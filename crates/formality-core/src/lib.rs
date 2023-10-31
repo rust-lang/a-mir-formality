@@ -68,6 +68,17 @@ macro_rules! trait_alias {
     }
 }
 
+/// Declares a new formality language.
+/// This will generate a module with a name you choose that contains various items;
+/// among them will be a struct named `FormalityLang` that implements the
+/// [`Language`](`crate::language::Language`) trait.
+/// When you use the auto-derives or the [`term`](`crate::term`) macro, they will generate
+/// code that references `crate::FormalityLang`, so you need to bring that in scope at the root
+/// of your crate (e.g., if you called the module `mylang`, you might
+/// add `use crate::mylang::FormalityLang` at the root of your crate,
+/// so that the auto-derives can find it.)
+///
+/// See the mdbook for more coverage of how it works.
 #[macro_export]
 macro_rules! declare_language {
     (

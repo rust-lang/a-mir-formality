@@ -12,6 +12,7 @@ use super::{AliasTy, AssociatedTyName, Lt, LtData, Parameter, PredicateTy, Rigid
 
 use crate::rust::FormalityLang as Rust;
 
+// ANCHOR: ty_parse_impl
 // For types, we invest some effort into parsing them decently because it makes
 // writing tests so much more pleasant.
 impl CoreParse<Rust> for Ty {
@@ -57,6 +58,7 @@ impl CoreParse<Rust> for Ty {
         )
     }
 }
+// ANCHOR_END: ty_parse_impl
 
 #[tracing::instrument(level = "trace", ret)]
 fn parse_adt_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
