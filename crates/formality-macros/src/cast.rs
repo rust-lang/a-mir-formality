@@ -15,7 +15,7 @@ pub(crate) fn upcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
 
 fn self_upcast(s: &synstructure::Structure) -> TokenStream {
     s.gen_impl(quote! {
-        use crate::derive_links::{UpcastFrom};
+        use formality_core::UpcastFrom;
 
         gen impl UpcastFrom<Self> for @Self {
             fn upcast_from(term: Self) -> Self {
@@ -31,7 +31,7 @@ fn upcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStrea
     let variant_construct = v.construct(|_field, index| &binding_names[index]);
 
     s.gen_impl(quote! {
-        use crate::derive_links::{UpcastFrom};
+        use formality_core::{UpcastFrom};
 
         gen impl UpcastFrom<(#(#binding_tys),*)> for @Self {
             fn upcast_from(term: (#(#binding_tys),*)) -> Self {
@@ -54,7 +54,7 @@ pub(crate) fn downcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
 
 fn self_downcast(s: &synstructure::Structure) -> TokenStream {
     s.gen_impl(quote! {
-        use crate::derive_links::{DowncastTo};
+        use formality_core::{DowncastTo};
 
         gen impl DowncastTo<Self> for @Self {
             fn downcast_to(&self) -> Option<Self> {
@@ -78,7 +78,7 @@ fn downcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStr
     });
 
     s.gen_impl(quote! {
-        use crate::derive_links::{DowncastTo};
+        use formality_core::{DowncastTo};
 
         gen impl DowncastTo<(#(#binding_tys),*)> for @Self {
             fn downcast_to(&self) -> Option<(#(#binding_tys),*)> {

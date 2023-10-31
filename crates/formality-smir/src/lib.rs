@@ -1,5 +1,7 @@
 #![feature(rustc_private)]
 
+use formality_types::grammar::ParameterKind;
+
 /// This import is needed, because `stable_mir` on its own doesn't have the `scoped_tls` rlib.
 extern crate rustc_driver;
 /// Access to the pre-0.1 stable_mir crate
@@ -14,11 +16,9 @@ pub trait ToFormality {
 }
 
 impl ToFormality for stable_mir::ty::GenericParamDefKind {
-    type T = formality_types::derive_links::ParameterKind;
+    type T = ParameterKind;
 
     fn formality(&self) -> Self::T {
-        use formality_types::derive_links::ParameterKind;
-
         match self {
             stable_mir::ty::GenericParamDefKind::Lifetime => ParameterKind::Lt,
             stable_mir::ty::GenericParamDefKind::Type { .. } => ParameterKind::Ty,

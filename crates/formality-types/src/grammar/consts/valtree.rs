@@ -1,6 +1,6 @@
 use formality_core::Visit;
 
-use crate::cast::{Upcast, UpcastFrom};
+use formality_core::{Upcast, UpcastFrom};
 
 use super::Bool;
 

@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::BTreeSet, sync::Arc};
+use std::{cell::RefCell, collections::BTreeSet};
 
 use crate::fixed_point::FixedPointStack;
 
@@ -6,13 +6,6 @@ mod test_filtered;
 mod test_reachable;
 
 pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, BTreeSet<O>>>;
-
-type InferenceRuleClosure<I, O> = Arc<dyn Fn(&I) -> Vec<O> + Send>;
-
-#[derive(Clone)]
-struct InferenceRule<I, O> {
-    closure: InferenceRuleClosure<I, O>,
-}
 
 #[macro_export]
 macro_rules! judgment_fn {
@@ -26,7 +19,7 @@ macro_rules! judgment_fn {
         }
     ) => {
         $(#[$attr])*
-        $v fn $name($($input_name : impl $crate::cast::Upcast<$input_ty>),*) -> $crate::collections::Set<$output> {
+        $v fn $name($($input_name : impl $crate::Upcast<$input_ty>),*) -> $crate::Set<$output> {
             #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone)]
             struct __JudgmentStruct($($input_ty),*);
 
@@ -43,7 +36,7 @@ macro_rules! judgment_fn {
                 }
             }
 
-            $(let $input_name: $input_ty = $crate::cast::Upcast::upcast($input_name);)*
+            $(let $input_name: $input_ty = $crate::Upcast::upcast($input_name);)*
 
             $(
                 // Assertions are preconditions
@@ -60,7 +53,7 @@ macro_rules! judgment_fn {
 
             $crate::fixed_point::fixed_point::<
                 __JudgmentStruct,
-                $crate::collections::Set<$output>,
+                $crate::Set<$output>,
             >(
                 // Tracing span:
                 |input| {
@@ -87,7 +80,7 @@ macro_rules! judgment_fn {
 
                 // Next value:
                 |input: __JudgmentStruct| {
-                    let mut output = $crate::collections::Set::new();
+                    let mut output = $crate::Set::new();
 
                     $crate::push_rules!(
                         $name,
@@ -158,6 +151,7 @@ macro_rules! push_rules {
             // give the user a type error if the name they gave
             // in the conclusion is not the same as the name of the
             // function
+            #[allow(dead_code)]
             struct WrongJudgmentNameInConclusion;
             const _: WrongJudgmentNameInConclusion = {
                 let $judgment_name = WrongJudgmentNameInConclusion;
@@ -204,7 +198,7 @@ macro_rules! push_rules {
 
     (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident : $ty0:ty, $($pats:tt)*) args $args:tt) => {
         {
-            if let Some($pat0) = $crate::cast::Downcast::downcast::<$ty0>($in0) {
+            if let Some($pat0) = $crate::Downcast::downcast::<$ty0>($in0) {
                 $crate::push_rules!(@match inputs($($inputs)*) patterns($($pats)*) args $args);
             }
         }
@@ -212,20 +206,20 @@ macro_rules! push_rules {
 
     (@match inputs($in0:ident) patterns($pat0:ident : $ty0:ty) args $args:tt) => {
         {
-            if let Some($pat0) = $crate::cast::Downcast::downcast::<$ty0>($in0) {
+            if let Some($pat0) = $crate::Downcast::downcast::<$ty0>($in0) {
                 $crate::push_rules!(@match inputs() patterns() args $args);
             }
         }
     };
 
     (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:pat, $($pats:tt)*) args $args:tt) => {
-        if let Some($pat0) = $crate::cast::Downcast::downcast(&$in0) {
+        if let Some($pat0) = $crate::Downcast::downcast(&$in0) {
             $crate::push_rules!(@match inputs($($inputs)*) patterns($($pats)*) args $args);
         }
     };
 
     (@match inputs($in0:ident) patterns($pat0:pat) args $args:tt) => {
-        if let Some($pat0) = $crate::cast::Downcast::downcast(&$in0) {
+        if let Some($pat0) = $crate::Downcast::downcast(&$in0) {
             $crate::push_rules!(@match inputs() patterns() args $args);
         }
     };
@@ -277,7 +271,7 @@ macro_rules! push_rules {
 
     (@body ($judgment_name:ident, $rule_name:literal, $v:expr, $output:expr)) => {
         {
-            let result = $crate::cast::Upcast::upcast($v);
+            let result = $crate::Upcast::upcast($v);
             tracing::debug!("produced {:?} from rule {:?} in judgment {:?}", result, $rule_name, stringify!($judgment_name));
             $output.insert(result)
         }

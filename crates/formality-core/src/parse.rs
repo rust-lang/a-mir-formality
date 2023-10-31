@@ -1,7 +1,7 @@
 use std::{str::FromStr, sync::Arc};
 
 use crate::{
-    binder::{fresh_bound_var, CoreBinder},
+    binder::CoreBinder,
     cast::To,
     collections::Set,
     language::{CoreKind, CoreParameter, Language},
@@ -190,7 +190,7 @@ impl<L: Language> CoreParse<L> for Binding<L> {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         let (kind, text) = <CoreKind<L>>::parse(scope, text)?;
         let (name, text) = identifier(text)?;
-        let bound_var = fresh_bound_var(kind);
+        let bound_var = CoreBoundVar::fresh(kind);
         Ok((Binding { name, bound_var }, text))
     }
 }

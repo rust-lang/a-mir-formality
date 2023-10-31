@@ -1,18 +1,21 @@
 //! Handwritten parser impls.
 
-use crate::{
-    cast::Upcast,
-    grammar::{AdtId, AssociatedItemId, Bool, Const, RigidName, Scalar, TraitId},
-    parse::{self, expect_char, expect_keyword, reject_keyword, Parse, ParseError, ParseResult},
-    seq,
+use formality_core::parse::{
+    self, expect_char, expect_keyword, reject_keyword, CoreParse, ParseError, ParseResult, Scope,
 };
+use formality_core::seq;
+use formality_core::Upcast;
+
+use crate::grammar::{AdtId, AssociatedItemId, Bool, Const, RigidName, Scalar, TraitId};
 
 use super::{AliasTy, AssociatedTyName, Lt, LtData, Parameter, PredicateTy, RigidTy, ScalarId, Ty};
 
+use crate::rust::FormalityLang as Rust;
+
 // For types, we invest some effort into parsing them decently because it makes
 // writing tests so much more pleasant.
-impl Parse for Ty {
-    fn parse<'t>(scope: &crate::parse::Scope, text0: &'t str) -> ParseResult<'t, Self> {
+impl CoreParse<Rust> for Ty {
+    fn parse<'t>(scope: &Scope<Rust>, text0: &'t str) -> ParseResult<'t, Self> {
         // Support writing `u8` etc and treat them as keywords
         if let Ok((scalar_ty, text1)) = ScalarId::parse(scope, text0) {
             return Ok((scalar_ty.upcast(), text1));
@@ -56,7 +59,7 @@ impl Parse for Ty {
 }
 
 #[tracing::instrument(level = "trace", ret)]
-fn parse_adt_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
+fn parse_adt_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
     // Treat plain identifiers as adt ids, with or without parameters.
     let ((), text) = reject_keyword("static", text)?;
     let ((), text) = reject_keyword("const", text)?;
@@ -66,7 +69,7 @@ fn parse_adt_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'
 }
 
 #[tracing::instrument(level = "trace", ret)]
-fn parse_ref_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
+fn parse_ref_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
     let ((), text) = expect_char('&', text)?;
     let (lt, text) = Lt::parse(scope, text)?;
     let (ty, text) = Ty::parse(scope, text)?;
@@ -82,7 +85,7 @@ fn parse_ref_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'
 }
 
 #[tracing::instrument(level = "trace", ret)]
-fn parse_ref_mut_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
+fn parse_ref_mut_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
     let ((), text) = expect_char('&', text)?;
     let ((), text) = expect_keyword("mut", text)?;
     let (lt, text) = Lt::parse(scope, text)?;
@@ -99,7 +102,7 @@ fn parse_ref_mut_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResu
 }
 
 #[tracing::instrument(level = "trace", ret)]
-fn parse_tuple_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
+fn parse_tuple_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
     let ((), text) = expect_char('(', text)?;
     let ((), text) = reject_keyword("rigid", text)?;
     let ((), text) = reject_keyword("alias", text)?;
@@ -118,7 +121,7 @@ fn parse_tuple_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult
 }
 
 #[tracing::instrument(level = "trace", ret)]
-fn parse_assoc_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Ty> {
+fn parse_assoc_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
     // Treat plain identifiers as adt ids, with or without parameters.
     let ((), text) = expect_char('<', text)?;
     let (ty0, text) = Ty::parse(scope, text)?;
@@ -140,10 +143,7 @@ fn parse_assoc_ty<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult
 }
 
 #[tracing::instrument(level = "trace", ret)]
-fn parse_parameters<'t>(
-    scope: &crate::parse::Scope,
-    text: &'t str,
-) -> ParseResult<'t, Vec<Parameter>> {
+fn parse_parameters<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Vec<Parameter>> {
     let text = match expect_char('<', text) {
         Err(_) => return Ok((vec![], text)),
         Ok(((), text)) => text,
@@ -153,8 +153,8 @@ fn parse_parameters<'t>(
     Ok((parameters, text))
 }
 
-impl Parse for Lt {
-    fn parse<'t>(scope: &crate::parse::Scope, text0: &'t str) -> ParseResult<'t, Self> {
+impl CoreParse<Rust> for Lt {
+    fn parse<'t>(scope: &Scope<Rust>, text0: &'t str) -> ParseResult<'t, Self> {
         parse::require_unambiguous(
             text0,
             vec![
@@ -179,7 +179,7 @@ impl Parse for Lt {
 }
 
 #[tracing::instrument(level = "trace", ret)]
-fn parse_variable<'t>(scope: &crate::parse::Scope, text0: &'t str) -> ParseResult<'t, Parameter> {
+fn parse_variable<'t>(scope: &Scope<Rust>, text0: &'t str) -> ParseResult<'t, Parameter> {
     let (id, text1) = parse::identifier(text0)?;
     match scope.lookup(&id) {
         Some(parameter) => Ok((parameter, text1)),
@@ -189,8 +189,8 @@ fn parse_variable<'t>(scope: &crate::parse::Scope, text0: &'t str) -> ParseResul
 
 // For consts, we invest some effort into parsing them decently because it makes
 // writing tests so much more pleasant.
-impl Parse for Const {
-    fn parse<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Self> {
+impl CoreParse<Rust> for Const {
+    fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
         let text = parse::skip_whitespace(text);
         if let Ok((bool, text)) = Bool::parse(scope, text) {
             return Ok((bool.upcast(), text));
@@ -214,7 +214,7 @@ impl Parse for Const {
 }
 
 #[tracing::instrument(level = "trace", ret)]
-fn parse_int<'t>(scope: &crate::parse::Scope, text: &'t str) -> ParseResult<'t, Const> {
+fn parse_int<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Const> {
     let (num, text) = text.split_once('_').ok_or_else(|| {
         ParseError::at(
             text,

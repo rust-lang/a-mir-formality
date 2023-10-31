@@ -15,3 +15,6 @@ tracing-tree = { version = "0.2" }
 formality-macros = { path = "../formality-macros" }
 anyhow = "1.0.75"
 contracts = "0.6.3"
+
+[dev-dependencies]
+expect-test = "1.4.1"

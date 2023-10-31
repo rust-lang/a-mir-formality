@@ -1,8 +1,8 @@
 use formality_core::term;
 
-use crate::cast::To;
-use crate::cast::Upcast;
-use crate::cast_impl;
+use formality_core::cast_impl;
+use formality_core::To;
+use formality_core::Upcast;
 
 use super::AliasName;
 use super::AliasTy;

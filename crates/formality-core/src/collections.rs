@@ -11,11 +11,11 @@ pub type Set<E> = BTreeSet<E>;
 #[macro_export]
 macro_rules! set {
     () => {
-        $crate::collections::Set::new()
+        $crate::Set::new()
     };
 
     ($($t:tt)*) => {
-        $crate::seq![$($t)*].into_iter().collect::<$crate::collections::Set<_>>()
+        $crate::seq![$($t)*].into_iter().collect::<$crate::Set<_>>()
     };
 }
 

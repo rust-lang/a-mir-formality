@@ -1,9 +1,7 @@
 mod valtree;
 
-use crate::cast::{DowncastTo, Upcast, UpcastFrom};
-
 use super::{Parameter, Ty, Variable};
-use formality_core::{term, Visit};
+use formality_core::{term, DowncastTo, Upcast, UpcastFrom, Visit};
 use std::sync::Arc;
 pub use valtree::*;
 

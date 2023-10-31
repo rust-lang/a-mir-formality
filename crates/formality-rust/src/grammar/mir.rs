@@ -1,9 +1,7 @@
 use super::VariantId;
+use formality_core::{Downcast, DowncastFrom, Upcast};
 use formality_macros::term;
-use formality_types::{
-    cast::{Downcast, DowncastFrom, Upcast},
-    grammar::{AdtId, Binder, FieldId, FnId, Lt, Parameter, RefKind, Ty},
-};
+use formality_types::grammar::{AdtId, Binder, FieldId, FnId, Lt, Parameter, RefKind, Ty};
 
 #[term(mir($binder))]
 pub struct MirFnBody {
@@ -25,8 +23,8 @@ pub struct LocalDecl {
     pub mutability: RefKind,
 }
 
-formality_types::id!(LocalId);
-formality_types::id!(BasicBlockId);
+formality_core::id!(LocalId);
+formality_core::id!(BasicBlockId);
 
 #[term]
 pub struct BasicBlockDecl {

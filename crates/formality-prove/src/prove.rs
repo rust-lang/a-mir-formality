@@ -1,3 +1,4 @@
+mod combinators;
 mod constraints;
 mod env;
 mod is_local;
@@ -9,10 +10,11 @@ mod prove_via;
 mod prove_wc;
 mod prove_wc_list;
 mod prove_wf;
-mod combinators;
 
 pub use constraints::Constraints;
-use formality_types::{cast::Upcast, collections::Set, grammar::Wcs, set, visit::Visit};
+use formality_core::visit::CoreVisit;
+use formality_core::{set, Set, Upcast};
+use formality_types::grammar::Wcs;
 use tracing::Level;
 
 use crate::decls::Decls;

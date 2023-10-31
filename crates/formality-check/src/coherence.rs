@@ -1,11 +1,9 @@
 use anyhow::bail;
 use fn_error_context::context;
+use formality_core::Downcasted;
 use formality_prove::Env;
 use formality_rust::grammar::{Crate, NegTraitImpl, TraitImpl};
-use formality_types::{
-    cast::Downcasted,
-    grammar::{Fallible, Wc, Wcs},
-};
+use formality_types::grammar::{Fallible, Wc, Wcs};
 use itertools::Itertools;
 
 use crate::Check;

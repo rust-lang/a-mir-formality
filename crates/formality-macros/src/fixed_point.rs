@@ -82,7 +82,7 @@ pub(crate) fn fixed_point(
         thread_local! {
             static __CACHE:
                 std::cell::RefCell<
-                    crate::derive_links::fixed_point::FixedPointStack<
+                    formality_core::fixed_point::FixedPointStack<
                         (#(#input_tys),*),
                         #output_ty
                     >
@@ -145,7 +145,7 @@ pub(crate) fn fixed_point(
         quote! {
             {
                 #thread_local
-                crate::derive_links::fixed_point::fixed_point(
+                formality_core::fixed_point::fixed_point(
                     &__CACHE,
                     #input_expr,
                     #default_expr,

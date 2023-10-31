@@ -1,6 +1,6 @@
 use expect_test::expect;
 use formality_macros::test;
-use formality_types::parse::term;
+use formality_types::rust::term;
 
 use crate::decls::Decls;
 

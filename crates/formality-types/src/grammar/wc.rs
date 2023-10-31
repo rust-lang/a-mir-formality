@@ -1,14 +1,10 @@
 use std::sync::Arc;
 
-use formality_core::term;
-
-use crate::{
-    cast::{DowncastFrom, DowncastTo, Upcast, UpcastFrom, Upcasted},
-    cast_impl,
-    collections::{Set, SetExt},
-    grammar::PR,
-    set,
+use formality_core::{
+    cast_impl, set, term, DowncastFrom, DowncastTo, Set, SetExt, Upcast, UpcastFrom, Upcasted,
 };
+
+use crate::grammar::PR;
 
 use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef};
 

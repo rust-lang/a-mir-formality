@@ -1,13 +1,11 @@
 use fn_error_context::context;
+use formality_core::Upcast;
 use formality_prove::Env;
 use formality_rust::{
     grammar::{WhereClause, WhereClauseData},
     prove::ToWcs,
 };
-use formality_types::{
-    cast::Upcast,
-    grammar::{ConstData, Fallible, Parameter, Relation, TraitRef},
-};
+use formality_types::grammar::{ConstData, Fallible, Parameter, Relation, TraitRef};
 
 impl super::Check<'_> {
     pub(crate) fn prove_where_clauses_well_formed(

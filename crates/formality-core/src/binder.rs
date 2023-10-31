@@ -40,7 +40,7 @@ impl<L: Language, T: CoreFold<L>> CoreBinder<L, T> {
                     var_index: VarIndex { index },
                     kind: *kind,
                 };
-                let new_bound_var = fresh_bound_var(*kind);
+                let new_bound_var = CoreBoundVar::fresh(*kind);
                 (new_bound_var, (old_bound_var, new_bound_var))
             })
             .unzip();
@@ -165,19 +165,21 @@ impl<L: Language, T: CoreFold<L>> CoreBinder<L, T> {
     }
 }
 
-/// Creates a fresh bound var of the given kind that is not yet part of a binder.
-/// You can put this into a term and then use `Binder::new`.
-pub fn fresh_bound_var<L: Language>(kind: CoreKind<L>) -> CoreBoundVar<L> {
-    lazy_static! {
-        static ref COUNTER: AtomicUsize = AtomicUsize::new(0);
-    }
+impl<L: Language> CoreBoundVar<L> {
+    /// Creates a fresh bound var of the given kind that is not yet part of a binder.
+    /// You can put this into a term and then use `Binder::new`.
+    pub fn fresh(kind: CoreKind<L>) -> Self {
+        lazy_static! {
+            static ref COUNTER: AtomicUsize = AtomicUsize::new(0);
+        }
 
-    let index = COUNTER.fetch_add(1, Ordering::SeqCst);
-    let var_index = VarIndex { index };
-    CoreBoundVar {
-        debruijn: None,
-        var_index,
-        kind,
+        let index = COUNTER.fetch_add(1, Ordering::SeqCst);
+        let var_index = VarIndex { index };
+        CoreBoundVar {
+            debruijn: None,
+            var_index,
+            kind,
+        }
     }
 }
 

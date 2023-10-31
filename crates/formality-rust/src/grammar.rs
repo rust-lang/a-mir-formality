@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use formality_macros::term;
+use formality_core::{term, Upcast};
 use formality_types::{
-    cast::Upcast,
     grammar::{
-        AdtId, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId, FnId, Lt, Parameter,
-        TraitId, TraitRef, Ty, Wc, AliasTy,
+        AdtId, AliasTy, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId, FnId, Lt,
+        Parameter, TraitId, TraitRef, Ty, Wc,
     },
-    term::Term,
+    rust::Term,
 };
 
 use crate::grammar::mir::MirFnBody;
@@ -117,7 +116,7 @@ pub enum FieldName {
     Index(usize),
 }
 
-formality_types::id!(VariantId);
+formality_core::id!(VariantId);
 
 impl VariantId {
     /// Returns the special variant-id used for the single variant of a struct.
