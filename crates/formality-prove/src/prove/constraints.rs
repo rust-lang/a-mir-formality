@@ -1,12 +1,9 @@
-use formality_types::{
-    cast::{Downcast, Upcast},
-    cast_impl,
-    derive_links::UpcastFrom,
-    grammar::{ExistentialVar, Parameter, Substitution, Variable},
-    visit::Visit,
-};
-
 use super::env::Env;
+use formality_core::{cast_impl, visit::CoreVisit, Downcast, Upcast, UpcastFrom};
+use formality_types::{
+    grammar::{ExistentialVar, Parameter, Substitution, Variable},
+    rust::Visit,
+};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Constraints {
@@ -133,7 +130,7 @@ impl Constraints {
     }
 }
 
-impl Visit for Constraints {
+impl CoreVisit<crate::FormalityLang> for Constraints {
     fn free_variables(&self) -> Vec<Variable> {
         let Constraints {
             env,

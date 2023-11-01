@@ -1,16 +1,18 @@
 use std::fmt::Debug;
 
+use formality_core::{
+    fold::CoreFold,
+    parse::{expect_char, Binding, CoreParse, ParseResult, Scope},
+    term::CoreTerm,
+    visit::CoreVisit,
+    DowncastTo, To, UpcastFrom,
+};
 use formality_types::{
-    cast::To,
-    derive_links::{DowncastTo, UpcastFrom},
-    fold::Fold,
-    grammar::{fresh_bound_var, Binder, BoundVar, ParameterKind},
-    parse::{expect_char, Binding, Parse, ParseResult},
-    term::Term,
-    visit::Visit,
+    grammar::{Binder, BoundVar, ParameterKind},
+    rust::Term,
 };
 
-use crate::grammar::TraitBinder;
+use crate::{grammar::TraitBinder, FormalityLang};
 
 impl<T> TraitBinder<T>
 where
@@ -21,7 +23,7 @@ where
     }
 }
 
-impl<T> Term for TraitBinder<T> where T: Term {}
+impl<T> CoreTerm<FormalityLang> for TraitBinder<T> where T: Term {}
 
 impl<T> DowncastTo<TraitBinder<T>> for TraitBinder<T>
 where
@@ -41,7 +43,7 @@ where
     }
 }
 
-impl<T> Visit for TraitBinder<T>
+impl<T> CoreVisit<FormalityLang> for TraitBinder<T>
 where
     T: Term,
 {
@@ -58,11 +60,14 @@ where
     }
 }
 
-impl<T> Fold for TraitBinder<T>
+impl<T> CoreFold<FormalityLang> for TraitBinder<T>
 where
     T: Term,
 {
-    fn substitute(&self, substitution_fn: formality_types::fold::SubstitutionFn<'_>) -> Self {
+    fn substitute(
+        &self,
+        substitution_fn: formality_core::fold::SubstitutionFn<'_, FormalityLang>,
+    ) -> Self {
         TraitBinder {
             explicit_binder: self.explicit_binder.substitute(substitution_fn),
         }
@@ -78,19 +83,19 @@ where
     }
 }
 
-impl<T> Parse for TraitBinder<T>
+impl<T> CoreParse<FormalityLang> for TraitBinder<T>
 where
     T: Term,
 {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &formality_types::parse::Scope, text: &'t str) -> ParseResult<'t, Self> {
+    fn parse<'t>(scope: &Scope<FormalityLang>, text: &'t str) -> ParseResult<'t, Self> {
         // parse the explicit bindings written by the user
         let ((), text) = expect_char('<', text)?;
         let (mut bindings, text) = Binding::parse_comma(scope, text, '>')?;
         let ((), text) = expect_char('>', text)?;
 
         // insert the `Self` binding at position 0
-        let bound_var = fresh_bound_var(ParameterKind::Ty);
+        let bound_var = BoundVar::fresh(ParameterKind::Ty);
         bindings.insert(
             0,
             Binding {

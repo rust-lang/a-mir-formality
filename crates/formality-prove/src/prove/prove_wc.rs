@@ -1,7 +1,5 @@
-use formality_types::{
-    grammar::{Predicate, Relation, Wc, WcData, Wcs},
-    judgment_fn,
-};
+use formality_core::judgment_fn;
+use formality_types::grammar::{Predicate, Relation, Wc, WcData, Wcs};
 
 use crate::{
     decls::Decls,

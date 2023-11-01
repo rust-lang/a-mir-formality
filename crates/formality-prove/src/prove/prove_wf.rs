@@ -1,9 +1,6 @@
-use formality_types::{
-    collections::Set,
-    grammar::{
-        AliasName, AliasTy, ConstData, Parameter, Parameters, RigidName, RigidTy, UniversalVar, Wcs,
-    },
-    judgment_fn,
+use formality_core::{judgment_fn, Set};
+use formality_types::grammar::{
+    AliasName, AliasTy, ConstData, Parameter, Parameters, RigidName, RigidTy, UniversalVar, Wcs,
 };
 
 use crate::{

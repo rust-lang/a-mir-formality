@@ -1,12 +1,9 @@
-use formality_types::{
-    cast::{Downcast, Upcast, Upcasted},
-    collections::{Deduplicate, Set},
-    grammar::{
-        AliasTy, ExistentialVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar,
-        Variable, Wcs,
-    },
-    judgment_fn, set,
-    visit::Visit,
+use formality_core::visit::CoreVisit;
+use formality_core::{judgment_fn, set, Downcast, Set, Upcast};
+use formality_core::{Deduplicate, Upcasted};
+use formality_types::grammar::{
+    AliasTy, ExistentialVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar,
+    Variable, Wcs,
 };
 
 use crate::{

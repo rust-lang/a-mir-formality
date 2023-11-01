@@ -1,13 +1,10 @@
+use formality_core::{cast_impl, visit::CoreVisit, Set, To, Upcast};
 use formality_macros::term;
 use formality_types::{
-    cast::{To, Upcast},
-    cast_impl,
-    collections::Set,
-    fold::Fold,
     grammar::{
         Binder, ExistentialVar, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable,
     },
-    visit::Visit,
+    rust::{Fold, Visit},
 };
 
 #[derive(Default, Debug, Clone, Hash, Ord, Eq, PartialEq, PartialOrd)]
@@ -220,7 +217,7 @@ impl Env {
     }
 }
 
-impl Visit for Env {
+impl CoreVisit<crate::FormalityLang> for Env {
     fn free_variables(&self) -> Vec<Variable> {
         self.variables.clone()
     }

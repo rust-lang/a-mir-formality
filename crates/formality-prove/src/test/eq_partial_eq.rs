@@ -2,7 +2,7 @@ use expect_test::expect;
 use formality_macros::test;
 use formality_types::{
     grammar::{Wc, Wcs},
-    parse::term,
+    rust::term,
 };
 
 use crate::{decls::Decls, prove::prove};

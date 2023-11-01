@@ -1,7 +1,6 @@
-use formality_types::{
-    collections::Set,
-    grammar::{Lt, Parameter, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs},
-    judgment_fn, set,
+use formality_core::{judgment_fn, set, Set};
+use formality_types::grammar::{
+    Lt, Parameter, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
 };
 
 use crate::{

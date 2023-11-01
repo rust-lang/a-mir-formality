@@ -1,19 +1,15 @@
-use contracts::requires;
-use formality_macros::{term, Visit};
-use std::{collections::BTreeSet, sync::Arc};
+use formality_core::{cast_impl, term, Visit};
+use std::sync::Arc;
 
 mod debug_impls;
 mod parse_impls;
+mod term_impls;
+use crate::rust::{BoundVar, Variable};
+use formality_core::{DowncastTo, To, Upcast, UpcastFrom};
 
-use crate::{
-    cast::{DowncastTo, To, Upcast, UpcastFrom},
-    cast_impl,
-    collections::Map,
-    derive_links::Visit,
-    fold::Fold,
+use super::{
+    consts::Const, AdtId, AssociatedItemId, Binder, ExistentialVar, FnId, TraitId, UniversalVar,
 };
-
-use super::{consts::Const, AdtId, AssociatedItemId, Binder, FnId, TraitId};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ty {
@@ -119,26 +115,6 @@ impl UpcastFrom<Ty> for TyData {
     fn upcast_from(term: Ty) -> Self {
         term.data().clone()
     }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExistentialVar {
-    pub kind: ParameterKind,
-    pub var_index: VarIndex,
-}
-
-cast_impl!(ExistentialVar);
-
-impl Visit for ExistentialVar {
-    fn free_variables(&self) -> Vec<Variable> {
-        vec![self.upcast()]
-    }
-
-    fn size(&self) -> usize {
-        1
-    }
-
-    fn assert_valid(&self) {}
 }
 
 #[term((rigid $name $*parameters))]
@@ -248,21 +224,6 @@ pub struct AssociatedTyName {
 #[term]
 pub enum PredicateTy {
     ForAll(Binder<Ty>),
-}
-
-/// A *universal variable* is a dummy variable about which nothing is known except
-/// that which we see in the environment. When we want to prove something
-/// is true for all `T` (`∀T`), we replace `T` with a universal variable.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct UniversalVar {
-    pub kind: ParameterKind,
-    pub var_index: VarIndex,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum QuantifierKind {
-    ForAll,
-    Exists,
 }
 
 #[term]
@@ -376,143 +337,6 @@ impl UpcastFrom<LtData> for LtData {
     }
 }
 
-impl Visit for LtData {
-    fn free_variables(&self) -> Vec<Variable> {
-        match self {
-            LtData::Variable(v) => {
-                if v.is_free() {
-                    vec![*v]
-                } else {
-                    vec![]
-                }
-            }
-            LtData::Static => vec![],
-        }
-    }
-
-    fn size(&self) -> usize {
-        match self {
-            LtData::Variable(v) => v.size(),
-            LtData::Static => 1,
-        }
-    }
-
-    fn assert_valid(&self) {
-        match self {
-            LtData::Variable(v) => v.assert_valid(),
-            LtData::Static => (),
-        }
-    }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Variable {
-    UniversalVar(UniversalVar),
-    ExistentialVar(ExistentialVar),
-    BoundVar(BoundVar),
-}
-
-cast_impl!(Variable);
-
-impl Variable {
-    pub fn kind(&self) -> ParameterKind {
-        match self {
-            Variable::UniversalVar(v) => v.kind,
-            Variable::ExistentialVar(v) => v.kind,
-            Variable::BoundVar(v) => v.kind,
-        }
-    }
-
-    /// Shift a variable in through `binders` binding levels.
-    /// Only affects bound variables.
-    pub fn shift_in(&self) -> Self {
-        if let Variable::BoundVar(BoundVar {
-            debruijn: Some(db),
-            var_index,
-            kind,
-        }) = self
-        {
-            BoundVar {
-                debruijn: Some(db.shift_in()),
-                var_index: *var_index,
-                kind: *kind,
-            }
-            .upcast()
-        } else {
-            *self
-        }
-    }
-
-    /// Shift a variable out through `binders` binding levels.
-    /// Only affects bound variables. Returns None if the variable
-    /// is bound within those binding levels.
-    pub fn shift_out(&self) -> Option<Self> {
-        if let Variable::BoundVar(BoundVar {
-            debruijn: Some(db),
-            var_index,
-            kind,
-        }) = self
-        {
-            db.shift_out().map(|db1| {
-                BoundVar {
-                    debruijn: Some(db1),
-                    var_index: *var_index,
-                    kind: *kind,
-                }
-                .upcast()
-            })
-        } else {
-            Some(*self)
-        }
-    }
-
-    /// A variable is *free* (i.e., not bound by any internal binder)
-    /// if it is an existential variable, a universal, or has a debruijn
-    /// index of `None`. The latter occurs when you `open` a binder (and before
-    /// you close it back up again).
-    pub fn is_free(&self) -> bool {
-        match self {
-            Variable::UniversalVar(_)
-            | Variable::ExistentialVar(_)
-            | Variable::BoundVar(BoundVar {
-                debruijn: None,
-                var_index: _,
-                kind: _,
-            }) => true,
-
-            Variable::BoundVar(BoundVar {
-                debruijn: Some(_),
-                var_index: _,
-                kind: _,
-            }) => false,
-        }
-    }
-
-    pub fn is_universal(&self) -> bool {
-        match self {
-            Variable::UniversalVar(_) => true,
-            Variable::ExistentialVar(_) => false,
-            Variable::BoundVar(_) => false,
-        }
-    }
-}
-
-impl Visit for Variable {
-    fn free_variables(&self) -> Vec<Variable> {
-        if self.is_free() {
-            vec![*self]
-        } else {
-            vec![]
-        }
-    }
-
-    fn size(&self) -> usize {
-        1
-    }
-
-    fn assert_valid(&self) {}
-}
-
 impl UpcastFrom<Variable> for Parameter {
     fn upcast_from(v: Variable) -> Parameter {
         match v.kind() {
@@ -526,288 +350,6 @@ impl UpcastFrom<Variable> for Parameter {
 impl DowncastTo<Variable> for Parameter {
     fn downcast_to(&self) -> Option<Variable> {
         self.as_variable()
-    }
-}
-
-cast_impl!(BoundVar);
-cast_impl!((ExistentialVar) <: (Variable) <: (Parameter));
-cast_impl!((BoundVar) <: (Variable) <: (Parameter));
-cast_impl!((UniversalVar) <: (Variable) <: (Parameter));
-
-/// Identifies a bound variable.
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct BoundVar {
-    /// Identifies the binder that contained this variable, counting "outwards".
-    /// When you create a binder with `Binder::new`,
-    /// When you open a Binder, you get back `Bound
-    pub debruijn: Option<DebruijnIndex>,
-    pub var_index: VarIndex,
-    pub kind: ParameterKind,
-}
-
-impl BoundVar {
-    /// Packages up this bound variable as a type.
-    /// Only appropriate to call this if the variable
-    /// does indeed represent a type.
-    #[requires(self.kind == ParameterKind::Ty)]
-    pub fn ty(self) -> Ty {
-        Ty::new(TyData::Variable(Variable::upcast_from(self)))
-    }
-
-    /// Packages up this bound variable as a lifetime.
-    /// Only appropriate to call this if the variable
-    /// does indeed represent a lifetime.
-    #[requires(self.kind == ParameterKind::Lt)]
-    pub fn lt(self) -> Lt {
-        Lt::new(LtData::Variable(Variable::upcast_from(self)))
-    }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct DebruijnIndex {
-    pub index: usize,
-}
-
-impl DebruijnIndex {
-    pub const INNERMOST: DebruijnIndex = DebruijnIndex { index: 0 };
-
-    /// Adjust this debruijn index through a binder level.
-    pub fn shift_in(&self) -> Self {
-        DebruijnIndex {
-            index: self.index + 1,
-        }
-    }
-
-    /// Adjust this debruijn index *outward* through a binder level, if possible.
-    pub fn shift_out(&self) -> Option<Self> {
-        if self.index > 0 {
-            Some(DebruijnIndex {
-                index: self.index - 1,
-            })
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VarIndex {
-    pub index: usize,
-}
-
-impl VarIndex {
-    pub const ZERO: VarIndex = VarIndex { index: 0 };
-}
-
-impl std::ops::Add<usize> for VarIndex {
-    type Output = VarIndex;
-
-    fn add(self, rhs: usize) -> Self::Output {
-        VarIndex {
-            index: self.index + rhs,
-        }
-    }
-}
-
-#[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Substitution {
-    map: Map<Variable, Parameter>,
-}
-
-impl Substitution {
-    /// Returns the variables that will be substituted for a new value.
-    pub fn domain(&self) -> BTreeSet<Variable> {
-        self.map.keys().cloned().collect()
-    }
-
-    /// Returns the parameters that that will be substituted for a new value.
-    pub fn range(&self) -> BTreeSet<Parameter> {
-        self.map.values().cloned().collect()
-    }
-
-    /// True if `v` is in this substitution's domain
-    pub fn maps(&self, v: Variable) -> bool {
-        self.map.contains_key(&v)
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = (Variable, Parameter)> + '_ {
-        self.map.iter().map(|(v, p)| (*v, p.clone()))
-    }
-
-    /// An empty substitution is just the identity function.
-    pub fn is_empty(&self) -> bool {
-        self.map.is_empty()
-    }
-}
-
-impl std::fmt::Debug for Substitution {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut f = f.debug_set();
-        for (v, p) in self.iter() {
-            f.entry(&Entry { v, p });
-            struct Entry {
-                v: Variable,
-                p: Parameter,
-            }
-            impl std::fmt::Debug for Entry {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    write!(f, "{:?} => {:?}", self.v, self.p)
-                }
-            }
-        }
-        f.finish()
-    }
-}
-
-impl<Vs> std::ops::SubAssign<Vs> for Substitution
-where
-    Vs: Upcast<Vec<Variable>>,
-{
-    fn sub_assign(&mut self, rhs: Vs) {
-        let rhs: Vec<Variable> = rhs.upcast();
-
-        for v in rhs {
-            self.map.remove(&v);
-        }
-    }
-}
-
-impl IntoIterator for Substitution {
-    type Item = (Variable, Parameter);
-
-    type IntoIter = std::collections::btree_map::IntoIter<Variable, Parameter>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.map.into_iter()
-    }
-}
-
-impl<A, B> Extend<(A, B)> for Substitution
-where
-    A: Upcast<Variable>,
-    B: Upcast<Parameter>,
-{
-    fn extend<T: IntoIterator<Item = (A, B)>>(&mut self, iter: T) {
-        self.map
-            .extend(iter.into_iter().map(|(v, p)| (v.upcast(), p.upcast())));
-    }
-}
-
-impl<A, B> FromIterator<(A, B)> for Substitution
-where
-    A: Upcast<Variable>,
-    B: Upcast<Parameter>,
-{
-    fn from_iter<T: IntoIterator<Item = (A, B)>>(iter: T) -> Self {
-        let mut s = Substitution::default();
-        s.extend(iter);
-        s
-    }
-}
-
-impl<A, B> UpcastFrom<(A, B)> for Substitution
-where
-    A: Upcast<Variable>,
-    B: Upcast<Parameter>,
-{
-    fn upcast_from(term: (A, B)) -> Self {
-        let term: (Variable, Parameter) = term.upcast();
-        std::iter::once(term).collect()
-    }
-}
-
-impl Substitution {
-    pub fn apply<T: Fold>(&self, t: &T) -> T {
-        t.substitute(&mut |v| self.map.get(&v).cloned())
-    }
-
-    pub fn get(&self, v: Variable) -> Option<Parameter> {
-        self.map.get(&v).cloned()
-    }
-}
-
-impl Fold for Substitution {
-    fn substitute(&self, substitution_fn: crate::fold::SubstitutionFn<'_>) -> Self {
-        self.iter()
-            .map(|(v, p)| (v, p.substitute(substitution_fn)))
-            .collect()
-    }
-}
-
-impl Visit for Substitution {
-    fn free_variables(&self) -> Vec<Variable> {
-        let mut v = self.range().free_variables();
-        v.extend(self.domain());
-        v
-    }
-
-    fn size(&self) -> usize {
-        self.range().iter().map(|r| r.size()).sum()
-    }
-
-    fn assert_valid(&self) {
-        self.range().assert_valid()
-    }
-}
-
-impl std::ops::Index<Variable> for Substitution {
-    type Output = Parameter;
-
-    fn index(&self, index: Variable) -> &Self::Output {
-        &self.map[&index]
-    }
-}
-
-/// A substitution that is only between variables.
-/// These are reversible.
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VarSubstitution {
-    map: Map<Variable, Variable>,
-}
-
-impl<A, B> Extend<(A, B)> for VarSubstitution
-where
-    A: Upcast<Variable>,
-    B: Upcast<Variable>,
-{
-    fn extend<T: IntoIterator<Item = (A, B)>>(&mut self, iter: T) {
-        self.map
-            .extend(iter.into_iter().map(|(v, p)| (v.upcast(), p.upcast())));
-    }
-}
-
-impl<A, B> FromIterator<(A, B)> for VarSubstitution
-where
-    A: Upcast<Variable>,
-    B: Upcast<Variable>,
-{
-    fn from_iter<T: IntoIterator<Item = (A, B)>>(iter: T) -> Self {
-        let mut s = VarSubstitution::default();
-        s.extend(iter);
-        s
-    }
-}
-
-impl VarSubstitution {
-    pub fn reverse(&self) -> VarSubstitution {
-        self.map.iter().map(|(k, v)| (*v, *k)).collect()
-    }
-
-    pub fn apply<T: Fold>(&self, t: &T) -> T {
-        t.substitute(&mut |v| Some(self.map.get(&v)?.upcast()))
-    }
-
-    pub fn map_var(&self, v: Variable) -> Option<Variable> {
-        self.map.get(&v).copied()
-    }
-
-    pub fn maps_var(&self, v: Variable) -> bool {
-        self.map.contains_key(&v)
-    }
-
-    pub fn insert_mapping(&mut self, from: impl Upcast<Variable>, to: impl Upcast<Variable>) {
-        let x = self.map.insert(from.upcast(), to.upcast());
-        assert!(x.is_none());
     }
 }
 
@@ -833,6 +375,9 @@ cast_impl!((ScalarId) <: (RigidTy) <: (TyData));
 cast_impl!((UniversalVar) <: (Variable) <: (Ty));
 cast_impl!((ExistentialVar) <: (Variable) <: (Ty));
 cast_impl!((BoundVar) <: (Variable) <: (Ty));
+cast_impl!((UniversalVar) <: (Variable) <: (Parameter));
+cast_impl!((ExistentialVar) <: (Variable) <: (Parameter));
+cast_impl!((BoundVar) <: (Variable) <: (Parameter));
 cast_impl!(Lt);
 cast_impl!(LtData::Variable(Variable));
 cast_impl!((ExistentialVar) <: (Variable) <: (LtData));
@@ -841,6 +386,3 @@ cast_impl!((BoundVar) <: (Variable) <: (LtData));
 cast_impl!((UniversalVar) <: (LtData) <: (Lt));
 cast_impl!((ExistentialVar) <: (LtData) <: (Lt));
 cast_impl!((BoundVar) <: (LtData) <: (Lt));
-cast_impl!(Variable::UniversalVar(UniversalVar));
-cast_impl!(Variable::ExistentialVar(ExistentialVar));
-cast_impl!(Variable::BoundVar(BoundVar));

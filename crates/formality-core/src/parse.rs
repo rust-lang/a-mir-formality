@@ -1,71 +1,26 @@
 use std::{str::FromStr, sync::Arc};
 
 use crate::{
-    cast::{To, Upcast},
+    binder::CoreBinder,
+    cast::To,
     collections::Set,
-    derive_links::{Fold, Parameter, ParameterKind, Term},
-    grammar::{Binder, BoundVar},
+    language::{CoreKind, CoreParameter, Language},
     set,
+    term::CoreTerm,
+    variable::CoreBoundVar,
 };
 use std::fmt::Debug;
 
-mod test;
-
-/// Parses `text` as a term with no bindings in scope.
-#[track_caller]
-pub fn term<T>(text: &str) -> T
-where
-    T: Parse,
-{
-    try_term(text).unwrap()
-}
-
-/// Parses `text` as a term with no bindings in scope.
-#[track_caller]
-pub fn try_term<T>(text: &str) -> anyhow::Result<T>
-where
-    T: Parse,
-{
-    term_with(None::<(String, Parameter)>, text)
-}
-
-/// Parses `text` as a term with the given bindings in scope.
-///
-/// References to the given string will be replaced with the given parameter
-/// when parsing types, lifetimes, etc.
-#[track_caller]
-pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> anyhow::Result<T>
-where
-    T: Parse,
-    B: Upcast<(String, Parameter)>,
-{
-    let scope = Scope::new(bindings.into_iter().map(|b| b.upcast()));
-    let (t, remainder) = match T::parse(&scope, text) {
-        Ok(v) => v,
-        Err(errors) => {
-            let mut err = anyhow::anyhow!("failed to parse {text}");
-            for error in errors {
-                err = err.context(error.text.to_owned()).context(error.message);
-            }
-            return Err(err);
-        }
-    };
-    if !skip_whitespace(remainder).is_empty() {
-        anyhow::bail!("extra tokens after parsing {text:?} to {t:?}: {remainder:?}");
-    }
-    Ok(t)
-}
-
-/// Trait for parsing a [`Term`](`crate::term::Term`) as input.
-pub trait Parse: Sized + Debug {
+/// Trait for parsing a [`Term<L>`](`crate::term::Term`) as input.
+pub trait CoreParse<L: Language>: Sized + Debug {
     /// Parse a single instance of this type, returning an error if no such
     /// instance is present.
-    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self>;
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self>;
 
     /// Parse many instances of self, expecting `close_char` to appear after the last instance
     /// (`close_char` is not consumed).
     fn parse_many<'t>(
-        scope: &Scope,
+        scope: &Scope<L>,
         mut text: &'t str,
         close_char: char,
     ) -> ParseResult<'t, Vec<Self>> {
@@ -80,7 +35,7 @@ pub trait Parse: Sized + Debug {
 
     /// Comma separated list with optional trailing comma.
     fn parse_comma<'t>(
-        scope: &Scope,
+        scope: &Scope<L>,
         mut text: &'t str,
         close_char: char,
     ) -> ParseResult<'t, Vec<Self>> {
@@ -144,20 +99,20 @@ pub type ParseResult<'t, T> = Result<(T, &'t str), Set<ParseError<'t>>>;
 
 /// Tracks the variables in scope at this point in parsing.
 #[derive(Clone, Debug)]
-pub struct Scope {
-    bindings: Vec<(String, Parameter)>,
+pub struct Scope<L: Language> {
+    bindings: Vec<(String, CoreParameter<L>)>,
 }
 
-impl Scope {
+impl<L: Language> Scope<L> {
     /// Creates a new scope with the given set of bindings.
-    pub fn new(bindings: impl IntoIterator<Item = (String, Parameter)>) -> Self {
+    pub fn new(bindings: impl IntoIterator<Item = (String, CoreParameter<L>)>) -> Self {
         Self {
             bindings: bindings.into_iter().collect(),
         }
     }
 
     /// Look for a variable with the given name.
-    pub fn lookup(&self, name: &str) -> Option<Parameter> {
+    pub fn lookup(&self, name: &str) -> Option<CoreParameter<L>> {
         self.bindings
             .iter()
             .rev()
@@ -166,7 +121,10 @@ impl Scope {
     }
 
     /// Create a new scope that extends `self` with `bindings`.
-    pub fn with_bindings(&self, bindings: impl IntoIterator<Item = (String, Parameter)>) -> Self {
+    pub fn with_bindings(
+        &self,
+        bindings: impl IntoIterator<Item = (String, CoreParameter<L>)>,
+    ) -> Self {
         let mut s = self.clone();
         s.bindings.extend(bindings);
         s
@@ -175,20 +133,21 @@ impl Scope {
 
 /// Records a single binding, used when parsing [`Binder`].
 #[derive(Clone, Debug)]
-pub struct Binding {
+pub struct Binding<L: Language> {
     /// Name the user during during parsing
     pub name: String,
 
     /// The bound var representation.
-    pub bound_var: BoundVar,
+    pub bound_var: CoreBoundVar<L>,
 }
 
-impl<T> Parse for Vec<T>
+impl<L, T> CoreParse<L> for Vec<T>
 where
-    T: Parse,
+    L: Language,
+    T: CoreParse<L>,
 {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         let ((), text) = expect_char('[', text)?;
         let (v, text) = T::parse_comma(scope, text, ']')?;
         let ((), text) = expect_char(']', text)?;
@@ -196,12 +155,13 @@ where
     }
 }
 
-impl<T> Parse for Set<T>
+impl<L, T> CoreParse<L> for Set<T>
 where
-    T: Parse + Ord,
+    L: Language,
+    T: CoreParse<L> + Ord,
 {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         let ((), text) = expect_char('{', text)?;
         let (v, text) = T::parse_comma(scope, text, '}')?;
         let ((), text) = expect_char('}', text)?;
@@ -210,12 +170,13 @@ where
     }
 }
 
-impl<T> Parse for Option<T>
+impl<L, T> CoreParse<L> for Option<T>
 where
-    T: Parse,
+    L: Language,
+    T: CoreParse<L>,
 {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         match T::parse(scope, text) {
             Ok((value, text)) => Ok((Some(value), text)),
             Err(_) => Ok((None, text)),
@@ -224,65 +185,76 @@ where
 }
 
 /// Binding grammar is `$kind $name`, e.g., `ty Foo`.
-impl Parse for Binding {
+impl<L: Language> CoreParse<L> for Binding<L> {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
-        let (kind, text) = ParameterKind::parse(scope, text)?;
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        let (kind, text) = <CoreKind<L>>::parse(scope, text)?;
         let (name, text) = identifier(text)?;
-        let bound_var = crate::grammar::fresh_bound_var(kind);
+        let bound_var = CoreBoundVar::fresh(kind);
         Ok((Binding { name, bound_var }, text))
     }
 }
 
 /// Parse a binder: find the names in scope, parse the contents, and then
 /// replace names with debruijn indices.
-impl<T> Parse for Binder<T>
+impl<L, T> CoreParse<L> for CoreBinder<L, T>
 where
-    T: Term + Parse + Fold,
+    L: Language,
+    T: CoreTerm<L>,
 {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
-        let ((), text) = expect_char('<', text)?;
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        let ((), text) = expect_char(L::BINDING_OPEN, text)?;
         let (bindings, text) = Binding::parse_comma(scope, text, '>')?;
-        let ((), text) = expect_char('>', text)?;
+        let ((), text) = expect_char(L::BINDING_CLOSE, text)?;
 
         // parse the contents with those names in scope
         let scope1 =
             scope.with_bindings(bindings.iter().map(|b| (b.name.clone(), b.bound_var.to())));
         let (data, text) = T::parse(&scope1, text)?;
 
-        let kvis: Vec<BoundVar> = bindings.iter().map(|b| b.bound_var).collect();
-        Ok((Binder::new(kvis, data), text))
+        let kvis: Vec<CoreBoundVar<L>> = bindings.iter().map(|b| b.bound_var).collect();
+        Ok((CoreBinder::new(kvis, data), text))
     }
 }
 
-impl<T> Parse for Arc<T>
+impl<L, T> CoreParse<L> for Arc<T>
 where
-    T: Parse,
+    L: Language,
+    T: CoreParse<L>,
 {
-    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         let (data, text) = T::parse(scope, text)?;
         Ok((Arc::new(data), text))
     }
 }
 
-impl Parse for usize {
+impl<L> CoreParse<L> for usize
+where
+    L: Language,
+{
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(_scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+    fn parse<'t>(_scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         number(text)
     }
 }
 
-impl Parse for u32 {
+impl<L> CoreParse<L> for u32
+where
+    L: Language,
+{
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(_scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+    fn parse<'t>(_scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         number(text)
     }
 }
 
-impl Parse for u64 {
+impl<L> CoreParse<L> for u64
+where
+    L: Language,
+{
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(_scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+    fn parse<'t>(_scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         number(text)
     }
 }
@@ -442,9 +414,9 @@ fn accumulate<'t>(
     Ok((buffer, text1))
 }
 
-impl<A: Parse, B: Parse> Parse for (A, B) {
+impl<L: Language, A: CoreParse<L>, B: CoreParse<L>> CoreParse<L> for (A, B) {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         let ((), text) = expect_char('(', text)?;
         let (a, text) = A::parse(scope, text)?;
         let ((), text) = expect_char(',', text)?;
@@ -455,18 +427,18 @@ impl<A: Parse, B: Parse> Parse for (A, B) {
     }
 }
 
-impl Parse for () {
+impl<L: Language> CoreParse<L> for () {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         let ((), text) = expect_char('(', text)?;
         let ((), text) = expect_char(')', text)?;
         Ok(((), text))
     }
 }
 
-impl<A: Parse, B: Parse, C: Parse> Parse for (A, B, C) {
+impl<L: Language, A: CoreParse<L>, B: CoreParse<L>, C: CoreParse<L>> CoreParse<L> for (A, B, C) {
     #[tracing::instrument(level = "trace", ret)]
-    fn parse<'t>(scope: &Scope, text: &'t str) -> ParseResult<'t, Self> {
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         let ((), text) = expect_char('(', text)?;
         let (a, text) = A::parse(scope, text)?;
         let ((), text) = expect_char(',', text)?;

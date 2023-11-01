@@ -12,17 +12,17 @@ pub(crate) fn derive_fold(mut s: synstructure::Structure) -> TokenStream {
         vi.construct(|_, index| {
             let bind = &bindings[index];
             quote! {
-                Fold::substitute(#bind, substitution_fn)
+                CoreFold::substitute(#bind, substitution_fn)
             }
         })
     });
 
     // s.add_bounds(synstructure::AddBounds::None);
     s.gen_impl(quote! {
-        use crate::derive_links::{Fold, SubstitutionFn, Parameter, ParameterKind};
+        use formality_core::{fold::CoreFold, fold::SubstitutionFn};
 
-        gen impl Fold for @Self {
-            fn substitute(&self, substitution_fn: SubstitutionFn<'_>) -> Self {
+        gen impl CoreFold<crate::FormalityLang> for @Self {
+            fn substitute(&self, substitution_fn: SubstitutionFn<'_, crate::FormalityLang>) -> Self {
                 match self {
                     #substitute_body
                 }

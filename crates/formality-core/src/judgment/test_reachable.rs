@@ -2,14 +2,14 @@
 
 use std::sync::Arc;
 
-use formality_macros::{term, test};
+use crate::{cast_impl, judgment_fn};
 
-use crate::{judgment_fn};
-
-#[term($edges)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Clone, Debug, Hash)]
 struct Graph {
     edges: Vec<(u32, u32)>,
 }
+
+cast_impl!(Graph);
 
 impl Graph {
     fn successors(&self, n: u32) -> Vec<u32> {
@@ -20,44 +20,41 @@ impl Graph {
     }
 }
 
-judgment_fn!(
-    fn transitive_reachable(g: Arc<Graph>, node: u32) => u32 {
-        debug(node, g)
-        
+judgment_fn! {
+    fn transitive_reachable(
+        graph: Arc<Graph>,
+        from: u32,
+    ) => u32 {
+        debug(from, graph)
+
         (
-            (graph.successors(a) => b)
-            (if b % 2 == 0)
+            (graph.successors(start) => s)
             --------------------------------------- ("base")
-            (transitive_reachable(graph, a) => b)
+            (transitive_reachable(graph, start) => s)
         )
-    
+
         (
             (transitive_reachable(&graph, a) => b)
             (transitive_reachable(&graph, b) => c)
-            (if c % 2 == 0)
             --------------------------------------- ("transitive")
             (transitive_reachable(graph, a) => c)
         )
     }
-);
+}
 
 #[test]
 fn judgment() {
     let graph = Arc::new(Graph {
-        edges: vec![(0, 1), (1, 2), (2, 4), (2, 3), (3, 6), (4, 8), (8, 10)],
+        edges: vec![(0, 1), (1, 2), (2, 0), (2, 3)],
     });
 
     expect_test::expect![[r#"
-        {}
-    "#]]
-    .assert_debug_eq(&transitive_reachable(&graph, 0));
-
-    expect_test::expect![[r#"
         {
-            4,
-            8,
-            10,
+            0,
+            1,
+            2,
+            3,
         }
     "#]]
-    .assert_debug_eq(&transitive_reachable(&graph, 2));
+    .assert_debug_eq(&transitive_reachable(graph, 0));
 }

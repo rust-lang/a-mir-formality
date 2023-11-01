@@ -1,6 +1,7 @@
 use expect_test::expect;
 use formality_macros::test;
-use formality_types::{grammar::Wc, parse::term};
+use formality_types::grammar::Wc;
+use formality_types::rust::term;
 
 use crate::{decls::Decls, prove::prove};
 

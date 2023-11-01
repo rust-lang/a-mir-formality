@@ -1,9 +1,9 @@
 use expect_test::expect;
+use formality_core::To;
 use formality_macros::test;
 use formality_types::{
-    cast::To,
     grammar::{Binder, Parameter, ScalarId, Ty},
-    parse::term,
+    rust::term,
 };
 
 use crate::prove::{Constraints, Env};

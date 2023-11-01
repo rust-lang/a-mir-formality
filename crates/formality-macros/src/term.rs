@@ -51,9 +51,9 @@ fn derive_term(mut s: synstructure::Structure) -> TokenStream {
 
     // s.add_bounds(synstructure::AddBounds::None);
     s.gen_impl(quote! {
-        use crate::derive_links::{Term};
+        use formality_core::term::CoreTerm;
 
-        gen impl Term for @Self {
+        gen impl CoreTerm<crate::FormalityLang> for @Self {
         }
     })
 }

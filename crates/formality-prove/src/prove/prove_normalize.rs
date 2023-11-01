@@ -1,9 +1,6 @@
-use formality_types::{
-    cast::Downcast,
-    grammar::{
-        AliasTy, ExistentialVar, Parameter, Relation, RigidTy, TyData, Variable, Wc, WcData, Wcs,
-    },
-    judgment_fn,
+use formality_core::{judgment_fn, Downcast};
+use formality_types::grammar::{
+    AliasTy, ExistentialVar, Parameter, Relation, RigidTy, TyData, Variable, Wc, WcData, Wcs,
 };
 
 use crate::{

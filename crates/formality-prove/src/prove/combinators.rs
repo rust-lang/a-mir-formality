@@ -1,6 +1,6 @@
-use formality_types::{cast::Upcast, collections::Set, set, term::Term};
-
 use crate::decls::Decls;
+use formality_core::{set, Set, Upcast};
+use formality_types::rust::Term;
 
 use super::{Constraints, Env};
 
