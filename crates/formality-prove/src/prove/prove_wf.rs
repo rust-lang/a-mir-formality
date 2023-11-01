@@ -3,7 +3,10 @@ use formality_types::grammar::{
     AliasName, AliasTy, ConstData, Parameter, Parameters, RigidName, RigidTy, UniversalVar, Wcs,
 };
 
-use crate::{decls::Decls, prove::combinators::for_all};
+use crate::{
+    decls::Decls,
+    prove::{combinators::for_all, prove_after::prove_after},
+};
 
 use super::{constraints::Constraints, env::Env};
 
@@ -41,8 +44,11 @@ judgment_fn! {
 
         (
             (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
+            (let t = decls.adt_decl(&adt_id))
+            (let t = t.binder.instantiate_with(&parameters).unwrap())
+            (prove_after(&decls, c, &assumptions, t.where_clause) => c)
             --- ("ADT")
-            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::AdtId(_), parameters }) => c)
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::AdtId(adt_id), parameters }) => c)
         )
 
         (
