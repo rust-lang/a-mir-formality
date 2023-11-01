@@ -7,6 +7,7 @@
 
 // Re-export things from dependencies to avoid everybody repeating same set
 // in their Cargo.toml.
+pub use anyhow::anyhow;
 pub use anyhow::bail;
 pub use contracts::requires;
 pub use tracing::debug;
@@ -143,7 +144,7 @@ macro_rules! declare_language {
 
             /// Parses `text` as a term with no bindings in scope.
             #[track_caller]
-            pub fn try_term<T>(text: &str) -> anyhow::Result<T>
+            pub fn try_term<T>(text: &str) -> $crate::Fallible<T>
             where
                 T: Parse,
             {
@@ -155,7 +156,7 @@ macro_rules! declare_language {
             /// References to the given string will be replaced with the given parameter
             /// when parsing types, lifetimes, etc.
             #[track_caller]
-            pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> anyhow::Result<T>
+            pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> $crate::Fallible<T>
             where
                 T: Parse,
                 B: $crate::Upcast<(String, $param)>,
@@ -164,7 +165,7 @@ macro_rules! declare_language {
                 let (t, remainder) = match T::parse(&scope, text) {
                     Ok(v) => v,
                     Err(errors) => {
-                        let mut err = anyhow::anyhow!("failed to parse {text}");
+                        let mut err = $crate::anyhow!("failed to parse {text}");
                         for error in errors {
                             err = err.context(error.text.to_owned()).context(error.message);
                         }
@@ -172,7 +173,7 @@ macro_rules! declare_language {
                     }
                 };
                 if !$crate::parse::skip_whitespace(remainder).is_empty() {
-                    anyhow::bail!("extra tokens after parsing {text:?} to {t:?}: {remainder:?}");
+                    $crate::bail!("extra tokens after parsing {text:?} to {t:?}: {remainder:?}");
                 }
                 Ok(t)
             }
