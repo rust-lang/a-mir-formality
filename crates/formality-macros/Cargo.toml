@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT OR APACHE-2"
 description = "Macros used by a-mir-formality and formality-core"
+homepage = "https://rust-lang.github.io/a-mir-formality/"
+repository = "https://github.com/rust-lang/a-mir-formality/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
