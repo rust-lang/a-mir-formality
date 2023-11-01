@@ -1,4 +1,4 @@
-use formality::test_where_clause;
+use a_mir_formality::test_where_clause;
 
 const NORMALIZE_BASIC: &str = "[
     crate test {
@@ -259,7 +259,6 @@ const PROJECTION_EQUALITY: &str = "[
         }
     }
 ]";
-
 
 #[test]
 fn projection_equality() {

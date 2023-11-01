@@ -1,6 +1,6 @@
 #![allow(non_snake_case)] // we embed type names into the names for our test functions
 
-use formality::test_program_ok;
+use a_mir_formality::test_program_ok;
 use formality_macros::test;
 
 #[test]

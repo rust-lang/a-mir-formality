@@ -1,5 +1,5 @@
 [package]
-name = "formality"
+name = "a-mir-formality"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR APACHE-2"

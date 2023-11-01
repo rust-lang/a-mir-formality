@@ -3,6 +3,24 @@
 version = 3
 
 [[package]]
+name = "a-mir-formality"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap 4.3.19",
+ "expect-test",
+ "formality-check",
+ "formality-core",
+ "formality-macros",
+ "formality-prove",
+ "formality-rust",
+ "formality-smir",
+ "formality-types",
+ "pretty_assertions",
+ "ui_test",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -520,24 +538,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.102",
-]
-
-[[package]]
-name = "formality"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap 4.3.19",
- "expect-test",
- "formality-check",
- "formality-core",
- "formality-macros",
- "formality-prove",
- "formality-rust",
- "formality-smir",
- "formality-types",
- "pretty_assertions",
- "ui_test",
 ]
 
 [[package]]
