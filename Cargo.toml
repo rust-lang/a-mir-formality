@@ -2,7 +2,7 @@
 name = "a-mir-formality"
 version = "0.1.0"
 edition = "2021"
-license = "MIT OR APACHE-2"
+license = "MIT OR Apache-2.0"
 description = "Model of the Rust type system maintained by the Rust types team (in development)"
 homepage = "https://rust-lang.github.io/a-mir-formality/"
 repository = "https://github.com/rust-lang/a-mir-formality/"

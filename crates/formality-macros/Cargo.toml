@@ -2,7 +2,7 @@
 name = "formality-macros"
 version = "0.1.0"
 edition = "2021"
-license = "MIT OR APACHE-2"
+license = "MIT OR Apache-2.0"
 description = "Macros used by a-mir-formality and formality-core"
 homepage = "https://rust-lang.github.io/a-mir-formality/"
 repository = "https://github.com/rust-lang/a-mir-formality/"
