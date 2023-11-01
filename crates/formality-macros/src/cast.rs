@@ -91,5 +91,5 @@ fn downcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStr
 }
 
 pub(crate) fn has_cast_attr(attrs: &[Attribute]) -> bool {
-    attrs.iter().any(|a| a.path.is_ident("cast"))
+    attrs.iter().any(|a| a.path().is_ident("cast"))
 }

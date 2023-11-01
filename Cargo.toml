@@ -2,6 +2,8 @@
 name = "formality"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR APACHE-2"
+description = "Model of the Rust type system maintained by the Rust types team (in development)"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

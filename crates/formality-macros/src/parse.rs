@@ -206,7 +206,7 @@ fn lookahead(for_field: &Ident, op: Option<&FormalitySpecOp>) -> syn::Result<Lit
 }
 
 fn get_grammar_attr(attrs: &[Attribute]) -> Option<syn::Result<FormalitySpec>> {
-    let attr = attrs.iter().find(|a| a.path.is_ident("grammar"))?;
+    let attr = attrs.iter().find(|a| a.path().is_ident("grammar"))?;
     Some(attr.parse_args())
 }
 

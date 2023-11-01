@@ -40,7 +40,7 @@ fn remove_formality_attributes(input: &mut DeriveInput) {
         for variant in &mut v.variants {
             variant
                 .attrs
-                .retain(|attr| !attr.path.is_ident("grammar") && !attr.path.is_ident("cast"));
+                .retain(|attr| !attr.path().is_ident("grammar") && !attr.path().is_ident("cast"));
         }
     }
 }
