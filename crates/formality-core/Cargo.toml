@@ -11,7 +11,7 @@ repository = "https://github.com/rust-lang/a-mir-formality/"
 
 [dependencies]
 lazy_static = "1.4.0"
-env_logger = "*"
+env_logger = "0.10.0"
 stacker = "0.1.15"
 tracing = "0.1"
 tracing-subscriber = {version = "0.3", default-features = false, features = ["env-filter", "fmt"]}
