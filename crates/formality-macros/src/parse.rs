@@ -161,9 +161,13 @@ fn parse_variant_with_attr(
                 name,
                 mode: FieldMode::Many,
             } => {
-                let lookahead = lookahead(name, next_op)?;
-                quote_spanned! {
-                    name.span() => let (#name, text) = parse::CoreParse::parse_many(scope, text, #lookahead)?;
+                match lookahead(next_op) {
+                    Some(lookahead) => quote_spanned! {
+                        name.span() => let (#name, text) = parse::CoreParse::parse_many(scope, text, #lookahead)?;
+                    },
+                    None => quote_spanned! {
+                        name.span() => let (#name, text) = parse::CoreParse::parse_while_possible(scope, text)?;
+                    },
                 }
             }
 
@@ -171,10 +175,18 @@ fn parse_variant_with_attr(
                 name,
                 mode: FieldMode::Comma,
             } => {
-                let lookahead = lookahead(name, next_op)?;
-                quote_spanned! {
-                    name.span() => let (#name, text) = parse::CoreParse::parse_comma(scope, text, #lookahead)?;
+                match lookahead(next_op) {
+                    Some(lookahead) => quote_spanned! {
+                        name.span() => let (#name, text) = parse::CoreParse::parse_comma(scope, text, #lookahead)?;
+                    },
+                    None => {
+                        return Err(syn::Error::new_spanned(
+                            name,
+                            "cannot use `,` without lookahead".to_string(),
+                        ));
+                    }
                 }
+                
             }
 
             spec::FormalitySpecOp::Keyword { ident } => {
@@ -203,16 +215,11 @@ fn parse_variant_with_attr(
     Ok(stream)
 }
 
-fn lookahead(for_field: &Ident, op: Option<&FormalitySpecOp>) -> syn::Result<Literal> {
+fn lookahead(op: Option<&FormalitySpecOp>) -> Option<Literal> {
     match op {
-        Some(FormalitySpecOp::Char { punct }) => Ok(Literal::character(punct.as_char())),
-        Some(FormalitySpecOp::Delimeter { text }) => Ok(Literal::character(*text)),
-        Some(FormalitySpecOp::Keyword { .. }) | Some(FormalitySpecOp::Field { .. }) | None => {
-            Err(syn::Error::new_spanned(
-                for_field,
-                "cannot use `*` or `,` without lookahead".to_string(),
-            ))
-        }
+        Some(FormalitySpecOp::Char { punct }) => Some(Literal::character(punct.as_char())),
+        Some(FormalitySpecOp::Delimeter { text }) => Some(Literal::character(*text)),
+        Some(FormalitySpecOp::Keyword { .. }) | Some(FormalitySpecOp::Field { .. }) | None => None,
     }
 }
 

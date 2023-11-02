@@ -34,6 +34,16 @@ pub trait CoreParse<L: Language>: Sized + Debug {
         Ok((result, text))
     }
 
+    /// Continue parsing instances of self while we can.
+    fn parse_while_possible<'t>(scope: &Scope<L>, mut text: &'t str) -> ParseResult<'t, Vec<Self>> {
+        let mut result = vec![];
+        while let (Some(e), text1) = Self::parse_opt(scope, text)? {
+            result.push(e);
+            text = text1;
+        }
+        Ok((result, text))
+    }
+
     /// Comma separated list with optional trailing comma.
     fn parse_comma<'t>(
         scope: &Scope<L>,
@@ -54,6 +64,23 @@ pub trait CoreParse<L: Language>: Sized + Debug {
         }
 
         Ok((result, text))
+    }
+
+    /// Try to parse the current point as `Self`. If failure occurs, check
+    /// whether we consumed any tokens -- if so, return the resulting errors we
+    /// encountered as a parse failure. Otherwise, substitute a default Self.
+    fn parse_opt<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Option<Self>> {
+        match Self::parse(scope, text) {
+            Ok((v, text)) => Ok((Some(v), text)),
+            Err(mut errs) => {
+                errs.retain(|e| e.consumed_any_since(text));
+                if errs.is_empty() {
+                    Ok((None, text))
+                } else {
+                    Err(errs)
+                }
+            }
+        }
     }
 }
 
@@ -93,6 +120,12 @@ impl<'t> ParseError<'t> {
     pub fn consumed_before<'s>(&self, text: &'s str) -> &'s str {
         let o = self.offset(text);
         &text[..o]
+    }
+
+    /// True if any tokens were consumed before this error occurred,
+    /// with `text` as the starting point of the parse.
+    pub fn consumed_any_since(&self, text: &str) -> bool {
+        !skip_whitespace(self.consumed_before(text)).is_empty()
     }
 }
 
@@ -364,7 +397,7 @@ where
                 for e in es {
                     // only include an error if the error resulted after at least
                     // one non-whitespace character was consumed
-                    if !skip_whitespace(e.consumed_before(text)).is_empty() {
+                    if e.consumed_any_since(text) {
                         errors.insert(e);
                     }
                 }

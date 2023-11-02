@@ -8,10 +8,12 @@ use proc_macro2::{Ident, Punct, TokenStream, TokenTree};
 /// * a field like `$foo` parses the type of the declared field
 ///     * you can also do `$*foo` to use the `parse_many` option
 /// * a character like `<` is parsed as is; a group like `[..]` parses a `[`, the contents, and then `]`
+#[derive(Debug)]
 pub struct FormalitySpec {
     pub ops: Vec<FormalitySpecOp>,
 }
 
+#[derive(Debug)]
 pub enum FormalitySpecOp {
     /// `$foo` or `$foo*` -- indicates we should parse the type of the given field.
     Field { name: Ident, mode: FieldMode },
@@ -26,9 +28,22 @@ pub enum FormalitySpecOp {
     Delimeter { text: char },
 }
 
+#[derive(Debug)]
 pub enum FieldMode {
+    /// $x -- just parse `x`
     Single,
+
+    /// $*x -- `x` is a `Vec<E>`, parse multiple `E`
+    ///
+    /// If the next op is a fixed character, stop parsing when we see that.
+    /// Otherwise parse as many we can greedily.
     Many,
+
+    /// $*x -- `x` is a `Vec<E>`, parse comma separated list of `E`
+    /// (with optonal trailing comma)
+    ///
+    /// If the next op is a fixed character, stop parsing when we see that.
+    /// Otherwise parse as many we can greedily.
     Comma,
 }
 
