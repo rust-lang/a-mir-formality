@@ -237,7 +237,7 @@ fn debug_variant_with_attr(
 }
 
 fn get_grammar_attr(attrs: &[Attribute]) -> Option<syn::Result<FormalitySpec>> {
-    let attr = attrs.iter().find(|a| a.path.is_ident("grammar"))?;
+    let attr = attrs.iter().find(|a| a.path().is_ident("grammar"))?;
     Some(attr.parse_args())
 }
 

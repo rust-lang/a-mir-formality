@@ -1,4 +1,4 @@
-use formality::test_where_clause;
+use a_mir_formality::test_where_clause;
 
 const MIRROR: &str = "[
     crate core {

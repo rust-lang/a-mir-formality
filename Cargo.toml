@@ -1,7 +1,12 @@
 [package]
-name = "formality"
+name = "a-mir-formality"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Model of the Rust type system maintained by the Rust types team (in development)"
+homepage = "https://rust-lang.github.io/a-mir-formality/"
+repository = "https://github.com/rust-lang/a-mir-formality/"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
