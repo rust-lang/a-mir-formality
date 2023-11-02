@@ -6,7 +6,7 @@ use syn::{spanned::Spanned, Attribute};
 use synstructure::BindingInfo;
 
 use crate::{
-    spec::{self, FieldMode, FormalitySpec, FormalitySpecOp},
+    spec::{self, FieldMode, FormalitySpec, FormalitySpecSymbol},
     attrs::{has_variable_attr, has_cast_attr},
 };
 
@@ -154,11 +154,11 @@ fn parse_variant_with_attr(
 ) -> syn::Result<TokenStream> {
     let mut stream = TokenStream::new();
 
-    for i in 0..spec.ops.len() {
-        let op = &spec.ops[i];
-        let next_op = spec.ops.get(i + 1);
-        stream.extend(match op {
-            spec::FormalitySpecOp::Field {
+    for i in 0..spec.symbols.len() {
+        let symbol = &spec.symbols[i];
+        let next_symbol = spec.symbols.get(i + 1);
+        stream.extend(match symbol {
+            spec::FormalitySpecSymbol::Field {
                 name,
                 mode: FieldMode::Single,
             } => {
@@ -167,7 +167,7 @@ fn parse_variant_with_attr(
                 }
             }
 
-            spec::FormalitySpecOp::Field {
+            spec::FormalitySpecSymbol::Field {
                 name,
                 mode: FieldMode::Optional,
             } => {
@@ -178,11 +178,11 @@ fn parse_variant_with_attr(
                 }
             }
 
-            spec::FormalitySpecOp::Field {
+            spec::FormalitySpecSymbol::Field {
                 name,
                 mode: FieldMode::Many,
             } => {
-                match lookahead(next_op) {
+                match lookahead(next_symbol) {
                     Some(lookahead) => quote_spanned! {
                         name.span() => let (#name, text) = parse::CoreParse::parse_many(scope, text, #lookahead)?;
                     },
@@ -192,11 +192,11 @@ fn parse_variant_with_attr(
                 }
             }
 
-            spec::FormalitySpecOp::Field {
+            spec::FormalitySpecSymbol::Field {
                 name,
                 mode: FieldMode::Comma,
             } => {
-                match lookahead(next_op) {
+                match lookahead(next_symbol) {
                     Some(lookahead) => quote_spanned! {
                         name.span() => let (#name, text) = parse::CoreParse::parse_comma(scope, text, #lookahead)?;
                     },
@@ -210,17 +210,17 @@ fn parse_variant_with_attr(
                 
             }
 
-            spec::FormalitySpecOp::Keyword { ident } => {
+            spec::FormalitySpecSymbol::Keyword { ident } => {
                 let literal = as_literal(ident);
                 quote_spanned!(ident.span() => let ((), text) = parse::expect_keyword(#literal, text)?;)
             }
 
-            spec::FormalitySpecOp::Char { punct } => {
+            spec::FormalitySpecSymbol::Char { punct } => {
                 let literal = Literal::character(punct.as_char());
                 quote_spanned!(punct.span() => let ((), text) = parse::expect_char(#literal, text)?;)
             }
 
-            spec::FormalitySpecOp::Delimeter { text } => {
+            spec::FormalitySpecSymbol::Delimeter { text } => {
                 let literal = Literal::character(*text);
                 quote!(let ((), text) = parse::expect_char(#literal, text)?;)
             }
@@ -236,11 +236,11 @@ fn parse_variant_with_attr(
     Ok(stream)
 }
 
-fn lookahead(op: Option<&FormalitySpecOp>) -> Option<Literal> {
-    match op {
-        Some(FormalitySpecOp::Char { punct }) => Some(Literal::character(punct.as_char())),
-        Some(FormalitySpecOp::Delimeter { text }) => Some(Literal::character(*text)),
-        Some(FormalitySpecOp::Keyword { .. }) | Some(FormalitySpecOp::Field { .. }) | None => None,
+fn lookahead(next_symbol: Option<&FormalitySpecSymbol>) -> Option<Literal> {
+    match next_symbol {
+        Some(FormalitySpecSymbol::Char { punct }) => Some(Literal::character(punct.as_char())),
+        Some(FormalitySpecSymbol::Delimeter { text }) => Some(Literal::character(*text)),
+        Some(FormalitySpecSymbol::Keyword { .. }) | Some(FormalitySpecSymbol::Field { .. }) | None => None,
     }
 }
 

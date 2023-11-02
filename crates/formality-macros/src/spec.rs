@@ -10,11 +10,11 @@ use proc_macro2::{Ident, Punct, TokenStream, TokenTree};
 /// * a character like `<` is parsed as is; a group like `[..]` parses a `[`, the contents, and then `]`
 #[derive(Debug)]
 pub struct FormalitySpec {
-    pub ops: Vec<FormalitySpecOp>,
+    pub symbols: Vec<FormalitySpecSymbol>,
 }
 
 #[derive(Debug)]
-pub enum FormalitySpecOp {
+pub enum FormalitySpecSymbol {
     /// `$foo` or `$foo*` -- indicates we should parse the type of the given field.
     Field { name: Ident, mode: FieldMode },
 
@@ -53,17 +53,17 @@ pub enum FieldMode {
 impl syn::parse::Parse for FormalitySpec {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let token_stream: TokenStream = input.parse()?;
-        let mut ops = vec![];
-        token_stream_to_ops(&mut ops, token_stream)?;
-        Ok(FormalitySpec { ops })
+        let mut symbols = vec![];
+        token_stream_to_symbols(&mut symbols, token_stream)?;
+        Ok(FormalitySpec { symbols })
     }
 }
 
-fn token_stream_to_ops(
-    ops: &mut Vec<FormalitySpecOp>,
+fn token_stream_to_symbols(
+    symbols: &mut Vec<FormalitySpecSymbol>,
     token_stream: TokenStream,
 ) -> syn::Result<()> {
-    use FormalitySpecOp::*;
+    use FormalitySpecSymbol::*;
 
     let mut tokens = token_stream.into_iter();
 
@@ -78,17 +78,17 @@ fn token_stream_to_ops(
                 };
 
                 if let Some(ch) = open_text {
-                    ops.push(Delimeter { text: ch });
+                    symbols.push(Delimeter { text: ch });
                 }
-                token_stream_to_ops(ops, v.stream())?;
+                token_stream_to_symbols(symbols, v.stream())?;
                 if let Some(ch) = close_text {
-                    ops.push(Delimeter { text: ch });
+                    symbols.push(Delimeter { text: ch });
                 }
             }
-            proc_macro2::TokenTree::Ident(ident) => ops.push(Keyword { ident }),
+            proc_macro2::TokenTree::Ident(ident) => symbols.push(Keyword { ident }),
             proc_macro2::TokenTree::Punct(punct) => match punct.as_char() {
-                '$' => ops.push(parse_variable_binding(punct, &mut tokens)?),
-                _ => ops.push(Char { punct }),
+                '$' => symbols.push(parse_variable_binding(punct, &mut tokens)?),
+                _ => symbols.push(Char { punct }),
             },
             proc_macro2::TokenTree::Literal(_) => {
                 let message = "unexpected literal in parse string";
@@ -109,7 +109,7 @@ fn token_stream_to_ops(
 fn parse_variable_binding(
     dollar_token: Punct,
     tokens: &mut impl Iterator<Item = TokenTree>,
-) -> syn::Result<FormalitySpecOp> {
+) -> syn::Result<FormalitySpecSymbol> {
     let error = || {
         let message = "expected field name or field mode (`,`, `*`)";
         Err(syn::Error::new(dollar_token.span(), message))
@@ -128,7 +128,7 @@ fn parse_variable_binding(
                 ',' => FieldMode::Comma,
                 '*' => FieldMode::Many,
                 '?' => FieldMode::Optional,
-                '$' => return Ok(FormalitySpecOp::Char { punct }),
+                '$' => return Ok(FormalitySpecSymbol::Char { punct }),
                 _ => return error(),
             };
 
@@ -148,5 +148,5 @@ fn parse_variable_binding(
         _ => return error(),
     };
 
-    Ok(FormalitySpecOp::Field { name, mode })
+    Ok(FormalitySpecSymbol::Field { name, mode })
 }
