@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::DeriveInput;
+use syn::{Attribute, DeriveInput};
 
 use crate::{
     cast::{downcast_impls, upcast_impls},
@@ -38,9 +38,11 @@ pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<
 fn remove_formality_attributes(input: &mut DeriveInput) {
     if let syn::Data::Enum(v) = &mut input.data {
         for variant in &mut v.variants {
-            variant
-                .attrs
-                .retain(|attr| !attr.path().is_ident("grammar") && !attr.path().is_ident("cast"));
+            variant.attrs.retain(|attr| {
+                !attr.path().is_ident("grammar")
+                    && !attr.path().is_ident("cast")
+                    && !attr.path().is_ident("variable")
+            });
         }
     }
 }
@@ -56,4 +58,8 @@ fn derive_term(mut s: synstructure::Structure) -> TokenStream {
         gen impl CoreTerm<crate::FormalityLang> for @Self {
         }
     })
+}
+
+pub(crate) fn has_variable_attr(attrs: &[Attribute]) -> bool {
+    attrs.iter().any(|a| a.path().is_ident("variable"))
 }

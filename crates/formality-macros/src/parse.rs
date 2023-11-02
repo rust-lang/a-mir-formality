@@ -5,7 +5,10 @@ use quote::{quote, quote_spanned};
 use syn::{spanned::Spanned, Attribute};
 use synstructure::BindingInfo;
 
-use crate::spec::{self, FieldMode, FormalitySpec, FormalitySpecOp};
+use crate::{
+    spec::{self, FieldMode, FormalitySpec, FormalitySpecOp},
+    term::has_variable_attr,
+};
 
 /// Derive the `Parse` impl, using an optional grammar supplied "from the outside".
 /// This is used by the `#[term(G)]` macro, which supplies the grammar `G`.
@@ -25,14 +28,14 @@ pub(crate) fn derive_parse_with_spec(
     let type_name = Literal::string(&format!("`{}`", s.ast().ident));
 
     if s.variants().len() == 1 {
-        stream.extend(parse_variant(&s.variants()[0], external_spec));
+        stream.extend(parse_variant(&type_name, &s.variants()[0], external_spec));
     } else {
         stream.extend(quote! {
             let mut __results = vec![];
         });
         for variant in s.variants() {
             let variant_name = as_literal(variant.ast().ident);
-            let v = parse_variant(variant, None)?;
+            let v = parse_variant(&type_name, variant, None)?;
             stream.extend(quote! {
                 __results.push({
                     let __span = tracing::span!(tracing::Level::TRACE, "parse", variant_name = #variant_name);
@@ -44,7 +47,7 @@ pub(crate) fn derive_parse_with_spec(
         stream.extend(quote! {parse::require_unambiguous(text, __results, #type_name)});
     }
 
-    let type_name = as_literal(&s.ast().ident);
+    let type_name: Literal = as_literal(&s.ast().ident);
     Ok(s.gen_impl(quote! {
         use formality_core::parse;
 
@@ -62,6 +65,7 @@ pub(crate) fn derive_parse_with_spec(
 }
 
 fn parse_variant(
+    type_name: &Literal,
     variant: &synstructure::VariantInfo,
     external_spec: Option<&FormalitySpec>,
 ) -> syn::Result<TokenStream> {
@@ -86,6 +90,13 @@ fn parse_variant(
         Ok(quote! {
             let ((), text) = parse::expect_keyword(#literal, text)?;
             Ok((#construct, text))
+        })
+    } else if has_variable_attr(variant.ast().attrs) {
+        // Has the `#[variable]` attribute -- parse an identifier and then check to see if it is present
+        // in the scope. If so, downcast it and check that it has the correct kind.
+        Ok(quote_spanned! {
+            ast.ident.span() =>
+            parse::parse_variable(scope, text, #type_name)
         })
     } else if crate::cast::has_cast_attr(variant.ast().attrs) {
         // Has the `#[cast]` attribute -- just parse the bindings (comma separated, if needed)

@@ -4,10 +4,11 @@ use crate::{
     binder::CoreBinder,
     cast::To,
     collections::Set,
-    language::{CoreKind, CoreParameter, Language},
+    language::{CoreKind, CoreParameter, HasKind, Language},
     set,
     term::CoreTerm,
     variable::CoreBoundVar,
+    Downcast, DowncastFrom,
 };
 use std::fmt::Debug;
 
@@ -472,5 +473,35 @@ pub fn skip_whitespace(mut text: &str) -> &str {
         if text.len() == len {
             return text;
         }
+    }
+}
+
+/// Parses a variable into a parameter. Variables don't implement Parse themselves
+/// because you can't parse a variable into a *variable*, instead, you parse it into
+/// a Parameter indicating its kind.
+#[tracing::instrument(level = "trace", ret)]
+pub fn parse_variable<'t, L, R>(
+    scope: &Scope<L>,
+    text0: &'t str,
+    type_name: &str,
+) -> ParseResult<'t, R>
+where
+    L: Language,
+    R: Debug + DowncastFrom<CoreParameter<L>>,
+{
+    let (id, text1) = identifier(text0)?;
+    match scope.lookup(&id) {
+        Some(parameter) => match parameter.downcast() {
+            Some(v) => Ok((v, text1)),
+            None => Err(ParseError::at(
+                text0,
+                format!(
+                    "wrong kind, expected a {}, found a {:?}",
+                    type_name,
+                    parameter.kind()
+                ),
+            )),
+        },
+        None => Err(ParseError::at(text0, format!("unrecognized variable"))),
     }
 }
