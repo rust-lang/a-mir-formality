@@ -5,6 +5,7 @@ use spec::FormalitySpec;
 
 extern crate proc_macro;
 
+mod attrs;
 mod cast;
 mod debug;
 mod fixed_point;

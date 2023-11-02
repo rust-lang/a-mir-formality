@@ -1,17 +1,15 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Attribute, Type};
+use syn::Type;
 use synstructure::VariantInfo;
 
-use crate::term::has_variable_attr;
+use crate::attrs::has_isa_attr;
 
 pub(crate) fn upcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
     let num_variants = s.variants().len();
     s.variants()
         .iter()
-        .filter(|v| {
-            num_variants == 1 || has_cast_attr(v.ast().attrs) || has_variable_attr(v.ast().attrs)
-        })
+        .filter(|v| num_variants == 1 || has_isa_attr(v.ast().attrs))
         .map(|v| upcast_to_variant(&s, v))
         .chain(Some(self_upcast(&s)))
         .collect()
@@ -50,9 +48,7 @@ pub(crate) fn downcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
     let num_variants = s.variants().len();
     s.variants()
         .iter()
-        .filter(|v| {
-            num_variants == 1 || has_cast_attr(v.ast().attrs) || has_variable_attr(v.ast().attrs)
-        })
+        .filter(|v| num_variants == 1 || has_isa_attr(v.ast().attrs))
         .map(|v| downcast_to_variant(&s, v))
         .chain(Some(self_downcast(&s)))
         .collect()
@@ -94,8 +90,4 @@ fn downcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStr
             }
         }
     })
-}
-
-pub(crate) fn has_cast_attr(attrs: &[Attribute]) -> bool {
-    attrs.iter().any(|a| a.path().is_ident("cast"))
 }

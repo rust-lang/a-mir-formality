@@ -4,7 +4,10 @@ use proc_macro2::{Ident, Literal, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{spanned::Spanned, Attribute};
 
-use crate::spec::{self, FieldMode, FormalitySpec, FormalitySpecOp};
+use crate::{
+    attrs,
+    spec::{self, FieldMode, FormalitySpec, FormalitySpecOp},
+};
 
 /// Derive the `Parse` impl, using an optional grammar supplied "from the outside".
 /// This is used by the `#[term(G)]` macro, which supplies the grammar `G`.
@@ -62,7 +65,7 @@ fn debug_variant(
         quote! {
             write!(fmt, #literal)?;
         }
-    } else if crate::cast::has_cast_attr(variant.ast().attrs) {
+    } else if attrs::has_isa_attr(variant.ast().attrs) {
         let streams: Vec<_> = variant
             .bindings()
             .iter()

@@ -3,7 +3,7 @@ extern crate proc_macro;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-use crate::term::has_variable_attr;
+use crate::attrs::has_variable_attr;
 
 pub(crate) fn derive_fold(mut s: synstructure::Structure) -> TokenStream {
     s.underscore_const(true);

@@ -7,7 +7,7 @@ use synstructure::BindingInfo;
 
 use crate::{
     spec::{self, FieldMode, FormalitySpec, FormalitySpecOp},
-    term::has_variable_attr,
+    attrs::{has_variable_attr, has_cast_attr},
 };
 
 /// Derive the `Parse` impl, using an optional grammar supplied "from the outside".
@@ -108,7 +108,7 @@ fn parse_variant(
             ast.ident.span() =>
             parse::parse_variable(scope, text, #type_name)
         })
-    } else if crate::cast::has_cast_attr(variant.ast().attrs) {
+    } else if has_cast_attr(variant.ast().attrs) {
         // Has the `#[cast]` attribute -- just parse the bindings (comma separated, if needed)
         let build: Vec<TokenStream> = parse_bindings(variant.bindings());
         let construct = variant.construct(field_ident);
