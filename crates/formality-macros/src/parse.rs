@@ -27,9 +27,19 @@ pub(crate) fn derive_parse_with_spec(
 
     let type_name = Literal::string(&format!("`{}`", s.ast().ident));
 
-    if s.variants().len() == 1 {
+    if let syn::Data::Struct(_) = s.ast().data {
+        // For structs, where there is only one variant, use the external grammar (if any).
         stream.extend(parse_variant(&type_name, &s.variants()[0], external_spec)?);
     } else {
+        // If there are multiple variants, there should not be an external grammar.
+        // Parse them all and require an unambiguous parse.
+        if external_spec.is_some() {
+            return Err(syn::Error::new_spanned(
+                &s.ast().ident,
+                "for enums provide the grammar on each variant".to_string(),
+            ));
+        }
+
         stream.extend(quote! {
             let mut __results = vec![];
         });
