@@ -6,7 +6,7 @@ fn main() -> Result<()> {
     let mut config = Config::rustc("tests/ui");
     // Prevent ui_test from trying to query `formality` for the host platform name
     config.host = Some("non of ya bizniz".into());
-    config.program.program = "target/debug/formality".into();
+    config.program.program = "target/debug/a-mir-formality".into();
     config.mode = Mode::Fail {
         require_patterns: false,
     };
