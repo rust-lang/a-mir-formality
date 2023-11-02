@@ -28,7 +28,7 @@ pub(crate) fn derive_parse_with_spec(
     let type_name = Literal::string(&format!("`{}`", s.ast().ident));
 
     if s.variants().len() == 1 {
-        stream.extend(parse_variant(&type_name, &s.variants()[0], external_spec));
+        stream.extend(parse_variant(&type_name, &s.variants()[0], external_spec)?);
     } else {
         stream.extend(quote! {
             let mut __results = vec![];
