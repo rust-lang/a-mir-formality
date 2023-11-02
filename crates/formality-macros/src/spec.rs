@@ -45,6 +45,9 @@ pub enum FieldMode {
     /// If the next op is a fixed character, stop parsing when we see that.
     /// Otherwise parse as many we can greedily.
     Comma,
+
+    /// $?x -- parse `x` if we can, but otherwise use `Default`
+    Optional,
 }
 
 impl syn::parse::Parse for FormalitySpec {
@@ -124,6 +127,7 @@ fn parse_variable_binding(
             let mode = match punct.as_char() {
                 ',' => FieldMode::Comma,
                 '*' => FieldMode::Many,
+                '?' => FieldMode::Optional,
                 '$' => return Ok(FormalitySpecOp::Char { punct }),
                 _ => return error(),
             };

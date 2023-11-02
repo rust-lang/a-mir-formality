@@ -159,6 +159,17 @@ fn parse_variant_with_attr(
 
             spec::FormalitySpecOp::Field {
                 name,
+                mode: FieldMode::Optional,
+            } => {
+                quote_spanned! {
+                    name.span() => 
+                    let (#name, text) = parse::CoreParse::parse_opt(scope, text)?;
+                    let #name = #name.unwrap_or_default();
+                }
+            }
+
+            spec::FormalitySpecOp::Field {
+                name,
                 mode: FieldMode::Many,
             } => {
                 match lookahead(next_op) {

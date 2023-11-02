@@ -149,7 +149,7 @@ fn debug_variant_with_attr(
         stream.extend(match op {
             spec::FormalitySpecOp::Field {
                 name,
-                mode: FieldMode::Single,
+                mode: FieldMode::Single | FieldMode::Optional,
             } => {
                 quote_spanned! {
                     name.span() =>
