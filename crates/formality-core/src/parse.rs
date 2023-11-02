@@ -211,10 +211,7 @@ where
 {
     #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        match T::parse(scope, text) {
-            Ok((value, text)) => Ok((Some(value), text)),
-            Err(_) => Ok((None, text)),
-        }
+        T::parse_opt(scope, text)
     }
 }
 
