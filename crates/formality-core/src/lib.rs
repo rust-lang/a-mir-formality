@@ -90,6 +90,7 @@ macro_rules! declare_language {
             type Parameter = $param:ty;
             const BINDING_OPEN = $binding_open:expr;
             const BINDING_CLOSE = $binding_close:expr;
+            const KEYWORDS = [$($kw:expr),* $(,)?];
         }
     ) => {
         $(#[$the_lang_m:meta])*
@@ -105,6 +106,7 @@ macro_rules! declare_language {
                 type Parameter = $param;
                 const BINDING_OPEN: char = $binding_open;
                 const BINDING_CLOSE: char = $binding_close;
+                const KEYWORDS: &'static [&'static str] = &[$($kw),*];
             }
 
             $crate::trait_alias! {
@@ -161,21 +163,7 @@ macro_rules! declare_language {
                 T: Parse,
                 B: $crate::Upcast<(String, $param)>,
             {
-                let scope = $crate::parse::Scope::new(bindings.into_iter().map(|b| b.upcast()));
-                let (t, remainder) = match T::parse(&scope, text) {
-                    Ok(v) => v,
-                    Err(errors) => {
-                        let mut err = $crate::anyhow!("failed to parse {text}");
-                        for error in errors {
-                            err = err.context(error.text.to_owned()).context(error.message);
-                        }
-                        return Err(err);
-                    }
-                };
-                if !$crate::parse::skip_whitespace(remainder).is_empty() {
-                    $crate::bail!("extra tokens after parsing {text:?} to {t:?}: {remainder:?}");
-                }
-                Ok(t)
+                $crate::parse::core_term_with::<FormalityLang, T, B>(bindings, text)
             }
         }
     }
@@ -238,12 +226,13 @@ macro_rules! id {
 
             impl CoreParse<crate::FormalityLang> for $n {
                 fn parse<'t>(
-                    _scope: &parse::Scope<crate::FormalityLang>,
+                    scope: &parse::Scope<crate::FormalityLang>,
                     text: &'t str,
                 ) -> parse::ParseResult<'t, Self> {
-                    let (string, text) = parse::identifier(text)?;
-                    let n = $n::new(&string);
-                    Ok((n, text))
+                    $crate::parse::Parser::single_variant(scope, text, stringify!($n), |p| {
+                        let string = p.identifier()?;
+                        Ok($n::new(&string))
+                    })
                 }
             }
 

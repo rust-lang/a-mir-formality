@@ -22,11 +22,17 @@ pub trait Language: 'static + Copy + Ord + Hash + Debug + Default {
         + UpcastFrom<CoreExistentialVar<Self>>
         + UpcastFrom<CoreBoundVar<Self>>;
 
-    /// The character (typically `<`) used to open binders.
+    /// The token (typically `<`) used to open binders.
     const BINDING_OPEN: char;
 
-    /// The character (typically `>`) used to open binders.
+    /// The token (typically `>`) used to open binders.
     const BINDING_CLOSE: char;
+
+    /// Keywords to disallow as identifiers everywhere.
+    /// It is possible to do positional keywords too, if you want,
+    /// but it requires custom parsing impls for your types.
+    /// No fun.
+    const KEYWORDS: &'static [&'static str];
 }
 
 /// For consistency with types like `CoreVariable<L>`, we write `CoreKind<L>` instead of `Kind<L>`.

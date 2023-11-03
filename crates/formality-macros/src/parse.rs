@@ -6,8 +6,8 @@ use syn::{spanned::Spanned, Attribute};
 use synstructure::BindingInfo;
 
 use crate::{
-    spec::{self, FieldMode, FormalitySpec, FormalitySpecSymbol},
-    attrs::{has_variable_attr, has_cast_attr},
+    attrs::{has_cast_attr, has_variable_attr},
+    spec::{self, FieldMode, FormalitySpec},
 };
 
 /// Derive the `Parse` impl, using an optional grammar supplied "from the outside".
@@ -23,38 +23,30 @@ pub(crate) fn derive_parse_with_spec(
         ));
     }
 
-    let mut stream = TokenStream::new();
-
-    let type_name = Literal::string(&format!("`{}`", s.ast().ident));
-
-    if let syn::Data::Struct(_) = s.ast().data {
-        // For structs, where there is only one variant, use the external grammar (if any).
-        stream.extend(parse_variant(&type_name, &s.variants()[0], external_spec)?);
-    } else {
-        // If there are multiple variants, there should not be an external grammar.
-        // Parse them all and require an unambiguous parse.
-        if external_spec.is_some() {
-            return Err(syn::Error::new_spanned(
-                &s.ast().ident,
-                "for enums provide the grammar on each variant".to_string(),
-            ));
+    if external_spec.is_some() {
+        // Only allow external specs for structs.
+        match s.ast().data {
+            syn::Data::Struct(_) => {}
+            syn::Data::Enum(_) | syn::Data::Union(_) => {
+                return Err(syn::Error::new_spanned(
+                    &s.ast().ident,
+                    "for enums provide the grammar on each variant".to_string(),
+                ));
+            }
         }
+    }
 
-        stream.extend(quote! {
-            let mut __results = vec![];
+    let mut parse_variants = TokenStream::new();
+    for variant in s.variants() {
+        let variant_name = as_literal(variant.ast().ident);
+        let v = parse_variant(variant, external_spec)?;
+        parse_variants.extend(quote! {
+            {
+                let __span = tracing::span!(tracing::Level::TRACE, "parse", variant_name = #variant_name);
+                let __guard = __span.enter();
+                __parser.parse_variant(#variant_name, 0, |__p| { #v });
+            }
         });
-        for variant in s.variants() {
-            let variant_name = as_literal(variant.ast().ident);
-            let v = parse_variant(&type_name, variant, None)?;
-            stream.extend(quote! {
-                __results.push({
-                    let __span = tracing::span!(tracing::Level::TRACE, "parse", variant_name = #variant_name);
-                    let __guard = __span.enter();
-                    parse::try_parse(|| { #v })
-                });
-            });
-        }
-        stream.extend(quote! {parse::require_unambiguous(text, __results, #type_name)});
     }
 
     let type_name: Literal = as_literal(&s.ast().ident);
@@ -64,18 +56,15 @@ pub(crate) fn derive_parse_with_spec(
         gen impl parse::CoreParse<crate::FormalityLang> for @Self {
             fn parse<'t>(scope: &parse::Scope<crate::FormalityLang>, text: &'t str) -> parse::ParseResult<'t, Self>
             {
-                let __span = tracing::span!(tracing::Level::TRACE, "parse", type_name = #type_name, ?scope, ?text);
-                let __guard = __span.enter();
-                let __result = { #stream };
-                tracing::trace!("result = {:?}", __result);
-                __result
+                let mut __parser = parse::Parser::new(scope, text, #type_name);
+                #parse_variants;
+                __parser.finish()
             }
         }
     }))
 }
 
 fn parse_variant(
-    type_name: &Literal,
     variant: &synstructure::VariantInfo,
     external_spec: Option<&FormalitySpec>,
 ) -> syn::Result<TokenStream> {
@@ -97,37 +86,41 @@ fn parse_variant(
         // No bindings (e.g., `Foo`) -- just parse a keyword `foo`
         let literal = Literal::string(&to_parse_ident(ast.ident));
         let construct = variant.construct(|_, _| quote! {});
-        Ok(quote! {
-            let ((), text) = parse::expect_keyword(#literal, text)?;
-            Ok((#construct, text))
+        Ok(quote_spanned! {
+            ast.ident.span() =>
+            __p.expect_keyword(#literal)?;
+            Ok(#construct)
         })
     } else if has_variable_attr(variant.ast().attrs) {
         // Has the `#[variable]` attribute -- parse an identifier and then check to see if it is present
         // in the scope. If so, downcast it and check that it has the correct kind.
         Ok(quote_spanned! {
             ast.ident.span() =>
-            parse::parse_variable(scope, text, #type_name)
+            let v = __p.variable()?;
+            Ok(v)
         })
     } else if has_cast_attr(variant.ast().attrs) {
         // Has the `#[cast]` attribute -- just parse the bindings (comma separated, if needed)
         let build: Vec<TokenStream> = parse_bindings(variant.bindings());
         let construct = variant.construct(field_ident);
-        Ok(quote! {
+        Ok(quote_spanned! {
+            ast.ident.span() =>
             #(#build)*
-            Ok((#construct, text))
+            Ok(#construct)
         })
     } else {
         // Otherwise -- parse `variant(binding0, ..., bindingN)`
         let literal = Literal::string(&to_parse_ident(ast.ident));
         let build: Vec<TokenStream> = parse_bindings(variant.bindings());
         let construct = variant.construct(field_ident);
-        Ok(quote! {
-            let ((), text) = parse::expect_keyword(#literal, text)?;
-            let ((), text) = parse::expect_char('(', text)?;
+        Ok(quote_spanned! {
+            ast.ident.span() =>
+            __p.expect_keyword(#literal)?;
+            __p.expect_char('(')?;
             #(#build)*
-            let text = parse::skip_trailing_comma(text);
-            let ((), text) = parse::expect_char(')', text)?;
-            Ok((#construct, text))
+            __p.skip_trailing_comma();
+            __p.expect_char(')')?;
+            Ok(#construct)
         })
     }
 }
@@ -154,16 +147,15 @@ fn parse_variant_with_attr(
 ) -> syn::Result<TokenStream> {
     let mut stream = TokenStream::new();
 
-    for i in 0..spec.symbols.len() {
-        let symbol = &spec.symbols[i];
-        let next_symbol = spec.symbols.get(i + 1);
+    for symbol in &spec.symbols {
         stream.extend(match symbol {
             spec::FormalitySpecSymbol::Field {
                 name,
                 mode: FieldMode::Single,
             } => {
                 quote_spanned! {
-                    name.span() => let (#name, text) = parse::CoreParse::parse(scope, text)?;
+                    name.span() =>
+                    let #name = __p.nonterminal()?;
                 }
             }
 
@@ -172,8 +164,8 @@ fn parse_variant_with_attr(
                 mode: FieldMode::Optional,
             } => {
                 quote_spanned! {
-                    name.span() => 
-                    let (#name, text) = parse::CoreParse::parse_opt(scope, text)?;
+                    name.span() =>
+                    let #name = __p.opt_nonterminal()?;
                     let #name = #name.unwrap_or_default();
                 }
             }
@@ -182,13 +174,9 @@ fn parse_variant_with_attr(
                 name,
                 mode: FieldMode::Many,
             } => {
-                match lookahead(next_symbol) {
-                    Some(lookahead) => quote_spanned! {
-                        name.span() => let (#name, text) = parse::CoreParse::parse_many(scope, text, #lookahead)?;
-                    },
-                    None => quote_spanned! {
-                        name.span() => let (#name, text) = parse::CoreParse::parse_while_possible(scope, text)?;
-                    },
+                quote_spanned! {
+                    name.span() =>
+                    let #name = __p.many_nonterminal()?;
                 }
             }
 
@@ -196,33 +184,32 @@ fn parse_variant_with_attr(
                 name,
                 mode: FieldMode::Comma,
             } => {
-                match lookahead(next_symbol) {
-                    Some(lookahead) => quote_spanned! {
-                        name.span() => let (#name, text) = parse::CoreParse::parse_comma(scope, text, #lookahead)?;
-                    },
-                    None => {
-                        return Err(syn::Error::new_spanned(
-                            name,
-                            "cannot use `,` without lookahead".to_string(),
-                        ));
-                    }
+                quote_spanned! {
+                    name.span() =>
+                    let #name = __p.comma_nonterminal()?;
                 }
-                
             }
 
             spec::FormalitySpecSymbol::Keyword { ident } => {
                 let literal = as_literal(ident);
-                quote_spanned!(ident.span() => let ((), text) = parse::expect_keyword(#literal, text)?;)
+                quote_spanned!(ident.span() =>
+                    let () = __p.expect_keyword(#literal)?;
+                )
             }
 
             spec::FormalitySpecSymbol::Char { punct } => {
                 let literal = Literal::character(punct.as_char());
-                quote_spanned!(punct.span() => let ((), text) = parse::expect_char(#literal, text)?;)
+                quote_spanned!(
+                    punct.span() =>
+                    let () = __p.expect_char(#literal)?;
+                )
             }
 
             spec::FormalitySpecSymbol::Delimeter { text } => {
                 let literal = Literal::character(*text);
-                quote!(let ((), text) = parse::expect_char(#literal, text)?;)
+                quote!(
+                    let () = __p.expect_char(#literal)?;
+                )
             }
         });
     }
@@ -230,18 +217,10 @@ fn parse_variant_with_attr(
     let c = variant.construct(field_ident);
 
     stream.extend(quote! {
-        Ok((#c, text))
+        Ok(#c)
     });
 
     Ok(stream)
-}
-
-fn lookahead(next_symbol: Option<&FormalitySpecSymbol>) -> Option<Literal> {
-    match next_symbol {
-        Some(FormalitySpecSymbol::Char { punct }) => Some(Literal::character(punct.as_char())),
-        Some(FormalitySpecSymbol::Delimeter { text }) => Some(Literal::character(*text)),
-        Some(FormalitySpecSymbol::Keyword { .. }) | Some(FormalitySpecSymbol::Field { .. }) | None => None,
-    }
 }
 
 fn get_grammar_attr(attrs: &[Attribute]) -> Option<syn::Result<FormalitySpec>> {
@@ -275,13 +254,17 @@ fn parse_bindings(bindings: &[BindingInfo]) -> Vec<TokenStream> {
         .map(|(b, index)| {
             let name = field_ident(b.ast(), index);
             let parse_comma = if index > 0 {
-                Some(quote!(let ((), text) = parse::expect_char(',', text)?;))
+                Some(quote_spanned!(
+                    name.span() =>
+                    __p.expect_char(',')?;
+                ))
             } else {
                 None
             };
-            quote! {
+            quote_spanned! {
+                name.span() =>
                 #parse_comma
-                let (#name, text) = parse::CoreParse::parse(scope, text)?;
+                let #name = __p.nonterminal()?;
             }
         })
         .collect()

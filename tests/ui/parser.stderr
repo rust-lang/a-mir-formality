@@ -1,7 +1,7 @@
 Error: expected `:`
 
 Caused by:
-    0:  ] {}
+    0: ] {}
            }
        ]
        

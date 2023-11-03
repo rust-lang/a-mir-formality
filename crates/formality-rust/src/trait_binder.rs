@@ -2,10 +2,10 @@ use std::fmt::Debug;
 
 use formality_core::{
     fold::CoreFold,
-    parse::{expect_char, Binding, CoreParse, ParseResult, Scope},
+    parse::{Binding, CoreParse, ParseResult, Parser, Scope},
     term::CoreTerm,
     visit::CoreVisit,
-    DowncastTo, To, UpcastFrom,
+    DowncastTo, UpcastFrom,
 };
 use formality_types::{
     grammar::{Binder, BoundVar, ParameterKind},
@@ -89,29 +89,29 @@ where
 {
     #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope<FormalityLang>, text: &'t str) -> ParseResult<'t, Self> {
-        // parse the explicit bindings written by the user
-        let ((), text) = expect_char('<', text)?;
-        let (mut bindings, text) = Binding::parse_comma(scope, text, '>')?;
-        let ((), text) = expect_char('>', text)?;
+        Parser::single_variant(scope, text, "TraitBinder", |p| {
+            p.expect_char('<')?;
+            let mut bindings: Vec<Binding<FormalityLang>> = p.comma_nonterminal()?;
+            p.expect_char('>')?;
 
-        // insert the `Self` binding at position 0
-        let bound_var = BoundVar::fresh(ParameterKind::Ty);
-        bindings.insert(
-            0,
-            Binding {
-                name: "Self".to_string(),
-                bound_var,
-            },
-        );
+            // insert the `Self` binding at position 0
+            let bound_var = BoundVar::fresh(ParameterKind::Ty);
+            bindings.insert(
+                0,
+                Binding {
+                    name: "Self".to_string(),
+                    bound_var,
+                },
+            );
 
-        // parse the contents with those names in scope
-        let scope1 =
-            scope.with_bindings(bindings.iter().map(|b| (b.name.clone(), b.bound_var.to())));
-        let (data, text) = T::parse(&scope1, text)?;
+            // parse the contents with those names in scope
+            let scope1 = scope.with_bindings(bindings.iter().map(|b| (&b.name, &b.bound_var)));
+            let data: T = p.with_scope(scope1, |p| p.nonterminal())?;
 
-        let bound_vars: Vec<BoundVar> = bindings.iter().map(|b| b.bound_var).collect();
-        let explicit_binder = Binder::new(bound_vars, data);
+            let bound_vars: Vec<BoundVar> = bindings.iter().map(|b| b.bound_var).collect();
+            let explicit_binder = Binder::new(bound_vars, data);
 
-        Ok((TraitBinder { explicit_binder }, text))
+            Ok(TraitBinder { explicit_binder })
+        })
     }
 }
