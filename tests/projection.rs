@@ -252,7 +252,7 @@ const PROJECTION_EQUALITY: &str = "[
             type Type<> : [] where [];
         }
         trait Trait2<ty T> where [] {}
-        impl<ty T, ty U> Trait2<T> for U where [ U: Trait1<>, (alias (Trait1::Type) S) => T ] {}
+        impl<ty T, ty U> Trait2<T> for U where [ U: Trait1<>, <S as Trait1>::Type => T ] {}
         struct S<> where [] {}
         impl<> Trait1<> for S<> where [] {
             type Type<> = u32 where [];

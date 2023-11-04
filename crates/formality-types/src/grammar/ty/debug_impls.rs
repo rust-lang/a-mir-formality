@@ -1,16 +1,5 @@
 use crate::grammar::Const;
 
-impl std::fmt::Debug for super::Ty {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.data() {
-            super::TyData::RigidTy(r) => write!(f, "{r:?}"),
-            super::TyData::AliasTy(r) => write!(f, "{r:?}"),
-            super::TyData::PredicateTy(r) => write!(f, "{r:?}"),
-            super::TyData::Variable(r) => write!(f, "{r:?}"),
-        }
-    }
-}
-
 impl std::fmt::Debug for Const {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.data() {

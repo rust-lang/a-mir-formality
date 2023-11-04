@@ -1,12 +1,10 @@
-use crate::grammar::{Const, ConstData, Lt, LtData, Parameter, Ty, TyData, ValTree};
+use crate::grammar::{Const, ConstData, Lt, LtData, Parameter, ValTree};
 use crate::rust::Variable;
 use crate::FormalityLang;
 use formality_core::{
     fold::{CoreFold, SubstitutionFn},
     language::CoreKind,
-    term::CoreTerm,
     visit::CoreVisit,
-    Upcast,
 };
 
 use super::ParameterKind;
@@ -40,10 +38,6 @@ impl CoreVisit<FormalityLang> for LtData {
     }
 }
 
-impl CoreTerm<FormalityLang> for Ty {}
-
-impl CoreTerm<FormalityLang> for Lt {}
-
 impl formality_core::language::HasKind<FormalityLang> for Parameter {
     fn kind(&self) -> CoreKind<FormalityLang> {
         match self {
@@ -53,23 +47,6 @@ impl formality_core::language::HasKind<FormalityLang> for Parameter {
         }
     }
 }
-
-// ANCHOR: core_fold_ty
-impl CoreFold<FormalityLang> for Ty {
-    fn substitute(&self, substitution_fn: SubstitutionFn<'_, FormalityLang>) -> Self {
-        match self.data() {
-            TyData::RigidTy(v) => v.substitute(substitution_fn).upcast(),
-            TyData::AliasTy(v) => v.substitute(substitution_fn).upcast(),
-            TyData::PredicateTy(v) => v.substitute(substitution_fn).upcast(),
-            TyData::Variable(v) => match substitution_fn(*v) {
-                None => self.clone(),
-                Some(Parameter::Ty(t)) => t,
-                Some(param) => panic!("ill-kinded substitute: expected type, got {param:?}"),
-            },
-        }
-    }
-}
-// ANCHOR_END: core_fold_ty
 
 impl CoreFold<FormalityLang> for Const {
     fn substitute(&self, substitution_fn: SubstitutionFn<'_, FormalityLang>) -> Self {
@@ -103,20 +80,6 @@ impl CoreFold<FormalityLang> for Lt {
                 Some(param) => panic!("ill-kinded substitute: expected lifetime, got {param:?}"),
             },
         }
-    }
-}
-
-impl CoreVisit<FormalityLang> for Ty {
-    fn free_variables(&self) -> Vec<Variable> {
-        self.data().free_variables()
-    }
-
-    fn size(&self) -> usize {
-        self.data().size()
-    }
-
-    fn assert_valid(&self) {
-        self.data().assert_valid()
     }
 }
 

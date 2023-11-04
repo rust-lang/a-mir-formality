@@ -4,25 +4,21 @@ use formality_core::parse::{ActiveVariant, CoreParse, ParseError, ParseResult, P
 use formality_core::Upcast;
 use formality_core::{seq, Set};
 
-use crate::grammar::{AdtId, AssociatedItemId, Bool, Const, RigidName, Scalar, TraitId};
+use crate::grammar::{AdtId, AssociatedItemId, Bool, Const, RefKind, RigidName, Scalar, TraitId};
 
-use super::{AliasTy, AssociatedTyName, Lt, LtData, Parameter, PredicateTy, RigidTy, ScalarId, Ty};
+use super::{
+    AliasTy, AssociatedTyName, Lt, LtData, Parameter, PredicateTy, RigidTy, ScalarId, Ty, TyData,
+};
 
 use crate::rust::FormalityLang as Rust;
 
 // ANCHOR: ty_parse_impl
 // For types, we invest some effort into parsing them decently because it makes
 // writing tests so much more pleasant.
-impl CoreParse<Rust> for Ty {
+impl CoreParse<Rust> for TyData {
     fn parse<'t>(scope: &Scope<Rust>, text0: &'t str) -> ParseResult<'t, Self> {
         let mut parser = Parser::new(scope, text0, "Ty");
-        parser.parse_variant_cast::<ScalarId>(1);
         parser.parse_variant("Variable", 1, |p| p.variable());
-        parser.parse_variant("Adt", 0, |p| p.nonterminal_with(parse_adt_ty));
-        parser.parse_variant("Assoc", 0, |p| p.nonterminal_with(parse_assoc_ty));
-        parser.parse_variant("Ref", 0, |p| p.nonterminal_with(parse_ref_ty));
-        parser.parse_variant("RefMut", 0, |p| p.nonterminal_with(parse_ref_mut_ty));
-        parser.parse_variant("Tuple", 0, |p| p.nonterminal_with(parse_tuple_ty));
         parser.parse_variant_cast::<RigidTy>(0);
         parser.parse_variant_cast::<AliasTy>(0);
         parser.parse_variant_cast::<PredicateTy>(0);
@@ -31,84 +27,87 @@ impl CoreParse<Rust> for Ty {
 }
 // ANCHOR_END: ty_parse_impl
 
-#[tracing::instrument(level = "trace", ret)]
-fn parse_adt_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
-    // Treat plain identifiers as adt ids, with or without parameters.
-    Parser::single_variant(scope, text, "AdtTy", |p| {
-        let name: AdtId = p.nonterminal()?;
-        let parameters: Vec<Parameter> = parse_parameters(p)?;
-        Ok(Ty::rigid(name, parameters))
-    })
+impl CoreParse<Rust> for RigidTy {
+    fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
+        let mut parser: Parser<'_, '_, RigidTy, Rust> = Parser::new(scope, text, "AliasTy");
+
+        parser.parse_variant_cast::<ScalarId>(1);
+
+        parser.parse_variant("Adt", 0, |p| {
+            let name: AdtId = p.nonterminal()?;
+            let parameters: Vec<Parameter> = parse_parameters(p)?;
+            Ok(RigidTy {
+                name: name.upcast(),
+                parameters,
+            })
+        });
+
+        parser.parse_variant("Ref", 0, |p| {
+            p.expect_char('&')?;
+            let lt: Lt = p.nonterminal()?;
+            let ty: Ty = p.nonterminal()?;
+            Ok(RigidTy {
+                name: RigidName::Ref(RefKind::Shared),
+                parameters: seq![lt.upcast(), ty.upcast()],
+            }
+            .upcast())
+        });
+
+        parser.parse_variant("RefMut", 0, |p| {
+            p.expect_char('&')?;
+            p.expect_keyword("mut")?;
+            let lt: Lt = p.nonterminal()?;
+            let ty: Ty = p.nonterminal()?;
+            Ok(RigidTy {
+                name: RigidName::Ref(RefKind::Mut),
+                parameters: seq![lt.upcast(), ty.upcast()],
+            })
+        });
+
+        parser.parse_variant("Tuple", 0, |p| {
+            p.expect_char('(')?;
+            p.reject_custom_keywords(&["alias", "rigid", "predicate"])?;
+            let types: Vec<Ty> = p.comma_nonterminal()?;
+            p.expect_char(')')?;
+            let name = RigidName::Tuple(types.len());
+            Ok(RigidTy {
+                name,
+                parameters: types.upcast(),
+            })
+        });
+
+        parser.finish()
+    }
 }
 
-#[tracing::instrument(level = "trace", ret)]
-fn parse_ref_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
-    Parser::single_variant(scope, text, "RefTy", |p| {
-        p.expect_char('&')?;
-        let lt: Lt = p.nonterminal()?;
-        let ty: Ty = p.nonterminal()?;
-        let name = crate::grammar::RigidName::Ref(crate::grammar::RefKind::Shared);
-        Ok(RigidTy {
-            name,
-            parameters: seq![lt.upcast(), ty.upcast()],
-        }
-        .upcast())
-    })
-}
+impl CoreParse<Rust> for AliasTy {
+    fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
+        let mut parser: Parser<'_, '_, AliasTy, Rust> = Parser::new(scope, text, "AliasTy");
 
-#[tracing::instrument(level = "trace", ret)]
-fn parse_ref_mut_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
-    Parser::single_variant(scope, text, "RefMutTy", |p| {
-        p.expect_char('&')?;
-        p.expect_keyword("mut")?;
-        let lt: Lt = p.nonterminal()?;
-        let ty: Ty = p.nonterminal()?;
-        let name = crate::grammar::RigidName::Ref(crate::grammar::RefKind::Mut);
-        Ok(RigidTy {
-            name,
-            parameters: seq![lt.upcast(), ty.upcast()],
-        }
-        .upcast())
-    })
-}
+        parser.parse_variant("associated type", 0, |p| {
+            p.expect_char('<')?;
+            let ty0: Ty = p.nonterminal()?;
+            let () = p.expect_keyword("as")?;
+            let trait_id: TraitId = p.nonterminal()?;
+            let trait_parameters1 = parse_parameters(p)?;
+            p.expect_char('>')?;
+            p.expect_char(':')?;
+            p.expect_char(':')?;
+            let item_id: AssociatedItemId = p.nonterminal()?;
+            let item_parameters = parse_parameters(p)?;
+            let name = AssociatedTyName { trait_id, item_id };
+            let parameters: Vec<Parameter> = std::iter::once(ty0.upcast())
+                .chain(trait_parameters1)
+                .chain(item_parameters)
+                .collect();
+            Ok(AliasTy {
+                name: name.upcast(),
+                parameters,
+            })
+        });
 
-#[tracing::instrument(level = "trace", ret)]
-fn parse_tuple_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
-    Parser::single_variant(scope, text, "TupleTy", |p| {
-        p.expect_char('(')?;
-        p.reject_custom_keywords(&["alias", "rigid", "predicate"])?;
-        let types: Vec<Ty> = p.comma_nonterminal()?;
-        p.expect_char(')')?;
-        let name = RigidName::Tuple(types.len());
-        Ok(RigidTy {
-            name,
-            parameters: types.upcast(),
-        }
-        .upcast())
-    })
-}
-
-#[tracing::instrument(level = "trace", ret)]
-fn parse_assoc_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
-    Parser::single_variant(scope, text, "AssocTy", |p| {
-        p.expect_char('<')?;
-        let ty0: Ty = p.nonterminal()?;
-        let () = p.expect_keyword("as")?;
-        let trait_id: TraitId = p.nonterminal()?;
-        let trait_parameters1 = parse_parameters(p)?;
-        p.expect_char('>')?;
-        p.expect_char(':')?;
-        p.expect_char(':')?;
-        let item_id: AssociatedItemId = p.nonterminal()?;
-        let item_parameters = parse_parameters(p)?;
-        let assoc_ty_id = AssociatedTyName { trait_id, item_id };
-        let parameters: Vec<Parameter> = std::iter::once(ty0.upcast())
-            .chain(trait_parameters1)
-            .chain(item_parameters)
-            .collect();
-        Ok(Ty::alias(assoc_ty_id, parameters))
-    })
-    // Treat plain identifiers as adt ids, with or without parameters.
+        parser.finish()
+    }
 }
 
 fn parse_parameters<'t>(

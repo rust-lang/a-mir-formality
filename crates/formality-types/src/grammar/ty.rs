@@ -1,4 +1,4 @@
-use formality_core::{cast_impl, term, Visit};
+use formality_core::{cast_impl, term};
 use std::sync::Arc;
 
 mod debug_impls;
@@ -11,7 +11,8 @@ use super::{
     consts::Const, AdtId, AssociatedItemId, Binder, ExistentialVar, FnId, TraitId, UniversalVar,
 };
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
+#[cast]
 pub struct Ty {
     data: Arc<TyData>,
 }
@@ -97,18 +98,17 @@ impl DowncastTo<TyData> for Ty {
 
 // NB: TyData doesn't implement Fold; you fold types, not TyData,
 // because variables might not map to the same variant.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
+#[term]
+#[customize(parse)]
 pub enum TyData {
+    #[cast]
     RigidTy(RigidTy),
+    #[cast]
     AliasTy(AliasTy),
+    #[cast]
     PredicateTy(PredicateTy),
+    #[variable]
     Variable(Variable),
-}
-
-impl UpcastFrom<TyData> for TyData {
-    fn upcast_from(term: TyData) -> Self {
-        term
-    }
 }
 
 impl UpcastFrom<Ty> for TyData {
@@ -118,6 +118,7 @@ impl UpcastFrom<Ty> for TyData {
 }
 
 #[term((rigid $name $*parameters))]
+#[customize(parse)]
 pub struct RigidTy {
     pub name: RigidName,
     pub parameters: Parameters,
@@ -187,6 +188,7 @@ pub enum ScalarId {
 }
 
 #[term((alias $name $*parameters))]
+#[customize(parse)]
 pub struct AliasTy {
     pub name: AliasName,
     pub parameters: Parameters,
@@ -353,7 +355,6 @@ impl DowncastTo<Variable> for Parameter {
     }
 }
 
-cast_impl!(Ty);
 cast_impl!((RigidTy) <: (TyData) <: (Ty));
 cast_impl!((AliasTy) <: (TyData) <: (Ty));
 cast_impl!((ScalarId) <: (TyData) <: (Ty));
@@ -363,10 +364,6 @@ cast_impl!((AliasTy) <: (Ty) <: (Parameter));
 cast_impl!((ScalarId) <: (Ty) <: (Parameter));
 cast_impl!((PredicateTy) <: (Ty) <: (Parameter));
 cast_impl!((TyData) <: (Ty) <: (Parameter));
-cast_impl!(TyData::RigidTy(RigidTy));
-cast_impl!(TyData::AliasTy(AliasTy));
-cast_impl!(TyData::PredicateTy(PredicateTy));
-cast_impl!(TyData::Variable(Variable));
 cast_impl!((Variable) <: (TyData) <: (Ty));
 cast_impl!((UniversalVar) <: (Variable) <: (TyData));
 cast_impl!((ExistentialVar) <: (Variable) <: (TyData));

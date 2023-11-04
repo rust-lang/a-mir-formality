@@ -81,5 +81,6 @@ fn remove_formality_attributes_from_vec(attrs: &mut Vec<Attribute>) {
         !attr.path().is_ident("grammar")
             && !attr.path().is_ident("cast")
             && !attr.path().is_ident("variable")
+            && !attr.path().is_ident("customize")
     });
 }
