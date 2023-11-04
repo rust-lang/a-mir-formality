@@ -6,7 +6,7 @@ use formality_core::{seq, Set};
 
 use crate::grammar::{AdtId, AssociatedItemId, Bool, Const, RefKind, RigidName, Scalar, TraitId};
 
-use super::{AliasTy, AssociatedTyName, Lt, LtData, Parameter, RigidTy, ScalarId, Ty};
+use super::{AliasTy, AssociatedTyName, Lt, Parameter, RigidTy, ScalarId, Ty};
 
 use crate::rust::FormalityLang as Rust;
 
@@ -102,18 +102,6 @@ fn parse_parameters<'t>(
     let parameters: Vec<Parameter> = p.comma_nonterminal()?;
     p.expect_char('>')?;
     Ok(parameters)
-}
-
-impl CoreParse<Rust> for Lt {
-    fn parse<'t>(scope: &Scope<Rust>, text0: &'t str) -> ParseResult<'t, Self> {
-        let mut parser = Parser::new(scope, text0, "Lt");
-        parser.parse_variant("static", 0, |p| {
-            p.expect_keyword("static")?;
-            Ok(Lt::new(LtData::Static))
-        });
-        parser.parse_variant("variable", 0, |p| p.variable());
-        parser.finish()
-    }
 }
 
 // For consts, we invest some effort into parsing them decently because it makes

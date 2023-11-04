@@ -281,7 +281,8 @@ pub enum Variance {
     Invariant,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
+#[cast]
 pub struct Lt {
     data: Arc<LtData>,
 }
@@ -321,22 +322,12 @@ impl DowncastTo<LtData> for Lt {
     }
 }
 
-impl UpcastFrom<LtData> for Parameter {
-    fn upcast_from(v: LtData) -> Self {
-        Lt::new(v).upcast()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum LtData {
     Static,
-    Variable(Variable),
-}
 
-impl UpcastFrom<LtData> for LtData {
-    fn upcast_from(term: LtData) -> Self {
-        term
-    }
+    #[variable]
+    Variable(Variable),
 }
 
 impl UpcastFrom<Variable> for Parameter {
@@ -375,11 +366,10 @@ cast_impl!((BoundVar) <: (Variable) <: (Ty));
 cast_impl!((UniversalVar) <: (Variable) <: (Parameter));
 cast_impl!((ExistentialVar) <: (Variable) <: (Parameter));
 cast_impl!((BoundVar) <: (Variable) <: (Parameter));
-cast_impl!(Lt);
-cast_impl!(LtData::Variable(Variable));
 cast_impl!((ExistentialVar) <: (Variable) <: (LtData));
 cast_impl!((UniversalVar) <: (Variable) <: (LtData));
 cast_impl!((BoundVar) <: (Variable) <: (LtData));
 cast_impl!((UniversalVar) <: (LtData) <: (Lt));
 cast_impl!((ExistentialVar) <: (LtData) <: (Lt));
 cast_impl!((BoundVar) <: (LtData) <: (Lt));
+cast_impl!((LtData) <: (Lt) <: (Parameter));
