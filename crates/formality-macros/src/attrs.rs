@@ -1,6 +1,8 @@
 //! Functions to manipulate the custom attributes that guide our macros in various ways.
 
-use syn::{Attribute, DeriveInput};
+use syn::{spanned::Spanned, Attribute, DeriveInput};
+
+use crate::custom::Customize;
 
 /// Checks for any kind of attribute that indicates an "is-a" relationship,
 /// e.g. `#[cast]` and `#[variable]`.
@@ -35,6 +37,33 @@ pub(crate) fn has_cast_attr(attrs: &[Attribute]) -> bool {
 ///   a parse error (ill-kinded term).
 pub(crate) fn has_variable_attr(attrs: &[Attribute]) -> bool {
     attrs.iter().any(|a| a.path().is_ident("variable"))
+}
+
+/// Extracts any customization attribute from a list of attributes.
+pub(crate) fn customize(attrs: &[Attribute]) -> syn::Result<Customize> {
+    let mut v: Vec<Customize> = attrs
+        .iter()
+        .filter(|a| a.path().is_ident("customize"))
+        .map(|a| a.parse_args())
+        .collect::<syn::Result<_>>()?;
+
+    if v.len() > 1 {
+        Err(syn::Error::new(
+            attrs
+                .iter()
+                .filter(|a| a.path().is_ident("customize"))
+                .skip(1)
+                .next()
+                .unwrap()
+                .path()
+                .span(),
+            "multiple customize attributes",
+        ))
+    } else if v.len() == 1 {
+        Ok(v.pop().unwrap())
+    } else {
+        Ok(Customize::default())
+    }
 }
 
 /// Removes all attributes from the input that are specific to formality.

@@ -7,6 +7,7 @@ extern crate proc_macro;
 
 mod attrs;
 mod cast;
+mod custom;
 mod debug;
 mod fixed_point;
 mod fold;
