@@ -88,7 +88,11 @@ impl CoreParse<Rust> for AliasTy {
             p.expect_char(':')?;
             let item_id: AssociatedItemId = p.nonterminal()?;
             let item_parameters = parse_parameters(p)?;
-            let name = AssociatedTyName { trait_id, item_id };
+            let name = AssociatedTyName {
+                trait_id,
+                item_id,
+                item_arity: item_parameters.len(),
+            };
             let parameters: Vec<Parameter> = std::iter::once(ty0.upcast())
                 .chain(trait_parameters1)
                 .chain(item_parameters)

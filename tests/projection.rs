@@ -31,7 +31,7 @@ fn normalize_basic() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => (Iterator::Item)<Vec<!ty_1>>,
+                        ?ty_2 => <Vec<!ty_1> as Iterator>::Item,
                     },
                 },
                 Constraints {
@@ -110,7 +110,7 @@ fn normalize_basic() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => (Iterator::Item)<!ty_1>,
+                        ?ty_2 => <!ty_1 as Iterator>::Item,
                     },
                 },
             },
@@ -169,8 +169,8 @@ fn normalize_basic() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => Vec<(Iterator::Item)<!ty_1>>,
-                        ?ty_3 => (Iterator::Item)<!ty_1>,
+                        ?ty_2 => Vec<<!ty_1 as Iterator>::Item>,
+                        ?ty_3 => <!ty_1 as Iterator>::Item,
                     },
                 },
             },
@@ -221,7 +221,7 @@ fn normalize_into_iterator() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => (IntoIterator::Item)<Vec<!ty_1>>,
+                        ?ty_2 => <Vec<!ty_1> as IntoIterator>::Item,
                     },
                 },
                 Constraints {
@@ -286,7 +286,7 @@ fn projection_equality() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_1 => (Trait1::Type)<S>,
+                        ?ty_1 => <S as Trait1>::Type,
                     },
                 },
             },
@@ -321,7 +321,7 @@ fn projection_equality() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_1 => (Trait1::Type)<S>,
+                        ?ty_1 => <S as Trait1>::Type,
                     },
                 },
             },

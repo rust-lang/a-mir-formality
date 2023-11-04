@@ -117,12 +117,14 @@ impl UpcastFrom<Ty> for TyData {
     }
 }
 
+// ANCHOR: RigidTy_decl
 #[term((rigid $name $*parameters))]
 #[customize(parse, debug)]
 pub struct RigidTy {
     pub name: RigidName,
     pub parameters: Parameters,
 }
+// ANCHOR_END: RigidTy_decl
 
 impl UpcastFrom<ScalarId> for RigidTy {
     fn upcast_from(s: ScalarId) -> Self {
@@ -198,15 +200,19 @@ impl AliasTy {
     pub fn associated_ty(
         trait_id: impl Upcast<TraitId>,
         item_id: impl Upcast<AssociatedItemId>,
+        item_arity: usize,
         parameters: impl Upcast<Vec<Parameter>>,
     ) -> Self {
+        let parameters: Vec<Parameter> = parameters.upcast();
+        assert!(item_arity <= parameters.len());
         AliasTy {
             name: AssociatedTyName {
                 trait_id: trait_id.upcast(),
                 item_id: item_id.upcast(),
+                item_arity,
             }
             .upcast(),
-            parameters: parameters.upcast(),
+            parameters: parameters,
         }
     }
 }
@@ -217,10 +223,16 @@ pub enum AliasName {
     AssociatedTyId(AssociatedTyName),
 }
 
-#[term(($trait_id :: $item_id))]
+#[term(($trait_id :: $item_id / $item_arity))]
 pub struct AssociatedTyName {
+    /// The trait in which the associated type was declared.
     pub trait_id: TraitId,
+
+    /// The name of the associated type.
     pub item_id: AssociatedItemId,
+
+    /// The number of parameters on the associated type (often 0).
+    pub item_arity: usize,
 }
 
 #[term]

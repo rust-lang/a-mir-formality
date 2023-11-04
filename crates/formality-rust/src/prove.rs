@@ -204,6 +204,7 @@ impl Crate {
                                         alias: AliasTy::associated_ty(
                                             &trait_id,
                                             item_id,
+                                            assoc_vars.len(),
                                             seq![
                                                 self_ty.to(),
                                                 ..trait_parameters.iter().cloned(),
@@ -255,6 +256,7 @@ impl Crate {
                             let alias = AliasTy::associated_ty(
                                 trait_id,
                                 item_id,
+                                assoc_vars.len(),
                                 (&trait_vars, &assoc_vars),
                             );
 

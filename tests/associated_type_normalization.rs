@@ -39,7 +39,7 @@ fn test_mirror_normalizes_u32_to_u32() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_1 => (Mirror::Assoc)<u32>,
+                        ?ty_1 => <u32 as Mirror>::Assoc,
                     },
                 },
             },

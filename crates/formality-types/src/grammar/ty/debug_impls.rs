@@ -33,12 +33,7 @@ impl Debug for RigidTy {
                 }
             }
             _ => {
-                write!(
-                    f,
-                    "{:?}{:?}",
-                    name,
-                    PrettyParameters::new("<", ">", parameters)
-                )
+                write!(f, "{:?}{:?}", name, PrettyParameters::angle(parameters))
             }
         }
     }
@@ -49,14 +44,23 @@ impl Debug for AliasTy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let AliasTy { name, parameters } = self;
         match name {
-            AliasName::AssociatedTyId(AssociatedTyName { trait_id, item_id }) => {
+            AliasName::AssociatedTyId(AssociatedTyName {
+                trait_id,
+                item_id,
+                item_arity,
+            }) => {
+                let (trait_parameters, item_parameters) =
+                    parameters.split_at(parameters.len() - item_arity);
+                let (self_parameter, other_parameters) = trait_parameters.split_at(1);
                 // Grr, wish we would remember the number of parameters assigned to each position.
                 write!(
                     f,
-                    "({:?}::{:?}){:?}",
+                    "<{:?} as {:?}{:?}>::{:?}{:?}",
+                    self_parameter[0],
                     trait_id,
+                    PrettyParameters::angle(other_parameters),
                     item_id,
-                    PrettyParameters::new("<", ">", parameters),
+                    PrettyParameters::angle(item_parameters),
                 )
             }
         }
@@ -71,6 +75,10 @@ struct PrettyParameters<'a> {
 impl<'a> PrettyParameters<'a> {
     fn new(open: &'a str, close: &'a str, p: &'a [Parameter]) -> Self {
         Self { open, close, p }
+    }
+
+    fn angle(p: &'a [Parameter]) -> Self {
+        Self::new("<", ">", p)
     }
 }
 
