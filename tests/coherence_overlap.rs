@@ -53,7 +53,7 @@ fn test_overlap_normalize_alias_to_LocalType() {
 
     expect_test::expect![[r#"
         Err(
-            "impls may overlap:\nimpl <ty> LocalTrait < > for ^ty0_0 where [^ty0_0 : Iterator < >] { }\nimpl <> LocalTrait < > for (Mirror::T)<(rigid (adt LocalType))> where [] { }",
+            "impls may overlap:\nimpl <ty> LocalTrait < > for ^ty0_0 where [^ty0_0 : Iterator < >] { }\nimpl <> LocalTrait < > for (Mirror::T)<LocalType> where [] { }",
         )
     "#]]
     .assert_debug_eq(&test_program_ok(&gen_program(

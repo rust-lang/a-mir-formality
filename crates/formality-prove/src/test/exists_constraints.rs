@@ -31,7 +31,7 @@ fn exists_u_for_t() {
                 },
                 known_true: true,
                 substitution: {
-                    ?ty_1 => (rigid (adt Vec) ?ty_2),
+                    ?ty_1 => Vec<?ty_2>,
                 },
             },
         }

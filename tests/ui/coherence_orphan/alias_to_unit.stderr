@@ -1,4 +1,4 @@
-Error: orphan_check(impl <> CoreTrait < > for (Unit::Assoc)<(rigid (adt FooStruct))> where [] { })
+Error: orphan_check(impl <> CoreTrait < > for (Unit::Assoc)<FooStruct> where [] { })
 
 Caused by:
-    failed to prove {@ IsLocal(CoreTrait((Unit::Assoc)<(rigid (adt FooStruct))>))} given {}, got {}
+    failed to prove {@ IsLocal(CoreTrait((Unit::Assoc)<FooStruct>))} given {}, got {}

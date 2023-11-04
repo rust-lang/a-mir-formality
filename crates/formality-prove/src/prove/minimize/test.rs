@@ -83,7 +83,7 @@ fn minimize_a() {
             },
             known_true: true,
             substitution: {
-                ?ty_1 => (rigid (scalar u32)),
+                ?ty_1 => u32,
                 ?ty_3 => ?ty_4,
             },
         }

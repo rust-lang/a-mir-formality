@@ -42,7 +42,7 @@ fn eq_variable_to_rigid() {
                 },
                 known_true: true,
                 substitution: {
-                    ?ty_1 => (rigid (adt Vec) ?ty_3),
+                    ?ty_1 => Vec<?ty_3>,
                     ?ty_2 => ?ty_3,
                 },
             },
@@ -68,7 +68,7 @@ fn eq_rigid_to_variable() {
                 },
                 known_true: true,
                 substitution: {
-                    ?ty_1 => (rigid (adt Vec) ?ty_3),
+                    ?ty_1 => Vec<?ty_3>,
                     ?ty_2 => ?ty_3,
                 },
             },

@@ -5,7 +5,7 @@ use formality_core::Upcast;
 use formality_core::{seq, Set};
 
 use crate::grammar::{
-    AdtId, AssociatedItemId, Bool, ConstData, RefKind, RigidName, Scalar, TraitId, ValTree,
+    AdtId, AssociatedItemId, Bool, ConstData, RefKind, RigidName, Scalar, TraitId,
 };
 
 use super::{AliasTy, AssociatedTyName, Lt, Parameter, RigidTy, ScalarId, Ty};

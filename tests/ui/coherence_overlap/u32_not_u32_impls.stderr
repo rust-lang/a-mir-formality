@@ -1,8 +1,8 @@
-Error: check_trait_impl(impl <> Foo < > for (rigid (scalar u32)) where [] { })
+Error: check_trait_impl(impl <> Foo < > for u32 where [] { })
 
 Caused by:
     failed to disprove
-        {! Foo((rigid (scalar u32)))}
+        {! Foo(u32)}
     given
         {}
     got

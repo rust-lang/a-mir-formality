@@ -118,7 +118,7 @@ impl UpcastFrom<Ty> for TyData {
 }
 
 #[term((rigid $name $*parameters))]
-#[customize(parse)]
+#[customize(parse, debug)]
 pub struct RigidTy {
     pub name: RigidName,
     pub parameters: Parameters,

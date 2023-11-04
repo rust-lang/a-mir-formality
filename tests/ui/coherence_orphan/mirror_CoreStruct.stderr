@@ -1,4 +1,4 @@
-Error: orphan_check(impl <> CoreTrait < > for (Mirror::Assoc)<(rigid (adt CoreStruct))> where [] { })
+Error: orphan_check(impl <> CoreTrait < > for (Mirror::Assoc)<CoreStruct> where [] { })
 
 Caused by:
-    failed to prove {@ IsLocal(CoreTrait((Mirror::Assoc)<(rigid (adt CoreStruct))>))} given {}, got {}
+    failed to prove {@ IsLocal(CoreTrait((Mirror::Assoc)<CoreStruct>))} given {}, got {}

@@ -1,1 +1,1 @@
-Error: failed to prove {@ wf((rigid &(shared) !lt_1 !ty_2))} given {}, got {}
+Error: failed to prove {@ wf(&!lt_1 !ty_2)} given {}, got {}

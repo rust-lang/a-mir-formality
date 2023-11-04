@@ -1,4 +1,4 @@
-use crate::grammar::{Const, ConstData, Parameter, ValTree};
+use crate::grammar::{Parameter, ValTree};
 use crate::FormalityLang;
 use formality_core::{
     fold::{CoreFold, SubstitutionFn},
