@@ -6,26 +6,9 @@ use formality_core::{seq, Set};
 
 use crate::grammar::{AdtId, AssociatedItemId, Bool, Const, RefKind, RigidName, Scalar, TraitId};
 
-use super::{
-    AliasTy, AssociatedTyName, Lt, LtData, Parameter, PredicateTy, RigidTy, ScalarId, Ty, TyData,
-};
+use super::{AliasTy, AssociatedTyName, Lt, LtData, Parameter, RigidTy, ScalarId, Ty};
 
 use crate::rust::FormalityLang as Rust;
-
-// ANCHOR: ty_parse_impl
-// For types, we invest some effort into parsing them decently because it makes
-// writing tests so much more pleasant.
-impl CoreParse<Rust> for TyData {
-    fn parse<'t>(scope: &Scope<Rust>, text0: &'t str) -> ParseResult<'t, Self> {
-        let mut parser = Parser::new(scope, text0, "Ty");
-        parser.parse_variant("Variable", 1, |p| p.variable());
-        parser.parse_variant_cast::<RigidTy>(0);
-        parser.parse_variant_cast::<AliasTy>(0);
-        parser.parse_variant_cast::<PredicateTy>(0);
-        parser.finish()
-    }
-}
-// ANCHOR_END: ty_parse_impl
 
 impl CoreParse<Rust> for RigidTy {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {

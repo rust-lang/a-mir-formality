@@ -12,6 +12,7 @@ mod debug;
 mod fixed_point;
 mod fold;
 mod parse;
+mod precedence;
 mod spec;
 mod term;
 mod test;

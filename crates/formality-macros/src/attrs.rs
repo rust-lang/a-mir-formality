@@ -2,7 +2,7 @@
 
 use syn::{spanned::Spanned, Attribute, DeriveInput};
 
-use crate::custom::Customize;
+use crate::{custom::Customize, precedence::Precedence};
 
 /// Checks for any kind of attribute that indicates an "is-a" relationship,
 /// e.g. `#[cast]` and `#[variable]`.
@@ -39,11 +39,23 @@ pub(crate) fn has_variable_attr(attrs: &[Attribute]) -> bool {
     attrs.iter().any(|a| a.path().is_ident("variable"))
 }
 
+/// Extract a `#[precedence]` level, defaults to 0
+pub(crate) fn precedence(attrs: &[Attribute]) -> syn::Result<Precedence> {
+    parse_attr_named(attrs, "precedence")
+}
+
 /// Extracts any customization attribute from a list of attributes.
 pub(crate) fn customize(attrs: &[Attribute]) -> syn::Result<Customize> {
-    let mut v: Vec<Customize> = attrs
+    parse_attr_named(attrs, "customize")
+}
+
+fn parse_attr_named<T>(attrs: &[Attribute], name: &str) -> syn::Result<T>
+where
+    T: Default + syn::parse::Parse,
+{
+    let mut v: Vec<T> = attrs
         .iter()
-        .filter(|a| a.path().is_ident("customize"))
+        .filter(|a| a.path().is_ident(name))
         .map(|a| a.parse_args())
         .collect::<syn::Result<_>>()?;
 
@@ -51,18 +63,18 @@ pub(crate) fn customize(attrs: &[Attribute]) -> syn::Result<Customize> {
         Err(syn::Error::new(
             attrs
                 .iter()
-                .filter(|a| a.path().is_ident("customize"))
+                .filter(|a| a.path().is_ident(name))
                 .skip(1)
                 .next()
                 .unwrap()
                 .path()
                 .span(),
-            "multiple customize attributes",
+            format!("multiple `{}` attributes", name),
         ))
     } else if v.len() == 1 {
         Ok(v.pop().unwrap())
     } else {
-        Ok(Customize::default())
+        Ok(T::default())
     }
 }
 
@@ -82,5 +94,6 @@ fn remove_formality_attributes_from_vec(attrs: &mut Vec<Attribute>) {
             && !attr.path().is_ident("cast")
             && !attr.path().is_ident("variable")
             && !attr.path().is_ident("customize")
+            && !attr.path().is_ident("precedence")
     });
 }

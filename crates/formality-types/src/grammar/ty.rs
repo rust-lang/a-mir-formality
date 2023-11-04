@@ -99,7 +99,6 @@ impl DowncastTo<TyData> for Ty {
 // NB: TyData doesn't implement Fold; you fold types, not TyData,
 // because variables might not map to the same variant.
 #[term]
-#[customize(parse)]
 pub enum TyData {
     #[cast]
     RigidTy(RigidTy),
@@ -108,6 +107,7 @@ pub enum TyData {
     #[cast]
     PredicateTy(PredicateTy),
     #[variable]
+    #[precedence(1)]
     Variable(Variable),
 }
 

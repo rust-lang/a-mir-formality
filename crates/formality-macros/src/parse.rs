@@ -1,4 +1,5 @@
 extern crate proc_macro;
+
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Literal, TokenStream};
 use quote::{quote, quote_spanned};
@@ -6,7 +7,7 @@ use syn::{spanned::Spanned, Attribute};
 use synstructure::BindingInfo;
 
 use crate::{
-    attrs::{has_cast_attr, has_variable_attr},
+    attrs::{has_cast_attr, has_variable_attr, precedence},
     spec::{self, FieldMode, FormalitySpec},
 };
 
@@ -40,13 +41,11 @@ pub(crate) fn derive_parse_with_spec(
     for variant in s.variants() {
         let variant_name = as_literal(variant.ast().ident);
         let v = parse_variant(variant, external_spec)?;
-        parse_variants.extend(quote! {
-            {
-                let __span = tracing::span!(tracing::Level::TRACE, "parse", variant_name = #variant_name);
-                let __guard = __span.enter();
-                __parser.parse_variant(#variant_name, 0, |__p| { #v });
-            }
-        });
+        let precedence = precedence(&variant.ast().attrs)?.literal();
+        parse_variants.extend(quote_spanned!(
+            variant.ast().ident.span() =>
+            __parser.parse_variant(#variant_name, #precedence, |__p| { #v });
+        ));
     }
 
     let type_name: Literal = as_literal(&s.ast().ident);
