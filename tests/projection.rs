@@ -31,7 +31,7 @@ fn normalize_basic() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => (alias (Iterator :: Item) (rigid (adt Vec) !ty_1)),
+                        ?ty_2 => (Iterator::Item)<(rigid (adt Vec) !ty_1)>,
                     },
                 },
                 Constraints {
@@ -110,7 +110,7 @@ fn normalize_basic() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => (alias (Iterator :: Item) !ty_1),
+                        ?ty_2 => (Iterator::Item)<!ty_1>,
                     },
                 },
             },
@@ -169,8 +169,8 @@ fn normalize_basic() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => (rigid (adt Vec) (alias (Iterator :: Item) !ty_1)),
-                        ?ty_3 => (alias (Iterator :: Item) !ty_1),
+                        ?ty_2 => (rigid (adt Vec) (Iterator::Item)<!ty_1>),
+                        ?ty_3 => (Iterator::Item)<!ty_1>,
                     },
                 },
             },
@@ -221,7 +221,7 @@ fn normalize_into_iterator() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => (alias (IntoIterator :: Item) (rigid (adt Vec) !ty_1)),
+                        ?ty_2 => (IntoIterator::Item)<(rigid (adt Vec) !ty_1)>,
                     },
                 },
                 Constraints {
@@ -286,7 +286,7 @@ fn projection_equality() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_1 => (alias (Trait1 :: Type) (rigid (adt S))),
+                        ?ty_1 => (Trait1::Type)<(rigid (adt S))>,
                     },
                 },
             },
@@ -321,7 +321,7 @@ fn projection_equality() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_1 => (alias (Trait1 :: Type) (rigid (adt S))),
+                        ?ty_1 => (Trait1::Type)<(rigid (adt S))>,
                     },
                 },
             },

@@ -188,7 +188,7 @@ pub enum ScalarId {
 }
 
 #[term((alias $name $*parameters))]
-#[customize(parse)]
+#[customize(parse, debug)]
 pub struct AliasTy {
     pub name: AliasName,
     pub parameters: Parameters,
