@@ -6,11 +6,8 @@ use crate::grammar::{
 };
 use formality_core::{seq, Set, To, Upcast, Upcasted};
 use formality_prove as prove;
-use formality_types::{
-    grammar::{
-        AdtId, AliasTy, Binder, ParameterKind, Predicate, Relation, TraitId, Ty, Wc, Wcs, PR,
-    },
-    rust::BoundVar,
+use formality_types::grammar::{
+    AdtId, AliasTy, Binder, BoundVar, ParameterKind, Predicate, Relation, TraitId, Ty, Wc, Wcs, PR,
 };
 
 impl Program {

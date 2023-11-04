@@ -5,10 +5,7 @@ mod kinded;
 mod ty;
 mod wc;
 
-pub use crate::rust::{
-    Binder, BoundVar, DebruijnIndex, ExistentialVar, Substitution, UniversalVar, VarIndex,
-    VarSubstitution, Variable,
-};
+pub use crate::rust::grammar::*;
 pub use consts::*;
 pub use formulas::*;
 pub use ids::*;

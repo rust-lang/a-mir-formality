@@ -4,11 +4,11 @@ use std::sync::Arc;
 mod debug_impls;
 mod parse_impls;
 mod term_impls;
-use crate::rust::{BoundVar, Variable};
 use formality_core::{DowncastTo, To, Upcast, UpcastFrom};
 
 use super::{
-    consts::Const, AdtId, AssociatedItemId, Binder, ExistentialVar, FnId, TraitId, UniversalVar,
+    consts::Const, AdtId, AssociatedItemId, Binder, BoundVar, ExistentialVar, FnId, TraitId,
+    UniversalVar, Variable,
 };
 
 #[term]
