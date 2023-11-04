@@ -1,11 +1,12 @@
 mod valtree;
 
 use super::{Parameter, Ty, Variable};
-use formality_core::{term, DowncastTo, Upcast, UpcastFrom, Visit};
+use formality_core::{term, DowncastTo, Upcast, UpcastFrom};
 use std::sync::Arc;
 pub use valtree::*;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
+#[term]
+#[cast]
 pub struct Const {
     data: Arc<ConstData>,
 }
@@ -39,16 +40,14 @@ impl Const {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
+#[term]
+#[customize(parse)]
 pub enum ConstData {
     Value(ValTree, Ty),
-    Variable(Variable),
-}
 
-impl UpcastFrom<Self> for ConstData {
-    fn upcast_from(term: Self) -> Self {
-        term
-    }
+    #[variable]
+    #[precedence(1)]
+    Variable(Variable),
 }
 
 impl DowncastTo<ConstData> for Const {
@@ -81,15 +80,16 @@ pub enum Bool {
     False,
 }
 
-impl UpcastFrom<Bool> for Const {
+impl UpcastFrom<Bool> for ConstData {
     fn upcast_from(term: Bool) -> Self {
-        Self::new(ConstData::Value(term.upcast(), Ty::bool()))
+        ConstData::Value(term.upcast(), Ty::bool())
     }
 }
 
-impl UpcastFrom<Variable> for ConstData {
-    fn upcast_from(v: Variable) -> Self {
-        Self::Variable(v)
+impl UpcastFrom<Bool> for Const {
+    fn upcast_from(term: Bool) -> Self {
+        let c: ConstData = term.upcast();
+        Const::new(c)
     }
 }
 

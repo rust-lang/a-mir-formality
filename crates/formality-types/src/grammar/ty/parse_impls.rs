@@ -4,7 +4,9 @@ use formality_core::parse::{ActiveVariant, CoreParse, ParseError, ParseResult, P
 use formality_core::Upcast;
 use formality_core::{seq, Set};
 
-use crate::grammar::{AdtId, AssociatedItemId, Bool, Const, RefKind, RigidName, Scalar, TraitId};
+use crate::grammar::{
+    AdtId, AssociatedItemId, Bool, ConstData, RefKind, RigidName, Scalar, TraitId, ValTree,
+};
 
 use super::{AliasTy, AssociatedTyName, Lt, Parameter, RigidTy, ScalarId, Ty};
 
@@ -106,22 +108,21 @@ fn parse_parameters<'t>(
 
 // For consts, we invest some effort into parsing them decently because it makes
 // writing tests so much more pleasant.
-impl CoreParse<Rust> for Const {
+impl CoreParse<Rust> for ConstData {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
-        let mut parser: Parser<'_, '_, Const, Rust> = Parser::new(scope, text, "Ty");
-        parser.parse_variant_cast::<Bool>(1);
+        let mut parser: Parser<'_, '_, ConstData, Rust> = Parser::new(scope, text, "Ty");
+
         parser.parse_variant("Variable", 1, |p| p.variable());
-        parser.parse_variant("Int", 0, |p| p.nonterminal_with(parse_int));
+
+        parser.parse_variant_cast::<Bool>(1);
+
+        parser.parse_variant("Int", 0, |p| {
+            let n: u128 = p.number()?;
+            p.expect_char('_')?;
+            let ty: Ty = p.nonterminal()?;
+            Ok(ConstData::Value(Scalar::new(n).upcast(), ty))
+        });
+
         parser.finish()
     }
-}
-
-#[tracing::instrument(level = "trace", ret)]
-fn parse_int<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Const> {
-    Parser::single_variant(scope, text, "Ty", |p| {
-        let n: u128 = p.number()?;
-        p.expect_char('_')?;
-        let ty: Ty = p.nonterminal()?;
-        Ok(Const::valtree(Scalar::new(n), ty))
-    })
 }
