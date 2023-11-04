@@ -19,9 +19,14 @@ struct MyEnum {
 }
 ```
 
-### Ambiguity,
+### Ambiguity and precedence
 
-When parsing an enum there will be multiple possibilities. We will attempt to parse them all. If more than one succeeds, the parse is deemed ambiguous and an error is reported. If zero succeed, we will report back a parsing error, attempting to localize the problem as best we can.
+When parsing an enum there will be multiple possibilities. We will attempt to parse them all. If more than one succeeds, the parser will attempt to resolve the ambiguity. Ambiguity can be resolved in two ways:
+
+* Explicit precedence: By default, every variant has precedence 0, but you can override this by annotating variants with `#[precedence(N)]` (where `N` is some integer). This will override the precedence for that variant. Variants with higher precedences are preferred.
+* Reduction prefix: When parsing, we track the list of things we had to parse. If there are two variants at the same precedence level, but one of them had to parse strictly more things than the other and in the same way, we'll prefer the longer one. So for example if one variant parsed a `Ty` and the other parsed a `Ty Ty`, we'd take the `Ty Ty`.
+
+Otherwise, the parser will panic and report ambiguity. The parser panics rather than returning an error because ambiguity doesn't mean that there is no way to parse the given text as the nonterminal -- rather that there are multiple ways. Errors mean that the text does not match the grammar for that nonterminal.
 
 ### Symbols
 
@@ -37,15 +42,12 @@ A grammar consists of a series of *symbols*. Each symbol matches some text in th
 * Nonterminals can also accept modes:
     * `$field` -- just parse the field's type
     * `$*field` -- the field must be a `Vec<T>` -- parse any number of `T` instances. Something like `[ $*field ]` would parse `[f1 f2 f3]`, assuming `f1`, `f2`, and `f3` are valid values for `field`.
-        * If the next token after `$*field` is a terminal, `$*` uses  it as lookahead. The grammar `[ $*field ]`, for example, would stop parsing once a `]` is observed. 
-        * If the `$*field` appears at the end of the grammar or the next symbol is a nonterminal, then the type of `field` must define a grammar that begins with some terminal or else your parsing will likely be ambiguous or infinite.
     * `$,field` -- similar to the above, but uses a comma separated list (with optional trailing comma). So `[ $,field ]` will parse something like `[f1, f2, f3]`.
-        * Lookahead is required for `$,field` (this could be changed).
     * `$?field` -- will parse `field` and use `Default::default()` value if not present.
 
 ### Greediness
 
-Parsing is generally greedy. So `$*x` and `$,x`, for example, consume as many entries as they can, subject to lookahead. In a case like `$*f $*g`, the parser would parse as many `f` values as it could before parsing `g`. If some entry can be parsed as either `f` or `g`, the parser will not explore all possibilities. The caveat here is lookahead: given `$*f #`, for example, parsing will stop when `#` is observed, even if `f` could parse `#`.
+Parsing is generally greedy. So `$*x` and `$,x`, for example, consume as many entries as they can. Typically this works best if `x` begins with some symbol that indicates whether it is present.
 
 ### Default grammar
 
@@ -53,3 +55,20 @@ If no grammar is supplied, the default grammar is determined as follows:
 
 * If a `#[cast]` or `#[variable]` annotation is present, then the default grammar is just `$v0`.
 * Otherwise, the default grammar is the name of the type (for structs) or variant (for enums), followed by `()`, with the values for the fields in order. So `Mul(Expr, Expr)` would have a default grammar `mul($v0, $v1)`.
+
+### Customizing the parse
+
+If you prefer, you can customize the parse by annotating your term with `#[customize(parse)]`. In the Rust case, for example, the parsing of `RigidTy` is customized ([as is the debug impl](./debug.md)):
+
+```rust
+{{#include ../../../crates/formality-types/src/grammar/ty.rs:RigidTy_decl}}
+```
+
+You must then supply an impl of `Parse` yourself. Because `Parse` is a trait alias, you actually want to implement `CoreParse<L>` for your language type `L`. Inside the code you will want to instantiate a `Parser` and then invoke `parse_variant` for every variant, finally invoking `finish`.
+
+In the Rust code, the impl for `RigidTy` looks as follows:
+
+
+```rust
+{{#include ../../../crates/formality-types/src/grammar/ty/parse_impls.rs:RigidTy_impl}}
+```

@@ -1,6 +1,7 @@
 use super::{AliasName, AliasTy, AssociatedTyName, Parameter, RefKind, RigidName, RigidTy};
 use std::fmt::Debug;
 
+// ANCHOR: RigidTy_impl
 impl Debug for RigidTy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let RigidTy { name, parameters } = self;
@@ -42,6 +43,7 @@ impl Debug for RigidTy {
         }
     }
 }
+// ANCHOR_END: RigidTy_impl
 
 impl Debug for AliasTy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

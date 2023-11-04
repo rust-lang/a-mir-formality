@@ -12,12 +12,18 @@ use super::{AliasTy, AssociatedTyName, Lt, Parameter, RigidTy, ScalarId, Ty};
 
 use crate::rust::FormalityLang as Rust;
 
+// ANCHOR: RigidTy_impl
+// Implement custom parsing for rigid types.
 impl CoreParse<Rust> for RigidTy {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
         let mut parser: Parser<'_, '_, RigidTy, Rust> = Parser::new(scope, text, "AliasTy");
 
+        // Parse a `ScalarId` (and upcast it to `RigidTy`) with the highest
+        // precedence. If someone writes `u8`, we always interpret it as a
+        // scalar-id.
         parser.parse_variant_cast::<ScalarId>(1);
 
+        // Parse something like `Id<...>` as an ADT.
         parser.parse_variant("Adt", 0, |p| {
             let name: AdtId = p.nonterminal()?;
             let parameters: Vec<Parameter> = parse_parameters(p)?;
@@ -27,6 +33,7 @@ impl CoreParse<Rust> for RigidTy {
             })
         });
 
+        // Parse `&`
         parser.parse_variant("Ref", 0, |p| {
             p.expect_char('&')?;
             let lt: Lt = p.nonterminal()?;
@@ -64,6 +71,7 @@ impl CoreParse<Rust> for RigidTy {
         parser.finish()
     }
 }
+// ANCHOR_END: RigidTy_impl
 
 impl CoreParse<Rust> for AliasTy {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
