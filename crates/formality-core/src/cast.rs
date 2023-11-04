@@ -216,6 +216,16 @@ where
     }
 }
 
+impl<T: Clone, U, E> UpcastFrom<Result<T, E>> for Result<U, E>
+where
+    T: Upcast<U>,
+    E: Clone,
+{
+    fn upcast_from(term: Result<T, E>) -> Self {
+        term.map(|t| t.upcast())
+    }
+}
+
 impl DowncastTo<()> for () {
     fn downcast_to(&self) -> Option<()> {
         Some(())

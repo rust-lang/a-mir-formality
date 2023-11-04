@@ -31,7 +31,7 @@ fn normalize_basic() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => (alias (Iterator :: Item) (rigid (adt Vec) !ty_1)),
+                        ?ty_2 => <Vec<!ty_1> as Iterator>::Item,
                     },
                 },
                 Constraints {
@@ -110,7 +110,7 @@ fn normalize_basic() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => (alias (Iterator :: Item) !ty_1),
+                        ?ty_2 => <!ty_1 as Iterator>::Item,
                     },
                 },
             },
@@ -169,8 +169,8 @@ fn normalize_basic() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => (rigid (adt Vec) (alias (Iterator :: Item) !ty_1)),
-                        ?ty_3 => (alias (Iterator :: Item) !ty_1),
+                        ?ty_2 => Vec<<!ty_1 as Iterator>::Item>,
+                        ?ty_3 => <!ty_1 as Iterator>::Item,
                     },
                 },
             },
@@ -221,7 +221,7 @@ fn normalize_into_iterator() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_2 => (alias (IntoIterator :: Item) (rigid (adt Vec) !ty_1)),
+                        ?ty_2 => <Vec<!ty_1> as IntoIterator>::Item,
                     },
                 },
                 Constraints {
@@ -252,7 +252,7 @@ const PROJECTION_EQUALITY: &str = "[
             type Type<> : [] where [];
         }
         trait Trait2<ty T> where [] {}
-        impl<ty T, ty U> Trait2<T> for U where [ U: Trait1<>, (alias (Trait1::Type) S) => T ] {}
+        impl<ty T, ty U> Trait2<T> for U where [ U: Trait1<>, <S as Trait1>::Type => T ] {}
         struct S<> where [] {}
         impl<> Trait1<> for S<> where [] {
             type Type<> = u32 where [];
@@ -274,7 +274,7 @@ fn projection_equality() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_1 => (rigid (scalar u32)),
+                        ?ty_1 => u32,
                     },
                 },
                 Constraints {
@@ -286,7 +286,7 @@ fn projection_equality() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_1 => (alias (Trait1 :: Type) (rigid (adt S))),
+                        ?ty_1 => <S as Trait1>::Type,
                     },
                 },
             },
@@ -309,7 +309,7 @@ fn projection_equality() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_1 => (rigid (scalar u32)),
+                        ?ty_1 => u32,
                     },
                 },
                 Constraints {
@@ -321,7 +321,7 @@ fn projection_equality() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_1 => (alias (Trait1 :: Type) (rigid (adt S))),
+                        ?ty_1 => <S as Trait1>::Type,
                     },
                 },
             },

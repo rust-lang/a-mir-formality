@@ -5,11 +5,14 @@ use spec::FormalitySpec;
 
 extern crate proc_macro;
 
+mod attrs;
 mod cast;
+mod custom;
 mod debug;
 mod fixed_point;
 mod fold;
 mod parse;
+mod precedence;
 mod spec;
 mod term;
 mod test;

@@ -51,10 +51,11 @@ fn test_overlap_normalize_alias_to_LocalType() {
     // ...but it's an error if LocalType implements Iterator (figuring *this* out also
     // requires normalizing).
 
-    expect_test::expect![[r#"Err(
-    "impls may overlap:\nimpl <ty> LocalTrait < > for ^ty0_0 where [^ty0_0 : Iterator < >] { }\nimpl <> LocalTrait < > for (alias (Mirror :: T) (rigid (adt LocalType))) where [] { }",
-)
-"#]]
+    expect_test::expect![[r#"
+        Err(
+            "impls may overlap:\nimpl <ty> LocalTrait < > for ^ty0_0 where [^ty0_0 : Iterator < >] { }\nimpl <> LocalTrait < > for <LocalType as Mirror>::T where [] { }",
+        )
+    "#]]
     .assert_debug_eq(&test_program_ok(&gen_program(
         "impl<> Iterator<> for LocalType<> where [] {}",
     )));
@@ -111,10 +112,11 @@ fn test_overlap_alias_not_normalizable() {
 
     // ...as long as there is at least one Iterator impl, however, we do flag an error.
 
-    expect_test::expect![[r#"Err(
-    "impls may overlap:\nimpl <ty> LocalTrait < > for ^ty0_0 where [^ty0_0 : Iterator < >] { }\nimpl <ty> LocalTrait < > for (alias (Mirror :: T) ^ty0_0) where [^ty0_0 : Mirror < >] { }",
-)
-"#]] // FIXME
+    expect_test::expect![[r#"
+        Err(
+            "impls may overlap:\nimpl <ty> LocalTrait < > for ^ty0_0 where [^ty0_0 : Iterator < >] { }\nimpl <ty> LocalTrait < > for <^ty0_0 as Mirror>::T where [^ty0_0 : Mirror < >] { }",
+        )
+    "#]] // FIXME
     .assert_debug_eq(&test_program_ok(&gen_program(
         "impl<> Iterator<> for u32 where[] {}",
     )));

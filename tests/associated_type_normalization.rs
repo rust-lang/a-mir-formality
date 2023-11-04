@@ -1,4 +1,5 @@
 use a_mir_formality::test_where_clause;
+use formality_core::test;
 
 const MIRROR: &str = "[
     crate core {
@@ -26,7 +27,7 @@ fn test_mirror_normalizes_u32_to_u32() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_1 => (rigid (scalar u32)),
+                        ?ty_1 => u32,
                     },
                 },
                 Constraints {
@@ -38,7 +39,7 @@ fn test_mirror_normalizes_u32_to_u32() {
                     },
                     known_true: true,
                     substitution: {
-                        ?ty_1 => (alias (Mirror :: Assoc) (rigid (scalar u32))),
+                        ?ty_1 => <u32 as Mirror>::Assoc,
                     },
                 },
             },

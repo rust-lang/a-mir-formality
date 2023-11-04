@@ -16,7 +16,7 @@ Caused by:
             },
             known_true: true,
             substitution: {
-                ?ty_1 => (rigid (scalar u32)),
+                ?ty_1 => u32,
             },
         },
     }

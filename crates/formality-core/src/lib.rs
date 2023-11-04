@@ -7,6 +7,7 @@
 
 // Re-export things from dependencies to avoid everybody repeating same set
 // in their Cargo.toml.
+pub use anyhow::anyhow;
 pub use anyhow::bail;
 pub use contracts::requires;
 pub use tracing::debug;
@@ -89,6 +90,7 @@ macro_rules! declare_language {
             type Parameter = $param:ty;
             const BINDING_OPEN = $binding_open:expr;
             const BINDING_CLOSE = $binding_close:expr;
+            const KEYWORDS = [$($kw:expr),* $(,)?];
         }
     ) => {
         $(#[$the_lang_m:meta])*
@@ -104,6 +106,7 @@ macro_rules! declare_language {
                 type Parameter = $param;
                 const BINDING_OPEN: char = $binding_open;
                 const BINDING_CLOSE: char = $binding_close;
+                const KEYWORDS: &'static [&'static str] = &[$($kw),*];
             }
 
             $crate::trait_alias! {
@@ -143,7 +146,7 @@ macro_rules! declare_language {
 
             /// Parses `text` as a term with no bindings in scope.
             #[track_caller]
-            pub fn try_term<T>(text: &str) -> anyhow::Result<T>
+            pub fn try_term<T>(text: &str) -> $crate::Fallible<T>
             where
                 T: Parse,
             {
@@ -155,26 +158,12 @@ macro_rules! declare_language {
             /// References to the given string will be replaced with the given parameter
             /// when parsing types, lifetimes, etc.
             #[track_caller]
-            pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> anyhow::Result<T>
+            pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> $crate::Fallible<T>
             where
                 T: Parse,
                 B: $crate::Upcast<(String, $param)>,
             {
-                let scope = $crate::parse::Scope::new(bindings.into_iter().map(|b| b.upcast()));
-                let (t, remainder) = match T::parse(&scope, text) {
-                    Ok(v) => v,
-                    Err(errors) => {
-                        let mut err = anyhow::anyhow!("failed to parse {text}");
-                        for error in errors {
-                            err = err.context(error.text.to_owned()).context(error.message);
-                        }
-                        return Err(err);
-                    }
-                };
-                if !$crate::parse::skip_whitespace(remainder).is_empty() {
-                    anyhow::bail!("extra tokens after parsing {text:?} to {t:?}: {remainder:?}");
-                }
-                Ok(t)
+                $crate::parse::core_term_with::<FormalityLang, T, B>(bindings, text)
             }
         }
     }
@@ -237,12 +226,13 @@ macro_rules! id {
 
             impl CoreParse<crate::FormalityLang> for $n {
                 fn parse<'t>(
-                    _scope: &parse::Scope<crate::FormalityLang>,
+                    scope: &parse::Scope<crate::FormalityLang>,
                     text: &'t str,
                 ) -> parse::ParseResult<'t, Self> {
-                    let (string, text) = parse::identifier(text)?;
-                    let n = $n::new(&string);
-                    Ok((n, text))
+                    $crate::parse::Parser::single_variant(scope, text, stringify!($n), |p| {
+                        let string = p.identifier()?;
+                        Ok($n::new(&string))
+                    })
                 }
             }
 

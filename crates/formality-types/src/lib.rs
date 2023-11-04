@@ -10,6 +10,15 @@ formality_core::declare_language! {
         type Parameter = crate::grammar::Parameter;
         const BINDING_OPEN = '<';
         const BINDING_CLOSE = '>';
+        const KEYWORDS = [
+            "mut",
+            "struct",
+            "enum",
+            "union",
+            "const",
+            "ty",
+            "lt",
+        ];
     }
 }
 // ANCHOR_END: declare_rust_language

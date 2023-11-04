@@ -1,231 +1,140 @@
 //! Handwritten parser impls.
 
-use formality_core::parse::{
-    self, expect_char, expect_keyword, reject_keyword, CoreParse, ParseError, ParseResult, Scope,
-};
-use formality_core::seq;
+use formality_core::parse::{ActiveVariant, CoreParse, ParseError, ParseResult, Parser, Scope};
 use formality_core::Upcast;
+use formality_core::{seq, Set};
 
-use crate::grammar::{AdtId, AssociatedItemId, Bool, Const, RigidName, Scalar, TraitId};
+use crate::grammar::{
+    AdtId, AssociatedItemId, Bool, ConstData, RefKind, RigidName, Scalar, TraitId,
+};
 
-use super::{AliasTy, AssociatedTyName, Lt, LtData, Parameter, PredicateTy, RigidTy, ScalarId, Ty};
+use super::{AliasTy, AssociatedTyName, Lt, Parameter, RigidTy, ScalarId, Ty};
 
 use crate::rust::FormalityLang as Rust;
 
-// ANCHOR: ty_parse_impl
-// For types, we invest some effort into parsing them decently because it makes
-// writing tests so much more pleasant.
-impl CoreParse<Rust> for Ty {
-    fn parse<'t>(scope: &Scope<Rust>, text0: &'t str) -> ParseResult<'t, Self> {
-        // Support writing `u8` etc and treat them as keywords
-        if let Ok((scalar_ty, text1)) = ScalarId::parse(scope, text0) {
-            return Ok((scalar_ty.upcast(), text1));
-        }
+// ANCHOR: RigidTy_impl
+// Implement custom parsing for rigid types.
+impl CoreParse<Rust> for RigidTy {
+    fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
+        let mut parser: Parser<'_, '_, RigidTy, Rust> = Parser::new(scope, text, "AliasTy");
 
-        // Support naming variables in scope and give that preference
-        if let Ok((p, text1)) = parse_variable(scope, text0) {
-            return match p {
-                Parameter::Ty(ty) => Ok((ty, text1)),
-                _ => Err(ParseError::at(
-                    text0,
-                    format!("expected type, found `{:?}`", p.kind()),
-                )),
+        // Parse a `ScalarId` (and upcast it to `RigidTy`) with the highest
+        // precedence. If someone writes `u8`, we always interpret it as a
+        // scalar-id.
+        parser.parse_variant_cast::<ScalarId>(1);
+
+        // Parse something like `Id<...>` as an ADT.
+        parser.parse_variant("Adt", 0, |p| {
+            let name: AdtId = p.nonterminal()?;
+            let parameters: Vec<Parameter> = parse_parameters(p)?;
+            Ok(RigidTy {
+                name: name.upcast(),
+                parameters,
+            })
+        });
+
+        // Parse `&`
+        parser.parse_variant("Ref", 0, |p| {
+            p.expect_char('&')?;
+            let lt: Lt = p.nonterminal()?;
+            let ty: Ty = p.nonterminal()?;
+            Ok(RigidTy {
+                name: RigidName::Ref(RefKind::Shared),
+                parameters: seq![lt.upcast(), ty.upcast()],
+            }
+            .upcast())
+        });
+
+        parser.parse_variant("RefMut", 0, |p| {
+            p.expect_char('&')?;
+            p.expect_keyword("mut")?;
+            let lt: Lt = p.nonterminal()?;
+            let ty: Ty = p.nonterminal()?;
+            Ok(RigidTy {
+                name: RigidName::Ref(RefKind::Mut),
+                parameters: seq![lt.upcast(), ty.upcast()],
+            })
+        });
+
+        parser.parse_variant("Tuple", 0, |p| {
+            p.expect_char('(')?;
+            p.reject_custom_keywords(&["alias", "rigid", "predicate"])?;
+            let types: Vec<Ty> = p.comma_nonterminal()?;
+            p.expect_char(')')?;
+            let name = RigidName::Tuple(types.len());
+            Ok(RigidTy {
+                name,
+                parameters: types.upcast(),
+            })
+        });
+
+        parser.finish()
+    }
+}
+// ANCHOR_END: RigidTy_impl
+
+impl CoreParse<Rust> for AliasTy {
+    fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
+        let mut parser: Parser<'_, '_, AliasTy, Rust> = Parser::new(scope, text, "AliasTy");
+
+        parser.parse_variant("associated type", 0, |p| {
+            p.expect_char('<')?;
+            let ty0: Ty = p.nonterminal()?;
+            let () = p.expect_keyword("as")?;
+            let trait_id: TraitId = p.nonterminal()?;
+            let trait_parameters1 = parse_parameters(p)?;
+            p.expect_char('>')?;
+            p.expect_char(':')?;
+            p.expect_char(':')?;
+            let item_id: AssociatedItemId = p.nonterminal()?;
+            let item_parameters = parse_parameters(p)?;
+            let name = AssociatedTyName {
+                trait_id,
+                item_id,
+                item_arity: item_parameters.len(),
             };
-        }
+            let parameters: Vec<Parameter> = std::iter::once(ty0.upcast())
+                .chain(trait_parameters1)
+                .chain(item_parameters)
+                .collect();
+            Ok(AliasTy {
+                name: name.upcast(),
+                parameters,
+            })
+        });
 
-        parse::require_unambiguous(
-            text0,
-            vec![
-                parse::try_parse(|| parse_adt_ty(scope, text0)),
-                parse::try_parse(|| parse_assoc_ty(scope, text0)),
-                parse::try_parse(|| parse_ref_ty(scope, text0)),
-                parse::try_parse(|| parse_ref_mut_ty(scope, text0)),
-                parse::try_parse(|| parse_tuple_ty(scope, text0)),
-                parse::try_parse(|| {
-                    let (ty, text) = RigidTy::parse(scope, text0)?;
-                    Ok((Ty::new(ty), text))
-                }),
-                parse::try_parse(|| {
-                    let (ty, text) = AliasTy::parse(scope, text0)?;
-                    Ok((Ty::new(ty), text))
-                }),
-                parse::try_parse(|| {
-                    let (ty, text) = PredicateTy::parse(scope, text0)?;
-                    Ok((Ty::new(ty), text))
-                }),
-            ],
-            "`Ty`",
-        )
-    }
-}
-// ANCHOR_END: ty_parse_impl
-
-#[tracing::instrument(level = "trace", ret)]
-fn parse_adt_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
-    // Treat plain identifiers as adt ids, with or without parameters.
-    let ((), text) = reject_keyword("static", text)?;
-    let ((), text) = reject_keyword("const", text)?;
-    let (name, text) = AdtId::parse(scope, text)?;
-    let (parameters, text) = parse_parameters(scope, text)?;
-    Ok((Ty::rigid(name, parameters), text))
-}
-
-#[tracing::instrument(level = "trace", ret)]
-fn parse_ref_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
-    let ((), text) = expect_char('&', text)?;
-    let (lt, text) = Lt::parse(scope, text)?;
-    let (ty, text) = Ty::parse(scope, text)?;
-    let name = crate::grammar::RigidName::Ref(crate::grammar::RefKind::Shared);
-    Ok((
-        RigidTy {
-            name,
-            parameters: seq![lt.upcast(), ty.upcast()],
-        }
-        .upcast(),
-        text,
-    ))
-}
-
-#[tracing::instrument(level = "trace", ret)]
-fn parse_ref_mut_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
-    let ((), text) = expect_char('&', text)?;
-    let ((), text) = expect_keyword("mut", text)?;
-    let (lt, text) = Lt::parse(scope, text)?;
-    let (ty, text) = Ty::parse(scope, text)?;
-    let name = crate::grammar::RigidName::Ref(crate::grammar::RefKind::Mut);
-    Ok((
-        RigidTy {
-            name,
-            parameters: seq![lt.upcast(), ty.upcast()],
-        }
-        .upcast(),
-        text,
-    ))
-}
-
-#[tracing::instrument(level = "trace", ret)]
-fn parse_tuple_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
-    let ((), text) = expect_char('(', text)?;
-    let ((), text) = reject_keyword("rigid", text)?;
-    let ((), text) = reject_keyword("alias", text)?;
-    let ((), text) = reject_keyword("predicate", text)?;
-    let (types, text) = Ty::parse_comma(scope, text, ')')?;
-    let ((), text) = expect_char(')', text)?;
-    let name = RigidName::Tuple(types.len());
-    Ok((
-        RigidTy {
-            name,
-            parameters: types.upcast(),
-        }
-        .upcast(),
-        text,
-    ))
-}
-
-#[tracing::instrument(level = "trace", ret)]
-fn parse_assoc_ty<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Ty> {
-    // Treat plain identifiers as adt ids, with or without parameters.
-    let ((), text) = expect_char('<', text)?;
-    let (ty0, text) = Ty::parse(scope, text)?;
-    let ((), text) = expect_keyword("as", text)?;
-    let (trait_id, text) = TraitId::parse(scope, text)?;
-    let (trait_parameters1, text) = parse_parameters(scope, text)?;
-    let ((), text) = expect_char('>', text)?;
-    let ((), text) = expect_char(':', text)?;
-    let ((), text) = expect_char(':', text)?;
-    let (item_id, text) = AssociatedItemId::parse(scope, text)?;
-    let (item_parameters, text) = parse_parameters(scope, text)?;
-
-    let assoc_ty_id = AssociatedTyName { trait_id, item_id };
-    let parameters: Vec<Parameter> = std::iter::once(ty0.upcast())
-        .chain(trait_parameters1)
-        .chain(item_parameters)
-        .collect();
-    Ok((Ty::alias(assoc_ty_id, parameters), text))
-}
-
-#[tracing::instrument(level = "trace", ret)]
-fn parse_parameters<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Vec<Parameter>> {
-    let text = match expect_char('<', text) {
-        Err(_) => return Ok((vec![], text)),
-        Ok(((), text)) => text,
-    };
-    let (parameters, text) = Parameter::parse_comma(scope, text, '>')?;
-    let ((), text) = expect_char('>', text)?;
-    Ok((parameters, text))
-}
-
-impl CoreParse<Rust> for Lt {
-    fn parse<'t>(scope: &Scope<Rust>, text0: &'t str) -> ParseResult<'t, Self> {
-        parse::require_unambiguous(
-            text0,
-            vec![
-                parse::try_parse(|| {
-                    let ((), text) = expect_keyword("static", text0)?;
-                    Ok((Lt::new(LtData::Static), text))
-                }),
-                parse::try_parse(|| {
-                    let (p, text1) = parse_variable(scope, text0)?;
-                    match p {
-                        Parameter::Lt(lt) => Ok((lt, text1)),
-                        _ => Err(ParseError::at(
-                            text0,
-                            format!("expected lifetime, found `{:?}`", p.kind()),
-                        )),
-                    }
-                }),
-            ],
-            "`Lt`",
-        )
+        parser.finish()
     }
 }
 
-#[tracing::instrument(level = "trace", ret)]
-fn parse_variable<'t>(scope: &Scope<Rust>, text0: &'t str) -> ParseResult<'t, Parameter> {
-    let (id, text1) = parse::identifier(text0)?;
-    match scope.lookup(&id) {
-        Some(parameter) => Ok((parameter, text1)),
-        None => Err(ParseError::at(text0, format!("unrecognized variable"))),
+fn parse_parameters<'t>(
+    p: &mut ActiveVariant<'_, 't, Rust>,
+) -> Result<Vec<Parameter>, Set<ParseError<'t>>> {
+    if let Err(_) = p.expect_char('<') {
+        return Ok(vec![]);
     }
+    let parameters: Vec<Parameter> = p.comma_nonterminal()?;
+    p.expect_char('>')?;
+    Ok(parameters)
 }
 
 // For consts, we invest some effort into parsing them decently because it makes
 // writing tests so much more pleasant.
-impl CoreParse<Rust> for Const {
+impl CoreParse<Rust> for ConstData {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
-        let text = parse::skip_whitespace(text);
-        if let Ok((bool, text)) = Bool::parse(scope, text) {
-            return Ok((bool.upcast(), text));
-        }
-        // Support naming variables in scope and give that preference
-        if let Ok((p, text1)) = parse_variable(scope, text) {
-            return match p {
-                Parameter::Const(c) => Ok((c, text1)),
-                _ => Err(ParseError::at(
-                    text,
-                    format!("expected type, found `{:?}`", p.kind()),
-                )),
-            };
-        }
-        parse::require_unambiguous(
-            text,
-            vec![parse::try_parse(|| parse_int(scope, text))],
-            "`Const`",
-        )
-    }
-}
+        let mut parser: Parser<'_, '_, ConstData, Rust> = Parser::new(scope, text, "Ty");
 
-#[tracing::instrument(level = "trace", ret)]
-fn parse_int<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Const> {
-    let (num, text) = text.split_once('_').ok_or_else(|| {
-        ParseError::at(
-            text,
-            format!("numeric constants must be followed by an `_` and their type"),
-        )
-    })?;
-    let n: u128 = num
-        .parse()
-        .map_err(|err| ParseError::at(num, format!("could not parse number: {err}")))?;
-    let (ty, text) = Ty::parse(scope, text)?;
-    Ok((Const::valtree(Scalar::new(n), ty), text))
+        parser.parse_variant("Variable", 1, |p| p.variable());
+
+        parser.parse_variant_cast::<Bool>(1);
+
+        parser.parse_variant("Int", 0, |p| {
+            let n: u128 = p.number()?;
+            p.expect_char('_')?;
+            let ty: Ty = p.nonterminal()?;
+            Ok(ConstData::Value(Scalar::new(n).upcast(), ty))
+        });
+
+        parser.finish()
+    }
 }

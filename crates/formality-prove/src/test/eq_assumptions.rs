@@ -45,8 +45,8 @@ fn test_b() {
                 },
                 known_true: true,
                 substitution: {
-                    ?ty_1 => (rigid (adt Vec) (rigid (scalar u32))),
-                    ?ty_2 => (rigid (scalar u32)),
+                    ?ty_1 => Vec<u32>,
+                    ?ty_2 => u32,
                 },
             },
         }

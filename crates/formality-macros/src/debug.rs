@@ -4,7 +4,10 @@ use proc_macro2::{Ident, Literal, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{spanned::Spanned, Attribute};
 
-use crate::spec::{self, FieldMode, FormalitySpec, FormalitySpecOp};
+use crate::{
+    attrs,
+    spec::{self, FieldMode, FormalitySpec, FormalitySpecSymbol},
+};
 
 /// Derive the `Parse` impl, using an optional grammar supplied "from the outside".
 /// This is used by the `#[term(G)]` macro, which supplies the grammar `G`.
@@ -62,7 +65,7 @@ fn debug_variant(
         quote! {
             write!(fmt, #literal)?;
         }
-    } else if crate::cast::has_cast_attr(variant.ast().attrs) {
+    } else if attrs::has_isa_attr(variant.ast().attrs) {
         let streams: Vec<_> = variant
             .bindings()
             .iter()
@@ -119,23 +122,26 @@ fn debug_variant_with_attr(
 
     stream.extend(quote!(let mut sep = "";));
 
-    let mut prev_op: Option<&FormalitySpecOp> = None;
-    for op in &spec.ops {
+    let mut prev_op: Option<&FormalitySpecSymbol> = None;
+    for op in &spec.symbols {
         // insert whitespace if needed
         let suppress_space = match (prev_op, op) {
             // consecutive characters don't need spaces
-            (Some(spec::FormalitySpecOp::Char { .. }), spec::FormalitySpecOp::Char { .. }) => true,
+            (
+                Some(spec::FormalitySpecSymbol::Char { .. }),
+                spec::FormalitySpecSymbol::Char { .. },
+            ) => true,
 
             // `foo(` looks better than `foo (`
             (
-                Some(spec::FormalitySpecOp::Keyword { .. }),
-                spec::FormalitySpecOp::Delimeter { .. },
+                Some(spec::FormalitySpecSymbol::Keyword { .. }),
+                spec::FormalitySpecSymbol::Delimeter { .. },
             ) => true,
 
             // consecutive delimeters don't need spaces
             (
-                Some(spec::FormalitySpecOp::Delimeter { .. }),
-                spec::FormalitySpecOp::Delimeter { .. },
+                Some(spec::FormalitySpecSymbol::Delimeter { .. }),
+                spec::FormalitySpecSymbol::Delimeter { .. },
             ) => true,
 
             _ => false,
@@ -147,9 +153,9 @@ fn debug_variant_with_attr(
         }
 
         stream.extend(match op {
-            spec::FormalitySpecOp::Field {
+            spec::FormalitySpecSymbol::Field {
                 name,
-                mode: FieldMode::Single,
+                mode: FieldMode::Single | FieldMode::Optional,
             } => {
                 quote_spanned! {
                     name.span() =>
@@ -159,7 +165,7 @@ fn debug_variant_with_attr(
                 }
             }
 
-            spec::FormalitySpecOp::Field {
+            spec::FormalitySpecSymbol::Field {
                 name,
                 mode: FieldMode::Many,
             } => {
@@ -173,7 +179,7 @@ fn debug_variant_with_attr(
                 }
             }
 
-            spec::FormalitySpecOp::Field {
+            spec::FormalitySpecSymbol::Field {
                 name,
                 mode: FieldMode::Comma,
             } => {
@@ -188,7 +194,7 @@ fn debug_variant_with_attr(
                 }
             }
 
-            spec::FormalitySpecOp::Keyword { ident } => {
+            spec::FormalitySpecSymbol::Keyword { ident } => {
                 let literal = as_literal(ident);
                 quote_spanned!(ident.span() =>
                     write!(fmt, "{}", sep)?;
@@ -197,7 +203,7 @@ fn debug_variant_with_attr(
                 )
             }
 
-            spec::FormalitySpecOp::Char { punct } => {
+            spec::FormalitySpecSymbol::Char { punct } => {
                 let literal = Literal::character(punct.as_char());
                 quote_spanned!(punct.span() =>
                     write!(fmt, "{}", sep)?;
@@ -206,7 +212,7 @@ fn debug_variant_with_attr(
                 )
             }
 
-            spec::FormalitySpecOp::Delimeter { text } => match text {
+            spec::FormalitySpecSymbol::Delimeter { text } => match text {
                 '{' | '}' => {
                     let literal = Literal::character(*text);
                     quote!(

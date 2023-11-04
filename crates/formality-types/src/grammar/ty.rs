@@ -1,4 +1,4 @@
-use formality_core::{cast_impl, term, Visit};
+use formality_core::{cast_impl, term};
 use std::sync::Arc;
 
 mod debug_impls;
@@ -11,7 +11,8 @@ use super::{
     consts::Const, AdtId, AssociatedItemId, Binder, ExistentialVar, FnId, TraitId, UniversalVar,
 };
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
+#[cast]
 pub struct Ty {
     data: Arc<TyData>,
 }
@@ -97,18 +98,17 @@ impl DowncastTo<TyData> for Ty {
 
 // NB: TyData doesn't implement Fold; you fold types, not TyData,
 // because variables might not map to the same variant.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
+#[term]
 pub enum TyData {
+    #[cast]
     RigidTy(RigidTy),
+    #[cast]
     AliasTy(AliasTy),
+    #[cast]
     PredicateTy(PredicateTy),
+    #[variable]
+    #[precedence(1)]
     Variable(Variable),
-}
-
-impl UpcastFrom<TyData> for TyData {
-    fn upcast_from(term: TyData) -> Self {
-        term
-    }
 }
 
 impl UpcastFrom<Ty> for TyData {
@@ -117,11 +117,14 @@ impl UpcastFrom<Ty> for TyData {
     }
 }
 
+// ANCHOR: RigidTy_decl
 #[term((rigid $name $*parameters))]
+#[customize(parse, debug)]
 pub struct RigidTy {
     pub name: RigidName,
     pub parameters: Parameters,
 }
+// ANCHOR_END: RigidTy_decl
 
 impl UpcastFrom<ScalarId> for RigidTy {
     fn upcast_from(s: ScalarId) -> Self {
@@ -187,6 +190,7 @@ pub enum ScalarId {
 }
 
 #[term((alias $name $*parameters))]
+#[customize(parse, debug)]
 pub struct AliasTy {
     pub name: AliasName,
     pub parameters: Parameters,
@@ -196,15 +200,19 @@ impl AliasTy {
     pub fn associated_ty(
         trait_id: impl Upcast<TraitId>,
         item_id: impl Upcast<AssociatedItemId>,
+        item_arity: usize,
         parameters: impl Upcast<Vec<Parameter>>,
     ) -> Self {
+        let parameters: Vec<Parameter> = parameters.upcast();
+        assert!(item_arity <= parameters.len());
         AliasTy {
             name: AssociatedTyName {
                 trait_id: trait_id.upcast(),
                 item_id: item_id.upcast(),
+                item_arity,
             }
             .upcast(),
-            parameters: parameters.upcast(),
+            parameters: parameters,
         }
     }
 }
@@ -215,10 +223,16 @@ pub enum AliasName {
     AssociatedTyId(AssociatedTyName),
 }
 
-#[term(($trait_id :: $item_id))]
+#[term(($trait_id :: $item_id / $item_arity))]
 pub struct AssociatedTyName {
+    /// The trait in which the associated type was declared.
     pub trait_id: TraitId,
+
+    /// The name of the associated type.
     pub item_id: AssociatedItemId,
+
+    /// The number of parameters on the associated type (often 0).
+    pub item_arity: usize,
 }
 
 #[term]
@@ -279,7 +293,8 @@ pub enum Variance {
     Invariant,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
+#[cast]
 pub struct Lt {
     data: Arc<LtData>,
 }
@@ -319,22 +334,12 @@ impl DowncastTo<LtData> for Lt {
     }
 }
 
-impl UpcastFrom<LtData> for Parameter {
-    fn upcast_from(v: LtData) -> Self {
-        Lt::new(v).upcast()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[term]
 pub enum LtData {
     Static,
-    Variable(Variable),
-}
 
-impl UpcastFrom<LtData> for LtData {
-    fn upcast_from(term: LtData) -> Self {
-        term
-    }
+    #[variable]
+    Variable(Variable),
 }
 
 impl UpcastFrom<Variable> for Parameter {
@@ -353,7 +358,6 @@ impl DowncastTo<Variable> for Parameter {
     }
 }
 
-cast_impl!(Ty);
 cast_impl!((RigidTy) <: (TyData) <: (Ty));
 cast_impl!((AliasTy) <: (TyData) <: (Ty));
 cast_impl!((ScalarId) <: (TyData) <: (Ty));
@@ -363,10 +367,6 @@ cast_impl!((AliasTy) <: (Ty) <: (Parameter));
 cast_impl!((ScalarId) <: (Ty) <: (Parameter));
 cast_impl!((PredicateTy) <: (Ty) <: (Parameter));
 cast_impl!((TyData) <: (Ty) <: (Parameter));
-cast_impl!(TyData::RigidTy(RigidTy));
-cast_impl!(TyData::AliasTy(AliasTy));
-cast_impl!(TyData::PredicateTy(PredicateTy));
-cast_impl!(TyData::Variable(Variable));
 cast_impl!((Variable) <: (TyData) <: (Ty));
 cast_impl!((UniversalVar) <: (Variable) <: (TyData));
 cast_impl!((ExistentialVar) <: (Variable) <: (TyData));
@@ -378,11 +378,10 @@ cast_impl!((BoundVar) <: (Variable) <: (Ty));
 cast_impl!((UniversalVar) <: (Variable) <: (Parameter));
 cast_impl!((ExistentialVar) <: (Variable) <: (Parameter));
 cast_impl!((BoundVar) <: (Variable) <: (Parameter));
-cast_impl!(Lt);
-cast_impl!(LtData::Variable(Variable));
 cast_impl!((ExistentialVar) <: (Variable) <: (LtData));
 cast_impl!((UniversalVar) <: (Variable) <: (LtData));
 cast_impl!((BoundVar) <: (Variable) <: (LtData));
 cast_impl!((UniversalVar) <: (LtData) <: (Lt));
 cast_impl!((ExistentialVar) <: (LtData) <: (Lt));
 cast_impl!((BoundVar) <: (LtData) <: (Lt));
+cast_impl!((LtData) <: (Lt) <: (Parameter));
