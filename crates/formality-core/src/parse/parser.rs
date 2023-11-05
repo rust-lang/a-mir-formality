@@ -266,7 +266,8 @@ where
             l1.len() > l2.len() && (0..l2.len()).all(|i| l1[i] == l2[i])
         }
 
-        prec_i > prec_j || has_prefix(&parse_i.reductions, &parse_j.reductions)
+        prec_i > prec_j
+            || (prec_i == prec_j && has_prefix(&parse_i.reductions, &parse_j.reductions))
     }
 }
 
