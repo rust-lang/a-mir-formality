@@ -182,7 +182,7 @@ fn parse_variant_with_attr(
             spec::FormalitySpecSymbol::Field {
                 name,
                 mode:
-                    FieldMode::Delimited {
+                    FieldMode::DelimitedVec {
                         open,
                         optional,
                         close,

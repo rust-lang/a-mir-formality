@@ -45,7 +45,7 @@ pub enum FieldMode {
     ///
     /// If the next op is a fixed character, stop parsing when we see that.
     /// Otherwise parse as many we can greedily.
-    Delimited {
+    DelimitedVec {
         open: char,
         optional: bool,
         close: char,
@@ -219,7 +219,7 @@ fn parse_variable_binding(
 
         parse_variable_binding_name(
             dollar_token,
-            FieldMode::Delimited {
+            FieldMode::DelimitedVec {
                 open,
                 optional,
                 close,
