@@ -11,7 +11,7 @@ fn decls() -> Decls {
         trait_decls: vec![term("trait Debug<ty Self> where {}")],
         impl_decls: vec![
             term("impl<ty T> Debug(Vec<T>) where {Debug(T)}"),
-            term("impl<> Debug(u32) where {}"),
+            term("impl Debug(u32) where {}"),
         ],
         ..Decls::empty()
     }

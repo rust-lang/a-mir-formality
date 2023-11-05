@@ -6,10 +6,10 @@
 // See also test_foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait
 [
     crate core {
-        trait Foo<> {}
-        impl<> Foo<> for u32 {}
-        impl<ty T> Foo<> for T where T: Not<> {}
+        trait Foo {}
+        impl Foo for u32 {}
+        impl<ty T> Foo for T where T: Not {}
 
-        trait Not<> {}
+        trait Not {}
     }
 ]

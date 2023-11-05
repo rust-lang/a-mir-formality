@@ -3,12 +3,12 @@ use formality_core::test;
 
 const MIRROR: &str = "[
     crate core {
-        trait Mirror<> {
-            type Assoc<> : [];
+        trait Mirror {
+            type Assoc : [];
         }
 
-        impl<ty T> Mirror<> for T {
-            type Assoc<> = T;
+        impl<ty T> Mirror for T {
+            type Assoc = T;
         }
     }
 ]";
@@ -47,6 +47,6 @@ fn test_mirror_normalizes_u32_to_u32() {
     "#]]
     .assert_debug_eq(&test_where_clause(
         MIRROR,
-        "exists<ty T> {} => {<u32 as Mirror>::Assoc<> = T}",
+        "exists<ty T> {} => {<u32 as Mirror>::Assoc = T}",
     ));
 }

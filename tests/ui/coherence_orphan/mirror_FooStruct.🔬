@@ -1,18 +1,18 @@
 //@check-pass
 [
     crate core {
-        trait CoreTrait<> {}
+        trait CoreTrait {}
 
-        trait Mirror<> {
-            type Assoc<> : [];
+        trait Mirror {
+            type Assoc : [];
         }
 
-        impl<ty T> Mirror<> for T {
-            type Assoc<> = T;
+        impl<ty T> Mirror for T {
+            type Assoc = T;
         }
     },
     crate foo {
-        struct FooStruct<> {}
-        impl<> CoreTrait<> for <FooStruct<> as Mirror<>>::Assoc<> {}
+        struct FooStruct {}
+        impl CoreTrait for <FooStruct as Mirror>::Assoc {}
     }
 ]

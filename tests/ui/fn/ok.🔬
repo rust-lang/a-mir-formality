@@ -3,7 +3,7 @@
 [
     crate Foo {
         // fn simple_fn() {}
-        fn simple_fn<>() -> () { trusted }
+        fn simple_fn() -> () { trusted }
 
         // fn one_arg<T>(_: T) {}
         fn one_arg<ty T>(T) -> () { trusted }

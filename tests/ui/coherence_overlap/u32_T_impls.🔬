@@ -1,7 +1,7 @@
 [
     crate core {
-        trait Foo<> {}
-        impl<> Foo<> for u32 {}
-        impl<ty T> Foo<> for T {}
+        trait Foo {}
+        impl Foo for u32 {}
+        impl<ty T> Foo for T {}
     }
 ]

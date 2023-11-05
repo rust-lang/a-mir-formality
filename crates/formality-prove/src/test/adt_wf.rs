@@ -10,7 +10,7 @@ use crate::{decls::Decls, prove::prove};
 fn decls() -> Decls {
     Decls {
         trait_decls: vec![term("trait Foo<ty Self> where {}")],
-        impl_decls: vec![term("impl<> Foo(u32) where {}")],
+        impl_decls: vec![term("impl Foo(u32) where {}")],
         adt_decls: vec![term("adt X<ty T> where {Foo(T)}")],
         ..Decls::empty()
     }

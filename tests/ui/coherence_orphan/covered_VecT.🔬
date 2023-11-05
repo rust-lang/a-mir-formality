@@ -5,7 +5,7 @@
         struct Vec<ty T> {}
     },
     crate foo {
-        struct FooStruct<> {}
-        impl<ty T> CoreTrait<FooStruct<>> for Vec<T> {}
+        struct FooStruct {}
+        impl<ty T> CoreTrait<FooStruct> for Vec<T> {}
     }
 ]

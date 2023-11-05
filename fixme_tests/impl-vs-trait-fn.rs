@@ -6,15 +6,15 @@
 fn absolutely_same() {
     const PROGRAM: &str = "[
         crate core {
-            trait Debug<> {}
-            trait Display<> {}
+            trait Debug {}
+            trait Display {}
 
-            trait Get<> {
-                fn get<ty T, lt l>(&mut l T) -> () where [T: Debug<>];
+            trait Get {
+                fn get<ty T, lt l>(&mut l T) -> () where [T: Debug];
             }
 
-            impl<> Get<> for () {
-                fn get<ty T, lt l>(&mut l T) -> () where T: Debug<> {
+            impl Get for () {
+                fn get<ty T, lt l>(&mut l T) -> () where T: Debug {
                     trusted
                 }
             }
@@ -34,16 +34,16 @@ fn absolutely_same() {
 fn different_self_type_mut_vs_sh() {
     const PROGRAM: &str = "[
         crate core {
-            trait Debug<> {}
-            trait Display<> {}
+            trait Debug {}
+            trait Display {}
 
-            trait Get<> {
-                fn get<ty T, lt l>(&mut l T) -> () where [T: Debug<>];
+            trait Get {
+                fn get<ty T, lt l>(&mut l T) -> () where [T: Debug];
                 //                 --------
             }
 
-            impl<> Get<> for () {
-                fn get<ty T, lt l>(&l T) -> () where T: Debug<> {
+            impl Get for () {
+                fn get<ty T, lt l>(&l T) -> () where T: Debug {
                     //             ----
                     trusted
                 }
@@ -70,16 +70,16 @@ fn different_self_type_mut_vs_sh() {
 fn different_arg_type_u32_vs_i32() {
     const PROGRAM: &str = "[
         crate core {
-            trait Debug<> {}
-            trait Display<> {}
+            trait Debug {}
+            trait Display {}
 
-            trait Get<> {
-                fn get<ty T, lt l>(&mut l T, u32) -> () where [T: Debug<>];
+            trait Get {
+                fn get<ty T, lt l>(&mut l T, u32) -> () where [T: Debug];
                 //                           ---
             }
 
-            impl<> Get<> for () {
-                fn get<ty T, lt l>(&mut l T, i32) -> () where T: Debug<> {
+            impl Get for () {
+                fn get<ty T, lt l>(&mut l T, i32) -> () where T: Debug {
                     //                       ---
                     trusted
                 }

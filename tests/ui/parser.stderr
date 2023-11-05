@@ -7,7 +7,7 @@ Caused by:
        
     1: failed to parse [
            crate Foo {        
-               trait Baz<> where  cake  {}
+               trait Baz where  cake  {}
            }
        ]
        

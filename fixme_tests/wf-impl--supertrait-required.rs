@@ -6,9 +6,9 @@
 fn test_one_impl() {
     const PROGRAM: &str = "[
         crate core {
-            trait Eq<> where Self: PartialEq<> { }
-            trait PartialEq<> { }
-            impl<> Eq<> for u32 { }
+            trait Eq where Self: PartialEq { }
+            trait PartialEq { }
+            impl Eq for u32 { }
         }
     ]";
 
@@ -28,10 +28,10 @@ fn test_one_impl() {
 fn test_both_impls() {
     const PROGRAM: &str = "[
         crate core {
-            trait Eq<> where Self: PartialEq<> { }
-            trait PartialEq<> { }
-            impl<> Eq<> for u32 { }
-            impl<> PartialEq<> for u32 { }
+            trait Eq where Self: PartialEq { }
+            trait PartialEq { }
+            impl Eq for u32 { }
+            impl PartialEq for u32 { }
         }
     ]";
 

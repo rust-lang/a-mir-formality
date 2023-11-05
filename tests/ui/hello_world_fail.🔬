@@ -2,8 +2,8 @@
     crate Foo {
         trait Foo<ty T> where T: Bar<Self> {}
 
-        trait Bar<ty T> where T: Baz<> {}
+        trait Bar<ty T> where T: Baz {}
         
-        trait Baz<> {}
+        trait Baz {}
     }
 ]

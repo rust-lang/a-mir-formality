@@ -3,7 +3,7 @@
         trait CoreTrait<ty T> {}
     },
     crate foo {
-        struct FooStruct<> {}
-        impl<ty T> CoreTrait<FooStruct<>> for T {}
+        struct FooStruct {}
+        impl<ty T> CoreTrait<FooStruct> for T {}
     }
 ]

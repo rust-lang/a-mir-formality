@@ -2,6 +2,6 @@
     crate Foo {
         trait Foo<const C> where type_of_const C is bool {}
 
-        impl<> Foo<const 42_u32> for u32 {}
+        impl Foo<const 42_u32> for u32 {}
     }
 ]

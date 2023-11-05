@@ -1,9 +1,9 @@
 [
     crate core {
-        trait CoreTrait<> {}
-        struct CoreStruct<> {}
+        trait CoreTrait {}
+        struct CoreStruct {}
     },
     crate foo {
-        impl<> !CoreTrait<> for CoreStruct<> {}
+        impl !CoreTrait for CoreStruct {}
     }
 ]

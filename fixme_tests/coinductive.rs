@@ -6,11 +6,11 @@
 fn magic_copy() {
     const PROGRAM: &str = "[
         crate core {
-            struct Foo<> {}
-            trait Copy<> {}
-            trait Magic<> where Self: Copy<> {}
+            struct Foo {}
+            trait Copy {}
+            trait Magic where Self: Copy {}
 
-            impl<ty T> Magic<> for T where T: Magic<> {}
+            impl<ty T> Magic for T where T: Magic {}
         }
     ]";
 
@@ -28,7 +28,7 @@ fn magic_copy() {
     "#]]
     .assert_debug_eq(&formality_rust::test_can_prove_where_clause(
         PROGRAM,
-        "Foo: Magic<>",
+        "Foo: Magic",
     ));
 }
 
@@ -37,13 +37,13 @@ fn magic_copy() {
 fn magic_copy_impl_for_all_copy() {
     const PROGRAM: &str = "[
         crate core {
-            struct Foo<> {}
+            struct Foo {}
             struct Vec<ty T> {}
 
-            trait Copy<> {}
-            trait Magic<> where Self: Copy<> {}
+            trait Copy {}
+            trait Magic where Self: Copy {}
 
-            impl<ty T> Magic<> for T where T: Copy<> {}
+            impl<ty T> Magic for T where T: Copy {}
         }
     ]";
 
@@ -82,17 +82,17 @@ fn magic_copy_impl_for_all_copy() {
 fn magic_vec_t() {
     const PROGRAM: &str = "[
         crate core {
-            struct Foo<> {}
+            struct Foo {}
             struct Vec<ty T> {}
 
-            trait Copy<> {}
-            trait Magic<> where Self: Copy<> {}
+            trait Copy {}
+            trait Magic where Self: Copy {}
 
-            impl<ty T> Magic<> for Vec<T> where T: Magic<> {
+            impl<ty T> Magic for Vec<T> where T: Magic {
                 // FIXME: We need to test that this impl can prove T: Copy,
                 // but how to do it?
             }
-            impl<ty T> Copy<> for Vec<T> where T: Magic<> {}
+            impl<ty T> Copy for Vec<T> where T: Magic {}
         }
     ]";
 

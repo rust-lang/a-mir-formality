@@ -15,7 +15,7 @@ fn test_struct_decl() {
 
 #[test]
 fn test_struct_ty_empty_args() {
-    let r: Ty = term("Point<>");
+    let r: Ty = term("Point");
     expect_test::expect![[r#"
         Point
     "#]]

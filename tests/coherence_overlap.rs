@@ -11,24 +11,24 @@ fn test_overlap_normalize_alias_to_LocalType() {
     let gen_program = |addl: &str| {
         const BASE_PROGRAM: &str = "[
             crate core {
-                trait Iterator<> {
+                trait Iterator {
                 }
 
-                trait Mirror<> {
-                    type T<> : [];
+                trait Mirror {
+                    type T : [];
                 }
                 
-                impl<ty A> Mirror<> for A {
-                    type T<> = A;
+                impl<ty A> Mirror for A {
+                    type T = A;
                 }
                 
-                struct LocalType<> {}
+                struct LocalType {}
                 
-                trait LocalTrait<> { }
+                trait LocalTrait { }
                 
-                impl<ty T> LocalTrait<> for T where T: Iterator<> { }
+                impl<ty T> LocalTrait for T where T: Iterator { }
                 
-                impl<> LocalTrait<> for <LocalType as Mirror>::T { }
+                impl LocalTrait for <LocalType as Mirror>::T { }
 
                 ADDITIONAL
             }
@@ -57,7 +57,7 @@ fn test_overlap_normalize_alias_to_LocalType() {
         )
     "#]]
     .assert_debug_eq(&test_program_ok(&gen_program(
-        "impl<> Iterator<> for LocalType<> {}",
+        "impl Iterator for LocalType {}",
     )));
 }
 
@@ -69,24 +69,24 @@ fn test_overlap_alias_not_normalizable() {
     let gen_program = |addl: &str| {
         const BASE_PROGRAM: &str = "[
             crate core {
-                trait Iterator<> {
+                trait Iterator {
                 }
 
-                trait Mirror<> {
-                    type T<> : [];
+                trait Mirror {
+                    type T : [];
                 }
                 
-                impl<ty A> Mirror<> for A {
-                    type T<> = A;
+                impl<ty A> Mirror for A {
+                    type T = A;
                 }
                 
-                struct LocalType<> {}
+                struct LocalType {}
                 
-                trait LocalTrait<> { }
+                trait LocalTrait { }
                 
-                impl<ty T> LocalTrait<> for T where T: Iterator<> { }
+                impl<ty T> LocalTrait for T where T: Iterator { }
                 
-                impl<ty T> LocalTrait<> for <T as Mirror>::T where T: Mirror<> { }
+                impl<ty T> LocalTrait for <T as Mirror>::T where T: Mirror { }
 
                 ADDITIONAL
             }
@@ -118,6 +118,6 @@ fn test_overlap_alias_not_normalizable() {
         )
     "#]] // FIXME
     .assert_debug_eq(&test_program_ok(&gen_program(
-        "impl<> Iterator<> for u32 {}",
+        "impl Iterator for u32 {}",
     )));
 }

@@ -1,5 +1,5 @@
 [
     crate Foo {        
-        trait Baz<> where  cake  {}
+        trait Baz where  cake  {}
     }
 ]

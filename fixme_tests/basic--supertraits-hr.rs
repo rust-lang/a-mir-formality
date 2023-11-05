@@ -3,7 +3,7 @@
 
 const PROGRAM: &str = "[
     crate core {
-        trait Sub<> where for<lt l> Self: Super<l> { }
+        trait Sub where for<lt l> Self: Super<l> { }
         trait Super<lt x> { }
     }
 ]";

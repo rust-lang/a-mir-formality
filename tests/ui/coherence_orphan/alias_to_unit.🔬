@@ -1,17 +1,17 @@
 [
     crate core {
-        trait CoreTrait<> {}
+        trait CoreTrait {}
 
-        trait Unit<> {
-            type Assoc<> : [];
+        trait Unit {
+            type Assoc : [];
         }
 
-        impl<ty T> Unit<> for T {
-            type Assoc<> = ();
+        impl<ty T> Unit for T {
+            type Assoc = ();
         }
     },
     crate foo {
-        struct FooStruct<> {}
-        impl<> CoreTrait<> for <FooStruct<> as Unit<>>::Assoc<> {}
+        struct FooStruct {}
+        impl CoreTrait for <FooStruct as Unit>::Assoc {}
     }
 ]

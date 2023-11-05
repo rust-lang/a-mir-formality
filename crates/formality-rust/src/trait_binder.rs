@@ -79,6 +79,7 @@ where
     T: Term,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // In Debug output, we include the `Self` to avoid confusion -- is this good?
         write!(f, "{:?}", self.explicit_binder)
     }
 }
@@ -90,9 +91,17 @@ where
     #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope<FormalityLang>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "TraitBinder", |p| {
-            p.expect_char('<')?;
-            let mut bindings: Vec<Binding<FormalityLang>> = p.comma_nonterminal()?;
-            p.expect_char('>')?;
+            let mut bindings = match p.expect_char('<') {
+                Ok(()) => {
+                    let bindings: Vec<Binding<FormalityLang>> = p.comma_nonterminal()?;
+                    p.expect_char('>')?;
+                    bindings
+                }
+                Err(_) => {
+                    // If we don't see a `<`, assume there are no add'l bound variables.
+                    vec![]
+                }
+            };
 
             // insert the `Self` binding at position 0
             let bound_var = BoundVar::fresh(ParameterKind::Ty);
