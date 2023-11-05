@@ -153,74 +153,7 @@ fn debug_variant_with_attr(
         }
 
         stream.extend(match op {
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode: FieldMode::Single | FieldMode::Optional,
-            } => {
-                quote_spanned! {
-                    name.span() =>
-                        write!(fmt, "{}", sep)?;
-                        write!(fmt, "{:?}", #name)?;
-                        sep = " ";
-                }
-            }
-
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode: FieldMode::Many,
-            } => {
-                quote_spanned! {
-                    name.span() =>
-                        for e in #name {
-                            write!(fmt, "{}", sep)?;
-                            write!(fmt, "{:?}", e)?;
-                            sep = " ";
-                        }
-                }
-            }
-
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode: FieldMode::Comma,
-            } => {
-                quote_spanned! {
-                    name.span() =>
-                        for e in #name {
-                            write!(fmt, "{}", sep)?;
-                            write!(fmt, "{:?}", e)?;
-                            sep = ", ";
-                        }
-                        sep = " ";
-                }
-            }
-
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode:
-                    FieldMode::DelimitedVec {
-                        open,
-                        optional,
-                        close,
-                    },
-            } => {
-                let open = Literal::character(*open);
-                let close = Literal::character(*close);
-                quote_spanned! {
-                    name.span() =>
-                        if !#optional || !#name.is_empty() {
-                            write!(fmt, "{}", sep)?;
-                            write!(fmt, "{}", #open)?;
-                            sep = "";
-                            for e in #name {
-                                write!(fmt, "{}", sep)?;
-                                write!(fmt, "{:?}", e)?;
-                                sep = ", ";
-                            }
-                            write!(fmt, "{}", #close)?;
-                            sep = " ";
-                        }
-                }
-            }
+            spec::FormalitySpecSymbol::Field { name, mode } => debug_field_with_mode(name, mode),
 
             spec::FormalitySpecSymbol::Keyword { ident } => {
                 let literal = as_literal(ident);
@@ -268,6 +201,62 @@ fn debug_variant_with_attr(
     }
 
     stream
+}
+
+fn debug_field_with_mode(name: &Ident, mode: &FieldMode) -> TokenStream {
+    match mode {
+        FieldMode::Single | FieldMode::Optional => {
+            quote_spanned! { name.span() =>
+                write!(fmt, "{}", sep)?;
+                write!(fmt, "{:?}", #name)?;
+                sep = " ";
+            }
+        }
+
+        FieldMode::Many => {
+            quote_spanned! { name.span() =>
+                for e in #name {
+                    write!(fmt, "{}", sep)?;
+                    write!(fmt, "{:?}", e)?;
+                    sep = " ";
+                }
+            }
+        }
+
+        FieldMode::Comma => {
+            quote_spanned! { name.span() =>
+                for e in #name {
+                    write!(fmt, "{}", sep)?;
+                    write!(fmt, "{:?}", e)?;
+                    sep = ", ";
+                }
+                sep = " ";
+            }
+        }
+
+        FieldMode::DelimitedVec {
+            open,
+            optional,
+            close,
+        } => {
+            let open = Literal::character(*open);
+            let close = Literal::character(*close);
+            quote_spanned! { name.span() =>
+                if !#optional || !#name.is_empty() {
+                    write!(fmt, "{}", sep)?;
+                    write!(fmt, "{}", #open)?;
+                    sep = "";
+                    for e in #name {
+                        write!(fmt, "{}", sep)?;
+                        write!(fmt, "{:?}", e)?;
+                        sep = ", ";
+                    }
+                    write!(fmt, "{}", #close)?;
+                    sep = " ";
+                }
+            }
+        }
+    }
 }
 
 fn get_grammar_attr(attrs: &[Attribute]) -> Option<syn::Result<FormalitySpec>> {
