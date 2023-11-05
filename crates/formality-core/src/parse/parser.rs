@@ -24,8 +24,6 @@ where
 {
     scope: &'s Scope<L>,
     start_text: &'t str,
-    #[allow(dead_code)]
-    tracing_span: tracing::span::EnteredSpan,
     nonterminal_name: &'static str,
     successes: Vec<(SuccessfulParse<'t, T>, Precedence)>,
     failures: Set<ParseError<'t>>,
@@ -96,21 +94,20 @@ where
             name = nonterminal_name,
             ?scope,
             ?text
-        )
-        .entered();
+        );
+        let guard = tracing_span.enter();
 
         let mut parser = Self {
             scope,
             start_text: text,
             nonterminal_name,
-            tracing_span,
             successes: vec![],
             failures: set![],
         };
 
         op(&mut parser);
 
-        parser.finish()
+        parser.finish(guard)
     }
 
     /// Shorthand for `parse_variant` where the parsing operation is to
@@ -184,7 +181,7 @@ where
         }
     }
 
-    fn finish(self) -> ParseResult<'t, T> {
+    fn finish(self, guard: tracing::span::Entered<'_>) -> ParseResult<'t, T> {
         // If we did not parse anything successfully, then return an error.
         // There are two possibilities: some of our variants may have made
         // progress but ultimately failed. If so, self.failures will be non-empty,
@@ -195,6 +192,8 @@ where
         // observe that we did not consume any tokens and will ignore our messawge
         // and put its own (e.g., "failed to find a Y here").
         if self.successes.is_empty() {
+            // It's better to print this result alongside the main parsing section.
+            drop(guard);
             return if self.failures.is_empty() {
                 tracing::trace!("parsing failed: no variants were able to consume a single token");
                 Err(ParseError::at(
@@ -228,6 +227,8 @@ where
                 .all(|(s_j, j)| i == j || Self::is_preferable(s_i, s_j))
             {
                 let (s_i, _) = self.successes.into_iter().skip(i).next().unwrap();
+                // It's better to print this result alongside the main parsing section.
+                drop(guard);
                 tracing::trace!("best parse = `{:?}`", s_i);
                 return Ok(s_i);
             }
