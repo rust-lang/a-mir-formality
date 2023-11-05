@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 
-use proc_macro2::{Delimiter, Group, Ident, Punct, TokenStream, TokenTree};
+use proc_macro2::{Group, Ident, Punct, TokenStream, TokenTree};
 use syn::spanned::Spanned;
 
 /// The "formality spec" guides parsing and serialization.

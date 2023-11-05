@@ -2,7 +2,7 @@ use formality_core::test;
 
 use crate::eg::term;
 
-use super::{Expr, StructDecl, Ty};
+use super::{StructDecl, Ty};
 
 #[test]
 fn test_struct_decl() {
