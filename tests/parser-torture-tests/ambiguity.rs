@@ -1,8 +1,7 @@
-use formality_core::term;
+use formality_core::{term, test};
 use std::sync::Arc;
 
 #[test]
-#[should_panic(expected = "ambiguous parse")] // FIXME: we want this example to work
 fn reduce_reduce_ok() {
     #[term]
     pub enum Root {
@@ -27,7 +26,10 @@ fn reduce_reduce_ok() {
     formality_core::id!(Id);
 
     let term: Root = crate::ptt::term("my String");
-    expect_test::expect![].assert_debug_eq(&term);
+    expect_test::expect![[r#"
+        my String
+    "#]]
+    .assert_debug_eq(&term);
 }
 
 #[test]
@@ -53,5 +55,8 @@ fn reduce_reduce_ambig() {
     // Root = (Id Id Root::TwoId) (Id Root::OneId) Root::TwoRr)
     // Root = ((Id Root::OneId) (Id Root::OneId) (Id Root::OneId) Root::TwoRr)
     let term: Root = crate::ptt::term("a b c");
-    expect_test::expect![].assert_debug_eq(&term);
+    expect_test::expect![[r#"
+        a b c
+    "#]]
+    .assert_debug_eq(&term);
 }

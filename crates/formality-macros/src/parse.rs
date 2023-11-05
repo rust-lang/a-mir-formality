@@ -104,6 +104,7 @@ fn parse_variant(
         let construct = variant.construct(field_ident);
         Ok(quote_spanned! {
             ast.ident.span() =>
+            __p.mark_as_cast_variant();
             #(#build)*
             Ok(#construct)
         })

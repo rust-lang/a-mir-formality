@@ -57,6 +57,7 @@ where
     scope: &'s Scope<L>,
     text: &'t str,
     reductions: Vec<&'static str>,
+    is_cast_variant: bool,
 }
 
 impl<'s, 't, T, L> Parser<'s, 't, T, L>
@@ -117,12 +118,14 @@ where
 
     /// Shorthand for `parse_variant` where the parsing operation is to
     /// parse the type `V` and then upcast it to the desired result type.
+    /// Also marks the variant as a cast variant.
     pub fn parse_variant_cast<V>(&mut self, variant_precedence: usize)
     where
         V: CoreParse<L> + Upcast<T>,
     {
         let variant_name = std::any::type_name::<V>();
         Self::parse_variant(self, variant_name, variant_precedence, |p| {
+            p.mark_as_cast_variant();
             let v: V = p.nonterminal()?;
             Ok(v.upcast())
         })
@@ -151,6 +154,7 @@ where
             scope: self.scope,
             text: self.start_text,
             reductions: vec![],
+            is_cast_variant: false,
         };
         let result = op(&mut active_variant);
 
@@ -160,7 +164,12 @@ where
 
         match result {
             Ok(value) => {
-                active_variant.reductions.push(variant_name);
+                // Subtle: for cast variants, don't record the variant name in the reduction lits,
+                // as it doesn't carry semantic weight. See `mark_as_cast_variant` for more details.
+                if !active_variant.is_cast_variant {
+                    active_variant.reductions.push(variant_name);
+                }
+
                 self.successes.push((
                     SuccessfulParse {
                         text: active_variant.text,
@@ -280,6 +289,37 @@ where
         self.text = skip_trailing_comma(self.text);
     }
 
+    /// Marks this variant as an cast variant,
+    /// which means there is no semantic difference
+    /// between the thing you parsed and the reduced form.
+    /// We do this automatically for enum variants marked
+    /// as `#[cast]` or calls to `parse_variant_cast`.
+    ///
+    /// Cast variants interact differently with ambiguity detection.
+    /// Consider this grammar:
+    ///
+    /// ```
+    /// X = Y | Z // X has two variants
+    /// Y = A     // Y has 1 variant
+    /// Z = A B   // Z has 1 variant
+    /// A = "a"   // A has 1 variant
+    /// B = "b"   // B has 1 variant
+    /// ```
+    ///
+    /// If you mark the two `X` variants (`X = Y` and `X = Z`)
+    /// as cast variants, then the input `"a b"` is considered
+    /// unambiguous and is parsed as `X = (Z = (A = "a') (B = "b))`
+    /// with no remainder.
+    ///
+    /// If you don't mark those variants as cast variants,
+    /// then we consider this *ambiguous*, because
+    /// it could be that you want `X = (Y = (A = "a"))` with
+    /// a remainder of `"b"`. This is appropriate
+    /// if choosing Y vs Z has different semantic meaning.
+    pub fn mark_as_cast_variant(&mut self) {
+        self.is_cast_variant = true;
+    }
+
     /// Expect *exactly* the given text (after skipping whitespace)
     /// in the input string. Reports an error if anything else is observed.
     /// In error case, consumes only whitespace.
@@ -349,6 +389,7 @@ where
             text: self.text,
             reductions: vec![],
             scope: self.scope,
+            is_cast_variant: false,
         };
 
         match this.identifier_like_string() {
@@ -399,6 +440,7 @@ where
             scope: &scope,
             text: self.text,
             reductions: vec![],
+            is_cast_variant: false,
         };
         let result = op(&mut av);
         self.text = av.text;
