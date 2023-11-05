@@ -55,9 +55,9 @@ pub(crate) fn derive_parse_with_spec(
         gen impl parse::CoreParse<crate::FormalityLang> for @Self {
             fn parse<'t>(scope: &parse::Scope<crate::FormalityLang>, text: &'t str) -> parse::ParseResult<'t, Self>
             {
-                let mut __parser = parse::Parser::new(scope, text, #type_name);
-                #parse_variants;
-                __parser.finish()
+                parse::Parser::multi_variant(scope, text, #type_name, |__parser| {
+                    #parse_variants;
+                })
             }
         }
     }))

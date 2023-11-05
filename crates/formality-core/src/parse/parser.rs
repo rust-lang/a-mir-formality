@@ -73,16 +73,23 @@ where
         nonterminal_name: &'static str,
         op: impl FnOnce(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
     ) -> ParseResult<'t, T> {
-        let mut result = Parser::new(scope, text, nonterminal_name);
-        result.parse_variant(nonterminal_name, 0, op);
-        result.finish()
+        Parser::multi_variant(scope, text, nonterminal_name, |parser| {
+            parser.parse_variant(nonterminal_name, 0, op);
+        })
     }
 
-    /// Creates a new parser. You should then invoke `parse_variant` 0 or more times for
-    /// each of the possibilities and finally invoke `finish`.
+    /// Creates a new parser that can accommodate multiple variants.
+    ///
+    /// Invokes `op` to do the parsing; `op` should call `parse_variant` 0 or more times for
+    /// each of the possibilities. The best result (if any) will then be returned.
     ///
     /// The method [`single_variant`] is more convenient if you have exactly one variant.
-    pub fn new(scope: &'s Scope<L>, text: &'t str, nonterminal_name: &'static str) -> Self {
+    pub fn multi_variant(
+        scope: &'s Scope<L>,
+        text: &'t str,
+        nonterminal_name: &'static str,
+        op: impl FnOnce(&mut Self),
+    ) -> ParseResult<'t, T> {
         let tracing_span = tracing::span!(
             tracing::Level::TRACE,
             "nonterminal",
@@ -92,14 +99,18 @@ where
         )
         .entered();
 
-        Self {
+        let mut parser = Self {
             scope,
             start_text: text,
             nonterminal_name,
             tracing_span,
             successes: vec![],
             failures: set![],
-        }
+        };
+
+        op(&mut parser);
+
+        parser.finish()
     }
 
     /// Shorthand for `parse_variant` where the parsing operation is to
@@ -173,7 +184,7 @@ where
         }
     }
 
-    pub fn finish(self) -> ParseResult<'t, T> {
+    fn finish(self) -> ParseResult<'t, T> {
         // If we did not parse anything successfully, then return an error.
         // There are two possibilities: some of our variants may have made
         // progress but ultimately failed. If so, self.failures will be non-empty,
