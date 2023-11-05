@@ -110,43 +110,63 @@ fn parse_variable_binding(
     dollar_token: Punct,
     tokens: &mut impl Iterator<Item = TokenTree>,
 ) -> syn::Result<FormalitySpecSymbol> {
-    let error = || {
+    let mut tokens = tokens.peekable();
+
+    let Some(token) = tokens.peek() else {
+        return error(dollar_token);
+    };
+
+    return match token {
+        // $x
+        TokenTree::Ident(_) => {
+            parse_variable_binding_name(dollar_token, FieldMode::Single, &mut tokens)
+        }
+
+        // $$
+        TokenTree::Punct(punct) if punct.as_char() == '$' => {
+            let Some(TokenTree::Punct(punct)) = tokens.next() else {
+                unreachable!()
+            };
+            Ok(FormalitySpecSymbol::Char { punct })
+        }
+
+        // $,x
+        TokenTree::Punct(punct) if punct.as_char() == ',' => {
+            tokens.next();
+            parse_variable_binding_name(dollar_token, FieldMode::Comma, &mut tokens)
+        }
+
+        // $*x
+        TokenTree::Punct(punct) if punct.as_char() == '*' => {
+            tokens.next();
+            parse_variable_binding_name(dollar_token, FieldMode::Many, &mut tokens)
+        }
+
+        // $?x
+        TokenTree::Punct(punct) if punct.as_char() == '?' => {
+            tokens.next();
+            parse_variable_binding_name(dollar_token, FieldMode::Optional, &mut tokens)
+        }
+
+        _ => error(dollar_token),
+    };
+
+    fn parse_variable_binding_name(
+        dollar_token: Punct,
+        mode: FieldMode,
+        tokens: &mut impl Iterator<Item = TokenTree>,
+    ) -> syn::Result<FormalitySpecSymbol> {
+        // Extract the name of the field.
+        let name = match tokens.next() {
+            Some(TokenTree::Ident(name)) => name,
+            _ => return error(dollar_token),
+        };
+
+        Ok(FormalitySpecSymbol::Field { name, mode })
+    }
+
+    fn error(dollar_token: Punct) -> syn::Result<FormalitySpecSymbol> {
         let message = "expected field name or field mode (`,`, `*`)";
         Err(syn::Error::new(dollar_token.span(), message))
-    };
-
-    let mut next_token = match tokens.next() {
-        Some(v) => v,
-        None => return error(),
-    };
-
-    // If there is a field mode (e.g., `*`) present, parse it.
-    let mode = match next_token {
-        TokenTree::Ident(_) => FieldMode::Single,
-        TokenTree::Punct(punct) => {
-            let mode = match punct.as_char() {
-                ',' => FieldMode::Comma,
-                '*' => FieldMode::Many,
-                '?' => FieldMode::Optional,
-                '$' => return Ok(FormalitySpecSymbol::Char { punct }),
-                _ => return error(),
-            };
-
-            next_token = match tokens.next() {
-                Some(v) => v,
-                None => return error(),
-            };
-
-            mode
-        }
-        TokenTree::Group(_) | TokenTree::Literal(_) => return error(),
-    };
-
-    // Extract the name of the field.
-    let name = match next_token {
-        TokenTree::Ident(name) => name,
-        _ => return error(),
-    };
-
-    Ok(FormalitySpecSymbol::Field { name, mode })
+    }
 }
