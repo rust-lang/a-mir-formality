@@ -1,24 +1,33 @@
 use formality_core::term;
 use std::sync::Arc;
 
+#[term]
+pub enum Expr {
+    #[cast]
+    Id(Id),
+
+    #[grammar($v0 + $v1)]
+    Add(Arc<Expr>, Arc<Expr>),
+
+    #[grammar($v0 * $v1)]
+    #[precedence(1)]
+    Mul(Arc<Expr>, Arc<Expr>),
+}
+
+formality_core::id!(Id);
+
 #[test]
-fn precedence() {
-    #[term]
-    pub enum Root {
-        #[cast]
-        Id(Id),
+fn mul_is_higher_precedence() {
+    let term: Expr = crate::ptt::term("a + b * c");
+    expect_test::expect![[r#"
+        a + b * c
+    "#]]
+    .assert_debug_eq(&term);
+}
 
-        #[grammar($v0 + $v1)]
-        Add(Arc<Root>, Arc<Root>),
-
-        #[grammar($v0 * $v1)]
-        #[precedence(1)]
-        Mul(Arc<Root>, Arc<Root>),
-    }
-
-    formality_core::id!(Id);
-
-    let term: Root = crate::ptt::term("a + b * c");
+#[test]
+fn equal_precedence_panics() {
+    let term: Expr = crate::ptt::term("a + b * c");
     expect_test::expect![[r#"
         a + b * c
     "#]]
