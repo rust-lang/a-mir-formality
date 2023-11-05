@@ -3,12 +3,12 @@ use formality_core::test;
 
 const MIRROR: &str = "[
     crate core {
-        trait Mirror<> where [] {
-            type Assoc<> : [] where [];
+        trait Mirror<> {
+            type Assoc<> : [];
         }
 
-        impl<ty T> Mirror<> for T where [] {
-            type Assoc<> = T where [];
+        impl<ty T> Mirror<> for T {
+            type Assoc<> = T;
         }
     }
 ]";

@@ -3,9 +3,9 @@
 
 const PROGRAM: &str = "[
     crate core {
-        trait Debug<> where [] { }
+        trait Debug<> { }
 
-        impl<> Debug<> for i32 where [] { }
+        impl<> Debug<> for i32 { }
     }
 ]";
 

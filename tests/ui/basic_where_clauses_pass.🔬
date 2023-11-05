@@ -1,12 +1,12 @@
 //@check-pass
 [
     crate core {
-        trait A<ty T> where [T: B<>] { }
+        trait A<ty T> where T: B<> { }
 
-        trait B<> where [] { }
+        trait B<> { }
 
-        trait WellFormed<> where [for<ty T> u32: A<T>] { }
+        trait WellFormed<> where for<ty T> u32: A<T> { }
 
-        impl <ty T> B<> for T where [] {}
+        impl <ty T> B<> for T {}
     }
 ]

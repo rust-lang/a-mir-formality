@@ -11,24 +11,24 @@ fn test_overlap_normalize_alias_to_LocalType() {
     let gen_program = |addl: &str| {
         const BASE_PROGRAM: &str = "[
             crate core {
-                trait Iterator<> where [] {
+                trait Iterator<> {
                 }
 
-                trait Mirror<> where [] {
-                    type T<> : [] where [];
+                trait Mirror<> {
+                    type T<> : [];
                 }
                 
-                impl<ty A> Mirror<> for A where [] {
-                    type T<> = A where [];
+                impl<ty A> Mirror<> for A {
+                    type T<> = A;
                 }
                 
-                struct LocalType<> where [] {}
+                struct LocalType<> {}
                 
-                trait LocalTrait<> where [] { }
+                trait LocalTrait<> { }
                 
-                impl<ty T> LocalTrait<> for T where [T: Iterator<>] { }
+                impl<ty T> LocalTrait<> for T where T: Iterator<> { }
                 
-                impl<> LocalTrait<> for <LocalType as Mirror>::T where [] { }
+                impl<> LocalTrait<> for <LocalType as Mirror>::T { }
 
                 ADDITIONAL
             }
@@ -53,11 +53,11 @@ fn test_overlap_normalize_alias_to_LocalType() {
 
     expect_test::expect![[r#"
         Err(
-            "impls may overlap:\nimpl <ty> LocalTrait for ^ty0_0 where [^ty0_0 : Iterator] { }\nimpl LocalTrait for <LocalType as Mirror>::T where [] { }",
+            "impls may overlap:\nimpl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }\nimpl LocalTrait for <LocalType as Mirror>::T { }",
         )
     "#]]
     .assert_debug_eq(&test_program_ok(&gen_program(
-        "impl<> Iterator<> for LocalType<> where [] {}",
+        "impl<> Iterator<> for LocalType<> {}",
     )));
 }
 
@@ -69,24 +69,24 @@ fn test_overlap_alias_not_normalizable() {
     let gen_program = |addl: &str| {
         const BASE_PROGRAM: &str = "[
             crate core {
-                trait Iterator<> where [] {
+                trait Iterator<> {
                 }
 
-                trait Mirror<> where [] {
-                    type T<> : [] where [];
+                trait Mirror<> {
+                    type T<> : [];
                 }
                 
-                impl<ty A> Mirror<> for A where [] {
-                    type T<> = A where [];
+                impl<ty A> Mirror<> for A {
+                    type T<> = A;
                 }
                 
-                struct LocalType<> where [] {}
+                struct LocalType<> {}
                 
-                trait LocalTrait<> where [] { }
+                trait LocalTrait<> { }
                 
-                impl<ty T> LocalTrait<> for T where [T: Iterator<>] { }
+                impl<ty T> LocalTrait<> for T where T: Iterator<> { }
                 
-                impl<ty T> LocalTrait<> for <T as Mirror>::T where [T: Mirror<>] { }
+                impl<ty T> LocalTrait<> for <T as Mirror>::T where T: Mirror<> { }
 
                 ADDITIONAL
             }
@@ -114,10 +114,10 @@ fn test_overlap_alias_not_normalizable() {
 
     expect_test::expect![[r#"
         Err(
-            "impls may overlap:\nimpl <ty> LocalTrait for ^ty0_0 where [^ty0_0 : Iterator] { }\nimpl <ty> LocalTrait for <^ty0_0 as Mirror>::T where [^ty0_0 : Mirror] { }",
+            "impls may overlap:\nimpl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }\nimpl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }",
         )
     "#]] // FIXME
     .assert_debug_eq(&test_program_ok(&gen_program(
-        "impl<> Iterator<> for u32 where[] {}",
+        "impl<> Iterator<> for u32 {}",
     )));
 }

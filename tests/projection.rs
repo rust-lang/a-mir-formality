@@ -2,16 +2,16 @@ use a_mir_formality::test_where_clause;
 
 const NORMALIZE_BASIC: &str = "[
     crate test {
-        trait Iterator<> where [] {
-            type Item<> : [] where [];
+        trait Iterator<> {
+            type Item<> : [];
         }
 
-        struct Vec<ty T> where [] {}
+        struct Vec<ty T> {}
 
-        struct Foo<> where [] {}
+        struct Foo<> {}
 
-        impl<ty T> Iterator<> for Vec<T> where [] {
-            type Item<> = T where [];
+        impl<ty T> Iterator<> for Vec<T> {
+            type Item<> = T;
         }
     }
 ]";
@@ -184,24 +184,24 @@ fn normalize_basic() {
 
 const NORMALIZE_INTO_ITERATOR: &str = "[
     crate test {
-        trait IntoIterator<> where [] {
-            type Item<> : [] where [];
+        trait IntoIterator<> {
+            type Item<> : [];
         }
 
-        trait Iterator<> where [] {
-            type Item<> : [] where [];
+        trait Iterator<> {
+            type Item<> : [];
         }
 
-        struct Vec<ty T> where [] {}
+        struct Vec<ty T> {}
 
-        struct Foo<> where [] {}
+        struct Foo<> {}
 
-        impl<ty T> IntoIterator<> for Vec<T> where [] {
-            type Item<> = T where [];
+        impl<ty T> IntoIterator<> for Vec<T> {
+            type Item<> = T;
         }
 
-        impl<ty T> IntoIterator<> for T where [ T: Iterator<> ] {
-            type Item<> = <T as Iterator>::Item<> where [];
+        impl<ty T> IntoIterator<> for T where  T: Iterator<>  {
+            type Item<> = <T as Iterator>::Item<>;
         }
     }
 ]";
@@ -248,14 +248,14 @@ fn normalize_into_iterator() {
 
 const PROJECTION_EQUALITY: &str = "[
     crate test {
-        trait Trait1<> where [] {
-            type Type<> : [] where [];
+        trait Trait1<> {
+            type Type<> : [];
         }
-        trait Trait2<ty T> where [] {}
-        impl<ty T, ty U> Trait2<T> for U where [ U: Trait1<>, <S as Trait1>::Type => T ] {}
-        struct S<> where [] {}
-        impl<> Trait1<> for S<> where [] {
-            type Type<> = u32 where [];
+        trait Trait2<ty T> {}
+        impl<ty T, ty U> Trait2<T> for U where  U: Trait1<>, <S as Trait1>::Type => T  {}
+        struct S<> {}
+        impl<> Trait1<> for S<> {
+            type Type<> = u32;
         }
     }
 ]";

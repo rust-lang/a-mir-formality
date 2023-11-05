@@ -6,11 +6,11 @@
 fn magic_copy() {
     const PROGRAM: &str = "[
         crate core {
-            struct Foo<> where [] {}
-            trait Copy<> where [] {}
-            trait Magic<> where [Self: Copy<>] {}
+            struct Foo<> {}
+            trait Copy<> {}
+            trait Magic<> where Self: Copy<> {}
 
-            impl<ty T> Magic<> for T where [T: Magic<>] {}
+            impl<ty T> Magic<> for T where T: Magic<> {}
         }
     ]";
 
@@ -37,13 +37,13 @@ fn magic_copy() {
 fn magic_copy_impl_for_all_copy() {
     const PROGRAM: &str = "[
         crate core {
-            struct Foo<> where [] {}
-            struct Vec<ty T> where [] {}
+            struct Foo<> {}
+            struct Vec<ty T> {}
 
-            trait Copy<> where [] {}
-            trait Magic<> where [Self: Copy<>] {}
+            trait Copy<> {}
+            trait Magic<> where Self: Copy<> {}
 
-            impl<ty T> Magic<> for T where [T: Copy<>] {}
+            impl<ty T> Magic<> for T where T: Copy<> {}
         }
     ]";
 
@@ -82,17 +82,17 @@ fn magic_copy_impl_for_all_copy() {
 fn magic_vec_t() {
     const PROGRAM: &str = "[
         crate core {
-            struct Foo<> where [] {}
-            struct Vec<ty T> where [] {}
+            struct Foo<> {}
+            struct Vec<ty T> {}
 
-            trait Copy<> where [] {}
-            trait Magic<> where [Self: Copy<>] {}
+            trait Copy<> {}
+            trait Magic<> where Self: Copy<> {}
 
-            impl<ty T> Magic<> for Vec<T> where [T: Magic<>] {
+            impl<ty T> Magic<> for Vec<T> where T: Magic<> {
                 // FIXME: We need to test that this impl can prove T: Copy,
                 // but how to do it?
             }
-            impl<ty T> Copy<> for Vec<T> where [T: Magic<>] {}
+            impl<ty T> Copy<> for Vec<T> where T: Magic<> {}
         }
     ]";
 
@@ -110,12 +110,12 @@ fn magic_vec_t() {
 //      formality-rust
 
 //      [(Rust/Program
-//        (term ([(crate TheCrate { (struct Foo[] where [] { (counter : i32) })
-//                                  (struct Bar[] where [] { (counter : i32) })
+//        (term ([(crate TheCrate { (struct Foo[] { (counter : i32) })
+//                                  (struct Bar[] { (counter : i32) })
 //                                  (trait Magic[] where [(Self : Copy[])] {})
-//                                  (trait Copy[] where [] {})
+//                                  (trait Copy[] {})
 //                                  (impl[(type T)] Magic[] for T where [(T : Magic[])] {})
-//                                  (impl[] Copy[] for (Bar < >) where [] {})
+//                                  (impl[] Copy[] for (Bar < >) {})
 //                                  })]
 //               TheCrate)))
 //       ]
@@ -158,12 +158,12 @@ fn magic_vec_t() {
 //      redex-let*
 //      formality-rust
 
-//      [(Rust/Program (term ([(crate C { (struct Foo[] where [] { (counter : i32) })
-//                                        (struct Bar[] where [] { (counter : i32) })
+//      [(Rust/Program (term ([(crate C { (struct Foo[] { (counter : i32) })
+//                                        (struct Bar[] { (counter : i32) })
 //                                        (trait Magic[] where [(Self : Copy[])] {})
 //                                        (trait Copy[] where [(Self : Magic[])] {})
 //                                        (impl[(type T)] Magic[] for T where [(T : Magic[])] {})
-//                                        (impl[] Copy[] for (Bar < >) where [] {})
+//                                        (impl[] Copy[] for (Bar < >) {})
 //                                        })] C)))]
 
 //      (; All decls in crate are considered 'ok'.
@@ -209,13 +209,13 @@ fn magic_vec_t() {
 //   (redex-let*
 //    formality-rust
 
-//    [([Rust/CrateItemDecl_core ...] (term [(struct Foo[] where [] {})
-//                                           (trait Copy[] where [] {})
-//                                           (trait Partial[] where [(Self : Copy())] {})
-//                                           (trait Complete[] where [(Self : Partial())] {})
-//                                           (impl[(type T)] Partial[] for T where [(T : Complete())] {})]))
+//    [([Rust/CrateItemDecl_core ...] (term [(struct Foo[] {})
+//                                           (trait Copy[] {})
+//                                           (trait Partial[] where (Self : Copy()) {})
+//                                           (trait Complete[] where (Self : Partial()) {})
+//                                           (impl[(type T)] Partial[] for T where (T : Complete()) {})]))
 //     (Rust/Program_A (term ([(crate A { Rust/CrateItemDecl_core ...
-//                                        (impl[(type T)] Complete[] for T where [] {})
+//                                        (impl[(type T)] Complete[] for T {})
 //                                        })]
 //                            A)))
 //     (Rust/Program_B (term ([(crate B { Rust/CrateItemDecl_core ...

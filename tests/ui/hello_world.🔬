@@ -1,15 +1,15 @@
 //@check-pass
 [
     crate Foo {
-        trait Foo<ty T> where [T: Bar<Self>, Self: Baz<>] {}
+        trait Foo<ty T> where T: Bar<Self>, Self: Baz<> {}
 
-        trait Bar<ty T> where [T: Baz<>] {}
+        trait Bar<ty T> where T: Baz<> {}
         
-        trait Baz<> where [] {}
+        trait Baz<> {}
 
-        impl<> Baz<> for u32 where [] {}
+        impl<> Baz<> for u32 {}
 
-        impl<> Bar<u32> for u32 where [] {}
-        impl<ty T> Bar<T> for () where [T: Baz<>] {}
+        impl<> Bar<u32> for u32 {}
+        impl<ty T> Bar<T> for () where T: Baz<> {}
     }
 ]

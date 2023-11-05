@@ -3,13 +3,13 @@
 // where there is a negative impl, so it is accepted.
 [
     crate core {
-        trait CoreTrait<> where [] {}
-        struct CoreStruct<> where [] {}
-        impl<> !CoreTrait<> for CoreStruct<> where [] {}
+        trait CoreTrait<> {}
+        struct CoreStruct<> {}
+        impl<> !CoreTrait<> for CoreStruct<> {}
     },
     crate foo {
-        trait FooTrait<> where [] {}
-        impl<ty T> FooTrait<> for T where [T: CoreTrait<>] {}
-        impl<> FooTrait<> for CoreStruct<> where [] {}
+        trait FooTrait<> {}
+        impl<ty T> FooTrait<> for T where T: CoreTrait<> {}
+        impl<> FooTrait<> for CoreStruct<> {}
     }
 ]

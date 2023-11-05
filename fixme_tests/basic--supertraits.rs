@@ -3,12 +3,12 @@
 
 const PROGRAM: &str = "[
     crate core {
-        trait Eq<> where [Self: PartialEq<>] { }
-        trait PartialEq<> where [] { }
+        trait Eq<> where Self: PartialEq<> { }
+        trait PartialEq<> { }
 
         // ComparableBase is a supertype, but `T: Eq` is not.
-        trait Comparable<ty T> where [T: Eq<>, Self: ComparableBase<>] { }
-        trait ComparableBase<> where [] { }
+        trait Comparable<ty T> where T: Eq<>, Self: ComparableBase<> { }
+        trait ComparableBase<> { }
     }
 ]";
 

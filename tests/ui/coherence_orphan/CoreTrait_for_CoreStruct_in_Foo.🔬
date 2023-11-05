@@ -1,9 +1,9 @@
 [
     crate core {
-        trait CoreTrait<> where [] {}
-        struct CoreStruct<> where [] {}
+        trait CoreTrait<> {}
+        struct CoreStruct<> {}
     },
     crate foo {
-        impl<> CoreTrait<> for CoreStruct<> where [] {}
+        impl<> CoreTrait<> for CoreStruct<> {}
     }
 ]

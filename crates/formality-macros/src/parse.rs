@@ -230,6 +230,18 @@ fn parse_field_mode(span: Span, mode: &FieldMode) -> TokenStream {
                 __p.comma_nonterminal()?
             }
         }
+
+        FieldMode::Guarded { guard, mode } => {
+            let guard_keyword = as_literal(guard);
+            let initializer = parse_field_mode(span, mode);
+            quote_spanned! {
+                span =>
+                match __p.expect_keyword(#guard_keyword) {
+                    Ok(()) => #initializer,
+                    Err(_) => Default::default(),
+                }
+            }
+        }
     }
 }
 

@@ -5,8 +5,8 @@
 // was erroneously accepted by an earlier variant of negative impls.
 [
     crate core {
-        trait Foo<> where [] {}
-        impl<ty T> Foo<> for T where [T: Foo<>] {}
-        impl<> !Foo<> for u32 where [] {}
+        trait Foo<> {}
+        impl<ty T> Foo<> for T where T: Foo<> {}
+        impl<> !Foo<> for u32 {}
     }
 ]

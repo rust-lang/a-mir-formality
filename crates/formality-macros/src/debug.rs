@@ -256,6 +256,19 @@ fn debug_field_with_mode(name: &Ident, mode: &FieldMode) -> TokenStream {
                 }
             }
         }
+
+        FieldMode::Guarded { guard, mode } => {
+            let guard = as_literal(guard);
+            let base = debug_field_with_mode(name, mode);
+
+            quote_spanned! { name.span() =>
+                if !::formality_core::util::is_default(#name) {
+                    write!(fmt, "{}{}", sep, #guard)?;
+                    sep = " ";
+                    #base
+                }
+            }
+        }
     }
 }
 
