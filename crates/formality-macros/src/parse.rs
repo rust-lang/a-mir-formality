@@ -1,7 +1,7 @@
 extern crate proc_macro;
 
 use convert_case::{Case, Casing};
-use proc_macro2::{Ident, Literal, TokenStream};
+use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{spanned::Spanned, Attribute};
 use synstructure::BindingInfo;
@@ -148,60 +148,11 @@ fn parse_variant_with_attr(
 
     for symbol in &spec.symbols {
         stream.extend(match symbol {
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode: FieldMode::Single,
-            } => {
+            spec::FormalitySpecSymbol::Field { name, mode } => {
+                let initializer = parse_field_mode(name.span(), mode);
                 quote_spanned! {
                     name.span() =>
-                    let #name = __p.nonterminal()?;
-                }
-            }
-
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode: FieldMode::Optional,
-            } => {
-                quote_spanned! {
-                    name.span() =>
-                    let #name = __p.opt_nonterminal()?;
-                    let #name = #name.unwrap_or_default();
-                }
-            }
-
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode: FieldMode::Many,
-            } => {
-                quote_spanned! {
-                    name.span() =>
-                    let #name = __p.many_nonterminal()?;
-                }
-            }
-
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode:
-                    FieldMode::DelimitedVec {
-                        open,
-                        optional,
-                        close,
-                    },
-            } => {
-                let open = Literal::character(*open);
-                let close = Literal::character(*close);
-                quote_spanned! {
-                    name.span() =>
-                    let #name = __p.delimited_nonterminal(#open, #optional, #close)?;
-                }
-            }
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode: FieldMode::Comma,
-            } => {
-                quote_spanned! {
-                    name.span() =>
-                    let #name = __p.comma_nonterminal()?;
+                    let #name = #initializer;
                 }
             }
 
@@ -236,6 +187,50 @@ fn parse_variant_with_attr(
     });
 
     Ok(stream)
+}
+
+fn parse_field_mode(span: Span, mode: &FieldMode) -> TokenStream {
+    match mode {
+        FieldMode::Single => {
+            quote_spanned! {
+                span =>
+                __p.nonterminal()?
+            }
+        }
+
+        FieldMode::Optional => {
+            quote_spanned! {
+                span =>
+                __p.opt_nonterminal()?.unwrap_or_default()
+            }
+        }
+
+        FieldMode::Many => {
+            quote_spanned! {
+                span =>
+                __p.many_nonterminal()?
+            }
+        }
+
+        FieldMode::DelimitedVec {
+            open,
+            optional,
+            close,
+        } => {
+            let open = Literal::character(*open);
+            let close = Literal::character(*close);
+            quote_spanned! {
+                span =>
+                __p.delimited_nonterminal(#open, #optional, #close)?
+            }
+        }
+        FieldMode::Comma => {
+            quote_spanned! {
+                span =>
+                __p.comma_nonterminal()?
+            }
+        }
+    }
 }
 
 fn get_grammar_attr(attrs: &[Attribute]) -> Option<syn::Result<FormalitySpec>> {
