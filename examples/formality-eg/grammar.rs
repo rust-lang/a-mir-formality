@@ -97,6 +97,9 @@ pub enum Expr {
     #[precedence(1)]
     Div(Arc<Expr>, Arc<Expr>),
 
+    #[grammar(($v0))]
+    Paren(Arc<Expr>),
+
     #[grammar(let $v0 = $v1 in $v2)]
     LetIn(LocalVarId, Arc<Expr>, Arc<Expr>),
 }

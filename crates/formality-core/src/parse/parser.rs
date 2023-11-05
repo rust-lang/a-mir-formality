@@ -8,6 +8,8 @@ use crate::{
 
 use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenResult};
 
+mod left_recursion;
+
 /// Create this struct when implementing the [`CoreParse`][] trait.
 /// Each `Parser` corresponds to some symbol in the grammar.
 /// You create a parser and then you invoke the `parse_variant`
@@ -21,6 +23,7 @@ use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenRes
 pub struct Parser<'s, 't, T, L>
 where
     L: Language,
+    T: Debug + Clone + Eq + 'static,
 {
     scope: &'s Scope<L>,
     start_text: &'t str,
@@ -59,7 +62,7 @@ where
 impl<'s, 't, T, L> Parser<'s, 't, T, L>
 where
     L: Language,
-    T: Debug + Eq,
+    T: Debug + Clone + Eq + 'static,
 {
     /// Shorthand to create a parser for a nonterminal with a single variant,
     /// parsed by the function `op`.
@@ -69,10 +72,10 @@ where
         scope: &'s Scope<L>,
         text: &'t str,
         nonterminal_name: &'static str,
-        op: impl FnOnce(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
+        mut op: impl FnMut(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
     ) -> ParseResult<'t, T> {
         Parser::multi_variant(scope, text, nonterminal_name, |parser| {
-            parser.parse_variant(nonterminal_name, 0, op);
+            parser.parse_variant(nonterminal_name, 0, &mut op);
         })
     }
 
@@ -86,28 +89,30 @@ where
         scope: &'s Scope<L>,
         text: &'t str,
         nonterminal_name: &'static str,
-        op: impl FnOnce(&mut Self),
+        mut op: impl FnMut(&mut Self),
     ) -> ParseResult<'t, T> {
-        let tracing_span = tracing::span!(
-            tracing::Level::TRACE,
-            "nonterminal",
-            name = nonterminal_name,
-            ?scope,
-            ?text
-        );
-        let guard = tracing_span.enter();
+        left_recursion::enter(scope, text, || {
+            let tracing_span = tracing::span!(
+                tracing::Level::TRACE,
+                "nonterminal",
+                name = nonterminal_name,
+                ?scope,
+                ?text
+            );
+            let guard = tracing_span.enter();
 
-        let mut parser = Self {
-            scope,
-            start_text: text,
-            nonterminal_name,
-            successes: vec![],
-            failures: set![],
-        };
+            let mut parser = Self {
+                scope,
+                start_text: text,
+                nonterminal_name,
+                successes: vec![],
+                failures: set![],
+            };
 
-        op(&mut parser);
+            op(&mut parser);
 
-        parser.finish(guard)
+            parser.finish(guard)
+        })
     }
 
     /// Shorthand for `parse_variant` where the parsing operation is to

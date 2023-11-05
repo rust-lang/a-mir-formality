@@ -2,7 +2,7 @@ use formality_core::test;
 
 use crate::eg::term;
 
-use super::{StructDecl, Ty};
+use super::{Expr, StructDecl, Ty};
 
 #[test]
 fn test_struct_decl() {
@@ -30,11 +30,21 @@ fn test_struct_ty_no_args() {
     "#]]
     .assert_debug_eq(&r);
 }
+
 #[test]
 fn test_vec_int_ty() {
     let r: Ty = term("Vec<integer>");
     expect_test::expect![[r#"
         Vec <integer>
+    "#]]
+    .assert_debug_eq(&r);
+}
+
+#[test]
+fn test_expression() {
+    let r: Expr = term("3 + 5 * 6");
+    expect_test::expect![[r#"
+        3 + 5 * 6
     "#]]
     .assert_debug_eq(&r);
 }

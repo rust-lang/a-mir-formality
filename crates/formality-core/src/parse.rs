@@ -14,7 +14,7 @@ use std::fmt::Debug;
 /// Trait for parsing a [`Term<L>`](`crate::term::Term`) as input.
 /// Typically this is auto-generated with the `#[term]` procedural macro,
 /// but you can implement it by hand if you want a very customized parse.
-pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq {
+pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq + 'static {
     /// Parse a single instance of this type, returning an error if no such
     /// instance is present.
     ///
@@ -58,7 +58,7 @@ where
 }
 
 /// Record from a successful parse.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SuccessfulParse<'t, T> {
     /// The new point in the input, after we've consumed whatever text we have.
     text: &'t str,
