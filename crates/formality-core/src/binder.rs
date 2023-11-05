@@ -262,14 +262,14 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if !self.kinds.is_empty() {
-            write!(f, "<")?;
+            write!(f, "{}", L::BINDING_OPEN)?;
             for (kind, i) in self.kinds.iter().zip(0..) {
                 if i > 0 {
                     write!(f, ", ")?;
                 }
                 write!(f, "{:?}", kind)?;
             }
-            write!(f, "> ")?;
+            write!(f, "{} ", L::BINDING_CLOSE)?;
         }
         write!(f, "{:?}", &self.term)?;
         Ok(())
