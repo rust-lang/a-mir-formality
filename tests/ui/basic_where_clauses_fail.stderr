@@ -1,6 +1,6 @@
 Error: check_trait(WellFormed)
 
 Caused by:
-    0: prove_where_clause_well_formed(for <ty> u32 : A < ^ty0_0 >)
-    1: prove_where_clause_well_formed(u32 : A < !ty_2 >)
+    0: prove_where_clause_well_formed(for <ty> u32 : A <^ty0_0>)
+    1: prove_where_clause_well_formed(u32 : A <!ty_2>)
     2: failed to prove {@ WellFormedTraitRef(A(u32, !ty_2))} given {for <ty> A(u32, ^ty0_0)}, got {}

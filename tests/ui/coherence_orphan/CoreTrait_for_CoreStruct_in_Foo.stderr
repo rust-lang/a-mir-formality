@@ -1,4 +1,4 @@
-Error: orphan_check(impl <> CoreTrait < > for CoreStruct where [] { })
+Error: orphan_check(impl <> CoreTrait for CoreStruct where [] { })
 
 Caused by:
     failed to prove {@ IsLocal(CoreTrait(CoreStruct))} given {}, got {}

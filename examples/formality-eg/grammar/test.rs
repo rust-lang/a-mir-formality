@@ -14,7 +14,7 @@ fn test_struct_decl() {
 }
 
 #[test]
-fn test_struct_ty() {
+fn test_struct_ty_empty_args() {
     let r: Ty = term("Point<>");
     expect_test::expect![[r#"
         Point
@@ -22,6 +22,14 @@ fn test_struct_ty() {
     .assert_debug_eq(&r);
 }
 
+#[test]
+fn test_struct_ty_no_args() {
+    let r: Ty = term("Point");
+    expect_test::expect![[r#"
+        Point
+    "#]]
+    .assert_debug_eq(&r);
+}
 #[test]
 fn test_vec_int_ty() {
     let r: Ty = term("Vec<integer>");

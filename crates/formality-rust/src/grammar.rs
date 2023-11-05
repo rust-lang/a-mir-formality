@@ -252,7 +252,7 @@ impl TraitImpl {
     }
 }
 
-#[term($trait_id < $,trait_parameters > for $self_ty where $where_clauses { $*impl_items })]
+#[term($trait_id $<?trait_parameters> for $self_ty where $where_clauses { $*impl_items })]
 pub struct TraitImplBoundData {
     pub trait_id: TraitId,
     pub self_ty: Ty,
@@ -272,7 +272,7 @@ pub struct NegTraitImpl {
     pub binder: Binder<NegTraitImplBoundData>,
 }
 
-#[term(!$trait_id < $,trait_parameters > for $self_ty where $where_clauses { })]
+#[term(!$trait_id $<?trait_parameters> for $self_ty where $where_clauses { })]
 pub struct NegTraitImplBoundData {
     pub trait_id: TraitId,
     pub self_ty: Ty,
@@ -338,7 +338,7 @@ impl WhereClause {
 
 #[term]
 pub enum WhereClauseData {
-    #[grammar($v0 : $v1 < $,v2 >)]
+    #[grammar($v0 : $v1 $<?v2>)]
     IsImplemented(Ty, TraitId, Vec<Parameter>),
 
     #[grammar($v0 => $v1)]
@@ -367,7 +367,7 @@ impl WhereBound {
 
 #[term]
 pub enum WhereBoundData {
-    #[grammar($v0 < $,v1 >)]
+    #[grammar($v0 $<?v1>)]
     IsImplemented(TraitId, Vec<Parameter>),
 
     #[grammar($v0)]
