@@ -1,4 +1,4 @@
-Error: check_trait_impl(impl <> Foo for u32 where [] { })
+Error: check_trait_impl(impl Foo for u32 where [] { })
 
 Caused by:
     failed to disprove

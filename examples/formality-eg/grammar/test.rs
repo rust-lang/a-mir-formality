@@ -8,7 +8,7 @@ use super::{Expr, StructDecl, Ty};
 fn test_struct_decl() {
     let r: StructDecl = term("struct Point { x: integer, y: integer }");
     expect_test::expect![[r#"
-        struct Point <> { x : integer, y : integer }
+        struct Point { x : integer, y : integer }
     "#]]
     .assert_debug_eq(&r);
 }
