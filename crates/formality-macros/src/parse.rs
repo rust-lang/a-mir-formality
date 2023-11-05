@@ -39,7 +39,7 @@ pub(crate) fn derive_parse_with_spec(
 
     let mut parse_variants = TokenStream::new();
     for variant in s.variants() {
-        let variant_name = as_literal(variant.ast().ident);
+        let variant_name = Literal::string(&format!("{}::{}", s.ast().ident, variant.ast().ident));
         let v = parse_variant(variant, external_spec)?;
         let precedence = precedence(&variant.ast().attrs)?.literal();
         parse_variants.extend(quote_spanned!(
