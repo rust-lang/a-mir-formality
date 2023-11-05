@@ -3,6 +3,9 @@ use std::sync::Arc;
 
 pub use crate::eg::grammar::*;
 
+#[cfg(test)]
+mod test;
+
 #[term]
 #[derive(Copy)]
 pub enum Kind {
@@ -39,7 +42,7 @@ pub struct StructDecl {
     bound: Binder<StructBoundData>,
 }
 
-#[term({ $*fields })]
+#[term({ $,fields })]
 pub struct StructBoundData {
     fields: Vec<FieldDecl>,
 }
