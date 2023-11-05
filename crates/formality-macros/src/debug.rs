@@ -194,6 +194,34 @@ fn debug_variant_with_attr(
                 }
             }
 
+            spec::FormalitySpecSymbol::Field {
+                name,
+                mode:
+                    FieldMode::Delimited {
+                        open,
+                        optional,
+                        close,
+                    },
+            } => {
+                let open = Literal::character(*open);
+                let close = Literal::character(*close);
+                quote_spanned! {
+                    name.span() =>
+                        if !#optional || !#name.is_empty() {
+                            write!(fmt, "{}", sep)?;
+                            write!(fmt, "{}", #open)?;
+                            sep = "";
+                            for e in #name {
+                                write!(fmt, "{}", sep)?;
+                                write!(fmt, "{:?}", e)?;
+                                sep = ", ";
+                            }
+                            write!(fmt, "{}", #close)?;
+                            sep = " ";
+                        }
+                }
+            }
+
             spec::FormalitySpecSymbol::Keyword { ident } => {
                 let literal = as_literal(ident);
                 quote_spanned!(ident.span() =>

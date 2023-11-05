@@ -222,10 +222,7 @@ where
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "Vec", |p| {
-            p.expect_char('[')?;
-            let v = p.comma_nonterminal()?;
-            p.expect_char(']')?;
-            Ok(v)
+            p.delimited_nonterminal('[', false, ']')
         })
     }
 }
@@ -277,7 +274,13 @@ where
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "Binder", |p| {
-            p.expect_char(L::BINDING_OPEN)?;
+            match p.expect_char(L::BINDING_OPEN) {
+                Ok(()) => {}
+                Err(_) => {
+                    return Ok(CoreBinder::dummy(p.nonterminal()?));
+                }
+            }
+
             let bindings: Vec<Binding<L>> = p.comma_nonterminal()?;
             p.expect_char(L::BINDING_CLOSE)?;
 

@@ -181,6 +181,22 @@ fn parse_variant_with_attr(
 
             spec::FormalitySpecSymbol::Field {
                 name,
+                mode:
+                    FieldMode::Delimited {
+                        open,
+                        optional,
+                        close,
+                    },
+            } => {
+                let open = Literal::character(*open);
+                let close = Literal::character(*close);
+                quote_spanned! {
+                    name.span() =>
+                    let #name = __p.delimited_nonterminal(#open, #optional, #close)?;
+                }
+            }
+            spec::FormalitySpecSymbol::Field {
+                name,
                 mode: FieldMode::Comma,
             } => {
                 quote_spanned! {

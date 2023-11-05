@@ -30,7 +30,7 @@ pub enum Ty {
     Var(Variable),
 }
 
-#[term($id < $,parameters >)]
+#[term($id $<?parameters>)]
 pub struct StructTy {
     pub id: StructId,
     pub parameters: Vec<Parameter>,
@@ -59,7 +59,7 @@ pub struct FnDecl {
     bound: Binder<StructBoundData>,
 }
 
-#[term(($,fn_parameters) -> $return_ty { $body })]
+#[term($(fn_parameters) -> $return_ty { $body })]
 pub struct FnBoundData {
     pub fn_parameters: Vec<LocalVariableDecl>,
     pub return_ty: Ty,

@@ -6,7 +6,7 @@ use super::{Expr, StructDecl, Ty};
 
 #[test]
 fn test_struct_decl() {
-    let r: StructDecl = term("struct Point<> { x: integer, y: integer }");
+    let r: StructDecl = term("struct Point { x: integer, y: integer }");
     expect_test::expect![[r#"
         struct Point <> { x : integer, y : integer }
     "#]]
@@ -17,7 +17,7 @@ fn test_struct_decl() {
 fn test_struct_ty() {
     let r: Ty = term("Point<>");
     expect_test::expect![[r#"
-        Point < >
+        Point
     "#]]
     .assert_debug_eq(&r);
 }
@@ -26,7 +26,7 @@ fn test_struct_ty() {
 fn test_vec_int_ty() {
     let r: Ty = term("Vec<integer>");
     expect_test::expect![[r#"
-        Vec < integer >
+        Vec <integer>
     "#]]
     .assert_debug_eq(&r);
 }

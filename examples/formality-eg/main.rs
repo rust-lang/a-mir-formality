@@ -13,6 +13,7 @@ formality_core::declare_language! {
             "fn",
             "let",
             "in",
+            "integer",
         ];
     }
 }

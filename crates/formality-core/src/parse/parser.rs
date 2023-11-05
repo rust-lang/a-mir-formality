@@ -527,6 +527,33 @@ where
         Ok(result)
     }
 
+    #[tracing::instrument(level = "Trace", ret)]
+    pub fn delimited_nonterminal<T>(
+        &mut self,
+        open: char,
+        optional: bool,
+        close: char,
+    ) -> Result<Vec<T>, Set<ParseError<'t>>>
+    where
+        T: CoreParse<L>,
+    {
+        // Look for the opening delimiter.
+        // If we don't find it, then this is either an empty vector (if optional) or an error (otherwise).
+        match self.expect_char(open) {
+            Ok(()) => {}
+            Err(errs) => {
+                return if optional { Ok(vec![]) } else { Err(errs) };
+            }
+        }
+
+        // Now parse the contents.
+        let result = self.comma_nonterminal()?;
+
+        self.expect_char(close)?;
+
+        Ok(result)
+    }
+
     /// Parse multiple instances of `T` separated by commas.
     #[track_caller]
     pub fn comma_nonterminal<T>(&mut self) -> Result<Vec<T>, Set<ParseError<'t>>>
