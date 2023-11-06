@@ -40,13 +40,13 @@ fn mul_is_higher_precedence() {
 #[test]
 // FIXME #[should_panic(expected = "ambiguous parse")]
 fn equal_precedence_panics() {
-    let term: Expr = crate::ptt::term("a + b * c");
+    let term: Expr = crate::ptt::term("a + b + c");
     expect_test::expect![[r#"
         Add(
             Id(
                 a,
             ),
-            Mul(
+            Add(
                 Id(
                     b,
                 ),
