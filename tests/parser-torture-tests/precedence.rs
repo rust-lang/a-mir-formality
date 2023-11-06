@@ -20,16 +20,41 @@ formality_core::id!(Id);
 fn mul_is_higher_precedence() {
     let term: Expr = crate::ptt::term("a + b * c");
     expect_test::expect![[r#"
-        a + b * c
+        Add(
+            Id(
+                a,
+            ),
+            Mul(
+                Id(
+                    b,
+                ),
+                Id(
+                    c,
+                ),
+            ),
+        )
     "#]]
     .assert_debug_eq(&term);
 }
 
 #[test]
+// FIXME #[should_panic(expected = "ambiguous parse")]
 fn equal_precedence_panics() {
     let term: Expr = crate::ptt::term("a + b * c");
     expect_test::expect![[r#"
-        a + b * c
+        Add(
+            Id(
+                a,
+            ),
+            Mul(
+                Id(
+                    b,
+                ),
+                Id(
+                    c,
+                ),
+            ),
+        )
     "#]]
     .assert_debug_eq(&term);
 }

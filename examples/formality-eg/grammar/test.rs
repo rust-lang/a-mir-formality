@@ -8,7 +8,10 @@ use super::{Expr, StructDecl, Ty};
 fn test_struct_decl() {
     let r: StructDecl = term("struct Point { x: integer, y: integer }");
     expect_test::expect![[r#"
-        struct Point { x : integer, y : integer }
+        StructDecl {
+            id: Point,
+            bound: { x : integer, y : integer },
+        }
     "#]]
     .assert_debug_eq(&r);
 }
@@ -17,7 +20,12 @@ fn test_struct_decl() {
 fn test_struct_ty_empty_args() {
     let r: Ty = term("Point");
     expect_test::expect![[r#"
-        Point
+        StructTy(
+            StructTy {
+                id: Point,
+                parameters: [],
+            },
+        )
     "#]]
     .assert_debug_eq(&r);
 }
@@ -26,7 +34,12 @@ fn test_struct_ty_empty_args() {
 fn test_struct_ty_no_args() {
     let r: Ty = term("Point");
     expect_test::expect![[r#"
-        Point
+        StructTy(
+            StructTy {
+                id: Point,
+                parameters: [],
+            },
+        )
     "#]]
     .assert_debug_eq(&r);
 }
@@ -35,7 +48,16 @@ fn test_struct_ty_no_args() {
 fn test_vec_int_ty() {
     let r: Ty = term("Vec<integer>");
     expect_test::expect![[r#"
-        Vec <integer>
+        StructTy(
+            StructTy {
+                id: Vec,
+                parameters: [
+                    Ty(
+                        Integer,
+                    ),
+                ],
+            },
+        )
     "#]]
     .assert_debug_eq(&r);
 }
@@ -44,7 +66,19 @@ fn test_vec_int_ty() {
 fn test_expression() {
     let r: Expr = term("3 + 5 * 6");
     expect_test::expect![[r#"
-        3 + 5 * 6
+        Add(
+            IntegerLiteral(
+                3,
+            ),
+            Mul(
+                IntegerLiteral(
+                    5,
+                ),
+                IntegerLiteral(
+                    6,
+                ),
+            ),
+        )
     "#]]
     .assert_debug_eq(&r);
 }

@@ -27,7 +27,12 @@ fn reduce_reduce_ok() {
 
     let term: Root = crate::ptt::term("my String");
     expect_test::expect![[r#"
-        my String
+        ClassTy(
+            ClassTy {
+                perm: My,
+                class_id: String,
+            },
+        )
     "#]]
     .assert_debug_eq(&term);
 }

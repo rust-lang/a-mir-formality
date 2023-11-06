@@ -1,4 +1,5 @@
 extern crate proc_macro;
+
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Literal, TokenStream};
 use quote::{quote, quote_spanned};
@@ -20,6 +21,7 @@ pub(crate) fn derive_debug_with_spec(
             .into_compile_error();
     }
 
+    let default_debug = default_debug_variant(&s);
     let debug_arms = s.each_variant(|v| debug_variant(v, external_spec));
 
     s.gen_impl(quote! {
@@ -29,13 +31,48 @@ pub(crate) fn derive_debug_with_spec(
             fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
             {
                 #[allow(unused_assignments)]
-                match self {
-                    #debug_arms
+                if fmt.alternate() {
+                    #default_debug
+                } else {
+                    match self {
+                        #debug_arms
+                    }
+                    Ok(())
                 }
-                Ok(())
             }
         }
     })
+}
+
+fn default_debug_variant(s: &synstructure::Structure) -> TokenStream {
+    let arms = s.each_variant(|v| {
+        let fields: TokenStream = v.bindings().iter().map(|bi| {
+            if let Some(name) = &bi.ast().ident {
+                let name = as_literal(name);
+                quote_spanned!(name.span() => .field(#name, #bi))
+            } else {
+                quote_spanned!(bi.span() => .field(#bi))
+            }
+        }).collect();
+        let variant_name = as_literal(v.ast().ident);
+        match v.ast().fields {
+            syn::Fields::Named(_) => {
+                quote_spanned!(variant_name.span() => fmt.debug_struct(#variant_name) #fields .finish())
+            }
+            syn::Fields::Unnamed(_) => {
+                quote_spanned!(variant_name.span() => fmt.debug_tuple(#variant_name) #fields .finish())
+            }
+            syn::Fields::Unit => {
+                quote_spanned!(variant_name.span() => fmt.debug_tuple(#variant_name) .finish())
+            }
+        }
+    });
+
+    quote_spanned! { s.ast().span() =>
+        match self {
+            #arms
+        }
+    }
 }
 
 fn debug_variant(
