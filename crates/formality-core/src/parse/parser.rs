@@ -33,6 +33,7 @@ where
     nonterminal_name: &'static str,
     successes: Vec<SuccessfulParse<'t, T>>,
     failures: Set<ParseError<'t>>,
+    min_precedence_level: usize,
 }
 
 /// The *precedence* of a variant determines how to manage
@@ -78,6 +79,7 @@ pub enum Associativity {
     Left,
     Right,
     None,
+    Both,
 }
 
 impl Precedence {
@@ -98,16 +100,31 @@ impl Precedence {
 
     /// Construct a new precedence.
     fn new(level: usize, associativity: Associativity) -> Self {
+        // We require level to be STRICTLY LESS than usize::MAX
+        // so that we can always add 1.
+        assert!(level < std::usize::MAX);
         Self {
             level,
-            associativity,
+            associativity: associativity,
         }
     }
 }
 
 impl Default for Precedence {
     fn default() -> Self {
-        Self::new(std::usize::MAX, Associativity::None)
+        // Default precedence:
+        //
+        // Use MAX-1 because we sometimes try to add 1 when we detect recursion, and we don't want overflow.
+        //
+        // Use Right associativity because if you have a variant like `T = [T]`
+        // then you want to be able to (by default) embed arbitrary T in that recursive location.
+        // If you use LEFT or NONE, then this recursive T would have a minimum level of std::usize::MAX
+        // (and hence never be satisfied).
+        //
+        // Using RIGHT feels a bit weird here but seems to behave correctly all the time.
+        // It's tempting to add something like "Both" or "N/A" that would just not set a min
+        // prec level when there's recursion.
+        Self::new(std::usize::MAX - 1, Associativity::Both)
     }
 }
 
@@ -172,7 +189,7 @@ where
     ) -> ParseResult<'t, T> {
         let text = skip_whitespace(text);
 
-        left_recursion::enter(scope, text, || {
+        left_recursion::enter(scope, text, |min_precedence_level| {
             let tracing_span = tracing::span!(
                 tracing::Level::TRACE,
                 "nonterminal",
@@ -188,6 +205,7 @@ where
                 nonterminal_name,
                 successes: vec![],
                 failures: set![],
+                min_precedence_level,
             };
 
             op(&mut parser);
@@ -229,6 +247,15 @@ where
             ?variant_precedence,
         );
         let guard = span.enter();
+
+        if variant_precedence.level < self.min_precedence_level {
+            tracing::trace!(
+                "variant has precedence level {} which is below parser minimum of {}",
+                variant_precedence.level,
+                self.min_precedence_level,
+            );
+            return;
+        }
 
         let mut active_variant =
             ActiveVariant::new(variant_precedence, self.scope, self.start_text);
@@ -480,7 +507,7 @@ where
     }
 
     /// Accepts any of the given keywords.
-    #[tracing::instrument(level = "trace", ret)]
+    #[tracing::instrument(level = "trace", skip(self), ret)]
     pub fn expect_keyword_in(&mut self, expected: &[&str]) -> Result<String, Set<ParseError<'t>>> {
         let text0 = self.current_text;
         match self.identifier_like_string() {
@@ -495,6 +522,7 @@ where
     /// Attempts to execute `op` and, if it successfully parses, then returns an error
     /// with the value (which is meant to be incorporated into a par)
     /// If `op` fails to parse then the result is `Ok`.
+    #[tracing::instrument(level = "trace", skip(self, op, err), ret)]
     pub fn reject<T>(
         &self,
         op: impl Fn(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
@@ -519,7 +547,6 @@ where
     /// Does not consume any input.
     /// You can this to implement positional keywords -- just before parsing an identifier or variable,
     /// you can invoke `reject_custom_keywords` to reject anything that you don't want to permit in this position.
-    #[tracing::instrument(level = "trace", ret)]
     pub fn reject_custom_keywords(&self, keywords: &[&str]) -> Result<(), Set<ParseError<'t>>> {
         self.reject(
             |p| p.expect_keyword_in(keywords),
@@ -534,7 +561,7 @@ where
 
     /// Extracts a string that meets the regex for an identifier
     /// (but it could also be a keyword).
-    #[tracing::instrument(level = "trace", ret)]
+    #[tracing::instrument(level = "trace", skip(self), ret)]
     pub fn identifier_like_string(&mut self) -> Result<String, Set<ParseError<'t>>> {
         self.string(
             |ch| matches!(ch, 'a'..='z' | 'A'..='Z' | '_'),
@@ -547,7 +574,7 @@ where
     /// following the usual rules. **Disallows language keywords.**
     /// If you want to disallow additional keywords,
     /// see the `reject_custom_keywords` method.
-    #[tracing::instrument(level = "trace", ret)]
+    #[tracing::instrument(level = "trace", skip(self), ret)]
     pub fn identifier(&mut self) -> Result<String, Set<ParseError<'t>>> {
         self.reject_custom_keywords(L::KEYWORDS)?;
         self.identifier_like_string()
@@ -610,7 +637,7 @@ where
     /// It also allows parsing where you use variables to stand for
     /// more complex parameters, which is kind of combining parsing
     /// and substitution and can be convenient in tests.
-    #[tracing::instrument(level = "trace", ret)]
+    #[tracing::instrument(level = "trace", skip(self), ret)]
     pub fn variable<R>(&mut self) -> Result<R, Set<ParseError<'t>>>
     where
         R: Debug + DowncastFrom<CoreParameter<L>>,
@@ -636,7 +663,7 @@ where
     }
 
     /// Extract a number from the input, erroring if the input does not start with a number.
-    #[tracing::instrument(level = "trace", ret)]
+    #[tracing::instrument(level = "trace", skip(self), ret)]
     pub fn number<T>(&mut self) -> Result<T, Set<ParseError<'t>>>
     where
         T: FromStr + std::fmt::Debug,
@@ -702,7 +729,7 @@ where
     /// because we consumed the open paren `(` from `T` but then encountered an error
     /// looking for the closing paren `)`.
     #[track_caller]
-    #[tracing::instrument(level = "Trace", ret)]
+    #[tracing::instrument(level = "Trace", skip(self), ret)]
     pub fn opt_nonterminal<T>(&mut self) -> Result<Option<T>, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
@@ -726,6 +753,7 @@ where
 
     /// Continue parsing instances of `T` while we can.
     /// This is a greedy parse.
+    #[tracing::instrument(level = "Trace", skip(self), ret)]
     pub fn many_nonterminal<T>(&mut self) -> Result<Vec<T>, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
@@ -737,7 +765,7 @@ where
         Ok(result)
     }
 
-    #[tracing::instrument(level = "Trace", ret)]
+    #[tracing::instrument(level = "Trace", skip(self), ret)]
     pub fn delimited_nonterminal<T>(
         &mut self,
         open: char,

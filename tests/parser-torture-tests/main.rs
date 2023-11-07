@@ -1,5 +1,6 @@
 mod ambiguity;
 mod grammar;
+mod path;
 mod precedence;
 
 formality_core::declare_language! {

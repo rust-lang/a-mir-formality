@@ -1,4 +1,4 @@
-use formality_core::term;
+use formality_core::{term, test};
 use std::sync::Arc;
 
 #[term]
@@ -39,21 +39,20 @@ fn mul_is_higher_precedence() {
 }
 
 #[test]
-// FIXME #[should_panic(expected = "ambiguous parse")]
-fn equal_precedence_panics() {
+fn left_associative() {
     let term: Expr = crate::ptt::term("a + b + c");
     expect_test::expect![[r#"
         Add(
-            Id(
-                a,
-            ),
             Add(
+                Id(
+                    a,
+                ),
                 Id(
                     b,
                 ),
-                Id(
-                    c,
-                ),
+            ),
+            Id(
+                c,
             ),
         )
     "#]]

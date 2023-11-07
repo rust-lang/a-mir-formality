@@ -18,7 +18,7 @@ use crate::rust::FormalityLang as Rust;
 // Implement custom parsing for rigid types.
 impl CoreParse<Rust> for RigidTy {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::multi_variant(scope, text, "AliasTy", |parser| {
+        Parser::multi_variant(scope, text, "RigidTy", |parser| {
             // Parse a `ScalarId` (and upcast it to `RigidTy`) with the highest
             // precedence. If someone writes `u8`, we always interpret it as a
             // scalar-id.
