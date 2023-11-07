@@ -149,13 +149,11 @@ where
         };
     }
 
-    let pop_stack_before_return = |r: ParseResult<'t, T>| {
-        STACK.with_borrow_mut(|stack| {
-            let top = stack.pop().unwrap();
-            assert!(top.matches::<L, T>(scope, text));
-        });
-        r
-    };
+    // Pop the stack before we return
+    final_fn::final_fn!(STACK.with_borrow_mut(|stack| {
+        let top = stack.pop().unwrap();
+        assert!(top.matches::<L, T>(scope, text));
+    }));
 
     // EXAMPLE: Consider this grammar
     //
@@ -192,13 +190,13 @@ where
     let mut values = vec![];
     match op() {
         Ok(v) => values.push(v),
-        Err(errs) => return pop_stack_before_return(Err(errs)),
+        Err(errs) => return Err(errs),
     };
 
     // Check whether there was recursion to begin with.
     let observed = with_top!(|top| top.observed);
     if !observed {
-        return pop_stack_before_return(Ok(values.pop().unwrap())); // If not, we are done.
+        return Ok(values.pop().unwrap()); // If not, we are done.
     }
 
     // OK, this is the interesting case. We may be able to get a better parse.
@@ -219,7 +217,7 @@ where
         // Invoke the operation. As noted above, if we get a failed parse NOW,
         // we know we already found the best result, so we can just use it.
         let Ok(value1) = op() else {
-            return pop_stack_before_return(Ok(values.pop().unwrap())); // If not, we are done.
+            return Ok(values.pop().unwrap()); // If not, we are done.
         };
 
         tracing::trace!("left-recursive grammar yielded: value1 = {:?}", value1);
@@ -230,7 +228,7 @@ where
         // succeeds, but we have to try again to see if there's a more complex
         // expression that can be produced (there isn't).
         if values.iter().any(|v| *v == value1) {
-            return pop_stack_before_return(Ok(values.pop().unwrap())); // If not, we are done.
+            return Ok(values.pop().unwrap()); // If not, we are done.
         }
 
         // Otherwise, we have to try again.

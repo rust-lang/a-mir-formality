@@ -530,6 +530,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6999dc1837253364c2ebb0704ba97994bd874e8f195d665c50b7548f6ea92764"
 
 [[package]]
+name = "final_fn"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe1fa59a36a9928c12b6c4e9658f8b84d43e7578cb6d532b069ce84dcd0afda6"
+
+[[package]]
 name = "fn-error-context"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -565,6 +571,7 @@ dependencies = [
  "contracts",
  "env_logger",
  "expect-test",
+ "final_fn",
  "formality-macros",
  "lazy_static",
  "stacker",
