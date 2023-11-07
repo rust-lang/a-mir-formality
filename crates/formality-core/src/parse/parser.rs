@@ -380,12 +380,27 @@ where
         }
     }
 
-    /// Reject next identifier-like string if it is one of the given list of keywords.
-    /// Does not consume any input.
-    /// You can this to implement positional keywords -- just before parsing an identifier or variable,
-    /// you can invoke `reject_custom_keywords` to reject anything that you don't want to permit in this position.
+    /// Accepts any of the given keywords.
     #[tracing::instrument(level = "trace", ret)]
-    pub fn reject_custom_keywords(&self, keywords: &[&str]) -> Result<(), Set<ParseError<'t>>> {
+    pub fn expect_keyword_in(&mut self, expected: &[&str]) -> Result<String, Set<ParseError<'t>>> {
+        let text0 = self.text;
+        match self.identifier_like_string() {
+            Ok(ident) if expected.iter().any(|&kw| ident == kw) => Ok(ident),
+            _ => Err(ParseError::at(
+                skip_whitespace(text0),
+                format!("expected any of `{:?}`", expected),
+            )),
+        }
+    }
+
+    /// Attempts to execute `op` and, if it successfully parses, then returns an error
+    /// with the value (which is meant to be incorporated into a par)
+    /// If `op` fails to parse then the result is `Ok`.
+    pub fn reject<T>(
+        &self,
+        op: impl Fn(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
+        err: impl FnOnce(T) -> Set<ParseError<'t>>,
+    ) -> Result<(), Set<ParseError<'t>>> {
         let mut this = ActiveVariant {
             text: self.text,
             reductions: vec![],
@@ -393,20 +408,27 @@ where
             is_cast_variant: false,
         };
 
-        match this.identifier_like_string() {
-            Ok(ident) => {
-                if keywords.iter().any(|&kw| kw == ident) {
-                    return Err(ParseError::at(
-                        self.text,
-                        format!("expected identified, found keyword `{ident:?}`"),
-                    ));
-                }
-
-                Ok(())
-            }
-
+        match op(&mut this) {
+            Ok(value) => Err(err(value)),
             Err(_) => Ok(()),
         }
+    }
+
+    /// Reject next identifier-like string if it is one of the given list of keywords.
+    /// Does not consume any input.
+    /// You can this to implement positional keywords -- just before parsing an identifier or variable,
+    /// you can invoke `reject_custom_keywords` to reject anything that you don't want to permit in this position.
+    #[tracing::instrument(level = "trace", ret)]
+    pub fn reject_custom_keywords(&self, keywords: &[&str]) -> Result<(), Set<ParseError<'t>>> {
+        self.reject(
+            |p| p.expect_keyword_in(keywords),
+            |ident| {
+                ParseError::at(
+                    self.text,
+                    format!("expected identified, found keyword `{ident:?}`"),
+                )
+            },
+        )
     }
 
     /// Extracts a string that meets the regex for an identifier
