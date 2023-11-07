@@ -334,9 +334,7 @@ where
             l1.len() > l2.len() && (0..l2.len()).all(|i| l1[i] == l2[i])
         }
 
-        s_i.precedence.level > s_j.precedence.level
-            || (s_i.precedence.level == s_j.precedence.level
-                && has_prefix(&s_i.reductions, &s_j.reductions))
+        has_prefix(&s_i.reductions, &s_j.reductions)
     }
 }
 
