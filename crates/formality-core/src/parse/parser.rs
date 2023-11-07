@@ -299,7 +299,7 @@ where
     /// Cast variants interact differently with ambiguity detection.
     /// Consider this grammar:
     ///
-    /// ```
+    /// ```text
     /// X = Y | Z // X has two variants
     /// Y = A     // Y has 1 variant
     /// Z = A B   // Z has 1 variant
