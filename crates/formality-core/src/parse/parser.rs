@@ -107,7 +107,7 @@ impl Precedence {
 
 impl Default for Precedence {
     fn default() -> Self {
-        Self::new(0, Associativity::None)
+        Self::new(std::usize::MAX, Associativity::None)
     }
 }
 
