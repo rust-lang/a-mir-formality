@@ -24,7 +24,7 @@ pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq + 'static {
 }
 
 mod parser;
-pub use parser::{skip_whitespace, ActiveVariant, Parser};
+pub use parser::{skip_whitespace, ActiveVariant, Parser, Precedence};
 
 /// Parses `text` as a term with the given bindings in scope.
 ///
@@ -76,21 +76,15 @@ pub struct SuccessfulParse<'t, T> {
     /// reduction.
     reductions: Vec<&'static str>,
 
+    /// The precedence of this parse, which is derived from the value given
+    /// to `parse_variant`.
+    precedence: Precedence,
+
     /// The value produced.
     value: T,
 }
 
 impl<'t, T> SuccessfulParse<'t, T> {
-    #[track_caller]
-    pub fn new(text: &'t str, reductions: Vec<&'static str>, value: T) -> Self {
-        // assert!(!reductions.is_empty());
-        Self {
-            text,
-            reductions,
-            value,
-        }
-    }
-
     /// Extract the value parsed and the remaining text,
     /// ignoring the reductions.
     pub fn finish(self) -> (T, &'t str) {
@@ -103,6 +97,7 @@ impl<'t, T> SuccessfulParse<'t, T> {
         SuccessfulParse {
             text: self.text,
             reductions: self.reductions,
+            precedence: self.precedence,
             value: op(self.value),
         }
     }
@@ -117,6 +112,7 @@ where
         SuccessfulParse {
             text: term.text,
             reductions: term.reductions,
+            precedence: term.precedence,
             value: term.value.upcast(),
         }
     }

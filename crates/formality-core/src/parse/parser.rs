@@ -30,12 +30,12 @@ where
     scope: &'s Scope<L>,
     start_text: &'t str,
     nonterminal_name: &'static str,
-    successes: Vec<(SuccessfulParse<'t, T>, Precedence)>,
+    successes: Vec<SuccessfulParse<'t, T>>,
     failures: Set<ParseError<'t>>,
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct Precedence(usize);
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub struct Precedence(usize);
 
 /// The "active variant" struct is the main struct
 /// you will use if you are writing custom parsing logic.
@@ -152,6 +152,8 @@ where
         );
         let guard = span.enter();
 
+        let variant_precedence = Precedence(variant_precedence);
+
         let mut active_variant = ActiveVariant {
             scope: self.scope,
             text: self.start_text,
@@ -172,14 +174,12 @@ where
                     active_variant.reductions.push(variant_name);
                 }
 
-                self.successes.push((
-                    SuccessfulParse {
-                        text: active_variant.text,
-                        reductions: active_variant.reductions,
-                        value,
-                    },
-                    Precedence(variant_precedence),
-                ));
+                self.successes.push(SuccessfulParse {
+                    text: active_variant.text,
+                    reductions: active_variant.reductions,
+                    precedence: variant_precedence,
+                    value,
+                });
                 tracing::trace!("success: {:?}", self.successes.last().unwrap());
             }
 
@@ -242,7 +242,7 @@ where
                 .zip(0..)
                 .all(|(s_j, j)| i == j || Self::is_preferable(s_i, s_j))
             {
-                let (s_i, _) = self.successes.into_iter().skip(i).next().unwrap();
+                let s_i = self.successes.into_iter().skip(i).next().unwrap();
                 // It's better to print this result alongside the main parsing section.
                 drop(guard);
                 tracing::trace!("best parse = `{:?}`", s_i);
@@ -257,19 +257,13 @@ where
         );
     }
 
-    fn is_preferable(
-        s_i: &(SuccessfulParse<T>, Precedence),
-        s_j: &(SuccessfulParse<T>, Precedence),
-    ) -> bool {
-        let (parse_i, prec_i) = s_i;
-        let (parse_j, prec_j) = s_j;
-
+    fn is_preferable(s_i: &SuccessfulParse<T>, s_j: &SuccessfulParse<T>) -> bool {
         fn has_prefix<T: Eq>(l1: &[T], l2: &[T]) -> bool {
             l1.len() > l2.len() && (0..l2.len()).all(|i| l1[i] == l2[i])
         }
 
-        prec_i > prec_j
-            || (prec_i == prec_j && has_prefix(&parse_i.reductions, &parse_j.reductions))
+        s_i.precedence > s_j.precedence
+            || (s_i.precedence == s_j.precedence && has_prefix(&s_i.reductions, &s_j.reductions))
     }
 }
 
@@ -686,6 +680,7 @@ where
         let SuccessfulParse {
             text,
             reductions,
+            precedence: _,
             value,
         } = op(self.scope, self.text)?;
 
