@@ -35,8 +35,81 @@ where
     failures: Set<ParseError<'t>>,
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct Precedence(usize);
+/// The *precedence* of a variant determines how to manage
+/// recursive invocations.
+///
+/// The general rule is that an expression
+/// with lower-precedence cannot be embedded
+/// into an expression of higher-precedence.
+/// So given `1 + 2 * 3`, the `+` cannot be a
+/// (direct) child of the `*`, because `+` is
+/// lower precedence.
+///
+/// The tricky bit is what happens with *equal*
+/// precedence. In that case, we have to consider
+/// the [`Associativity`][] (see enum for details).
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct Precedence {
+    level: usize,
+    associativity: Associativity,
+}
+
+/// Determines what happens when you have equal precedence.
+/// The result is dependent on whether you are embedding
+/// in left position (i.e., a recurrence before having parsed any
+/// tokens) or right position (a recurrence after parsed tokens).
+/// So given `1 + 2 + 3`, `1 + 2` is a *left* occurrence of the second `+`.
+/// And `2 + 3` is a *right* occurence of the first `+`.
+///
+/// With `Associativity::Left`, equal precedence is allowed in left matches
+/// but not right. So `1 + 2 + 3` parses as `(1 + 2) + 3`, as you would expect.
+///
+/// With `Associativity::Right`, equal precedence is allowed in right matches
+/// but not left. So `1 + 2 + 3` parses as `1 + (2 + 3)`. That's probably not what you wanted
+/// for arithemetic expressions, but could be useful for (say) curried function types,
+/// where `1 -> 2 -> 3` should parse as `1 -> (2 -> 3)`.
+///
+/// With `Associativity::None`, equal precedence is not allowed anywhere, so
+/// `1 + 2 + 3` is just an error and you have to explicitly add parentheses.
+///
+/// Use `Precedence::default` for cases where precedence is not relevant.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Associativity {
+    Left,
+    Right,
+    None,
+}
+
+impl Precedence {
+    /// Left associative with the given precedence level
+    pub fn left(level: usize) -> Self {
+        Self::new(level, Associativity::Left)
+    }
+
+    /// Right associative with the given precedence level
+    pub fn right(level: usize) -> Self {
+        Self::new(level, Associativity::Right)
+    }
+
+    /// Non-associative with the given precedence level
+    pub fn none(level: usize) -> Self {
+        Self::new(level, Associativity::None)
+    }
+
+    /// Construct a new precedence.
+    fn new(level: usize, associativity: Associativity) -> Self {
+        Self {
+            level,
+            associativity,
+        }
+    }
+}
+
+impl Default for Precedence {
+    fn default() -> Self {
+        Self::new(0, Associativity::None)
+    }
+}
 
 /// The "active variant" struct is the main struct
 /// you will use if you are writing custom parsing logic.
@@ -81,7 +154,7 @@ where
         mut op: impl FnMut(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
     ) -> ParseResult<'t, T> {
         Parser::multi_variant(scope, text, nonterminal_name, |parser| {
-            parser.parse_variant(nonterminal_name, 0, &mut op);
+            parser.parse_variant(nonterminal_name, Precedence::default(), &mut op);
         })
     }
 
@@ -126,7 +199,7 @@ where
     /// Shorthand for `parse_variant` where the parsing operation is to
     /// parse the type `V` and then upcast it to the desired result type.
     /// Also marks the variant as a cast variant.
-    pub fn parse_variant_cast<V>(&mut self, variant_precedence: usize)
+    pub fn parse_variant_cast<V>(&mut self, variant_precedence: Precedence)
     where
         V: CoreParse<L> + Upcast<T>,
     {
@@ -146,18 +219,16 @@ where
     pub fn parse_variant(
         &mut self,
         variant_name: &'static str,
-        variant_precedence: usize,
+        variant_precedence: Precedence,
         op: impl FnOnce(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
     ) {
         let span = tracing::span!(
             tracing::Level::TRACE,
             "variant",
             name = variant_name,
-            variant_precedence = variant_precedence
+            ?variant_precedence,
         );
         let guard = span.enter();
-
-        let variant_precedence = Precedence(variant_precedence);
 
         let mut active_variant =
             ActiveVariant::new(variant_precedence, self.scope, self.start_text);
@@ -263,8 +334,9 @@ where
             l1.len() > l2.len() && (0..l2.len()).all(|i| l1[i] == l2[i])
         }
 
-        s_i.precedence > s_j.precedence
-            || (s_i.precedence == s_j.precedence && has_prefix(&s_i.reductions, &s_j.reductions))
+        s_i.precedence.level > s_j.precedence.level
+            || (s_i.precedence.level == s_j.precedence.level
+                && has_prefix(&s_i.reductions, &s_j.reductions))
     }
 }
 
@@ -608,9 +680,19 @@ where
     pub fn nonterminal<T>(&mut self) -> Result<T, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
-        L: Language,
     {
         self.nonterminal_with(T::parse)
+    }
+
+    /// Gives an error if `T` is parsable here.
+    pub fn reject_nonterminal<T>(&mut self) -> Result<(), Set<ParseError<'t>>>
+    where
+        T: CoreParse<L>,
+    {
+        self.reject(
+            |p| p.nonterminal::<T>(),
+            |value| ParseError::at(self.text(), format!("unexpected `{value:?}`")),
+        )
     }
 
     /// Try to parse the current point as `T` and return `None` if there is nothing there.

@@ -48,7 +48,7 @@ pub(crate) fn derive_parse_with_spec(
     for variant in s.variants() {
         let variant_name = Literal::string(&format!("{}::{}", s.ast().ident, variant.ast().ident));
         let v = parse_variant(variant, external_spec, any_variable_variant)?;
-        let precedence = precedence(&variant.ast().attrs)?.literal();
+        let precedence = precedence(&variant.ast().attrs)?.expr();
         parse_variants.extend(quote_spanned!(
             variant.ast().ident.span() =>
             __parser.parse_variant(#variant_name, #precedence, |__p| { #v });

@@ -1,6 +1,8 @@
 //! Handwritten parser impls.
 
-use formality_core::parse::{ActiveVariant, CoreParse, ParseError, ParseResult, Parser, Scope};
+use formality_core::parse::{
+    ActiveVariant, CoreParse, ParseError, ParseResult, Parser, Precedence, Scope,
+};
 use formality_core::Upcast;
 use formality_core::{seq, Set};
 
@@ -20,10 +22,13 @@ impl CoreParse<Rust> for RigidTy {
             // Parse a `ScalarId` (and upcast it to `RigidTy`) with the highest
             // precedence. If someone writes `u8`, we always interpret it as a
             // scalar-id.
-            parser.parse_variant_cast::<ScalarId>(1);
+            parser.parse_variant_cast::<ScalarId>(Precedence::default());
 
             // Parse something like `Id<...>` as an ADT.
-            parser.parse_variant("Adt", 0, |p| {
+            parser.parse_variant("Adt", Precedence::default(), |p| {
+                // Don't accept scalar-ids as Adt names.
+                p.reject_nonterminal::<ScalarId>()?;
+
                 let name: AdtId = p.nonterminal()?;
                 let parameters: Vec<Parameter> = parse_parameters(p)?;
                 Ok(RigidTy {
@@ -33,7 +38,7 @@ impl CoreParse<Rust> for RigidTy {
             });
 
             // Parse `&`
-            parser.parse_variant("Ref", 0, |p| {
+            parser.parse_variant("Ref", Precedence::default(), |p| {
                 p.expect_char('&')?;
                 let lt: Lt = p.nonterminal()?;
                 let ty: Ty = p.nonterminal()?;
@@ -44,7 +49,7 @@ impl CoreParse<Rust> for RigidTy {
                 .upcast())
             });
 
-            parser.parse_variant("RefMut", 0, |p| {
+            parser.parse_variant("RefMut", Precedence::default(), |p| {
                 p.expect_char('&')?;
                 p.expect_keyword("mut")?;
                 let lt: Lt = p.nonterminal()?;
@@ -55,7 +60,7 @@ impl CoreParse<Rust> for RigidTy {
                 })
             });
 
-            parser.parse_variant("Tuple", 0, |p| {
+            parser.parse_variant("Tuple", Precedence::default(), |p| {
                 p.expect_char('(')?;
                 p.reject_custom_keywords(&["alias", "rigid", "predicate"])?;
                 let types: Vec<Ty> = p.comma_nonterminal()?;
@@ -74,7 +79,7 @@ impl CoreParse<Rust> for RigidTy {
 impl CoreParse<Rust> for AliasTy {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::multi_variant(scope, text, "AliasTy", |parser| {
-            parser.parse_variant("associated type", 0, |p| {
+            parser.parse_variant("associated type", Precedence::default(), |p| {
                 p.expect_char('<')?;
                 let ty0: Ty = p.nonterminal()?;
                 let () = p.expect_keyword("as")?;
@@ -119,11 +124,11 @@ fn parse_parameters<'t>(
 impl CoreParse<Rust> for ConstData {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::multi_variant(scope, text, "ConstData", |parser| {
-            parser.parse_variant("Variable", 1, |p| p.variable());
+            parser.parse_variant("Variable", Precedence::default(), |p| p.variable());
 
-            parser.parse_variant_cast::<Bool>(1);
+            parser.parse_variant_cast::<Bool>(Precedence::default());
 
-            parser.parse_variant("Int", 0, |p| {
+            parser.parse_variant("Int", Precedence::default(), |p| {
                 let n: u128 = p.number()?;
                 p.expect_char('_')?;
                 let ty: Ty = p.nonterminal()?;

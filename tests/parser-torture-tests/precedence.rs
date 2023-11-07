@@ -7,10 +7,11 @@ pub enum Expr {
     Id(Id),
 
     #[grammar($v0 + $v1)]
+    #[precedence(1)]
     Add(Arc<Expr>, Arc<Expr>),
 
     #[grammar($v0 * $v1)]
-    #[precedence(1)]
+    #[precedence(2)]
     Mul(Arc<Expr>, Arc<Expr>),
 }
 
