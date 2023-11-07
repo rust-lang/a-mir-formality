@@ -14,6 +14,8 @@ use crate::{
     parse::{ParseError, ParseResult, Scope, SuccessfulParse},
 };
 
+use super::Precedence;
+
 thread_local! {
     static STACK: RefCell<Vec<StackEntry>> = Default::default()
 }
@@ -26,6 +28,8 @@ struct StackEntry {
     /// The starting text: we use `*const` instead of `&'t str`
     start_text: *const str,
 
+    current_state: Option<CurrentState>,
+
     /// The TypeId of the type `T`.
     type_id: TypeId,
 
@@ -37,6 +41,37 @@ struct StackEntry {
     observed: bool,
 }
 
+#[allow(dead_code)]
+pub(super) struct CurrentState {
+    pub left_right: LeftRight,
+    pub precedence: Precedence,
+}
+
+/// Determines the kind of recursion the current variant
+/// would have if it recursed. For example, given a grammar
+/// with a variant
+///
+/// ```text
+/// E = E + E
+/// ````
+///
+/// when `E` recurses, the first `E` is considered `Left`
+/// because it occurs before any tokens have been consumed.
+/// The second `E` is considered `Right`.
+///
+/// This terminology is a bit weird if you have three recursions,
+/// e.g. `E = E + E + E`. Really we should consider any further
+/// recursions as `Other`, I suppose, but I'm too lazy to deal with that
+/// right now.
+#[allow(dead_code)]
+pub(super) enum LeftRight {
+    /// Have not yet consumed any tokens.
+    Left,
+
+    /// Consumed some tokens.
+    Right,
+}
+
 impl StackEntry {
     pub fn new<L, T>(scope: &Scope<L>, start_text: &str) -> Self
     where
@@ -45,6 +80,7 @@ impl StackEntry {
     {
         Self {
             scope: erase_type(scope),
+            current_state: None,
             start_text,
             type_id: TypeId::of::<T>(),
             value: None,
@@ -70,6 +106,10 @@ impl StackEntry {
     {
         assert_eq!(self.start_text, start_text as *const str);
         assert_eq!(self.type_id, TypeId::of::<T>());
+        assert!(
+            self.current_state.is_some(),
+            "observed a stack frame with no current state (forgot to call `recuse`?)"
+        );
 
         self.observed = true;
 
@@ -234,6 +274,28 @@ where
         // Otherwise, we have to try again.
         values.push(value1);
     }
+}
+
+pub fn recurse<'s, 't, R>(current_state: CurrentState, op: impl FnOnce() -> R) -> R {
+    STACK.with_borrow_mut(|stack| {
+        let top = stack.last_mut().unwrap();
+        assert!(
+            top.current_state.is_none(),
+            "top of stack already has a current state"
+        );
+        top.current_state = Some(current_state);
+    });
+
+    final_fn::final_fn!(STACK.with_borrow_mut(|stack| {
+        let top = stack.last_mut().unwrap();
+        assert!(
+            top.current_state.is_some(),
+            "top of stack no longer has a current state"
+        );
+        top.current_state = None;
+    }));
+
+    op()
 }
 
 fn erase_type<T>(s: &T) -> *const () {

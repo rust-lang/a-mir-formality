@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use crate::{
     language::{CoreParameter, HasKind, Language},
+    parse::parser::left_recursion::{CurrentState, LeftRight},
     set,
     variable::CoreVariable,
     Downcast, DowncastFrom, Set, Upcast,
@@ -56,8 +57,10 @@ pub struct ActiveVariant<'s, 't, L>
 where
     L: Language,
 {
+    precedence: Precedence,
     scope: &'s Scope<L>,
-    text: &'t str,
+    start_text: &'t str,
+    current_text: &'t str,
     reductions: Vec<&'static str>,
     is_cast_variant: bool,
 }
@@ -94,6 +97,8 @@ where
         nonterminal_name: &'static str,
         mut op: impl FnMut(&mut Self),
     ) -> ParseResult<'t, T> {
+        let text = skip_whitespace(text);
+
         left_recursion::enter(scope, text, || {
             let tracing_span = tracing::span!(
                 tracing::Level::TRACE,
@@ -154,12 +159,8 @@ where
 
         let variant_precedence = Precedence(variant_precedence);
 
-        let mut active_variant = ActiveVariant {
-            scope: self.scope,
-            text: self.start_text,
-            reductions: vec![],
-            is_cast_variant: false,
-        };
+        let mut active_variant =
+            ActiveVariant::new(variant_precedence, self.scope, self.start_text);
         let result = op(&mut active_variant);
 
         // Drop the guard here so that the "success" or "error" results appear outside the variant span.
@@ -175,7 +176,7 @@ where
                 }
 
                 self.successes.push(SuccessfulParse {
-                    text: active_variant.text,
+                    text: active_variant.current_text,
                     reductions: active_variant.reductions,
                     precedence: variant_precedence,
                     value,
@@ -271,19 +272,50 @@ impl<'s, 't, L> ActiveVariant<'s, 't, L>
 where
     L: Language,
 {
+    fn new(precedence: Precedence, scope: &'s Scope<L>, start_text: &'t str) -> Self {
+        let start_text = skip_whitespace(start_text);
+        Self {
+            precedence,
+            scope,
+            start_text,
+            current_text: start_text,
+            reductions: vec![],
+            is_cast_variant: false,
+        }
+    }
+    fn current_state(&self) -> CurrentState {
+        // Determine whether we are in Left or Right position -- Left means
+        // that we have not yet consumed any tokens. Right means that we have.
+        // See `LeftRight` type for more details.
+        //
+        // Subtle-ish: this comparison assumes there is no whitespace,
+        // but we establish that invariant in `Self::new`.
+        debug_assert_eq!(self.start_text, skip_whitespace(self.start_text));
+        let left_right = if self.start_text == self.current_text {
+            LeftRight::Left
+        } else {
+            LeftRight::Right
+        };
+
+        CurrentState {
+            left_right,
+            precedence: self.precedence,
+        }
+    }
+
     /// The current text remaining to be consumed.
     pub fn text(&self) -> &'t str {
-        self.text
+        self.current_text
     }
 
     /// Skips whitespace in the input, producing no reduction.
     pub fn skip_whitespace(&mut self) {
-        self.text = skip_whitespace(self.text);
+        self.current_text = skip_whitespace(self.current_text);
     }
 
     /// Skips a comma in the input, producing no reduction.
     pub fn skip_trailing_comma(&mut self) {
-        self.text = skip_trailing_comma(self.text);
+        self.current_text = skip_trailing_comma(self.current_text);
     }
 
     /// Marks this variant as an cast variant,
@@ -366,7 +398,7 @@ where
     /// Consume next identifier-like string, requiring that it be equal to `expected`.
     #[tracing::instrument(level = "trace", ret)]
     pub fn expect_keyword(&mut self, expected: &str) -> Result<(), Set<ParseError<'t>>> {
-        let text0 = self.text;
+        let text0 = self.current_text;
         match self.identifier_like_string() {
             Ok(ident) if &*ident == expected => Ok(()),
             _ => Err(ParseError::at(
@@ -379,7 +411,7 @@ where
     /// Accepts any of the given keywords.
     #[tracing::instrument(level = "trace", ret)]
     pub fn expect_keyword_in(&mut self, expected: &[&str]) -> Result<String, Set<ParseError<'t>>> {
-        let text0 = self.text;
+        let text0 = self.current_text;
         match self.identifier_like_string() {
             Ok(ident) if expected.iter().any(|&kw| ident == kw) => Ok(ident),
             _ => Err(ParseError::at(
@@ -398,7 +430,9 @@ where
         err: impl FnOnce(T) -> Set<ParseError<'t>>,
     ) -> Result<(), Set<ParseError<'t>>> {
         let mut this = ActiveVariant {
-            text: self.text,
+            precedence: self.precedence,
+            start_text: self.start_text,
+            current_text: self.current_text,
             reductions: vec![],
             scope: self.scope,
             is_cast_variant: false,
@@ -420,7 +454,7 @@ where
             |p| p.expect_keyword_in(keywords),
             |ident| {
                 ParseError::at(
-                    self.text,
+                    self.current_text,
                     format!("expected identified, found keyword `{ident:?}`"),
                 )
             },
@@ -456,13 +490,15 @@ where
         op: impl FnOnce(&mut ActiveVariant<'_, 't, L>) -> R,
     ) -> R {
         let mut av = ActiveVariant {
+            precedence: self.precedence,
             scope: &scope,
-            text: self.text,
+            start_text: self.start_text,
+            current_text: self.current_text,
             reductions: vec![],
             is_cast_variant: false,
         };
         let result = op(&mut av);
-        self.text = av.text;
+        self.current_text = av.current_text;
         self.reductions.extend(av.reductions);
         result
     }
@@ -475,7 +511,7 @@ where
             |p| p.variable(),
             |var| {
                 ParseError::at(
-                    self.text,
+                    self.current_text,
                     format!("found unexpected in-scope variable {:?}", var),
                 )
             },
@@ -510,7 +546,7 @@ where
     {
         self.skip_whitespace();
         let type_name = std::any::type_name::<R>();
-        let text0 = self.text;
+        let text0 = self.current_text;
         let id = self.identifier()?;
         match self.scope.lookup(&id) {
             Some(parameter) => match parameter.downcast() {
@@ -535,7 +571,7 @@ where
         T: FromStr + std::fmt::Debug,
     {
         let description = std::any::type_name::<T>();
-        let text0 = self.text;
+        let text0 = self.current_text;
         let s = self.string(char::is_numeric, char::is_numeric, description)?;
         match T::from_str(&s) {
             Ok(t) => Ok(t),
@@ -562,7 +598,7 @@ where
     ) -> Result<T, Set<ParseError<'t>>> {
         self.skip_whitespace();
         let value;
-        (value, self.text) = op(self.text)?;
+        (value, self.current_text) = op(self.current_text)?;
         Ok(value)
     }
 
@@ -590,7 +626,7 @@ where
     where
         T: CoreParse<L>,
     {
-        let text0 = self.text;
+        let text0 = self.current_text;
         match self.nonterminal() {
             Ok(v) => Ok(Some(v)),
             Err(mut errs) => {
@@ -598,7 +634,7 @@ where
                 if errs.is_empty() {
                     // If no errors consumed anything, then self.text
                     // must not have advanced.
-                    assert_eq!(skip_whitespace(text0), self.text);
+                    assert_eq!(skip_whitespace(text0), self.current_text);
                     Ok(None)
                 } else {
                     Err(errs)
@@ -682,10 +718,10 @@ where
             reductions,
             precedence: _,
             value,
-        } = op(self.scope, self.text)?;
+        } = left_recursion::recurse(self.current_state(), || op(self.scope, self.current_text))?;
 
         // Adjust our point in the input text
-        self.text = text;
+        self.current_text = text;
 
         // Some value was produced, so there must have been a reduction
         assert!(!reductions.is_empty());
