@@ -300,6 +300,7 @@ where
         CurrentState {
             left_right,
             precedence: self.precedence,
+            current_text: self.current_text,
         }
     }
 

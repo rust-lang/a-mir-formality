@@ -45,6 +45,7 @@ struct StackEntry {
 pub(super) struct CurrentState {
     pub left_right: LeftRight,
     pub precedence: Precedence,
+    pub current_text: *const str,
 }
 
 /// Determines the kind of recursion the current variant
