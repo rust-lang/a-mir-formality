@@ -46,7 +46,6 @@ pub enum ConstData {
     Value(ValTree, Ty),
 
     #[variable]
-    #[precedence(1)]
     Variable(Variable),
 }
 

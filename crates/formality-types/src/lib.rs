@@ -16,8 +16,9 @@ formality_core::declare_language! {
             "enum",
             "union",
             "const",
-            "ty",
-            "lt",
+            "true",
+            "false",
+            "static",
         ];
     }
 }

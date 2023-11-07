@@ -3,7 +3,9 @@ use std::str::FromStr;
 
 use crate::{
     language::{CoreParameter, HasKind, Language},
-    set, Downcast, DowncastFrom, Set, Upcast,
+    set,
+    variable::CoreVariable,
+    Downcast, DowncastFrom, Set, Upcast,
 };
 
 use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenResult};
@@ -469,6 +471,21 @@ where
         self.text = av.text;
         self.reductions.extend(av.reductions);
         result
+    }
+
+    /// Returns an error if an in-scope variable name is found.
+    /// The derive automatically inserts calls to this for all other variants
+    /// if any variant is declared `#[variable]`.
+    pub fn reject_variable(&self) -> Result<(), Set<ParseError<'t>>> {
+        self.reject::<CoreVariable<L>>(
+            |p| p.variable(),
+            |var| {
+                ParseError::at(
+                    self.text,
+                    format!("found unexpected in-scope variable {:?}", var),
+                )
+            },
+        )
     }
 
     /// Parses the next identifier as a variable in scope

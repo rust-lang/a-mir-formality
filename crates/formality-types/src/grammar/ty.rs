@@ -107,7 +107,6 @@ pub enum TyData {
     #[cast]
     PredicateTy(PredicateTy),
     #[variable]
-    #[precedence(1)]
     Variable(Variable),
 }
 
