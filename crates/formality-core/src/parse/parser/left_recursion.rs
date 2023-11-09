@@ -180,7 +180,7 @@ impl StackEntry {
     }
 }
 
-pub fn enter<'s, 't, L, T>(
+pub(super) fn enter<'s, 't, L, T>(
     scope: &'s Scope<L>,
     text: &'t str,
     mut op: impl FnMut(usize) -> ParseResult<'t, T>,
@@ -439,7 +439,7 @@ where
     }
 }
 
-pub fn recurse<'s, 't, R>(current_state: CurrentState, op: impl FnOnce() -> R) -> R {
+pub(super) fn recurse<'s, 't, R>(current_state: CurrentState, op: impl FnOnce() -> R) -> R {
     STACK.with_borrow_mut(|stack| {
         let top = stack.last_mut().unwrap();
         assert!(
