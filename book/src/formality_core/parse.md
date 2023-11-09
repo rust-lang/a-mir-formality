@@ -31,14 +31,14 @@ When parsing an enum there will be multiple possibilities. We will attempt to pa
 We support left-recursive grammars like this one from the `parse-torture-tests`:
 
 ```rust
-{{#include ../../../tests/parser-torture-tests/src/path.rs:path}}
+{{#include ../../../tests/parser-torture-tests/path.rs:path}}
 ```
 
 We also support ambiguous grammars. For example, you can code up arithmetic expressions like this:
 
 
 ```rust
-{{#include ../../../tests/parser-torture-tests/src/left_associative.rs:Expr}}
+{{#include ../../../tests/parser-torture-tests/left_associative.rs:Expr}}
 ```
 
 When specifying the `#[precedence]` of a variant, the default is left-associativity, which can be written more explicitly as `#[precedence(L, left)]`. If you prefer, you can specify right-associativity (`#[precedence(L, right)]`) or non-associativity `#[precedence(L, none)]`. This affects how things of the same level are parsed:
@@ -71,7 +71,7 @@ A grammar consists of a series of *symbols*. Each symbol matches some text in th
     * `$[?field]` -- parse `[E1, E2, E3]`, where `field: Vec<E>`, but accept empty string as empty vector
     * `${field}` -- parse `{E1, E2, E3}`, where `field: Vec<E>` 
     * `${?field}` -- parse `{E1, E2, E3}`, where `field: Vec<E>`, but accept empty string as empty vector
-    * `$:guard <nonterminal>` -- parses `<nonterminal>` but only if the keyword `guard` is present. For example, `$:where $,where_clauses` would parse `where WhereClause1, WhereClause2, WhereClause3`
+    * `$:guard <nonterminal>` -- parses `<nonterminal>` but only if the keyword `guard` is present. For example, `$:where $,where_clauses` would parse `where WhereClause1, WhereClause2, WhereClause3` but would also accept nothing (in which case, you would get an empty vector).
 
 ### Greediness
 
