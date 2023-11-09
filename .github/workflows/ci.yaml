@@ -15,8 +15,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - name: Run cargo test
+      - name: Run cargo test --all
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --all
+      - name: Run cargo test --all-targets
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-targets
+          
