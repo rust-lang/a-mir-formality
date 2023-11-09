@@ -1,6 +1,7 @@
 use formality_core::{term, test};
 use std::sync::Arc;
 
+// ANCHOR: Expr
 #[term]
 pub enum Expr {
     #[cast]
@@ -16,6 +17,7 @@ pub enum Expr {
 }
 
 formality_core::id!(Id);
+// ANCHOR_END: Expr
 
 #[test]
 fn add_mul() {

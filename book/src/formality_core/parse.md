@@ -19,28 +19,33 @@ struct MyEnum {
 }
 ```
 
-### Ambiguity and precedence
+### Ambiguity and greedy parsing
 
-When parsing an enum there will be multiple possibilities. We will attempt to parse them all. If more than one succeeds, the parser will attempt to resolve the ambiguity. Ambiguity can be resolved in two ways:
+When parsing an enum there will be multiple possibilities. We will attempt to parse them all. If more than one succeeds, the parser will attempt to resolve the ambiguity by looking for the **longest match**. However, we don't just consider the number of characters, we look for a **reduction prefix**:
 
-* Explicit precedence: By default, every variant has precedence 0, but you can override this by annotating variants with `#[precedence(N)]` (where `N` is some integer). This will override the precedence for that variant. Variants with higher precedences are preferred.
-* Reduction prefix: When parsing, we track the list of things we had to parse. If there are two variants at the same precedence level, but one of them had to parse strictly more things than the other and in the same way, we'll prefer the longer one. So for example if one variant parsed a `Ty` and the other parsed a `Ty Ty`, we'd take the `Ty Ty`.
+* When parsing, we track the list of things we had to parse. If there are two variants at the same precedence level, but one of them had to parse strictly more things than the other and in the same way, we'll prefer the longer one. So for example if one variant parsed a `Ty` and the other parsed a `Ty Ty`, we'd take the `Ty Ty`.
     * When considering whether a reduction is "significant", we take casts into account. See `ActiveVariant::mark_as_cast_variant` for a more detailed explanation and set of examples.
 
-Otherwise, the parser will panic and report ambiguity. The parser panics rather than returning an error because ambiguity doesn't mean that there is no way to parse the given text as the nonterminal -- rather that there are multiple ways. Errors mean that the text does not match the grammar for that nonterminal.
+### Precedence and left-recursive grammars
 
-### Left-recursive grammars
+We support left-recursive grammars like this one from the `parse-torture-tests`:
 
-We permit left recursive grammars like:
-
-```
-Expr = Expr + Expr
-     | integer
+```rust
+{{#include ../../../tests/parser-torture-tests/src/path.rs:path}}
 ```
 
-We *always* bias towards greedy parses, so `a + b + c` parses as `(a + b) + c`.
-This might occasionally not be what you want.
-Sorry.
+We also support ambiguous grammars. For example, you can code up arithmetic expressions like this:
+
+
+```rust
+{{#include ../../../tests/parser-torture-tests/src/left_associative.rs:Expr}}
+```
+
+When specifying the `#[precedence]` of a variant, the default is left-associativity, which can be written more explicitly as `#[precedence(L, left)]`. If you prefer, you can specify right-associativity (`#[precedence(L, right)]`) or non-associativity `#[precedence(L, none)]`. This affects how things of the same level are parsed:
+
+* `1 + 1 + 1` when left-associative is `(1 + 1) + 1`
+* `1 + 1 + 1` when right-associative is `1 + (1 + 1)`
+* `1 + 1 + 1` when none-associative is an error.
 
 ### Symbols
 

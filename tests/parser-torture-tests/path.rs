@@ -1,6 +1,7 @@
 use formality_core::{term, test};
 use std::sync::Arc;
 
+// ANCHOR: path
 #[term]
 pub enum Path {
     #[cast]
@@ -14,6 +15,7 @@ pub enum Path {
 }
 
 formality_core::id!(Id);
+// ANCHOR_END: path
 
 #[test]
 fn path() {
