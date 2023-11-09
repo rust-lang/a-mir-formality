@@ -3,10 +3,15 @@ use std::str::FromStr;
 
 use crate::{
     language::{CoreParameter, HasKind, Language},
-    set, Downcast, DowncastFrom, Set, Upcast,
+    parse::parser::left_recursion::{CurrentState, LeftRight},
+    set,
+    variable::CoreVariable,
+    Downcast, DowncastFrom, Set, Upcast,
 };
 
 use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenResult};
+
+mod left_recursion;
 
 /// Create this struct when implementing the [`CoreParse`][] trait.
 /// Each `Parser` corresponds to some symbol in the grammar.
@@ -21,18 +26,107 @@ use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenRes
 pub struct Parser<'s, 't, T, L>
 where
     L: Language,
+    T: Debug + Clone + Eq + 'static,
 {
     scope: &'s Scope<L>,
     start_text: &'t str,
-    #[allow(dead_code)]
-    tracing_span: tracing::span::EnteredSpan,
     nonterminal_name: &'static str,
-    successes: Vec<(SuccessfulParse<'t, T>, Precedence)>,
+    successes: Vec<SuccessfulParse<'t, T>>,
     failures: Set<ParseError<'t>>,
+    min_precedence_level: usize,
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct Precedence(usize);
+/// The *precedence* of a variant determines how to manage
+/// recursive invocations.
+///
+/// The general rule is that an expression
+/// with lower-precedence cannot be embedded
+/// into an expression of higher-precedence.
+/// So given `1 + 2 * 3`, the `+` cannot be a
+/// (direct) child of the `*`, because `+` is
+/// lower precedence.
+///
+/// The tricky bit is what happens with *equal*
+/// precedence. In that case, we have to consider
+/// the [`Associativity`][] (see enum for details).
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct Precedence {
+    level: usize,
+    associativity: Associativity,
+}
+
+/// Determines what happens when you have equal precedence.
+/// The result is dependent on whether you are embedding
+/// in left position (i.e., a recurrence before having parsed any
+/// tokens) or right position (a recurrence after parsed tokens).
+/// So given `1 + 2 + 3`, `1 + 2` is a *left* occurrence of the second `+`.
+/// And `2 + 3` is a *right* occurence of the first `+`.
+///
+/// With `Associativity::Left`, equal precedence is allowed in left matches
+/// but not right. So `1 + 2 + 3` parses as `(1 + 2) + 3`, as you would expect.
+///
+/// With `Associativity::Right`, equal precedence is allowed in right matches
+/// but not left. So `1 + 2 + 3` parses as `1 + (2 + 3)`. That's probably not what you wanted
+/// for arithemetic expressions, but could be useful for (say) curried function types,
+/// where `1 -> 2 -> 3` should parse as `1 -> (2 -> 3)`.
+///
+/// With `Associativity::None`, equal precedence is not allowed anywhere, so
+/// `1 + 2 + 3` is just an error and you have to explicitly add parentheses.
+///
+/// Use `Precedence::default` for cases where precedence is not relevant.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum Associativity {
+    Left,
+    Right,
+    None,
+    Both,
+}
+
+impl Precedence {
+    /// Left associative with the given precedence level
+    pub fn left(level: usize) -> Self {
+        Self::new(level, Associativity::Left)
+    }
+
+    /// Right associative with the given precedence level
+    pub fn right(level: usize) -> Self {
+        Self::new(level, Associativity::Right)
+    }
+
+    /// Non-associative with the given precedence level
+    pub fn none(level: usize) -> Self {
+        Self::new(level, Associativity::None)
+    }
+
+    /// Construct a new precedence.
+    fn new(level: usize, associativity: Associativity) -> Self {
+        // We require level to be STRICTLY LESS than usize::MAX
+        // so that we can always add 1.
+        assert!(level < std::usize::MAX);
+        Self {
+            level,
+            associativity: associativity,
+        }
+    }
+}
+
+impl Default for Precedence {
+    fn default() -> Self {
+        // Default precedence:
+        //
+        // Use MAX-1 because we sometimes try to add 1 when we detect recursion, and we don't want overflow.
+        //
+        // Use Right associativity because if you have a variant like `T = [T]`
+        // then you want to be able to (by default) embed arbitrary T in that recursive location.
+        // If you use LEFT or NONE, then this recursive T would have a minimum level of std::usize::MAX
+        // (and hence never be satisfied).
+        //
+        // Using RIGHT feels a bit weird here but seems to behave correctly all the time.
+        // It's tempting to add something like "Both" or "N/A" that would just not set a min
+        // prec level when there's recursion.
+        Self::new(std::usize::MAX - 1, Associativity::Both)
+    }
+}
 
 /// The "active variant" struct is the main struct
 /// you will use if you are writing custom parsing logic.
@@ -53,15 +147,18 @@ pub struct ActiveVariant<'s, 't, L>
 where
     L: Language,
 {
+    precedence: Precedence,
     scope: &'s Scope<L>,
-    text: &'t str,
+    start_text: &'t str,
+    current_text: &'t str,
     reductions: Vec<&'static str>,
+    is_cast_variant: bool,
 }
 
 impl<'s, 't, T, L> Parser<'s, 't, T, L>
 where
     L: Language,
-    T: Debug + Eq,
+    T: Debug + Clone + Eq + 'static,
 {
     /// Shorthand to create a parser for a nonterminal with a single variant,
     /// parsed by the function `op`.
@@ -71,45 +168,62 @@ where
         scope: &'s Scope<L>,
         text: &'t str,
         nonterminal_name: &'static str,
-        op: impl FnOnce(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
+        mut op: impl FnMut(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
     ) -> ParseResult<'t, T> {
-        let mut result = Parser::new(scope, text, nonterminal_name);
-        result.parse_variant(nonterminal_name, 0, op);
-        result.finish()
+        Parser::multi_variant(scope, text, nonterminal_name, |parser| {
+            parser.parse_variant(nonterminal_name, Precedence::default(), &mut op);
+        })
     }
 
-    /// Creates a new parser. You should then invoke `parse_variant` 0 or more times for
-    /// each of the possibilities and finally invoke `finish`.
+    /// Creates a new parser that can accommodate multiple variants.
+    ///
+    /// Invokes `op` to do the parsing; `op` should call `parse_variant` 0 or more times for
+    /// each of the possibilities. The best result (if any) will then be returned.
     ///
     /// The method [`single_variant`] is more convenient if you have exactly one variant.
-    pub fn new(scope: &'s Scope<L>, text: &'t str, nonterminal_name: &'static str) -> Self {
-        let tracing_span = tracing::span!(
-            tracing::Level::TRACE,
-            "nonterminal",
-            name = nonterminal_name,
-            ?scope,
-            ?text
-        )
-        .entered();
+    pub fn multi_variant(
+        scope: &'s Scope<L>,
+        text: &'t str,
+        nonterminal_name: &'static str,
+        mut op: impl FnMut(&mut Self),
+    ) -> ParseResult<'t, T> {
+        let text = skip_whitespace(text);
 
-        Self {
-            scope,
-            start_text: text,
-            nonterminal_name,
-            tracing_span,
-            successes: vec![],
-            failures: set![],
-        }
+        left_recursion::enter(scope, text, |min_precedence_level| {
+            let tracing_span = tracing::span!(
+                tracing::Level::TRACE,
+                "nonterminal",
+                name = nonterminal_name,
+                ?scope,
+                ?text
+            );
+            let guard = tracing_span.enter();
+
+            let mut parser = Self {
+                scope,
+                start_text: text,
+                nonterminal_name,
+                successes: vec![],
+                failures: set![],
+                min_precedence_level,
+            };
+
+            op(&mut parser);
+
+            parser.finish(guard)
+        })
     }
 
     /// Shorthand for `parse_variant` where the parsing operation is to
     /// parse the type `V` and then upcast it to the desired result type.
-    pub fn parse_variant_cast<V>(&mut self, variant_precedence: usize)
+    /// Also marks the variant as a cast variant.
+    pub fn parse_variant_cast<V>(&mut self, variant_precedence: Precedence)
     where
         V: CoreParse<L> + Upcast<T>,
     {
         let variant_name = std::any::type_name::<V>();
         Self::parse_variant(self, variant_name, variant_precedence, |p| {
+            p.mark_as_cast_variant();
             let v: V = p.nonterminal()?;
             Ok(v.upcast())
         })
@@ -123,22 +237,28 @@ where
     pub fn parse_variant(
         &mut self,
         variant_name: &'static str,
-        variant_precedence: usize,
+        variant_precedence: Precedence,
         op: impl FnOnce(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
     ) {
         let span = tracing::span!(
             tracing::Level::TRACE,
             "variant",
             name = variant_name,
-            variant_precedence = variant_precedence
+            ?variant_precedence,
         );
         let guard = span.enter();
 
-        let mut active_variant = ActiveVariant {
-            scope: self.scope,
-            text: self.start_text,
-            reductions: vec![],
-        };
+        if variant_precedence.level < self.min_precedence_level {
+            tracing::trace!(
+                "variant has precedence level {} which is below parser minimum of {}",
+                variant_precedence.level,
+                self.min_precedence_level,
+            );
+            return;
+        }
+
+        let mut active_variant =
+            ActiveVariant::new(variant_precedence, self.scope, self.start_text);
         let result = op(&mut active_variant);
 
         // Drop the guard here so that the "success" or "error" results appear outside the variant span.
@@ -147,15 +267,18 @@ where
 
         match result {
             Ok(value) => {
-                active_variant.reductions.push(variant_name);
-                self.successes.push((
-                    SuccessfulParse {
-                        text: active_variant.text,
-                        reductions: active_variant.reductions,
-                        value,
-                    },
-                    Precedence(variant_precedence),
-                ));
+                // Subtle: for cast variants, don't record the variant name in the reduction lits,
+                // as it doesn't carry semantic weight. See `mark_as_cast_variant` for more details.
+                if !active_variant.is_cast_variant {
+                    active_variant.reductions.push(variant_name);
+                }
+
+                self.successes.push(SuccessfulParse {
+                    text: active_variant.current_text,
+                    reductions: active_variant.reductions,
+                    precedence: variant_precedence,
+                    value,
+                });
                 tracing::trace!("success: {:?}", self.successes.last().unwrap());
             }
 
@@ -173,7 +296,7 @@ where
         }
     }
 
-    pub fn finish(self) -> ParseResult<'t, T> {
+    fn finish(self, guard: tracing::span::Entered<'_>) -> ParseResult<'t, T> {
         // If we did not parse anything successfully, then return an error.
         // There are two possibilities: some of our variants may have made
         // progress but ultimately failed. If so, self.failures will be non-empty,
@@ -184,6 +307,8 @@ where
         // observe that we did not consume any tokens and will ignore our messawge
         // and put its own (e.g., "failed to find a Y here").
         if self.successes.is_empty() {
+            // It's better to print this result alongside the main parsing section.
+            drop(guard);
             return if self.failures.is_empty() {
                 tracing::trace!("parsing failed: no variants were able to consume a single token");
                 Err(ParseError::at(
@@ -216,7 +341,9 @@ where
                 .zip(0..)
                 .all(|(s_j, j)| i == j || Self::is_preferable(s_i, s_j))
             {
-                let (s_i, _) = self.successes.into_iter().skip(i).next().unwrap();
+                let s_i = self.successes.into_iter().skip(i).next().unwrap();
+                // It's better to print this result alongside the main parsing section.
+                drop(guard);
                 tracing::trace!("best parse = `{:?}`", s_i);
                 return Ok(s_i);
             }
@@ -229,18 +356,12 @@ where
         );
     }
 
-    fn is_preferable(
-        s_i: &(SuccessfulParse<T>, Precedence),
-        s_j: &(SuccessfulParse<T>, Precedence),
-    ) -> bool {
-        let (parse_i, prec_i) = s_i;
-        let (parse_j, prec_j) = s_j;
-
+    fn is_preferable(s_i: &SuccessfulParse<T>, s_j: &SuccessfulParse<T>) -> bool {
         fn has_prefix<T: Eq>(l1: &[T], l2: &[T]) -> bool {
             l1.len() > l2.len() && (0..l2.len()).all(|i| l1[i] == l2[i])
         }
 
-        prec_i > prec_j || has_prefix(&parse_i.reductions, &parse_j.reductions)
+        has_prefix(&s_i.reductions, &s_j.reductions)
     }
 }
 
@@ -248,19 +369,82 @@ impl<'s, 't, L> ActiveVariant<'s, 't, L>
 where
     L: Language,
 {
+    fn new(precedence: Precedence, scope: &'s Scope<L>, start_text: &'t str) -> Self {
+        let start_text = skip_whitespace(start_text);
+        Self {
+            precedence,
+            scope,
+            start_text,
+            current_text: start_text,
+            reductions: vec![],
+            is_cast_variant: false,
+        }
+    }
+    fn current_state(&self) -> CurrentState {
+        // Determine whether we are in Left or Right position -- Left means
+        // that we have not yet consumed any tokens. Right means that we have.
+        // See `LeftRight` type for more details.
+        //
+        // Subtle-ish: this comparison assumes there is no whitespace,
+        // but we establish that invariant in `Self::new`.
+        debug_assert_eq!(self.start_text, skip_whitespace(self.start_text));
+        let left_right = if self.start_text == self.current_text {
+            LeftRight::Left
+        } else {
+            LeftRight::Right
+        };
+
+        CurrentState {
+            left_right,
+            precedence: self.precedence,
+            current_text: self.current_text,
+        }
+    }
+
     /// The current text remaining to be consumed.
     pub fn text(&self) -> &'t str {
-        self.text
+        self.current_text
     }
 
     /// Skips whitespace in the input, producing no reduction.
     pub fn skip_whitespace(&mut self) {
-        self.text = skip_whitespace(self.text);
+        self.current_text = skip_whitespace(self.current_text);
     }
 
     /// Skips a comma in the input, producing no reduction.
     pub fn skip_trailing_comma(&mut self) {
-        self.text = skip_trailing_comma(self.text);
+        self.current_text = skip_trailing_comma(self.current_text);
+    }
+
+    /// Marks this variant as an cast variant,
+    /// which means there is no semantic difference
+    /// between the thing you parsed and the reduced form.
+    /// We do this automatically for enum variants marked
+    /// as `#[cast]` or calls to `parse_variant_cast`.
+    ///
+    /// Cast variants interact differently with ambiguity detection.
+    /// Consider this grammar:
+    ///
+    /// ```text
+    /// X = Y | Z // X has two variants
+    /// Y = A     // Y has 1 variant
+    /// Z = A B   // Z has 1 variant
+    /// A = "a"   // A has 1 variant
+    /// B = "b"   // B has 1 variant
+    /// ```
+    ///
+    /// If you mark the two `X` variants (`X = Y` and `X = Z`)
+    /// as cast variants, then the input `"a b"` is considered
+    /// unambiguous and is parsed as `X = (Z = (A = "a') (B = "b))`
+    /// with no remainder.
+    ///
+    /// If you don't mark those variants as cast variants,
+    /// then we consider this *ambiguous*, because
+    /// it could be that you want `X = (Y = (A = "a"))` with
+    /// a remainder of `"b"`. This is appropriate
+    /// if choosing Y vs Z has different semantic meaning.
+    pub fn mark_as_cast_variant(&mut self) {
+        self.is_cast_variant = true;
     }
 
     /// Expect *exactly* the given text (after skipping whitespace)
@@ -312,7 +496,7 @@ where
     /// Consume next identifier-like string, requiring that it be equal to `expected`.
     #[tracing::instrument(level = "trace", ret)]
     pub fn expect_keyword(&mut self, expected: &str) -> Result<(), Set<ParseError<'t>>> {
-        let text0 = self.text;
+        let text0 = self.current_text;
         match self.identifier_like_string() {
             Ok(ident) if &*ident == expected => Ok(()),
             _ => Err(ParseError::at(
@@ -322,37 +506,62 @@ where
         }
     }
 
-    /// Reject next identifier-like string if it is one of the given list of keywords.
-    /// Does not consume any input.
-    /// You can this to implement positional keywords -- just before parsing an identifier or variable,
-    /// you can invoke `reject_custom_keywords` to reject anything that you don't want to permit in this position.
-    #[tracing::instrument(level = "trace", ret)]
-    pub fn reject_custom_keywords(&self, keywords: &[&str]) -> Result<(), Set<ParseError<'t>>> {
+    /// Accepts any of the given keywords.
+    #[tracing::instrument(level = "trace", skip(self), ret)]
+    pub fn expect_keyword_in(&mut self, expected: &[&str]) -> Result<String, Set<ParseError<'t>>> {
+        let text0 = self.current_text;
+        match self.identifier_like_string() {
+            Ok(ident) if expected.iter().any(|&kw| ident == kw) => Ok(ident),
+            _ => Err(ParseError::at(
+                skip_whitespace(text0),
+                format!("expected any of `{:?}`", expected),
+            )),
+        }
+    }
+
+    /// Attempts to execute `op` and, if it successfully parses, then returns an error
+    /// with the value (which is meant to be incorporated into a par)
+    /// If `op` fails to parse then the result is `Ok`.
+    #[tracing::instrument(level = "trace", skip(self, op, err), ret)]
+    pub fn reject<T>(
+        &self,
+        op: impl Fn(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
+        err: impl FnOnce(T) -> Set<ParseError<'t>>,
+    ) -> Result<(), Set<ParseError<'t>>> {
         let mut this = ActiveVariant {
-            text: self.text,
+            precedence: self.precedence,
+            start_text: self.start_text,
+            current_text: self.current_text,
             reductions: vec![],
             scope: self.scope,
+            is_cast_variant: false,
         };
 
-        match this.identifier_like_string() {
-            Ok(ident) => {
-                if keywords.iter().any(|&kw| kw == ident) {
-                    return Err(ParseError::at(
-                        self.text,
-                        format!("expected identified, found keyword `{ident:?}`"),
-                    ));
-                }
-
-                Ok(())
-            }
-
+        match op(&mut this) {
+            Ok(value) => Err(err(value)),
             Err(_) => Ok(()),
         }
     }
 
+    /// Reject next identifier-like string if it is one of the given list of keywords.
+    /// Does not consume any input.
+    /// You can this to implement positional keywords -- just before parsing an identifier or variable,
+    /// you can invoke `reject_custom_keywords` to reject anything that you don't want to permit in this position.
+    pub fn reject_custom_keywords(&self, keywords: &[&str]) -> Result<(), Set<ParseError<'t>>> {
+        self.reject(
+            |p| p.expect_keyword_in(keywords),
+            |ident| {
+                ParseError::at(
+                    self.current_text,
+                    format!("expected identified, found keyword `{ident:?}`"),
+                )
+            },
+        )
+    }
+
     /// Extracts a string that meets the regex for an identifier
     /// (but it could also be a keyword).
-    #[tracing::instrument(level = "trace", ret)]
+    #[tracing::instrument(level = "trace", skip(self), ret)]
     pub fn identifier_like_string(&mut self) -> Result<String, Set<ParseError<'t>>> {
         self.string(
             |ch| matches!(ch, 'a'..='z' | 'A'..='Z' | '_'),
@@ -365,7 +574,7 @@ where
     /// following the usual rules. **Disallows language keywords.**
     /// If you want to disallow additional keywords,
     /// see the `reject_custom_keywords` method.
-    #[tracing::instrument(level = "trace", ret)]
+    #[tracing::instrument(level = "trace", skip(self), ret)]
     pub fn identifier(&mut self) -> Result<String, Set<ParseError<'t>>> {
         self.reject_custom_keywords(L::KEYWORDS)?;
         self.identifier_like_string()
@@ -379,14 +588,32 @@ where
         op: impl FnOnce(&mut ActiveVariant<'_, 't, L>) -> R,
     ) -> R {
         let mut av = ActiveVariant {
+            precedence: self.precedence,
             scope: &scope,
-            text: self.text,
+            start_text: self.start_text,
+            current_text: self.current_text,
             reductions: vec![],
+            is_cast_variant: false,
         };
         let result = op(&mut av);
-        self.text = av.text;
+        self.current_text = av.current_text;
         self.reductions.extend(av.reductions);
         result
+    }
+
+    /// Returns an error if an in-scope variable name is found.
+    /// The derive automatically inserts calls to this for all other variants
+    /// if any variant is declared `#[variable]`.
+    pub fn reject_variable(&self) -> Result<(), Set<ParseError<'t>>> {
+        self.reject::<CoreVariable<L>>(
+            |p| p.variable(),
+            |var| {
+                ParseError::at(
+                    self.current_text,
+                    format!("found unexpected in-scope variable {:?}", var),
+                )
+            },
+        )
     }
 
     /// Parses the next identifier as a variable in scope
@@ -410,14 +637,14 @@ where
     /// It also allows parsing where you use variables to stand for
     /// more complex parameters, which is kind of combining parsing
     /// and substitution and can be convenient in tests.
-    #[tracing::instrument(level = "trace", ret)]
+    #[tracing::instrument(level = "trace", skip(self), ret)]
     pub fn variable<R>(&mut self) -> Result<R, Set<ParseError<'t>>>
     where
         R: Debug + DowncastFrom<CoreParameter<L>>,
     {
         self.skip_whitespace();
         let type_name = std::any::type_name::<R>();
-        let text0 = self.text;
+        let text0 = self.current_text;
         let id = self.identifier()?;
         match self.scope.lookup(&id) {
             Some(parameter) => match parameter.downcast() {
@@ -436,13 +663,13 @@ where
     }
 
     /// Extract a number from the input, erroring if the input does not start with a number.
-    #[tracing::instrument(level = "trace", ret)]
+    #[tracing::instrument(level = "trace", skip(self), ret)]
     pub fn number<T>(&mut self) -> Result<T, Set<ParseError<'t>>>
     where
         T: FromStr + std::fmt::Debug,
     {
         let description = std::any::type_name::<T>();
-        let text0 = self.text;
+        let text0 = self.current_text;
         let s = self.string(char::is_numeric, char::is_numeric, description)?;
         match T::from_str(&s) {
             Ok(t) => Ok(t),
@@ -469,7 +696,7 @@ where
     ) -> Result<T, Set<ParseError<'t>>> {
         self.skip_whitespace();
         let value;
-        (value, self.text) = op(self.text)?;
+        (value, self.current_text) = op(self.current_text)?;
         Ok(value)
     }
 
@@ -478,9 +705,19 @@ where
     pub fn nonterminal<T>(&mut self) -> Result<T, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
-        L: Language,
     {
         self.nonterminal_with(T::parse)
+    }
+
+    /// Gives an error if `T` is parsable here.
+    pub fn reject_nonterminal<T>(&mut self) -> Result<(), Set<ParseError<'t>>>
+    where
+        T: CoreParse<L>,
+    {
+        self.reject(
+            |p| p.nonterminal::<T>(),
+            |value| ParseError::at(self.text(), format!("unexpected `{value:?}`")),
+        )
     }
 
     /// Try to parse the current point as `T` and return `None` if there is nothing there.
@@ -492,12 +729,12 @@ where
     /// because we consumed the open paren `(` from `T` but then encountered an error
     /// looking for the closing paren `)`.
     #[track_caller]
-    #[tracing::instrument(level = "Trace", ret)]
+    #[tracing::instrument(level = "Trace", skip(self), ret)]
     pub fn opt_nonterminal<T>(&mut self) -> Result<Option<T>, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
     {
-        let text0 = self.text;
+        let text0 = self.current_text;
         match self.nonterminal() {
             Ok(v) => Ok(Some(v)),
             Err(mut errs) => {
@@ -505,7 +742,7 @@ where
                 if errs.is_empty() {
                     // If no errors consumed anything, then self.text
                     // must not have advanced.
-                    assert_eq!(skip_whitespace(text0), self.text);
+                    assert_eq!(skip_whitespace(text0), self.current_text);
                     Ok(None)
                 } else {
                     Err(errs)
@@ -516,6 +753,7 @@ where
 
     /// Continue parsing instances of `T` while we can.
     /// This is a greedy parse.
+    #[tracing::instrument(level = "Trace", skip(self), ret)]
     pub fn many_nonterminal<T>(&mut self) -> Result<Vec<T>, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
@@ -524,6 +762,33 @@ where
         while let Some(e) = self.opt_nonterminal()? {
             result.push(e);
         }
+        Ok(result)
+    }
+
+    #[tracing::instrument(level = "Trace", skip(self), ret)]
+    pub fn delimited_nonterminal<T>(
+        &mut self,
+        open: char,
+        optional: bool,
+        close: char,
+    ) -> Result<Vec<T>, Set<ParseError<'t>>>
+    where
+        T: CoreParse<L>,
+    {
+        // Look for the opening delimiter.
+        // If we don't find it, then this is either an empty vector (if optional) or an error (otherwise).
+        match self.expect_char(open) {
+            Ok(()) => {}
+            Err(errs) => {
+                return if optional { Ok(vec![]) } else { Err(errs) };
+            }
+        }
+
+        // Now parse the contents.
+        let result = self.comma_nonterminal()?;
+
+        self.expect_char(close)?;
+
         Ok(result)
     }
 
@@ -560,11 +825,12 @@ where
         let SuccessfulParse {
             text,
             reductions,
+            precedence: _,
             value,
-        } = op(self.scope, self.text)?;
+        } = left_recursion::recurse(self.current_state(), || op(self.scope, self.current_text))?;
 
         // Adjust our point in the input text
-        self.text = text;
+        self.current_text = text;
 
         // Some value was produced, so there must have been a reduction
         assert!(!reductions.is_empty());

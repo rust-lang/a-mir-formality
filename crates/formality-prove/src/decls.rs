@@ -111,7 +111,7 @@ pub struct ImplDecl {
 }
 
 /// Data bound under the generics from [`ImplDecl`][]
-#[term($trait_ref where $where_clause)]
+#[term($trait_ref $:where $where_clause)]
 pub struct ImplDeclBoundData {
     /// The trait ref that is implemented
     pub trait_ref: TraitRef,
@@ -129,7 +129,7 @@ pub struct NegImplDecl {
 }
 
 /// Data bound under the impl generics for a negative impl
-#[term(!$trait_ref where $where_clause)]
+#[term(!$trait_ref $:where $where_clause)]
 pub struct NegImplDeclBoundData {
     pub trait_ref: TraitRef,
     pub where_clause: Wcs,
@@ -209,7 +209,7 @@ pub struct TraitInvariantBoundData {
 }
 
 /// The "bound data" for a [`TraitDecl`][] -- i.e., what is covered by the forall.
-#[term(where $where_clause)]
+#[term($:where $where_clause)]
 pub struct TraitDeclBoundData {
     /// The where-clauses declared on the trait
     pub where_clause: Wcs,
@@ -231,7 +231,7 @@ impl AliasEqDecl {
 }
 
 /// Data bound under the impl generics for a [`AliasEqDecl`][]
-#[term($alias = $ty where $where_clause)]
+#[term($alias = $ty $:where $where_clause)]
 pub struct AliasEqDeclBoundData {
     /// The alias that is equal
     pub alias: AliasTy,
@@ -258,7 +258,7 @@ impl AliasBoundDecl {
     }
 }
 
-#[term($alias : $ensures where $where_clause)]
+#[term($alias : $ensures $:where $where_clause)]
 pub struct AliasBoundDeclBoundData {
     pub alias: AliasTy,
     // FIXME: this is currently encoded as something like `<T> [T: Foo]` where
@@ -281,7 +281,7 @@ pub struct AdtDecl {
 }
 
 /// The "bound data" for a [`AdtDecl`][].
-#[term(where $where_clause)]
+#[term($:where $where_clause)]
 pub struct AdtDeclBoundData {
     /// The where-clauses declared on the ADT,
     pub where_clause: Wcs,

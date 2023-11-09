@@ -96,7 +96,7 @@ impl Struct {
     }
 }
 
-#[term(where $where_clauses { $,fields })]
+#[term($:where $,where_clauses { $,fields })]
 pub struct StructBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub fields: Vec<Field>,
@@ -148,7 +148,7 @@ pub struct Adt {
     pub binder: Binder<AdtBoundData>,
 }
 
-#[term(where $where_clauses { $,variants })]
+#[term($:where $,where_clauses { $,variants })]
 pub struct AdtBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub variants: Vec<Variant>,
@@ -179,7 +179,7 @@ impl<T: Term> TraitBinder<T> {
     }
 }
 
-#[term(where $where_clauses { $*trait_items })]
+#[term($:where $,where_clauses { $*trait_items })]
 pub struct TraitBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub trait_items: Vec<TraitItem>,
@@ -199,7 +199,7 @@ pub struct Fn {
     pub binder: Binder<FnBoundData>,
 }
 
-#[term(($,input_tys) -> $output_ty where $where_clauses $body)]
+#[term($(input_tys) -> $output_ty $:where $,where_clauses $body)]
 pub struct FnBoundData {
     pub input_tys: Vec<Ty>,
     pub output_ty: Ty,
@@ -232,7 +232,7 @@ pub struct AssociatedTy {
     pub binder: Binder<AssociatedTyBoundData>,
 }
 
-#[term(: $ensures where $where_clauses)]
+#[term(: $ensures $:where $,where_clauses)]
 pub struct AssociatedTyBoundData {
     /// So e.g. `type Item : [Sized]` would be encoded as `<type I> (I: Sized)`.
     pub ensures: Vec<WhereBound>,
@@ -252,7 +252,7 @@ impl TraitImpl {
     }
 }
 
-#[term($trait_id < $,trait_parameters > for $self_ty where $where_clauses { $*impl_items })]
+#[term($trait_id $<?trait_parameters> for $self_ty $:where $,where_clauses { $*impl_items })]
 pub struct TraitImplBoundData {
     pub trait_id: TraitId,
     pub self_ty: Ty,
@@ -272,7 +272,7 @@ pub struct NegTraitImpl {
     pub binder: Binder<NegTraitImplBoundData>,
 }
 
-#[term(!$trait_id < $,trait_parameters > for $self_ty where $where_clauses { })]
+#[term(!$trait_id $<?trait_parameters> for $self_ty $:where $,where_clauses { })]
 pub struct NegTraitImplBoundData {
     pub trait_id: TraitId,
     pub self_ty: Ty,
@@ -300,7 +300,7 @@ pub struct AssociatedTyValue {
     pub binder: Binder<AssociatedTyValueBoundData>,
 }
 
-#[term(= $ty where $where_clauses)]
+#[term(= $ty $:where $,where_clauses)]
 pub struct AssociatedTyValueBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub ty: Ty,
@@ -338,7 +338,7 @@ impl WhereClause {
 
 #[term]
 pub enum WhereClauseData {
-    #[grammar($v0 : $v1 < $,v2 >)]
+    #[grammar($v0 : $v1 $<?v2>)]
     IsImplemented(Ty, TraitId, Vec<Parameter>),
 
     #[grammar($v0 => $v1)]
@@ -367,7 +367,7 @@ impl WhereBound {
 
 #[term]
 pub enum WhereBoundData {
-    #[grammar($v0 < $,v1 >)]
+    #[grammar($v0 $<?v1>)]
     IsImplemented(TraitId, Vec<Parameter>),
 
     #[grammar($v0)]

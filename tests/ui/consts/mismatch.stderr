@@ -1,4 +1,4 @@
-Error: check_trait_impl(impl <> Foo < const value(42, u32) > for u32 where [] { })
+Error: check_trait_impl(impl Foo <const value(42, u32)> for u32 { })
 
 Caused by:
     failed to prove {Foo(u32, const value(42, u32))} given {}, got {}

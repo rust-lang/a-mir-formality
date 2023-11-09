@@ -3,6 +3,6 @@
 //@check-pass
 [
     crate Foo {
-        trait Foo<> where [type_of_const true is bool] {}
+        trait Foo where type_of_const true is bool {}
     }
 ]

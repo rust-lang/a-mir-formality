@@ -1,11 +1,11 @@
 //@check-pass
 [
     crate core {
-        trait CoreTrait<ty T> where [] {}
-        struct Vec<ty T> where [] {}
+        trait CoreTrait<ty T> {}
+        struct Vec<ty T> {}
     },
     crate foo {
-        struct FooStruct<> where [] {}
-        impl<ty T> CoreTrait<FooStruct<>> for Vec<T> where [] {}
+        struct FooStruct {}
+        impl<ty T> CoreTrait<FooStruct> for Vec<T> {}
     }
 ]

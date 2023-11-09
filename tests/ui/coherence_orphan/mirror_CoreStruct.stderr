@@ -1,4 +1,4 @@
-Error: orphan_check(impl <> CoreTrait < > for <CoreStruct as Mirror>::Assoc where [] { })
+Error: orphan_check(impl CoreTrait for <CoreStruct as Mirror>::Assoc { })
 
 Caused by:
     failed to prove {@ IsLocal(CoreTrait(<CoreStruct as Mirror>::Assoc))} given {}, got {}

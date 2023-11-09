@@ -15,7 +15,7 @@ fn decls() -> Decls {
         ],
         impl_decls: vec![
             term("impl<ty T> Magic(T) where {Magic(T)}"),
-            term("impl<> Copy(u32) where {}"),
+            term("impl Copy(u32) where {}"),
         ],
         ..Decls::empty()
     }

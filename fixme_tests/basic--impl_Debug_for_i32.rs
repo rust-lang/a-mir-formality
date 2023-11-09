@@ -3,9 +3,9 @@
 
 const PROGRAM: &str = "[
     crate core {
-        trait Debug<> where [] { }
+        trait Debug { }
 
-        impl<> Debug<> for i32 where [] { }
+        impl Debug for i32 { }
     }
 ]";
 
@@ -19,7 +19,7 @@ fn test_i32() {
     "#]]
     .assert_debug_eq(&formality_rust::test_can_prove_where_clause(
         PROGRAM,
-        "i32: Debug<>",
+        "i32: Debug",
     ));
 }
 
@@ -33,6 +33,6 @@ fn test_u32() {
     "#]]
     .assert_debug_eq(&formality_rust::test_can_prove_where_clause(
         PROGRAM,
-        "u32: Debug<>",
+        "u32: Debug",
     ));
 }

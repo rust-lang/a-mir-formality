@@ -2,11 +2,11 @@
 // and also all `T: Is`, and `u32: Is`.
 [
     crate core {
-        trait Foo<> where [] {}
-        impl<> Foo<> for u32 where [] {}
-        impl<ty T> Foo<> for T where [T: Is<>] {}
+        trait Foo {}
+        impl Foo for u32 {}
+        impl<ty T> Foo for T where T: Is {}
 
-        trait Is<> where [] {}
-        impl<> Is<> for u32 where [] {}
+        trait Is {}
+        impl Is for u32 {}
     }
 ]

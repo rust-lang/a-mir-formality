@@ -1,7 +1,7 @@
 extern crate proc_macro;
 
 use convert_case::{Case, Casing};
-use proc_macro2::{Ident, Literal, TokenStream};
+use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{spanned::Spanned, Attribute};
 use synstructure::BindingInfo;
@@ -37,11 +37,18 @@ pub(crate) fn derive_parse_with_spec(
         }
     }
 
+    // Determine whether *any* variant is marked as `#[variable]`.
+    // If so, all *other* variants will automatically reject in-scope variable names.
+    let any_variable_variant = s
+        .variants()
+        .iter()
+        .any(|v| has_variable_attr(v.ast().attrs));
+
     let mut parse_variants = TokenStream::new();
     for variant in s.variants() {
-        let variant_name = as_literal(variant.ast().ident);
-        let v = parse_variant(variant, external_spec)?;
-        let precedence = precedence(&variant.ast().attrs)?.literal();
+        let variant_name = Literal::string(&format!("{}::{}", s.ast().ident, variant.ast().ident));
+        let v = parse_variant(variant, external_spec, any_variable_variant)?;
+        let precedence = precedence(&variant.ast().attrs)?.expr();
         parse_variants.extend(quote_spanned!(
             variant.ast().ident.span() =>
             __parser.parse_variant(#variant_name, #precedence, |__p| { #v });
@@ -55,9 +62,9 @@ pub(crate) fn derive_parse_with_spec(
         gen impl parse::CoreParse<crate::FormalityLang> for @Self {
             fn parse<'t>(scope: &parse::Scope<crate::FormalityLang>, text: &'t str) -> parse::ParseResult<'t, Self>
             {
-                let mut __parser = parse::Parser::new(scope, text, #type_name);
-                #parse_variants;
-                __parser.finish()
+                parse::Parser::multi_variant(scope, text, #type_name, |__parser| {
+                    #parse_variants;
+                })
             }
         }
     }))
@@ -66,17 +73,27 @@ pub(crate) fn derive_parse_with_spec(
 fn parse_variant(
     variant: &synstructure::VariantInfo,
     external_spec: Option<&FormalitySpec>,
+    any_variable_variant: bool,
 ) -> syn::Result<TokenStream> {
     let ast = variant.ast();
+    let has_variable_attr = has_variable_attr(ast.attrs);
+    let mut stream = TokenStream::default();
+
+    // If there are variable variants -- but this is not one -- then we always begin by rejecting
+    // variable names. This avoids ambiguity in a case like `for<ty X> { X : Debug }`, where we
+    // want to parse `X` as a type variable.
+    if any_variable_variant && !has_variable_attr {
+        stream.extend(quote_spanned!(ast.ident.span() => __p.reject_variable()?;));
+    }
 
     // When invoked like `#[term(foo)]`, use the spec from `foo`
     if let Some(spec) = external_spec {
-        return parse_variant_with_attr(variant, spec);
+        return parse_variant_with_attr(variant, spec, stream);
     }
 
     // Else, look for a `#[grammar]` attribute on the variant
     if let Some(attr) = get_grammar_attr(ast.attrs) {
-        return parse_variant_with_attr(variant, &attr?);
+        return parse_variant_with_attr(variant, &attr?, stream);
     }
 
     // If no `#[grammar(...)]` attribute is provided, then we provide default behavior.
@@ -85,34 +102,35 @@ fn parse_variant(
         // No bindings (e.g., `Foo`) -- just parse a keyword `foo`
         let literal = Literal::string(&to_parse_ident(ast.ident));
         let construct = variant.construct(|_, _| quote! {});
-        Ok(quote_spanned! {
+        stream.extend(quote_spanned! {
             ast.ident.span() =>
             __p.expect_keyword(#literal)?;
             Ok(#construct)
-        })
-    } else if has_variable_attr(variant.ast().attrs) {
+        });
+    } else if has_variable_attr {
         // Has the `#[variable]` attribute -- parse an identifier and then check to see if it is present
         // in the scope. If so, downcast it and check that it has the correct kind.
-        Ok(quote_spanned! {
+        stream.extend(quote_spanned! {
             ast.ident.span() =>
             let v = __p.variable()?;
             Ok(v)
-        })
+        });
     } else if has_cast_attr(variant.ast().attrs) {
         // Has the `#[cast]` attribute -- just parse the bindings (comma separated, if needed)
         let build: Vec<TokenStream> = parse_bindings(variant.bindings());
         let construct = variant.construct(field_ident);
-        Ok(quote_spanned! {
+        stream.extend(quote_spanned! {
             ast.ident.span() =>
+            __p.mark_as_cast_variant();
             #(#build)*
             Ok(#construct)
-        })
+        });
     } else {
         // Otherwise -- parse `variant(binding0, ..., bindingN)`
         let literal = Literal::string(&to_parse_ident(ast.ident));
         let build: Vec<TokenStream> = parse_bindings(variant.bindings());
         let construct = variant.construct(field_ident);
-        Ok(quote_spanned! {
+        stream.extend(quote_spanned! {
             ast.ident.span() =>
             __p.expect_keyword(#literal)?;
             __p.expect_char('(')?;
@@ -120,8 +138,10 @@ fn parse_variant(
             __p.skip_trailing_comma();
             __p.expect_char(')')?;
             Ok(#construct)
-        })
+        });
     }
+
+    Ok(stream)
 }
 
 /// When a type is given a formality attribute, we use that to guide parsing:
@@ -143,49 +163,15 @@ fn parse_variant(
 fn parse_variant_with_attr(
     variant: &synstructure::VariantInfo,
     spec: &FormalitySpec,
+    mut stream: TokenStream,
 ) -> syn::Result<TokenStream> {
-    let mut stream = TokenStream::new();
-
     for symbol in &spec.symbols {
         stream.extend(match symbol {
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode: FieldMode::Single,
-            } => {
+            spec::FormalitySpecSymbol::Field { name, mode } => {
+                let initializer = parse_field_mode(name.span(), mode);
                 quote_spanned! {
                     name.span() =>
-                    let #name = __p.nonterminal()?;
-                }
-            }
-
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode: FieldMode::Optional,
-            } => {
-                quote_spanned! {
-                    name.span() =>
-                    let #name = __p.opt_nonterminal()?;
-                    let #name = #name.unwrap_or_default();
-                }
-            }
-
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode: FieldMode::Many,
-            } => {
-                quote_spanned! {
-                    name.span() =>
-                    let #name = __p.many_nonterminal()?;
-                }
-            }
-
-            spec::FormalitySpecSymbol::Field {
-                name,
-                mode: FieldMode::Comma,
-            } => {
-                quote_spanned! {
-                    name.span() =>
-                    let #name = __p.comma_nonterminal()?;
+                    let #name = #initializer;
                 }
             }
 
@@ -220,6 +206,62 @@ fn parse_variant_with_attr(
     });
 
     Ok(stream)
+}
+
+fn parse_field_mode(span: Span, mode: &FieldMode) -> TokenStream {
+    match mode {
+        FieldMode::Single => {
+            quote_spanned! {
+                span =>
+                __p.nonterminal()?
+            }
+        }
+
+        FieldMode::Optional => {
+            quote_spanned! {
+                span =>
+                __p.opt_nonterminal()?.unwrap_or_default()
+            }
+        }
+
+        FieldMode::Many => {
+            quote_spanned! {
+                span =>
+                __p.many_nonterminal()?
+            }
+        }
+
+        FieldMode::DelimitedVec {
+            open,
+            optional,
+            close,
+        } => {
+            let open = Literal::character(*open);
+            let close = Literal::character(*close);
+            quote_spanned! {
+                span =>
+                __p.delimited_nonterminal(#open, #optional, #close)?
+            }
+        }
+        FieldMode::Comma => {
+            quote_spanned! {
+                span =>
+                __p.comma_nonterminal()?
+            }
+        }
+
+        FieldMode::Guarded { guard, mode } => {
+            let guard_keyword = as_literal(guard);
+            let initializer = parse_field_mode(span, mode);
+            quote_spanned! {
+                span =>
+                match __p.expect_keyword(#guard_keyword) {
+                    Ok(()) => #initializer,
+                    Err(_) => Default::default(),
+                }
+            }
+        }
+    }
 }
 
 fn get_grammar_attr(attrs: &[Attribute]) -> Option<syn::Result<FormalitySpec>> {

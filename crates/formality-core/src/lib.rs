@@ -32,6 +32,7 @@ pub mod language;
 pub mod parse;
 pub mod substitution;
 pub mod term;
+pub mod util;
 pub mod variable;
 pub mod visit;
 
@@ -95,18 +96,27 @@ macro_rules! declare_language {
     ) => {
         $(#[$the_lang_m:meta])*
         $the_lang_v mod $the_lang {
-            use super::*;
+            use $crate::language::Language;
 
             #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
             pub struct FormalityLang;
 
-            impl $crate::language::Language for FormalityLang {
-                const NAME: &'static str = $name;
-                type Kind = $kind;
-                type Parameter = $param;
-                const BINDING_OPEN: char = $binding_open;
-                const BINDING_CLOSE: char = $binding_close;
-                const KEYWORDS: &'static [&'static str] = &[$($kw),*];
+            // This module may seem weird -- it permits us to import `super::*`
+            // so that all the types in `$kind` and `$param` are valid without
+            // importing `super::*` into the entire module. This not only makes
+            // things a bit nicer, since those imports are not needed and could
+            // cause weird behavior, it avoids a cycle when users
+            // do `pub use $lang::grammar::*`.
+            mod __hygiene {
+                use super::super::*;
+                impl $crate::language::Language for super::FormalityLang {
+                    const NAME: &'static str = $name;
+                    type Kind = $kind;
+                    type Parameter = $param;
+                    const BINDING_OPEN: char = $binding_open;
+                    const BINDING_CLOSE: char = $binding_close;
+                    const KEYWORDS: &'static [&'static str] = &[$($kw),*];
+                }
             }
 
             $crate::trait_alias! {
@@ -125,15 +135,19 @@ macro_rules! declare_language {
                 pub trait Term = $crate::term::CoreTerm<FormalityLang>
             }
 
-            pub type Variable = $crate::variable::CoreVariable<FormalityLang>;
-            pub type ExistentialVar = $crate::variable::CoreExistentialVar<FormalityLang>;
-            pub type UniversalVar = $crate::variable::CoreUniversalVar<FormalityLang>;
-            pub type BoundVar = $crate::variable::CoreBoundVar<FormalityLang>;
-            pub type DebruijnIndex = $crate::variable::DebruijnIndex;
-            pub type VarIndex = $crate::variable::VarIndex;
-            pub type Binder<T> = $crate::binder::CoreBinder<FormalityLang, T>;
-            pub type Substitution = $crate::substitution::CoreSubstitution<FormalityLang>;
-            pub type VarSubstitution = $crate::substitution::CoreVarSubstitution<FormalityLang>;
+            /// Grammar items to be included in this language.
+            pub mod grammar {
+                use super::FormalityLang;
+                pub type Variable = $crate::variable::CoreVariable<FormalityLang>;
+                pub type ExistentialVar = $crate::variable::CoreExistentialVar<FormalityLang>;
+                pub type UniversalVar = $crate::variable::CoreUniversalVar<FormalityLang>;
+                pub type BoundVar = $crate::variable::CoreBoundVar<FormalityLang>;
+                pub type DebruijnIndex = $crate::variable::DebruijnIndex;
+                pub type VarIndex = $crate::variable::VarIndex;
+                pub type Binder<T> = $crate::binder::CoreBinder<FormalityLang, T>;
+                pub type Substitution = $crate::substitution::CoreSubstitution<FormalityLang>;
+                pub type VarSubstitution = $crate::substitution::CoreVarSubstitution<FormalityLang>;
+            }
 
             /// Parses `text` as a term with no bindings in scope.
             #[track_caller]
@@ -161,7 +175,7 @@ macro_rules! declare_language {
             pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> $crate::Fallible<T>
             where
                 T: Parse,
-                B: $crate::Upcast<(String, $param)>,
+                B: $crate::Upcast<(String, <FormalityLang as Language>::Parameter)>,
             {
                 $crate::parse::core_term_with::<FormalityLang, T, B>(bindings, text)
             }

@@ -261,14 +261,16 @@ where
     T: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<")?;
-        for (kind, i) in self.kinds.iter().zip(0..) {
-            if i > 0 {
-                write!(f, ", ")?;
+        if !self.kinds.is_empty() {
+            write!(f, "{}", L::BINDING_OPEN)?;
+            for (kind, i) in self.kinds.iter().zip(0..) {
+                if i > 0 {
+                    write!(f, ", ")?;
+                }
+                write!(f, "{:?}", kind)?;
             }
-            write!(f, "{:?}", kind)?;
+            write!(f, "{} ", L::BINDING_CLOSE)?;
         }
-        write!(f, "> ")?;
         write!(f, "{:?}", &self.term)?;
         Ok(())
     }

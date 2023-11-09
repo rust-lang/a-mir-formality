@@ -14,7 +14,7 @@ use std::fmt::Debug;
 /// Trait for parsing a [`Term<L>`](`crate::term::Term`) as input.
 /// Typically this is auto-generated with the `#[term]` procedural macro,
 /// but you can implement it by hand if you want a very customized parse.
-pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq {
+pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq + 'static {
     /// Parse a single instance of this type, returning an error if no such
     /// instance is present.
     ///
@@ -24,7 +24,7 @@ pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq {
 }
 
 mod parser;
-pub use parser::{skip_whitespace, ActiveVariant, Parser};
+pub use parser::{skip_whitespace, ActiveVariant, Parser, Precedence};
 
 /// Parses `text` as a term with the given bindings in scope.
 ///
@@ -58,7 +58,7 @@ where
 }
 
 /// Record from a successful parse.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SuccessfulParse<'t, T> {
     /// The new point in the input, after we've consumed whatever text we have.
     text: &'t str,
@@ -76,21 +76,15 @@ pub struct SuccessfulParse<'t, T> {
     /// reduction.
     reductions: Vec<&'static str>,
 
+    /// The precedence of this parse, which is derived from the value given
+    /// to `parse_variant`.
+    precedence: Precedence,
+
     /// The value produced.
     value: T,
 }
 
 impl<'t, T> SuccessfulParse<'t, T> {
-    #[track_caller]
-    pub fn new(text: &'t str, reductions: Vec<&'static str>, value: T) -> Self {
-        // assert!(!reductions.is_empty());
-        Self {
-            text,
-            reductions,
-            value,
-        }
-    }
-
     /// Extract the value parsed and the remaining text,
     /// ignoring the reductions.
     pub fn finish(self) -> (T, &'t str) {
@@ -103,6 +97,7 @@ impl<'t, T> SuccessfulParse<'t, T> {
         SuccessfulParse {
             text: self.text,
             reductions: self.reductions,
+            precedence: self.precedence,
             value: op(self.value),
         }
     }
@@ -117,6 +112,7 @@ where
         SuccessfulParse {
             text: term.text,
             reductions: term.reductions,
+            precedence: term.precedence,
             value: term.value.upcast(),
         }
     }
@@ -172,7 +168,7 @@ pub type ParseResult<'t, T> = Result<SuccessfulParse<'t, T>, Set<ParseError<'t>>
 pub type TokenResult<'t, T> = Result<(T, &'t str), Set<ParseError<'t>>>;
 
 /// Tracks the variables in scope at this point in parsing.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Scope<L: Language> {
     bindings: Vec<(String, CoreParameter<L>)>,
 }
@@ -222,10 +218,7 @@ where
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "Vec", |p| {
-            p.expect_char('[')?;
-            let v = p.comma_nonterminal()?;
-            p.expect_char(']')?;
-            Ok(v)
+            p.delimited_nonterminal('[', false, ']')
         })
     }
 }
@@ -277,7 +270,13 @@ where
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "Binder", |p| {
-            p.expect_char(L::BINDING_OPEN)?;
+            match p.expect_char(L::BINDING_OPEN) {
+                Ok(()) => {}
+                Err(_) => {
+                    return Ok(CoreBinder::dummy(p.nonterminal()?));
+                }
+            }
+
             let bindings: Vec<Binding<L>> = p.comma_nonterminal()?;
             p.expect_char(L::BINDING_CLOSE)?;
 

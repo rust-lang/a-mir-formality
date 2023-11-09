@@ -1,7 +1,7 @@
 [
     crate core {
-        trait Foo<> where [] {}
-        impl<> Foo<> for u32 where [] {}
-        impl<> Foo<> for u32 where [] {}
+        trait Foo {}
+        impl Foo for u32 {}
+        impl Foo for u32 {}
     }
 ]

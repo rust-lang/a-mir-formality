@@ -2,6 +2,6 @@
 /// substituting and directly going to a wrong constant.
 [
     crate Foo {
-        trait Foo<> where [type_of_const true is u32] {}
+        trait Foo where type_of_const true is u32 {}
     }
 ]

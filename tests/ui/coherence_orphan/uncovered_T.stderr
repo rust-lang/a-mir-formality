@@ -1,4 +1,4 @@
-Error: orphan_check(impl <ty> CoreTrait < FooStruct > for ^ty0_0 where [] { })
+Error: orphan_check(impl <ty> CoreTrait <FooStruct> for ^ty0_0 { })
 
 Caused by:
     failed to prove {@ IsLocal(CoreTrait(!ty_1, FooStruct))} given {}, got {}

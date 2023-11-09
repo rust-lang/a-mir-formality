@@ -1,4 +1,7 @@
-use proc_macro2::{Ident, Punct, TokenStream, TokenTree};
+use std::{iter::Peekable, sync::Arc};
+
+use proc_macro2::{Group, Ident, Punct, TokenStream, TokenTree};
+use syn::spanned::Spanned;
 
 /// The "formality spec" guides parsing and serialization.
 ///
@@ -32,6 +35,26 @@ pub enum FormalitySpecSymbol {
 pub enum FieldMode {
     /// $x -- just parse `x`
     Single,
+
+    Guarded {
+        guard: Ident,
+        mode: Arc<FieldMode>,
+    },
+
+    /// $<x> -- `x` is a `Vec<E>`, parse `<E0,...,En>`
+    /// $[x] -- `x` is a `Vec<E>`, parse `[E0,...,En]`
+    /// $(x) -- `x` is a `Vec<E>`, parse `(E0,...,En)`
+    /// $<?x> -- `x` is a `Vec<E>`, parse `<E0,...,En>` or empty list
+    /// $[?x] -- `x` is a `Vec<E>`, parse `[E0,...,En]` or empty list
+    /// $(?x) -- `x` is a `Vec<E>`, parse `(E0,...,En)` or empty list
+    ///
+    /// If the next op is a fixed character, stop parsing when we see that.
+    /// Otherwise parse as many we can greedily.
+    DelimitedVec {
+        open: char,
+        optional: bool,
+        close: char,
+    },
 
     /// $*x -- `x` is a `Vec<E>`, parse multiple `E`
     ///
@@ -70,24 +93,19 @@ fn token_stream_to_symbols(
     while let Some(token) = tokens.next() {
         match token {
             proc_macro2::TokenTree::Group(v) => {
-                let (open_text, close_text) = match v.delimiter() {
-                    proc_macro2::Delimiter::Parenthesis => (Some('('), Some(')')),
-                    proc_macro2::Delimiter::Brace => (Some('{'), Some('}')),
-                    proc_macro2::Delimiter::Bracket => (Some('['), Some(']')),
-                    proc_macro2::Delimiter::None => (None, None),
-                };
+                let open_close = open_close(&v);
 
-                if let Some(ch) = open_text {
+                if let Some((ch, _)) = open_close {
                     symbols.push(Delimeter { text: ch });
                 }
                 token_stream_to_symbols(symbols, v.stream())?;
-                if let Some(ch) = close_text {
+                if let Some((_, ch)) = open_close {
                     symbols.push(Delimeter { text: ch });
                 }
             }
             proc_macro2::TokenTree::Ident(ident) => symbols.push(Keyword { ident }),
             proc_macro2::TokenTree::Punct(punct) => match punct.as_char() {
-                '$' => symbols.push(parse_variable_binding(punct, &mut tokens)?),
+                '$' => symbols.push(parse_variable_binding(&punct, &mut tokens)?),
                 _ => symbols.push(Char { punct }),
             },
             proc_macro2::TokenTree::Literal(_) => {
@@ -107,46 +125,201 @@ fn token_stream_to_symbols(
 /// or we could also see a `$`, in which case user wrote `$$`, and we treat that as a single
 /// `$` sign.
 fn parse_variable_binding(
-    dollar_token: Punct,
-    tokens: &mut impl Iterator<Item = TokenTree>,
+    dollar_token: &Punct,
+    tokens: &mut dyn Iterator<Item = TokenTree>,
 ) -> syn::Result<FormalitySpecSymbol> {
-    let error = || {
-        let message = "expected field name or field mode (`,`, `*`)";
-        Err(syn::Error::new(dollar_token.span(), message))
+    let mut tokens = tokens.peekable();
+
+    let Some(token) = tokens.peek() else {
+        return error(
+            dollar_token,
+            "incomplete field reference; use `$$` if you just want a dollar sign",
+        );
     };
 
-    let mut next_token = match tokens.next() {
-        Some(v) => v,
-        None => return error(),
-    };
-
-    // If there is a field mode (e.g., `*`) present, parse it.
-    let mode = match next_token {
-        TokenTree::Ident(_) => FieldMode::Single,
-        TokenTree::Punct(punct) => {
-            let mode = match punct.as_char() {
-                ',' => FieldMode::Comma,
-                '*' => FieldMode::Many,
-                '?' => FieldMode::Optional,
-                '$' => return Ok(FormalitySpecSymbol::Char { punct }),
-                _ => return error(),
-            };
-
-            next_token = match tokens.next() {
-                Some(v) => v,
-                None => return error(),
-            };
-
-            mode
+    return match token {
+        // $x
+        TokenTree::Ident(_) => {
+            parse_variable_binding_name(dollar_token, FieldMode::Single, &mut tokens)
         }
-        TokenTree::Group(_) | TokenTree::Literal(_) => return error(),
+
+        // $$
+        TokenTree::Punct(punct) if punct.as_char() == '$' => {
+            let Some(TokenTree::Punct(punct)) = tokens.next() else {
+                unreachable!()
+            };
+            Ok(FormalitySpecSymbol::Char { punct })
+        }
+
+        // $,x
+        TokenTree::Punct(punct) if punct.as_char() == ',' => {
+            tokens.next();
+            parse_variable_binding_name(dollar_token, FieldMode::Comma, &mut tokens)
+        }
+
+        // $*x
+        TokenTree::Punct(punct) if punct.as_char() == '*' => {
+            tokens.next();
+            parse_variable_binding_name(dollar_token, FieldMode::Many, &mut tokens)
+        }
+
+        // $?x
+        TokenTree::Punct(punct) if punct.as_char() == '?' => {
+            tokens.next();
+            parse_variable_binding_name(dollar_token, FieldMode::Optional, &mut tokens)
+        }
+
+        // $:guard $x
+        TokenTree::Punct(punct) if punct.as_char() == ':' => {
+            let guard_token = tokens.next().unwrap();
+            parse_guarded_variable_binding(dollar_token, guard_token, &mut tokens)
+        }
+
+        // $<x> or $<?x>
+        TokenTree::Punct(punct) if punct.as_char() == '<' => {
+            tokens.next();
+
+            // consume `x` or `?x`
+            let result = parse_delimited(dollar_token, '<', '>', &mut tokens)?;
+
+            // we should see a `>` next
+            match tokens.next() {
+                Some(TokenTree::Punct(punct)) if punct.as_char() == '>' => Ok(result),
+                _ => error(dollar_token, "expected a `>` to end this field reference"),
+            }
+        }
+
+        // $(x) or $(?x)
+        // $[x] or $[?x]
+        // ${x} or ${?x}
+        TokenTree::Group(_) => {
+            let Some(TokenTree::Group(group)) = tokens.next() else {
+                unreachable!()
+            };
+            let Some((open, close)) = open_close(&group) else {
+                return error(&group, "did not expect a spliced macro_rules group here");
+            };
+
+            // consume `x` or `?x`
+            let mut group_tokens = group.stream().into_iter().peekable();
+            let result = parse_delimited(dollar_token, open, close, &mut group_tokens)?;
+
+            // there shouldn't be anything else in the token tree
+            if let Some(t) = group_tokens.next() {
+                return error(
+                    &t,
+                    "extra characters in delimited field reference after field name",
+                );
+            }
+            Ok(result)
+        }
+
+        _ => error(dollar_token, "invalid field reference"),
     };
 
-    // Extract the name of the field.
-    let name = match next_token {
-        TokenTree::Ident(name) => name,
-        _ => return error(),
-    };
+    fn parse_guarded_variable_binding(
+        dollar_token: &Punct,
+        guard_token: TokenTree,
+        tokens: &mut Peekable<impl Iterator<Item = TokenTree>>,
+    ) -> syn::Result<FormalitySpecSymbol> {
+        // The next token should be an identifier
+        let Some(TokenTree::Ident(guard_ident)) = tokens.next() else {
+            return error(
+                &guard_token,
+                "expected an identifier after a `:` in a field reference",
+            );
+        };
 
-    Ok(FormalitySpecSymbol::Field { name, mode })
+        // The next token should be a `$`, beginning another variable binding
+        let next_dollar_token = match tokens.next() {
+            Some(TokenTree::Punct(next_dollar_token)) if next_dollar_token.as_char() == '$' => {
+                next_dollar_token
+            }
+
+            _ => {
+                return error(
+                    &dollar_token,
+                    "expected another `$` field reference to follow the `:` guard",
+                );
+            }
+        };
+
+        // Then should come another field reference.
+        let FormalitySpecSymbol::Field { name, mode } =
+            parse_variable_binding(&next_dollar_token, tokens)?
+        else {
+            return error(
+                &next_dollar_token,
+                "`$:` must be followed by another field reference, not a `$$` literal",
+            );
+        };
+
+        let guard_mode = FieldMode::Guarded {
+            guard: guard_ident,
+            mode: Arc::new(mode),
+        };
+
+        Ok(FormalitySpecSymbol::Field {
+            name: name,
+            mode: guard_mode,
+        })
+    }
+
+    fn parse_delimited(
+        dollar_token: &Punct,
+        open: char,
+        close: char,
+        tokens: &mut Peekable<impl Iterator<Item = TokenTree>>,
+    ) -> syn::Result<FormalitySpecSymbol> {
+        // Check for a `?` and consume it, if present.
+        let optional = match tokens.peek() {
+            Some(TokenTree::Punct(punct)) if punct.as_char() == '?' => {
+                tokens.next(); // drop `?` character
+                true
+            }
+
+            _ => false,
+        };
+
+        parse_variable_binding_name(
+            dollar_token,
+            FieldMode::DelimitedVec {
+                open,
+                optional,
+                close,
+            },
+            tokens,
+        )
+    }
+
+    fn parse_variable_binding_name(
+        dollar_token: &Punct,
+        mode: FieldMode,
+        tokens: &mut impl Iterator<Item = TokenTree>,
+    ) -> syn::Result<FormalitySpecSymbol> {
+        // Extract the name of the field.
+        let name = match tokens.next() {
+            Some(TokenTree::Ident(name)) => name,
+            _ => return error(dollar_token, "expected field name"),
+        };
+
+        Ok(FormalitySpecSymbol::Field { name, mode })
+    }
+
+    fn error(at_token: &impl Spanned, message: impl ToString) -> syn::Result<FormalitySpecSymbol> {
+        let mut message = message.to_string();
+        if message.is_empty() {
+            message = "invalid field reference in grammar".into();
+        }
+        Err(syn::Error::new(at_token.span(), message))
+    }
+}
+
+fn open_close(g: &Group) -> Option<(char, char)> {
+    match g.delimiter() {
+        proc_macro2::Delimiter::Parenthesis => Some(('(', ')')),
+        proc_macro2::Delimiter::Brace => Some(('{', '}')),
+        proc_macro2::Delimiter::Bracket => Some(('[', ']')),
+        proc_macro2::Delimiter::None => None,
+    }
 }

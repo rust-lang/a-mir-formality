@@ -1,4 +1,4 @@
-Error: check_trait_impl(impl <ty> Foo < > for ^ty0_0 where [^ty0_0 : Foo < >] { })
+Error: check_trait_impl(impl <ty> Foo for ^ty0_0 where ^ty0_0 : Foo { })
 
 Caused by:
     failed to disprove

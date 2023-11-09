@@ -1,9 +1,9 @@
 //@check-pass
 [
     crate Foo {
-        trait Foo<const C> where [type_of_const C is bool] {}
-        trait Bar<const C> where [type_of_const C is u32] {}
+        trait Foo<const C> where type_of_const C is bool {}
+        trait Bar<const C> where type_of_const C is u32 {}
 
-        impl<const C> Foo<const C> for u32 where [type_of_const C is bool] {}
+        impl<const C> Foo<const C> for u32 where type_of_const C is bool {}
     }
 ]

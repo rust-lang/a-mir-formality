@@ -1,5 +1,5 @@
 Error: check_trait(Foo)
 
 Caused by:
-    0: prove_where_clause_well_formed(!ty_2 : Bar < !ty_1 >)
+    0: prove_where_clause_well_formed(!ty_2 : Bar <!ty_1>)
     1: failed to prove {@ WellFormedTraitRef(Bar(!ty_2, !ty_1))} given {Bar(!ty_2, !ty_1)}, got {}

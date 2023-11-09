@@ -9,6 +9,7 @@ use crate::grammar::PR;
 use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef};
 
 #[term($set)]
+#[derive(Default)]
 pub struct Wcs {
     set: Set<Wc>,
 }
@@ -90,12 +91,6 @@ impl DowncastTo<(Wc, Wcs)> for Wcs {
             let (wc, set) = self.set.clone().split_first().unwrap();
             Some((wc, set.upcast()))
         }
-    }
-}
-
-impl UpcastFrom<()> for Wcs {
-    fn upcast_from((): ()) -> Self {
-        Wcs::t()
     }
 }
 
