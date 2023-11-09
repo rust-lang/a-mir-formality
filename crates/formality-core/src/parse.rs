@@ -168,7 +168,7 @@ pub type ParseResult<'t, T> = Result<SuccessfulParse<'t, T>, Set<ParseError<'t>>
 pub type TokenResult<'t, T> = Result<(T, &'t str), Set<ParseError<'t>>>;
 
 /// Tracks the variables in scope at this point in parsing.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Scope<L: Language> {
     bindings: Vec<(String, CoreParameter<L>)>,
 }
