@@ -1,3 +1,5 @@
+use std::fmt;
+
 use formality_core::{set, Set, Upcast};
 use formality_macros::term;
 use formality_types::grammar::{
@@ -141,11 +143,21 @@ pub struct NegImplDeclBoundData {
 }
 
 #[term]
+#[customize(debug)]
 #[derive(Default)]
 pub enum Safety {
     #[default]
     Safe,
     Unsafe,
+}
+
+impl fmt::Debug for Safety {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Safety::Safe => write!(f, "safe"),
+            Safety::Unsafe => write!(f, "unsafe"),
+        }
+    }
 }
 
 /// A "trait declaration" declares a trait that exists, its generics, and its where-clauses.
