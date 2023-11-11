@@ -17,10 +17,8 @@ use formality_types::{
 };
 
 impl super::Check<'_> {
-    #[context("check_trait_impl({v:?})")]
-    pub(super) fn check_trait_impl(&self, v: &TraitImpl) -> Fallible<()> {
-        let TraitImpl { binder, safety } = v;
-
+    #[context("check_trait_impl({trait_impl:?})")]
+    pub(super) fn check_trait_impl(&self, trait_impl: &TraitImpl) -> Fallible<()> {
         let mut env = Env::default();
 
         let TraitImplBoundData {
@@ -29,7 +27,7 @@ impl super::Check<'_> {
             trait_parameters,
             where_clauses,
             impl_items,
-        } = env.instantiate_universally(binder);
+        } = env.instantiate_universally(&trait_impl.binder);
 
         let trait_ref = trait_id.with(self_ty, trait_parameters);
 
@@ -45,7 +43,7 @@ impl super::Check<'_> {
             trait_items,
         } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?;
 
-        self.check_safety_matches(&trait_decl, safety)?;
+        self.check_safety_matches(&trait_decl, &trait_impl)?;
 
         for impl_item in &impl_items {
             self.check_trait_impl_item(&env, &where_clauses, &trait_items, impl_item)?;
@@ -74,8 +72,8 @@ impl super::Check<'_> {
     }
 
     /// Validate that the declared safety of an impl matches the one from the trait declaration.
-    fn check_safety_matches(&self, trait_decl: &Trait, trait_impl: &Safety) -> Fallible<()> {
-        if trait_decl.safety != *trait_impl {
+    fn check_safety_matches(&self, trait_decl: &Trait, trait_impl: &TraitImpl) -> Fallible<()> {
+        if trait_decl.safety != trait_impl.safety {
             match trait_decl.safety {
                 Safety::Safe => bail!("implementing the trait `{:?}` is not unsafe", trait_decl.id),
                 Safety::Unsafe => bail!(
