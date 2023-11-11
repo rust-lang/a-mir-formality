@@ -1,0 +1,4 @@
+Error: check_neg_trait_impl(unsafe impl ! Foo for u32 {})
+
+Caused by:
+    negative impls cannot be unsafe
