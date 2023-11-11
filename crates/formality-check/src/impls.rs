@@ -52,7 +52,8 @@ impl super::Check<'_> {
         Ok(())
     }
 
-    pub(super) fn check_neg_trait_impl(&self, i: &NegTraitImpl) -> Fallible<()> {
+    #[context("check_neg_trait_impl({trait_impl:?})")]
+    pub(super) fn check_neg_trait_impl(&self, trait_impl: &NegTraitImpl) -> Fallible<()> {
         let mut env = Env::default();
 
         let NegTraitImplBoundData {
@@ -60,9 +61,14 @@ impl super::Check<'_> {
             self_ty,
             trait_parameters,
             where_clauses,
-        } = env.instantiate_universally(&i.binder);
+        } = env.instantiate_universally(&trait_impl.binder);
 
         let trait_ref = trait_id.with(self_ty, trait_parameters);
+
+        // Negative impls are always safe (rustc E0198) regardless of the trait's safety.
+        if trait_impl.safety == Safety::Unsafe {
+            bail!("negative impls cannot be unsafe");
+        }
 
         self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?;
 
