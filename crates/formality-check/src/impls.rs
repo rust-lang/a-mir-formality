@@ -6,8 +6,8 @@ use formality_prove::{Env, Safety};
 use formality_rust::{
     grammar::{
         AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
-        FnBoundData, ImplItem, NegTraitImpl, NegTraitImplBoundData, TraitBoundData, TraitImpl,
-        TraitImplBoundData, TraitItem,
+        FnBoundData, ImplItem, NegTraitImpl, NegTraitImplBoundData, Trait, TraitBoundData,
+        TraitImpl, TraitImplBoundData, TraitItem,
     },
     prove::ToWcs,
 };
@@ -45,7 +45,7 @@ impl super::Check<'_> {
             trait_items,
         } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?;
 
-        self.check_safety_matches(&trait_decl.safety, safety)?;
+        self.check_safety_matches(&trait_decl, safety)?;
 
         for impl_item in &impl_items {
             self.check_trait_impl_item(&env, &where_clauses, &trait_items, impl_item)?;
@@ -73,17 +73,16 @@ impl super::Check<'_> {
         Ok(())
     }
 
-    /// Validate `unsafe trait` and `unsafe impl` line up
-    fn check_safety_matches(&self, trait_decl: &Safety, trait_impl: &Safety) -> Fallible<()> {
-        match trait_decl {
-            Safety::Safe => anyhow::ensure!(
-                matches!(trait_impl, Safety::Safe),
-                "implementing the trait is not `unsafe`"
-            ),
-            Safety::Unsafe => anyhow::ensure!(
-                matches!(trait_impl, Safety::Unsafe),
-                "the trait requires an `unsafe impl` declaration"
-            ),
+    /// Validate that the declared safety of an impl matches the one from the trait declaration.
+    fn check_safety_matches(&self, trait_decl: &Trait, trait_impl: &Safety) -> Fallible<()> {
+        if trait_decl.safety != *trait_impl {
+            match trait_decl.safety {
+                Safety::Safe => bail!("implementing the trait `{:?}` is not unsafe", trait_decl.id),
+                Safety::Unsafe => bail!(
+                    "the trait `{:?}` requires an `unsafe impl` declaration",
+                    trait_decl.id
+                ),
+            }
         }
         Ok(())
     }
