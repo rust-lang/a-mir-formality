@@ -1,5 +1,6 @@
-use proc_macro2::TokenStream;
-use quote::quote;
+use convert_case::{Case, Casing};
+use proc_macro2::{Ident, TokenStream};
+use quote::{quote, quote_spanned};
 use syn::Type;
 use synstructure::VariantInfo;
 
@@ -79,7 +80,7 @@ fn downcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStr
         }
     });
 
-    s.gen_impl(quote! {
+    let mut ts = s.gen_impl(quote! {
         use formality_core::{DowncastTo};
 
         gen impl DowncastTo<(#(#binding_tys),*)> for @Self {
@@ -89,5 +90,44 @@ fn downcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStr
                 }
             }
         }
-    })
+    });
+
+    if binding_tys.len() == 1 && matches!(s.ast().data, syn::Data::Enum(_)) {
+        let binding_ty = &binding_tys[0];
+        let type_name = &s.ast().ident;
+        let variant_name = &v.ast().ident;
+        let as_method_name = Ident::new(
+            &format!("as_{}", variant_name.to_string().to_case(Case::Snake)),
+            v.ast().ident.span(),
+        );
+        let (impl_generics, type_generics, where_clauses) = s.ast().generics.split_for_impl();
+
+        let match_arms = s.each_variant(|variant_info| {
+            if variant_info.ast().ident == v.ast().ident {
+                let bindings = variant_info.bindings();
+                let binding_idents: Vec<&syn::Ident> =
+                    bindings.iter().map(|b| &b.binding).collect();
+                quote! { Some((#(#binding_idents),*)) }
+            } else {
+                quote! { None }
+            }
+        });
+
+        let as_impl = quote_spanned! { v.ast().ident.span() =>
+            #[allow(dead_code)]
+            impl #impl_generics #type_name #type_generics
+            where #where_clauses
+            {
+                pub fn #as_method_name(&self) -> Option<& #binding_ty> {
+                    match self {
+                        #match_arms
+                    }
+                }
+            }
+        };
+
+        ts.extend(as_impl);
+    }
+
+    ts
 }
