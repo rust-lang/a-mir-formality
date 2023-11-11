@@ -1,8 +1,8 @@
 #![cfg(test)]
 
 use std::sync::Arc;
-use crate::cast_impl;
 
+use crate::cast_impl;
 use crate::judgment_fn;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Clone, Debug, Hash)]
@@ -24,14 +24,14 @@ impl Graph {
 judgment_fn!(
     fn transitive_reachable(g: Arc<Graph>, node: u32) => u32 {
         debug(node, g)
-        
+
         (
             (graph.successors(a) => b)
             (if b % 2 == 0)
             --------------------------------------- ("base")
             (transitive_reachable(graph, a) => b)
         )
-    
+
         (
             (transitive_reachable(&graph, a) => b)
             (transitive_reachable(&graph, b) => c)

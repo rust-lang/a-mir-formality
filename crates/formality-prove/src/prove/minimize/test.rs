@@ -23,7 +23,7 @@ fn minimize_a() {
     let (mut env_min, term_min, m) = minimize(env, term);
 
     expect!["(Env { variables: [?ty_0, ?ty_1], coherence_mode: false }, [?ty_0, ?ty_1])"]
-    .assert_eq(&format!("{:?}", (&env_min, &term_min)));
+        .assert_eq(&format!("{:?}", (&env_min, &term_min)));
 
     let ty0 = term_min[0].as_variable().unwrap();
     let ty1 = term_min[1].as_variable().unwrap();
