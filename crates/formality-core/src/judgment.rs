@@ -265,7 +265,9 @@ macro_rules! push_rules {
     };
 
     (@body $args:tt ($i:expr => $p:pat) $($m:tt)*) => {
-        for $p in $i {
+        // Explicitly calling `into_iter` silences some annoying lints
+        // in the case where `$i` is an `Option` or a `Result`
+        for $p in std::iter::IntoIterator::into_iter($i) {
             $crate::push_rules!(@body $args $($m)*);
         }
     };
