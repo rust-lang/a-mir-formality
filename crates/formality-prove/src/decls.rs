@@ -142,6 +142,7 @@ pub struct NegImplDeclBoundData {
     pub where_clause: Wcs,
 }
 
+/// Mark a trait or trait impl as `unsafe`.
 #[term]
 #[customize(debug)]
 #[derive(Default)]
