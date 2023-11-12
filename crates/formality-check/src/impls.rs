@@ -19,6 +19,8 @@ use formality_types::{
 impl super::Check<'_> {
     #[context("check_trait_impl({trait_impl:?})")]
     pub(super) fn check_trait_impl(&self, trait_impl: &TraitImpl) -> Fallible<()> {
+        let TraitImpl { binder, safety: _ } = trait_impl;
+
         let mut env = Env::default();
 
         let TraitImplBoundData {
@@ -27,7 +29,7 @@ impl super::Check<'_> {
             trait_parameters,
             where_clauses,
             impl_items,
-        } = env.instantiate_universally(&trait_impl.binder);
+        } = env.instantiate_universally(&binder);
 
         let trait_ref = trait_id.with(self_ty, trait_parameters);
 
