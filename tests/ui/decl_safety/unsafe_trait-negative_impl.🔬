@@ -1,0 +1,7 @@
+//@check-pass
+[
+    crate baguette {
+        unsafe trait Foo {}
+        impl !Foo for u32 {}
+    }
+]

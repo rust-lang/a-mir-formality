@@ -8,7 +8,11 @@ use formality_types::grammar::Fallible;
 impl super::Check<'_> {
     #[context("check_trait({:?})", t.id)]
     pub(super) fn check_trait(&self, t: &Trait) -> Fallible<()> {
-        let Trait { id: _, binder } = t;
+        let Trait {
+            safety: _,
+            id: _,
+            binder,
+        } = t;
         let mut env = Env::default();
 
         let TraitBoundData {

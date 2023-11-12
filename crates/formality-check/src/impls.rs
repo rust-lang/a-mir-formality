@@ -2,12 +2,12 @@ use anyhow::bail;
 
 use fn_error_context::context;
 use formality_core::Downcasted;
-use formality_prove::Env;
+use formality_prove::{Env, Safety};
 use formality_rust::{
     grammar::{
         AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
-        FnBoundData, ImplItem, NegTraitImpl, NegTraitImplBoundData, TraitBoundData, TraitImpl,
-        TraitImplBoundData, TraitItem,
+        FnBoundData, ImplItem, NegTraitImpl, NegTraitImplBoundData, Trait, TraitBoundData,
+        TraitImpl, TraitImplBoundData, TraitItem,
     },
     prove::ToWcs,
 };
@@ -17,10 +17,8 @@ use formality_types::{
 };
 
 impl super::Check<'_> {
-    #[context("check_trait_impl({v:?})")]
-    pub(super) fn check_trait_impl(&self, v: &TraitImpl) -> Fallible<()> {
-        let TraitImpl { binder } = v;
-
+    #[context("check_trait_impl({trait_impl:?})")]
+    pub(super) fn check_trait_impl(&self, trait_impl: &TraitImpl) -> Fallible<()> {
         let mut env = Env::default();
 
         let TraitImplBoundData {
@@ -29,7 +27,7 @@ impl super::Check<'_> {
             trait_parameters,
             where_clauses,
             impl_items,
-        } = env.instantiate_universally(binder);
+        } = env.instantiate_universally(&trait_impl.binder);
 
         let trait_ref = trait_id.with(self_ty, trait_parameters);
 
@@ -45,6 +43,8 @@ impl super::Check<'_> {
             trait_items,
         } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?;
 
+        self.check_safety_matches(&trait_decl, &trait_impl)?;
+
         for impl_item in &impl_items {
             self.check_trait_impl_item(&env, &where_clauses, &trait_items, impl_item)?;
         }
@@ -52,7 +52,8 @@ impl super::Check<'_> {
         Ok(())
     }
 
-    pub(super) fn check_neg_trait_impl(&self, i: &NegTraitImpl) -> Fallible<()> {
+    #[context("check_neg_trait_impl({trait_impl:?})")]
+    pub(super) fn check_neg_trait_impl(&self, trait_impl: &NegTraitImpl) -> Fallible<()> {
         let mut env = Env::default();
 
         let NegTraitImplBoundData {
@@ -60,14 +61,33 @@ impl super::Check<'_> {
             self_ty,
             trait_parameters,
             where_clauses,
-        } = env.instantiate_universally(&i.binder);
+        } = env.instantiate_universally(&trait_impl.binder);
 
         let trait_ref = trait_id.with(self_ty, trait_parameters);
+
+        // Negative impls are always safe (rustc E0198) regardless of the trait's safety.
+        if trait_impl.safety == Safety::Unsafe {
+            bail!("negative impls cannot be unsafe");
+        }
 
         self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?;
 
         self.prove_goal(&env, &where_clauses, trait_ref.not_implemented())?;
 
+        Ok(())
+    }
+
+    /// Validate that the declared safety of an impl matches the one from the trait declaration.
+    fn check_safety_matches(&self, trait_decl: &Trait, trait_impl: &TraitImpl) -> Fallible<()> {
+        if trait_decl.safety != trait_impl.safety {
+            match trait_decl.safety {
+                Safety::Safe => bail!("implementing the trait `{:?}` is not unsafe", trait_decl.id),
+                Safety::Unsafe => bail!(
+                    "the trait `{:?}` requires an `unsafe impl` declaration",
+                    trait_decl.id
+                ),
+            }
+        }
         Ok(())
     }
 

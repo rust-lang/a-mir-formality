@@ -1,0 +1,4 @@
+Error: check_trait_impl(impl Foo for u32 { })
+
+Caused by:
+    the trait `Foo` requires an `unsafe impl` declaration

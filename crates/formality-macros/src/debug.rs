@@ -242,11 +242,21 @@ fn debug_variant_with_attr(
 
 fn debug_field_with_mode(name: &Ident, mode: &FieldMode) -> TokenStream {
     match mode {
-        FieldMode::Single | FieldMode::Optional => {
+        FieldMode::Single => {
             quote_spanned! { name.span() =>
                 write!(fmt, "{}", sep)?;
                 write!(fmt, "{:?}", #name)?;
                 sep = " ";
+            }
+        }
+
+        FieldMode::Optional => {
+            quote_spanned! { name.span() =>
+                if !::formality_core::util::is_default(#name) {
+                    write!(fmt, "{}", sep)?;
+                    write!(fmt, "{:?}", #name)?;
+                    sep = " ";
+                }
             }
         }
 

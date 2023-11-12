@@ -1,3 +1,5 @@
+use std::fmt;
+
 use formality_core::{set, Set, Upcast};
 use formality_macros::term;
 use formality_types::grammar::{
@@ -104,8 +106,10 @@ impl Decls {
 
 /// An "impl decl" indicates that a trait is implemented for a given set of types.
 /// One "impl decl" is created for each impl in the Rust source.
-#[term(impl $binder)]
+#[term($?safety impl $binder)]
 pub struct ImplDecl {
+    /// The safety this impl declares, which needs to match the implemented trait's safety.
+    pub safety: Safety,
     /// The binder covers the generic variables from the impl
     pub binder: Binder<ImplDeclBoundData>,
 }
@@ -122,8 +126,11 @@ pub struct ImplDeclBoundData {
 
 /// A declaration that some trait will *not* be implemented for a type; derived from negative impls
 /// like `impl !Foo for Bar`.
-#[term(impl $binder)]
+#[term($?safety impl $binder)]
 pub struct NegImplDecl {
+    /// The safety this negative impl declares
+    pub safety: Safety,
+
     /// Binder comes the generics on the impl
     pub binder: Binder<NegImplDeclBoundData>,
 }
@@ -135,14 +142,36 @@ pub struct NegImplDeclBoundData {
     pub where_clause: Wcs,
 }
 
+/// Mark a trait or trait impl as `unsafe`.
+#[term]
+#[customize(debug)]
+#[derive(Default)]
+pub enum Safety {
+    #[default]
+    Safe,
+    Unsafe,
+}
+
+impl fmt::Debug for Safety {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Safety::Safe => write!(f, "safe"),
+            Safety::Unsafe => write!(f, "unsafe"),
+        }
+    }
+}
+
 /// A "trait declaration" declares a trait that exists, its generics, and its where-clauses.
 /// It doesn't capture the trait items, which will be transformed into other sorts of rules.
 ///
 /// In Rust syntax, it covers the `trait Foo: Bar` part of the declaration, but not what appears in the `{...}`.
-#[term(trait $id $binder)]
+#[term($?safety trait $id $binder)]
 pub struct TraitDecl {
     /// The name of the trait
     pub id: TraitId,
+
+    /// Whether the trait is `unsafe` or not
+    pub safety: Safety,
 
     /// The binder here captures the generics of the trait; it always begins with a `Self` type.
     pub binder: Binder<TraitDeclBoundData>,
