@@ -26,7 +26,7 @@ impl Wcs {
         assert_eq!(a.len(), b.len());
         a.into_iter()
             .zip(b)
-            .map(|(a, b)| Relation::eq(a, b))
+            .map(|(a, b)| Relation::equals(a, b))
             .upcasted()
             .collect()
     }

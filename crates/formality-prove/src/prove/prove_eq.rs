@@ -17,7 +17,7 @@ use super::{constraints::Constraints, env::Env};
 
 /// Goal(s) to prove `a` and `b` are equal
 pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> Relation {
-    Relation::eq(a, b)
+    Relation::equals(a, b)
 }
 
 judgment_fn! {

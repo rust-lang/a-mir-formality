@@ -51,7 +51,7 @@ impl super::Check<'_> {
             WhereClauseData::TypeOfConst(ct, ty) => {
                 match ct.data() {
                     ConstData::Value(_, t) => {
-                        self.prove_goal(in_env, &assumptions, Relation::eq(ty, t))?
+                        self.prove_goal(in_env, &assumptions, Relation::equals(ty, t))?
                     }
                     ConstData::Variable(_) => {}
                 }
