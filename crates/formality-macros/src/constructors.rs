@@ -5,7 +5,7 @@ use synstructure::VariantInfo;
 
 const RUST_KEYWORDS: &[&str] = &[
     "mut", "true", "false", "const", "static", "ref", "struct", "enum", "trait", "union", "fn",
-    "use", "return", "move", "let", "break", "loop", "continue", "await", "if", "for",
+    "use", "return", "move", "let", "break", "loop", "continue", "await", "if", "for", "unsafe",
 ];
 
 /// Create methods to build this type.
