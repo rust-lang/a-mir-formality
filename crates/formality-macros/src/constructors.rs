@@ -51,6 +51,11 @@ fn derive_new_for_variant(
     let type_name = &s.ast().ident;
     let (impl_generics, type_generics, where_clauses) = s.ast().generics.split_for_impl();
 
+    // If there are no bindings, not worth it.
+    if v.bindings().is_empty() {
+        return TokenStream::default();
+    }
+
     let binding_names = v.bindings().iter().map(|b| &b.binding).collect::<Vec<_>>();
     let binding_types = v.bindings().iter().map(|b| &b.ast().ty).collect::<Vec<_>>();
     let construct = v.construct(|_b, i| {
