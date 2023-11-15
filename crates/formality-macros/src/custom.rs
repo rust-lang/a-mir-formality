@@ -4,6 +4,7 @@ use proc_macro2::TokenStream;
 pub(crate) struct Customize {
     pub parse: bool,
     pub debug: bool,
+    pub constructors: bool,
 }
 
 impl syn::parse::Parse for Customize {
@@ -26,6 +27,13 @@ impl syn::parse::Parse for Customize {
                         return Err(syn::Error::new(ident.span(), "already customizing debug"));
                     }
                     result.debug = true;
+                }
+
+                proc_macro2::TokenTree::Ident(ident) if ident == "constructors" => {
+                    if result.constructors {
+                        return Err(syn::Error::new(ident.span(), "already customizing debug"));
+                    }
+                    result.constructors = true;
                 }
 
                 _ => {

@@ -652,8 +652,9 @@ where
                 None => Err(ParseError::at(
                     text0,
                     format!(
-                        "wrong kind, expected a {}, found a {:?}",
+                        "wrong kind, expected a {}, found `{:?}`, which is a `{:?}`",
                         type_name,
+                        parameter,
                         parameter.kind()
                     ),
                 )),

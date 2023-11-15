@@ -7,6 +7,7 @@ pub use valtree::*;
 
 #[term]
 #[cast]
+#[customize(constructors)] // FIXME: figure out upcasts with arc or special-case
 pub struct Const {
     data: Arc<ConstData>,
 }

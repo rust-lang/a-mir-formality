@@ -171,18 +171,6 @@ pub enum Relation {
 }
 
 impl Relation {
-    pub fn eq(p1: impl Upcast<Parameter>, p2: impl Upcast<Parameter>) -> Self {
-        Self::Equals(p1.upcast(), p2.upcast())
-    }
-
-    pub fn outlives(p1: impl Upcast<Parameter>, p2: impl Upcast<Parameter>) -> Self {
-        Self::Outlives(p1.upcast(), p2.upcast())
-    }
-
-    pub fn sub(p1: impl Upcast<Parameter>, p2: impl Upcast<Parameter>) -> Self {
-        Self::Sub(p1.upcast(), p2.upcast())
-    }
-
     #[tracing::instrument(level = "trace", ret)]
     pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
         match self {
@@ -198,15 +186,6 @@ impl Relation {
 pub struct TraitRef {
     pub trait_id: TraitId,
     pub parameters: Parameters,
-}
-
-impl TraitRef {
-    pub fn new(id: &TraitId, parameters: impl Upcast<Vec<Parameter>>) -> Self {
-        Self {
-            trait_id: id.clone(),
-            parameters: parameters.upcast(),
-        }
-    }
 }
 
 impl TraitId {
