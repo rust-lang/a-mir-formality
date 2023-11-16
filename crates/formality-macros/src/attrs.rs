@@ -41,17 +41,17 @@ pub(crate) fn has_variable_attr(attrs: &[Attribute]) -> bool {
 
 /// Extract a `#[precedence]` level, defaults to 0
 pub(crate) fn precedence(attrs: &[Attribute]) -> syn::Result<Precedence> {
-    parse_attr_named(attrs, "precedence")
+    Ok(parse_attr_named(attrs, "precedence")?.unwrap_or_default())
 }
 
 /// Extracts any customization attribute from a list of attributes.
 pub(crate) fn customize(attrs: &[Attribute]) -> syn::Result<Customize> {
-    parse_attr_named(attrs, "customize")
+    Ok(parse_attr_named(attrs, "customize")?.unwrap_or_default())
 }
 
-fn parse_attr_named<T>(attrs: &[Attribute], name: &str) -> syn::Result<T>
+fn parse_attr_named<T>(attrs: &[Attribute], name: &str) -> syn::Result<Option<T>>
 where
-    T: Default + syn::parse::Parse,
+    T: syn::parse::Parse,
 {
     let mut v: Vec<T> = attrs
         .iter()
@@ -72,9 +72,9 @@ where
             format!("multiple `{}` attributes", name),
         ))
     } else if v.len() == 1 {
-        Ok(v.pop().unwrap())
+        Ok(Some(v.pop().unwrap()))
     } else {
-        Ok(T::default())
+        Ok(None)
     }
 }
 
