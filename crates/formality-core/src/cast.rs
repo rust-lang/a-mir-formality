@@ -271,34 +271,6 @@ where
     }
 }
 
-impl<A, As, B, Bs, Z> UpcastFrom<(A, B)> for Vec<Z>
-where
-    A: IntoIterator<Item = As> + Clone,
-    As: Upcast<Z>,
-    B: IntoIterator<Item = Bs> + Clone,
-    Bs: Upcast<Z>,
-{
-    fn upcast_from(term: (A, B)) -> Self {
-        let (a, b) = term;
-        let mut v: Self = vec![];
-        v.extend(a.into_iter().map(|a| a.upcast()));
-        v.extend(b.into_iter().map(|b| b.upcast()));
-        v
-    }
-}
-
-impl<A, B, C, Z> UpcastFrom<(A, B, C)> for Vec<Z>
-where
-    A: Upcast<Z>,
-    B: Upcast<Z>,
-    C: Upcast<Z>,
-{
-    fn upcast_from(term: (A, B, C)) -> Self {
-        let (a, b, c) = term;
-        vec![a.upcast(), b.upcast(), c.upcast()]
-    }
-}
-
 #[macro_export]
 macro_rules! cast_impl {
     ($e:ident :: $v:ident ($u:ty)) => {
