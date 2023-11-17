@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     binder::CoreBinder,
+    cast_impl,
     collections::Set,
     language::{CoreKind, Language},
     set,
@@ -14,7 +15,7 @@ use std::fmt::Debug;
 /// Trait for parsing a [`Term<L>`](`crate::term::Term`) as input.
 /// Typically this is auto-generated with the `#[term]` procedural macro,
 /// but you can implement it by hand if you want a very customized parse.
-pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq + 'static {
+pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq + 'static + Upcast<Self> {
     /// Parse a single instance of this type, returning an error if no such
     /// instance is present.
     ///
@@ -210,6 +211,8 @@ pub struct Binding<L: Language> {
     /// The bound var representation.
     pub bound_var: CoreBoundVar<L>,
 }
+
+cast_impl!(impl(L: Language) Binding<L>);
 
 impl<L, T> CoreParse<L> for Vec<T>
 where

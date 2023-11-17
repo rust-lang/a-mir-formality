@@ -45,8 +45,7 @@ impl CoreParse<Rust> for RigidTy {
                 Ok(RigidTy {
                     name: RigidName::Ref(RefKind::Shared),
                     parameters: seq![lt.upcast(), ty.upcast()],
-                }
-                .upcast())
+                })
             });
 
             parser.parse_variant("RefMut", Precedence::default(), |p| {
@@ -125,7 +124,7 @@ impl CoreParse<Rust> for ConstData {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::multi_variant(scope, text, "ConstData", |parser| {
             parser.parse_variant("Variable", Precedence::default(), |p| {
-                p.variable_of_kind(ParameterKind::Const).upcast()
+                p.variable_of_kind(ParameterKind::Const)
             });
 
             parser.parse_variant_cast::<Bool>(Precedence::default());

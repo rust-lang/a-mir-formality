@@ -158,7 +158,7 @@ where
 impl<'s, 't, T, L> Parser<'s, 't, T, L>
 where
     L: Language,
-    T: Debug + Clone + Eq + 'static,
+    T: Debug + Clone + Eq + 'static + Upcast<T>,
 {
     /// Shorthand to create a parser for a nonterminal with a single variant,
     /// parsed by the function `op`.
@@ -225,7 +225,7 @@ where
         Self::parse_variant(self, variant_name, variant_precedence, |p| {
             p.mark_as_cast_variant();
             let v: V = p.nonterminal()?;
-            Ok(v.upcast())
+            Ok(v)
         })
     }
 
@@ -234,12 +234,14 @@ where
     /// The precedence is part of how we resolve conflicts: if there are two successful parses with distinct precedence, higher precedence wins.
     /// The `op` is a closure that defines how the variant itself is parsed.
     /// The closure `op` will be invoked with an [`ActiveVariant`][] struct that has methods for consuming identifiers, numbers, keywords, etc.
-    pub fn parse_variant(
+    pub fn parse_variant<U>(
         &mut self,
         variant_name: &'static str,
         variant_precedence: Precedence,
-        op: impl FnOnce(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
-    ) {
+        op: impl FnOnce(&mut ActiveVariant<'s, 't, L>) -> Result<U, Set<ParseError<'t>>>,
+    ) where
+        U: Upcast<T>,
+    {
         let span = tracing::span!(
             tracing::Level::TRACE,
             "variant",
@@ -277,7 +279,7 @@ where
                     text: active_variant.current_text,
                     reductions: active_variant.reductions,
                     precedence: variant_precedence,
-                    value,
+                    value: value.upcast(),
                 });
                 tracing::trace!("success: {:?}", self.successes.last().unwrap());
             }

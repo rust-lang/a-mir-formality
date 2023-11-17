@@ -387,6 +387,7 @@ macro_rules! cast_impl {
 
 cast_impl!(usize);
 cast_impl!(u32);
+cast_impl!(u64);
 cast_impl!(String);
 
 impl UpcastFrom<&str> for String {
