@@ -5,7 +5,7 @@ use formality_types::{
     rust::term,
 };
 
-use crate::{decls::Decls, prove::prove};
+use crate::{decls::Decls, prove::prove, Env};
 
 fn decls() -> Decls {
     Decls {
@@ -20,7 +20,12 @@ fn decls() -> Decls {
 fn well_formed_adt() {
     let assumptions: Wcs = Wcs::t();
     let goal: Parameter = term("X<u32>");
-    let constraints = prove(decls(), (), assumptions, Relation::WellFormed(goal));
+    let constraints = prove(
+        decls(),
+        Env::default(),
+        assumptions,
+        Relation::WellFormed(goal),
+    );
     expect![[r#"
         {
             Constraints {
@@ -40,7 +45,12 @@ fn well_formed_adt() {
 fn not_well_formed_adt() {
     let assumptions: Wcs = Wcs::t();
     let goal: Parameter = term("X<u64>");
-    let constraints = prove(decls(), (), assumptions, Relation::WellFormed(goal));
+    let constraints = prove(
+        decls(),
+        Env::default(),
+        assumptions,
+        Relation::WellFormed(goal),
+    );
     expect![[r#"
         {}
     "#]]

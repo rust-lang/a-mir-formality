@@ -232,12 +232,9 @@ impl DowncastTo<()> for () {
     }
 }
 
-impl<T> UpcastFrom<()> for T
-where
-    T: Default,
-{
+impl UpcastFrom<()> for () {
     fn upcast_from((): ()) -> Self {
-        Default::default()
+        ()
     }
 }
 

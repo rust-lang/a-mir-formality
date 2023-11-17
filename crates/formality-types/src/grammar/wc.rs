@@ -94,6 +94,12 @@ impl DowncastTo<(Wc, Wcs)> for Wcs {
     }
 }
 
+impl UpcastFrom<()> for Wcs {
+    fn upcast_from((): ()) -> Self {
+        Wcs::default()
+    }
+}
+
 impl DowncastTo<()> for Wcs {
     fn downcast_to(&self) -> Option<()> {
         if self.set.is_empty() {
