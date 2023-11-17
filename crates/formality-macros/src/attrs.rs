@@ -2,7 +2,7 @@
 
 use syn::{spanned::Spanned, Attribute, DeriveInput};
 
-use crate::{custom::Customize, precedence::Precedence};
+use crate::{custom::Customize, precedence::Precedence, variable::Variable};
 
 /// Checks for any kind of attribute that indicates an "is-a" relationship,
 /// e.g. `#[cast]` and `#[variable]`.
@@ -37,6 +37,11 @@ pub(crate) fn has_cast_attr(attrs: &[Attribute]) -> bool {
 ///   a parse error (ill-kinded term).
 pub(crate) fn has_variable_attr(attrs: &[Attribute]) -> bool {
     attrs.iter().any(|a| a.path().is_ident("variable"))
+}
+
+/// Extract a `#[variable]` attribute (if any)
+pub(crate) fn variable(attrs: &[Attribute]) -> syn::Result<Option<Variable>> {
+    parse_attr_named(attrs, "variable")
 }
 
 /// Extract a `#[precedence]` level, defaults to 0

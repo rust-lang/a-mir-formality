@@ -3,10 +3,10 @@ use std::sync::Arc;
 use crate::{
     binder::CoreBinder,
     collections::Set,
-    language::{CoreKind, CoreParameter, Language},
+    language::{CoreKind, Language},
     set,
     term::CoreTerm,
-    variable::CoreBoundVar,
+    variable::{CoreBoundVar, CoreVariable},
     Fallible, Upcast, UpcastFrom, Upcasted,
 };
 use std::fmt::Debug;
@@ -35,7 +35,7 @@ pub fn core_term_with<L, T, B>(bindings: impl IntoIterator<Item = B>, text: &str
 where
     T: CoreParse<L>,
     L: Language,
-    B: Upcast<(String, CoreParameter<L>)>,
+    B: Upcast<(String, CoreVariable<L>)>,
 {
     let scope = Scope::new(bindings.into_iter().map(|b| b.upcast()));
     let parse = match T::parse(&scope, text) {
@@ -170,19 +170,19 @@ pub type TokenResult<'t, T> = Result<(T, &'t str), Set<ParseError<'t>>>;
 /// Tracks the variables in scope at this point in parsing.
 #[derive(Clone, Debug, Default)]
 pub struct Scope<L: Language> {
-    bindings: Vec<(String, CoreParameter<L>)>,
+    bindings: Vec<(String, CoreVariable<L>)>,
 }
 
 impl<L: Language> Scope<L> {
     /// Creates a new scope with the given set of bindings.
-    pub fn new(bindings: impl IntoIterator<Item = (String, CoreParameter<L>)>) -> Self {
+    pub fn new(bindings: impl IntoIterator<Item = (String, CoreVariable<L>)>) -> Self {
         Self {
             bindings: bindings.into_iter().collect(),
         }
     }
 
     /// Look for a variable with the given name.
-    pub fn lookup(&self, name: &str) -> Option<CoreParameter<L>> {
+    pub fn lookup(&self, name: &str) -> Option<CoreVariable<L>> {
         self.bindings
             .iter()
             .rev()
@@ -193,7 +193,7 @@ impl<L: Language> Scope<L> {
     /// Create a new scope that extends `self` with `bindings`.
     pub fn with_bindings(
         &self,
-        bindings: impl IntoIterator<Item = impl Upcast<(String, CoreParameter<L>)>>,
+        bindings: impl IntoIterator<Item = impl Upcast<(String, CoreVariable<L>)>>,
     ) -> Self {
         let mut s = self.clone();
         s.bindings.extend(bindings.into_iter().upcasted());
@@ -365,5 +365,11 @@ impl<L: Language, A: CoreParse<L>, B: CoreParse<L>, C: CoreParse<L>> CoreParse<L
             p.expect_char(')')?;
             Ok((a, b, c))
         })
+    }
+}
+
+impl<L: Language> CoreParse<L> for CoreVariable<L> {
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::single_variant(scope, text, "variable", |p| p.variable())
     }
 }

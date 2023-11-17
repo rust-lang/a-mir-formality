@@ -18,6 +18,7 @@ mod precedence;
 mod spec;
 mod term;
 mod test;
+mod variable;
 mod visit;
 
 // synstructure::decl_derive!([Fold] => fold::derive_fold);

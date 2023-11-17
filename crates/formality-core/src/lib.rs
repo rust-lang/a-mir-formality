@@ -164,7 +164,7 @@ macro_rules! declare_language {
             where
                 T: Parse,
             {
-                term_with(None::<(String, $param)>, text)
+                term_with(None::<(String, grammar::Variable)>, text)
             }
 
             /// Parses `text` as a term with the given bindings in scope.
@@ -175,7 +175,7 @@ macro_rules! declare_language {
             pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> $crate::Fallible<T>
             where
                 T: Parse,
-                B: $crate::Upcast<(String, <FormalityLang as Language>::Parameter)>,
+                B: $crate::Upcast<(String, grammar::Variable)>,
             {
                 $crate::parse::core_term_with::<FormalityLang, T, B>(bindings, text)
             }

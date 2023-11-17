@@ -21,7 +21,7 @@ pub enum DummyParameter {
 
 #[term]
 pub enum DummyTy {
-    #[variable]
+    #[variable(DummyKind::Ty)]
     Variable(Variable),
 }
 

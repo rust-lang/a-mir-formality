@@ -1,4 +1,6 @@
-use formality_core::{cast_impl, language::HasKind, term};
+use formality_core::{
+    cast_impl, language::HasKind, term, Downcast, DowncastTo, Upcast, UpcastFrom,
+};
 use std::sync::Arc;
 
 pub use crate::eg::grammar::*;
@@ -26,7 +28,7 @@ pub enum Ty {
     #[cast]
     StructTy(StructTy),
 
-    #[variable]
+    #[variable(Kind::Ty)]
     Var(Variable),
 }
 
@@ -117,7 +119,6 @@ formality_core::id!(FieldId);
 formality_core::id!(FnId);
 formality_core::id!(LocalVarId);
 
-cast_impl!((Variable) <: (Ty) <: (Parameter));
 cast_impl!((BoundVar) <: (Variable) <: (Parameter));
 cast_impl!((ExistentialVar) <: (Variable) <: (Parameter));
 cast_impl!((UniversalVar) <: (Variable) <: (Parameter));
@@ -126,6 +127,22 @@ impl HasKind<crate::FormalityLang> for Parameter {
     fn kind(&self) -> Kind {
         match self {
             Parameter::Ty(_) => Kind::Ty,
+        }
+    }
+}
+
+impl UpcastFrom<Variable> for Parameter {
+    fn upcast_from(term: Variable) -> Self {
+        match term.kind() {
+            Kind::Ty => Ty::Var(term).upcast(),
+        }
+    }
+}
+
+impl DowncastTo<Variable> for Parameter {
+    fn downcast_to(&self) -> Option<Variable> {
+        match self {
+            Parameter::Ty(ty) => ty.downcast(),
         }
     }
 }

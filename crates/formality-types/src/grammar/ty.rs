@@ -107,7 +107,7 @@ pub enum TyData {
     AliasTy(AliasTy),
     #[cast]
     PredicateTy(PredicateTy),
-    #[variable]
+    #[variable(ParameterKind::Ty)]
     Variable(Variable),
 }
 
@@ -339,7 +339,7 @@ impl DowncastTo<LtData> for Lt {
 pub enum LtData {
     Static,
 
-    #[variable]
+    #[variable(ParameterKind::Lt)]
     Variable(Variable),
 }
 
