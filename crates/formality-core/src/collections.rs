@@ -152,12 +152,23 @@ tuple_upcast!(Vec: A, B, C);
 tuple_upcast!(Vec: A, B, C, D);
 
 /// This type exists to be used in judgment functions.
-/// You can downcast a `Vec` or `Set` to `Cons(head, tail)`
+/// You can upcast/downcast a `Vec` or `Set` to `Cons(head, tail)`
 /// where `head` will be the first item in the collection
 /// and tail will be a collection with the remaining items.
-/// Both can also be downcast to `()` which matches an empty collection.
+/// Both can also be upcast/downcast to `()` which matches an empty collection.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Cons<T, C>(pub T, pub C);
+
+impl<T> UpcastFrom<Cons<T, Set<T>>> for Set<T>
+where
+    T: Ord + Clone,
+{
+    fn upcast_from(term: Cons<T, Set<T>>) -> Self {
+        let Cons(elem, mut set) = term;
+        set.insert(elem);
+        set
+    }
+}
 
 impl<T> DowncastTo<Cons<T, Set<T>>> for Set<T>
 where
@@ -171,6 +182,17 @@ where
             let (a, bs) = r.split_first().unwrap();
             Some(Cons(a, bs))
         }
+    }
+}
+
+impl<T> UpcastFrom<Cons<T, Vec<T>>> for Vec<T>
+where
+    T: Ord + Clone,
+{
+    fn upcast_from(term: Cons<T, Vec<T>>) -> Self {
+        let Cons(elem, mut vec) = term;
+        vec.insert(0, elem);
+        vec
     }
 }
 
