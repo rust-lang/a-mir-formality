@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use formality_core::{
-    cast_impl, set, term, DowncastFrom, DowncastTo, Set, SetExt, Upcast, UpcastFrom, Upcasted,
+    cast_impl, set, term, Cons, DowncastFrom, DowncastTo, Set, Upcast, UpcastFrom, Upcasted,
 };
 
 use crate::grammar::PR;
@@ -83,14 +83,10 @@ tuple_upcast!(A, B);
 tuple_upcast!(A, B, C);
 tuple_upcast!(A, B, C, D);
 
-impl DowncastTo<(Wc, Wcs)> for Wcs {
-    fn downcast_to(&self) -> Option<(Wc, Wcs)> {
-        if self.set.is_empty() {
-            None
-        } else {
-            let (wc, set) = self.set.clone().split_first().unwrap();
-            Some((wc, set.upcast()))
-        }
+impl DowncastTo<Cons<Wc, Wcs>> for Wcs {
+    fn downcast_to(&self) -> Option<Cons<Wc, Wcs>> {
+        let Cons(wc, set) = self.set.downcast_to()?;
+        Some(Cons(wc, set.upcast()))
     }
 }
 

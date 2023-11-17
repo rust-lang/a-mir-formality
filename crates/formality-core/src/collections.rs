@@ -156,6 +156,7 @@ tuple_upcast!(Vec: A, B, C, D);
 /// where `head` will be the first item in the collection
 /// and tail will be a collection with the remaining items.
 /// Both can also be downcast to `()` which matches an empty collection.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Cons<T, C>(pub T, pub C);
 
 impl<T> DowncastTo<Cons<T, Set<T>>> for Set<T>

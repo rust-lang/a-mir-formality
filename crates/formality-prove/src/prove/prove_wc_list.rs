@@ -1,4 +1,4 @@
-use formality_core::judgment_fn;
+use formality_core::{judgment_fn, Cons};
 use formality_types::grammar::Wcs;
 
 use crate::{
@@ -28,7 +28,7 @@ judgment_fn! {
             (prove_wc(&decls, env, &assumptions, wc0) => c)
             (prove_after(&decls, c, &assumptions, &wcs1) => c)
             --- ("some")
-            (prove_wc_list(decls, env, assumptions, (wc0, wcs1)) => c)
+            (prove_wc_list(decls, env, assumptions, Cons(wc0, wcs1)) => c)
         )
     }
 }
