@@ -159,13 +159,14 @@ tuple_upcast!(Vec: A, B, C, D);
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Cons<T, C>(pub T, pub C);
 
-impl<T> UpcastFrom<Cons<T, Set<T>>> for Set<T>
+impl<T, U> UpcastFrom<Cons<U, Set<T>>> for Set<T>
 where
     T: Ord + Clone,
+    U: Upcast<T>,
 {
-    fn upcast_from(term: Cons<T, Set<T>>) -> Self {
+    fn upcast_from(term: Cons<U, Set<T>>) -> Self {
         let Cons(elem, mut set) = term;
-        set.insert(elem);
+        set.insert(elem.upcast());
         set
     }
 }
@@ -185,13 +186,14 @@ where
     }
 }
 
-impl<T> UpcastFrom<Cons<T, Vec<T>>> for Vec<T>
+impl<T, U> UpcastFrom<Cons<U, Vec<T>>> for Vec<T>
 where
     T: Ord + Clone,
+    U: Upcast<T>,
 {
-    fn upcast_from(term: Cons<T, Vec<T>>) -> Self {
+    fn upcast_from(term: Cons<U, Vec<T>>) -> Self {
         let Cons(elem, mut vec) = term;
-        vec.insert(0, elem);
+        vec.insert(0, elem.upcast());
         vec
     }
 }
