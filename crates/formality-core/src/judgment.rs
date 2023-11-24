@@ -159,7 +159,7 @@ macro_rules! push_rules {
             };
 
             if let Some(__JudgmentStruct($($input_names),*)) = Some($input_value) {
-                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*) args($judgment_name; $n; $v; $output; $($m)*));
+                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*) args(@body ($judgment_name; $n; $v; $output); $($m)*));
             }
         }
     };
@@ -172,7 +172,7 @@ macro_rules! push_rules {
     // Matching phase: peel off the patterns one by one and match them against the values
     // extracted from the input. For anything that is not an identity pattern, invoke `downcast`.
 
-    (@match inputs() patterns() args($judgment_name:ident; $n:literal; $v:expr; $output:expr; $($m:tt)*)) => {
+    (@match inputs() patterns() args(@body ($judgment_name:ident; $n:literal; $v:expr; $output:expr); $($m:tt)*)) => {
         tracing::trace_span!("matched rule", rule = $n, judgment = stringify!($judgment_name)).in_scope(|| {
             $crate::push_rules!(@body ($judgment_name, $n, $v, $output) $($m)*);
         });
