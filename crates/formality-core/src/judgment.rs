@@ -159,7 +159,7 @@ macro_rules! push_rules {
             };
 
             if let Some(__JudgmentStruct($($input_names),*)) = Some($input_value) {
-                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*) args(@body ($judgment_name; $n; $v; $output); $($m)*));
+                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*,) args(@body ($judgment_name; $n; $v; $output); $($m)*));
             }
         }
     };
@@ -198,14 +198,6 @@ macro_rules! push_rules {
         }
     };
 
-    (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident : $ty0:ty) args $args:tt) => {
-        {
-            if let Some($pat0) = $crate::Downcast::downcast::<$ty0>($in0) {
-                $crate::push_rules!(@match inputs($($inputs)*) patterns() args $args);
-            }
-        }
-    };
-
     (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident, $($pats:tt)*) args $args:tt) => {
         {
             let $pat0 = Clone::clone($in0);
@@ -213,22 +205,9 @@ macro_rules! push_rules {
         }
     };
 
-    (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident) args $args:tt) => {
-        {
-            let $pat0 = Clone::clone($in0);
-            $crate::push_rules!(@match inputs($($inputs)*) patterns() args $args);
-        }
-    };
-
     (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:pat, $($pats:tt)*) args $args:tt) => {
         if let Some($pat0) = $crate::Downcast::downcast(&$in0) {
             $crate::push_rules!(@match inputs($($inputs)*) patterns($($pats)*) args $args);
-        }
-    };
-
-    (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:pat) args $args:tt) => {
-        if let Some($pat0) = $crate::Downcast::downcast(&$in0) {
-            $crate::push_rules!(@match inputs($($inputs)*) patterns() args $args);
         }
     };
 
