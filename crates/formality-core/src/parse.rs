@@ -233,11 +233,7 @@ where
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "Set", |p| {
-            p.expect_char('{')?;
-            let v = p.comma_nonterminal()?;
-            p.expect_char('}')?;
-            let s = v.into_iter().collect();
-            Ok(s)
+            p.delimited_nonterminal('{', false, '}')
         })
     }
 }

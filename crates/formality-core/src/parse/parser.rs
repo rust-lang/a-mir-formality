@@ -757,33 +757,39 @@ where
     /// Continue parsing instances of `T` while we can.
     /// This is a greedy parse.
     #[tracing::instrument(level = "Trace", skip(self), ret)]
-    pub fn many_nonterminal<T>(&mut self) -> Result<Vec<T>, Set<ParseError<'t>>>
+    pub fn many_nonterminal<C, T>(&mut self) -> Result<C, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
+        C: IntoIterator<Item = T> + FromIterator<T> + Debug,
     {
         let mut result = vec![];
         while let Some(e) = self.opt_nonterminal()? {
             result.push(e);
         }
-        Ok(result)
+        Ok(result.into_iter().collect())
     }
 
     #[tracing::instrument(level = "Trace", skip(self), ret)]
-    pub fn delimited_nonterminal<T>(
+    pub fn delimited_nonterminal<T, C>(
         &mut self,
         open: char,
         optional: bool,
         close: char,
-    ) -> Result<Vec<T>, Set<ParseError<'t>>>
+    ) -> Result<C, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
+        C: IntoIterator<Item = T> + FromIterator<T> + Debug,
     {
         // Look for the opening delimiter.
         // If we don't find it, then this is either an empty vector (if optional) or an error (otherwise).
         match self.expect_char(open) {
             Ok(()) => {}
             Err(errs) => {
-                return if optional { Ok(vec![]) } else { Err(errs) };
+                return if optional {
+                    Ok(std::iter::empty().collect())
+                } else {
+                    Err(errs)
+                };
             }
         }
 
@@ -797,9 +803,10 @@ where
 
     /// Parse multiple instances of `T` separated by commas.
     #[track_caller]
-    pub fn comma_nonterminal<T>(&mut self) -> Result<Vec<T>, Set<ParseError<'t>>>
+    pub fn comma_nonterminal<C, T>(&mut self) -> Result<C, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
+        C: IntoIterator<Item = T> + FromIterator<T> + Debug,
     {
         let mut result = vec![];
         while let Some(e) = self.opt_nonterminal()? {
@@ -809,7 +816,7 @@ where
                 break;
             }
         }
-        Ok(result)
+        Ok(result.into_iter().collect())
     }
 
     /// Consumes a nonterminal from the input after skipping whitespace.
