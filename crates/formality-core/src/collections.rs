@@ -75,6 +75,8 @@ pub trait SetExt<T>: Sized {
     fn union_with(self, other: Self) -> Self;
 
     fn plus(self, other: T) -> Self;
+
+    fn split_nth(&self, i: usize) -> Option<(T, Self)>;
 }
 
 impl<T: Ord + Clone> SetExt<T> for Set<T> {
@@ -83,6 +85,13 @@ impl<T: Ord + Clone> SetExt<T> for Set<T> {
         let e = iter.next()?;
         let c = iter.collect();
         Some((e, c))
+    }
+
+    fn split_nth(&self, i: usize) -> Option<(T, Self)> {
+        let mut s = self.clone();
+        let item = self.iter().skip(i).next()?;
+        let item = s.take(item).unwrap();
+        Some((item, s))
     }
 
     fn union_with(mut self, other: Self) -> Self {
