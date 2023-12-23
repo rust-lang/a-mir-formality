@@ -10,6 +10,40 @@ mod test_reachable;
 
 pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Set<O>>>;
 
+/// `judgment_fn!` allows construction of inference rules using a more logic-like notation.
+///
+/// The macro input looks like so:
+///
+/// ```ignore
+/// (
+///     ( /* condition 1 */)  // each condition is a parenthesized group
+///     ( /* condition 2 */)
+///     ( /* condition 3 */)! // `!` is optional and indicates match commit point, see below
+///     -------------------- // 3 or more `-` separate the condition from the conclusion
+///     ( /* conclusion */)  // as is the conclusion
+/// )
+/// ```
+///
+/// The conditions can be the following
+///
+/// * `(<expr> => <binding>)` -- used to apply judgments, but really `<expr>` can be anything with an `into_iter` method.
+/// * `(if <expr>)`
+/// * `(if let <pat> = <expr>)`
+/// * `(let <binding> = <expr>)`
+///
+/// The conclusions can be the following
+///
+/// * `(<pat> => <binding>)
+///
+/// ## Failure reporting and match commit points
+///
+/// When we fail to prove a judgment, we'll produce a failure that includes
+/// all rules that partially matched. By default this lits includes every
+/// rule that matches the patterns in its conclusion.
+/// Sometimes this is annoyingly verbose.
+/// You can place a `!` after a condition to mark it as a "match commit point".
+/// Rules that fail before reaching the match commit point will not be included
+/// in the failure result.
 #[macro_export]
 macro_rules! judgment_fn {
     (
@@ -111,30 +145,6 @@ macro_rules! judgment_fn {
     }
 }
 
-/// push_rules! allows construction of inference rules using a more logic-like notation.
-///
-/// The macro input looks like: `push_rules!(builder, (...) (...) (...))` where each
-/// parenthesized group `(...)` is an inference rule. Inference rules are written like so:
-///
-/// ```ignore
-/// (
-///     ( /* condition 1 */) // each condition is a parenthesized group
-///     ( /* condition 2 */)
-///     -------------------- // 3 or more `-` separate the condition from the conclusion
-///     ( /* conclusion */)  // as is the conclusion
-/// )
-/// ```
-///
-/// The conditions can be the following
-///
-/// * `(<expr> => <binding>)` -- used to apply judgments, but really `<expr>` can be anything with an `into_iter` method.
-/// * `(if <expr>)`
-/// * `(if let <pat> = <expr>)`
-/// * `(let <binding> = <expr>)`
-///
-/// The conclusions can be the following
-///
-/// * `(<pat> => <binding>)
 #[macro_export]
 macro_rules! push_rules {
     ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_names:tt => $output_ty:ty, $($rule:tt)*) => {
@@ -144,21 +154,27 @@ macro_rules! push_rules {
     // `@rule (builder) rule` phase: invoked for each rule, emits `push_rule` call
 
     (@rule ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_names:tt => $output_ty:ty) ($($m:tt)*)) => {
+        // Start accumulating.
         $crate::push_rules!(@accum
             args($judgment_name, $input_value, $output, $failed_rules, $input_names => $output_ty)
-            accum()
-            $($m)*
+            accum((1-1); 0;)
+            input($($m)*)
         );
     };
 
-    // `@accum (conditions)` phase: accumulates the contents of a given rule,
+    // `@accum ($match_index; $current_index; conditions)` phase: accumulates the contents of a given rule,
     // pushing tokens into `conditions` until the `-----` and conclusion are found.
+    //
+    // The `$match_index` stores the location where `!` was found. It is expected to start
+    // at 0. The `current_index` is also expected to start as the expression `0`.
 
     (@accum
         args($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, ($($input_names:ident),*) => $output_ty:ty)
-        accum($($m:tt)*)
-        ---$(-)* ($n:literal)
-        ($conclusion_name:ident($($patterns:tt)*) => $v:expr)
+        accum($match_index:expr; $current_index:expr; $($m:tt)*)
+        input(
+            ---$(-)* ($n:literal)
+            ($conclusion_name:ident($($patterns:tt)*) => $v:expr)
+        )
     ) => {
         // Found the conclusion.
         {
@@ -173,23 +189,53 @@ macro_rules! push_rules {
             };
 
             if let Some(__JudgmentStruct($($input_names),*)) = Some($input_value) {
-                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*,) args(@body ($judgment_name; $n; $v; $output); ($failed_rules, ($($input_names),*), $n); $($m)*));
+                $crate::push_rules!(@match
+                    inputs($($input_names)*)
+                    patterns($($patterns)*,)
+                    args(@body
+                        ($judgment_name; $n; $v; $output);
+                        ($failed_rules, $match_index, ($($input_names),*), $n);
+                        $($m)*
+                    )
+                );
             }
         }
     };
 
-    (@accum args $args:tt accum($($m:tt)*) ($($n:tt)*) $($o:tt)*) => {
-        // Push the condition into the list `$m`.
-        $crate::push_rules!(@accum args $args accum($($m)* ($($n)*)) $($o)*)
+    (@accum
+        args $args:tt
+        accum($match_index:expr; $current_index:expr; $($m:tt)*)
+        input(! $($o:tt)*)
+    ) => {
+        // If we see a `!` in the list, that represents a "match commit point".
+        // Overwrite `$match_index` with `$current_index` and proceed.
+        $crate::push_rules!(@accum
+            args $args
+            accum($current_index; $current_index; $($m)*)
+            input($($o)*)
+        )
+    };
+
+    (@accum
+        args $args:tt
+        accum($match_index:expr; $current_index:expr; $($m:tt)*)
+        input(($($n:tt)*) $($o:tt)*)
+    ) => {
+        // Move one parenthesized condition `($n*)` onto the list after `$m`.
+        $crate::push_rules!(@accum
+            args $args
+            accum($match_index; $current_index+1; $($m)* ($($n)*))
+            input($($o)*)
+        )
     };
 
     // Matching phase: peel off the patterns one by one and match them against the values
     // extracted from the input. For anything that is not an identity pattern, invoke `downcast`.
 
-    (@match inputs() patterns() args(@body ($judgment_name:ident; $n:literal; $v:expr; $output:expr); ($failed_rules:expr, $inputs:tt, $rule_name:literal); $($m:tt)*)) => {
+    (@match inputs() patterns() args(@body ($judgment_name:ident; $n:literal; $v:expr; $output:expr); $inputs:tt; $($m:tt)*)) => {
         tracing::trace_span!("matched rule", rule = $n, judgment = stringify!($judgment_name)).in_scope(|| {
             let mut step_index = 0;
-            $crate::push_rules!(@body ($judgment_name, $n, $v, $output); ($failed_rules, $inputs, $rule_name); step_index; $($m)*);
+            $crate::push_rules!(@body ($judgment_name, $n, $v, $output); $inputs; step_index; $($m)*);
         });
     };
 
@@ -302,24 +348,36 @@ macro_rules! push_rules {
 
     //
 
-    (@record_failure ($failed_rules:expr, $inputs:tt, $rule_name:literal); $step_index:ident; $cause:expr) => {
-        tracing::trace!(
-            "rule {rn} failed at step {s} because {cause} ({file}:{line}:{column})",
-            rn = $rule_name,
-            s = $step_index,
-            cause = $cause,
-            file = file!(),
-            line = line!(),
-            column = column!(),
-        );
-        $failed_rules.insert(
-            $crate::judgment::FailedRule {
-                rule_name_index: Some(($rule_name.to_string(), $step_index)),
-                file: file!().to_string(),
-                line: line!(),
-                column: column!(),
-                cause: $cause,
-            }
-        );
+    (@record_failure ($failed_rules:expr, $match_index:expr, $inputs:tt, $rule_name:literal); $step_index:ident; $cause:expr) => {
+        if $step_index >= $match_index {
+            tracing::debug!(
+                "rule {rn} failed at step {s} because {cause} ({file}:{line}:{column})",
+                rn = $rule_name,
+                s = $step_index,
+                cause = $cause,
+                file = file!(),
+                line = line!(),
+                column = column!(),
+            );
+            $failed_rules.insert(
+                $crate::judgment::FailedRule {
+                    rule_name_index: Some(($rule_name.to_string(), $step_index)),
+                    file: file!().to_string(),
+                    line: line!(),
+                    column: column!(),
+                    cause: $cause,
+                }
+            );
+        } else {
+            tracing::trace!(
+                "rule {rn} failed at step {s} because {cause} ({file}:{line}:{column})",
+                rn = $rule_name,
+                s = $step_index,
+                cause = $cause,
+                file = file!(),
+                line = line!(),
+                column = column!(),
+            );
+        }
     }
 }
