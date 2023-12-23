@@ -49,7 +49,42 @@ fn judgment() {
     });
 
     expect_test::expect![[r#"
-        {}
+        FailedJudgment {
+            judgment: "transitive_reachable { node: 0, g: Graph { edges: [(0, 1), (1, 2), (2, 4), (2, 3), (3, 6), (4, 8), (8, 10)] } }",
+            failed_rules: {
+                FailedRule {
+                    rule_name_index: Some(
+                        (
+                            "base",
+                            1,
+                        ),
+                    ),
+                    file: "crates/formality-core/src/judgment/test_filtered.rs",
+                    line: 24,
+                    column: 1,
+                    cause: IfFalse {
+                        expr: "b % 2 == 0",
+                    },
+                },
+                FailedRule {
+                    rule_name_index: Some(
+                        (
+                            "transitive",
+                            0,
+                        ),
+                    ),
+                    file: "crates/formality-core/src/judgment/test_filtered.rs",
+                    line: 24,
+                    column: 1,
+                    cause: FailedJudgment(
+                        FailedJudgment {
+                            judgment: "transitive_reachable { node: 0, g: Graph { edges: [(0, 1), (1, 2), (2, 4), (2, 3), (3, 6), (4, 8), (8, 10)] } }",
+                            failed_rules: {},
+                        },
+                    ),
+                },
+            },
+        }
     "#]]
     .assert_debug_eq(&transitive_reachable(&graph, 0));
 

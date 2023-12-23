@@ -1,11 +1,14 @@
-use std::{cell::RefCell, collections::BTreeSet};
+use std::cell::RefCell;
 
-use crate::fixed_point::FixedPointStack;
+use crate::{fixed_point::FixedPointStack, Set};
+
+mod proven_set;
+pub use proven_set::{FailedJudgment, FailedRule, ProvenSet, RuleFailureCause, TryIntoIter};
 
 mod test_filtered;
 mod test_reachable;
 
-pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, BTreeSet<O>>>;
+pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Set<O>>>;
 
 #[macro_export]
 macro_rules! judgment_fn {
@@ -19,7 +22,7 @@ macro_rules! judgment_fn {
         }
     ) => {
         $(#[$attr])*
-        $v fn $name($($input_name : impl $crate::Upcast<$input_ty>),*) -> $crate::Set<$output> {
+        $v fn $name($($input_name : impl $crate::Upcast<$input_ty>),*) -> $crate::ProvenSet<$output> {
             #[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Clone)]
             struct __JudgmentStruct($($input_ty),*);
 
@@ -30,7 +33,7 @@ macro_rules! judgment_fn {
                     let mut f = fmt.debug_struct(stringify!($name));
                     let __JudgmentStruct($($input_name),*) = self;
                     $(
-                        f.field(stringify!($debug_input_name), $input_name);
+                        f.field(stringify!($debug_input_name), $debug_input_name);
                     )*
                     f.finish()
                 }
@@ -47,11 +50,13 @@ macro_rules! judgment_fn {
                 // Trivial cases are an (important) optimization that lets
                 // you cut out all the normal rules.
                 if $trivial_expr {
-                    return std::iter::once($trivial_result).collect();
+                    return $crate::ProvenSet::proven(std::iter::once($trivial_result).collect());
                 }
             )*
 
-            $crate::fixed_point::fixed_point::<
+            let mut failed_rules = $crate::set![];
+            let input = __JudgmentStruct($($input_name),*);
+            let output = $crate::fixed_point::fixed_point::<
                 __JudgmentStruct,
                 $crate::Set<$output>,
             >(
@@ -73,7 +78,7 @@ macro_rules! judgment_fn {
                 },
 
                 // Input:
-                __JudgmentStruct($($input_name),*),
+                input.clone(),
 
                 // Default value:
                 |_| Default::default(),
@@ -82,17 +87,26 @@ macro_rules! judgment_fn {
                 |input: __JudgmentStruct| {
                     let mut output = $crate::Set::new();
 
+                    failed_rules.clear();
+
                     $crate::push_rules!(
                         $name,
                         &input,
                         output,
+                        failed_rules,
                         ($($input_name),*) => $output,
                         $(($($rule)*))*
                     );
 
                     output
                 },
-            )
+            );
+
+            if !output.is_empty() {
+                $crate::ProvenSet::proven(output)
+            } else {
+                $crate::ProvenSet::failed_rules(&input, failed_rules)
+            }
         }
     }
 }
@@ -123,15 +137,15 @@ macro_rules! judgment_fn {
 /// * `(<pat> => <binding>)
 #[macro_export]
 macro_rules! push_rules {
-    ($judgment_name:ident, $input_value:expr, $output:expr, $input_names:tt => $output_ty:ty, $($rule:tt)*) => {
-        $($crate::push_rules!(@rule ($judgment_name, $input_value, $output, $input_names => $output_ty) $rule);)*
+    ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_names:tt => $output_ty:ty, $($rule:tt)*) => {
+        $($crate::push_rules!(@rule ($judgment_name, $input_value, $output, $failed_rules, $input_names => $output_ty) $rule);)*
     };
 
     // `@rule (builder) rule` phase: invoked for each rule, emits `push_rule` call
 
-    (@rule ($judgment_name:ident, $input_value:expr, $output:expr, $input_names:tt => $output_ty:ty) ($($m:tt)*)) => {
+    (@rule ($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, $input_names:tt => $output_ty:ty) ($($m:tt)*)) => {
         $crate::push_rules!(@accum
-            args($judgment_name, $input_value, $output, $input_names => $output_ty)
+            args($judgment_name, $input_value, $output, $failed_rules, $input_names => $output_ty)
             accum()
             $($m)*
         );
@@ -141,7 +155,7 @@ macro_rules! push_rules {
     // pushing tokens into `conditions` until the `-----` and conclusion are found.
 
     (@accum
-        args($judgment_name:ident, $input_value:expr, $output:expr, ($($input_names:ident),*) => $output_ty:ty)
+        args($judgment_name:ident, $input_value:expr, $output:expr, $failed_rules:expr, ($($input_names:ident),*) => $output_ty:ty)
         accum($($m:tt)*)
         ---$(-)* ($n:literal)
         ($conclusion_name:ident($($patterns:tt)*) => $v:expr)
@@ -159,7 +173,7 @@ macro_rules! push_rules {
             };
 
             if let Some(__JudgmentStruct($($input_names),*)) = Some($input_value) {
-                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*,) args(@body ($judgment_name; $n; $v; $output); $($m)*));
+                $crate::push_rules!(@match inputs($($input_names)*) patterns($($patterns)*,) args(@body ($judgment_name; $n; $v; $output); ($failed_rules, ($($input_names),*), $n); $($m)*));
             }
         }
     };
@@ -172,9 +186,10 @@ macro_rules! push_rules {
     // Matching phase: peel off the patterns one by one and match them against the values
     // extracted from the input. For anything that is not an identity pattern, invoke `downcast`.
 
-    (@match inputs() patterns() args(@body ($judgment_name:ident; $n:literal; $v:expr; $output:expr); $($m:tt)*)) => {
+    (@match inputs() patterns() args(@body ($judgment_name:ident; $n:literal; $v:expr; $output:expr); ($failed_rules:expr, $inputs:tt, $rule_name:literal); $($m:tt)*)) => {
         tracing::trace_span!("matched rule", rule = $n, judgment = stringify!($judgment_name)).in_scope(|| {
-            $crate::push_rules!(@body ($judgment_name, $n, $v, $output) $($m)*);
+            let mut step_index = 0;
+            $crate::push_rules!(@body ($judgment_name, $n, $v, $output); ($failed_rules, $inputs, $rule_name); step_index; $($m)*);
         });
     };
 
@@ -222,47 +237,89 @@ macro_rules! push_rules {
     // expression `v` is carried in from the conclusion and forms the final
     // output of this rule, once all the conditions are evaluated.
 
-    (@body $args:tt (if $c:expr) $($m:tt)*) => {
+    (@body $args:tt; $inputs:tt; $step_index:ident; (if $c:expr) $($m:tt)*) => {
         if $c {
-            $crate::push_rules!(@body $args $($m)*);
+            $step_index += 1;
+            $crate::push_rules!(@body $args; $inputs; $step_index; $($m)*);
         } else {
-            tracing::trace!("failed to match if condition {:?}", stringify!($c))
+            $crate::push_rules!(@record_failure $inputs; $step_index; $crate::judgment::RuleFailureCause::IfFalse {
+                expr: stringify!($c).to_string(),
+            });
         }
     };
 
-    (@body $args:tt (assert $c:expr) $($m:tt)*) => {
+    (@body $args:tt; $inputs:tt; $step_index:ident; (assert $c:expr) $($m:tt)*) => {
         assert!($c);
-        $crate::push_rules!(@body $args $($m)*);
+        $step_index += 1;
+        $crate::push_rules!(@body $args; $inputs; $step_index; $($m)*);
     };
 
-    (@body $args:tt (if let $p:pat = $e:expr) $($m:tt)*) => {
-        if let $p = $e {
-            $crate::push_rules!(@body $args $($m)*);
+    (@body $args:tt; $inputs:tt; $step_index:ident; (if let $p:pat = $e:expr) $($m:tt)*) => {
+        let value = &$e;
+        if let $p = Clone::clone(value) {
+            $step_index += 1;
+            $crate::push_rules!(@body $args; $inputs; $step_index; $($m)*);
         } else {
-            tracing::trace!("failed to match pattern {:?}", stringify!($p))
+            $crate::push_rules!(@record_failure $inputs; $step_index; $crate::judgment::RuleFailureCause::IfLetDidNotMatch {
+                pattern: stringify!($p).to_string(),
+                value: format!("{:?}", value),
+            });
         }
     };
 
-    (@body $args:tt ($i:expr => $p:pat) $($m:tt)*) => {
+    (@body $args:tt; $inputs:tt; $step_index:ident; ($i:expr => $p:pat) $($m:tt)*) => {
         // Explicitly calling `into_iter` silences some annoying lints
         // in the case where `$i` is an `Option` or a `Result`
-        for $p in std::iter::IntoIterator::into_iter($i) {
-            $crate::push_rules!(@body $args $($m)*);
+        match $crate::judgment::TryIntoIter::try_into_iter($i, || stringify!($i).to_string()) {
+            Ok(i) => {
+                $step_index += 1;
+                for $p in std::iter::IntoIterator::into_iter(i) {
+                    $crate::push_rules!(@body $args; $inputs; $step_index; $($m)*);
+                }
+            }
+            Err(e) => {
+                $crate::push_rules!(@record_failure $inputs; $step_index; e);
+            }
         }
     };
 
-    (@body $args:tt (let $p:pat = $i:expr) $($m:tt)*) => {
+    (@body $args:tt; $inputs:tt; $step_index:ident; (let $p:pat = $i:expr) $($m:tt)*) => {
         {
             let $p = $i;
-            $crate::push_rules!(@body $args $($m)*);
+            $step_index += 1;
+            $crate::push_rules!(@body $args; $inputs; $step_index; $($m)*);
         }
     };
 
-    (@body ($judgment_name:ident, $rule_name:literal, $v:expr, $output:expr)) => {
+    (@body ($judgment_name:ident, $rule_name:literal, $v:expr, $output:expr); $inputs:tt; $step_index:ident;) => {
         {
+            let _ = $step_index; // suppress warnings about value not being read
             let result = $crate::Upcast::upcast($v);
             tracing::debug!("produced {:?} from rule {:?} in judgment {:?}", result, $rule_name, stringify!($judgment_name));
             $output.insert(result)
         }
     };
+
+    //
+
+    (@record_failure ($failed_rules:expr, $inputs:tt, $rule_name:literal); $step_index:ident; $cause:expr) => {
+        tracing::trace!(
+            "rule {rn} failed at step {s} because {cause} ({file}:{line}:{column})",
+            rn = $rule_name,
+            s = $step_index,
+            cause = $cause,
+            file = file!(),
+            line = line!(),
+            column = column!(),
+        );
+        $failed_rules.insert(
+            $crate::judgment::FailedRule {
+                rule_name_index: Some(($rule_name.to_string(), $step_index)),
+                file: file!().to_string(),
+                line: line!(),
+                column: column!(),
+                cause: $cause,
+            }
+        );
+    }
 }

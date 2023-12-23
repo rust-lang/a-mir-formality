@@ -1,8 +1,8 @@
 #![cfg(test)]
 
-use std::sync::Arc;
-
 use crate::{cast_impl, judgment_fn};
+use formality_macros::test;
+use std::sync::Arc;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Clone, Debug, Hash)]
 struct Graph {

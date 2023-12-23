@@ -11,7 +11,7 @@ pub fn fixed_point<Input, Output>(
     storage: &'static LocalKey<RefCell<FixedPointStack<Input, Output>>>,
     args: Input,
     default_value: impl Fn(&Input) -> Output,
-    next_value: impl Fn(Input) -> Output,
+    next_value: impl FnMut(Input) -> Output,
 ) -> Output
 where
     Input: Value,
@@ -48,10 +48,10 @@ where
     Input: Value,
     Output: Value,
     DefaultValue: Fn(&Input) -> Output,
-    NextValue: Fn(Input) -> Output,
+    NextValue: FnMut(Input) -> Output,
     TracingSpan: Fn(&Input) -> tracing::Span,
 {
-    fn apply(&self, input: Input) -> Output {
+    fn apply(&mut self, input: Input) -> Output {
         if let Some(r) = self.with_stack(|stack| stack.search(&input)) {
             tracing::debug!("recursive call to {:?}, yielding {:?}", input, r);
             return r;

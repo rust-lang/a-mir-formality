@@ -60,6 +60,7 @@ pub fn prove(
     tracing::debug!(?result_set);
 
     result_set
+        .into_set()
         .into_iter()
         .map(|r| min.reconstitute(r))
         .collect()

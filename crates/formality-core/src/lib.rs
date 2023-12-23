@@ -5,6 +5,8 @@
 
 #![allow(type_alias_bounds)]
 
+extern crate self as formality_core;
+
 // Re-export things from dependencies to avoid everybody repeating same set
 // in their Cargo.toml.
 pub use anyhow::anyhow;
@@ -42,6 +44,7 @@ pub use collections::Deduplicate;
 pub use collections::Map;
 pub use collections::Set;
 pub use collections::SetExt;
+pub use judgment::ProvenSet;
 
 /// Run an action with a tracing log subscriber. The logging level is loaded
 /// from `RUST_LOG`. The `formality_macro::test` expansion uses this to enable logs.
