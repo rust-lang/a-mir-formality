@@ -190,6 +190,7 @@ macro_rules! push_rules {
 
             if let Some(__JudgmentStruct($($input_names),*)) = Some($input_value) {
                 $crate::push_rules!(@match
+                    $conclusion_name
                     inputs($($input_names)*)
                     patterns($($patterns)*,)
                     args(@body
@@ -232,43 +233,43 @@ macro_rules! push_rules {
     // Matching phase: peel off the patterns one by one and match them against the values
     // extracted from the input. For anything that is not an identity pattern, invoke `downcast`.
 
-    (@match inputs() patterns() args(@body ($judgment_name:ident; $n:literal; $v:expr; $output:expr); $inputs:tt; $($m:tt)*)) => {
+    (@match $conclusion_name:ident inputs() patterns() args(@body ($judgment_name:ident; $n:literal; $v:expr; $output:expr); $inputs:tt; $($m:tt)*)) => {
         tracing::trace_span!("matched rule", rule = $n, judgment = stringify!($judgment_name)).in_scope(|| {
             let mut step_index = 0;
             $crate::push_rules!(@body ($judgment_name, $n, $v, $output); $inputs; step_index; $($m)*);
         });
     };
 
-    (@match inputs() patterns(,) args $args:tt) => {
-        $crate::push_rules!(@match inputs() patterns() args $args);
+    (@match $conclusion_name:ident inputs() patterns(,) args $args:tt) => {
+        $crate::push_rules!(@match $conclusion_name inputs() patterns() args $args);
     };
 
-    (@match inputs() patterns $patterns:tt args $args:tt) => {
-        compile_error!("more patterns in rule than arguments on fn")
+    (@match $conclusion_name:ident inputs() patterns ($pattern0:tt $($pattern1:tt)*) args $args:tt) => {
+        $crate::respan!($pattern0 (compile_error!("more patterns in rule than arguments on fn")))
     };
 
-    (@match inputs $inputs:tt patterns() args $args:tt) => {
-        compile_error!("fewer patterns in rule than arguments on fn")
+    (@match $conclusion_name:ident inputs $inputs:tt patterns() args $args:tt) => {
+        $crate::respan!($conclusion_name (compile_error!("fewer patterns in rule than arguments on fn")))
     };
 
-    (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident : $ty0:ty, $($pats:tt)*) args $args:tt) => {
+    (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident : $ty0:ty, $($pats:tt)*) args $args:tt) => {
         {
             if let Some($pat0) = $crate::Downcast::downcast::<$ty0>($in0) {
-                $crate::push_rules!(@match inputs($($inputs)*) patterns($($pats)*) args $args);
+                $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
             }
         }
     };
 
-    (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident, $($pats:tt)*) args $args:tt) => {
+    (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident, $($pats:tt)*) args $args:tt) => {
         {
             let $pat0 = Clone::clone($in0);
-            $crate::push_rules!(@match inputs($($inputs)*) patterns($($pats)*) args $args);
+            $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
         }
     };
 
-    (@match inputs($in0:ident $($inputs:tt)*) patterns($pat0:pat, $($pats:tt)*) args $args:tt) => {
+    (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:pat, $($pats:tt)*) args $args:tt) => {
         if let Some($pat0) = $crate::Downcast::downcast(&$in0) {
-            $crate::push_rules!(@match inputs($($inputs)*) patterns($($pats)*) args $args);
+            $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
         }
     };
 
@@ -288,7 +289,7 @@ macro_rules! push_rules {
             $step_index += 1;
             $crate::push_rules!(@body $args; $inputs; $step_index; $($m)*);
         } else {
-            $crate::push_rules!(@record_failure $inputs; $step_index; $crate::judgment::RuleFailureCause::IfFalse {
+            $crate::push_rules!(@record_failure $inputs; $step_index, $c; $crate::judgment::RuleFailureCause::IfFalse {
                 expr: stringify!($c).to_string(),
             });
         }
@@ -306,7 +307,7 @@ macro_rules! push_rules {
             $step_index += 1;
             $crate::push_rules!(@body $args; $inputs; $step_index; $($m)*);
         } else {
-            $crate::push_rules!(@record_failure $inputs; $step_index; $crate::judgment::RuleFailureCause::IfLetDidNotMatch {
+            $crate::push_rules!(@record_failure $inputs; $step_index, $e; $crate::judgment::RuleFailureCause::IfLetDidNotMatch {
                 pattern: stringify!($p).to_string(),
                 value: format!("{:?}", value),
             });
@@ -324,7 +325,7 @@ macro_rules! push_rules {
                 }
             }
             Err(e) => {
-                $crate::push_rules!(@record_failure $inputs; $step_index; e);
+                $crate::push_rules!(@record_failure $inputs; $step_index, $i; e);
             }
         }
     };
@@ -348,23 +349,26 @@ macro_rules! push_rules {
 
     //
 
-    (@record_failure ($failed_rules:expr, $match_index:expr, $inputs:tt, $rule_name:literal); $step_index:ident; $cause:expr) => {
+    (@record_failure ($failed_rules:expr, $match_index:expr, $inputs:tt, $rule_name:literal); $step_index:ident, $step_expr:expr; $cause:expr) => {
+        let file = $crate::respan!($step_expr (file!()));
+        let line = $crate::respan!($step_expr (line!()));
+        let column = $crate::respan!($step_expr (column!()));
         if $step_index >= $match_index {
             tracing::debug!(
                 "rule {rn} failed at step {s} because {cause} ({file}:{line}:{column})",
                 rn = $rule_name,
                 s = $step_index,
                 cause = $cause,
-                file = file!(),
-                line = line!(),
-                column = column!(),
+                file = file,
+                line = line,
+                column = column,
             );
             $failed_rules.insert(
                 $crate::judgment::FailedRule {
                     rule_name_index: Some(($rule_name.to_string(), $step_index)),
-                    file: file!().to_string(),
-                    line: line!(),
-                    column: column!(),
+                    file: file.to_string(),
+                    line: line,
+                    column: column,
                     cause: $cause,
                 }
             );
@@ -374,9 +378,9 @@ macro_rules! push_rules {
                 rn = $rule_name,
                 s = $step_index,
                 cause = $cause,
-                file = file!(),
-                line = line!(),
-                column = column!(),
+                file = file,
+                line = line,
+                column = column,
             );
         }
     }

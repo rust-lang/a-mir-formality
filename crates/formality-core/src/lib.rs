@@ -17,7 +17,7 @@ pub use tracing::instrument;
 pub use tracing::trace;
 
 // Re-export things from formality-macros.
-pub use formality_macros::{fixed_point, term, test, Visit};
+pub use formality_macros::{fixed_point, respan, term, test, Visit};
 
 pub type Fallible<T> = anyhow::Result<T>;
 
