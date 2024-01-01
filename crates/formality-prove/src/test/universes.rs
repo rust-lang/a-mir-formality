@@ -10,11 +10,32 @@ use crate::test_util::test_prove;
 #[test]
 fn exists_u_for_t() {
     let decls = Decls::empty();
-    let constraints = test_prove(decls, term("exists<ty U> {} => {for<ty T> T = U}"));
+    test_prove(decls, term("exists<ty U> {} => {for<ty T> T = U}")).assert_err(
     expect![[r#"
-            {}
-        "#]]
-    .assert_debug_eq(&constraints);
+        judgment `prove_wc_list { goal: {for <ty> ^ty0_0 = ?ty_0}, assumptions: {}, env: Env { variables: [?ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+          the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+            judgment `prove_wc { goal: for <ty> ^ty0_0 = ?ty_0, assumptions: {}, env: Env { variables: [?ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+              the rule "forall" failed at step #2 (src/file.rs:LL:CC) because
+                judgment `prove_wc { goal: !ty_1 = ?ty_0, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                  the rule "eq" failed at step #0 (src/file.rs:LL:CC) because
+                    judgment `prove_eq { a: !ty_1, b: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                      the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_normalize { p: !ty_1, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                          the rule "normalize-via-assumption" failed at step #0 (src/file.rs:LL:CC) because
+                            expression evaluated to an empty collection: `&assumptions`
+                      the rule "symmetric" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_eq { a: ?ty_0, b: !ty_1, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                          the rule "existential" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment `prove_existential_var_eq { v: ?ty_0, b: !ty_1, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                              the rule "existential-nonvar" failed at step #0 (src/file.rs:LL:CC) because
+                                pattern `None` did not match value `Some(!ty_1)`
+                              the rule "existential-universal" failed at step #0 (src/file.rs:LL:CC) because
+                                condition evaluted to false: `env.universe(p) < env.universe(v)`
+                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment `prove_normalize { p: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                              the rule "normalize-via-assumption" failed at step #0 (src/file.rs:LL:CC) because
+                                expression evaluated to an empty collection: `&assumptions`
+    "#]]);
 }
 
 /// There is U that is equal to some T.
@@ -26,18 +47,9 @@ fn for_t_exists_u() {
         ..Decls::empty()
     };
 
-    let constraints = test_prove(decls, term("{} => {for<ty T> Test(T, T)}"));
-    expect![[r#"
+    test_prove(decls, term("{} => {for<ty T> Test(T, T)}")).assert_ok(expect![[r#"
         {
-            Constraints {
-                env: Env {
-                    variables: [],
-                    coherence_mode: false,
-                },
-                known_true: true,
-                substitution: {},
-            },
+          Constraints { env: Env { variables: [], coherence_mode: false }, known_true: true, substitution: {} },
         }
-    "#]]
-    .assert_debug_eq(&constraints);
+    "#]]);
 }

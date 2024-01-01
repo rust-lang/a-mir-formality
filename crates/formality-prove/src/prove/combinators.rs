@@ -29,9 +29,7 @@ where
         let context = c1.substitution().apply(context);
         let a = c1.substitution().apply(&a);
         let b = c1.substitution().apply(&b);
-        zip(decls, c1.env(), &context, a, b, op)
-            .into_iter()
-            .map(move |c2| c1.seq(c2))
+        zip(decls, c1.env(), &context, a, b, op).map(move |c2| c1.seq(c2))
     })
 }
 
@@ -55,8 +53,6 @@ where
     op(decls.clone(), env.clone(), context.clone(), a0).flat_map(|c1| {
         let context = c1.substitution().apply(context);
         let a_remaining = c1.substitution().apply(&a_remaining);
-        for_all(decls, c1.env(), &context, &a_remaining, op)
-            .into_iter()
-            .map(move |c2| c1.seq(c2))
+        for_all(decls, c1.env(), &context, &a_remaining, op).map(move |c2| c1.seq(c2))
     })
 }

@@ -34,6 +34,7 @@ pub mod language;
 pub mod parse;
 pub mod substitution;
 pub mod term;
+pub mod test_util;
 pub mod util;
 pub mod variable;
 pub mod visit;

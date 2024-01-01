@@ -1,4 +1,21 @@
 Error: orphan_check_neg(impl ! CoreTrait for CoreStruct {})
 
 Caused by:
-    failed to prove {@ IsLocal(CoreTrait(CoreStruct))} given {}, got {}
+    judgment `prove_wc_list { goal: {@ IsLocal(CoreTrait(CoreStruct))}, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+      the rule "some" failed at step #0 (crates/formality-prove/src/prove/prove_wc_list.rs:28:14) because
+        judgment `prove_wc { goal: @ IsLocal(CoreTrait(CoreStruct)), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+          the rule "trait ref is local" failed at step #0 (crates/formality-prove/src/prove/prove_wc.rs:110:14) because
+            judgment `is_local_trait_ref { goal: CoreTrait(CoreStruct), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+              the rule "local parameter" failed at step #1 (crates/formality-prove/src/prove/is_local.rs:77:14) because
+                judgment `is_local_parameter { goal: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+                  the rule "fundamental rigid type" failed at step #0 (crates/formality-prove/src/prove/is_local.rs:148:17) because
+                    condition evaluted to false: `is_fundamental(&decls, &name)`
+                  the rule "local parameter" failed at step #0 (crates/formality-prove/src/prove/is_local.rs:138:14) because
+                    judgment `prove_normalize { p: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+                      the rule "normalize-via-assumption" failed at step #0 (crates/formality-prove/src/prove/prove_normalize.rs:26:14) because
+                        expression evaluated to an empty collection: `&assumptions`
+                  the rule "local rigid type" failed at step #0 (crates/formality-prove/src/prove/is_local.rs:156:17) because
+                    condition evaluted to false: `decls.is_local_adt_id(&a)`
+              the rule "local trait" failed at step #0 (crates/formality-prove/src/prove/is_local.rs:70:17) because
+                condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
+    

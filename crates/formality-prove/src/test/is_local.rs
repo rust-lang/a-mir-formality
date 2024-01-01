@@ -8,35 +8,38 @@ use crate::test_util::test_prove;
 
 #[test]
 fn test_forall_not_local() {
-    let constraints = test_prove(
+    test_prove(
         Decls::empty(),
         term("coherence_mode {} => {for<ty T> @IsLocal(Debug(T))}"),
-    );
+    ).assert_err(
     expect![[r#"
-        {}
-    "#]]
-    .assert_debug_eq(&constraints);
+        judgment `prove_wc_list { goal: {for <ty> @ IsLocal(Debug(^ty0_0))}, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+          the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+            judgment `prove_wc { goal: for <ty> @ IsLocal(Debug(^ty0_0)), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+              the rule "forall" failed at step #2 (src/file.rs:LL:CC) because
+                judgment `prove_wc { goal: @ IsLocal(Debug(!ty_1)), assumptions: {}, env: Env { variables: [!ty_1], coherence_mode: true }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                  the rule "trait ref is local" failed at step #0 (src/file.rs:LL:CC) because
+                    judgment `is_local_trait_ref { goal: Debug(!ty_1), assumptions: {}, env: Env { variables: [!ty_1], coherence_mode: true }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                      the rule "local parameter" failed at step #1 (src/file.rs:LL:CC) because
+                        judgment `is_local_parameter { goal: !ty_1, assumptions: {}, env: Env { variables: [!ty_1], coherence_mode: true }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                          the rule "local parameter" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment `prove_normalize { p: !ty_1, assumptions: {}, env: Env { variables: [!ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                              the rule "normalize-via-assumption" failed at step #0 (src/file.rs:LL:CC) because
+                                expression evaluated to an empty collection: `&assumptions`
+                      the rule "local trait" failed at step #0 (src/file.rs:LL:CC) because
+                        condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
+    "#]]);
 }
 
 #[test]
 fn test_exists_not_local() {
-    let constraints = test_prove(
+    test_prove(
         Decls::empty(),
         term("coherence_mode exists<ty T> {} => {@IsLocal(Debug(T))}"),
-    );
-    expect![[r#"
+    )
+    .assert_ok(expect![[r#"
         {
-            Constraints {
-                env: Env {
-                    variables: [
-                        ?ty_1,
-                    ],
-                    coherence_mode: true,
-                },
-                known_true: false,
-                substitution: {},
-            },
+          Constraints { env: Env { variables: [?ty_1], coherence_mode: true }, known_true: false, substitution: {} },
         }
-    "#]] // FIXME: really this should be ambiguous, not sure if it matters
-    .assert_debug_eq(&constraints);
+    "#]]) // FIXME: really this should be ambiguous, not sure if it matters
 }

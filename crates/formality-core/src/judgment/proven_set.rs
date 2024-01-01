@@ -1,20 +1,20 @@
-use crate::{set, Set};
+use crate::{set, Set, SetExt};
 use std::{
     fmt::Debug,
     hash::{Hash, Hasher},
-    sync::Arc,
 };
 
 /// Represents a set of items that were successfully proven using a judgment.
 /// If the set is empty, then tracks the reason that the judgment failed for diagnostic purposes.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[must_use]
 pub struct ProvenSet<T> {
     data: Data<T>,
 }
 
 #[derive(Clone)]
 enum Data<T> {
-    Failure(Arc<FailedJudgment>),
+    Failure(Box<FailedJudgment>),
     Success(Set<T>),
 }
 
@@ -24,7 +24,13 @@ impl<T> From<Data<T>> for ProvenSet<T> {
     }
 }
 
-impl<T: Ord> ProvenSet<T> {
+impl<T> From<FailedJudgment> for ProvenSet<T> {
+    fn from(failure: FailedJudgment) -> Self {
+        Data::Failure(Box::new(failure)).into()
+    }
+}
+
+impl<T: Ord + Debug> ProvenSet<T> {
     /// Creates a judgment set with a single item that was successfully proven.
     pub fn singleton(item: T) -> Self {
         Self::proven(set![item])
@@ -40,52 +46,52 @@ impl<T: Ord> ProvenSet<T> {
     /// Creates a `JudgmentSet` from a Rust function that failed for the given reason.
     #[track_caller]
     pub fn failed(description: impl std::fmt::Display, reason: impl std::fmt::Display) -> Self {
-        Data::Failure(Arc::new(FailedJudgment {
-            judgment: description.to_string(),
-            failed_rules: set![FailedRule::new(RuleFailureCause::Inapplicable {
+        FailedJudgment::new(
+            description.to_string(),
+            set![FailedRule::new(RuleFailureCause::Inapplicable {
                 reason: reason.to_string()
             })],
-        }))
+        )
         .into()
     }
 
     /// Creates a judgment set that resulted from a failed judgment.
     /// Meant to be used from the judgment macro, probably annoying to call manually.
     pub fn failed_rules(judgment: &impl std::fmt::Debug, failed_rules: Set<FailedRule>) -> Self {
-        Data::Failure(Arc::new(FailedJudgment {
-            judgment: format!("{judgment:?}"),
-            failed_rules,
-        }))
-        .into()
+        let judgment = format!("{judgment:?}");
+        FailedJudgment::new(judgment, failed_rules).into()
     }
 
     /// True if the judgment whose result this set represents was proven at least once.
     pub fn is_proven(&self) -> bool {
-        !self.is_empty()
-    }
-
-    /// True if nothing was proven (i.e., set is empty).
-    pub fn is_empty(&self) -> bool {
         match &self.data {
-            Data::Failure(_) => true,
-            Data::Success(s) => s.is_empty(),
+            Data::Failure(_) => false,
+            Data::Success(s) => {
+                assert!(!s.is_empty());
+                true
+            }
         }
     }
 
-    /// Convert to a set of proven results, losing the failure cause information.
-    pub fn into_set(self) -> Set<T> {
+    pub fn check_proven(self) -> Result<(), Box<FailedJudgment>> {
         match self.data {
-            Data::Failure(_) => set![],
-            Data::Success(s) => s,
+            Data::Failure(e) => Err(e),
+            Data::Success(_) => Ok(()),
         }
     }
 
-    /// Iterate over proven results, losing the failure cause information.
-    pub fn into_iter(self) -> <Set<T> as IntoIterator>::IntoIter {
-        self.into_set().into_iter()
+    /// Convert to a non-empty set of proven results (if ok) or an error (otherwise).
+    pub fn into_set(self) -> Result<Set<T>, Box<FailedJudgment>> {
+        match self.data {
+            Data::Failure(e) => Err(e),
+            Data::Success(s) => {
+                assert!(!s.is_empty());
+                Ok(s)
+            }
+        }
     }
 
-    /// Iterate over proven results, losing the failure cause information.
+    /// Convert to a non-empty set of proven results (if ok) or an error (otherwise).
     pub fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a T> + 'a> {
         match &self.data {
             Data::Failure(_) => Box::new(std::iter::empty()),
@@ -102,7 +108,7 @@ impl<T: Ord> ProvenSet<T> {
     pub fn flat_map<I, U>(self, mut op: impl FnMut(T) -> I) -> ProvenSet<U>
     where
         I: TryIntoIter<Item = U>,
-        U: Ord,
+        U: Ord + Debug,
     {
         match self.data {
             Data::Failure(e) => ProvenSet {
@@ -130,9 +136,45 @@ impl<T: Ord> ProvenSet<T> {
             }
         }
     }
+
+    /// For each item `t` that was proven,
+    /// invoke `op(t)` to yield a new item `u`
+    /// and create a proven set from that.
+    /// This function preserves failure cause information.
+    #[track_caller]
+    pub fn map<U>(self, mut op: impl FnMut(T) -> U) -> ProvenSet<U>
+    where
+        U: Ord + Debug,
+    {
+        self.flat_map(|elem| set![op(elem)])
+    }
+
+    /// Convenience function for tests: asserts that the proven set is ok and that the debug value is as expected.
+    #[track_caller]
+    pub fn assert_ok(&self, expect: expect_test::Expect) {
+        match &self.data {
+            Data::Failure(e) => panic!("expected a successful proof, got {e}"),
+            Data::Success(_) => {
+                expect.assert_eq(&self.to_string());
+            }
+        }
+    }
+
+    /// Convenience function for tests: asserts that the proven set is ok and that the debug value is as expected.
+    #[track_caller]
+    pub fn assert_err(&self, expect: expect_test::Expect) {
+        match &self.data {
+            Data::Failure(e) => {
+                expect.assert_eq(&crate::test_util::normalize_paths(e));
+            }
+            Data::Success(_) => {
+                panic!("expected an error, got successful proofs: {self}");
+            }
+        }
+    }
 }
 
-impl<I: Ord> FromIterator<I> for ProvenSet<I> {
+impl<I: Ord + Debug> FromIterator<I> for ProvenSet<I> {
     fn from_iter<T: IntoIterator<Item = I>>(iter: T) -> Self {
         let set: Set<I> = iter.into_iter().collect();
         if set.is_empty() {
@@ -206,7 +248,7 @@ impl<T: Hash> Hash for Data<T> {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub struct FailedJudgment {
     /// Trying to prove this judgment...
     pub judgment: String,
@@ -216,7 +258,97 @@ pub struct FailedJudgment {
     pub failed_rules: Set<FailedRule>,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Debug)]
+struct HasNonCycle(bool);
+
+impl FailedJudgment {
+    /// Create a new "failed judgment" representing a failure to
+    /// solve `judgment` with the given set of partially solved rules.
+    ///
+    /// Does a bit of post-processing to detect cycles,
+    /// since some of these rule failures may represent a cyclic attempt
+    /// to solve judgment. We employ the heuristic that we only present
+    /// cycle errors if ALL the rule failes are cycles. Otherwise, we
+    /// show only the non-cyclic failures, as usually that's what the user
+    /// is interested in.
+    #[tracing::instrument(level = "Debug", ret)]
+    fn new(judgment: String, failed_rules: Set<FailedRule>) -> Self {
+        // Strip cycles out from the set of failed rules. Note that this algorithm
+        // has an O(n^2) character, as the set of failed rules will get recursively
+        // simplified as we progress up the stack, but .. who cares?
+        let (failed_rules, _) = Self::strip_cycles(set![&judgment], failed_rules);
+        Self {
+            judgment,
+            failed_rules,
+        }
+    }
+
+    /// Simplifies a set of failed rules to exclude cycles, but only if there are non-cyclic results to show instead.
+    /// Recursively Given a set of failed rules, along with the `stack` of judgments that was being solved at the time these failures occurred,
+    /// returns `(set, has_non_cycle)`. The `set` represents a new, simplified set of failued
+    #[tracing::instrument(level = "Debug", skip(stack), ret)]
+    fn strip_cycles(
+        stack: Set<&String>,
+        failed_rules: Set<FailedRule>,
+    ) -> (Set<FailedRule>, HasNonCycle) {
+        // Collect all the failures that were due to cycles
+        let mut cycles = set![];
+
+        // Collect failures not due to cycles
+        let mut non_cycles = set![];
+
+        // Go over each failure and insert it into the appropriate entry above
+        for mut failed_rule in failed_rules {
+            let span = tracing::debug_span!("failed_rule", ?failed_rule);
+            let _guard = span.enter();
+
+            if let RuleFailureCause::FailedJudgment(mut judgment) = failed_rule.cause {
+                // Recursive case: we failed because a judgment failed...
+                if stack.contains(&judgment.judgment) && judgment.failed_rules.is_empty() {
+                    // ...if that judgment was already on the stack, and we didn't have a more interesting reason,
+                    // then this is a failure.
+                    failed_rule.cause = RuleFailureCause::Cycle {
+                        judgment: judgment.judgment.clone(),
+                    };
+                    cycles.insert(failed_rule);
+                } else {
+                    // ...otherwise, recursively simplify the failed rules.
+                    // This will return a boolean indicating if all the failed rules
+                    // ultimately failed because of a cycle.
+
+                    let judgment_has_non_cycle;
+                    (judgment.failed_rules, judgment_has_non_cycle) = Self::strip_cycles(
+                        stack.clone().plus(&judgment.judgment),
+                        judgment.failed_rules,
+                    );
+                    failed_rule.cause = RuleFailureCause::FailedJudgment(judgment);
+
+                    if judgment_has_non_cycle.0 {
+                        non_cycles.insert(failed_rule);
+                    } else {
+                        // If all the failed rules failed because of a cycle,
+                        // then this judgment is itself a cycle.
+                        cycles.insert(failed_rule);
+                    }
+                }
+            } else if let RuleFailureCause::Cycle { .. } = failed_rule.cause {
+                cycles.insert(failed_rule);
+            } else {
+                non_cycles.insert(failed_rule);
+            }
+        }
+
+        tracing::debug!(?cycles, ?non_cycles);
+
+        if non_cycles.is_empty() {
+            (cycles, HasNonCycle(false))
+        } else {
+            (non_cycles, HasNonCycle(true))
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub struct FailedRule {
     /// If Some, then the given rule failed at the given index
     /// (if None, then there is only a single rule and this is not relevant)...
@@ -262,10 +394,13 @@ pub enum RuleFailureCause {
 
     /// The rule did not succeed because the `x` in a `(x => y)` rule was a judgment that failed
     /// (for the given reason).
-    FailedJudgment(Arc<FailedJudgment>),
+    FailedJudgment(Box<FailedJudgment>),
 
     /// The rule did not succeed for some custom reason; this is not generated by the macro.
     Inapplicable { reason: String },
+
+    /// The rule attempted to prove something that was already in the process of being proven
+    Cycle { judgment: String },
 }
 
 impl std::error::Error for FailedJudgment {
@@ -291,7 +426,7 @@ impl std::fmt::Display for FailedJudgment {
         if failed_rules.is_empty() {
             write!(f, "judgment had no applicable rules: `{judgment}` ",)
         } else {
-            let rules: String = failed_rules.iter().map(|r| format!("{r}\n")).collect();
+            let rules: String = failed_rules.iter().map(|r| r.to_string()).collect();
             let rules = indent(rules);
             write!(
                 f,
@@ -343,6 +478,9 @@ impl std::fmt::Display for RuleFailureCause {
             RuleFailureCause::Inapplicable { reason } => {
                 write!(f, "{reason}")
             }
+            RuleFailureCause::Cycle { judgment } => {
+                write!(f, "cyclic proof attempt: `{judgment}`")
+            }
         }
     }
 }
@@ -354,7 +492,7 @@ impl<T: Debug> std::fmt::Display for ProvenSet<T> {
             Data::Success(set) => {
                 write!(f, "{{\n")?;
                 for item in set {
-                    write!(f, "{},\n", indent(format!("{item:?}")))?;
+                    write!(f, "{}", indent(format!("{item:?},\n")))?;
                 }
                 write!(f, "}}\n")?;
                 Ok(())
@@ -365,9 +503,14 @@ impl<T: Debug> std::fmt::Display for ProvenSet<T> {
 
 fn indent(s: impl std::fmt::Display) -> String {
     let s = s.to_string();
-    let mut s = s.replace("\n", "\n  ");
-    s.insert_str(0, "  ");
-    s
+    s.lines()
+        .map(|l| format!("  {l}"))
+        .map(|l| l.trim_end().to_string())
+        .map(|mut l| {
+            l.push_str("\n");
+            l
+        })
+        .collect()
 }
 
 /// This trait is used for the `(foo => bar)` patterns.

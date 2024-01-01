@@ -64,14 +64,14 @@ judgment_fn! {
 
         (
             (if let Some(Variable::ExistentialVar(v_a)) = a.downcast())
-            (if v_goal == v_a)
+            (if v_goal == v_a)!
             ----------------------------- ("var-axiom-l")
             (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(a, b), Variable::ExistentialVar(v_goal)) => (Constraints::none(env), b))
         )
 
         (
             (if let Some(Variable::ExistentialVar(v_a)) = a.downcast())
-            (if v_goal == v_a)
+            (if v_goal == v_a)!
             ----------------------------- ("var-axiom-r")
             (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(b, a), Variable::ExistentialVar(v_goal)) => (Constraints::none(env), b))
         )
@@ -86,7 +86,7 @@ judgment_fn! {
 
         (
             (if let None = goal.downcast::<ExistentialVar>())
-            (if goal != b)
+            (if goal != b)!
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(&b))
             ----------------------------- ("axiom-l")
@@ -95,7 +95,7 @@ judgment_fn! {
 
         (
             (if let None = goal.downcast::<ExistentialVar>())
-            (if goal != b)
+            (if goal != b)!
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(&b))
             ----------------------------- ("axiom-r")
@@ -145,7 +145,7 @@ judgment_fn! {
         (
             (let RigidTy { name: a_name, parameters: a_parameters } = a)
             (let RigidTy { name: b_name, parameters: b_parameters } = b)
-            (if a_name == b_name)
+            (if a_name == b_name)!
             (zip(&decls, &env, &assumptions, a_parameters, b_parameters, &prove_syntactically_eq) => c)
             ----------------------------- ("rigid")
             (prove_syntactically_eq(decls, env, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
@@ -154,7 +154,7 @@ judgment_fn! {
         (
             (let AliasTy { name: a_name, parameters: a_parameters } = a)
             (let AliasTy { name: b_name, parameters: b_parameters } = b)
-            (if a_name == b_name)
+            (if a_name == b_name)!
             (zip(&decls, &env, &assumptions, a_parameters, b_parameters, &prove_syntactically_eq) => c)
             ----------------------------- ("alias")
             (prove_syntactically_eq(decls, env, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => c)

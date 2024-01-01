@@ -45,14 +45,24 @@ fn well_formed_adt() {
 fn not_well_formed_adt() {
     let assumptions: Wcs = Wcs::t();
     let goal: Parameter = term("X<u64>");
-    let constraints = prove(
+    prove(
         decls(),
         Env::default(),
         assumptions,
         Relation::WellFormed(goal),
-    );
-    expect![[r#"
-        {}
-    "#]]
-    .assert_debug_eq(&constraints);
+    ).assert_err(expect![[r#"
+        judgment `prove_wc_list { goal: {@ wf(X<u64>)}, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl Foo(u32)], [], [], [], [adt X <ty> where {Foo(^ty0_0)}], {}, {}) }` failed at the following rule(s):
+          the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+            judgment `prove_wc { goal: @ wf(X<u64>), assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl Foo(u32)], [], [], [], [adt X <ty> where {Foo(^ty0_0)}], {}, {}) }` failed at the following rule(s):
+              the rule "parameter well formed" failed at step #0 (src/file.rs:LL:CC) because
+                judgment `prove_wf { goal: X<u64>, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl Foo(u32)], [], [], [], [adt X <ty> where {Foo(^ty0_0)}], {}, {}) }` failed at the following rule(s):
+                  the rule "ADT" failed at step #3 (src/file.rs:LL:CC) because
+                    judgment `prove_after { constraints: Constraints { env: Env { variables: [], coherence_mode: false }, known_true: true, substitution: {} }, goal: {Foo(u64)}, assumptions: {}, decls: decls(222, [trait Foo <ty> ], [impl Foo(u32)], [], [], [], [adt X <ty> where {Foo(^ty0_0)}], {}, {}) }` failed at the following rule(s):
+                      the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
+                        judgment `prove_wc_list { goal: {Foo(u64)}, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl Foo(u32)], [], [], [], [adt X <ty> where {Foo(^ty0_0)}], {}, {}) }` failed at the following rule(s):
+                          the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment `prove_wc { goal: Foo(u64), assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl Foo(u32)], [], [], [], [adt X <ty> where {Foo(^ty0_0)}], {}, {}) }` failed at the following rule(s):
+                              the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
+                                expression evaluated to an empty collection: `decls.trait_invariants()`
+    "#]]);
 }

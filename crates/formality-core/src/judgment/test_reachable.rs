@@ -48,13 +48,12 @@ fn judgment() {
         edges: vec![(0, 1), (1, 2), (2, 0), (2, 3)],
     });
 
-    expect_test::expect![[r#"
+    transitive_reachable(graph, 0).assert_ok(expect_test::expect![[r#"
         {
-            0,
-            1,
-            2,
-            3,
+          0,
+          1,
+          2,
+          3,
         }
-    "#]]
-    .assert_debug_eq(&transitive_reachable(graph, 0));
+    "#]]);
 }

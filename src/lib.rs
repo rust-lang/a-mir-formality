@@ -51,6 +51,6 @@ pub fn test_where_clause(program: &str, assertion: &str) -> anyhow::Result<Set<C
         check_all_crates(&program)?;
         let assertion: Arc<TestAssertion> = try_term(assertion)?;
         let decls = program.to_prove_decls();
-        Ok(formality_prove::test_util::test_prove(decls, assertion))
+        Ok(formality_prove::test_util::test_prove(decls, assertion).into_set()?)
     })
 }

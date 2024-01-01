@@ -48,35 +48,17 @@ fn judgment() {
         edges: vec![(0, 1), (1, 2), (2, 4), (2, 3), (3, 6), (4, 8), (8, 10)],
     });
 
-    expect_test::expect![[r#"
-        FailedJudgment {
-            judgment: "transitive_reachable { node: 0, g: Graph { edges: [(0, 1), (1, 2), (2, 4), (2, 3), (3, 6), (4, 8), (8, 10)] } }",
-            failed_rules: {
-                FailedRule {
-                    rule_name_index: Some(
-                        (
-                            "base",
-                            1,
-                        ),
-                    ),
-                    file: "crates/formality-core/src/judgment/test_filtered.rs",
-                    line: 24,
-                    column: 1,
-                    cause: IfFalse {
-                        expr: "b % 2 == 0",
-                    },
-                },
-            },
-        }
-    "#]]
-    .assert_debug_eq(&transitive_reachable(&graph, 0));
+    transitive_reachable(&graph, 0).assert_err(expect_test::expect![[r#"
+        judgment `transitive_reachable { node: 0, g: Graph { edges: [(0, 1), (1, 2), (2, 4), (2, 3), (3, 6), (4, 8), (8, 10)] } }` failed at the following rule(s):
+          the rule "base" failed at step #1 (src/file.rs:LL:CC) because
+            condition evaluted to false: `b % 2 == 0`
+    "#]]);
 
-    expect_test::expect![[r#"
+    transitive_reachable(&graph, 2).assert_ok(expect_test::expect![[r#"
         {
-            4,
-            8,
-            10,
+          4,
+          8,
+          10,
         }
-    "#]]
-    .assert_debug_eq(&transitive_reachable(&graph, 2));
+    "#]]);
 }

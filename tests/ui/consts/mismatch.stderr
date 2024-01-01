@@ -1,4 +1,31 @@
 Error: check_trait_impl(impl Foo <const value(42, u32)> for u32 { })
 
 Caused by:
-    failed to prove {Foo(u32, const value(42, u32))} given {}, got {}
+    judgment `prove_wc_list { goal: {Foo(u32, const value(42, u32))}, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
+      the rule "some" failed at step #0 (crates/formality-prove/src/prove/prove_wc_list.rs:28:14) because
+        judgment `prove_wc { goal: Foo(u32, const value(42, u32)), assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
+          the rule "positive impl" failed at step #7 (crates/formality-prove/src/prove/prove_wc.rs:57:14) because
+            judgment `prove_after { constraints: Constraints { env: Env { variables: [], coherence_mode: false }, known_true: true, substitution: {} }, goal: {@ ConstHasType(value(42, u32) , bool)}, assumptions: {}, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
+              the rule "prove_after" failed at step #1 (crates/formality-prove/src/prove/prove_after.rs:19:14) because
+                judgment `prove_wc_list { goal: {@ ConstHasType(value(42, u32) , bool)}, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
+                  the rule "some" failed at step #0 (crates/formality-prove/src/prove/prove_wc_list.rs:28:14) because
+                    judgment `prove_wc { goal: @ ConstHasType(value(42, u32) , bool), assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
+                      the rule "const has ty" failed at step #1 (crates/formality-prove/src/prove/prove_wc.rs:124:14) because
+                        judgment `prove_wc_list { goal: {u32 = bool}, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
+                          the rule "some" failed at step #0 (crates/formality-prove/src/prove/prove_wc_list.rs:28:14) because
+                            judgment `prove_wc { goal: u32 = bool, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
+                              the rule "eq" failed at step #0 (crates/formality-prove/src/prove/prove_wc.rs:96:14) because
+                                judgment `prove_eq { a: u32, b: bool, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
+                                  the rule "normalize-l" failed at step #0 (crates/formality-prove/src/prove/prove_eq.rs:68:14) because
+                                    judgment `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
+                                      the rule "normalize-via-assumption" failed at step #0 (crates/formality-prove/src/prove/prove_normalize.rs:26:14) because
+                                        expression evaluated to an empty collection: `&assumptions`
+                                  the rule "symmetric" failed at step #0 (crates/formality-prove/src/prove/prove_eq.rs:38:14) because
+                                    judgment `prove_eq { a: bool, b: u32, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
+                                      the rule "normalize-l" failed at step #0 (crates/formality-prove/src/prove/prove_eq.rs:68:14) because
+                                        judgment `prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
+                                          the rule "normalize-via-assumption" failed at step #0 (crates/formality-prove/src/prove/prove_normalize.rs:26:14) because
+                                            expression evaluated to an empty collection: `&assumptions`
+          the rule "trait implied bound" failed at step #0 (crates/formality-prove/src/prove/prove_wc.rs:86:14) because
+            expression evaluated to an empty collection: `decls.trait_invariants()`
+    

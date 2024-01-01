@@ -99,6 +99,7 @@ impl Check<'_> {
         assert!(env.encloses((&assumptions, &goal)));
 
         let cs = formality_prove::prove(self.decls, env, &assumptions, &goal);
+        let cs = cs.into_set()?;
         if cs.iter().any(|c| c.unconditionally_true()) {
             return Ok(());
         }
@@ -145,10 +146,10 @@ impl Check<'_> {
             &existential_goal,
         );
 
-        if cs.is_empty() {
+        if !cs.is_proven() {
             return Ok(());
         }
 
-        bail!("failed to disprove\n    {goal:?}\ngiven\n    {assumptions:?}\ngot\n{cs:#?}")
+        bail!("failed to disprove\n    {goal:?}\ngiven\n    {assumptions:?}\ngot\n{cs:?}")
     }
 }
