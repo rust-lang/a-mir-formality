@@ -58,7 +58,7 @@ pub trait ResultTestExt<T, E> {
 impl<T, E> ResultTestExt<T, E> for Result<T, E>
 where
     T: Debug,
-    E: Display,
+    E: Debug,
 {
     fn assert_ok(self, expect: expect_test::Expect) {
         match self {
@@ -66,7 +66,7 @@ where
                 expect.assert_eq(&format!("{v:?}"));
             }
             Err(e) => {
-                panic!("expected `Ok`, got `Err`: {e}");
+                panic!("expected `Ok`, got `Err`: {e:?}");
             }
         }
     }
@@ -75,7 +75,7 @@ where
         match self {
             Ok(v) => panic!("expected `Err`, got `Ok`: {v:?}"),
             Err(e) => {
-                expect.assert_eq(&format!("{e}"));
+                expect.assert_eq(&format!("{e:?}"));
             }
         }
     }
