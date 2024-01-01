@@ -23,7 +23,7 @@ judgment_fn! {
         debug(p, assumptions, env, decls)
 
         (
-            (&assumptions => a)
+            (&assumptions => a)!
             (prove_normalize_via(&decls, &env, &assumptions, a, &goal) => c)
             ----------------------------- ("normalize-via-assumption")
             (prove_normalize(decls, env, assumptions, goal) => c)

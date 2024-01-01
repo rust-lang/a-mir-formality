@@ -19,10 +19,6 @@ fn exists_u_for_t() {
                 judgment `prove_wc { goal: !ty_1 = ?ty_0, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                   the rule "eq" failed at step #0 (src/file.rs:LL:CC) because
                     judgment `prove_eq { a: !ty_1, b: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                      the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
-                        judgment `prove_normalize { p: !ty_1, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                          the rule "normalize-via-assumption" failed at step #0 (src/file.rs:LL:CC) because
-                            expression evaluated to an empty collection: `&assumptions`
                       the rule "symmetric" failed at step #0 (src/file.rs:LL:CC) because
                         judgment `prove_eq { a: ?ty_0, b: !ty_1, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                           the rule "existential" failed at step #0 (src/file.rs:LL:CC) because
@@ -31,10 +27,6 @@ fn exists_u_for_t() {
                                 pattern `None` did not match value `Some(!ty_1)`
                               the rule "existential-universal" failed at step #0 (src/file.rs:LL:CC) because
                                 condition evaluted to false: `env.universe(p) < env.universe(v)`
-                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
-                            judgment `prove_normalize { p: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                              the rule "normalize-via-assumption" failed at step #0 (src/file.rs:LL:CC) because
-                                expression evaluated to an empty collection: `&assumptions`
     "#]]);
 }
 

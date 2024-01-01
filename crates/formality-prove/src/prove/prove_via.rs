@@ -28,8 +28,8 @@ judgment_fn! {
         (
             (let (skel_c, parameters_c) = relation.debone())
             (let (skel_g, parameters_g) = goal.debone())
-            (if skel_c == skel_g)!
-            (if parameters_c == parameters_g) // for relations, we require 100% match
+            (if skel_c == skel_g)
+            (if parameters_c == parameters_g)! // for relations, we require 100% match
             ----------------------------- ("relation-axiom")
             (prove_via(_decls, env, _assumptions, PR::Relation(relation), goal) => Constraints::none(env))
         )

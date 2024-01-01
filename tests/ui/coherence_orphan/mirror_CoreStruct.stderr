@@ -12,10 +12,6 @@ Caused by:
                     judgment `is_local_parameter { goal: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
                       the rule "fundamental rigid type" failed at step #0 (crates/formality-prove/src/prove/is_local.rs:148:17) because
                         condition evaluted to false: `is_fundamental(&decls, &name)`
-                      the rule "local parameter" failed at step #0 (crates/formality-prove/src/prove/is_local.rs:138:14) because
-                        judgment `prove_normalize { p: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
-                          the rule "normalize-via-assumption" failed at step #0 (crates/formality-prove/src/prove/prove_normalize.rs:26:14) because
-                            expression evaluated to an empty collection: `&assumptions`
                       the rule "local rigid type" failed at step #0 (crates/formality-prove/src/prove/is_local.rs:156:17) because
                         condition evaluted to false: `decls.is_local_adt_id(&a)`
               the rule "local trait" failed at step #0 (crates/formality-prove/src/prove/is_local.rs:70:17) because

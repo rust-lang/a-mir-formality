@@ -31,16 +31,6 @@ fn direct_cycle() {
                                 judgment `equate_variable` failed at the following rule(s):
                                   failed at (src/file.rs:LL:CC) because
                                     `?ty_0` occurs in `Vec<?ty_0>`
-                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
-                            judgment `prove_normalize { p: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl <ty> Foo(Vec<^ty0_0>)], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                              the rule "normalize-via-assumption" failed at step #0 (src/file.rs:LL:CC) because
-                                expression evaluated to an empty collection: `&assumptions`
-                          the rule "symmetric" failed at step #0 (src/file.rs:LL:CC) because
-                            judgment `prove_eq { a: Vec<?ty_0>, b: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl <ty> Foo(Vec<^ty0_0>)], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                              the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
-                                judgment `prove_normalize { p: Vec<?ty_0>, assumptions: {}, env: Env { variables: [?ty_0], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl <ty> Foo(Vec<^ty0_0>)], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                                  the rule "normalize-via-assumption" failed at step #0 (src/file.rs:LL:CC) because
-                                    expression evaluated to an empty collection: `&assumptions`
             "#]]);
 }
 
@@ -87,16 +77,6 @@ fn indirect_cycle_1() {
                                 judgment `equate_variable` failed at the following rule(s):
                                   failed at (src/file.rs:LL:CC) because
                                     `?ty_0` occurs in `Vec<?ty_0>`
-                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
-                            judgment `prove_normalize { p: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl <ty> Foo(Vec<^ty0_0>)], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                              the rule "normalize-via-assumption" failed at step #0 (src/file.rs:LL:CC) because
-                                expression evaluated to an empty collection: `&assumptions`
-                          the rule "symmetric" failed at step #0 (src/file.rs:LL:CC) because
-                            judgment `prove_eq { a: Vec<?ty_0>, b: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl <ty> Foo(Vec<^ty0_0>)], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                              the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
-                                judgment `prove_normalize { p: Vec<?ty_0>, assumptions: {}, env: Env { variables: [?ty_0], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl <ty> Foo(Vec<^ty0_0>)], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                                  the rule "normalize-via-assumption" failed at step #0 (src/file.rs:LL:CC) because
-                                    expression evaluated to an empty collection: `&assumptions`
     "#]]);
 }
 
@@ -123,15 +103,5 @@ fn indirect_cycle_2() {
                                 judgment `equate_variable` failed at the following rule(s):
                                   failed at (src/file.rs:LL:CC) because
                                     `?ty_0` occurs in `Vec<?ty_0>`
-                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
-                            judgment `prove_normalize { p: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl <ty> Foo(Vec<^ty0_0>)], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                              the rule "normalize-via-assumption" failed at step #0 (src/file.rs:LL:CC) because
-                                expression evaluated to an empty collection: `&assumptions`
-                          the rule "symmetric" failed at step #0 (src/file.rs:LL:CC) because
-                            judgment `prove_eq { a: Vec<?ty_0>, b: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl <ty> Foo(Vec<^ty0_0>)], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                              the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
-                                judgment `prove_normalize { p: Vec<?ty_0>, assumptions: {}, env: Env { variables: [?ty_0], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl <ty> Foo(Vec<^ty0_0>)], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                                  the rule "normalize-via-assumption" failed at step #0 (src/file.rs:LL:CC) because
-                                    expression evaluated to an empty collection: `&assumptions`
     "#]]);
 }

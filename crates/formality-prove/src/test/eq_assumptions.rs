@@ -59,10 +59,6 @@ fn test_normalize_assoc_ty_existential0() {
                 judgment `prove_wc { goal: if {<!ty_1 as Iterator>::Item = u32} <?ty_0 as Iterator>::Item = u32, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                   the rule "implies" failed at step #0 (src/file.rs:LL:CC) because
                     judgment `prove_wc { goal: <?ty_0 as Iterator>::Item = u32, assumptions: {<!ty_1 as Iterator>::Item = u32}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                      the rule "assumption" failed at step #1 (src/file.rs:LL:CC) because
-                        judgment `prove_via { goal: <?ty_0 as Iterator>::Item = u32, via: <!ty_1 as Iterator>::Item = u32, assumptions: {<!ty_1 as Iterator>::Item = u32}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                          the rule "relation-axiom" failed at step #3 (src/file.rs:LL:CC) because
-                            condition evaluted to false: `parameters_c == parameters_g`
                       the rule "eq" failed at step #0 (src/file.rs:LL:CC) because
                         judgment `prove_eq { a: <?ty_0 as Iterator>::Item, b: u32, assumptions: {<!ty_1 as Iterator>::Item = u32}, env: Env { variables: [?ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                           the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
@@ -101,20 +97,12 @@ fn test_normalize_assoc_ty_existential0() {
                                     judgment `prove_wc_list { goal: {<!ty_0 as Iterator>::Item = <?ty_1 as Iterator>::Item}, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                                       the rule "some" failed at step #0 (src/file.rs:LL:CC) because
                                         judgment `prove_wc { goal: <!ty_0 as Iterator>::Item = <?ty_1 as Iterator>::Item, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                                          the rule "assumption" failed at step #1 (src/file.rs:LL:CC) because
-                                            judgment `prove_via { goal: <!ty_0 as Iterator>::Item = <?ty_1 as Iterator>::Item, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                                              the rule "relation-axiom" failed at step #3 (src/file.rs:LL:CC) because
-                                                condition evaluted to false: `parameters_c == parameters_g`
                                           the rule "eq" failed at step #0 (src/file.rs:LL:CC) because
                                             judgment `prove_eq { a: <!ty_0 as Iterator>::Item, b: <?ty_1 as Iterator>::Item, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                                               the rule "alias" failed at step #3 (src/file.rs:LL:CC) because
                                                 judgment `prove_wc_list { goal: {!ty_0 = ?ty_1}, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                                                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
                                                     judgment `prove_wc { goal: !ty_0 = ?ty_1, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                                                      the rule "assumption" failed at step #1 (src/file.rs:LL:CC) because
-                                                        judgment `prove_via { goal: !ty_0 = ?ty_1, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                                                          the rule "relation-axiom" failed at step #3 (src/file.rs:LL:CC) because
-                                                            condition evaluted to false: `parameters_c == parameters_g`
                                                       the rule "eq" failed at step #0 (src/file.rs:LL:CC) because
                                                         judgment `prove_eq { a: !ty_0, b: ?ty_1, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                                                           the rule "symmetric" failed at step #0 (src/file.rs:LL:CC) because
@@ -131,10 +119,6 @@ fn test_normalize_assoc_ty_existential0() {
                                                     judgment `prove_wc_list { goal: {u32 = <?ty_1 as Iterator>::Item}, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                                                       the rule "some" failed at step #0 (src/file.rs:LL:CC) because
                                                         judgment `prove_wc { goal: u32 = <?ty_1 as Iterator>::Item, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                                                          the rule "assumption" failed at step #1 (src/file.rs:LL:CC) because
-                                                            judgment `prove_via { goal: u32 = <?ty_1 as Iterator>::Item, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                                                              the rule "relation-axiom" failed at step #3 (src/file.rs:LL:CC) because
-                                                                condition evaluted to false: `parameters_c == parameters_g`
                                                           the rule "eq" failed at step #0 (src/file.rs:LL:CC) because
                                                             judgment `prove_eq { a: u32, b: <?ty_1 as Iterator>::Item, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                                                               the rule "symmetric" failed at step #0 (src/file.rs:LL:CC) because
@@ -173,10 +157,6 @@ fn test_normalize_assoc_ty_existential0() {
                                                     judgment `prove_wc_list { goal: {?ty_1 = !ty_0}, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                                                       the rule "some" failed at step #0 (src/file.rs:LL:CC) because
                                                         judgment `prove_wc { goal: ?ty_1 = !ty_0, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                                                          the rule "assumption" failed at step #1 (src/file.rs:LL:CC) because
-                                                            judgment `prove_via { goal: ?ty_1 = !ty_0, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                                                              the rule "relation-axiom" failed at step #3 (src/file.rs:LL:CC) because
-                                                                condition evaluted to false: `parameters_c == parameters_g`
                                                           the rule "eq" failed at step #0 (src/file.rs:LL:CC) because
                                                             judgment `prove_eq { a: ?ty_1, b: !ty_0, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                                                               the rule "existential" failed at step #0 (src/file.rs:LL:CC) because
