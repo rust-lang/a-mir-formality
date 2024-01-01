@@ -5,6 +5,8 @@ pub(crate) struct Customize {
     pub parse: bool,
     pub debug: bool,
     pub constructors: bool,
+    pub fold: bool,
+    pub visit: bool,
 }
 
 impl syn::parse::Parse for Customize {
@@ -13,35 +15,36 @@ impl syn::parse::Parse for Customize {
 
         let token_stream: TokenStream = input.parse()?;
         let mut tokens = token_stream.into_iter();
+
         while let Some(token) = tokens.next() {
-            match token {
-                proc_macro2::TokenTree::Ident(ident) if ident == "parse" => {
-                    if result.parse {
-                        return Err(syn::Error::new(ident.span(), "already customizing parse"));
-                    }
-                    result.parse = true;
-                }
+            macro_rules! match_customization_field_or_error {
+                ($($ident:ident,)*) => {
+                    match token {
+                        $(
+                            proc_macro2::TokenTree::Ident(ident) if ident == stringify!($ident) => {
+                                if result.$ident {
+                                    return Err(syn::Error::new(ident.span(), &format!("already customizing {}", stringify!($ident))));
+                                }
+                                result.$ident = true;
+                            }
+                        )*
 
-                proc_macro2::TokenTree::Ident(ident) if ident == "debug" => {
-                    if result.debug {
-                        return Err(syn::Error::new(ident.span(), "already customizing debug"));
+                        _ => {
+                            return Err(syn::Error::new(
+                                token.span(),
+                                "unexpected token in customization",
+                            ));
+                        }
                     }
-                    result.debug = true;
-                }
+                };
+            }
 
-                proc_macro2::TokenTree::Ident(ident) if ident == "constructors" => {
-                    if result.constructors {
-                        return Err(syn::Error::new(ident.span(), "already customizing debug"));
-                    }
-                    result.constructors = true;
-                }
-
-                _ => {
-                    return Err(syn::Error::new(
-                        token.span(),
-                        "unexpected token in customization",
-                    ));
-                }
+            match_customization_field_or_error! {
+                parse,
+                debug,
+                constructors,
+                fold,
+                visit,
             }
 
             if let Some(token) = tokens.next() {

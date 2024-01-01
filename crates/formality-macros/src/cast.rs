@@ -11,8 +11,9 @@ pub(crate) fn upcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
     s.variants()
         .iter()
         .filter(|v| num_variants == 1 || has_isa_attr(v.ast().attrs))
-        .map(|v| upcast_to_variant(&s, v))
+        .map(|v: &VariantInfo<'_>| upcast_to_variant(&s, v))
         .chain(Some(self_upcast(&s)))
+        .chain(Some(arc_cast(&s)))
         .collect()
 }
 
@@ -26,6 +27,34 @@ fn self_upcast(s: &synstructure::Structure) -> TokenStream {
             }
         }
     })
+}
+
+fn arc_cast(s: &synstructure::Structure) -> TokenStream {
+    let type_name = &s.ast().ident;
+    let (impl_generics, type_generics, where_clauses) = s.ast().generics.split_for_impl();
+
+    quote_spanned! { type_name.span() =>
+        const _: () = {
+            use formality_core::Upcast;
+            use formality_core::DowncastFrom;
+            use std::sync::Arc;
+
+            impl #impl_generics Upcast<Arc<Self>> for #type_name #type_generics
+            #where_clauses {
+                fn upcast(self) -> Arc<Self> {
+                    Arc::new(self)
+                }
+            }
+
+
+            impl #impl_generics DowncastFrom<Arc<Self>> for #type_name #type_generics
+            #where_clauses {
+                fn downcast_from(t: &Arc<Self>) -> Option<Self> {
+                    Some(Self::clone(t))
+                }
+            }
+        };
+    }
 }
 
 fn upcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStream {

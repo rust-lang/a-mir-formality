@@ -10,7 +10,21 @@ fn test_struct_decl() {
     expect_test::expect![[r#"
         StructDecl {
             id: Point,
-            bound: { x : integer, y : integer },
+            bound: Binder {
+                kinds: [],
+                term: StructBoundData {
+                    fields: [
+                        FieldDecl {
+                            name: x,
+                            ty: Integer,
+                        },
+                        FieldDecl {
+                            name: y,
+                            ty: Integer,
+                        },
+                    ],
+                },
+            },
         }
     "#]]
     .assert_debug_eq(&r);

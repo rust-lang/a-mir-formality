@@ -1,4 +1,4 @@
-use formality_core::{cast_impl, visit::CoreVisit, Set, To, Upcast};
+use formality_core::{cast_impl, visit::CoreVisit, Set, To, Upcast, UpcastFrom};
 use formality_macros::term;
 use formality_types::{
     grammar::{
@@ -230,5 +230,11 @@ impl CoreVisit<crate::FormalityLang> for Env {
         // no duplicates in `self.variables`
         let s: Set<Variable> = self.variables.iter().copied().collect();
         assert_eq!(s.len(), self.variables.len());
+    }
+}
+
+impl UpcastFrom<()> for Env {
+    fn upcast_from((): ()) -> Self {
+        Env::default()
     }
 }

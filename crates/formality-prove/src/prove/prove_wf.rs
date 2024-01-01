@@ -1,4 +1,4 @@
-use formality_core::{judgment_fn, Set};
+use formality_core::{judgment_fn, ProvenSet};
 use formality_types::grammar::{
     AliasName, AliasTy, ConstData, Parameter, Parameters, RigidName, RigidTy, UniversalVar, Wcs,
 };
@@ -71,7 +71,7 @@ pub fn prove_alias_wf(
     assumptions: &Wcs,
     _name: AliasName,
     parameters: Parameters,
-) -> Set<Constraints> {
+) -> ProvenSet<Constraints> {
     // FIXME: verify self type implements trait
     for_all(decls, env, assumptions, &parameters, &prove_wf)
 }

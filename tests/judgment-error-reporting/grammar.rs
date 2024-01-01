@@ -1,4 +1,4 @@
-use crate::ptt::{
+use crate::jer::{
     grammar::{BoundVar, ExistentialVar, UniversalVar, Variable},
     FormalityLang,
 };

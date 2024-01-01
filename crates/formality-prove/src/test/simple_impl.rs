@@ -20,37 +20,19 @@ fn decls() -> Decls {
 #[test]
 fn vec_u32_debug() {
     let goal: Wc = term("Debug(Vec<u32>)");
-    let constraints = prove(decls(), (), (), goal);
-    expect![[r#"
+    prove(decls(), (), (), goal).assert_ok(expect![[r#"
         {
-            Constraints {
-                env: Env {
-                    variables: [],
-                    coherence_mode: false,
-                },
-                known_true: true,
-                substitution: {},
-            },
+          Constraints { env: Env { variables: [], coherence_mode: false }, known_true: true, substitution: {} },
         }
-    "#]]
-    .assert_debug_eq(&constraints);
+    "#]]);
 }
 
 #[test]
 fn vec_vec_u32_debug() {
     let goal: Wc = term("Debug(Vec<Vec<u32>>)");
-    let constraints = prove(decls(), (), (), goal);
-    expect![[r#"
+    prove(decls(), (), (), goal).assert_ok(expect![[r#"
         {
-            Constraints {
-                env: Env {
-                    variables: [],
-                    coherence_mode: false,
-                },
-                known_true: true,
-                substitution: {},
-            },
+          Constraints { env: Env { variables: [], coherence_mode: false }, known_true: true, substitution: {} },
         }
-    "#]]
-    .assert_debug_eq(&constraints);
+    "#]]);
 }

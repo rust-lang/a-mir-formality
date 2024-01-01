@@ -1,7 +1,6 @@
 use crate::cast::UpcastFrom;
 use crate::term::CoreTerm;
 use crate::variable::{CoreBoundVar, CoreExistentialVar, CoreUniversalVar, CoreVariable};
-use crate::DowncastTo;
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -21,8 +20,7 @@ pub trait Language: 'static + Copy + Ord + Hash + Debug + Default {
         + UpcastFrom<CoreVariable<Self>>
         + UpcastFrom<CoreUniversalVar<Self>>
         + UpcastFrom<CoreExistentialVar<Self>>
-        + UpcastFrom<CoreBoundVar<Self>>
-        + DowncastTo<CoreVariable<Self>>;
+        + UpcastFrom<CoreBoundVar<Self>>;
 
     /// The token (typically `<`) used to open binders.
     const BINDING_OPEN: char;

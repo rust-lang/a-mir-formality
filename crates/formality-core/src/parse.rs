@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use crate::{
     binder::CoreBinder,
+    cast_impl,
     collections::Set,
-    language::{CoreKind, CoreParameter, Language},
+    language::{CoreKind, Language},
     set,
     term::CoreTerm,
-    variable::CoreBoundVar,
+    variable::{CoreBoundVar, CoreVariable},
     Fallible, Upcast, UpcastFrom, Upcasted,
 };
 use std::fmt::Debug;
@@ -14,7 +15,7 @@ use std::fmt::Debug;
 /// Trait for parsing a [`Term<L>`](`crate::term::Term`) as input.
 /// Typically this is auto-generated with the `#[term]` procedural macro,
 /// but you can implement it by hand if you want a very customized parse.
-pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq + 'static {
+pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq + 'static + Upcast<Self> {
     /// Parse a single instance of this type, returning an error if no such
     /// instance is present.
     ///
@@ -35,7 +36,7 @@ pub fn core_term_with<L, T, B>(bindings: impl IntoIterator<Item = B>, text: &str
 where
     T: CoreParse<L>,
     L: Language,
-    B: Upcast<(String, CoreParameter<L>)>,
+    B: Upcast<(String, CoreVariable<L>)>,
 {
     let scope = Scope::new(bindings.into_iter().map(|b| b.upcast()));
     let parse = match T::parse(&scope, text) {
@@ -170,19 +171,19 @@ pub type TokenResult<'t, T> = Result<(T, &'t str), Set<ParseError<'t>>>;
 /// Tracks the variables in scope at this point in parsing.
 #[derive(Clone, Debug, Default)]
 pub struct Scope<L: Language> {
-    bindings: Vec<(String, CoreParameter<L>)>,
+    bindings: Vec<(String, CoreVariable<L>)>,
 }
 
 impl<L: Language> Scope<L> {
     /// Creates a new scope with the given set of bindings.
-    pub fn new(bindings: impl IntoIterator<Item = (String, CoreParameter<L>)>) -> Self {
+    pub fn new(bindings: impl IntoIterator<Item = (String, CoreVariable<L>)>) -> Self {
         Self {
             bindings: bindings.into_iter().collect(),
         }
     }
 
     /// Look for a variable with the given name.
-    pub fn lookup(&self, name: &str) -> Option<CoreParameter<L>> {
+    pub fn lookup(&self, name: &str) -> Option<CoreVariable<L>> {
         self.bindings
             .iter()
             .rev()
@@ -193,7 +194,7 @@ impl<L: Language> Scope<L> {
     /// Create a new scope that extends `self` with `bindings`.
     pub fn with_bindings(
         &self,
-        bindings: impl IntoIterator<Item = impl Upcast<(String, CoreParameter<L>)>>,
+        bindings: impl IntoIterator<Item = impl Upcast<(String, CoreVariable<L>)>>,
     ) -> Self {
         let mut s = self.clone();
         s.bindings.extend(bindings.into_iter().upcasted());
@@ -210,6 +211,8 @@ pub struct Binding<L: Language> {
     /// The bound var representation.
     pub bound_var: CoreBoundVar<L>,
 }
+
+cast_impl!(impl(L: Language) Binding<L>);
 
 impl<L, T> CoreParse<L> for Vec<T>
 where
@@ -230,11 +233,7 @@ where
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "Set", |p| {
-            p.expect_char('{')?;
-            let v = p.comma_nonterminal()?;
-            p.expect_char('}')?;
-            let s = v.into_iter().collect();
-            Ok(s)
+            p.delimited_nonterminal('{', false, '}')
         })
     }
 }
@@ -365,5 +364,11 @@ impl<L: Language, A: CoreParse<L>, B: CoreParse<L>, C: CoreParse<L>> CoreParse<L
             p.expect_char(')')?;
             Ok((a, b, c))
         })
+    }
+}
+
+impl<L: Language> CoreParse<L> for CoreVariable<L> {
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::single_variant(scope, text, "variable", |p| p.variable())
     }
 }

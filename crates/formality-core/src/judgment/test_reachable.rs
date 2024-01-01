@@ -1,8 +1,8 @@
 #![cfg(test)]
 
-use std::sync::Arc;
-
 use crate::{cast_impl, judgment_fn};
+use formality_macros::test;
+use std::sync::Arc;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Clone, Debug, Hash)]
 struct Graph {
@@ -34,7 +34,7 @@ judgment_fn! {
         )
 
         (
-            (transitive_reachable(&graph, a) => b)
+            (transitive_reachable(&graph, a) => b)!
             (transitive_reachable(&graph, b) => c)
             --------------------------------------- ("transitive")
             (transitive_reachable(graph, a) => c)
@@ -48,13 +48,12 @@ fn judgment() {
         edges: vec![(0, 1), (1, 2), (2, 0), (2, 3)],
     });
 
-    expect_test::expect![[r#"
+    transitive_reachable(graph, 0).assert_ok(expect_test::expect![[r#"
         {
-            0,
-            1,
-            2,
-            3,
+          0,
+          1,
+          2,
+          3,
         }
-    "#]]
-    .assert_debug_eq(&transitive_reachable(graph, 0));
+    "#]]);
 }

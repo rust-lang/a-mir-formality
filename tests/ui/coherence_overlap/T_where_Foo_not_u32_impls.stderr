@@ -6,17 +6,4 @@ Caused by:
     given
         {Foo(!ty_1)}
     got
-    {
-        Constraints {
-            env: Env {
-                variables: [
-                    ?ty_1,
-                ],
-                coherence_mode: false,
-            },
-            known_true: true,
-            substitution: {
-                ?ty_1 => u32,
-            },
-        },
-    }
+    {Constraints { env: Env { variables: [?ty_1], coherence_mode: false }, known_true: true, substitution: {?ty_1 => u32} }}

@@ -18,6 +18,7 @@ pretty_assertions = "1.3.0"
 expect-test = "1.4.0"
 formality-macros = { version = "0.1.0", path = "crates/formality-macros" }
 formality-core = { version = "0.1.0", path = "crates/formality-core" }
+tracing = "0.1.40"
 
 
 [dependencies]

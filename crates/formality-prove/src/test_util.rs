@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use formality_core::Set;
+use formality_core::ProvenSet;
 use formality_macros::term;
 use formality_types::grammar::{Binder, Wcs};
 
@@ -26,7 +26,7 @@ pub enum TestAssertion {
 /// Returns the constraints that result from proving assumptions/goals. These will reference
 /// existential variables created for the bindings, so they're really just suitable for
 /// using with expect.
-pub fn test_prove(decls: Decls, mut assertion: Arc<TestAssertion>) -> Set<Constraints> {
+pub fn test_prove(decls: Decls, mut assertion: Arc<TestAssertion>) -> ProvenSet<Constraints> {
     let mut env = Env::default();
 
     loop {

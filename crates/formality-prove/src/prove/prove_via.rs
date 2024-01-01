@@ -19,7 +19,7 @@ judgment_fn! {
         (
             (let (skel_c, parameters_c) = predicate.debone())
             (let (skel_g, parameters_g) = goal.debone())
-            (if skel_c == skel_g)
+            (if skel_c == skel_g)!
             (prove(decls, env, assumptions, Wcs::all_eq(parameters_c, parameters_g)) => c)
             ----------------------------- ("predicate-congruence-axiom")
             (prove_via(decls, env, assumptions, PR::Predicate(predicate), goal) => c)
@@ -29,7 +29,7 @@ judgment_fn! {
             (let (skel_c, parameters_c) = relation.debone())
             (let (skel_g, parameters_g) = goal.debone())
             (if skel_c == skel_g)
-            (if parameters_c == parameters_g) // for relations, we require 100% match
+            (if parameters_c == parameters_g)! // for relations, we require 100% match
             ----------------------------- ("relation-axiom")
             (prove_via(_decls, env, _assumptions, PR::Relation(relation), goal) => Constraints::none(env))
         )

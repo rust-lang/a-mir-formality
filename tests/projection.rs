@@ -1,4 +1,5 @@
 use a_mir_formality::test_where_clause;
+use formality_core::test_util::ResultTestExt;
 
 const NORMALIZE_BASIC: &str = "[
     crate test {
@@ -18,168 +19,42 @@ const NORMALIZE_BASIC: &str = "[
 
 #[test]
 fn normalize_basic() {
-    expect_test::expect![[r#"
-        Ok(
-            {
-                Constraints {
-                    env: Env {
-                        variables: [
-                            !ty_1,
-                            ?ty_2,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {
-                        ?ty_2 => <Vec<!ty_1> as Iterator>::Item,
-                    },
-                },
-                Constraints {
-                    env: Env {
-                        variables: [
-                            !ty_1,
-                            ?ty_2,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {
-                        ?ty_2 => !ty_1,
-                    },
-                },
-            },
-        )
-    "#]]
-    .assert_debug_eq(&test_where_clause(
+    test_where_clause(
         NORMALIZE_BASIC,
         "forall<ty T> exists<ty U> {} => { <Vec<T> as Iterator>::Item = U }",
-    ));
+    )
+    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [!ty_1, ?ty_2], coherence_mode: false }, known_true: true, substitution: {?ty_2 => <Vec<!ty_1> as Iterator>::Item} }, Constraints { env: Env { variables: [!ty_1, ?ty_2], coherence_mode: false }, known_true: true, substitution: {?ty_2 => !ty_1} }}"]);
 
-    expect_test::expect![[r#"
-        Ok(
-            {
-                Constraints {
-                    env: Env {
-                        variables: [
-                            !ty_1,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {},
-                },
-            },
-        )
-    "#]]
-    .assert_debug_eq(&test_where_clause(
+    test_where_clause(
         NORMALIZE_BASIC,
         "forall<ty T> {} => { Iterator(Vec<T>), <Vec<T> as Iterator>::Item = T }",
-    ));
+    )
+    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [!ty_1], coherence_mode: false }, known_true: true, substitution: {} }}"]);
 
-    expect_test::expect![[r#"
-        Ok(
-            {
-                Constraints {
-                    env: Env {
-                        variables: [
-                            !ty_1,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {},
-                },
-            },
-        )
-    "#]]
-    .assert_debug_eq(&test_where_clause(
+    test_where_clause(
         NORMALIZE_BASIC,
         "forall<ty T> { Iterator(T), <T as Iterator>::Item = Foo } => { <T as Iterator>::Item = Foo }",
-    ));
+    ).assert_ok(
+        expect_test::expect!["{Constraints { env: Env { variables: [!ty_1], coherence_mode: false }, known_true: true, substitution: {} }}"]
+    );
 
-    expect_test::expect![[r#"
-        Ok(
-            {
-                Constraints {
-                    env: Env {
-                        variables: [
-                            !ty_1,
-                            ?ty_2,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {
-                        ?ty_2 => <!ty_1 as Iterator>::Item,
-                    },
-                },
-            },
-        )
-    "#]]
-    .assert_debug_eq(&test_where_clause(
+    test_where_clause(
         NORMALIZE_BASIC,
         "forall<ty T> exists<ty U> { Iterator(T) } => { <T as Iterator>::Item = U }",
-    ));
+    )
+    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [!ty_1, ?ty_2], coherence_mode: false }, known_true: true, substitution: {?ty_2 => <!ty_1 as Iterator>::Item} }}"]);
 
-    expect_test::expect![[r#"
-        Ok(
-            {
-                Constraints {
-                    env: Env {
-                        variables: [
-                            !ty_1,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {},
-                },
-            },
-        )
-    "#]]
-    .assert_debug_eq(&test_where_clause(
+    test_where_clause(
         NORMALIZE_BASIC,
         "forall<ty T> { Iterator(T) } => { <T as Iterator>::Item = <T as Iterator>::Item }",
-    ));
+    )
+    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [!ty_1], coherence_mode: false }, known_true: true, substitution: {} }}"]);
 
-    expect_test::expect![[r#"
-        Ok(
-            {
-                Constraints {
-                    env: Env {
-                        variables: [
-                            !ty_1,
-                            ?ty_2,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {
-                        ?ty_2 => !ty_1,
-                    },
-                },
-                Constraints {
-                    env: Env {
-                        variables: [
-                            !ty_1,
-                            ?ty_3,
-                            ?ty_2,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {
-                        ?ty_2 => Vec<<!ty_1 as Iterator>::Item>,
-                        ?ty_3 => <!ty_1 as Iterator>::Item,
-                    },
-                },
-            },
-        )
-    "#]]
-    .assert_debug_eq(&test_where_clause(
+    test_where_clause(
         NORMALIZE_BASIC,
         "forall<ty T> exists<ty U> { Iterator(T) } => { <T as Iterator>::Item = <U as Iterator>::Item }",
-    ));
+    ).assert_ok(
+    expect_test::expect!["{Constraints { env: Env { variables: [!ty_1, ?ty_2], coherence_mode: false }, known_true: true, substitution: {?ty_2 => !ty_1} }, Constraints { env: Env { variables: [!ty_1, ?ty_3, ?ty_2], coherence_mode: false }, known_true: true, substitution: {?ty_2 => Vec<<!ty_1 as Iterator>::Item>, ?ty_3 => <!ty_1 as Iterator>::Item} }}"]);
 }
 
 const NORMALIZE_INTO_ITERATOR: &str = "[
@@ -208,42 +83,11 @@ const NORMALIZE_INTO_ITERATOR: &str = "[
 
 #[test]
 fn normalize_into_iterator() {
-    expect_test::expect![[r#"
-        Ok(
-            {
-                Constraints {
-                    env: Env {
-                        variables: [
-                            !ty_1,
-                            ?ty_2,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {
-                        ?ty_2 => <Vec<!ty_1> as IntoIterator>::Item,
-                    },
-                },
-                Constraints {
-                    env: Env {
-                        variables: [
-                            !ty_1,
-                            ?ty_2,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {
-                        ?ty_2 => !ty_1,
-                    },
-                },
-            },
-        )
-    "#]]
-    .assert_debug_eq(&test_where_clause(
+    test_where_clause(
         NORMALIZE_INTO_ITERATOR,
         "forall<ty T> exists<ty U> {} => { <Vec<T> as IntoIterator>::Item = U }",
-    ));
+    )
+    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [!ty_1, ?ty_2], coherence_mode: false }, known_true: true, substitution: {?ty_2 => <Vec<!ty_1> as IntoIterator>::Item} }, Constraints { env: Env { variables: [!ty_1, ?ty_2], coherence_mode: false }, known_true: true, substitution: {?ty_2 => !ty_1} }}"]);
 }
 
 const PROJECTION_EQUALITY: &str = "[
@@ -262,73 +106,13 @@ const PROJECTION_EQUALITY: &str = "[
 
 #[test]
 fn projection_equality() {
-    expect_test::expect![[r#"
-        Ok(
-            {
-                Constraints {
-                    env: Env {
-                        variables: [
-                            ?ty_1,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {
-                        ?ty_1 => u32,
-                    },
-                },
-                Constraints {
-                    env: Env {
-                        variables: [
-                            ?ty_1,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {
-                        ?ty_1 => <S as Trait1>::Type,
-                    },
-                },
-            },
-        )
-    "#]]
-    .assert_debug_eq(&test_where_clause(
+    test_where_clause(
         PROJECTION_EQUALITY,
         "exists<ty U> {} => { Trait1(S), <S as Trait1<>>::Type = U }",
-    ));
+    )
+    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [?ty_1], coherence_mode: false }, known_true: true, substitution: {?ty_1 => u32} }, Constraints { env: Env { variables: [?ty_1], coherence_mode: false }, known_true: true, substitution: {?ty_1 => <S as Trait1>::Type} }}"]);
 
-    expect_test::expect![[r#"
-        Ok(
-            {
-                Constraints {
-                    env: Env {
-                        variables: [
-                            ?ty_1,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {
-                        ?ty_1 => u32,
-                    },
-                },
-                Constraints {
-                    env: Env {
-                        variables: [
-                            ?ty_1,
-                        ],
-                        coherence_mode: false,
-                    },
-                    known_true: true,
-                    substitution: {
-                        ?ty_1 => <S as Trait1>::Type,
-                    },
-                },
-            },
-        )
-    "#]]
-    .assert_debug_eq(&test_where_clause(
-        PROJECTION_EQUALITY,
-        "exists<ty U> {} => { Trait2(S, U) }",
-    ));
+    test_where_clause(PROJECTION_EQUALITY, "exists<ty U> {} => { Trait2(S, U) }").assert_ok(
+        expect_test::expect!["{Constraints { env: Env { variables: [?ty_1], coherence_mode: false }, known_true: true, substitution: {?ty_1 => u32} }, Constraints { env: Env { variables: [?ty_1], coherence_mode: false }, known_true: true, substitution: {?ty_1 => <S as Trait1>::Type} }}"],
+    );
 }

@@ -1,5 +1,5 @@
 use formality_core::visit::CoreVisit;
-use formality_core::{judgment_fn, set, Downcast, Set, Upcast};
+use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 use formality_core::{Deduplicate, Upcasted};
 use formality_types::grammar::{
     AliasTy, ExistentialVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar,
@@ -43,7 +43,7 @@ judgment_fn! {
         (
             (let RigidTy { name: a_name, parameters: a_parameters } = a)
             (let RigidTy { name: b_name, parameters: b_parameters } = b)
-            (if a_name == b_name)
+            (if a_name == b_name)!
             (prove(decls, env, assumptions, Wcs::all_eq(a_parameters, b_parameters)) => c)
             ----------------------------- ("rigid")
             (prove_eq(decls, env, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
@@ -52,7 +52,7 @@ judgment_fn! {
         (
             (let AliasTy { name: a_name, parameters: a_parameters } = a)
             (let AliasTy { name: b_name, parameters: b_parameters } = b)
-            (if a_name == b_name)
+            (if a_name == b_name)!
             (prove(decls, env, assumptions, Wcs::all_eq(a_parameters, b_parameters)) => env_c)
             ----------------------------- ("alias")
             (prove_eq(decls, env, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => env_c)
@@ -111,7 +111,7 @@ fn equate_variable(
     assumptions: Wcs,
     x: ExistentialVar,
     p: impl Upcast<Parameter>,
-) -> Set<Constraints> {
+) -> ProvenSet<Constraints> {
     let p: Parameter = p.upcast();
 
     let span = tracing::debug_span!("equate_variable", ?x, ?p, ?env);
@@ -128,7 +128,7 @@ fn equate_variable(
 
     // Ensure that `x` passes the occurs check for the free variables in `p`.
     if occurs_in(x, &fvs) {
-        return set![];
+        return ProvenSet::failed("equate_variable", format!("`{x:?}` occurs in `{p:?}`"));
     }
 
     // Map each free variable `fv` in `p` that is of higher universe than `x`

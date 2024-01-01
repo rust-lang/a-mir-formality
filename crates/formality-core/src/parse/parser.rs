@@ -2,11 +2,11 @@ use std::fmt::Debug;
 use std::str::FromStr;
 
 use crate::{
-    language::{CoreParameter, HasKind, Language},
+    language::Language,
     parse::parser::left_recursion::{CurrentState, LeftRight},
     set,
     variable::CoreVariable,
-    Downcast, DowncastFrom, Set, Upcast,
+    Set, Upcast,
 };
 
 use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenResult};
@@ -158,7 +158,7 @@ where
 impl<'s, 't, T, L> Parser<'s, 't, T, L>
 where
     L: Language,
-    T: Debug + Clone + Eq + 'static,
+    T: Debug + Clone + Eq + 'static + Upcast<T>,
 {
     /// Shorthand to create a parser for a nonterminal with a single variant,
     /// parsed by the function `op`.
@@ -225,7 +225,7 @@ where
         Self::parse_variant(self, variant_name, variant_precedence, |p| {
             p.mark_as_cast_variant();
             let v: V = p.nonterminal()?;
-            Ok(v.upcast())
+            Ok(v)
         })
     }
 
@@ -234,12 +234,14 @@ where
     /// The precedence is part of how we resolve conflicts: if there are two successful parses with distinct precedence, higher precedence wins.
     /// The `op` is a closure that defines how the variant itself is parsed.
     /// The closure `op` will be invoked with an [`ActiveVariant`][] struct that has methods for consuming identifiers, numbers, keywords, etc.
-    pub fn parse_variant(
+    pub fn parse_variant<U>(
         &mut self,
         variant_name: &'static str,
         variant_precedence: Precedence,
-        op: impl FnOnce(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
-    ) {
+        op: impl FnOnce(&mut ActiveVariant<'s, 't, L>) -> Result<U, Set<ParseError<'t>>>,
+    ) where
+        U: Upcast<T>,
+    {
         let span = tracing::span!(
             tracing::Level::TRACE,
             "variant",
@@ -277,7 +279,7 @@ where
                     text: active_variant.current_text,
                     reductions: active_variant.reductions,
                     precedence: variant_precedence,
-                    value,
+                    value: value.upcast(),
                 });
                 tracing::trace!("success: {:?}", self.successes.last().unwrap());
             }
@@ -404,6 +406,11 @@ where
     /// The current text remaining to be consumed.
     pub fn text(&self) -> &'t str {
         self.current_text
+    }
+
+    /// Return the set of variables in scope
+    pub fn scope(&self) -> &Scope<L> {
+        &self.scope
     }
 
     /// Skips whitespace in the input, producing no reduction.
@@ -616,50 +623,45 @@ where
         )
     }
 
-    /// Parses the next identifier as a variable in scope
-    /// with the kind appropriate for the return type `R`.
+    /// Parses the next identifier as a variable in scope.
     ///
     /// **NB:** This departs from the limits of context-free
     /// grammars -- the scope is a piece of context that affects how
     /// our parsing proceeds!
-    ///
-    /// Variables don't implement Parse themselves
-    /// because you can't parse a variable into a *variable*,
-    /// instead, you parse it into a `Parameter`.
-    /// The parsing code then downcasts that parameter into the
-    /// type it wants (e.g., in Rust, a `Ty`).
-    /// This downcast will fail if the `Parameter` is not of the appropriate
-    /// kind (which will result in a parse error).
-    ///
-    /// This avoids "miskinding", i.e., parsing a `Ty` that contains
-    /// a lifetime variable.
-    ///
-    /// It also allows parsing where you use variables to stand for
-    /// more complex parameters, which is kind of combining parsing
-    /// and substitution and can be convenient in tests.
     #[tracing::instrument(level = "trace", skip(self), ret)]
-    pub fn variable<R>(&mut self) -> Result<R, Set<ParseError<'t>>>
-    where
-        R: Debug + DowncastFrom<CoreParameter<L>>,
-    {
+    pub fn variable(&mut self) -> Result<CoreVariable<L>, Set<ParseError<'t>>> {
         self.skip_whitespace();
-        let type_name = std::any::type_name::<R>();
         let text0 = self.current_text;
         let id = self.identifier()?;
         match self.scope.lookup(&id) {
-            Some(parameter) => match parameter.downcast() {
-                Some(v) => Ok(v),
-                None => Err(ParseError::at(
-                    text0,
-                    format!(
-                        "wrong kind, expected a {}, found `{:?}`, which is a `{:?}`",
-                        type_name,
-                        parameter,
-                        parameter.kind()
-                    ),
-                )),
-            },
+            Some(v) => Ok(v),
             None => Err(ParseError::at(text0, format!("unrecognized variable"))),
+        }
+    }
+
+    /// Parses the next identifier as a [variable in scope](`Self::variable`)
+    /// and checks that it has the right kind. This is a useful
+    /// helper method to avoid mis-kinding variables.
+    #[tracing::instrument(level = "trace", skip(self), ret)]
+    pub fn variable_of_kind(
+        &mut self,
+        kind: L::Kind,
+    ) -> Result<CoreVariable<L>, Set<ParseError<'t>>> {
+        self.skip_whitespace();
+        let text0 = self.current_text;
+        let v = self.variable()?;
+        if v.kind() == kind {
+            Ok(v)
+        } else {
+            Err(ParseError::at(
+                text0,
+                format!(
+                    "expected a variable of kind `{:?}`, found `{:?}`, which has kind `{:?}`",
+                    kind,
+                    v,
+                    v.kind()
+                ),
+            ))
         }
     }
 
@@ -755,33 +757,39 @@ where
     /// Continue parsing instances of `T` while we can.
     /// This is a greedy parse.
     #[tracing::instrument(level = "Trace", skip(self), ret)]
-    pub fn many_nonterminal<T>(&mut self) -> Result<Vec<T>, Set<ParseError<'t>>>
+    pub fn many_nonterminal<C, T>(&mut self) -> Result<C, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
+        C: IntoIterator<Item = T> + FromIterator<T> + Debug,
     {
         let mut result = vec![];
         while let Some(e) = self.opt_nonterminal()? {
             result.push(e);
         }
-        Ok(result)
+        Ok(result.into_iter().collect())
     }
 
     #[tracing::instrument(level = "Trace", skip(self), ret)]
-    pub fn delimited_nonterminal<T>(
+    pub fn delimited_nonterminal<T, C>(
         &mut self,
         open: char,
         optional: bool,
         close: char,
-    ) -> Result<Vec<T>, Set<ParseError<'t>>>
+    ) -> Result<C, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
+        C: IntoIterator<Item = T> + FromIterator<T> + Debug,
     {
         // Look for the opening delimiter.
         // If we don't find it, then this is either an empty vector (if optional) or an error (otherwise).
         match self.expect_char(open) {
             Ok(()) => {}
             Err(errs) => {
-                return if optional { Ok(vec![]) } else { Err(errs) };
+                return if optional {
+                    Ok(std::iter::empty().collect())
+                } else {
+                    Err(errs)
+                };
             }
         }
 
@@ -795,9 +803,10 @@ where
 
     /// Parse multiple instances of `T` separated by commas.
     #[track_caller]
-    pub fn comma_nonterminal<T>(&mut self) -> Result<Vec<T>, Set<ParseError<'t>>>
+    pub fn comma_nonterminal<C, T>(&mut self) -> Result<C, Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
+        C: IntoIterator<Item = T> + FromIterator<T> + Debug,
     {
         let mut result = vec![];
         while let Some(e) = self.opt_nonterminal()? {
@@ -807,7 +816,7 @@ where
                 break;
             }
         }
-        Ok(result)
+        Ok(result.into_iter().collect())
     }
 
     /// Consumes a nonterminal from the input after skipping whitespace.

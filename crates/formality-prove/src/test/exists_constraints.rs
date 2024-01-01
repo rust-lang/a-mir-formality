@@ -18,23 +18,9 @@ fn decls() -> Decls {
 /// Test that `exists<T> Foo(U)` yields `U = Vec<X>` for some fresh `X`
 #[test]
 fn exists_u_for_t() {
-    let constraints = test_prove(decls(), term("exists<ty U> {} => {Foo(U)}"));
-    expect![[r#"
+    test_prove(decls(), term("exists<ty U> {} => {Foo(U)}")).assert_ok(expect![[r#"
         {
-            Constraints {
-                env: Env {
-                    variables: [
-                        ?ty_2,
-                        ?ty_1,
-                    ],
-                    coherence_mode: false,
-                },
-                known_true: true,
-                substitution: {
-                    ?ty_1 => Vec<?ty_2>,
-                },
-            },
+          Constraints { env: Env { variables: [?ty_2, ?ty_1], coherence_mode: false }, known_true: true, substitution: {?ty_1 => Vec<?ty_2>} },
         }
-    "#]]
-    .assert_debug_eq(&constraints);
+    "#]]);
 }

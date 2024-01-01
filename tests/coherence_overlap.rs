@@ -1,6 +1,7 @@
 #![allow(non_snake_case)] // we embed type names into the names for our test functions
 
 use a_mir_formality::test_program_ok;
+use formality_core::test_util::ResultTestExt;
 use formality_macros::test;
 
 #[test]
@@ -41,24 +42,19 @@ fn test_overlap_normalize_alias_to_LocalType() {
     // `<LocalType as Mirror>::T: Iterator` which requires normalizing
     // the alias to `LocalType`...
 
-    expect_test::expect![[r#"
-        Ok(
-            (),
-        )
-    "#]]
-    .assert_debug_eq(&test_program_ok(&gen_program("")));
+    test_program_ok(&gen_program("")).assert_ok(expect_test::expect!["()"]);
 
     // ...but it's an error if LocalType implements Iterator (figuring *this* out also
     // requires normalizing).
 
-    expect_test::expect![[r#"
-        Err(
-            "impls may overlap:\nimpl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }\nimpl LocalTrait for <LocalType as Mirror>::T { }",
-        )
-    "#]]
-    .assert_debug_eq(&test_program_ok(&gen_program(
+    test_program_ok(&gen_program(
         "impl Iterator for LocalType {}",
-    )));
+    )).assert_err(
+        expect_test::expect![[r#"
+            impls may overlap:
+            impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
+            impl LocalTrait for <LocalType as Mirror>::T { }"#]]
+    );
 }
 
 #[test]
@@ -103,21 +99,16 @@ fn test_overlap_alias_not_normalizable() {
     // refuses to solve `?X: Iterator`; we haven't implemented that rule and I haven't
     // decided how to think about it.
 
-    expect_test::expect![[r#"
-        Ok(
-            (),
-        )
-    "#]]
-    .assert_debug_eq(&test_program_ok(&gen_program("")));
+    test_program_ok(&gen_program("")).assert_ok(expect_test::expect!["()"]);
 
     // ...as long as there is at least one Iterator impl, however, we do flag an error.
 
-    expect_test::expect![[r#"
-        Err(
-            "impls may overlap:\nimpl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }\nimpl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }",
-        )
-    "#]] // FIXME
-    .assert_debug_eq(&test_program_ok(&gen_program(
+    test_program_ok(&gen_program(
         "impl Iterator for u32 {}",
-    )));
+    )).assert_err(
+        expect_test::expect![[r#"
+            impls may overlap:
+            impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
+            impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }"#]]
+    ); // FIXME
 }

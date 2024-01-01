@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::cast::{Downcast, DowncastFrom, DowncastTo, Upcast, UpcastFrom};
+use crate::cast::{DowncastTo, Upcast, UpcastFrom, Upcasted};
 
 pub type Map<K, V> = BTreeMap<K, V>;
 pub type Set<E> = BTreeSet<E>;
@@ -58,18 +58,40 @@ macro_rules! seq {
 
 }
 
+pub trait VecExt<T>: Sized {
+    fn with_pushed(self, other: T) -> Self;
+}
+
+impl<T: Ord + Clone> VecExt<T> for Vec<T> {
+    fn with_pushed(mut self, other: T) -> Self {
+        self.push(other);
+        self
+    }
+}
+
 pub trait SetExt<T>: Sized {
     fn split_first(self) -> Option<(T, Self)>;
 
     fn union_with(self, other: Self) -> Self;
 
     fn plus(self, other: T) -> Self;
+
+    fn split_nth(&self, i: usize) -> Option<(T, Self)>;
 }
 
 impl<T: Ord + Clone> SetExt<T> for Set<T> {
     fn split_first(self) -> Option<(T, Set<T>)> {
         let mut iter = self.into_iter();
-        iter.next().map(|e| (e, iter.collect()))
+        let e = iter.next()?;
+        let c = iter.collect();
+        Some((e, c))
+    }
+
+    fn split_nth(&self, i: usize) -> Option<(T, Self)> {
+        let mut s = self.clone();
+        let item = self.iter().skip(i).next()?;
+        let item = s.take(item).unwrap();
+        Some((item, s))
     }
 
     fn union_with(mut self, other: Self) -> Self {
@@ -106,18 +128,21 @@ impl<T> DowncastTo<()> for Vec<T> {
 }
 
 macro_rules! tuple_upcast {
-    ($($name:ident),*) => {
+    ($coll:ident : $($name:ident),*) => {
+        /// Upcast from a tuple of iterable things into a collection.
+        /// Downcasting doesn't work, because how would we know how many
+        /// things to put in each collection? But see `Cons` below.
         #[allow(non_snake_case)]
-        impl<$($name,)* T> UpcastFrom<($($name,)*)> for Set<T>
+        impl<$($name,)* T> UpcastFrom<($($name,)*)> for $coll<T>
         where
-            $($name: Upcast<Set<T>>,)*
+            $($name: IntoIterator + Clone,)*
+            $(<$name as IntoIterator>::Item: Upcast<T>,)*
             T: Ord + Clone,
         {
             fn upcast_from(($($name,)*): ($($name,)*)) -> Self {
                 let c = None.into_iter();
                 $(
-                    let $name: Set<T> = $name.upcast();
-                    let c = c.chain($name);
+                    let c = c.chain($name.into_iter().upcasted());
                 )*
                 c.collect()
             }
@@ -125,41 +150,70 @@ macro_rules! tuple_upcast {
     }
 }
 
-tuple_upcast!(A, B);
-tuple_upcast!(A, B, C);
-tuple_upcast!(A, B, C, D);
+tuple_upcast!(Set: );
+tuple_upcast!(Set: A, B);
+tuple_upcast!(Set: A, B, C);
+tuple_upcast!(Set: A, B, C, D);
 
-impl<A, T> DowncastTo<(A, Set<T>)> for Set<T>
+tuple_upcast!(Vec: );
+tuple_upcast!(Vec: A, B);
+tuple_upcast!(Vec: A, B, C);
+tuple_upcast!(Vec: A, B, C, D);
+
+/// This type exists to be used in judgment functions.
+/// You can upcast/downcast a `Vec` or `Set` to `Cons(head, tail)`
+/// where `head` will be the first item in the collection
+/// and tail will be a collection with the remaining items.
+/// Both can also be upcast/downcast to `()` which matches an empty collection.
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Cons<T, C>(pub T, pub C);
+
+impl<T, U> UpcastFrom<Cons<U, Set<T>>> for Set<T>
 where
-    A: DowncastFrom<T>,
+    T: Ord + Clone,
+    U: Upcast<T>,
+{
+    fn upcast_from(term: Cons<U, Set<T>>) -> Self {
+        let Cons(elem, mut set) = term;
+        set.insert(elem.upcast());
+        set
+    }
+}
+
+impl<T> DowncastTo<Cons<T, Set<T>>> for Set<T>
+where
     T: Ord + Clone,
 {
-    fn downcast_to(&self) -> Option<(A, Set<T>)> {
+    fn downcast_to(&self) -> Option<Cons<T, Set<T>>> {
         if self.is_empty() {
             None
         } else {
             let r = self.clone();
             let (a, bs) = r.split_first().unwrap();
-            let a: A = a.downcast()?;
-            Some((a, bs))
+            Some(Cons(a, bs))
         }
     }
 }
 
-impl<A, T> DowncastTo<(A, Vec<T>)> for Vec<T>
+impl<T, U> UpcastFrom<Cons<U, Vec<T>>> for Vec<T>
 where
-    A: DowncastFrom<T>,
+    T: Ord + Clone,
+    U: Upcast<T>,
+{
+    fn upcast_from(term: Cons<U, Vec<T>>) -> Self {
+        let Cons(elem, mut vec) = term;
+        vec.insert(0, elem.upcast());
+        vec
+    }
+}
+
+impl<T> DowncastTo<Cons<T, Vec<T>>> for Vec<T>
+where
     T: Ord + Clone,
 {
-    fn downcast_to(&self) -> Option<(A, Vec<T>)> {
-        if self.is_empty() {
-            None
-        } else {
-            let r = self.clone();
-            let (a, bs) = r.split_first().unwrap();
-            let a: A = a.downcast()?;
-            Some((a, bs.to_vec()))
-        }
+    fn downcast_to(&self) -> Option<Cons<T, Vec<T>>> {
+        let (a, bs) = self.split_first()?;
+        Some(Cons(a.clone(), bs.to_vec()))
     }
 }
 

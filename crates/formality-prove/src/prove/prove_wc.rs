@@ -40,14 +40,14 @@ judgment_fn! {
         )
 
         (
-            (&assumptions => a)
+            (&assumptions => a)!
             (prove_via(&decls, &env, &assumptions, a, &goal) => c)
             ----------------------------- ("assumption")
             (prove_wc(decls, env, assumptions, WcData::PR(goal)) => c)
         )
 
         (
-            (decls.impl_decls(&trait_ref.trait_id) => i)
+            (decls.impl_decls(&trait_ref.trait_id) => i)!
             (let (env, subst) = env.existential_substitution(&i.binder))
             (let i = i.binder.instantiate_with(&subst).unwrap())
             (let t = decls.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
@@ -60,7 +60,7 @@ judgment_fn! {
         )
 
         (
-            (if env.is_in_coherence_mode())
+            (if env.is_in_coherence_mode())!
             (may_be_remote(decls, env, assumptions, trait_ref) => c)
             ----------------------------- ("coherence / remote impl")
             (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.ambiguous())

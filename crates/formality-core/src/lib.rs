@@ -5,6 +5,8 @@
 
 #![allow(type_alias_bounds)]
 
+extern crate self as formality_core;
+
 // Re-export things from dependencies to avoid everybody repeating same set
 // in their Cargo.toml.
 pub use anyhow::anyhow;
@@ -15,7 +17,7 @@ pub use tracing::instrument;
 pub use tracing::trace;
 
 // Re-export things from formality-macros.
-pub use formality_macros::{fixed_point, term, test, Visit};
+pub use formality_macros::{fixed_point, respan, term, test, Visit};
 
 pub type Fallible<T> = anyhow::Result<T>;
 
@@ -32,15 +34,18 @@ pub mod language;
 pub mod parse;
 pub mod substitution;
 pub mod term;
+pub mod test_util;
 pub mod util;
 pub mod variable;
 pub mod visit;
 
 pub use cast::{Downcast, DowncastFrom, DowncastTo, Downcasted, To, Upcast, UpcastFrom, Upcasted};
+pub use collections::Cons;
 pub use collections::Deduplicate;
 pub use collections::Map;
 pub use collections::Set;
 pub use collections::SetExt;
+pub use judgment::ProvenSet;
 
 /// Run an action with a tracing log subscriber. The logging level is loaded
 /// from `RUST_LOG`. The `formality_macro::test` expansion uses this to enable logs.
@@ -164,7 +169,7 @@ macro_rules! declare_language {
             where
                 T: Parse,
             {
-                term_with(None::<(String, $param)>, text)
+                term_with(None::<(String, grammar::Variable)>, text)
             }
 
             /// Parses `text` as a term with the given bindings in scope.
@@ -175,7 +180,7 @@ macro_rules! declare_language {
             pub fn term_with<T, B>(bindings: impl IntoIterator<Item = B>, text: &str) -> $crate::Fallible<T>
             where
                 T: Parse,
-                B: $crate::Upcast<(String, <FormalityLang as Language>::Parameter)>,
+                B: $crate::Upcast<(String, grammar::Variable)>,
             {
                 $crate::parse::core_term_with::<FormalityLang, T, B>(bindings, text)
             }

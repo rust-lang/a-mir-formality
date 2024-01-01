@@ -7,8 +7,9 @@ use syn::{spanned::Spanned, Attribute};
 use synstructure::BindingInfo;
 
 use crate::{
-    attrs::{has_cast_attr, has_variable_attr, precedence},
+    attrs::{has_cast_attr, has_variable_attr, precedence, variable},
     spec::{self, FieldMode, FormalitySpec},
+    variable::Variable,
 };
 
 /// Derive the `Parse` impl, using an optional grammar supplied "from the outside".
@@ -76,13 +77,13 @@ fn parse_variant(
     any_variable_variant: bool,
 ) -> syn::Result<TokenStream> {
     let ast = variant.ast();
-    let has_variable_attr = has_variable_attr(ast.attrs);
+    let variable_attr = variable(ast.attrs)?;
     let mut stream = TokenStream::default();
 
     // If there are variable variants -- but this is not one -- then we always begin by rejecting
     // variable names. This avoids ambiguity in a case like `for<ty X> { X : Debug }`, where we
     // want to parse `X` as a type variable.
-    if any_variable_variant && !has_variable_attr {
+    if any_variable_variant && variable_attr.is_none() {
         stream.extend(quote_spanned!(ast.ident.span() => __p.reject_variable()?;));
     }
 
@@ -107,13 +108,22 @@ fn parse_variant(
             __p.expect_keyword(#literal)?;
             Ok(#construct)
         });
-    } else if has_variable_attr {
+    } else if let Some(Variable { kind }) = variable_attr {
         // Has the `#[variable]` attribute -- parse an identifier and then check to see if it is present
         // in the scope. If so, downcast it and check that it has the correct kind.
+        if variant.bindings().len() != 1 {
+            return Err(syn::Error::new(
+                variant.ast().ident.span(),
+                "can only automatically parse variable variants with one binding",
+            ));
+        }
+        let v0_binding = &variant.bindings()[0];
+        let v0 = field_ident(v0_binding.ast(), 0);
+        let construct = variant.construct(field_ident);
         stream.extend(quote_spanned! {
             ast.ident.span() =>
-            let v = __p.variable()?;
-            Ok(v)
+            let #v0 = __p.variable_of_kind(#kind)?;
+            Ok(#construct)
         });
     } else if has_cast_attr(variant.ast().attrs) {
         // Has the `#[cast]` attribute -- just parse the bindings (comma separated, if needed)

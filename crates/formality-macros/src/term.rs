@@ -15,31 +15,33 @@ use crate::{
 
 pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<TokenStream> {
     let customize = attrs::customize(&input.attrs)?;
-    let fold_impl = derive_fold(synstructure::Structure::new(&input));
-    let visit_impl = derive_visit(synstructure::Structure::new(&input));
-    let parse_impl = if customize.parse {
-        None
+    let fold_impl = if customize.fold {
+        Default::default()
     } else {
-        Some(derive_parse_with_spec(
-            synstructure::Structure::new(&input),
-            spec.as_ref(),
-        )?)
+        derive_fold(synstructure::Structure::new(&input))
+    };
+    let visit_impl = if customize.visit {
+        Default::default()
+    } else {
+        derive_visit(synstructure::Structure::new(&input))
+    };
+    let parse_impl = if customize.parse {
+        Default::default()
+    } else {
+        derive_parse_with_spec(synstructure::Structure::new(&input), spec.as_ref())?
     };
     let debug_impl = if customize.debug {
-        None
+        Default::default()
     } else {
-        Some(derive_debug_with_spec(
-            synstructure::Structure::new(&input),
-            spec.as_ref(),
-        ))
+        derive_debug_with_spec(synstructure::Structure::new(&input), spec.as_ref())
     };
     let term_impl = derive_term(synstructure::Structure::new(&input));
     let downcast_impls = downcast_impls(synstructure::Structure::new(&input));
     let upcast_impls = upcast_impls(synstructure::Structure::new(&input));
     let constructors = if customize.constructors {
-        None
+        Default::default()
     } else {
-        Some(constructor_methods(synstructure::Structure::new(&input)))
+        constructor_methods(synstructure::Structure::new(&input))
     };
     remove_formality_attributes(&mut input);
 

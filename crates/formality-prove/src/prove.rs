@@ -13,7 +13,7 @@ mod prove_wf;
 
 pub use constraints::Constraints;
 use formality_core::visit::CoreVisit;
-use formality_core::{set, Set, Upcast};
+use formality_core::{ProvenSet, Upcast};
 use formality_types::grammar::Wcs;
 use tracing::Level;
 
@@ -28,7 +28,7 @@ pub fn prove(
     env: impl Upcast<Env>,
     assumptions: impl Upcast<Wcs>,
     goal: impl Upcast<Wcs>,
-) -> Set<Constraints> {
+) -> ProvenSet<Constraints> {
     let decls: Decls = decls.upcast();
     let env: Env = env.upcast();
     let assumptions: Wcs = assumptions.upcast();
@@ -46,21 +46,17 @@ pub fn prove(
             term_in.size(),
             decls.max_size
         );
-        return set![Constraints::none(env).ambiguous()];
+        return ProvenSet::singleton(Constraints::none(env).ambiguous());
     }
 
     assert!(env.encloses(term_in));
 
     let result_set = prove_wc_list(decls, &env, assumptions, goal);
 
-    result_set.iter().for_each(|constraints1| {
-        assert!(constraints1.is_valid_extension_of(&env));
-    });
-
     tracing::debug!(?result_set);
 
-    result_set
-        .into_iter()
-        .map(|r| min.reconstitute(r))
-        .collect()
+    result_set.map(|r| {
+        assert!(r.is_valid_extension_of(&env));
+        min.reconstitute(r)
+    })
 }

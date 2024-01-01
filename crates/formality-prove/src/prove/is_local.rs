@@ -43,7 +43,7 @@ pub fn may_be_remote(decls: Decls, env: Env, assumptions: Wcs, goal: TraitRef) -
 
     let c = is_local_trait_ref(decls, &env, assumptions, goal);
 
-    if c.is_empty() {
+    if !c.is_proven() {
         // Cannot possibly be local, so always remote.
         return set![Constraints::none(env)];
     }
