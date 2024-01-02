@@ -75,7 +75,7 @@ where
         match self {
             Ok(v) => panic!("expected `Err`, got `Ok`: {v:?}"),
             Err(e) => {
-                expect.assert_eq(&format!("{e:?}"));
+                expect.assert_eq(&normalize_paths(format!("{e:?}")));
             }
         }
     }
