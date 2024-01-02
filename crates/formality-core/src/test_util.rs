@@ -60,6 +60,7 @@ where
     T: Debug,
     E: Debug,
 {
+    #[track_caller]
     fn assert_ok(self, expect: expect_test::Expect) {
         match self {
             Ok(v) => {
@@ -71,6 +72,7 @@ where
         }
     }
 
+    #[track_caller]
     fn assert_err(self, expect: expect_test::Expect) {
         match self {
             Ok(v) => panic!("expected `Err`, got `Ok`: {v:?}"),
