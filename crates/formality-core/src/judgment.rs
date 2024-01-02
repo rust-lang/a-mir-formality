@@ -178,15 +178,20 @@ macro_rules! push_rules {
     ) => {
         // Found the conclusion.
         {
-            // give the user a type error if the name they gave
-            // in the conclusion is not the same as the name of the
-            // function
-            #[allow(dead_code)]
-            struct WrongJudgmentNameInConclusion;
-            const _: WrongJudgmentNameInConclusion = {
-                let $judgment_name = WrongJudgmentNameInConclusion;
+            $crate::respan!(
                 $conclusion_name
-            };
+                (
+                    // give the user a type error if the name they gave
+                    // in the conclusion is not the same as the name of the
+                    // function
+                    #[allow(dead_code)]
+                    struct WrongJudgmentNameInConclusion;
+                    const _: WrongJudgmentNameInConclusion = {
+                        let $judgment_name = WrongJudgmentNameInConclusion;
+                        $conclusion_name
+                    };
+                )
+            );
 
             if let Some(__JudgmentStruct($($input_names),*)) = Some($input_value) {
                 $crate::push_rules!(@match
