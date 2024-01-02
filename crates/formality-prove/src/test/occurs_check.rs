@@ -30,8 +30,7 @@ fn direct_cycle() {
                               the rule "existential-nonvar" failed at step #1 (src/file.rs:LL:CC) because
                                 judgment `equate_variable` failed at the following rule(s):
                                   failed at (src/file.rs:LL:CC) because
-                                    `?ty_0` occurs in `Vec<?ty_0>`
-            "#]]);
+                                    `?ty_0` occurs in `Vec<?ty_0>`"#]]);
 }
 
 /// Test that `X = Vec<Y>` can be solved
@@ -76,8 +75,7 @@ fn indirect_cycle_1() {
                               the rule "existential-nonvar" failed at step #1 (src/file.rs:LL:CC) because
                                 judgment `equate_variable` failed at the following rule(s):
                                   failed at (src/file.rs:LL:CC) because
-                                    `?ty_0` occurs in `Vec<?ty_0>`
-    "#]]);
+                                    `?ty_0` occurs in `Vec<?ty_0>`"#]]);
 }
 
 /// Test that `X = Vec<X>` cannot be solved (when constructed over several steps)
@@ -102,6 +100,5 @@ fn indirect_cycle_2() {
                               the rule "existential-nonvar" failed at step #1 (src/file.rs:LL:CC) because
                                 judgment `equate_variable` failed at the following rule(s):
                                   failed at (src/file.rs:LL:CC) because
-                                    `?ty_0` occurs in `Vec<?ty_0>`
-    "#]]);
+                                    `?ty_0` occurs in `Vec<?ty_0>`"#]]);
 }

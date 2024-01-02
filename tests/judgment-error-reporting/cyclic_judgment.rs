@@ -74,8 +74,7 @@ fn test() {
       expect_test::expect![[r#"
           judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
             the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
-              condition evaluted to false: `name_a == name_b`
-      "#]]
+              condition evaluted to false: `name_a == name_b`"#]]
     );
 }
 
@@ -125,7 +124,6 @@ fn test1() {
                     the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
                       judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
                         the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
-                          condition evaluted to false: `name_a == name_b`
-      "#]]
+                          condition evaluted to false: `name_a == name_b`"#]]
     );
 }

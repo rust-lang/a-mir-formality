@@ -63,6 +63,5 @@ fn not_well_formed_adt() {
                           the rule "some" failed at step #0 (src/file.rs:LL:CC) because
                             judgment `prove_wc { goal: Foo(u64), assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty> ], [impl Foo(u32)], [], [], [], [adt X <ty> where {Foo(^ty0_0)}], {}, {}) }` failed at the following rule(s):
                               the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
-                                expression evaluated to an empty collection: `decls.trait_invariants()`
-    "#]]);
+                                expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
 }

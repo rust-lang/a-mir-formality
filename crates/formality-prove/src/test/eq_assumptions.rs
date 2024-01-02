@@ -192,8 +192,7 @@ fn test_normalize_assoc_ty_existential0() {
                                                                           the rule "existential-universal" failed at step #0 (src/file.rs:LL:CC) because
                                                                             condition evaluted to false: `env.universe(p) < env.universe(v)`
                                                       the rule "normalize-via-impl" failed at step #0 (src/file.rs:LL:CC) because
-                                                        expression evaluated to an empty collection: `decls.alias_eq_decls(&a.name)`
-    "#]]);
+                                                        expression evaluated to an empty collection: `decls.alias_eq_decls(&a.name)`"#]]);
 }
 
 #[test]

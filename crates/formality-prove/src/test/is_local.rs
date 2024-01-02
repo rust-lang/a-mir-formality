@@ -21,8 +21,7 @@ fn test_forall_not_local() {
                   the rule "trait ref is local" failed at step #0 (src/file.rs:LL:CC) because
                     judgment `is_local_trait_ref { goal: Debug(!ty_1), assumptions: {}, env: Env { variables: [!ty_1], coherence_mode: true }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                       the rule "local trait" failed at step #0 (src/file.rs:LL:CC) because
-                        condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
-    "#]]);
+                        condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`"#]]);
 }
 
 #[test]

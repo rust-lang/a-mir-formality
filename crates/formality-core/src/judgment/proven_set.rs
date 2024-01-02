@@ -426,8 +426,8 @@ impl std::fmt::Display for FailedJudgment {
         if failed_rules.is_empty() {
             write!(f, "judgment had no applicable rules: `{judgment}` ",)
         } else {
-            let rules: String = failed_rules.iter().map(|r| r.to_string()).collect();
-            let rules = indent(rules);
+            let rules: Vec<String> = failed_rules.iter().map(|r| r.to_string()).collect();
+            let rules = indent(rules.join("\n"));
             write!(
                 f,
                 "judgment `{judgment}` failed at the following rule(s):\n{rules}"
@@ -492,7 +492,7 @@ impl<T: Debug> std::fmt::Display for ProvenSet<T> {
             Data::Success(set) => {
                 write!(f, "{{\n")?;
                 for item in set {
-                    write!(f, "{}", indent(format!("{item:?},\n")))?;
+                    write!(f, "{},\n", indent(format!("{item:?}")))?;
                 }
                 write!(f, "}}\n")?;
                 Ok(())
@@ -503,14 +503,12 @@ impl<T: Debug> std::fmt::Display for ProvenSet<T> {
 
 fn indent(s: impl std::fmt::Display) -> String {
     let s = s.to_string();
-    s.lines()
+    let lines: Vec<String> = s
+        .lines()
         .map(|l| format!("  {l}"))
         .map(|l| l.trim_end().to_string())
-        .map(|mut l| {
-            l.push_str("\n");
-            l
-        })
-        .collect()
+        .collect();
+    lines.join("\n")
 }
 
 /// This trait is used for the `(foo => bar)` patterns.

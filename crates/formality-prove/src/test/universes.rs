@@ -26,8 +26,7 @@ fn exists_u_for_t() {
                               the rule "existential-nonvar" failed at step #0 (src/file.rs:LL:CC) because
                                 pattern `None` did not match value `Some(!ty_1)`
                               the rule "existential-universal" failed at step #0 (src/file.rs:LL:CC) because
-                                condition evaluted to false: `env.universe(p) < env.universe(v)`
-    "#]]);
+                                condition evaluted to false: `env.universe(p) < env.universe(v)`"#]]);
 }
 
 /// There is U that is equal to some T.

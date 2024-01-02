@@ -21,4 +21,3 @@ Caused by:
                            judgment had no applicable rules: `prove_normalize_via { goal: bool, via: @ ConstHasType(value(0, bool) , u32), assumptions: {@ ConstHasType(value(0, bool) , u32)}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty> where {@ ConstHasType(value(0, bool) , u32)}], [], [], [], [], [], {Foo}, {}) }`
                      the rule "symmetric" failed at step #0 (crates/formality-prove/src/prove/prove_eq.rs:38:14) because
                        cyclic proof attempt: `prove_eq { a: u32, b: bool, assumptions: {@ ConstHasType(value(0, bool) , u32)}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty> where {@ ConstHasType(value(0, bool) , u32)}], [], [], [], [], [], {Foo}, {}) }`
-       

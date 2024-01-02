@@ -44,6 +44,5 @@ fn test() {
         Caused by:
             judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
               the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
-                condition evaluted to false: `name_a == name_b`
-    "#]]);
+                condition evaluted to false: `name_a == name_b`"#]]);
 }

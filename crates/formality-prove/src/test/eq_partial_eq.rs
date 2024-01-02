@@ -54,8 +54,7 @@ fn not_partial_eq_implies_eq() {
                       the rule "assumption" failed at step #1 (src/file.rs:LL:CC) because
                         judgment had no applicable rules: `prove_via { goal: Eq(!ty_1), via: PartialEq(!ty_1), assumptions: {PartialEq(!ty_1)}, env: Env { variables: [!ty_1], coherence_mode: false }, decls: decls(222, [trait Eq <ty> where {PartialEq(^ty0_0)}, trait PartialEq <ty> ], [], [], [], [], [], {}, {}) }`
                       the rule "trait implied bound" failed at step #3 (src/file.rs:LL:CC) because
-                        judgment had no applicable rules: `prove_via { goal: Eq(!ty_1), via: PartialEq(?ty_2), assumptions: {PartialEq(!ty_1)}, env: Env { variables: [!ty_1, ?ty_2], coherence_mode: false }, decls: decls(222, [trait Eq <ty> where {PartialEq(^ty0_0)}, trait PartialEq <ty> ], [], [], [], [], [], {}, {}) }`
-    "#]]);
+                        judgment had no applicable rules: `prove_via { goal: Eq(!ty_1), via: PartialEq(?ty_2), assumptions: {PartialEq(!ty_1)}, env: Env { variables: [!ty_1, ?ty_2], coherence_mode: false }, decls: decls(222, [trait Eq <ty> where {PartialEq(^ty0_0)}, trait PartialEq <ty> ], [], [], [], [], [], {}, {}) }`"#]]);
 }
 
 #[test]
@@ -102,6 +101,5 @@ fn universals_not_eq() {
                                                       the rule "symmetric" failed at step #0 (src/file.rs:LL:CC) because
                                                         cyclic proof attempt: `prove_eq { a: !ty_0, b: !ty_1, assumptions: {Eq(!ty_0)}, env: Env { variables: [!ty_0, !ty_1], coherence_mode: false }, decls: decls(222, [trait Eq <ty> where {PartialEq(^ty0_0)}, trait PartialEq <ty> ], [], [], [], [], [], {}, {}) }`
                                   the rule "trait implied bound" failed at step #3 (src/file.rs:LL:CC) because
-                                    judgment had no applicable rules: `prove_via { goal: Eq(!ty_1), via: PartialEq(?ty_2), assumptions: {Eq(!ty_0)}, env: Env { variables: [!ty_0, !ty_1, ?ty_2], coherence_mode: false }, decls: decls(222, [trait Eq <ty> where {PartialEq(^ty0_0)}, trait PartialEq <ty> ], [], [], [], [], [], {}, {}) }`
-    "#]]);
+                                    judgment had no applicable rules: `prove_via { goal: Eq(!ty_1), via: PartialEq(?ty_2), assumptions: {Eq(!ty_0)}, env: Env { variables: [!ty_0, !ty_1, ?ty_2], coherence_mode: false }, decls: decls(222, [trait Eq <ty> where {PartialEq(^ty0_0)}, trait PartialEq <ty> ], [], [], [], [], [], {}, {}) }`"#]]);
 }
