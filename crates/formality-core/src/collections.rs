@@ -70,13 +70,37 @@ impl<T: Ord + Clone> VecExt<T> for Vec<T> {
 }
 
 pub trait SetExt<T>: Sized {
-    fn split_first(self) -> Option<(T, Self)>;
+    fn split_first(self) -> Option<(T, Set<T>)>;
 
-    fn union_with(self, other: Self) -> Self;
+    fn union_with(self, other: impl Upcast<Set<T>>) -> Set<T>;
 
-    fn plus(self, other: T) -> Self;
+    fn with_element(self, other: impl Upcast<T>) -> Set<T>;
 
-    fn split_nth(&self, i: usize) -> Option<(T, Self)>;
+    fn without_element(self, other: impl Upcast<T>) -> Set<T>;
+
+    fn split_nth(&self, i: usize) -> Option<(T, Set<T>)>;
+}
+
+impl<T: Ord + Clone> SetExt<T> for &Set<T> {
+    fn split_first(self) -> Option<(T, Set<T>)> {
+        self.clone().split_first()
+    }
+
+    fn union_with(self, other: impl Upcast<Set<T>>) -> Set<T> {
+        self.clone().union_with(other)
+    }
+
+    fn with_element(self, other: impl Upcast<T>) -> Set<T> {
+        self.clone().with_element(other)
+    }
+
+    fn without_element(self, other: impl Upcast<T>) -> Set<T> {
+        self.clone().without_element(other)
+    }
+
+    fn split_nth(&self, i: usize) -> Option<(T, Set<T>)> {
+        <Set<T>>::split_nth(self, i)
+    }
 }
 
 impl<T: Ord + Clone> SetExt<T> for Set<T> {
@@ -87,22 +111,28 @@ impl<T: Ord + Clone> SetExt<T> for Set<T> {
         Some((e, c))
     }
 
-    fn split_nth(&self, i: usize) -> Option<(T, Self)> {
+    fn split_nth(&self, i: usize) -> Option<(T, Set<T>)> {
         let mut s = self.clone();
         let item = self.iter().skip(i).next()?;
         let item = s.take(item).unwrap();
         Some((item, s))
     }
 
-    fn union_with(mut self, other: Self) -> Self {
+    fn union_with(mut self, other: impl Upcast<Set<T>>) -> Set<T> {
+        let other: Set<T> = other.upcast();
         for item in other {
             self.insert(item);
         }
         self
     }
 
-    fn plus(mut self, other: T) -> Self {
-        self.insert(other);
+    fn with_element(mut self, other: impl Upcast<T>) -> Set<T> {
+        self.insert(other.upcast());
+        self
+    }
+
+    fn without_element(mut self, other: impl Upcast<T>) -> Set<T> {
+        self.remove(&other.upcast());
         self
     }
 }

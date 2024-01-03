@@ -316,11 +316,12 @@ impl FailedJudgment {
                     // This will return a boolean indicating if all the failed rules
                     // ultimately failed because of a cycle.
 
+                    let mut stack1 = stack.clone();
+                    stack1.insert(&judgment.judgment);
+
                     let judgment_has_non_cycle;
-                    (judgment.failed_rules, judgment_has_non_cycle) = Self::strip_cycles(
-                        stack.clone().plus(&judgment.judgment),
-                        judgment.failed_rules,
-                    );
+                    (judgment.failed_rules, judgment_has_non_cycle) =
+                        Self::strip_cycles(stack1, judgment.failed_rules);
                     failed_rule.cause = RuleFailureCause::FailedJudgment(judgment);
 
                     if judgment_has_non_cycle.0 {
