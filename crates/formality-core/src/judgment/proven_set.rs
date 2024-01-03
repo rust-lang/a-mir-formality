@@ -1,4 +1,4 @@
-use crate::{set, Set, SetExt};
+use crate::{set, Set};
 use std::{
     fmt::Debug,
     hash::{Hash, Hasher},
@@ -385,7 +385,14 @@ impl FailedRule {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum RuleFailureCause {
     /// The rule did not succeed because an `(if X)` condition evaluated to false.
-    IfFalse { expr: String },
+    IfFalse {
+        /// The stringified form of the expression.
+        expr: String,
+
+        /// A set of pairs with the stringified form of arguments within the expression plus the debug representation of its value.
+        /// This is a best effort extraction via the macro.
+        args: Vec<(String, String)>,
+    },
 
     /// The rule did not succeed because an `(if let)` pattern failed to match.
     IfLetDidNotMatch { pattern: String, value: String },
@@ -466,8 +473,12 @@ impl std::fmt::Display for FailedRule {
 impl std::fmt::Display for RuleFailureCause {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RuleFailureCause::IfFalse { expr } => {
-                write!(f, "condition evaluted to false: `{expr}`")
+            RuleFailureCause::IfFalse { expr, args } => {
+                write!(f, "condition evaluted to false: `{expr}`")?;
+                for (arg_expr, arg_value) in args {
+                    write!(f, "\n  {arg_expr} = {arg_value}")?;
+                }
+                Ok(())
             }
             RuleFailureCause::IfLetDidNotMatch { pattern, value } => {
                 write!(f, "pattern `{pattern}` did not match value `{value}`")

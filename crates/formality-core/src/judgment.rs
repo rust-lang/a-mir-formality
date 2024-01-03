@@ -288,21 +288,6 @@ macro_rules! push_rules {
     // expression `v` is carried in from the conclusion and forms the final
     // output of this rule, once all the conditions are evaluated.
 
-    (@body $args:tt; $inputs:tt; $step_index:expr; (if $c:expr) $($m:tt)*) => {
-        if $c {
-            $crate::push_rules!(@body $args; $inputs; $step_index + 1; $($m)*);
-        } else {
-            $crate::push_rules!(@record_failure $inputs; $step_index, $c; $crate::judgment::RuleFailureCause::IfFalse {
-                expr: stringify!($c).to_string(),
-            });
-        }
-    };
-
-    (@body $args:tt; $inputs:tt; $step_index:expr; (assert $c:expr) $($m:tt)*) => {
-        assert!($c);
-        $crate::push_rules!(@body $args; $inputs; $step_index + 1; $($m)*);
-    };
-
     (@body $args:tt; $inputs:tt; $step_index:expr; (if let $p:pat = $e:expr) $($m:tt)*) => {
         let value = &$e;
         if let $p = Clone::clone(value) {
@@ -313,6 +298,92 @@ macro_rules! push_rules {
                 value: format!("{:?}", value),
             });
         }
+    };
+
+    // For `(if ...)`, we have special treatment to try and extract the arguments so we can give better information
+    // about why the expression evaluated to false.
+    (@body $args:tt; $inputs:tt; $step_index:expr; (if $($c:tt)*) $($m:tt)*) => {
+        $crate::push_rules!(@body_if $args; $inputs; $step_index; $($c)*; $($c)*; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; $arg0:ident . $method:ident ( ); $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0); arg0.$method(); $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; ! $arg0:ident . $method:ident ( ); $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0); !arg0.$method(); $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; $arg0:ident . $method:ident ( $arg1:expr $(,)? ); $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0, arg1 = $arg1); arg0.$method(arg1); $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; ! $arg0:ident . $method:ident ( $arg1:expr $(,)? ); $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0, arg1 = $arg1); !arg0.$method(arg1); $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; $arg0:ident . $method:ident ( $arg1:expr, $arg2:expr $(,)? ); $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0, arg1 = $arg1, arg2 = $arg2); arg0.$method(arg1, arg2); $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; ! $arg0:ident . $method:ident ( $arg1:expr, $arg2:expr $(,)? ); $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0, arg1 = $arg1, arg2 = $arg2); !arg0.$method(arg1, arg2); $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; $func:ident ( $arg0:expr $(,)? ); $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0); $func(arg0); $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; ! $func:ident ( $arg0:expr $(,)? ); $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0); !$func(arg0); $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; $func:ident ( $arg0:expr, $arg1:expr $(,)? ); $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0, arg1 = $arg1); $func(arg0, arg1); $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; ! $func:ident ( $arg0:expr, $arg1:expr $(,)? ); $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0, arg1 = $arg1); ! $func(arg0, arg1); $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; $arg0:ident == $arg1:ident; $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0, arg1 = $arg1); arg0 == arg1; $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; $arg0:ident != $arg1:ident; $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (arg0 = $arg0, arg1 = $arg1); arg0 != arg1; $origcond; $($m)*)
+    };
+
+    (@body_if $args:tt; $inputs:tt; $step_index:expr; $e:expr; $origcond:expr; $($m:tt)*) => {
+        $crate::push_rules!(@structured_if $args; $inputs; $step_index; (); $e; $origcond; $($m)*)
+    };
+
+    (@structured_if $args:tt; $inputs:tt; $step_index:expr; ($($argn:ident = $arge:expr),*); $cond:expr; $origcond:expr; $($m:tt)*) => {
+        $(
+            let $argn = &$arge;
+        )*
+        if {
+            $(
+                let $argn = Clone::clone($argn);
+            )*
+            $cond
+        } {
+            $crate::push_rules!(@body $args; $inputs; $step_index + 1; $($m)*);
+        } else {
+            $crate::push_rules!(@record_failure $inputs; $step_index, $origcond; $crate::judgment::RuleFailureCause::IfFalse {
+                expr: stringify!($origcond).to_string(),
+                args: vec![
+                    $(
+                        (stringify!($arge).to_string(), format!("{:?}", $argn)),
+                    )*
+                ],
+            });
+        }
+    };
+
+    (@body $args:tt; $inputs:tt; $step_index:expr; (assert $c:expr) $($m:tt)*) => {
+        assert!($c);
+        $crate::push_rules!(@body $args; $inputs; $step_index + 1; $($m)*);
     };
 
     (@body $args:tt; $inputs:tt; $step_index:expr; ($i:expr => $p:pat) $($m:tt)*) => {
