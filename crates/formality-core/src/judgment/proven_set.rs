@@ -1,4 +1,4 @@
-use crate::{set, Set, SetExt};
+use crate::{set, Set};
 use std::{
     fmt::Debug,
     hash::{Hash, Hasher},
@@ -316,11 +316,12 @@ impl FailedJudgment {
                     // This will return a boolean indicating if all the failed rules
                     // ultimately failed because of a cycle.
 
+                    let mut stack1 = stack.clone();
+                    stack1.insert(&judgment.judgment);
+
                     let judgment_has_non_cycle;
-                    (judgment.failed_rules, judgment_has_non_cycle) = Self::strip_cycles(
-                        stack.clone().plus(&judgment.judgment),
-                        judgment.failed_rules,
-                    );
+                    (judgment.failed_rules, judgment_has_non_cycle) =
+                        Self::strip_cycles(stack1, judgment.failed_rules);
                     failed_rule.cause = RuleFailureCause::FailedJudgment(judgment);
 
                     if judgment_has_non_cycle.0 {
@@ -384,7 +385,14 @@ impl FailedRule {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum RuleFailureCause {
     /// The rule did not succeed because an `(if X)` condition evaluated to false.
-    IfFalse { expr: String },
+    IfFalse {
+        /// The stringified form of the expression.
+        expr: String,
+
+        /// A set of pairs with the stringified form of arguments within the expression plus the debug representation of its value.
+        /// This is a best effort extraction via the macro.
+        args: Vec<(String, String)>,
+    },
 
     /// The rule did not succeed because an `(if let)` pattern failed to match.
     IfLetDidNotMatch { pattern: String, value: String },
@@ -426,8 +434,8 @@ impl std::fmt::Display for FailedJudgment {
         if failed_rules.is_empty() {
             write!(f, "judgment had no applicable rules: `{judgment}` ",)
         } else {
-            let rules: String = failed_rules.iter().map(|r| r.to_string()).collect();
-            let rules = indent(rules);
+            let rules: Vec<String> = failed_rules.iter().map(|r| r.to_string()).collect();
+            let rules = indent(rules.join("\n"));
             write!(
                 f,
                 "judgment `{judgment}` failed at the following rule(s):\n{rules}"
@@ -465,8 +473,12 @@ impl std::fmt::Display for FailedRule {
 impl std::fmt::Display for RuleFailureCause {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RuleFailureCause::IfFalse { expr } => {
-                write!(f, "condition evaluted to false: `{expr}`")
+            RuleFailureCause::IfFalse { expr, args } => {
+                write!(f, "condition evaluted to false: `{expr}`")?;
+                for (arg_expr, arg_value) in args {
+                    write!(f, "\n  {arg_expr} = {arg_value}")?;
+                }
+                Ok(())
             }
             RuleFailureCause::IfLetDidNotMatch { pattern, value } => {
                 write!(f, "pattern `{pattern}` did not match value `{value}`")
@@ -492,7 +504,7 @@ impl<T: Debug> std::fmt::Display for ProvenSet<T> {
             Data::Success(set) => {
                 write!(f, "{{\n")?;
                 for item in set {
-                    write!(f, "{}", indent(format!("{item:?},\n")))?;
+                    write!(f, "{},\n", indent(format!("{item:?}")))?;
                 }
                 write!(f, "}}\n")?;
                 Ok(())
@@ -503,14 +515,12 @@ impl<T: Debug> std::fmt::Display for ProvenSet<T> {
 
 fn indent(s: impl std::fmt::Display) -> String {
     let s = s.to_string();
-    s.lines()
+    let lines: Vec<String> = s
+        .lines()
         .map(|l| format!("  {l}"))
         .map(|l| l.trim_end().to_string())
-        .map(|mut l| {
-            l.push_str("\n");
-            l
-        })
-        .collect()
+        .collect();
+    lines.join("\n")
 }
 
 /// This trait is used for the `(foo => bar)` patterns.

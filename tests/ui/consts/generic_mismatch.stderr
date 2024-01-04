@@ -14,4 +14,3 @@ Caused by:
                         pattern `Some((_, const_ty))` did not match value `None`
           the rule "trait implied bound" failed at step #0 (crates/formality-prove/src/prove/prove_wc.rs:86:14) because
             expression evaluated to an empty collection: `decls.trait_invariants()`
-    

@@ -75,7 +75,8 @@ fn test() {
           judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
             the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
               condition evaluted to false: `name_a == name_b`
-      "#]]
+                name_a = Foo
+                name_b = Bar"#]]
     );
 }
 
@@ -94,38 +95,51 @@ fn test1() {
               judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
                 the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
                   condition evaluted to false: `name_a == name_b`
+                    name_a = Foo
+                    name_b = Bar
             the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
               judgment `sub { a: class(Foo), b: my(class(Bar)) }` failed at the following rule(s):
                 the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
                   judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
                     the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
                       condition evaluted to false: `name_a == name_b`
+                        name_a = Foo
+                        name_b = Bar
                 the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
                   judgment `sub { a: my(class(Foo)), b: my(class(Bar)) }` failed at the following rule(s):
                     the rule "both my" failed at step #0 (src/file.rs:LL:CC) because
                       judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
                         the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
                           condition evaluted to false: `name_a == name_b`
+                            name_a = Foo
+                            name_b = Bar
                     the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
                       judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
                         the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
                           condition evaluted to false: `name_a == name_b`
+                            name_a = Foo
+                            name_b = Bar
             the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
               judgment `sub { a: my(class(Foo)), b: my(class(Bar)) }` failed at the following rule(s):
                 the rule "both my" failed at step #0 (src/file.rs:LL:CC) because
                   judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
                     the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
                       condition evaluted to false: `name_a == name_b`
+                        name_a = Foo
+                        name_b = Bar
                 the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
                   judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
                     the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
                       condition evaluted to false: `name_a == name_b`
+                        name_a = Foo
+                        name_b = Bar
                 the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
                   judgment `sub { a: class(Foo), b: my(class(Bar)) }` failed at the following rule(s):
                     the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
                       judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
                         the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
                           condition evaluted to false: `name_a == name_b`
-      "#]]
+                            name_a = Foo
+                            name_b = Bar"#]]
     );
 }

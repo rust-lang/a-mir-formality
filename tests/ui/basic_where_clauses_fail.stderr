@@ -12,4 +12,3 @@ Caused by:
                    judgment `prove_wc { goal: B(!ty_0), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], coherence_mode: false }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
                      the rule "trait implied bound" failed at step #0 (crates/formality-prove/src/prove/prove_wc.rs:86:14) because
                        expression evaluated to an empty collection: `decls.trait_invariants()`
-       

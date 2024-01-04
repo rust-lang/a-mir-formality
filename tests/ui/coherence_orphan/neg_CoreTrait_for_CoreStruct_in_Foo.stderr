@@ -10,8 +10,13 @@ Caused by:
                 judgment `is_local_parameter { goal: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
                   the rule "fundamental rigid type" failed at step #0 (crates/formality-prove/src/prove/is_local.rs:148:17) because
                     condition evaluted to false: `is_fundamental(&decls, &name)`
+                      &decls = decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {})
+                      &name = (adt CoreStruct)
                   the rule "local rigid type" failed at step #0 (crates/formality-prove/src/prove/is_local.rs:156:17) because
                     condition evaluted to false: `decls.is_local_adt_id(&a)`
+                      decls = decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {})
+                      &a = CoreStruct
               the rule "local trait" failed at step #0 (crates/formality-prove/src/prove/is_local.rs:70:17) because
                 condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
-    
+                  decls = decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {})
+                  &goal.trait_id = CoreTrait

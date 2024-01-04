@@ -20,6 +20,7 @@ formality_core::declare_language! {
 use jer::FormalityLang;
 
 mod cyclic_judgment;
+mod fallible;
 mod grammar;
 
 fn main() -> Fallible<()> {

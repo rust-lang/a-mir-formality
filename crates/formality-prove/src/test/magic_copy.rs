@@ -69,8 +69,7 @@ fn all_t_not_magic() {
                                           the rule "trait implied bound" failed at step #3 (src/file.rs:LL:CC) because
                                             judgment had no applicable rules: `prove_via { goal: Magic(!ty_0), via: Copy(?ty_1), assumptions: {}, env: Env { variables: [!ty_0, ?ty_1], coherence_mode: false }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }`
                   the rule "trait implied bound" failed at step #3 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_via { goal: Magic(!ty_1), via: Copy(?ty_2), assumptions: {}, env: Env { variables: [!ty_1, ?ty_2], coherence_mode: false }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }`
-    "#]]);
+                    judgment had no applicable rules: `prove_via { goal: Magic(!ty_1), via: Copy(?ty_2), assumptions: {}, env: Env { variables: [!ty_1, ?ty_2], coherence_mode: false }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }`"#]]);
 }
 
 #[test]
@@ -139,6 +138,5 @@ fn all_t_not_copy() {
                                               the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
                                                 cyclic proof attempt: `prove_wc_list { goal: {Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], coherence_mode: false }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }`
                               the rule "trait implied bound" failed at step #3 (src/file.rs:LL:CC) because
-                                judgment had no applicable rules: `prove_via { goal: Magic(!ty_0), via: Copy(?ty_1), assumptions: {}, env: Env { variables: [!ty_0, ?ty_1], coherence_mode: false }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }`
-    "#]]);
+                                judgment had no applicable rules: `prove_via { goal: Magic(!ty_0), via: Copy(?ty_1), assumptions: {}, env: Env { variables: [!ty_0, ?ty_1], coherence_mode: false }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }`"#]]);
 }
