@@ -177,14 +177,23 @@ fn parse_variant_with_attr(
     spec: &FormalitySpec,
     mut stream: TokenStream,
 ) -> syn::Result<TokenStream> {
+    // If the user added a commit point, then clear the committed flag initially.
+    // It will be set back to true once we reach that commit point.
+    if spec
+        .symbols
+        .iter()
+        .any(|s| matches!(s, spec::FormalitySpecSymbol::CommitPoint))
+    {
+        stream.extend(quote!(__p.set_committed(false);));
+    }
+
     for symbol in &spec.symbols {
         stream.extend(match symbol {
             spec::FormalitySpecSymbol::Field { name, mode } => {
                 let initializer = parse_field_mode(name.span(), mode);
-                quote_spanned! {
-                    name.span() =>
+                quote_spanned!(name.span() =>
                     let #name = #initializer;
-                }
+                )
             }
 
             spec::FormalitySpecSymbol::Keyword { ident } => {
@@ -194,17 +203,22 @@ fn parse_variant_with_attr(
                 )
             }
 
+            spec::FormalitySpecSymbol::CommitPoint => {
+                quote!(
+                    let () = __p.set_committed(true);
+                )
+            }
+
             spec::FormalitySpecSymbol::Char { punct } => {
                 let literal = Literal::character(punct.as_char());
-                quote_spanned!(
-                    punct.span() =>
+                quote_spanned!(punct.span() =>
                     __p.expect_char(#literal)?;
                 )
             }
 
             spec::FormalitySpecSymbol::Delimeter { text } => {
                 let literal = Literal::character(*text);
-                quote!(
+                quote_spanned!(literal.span() =>
                     __p.expect_char(#literal)?;
                 )
             }

@@ -153,6 +153,9 @@ where
     current_text: &'t str,
     reductions: Vec<&'static str>,
     is_cast_variant: bool,
+
+    /// A variant is 'committed' when we have seen enough success
+    is_committed: bool,
 }
 
 impl<'s, 't, T, L> Parser<'s, 't, T, L>
@@ -289,11 +292,13 @@ where
                 // We only record failures where we actually consumed any tokens.
                 // This is part of our error reporting and recovery mechanism.
                 // Note that we expect (loosely) an LL(1) grammar.
-                self.failures.extend(
-                    errs.into_iter()
-                        .filter(|e| e.consumed_any_since(self.start_text))
-                        .inspect(|e| tracing::trace!("error: {e:?}")),
-                );
+                if active_variant.is_committed {
+                    self.failures.extend(
+                        errs.into_iter()
+                            .filter(|e| e.consumed_any_since(self.start_text))
+                            .inspect(|e| tracing::trace!("error: {e:?}")),
+                    );
+                }
             }
         }
     }
@@ -380,8 +385,30 @@ where
             current_text: start_text,
             reductions: vec![],
             is_cast_variant: false,
+            is_committed: true,
         }
     }
+
+    /// A variant is "committed" when it has parsed enough tokens
+    /// for us to be reasonably sure this is what the user meant to type.
+    /// At that point, any parse errors will propagate out.
+    /// This is important for optional or repeated nonterminals.
+    ///
+    /// By default, variants start with committed set to true.
+    /// You can clear it to false explicitly and set it back to true later
+    /// once you've seen enough parsing.
+    ///
+    /// Regardless of the value of this flag, any error that occurs before
+    /// we have consumed any tokens at all will be considered uncommitted.
+    ///
+    /// With auto-generated parsers, this flag is used to implement the `$!`
+    /// marker. If that marker is present, we set committed to false initially,
+    /// and then set it to true when we encounter a `$!`.
+    pub fn set_committed(&mut self, value: bool) {
+        tracing::trace!("set_committed({})", value);
+        self.is_committed = value;
+    }
+
     fn current_state(&self) -> CurrentState {
         // Determine whether we are in Left or Right position -- Left means
         // that we have not yet consumed any tokens. Right means that we have.
@@ -542,6 +569,7 @@ where
             reductions: vec![],
             scope: self.scope,
             is_cast_variant: false,
+            is_committed: true,
         };
 
         match op(&mut this) {
@@ -601,6 +629,7 @@ where
             current_text: self.current_text,
             reductions: vec![],
             is_cast_variant: false,
+            is_committed: true,
         };
         let result = op(&mut av);
         self.current_text = av.current_text;
@@ -746,8 +775,16 @@ where
                     // If no errors consumed anything, then self.text
                     // must not have advanced.
                     assert_eq!(skip_whitespace(text0), self.current_text);
+                    tracing::trace!(
+                        "opt_nonterminal({}): parsing did not consume tokens or did not commit",
+                        std::any::type_name::<T>()
+                    );
                     Ok(None)
                 } else {
+                    tracing::trace!(
+                        "opt_nonterminal({}): 'almost' succeeded with parse",
+                        std::any::type_name::<T>()
+                    );
                     Err(errs)
                 }
             }

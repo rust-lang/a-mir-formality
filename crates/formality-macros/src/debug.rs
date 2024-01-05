@@ -194,6 +194,8 @@ fn debug_variant_with_attr(
         stream.extend(match op {
             spec::FormalitySpecSymbol::Field { name, mode } => debug_field_with_mode(name, mode),
 
+            spec::FormalitySpecSymbol::CommitPoint => quote!(),
+
             spec::FormalitySpecSymbol::Keyword { ident } => {
                 let literal = as_literal(ident);
                 quote_spanned!(ident.span() =>
