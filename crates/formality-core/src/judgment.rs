@@ -402,6 +402,15 @@ macro_rules! push_rules {
         }
     };
 
+    (@body $args:tt; $inputs:tt; $step_index:expr; (let $p:ident /*[1]*/: $t:ty = $i:expr) $($m:tt)*) => {
+        // [1] I'd prefer to have `$p:pat` but the follow-set rules don't allow for it.
+        // That's dumb.
+        {
+            let $p : $t = $i;
+            $crate::push_rules!(@body $args; $inputs; $step_index + 1; $($m)*);
+        }
+    };
+
     (@body $args:tt; $inputs:tt; $step_index:expr; (let $p:pat = $i:expr) $($m:tt)*) => {
         {
             let $p = $i;
