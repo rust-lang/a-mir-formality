@@ -2,6 +2,9 @@ use std::cell::RefCell;
 
 use crate::{fixed_point::FixedPointStack, Fallible, Set};
 
+mod assertion;
+pub use assertion::JudgmentAssertion;
+
 mod proven_set;
 pub use proven_set::{FailedJudgment, FailedRule, ProvenSet, RuleFailureCause, TryIntoIter};
 
@@ -77,8 +80,18 @@ macro_rules! judgment_fn {
             $(let $input_name: $input_ty = $crate::Upcast::upcast($input_name);)*
 
             $(
-                // Assertions are preconditions
-                assert!($assert_expr);
+                // Assertions are preconditions.
+                //
+                // NB: we can't use `$crate` in this expression because of the `respan!` call,
+                // which messes up `$crate` resolution. But we need the respan call for track_caller to properly
+                // assign the span of the panic to the assertion expression and not the invocation of the judgment_fn
+                // macro. Annoying! But our proc macros already reference `formality_core` so that seems ok.
+                $crate::respan!(
+                    $assert_expr
+                    (
+                        formality_core::judgment::JudgmentAssertion::assert($assert_expr, stringify!($assert_expr));
+                    )
+                );
             )*
 
             $(
