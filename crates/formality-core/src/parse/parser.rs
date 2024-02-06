@@ -153,6 +153,7 @@ where
     current_text: &'t str,
     reductions: Vec<&'static str>,
     is_cast_variant: bool,
+    is_in_scope_var: bool,
 
     /// A variant is 'committed' when we have seen enough success
     is_committed: bool,
@@ -232,6 +233,20 @@ where
         })
     }
 
+    pub fn parse_variant_variable(
+        &mut self,
+        variant_name: &'static str,
+        variant_precedence: Precedence,
+        kind: L::Kind,
+    ) where
+        CoreVariable<L>: Upcast<T>,
+    {
+        Self::parse_variant(self, variant_name, variant_precedence, |p| {
+            p.mark_as_in_scope_var();
+            p.variable_of_kind(kind)
+        })
+    }
+
     /// Parses a single variant for this nonterminal.
     /// The name of the variant is significant and will be tracked as part of the list of reductions.
     /// The precedence is part of how we resolve conflicts: if there are two successful parses with distinct precedence, higher precedence wins.
@@ -272,7 +287,7 @@ where
 
         match result {
             Ok(value) => {
-                // Subtle: for cast variants, don't record the variant name in the reduction lits,
+                // Subtle: for cast variants, don't record the variant name in the reduction list,
                 // as it doesn't carry semantic weight. See `mark_as_cast_variant` for more details.
                 if !active_variant.is_cast_variant {
                     active_variant.reductions.push(variant_name);
@@ -282,6 +297,7 @@ where
                     text: active_variant.current_text,
                     reductions: active_variant.reductions,
                     precedence: variant_precedence,
+                    is_in_scope_var: active_variant.is_in_scope_var,
                     value: value.upcast(),
                 });
                 tracing::trace!("success: {:?}", self.successes.last().unwrap());
@@ -369,6 +385,9 @@ where
         }
 
         has_prefix(&s_i.reductions, &s_j.reductions)
+            || (s_i.is_in_scope_var
+                && !s_j.is_in_scope_var
+                && skip_whitespace(s_i.text) == skip_whitespace(s_j.text))
     }
 }
 
@@ -385,6 +404,7 @@ where
             current_text: start_text,
             reductions: vec![],
             is_cast_variant: false,
+            is_in_scope_var: false,
             is_committed: true,
         }
     }
@@ -481,6 +501,16 @@ where
         self.is_cast_variant = true;
     }
 
+    /// Indicates that this variant is parsing *only* an in-scope variable.
+    /// We have special treatment for disambiguation such that if a variant marked
+    /// as parsing an "in-scope variable" and some other variant both consume the
+    /// same part of the input string, we prefer the variable. This method is automatically
+    /// invoked on `#[variable]` variants by the generated parser code and you generally
+    /// wouldn't want to call it yourself.
+    pub fn mark_as_in_scope_var(&mut self) {
+        self.is_in_scope_var = true;
+    }
+
     /// Expect *exactly* the given text (after skipping whitespace)
     /// in the input string. Reports an error if anything else is observed.
     /// In error case, consumes only whitespace.
@@ -569,6 +599,7 @@ where
             reductions: vec![],
             scope: self.scope,
             is_cast_variant: false,
+            is_in_scope_var: false,
             is_committed: true,
         };
 
@@ -629,27 +660,13 @@ where
             current_text: self.current_text,
             reductions: vec![],
             is_cast_variant: false,
+            is_in_scope_var: false,
             is_committed: true,
         };
         let result = op(&mut av);
         self.current_text = av.current_text;
         self.reductions.extend(av.reductions);
         result
-    }
-
-    /// Returns an error if an in-scope variable name is found.
-    /// The derive automatically inserts calls to this for all other variants
-    /// if any variant is declared `#[variable]`.
-    pub fn reject_variable(&self) -> Result<(), Set<ParseError<'t>>> {
-        self.reject::<CoreVariable<L>>(
-            |p| p.variable(),
-            |var| {
-                ParseError::at(
-                    self.current_text,
-                    format!("found unexpected in-scope variable {:?}", var),
-                )
-            },
-        )
     }
 
     /// Parses the next identifier as a variable in scope.
@@ -873,6 +890,7 @@ where
             text,
             reductions,
             precedence: _,
+            is_in_scope_var: _,
             value,
         } = left_recursion::recurse(self.current_state(), || op(self.scope, self.current_text))?;
 

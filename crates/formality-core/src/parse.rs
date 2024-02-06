@@ -81,6 +81,11 @@ pub struct SuccessfulParse<'t, T> {
     /// to `parse_variant`.
     precedence: Precedence,
 
+    /// Did this result from parsing an in-scope variable? If so,
+    /// we prefer this parse to other parses that consumed the same set of
+    /// input tokens.
+    is_in_scope_var: bool,
+
     /// The value produced.
     value: T,
 }
@@ -99,6 +104,7 @@ impl<'t, T> SuccessfulParse<'t, T> {
             text: self.text,
             reductions: self.reductions,
             precedence: self.precedence,
+            is_in_scope_var: self.is_in_scope_var,
             value: op(self.value),
         }
     }
@@ -114,6 +120,7 @@ where
             text: term.text,
             reductions: term.reductions,
             precedence: term.precedence,
+            is_in_scope_var: term.is_in_scope_var,
             value: term.value.upcast(),
         }
     }

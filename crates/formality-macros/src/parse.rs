@@ -7,7 +7,7 @@ use syn::{spanned::Spanned, Attribute};
 use synstructure::BindingInfo;
 
 use crate::{
-    attrs::{has_cast_attr, has_variable_attr, precedence, variable},
+    attrs::{has_cast_attr, precedence, variable},
     spec::{self, FieldMode, FormalitySpec},
     variable::Variable,
 };
@@ -40,17 +40,10 @@ pub(crate) fn derive_parse_with_spec(
         }
     }
 
-    // Determine whether *any* variant is marked as `#[variable]`.
-    // If so, all *other* variants will automatically reject in-scope variable names.
-    let any_variable_variant = s
-        .variants()
-        .iter()
-        .any(|v| has_variable_attr(v.ast().attrs));
-
     let mut parse_variants = TokenStream::new();
     for variant in s.variants() {
         let variant_name = Literal::string(&format!("{}::{}", s.ast().ident, variant.ast().ident));
-        let v = parse_variant(variant, external_spec, any_variable_variant)?;
+        let v = parse_variant(variant, external_spec)?;
         let precedence = precedence(variant.ast().attrs)?.expr();
         parse_variants.extend(quote_spanned!(
             variant.ast().ident.span() =>
@@ -76,18 +69,10 @@ pub(crate) fn derive_parse_with_spec(
 fn parse_variant(
     variant: &synstructure::VariantInfo,
     external_spec: Option<&FormalitySpec>,
-    any_variable_variant: bool,
 ) -> syn::Result<TokenStream> {
     let ast = variant.ast();
     let variable_attr = variable(ast.attrs)?;
     let mut stream = TokenStream::default();
-
-    // If there are variable variants -- but this is not one -- then we always begin by rejecting
-    // variable names. This avoids ambiguity in a case like `for<ty X> { X : Debug }`, where we
-    // want to parse `X` as a type variable.
-    if any_variable_variant && variable_attr.is_none() {
-        stream.extend(quote_spanned!(ast.ident.span() => __p.reject_variable()?;));
-    }
 
     // When invoked like `#[term(foo)]`, use the spec from `foo`
     if let Some(spec) = external_spec {
@@ -124,6 +109,7 @@ fn parse_variant(
         let construct = variant.construct(field_ident);
         stream.extend(quote_spanned! {
             ast.ident.span() =>
+            __p.mark_as_in_scope_var();
             let #v0 = __p.variable_of_kind(#kind)?;
             Ok(#construct)
         });
