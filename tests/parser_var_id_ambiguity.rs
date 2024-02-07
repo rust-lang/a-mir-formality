@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use formality_core::{Downcast, DowncastTo, Upcast, UpcastFrom};
 // Default language for our crate
 use formality_core::{language::HasKind, term};
 use ptt::grammar::{Binder, BoundVar, ExistentialVar, UniversalVar, Variable};
@@ -24,12 +25,16 @@ formality_core::declare_language! {
 #[derive(Copy)]
 pub enum Kind {
     Ty,
+    Perm,
 }
 
 #[term]
 pub enum Parameter {
     #[cast]
     Ty(Ty),
+
+    #[cast]
+    Perm(Perm),
 }
 
 #[term]
@@ -40,24 +45,48 @@ pub enum Ty {
     #[cast]
     Id(Id),
 
+    #[grammar($v0 $v1)]
+    Apply(Perm, Arc<Ty>),
+
     #[grammar($v0 :: $v1)]
     Assoc(Arc<Ty>, Id),
 }
 
+#[term]
+pub enum Perm {
+    #[variable(Kind::Perm)]
+    Variable(Variable),
+}
+
 formality_core::id!(Id);
 
-formality_core::cast_impl!((BoundVar) <: (Variable) <: (Ty));
-formality_core::cast_impl!((ExistentialVar) <: (Variable) <: (Ty));
-formality_core::cast_impl!((UniversalVar) <: (Variable) <: (Ty));
-formality_core::cast_impl!((Variable) <: (Ty) <: (Parameter));
-formality_core::cast_impl!((BoundVar) <: (Ty) <: (Parameter));
-formality_core::cast_impl!((ExistentialVar) <: (Ty) <: (Parameter));
-formality_core::cast_impl!((UniversalVar) <: (Ty) <: (Parameter));
+formality_core::cast_impl!((BoundVar) <: (Variable) <: (Parameter));
+formality_core::cast_impl!((ExistentialVar) <: (Variable) <: (Parameter));
+formality_core::cast_impl!((UniversalVar) <: (Variable) <: (Parameter));
+
+impl UpcastFrom<Variable> for Parameter {
+    fn upcast_from(term: Variable) -> Self {
+        match term.kind() {
+            Kind::Ty => Ty::Variable(term).upcast(),
+            Kind::Perm => Perm::Variable(term).upcast(),
+        }
+    }
+}
+
+impl DowncastTo<Variable> for Parameter {
+    fn downcast_to(&self) -> Option<Variable> {
+        match self {
+            Parameter::Ty(ty) => ty.downcast(),
+            Parameter::Perm(perm) => perm.downcast(),
+        }
+    }
+}
 
 impl HasKind<FormalityLang> for Parameter {
     fn kind(&self) -> formality_core::language::CoreKind<FormalityLang> {
         match self {
             Parameter::Ty(_) => Kind::Ty,
+            Parameter::Perm(_) => Kind::Perm,
         }
     }
 }
@@ -107,6 +136,53 @@ fn parse_assoc() {
                     i32,
                 ),
                 T,
+            ),
+        }
+    "#]]
+    .assert_debug_eq(&value);
+}
+
+/// Test for the case where the ambiguity occurs after some
+/// reductions. In this case, we parse P (the variable) as a Perm
+/// and then integrate that into the type, but we could also parse
+/// P as a type itself.
+#[test]
+#[should_panic] // FIXME
+fn parse_apply() {
+    let value: Binder<Ty> = ptt::term("<perm P> P i32");
+    expect_test::expect![[r#"
+        Binder {
+            kinds: [
+                Ty,
+            ],
+            term: Assoc(
+                Id(
+                    i32,
+                ),
+                T,
+            ),
+        }
+    "#]]
+    .assert_debug_eq(&value);
+}
+
+/// Test for the case where the ambiguity occurs after some
+/// reductions. In this case, we parse P (the variable) as a Perm
+/// and then integrate that into the type, but we could also parse
+/// P as a type itself.
+#[test]
+#[should_panic] // FIXME
+fn parse_parameter() {
+    let value: Binder<Parameter> = ptt::term("<perm P> P");
+    expect_test::expect![[r#"
+        Binder {
+            kinds: [
+                Perm,
+            ],
+            term: Perm(
+                Variable(
+                    ^perm0_0,
+                ),
             ),
         }
     "#]]
