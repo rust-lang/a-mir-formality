@@ -99,6 +99,17 @@ impl<T: Ord + Debug> ProvenSet<T> {
         }
     }
 
+    /// Convert to a non-empty set of proven results (if ok) or an error (otherwise).
+    pub fn into_iter(self) -> Box<dyn Iterator<Item = T>>
+    where
+        T: 'static,
+    {
+        match self.data {
+            Data::Failure(_) => Box::new(std::iter::empty()),
+            Data::Success(s) => Box::new(s.into_iter()),
+        }
+    }
+
     /// For each item `t` that was proven,
     /// invoke `op(t)` to yield a new set of proven results
     /// and then flatten those into a new proven set.

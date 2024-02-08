@@ -6,12 +6,18 @@ use formality_core::{
 
 use crate::grammar::PR;
 
-use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef};
+use super::{Binder, BoundVar, Const, Parameter, Predicate, Relation, TraitRef};
 
 #[term($set)]
 #[derive(Default)]
 pub struct Wcs {
     set: Set<Wc>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ExhaustiveState {
+    ExactMatch,
+    ConstCover(Vec<Const>),
 }
 
 impl Wcs {
@@ -27,6 +33,37 @@ impl Wcs {
         a.into_iter()
             .zip(b)
             .map(|(a, b)| Relation::equals(a, b))
+            .upcasted()
+            .collect()
+    }
+    /// Goal(s) to prove `a` and `b` are equal (they must have equal length)
+    pub fn eq_or_cover(
+        candidate: impl Upcast<Vec<Parameter>>,
+        trait_impl: impl Upcast<Vec<Parameter>>,
+        covering_items: &mut [ExhaustiveState],
+    ) -> Wcs {
+        let a: Vec<Parameter> = candidate.upcast();
+        let b: Vec<Parameter> = trait_impl.upcast();
+        assert_eq!(a.len(), b.len());
+        a.into_iter()
+            .zip(b)
+            .enumerate()
+            .filter_map(|(i, (a, b))| match (&a, &b) {
+                (Parameter::Const(ct), Parameter::Const(param)) if param.is_variable() => {
+                    if covering_items[i] == ExhaustiveState::ExactMatch {
+                        covering_items[i] = ExhaustiveState::ConstCover(vec![]);
+                    }
+                    let ExhaustiveState::ConstCover(ref mut c) = &mut covering_items[i] else {
+                        panic!();
+                    };
+                    c.push(ct.clone());
+                    None
+                }
+                _ => {
+                    assert!(matches!(covering_items[i], ExhaustiveState::ExactMatch));
+                    Some(Relation::equals(a, b))
+                }
+            })
             .upcasted()
             .collect()
     }

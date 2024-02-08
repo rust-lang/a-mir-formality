@@ -49,7 +49,11 @@ pub fn prove(
         return ProvenSet::singleton(Constraints::none(env).ambiguous());
     }
 
-    assert!(env.encloses(term_in));
+    assert!(
+        env.encloses(term_in),
+        "{env:?} does not enclose {term_in:?}: {:?}",
+        term_in.free_variables()
+    );
 
     let result_set = prove_wc_list(decls, &env, assumptions, goal);
 

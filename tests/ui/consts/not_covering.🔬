@@ -1,0 +1,10 @@
+[
+    crate Foo {
+        trait Foo<const C> where type_of_const C is bool {}
+
+        trait Bar<ty T, const C> where T: Foo<const C>, type_of_const C is bool {}
+
+        impl<> Foo<const true> for u32 {}
+        impl<const C> Bar<u32, const C> for u32 where type_of_const C is bool {}
+    }
+]

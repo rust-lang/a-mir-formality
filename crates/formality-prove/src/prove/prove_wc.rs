@@ -1,20 +1,35 @@
-use formality_core::judgment_fn;
-use formality_types::grammar::{Predicate, Relation, Wc, WcData, Wcs};
+use crate::prove;
+use crate::prove::is_local::is_local_trait_ref;
+use crate::prove::is_local::may_be_remote;
+use crate::prove::prove_after::prove_after;
+use crate::prove::prove_eq::prove_eq;
+use crate::prove::prove_via::prove_via;
+use crate::prove::prove_wf::prove_wf;
+use crate::Decls;
+use crate::Env;
 
-use crate::{
-    decls::Decls,
-    prove::{
-        env::Env,
-        is_local::{is_local_trait_ref, may_be_remote},
-        prove,
-        prove_after::prove_after,
-        prove_eq::prove_eq,
-        prove_via::prove_via,
-        prove_wf::prove_wf,
-    },
+use crate::Constraints;
+use formality_core::{judgment_fn, ProvenSet, Upcasted};
+use formality_types::grammar::{
+    Const, ExhaustiveState, Parameter, Predicate, Relation, Scalar, Ty, Wc, WcData, Wcs,
 };
 
-use super::constraints::Constraints;
+pub fn is_covering(vals: &[ExhaustiveState], params: &[Parameter]) -> Wcs {
+    assert_eq!(vals.len(), params.len());
+    vals.iter()
+        .zip(params.iter())
+        .filter_map(|(a, b)| match a {
+            ExhaustiveState::ExactMatch => None,
+            ExhaustiveState::ConstCover(cs) => {
+                let Parameter::Const(c) = b else {
+                    todo!();
+                };
+                Some(Predicate::Covers(cs.clone(), c.clone()))
+            }
+        })
+        .upcasted()
+        .collect()
+}
 
 judgment_fn! {
     pub fn prove_wc(
@@ -44,6 +59,34 @@ judgment_fn! {
             (prove_via(&decls, &env, &assumptions, a, &goal) => c)
             ----------------------------- ("assumption")
             (prove_wc(decls, env, assumptions, WcData::PR(goal)) => c)
+        )
+
+        (
+            (let mut covering_consts = vec![ExhaustiveState::ExactMatch; trait_ref.parameters.len()])
+            (let asmp = &assumptions)
+            (let d = &decls)
+            (d.impl_decls(&trait_ref.trait_id).flat_map(|i| {
+
+              let (env, subst) = env.clone().universal_substitution(&i.binder);
+              let i = i.binder.instantiate_with(&subst).unwrap();
+              let co_assumptions = (asmp, &trait_ref);
+              let cs = prove(
+                &decls, env, &co_assumptions,
+                Wcs::eq_or_cover(
+                  &i.trait_ref.parameters, &trait_ref.parameters, &mut covering_consts
+                )
+              );
+              let cs = cs.flat_map(move |c| prove_after(d, c, &co_assumptions, &i.where_clause));
+              let cs = cs.flat_map(move |c| {
+                  let t = d.trait_decl(&i.trait_ref.trait_id)
+                    .binder.instantiate_with(&i.trait_ref.parameters).unwrap();
+                  prove_after(d, c, asmp, &t.where_clause)
+               });
+               cs.into_iter()
+            }).into_iter().collect::<ProvenSet<_>>() => c)
+            (prove_after(d, c, asmp, is_covering(&covering_consts, &trait_ref.parameters)) => c)
+            ----------------------------- ("exhaustive positive impl")
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c)
         )
 
         (
@@ -110,6 +153,23 @@ judgment_fn! {
             (is_local_trait_ref(decls, env, assumptions, trait_ref) => c)
             ----------------------------- ("trait ref is local")
             (prove_wc(decls, env, assumptions, Predicate::IsLocal(trait_ref)) => c)
+        )
+
+        (
+            (let () = vals.sort_unstable())
+            (prove(&decls, env, &assumptions, Predicate::ConstHasType(var, Ty::bool())) => c)
+            (vals.iter().cloned() => v)
+            (prove_after(&decls, &c, &assumptions, Predicate::ConstHasType(v, Ty::bool())) => c)
+            (if vals.len() == 2)
+            (vals.clone().into_iter().enumerate().flat_map(|(i, v)| {
+                prove_after(
+                  &decls, &c, &assumptions,
+                  Relation::Equals(Parameter::Const(Const::valtree(Scalar::new(i as u128),
+                  Ty::bool())), Parameter::Const(v))
+                ).into_iter()
+            }).collect::<ProvenSet<_>>() => c)
+            ----------------------------- ("exhaustive bool values cover variable")
+            (prove_wc(decls, env, assumptions, Predicate::Covers(mut vals, var)) => c)
         )
 
 
