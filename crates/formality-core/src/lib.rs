@@ -214,6 +214,14 @@ macro_rules! id {
                 }
             }
 
+            impl From<String> for $n {
+                fn from(s: String) -> Self {
+                    $n {
+                        data: std::sync::Arc::new(s),
+                    }
+                }
+            }
+
             impl std::ops::Deref for $n {
                 type Target = String;
 
@@ -248,10 +256,7 @@ macro_rules! id {
                     scope: &parse::Scope<crate::FormalityLang>,
                     text: &'t str,
                 ) -> parse::ParseResult<'t, Self> {
-                    $crate::parse::Parser::single_variant(scope, text, stringify!($n), |p| {
-                        let string = p.identifier()?;
-                        Ok($n::new(&string))
-                    })
+                    $crate::parse::Parser::identifier(scope, text, stringify!($n))
                 }
             }
 

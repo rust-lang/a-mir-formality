@@ -147,19 +147,20 @@ fn parse_assoc() {
 /// and then integrate that into the type, but we could also parse
 /// P as a type itself.
 #[test]
-#[should_panic] // FIXME
 fn parse_apply() {
     let value: Binder<Ty> = ptt::term("<perm P> P i32");
     expect_test::expect![[r#"
         Binder {
             kinds: [
-                Ty,
+                Perm,
             ],
-            term: Assoc(
+            term: Apply(
+                Variable(
+                    ^perm0_0,
+                ),
                 Id(
                     i32,
                 ),
-                T,
             ),
         }
     "#]]
@@ -171,7 +172,6 @@ fn parse_apply() {
 /// and then integrate that into the type, but we could also parse
 /// P as a type itself.
 #[test]
-#[should_panic] // FIXME
 fn parse_parameter() {
     let value: Binder<Parameter> = ptt::term("<perm P> P");
     expect_test::expect![[r#"

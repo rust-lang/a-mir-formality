@@ -9,7 +9,9 @@ use crate::{
     Set, Upcast,
 };
 
-use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenResult};
+use super::{
+    CoreParse, ParseError, ParseResult, ReductionKind, Scope, SuccessfulParse, TokenResult,
+};
 
 mod left_recursion;
 
@@ -151,9 +153,8 @@ where
     scope: &'s Scope<L>,
     start_text: &'t str,
     current_text: &'t str,
-    reductions: Vec<&'static str>,
-    is_cast_variant: bool,
-    is_in_scope_var: bool,
+    reductions: Vec<(&'static str, ReductionKind)>,
+    variant_kind: ReductionKind,
 
     /// A variant is 'committed' when we have seen enough success
     is_committed: bool,
@@ -215,6 +216,20 @@ where
             op(&mut parser);
 
             parser.finish(guard)
+        })
+    }
+
+    pub fn identifier(
+        scope: &'s Scope<L>,
+        text: &'t str,
+        nonterminal_name: &'static str,
+    ) -> ParseResult<'t, T>
+    where
+        String: Into<T>,
+    {
+        Self::single_variant(scope, text, nonterminal_name, |p| {
+            p.mark_as_identifier();
+            Ok(p.identifier()?.into())
         })
     }
 
@@ -289,15 +304,14 @@ where
             Ok(value) => {
                 // Subtle: for cast variants, don't record the variant name in the reduction list,
                 // as it doesn't carry semantic weight. See `mark_as_cast_variant` for more details.
-                if !active_variant.is_cast_variant {
-                    active_variant.reductions.push(variant_name);
-                }
+                active_variant
+                    .reductions
+                    .push((variant_name, active_variant.variant_kind));
 
                 self.successes.push(SuccessfulParse {
                     text: active_variant.current_text,
                     reductions: active_variant.reductions,
                     precedence: variant_precedence,
-                    is_in_scope_var: active_variant.is_in_scope_var,
                     value: value.upcast(),
                 });
                 tracing::trace!("success: {:?}", self.successes.last().unwrap());
@@ -380,14 +394,42 @@ where
     }
 
     fn is_preferable(s_i: &SuccessfulParse<T>, s_j: &SuccessfulParse<T>) -> bool {
-        fn has_prefix<T: Eq>(l1: &[T], l2: &[T]) -> bool {
-            l1.len() > l2.len() && (0..l2.len()).all(|i| l1[i] == l2[i])
-        }
+        let mut reductions_i = s_i.reductions.iter().peekable();
+        let mut reductions_j = s_j.reductions.iter().peekable();
 
-        has_prefix(&s_i.reductions, &s_j.reductions)
-            || (s_i.is_in_scope_var
-                && !s_j.is_in_scope_var
-                && skip_whitespace(s_i.text) == skip_whitespace(s_j.text))
+        loop {
+            match (reductions_i.peek(), reductions_j.peek()) {
+                // Drop casts from left or right if we see them, as they
+                // are not significant. (See `ReductionKind::Cast`)
+                (Some((_, ReductionKind::Cast)), _) => {
+                    reductions_i.next();
+                }
+                (_, Some((_, ReductionKind::Cast))) => {
+                    reductions_j.next();
+                }
+                (Some((_, ReductionKind::Variable)), Some((_, ReductionKind::Identifier))) => {
+                    // at some point, s_i parsed an in-scope variable and s_j parsed an identifier;
+                    // we tilt in favor of in-scope variables in this kind of case
+                    return true;
+                }
+                (Some(_), None) => {
+                    // s_j is a prefix of s_i -- prefer s_i
+                    return true;
+                }
+                (None, Some(_)) | (None, None) => {
+                    // s_i is a prefix of s_j or they are equal -- do NOT prefer s_i
+                    return false;
+                }
+                (Some(reduction_i), Some(reduction_j)) => {
+                    if reduction_i == reduction_j {
+                        reductions_i.next();
+                        reductions_j.next();
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -403,8 +445,7 @@ where
             start_text,
             current_text: start_text,
             reductions: vec![],
-            is_cast_variant: false,
-            is_in_scope_var: false,
+            variant_kind: ReductionKind::default(),
             is_committed: true,
         }
     }
@@ -470,45 +511,22 @@ where
         self.current_text = skip_trailing_comma(self.current_text);
     }
 
-    /// Marks this variant as an cast variant,
-    /// which means there is no semantic difference
-    /// between the thing you parsed and the reduced form.
-    /// We do this automatically for enum variants marked
-    /// as `#[cast]` or calls to `parse_variant_cast`.
-    ///
-    /// Cast variants interact differently with ambiguity detection.
-    /// Consider this grammar:
-    ///
-    /// ```text
-    /// X = Y | Z // X has two variants
-    /// Y = A     // Y has 1 variant
-    /// Z = A B   // Z has 1 variant
-    /// A = "a"   // A has 1 variant
-    /// B = "b"   // B has 1 variant
-    /// ```
-    ///
-    /// If you mark the two `X` variants (`X = Y` and `X = Z`)
-    /// as cast variants, then the input `"a b"` is considered
-    /// unambiguous and is parsed as `X = (Z = (A = "a') (B = "b))`
-    /// with no remainder.
-    ///
-    /// If you don't mark those variants as cast variants,
-    /// then we consider this *ambiguous*, because
-    /// it could be that you want `X = (Y = (A = "a"))` with
-    /// a remainder of `"b"`. This is appropriate
-    /// if choosing Y vs Z has different semantic meaning.
+    /// Marks this variant as an cast variant.
+    /// See [`ReductionKind::Cast`].
     pub fn mark_as_cast_variant(&mut self) {
-        self.is_cast_variant = true;
+        self.variant_kind = ReductionKind::Cast;
     }
 
     /// Indicates that this variant is parsing *only* an in-scope variable.
-    /// We have special treatment for disambiguation such that if a variant marked
-    /// as parsing an "in-scope variable" and some other variant both consume the
-    /// same part of the input string, we prefer the variable. This method is automatically
-    /// invoked on `#[variable]` variants by the generated parser code and you generally
-    /// wouldn't want to call it yourself.
+    /// See [`ReducgionKind::Variable`].
     pub fn mark_as_in_scope_var(&mut self) {
-        self.is_in_scope_var = true;
+        self.variant_kind = ReductionKind::Variable;
+    }
+
+    /// Indicates that this variant is parsing *only* an identifier.
+    /// See [`ReducgionKind::Identifier`].
+    pub fn mark_as_identifier(&mut self) {
+        self.variant_kind = ReductionKind::Identifier;
     }
 
     /// Expect *exactly* the given text (after skipping whitespace)
@@ -598,8 +616,7 @@ where
             current_text: self.current_text,
             reductions: vec![],
             scope: self.scope,
-            is_cast_variant: false,
-            is_in_scope_var: false,
+            variant_kind: ReductionKind::default(),
             is_committed: true,
         };
 
@@ -659,8 +676,7 @@ where
             start_text: self.start_text,
             current_text: self.current_text,
             reductions: vec![],
-            is_cast_variant: false,
-            is_in_scope_var: false,
+            variant_kind: ReductionKind::default(),
             is_committed: true,
         };
         let result = op(&mut av);
@@ -890,7 +906,6 @@ where
             text,
             reductions,
             precedence: _,
-            is_in_scope_var: _,
             value,
         } = left_recursion::recurse(self.current_state(), || op(self.scope, self.current_text))?;
 

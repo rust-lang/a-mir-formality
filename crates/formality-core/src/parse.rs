@@ -75,19 +75,66 @@ pub struct SuccessfulParse<'t, T> {
     /// given `enum Expr { #[cast] Base(BaseExpr), ... }`, only the reductions
     /// from `BaseExpr` would be recorded, there would be no `Expr::Base`
     /// reduction.
-    reductions: Vec<&'static str>,
+    reductions: Vec<(&'static str, ReductionKind)>,
 
     /// The precedence of this parse, which is derived from the value given
     /// to `parse_variant`.
     precedence: Precedence,
 
-    /// Did this result from parsing an in-scope variable? If so,
-    /// we prefer this parse to other parses that consumed the same set of
-    /// input tokens.
-    is_in_scope_var: bool,
-
     /// The value produced.
     value: T,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub enum ReductionKind {
+    #[default]
+    Normal,
+
+    /// A "cast" reduction is created by invoking `Parser::parse_variant_cast`
+    /// or from the `#[cast]` variants in an enum. This kind of reduction
+    /// represents an "is-a" relationship and does not add semantic meaning.
+    ///
+    /// Cast variants interact differently with ambiguity detection.
+    /// Consider this grammar:
+    ///
+    /// ```text
+    /// X = Y | Z // X has two variants
+    /// Y = A     // Y has 1 variant
+    /// Z = A B   // Z has 1 variant
+    /// A = "a"   // A has 1 variant
+    /// B = "b"   // B has 1 variant
+    /// ```
+    ///
+    /// If you mark the two `X` variants (`X = Y` and `X = Z`)
+    /// as cast variants, then the input `"a b"` is considered
+    /// unambiguous and is parsed as `X = (Z = (A = "a') (B = "b))`
+    /// with no remainder.
+    ///
+    /// If you don't mark those variants as cast variants,
+    /// then we consider this *ambiguous*, because
+    /// it could be that you want `X = (Y = (A = "a"))` with
+    /// a remainder of `"b"`. This is appropriate
+    /// if choosing Y vs Z has different semantic meaning.
+    Cast,
+
+    /// A "variable" reduction results from invoking
+    /// `Parser::parse_variant_variable` to parse an in-scope variable
+    /// or from a `#[variable]` variant in an enum.
+    ///
+    /// In general we prefer to interpret
+    /// an identifier as an in-scope variable if there is one
+    /// (see the test `parser-var-id-ambiguity` for examples).
+    Variable,
+
+    /// A "identifier" reduction results from invoking
+    /// `Parser::parse_variant_identifier` to parse an identifier
+    /// or from parsing a type declared with the `formality_core::id!`
+    /// macro.
+    ///
+    /// In general we prefer to interpret
+    /// an identifier as an in-scope variable if there is one
+    /// (see the test `parser-var-id-ambiguity` for examples).
+    Identifier,
 }
 
 impl<'t, T> SuccessfulParse<'t, T> {
@@ -104,7 +151,6 @@ impl<'t, T> SuccessfulParse<'t, T> {
             text: self.text,
             reductions: self.reductions,
             precedence: self.precedence,
-            is_in_scope_var: self.is_in_scope_var,
             value: op(self.value),
         }
     }
@@ -120,7 +166,6 @@ where
             text: term.text,
             reductions: term.reductions,
             precedence: term.precedence,
-            is_in_scope_var: term.is_in_scope_var,
             value: term.value.upcast(),
         }
     }
