@@ -13,7 +13,7 @@ For enums, the grammar is placed in `#[grammar]` attributes on each variant:
 
 ```rust
 #[term]
-struct MyEnum {
+enum MyEnum {
     #[grammar( /* grammar here */ )]
     Foo(...),
 }
