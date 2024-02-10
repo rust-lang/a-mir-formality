@@ -3,7 +3,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::cast::{DowncastTo, Upcast, UpcastFrom, Upcasted};
+use crate::{
+    cast::{DowncastTo, Upcast, UpcastFrom, Upcasted},
+    Downcast,
+};
 
 pub type Map<K, V> = BTreeMap<K, V>;
 pub type Set<E> = BTreeSet<E>;
@@ -136,6 +139,31 @@ impl<T> DowncastTo<()> for Set<T> {
     }
 }
 
+impl<A, T> DowncastTo<(A,)> for Set<T>
+where
+    T: DowncastTo<A> + Ord,
+{
+    fn downcast_to(&self) -> Option<(A,)> {
+        if self.len() == 1 {
+            let a: A = self.first().unwrap().downcast()?;
+            Some((a,))
+        } else {
+            None
+        }
+    }
+}
+
+impl<A, T> UpcastFrom<(A,)> for Set<T>
+where
+    A: Clone + Upcast<T>,
+    T: Ord + Clone,
+{
+    fn upcast_from(term: (A,)) -> Self {
+        let (a,) = term;
+        set![a.upcast()]
+    }
+}
+
 impl<T> DowncastTo<()> for Vec<T> {
     fn downcast_to(&self) -> Option<()> {
         if self.is_empty() {
@@ -143,6 +171,31 @@ impl<T> DowncastTo<()> for Vec<T> {
         } else {
             None
         }
+    }
+}
+
+impl<A, T> DowncastTo<(A,)> for Vec<T>
+where
+    T: DowncastTo<A>,
+{
+    fn downcast_to(&self) -> Option<(A,)> {
+        if self.len() == 1 {
+            let a: A = self.first().unwrap().downcast()?;
+            Some((a,))
+        } else {
+            None
+        }
+    }
+}
+
+impl<A, T> UpcastFrom<(A,)> for Vec<T>
+where
+    A: Clone + Upcast<T>,
+    T: Clone,
+{
+    fn upcast_from(term: (A,)) -> Self {
+        let (a,) = term;
+        vec![a.upcast()]
     }
 }
 
