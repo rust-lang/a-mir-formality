@@ -6,7 +6,9 @@ use synstructure::VariantInfo;
 
 use crate::attrs::has_isa_attr;
 
-pub(crate) fn upcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
+pub(crate) fn upcast_impls(mut s: synstructure::Structure) -> Vec<TokenStream> {
+    s.underscore_const(true);
+
     let num_variants = s.variants().len();
     s.variants()
         .iter()
@@ -74,7 +76,9 @@ fn upcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStrea
     })
 }
 
-pub(crate) fn downcast_impls(s: synstructure::Structure) -> Vec<TokenStream> {
+pub(crate) fn downcast_impls(mut s: synstructure::Structure) -> Vec<TokenStream> {
+    s.underscore_const(true);
+
     let num_variants = s.variants().len();
     s.variants()
         .iter()
