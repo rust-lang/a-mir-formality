@@ -25,7 +25,7 @@ fn main() -> Result<()> {
         config,
         args,
         |path, args| {
-            path.extension().is_some_and(|ext| ext == "🔬") && default_filter_by_arg(path, args)
+            path.extension().is_some_and(|ext| ext == "frs") && default_filter_by_arg(path, args)
         },
         default_per_file_config,
         (text, status_emitter::Gha::<true> { name: "ui".into() }),
