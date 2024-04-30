@@ -30,6 +30,7 @@ formality-check = { version = "0.1.0", path = "crates/formality-check" }
 formality-prove = { version = "0.1.0", path = "crates/formality-prove" }
 formality-core = { version = "0.1.0", path = "crates/formality-core" }
 formality-smir = { version = "0.1.0", path = "crates/formality-smir" }
+expect-test = "1.4.0"
 
 [workspace]
 members = [

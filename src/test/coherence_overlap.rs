@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
 
+use formality_core::test;
+
 #[test]
 fn u32_not_u32_impls() {
     crate::assert_err!(
@@ -11,8 +13,11 @@ fn u32_not_u32_impls() {
                 impl !Foo for u32 {}
             }
         ]
-        
-        [ /* TODO */ ]
+
+        [
+            "check_trait_impl",
+            "impl Foo for u32",
+        ]
 
         expect_test::expect![[r#"
             check_trait_impl(impl Foo for u32 { })
@@ -45,7 +50,7 @@ fn neg_CoreTrait_for_CoreStruct_implies_no_overlap() {
                 impl FooTrait for CoreStruct {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -64,8 +69,10 @@ fn foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait() {
                 impl FooTrait for CoreStruct {}
             }
         ]
-        
-        [ /* TODO */ ]
+
+        [
+            "impls may overlap",
+        ]
 
         expect_test::expect![[r#"
             impls may overlap:
@@ -89,8 +96,11 @@ fn T_where_Foo_not_u32_impls() {
                 impl !Foo for u32 {}
             }
         ]
-        
-        [ /* TODO */ ]
+
+        [
+            "check_trait_impl",
+            "Foo for ^ty0_0",
+        ]
 
         expect_test::expect![[r#"
             check_trait_impl(impl <ty> Foo for ^ty0_0 where ^ty0_0 : Foo { })
@@ -115,13 +125,15 @@ fn u32_T_where_T_Is_impls() {
                 trait Foo {}
                 impl Foo for u32 {}
                 impl<ty T> Foo for T where T: Is {}
-        
+
                 trait Is {}
                 impl Is for u32 {}
             }
         ]
-        
-        [ /* TODO */ ]
+
+        [
+            "impls may overlap",
+        ]
 
         expect_test::expect![[r#"
             impls may overlap:
@@ -134,7 +146,7 @@ fn u32_T_where_T_Is_impls() {
 fn u32_T_where_T_Not_impls() {
     crate::assert_ok!(
         //@check-pass
-        
+
         // Test that, within a crate, we are able to rely on the fact
         // that `u32: Not` is not implemented.
         //
@@ -144,11 +156,11 @@ fn u32_T_where_T_Not_impls() {
                 trait Foo {}
                 impl Foo for u32 {}
                 impl<ty T> Foo for T where T: Not {}
-        
+
                 trait Not {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -163,8 +175,10 @@ fn u32_u32_impls() {
                 impl Foo for u32 {}
             }
         ]
-        
-        [ /* TODO */ ]
+
+        [
+            "duplicate impl",
+        ]
 
         expect_test::expect!["duplicate impl in current crate: impl Foo for u32 { }"]
     )
@@ -181,7 +195,7 @@ fn u32_i32_impls() {
                 impl Foo for i32 {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -196,12 +210,68 @@ fn u32_T_impls() {
                 impl<ty T> Foo for T {}
             }
         ]
-        
-        [ /* TODO */ ]
+
+        [
+            "impls may overlap",
+        ]
 
         expect_test::expect![[r#"
             impls may overlap:
             impl Foo for u32 { }
             impl <ty> Foo for ^ty0_0 { }"#]]
     )
+}
+
+#[test]
+fn T_and_T_bar() {
+    crate::assert_err! {
+        [
+            crate core {
+                trait Foo { }
+
+                trait Bar { }
+
+                impl<ty T> Foo for T { }
+
+                impl<ty T> Foo for T where T: Bar { }
+            }
+        ]
+
+        [
+            "impls may overlap",
+        ]
+
+        expect_test::expect![[r#"
+            impls may overlap:
+            impl <ty> Foo for ^ty0_0 { }
+            impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }"#]]
+    }
+}
+
+#[test]
+fn T_and_Local_Bar_T() {
+    crate::assert_err! {
+        [
+            crate core {
+                trait Foo { }
+
+                trait Bar<ty U> { }
+
+                impl<ty T> Foo for T { }
+
+                impl<ty T> Foo for T where LocalType: Bar<T> { }
+
+                struct LocalType { }
+            }
+        ]
+
+        [
+            "impls may overlap",
+        ]
+
+        expect_test::expect![[r#"
+            impls may overlap:
+            impl <ty> Foo for ^ty0_0 { }
+            impl <ty> Foo for ^ty0_0 where LocalType : Bar <^ty0_0> { }"#]]
+    }
 }

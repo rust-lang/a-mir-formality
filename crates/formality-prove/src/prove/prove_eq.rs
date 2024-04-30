@@ -165,7 +165,7 @@ fn equate_variable(
     // For each universal variable that we replaced with an existential variable
     // above, we now have to prove that goal. e.g., if we had `X = Vec<!Y>`, we would replace `!Y` with `?Z`
     // (where `?Z` is in a lower universe than `X`), but now we must prove that `!Y = ?Z`
-    // (this may be posible due to assumptions).
+    // (this may be possible due to assumptions).
     let goals: Wcs = universe_subst
         .iter()
         .filter(|(v, _)| v.is_a::<UniversalVar>())

@@ -24,16 +24,18 @@ fn neg_CoreTrait_for_CoreStruct_in_Foo() {
                     judgment `prove_wc { goal: @ IsLocal(CoreTrait(CoreStruct)), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
                       the rule "trait ref is local" failed at step #0 (src/file.rs:LL:CC) because
                         judgment `is_local_trait_ref { goal: CoreTrait(CoreStruct), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
-                          the rule "local parameter" failed at step #1 (src/file.rs:LL:CC) because
-                            judgment `is_local_parameter { goal: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
-                              the rule "fundamental rigid type" failed at step #0 (src/file.rs:LL:CC) because
-                                condition evaluted to false: `is_fundamental(&decls, &name)`
-                                  &decls = decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {})
-                                  &name = (adt CoreStruct)
-                              the rule "local rigid type" failed at step #0 (src/file.rs:LL:CC) because
-                                condition evaluted to false: `decls.is_local_adt_id(&a)`
-                                  decls = decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {})
-                                  &a = CoreStruct
+                          the rule "local parameter" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment `trait_ref_has_local_parameters { goal: CoreTrait(CoreStruct), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+                              the rule "local parameter" failed at step #1 (src/file.rs:LL:CC) because
+                                judgment `is_local_parameter { goal: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+                                  the rule "fundamental rigid type" failed at step #0 (src/file.rs:LL:CC) because
+                                    condition evaluted to false: `is_fundamental(&decls, &name)`
+                                      &decls = decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {})
+                                      &name = (adt CoreStruct)
+                                  the rule "local rigid type" failed at step #0 (src/file.rs:LL:CC) because
+                                    condition evaluted to false: `decls.is_local_adt_id(&a)`
+                                      decls = decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {})
+                                      &a = CoreStruct
                           the rule "local trait" failed at step #0 (src/file.rs:LL:CC) because
                             condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
                               decls = decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct ], {}, {})
@@ -73,18 +75,20 @@ fn mirror_CoreStruct() {
                     judgment `prove_wc { goal: @ IsLocal(CoreTrait(<CoreStruct as Mirror>::Assoc)), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
                       the rule "trait ref is local" failed at step #0 (src/file.rs:LL:CC) because
                         judgment `is_local_trait_ref { goal: CoreTrait(<CoreStruct as Mirror>::Assoc), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
-                          the rule "local parameter" failed at step #1 (src/file.rs:LL:CC) because
-                            judgment `is_local_parameter { goal: <CoreStruct as Mirror>::Assoc, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
-                              the rule "local parameter" failed at step #3 (src/file.rs:LL:CC) because
-                                judgment `is_local_parameter { goal: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
-                                  the rule "fundamental rigid type" failed at step #0 (src/file.rs:LL:CC) because
-                                    condition evaluted to false: `is_fundamental(&decls, &name)`
-                                      &decls = decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {})
-                                      &name = (adt CoreStruct)
-                                  the rule "local rigid type" failed at step #0 (src/file.rs:LL:CC) because
-                                    condition evaluted to false: `decls.is_local_adt_id(&a)`
-                                      decls = decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {})
-                                      &a = CoreStruct
+                          the rule "local parameter" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment `trait_ref_has_local_parameters { goal: CoreTrait(<CoreStruct as Mirror>::Assoc), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+                              the rule "local parameter" failed at step #1 (src/file.rs:LL:CC) because
+                                judgment `is_local_parameter { goal: <CoreStruct as Mirror>::Assoc, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+                                  the rule "local parameter" failed at step #3 (src/file.rs:LL:CC) because
+                                    judgment `is_local_parameter { goal: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+                                      the rule "fundamental rigid type" failed at step #0 (src/file.rs:LL:CC) because
+                                        condition evaluted to false: `is_fundamental(&decls, &name)`
+                                          &decls = decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {})
+                                          &name = (adt CoreStruct)
+                                      the rule "local rigid type" failed at step #0 (src/file.rs:LL:CC) because
+                                        condition evaluted to false: `decls.is_local_adt_id(&a)`
+                                          decls = decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {})
+                                          &a = CoreStruct
                           the rule "local trait" failed at step #0 (src/file.rs:LL:CC) because
                             condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
                               decls = decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct ], {}, {})
@@ -200,14 +204,16 @@ fn alias_to_unit() {
                     judgment `prove_wc { goal: @ IsLocal(CoreTrait(<FooStruct as Unit>::Assoc)), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct ], {}, {FooStruct}) }` failed at the following rule(s):
                       the rule "trait ref is local" failed at step #0 (src/file.rs:LL:CC) because
                         judgment `is_local_trait_ref { goal: CoreTrait(<FooStruct as Unit>::Assoc), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct ], {}, {FooStruct}) }` failed at the following rule(s):
-                          the rule "local parameter" failed at step #1 (src/file.rs:LL:CC) because
-                            judgment `is_local_parameter { goal: <FooStruct as Unit>::Assoc, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct ], {}, {FooStruct}) }` failed at the following rule(s):
-                              the rule "local parameter" failed at step #3 (src/file.rs:LL:CC) because
-                                judgment `is_local_parameter { goal: (), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct ], {}, {FooStruct}) }` failed at the following rule(s):
-                                  the rule "fundamental rigid type" failed at step #0 (src/file.rs:LL:CC) because
-                                    condition evaluted to false: `is_fundamental(&decls, &name)`
-                                      &decls = decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct ], {}, {FooStruct})
-                                      &name = tuple(0)
+                          the rule "local parameter" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment `trait_ref_has_local_parameters { goal: CoreTrait(<FooStruct as Unit>::Assoc), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct ], {}, {FooStruct}) }` failed at the following rule(s):
+                              the rule "local parameter" failed at step #1 (src/file.rs:LL:CC) because
+                                judgment `is_local_parameter { goal: <FooStruct as Unit>::Assoc, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct ], {}, {FooStruct}) }` failed at the following rule(s):
+                                  the rule "local parameter" failed at step #3 (src/file.rs:LL:CC) because
+                                    judgment `is_local_parameter { goal: (), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct ], {}, {FooStruct}) }` failed at the following rule(s):
+                                      the rule "fundamental rigid type" failed at step #0 (src/file.rs:LL:CC) because
+                                        condition evaluted to false: `is_fundamental(&decls, &name)`
+                                          &decls = decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct ], {}, {FooStruct})
+                                          &name = tuple(0)
                           the rule "local trait" failed at step #0 (src/file.rs:LL:CC) because
                             condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
                               decls = decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct ], {}, {FooStruct})
@@ -239,16 +245,18 @@ fn CoreTrait_for_CoreStruct_in_Foo() {
                     judgment `prove_wc { goal: @ IsLocal(CoreTrait(CoreStruct)), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
                       the rule "trait ref is local" failed at step #0 (src/file.rs:LL:CC) because
                         judgment `is_local_trait_ref { goal: CoreTrait(CoreStruct), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
-                          the rule "local parameter" failed at step #1 (src/file.rs:LL:CC) because
-                            judgment `is_local_parameter { goal: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
-                              the rule "fundamental rigid type" failed at step #0 (src/file.rs:LL:CC) because
-                                condition evaluted to false: `is_fundamental(&decls, &name)`
-                                  &decls = decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct ], {}, {})
-                                  &name = (adt CoreStruct)
-                              the rule "local rigid type" failed at step #0 (src/file.rs:LL:CC) because
-                                condition evaluted to false: `decls.is_local_adt_id(&a)`
-                                  decls = decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct ], {}, {})
-                                  &a = CoreStruct
+                          the rule "local parameter" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment `trait_ref_has_local_parameters { goal: CoreTrait(CoreStruct), assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+                              the rule "local parameter" failed at step #1 (src/file.rs:LL:CC) because
+                                judgment `is_local_parameter { goal: CoreStruct, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct ], {}, {}) }` failed at the following rule(s):
+                                  the rule "fundamental rigid type" failed at step #0 (src/file.rs:LL:CC) because
+                                    condition evaluted to false: `is_fundamental(&decls, &name)`
+                                      &decls = decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct ], {}, {})
+                                      &name = (adt CoreStruct)
+                                  the rule "local rigid type" failed at step #0 (src/file.rs:LL:CC) because
+                                    condition evaluted to false: `decls.is_local_adt_id(&a)`
+                                      decls = decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct ], {}, {})
+                                      &a = CoreStruct
                           the rule "local trait" failed at step #0 (src/file.rs:LL:CC) because
                             condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
                               decls = decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct ], {}, {})

@@ -216,9 +216,9 @@ impl TraitId {
 #[term]
 pub enum PR {
     #[cast]
-    Predicate(Predicate),
-    #[cast]
     Relation(Relation),
+    #[cast]
+    Predicate(Predicate),
 }
 
 impl PR {

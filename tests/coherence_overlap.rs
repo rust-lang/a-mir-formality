@@ -47,13 +47,11 @@ fn test_overlap_normalize_alias_to_LocalType() {
     // ...but it's an error if LocalType implements Iterator (figuring *this* out also
     // requires normalizing).
 
-    test_program_ok(&gen_program(
-        "impl Iterator for LocalType {}",
-    )).assert_err(
+    test_program_ok(&gen_program("impl Iterator for LocalType {}")).assert_err(
         expect_test::expect![[r#"
             impls may overlap:
             impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
-            impl LocalTrait for <LocalType as Mirror>::T { }"#]]
+            impl LocalTrait for <LocalType as Mirror>::T { }"#]],
     );
 }
 
@@ -91,24 +89,20 @@ fn test_overlap_alias_not_normalizable() {
         BASE_PROGRAM.replace("ADDITIONAL", addl)
     };
 
-    // ...you might expect an error here, because we have an impl for all `T` and another
-    // impl for all `T: Iterator`, but we don't flag it as one because
-    // Iterator is a local trait and we can see that nobody has implemented it...
-    //
-    // FIXME: rustc DOES flag an error here. I think this is because the trait solver
-    // refuses to solve `?X: Iterator`; we haven't implemented that rule and I haven't
-    // decided how to think about it.
+    // ...you get an error here, because a downstream crate could implement
+    // trait for some local type, in which case it would overlap.
 
-    test_program_ok(&gen_program("")).assert_ok(expect_test::expect!["()"]);
+    test_program_ok(&gen_program("")).assert_err(expect_test::expect![[r#"
+        impls may overlap:
+        impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
+        impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }"#]]);
 
-    // ...as long as there is at least one Iterator impl, however, we do flag an error.
+    // ...and if there is at least one Iterator impl, we also flag an error.
 
-    test_program_ok(&gen_program(
-        "impl Iterator for u32 {}",
-    )).assert_err(
-        expect_test::expect![[r#"
-            impls may overlap:
-            impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
-            impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }"#]]
-    ); // FIXME
+    test_program_ok(&gen_program("impl Iterator for u32 {}")).assert_err(expect_test::expect![[
+        r#"
+        impls may overlap:
+        impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
+        impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }"#
+    ]]);
 }

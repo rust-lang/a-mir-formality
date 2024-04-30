@@ -24,7 +24,9 @@ impl Check<'_> {
             self.orphan_check_neg(impl_a)?;
         }
 
-        // check for duplicate impls in the current crate
+        // check for duplicate impls in the current crate;
+        // the cartesian product below would otherwise consider every impl I
+        // as overlapping with itself.
         for (impl_a, i) in current_crate_impls.iter().zip(0..) {
             if current_crate_impls[i + 1..].contains(impl_a) {
                 bail!("duplicate impl in current crate: {:?}", impl_a)

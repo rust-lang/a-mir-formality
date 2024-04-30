@@ -91,7 +91,7 @@ impl<T: Ord + Debug> ProvenSet<T> {
         }
     }
 
-    /// Convert to a non-empty set of proven results (if ok) or an error (otherwise).
+    /// Iterate through all solutions.
     pub fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = &'a T> + 'a> {
         match &self.data {
             Data::Failure(_) => Box::new(std::iter::empty()),

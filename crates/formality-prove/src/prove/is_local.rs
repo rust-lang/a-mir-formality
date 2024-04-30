@@ -1,6 +1,6 @@
-use formality_core::{judgment_fn, set, Set};
+use formality_core::{judgment_fn, ProvenSet, Upcast};
 use formality_types::grammar::{
-    Lt, Parameter, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
+    AliasTy, BoundVar, Lt, Parameter, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
 };
 
 use crate::{
@@ -37,24 +37,166 @@ use crate::{
 // `Vec<Foo>` is not. `LocalType<ForeignType>` is local. Type aliases and trait
 // aliases do not affect locality.
 
-/// True if `goal` may be remote. This is
-pub fn may_be_remote(decls: Decls, env: Env, assumptions: Wcs, goal: TraitRef) -> Set<Constraints> {
+judgment_fn! {
+    /// True if `goal` may be implemented in a crate that is not the current one.
+    /// This could be a downstream crate that we cannot see, or it could be a future
+    /// (semver-compatible) version of an upstream crate.
+    ///
+    /// Note that per RFC #2451, upstream crates are not permitted to add blanket impls
+    /// and so new upstream impls for local types cannot be added.
+    pub fn may_be_remote(
+        decls: Decls,
+        env: Env,
+        assumptions: Wcs,
+        goal: TraitRef,
+    ) => () {
+        debug(assumptions, goal, decls, env)
+
+        (
+            (may_be_downstream_trait_ref(decls, env, assumptions, goal) => ())
+            --- ("may be defined downstream")
+            (may_be_remote(decls, env, assumptions, goal) => ())
+        )
+
+        (
+            // In principle this rule could be removed and preserve soundness,
+            // but then we would accept code that is very prone to semver failures.
+            (may_not_be_provable(is_local_trait_ref(decls, env, assumptions, goal)) => ())
+            --- ("may be added by upstream in a minor release")
+            (may_be_remote(decls, env, assumptions, goal) => ())
+        )
+    }
+}
+
+judgment_fn! {
+    /// True if an impl defining this trait-reference could appear in a downstream crate.
+    fn may_be_downstream_trait_ref(
+        decls: Decls,
+        env: Env,
+        assumptions: Wcs,
+        goal: TraitRef,
+    ) => () {
+        debug(goal, assumptions, env, decls)
+
+        (
+            // There may be a downstream parameter at position i...
+            (&goal.parameters => p)
+            (may_be_downstream_parameter(&decls, &env, &assumptions, p) => ())
+            --- ("may_be_downstream_trait_ref")
+            (may_be_downstream_trait_ref(decls, env, assumptions, goal) => ())
+        )
+    }
+}
+
+judgment_fn! {
+    fn may_be_downstream_parameter(
+        decls: Decls,
+        env: Env,
+        assumptions: Wcs,
+        parameter: Parameter,
+    ) => () {
+        debug(parameter, assumptions, env, decls)
+
+        (
+            // existential variables *could* be inferred to downstream types; depends on the substitution
+            // we ultimately have.
+            --- ("type variable")
+            (may_be_downstream_parameter(_decls, _env, _assumptions, TyData::Variable(Variable::ExistentialVar(_))) => ())
+        )
+
+        // If we can normalize `goal` to something else, and that normalized
+        // form may be downstream.
+        (
+            // (a) there is some parameter in the alias that may be downstream
+            (parameters.iter() => p)
+            (if may_contain_downstream_type(&decls, &env, &assumptions, p))
+
+            // (b) the alias cannot be normalized to something that may not be downstream
+            (may_not_be_provable(normalizes_to_not_downstream(&decls, &env, &assumptions, AliasTy { name: name.clone(), parameters: parameters.clone() })) => ())
+            --- ("via normalize")
+            (may_be_downstream_parameter(decls, env, assumptions, AliasTy { name, parameters }) => ())
+        )
+    }
+}
+
+fn may_contain_downstream_type(
+    decls: &Decls,
+    env: &Env,
+    assumptions: &Wcs,
+    parameter: impl Upcast<Parameter>,
+) -> bool {
     assert!(env.is_in_coherence_mode());
+    let parameter = parameter.upcast();
 
-    let c = is_local_trait_ref(decls, &env, assumptions, goal);
+    let Parameter::Ty(ty) = parameter else {
+        return false;
+    };
 
-    if !c.is_proven() {
-        // Cannot possibly be local, so always remote.
-        return set![Constraints::none(env)];
+    match ty.data() {
+        TyData::RigidTy(RigidTy {
+            name: _,
+            parameters,
+        }) => parameters
+            .iter()
+            .any(|p| may_contain_downstream_type(decls, env, assumptions, p)),
+        TyData::AliasTy(_) => prove_normalize(decls, env, assumptions, ty)
+            .iter()
+            .any(|(c, p)| {
+                let assumptions = c.substitution().apply(assumptions);
+                may_contain_downstream_type(decls, env, &assumptions, p)
+            }),
+        TyData::PredicateTy(p) => match p {
+            formality_types::grammar::PredicateTy::ForAll(binder) => {
+                let (_, ty) = binder.open();
+                may_contain_downstream_type(decls, env, assumptions, ty)
+            }
+        },
+        TyData::Variable(v) => match v {
+            Variable::ExistentialVar(_) => true,
+            Variable::UniversalVar(_) => panic!("universals are unexpected"),
+            Variable::BoundVar(BoundVar {
+                debruijn,
+                var_index: _,
+                kind: _,
+            }) => {
+                assert!(debruijn.is_none(), "must have been opened on the way down");
+                true
+            }
+        },
     }
+}
 
-    if c.iter().any(Constraints::unconditionally_true) {
-        // If this is unconditionally known to be local, then it is never remote.
-        return set![];
+fn may_not_be_provable(op: ProvenSet<Constraints>) -> ProvenSet<()> {
+    if let Some(constraints) = op
+        .iter()
+        .find(|constraints| constraints.unconditionally_true())
+    {
+        ProvenSet::failed(
+            "may_not_be_provable",
+            format!("found a solution {constraints:?}"),
+        )
+    } else {
+        ProvenSet::singleton(())
     }
+}
 
-    // Otherwise it is ambiguous
-    set![Constraints::none(env).ambiguous()]
+judgment_fn! {
+    fn normalizes_to_not_downstream(
+        decls: Decls,
+        env: Env,
+        assumptions: Wcs,
+        parameter: Parameter,
+    ) => Constraints {
+        debug(parameter, assumptions, env, decls)
+
+        (
+            (prove_normalize(&decls, &env, &assumptions, parameter) => (c1, parameter))
+            (let assumptions = c1.substitution().apply(&assumptions))
+            (is_not_downstream(&decls, &env, assumptions, parameter) => c2)
+            --- ("ambiguous")
+            (normalizes_to_not_downstream(decls, env, assumptions, parameter) => c1.seq(c2))
+        )
+    }
 }
 
 judgment_fn! {
@@ -73,11 +215,14 @@ judgment_fn! {
         )
 
         (
+            // There is a local parameter at position i...
             (0 .. goal.parameters.len() => i)
             (is_local_parameter(&decls, &env, &assumptions, &goal.parameters[i]) => c1)
+
+            // ...and in positions 0..i, there are no downstream parameters.
             (let assumptions = c1.substitution().apply(&assumptions))
             (let goal = c1.substitution().apply(&goal))
-            (for_all(&decls, &env, &assumptions, &goal.parameters[..i], &not_downstream) => c2)
+            (for_all(&decls, &env, &assumptions, &goal.parameters[..i], &is_not_downstream) => c2)
             --- ("local parameter")
             (is_local_trait_ref(decls, env, assumptions, goal) => c1.seq(c2))
         )
@@ -85,14 +230,14 @@ judgment_fn! {
 }
 
 judgment_fn! {
-    /// "not_downstream(..., P)" means that `P` cannot be instantiated with a type from
+    /// `is_not_downstream(..., P)` means that `P` cannot be instantiated with a type from
     /// a downstream crate (i.e., a crate that has us as a dependency).
     ///
     /// NB. Since RFC 2451, the judgment applies to the outermost type only. In other words,
     /// the judgment holds for (e.g.) `Vec<T>`, which could be instantiated
     /// with something like `Vec<DownstreamType>`, but that is not considered downstream
     /// as the outermost type (`Vec`) is upstream.
-    fn not_downstream(
+    fn is_not_downstream(
         decls: Decls,
         env: Env,
         assumptions: Wcs,
@@ -104,20 +249,20 @@ judgment_fn! {
             // Since https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html,
             // any rigid type is adequate.
             --- ("rigid")
-            (not_downstream(_decls, env, _assumptions, RigidTy { .. }) => Constraints::none(env))
+            (is_not_downstream(_decls, env, _assumptions, RigidTy { .. }) => Constraints::none(env))
         )
 
         (
             // Lifetimes are not relevant.
             --- ("lifetime")
-            (not_downstream(_decls, env, _assumptions, _l: Lt) => Constraints::none(env))
+            (is_not_downstream(_decls, env, _assumptions, _l: Lt) => Constraints::none(env))
         )
 
         (
             // existential variables *could* be inferred to downstream types; depends on the substitution
             // we ultimately have.
             --- ("type variable")
-            (not_downstream(_decls, env, _assumptions, TyData::Variable(Variable::ExistentialVar(_))) => Constraints::none(env).ambiguous())
+            (is_not_downstream(_decls, env, _assumptions, TyData::Variable(Variable::ExistentialVar(_))) => Constraints::none(env).ambiguous())
         )
     }
 }

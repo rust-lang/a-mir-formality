@@ -1,5 +1,5 @@
 use crate::decls::Decls;
-use formality_core::{ProvenSet, Upcast};
+use formality_core::ProvenSet;
 use formality_types::rust::Term;
 
 use super::{Constraints, Env};
@@ -20,7 +20,7 @@ where
     assert_eq!(a.len(), b.len());
 
     if a.is_empty() && b.is_empty() {
-        return ProvenSet::singleton(Constraints::none(env.upcast()));
+        return ProvenSet::singleton(Constraints::none(env));
     }
 
     let a0 = a.remove(0);
@@ -45,7 +45,7 @@ where
     C: Term,
 {
     if a.is_empty() {
-        return ProvenSet::singleton(Constraints::none(env.upcast()));
+        return ProvenSet::singleton(Constraints::none(env));
     }
 
     let a0 = a[0].clone();
