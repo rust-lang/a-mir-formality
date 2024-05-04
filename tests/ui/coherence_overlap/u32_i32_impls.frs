@@ -1,8 +1,0 @@
-//@check-pass
-[
-    crate core {
-        trait Foo {}
-        impl Foo for u32 {}
-        impl Foo for i32 {}
-    }
-]

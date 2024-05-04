@@ -7,6 +7,9 @@ use formality_prove::{test_util::TestAssertion, Constraints};
 use formality_rust::grammar::Program;
 use formality_types::rust::try_term;
 
+#[cfg(test)]
+mod test;
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -38,6 +41,22 @@ pub fn main() -> anyhow::Result<()> {
     }
 
     check_all_crates(&program)
+}
+
+#[macro_export]
+macro_rules! assert_ok {
+    ($input:tt $expect:expr) => {{
+        use formality_core::test_util::ResultTestExt;
+        $crate::test_program_ok(stringify!($input)).assert_ok($expect);
+    }};
+}
+
+#[macro_export]
+macro_rules! assert_err {
+    ($input:tt [$($must_have:expr,)*] $expect:expr) => {{
+        use formality_core::test_util::ResultTestExt;
+        $crate::test_program_ok(stringify!($input)).assert_has_err($expect, &[$($must_have,)*]);
+    }};
 }
 
 pub fn test_program_ok(input: &str) -> anyhow::Result<()> {

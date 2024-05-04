@@ -1,5 +1,0 @@
-Error: judgment `prove_wc_list { goal: {@ wf(&!lt_0 !ty_1)}, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-  the rule "some" failed at step #0 (crates/formality-prove/src/prove/prove_wc_list.rs:28:14) because
-    judgment `prove_wc { goal: @ wf(&!lt_0 !ty_1), assumptions: {}, env: Env { variables: [!lt_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-      the rule "parameter well formed" failed at step #0 (crates/formality-prove/src/prove/prove_wc.rs:117:14) because
-        judgment had no applicable rules: `prove_wf { goal: &!lt_0 !ty_1, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }`

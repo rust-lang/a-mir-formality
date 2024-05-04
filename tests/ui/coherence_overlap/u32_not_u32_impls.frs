@@ -1,8 +1,0 @@
-// Test that a positive and negative impl for the same type (`u32`, here) is rejected.
-[
-    crate core {
-        trait Foo {}
-        impl Foo for u32 {}
-        impl !Foo for u32 {}
-    }
-]
