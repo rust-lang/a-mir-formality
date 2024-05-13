@@ -26,6 +26,10 @@ impl Const {
         Self::new(ConstData::Value(vt.upcast(), ty.upcast()))
     }
 
+    pub fn is_variable(&self) -> bool {
+        matches!(self.data(), ConstData::Variable(_))
+    }
+
     pub fn as_variable(&self) -> Option<Variable> {
         match self.data() {
             ConstData::Value(_, _) => None,

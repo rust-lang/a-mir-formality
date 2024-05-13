@@ -36,6 +36,9 @@ pub enum Predicate {
 
     #[grammar(@ConstHasType($v0, $v1))]
     ConstHasType(Const, Ty),
+
+    #[grammar(@Covers($v0, $v1))]
+    Covers(Vec<Const>, Const),
 }
 
 /// A coinductive predicate is one that can be proven via a cycle.
@@ -94,6 +97,7 @@ pub enum Skeleton {
     Equals,
     Sub,
     Outlives,
+    Covered,
 }
 
 impl Predicate {
@@ -135,6 +139,15 @@ impl Predicate {
             Predicate::ConstHasType(ct, ty) => (
                 Skeleton::ConstHasType,
                 vec![ct.clone().upcast(), ty.clone().upcast()],
+            ),
+            Predicate::Covers(consts, c) => (
+                Skeleton::Covered,
+                consts
+                    .iter()
+                    .cloned()
+                    .chain(std::iter::once(c.clone()))
+                    .map(|c| Parameter::Const(c))
+                    .collect::<Vec<_>>(),
             ),
         }
     }

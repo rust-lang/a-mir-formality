@@ -6,9 +6,13 @@ Caused by:
     2: judgment `prove_wc_list { goal: {@ WellFormedTraitRef(A(u32, !ty_0))}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], coherence_mode: false }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
          the rule "some" failed at step #0 (crates/formality-prove/src/prove/prove_wc_list.rs:28:14) because
            judgment `prove_wc { goal: @ WellFormedTraitRef(A(u32, !ty_0)), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], coherence_mode: false }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
-             the rule "trait well formed" failed at step #2 (crates/formality-prove/src/prove/prove_wc.rs:104:14) because
+             the rule "trait well formed" failed at step #2 (crates/formality-prove/src/prove/prove_wc.rs:147:14) because
                judgment `prove_wc_list { goal: {B(!ty_0)}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], coherence_mode: false }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
                  the rule "some" failed at step #0 (crates/formality-prove/src/prove/prove_wc_list.rs:28:14) because
                    judgment `prove_wc { goal: B(!ty_0), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], coherence_mode: false }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
-                     the rule "trait implied bound" failed at step #0 (crates/formality-prove/src/prove/prove_wc.rs:86:14) because
+                     the rule "exhaustive positive impl" failed at step #3 (crates/formality-prove/src/prove/prove_wc.rs:68:14) because
+                       judgment `collect` failed at the following rule(s):
+                         failed at (crates/formality-core/src/judgment/proven_set.rs:192:13) because
+                           empty collection
+                     the rule "trait implied bound" failed at step #0 (crates/formality-prove/src/prove/prove_wc.rs:129:14) because
                        expression evaluated to an empty collection: `decls.trait_invariants()`
