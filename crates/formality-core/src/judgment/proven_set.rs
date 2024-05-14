@@ -502,11 +502,11 @@ impl<T: Debug> std::fmt::Display for ProvenSet<T> {
         match &self.data {
             Data::Failure(err) => std::fmt::Display::fmt(err, f),
             Data::Success(set) => {
-                write!(f, "{{\n")?;
+                writeln!(f, "{{")?;
                 for item in set {
-                    write!(f, "{},\n", indent(format!("{item:?}")))?;
+                    writeln!(f, "{},", indent(format!("{item:?}")))?;
                 }
-                write!(f, "}}\n")?;
+                writeln!(f, "}}")?;
                 Ok(())
             }
         }
