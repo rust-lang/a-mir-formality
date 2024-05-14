@@ -2,19 +2,19 @@
 
 mod coherence_orphan;
 mod coherence_overlap;
-mod functions;
-mod decl_safety;
 mod consts;
+mod decl_safety;
+mod functions;
 
 #[test]
 fn parser() {
     crate::assert_err!(
         [
-            crate Foo {        
+            crate Foo {
                 trait Baz where  cake  {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -32,13 +32,13 @@ fn hello_world_fail() {
         [
             crate Foo {
                 trait Foo<ty T> where T: Bar<Self> {}
-        
+
                 trait Bar<ty T> where T: Baz {}
-                
+
                 trait Baz {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -65,18 +65,18 @@ fn hello_world() {
         [
             crate Foo {
                 trait Foo<ty T> where T: Bar<Self>, Self: Baz {}
-        
+
                 trait Bar<ty T> where T: Baz {}
-                
+
                 trait Baz {}
-        
+
                 impl Baz for u32 {}
-        
+
                 impl Bar<u32> for u32 {}
                 impl<ty T> Bar<T> for () where T: Baz {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -88,15 +88,15 @@ fn basic_where_clauses_pass() {
         [
             crate core {
                 trait A<ty T> where T: B { }
-        
+
                 trait B { }
-        
+
                 trait WellFormed where for<ty T> u32: A<T> { }
-        
+
                 impl <ty T> B for T {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -107,13 +107,13 @@ fn basic_where_clauses_fail() {
         [
             crate core {
                 trait A<ty T> where T: B { }
-        
+
                 trait B { }
-        
+
                 trait WellFormed where for<ty T> u32: A<T> { }
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"

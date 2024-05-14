@@ -12,7 +12,7 @@ fn neg_CoreTrait_for_CoreStruct_in_Foo() {
                 impl !CoreTrait for CoreStruct {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -48,11 +48,11 @@ fn mirror_CoreStruct() {
             crate core {
                 trait CoreTrait {}
                 struct CoreStruct {}
-        
+
                 trait Mirror {
                     type Assoc : [];
                 }
-        
+
                 impl<ty T> Mirror for T {
                     type Assoc = T;
                 }
@@ -61,7 +61,7 @@ fn mirror_CoreStruct() {
                 impl CoreTrait for <CoreStruct as Mirror>::Assoc {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -99,11 +99,11 @@ fn mirror_FooStruct() {
         [
             crate core {
                 trait CoreTrait {}
-        
+
                 trait Mirror {
                     type Assoc : [];
                 }
-        
+
                 impl<ty T> Mirror for T {
                     type Assoc = T;
                 }
@@ -113,7 +113,7 @@ fn mirror_FooStruct() {
                 impl CoreTrait for <FooStruct as Mirror>::Assoc {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -132,7 +132,7 @@ fn covered_VecT() {
                 impl<ty T> CoreTrait<FooStruct> for Vec<T> {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -149,7 +149,7 @@ fn uncovered_T() {
                 impl<ty T> CoreTrait<FooStruct> for T {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -174,11 +174,11 @@ fn alias_to_unit() {
         [
             crate core {
                 trait CoreTrait {}
-        
+
                 trait Unit {
                     type Assoc : [];
                 }
-        
+
                 impl<ty T> Unit for T {
                     type Assoc = ();
                 }
@@ -188,7 +188,7 @@ fn alias_to_unit() {
                 impl CoreTrait for <FooStruct as Unit>::Assoc {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -227,7 +227,7 @@ fn CoreTrait_for_CoreStruct_in_Foo() {
                 impl CoreTrait for CoreStruct {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"

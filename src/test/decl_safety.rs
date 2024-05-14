@@ -10,7 +10,7 @@ fn unsafe_trait() {
                 unsafe impl Foo for u32 {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -25,7 +25,7 @@ fn safe_trait() {
                 safe impl Foo for u32 {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -40,7 +40,7 @@ fn unsafe_trait_negative_impl() {
                 impl !Foo for u32 {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -54,7 +54,7 @@ fn unsafe_trait_negative_impl_mismatch() {
                 unsafe impl !Foo for u32 {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -74,7 +74,7 @@ fn safe_trait_negative_impl_mismatch() {
                 unsafe impl !Foo for u32 {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -94,7 +94,7 @@ fn unsafe_trait_mismatch() {
                 impl Foo for u32 {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -114,7 +114,7 @@ fn safe_trait_mismatch() {
                 unsafe impl Foo for u32 {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"

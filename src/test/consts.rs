@@ -10,7 +10,7 @@ fn nonsense_rigid_const_bound() {
                 trait Foo where type_of_const true is u32 {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -48,11 +48,11 @@ fn ok() {
             crate Foo {
                 trait Foo<const C> where type_of_const C is bool {}
                 trait Bar<const C> where type_of_const C is u32 {}
-        
+
                 impl<const C> Foo<const C> for u32 where type_of_const C is bool {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -63,11 +63,11 @@ fn mismatch() {
         [
             crate Foo {
                 trait Foo<const C> where type_of_const C is bool {}
-        
+
                 impl Foo<const 42_u32> for u32 {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -89,11 +89,11 @@ fn holds() {
         [
             crate Foo {
                 trait Foo<const C> where type_of_const C is bool {}
-        
+
                 impl Foo<const true> for u32 {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -109,7 +109,7 @@ fn rigid_const_bound() {
                 trait Foo where type_of_const true is bool {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
@@ -120,11 +120,11 @@ fn generic_mismatch() {
         [
             crate Foo {
                 trait Foo<const C> where type_of_const C is bool {}
-        
+
                 impl<const C> Foo<const C> for u32 where type_of_const C is u32 {}
             }
         ]
-        
+
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
@@ -160,7 +160,7 @@ fn multiple_type_of_const() {
                 trait Foo<const C> where type_of_const C is bool, type_of_const C is u32 {}
             }
         ]
-        
+
         expect_test::expect!["()"]
     )
 }
