@@ -567,7 +567,7 @@ impl<'a, T> TryIntoIter for &'a ProvenSet<T> {
     ) -> Result<Self::IntoIter, RuleFailureCause> {
         match &self.data {
             Data::Failure(e) => Err(RuleFailureCause::FailedJudgment(e.clone())),
-            Data::Success(s) => Ok(s.into_iter()),
+            Data::Success(s) => Ok(s.iter()),
         }
     }
 }
