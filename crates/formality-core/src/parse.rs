@@ -187,7 +187,7 @@ impl<L: Language> Scope<L> {
         self.bindings
             .iter()
             .rev()
-            .flat_map(|(n, p)| if name == n { Some(p.clone()) } else { None })
+            .flat_map(|(n, p)| if name == n { Some(*p) } else { None })
             .next()
     }
 
