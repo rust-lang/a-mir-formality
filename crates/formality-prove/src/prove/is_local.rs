@@ -51,6 +51,7 @@ judgment_fn! {
         goal: TraitRef,
     ) => () {
         debug(assumptions, goal, decls, env)
+        assert(env.is_in_coherence_mode())
 
         (
             (may_be_downstream_trait_ref(decls, env, assumptions, goal) => ())
@@ -61,7 +62,7 @@ judgment_fn! {
         (
             // In principle this rule could be removed and preserve soundness,
             // but then we would accept code that is very prone to semver failures.
-            (may_not_be_provable(is_local_trait_ref(decls, env, assumptions, goal)) => ())
+            (may_not_be_provable(&env, |env| is_local_trait_ref(decls, &env, assumptions, goal)) => ())
             --- ("may be added by upstream in a minor release")
             (may_be_remote(decls, env, assumptions, goal) => ())
         )
@@ -77,7 +78,7 @@ judgment_fn! {
         goal: TraitRef,
     ) => () {
         debug(goal, assumptions, env, decls)
-
+        assert(env.is_in_coherence_mode())
         (
             // There may be a downstream parameter at position i...
             (&goal.parameters => p)
@@ -96,7 +97,7 @@ judgment_fn! {
         parameter: Parameter,
     ) => () {
         debug(parameter, assumptions, env, decls)
-
+        assert(env.is_in_coherence_mode())
         (
             // existential variables *could* be inferred to downstream types; depends on the substitution
             // we ultimately have.
@@ -116,7 +117,9 @@ judgment_fn! {
             (if may_contain_downstream_type(&decls, &env, &assumptions, p))
 
             // (b) the alias cannot be normalized to something that may not be downstream
-            (may_not_be_provable(normalizes_to_not_downstream(&decls, &env, &assumptions, AliasTy { name: name.clone(), parameters: parameters.clone() })) => ())
+            (may_not_be_provable(&env, |env|
+                normalizes_to_not_downstream(&decls, &env, &assumptions, AliasTy { name: name.clone(), parameters: parameters.clone() })
+            ) => ())
             --- ("via normalize")
             (may_be_downstream_parameter(decls, env, assumptions, AliasTy { name, parameters }) => ())
         )
@@ -170,8 +173,10 @@ fn may_contain_downstream_type(
     }
 }
 
-fn may_not_be_provable(op: ProvenSet<Constraints>) -> ProvenSet<()> {
-    if let Some(constraints) = op
+// FIXME: This should be a more general concept and not limited ot `is_local`
+fn may_not_be_provable(env: &Env, op: impl FnOnce(Env) -> ProvenSet<Constraints>) -> ProvenSet<()> {
+    assert!(env.is_in_coherence_mode());
+    if let Some(constraints) = op(env.with_coherence_mode(false))
         .iter()
         .find(|constraints| constraints.unconditionally_true())
     {
@@ -211,7 +216,7 @@ judgment_fn! {
         goal: TraitRef,
     ) => Constraints {
         debug(goal, assumptions, env, decls)
-
+        // assert(!env.is_in_coherence_mode()) TODO
         (
             (if decls.is_local_trait_id(&goal.trait_id))
             --- ("local trait")
@@ -248,6 +253,7 @@ judgment_fn! {
         parameter: Parameter,
     ) => Constraints {
         debug(parameter, assumptions, env, decls)
+        // assert(!env.is_in_coherence_mode()) // TODO
 
         (
             // Since https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html,
@@ -279,13 +285,11 @@ judgment_fn! {
         goal: Parameter,
     ) => Constraints {
         debug(goal, assumptions, env, decls)
-
-        assert(env.is_in_coherence_mode())
+        // assert(!env.is_in_coherence_mode()) TODO
 
         // If we can normalize `goal` to something else, check if that normalized form is local.
         (
-            (prove_normalize(&decls, env.with_coherence_mode(false), &assumptions, goal) => (c1, p))
-            (let c1 = c1.with_coherence_mode(true))
+            (prove_normalize(&decls, env, &assumptions, goal) => (c1, p))
             (let assumptions = c1.substitution().apply(&assumptions))
             (is_local_parameter(&decls, c1.env(), assumptions, p) => c2)
             --- ("local parameter")

@@ -53,6 +53,13 @@ impl Check<'_> {
         let a = env.instantiate_universally(&impl_a.binder);
         let trait_ref = a.trait_ref();
 
+        // The orphan check passes if
+        // ∀P. ⌐ (coherence_mode => (wf(Ts) && cannot_be_proven(is_local_trait_ref)))
+        //
+        // TODO: feels like we do want a general "not goal", flipping existentials
+        // and universals and the coherence mode
+        // self.prove_not_goal(&env, &(Wcs::wf))
+
         self.prove_goal(
             &env.with_coherence_mode(true),
             &a.where_clauses,
