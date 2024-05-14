@@ -129,10 +129,10 @@ impl StackEntry {
     ///
     /// This variant will recurse *again*. But this time the current text is `"2 + 3)"`.
     /// This is not considered a recursive match.
-    pub fn matches_current_state<'t, L, T>(
+    pub fn matches_current_state<L, T>(
         &self,
         scope: &Scope<L>,
-        start_text: &'t str,
+        start_text: &str,
     ) -> Option<CurrentState>
     where
         L: Language,
@@ -439,7 +439,7 @@ where
     }
 }
 
-pub(super) fn recurse<'s, 't, R>(current_state: CurrentState, op: impl FnOnce() -> R) -> R {
+pub(super) fn recurse<R>(current_state: CurrentState, op: impl FnOnce() -> R) -> R {
     STACK.with_borrow_mut(|stack| {
         let top = stack.last_mut().unwrap();
         assert!(
