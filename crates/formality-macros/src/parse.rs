@@ -188,7 +188,7 @@ fn parse_variant_with_attr(
             spec::FormalitySpecSymbol::Keyword { ident } => {
                 let literal = as_literal(ident);
                 quote_spanned!(ident.span() =>
-                    let () = __p.expect_keyword(#literal)?;
+                    __p.expect_keyword(#literal)?;
                 )
             }
 
@@ -196,14 +196,14 @@ fn parse_variant_with_attr(
                 let literal = Literal::character(punct.as_char());
                 quote_spanned!(
                     punct.span() =>
-                    let () = __p.expect_char(#literal)?;
+                    __p.expect_char(#literal)?;
                 )
             }
 
             spec::FormalitySpecSymbol::Delimeter { text } => {
                 let literal = Literal::character(*text);
                 quote!(
-                    let () = __p.expect_char(#literal)?;
+                    __p.expect_char(#literal)?;
                 )
             }
         });
