@@ -57,7 +57,7 @@ impl<T: Ord + Debug> ProvenSet<T> {
 
     /// Creates a judgment set that resulted from a failed judgment.
     /// Meant to be used from the judgment macro, probably annoying to call manually.
-    pub fn failed_rules(judgment: &impl std::fmt::Debug, failed_rules: Set<FailedRule>) -> Self {
+    pub fn failed_rules(judgment: impl std::fmt::Debug, failed_rules: Set<FailedRule>) -> Self {
         let judgment = format!("{judgment:?}");
         FailedJudgment::new(judgment, failed_rules).into()
     }
@@ -131,7 +131,7 @@ impl<T: Ord + Debug> ProvenSet<T> {
                 if !items.is_empty() {
                     ProvenSet::proven(items)
                 } else {
-                    ProvenSet::failed_rules(&"flat_map", failures)
+                    ProvenSet::failed_rules("flat_map", failures)
                 }
             }
         }
