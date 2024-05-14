@@ -104,8 +104,12 @@ judgment_fn! {
             (may_be_downstream_parameter(_decls, _env, _assumptions, TyData::Variable(Variable::ExistentialVar(_))) => ())
         )
 
-        // If we can normalize `goal` to something else, and that normalized
-        // form may be downstream.
+        // If `parameter` is an alias which refers a type which may be
+        // from a downstream crate, it may be normalized to that type,
+        // so recurse into it.
+        //
+        // We only do so if the alias cannot be normalized to a type which
+        // is definitely not a downstream parameter.
         (
             // (a) there is some parameter in the alias that may be downstream
             (parameters.iter() => p)
