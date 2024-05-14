@@ -4,8 +4,9 @@ use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
 use syn::spanned::Spanned;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) enum Precedence {
+    #[default]
     Defaulted,
     Parsed {
         level: usize,
@@ -28,12 +29,6 @@ impl Precedence {
                 quote!(formality_core::parse::Precedence::#associativity(#level))
             }
         }
-    }
-}
-
-impl Default for Precedence {
-    fn default() -> Self {
-        Precedence::Defaulted
     }
 }
 
