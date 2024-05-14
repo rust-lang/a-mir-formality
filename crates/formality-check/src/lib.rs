@@ -107,6 +107,7 @@ impl Check<'_> {
         bail!("failed to prove {goal:?} given {assumptions:?}, got {cs:?}")
     }
 
+    #[tracing::instrument(level = "Debug", skip(self, assumptions, goal))]
     fn prove_not_goal(
         &self,
         env: &Env,
@@ -115,6 +116,9 @@ impl Check<'_> {
     ) -> Fallible<()> {
         let goal: Wcs = goal.to_wcs();
         let assumptions: Wcs = assumptions.to_wcs();
+
+        tracing::debug!("assumptions = {assumptions:?}");
+        tracing::debug!("goal = {goal:?}");
 
         assert!(env.only_universal_variables());
         assert!(env.encloses((&assumptions, &goal)));
@@ -146,10 +150,16 @@ impl Check<'_> {
             &existential_goal,
         );
 
-        if !cs.is_proven() {
-            return Ok(());
+        match cs.into_set() {
+            Ok(proofs) => {
+                bail!(
+                    "failed to disprove\n    {goal:?}\ngiven\n    {assumptions:?}\ngot\n{proofs:?}"
+                )
+            }
+            Err(err) => {
+                tracing::debug!("Proved not goal, error = {err}");
+                return Ok(());
+            }
         }
-
-        bail!("failed to disprove\n    {goal:?}\ngiven\n    {assumptions:?}\ngot\n{cs:?}")
     }
 }

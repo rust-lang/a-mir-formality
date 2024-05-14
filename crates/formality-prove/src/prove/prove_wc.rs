@@ -61,9 +61,9 @@ judgment_fn! {
 
         (
             (if env.is_in_coherence_mode())!
-            (may_be_remote(decls, env, assumptions, trait_ref) => c)
+            (may_be_remote(decls, &env, assumptions, trait_ref) => ())
             ----------------------------- ("coherence / remote impl")
-            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.ambiguous())
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => Constraints::none(&env).ambiguous())
         )
 
         (

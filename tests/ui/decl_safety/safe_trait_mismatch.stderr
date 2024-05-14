@@ -1,4 +1,0 @@
-Error: check_trait_impl(unsafe impl Foo for u32 { })
-
-Caused by:
-    implementing the trait `Foo` is not unsafe

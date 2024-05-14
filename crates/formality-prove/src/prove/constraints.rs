@@ -25,7 +25,7 @@ where
 }
 
 impl Constraints {
-    pub fn none(env: Env) -> Self {
+    pub fn none(env: impl Upcast<Env>) -> Self {
         let v: Vec<(Variable, Parameter)> = vec![];
         Self::from(env, v)
     }
@@ -42,9 +42,10 @@ impl Constraints {
     }
 
     pub fn from(
-        env: Env,
+        env: impl Upcast<Env>,
         iter: impl IntoIterator<Item = (impl Upcast<Variable>, impl Upcast<Parameter>)>,
     ) -> Self {
+        let env = env.upcast();
         let substitution: Substitution = iter.into_iter().collect();
         assert!(env.encloses(substitution.range()));
         assert!(env.encloses(substitution.domain()));
@@ -72,7 +73,7 @@ impl Constraints {
         }
     }
 
-    /// Given constraings from solving the subparts of `(A /\ B)`, yield combined constraints.
+    /// Given constraints from solving the subparts of `(A /\ B)`, yield combined constraints.
     ///
     /// # Parameters
     ///

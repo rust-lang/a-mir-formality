@@ -1,8 +1,0 @@
-Error: check_trait_impl(impl Foo <const value(42, u32)> for u32 { })
-
-Caused by:
-    judgment `prove_wc_list { goal: {Foo(u32, const value(42, u32))}, assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
-      the rule "some" failed at step #0 (crates/formality-prove/src/prove/prove_wc_list.rs:28:14) because
-        judgment `prove_wc { goal: Foo(u32, const value(42, u32)), assumptions: {}, env: Env { variables: [], coherence_mode: false }, decls: decls(222, [trait Foo <ty, const> where {@ ConstHasType(^const0_1 , bool)}], [impl Foo(u32, const value(42, u32))], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
-          the rule "trait implied bound" failed at step #0 (crates/formality-prove/src/prove/prove_wc.rs:86:14) because
-            expression evaluated to an empty collection: `decls.trait_invariants()`

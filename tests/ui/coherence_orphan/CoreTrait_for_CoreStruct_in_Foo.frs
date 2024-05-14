@@ -1,9 +1,0 @@
-[
-    crate core {
-        trait CoreTrait {}
-        struct CoreStruct {}
-    },
-    crate foo {
-        impl CoreTrait for CoreStruct {}
-    }
-]

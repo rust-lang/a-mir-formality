@@ -1,9 +1,0 @@
-Error: check_trait_impl(impl Foo for u32 { })
-
-Caused by:
-    failed to disprove
-        {! Foo(u32)}
-    given
-        {}
-    got
-    {Constraints { env: Env { variables: [], coherence_mode: false }, known_true: true, substitution: {} }}

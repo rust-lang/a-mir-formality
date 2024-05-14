@@ -1,6 +1,0 @@
-[
-    crate baguette {
-        trait Foo {}
-        unsafe impl Foo for u32 {}
-    }
-]

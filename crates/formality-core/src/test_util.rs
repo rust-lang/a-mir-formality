@@ -50,9 +50,15 @@ pub trait ResultTestExt<T, E> {
     /// Given a `Fallible<T>` value, assert that its debug representation matches the expected value.
     /// If the result is an error it is propagated through to the return value.
     fn assert_ok(self, expect: expect_test::Expect);
+
     /// Given a `Fallible<T>` value, assert that it is an error with the given string (after normalization).
     /// Returns `Ok(())` if the assertion succeeds, or panics if the assertion fails.
     fn assert_err(self, expect: expect_test::Expect);
+
+    /// Given a `Fallible<T>` value, assert that it is an error with the given string (after normalization).
+    /// Also assert that each of the strings in `must_have` appears somewhere within.
+    /// Returns `Ok(())` if the assertion succeeds, or panics if the assertion fails.
+    fn assert_has_err(self, expect: expect_test::Expect, must_have: &[&str]);
 }
 
 impl<T, E> ResultTestExt<T, E> for Result<T, E>
@@ -74,10 +80,21 @@ where
 
     #[track_caller]
     fn assert_err(self, expect: expect_test::Expect) {
+        self.assert_has_err(expect, &[]);
+    }
+
+    #[track_caller]
+    fn assert_has_err(self, expect: expect_test::Expect, must_have: &[&str]) {
         match self {
             Ok(v) => panic!("expected `Err`, got `Ok`: {v:?}"),
             Err(e) => {
-                expect.assert_eq(&normalize_paths(format!("{e:?}")));
+                let output = normalize_paths(format!("{e:?}"));
+
+                expect.assert_eq(&output);
+
+                for s in must_have {
+                    assert!(output.contains(s), "did not find {s:?} in the output");
+                }
             }
         }
     }

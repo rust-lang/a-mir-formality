@@ -1,5 +1,0 @@
-[
-    crate Foo {        
-        trait Baz where  cake  {}
-    }
-]

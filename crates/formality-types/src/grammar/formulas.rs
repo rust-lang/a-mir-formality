@@ -31,6 +31,14 @@ pub enum Predicate {
     #[grammar(@WellFormedTraitRef($v0))]
     WellFormedTraitRef(TraitRef),
 
+    /// A trait-ref **is local** if the local crate could legally implement it for all
+    /// possible instantiations of the variables within.
+    ///
+    /// Example:
+    ///
+    /// * `T: SomeLocalTrait` is local for all `T` since the local crate could create a blanket impl
+    /// * `LocalType<T>: SomeRemoteTrait` is local
+    /// * `RemoteType<T>: SomeRemoteTrait` is not local
     #[grammar(@IsLocal($v0))]
     IsLocal(TraitRef),
 
@@ -149,6 +157,8 @@ impl TraitRef {
         Predicate::WellFormedTraitRef(self.clone())
     }
 
+    /// A trait-ref **is local** if the local crate could legally implement it
+    /// (and not via a blanket impl).
     pub fn is_local(&self) -> Predicate {
         Predicate::IsLocal(self.clone())
     }
@@ -206,9 +216,9 @@ impl TraitId {
 #[term]
 pub enum PR {
     #[cast]
-    Predicate(Predicate),
-    #[cast]
     Relation(Relation),
+    #[cast]
+    Predicate(Predicate),
 }
 
 impl PR {

@@ -1,3 +1,0 @@
-Error: impls may overlap:
-impl Foo for u32 { }
-impl <ty> Foo for ^ty0_0 { }
