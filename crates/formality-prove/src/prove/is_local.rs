@@ -258,6 +258,12 @@ judgment_fn! {
         // assert(!env.is_in_coherence_mode()) // TODO
 
         (
+            // Lifetimes are not relevant.
+            --- ("lifetime")
+            (is_not_downstream(_decls, env, _assumptions, _l: Lt) => Constraints::none(env))
+        )
+
+        (
             // Since https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html,
             // any rigid type is adequate.
             --- ("rigid")
@@ -265,9 +271,11 @@ judgment_fn! {
         )
 
         (
-            // Lifetimes are not relevant.
-            --- ("lifetime")
-            (is_not_downstream(_decls, env, _assumptions, _l: Lt) => Constraints::none(env))
+            (prove_normalize(&decls, env, &assumptions, parameter) => (c1, p))
+            (let assumptions = c1.substitution().apply(&assumptions))
+            (is_not_downstream(&decls, c1.env(), assumptions, p) => c2)
+            --- ("via normalize")
+            (is_not_downstream(decls, env, assumptions, parameter) => c1.seq(c2))
         )
 
         (
