@@ -326,6 +326,7 @@ impl Crate {
                 CrateItem::TraitImpl(_) => None,
                 CrateItem::NegTraitImpl(_) => None,
                 CrateItem::Fn(_) => None,
+                CrateItem::Test(_) => None,
             })
             .collect()
     }

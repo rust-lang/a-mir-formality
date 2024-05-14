@@ -64,6 +64,19 @@ pub enum CrateItem {
     NegTraitImpl(NegTraitImpl),
     #[cast]
     Fn(Fn),
+    #[cast]
+    Test(Test),
+}
+
+#[term(test $binder)]
+pub struct Test {
+    pub binder: Binder<TestBoundData>,
+}
+
+#[term($:where $,assumptions { $,goals })]
+pub struct TestBoundData {
+    pub assumptions: Vec<WhereClause>,
+    pub goals: Vec<WhereClause>,
 }
 
 #[term(struct $id $binder)]

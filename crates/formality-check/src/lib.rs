@@ -5,7 +5,7 @@ use std::{collections::VecDeque, fmt::Debug};
 use anyhow::bail;
 use formality_prove::{Decls, Env};
 use formality_rust::{
-    grammar::{Crate, CrateItem, Program},
+    grammar::{Crate, CrateItem, Program, Test, TestBoundData},
     prove::ToWcs,
 };
 use formality_types::grammar::{Fallible, Substitution, Wcs};
@@ -83,7 +83,14 @@ impl Check<'_> {
             CrateItem::Enum(e) => self.check_adt(&e.to_adt()),
             CrateItem::Fn(f) => self.check_free_fn(f),
             CrateItem::NegTraitImpl(i) => self.check_neg_trait_impl(i),
+            CrateItem::Test(t) => self.check_test(t),
         }
+    }
+
+    fn check_test(&self, test: &Test) -> Fallible<()> {
+        let mut env = Env::default();
+        let TestBoundData { assumptions, goals } = env.instantiate_universally(&test.binder);
+        self.prove_goal(&env, assumptions, goals)
     }
 
     fn prove_goal(
