@@ -15,6 +15,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
+      - name: Check formatting of all crates in the workspace
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
       - name: Run cargo test --all
         uses: actions-rs/cargo@v1
         with:
