@@ -635,7 +635,7 @@ where
         let id = self.identifier()?;
         match self.scope.lookup(&id) {
             Some(v) => Ok(v),
-            None => Err(ParseError::at(text0, format!("unrecognized variable"))),
+            None => Err(ParseError::at(text0, "unrecognized variable".to_string())),
         }
     }
 
@@ -678,7 +678,7 @@ where
             Ok(t) => Ok(t),
             Err(_) => Err(ParseError::at(
                 skip_whitespace(text0),
-                format!("invalid number"),
+                "invalid number".to_string(),
             )),
         }
     }
