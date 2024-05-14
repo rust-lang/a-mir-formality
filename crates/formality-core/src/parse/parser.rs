@@ -410,7 +410,7 @@ where
 
     /// Return the set of variables in scope
     pub fn scope(&self) -> &Scope<L> {
-        &self.scope
+        self.scope
     }
 
     /// Skips whitespace in the input, producing no reduction.

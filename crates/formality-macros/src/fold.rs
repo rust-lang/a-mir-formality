@@ -11,7 +11,7 @@ pub(crate) fn derive_fold(mut s: synstructure::Structure) -> TokenStream {
 
     let substitute_body = s.each_variant(|vi| {
         let bindings = vi.bindings();
-        if has_variable_attr(&vi.ast().attrs) {
+        if has_variable_attr(vi.ast().attrs) {
             if bindings.len() != 1 {
                 return syn::Error::new(
                     vi.ast().ident.span(),
