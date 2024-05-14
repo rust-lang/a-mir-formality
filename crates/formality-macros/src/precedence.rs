@@ -81,7 +81,7 @@ impl syn::parse::Parse for Precedence {
                         _ => {
                             return Err(syn::Error::new(
                                 comma_token.span(),
-                                &format!(
+                                format!(
                                     "expected valid associativity after comma, one of `{:?}`",
                                     VALID_ASSOCIATIVITIES
                                 ),

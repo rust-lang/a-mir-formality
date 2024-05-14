@@ -29,7 +29,7 @@ impl super::Check<'_> {
             trait_parameters,
             where_clauses,
             impl_items,
-        } = env.instantiate_universally(&binder);
+        } = env.instantiate_universally(binder);
 
         let trait_ref = trait_id.with(self_ty, trait_parameters);
 
@@ -45,7 +45,7 @@ impl super::Check<'_> {
             trait_items,
         } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?;
 
-        self.check_safety_matches(&trait_decl, &trait_impl)?;
+        self.check_safety_matches(trait_decl, trait_impl)?;
 
         for impl_item in &impl_items {
             self.check_trait_impl_item(&env, &where_clauses, &trait_items, impl_item)?;
