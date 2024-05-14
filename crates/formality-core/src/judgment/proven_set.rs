@@ -178,7 +178,7 @@ impl<I: Ord + Debug> FromIterator<I> for ProvenSet<I> {
     fn from_iter<T: IntoIterator<Item = I>>(iter: T) -> Self {
         let set: Set<I> = iter.into_iter().collect();
         if set.is_empty() {
-            ProvenSet::failed(&"collect", &"empty collection")
+            ProvenSet::failed("collect", "empty collection")
         } else {
             ProvenSet::proven(set)
         }
