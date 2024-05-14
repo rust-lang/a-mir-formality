@@ -95,7 +95,6 @@ fn mirror_CoreStruct() {
 #[test]
 fn mirror_FooStruct() {
     crate::assert_ok!(
-        //@check-pass
         [
             crate core {
                 trait CoreTrait {}
@@ -121,7 +120,6 @@ fn mirror_FooStruct() {
 #[test]
 fn covered_VecT() {
     crate::assert_ok!(
-        //@check-pass
         [
             crate core {
                 trait CoreTrait<ty T> {}
@@ -253,5 +251,31 @@ fn CoreTrait_for_CoreStruct_in_Foo() {
                             condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
                               decls = decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct ], {}, {})
                               &goal.trait_id = CoreTrait"#]]
+    )
+}
+
+#[test]
+fn CoreTraitLocal_for_AliasToKnown_in_Foo() {
+    // TODO: see comment in `orphan_check` from prev commit
+    crate::assert_ok!(
+    [
+        crate core {
+            trait CoreTrait<ty T> {}
+
+            trait Unit {
+                type Assoc : [];
+            }
+
+            impl<ty T> Unit for T {
+                type Assoc = ();
+            }
+        },
+        crate foo {
+            struct FooStruct {}
+            impl CoreTrait<FooStruct> for <() as Unit>::Assoc {}
+        }
+    ]
+
+    expect_test::expect!["()"]
     )
 }

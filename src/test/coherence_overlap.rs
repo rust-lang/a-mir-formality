@@ -275,3 +275,70 @@ fn T_and_Local_Bar_T() {
             impl <ty> Foo for ^ty0_0 where LocalType : Bar <^ty0_0> { }"#]]
     }
 }
+
+#[test]
+fn is_local_unknowable_trait_ref() {
+    crate::assert_ok! {
+        [
+            crate core {
+                trait Project {
+                    type Assoc: [];
+                }
+
+                impl<ty T> Project for T {
+                    type Assoc = T;
+                }
+
+                trait Foo<ty U> { }
+            },
+            crate foo {
+                struct LocalType {}
+
+                trait Overlap<ty U> {}
+                impl<ty T, ty U> Overlap<U> for T
+                where
+                    <T as Project>::Assoc: Foo<U> {}
+                impl<ty T> Overlap<LocalType> for () {}
+            }
+        ]
+
+        expect_test::expect!["()"]
+    }
+}
+
+#[test]
+fn is_local_with_unconstrained_self_ty_blanket_impl() {
+    // TODO: this test should pass imho
+    crate::assert_err! {
+        [
+            crate core {
+                trait Project {
+                    type Assoc: [];
+                }
+
+                impl<ty T> Project for T {
+                    type Assoc = ();
+                }
+
+                trait Foo<ty U> { }
+            },
+            crate foo {
+                struct LocalType {}
+                impl Foo<LocalType> for () {}
+
+                trait Overlap<ty U> {}
+                impl<ty T, ty U> Overlap<U> for T
+                where
+                    <T as Project>::Assoc: Foo<U> {}
+                impl<ty T> Overlap<LocalType> for T {}
+            }
+        ]
+
+        [        ]
+
+        expect_test::expect![[r#"
+            impls may overlap:
+            impl <ty, ty> Overlap <^ty0_1> for ^ty0_0 where <^ty0_0 as Project>::Assoc : Foo <^ty0_1> { }
+            impl <ty> Overlap <LocalType> for ^ty0_0 { }"#]]
+    }
+}

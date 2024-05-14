@@ -173,7 +173,9 @@ fn may_contain_downstream_type(
     }
 }
 
-// FIXME: This should be a more general concept and not limited ot `is_local`
+// FIXME(@lcnr): This should be a more general concept and not limited ot `is_local`
+//
+// Also, I think this should flip quantification from existential to universal again
 fn may_not_be_provable(env: &Env, op: impl FnOnce(Env) -> ProvenSet<Constraints>) -> ProvenSet<()> {
     assert!(env.is_in_coherence_mode());
     if let Some(constraints) = op(env.with_coherence_mode(false))
