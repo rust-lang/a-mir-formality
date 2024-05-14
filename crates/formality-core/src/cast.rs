@@ -233,9 +233,7 @@ impl DowncastTo<()> for () {
 }
 
 impl UpcastFrom<()> for () {
-    fn upcast_from((): ()) -> Self {
-        ()
-    }
+    fn upcast_from((): ()) -> Self {}
 }
 
 impl<T: Clone, U> UpcastFrom<Arc<T>> for Arc<U>
