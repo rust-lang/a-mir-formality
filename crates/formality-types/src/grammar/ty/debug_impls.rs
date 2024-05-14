@@ -84,7 +84,7 @@ impl<'a> PrettyParameters<'a> {
 
 impl Debug for PrettyParameters<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.p.len() == 0 {
+        if self.p.is_empty() {
             Ok(())
         } else {
             write!(f, "{}", self.open)?;
