@@ -17,7 +17,7 @@ pub(crate) fn constructor_methods(s: synstructure::Structure) -> TokenStream {
     match s.ast().data {
         syn::Data::Struct(_) => derive_new_for_struct(s),
         syn::Data::Enum(_) => derive_new_for_variants(s),
-        syn::Data::Union(_) => return Default::default(),
+        syn::Data::Union(_) => Default::default(),
     }
 }
 
