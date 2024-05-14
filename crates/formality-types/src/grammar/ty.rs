@@ -212,7 +212,7 @@ impl AliasTy {
                 item_arity,
             }
             .upcast(),
-            parameters: parameters,
+            parameters,
         }
     }
 }

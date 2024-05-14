@@ -260,7 +260,7 @@ fn parse_variable_binding(
         };
 
         Ok(FormalitySpecSymbol::Field {
-            name: name,
+            name,
             mode: guard_mode,
         })
     }

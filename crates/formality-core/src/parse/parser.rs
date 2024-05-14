@@ -105,7 +105,7 @@ impl Precedence {
         assert!(level < std::usize::MAX);
         Self {
             level,
-            associativity: associativity,
+            associativity,
         }
     }
 }
