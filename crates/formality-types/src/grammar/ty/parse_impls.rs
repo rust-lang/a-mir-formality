@@ -81,7 +81,7 @@ impl CoreParse<Rust> for AliasTy {
             parser.parse_variant("associated type", Precedence::default(), |p| {
                 p.expect_char('<')?;
                 let ty0: Ty = p.nonterminal()?;
-                let () = p.expect_keyword("as")?;
+                p.expect_keyword("as")?;
                 let trait_id: TraitId = p.nonterminal()?;
                 let trait_parameters1 = parse_parameters(p)?;
                 p.expect_char('>')?;
