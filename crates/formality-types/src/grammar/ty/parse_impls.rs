@@ -110,7 +110,7 @@ impl CoreParse<Rust> for AliasTy {
 fn parse_parameters<'t>(
     p: &mut ActiveVariant<'_, 't, Rust>,
 ) -> Result<Vec<Parameter>, Set<ParseError<'t>>> {
-    if let Err(_) = p.expect_char('<') {
+    if p.expect_char('<').is_err() {
         return Ok(vec![]);
     }
     let parameters: Vec<Parameter> = p.comma_nonterminal()?;
