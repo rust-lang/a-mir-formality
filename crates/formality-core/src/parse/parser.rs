@@ -343,7 +343,7 @@ where
                 .zip(0..)
                 .all(|(s_j, j)| i == j || Self::is_preferable(s_i, s_j))
             {
-                let s_i = self.successes.into_iter().skip(i).next().unwrap();
+                let s_i = self.successes.into_iter().nth(i).unwrap();
                 // It's better to print this result alongside the main parsing section.
                 drop(guard);
                 tracing::trace!("best parse = `{:?}`", s_i);

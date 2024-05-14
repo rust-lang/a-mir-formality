@@ -113,7 +113,7 @@ impl<T: Ord + Clone> SetExt<T> for Set<T> {
 
     fn split_nth(&self, i: usize) -> Option<(T, Set<T>)> {
         let mut s = self.clone();
-        let item = self.iter().skip(i).next()?;
+        let item = self.iter().nth(i)?;
         let item = s.take(item).unwrap();
         Some((item, s))
     }

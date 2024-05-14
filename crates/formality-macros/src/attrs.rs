@@ -69,8 +69,7 @@ where
             attrs
                 .iter()
                 .filter(|a| a.path().is_ident(name))
-                .skip(1)
-                .next()
+                .nth(1)
                 .unwrap()
                 .path()
                 .span(),
