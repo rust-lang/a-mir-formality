@@ -44,19 +44,19 @@ pub struct Env {
 }
 
 impl Env {
+    pub fn new_with_bias(bias: Bias) -> Self {
+        Env {
+            variables: Default::default(),
+            bias,
+        }
+    }
+
     pub fn only_universal_variables(&self) -> bool {
         self.variables.iter().all(|v| v.is_universal())
     }
 
     pub fn bias(&self) -> Bias {
         self.bias
-    }
-
-    pub fn with_bias(&self, bias: Bias) -> Env {
-        Env {
-            bias,
-            ..self.clone()
-        }
     }
 }
 
@@ -101,6 +101,13 @@ impl Env {
     pub fn fresh_existential(&mut self, kind: ParameterKind) -> ExistentialVar {
         let var_index = self.fresh_index();
         let v = ExistentialVar { kind, var_index };
+        self.variables.push(v.upcast());
+        v
+    }
+
+    pub fn fresh_universal(&mut self, kind: ParameterKind) -> UniversalVar {
+        let var_index = self.fresh_index();
+        let v = UniversalVar { kind, var_index };
         self.variables.push(v.upcast());
         v
     }

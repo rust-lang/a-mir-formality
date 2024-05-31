@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{collections::Set, language::Language, variable::CoreVariable};
 
-pub trait CoreVisit<L: Language> {
+pub trait CoreVisit<L: Language>: std::fmt::Debug {
     /// Extract the list of free variables (for the purposes of this function, defined by `Variable::is_free`).
     /// The list may contain duplicates and must be in a determinstic order (though the order itself isn't important).
     fn free_variables(&self) -> Vec<CoreVariable<L>>;

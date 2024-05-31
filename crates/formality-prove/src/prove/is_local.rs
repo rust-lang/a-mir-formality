@@ -1,11 +1,14 @@
-use formality_core::{judgment_fn, ProvenSet, Upcast};
+use formality_core::{judgment_fn, Upcast};
 use formality_types::grammar::{
     AliasTy, BoundVar, Lt, Parameter, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
 };
 
 use crate::{
     decls::Decls,
-    prove::{combinators::for_all, env::Bias, prove_normalize::prove_normalize, Constraints},
+    prove::{
+        combinators::for_all, env::Bias, negation::may_not_be_provable,
+        prove_normalize::prove_normalize, Constraints,
+    },
     Env,
 };
 
@@ -49,22 +52,22 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
-    ) => () {
+    ) => Constraints {
         debug(assumptions, goal, decls, env)
         assert(env.bias() == Bias::Completeness)
 
         (
-            (may_be_downstream_trait_ref(decls, env, assumptions, goal) => ())
+            (may_be_downstream_trait_ref(decls, env, assumptions, goal) => c)
             --- ("may be defined downstream")
-            (may_be_remote(decls, env, assumptions, goal) => ())
+            (may_be_remote(decls, env, assumptions, goal) => c)
         )
 
         (
             // In principle this rule could be removed and preserve soundness,
             // but then we would accept code that is very prone to semver failures.
-            (may_not_be_provable(&env, |env| is_local_trait_ref(decls, &env, assumptions, goal)) => ())
+            (may_not_be_provable(&env, assumptions, goal, |env, assumptions, goal| is_local_trait_ref(decls, &env, assumptions, goal)) => c)
             --- ("may be added by upstream in a minor release")
-            (may_be_remote(decls, env, assumptions, goal) => ())
+            (may_be_remote(decls, env, assumptions, goal) => c)
         )
     }
 }
@@ -76,15 +79,15 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
-    ) => () {
+    ) => Constraints {
         debug(goal, assumptions, env, decls)
         assert(env.bias() == Bias::Completeness)
         (
             // There may be a downstream parameter at position i...
             (&goal.parameters => p)
-            (may_be_downstream_parameter(&decls, &env, &assumptions, p) => ())
+            (may_be_downstream_parameter(&decls, &env, &assumptions, p) => c)
             --- ("may_be_downstream_trait_ref")
-            (may_be_downstream_trait_ref(decls, env, assumptions, goal) => ())
+            (may_be_downstream_trait_ref(decls, env, assumptions, goal) => c)
         )
     }
 }
@@ -95,14 +98,15 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
-    ) => () {
+    ) => Constraints {
         debug(parameter, assumptions, env, decls)
         assert(env.bias() == Bias::Completeness)
         (
             // existential variables *could* be inferred to downstream types; depends on the substitution
             // we ultimately have.
             --- ("type variable")
-            (may_be_downstream_parameter(_decls, _env, _assumptions, TyData::Variable(Variable::ExistentialVar(_))) => ())
+            (may_be_downstream_parameter(_decls, env, _assumptions, TyData::Variable(Variable::ExistentialVar(_)))
+                => Constraints::none(env))
         )
 
         // If `parameter` is an alias which refers a type which may be
@@ -117,11 +121,11 @@ judgment_fn! {
             (if may_contain_downstream_type(&decls, &env, &assumptions, p))
 
             // (b) the alias cannot be normalized to something that may not be downstream
-            (may_not_be_provable(&env, |env|
-                normalizes_to_not_downstream(&decls, &env, &assumptions, AliasTy { name: name.clone(), parameters: parameters.clone() })
-            ) => ())
+            (may_not_be_provable(&env, &assumptions, AliasTy::new(&name, &parameters), |env, assumptions, alias|
+                normalizes_to_not_downstream(&decls, &env, &assumptions, &alias)
+            ) => c)
             --- ("via normalize")
-            (may_be_downstream_parameter(decls, env, assumptions, AliasTy { name, parameters }) => ())
+            (may_be_downstream_parameter(decls, env, assumptions, AliasTy { name, parameters }) => c)
         )
     }
 }
@@ -170,24 +174,6 @@ fn may_contain_downstream_type(
                 true
             }
         },
-    }
-}
-
-// FIXME(@lcnr): This should be a more general concept and not limited ot `is_local`
-//
-// Also, I think this should flip quantification from existential to universal again
-fn may_not_be_provable(env: &Env, op: impl FnOnce(Env) -> ProvenSet<Constraints>) -> ProvenSet<()> {
-    assert!(env.bias() == Bias::Completeness);
-    if let Some(constraints) = op(env.with_bias(Bias::Soundness))
-        .iter()
-        .find(|constraints| constraints.unconditionally_true())
-    {
-        ProvenSet::failed(
-            "may_not_be_provable",
-            format!("found a solution {constraints:?}"),
-        )
-    } else {
-        ProvenSet::singleton(())
     }
 }
 
@@ -282,7 +268,8 @@ judgment_fn! {
             // existential variables *could* be inferred to downstream types; depends on the substitution
             // we ultimately have.
             --- ("type variable")
-            (is_not_downstream(_decls, env, _assumptions, TyData::Variable(Variable::ExistentialVar(_))) => Constraints::none(env).ambiguous())
+            (is_not_downstream(_decls, env, _assumptions, TyData::Variable(Variable::ExistentialVar(_)))
+                => Constraints::none(env).ambiguous())
         )
     }
 }

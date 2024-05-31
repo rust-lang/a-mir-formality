@@ -8,6 +8,7 @@ mod prove;
 pub use decls::*;
 pub use prove::prove;
 pub use prove::Constraints;
+pub use prove::{is_definitely_not_proveable, may_not_be_provable, negation_via_failure};
 pub use prove::{Bias, Env};
 
 #[cfg(test)]

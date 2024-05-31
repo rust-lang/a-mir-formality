@@ -23,12 +23,9 @@ fn u32_not_u32_impls() {
             check_trait_impl(impl Foo for u32 { })
 
             Caused by:
-                failed to disprove
-                    {! Foo(u32)}
-                given
-                    {}
-                got
-                {Constraints { env: Env { variables: [], bias: Completeness }, known_true: true, substitution: {} }}"#]]
+                judgment `negation_via_failure` failed at the following rule(s):
+                  failed at (src/file.rs:LL:CC) because
+                    found an unconditionally true solution Constraints { env: Env { variables: [], bias: Completeness }, known_true: true, substitution: {} }"#]]
     )
 }
 
@@ -106,12 +103,7 @@ fn T_where_Foo_not_u32_impls() {
             check_trait_impl(impl <ty> Foo for ^ty0_0 where ^ty0_0 : Foo { })
 
             Caused by:
-                failed to disprove
-                    {! Foo(!ty_1)}
-                given
-                    {Foo(!ty_1)}
-                got
-                {Constraints { env: Env { variables: [?ty_1], bias: Completeness }, known_true: true, substitution: {?ty_1 => u32} }}"#]]
+                failed to prove {! Foo(!ty_1)} given {Foo(!ty_1)}, got {Constraints { env: Env { variables: [!ty_1], bias: Soundness }, known_true: false, substitution: {} }}"#]]
     )
 }
 

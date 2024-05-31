@@ -61,9 +61,9 @@ judgment_fn! {
 
         (
             (if env.bias() == Bias::Completeness)!
-            (may_be_remote(decls, &env, assumptions, trait_ref) => ())
+            (may_be_remote(decls, &env, assumptions, trait_ref) => c)
             ----------------------------- ("coherence / remote impl")
-            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => Constraints::none(&env).ambiguous())
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c)
         )
 
         (

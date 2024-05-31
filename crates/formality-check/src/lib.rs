@@ -3,7 +3,7 @@
 use std::{collections::VecDeque, fmt::Debug};
 
 use anyhow::bail;
-use formality_prove::{Bias, Decls, Env};
+use formality_prove::{is_definitely_not_proveable, Bias, Decls, Env};
 use formality_rust::{
     grammar::{Crate, CrateItem, Program, Test, TestBoundData},
     prove::ToWcs,
@@ -115,61 +115,24 @@ impl Check<'_> {
     }
 
     #[tracing::instrument(level = "Debug", skip(self, assumptions, goal))]
-    fn prove_not_goal(
-        &self,
-        env: &Env,
-        assumptions: impl ToWcs,
-        goal: impl ToWcs + Debug,
-    ) -> Fallible<()> {
+    fn prove_not_goal(&self, env: &Env, assumptions: impl ToWcs, goal: impl ToWcs) -> Fallible<()> {
         let goal: Wcs = goal.to_wcs();
         let assumptions: Wcs = assumptions.to_wcs();
 
-        tracing::debug!("assumptions = {assumptions:?}");
-        tracing::debug!("goal = {goal:?}");
-
-        assert!(env.bias() == Bias::Soundness);
         assert!(env.only_universal_variables());
         assert!(env.encloses((&assumptions, &goal)));
 
-        // Proving `∀X. not(F(X))` is the same as proving: `not(∃X. F(X))`.
-        // Therefore, since we have only universal variables, we can change them all to
-        // existential and then try to prove. If we get back no solutions, we know that
-        // we've proven the negation.
-        //
-        // This is called the "negation as failure" property, and it relies on our solver
-        // being complete -- i.e., if there is a solution, we'll find it, or at least
-        // return ambiguous.
-        let mut existential_env = Env::default().with_bias(Bias::Completeness);
-        let universal_to_existential: Substitution = env
-            .variables()
-            .iter()
-            .map(|v| {
-                assert!(v.is_universal());
-                let v1 = existential_env.fresh_existential(v.kind());
-                (v, v1)
-            })
-            .collect();
-
-        let existential_assumptions = universal_to_existential.apply(&assumptions);
-        let existential_goal = universal_to_existential.apply(&goal);
-
-        let cs = formality_prove::prove(
-            self.decls,
-            &existential_env,
-            existential_assumptions.to_wcs(),
-            &existential_goal,
+        let cs = is_definitely_not_proveable(
+            env,
+            &assumptions,
+            goal.clone(),
+            |env, assumptions, goal| formality_prove::prove(self.decls, env, &assumptions, &goal),
         );
-
-        match cs.into_set() {
-            Ok(proofs) => {
-                bail!(
-                    "failed to disprove\n    {goal:?}\ngiven\n    {assumptions:?}\ngot\n{proofs:?}"
-                )
-            }
-            Err(err) => {
-                tracing::debug!("Proved not goal, error = {err}");
-                return Ok(());
-            }
+        let cs = cs.into_set()?;
+        if cs.iter().any(|c| c.unconditionally_true()) {
+            return Ok(());
         }
+
+        bail!("failed to prove {goal:?} given {assumptions:?}, got {cs:?}")
     }
 }
