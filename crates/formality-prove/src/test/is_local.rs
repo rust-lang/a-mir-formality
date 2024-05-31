@@ -10,7 +10,7 @@ use crate::test_util::test_prove;
 fn test_forall_not_local() {
     test_prove(
         Decls::empty(),
-        term("coherence_mode {} => {for<ty T> @IsLocal(Debug(T))}"),
+        term("{} => {} => for<ty T> {@IsLocal(Debug(T))}"),
     ).assert_err(
     expect![[r#"
         judgment `prove_wc_list { goal: {for <ty> @ IsLocal(Debug(^ty0_0))}, assumptions: {}, env: Env { variables: [], coherence_mode: true }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
@@ -30,11 +30,11 @@ fn test_forall_not_local() {
 fn test_exists_not_local() {
     test_prove(
         Decls::empty(),
-        term("coherence_mode exists<ty T> {} => {@IsLocal(Debug(T))}"),
+        term("exists<ty T> {} => {@IsLocal(Debug(T))}"),
     )
     .assert_ok(expect![[r#"
         {
-          Constraints { env: Env { variables: [?ty_1], coherence_mode: true }, known_true: false, substitution: {} },
+          Constraints { env: Env { variables: [?ty_1], bias: Soundness }, known_true: false, substitution: {} },
         }
-    "#]]) // FIXME: really this should be ambiguous, not sure if it matters
+    "#]])
 }

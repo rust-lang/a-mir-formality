@@ -3,12 +3,12 @@
 use std::{collections::VecDeque, fmt::Debug};
 
 use anyhow::bail;
-use formality_prove::{is_definitely_not_proveable, Bias, Decls, Env};
+use formality_prove::{is_definitely_not_proveable, Decls, Env};
 use formality_rust::{
     grammar::{Crate, CrateItem, Program, Test, TestBoundData},
     prove::ToWcs,
 };
-use formality_types::grammar::{Fallible, Substitution, Wcs};
+use formality_types::grammar::{Fallible, Wcs};
 
 /// Check all crates in the program. The crates must be in dependency order
 /// such that any prefix of the crates is a complete program.
