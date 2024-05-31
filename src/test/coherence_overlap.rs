@@ -28,7 +28,7 @@ fn u32_not_u32_impls() {
                 given
                     {}
                 got
-                {Constraints { env: Env { variables: [], coherence_mode: false }, known_true: true, substitution: {} }}"#]]
+                {Constraints { env: Env { variables: [], bias: Completeness }, known_true: true, substitution: {} }}"#]]
     )
 }
 
@@ -111,7 +111,7 @@ fn T_where_Foo_not_u32_impls() {
                 given
                     {Foo(!ty_1)}
                 got
-                {Constraints { env: Env { variables: [?ty_1], coherence_mode: false }, known_true: true, substitution: {?ty_1 => u32} }}"#]]
+                {Constraints { env: Env { variables: [?ty_1], bias: Completeness }, known_true: true, substitution: {?ty_1 => u32} }}"#]]
     )
 }
 

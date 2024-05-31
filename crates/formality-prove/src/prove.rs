@@ -19,7 +19,7 @@ use tracing::Level;
 
 use crate::decls::Decls;
 
-pub use self::env::Env;
+pub use self::env::{Bias, Env};
 use self::prove_wc_list::prove_wc_list;
 
 /// Top-level entry point for proving things; other rules recurse to this one.

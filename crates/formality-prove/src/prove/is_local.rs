@@ -5,7 +5,7 @@ use formality_types::grammar::{
 
 use crate::{
     decls::Decls,
-    prove::{combinators::for_all, prove_normalize::prove_normalize, Constraints},
+    prove::{combinators::for_all, env::Bias, prove_normalize::prove_normalize, Constraints},
     Env,
 };
 
@@ -51,7 +51,7 @@ judgment_fn! {
         goal: TraitRef,
     ) => () {
         debug(assumptions, goal, decls, env)
-        assert(env.is_in_coherence_mode())
+        assert(env.bias() == Bias::Completeness)
 
         (
             (may_be_downstream_trait_ref(decls, env, assumptions, goal) => ())
@@ -78,7 +78,7 @@ judgment_fn! {
         goal: TraitRef,
     ) => () {
         debug(goal, assumptions, env, decls)
-        assert(env.is_in_coherence_mode())
+        assert(env.bias() == Bias::Completeness)
         (
             // There may be a downstream parameter at position i...
             (&goal.parameters => p)
@@ -97,7 +97,7 @@ judgment_fn! {
         parameter: Parameter,
     ) => () {
         debug(parameter, assumptions, env, decls)
-        assert(env.is_in_coherence_mode())
+        assert(env.bias() == Bias::Completeness)
         (
             // existential variables *could* be inferred to downstream types; depends on the substitution
             // we ultimately have.
@@ -132,7 +132,7 @@ fn may_contain_downstream_type(
     assumptions: &Wcs,
     parameter: impl Upcast<Parameter>,
 ) -> bool {
-    assert!(env.is_in_coherence_mode());
+    assert!(env.bias() == Bias::Completeness);
     let parameter = parameter.upcast();
 
     let Parameter::Ty(ty) = parameter else {
@@ -177,8 +177,8 @@ fn may_contain_downstream_type(
 //
 // Also, I think this should flip quantification from existential to universal again
 fn may_not_be_provable(env: &Env, op: impl FnOnce(Env) -> ProvenSet<Constraints>) -> ProvenSet<()> {
-    assert!(env.is_in_coherence_mode());
-    if let Some(constraints) = op(env.with_coherence_mode(false))
+    assert!(env.bias() == Bias::Completeness);
+    if let Some(constraints) = op(env.with_bias(Bias::Soundness))
         .iter()
         .find(|constraints| constraints.unconditionally_true())
     {
@@ -218,7 +218,7 @@ judgment_fn! {
         goal: TraitRef,
     ) => Constraints {
         debug(goal, assumptions, env, decls)
-        // assert(!env.is_in_coherence_mode()) TODO
+        assert(env.bias() == Bias::Soundness)
         (
             (if decls.is_local_trait_id(&goal.trait_id))
             --- ("local trait")
@@ -255,7 +255,7 @@ judgment_fn! {
         parameter: Parameter,
     ) => Constraints {
         debug(parameter, assumptions, env, decls)
-        // assert(!env.is_in_coherence_mode()) // TODO
+        assert(env.bias() == Bias::Soundness)
 
         (
             // Lifetimes are not relevant.
@@ -295,7 +295,7 @@ judgment_fn! {
         goal: Parameter,
     ) => Constraints {
         debug(goal, assumptions, env, decls)
-        // assert(!env.is_in_coherence_mode()) TODO
+        assert(env.bias() == Bias::Soundness)
 
         // If we can normalize `goal` to something else, check if that normalized form is local.
         (

@@ -1,8 +1,8 @@
-use std::sync::Arc;
-
+use crate::prove::Bias;
 use formality_core::ProvenSet;
 use formality_macros::term;
 use formality_types::grammar::{Binder, Wcs};
+use std::sync::Arc;
 
 use crate::{
     decls::Decls,
@@ -49,8 +49,9 @@ pub fn test_prove(decls: Decls, mut assertion: Arc<TestAssertion>) -> ProvenSet<
                 return prove(decls, env, assumptions, goals);
             }
 
+            // FIXME(@lcnr): This should be "negation-by-failure" or sth.
             TestAssertion::CoherenceMode(assertion1) => {
-                env = env.with_coherence_mode(true);
+                env = env.with_bias(Bias::Completeness);
                 assertion = assertion1.clone();
             }
         }

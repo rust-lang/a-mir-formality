@@ -3,7 +3,7 @@
 use std::{collections::VecDeque, fmt::Debug};
 
 use anyhow::bail;
-use formality_prove::{Decls, Env};
+use formality_prove::{Bias, Decls, Env};
 use formality_rust::{
     grammar::{Crate, CrateItem, Program, Test, TestBoundData},
     prove::ToWcs,
@@ -127,16 +127,19 @@ impl Check<'_> {
         tracing::debug!("assumptions = {assumptions:?}");
         tracing::debug!("goal = {goal:?}");
 
+        assert!(env.bias() == Bias::Soundness);
         assert!(env.only_universal_variables());
         assert!(env.encloses((&assumptions, &goal)));
 
         // Proving `∀X. not(F(X))` is the same as proving: `not(∃X. F(X))`.
         // Therefore, since we have only universal variables, we can change them all to
         // existential and then try to prove. If we get back no solutions, we know that
-        // we've proven the negation. (This is called the "negation as failure" property,
-        // and it relies on our solver being complete -- i.e., if there is a solution,
-        // we'll find it, or at least return ambiguous.)
-        let mut existential_env = Env::default().with_coherence_mode(env.is_in_coherence_mode());
+        // we've proven the negation.
+        //
+        // This is called the "negation as failure" property, and it relies on our solver
+        // being complete -- i.e., if there is a solution, we'll find it, or at least
+        // return ambiguous.
+        let mut existential_env = Env::default().with_bias(Bias::Completeness);
         let universal_to_existential: Substitution = env
             .variables()
             .iter()

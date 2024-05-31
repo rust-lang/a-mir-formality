@@ -60,11 +60,7 @@ impl Check<'_> {
         // and universals and the coherence mode
         // self.prove_not_goal(&env, &(Wcs::wf))
 
-        self.prove_goal(
-            &env.with_coherence_mode(true),
-            &a.where_clauses,
-            trait_ref.is_local(),
-        )
+        self.prove_goal(&env, &a.where_clauses, trait_ref.is_local())
     }
 
     #[context("orphan_check_neg({impl_a:?})")]
@@ -74,11 +70,7 @@ impl Check<'_> {
         let a = env.instantiate_universally(&impl_a.binder);
         let trait_ref = a.trait_ref();
 
-        self.prove_goal(
-            &env.with_coherence_mode(true),
-            &a.where_clauses,
-            trait_ref.is_local(),
-        )
+        self.prove_goal(&env, &a.where_clauses, trait_ref.is_local())
     }
 
     #[tracing::instrument(level = "Debug", skip(self))]
@@ -107,7 +99,7 @@ impl Check<'_> {
         //
         // ∀P_a, ∀P_b. ⌐ (coherence_mode => (Ts_a = Ts_b && WC_a && WC_b))
         if let Ok(()) = self.prove_not_goal(
-            &env.with_coherence_mode(true),
+            &env,
             (),
             (
                 Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),

@@ -8,7 +8,7 @@ mod prove;
 pub use decls::*;
 pub use prove::prove;
 pub use prove::Constraints;
-pub use prove::Env;
+pub use prove::{Bias, Env};
 
 #[cfg(test)]
 mod test;
