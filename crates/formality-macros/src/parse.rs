@@ -15,9 +15,11 @@ use crate::{
 /// Derive the `Parse` impl, using an optional grammar supplied "from the outside".
 /// This is used by the `#[term(G)]` macro, which supplies the grammar `G`.
 pub(crate) fn derive_parse_with_spec(
-    s: synstructure::Structure,
+    mut s: synstructure::Structure,
     external_spec: Option<&FormalitySpec>,
 ) -> syn::Result<TokenStream> {
+    s.underscore_const(true);
+
     if let syn::Data::Union(v) = &s.ast().data {
         return Err(syn::Error::new(
             v.union_token.span,

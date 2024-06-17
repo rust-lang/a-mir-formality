@@ -13,9 +13,11 @@ use crate::{
 /// Derive the `Parse` impl, using an optional grammar supplied "from the outside".
 /// This is used by the `#[term(G)]` macro, which supplies the grammar `G`.
 pub(crate) fn derive_debug_with_spec(
-    s: synstructure::Structure,
+    mut s: synstructure::Structure,
     external_spec: Option<&FormalitySpec>,
 ) -> TokenStream {
+    s.underscore_const(true);
+
     if let syn::Data::Union(v) = &s.ast().data {
         return syn::Error::new(v.union_token.span, "unions are not supported")
             .into_compile_error();
