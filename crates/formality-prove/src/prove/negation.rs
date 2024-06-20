@@ -23,8 +23,21 @@ pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang>>(
     f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints> {
     assert!(env.bias() == Bias::Soundness);
-    // FIXME(@lcnr): why do we care about only having universal variables
-    // here.
+
+    // Require only universal variables, so e.g. `forall<T> not (T: Foo)`.
+    // For those, we can convert universal and existential and try to prove
+    // the inverse (so try to prove `exists<T> (T: Foo)`, with a bias towards
+    // completeness. If that fails, then we know that for all `T`, `T: Foo` is false.
+    //
+    // But with existential we can do no such trick. Given `exists<T> not (T: Foo)`,
+    // certainly if we can prove `forall<T> (T: Foo)` then we know this is false.
+    // But if we can't prove it, it doesn't tell us that there exists a `T`
+    // where `not (T: Foo)`, only that we could not prove it is true for all `T`
+    // (put another way, it may still be true for all T, we just couldn't prove it).
+    //
+    // (FIXME(nikomatsakis): This sounds suspicious, if we *truly* handle bias correctly,
+    // this might not hold; I suspect we do not, which is why I wonder if we can
+    // frame this another way, such as "known not to hold".)
     assert!(env.only_universal_variables());
     negation_via_failure(env, assumptions, data, f)
 }
