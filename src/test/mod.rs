@@ -133,3 +133,39 @@ fn basic_where_clauses_fail() {
                                    expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }
+
+#[test]
+fn basic_adt_variant_dup() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                enum Bar {
+                    Baz{},
+                    Baz{},
+                }
+            }
+        ]
+
+        [ /* TODO */ ]
+
+        expect_test::expect![[r#"variant "Baz" defined multiple times"#]]
+    )
+}
+
+#[test]
+fn basic_adt_field_dup() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Bar {
+                    baz: (),
+                    baz: (),
+                }
+            }
+        ]
+
+        [ /* TODO */ ]
+
+        expect_test::expect![[r#"field "baz" of variant "struct" defined multiple times"#]]
+    )
+}
