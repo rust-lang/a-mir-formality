@@ -99,8 +99,10 @@ fn test_overlap_alias_not_normalizable() {
 
     // ...and if there is at least one Iterator impl, we also flag an error.
 
-    test_program_ok(&gen_program("impl Iterator for u32 {}")).assert_err(expect_test::expect![[r#"
+    test_program_ok(&gen_program("impl Iterator for u32 {}")).assert_err(expect_test::expect![[
+        r#"
         impls may overlap:
         impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
-        impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }"#]]);
+        impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }"#
+    ]]);
 }
