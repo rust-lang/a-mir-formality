@@ -23,7 +23,7 @@ The language module you create has various items in it:
 
 ## Specifying the language for a crate
 
-That module will contain a language struct named `FormalityLang`. It 
+That module will contain a language struct named `FormalityLang`. 
 Other parts of the formality system (e.g., autoderives and the like) 
 will need to know the current language you are defining,
 and they expect to find it at `crate::FormalityLang`. 
