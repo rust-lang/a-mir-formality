@@ -17,12 +17,12 @@ fn minimize_a() {
     let (env, subst) = env.existential_substitution(&term);
     let term = term.instantiate_with(&subst).unwrap();
 
-    expect!["(Env { variables: [?ty_1, ?ty_2, ?ty_3], coherence_mode: false }, [?ty_1, ?ty_3])"]
+    expect!["(Env { variables: [?ty_1, ?ty_2, ?ty_3], bias: Soundness }, [?ty_1, ?ty_3])"]
         .assert_eq(&format!("{:?}", (&env, &term)));
 
     let (mut env_min, term_min, m) = minimize(env, term);
 
-    expect!["(Env { variables: [?ty_0, ?ty_1], coherence_mode: false }, [?ty_0, ?ty_1])"]
+    expect!["(Env { variables: [?ty_0, ?ty_1], bias: Soundness }, [?ty_0, ?ty_1])"]
         .assert_eq(&format!("{:?}", (&env_min, &term_min)));
 
     let ty0 = term_min[0].as_variable().unwrap();
@@ -50,7 +50,7 @@ fn minimize_a() {
                     ?ty_4,
                     ?ty_3,
                 ],
-                coherence_mode: false,
+                bias: Soundness,
             },
             known_true: true,
             substitution: {

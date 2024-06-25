@@ -3,6 +3,7 @@ mod constraints;
 mod env;
 mod is_local;
 mod minimize;
+mod negation;
 mod prove_after;
 mod prove_eq;
 mod prove_normalize;
@@ -19,8 +20,9 @@ use tracing::Level;
 
 use crate::decls::Decls;
 
-pub use self::env::Env;
+pub use self::env::{Bias, Env};
 use self::prove_wc_list::prove_wc_list;
+pub use negation::{is_definitely_not_proveable, may_not_be_provable, negation_via_failure};
 
 /// Top-level entry point for proving things; other rules recurse to this one.
 pub fn prove(

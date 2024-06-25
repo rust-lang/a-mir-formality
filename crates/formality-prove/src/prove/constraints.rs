@@ -30,13 +30,6 @@ impl Constraints {
         Self::from(env, v)
     }
 
-    pub fn with_coherence_mode(self, b: bool) -> Self {
-        Self {
-            env: self.env.with_coherence_mode(b),
-            ..self
-        }
-    }
-
     pub fn unconditionally_true(&self) -> bool {
         self.known_true && self.substitution.is_empty()
     }

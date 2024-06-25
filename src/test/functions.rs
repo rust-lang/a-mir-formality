@@ -42,10 +42,10 @@ fn lifetime() {
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
-            judgment `prove_wc_list { goal: {@ wf(&!lt_0 !ty_1)}, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+            judgment `prove_wc_list { goal: {@ wf(&!lt_0 !ty_1)}, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
               the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                judgment `prove_wc { goal: @ wf(&!lt_0 !ty_1), assumptions: {}, env: Env { variables: [!lt_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                judgment `prove_wc { goal: @ wf(&!lt_0 !ty_1), assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
                   the rule "parameter well formed" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_wf { goal: &!lt_0 !ty_1, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], coherence_mode: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }`"#]]
+                    judgment had no applicable rules: `prove_wf { goal: &!lt_0 !ty_1, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness }, decls: decls(222, [], [], [], [], [], [], {}, {}) }`"#]]
     )
 }
