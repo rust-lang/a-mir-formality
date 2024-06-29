@@ -164,22 +164,6 @@ impl<T: Fold> Binder<T> {
     }
 }
 
-/// Creates a fresh bound var of the given kind that is not yet part of a binder.
-/// You can put this into a term and then use `Binder::new`.
-pub fn fresh_bound_var(kind: ParameterKind) -> BoundVar {
-    lazy_static! {
-        static ref COUNTER: AtomicUsize = AtomicUsize::new(0);
-    }
-
-    let index = COUNTER.fetch_add(1, Ordering::SeqCst);
-    let var_index = VarIndex { index };
-    BoundVar {
-        debruijn: None,
-        var_index,
-        kind,
-    }
-}
-
 impl<T: Visit> Visit for Binder<T> {
     fn free_variables(&self) -> Vec<Variable> {
         self.term.free_variables()

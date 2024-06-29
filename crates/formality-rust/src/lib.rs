@@ -7,3 +7,4 @@ pub mod grammar;
 pub mod prove;
 mod test;
 mod trait_binder;
+mod fuzz;

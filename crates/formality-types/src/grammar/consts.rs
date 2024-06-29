@@ -8,6 +8,7 @@ pub use valtree::*;
 #[term]
 #[cast]
 #[customize(constructors)] // FIXME: figure out upcasts with arc or special-case
+#[derive(bolero::TypeGenerator)]
 pub struct Const {
     data: Arc<ConstData>,
 }
@@ -43,6 +44,7 @@ impl Const {
 
 #[term]
 #[customize(parse)]
+#[derive(bolero::TypeGenerator)]
 pub enum ConstData {
     Value(ValTree, Ty),
 
