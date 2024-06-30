@@ -2,7 +2,7 @@ use formality_core::{set, Set, Upcast};
 use formality_macros::term;
 use formality_types::grammar::{
     AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc,
-    Wcs, PR,
+    Wcs,
 };
 
 #[term]
@@ -175,13 +175,14 @@ impl TraitDecl {
 
         fn is_supertrait(self_var: &Parameter, wc: &Wc) -> bool {
             match wc.data() {
-                formality_types::grammar::WcData::PR(PR::Predicate(Predicate::IsImplemented(
+                formality_types::grammar::WcData::Predicate(Predicate::IsImplemented(
                     trait_ref,
-                ))) => trait_ref.parameters[0] == *self_var,
-                formality_types::grammar::WcData::PR(PR::Relation(Relation::Outlives(a, _))) => {
+                )) => trait_ref.parameters[0] == *self_var,
+                formality_types::grammar::WcData::Relation(Relation::Outlives(a, _)) => {
                     *a == *self_var
                 }
-                formality_types::grammar::WcData::PR(_) => false,
+                formality_types::grammar::WcData::Predicate(_) => false,
+                formality_types::grammar::WcData::Relation(_) => false,
                 formality_types::grammar::WcData::ForAll(binder) => {
                     is_supertrait(self_var, binder.peek())
                 }

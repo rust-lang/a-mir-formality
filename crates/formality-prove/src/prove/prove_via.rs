@@ -1,5 +1,5 @@
 use formality_core::judgment_fn;
-use formality_types::grammar::{WcData, Wcs, PR};
+use formality_types::grammar::{WcData, Wcs};
 
 use crate::{
     decls::Decls,
@@ -12,26 +12,26 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         via: WcData,
-        goal: PR,
+        goal: WcData,
     ) => Constraints {
         debug(goal, via, assumptions, env, decls)
 
         (
-            (let (skel_c, parameters_c) = predicate.debone())
-            (let (skel_g, parameters_g) = goal.debone())
+            (let (skel_c, parameters_c) = pred_1.debone())
+            (let (skel_g, parameters_g) = pred_2.debone())
             (if skel_c == skel_g)!
             (prove(decls, env, assumptions, Wcs::all_eq(parameters_c, parameters_g)) => c)
             ----------------------------- ("predicate-congruence-axiom")
-            (prove_via(decls, env, assumptions, PR::Predicate(predicate), goal) => c)
+            (prove_via(decls, env, assumptions, WcData::Predicate(pred_1), WcData::Predicate(pred_2)) => c)
         )
 
         (
-            (let (skel_c, parameters_c) = relation.debone())
-            (let (skel_g, parameters_g) = goal.debone())
+            (let (skel_c, parameters_c) = rel_1.debone())
+            (let (skel_g, parameters_g) = rel_2.debone())
             (if skel_c == skel_g)
             (if parameters_c == parameters_g)! // for relations, we require 100% match
             ----------------------------- ("relation-axiom")
-            (prove_via(_decls, env, _assumptions, PR::Relation(relation), goal) => Constraints::none(env))
+            (prove_via(_decls, env, _assumptions, WcData::Relation(rel_1), WcData::Relation(rel_2)) => Constraints::none(env))
         )
 
         (

@@ -7,7 +7,7 @@ use crate::grammar::{
 use formality_core::{seq, Set, To, Upcast, Upcasted};
 use formality_prove as prove;
 use formality_types::grammar::{
-    AdtId, AliasTy, Binder, BoundVar, ParameterKind, Predicate, Relation, TraitId, Ty, Wc, Wcs, PR,
+    AdtId, AliasTy, Binder, BoundVar, ParameterKind, Predicate, Relation, TraitId, Ty, Wc, Wcs,
 };
 
 impl Program {
@@ -357,7 +357,6 @@ macro_rules! upcast_to_wcs {
 upcast_to_wcs! {
     Wc,
     Wcs,
-    PR,
     Predicate,
     Relation,
 }

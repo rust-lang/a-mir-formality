@@ -1,6 +1,5 @@
 use formality_core::term;
 
-use formality_core::cast_impl;
 use formality_core::To;
 use formality_core::Upcast;
 
@@ -210,26 +209,6 @@ impl TraitId {
     }
 }
 
-/// "PR" == Predicate or Relation
-///
-/// We need a better name for this lol.
-#[term]
-pub enum PR {
-    #[cast]
-    Relation(Relation),
-    #[cast]
-    Predicate(Predicate),
-}
-
-impl PR {
-    pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
-        match self {
-            PR::Predicate(v) => v.debone(),
-            PR::Relation(v) => v.debone(),
-        }
-    }
-}
-
 pub trait Debone {
     fn debone(&self) -> (Skeleton, Vec<Parameter>);
 }
@@ -244,10 +223,5 @@ macro_rules! debone_impl {
     };
 }
 
-debone_impl!(PR);
 debone_impl!(Predicate);
 debone_impl!(Relation);
-
-// Transitive casting impls:
-
-cast_impl!((TraitRef) <: (Predicate) <: (PR));
