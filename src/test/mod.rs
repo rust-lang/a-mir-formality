@@ -45,7 +45,7 @@ fn hello_world_fail() {
             check_trait(Foo)
 
             Caused by:
-                0: prove_where_clause_well_formed(!ty_2 : Bar <!ty_1>)
+                0: prove_where_clauses_well_formed([!ty_2 : Bar <!ty_1>])
                 1: judgment `prove_wc_list { goal: {@ WellFormedTraitRef(Bar(!ty_0, !ty_1))}, assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty, ty> where {Bar(^ty0_1, ^ty0_0)}, trait Bar <ty, ty> where {Baz(^ty0_1)}, trait Baz <ty> ], [], [], [], [], [], {Bar, Baz, Foo}, {}) }` failed at the following rule(s):
                      the rule "some" failed at step #0 (src/file.rs:LL:CC) because
                        judgment `prove_wc { goal: @ WellFormedTraitRef(Bar(!ty_0, !ty_1)), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty, ty> where {Bar(^ty0_1, ^ty0_0)}, trait Bar <ty, ty> where {Baz(^ty0_1)}, trait Baz <ty> ], [], [], [], [], [], {Bar, Baz, Foo}, {}) }` failed at the following rule(s):
@@ -120,16 +120,17 @@ fn basic_where_clauses_fail() {
             check_trait(WellFormed)
 
             Caused by:
-                0: prove_where_clause_well_formed(for <ty> u32 : A <^ty0_0>)
-                1: prove_where_clause_well_formed(u32 : A <!ty_2>)
-                2: judgment `prove_wc_list { goal: {@ WellFormedTraitRef(A(u32, !ty_0))}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
+                0: prove_where_clauses_well_formed([for <ty> u32 : A <^ty0_0>])
+                1: judgment `prove_wc_list { goal: {for <ty> @ WellFormedTraitRef(A(u32, ^ty0_0))}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
                      the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                       judgment `prove_wc { goal: @ WellFormedTraitRef(A(u32, !ty_0)), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
-                         the rule "trait well formed" failed at step #2 (src/file.rs:LL:CC) because
-                           judgment `prove_wc_list { goal: {B(!ty_0)}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
-                             the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                               judgment `prove_wc { goal: B(!ty_0), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
-                                 the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
-                                   expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
+                       judgment `prove_wc { goal: for <ty> @ WellFormedTraitRef(A(u32, ^ty0_0)), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
+                         the rule "forall" failed at step #2 (src/file.rs:LL:CC) because
+                           judgment `prove_wc { goal: @ WellFormedTraitRef(A(u32, !ty_1)), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_1], bias: Soundness }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
+                             the rule "trait well formed" failed at step #2 (src/file.rs:LL:CC) because
+                               judgment `prove_wc_list { goal: {B(!ty_0)}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
+                                 the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                                   judgment `prove_wc { goal: B(!ty_0), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
+                                     the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
+                                       expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }

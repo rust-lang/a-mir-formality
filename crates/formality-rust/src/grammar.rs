@@ -4,8 +4,8 @@ use formality_core::{term, Upcast};
 use formality_prove::Safety;
 use formality_types::{
     grammar::{
-        AdtId, AliasTy, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId, FnId, Lt,
-        Parameter, TraitId, TraitRef, Ty, Wc,
+        AdtId, AliasTy, AssociatedItemId, Binder, Const, ConstData, CrateId, Fallible, FieldId,
+        FnId, Lt, Parameter, Relation, TraitId, TraitRef, Ty, Wc, Wcs,
     },
     rust::Term,
 };
@@ -349,6 +349,56 @@ impl WhereClause {
                 Some(Wc::for_all(&vars, wc))
             }
             WhereClauseData::TypeOfConst(_, _) => None,
+        }
+    }
+
+    pub fn well_formed(&self) -> Wcs {
+        match self.data() {
+            WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
+                trait_id.with(self_ty, parameters).well_formed().upcast()
+            }
+            WhereClauseData::AliasEq(alias_ty, ty) => {
+                let alias_param: Parameter = alias_ty.upcast();
+                let ty_param: Parameter = ty.upcast();
+                [
+                    alias_param.well_formed().upcast(),
+                    ty_param.well_formed().upcast(),
+                ]
+                .into_iter()
+                .collect()
+            }
+            WhereClauseData::Outlives(a, b) => {
+                let a_param: Parameter = a.upcast();
+                let b_param: Parameter = b.upcast();
+                [
+                    a_param.well_formed().upcast(),
+                    b_param.well_formed().upcast(),
+                ]
+                .into_iter()
+                .collect()
+            }
+            WhereClauseData::ForAll(binder) => {
+                let (vars, body) = binder.open();
+                body.well_formed()
+                    .into_iter()
+                    .map(|wc| Wc::for_all(&vars, wc))
+                    .collect()
+            }
+            WhereClauseData::TypeOfConst(ct, ty) => {
+                let mut wcs = vec![];
+                match ct.data() {
+                    ConstData::Value(_, t) => {
+                        wcs.push(Relation::equals(ty, t));
+                    }
+                    ConstData::Variable(_) => {}
+                }
+                // FIXME(oli-obk): prove that there is no `TypeOfConst` bound for a different type.
+                let ct_param: Parameter = ct.upcast();
+                let ty_param: Parameter = ty.upcast();
+                wcs.push(ct_param.well_formed());
+                wcs.push(ty_param.well_formed());
+                wcs.into_iter().map(|r| r.upcast()).collect()
+            }
         }
     }
 }
