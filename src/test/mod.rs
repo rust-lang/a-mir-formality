@@ -146,7 +146,7 @@ fn trait_items_with_duplicate_fn_names() {
             }
         ]
 
-        [ /* TODO */ ]
+        ["the function name `a` is defined multiple times",]
 
         expect_test::expect![[r#"
             check_trait(A)
@@ -169,7 +169,7 @@ fn trait_items_with_duplicate_associated_type_names() {
             }
         ]
 
-        [ /* TODO */ ]
+        ["the associated type name `Assoc` is defined multiple times",]
 
         expect_test::expect![[r#"
             check_trait(A)
