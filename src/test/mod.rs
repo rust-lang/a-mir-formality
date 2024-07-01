@@ -133,3 +133,48 @@ fn basic_where_clauses_fail() {
                                    expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }
+
+#[test]
+fn trait_items_with_duplicate_fn_names() {
+    crate::assert_err!(
+        [
+            crate core {
+                trait A {
+                    fn a() -> ();
+                    fn a() -> ();
+                }
+            }
+        ]
+
+        [ /* TODO */ ]
+
+        expect_test::expect![[r#"
+            check_trait(A)
+
+            Caused by:
+                the function name `a` is defined multiple times"#]]
+
+    );
+}
+
+#[test]
+fn trait_items_with_duplicate_associated_type_names() {
+    crate::assert_err!(
+        [
+            crate core {
+                trait A {
+                    type Assoc : [];
+                    type Assoc : [];
+                }
+            }
+        ]
+
+        [ /* TODO */ ]
+
+        expect_test::expect![[r#"
+            check_trait(A)
+
+            Caused by:
+                the associated type name `Assoc` is defined multiple times"#]]
+    );
+}
