@@ -4,8 +4,6 @@ use formality_core::{
     cast_impl, set, term, Cons, DowncastFrom, DowncastTo, Set, Upcast, UpcastFrom, Upcasted,
 };
 
-use crate::grammar::PR;
-
 use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef};
 
 #[term($set)]
@@ -124,7 +122,10 @@ impl Wc {
 #[term]
 pub enum WcData {
     #[cast]
-    PR(PR),
+    Relation(Relation),
+
+    #[cast]
+    Predicate(Predicate),
 
     #[grammar(for $v0)]
     ForAll(Binder<Wc>),
@@ -155,10 +156,10 @@ impl DowncastFrom<Wc> for WcData {
 
 // ---
 
-cast_impl!((PR) <: (WcData) <: (Wc));
-cast_impl!((Relation) <: (PR) <: (Wc));
-cast_impl!((Predicate) <: (PR) <: (Wc));
-cast_impl!((TraitRef) <: (PR) <: (Wc));
+cast_impl!((TraitRef) <: (Predicate) <: (WcData));
+cast_impl!((Relation) <: (WcData) <: (Wc));
+cast_impl!((Predicate) <: (WcData) <: (Wc));
+cast_impl!((TraitRef) <: (WcData) <: (Wc));
 
 impl UpcastFrom<Wc> for Wcs {
     fn upcast_from(term: Wc) -> Self {
@@ -176,7 +177,6 @@ impl DowncastTo<Wc> for Wcs {
     }
 }
 
-cast_impl!((PR) <: (Wc) <: (Wcs));
 cast_impl!((Relation) <: (Wc) <: (Wcs));
 cast_impl!((Predicate) <: (Wc) <: (Wcs));
 cast_impl!((TraitRef) <: (Wc) <: (Wcs));
