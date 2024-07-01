@@ -1,6 +1,6 @@
 # Judgment functions and inference rules
 
-The next thing is the `judgement_fn!` macro. This lets you write a *judgment* using *inference rules*. A "judgment" just means some kind of predicate that the computer can judge to hold or not hold. Inference rules are those rules you may have seen in papers and things:
+The next thing is the `judgment_fn!` macro. This lets you write a *judgment* using *inference rules*. A "judgment" just means some kind of predicate that the computer can judge to hold or not hold. Inference rules are those rules you may have seen in papers and things:
 
 ```
 premise1

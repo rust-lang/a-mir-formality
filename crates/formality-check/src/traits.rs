@@ -1,4 +1,6 @@
+use anyhow::bail;
 use fn_error_context::context;
+use formality_core::Set;
 use formality_prove::Env;
 use formality_rust::grammar::{
     AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, WhereClause,
@@ -31,8 +33,27 @@ impl super::Check<'_> {
         Ok(())
     }
 
-    fn check_trait_items_have_unique_names(&self, _trait_items: &[TraitItem]) -> Fallible<()> {
-        // FIXME:
+    fn check_trait_items_have_unique_names(&self, trait_items: &[TraitItem]) -> Fallible<()> {
+        let mut functions = Set::new();
+        let mut associated_types = Set::new();
+        for trait_item in trait_items {
+            match trait_item {
+                TraitItem::Fn(f) => {
+                    if !functions.insert(&f.id) {
+                        bail!("the function name `{:?}` is defined multiple times", f.id);
+                    }
+                }
+                TraitItem::AssociatedTy(associated_ty) => {
+                    let AssociatedTy { id, .. } = associated_ty;
+                    if !associated_types.insert(id) {
+                        bail!(
+                            "the associated type name `{:?}` is defined multiple times",
+                            id
+                        );
+                    }
+                }
+            }
+        }
         Ok(())
     }
 

@@ -41,7 +41,7 @@ use std::fmt::{Debug, Display};
 /// with `"src/file.rs:LL:CC"`. This makes error messages resilient against changes to the source code.
 pub fn normalize_paths(s: impl Display) -> String {
     let s = s.to_string();
-    let re = regex::Regex::new(r"\([^():]+.rs:\d+:\d+\)").unwrap();
+    let re = regex::Regex::new(r"\([^()]+.rs:\d+:\d+\)").unwrap();
     re.replace_all(&s, "(src/file.rs:LL:CC)").to_string()
 }
 

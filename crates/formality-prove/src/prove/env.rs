@@ -7,26 +7,56 @@ use formality_types::{
     rust::{Fold, Visit},
 };
 
+/// Whether the solver has to be sound or complete. While it should
+/// ideally be both at all times, we have some rules which break these
+/// properties, so we have to make sure they are only used while in
+/// the proper `Env`. Regardless of the current bias, it's always valid
+/// to return an ambiguous result.
+#[derive(Default, Debug, Clone, Copy, Hash, Ord, Eq, PartialEq, PartialOrd)]
+pub enum Bias {
+    /// Whenever we're able to prove something, it has to definitely be
+    /// *truly true*. We must never be able to prove somethingwhich is not
+    /// *truly true*. This is the default unless we're currently trying to
+    /// prove the negation via "negation as failure".
+    ///
+    /// By convention, functions which may only be used with a bias
+    /// for soundness are called `fn is_X` or `fn is_definitely_X`.
+    #[default]
+    Soundness,
+    /// If we are unable to find a solution for some goal, this goal must
+    /// definitely not be proveable, it is known to not be *truly true*. This
+    /// implies that we must only add constraints if they are definitely
+    /// necessary as we can otherwise use these constraints to incorrectly
+    /// disprove something.
+    ///
+    /// Most notably, this is used by coherence checking to make sure that impls
+    /// definitely do not overlap.
+    ///
+    /// By convention, functions which may only be used with a bias for
+    /// completeness are called `fn may_X`.
+    Completeness,
+}
+
 #[derive(Default, Debug, Clone, Hash, Ord, Eq, PartialEq, PartialOrd)]
 pub struct Env {
     variables: Vec<Variable>,
-    coherence_mode: bool,
+    bias: Bias,
 }
 
 impl Env {
+    pub fn new_with_bias(bias: Bias) -> Self {
+        Env {
+            variables: Default::default(),
+            bias,
+        }
+    }
+
     pub fn only_universal_variables(&self) -> bool {
         self.variables.iter().all(|v| v.is_universal())
     }
 
-    pub fn is_in_coherence_mode(&self) -> bool {
-        self.coherence_mode
-    }
-
-    pub fn with_coherence_mode(&self, b: bool) -> Env {
-        Env {
-            coherence_mode: b,
-            ..self.clone()
-        }
+    pub fn bias(&self) -> Bias {
+        self.bias
     }
 }
 
@@ -71,6 +101,13 @@ impl Env {
     pub fn fresh_existential(&mut self, kind: ParameterKind) -> ExistentialVar {
         let var_index = self.fresh_index();
         let v = ExistentialVar { kind, var_index };
+        self.variables.push(v.upcast());
+        v
+    }
+
+    pub fn fresh_universal(&mut self, kind: ParameterKind) -> UniversalVar {
+        let var_index = self.fresh_index();
+        let v = UniversalVar { kind, var_index };
         self.variables.push(v.upcast());
         v
     }
@@ -208,7 +245,7 @@ impl Env {
                 .iter()
                 .map(|&v| vs.map_var(v).unwrap_or(v))
                 .collect(),
-            coherence_mode: self.coherence_mode,
+            bias: self.bias,
         }
     }
 

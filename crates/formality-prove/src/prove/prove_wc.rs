@@ -4,7 +4,7 @@ use formality_types::grammar::{Predicate, Relation, Wc, WcData, Wcs};
 use crate::{
     decls::Decls,
     prove::{
-        env::Env,
+        env::{Bias, Env},
         is_local::{is_local_trait_ref, may_be_remote},
         prove,
         prove_after::prove_after,
@@ -43,7 +43,13 @@ judgment_fn! {
             (&assumptions => a)!
             (prove_via(&decls, &env, &assumptions, a, &goal) => c)
             ----------------------------- ("assumption")
-            (prove_wc(decls, env, assumptions, WcData::PR(goal)) => c)
+            (prove_wc(decls, env, assumptions, WcData::Predicate(goal)) => c)
+        )
+        (
+            (&assumptions => a)!
+            (prove_via(&decls, &env, &assumptions, a, &goal) => c)
+            ----------------------------- ("assumption")
+            (prove_wc(decls, env, assumptions, WcData::Relation(goal)) => c)
         )
 
         (
@@ -60,10 +66,10 @@ judgment_fn! {
         )
 
         (
-            (if env.is_in_coherence_mode())!
-            (may_be_remote(decls, &env, assumptions, trait_ref) => ())
+            (if env.bias() == Bias::Completeness)!
+            (may_be_remote(decls, &env, assumptions, trait_ref) => c)
             ----------------------------- ("coherence / remote impl")
-            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => Constraints::none(&env).ambiguous())
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c)
         )
 
         (
