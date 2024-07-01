@@ -11,7 +11,7 @@ impl super::Check<'_> {
 
         // names is used to check that there are no name conflicts
         let mut names = HashSet::new();
-        for Variant { name, fields } in &adt.binder.open().1.variants {
+        for Variant { name, fields } in &adt.binder.peek().variants {
             if !names.insert((name, None)) {
                 bail!("variant \"{name:?}\" defined multiple times");
             }
