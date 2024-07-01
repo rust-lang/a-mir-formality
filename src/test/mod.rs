@@ -147,7 +147,7 @@ fn basic_adt_variant_dup() {
             }
         ]
 
-        [ /* TODO */ ]
+        [ r#"variant "Baz" defined multiple times"#, ]
 
         expect_test::expect![[r#"variant "Baz" defined multiple times"#]]
     )
@@ -165,12 +165,13 @@ fn basic_adt_field_dup() {
             }
         ]
 
-        [ /* TODO */ ]
+        [ r#"field "baz" of variant "struct" defined multiple times"#, ]
 
         expect_test::expect![[r#"field "baz" of variant "struct" defined multiple times"#]]
     )
 }
 
+#[test]
 fn trait_items_with_duplicate_fn_names() {
     crate::assert_err!(
         [
