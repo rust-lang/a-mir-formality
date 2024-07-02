@@ -3,8 +3,8 @@
 use formality_types::rust::FormalityLang;
 // ANCHOR_END: use_rust_language
 
+mod fuzz;
 pub mod grammar;
 pub mod prove;
 mod test;
 mod trait_binder;
-mod fuzz;
