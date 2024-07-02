@@ -1,8 +1,8 @@
 use crate::grammar::{
     Adt, AdtBoundData, AssociatedTy, AssociatedTyBoundData, AssociatedTyValue,
-    AssociatedTyValueBoundData, Crate, CrateItem, ImplItem, NegTraitImpl, NegTraitImplBoundData,
-    Program, Trait, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem, WhereBound,
-    WhereBoundData, WhereClause, WhereClauseData,
+    AssociatedTyValueBoundData, Crate, CrateItem, Fn, FnBoundData, ImplItem, NegTraitImpl,
+    NegTraitImplBoundData, Program, Trait, TraitBoundData, TraitImpl, TraitImplBoundData,
+    TraitItem, WhereBound, WhereBoundData, WhereClause, WhereClauseData,
 };
 use formality_core::{seq, Set, To, Upcast, Upcasted};
 use formality_prove as prove;
@@ -20,6 +20,7 @@ impl Program {
             alias_eq_decls: self.alias_eq_decls(),
             alias_bound_decls: self.alias_bound_decls(),
             adt_decls: self.adt_decls(),
+            fn_decls: self.fn_decls(),
             local_trait_ids: self.local_trait_ids(),
             local_adt_ids: self.local_adt_ids(),
         }
@@ -56,6 +57,10 @@ impl Program {
 
     fn adt_decls(&self) -> Vec<prove::AdtDecl> {
         self.crates.iter().flat_map(|c| c.adt_decls()).collect()
+    }
+
+    fn fn_decls(&self) -> Vec<prove::FnDecl> {
+        self.crates.iter().flat_map(|c| c.fn_decls()).collect()
     }
 
     fn local_trait_ids(&self) -> Set<TraitId> {
@@ -327,6 +332,31 @@ impl Crate {
                 CrateItem::NegTraitImpl(_) => None,
                 CrateItem::Fn(_) => None,
                 CrateItem::Test(_) => None,
+            })
+            .collect()
+    }
+
+    fn fn_decls(&self) -> Vec<prove::FnDecl> {
+        self.items
+            .iter()
+            .flat_map(|item| match item {
+                CrateItem::Fn(f) => Some(f),
+                _ => None,
+            })
+            .map(|Fn { id, binder }| prove::FnDecl {
+                id: id.clone(),
+                binder: binder.map(
+                    |FnBoundData {
+                         input_tys,
+                         output_ty,
+                         where_clauses,
+                         body: _,
+                     }| prove::FnDeclBoundData {
+                        input_tys,
+                        output_ty,
+                        where_clause: where_clauses.to_wcs(),
+                    },
+                ),
             })
             .collect()
     }

@@ -30,7 +30,7 @@ fn ok() {
 
 #[test]
 fn lifetime() {
-    crate::assert_err!(
+    crate::assert_ok!(
         // Test lifetimes on function
         [
             crate Foo {
@@ -39,13 +39,20 @@ fn lifetime() {
             }
         ]
 
-        [ /* TODO */ ]
+        expect_test::expect!["()"]
+    )
+}
 
-        expect_test::expect![[r#"
-            judgment `prove_wc_list { goal: {@ wf(&!lt_0 !ty_1)}, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-              the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                judgment `prove_wc { goal: @ wf(&!lt_0 !ty_1), assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-                  the rule "parameter well formed" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_wf { goal: &!lt_0 !ty_1, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness }, decls: decls(222, [], [], [], [], [], [], {}, {}) }`"#]]
+#[test]
+fn wf() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo<ty T>() -> T { trusted }
+                fn bar(fn foo<u32>, fn(u32) -> (), fn(bool)) -> () { trusted }
+            }
+        ]
+
+        expect_test::expect!["()"]
     )
 }

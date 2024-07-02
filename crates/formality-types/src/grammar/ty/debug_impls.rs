@@ -32,6 +32,25 @@ impl Debug for RigidTy {
                     write!(f, "()")
                 }
             }
+            RigidName::FnDef(name) => {
+                let parameters = PrettyParameters::new("<", ">", parameters);
+                write!(f, "{name:?}{parameters:?}",)
+            }
+            RigidName::FnPtr(arity) if parameters.len() == *arity + 1 => {
+                let len = parameters.len();
+                if *arity != 0 {
+                    write!(
+                        f,
+                        "{:?}",
+                        PrettyParameters::new("(", ")", &parameters[..len - 1])
+                    )?;
+                } else {
+                    // PrettyParameters would skip the separators
+                    // for 0 arity
+                    write!(f, "()")?;
+                }
+                write!(f, "-> {:?}", parameters[len - 1])
+            }
             _ => {
                 write!(f, "{:?}{:?}", name, PrettyParameters::angle(parameters))
             }
