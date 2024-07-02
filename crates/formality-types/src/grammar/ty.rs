@@ -83,6 +83,14 @@ impl Ty {
         }
         .upcast()
     }
+
+    pub fn unit() -> Ty {
+        RigidTy {
+            name: RigidName::Tuple(0),
+            parameters: vec![],
+        }
+        .upcast()
+    }
 }
 
 impl UpcastFrom<TyData> for Ty {
