@@ -1,4 +1,6 @@
+use crate::binder::fuzz::{open_fuzz_binder_impl, PushKindGuard};
 use crate::cast::UpcastFrom;
+use crate::fuzz::FuzzSingleton;
 use crate::term::CoreTerm;
 use crate::variable::{CoreBoundVar, CoreExistentialVar, CoreUniversalVar, CoreVariable};
 use std::fmt::Debug;
@@ -33,6 +35,22 @@ pub trait Language: 'static + Copy + Ord + Hash + Debug + Default {
     /// but it requires custom parsing impls for your types.
     /// No fun.
     const KEYWORDS: &'static [&'static str];
+
+    /// Brings new variables into scope for fuzzing.
+    /// These new bound variables may be referenced when you fuzz a `Variable`.
+    /// To close the fuzz binder, use [`PushKindGuard::into_binder`](PushKindGuard::into_binder)
+    /// method.
+    ///
+    /// See the Formality Book [chapter on fuzzing][f] for more details.
+    ///
+    /// [f]: https://rust-lang.github.io/a-mir-formality/formality_core/fuzzing.html
+    fn open_fuzz_binder(kinds: &[Self::Kind]) -> PushKindGuard<Self> {
+        open_fuzz_binder_impl::<Self>(kinds)
+    }
+
+    /// Access the data for bound variables in scope.
+    /// Not normally used directly, instead invoke `push_fuzz_variables`.
+    fn fuzz_free_variables() -> &'static FuzzSingleton<Vec<CoreBoundVar<Self>>>;
 }
 
 /// For consistency with types like `CoreVariable<L>`, we write `CoreKind<L>` instead of `Kind<L>`.

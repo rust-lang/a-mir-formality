@@ -4,7 +4,7 @@ use formality_core::{Upcast, UpcastFrom};
 
 use super::Bool;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit, bolero::TypeGenerator)]
 pub enum ValTree {
     Leaf(Scalar),
     Branches(Vec<ValTree>),
@@ -19,7 +19,7 @@ impl std::fmt::Debug for ValTree {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit, bolero::TypeGenerator)]
 pub struct Scalar {
     bits: u128,
 }

@@ -11,6 +11,7 @@ extern crate self as formality_core;
 // in their Cargo.toml.
 pub use anyhow::anyhow;
 pub use anyhow::bail;
+pub use bolero;
 pub use contracts::requires;
 pub use tracing::debug;
 pub use tracing::instrument;
@@ -29,6 +30,7 @@ mod cast;
 mod collections;
 pub mod fixed_point;
 pub mod fold;
+pub mod fuzz;
 pub mod judgment;
 pub mod language;
 pub mod parse;
@@ -121,6 +123,14 @@ macro_rules! declare_language {
                     const BINDING_OPEN: char = $binding_open;
                     const BINDING_CLOSE: char = $binding_close;
                     const KEYWORDS: &'static [&'static str] = &[$($kw),*];
+                    fn fuzz_free_variables() -> &'static $crate::fuzz::FuzzSingleton<
+                        Vec<$crate::variable::CoreBoundVar<Self>>
+                    > {
+                        static FUZZ_POOL: $crate::fuzz::FuzzSingleton<
+                            Vec<$crate::variable::CoreBoundVar<super::FormalityLang>>
+                        > = $crate::fuzz::FuzzSingleton::new();
+                        &FUZZ_POOL
+                    }
                 }
             }
 
@@ -200,6 +210,7 @@ macro_rules! id {
 
         const _: () = {
             use $crate::fold::{self, CoreFold};
+            use $crate::fuzz::FuzzSingleton;
             use $crate::parse::{self, CoreParse};
             use $crate::variable::CoreVariable;
             use $crate::visit::CoreVisit;
@@ -211,6 +222,17 @@ macro_rules! id {
                     $n {
                         data: std::sync::Arc::new(s.to_string()),
                     }
+                }
+
+                pub fn fuzz_pool() -> &'static FuzzSingleton<Vec<Self>> {
+                    static FUZZ_POOL: FuzzSingleton<Vec<$n>> = FuzzSingleton::new();
+                    &FUZZ_POOL
+                }
+            }
+
+            impl $crate::bolero::TypeGenerator for $n {
+                fn generate<D: $crate::bolero::Driver>(driver: &mut D) -> Option<Self> {
+                    Self::fuzz_pool().fuzz_pick(driver)
                 }
             }
 

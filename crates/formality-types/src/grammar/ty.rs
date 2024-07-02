@@ -1,7 +1,7 @@
 use formality_core::{cast_impl, term};
 use std::sync::Arc;
-
 mod debug_impls;
+mod fuzz_impls;
 mod parse_impls;
 mod term_impls;
 use formality_core::{DowncastTo, To, Upcast, UpcastFrom};
@@ -13,6 +13,7 @@ use super::{
 
 #[term]
 #[cast]
+#[derive(bolero::TypeGenerator)]
 #[customize(constructors)] // FIXME: figure out upcasts with arc or special-case
 pub struct Ty {
     data: Arc<TyData>,
@@ -100,6 +101,7 @@ impl DowncastTo<TyData> for Ty {
 // NB: TyData doesn't implement Fold; you fold types, not TyData,
 // because variables might not map to the same variant.
 #[term]
+#[derive(bolero::TypeGenerator)]
 pub enum TyData {
     #[cast]
     RigidTy(RigidTy),
@@ -142,6 +144,7 @@ impl DowncastTo<ScalarId> for RigidTy {
 }
 
 #[term]
+#[derive(bolero::TypeGenerator)]
 pub enum RigidName {
     #[grammar((adt $v0))]
     #[cast]
@@ -158,12 +161,14 @@ pub enum RigidName {
 }
 
 #[term]
+#[derive(bolero::TypeGenerator)]
 pub enum RefKind {
     Shared,
     Mut,
 }
 
 #[term]
+#[derive(bolero::TypeGenerator)]
 pub enum ScalarId {
     #[grammar(u8)]
     U8,
@@ -191,6 +196,7 @@ pub enum ScalarId {
 
 #[term((alias $name $*parameters))]
 #[customize(parse, debug)]
+#[derive(bolero::TypeGenerator)]
 pub struct AliasTy {
     pub name: AliasName,
     pub parameters: Parameters,
@@ -218,6 +224,7 @@ impl AliasTy {
 }
 
 #[term]
+#[derive(bolero::TypeGenerator)]
 pub enum AliasName {
     #[cast]
     AssociatedTyId(AssociatedTyName),
@@ -236,11 +243,13 @@ pub struct AssociatedTyName {
 }
 
 #[term]
+#[derive(bolero::TypeGenerator)]
 pub enum PredicateTy {
     ForAll(Binder<Ty>),
 }
 
 #[term]
+#[derive(bolero::TypeGenerator)]
 pub enum Parameter {
     #[cast]
     Ty(Ty),
@@ -275,7 +284,7 @@ impl Parameter {
 pub type Parameters = Vec<Parameter>;
 
 #[term]
-#[derive(Copy)]
+#[derive(Copy, bolero::TypeGenerator)]
 pub enum ParameterKind {
     Ty,
     Lt,
@@ -283,7 +292,7 @@ pub enum ParameterKind {
 }
 
 #[term]
-#[derive(Copy)]
+#[derive(Copy, bolero::TypeGenerator)]
 pub enum Variance {
     #[grammar(+)]
     Covariant,
@@ -295,6 +304,7 @@ pub enum Variance {
 
 #[term]
 #[cast]
+#[derive(bolero::TypeGenerator)]
 #[customize(constructors)] // FIXME: figure out upcasts with arc or special-case
 pub struct Lt {
     data: Arc<LtData>,
@@ -336,6 +346,7 @@ impl DowncastTo<LtData> for Lt {
 }
 
 #[term]
+#[derive(bolero::TypeGenerator)]
 pub enum LtData {
     Static,
 

@@ -16,6 +16,8 @@ use crate::{
     Fallible,
 };
 
+pub mod fuzz;
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct CoreBinder<L: Language, T> {
     kinds: Vec<CoreKind<L>>,
@@ -280,5 +282,21 @@ where
             write!(f, "{:?}", &self.term)?;
             Ok(())
         }
+    }
+}
+
+/// Creates a fresh bound var of the given kind that is not yet part of a binder.
+/// You can put this into a term and then use `Binder::new`.
+pub fn fresh_bound_var<L: Language>(kind: L::Kind) -> CoreBoundVar<L> {
+    lazy_static! {
+        static ref COUNTER: AtomicUsize = AtomicUsize::new(0);
+    }
+
+    let index = COUNTER.fetch_add(1, Ordering::SeqCst);
+    let var_index = VarIndex { index };
+    CoreBoundVar {
+        debruijn: None,
+        var_index,
+        kind,
     }
 }

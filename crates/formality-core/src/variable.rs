@@ -210,5 +210,18 @@ impl std::ops::Add<usize> for VarIndex {
     }
 }
 
+impl<L: Language> bolero::TypeGenerator for CoreBoundVar<L> {
+    fn generate<D: bolero::Driver>(driver: &mut D) -> Option<Self> {
+        L::fuzz_free_variables().fuzz_pick(driver)
+    }
+}
+
+impl<L: Language> bolero::TypeGenerator for CoreVariable<L> {
+    fn generate<D: bolero::Driver>(driver: &mut D) -> Option<Self> {
+        let v: CoreBoundVar<L> = driver.gen()?;
+        Some(v.upcast())
+    }
+}
+
 mod cast_impls;
 mod debug_impls;

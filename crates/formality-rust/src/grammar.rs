@@ -111,18 +111,21 @@ impl Struct {
 }
 
 #[term($:where $,where_clauses { $,fields })]
+#[derive(bolero::TypeGenerator)]
 pub struct StructBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub fields: Vec<Field>,
 }
 
 #[term($name : $ty)]
+#[derive(bolero::TypeGenerator)]
 pub struct Field {
     pub name: FieldName,
     pub ty: Ty,
 }
 
 #[term]
+#[derive(bolero::TypeGenerator)]
 pub enum FieldName {
     #[cast]
     Id(FieldId),
@@ -163,12 +166,14 @@ pub struct Adt {
 }
 
 #[term($:where $,where_clauses { $,variants })]
+#[derive(bolero::TypeGenerator)]
 pub struct AdtBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub variants: Vec<Variant>,
 }
 
 #[term($name { $,fields })]
+#[derive(bolero::TypeGenerator)]
 pub struct Variant {
     pub name: VariantId,
     pub fields: Vec<Field>,
@@ -324,6 +329,7 @@ pub struct AssociatedTyValueBoundData {
 }
 
 #[term($data)]
+#[derive(bolero::TypeGenerator)]
 pub struct WhereClause {
     pub data: Arc<WhereClauseData>,
 }
@@ -404,6 +410,7 @@ impl WhereClause {
 }
 
 #[term]
+#[derive(bolero::TypeGenerator)]
 pub enum WhereClauseData {
     #[grammar($v0 : $v1 $<?v2>)]
     IsImplemented(Ty, TraitId, Vec<Parameter>),
