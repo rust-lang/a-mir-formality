@@ -12,6 +12,7 @@ formality_core::declare_language! {
         const BINDING_CLOSE = '>';
         const KEYWORDS = [
             "mut",
+            "fn",
             "struct",
             "enum",
             "union",

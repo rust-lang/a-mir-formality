@@ -43,12 +43,34 @@ judgment_fn! {
         )
 
         (
+            // only checks that type is well-formed, does not do any lifetime or borrow check
+            (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
+            --- ("ref")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Ref(_), parameters }) => c)
+        )
+
+        (
             (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
             (let t = decls.adt_decl(&adt_id))
             (let t = t.binder.instantiate_with(&parameters).unwrap())
             (prove_after(&decls, c, &assumptions, t.where_clause) => c)
             --- ("ADT")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::AdtId(adt_id), parameters }) => c)
+        )
+
+        (
+            (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
+            (let t = decls.fn_decl(&fn_id))
+            (let t = t.binder.instantiate_with(&parameters).unwrap())
+            (prove_after(&decls, c, &assumptions, t.where_clause) => c)
+            --- ("fn-defs")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::FnDef(fn_id), parameters }) => c)
+        )
+
+        (
+            (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
+            --- ("fn-ptr")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::FnPtr(_), parameters }) => c)
         )
 
         (

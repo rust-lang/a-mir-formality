@@ -7,7 +7,7 @@ use formality_core::Upcast;
 use formality_core::{seq, Set};
 
 use crate::grammar::{
-    AdtId, AssociatedItemId, Bool, ConstData, RefKind, RigidName, Scalar, TraitId,
+    AdtId, AssociatedItemId, Bool, ConstData, FnId, RefKind, RigidName, Scalar, TraitId,
 };
 
 use super::{AliasTy, AssociatedTyName, Lt, Parameter, ParameterKind, RigidTy, ScalarId, Ty};
@@ -70,6 +70,37 @@ impl CoreParse<Rust> for RigidTy {
                     parameters: types.upcast(),
                 })
             });
+
+            parser.parse_variant("Fn", Precedence::default(), |p| {
+                // parses 'fn name<params>' as fn-def
+                // or 'fn(params) -> ty' as fn-ptr
+                p.expect_keyword("fn")?;
+
+                if p.expect_char('(').is_ok() {
+                    p.reject_custom_keywords(&["alias", "rigid", "predicate"])?;
+                    let mut types: Vec<Ty> = p.comma_nonterminal()?;
+                    p.expect_char(')')?;
+                    let name = RigidName::FnPtr(types.len());
+                    if p.expect_char('-').is_ok() {
+                        p.expect_char('>')?;
+                        let ret = p.nonterminal()?;
+                        types.push(ret);
+                    } else {
+                        types.push(Ty::unit());
+                    }
+                    Ok(RigidTy {
+                        name,
+                        parameters: types.upcast(),
+                    })
+                } else {
+                    let name: FnId = p.nonterminal()?;
+                    let parameters: Vec<Parameter> = parse_parameters(p)?;
+                    Ok(RigidTy {
+                        name: RigidName::FnDef(name),
+                        parameters,
+                    })
+                }
+            })
         })
     }
 }
