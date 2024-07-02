@@ -136,6 +136,42 @@ fn basic_where_clauses_fail() {
 }
 
 #[test]
+fn basic_adt_variant_dup() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                enum Bar {
+                    Baz{},
+                    Baz{},
+                }
+            }
+        ]
+
+        [ r#"variant "Baz" defined multiple times"#, ]
+
+        expect_test::expect![[r#"variant "Baz" defined multiple times"#]]
+    )
+}
+
+#[test]
+fn basic_adt_field_dup() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Bar {
+                    baz: (),
+                    baz: (),
+                }
+            }
+        ]
+
+        [ r#"field "baz" of variant "struct" defined multiple times"#, ]
+
+        expect_test::expect![[r#"field "baz" of variant "struct" defined multiple times"#]]
+    )
+}
+
+#[test]
 fn trait_items_with_duplicate_fn_names() {
     crate::assert_err!(
         [
