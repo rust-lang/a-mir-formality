@@ -122,10 +122,10 @@ impl Wc {
 #[term]
 pub enum WcData {
     #[cast]
-    Relation(Relation),
+    Predicate(Predicate),
 
     #[cast]
-    Predicate(Predicate),
+    Relation(Relation),
 
     #[grammar(for $v0)]
     ForAll(Binder<Wc>),
