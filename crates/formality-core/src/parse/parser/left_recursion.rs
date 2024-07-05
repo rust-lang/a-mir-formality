@@ -97,7 +97,7 @@ impl StackEntry {
         let scope: *const () = erase_type(scope);
         let start_text: *const str = start_text;
         let type_id = TypeId::of::<T>();
-        scope == self.scope && start_text == self.start_text && self.type_id == type_id
+        scope == self.scope && std::ptr::eq(start_text, self.start_text) && self.type_id == type_id
     }
 
     /// True if a call to parse a value of type `T` with the given scope scope/text
@@ -152,7 +152,7 @@ impl StackEntry {
         let Some(current_state) = &self.current_state else {
             panic!("observed a stack frame with no current state (forgot to call `recuse`?");
         };
-        if start_text != current_state.current_text {
+        if !std::ptr::eq(start_text, current_state.current_text) {
             return None;
         }
 
