@@ -58,17 +58,6 @@ macro_rules! seq {
 
 }
 
-pub trait VecExt<T>: Sized {
-    fn with_pushed(self, other: T) -> Self;
-}
-
-impl<T: Ord + Clone> VecExt<T> for Vec<T> {
-    fn with_pushed(mut self, other: T) -> Self {
-        self.push(other);
-        self
-    }
-}
-
 pub trait SetExt<T>: Sized {
     fn split_first(self) -> Option<(T, Set<T>)>;
 
