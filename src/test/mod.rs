@@ -215,3 +215,61 @@ fn trait_items_with_duplicate_associated_type_names() {
                 the associated type name `Assoc` is defined multiple times"#]]
     );
 }
+
+#[test]
+fn crate_with_duplicate_item_names() {
+    crate::assert_err!(
+        [
+            crate core {
+                struct A {}
+
+                enum A {}
+            }
+        ]
+
+        ["the item name `A` is defined multiple times",]
+
+        expect_test::expect![[r#"the item name `A` is defined multiple times"#]]
+    );
+
+    crate::assert_err!(
+        [
+            crate core {
+                trait a {}
+
+                trait a {}
+            }
+        ]
+
+        ["the trait name `a` is defined multiple times",]
+
+        expect_test::expect![[r#"the trait name `a` is defined multiple times"#]]
+    );
+
+    crate::assert_err!(
+        [
+            crate core {
+                fn a() -> () { trusted }
+
+                fn a() -> () { trusted }
+            }
+        ]
+
+        ["the function name `a` is defined multiple times",]
+
+        expect_test::expect![[r#"the function name `a` is defined multiple times"#]]
+    );
+
+    crate::assert_ok!(
+        //@check-pass
+        [
+            crate core {
+                trait a {}
+
+                fn a() -> () { trusted }
+            }
+        ]
+
+        expect_test::expect!["()"]
+    );
+}

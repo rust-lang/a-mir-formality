@@ -3,6 +3,7 @@
 use std::{collections::VecDeque, fmt::Debug};
 
 use anyhow::bail;
+use formality_core::Set;
 use formality_prove::{is_definitely_not_proveable, Decls, Env};
 use formality_rust::{
     grammar::{Crate, CrateItem, Program, Test, TestBoundData},
@@ -71,7 +72,38 @@ impl Check<'_> {
     }
 
     fn check_for_duplicate_items(&self) -> Fallible<()> {
-        // FIXME: check for items with duplicate names, respecting the various Rust rules about namespaces
+        let Program { crates } = &self.program;
+        for c in crates.iter() {
+            let mut items = Set::new();
+            let mut traits = Set::new();
+            let mut functions = Set::new();
+            for item in c.items.iter() {
+                match item {
+                    CrateItem::Struct(s) => {
+                        if !items.insert(&s.id) {
+                            bail!("the item name `{:?}` is defined multiple times", s.id);
+                        }
+                    }
+                    CrateItem::Enum(e) => {
+                        if !items.insert(&e.id) {
+                            bail!("the item name `{:?}` is defined multiple times", e.id);
+                        }
+                    }
+                    CrateItem::Trait(t) => {
+                        if !traits.insert(&t.id) {
+                            bail!("the trait name `{:?}` is defined multiple times", t.id);
+                        }
+                    }
+                    CrateItem::Fn(f) => {
+                        if !functions.insert(&f.id) {
+                            bail!("the function name `{:?}` is defined multiple times", f.id);
+                        }
+                    }
+                    CrateItem::TraitImpl(_) | CrateItem::NegTraitImpl(_) | CrateItem::Test(_) => {}
+                }
+            }
+        }
+
         Ok(())
     }
 
