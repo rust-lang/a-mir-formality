@@ -1,8 +1,7 @@
 #![cfg(test)]
-#![cfg(FIXME)]
 
 use formality_macros::test;
-use formality_types::parse::term;
+use formality_types::rust::term;
 
 use crate::grammar::Program;
 
@@ -20,7 +19,45 @@ fn test_parse_rust_like_trait_impl_syntax() {
 
     // Note: the for etc are correctly accounted.
     expect_test::expect![[r#"
-        [crate core { impl <ty, ty> PartialEq < ^ty0_0 > for ^ty0_1 { } }]
+        Program {
+            crates: [
+                Crate {
+                    id: core,
+                    items: [
+                        TraitImpl(
+                            TraitImpl {
+                                safety: Safe,
+                                binder: Binder {
+                                    kinds: [
+                                        Ty,
+                                        Ty,
+                                    ],
+                                    term: TraitImplBoundData {
+                                        trait_id: PartialEq,
+                                        self_ty: Ty {
+                                            data: Variable(
+                                                ^ty0_1,
+                                            ),
+                                        },
+                                        trait_parameters: [
+                                            Ty(
+                                                Ty {
+                                                    data: Variable(
+                                                        ^ty0_0,
+                                                    ),
+                                                },
+                                            ),
+                                        ],
+                                        where_clauses: [],
+                                        impl_items: [],
+                                    },
+                                },
+                            },
+                        ),
+                    ],
+                },
+            ],
+        }
     "#]]
     .assert_debug_eq(&r);
 }
@@ -39,7 +76,22 @@ fn test_parse_rust_like_trait_syntax() {
 
     // Note: two type parameters, and the 0th one is self:
     expect_test::expect![[r#"
-        [crate core { trait Foo <ty, ty> where ^ty0_1 : Bar < ^ty0_0 > { } }]
+        Program {
+            crates: [
+                Crate {
+                    id: core,
+                    items: [
+                        Trait(
+                            Trait {
+                                safety: Safe,
+                                id: Foo,
+                                binder: <ty, ty> where ^ty0_1 : Bar <^ty0_0> { },
+                            },
+                        ),
+                    ],
+                },
+            ],
+        }
     "#]]
     .assert_debug_eq(&r);
 }
@@ -56,9 +108,41 @@ fn test_parse_rust_like_struct_syntax() {
         ]",
     );
 
-    // Note: two type parameters, and the 0th one is self:
     expect_test::expect![[r#"
-        [crate core { struct Foo <ty> { a : ^ty0_0 } }]
+        Program {
+            crates: [
+                Crate {
+                    id: core,
+                    items: [
+                        Struct(
+                            Struct {
+                                id: Foo,
+                                binder: Binder {
+                                    kinds: [
+                                        Ty,
+                                    ],
+                                    term: StructBoundData {
+                                        where_clauses: [],
+                                        fields: [
+                                            Field {
+                                                name: Id(
+                                                    a,
+                                                ),
+                                                ty: Ty {
+                                                    data: Variable(
+                                                        ^ty0_0,
+                                                    ),
+                                                },
+                                            },
+                                        ],
+                                    },
+                                },
+                            },
+                        ),
+                    ],
+                },
+            ],
+        }
     "#]]
     .assert_debug_eq(&r);
 }
