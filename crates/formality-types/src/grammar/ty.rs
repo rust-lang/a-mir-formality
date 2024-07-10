@@ -1,7 +1,7 @@
 use formality_core::{cast_impl, term};
 use std::sync::Arc;
-
 mod debug_impls;
+mod fuzz_impls;
 mod parse_impls;
 mod term_impls;
 use formality_core::{DowncastTo, To, Upcast, UpcastFrom};
@@ -119,7 +119,7 @@ impl UpcastFrom<Ty> for TyData {
 
 // ANCHOR: RigidTy_decl
 #[term((rigid $name $*parameters))]
-#[customize(parse, debug)]
+#[customize(parse, debug, fuzz)]
 pub struct RigidTy {
     pub name: RigidName,
     pub parameters: Parameters,
@@ -224,6 +224,7 @@ pub enum AliasName {
 }
 
 #[term(($trait_id :: $item_id / $item_arity))]
+#[customize(fuzz)]
 pub struct AssociatedTyName {
     /// The trait in which the associated type was declared.
     pub trait_id: TraitId,

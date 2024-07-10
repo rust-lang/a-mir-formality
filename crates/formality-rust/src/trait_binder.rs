@@ -1,7 +1,9 @@
 use std::fmt::Debug;
 
 use formality_core::{
+    binder::fuzz::KindVec,
     fold::CoreFold,
+    fuzz::Fuzzable,
     parse::{Binding, CoreParse, ParseResult, Parser, Scope},
     term::CoreTerm,
     visit::CoreVisit,
@@ -24,6 +26,39 @@ where
 }
 
 impl<T> CoreTerm<FormalityLang> for TraitBinder<T> where T: Term {}
+
+impl<T> Fuzzable<FormalityLang> for TraitBinder<T>
+where
+    T: CoreTerm<FormalityLang>,
+{
+    fn is_binder() -> bool {
+        true
+    }
+
+    fn estimate_cardinality(cx: &mut formality_core::fuzz::FuzzCx<'_, FormalityLang>) -> f64 {
+        cx.enter_estimate_cardinality::<Self>(|guard| {
+            (guard.binder_range().len() + 1) as f64 // N variables (including 1 extra for self)
+                * guard.estimate_cardinality::<ParameterKind>() // each can be either kind
+                * guard.estimate_cardinality::<T>() // and then we generate the T
+        })
+    }
+
+    fn fuzz(cx: &mut formality_core::fuzz::FuzzCx<'_, FormalityLang>) -> Option<Self> {
+        cx.enter_fuzz::<Self>(|guard| {
+            let kinds: KindVec<FormalityLang> = guard.fuzz()?;
+            let kinds: Vec<ParameterKind> = Some(ParameterKind::Ty)
+                .into_iter()
+                .chain(kinds.into_vec())
+                .collect();
+            let explicit_binder =
+                guard.introduce_free_variables_of_kinds(&kinds, |guard, variables| {
+                    let bound_term = guard.fuzz::<T>()?;
+                    Some(Binder::new(variables, bound_term))
+                })?;
+            Some(TraitBinder { explicit_binder })
+        })
+    }
+}
 
 impl<T> DowncastTo<TraitBinder<T>> for TraitBinder<T>
 where

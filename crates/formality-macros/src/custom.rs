@@ -7,6 +7,7 @@ pub(crate) struct Customize {
     pub constructors: bool,
     pub fold: bool,
     pub visit: bool,
+    pub fuzz: bool,
 }
 
 impl syn::parse::Parse for Customize {
@@ -45,6 +46,7 @@ impl syn::parse::Parse for Customize {
                 constructors,
                 fold,
                 visit,
+                fuzz,
             }
 
             if let Some(token) = tokens.next() {

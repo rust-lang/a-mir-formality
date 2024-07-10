@@ -11,13 +11,14 @@ extern crate self as formality_core;
 // in their Cargo.toml.
 pub use anyhow::anyhow;
 pub use anyhow::bail;
+pub use bolero;
 pub use contracts::requires;
 pub use tracing::debug;
 pub use tracing::instrument;
 pub use tracing::trace;
 
 // Re-export things from formality-macros.
-pub use formality_macros::{fixed_point, respan, term, test, Visit};
+pub use formality_macros::{fixed_point, respan, term, test, Fuzz, Visit};
 
 pub type Fallible<T> = anyhow::Result<T>;
 
@@ -29,6 +30,7 @@ mod cast;
 mod collections;
 pub mod fixed_point;
 pub mod fold;
+pub mod fuzz;
 pub mod judgment;
 pub mod language;
 pub mod parse;
@@ -116,10 +118,15 @@ macro_rules! declare_language {
                 use super::super::*;
                 impl $crate::language::Language for super::FormalityLang {
                     const NAME: &'static str = $name;
+
                     type Kind = $kind;
+
                     type Parameter = $param;
+
                     const BINDING_OPEN: char = $binding_open;
+
                     const BINDING_CLOSE: char = $binding_close;
+
                     const KEYWORDS: &'static [&'static str] = &[$($kw),*];
                 }
             }
@@ -211,6 +218,18 @@ macro_rules! id {
                     $n {
                         data: std::sync::Arc::new(s.to_string()),
                     }
+                }
+            }
+
+            impl<L: $crate::language::Language> $crate::fuzz::Fuzzable<L> for $n {
+                fn estimate_cardinality(cx: &mut $crate::fuzz::FuzzCx<'_, L>) -> f64 {
+                    cx.enter_estimate_cardinality::<Self>(|guard| {
+                        guard.num_available_values() as f64
+                    })
+                }
+
+                fn fuzz(cx: &mut $crate::fuzz::FuzzCx<'_, L>) -> Option<Self> {
+                    cx.enter_fuzz::<Self>(|guard| guard.pick_value())
                 }
             }
 

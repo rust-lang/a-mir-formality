@@ -1,10 +1,10 @@
 use formality_core::Visit;
 
-use formality_core::{Upcast, UpcastFrom};
+use formality_core::{Fuzz, Upcast, UpcastFrom};
 
 use super::Bool;
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit, Fuzz)]
 pub enum ValTree {
     Leaf(Scalar),
     Branches(Vec<ValTree>),
@@ -19,7 +19,7 @@ impl std::fmt::Debug for ValTree {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Visit, Fuzz)]
 pub struct Scalar {
     bits: u128,
 }

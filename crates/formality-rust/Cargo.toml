@@ -12,6 +12,7 @@ formality-core = { path = "../formality-core" }
 formality-prove = { path = "../formality-prove" }
 anyhow = "1.0.66"
 tracing = "0.1"
+bolero = "0.11.1"
 
 [dev-dependencies]
 expect-test = "1.4.0"
