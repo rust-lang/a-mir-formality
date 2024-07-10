@@ -21,7 +21,7 @@ fn nonsense_rigid_const_bound() {
                 1: judgment `prove_wc_list { goal: {u32 = bool, @ wf(u32), @ wf(const value(0, bool))}, assumptions: {@ ConstHasType(value(0, bool) , u32)}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait Foo <ty> where {@ ConstHasType(value(0, bool) , u32)}], [], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
                      the rule "some" failed at step #0 (src/file.rs:LL:CC) because
                        judgment `prove_wc { goal: u32 = bool, assumptions: {@ ConstHasType(value(0, bool) , u32)}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait Foo <ty> where {@ ConstHasType(value(0, bool) , u32)}], [], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
-                         the rule "assumption" failed at step #1 (src/file.rs:LL:CC) because
+                         the rule "assumption - relation" failed at step #1 (src/file.rs:LL:CC) because
                            judgment had no applicable rules: `prove_via { goal: u32 = bool, via: @ ConstHasType(value(0, bool) , u32), assumptions: {@ ConstHasType(value(0, bool) , u32)}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait Foo <ty> where {@ ConstHasType(value(0, bool) , u32)}], [], [], [], [], [], {Foo}, {}) }`
                          the rule "eq" failed at step #0 (src/file.rs:LL:CC) because
                            judgment `prove_eq { a: u32, b: bool, assumptions: {@ ConstHasType(value(0, bool) , u32)}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait Foo <ty> where {@ ConstHasType(value(0, bool) , u32)}], [], [], [], [], [], {Foo}, {}) }` failed at the following rule(s):
