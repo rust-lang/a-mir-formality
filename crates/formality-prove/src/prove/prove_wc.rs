@@ -42,13 +42,13 @@ judgment_fn! {
         (
             (&assumptions => a)!
             (prove_via(&decls, &env, &assumptions, a, &goal) => c)
-            ----------------------------- ("assumption")
+            ----------------------------- ("assumption - predicate")
             (prove_wc(decls, env, assumptions, WcData::Predicate(goal)) => c)
         )
         (
             (&assumptions => a)!
             (prove_via(&decls, &env, &assumptions, a, &goal) => c)
-            ----------------------------- ("assumption")
+            ----------------------------- ("assumption - relation")
             (prove_wc(decls, env, assumptions, WcData::Relation(goal)) => c)
         )
 
