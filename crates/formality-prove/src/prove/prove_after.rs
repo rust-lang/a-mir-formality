@@ -7,12 +7,12 @@ use super::constraints::Constraints;
 
 judgment_fn! {
     pub fn prove_after(
-        decls: Decls,
+        _decls: Decls,
         constraints: Constraints,
         assumptions: Wcs,
         goal: Wcs,
     ) => Constraints {
-        debug(constraints, goal, assumptions, decls)
+        debug(constraints, goal, assumptions)
 
         (
             (let (assumptions, goal) = c1.substitution().apply(&(assumptions, goal)))
