@@ -1,8 +1,8 @@
 use formality_core::{set, Set, Upcast};
 use formality_macros::term;
 use formality_types::grammar::{
-    AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc,
-    Wcs,
+    AdtId, AliasName, AliasTy, Binder, FnId, Parameter, Predicate, Relation, TraitId, TraitRef, Ty,
+    Wc, Wcs,
 };
 
 #[term]
@@ -16,6 +16,7 @@ pub struct Decls {
     pub alias_eq_decls: Vec<AliasEqDecl>,
     pub alias_bound_decls: Vec<AliasBoundDecl>,
     pub adt_decls: Vec<AdtDecl>,
+    pub fn_decls: Vec<FnDecl>,
     pub local_trait_ids: Set<TraitId>,
     pub local_adt_ids: Set<AdtId>,
 }
@@ -78,6 +79,13 @@ impl Decls {
         v.pop().unwrap()
     }
 
+    pub fn fn_decl(&self, fn_id: &FnId) -> &FnDecl {
+        let mut v: Vec<_> = self.fn_decls.iter().filter(|t| t.id == *fn_id).collect();
+        assert!(!v.is_empty(), "no fn named `{fn_id:?}`");
+        assert!(v.len() <= 1, "multiple fns named `{fn_id:?}`");
+        v.pop().unwrap()
+    }
+
     /// Return the set of "trait invariants" for all traits.
     /// See [`TraitDecl::trait_invariants`].
     pub fn trait_invariants(&self) -> Set<TraitInvariant> {
@@ -96,6 +104,7 @@ impl Decls {
             alias_eq_decls: vec![],
             alias_bound_decls: vec![],
             adt_decls: vec![],
+            fn_decls: vec![],
             local_trait_ids: set![],
             local_adt_ids: set![],
         }
@@ -302,5 +311,23 @@ pub struct AdtDecl {
 #[term($:where $where_clause)]
 pub struct AdtDeclBoundData {
     /// The where-clauses declared on the ADT,
+    pub where_clause: Wcs,
+}
+
+/// A "function declaration" declares a function name, its generics, its input and ouput types, and its where-clauses.
+/// It doesn't currently capture the function body, or input argument names.
+///
+/// In Rust syntax, it covers the `fn foo<T, U>(_: T) -> U where T: Bar`
+#[term(fn $id $binder)]
+pub struct FnDecl {
+    pub id: FnId,
+    pub binder: Binder<FnDeclBoundData>,
+}
+
+/// The "bound data" for a [`FnDecl`][].
+#[term(($input_tys) -> $output_ty $:where $where_clause)]
+pub struct FnDeclBoundData {
+    pub input_tys: Vec<Ty>,
+    pub output_ty: Ty,
     pub where_clause: Wcs,
 }
