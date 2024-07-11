@@ -26,7 +26,7 @@ pub trait RustTypesFuzzConfig {
         trait_kinds: Map<TraitId, Vec<ParameterKind>>,
         associated_items: Map<AssociatedItemId, (TraitId, Vec<ParameterKind>)>,
     ) -> Self;
-    
+
     /// Fetch the kinds of `adt_id`
     fn adt_kinds(&self, adt_id: &AdtId) -> Vec<ParameterKind>;
 

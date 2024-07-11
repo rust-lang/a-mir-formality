@@ -140,7 +140,7 @@ impl<L: Language> FuzzConfig<L> {
         self.free_variables = variables.into_iter().upcasted().collect();
         self
     }
-    
+
     /// Range of collection length
     pub fn collection_range(&self) -> std::ops::Range<usize> {
         self.collection_range.clone()
