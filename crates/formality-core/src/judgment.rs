@@ -240,6 +240,7 @@ macro_rules! push_rules {
 
     (@match $conclusion_name:ident inputs() patterns() args(@body ($judgment_name:ident; $n:literal; $v:expr; $output:expr); $inputs:tt; $($m:tt)*)) => {
         tracing::trace_span!("matched rule", rule = $n, judgment = stringify!($judgment_name)).in_scope(|| {
+            tracing::debug!("matched rule {:?}", $n);
             $crate::push_rules!(@body ($judgment_name, $n, $v, $output); $inputs; 0; $($m)*);
         });
     };
