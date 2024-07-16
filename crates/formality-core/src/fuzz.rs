@@ -130,7 +130,7 @@ impl<L: Language> FuzzConfig<L> {
     }
 
     /// Configure base set of free variables to be used when fuzzing;
-    /// more variables may be added if you fuzz a `Vinder<T>`.
+    /// more variables may be added if you fuzz a `Binder<T>`.
     ///
     /// # Panics
     ///
