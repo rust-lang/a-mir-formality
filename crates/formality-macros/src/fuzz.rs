@@ -70,7 +70,5 @@ pub(crate) fn derive_fuzz(mut s: synstructure::Structure) -> TokenStream {
         }
     });
 
-    // eprintln!("tokens = {tokens}");
-
     tokens
 }
