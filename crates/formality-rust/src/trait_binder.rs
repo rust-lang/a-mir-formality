@@ -37,8 +37,7 @@ where
 
     fn estimate_cardinality(cx: &mut formality_core::fuzz::FuzzCx<'_, FormalityLang>) -> f64 {
         cx.enter_estimate_cardinality::<Self>(|guard| {
-            (guard.binder_range().len() + 1) as f64 // N variables (including 1 extra for self)
-                * guard.estimate_cardinality::<ParameterKind>() // each can be either kind
+(guard.estimate_cardinality::<ParameterKind>().powi(guard.binder_range().len() as i32) + 1) 
                 * guard.estimate_cardinality::<T>() // and then we generate the T
         })
     }
