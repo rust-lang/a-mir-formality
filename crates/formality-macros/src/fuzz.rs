@@ -33,7 +33,7 @@ pub(crate) fn derive_fuzz(mut s: synstructure::Structure) -> TokenStream {
     let fuzz_constructors: Vec<_> = s
         .variants()
         .iter()
-        .map(|(v)| {
+        .map(|v| {
             let fuzz_call = v.construct(|field, _| {
                 let ty = &field.ty;
                 quote!(#guard.fuzz::<#ty>()?)
