@@ -556,9 +556,9 @@ where
 {
     fn estimate_cardinality(cx: &mut FuzzCx<'_, L>) -> f64 {
         cx.enter_estimate_cardinality::<Self>(|guard| {
-            guard.cx.collection_range.len() as f64
-                * guard.estimate_cardinality::<K>()
-                * guard.estimate_cardinality::<V>()
+                (guard.estimate_cardinality::<K>()
+                * guard.estimate_cardinality::<V>())
+                .powi(guard.cx.collection_range.len() as i32)
         })
     }
 
