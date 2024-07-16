@@ -465,7 +465,7 @@ impl<'d, L: Language, T: 'static> EnterGuard<'_, 'd, L, T> {
         range: std::ops::Range<usize>,
     ) -> f64 {
         let element = self.estimate_cardinality::<F>();
-        range.map(|i| i as f64 * element).sum()
+        range.map(|i| element.powi(i as i32)).sum()
     }
 
     /// Generate a fuzzed value of type `F`.
