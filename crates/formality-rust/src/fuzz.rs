@@ -94,12 +94,13 @@ impl bolero::ValueGenerator for FuzzProgram {
         let mut cfg = FuzzConfig::new().with_binder_range(self.num_generic_parameters.clone());
 
         // First we determine what kind of items there will be.
-        let mut cx = cfg.clone().into_cx(&mut *driver);
-        let items = FuzzItems {
-            adts: cx.fuzz_many(self.num_adts.clone())?,
-            traits: cx.fuzz_many(self.num_traits.clone())?,
+        let items = {
+            let mut cx = cfg.clone().into_cx(&mut *driver);
+            FuzzItems {
+                adts: cx.fuzz_many(self.num_adts.clone())?,
+                traits: cx.fuzz_many(self.num_traits.clone())?,
+            }
         };
-        std::mem::drop(cx);
 
         // Then bring those items into scope for what follows.
         let adt_kinds: Map<AdtId, Vec<ParameterKind>> = items
