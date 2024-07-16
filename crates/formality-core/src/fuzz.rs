@@ -405,7 +405,7 @@ impl<'d, L: Language, T: 'static> EnterGuard<'_, 'd, L, T> {
     {
         let id = TypeId::of::<T>();
         let Some(values) = self.cx.config.valid_values.get(&id) else {
-            panic!("no value values set for `{}`)", std::any::type_name::<T>(),)
+            panic!("no values set for `{}`)", std::any::type_name::<T>(),)
         };
         let values = values.downcast_ref::<Vec<T>>().unwrap();
         if values.is_empty() {
