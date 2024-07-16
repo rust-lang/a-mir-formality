@@ -590,7 +590,7 @@ macro_rules! tuple_impl {
                 cx.enter_estimate_cardinality::<Self>(|guard| -> f64 {
                     [
                         $(guard.estimate_cardinality::<$A>(),)*
-                    ].into_iter().sum()
+                    ].into_iter().product()
                 })
             }
 
