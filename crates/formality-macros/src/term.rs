@@ -8,6 +8,7 @@ use crate::{
     constructors::constructor_methods,
     debug::derive_debug_with_spec,
     fold::derive_fold,
+    fuzz::derive_fuzz,
     parse::derive_parse_with_spec,
     spec::FormalitySpec,
     visit::derive_visit,
@@ -43,6 +44,11 @@ pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<
     } else {
         constructor_methods(synstructure::Structure::new(&input))
     };
+    let fuzz_impl = if customize.fuzz {
+        Default::default()
+    } else {
+        derive_fuzz(synstructure::Structure::new(&input))
+    };
     remove_formality_attributes(&mut input);
 
     Ok(quote! {
@@ -54,6 +60,7 @@ pub fn term(spec: Option<FormalitySpec>, mut input: DeriveInput) -> syn::Result<
         #parse_impl
         #debug_impl
         #term_impl
+        #fuzz_impl
         #(#downcast_impls)*
         #(#upcast_impls)*
         #constructors
