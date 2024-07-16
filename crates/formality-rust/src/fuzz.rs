@@ -4,7 +4,7 @@
 //!
 //! [f]: https://rust-lang.github.io/a-mir-formality/formality_core/fuzzing.html
 
-use bolero::{Driver, ValueGenerator};
+use bolero::Driver;
 use formality_core::{
     binder::{fresh_bound_var, fuzz::KindVec},
     fuzz::FuzzConfig,
