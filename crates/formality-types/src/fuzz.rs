@@ -39,7 +39,7 @@ pub trait RustTypesFuzzConfig {
         associated_item_id: &AssociatedItemId,
     ) -> (TraitId, Vec<ParameterKind>);
 }
-// ANCHOR: RustTypesFuzzConfigTrait
+// ANCHOR_END: RustTypesFuzzConfigTrait
 
 impl RustTypesFuzzConfig for FuzzConfig<FormalityLang> {
     // ANCHOR: RustTypesFuzzConfigImpl::with_rust_types
