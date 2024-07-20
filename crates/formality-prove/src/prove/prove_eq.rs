@@ -22,13 +22,13 @@ pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> Relation {
 
 judgment_fn! {
     pub fn prove_eq(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         a: Parameter,
         b: Parameter,
     ) => Constraints {
-        debug(a, b, assumptions, env, decls)
+        debug(a, b, assumptions, env)
 
         assert(a.kind() == b.kind())
 
@@ -75,13 +75,13 @@ judgment_fn! {
 
 judgment_fn! {
     pub fn prove_existential_var_eq(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         v: ExistentialVar,
         b: Parameter,
     ) => Constraints {
-        debug(v, b, assumptions, env, decls)
+        debug(v, b, assumptions, env)
 
         (
             (if let None = t.downcast::<Variable>())

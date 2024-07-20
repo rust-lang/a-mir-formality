@@ -48,12 +48,12 @@ judgment_fn! {
     /// Note that per RFC #2451, upstream crates are not permitted to add blanket impls
     /// and so new upstream impls for local types cannot be added.
     pub fn may_be_remote(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
     ) => Constraints {
-        debug(assumptions, goal, decls, env)
+        debug(assumptions, goal, env)
         assert(env.bias() == Bias::Completeness)
 
         (
@@ -75,12 +75,12 @@ judgment_fn! {
 judgment_fn! {
     /// True if an impl defining this trait-reference could appear in a downstream crate.
     fn may_be_downstream_trait_ref(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
     ) => Constraints {
-        debug(goal, assumptions, env, decls)
+        debug(goal, assumptions, env)
         assert(env.bias() == Bias::Completeness)
         (
             // There may be a downstream parameter at position i...
@@ -94,12 +94,12 @@ judgment_fn! {
 
 judgment_fn! {
     fn may_be_downstream_parameter(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
     ) => Constraints {
-        debug(parameter, assumptions, env, decls)
+        debug(parameter, assumptions, env)
         assert(env.bias() == Bias::Completeness)
         (
             // existential variables *could* be inferred to downstream types; depends on the substitution
@@ -179,12 +179,12 @@ fn may_contain_downstream_type(
 
 judgment_fn! {
     fn normalizes_to_not_downstream(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
     ) => Constraints {
-        debug(parameter, assumptions, env, decls)
+        debug(parameter, assumptions, env)
 
         (
             (prove_normalize(&decls, &env, &assumptions, parameter) => (c1, parameter))
@@ -198,12 +198,12 @@ judgment_fn! {
 
 judgment_fn! {
     pub fn is_local_trait_ref(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
     ) => Constraints {
-        debug(goal, assumptions, env, decls)
+        debug(goal, assumptions, env)
         assert(env.bias() == Bias::Soundness)
         (
             (if decls.is_local_trait_id(&goal.trait_id))
@@ -235,12 +235,12 @@ judgment_fn! {
     /// with something like `Vec<DownstreamType>`, but that is not considered downstream
     /// as the outermost type (`Vec`) is upstream.
     fn is_not_downstream(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
     ) => Constraints {
-        debug(parameter, assumptions, env, decls)
+        debug(parameter, assumptions, env)
         assert(env.bias() == Bias::Soundness)
 
         (
@@ -276,12 +276,12 @@ judgment_fn! {
 
 judgment_fn! {
     fn is_local_parameter(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         goal: Parameter,
     ) => Constraints {
-        debug(goal, assumptions, env, decls)
+        debug(goal, assumptions, env)
         assert(env.bias() == Bias::Soundness)
 
         // If we can normalize `goal` to something else, check if that normalized form is local.

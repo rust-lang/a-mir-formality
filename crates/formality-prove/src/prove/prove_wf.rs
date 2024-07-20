@@ -12,12 +12,12 @@ use super::{constraints::Constraints, env::Env};
 
 judgment_fn! {
     pub fn prove_wf(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         goal: Parameter,
     ) => Constraints {
-        debug(goal, assumptions, env, decls)
+        debug(goal, assumptions, env)
 
         assert(env.encloses((&assumptions, &goal)))
 

@@ -10,12 +10,12 @@ use super::{env::Env, prove_wc::prove_wc};
 
 judgment_fn! {
     pub fn prove_wc_list(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         goal: Wcs,
     ) => Constraints {
-        debug(goal, assumptions, env, decls)
+        debug(goal, assumptions, env)
 
         assert(env.encloses((&assumptions, &goal)))
 

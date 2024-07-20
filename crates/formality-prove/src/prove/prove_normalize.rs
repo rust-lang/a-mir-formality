@@ -15,12 +15,12 @@ use super::constraints::Constraints;
 
 judgment_fn! {
     pub fn prove_normalize(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         p: Parameter,
     ) => (Constraints, Parameter) {
-        debug(p, assumptions, env, decls)
+        debug(p, assumptions, env)
 
         (
             (&assumptions => a)!
@@ -48,13 +48,13 @@ judgment_fn! {
 
 judgment_fn! {
     fn prove_normalize_via(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         via: Wc,
         goal: Parameter,
     ) => (Constraints, Parameter) {
-        debug(goal, via, assumptions, env, decls)
+        debug(goal, via, assumptions, env)
 
         // The following 2 rules handle normalization of existential variables. We look specifically for
         // the case of a assumption `?X = Y`, which lets us normalize `?X` to `Y`, and ignore
@@ -126,13 +126,13 @@ judgment_fn! {
 
 judgment_fn! {
     fn prove_syntactically_eq(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         a: Parameter,
         b: Parameter,
     ) => Constraints {
-        debug(a, b, assumptions, env, decls)
+        debug(a, b, assumptions, env)
 
         trivial(a == b => Constraints::none(env))
 

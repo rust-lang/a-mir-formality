@@ -13,8 +13,9 @@ mod prove_wc_list;
 mod prove_wf;
 
 pub use constraints::Constraints;
+use formality_core::judgment::{FailedRule, TryIntoIter};
 use formality_core::visit::CoreVisit;
-use formality_core::{ProvenSet, Upcast};
+use formality_core::{set, ProvenSet, Upcast};
 use formality_types::grammar::Wcs;
 use tracing::Level;
 
@@ -53,7 +54,20 @@ pub fn prove(
 
     assert!(env.encloses(term_in));
 
-    let result_set = prove_wc_list(decls, &env, assumptions, goal);
+    struct ProveFailureLabel(String);
+    let label = ProveFailureLabel(format!(
+        "prove {{ goal: {goal:?}, assumptions: {assumptions:?}, env: {env:?}, decls: {decls:?} }}"
+    ));
+    impl std::fmt::Debug for ProveFailureLabel {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str(&self.0)
+        }
+    }
+    let result_set =
+        match prove_wc_list(decls, &env, assumptions, goal).try_into_iter(|| "".to_string()) {
+            Ok(s) => ProvenSet::from_iter(s),
+            Err(e) => ProvenSet::failed_rules(label, set![FailedRule::new(e)]),
+        };
 
     tracing::debug!(?result_set);
 

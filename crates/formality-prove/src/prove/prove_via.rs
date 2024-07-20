@@ -8,13 +8,13 @@ use crate::{
 
 judgment_fn! {
     pub fn prove_via(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         via: WcData,
         goal: WcData,
     ) => Constraints {
-        debug(goal, via, assumptions, env, decls)
+        debug(goal, via, assumptions, env)
 
         (
             (let (skel_c, parameters_c) = pred_1.debone())
