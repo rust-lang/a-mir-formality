@@ -18,12 +18,12 @@ use super::constraints::Constraints;
 
 judgment_fn! {
     pub fn prove_wc(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         goal: Wc,
     ) => Constraints {
-        debug(goal, assumptions, env, decls)
+        debug(goal, assumptions, env)
 
         (
             (let (env, subst) = env.universal_substitution(&binder))
