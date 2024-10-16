@@ -71,19 +71,23 @@ fn not_well_formed_fn_def() {
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
-            judgment `prove_wc_list { goal: {@ wf(fn foo<u32>)}, assumptions: {}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [], [fn foo <ty> ([]) -> ^ty0_0 where {Foo(^ty0_0)}, fn bar ([fn foo<u32>]) -> ()], {Foo}, {}) }` failed at the following rule(s):
-              the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                judgment `prove_wc { goal: @ wf(fn foo<u32>), assumptions: {}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [], [fn foo <ty> ([]) -> ^ty0_0 where {Foo(^ty0_0)}, fn bar ([fn foo<u32>]) -> ()], {Foo}, {}) }` failed at the following rule(s):
-                  the rule "parameter well formed" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment `prove_wf { goal: fn foo<u32>, assumptions: {}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [], [fn foo <ty> ([]) -> ^ty0_0 where {Foo(^ty0_0)}, fn bar ([fn foo<u32>]) -> ()], {Foo}, {}) }` failed at the following rule(s):
-                      the rule "fn-defs" failed at step #3 (src/file.rs:LL:CC) because
-                        judgment `prove_after { constraints: Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }, goal: {Foo(u32)}, assumptions: {}, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [], [fn foo <ty> ([]) -> ^ty0_0 where {Foo(^ty0_0)}, fn bar ([fn foo<u32>]) -> ()], {Foo}, {}) }` failed at the following rule(s):
-                          the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
-                            judgment `prove_wc_list { goal: {Foo(u32)}, assumptions: {}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [], [fn foo <ty> ([]) -> ^ty0_0 where {Foo(^ty0_0)}, fn bar ([fn foo<u32>]) -> ()], {Foo}, {}) }` failed at the following rule(s):
-                              the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                                judgment `prove_wc { goal: Foo(u32), assumptions: {}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [], [fn foo <ty> ([]) -> ^ty0_0 where {Foo(^ty0_0)}, fn bar ([fn foo<u32>]) -> ()], {Foo}, {}) }` failed at the following rule(s):
-                                  the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
-                                    expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
+            judgment `prove { goal: {@ wf(fn foo<u32>)}, assumptions: {}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [], [fn foo <ty> ([]) -> ^ty0_0 where {Foo(^ty0_0)}, fn bar ([fn foo<u32>]) -> ()], {Foo}, {}) }` failed at the following rule(s):
+              failed at (src/file.rs:LL:CC) because
+                judgment `prove_wc_list { goal: {@ wf(fn foo<u32>)}, assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
+                  the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                    judgment `prove_wc { goal: @ wf(fn foo<u32>), assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
+                      the rule "parameter well formed" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_wf { goal: fn foo<u32>, assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
+                          the rule "fn-defs" failed at step #3 (src/file.rs:LL:CC) because
+                            judgment `prove_after { constraints: Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }, goal: {Foo(u32)}, assumptions: {} }` failed at the following rule(s):
+                              the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
+                                judgment `prove { goal: {Foo(u32)}, assumptions: {}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [], [fn foo <ty> ([]) -> ^ty0_0 where {Foo(^ty0_0)}, fn bar ([fn foo<u32>]) -> ()], {Foo}, {}) }` failed at the following rule(s):
+                                  failed at (src/file.rs:LL:CC) because
+                                    judgment `prove_wc_list { goal: {Foo(u32)}, assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
+                                      the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                                        judgment `prove_wc { goal: Foo(u32), assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
+                                          the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
+                                            expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }
 
@@ -101,20 +105,24 @@ fn not_well_formed_function_ptr() {
         [ r#"the rule "fn-ptr" failed"#, ]
 
         expect_test::expect![[r#"
-            judgment `prove_wc_list { goal: {@ wf(fn(baz<!ty_0>) -> ())}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [adt baz <ty> where {Foo(^ty0_0)}], [fn foo <ty> ([fn(baz<^ty0_0>) -> ()]) -> ()], {Foo}, {baz}) }` failed at the following rule(s):
-              the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                judgment `prove_wc { goal: @ wf(fn(baz<!ty_0>) -> ()), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [adt baz <ty> where {Foo(^ty0_0)}], [fn foo <ty> ([fn(baz<^ty0_0>) -> ()]) -> ()], {Foo}, {baz}) }` failed at the following rule(s):
-                  the rule "parameter well formed" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment `prove_wf { goal: fn(baz<!ty_0>) -> (), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [adt baz <ty> where {Foo(^ty0_0)}], [fn foo <ty> ([fn(baz<^ty0_0>) -> ()]) -> ()], {Foo}, {baz}) }` failed at the following rule(s):
-                      the rule "fn-ptr" failed at step #0 (src/file.rs:LL:CC) because
-                        judgment `prove_wf { goal: baz<!ty_0>, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [adt baz <ty> where {Foo(^ty0_0)}], [fn foo <ty> ([fn(baz<^ty0_0>) -> ()]) -> ()], {Foo}, {baz}) }` failed at the following rule(s):
-                          the rule "ADT" failed at step #3 (src/file.rs:LL:CC) because
-                            judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_0], bias: Soundness }, known_true: true, substitution: {} }, goal: {Foo(!ty_0)}, assumptions: {}, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [adt baz <ty> where {Foo(^ty0_0)}], [fn foo <ty> ([fn(baz<^ty0_0>) -> ()]) -> ()], {Foo}, {baz}) }` failed at the following rule(s):
-                              the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
-                                judgment `prove_wc_list { goal: {Foo(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [adt baz <ty> where {Foo(^ty0_0)}], [fn foo <ty> ([fn(baz<^ty0_0>) -> ()]) -> ()], {Foo}, {baz}) }` failed at the following rule(s):
-                                  the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                                    judgment `prove_wc { goal: Foo(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [adt baz <ty> where {Foo(^ty0_0)}], [fn foo <ty> ([fn(baz<^ty0_0>) -> ()]) -> ()], {Foo}, {baz}) }` failed at the following rule(s):
-                                      the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
-                                        expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
+            judgment `prove { goal: {@ wf(fn(baz<!ty_0>) -> ())}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [adt baz <ty> where {Foo(^ty0_0)}], [fn foo <ty> ([fn(baz<^ty0_0>) -> ()]) -> ()], {Foo}, {baz}) }` failed at the following rule(s):
+              failed at (src/file.rs:LL:CC) because
+                judgment `prove_wc_list { goal: {@ wf(fn(baz<!ty_0>) -> ())}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                  the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                    judgment `prove_wc { goal: @ wf(fn(baz<!ty_0>) -> ()), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                      the rule "parameter well formed" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_wf { goal: fn(baz<!ty_0>) -> (), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                          the rule "fn-ptr" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment `prove_wf { goal: baz<!ty_0>, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                              the rule "ADT" failed at step #3 (src/file.rs:LL:CC) because
+                                judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_0], bias: Soundness }, known_true: true, substitution: {} }, goal: {Foo(!ty_0)}, assumptions: {} }` failed at the following rule(s):
+                                  the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
+                                    judgment `prove { goal: {Foo(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty> ], [], [], [], [], [adt baz <ty> where {Foo(^ty0_0)}], [fn foo <ty> ([fn(baz<^ty0_0>) -> ()]) -> ()], {Foo}, {baz}) }` failed at the following rule(s):
+                                      failed at (src/file.rs:LL:CC) because
+                                        judgment `prove_wc_list { goal: {Foo(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                                          the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                                            judgment `prove_wc { goal: Foo(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                                              the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
+                                                expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }
