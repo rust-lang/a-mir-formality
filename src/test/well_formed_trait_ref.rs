@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 #[test]
 fn dependent_where_clause() {
     crate::assert_ok!(
@@ -125,4 +123,38 @@ fn const_param() {
 
         expect_test::expect!["()"]
     )
+}
+
+#[test]
+#[should_panic(expected = "wrong number of parameters")]
+fn type_with_wrong_number_of_parameters() {
+    crate::test_program_ok(
+        " [
+            crate foo {
+                trait Trait1 {}
+
+                struct S1 {}
+
+                struct S2<ty T> where S1<T> : Trait1 {
+                    dummy: T,
+                }
+            }
+        ] ",
+    )
+    .unwrap();
+}
+
+#[test]
+#[should_panic(expected = "no ADT named `Nonex`")]
+fn where_clause_with_nonexistent_type() {
+    crate::test_program_ok(
+        " [
+            crate foo {
+                trait Trait1 {}
+
+                struct S1 where Nonex: Trait1 {}
+            }
+        ] ",
+    )
+    .unwrap();
 }
