@@ -1,6 +1,7 @@
 use formality_core::{judgment_fn, ProvenSet};
 use formality_types::grammar::{
-    AliasName, AliasTy, ConstData, Parameter, Parameters, RigidName, RigidTy, UniversalVar, Wcs,
+    AliasName, AliasTy, ConstData, LtData, Parameter, Parameters, RigidName, RigidTy, UniversalVar,
+    Wcs,
 };
 
 use crate::{
@@ -49,6 +50,11 @@ judgment_fn! {
             (prove_after(&decls, c, &assumptions, t.where_clause) => c)
             --- ("ADT")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::AdtId(adt_id), parameters }) => c)
+        )
+
+        (
+            --- ("static lifetime")
+            (prove_wf(_decls, env, _assumptions, LtData::Static) => Constraints::none(env))
         )
 
         (
