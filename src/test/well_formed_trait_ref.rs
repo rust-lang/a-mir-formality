@@ -68,3 +68,61 @@ fn missing_dependent_where_clause() {
                                                 expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }
+
+#[test]
+fn lifetime_param() {
+    crate::assert_ok!(
+        //@check-pass
+        [
+            crate foo {
+                trait Trait1<lt a> {}
+
+                struct S1 {}
+
+                struct S2<lt a> where S1: Trait1<a> {}
+            }
+        ]
+
+        expect_test::expect!["()"]
+    )
+}
+
+#[test]
+fn static_lifetime_param() {
+    crate::assert_ok!(
+        //@check-pass
+        [
+            crate foo {
+                trait Trait1<lt a> {}
+
+                struct S1 {}
+
+                impl Trait1<static> for S1 {}
+
+                struct S2 where S1: Trait1<static> {}
+            }
+        ]
+
+        expect_test::expect!["()"]
+    )
+}
+
+#[test]
+fn const_param() {
+    crate::assert_ok!(
+        //@check-pass
+        [
+            crate foo {
+                trait Trait1<const C> where type_of_const C is u32 {}
+
+                struct S1 {}
+
+                impl Trait1<const 3_u32> for S1 {}
+
+                struct S2 where S1: Trait1<const 3_u32> {}
+            }
+        ]
+
+        expect_test::expect!["()"]
+    )
+}
