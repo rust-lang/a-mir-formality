@@ -5,6 +5,7 @@ mod coherence_overlap;
 mod consts;
 mod decl_safety;
 mod functions;
+mod well_formed_trait_ref;
 
 #[test]
 fn parser() {
