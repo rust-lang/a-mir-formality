@@ -279,8 +279,9 @@ impl TraitImpl {
     }
 }
 
-#[term($trait_id $<?trait_parameters> for $self_ty $:where $,where_clauses { $*impl_items })]
+#[term($?constness $trait_id $<?trait_parameters> for $self_ty $:where $,where_clauses { $*impl_items })]
 pub struct TraitImplBoundData {
+    pub constness: Constness,
     pub trait_id: TraitId,
     pub self_ty: Ty,
     pub trait_parameters: Vec<Parameter>,

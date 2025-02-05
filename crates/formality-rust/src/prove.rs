@@ -115,6 +115,7 @@ impl Crate {
                     let (
                         vars,
                         TraitImplBoundData {
+                            constness: _,
                             trait_id,
                             self_ty,
                             trait_parameters,
@@ -176,6 +177,7 @@ impl Crate {
                     let (
                         impl_vars,
                         TraitImplBoundData {
+                            constness: _,
                             trait_id,
                             self_ty,
                             trait_parameters,

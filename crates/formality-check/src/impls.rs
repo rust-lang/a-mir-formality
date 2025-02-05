@@ -24,6 +24,7 @@ impl super::Check<'_> {
         let mut env = Env::default();
 
         let TraitImplBoundData {
+            constness: _,
             trait_id,
             self_ty,
             trait_parameters,

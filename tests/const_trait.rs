@@ -9,10 +9,10 @@ fn test_const() {
     let gen_program = |addl: &str| {
         const BASE_PROGRAM: &str = "[
         crate core {
-           trait Default {
+           const trait Default {
            }
 
-           impl Default for () {
+           impl const Default for () {
            }
         }
 
