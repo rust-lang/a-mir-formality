@@ -80,7 +80,7 @@ impl Crate {
         self.items
             .iter()
             .flat_map(|item| match item {
-                CrateItem::Trait(Trait { id, binder, safety }) => {
+                CrateItem::Trait(Trait { id, binder, safety, ..}) => {
                     let (
                         vars,
                         TraitBoundData {
@@ -232,6 +232,7 @@ impl Crate {
                     safety: _,
                     id: trait_id,
                     binder,
+                    ..
                 }) => {
                     let (
                         trait_vars,

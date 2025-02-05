@@ -14,6 +14,7 @@ impl super::Check<'_> {
             safety: _,
             id: _,
             binder,
+            ..
         } = t;
         let mut env = Env::default();
 

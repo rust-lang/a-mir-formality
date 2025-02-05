@@ -174,9 +174,20 @@ pub struct Variant {
     pub fields: Vec<Field>,
 }
 
-#[term($?safety trait $id $binder)]
+#[term]
+#[derive(Default)]
+pub enum Constness {
+    #[default]
+    NotConst,
+    MaybeConst,
+    Const,
+}
+
+
+#[term($?safety $?constness trait $id $binder)]
 pub struct Trait {
     pub safety: Safety,
+    pub constness: Constness,
     pub id: TraitId,
     pub binder: TraitBinder<TraitBoundData>,
 }
