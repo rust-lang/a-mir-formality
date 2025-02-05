@@ -190,9 +190,19 @@ impl Relation {
         }
     }
 }
+// TODO: this is also defined in formality-rust, haven't found a nice place to put it...
+// why this requires so many impl??
+#[derive(Default, Clone, PartialEq, Eq, Ord, Hash, Debug, PartialOrd)]
+pub enum Constness {
+    #[default]
+    NotConst,
+    MaybeConst,
+    Const,
+}
 
-#[term($trait_id ( $,parameters ))]
+#[term($?constness $trait_id ( $,parameters ))]
 pub struct TraitRef {
+    pub constness: Constness,
     pub trait_id: TraitId,
     pub parameters: Parameters,
 }
