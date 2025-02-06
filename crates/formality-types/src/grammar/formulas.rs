@@ -110,6 +110,7 @@ impl Predicate {
     pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
         match self {
             Predicate::IsImplemented(TraitRef {
+                constness: _,
                 trait_id,
                 parameters,
             }) => (
@@ -117,6 +118,7 @@ impl Predicate {
                 parameters.clone(),
             ),
             Predicate::NotImplemented(TraitRef {
+                constness: _,
                 trait_id,
                 parameters,
             }) => (
@@ -129,6 +131,7 @@ impl Predicate {
                 (Skeleton::AliasEq(name.clone()), params)
             }
             Predicate::WellFormedTraitRef(TraitRef {
+                constness: _,
                 trait_id,
                 parameters,
             }) => (
@@ -136,6 +139,7 @@ impl Predicate {
                 parameters.clone(),
             ),
             Predicate::IsLocal(TraitRef {
+                constness: _,
                 trait_id,
                 parameters,
             }) => (Skeleton::IsLocal(trait_id.clone()), parameters.clone()),
@@ -190,15 +194,16 @@ impl Relation {
         }
     }
 }
-// TODO: this is also defined in formality-rust, haven't found a nice place to put it...
-// why this requires so many impl??
-#[derive(Default, Clone, PartialEq, Eq, Ord, Hash, Debug, PartialOrd)]
+
+#[term]
+#[derive(Default)]
 pub enum Constness {
     #[default]
     NotConst,
     MaybeConst,
     Const,
 }
+
 
 #[term($?constness $trait_id ( $,parameters ))]
 pub struct TraitRef {
@@ -210,12 +215,13 @@ pub struct TraitRef {
 impl TraitId {
     pub fn with(
         &self,
+        constness: &Constness,
         self_ty: impl Upcast<Ty>,
         parameters: impl Upcast<Vec<Parameter>>,
     ) -> TraitRef {
         let self_ty: Ty = self_ty.upcast();
         let parameters: Vec<Parameter> = parameters.upcast();
-        TraitRef::new(self, (Some(self_ty), parameters))
+        TraitRef::new(constness, self, (Some(self_ty), parameters))
     }
 }
 

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use formality_core::{term, Upcast};
 use formality_prove::Safety;
+use formality_types::grammar::Constness;
 use formality_types::{
     grammar::{
         AdtId, AliasTy, AssociatedItemId, Binder, Const, ConstData, CrateId, Fallible, FieldId,
@@ -174,16 +175,6 @@ pub struct Variant {
     pub fields: Vec<Field>,
 }
 
-#[term]
-#[derive(Default)]
-pub enum Constness {
-    #[default]
-    NotConst,
-    MaybeConst,
-    Const,
-}
-
-
 #[term($?safety $?constness trait $id $binder)]
 pub struct Trait {
     pub safety: Safety,
@@ -291,7 +282,7 @@ pub struct TraitImplBoundData {
 
 impl TraitImplBoundData {
     pub fn trait_ref(&self) -> TraitRef {
-        self.trait_id.with(&self.self_ty, &self.trait_parameters)
+        self.trait_id.with(&self.constness, &self.self_ty, &self.trait_parameters)
     }
 }
 
@@ -311,7 +302,7 @@ pub struct NegTraitImplBoundData {
 
 impl NegTraitImplBoundData {
     pub fn trait_ref(&self) -> TraitRef {
-        self.trait_id.with(&self.self_ty, &self.trait_parameters)
+        self.trait_id.with(&Constness::NotConst, &self.self_ty, &self.trait_parameters)
     }
 }
 
@@ -349,7 +340,7 @@ impl WhereClause {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => Some(
                 trait_id
-                    .with(self_ty, parameters)
+                    .with(&Constness::NotConst, self_ty, parameters)
                     .not_implemented()
                     .upcast(),
             ),
@@ -367,7 +358,7 @@ impl WhereClause {
     pub fn well_formed(&self) -> Wcs {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
-                trait_id.with(self_ty, parameters).well_formed().upcast()
+                trait_id.with(&Constness::NotConst, self_ty, parameters).well_formed().upcast()
             }
             WhereClauseData::AliasEq(alias_ty, ty) => {
                 let alias_param: Parameter = alias_ty.upcast();

@@ -7,7 +7,7 @@ use crate::grammar::{
 use formality_core::{seq, Set, To, Upcast, Upcasted};
 use formality_prove as prove;
 use formality_types::grammar::{
-    AdtId, AliasTy, Binder, BoundVar, ParameterKind, Predicate, Relation, TraitId, Ty, Wc, Wcs,
+    AdtId, AliasTy, Binder, BoundVar, Constness, ParameterKind, Predicate, Relation, TraitId, Ty, Wc, Wcs,
 };
 
 impl Program {
@@ -80,7 +80,7 @@ impl Crate {
         self.items
             .iter()
             .flat_map(|item| match item {
-                CrateItem::Trait(Trait { id, binder, safety, ..}) => {
+                CrateItem::Trait(Trait { id, binder, safety, constness}) => {
                     let (
                         vars,
                         TraitBoundData {
@@ -89,6 +89,7 @@ impl Crate {
                         },
                     ) = binder.open();
                     Some(prove::TraitDecl {
+                        constness: constness.clone(),
                         safety: safety.clone(),
                         id: id.clone(),
                         binder: Binder::new(
@@ -128,7 +129,7 @@ impl Crate {
                         binder: Binder::new(
                             vars,
                             prove::ImplDeclBoundData {
-                                trait_ref: trait_id.with(self_ty, trait_parameters),
+                                trait_ref: trait_id.with(&Constness::NotConst, self_ty, trait_parameters),
                                 where_clause: where_clauses.to_wcs(),
                             },
                         ),
@@ -158,7 +159,7 @@ impl Crate {
                         binder: Binder::new(
                             vars,
                             prove::NegImplDeclBoundData {
-                                trait_ref: trait_id.with(self_ty, trait_parameters),
+                                trait_ref: trait_id.with(&Constness::NotConst, self_ty, trait_parameters),
                                 where_clause: where_clauses.to_wcs(),
                             },
                         ),
@@ -413,7 +414,7 @@ impl ToWcs for WhereClause {
     fn to_wcs(&self) -> Wcs {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
-                trait_id.with(self_ty, parameters).upcast()
+                trait_id.with(&Constness::NotConst, self_ty, parameters).upcast()
             }
             WhereClauseData::AliasEq(alias_ty, ty) => {
                 Predicate::AliasEq(alias_ty.clone(), ty.clone()).upcast()
@@ -439,7 +440,7 @@ impl WhereBound {
 
         match self.data() {
             WhereBoundData::IsImplemented(trait_id, parameters) => {
-                trait_id.with(self_ty, parameters).upcast()
+                trait_id.with(&Constness::NotConst, self_ty, parameters).upcast()
             }
             WhereBoundData::Outlives(lt) => Relation::outlives(self_ty, lt).upcast(),
             WhereBoundData::ForAll(binder) => {

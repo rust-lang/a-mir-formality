@@ -4,6 +4,7 @@ use formality_types::grammar::{
     AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc,
     Wcs,
 };
+use formality_types::grammar::Constness;
 
 #[term]
 pub struct Decls {
@@ -140,6 +141,7 @@ pub struct NegImplDeclBoundData {
     pub where_clause: Wcs,
 }
 
+
 /// Mark a trait or trait impl as `unsafe`.
 #[term]
 #[derive(Default)]
@@ -153,8 +155,9 @@ pub enum Safety {
 /// It doesn't capture the trait items, which will be transformed into other sorts of rules.
 ///
 /// In Rust syntax, it covers the `trait Foo: Bar` part of the declaration, but not what appears in the `{...}`.
-#[term($?safety trait $id $binder)]
+#[term($?constness $?safety trait $id $binder)]
 pub struct TraitDecl {
+    pub constness: Constness,
     /// The name of the trait
     pub id: TraitId,
 
@@ -197,7 +200,7 @@ impl TraitDecl {
                 binder: Binder::new(
                     &variables,
                     TraitInvariantBoundData {
-                        trait_ref: TraitRef::new(&self.id, &variables),
+                        trait_ref: TraitRef::new(Constness::Const, &self.id, &variables), 
                         where_clause,
                     },
                 ),
