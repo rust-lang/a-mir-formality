@@ -200,6 +200,7 @@ impl Relation {
 pub enum Constness {
     #[default]
     NotConst,
+    #[grammar(~const)]
     MaybeConst,
     Const,
 }
