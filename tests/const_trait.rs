@@ -42,6 +42,10 @@ fn test_const_trait_impl() {
         BASE_PROGRAM.replace("ADDITIONAL", addl)
     };
 
-    test_program_ok(&gen_program("")).assert_ok(expect_test::expect!["()"]);
+    test_program_ok(&gen_program("")).assert_err(expect_test::expect![[r#"
+        check_trait_impl(impl const Default for () { })
+
+        Caused by:
+            implementing the trait `Default` is not const"#]]);
 }
 

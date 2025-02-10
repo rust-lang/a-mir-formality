@@ -268,6 +268,9 @@ impl TraitImpl {
     pub fn trait_id(&self) -> &TraitId {
         &self.binder.peek().trait_id
     }
+    pub fn constness(&self) -> Constness {
+        self.binder.peek().constness.clone()
+    }
 }
 
 #[term($?constness $trait_id $<?trait_parameters> for $self_ty $:where $,where_clauses { $*impl_items })]

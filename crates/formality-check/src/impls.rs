@@ -48,6 +48,8 @@ impl super::Check<'_> {
 
         self.check_safety_matches(trait_decl, trait_impl)?;
 
+        self.check_constness_matches(trait_decl, trait_impl)?;
+
         for impl_item in &impl_items {
             self.check_trait_impl_item(&env, &where_clauses, &trait_items, impl_item)?;
         }
@@ -94,6 +96,27 @@ impl super::Check<'_> {
                 ),
             }
         }
+        Ok(())
+    }
+
+
+    /// 
+    fn check_constness_matches(&self, trait_decl: &Trait, trait_impl: &TraitImpl) -> Fallible<()> {
+        // TODO: should bail out earlier if there is ~const trait declaration / impl ~const instead of here, 
+        // then perhaps reduce it to assert
+        let trait_impl_constness = trait_impl.constness();
+        if trait_impl_constness == Constness::MaybeConst {
+            bail!("`impl ~const {:?}` is not supported", trait_decl.id)
+        }
+        match trait_decl.constness {
+            Constness::Const => {},
+            Constness::MaybeConst => bail!("`~const {:?}` declaration is not supported", trait_decl.id),
+            Constness::NotConst => {
+                if trait_impl.constness() != Constness::NotConst {
+                    bail!("implementing the trait `{:?}` is not const", trait_decl.id)
+                }
+            }
+        }   
         Ok(())
     }
 
