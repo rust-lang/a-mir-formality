@@ -63,13 +63,13 @@ fn all_t_not_magic() {
                                                           the rule "symmetric" failed at step #0 (src/file.rs:LL:CC) because
                                                             cyclic proof attempt: `prove_eq { a: !ty_0, b: u32, assumptions: {Copy(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness } }`
                                       the rule "trait implied bound" failed at step #4 (src/file.rs:LL:CC) because
-                                        judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_0, ?ty_1], bias: Soundness }, known_true: true, substitution: {?ty_1 => !ty_0} }, goal: {const Magic(?ty_1)}, assumptions: {} }` failed at the following rule(s):
+                                        judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_0, ?ty_1], bias: Soundness }, known_true: true, substitution: {?ty_1 => !ty_0} }, goal: {Magic(?ty_1)}, assumptions: {} }` failed at the following rule(s):
                                           the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
-                                            judgment `prove { goal: {const Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                                            judgment `prove { goal: {Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }` failed at the following rule(s):
                                               failed at (src/file.rs:LL:CC) because
-                                                judgment `prove_wc_list { goal: {const Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                                                judgment `prove_wc_list { goal: {Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
                                                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                                                    judgment `prove_wc { goal: const Magic(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                                                    judgment `prove_wc { goal: Magic(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
                                                       the rule "positive impl" failed at step #7 (src/file.rs:LL:CC) because
                                                         judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_0, ?ty_1], bias: Soundness }, known_true: true, substitution: {?ty_1 => !ty_0} }, goal: {Copy(?ty_1)}, assumptions: {} }` failed at the following rule(s):
                                                           the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
@@ -77,7 +77,7 @@ fn all_t_not_magic() {
                                                               failed at (src/file.rs:LL:CC) because
                                                                 cyclic proof attempt: `prove_wc_list { goal: {Copy(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }`
                                                       the rule "trait implied bound" failed at step #3 (src/file.rs:LL:CC) because
-                                                        judgment had no applicable rules: `prove_via { goal: const Magic(!ty_0), via: Copy(?ty_1), assumptions: {}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness } }`
+                                                        judgment had no applicable rules: `prove_via { goal: Magic(!ty_0), via: Copy(?ty_1), assumptions: {}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness } }`
                       the rule "trait implied bound" failed at step #3 (src/file.rs:LL:CC) because
                         judgment had no applicable rules: `prove_via { goal: Magic(!ty_1), via: Copy(?ty_2), assumptions: {}, env: Env { variables: [!ty_1, ?ty_2], bias: Soundness } }`"#]]);
 }
@@ -116,13 +116,13 @@ fn all_t_not_copy() {
                                           the rule "symmetric" failed at step #0 (src/file.rs:LL:CC) because
                                             cyclic proof attempt: `prove_eq { a: !ty_0, b: u32, assumptions: {Copy(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness } }`
                       the rule "trait implied bound" failed at step #4 (src/file.rs:LL:CC) because
-                        judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_1, ?ty_2], bias: Soundness }, known_true: true, substitution: {?ty_2 => !ty_1} }, goal: {const Magic(?ty_2)}, assumptions: {} }` failed at the following rule(s):
+                        judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_1, ?ty_2], bias: Soundness }, known_true: true, substitution: {?ty_2 => !ty_1} }, goal: {Magic(?ty_2)}, assumptions: {} }` failed at the following rule(s):
                           the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
-                            judgment `prove { goal: {const Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                            judgment `prove { goal: {Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }` failed at the following rule(s):
                               failed at (src/file.rs:LL:CC) because
-                                judgment `prove_wc_list { goal: {const Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                                judgment `prove_wc_list { goal: {Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
                                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                                    judgment `prove_wc { goal: const Magic(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                                    judgment `prove_wc { goal: Magic(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
                                       the rule "positive impl" failed at step #7 (src/file.rs:LL:CC) because
                                         judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_0, ?ty_1], bias: Soundness }, known_true: true, substitution: {?ty_1 => !ty_0} }, goal: {Copy(?ty_1)}, assumptions: {} }` failed at the following rule(s):
                                           the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
@@ -154,11 +154,11 @@ fn all_t_not_copy() {
                                                                           the rule "symmetric" failed at step #0 (src/file.rs:LL:CC) because
                                                                             cyclic proof attempt: `prove_eq { a: !ty_0, b: u32, assumptions: {Copy(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness } }`
                                                       the rule "trait implied bound" failed at step #4 (src/file.rs:LL:CC) because
-                                                        judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_0, ?ty_1], bias: Soundness }, known_true: true, substitution: {?ty_1 => !ty_0} }, goal: {const Magic(?ty_1)}, assumptions: {} }` failed at the following rule(s):
+                                                        judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_0, ?ty_1], bias: Soundness }, known_true: true, substitution: {?ty_1 => !ty_0} }, goal: {Magic(?ty_1)}, assumptions: {} }` failed at the following rule(s):
                                                           the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
-                                                            judgment `prove { goal: {const Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                                                            judgment `prove { goal: {Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait Copy <ty> , trait Magic <ty> where {Copy(^ty0_0)}], [impl <ty> Magic(^ty0_0) where {Magic(^ty0_0)}, impl Copy(u32)], [], [], [], [], {}, {}) }` failed at the following rule(s):
                                                               failed at (src/file.rs:LL:CC) because
-                                                                cyclic proof attempt: `prove_wc_list { goal: {const Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }`
+                                                                cyclic proof attempt: `prove_wc_list { goal: {Magic(!ty_0)}, assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness } }`
                                       the rule "trait implied bound" failed at step #3 (src/file.rs:LL:CC) because
-                                        judgment had no applicable rules: `prove_via { goal: const Magic(!ty_0), via: Copy(?ty_1), assumptions: {}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness } }`"#]]);
+                                        judgment had no applicable rules: `prove_via { goal: Magic(!ty_0), via: Copy(?ty_1), assumptions: {}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness } }`"#]]);
 }

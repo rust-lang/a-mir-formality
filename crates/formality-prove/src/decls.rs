@@ -200,7 +200,7 @@ impl TraitDecl {
                 binder: Binder::new(
                     &variables,
                     TraitInvariantBoundData {
-                        trait_ref: TraitRef::new(Constness::Const, &self.id, &variables), 
+                        trait_ref: TraitRef::new(Constness::NotConst, &self.id, &variables), 
                         where_clause,
                     },
                 ),
