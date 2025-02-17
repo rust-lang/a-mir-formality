@@ -86,7 +86,7 @@ impl Crate {
                         TraitBoundData {
                             where_clauses,
                             trait_items: _,
-                            effect_items: _, // TODO: might depend on the constness of the trait decl
+                            effect_items: _,
                         },
                     ) = binder.open();
                     Some(prove::TraitDecl {
