@@ -196,21 +196,20 @@ impl<T: Term> TraitBinder<T> {
     }
 }
 
-pub struct ConstEffects {
-    pub effect_items: Vec<ConstEffect>,
-}
-
+#[term]
 pub enum ConstEffect {
     Const,
     NotConst,
     // For <T as Trait<..>>::E, TraitRef can uniquely identify an impl, and an impl has only one effect. 
-    FullyQualified(TraitRef), }
+    FullyQualified(TraitRef), 
+}
 
 
-#[term($:where $,where_clauses { $*trait_items })]
+#[term($:where $,where_clauses { $*effect_items $*trait_items })]
 pub struct TraitBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub trait_items: Vec<TraitItem>,
+    pub effect_items: Vec<ConstEffect>,
 }
 
 #[term]

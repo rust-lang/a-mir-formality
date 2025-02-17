@@ -21,6 +21,7 @@ impl super::Check<'_> {
         let TraitBoundData {
             where_clauses,
             trait_items,
+            effect_items: _,
         } = env.instantiate_universally(&binder.explicit_binder);
 
         self.check_trait_items_have_unique_names(&trait_items)?;

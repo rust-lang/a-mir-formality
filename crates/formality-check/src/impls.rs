@@ -44,6 +44,7 @@ impl super::Check<'_> {
         let TraitBoundData {
             where_clauses: _,
             trait_items,
+            effect_items: _,
         } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?;
 
         self.check_safety_matches(trait_decl, trait_impl)?;
