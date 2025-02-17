@@ -135,7 +135,7 @@ impl Crate {
                             },
                         ),
                     })
-                }
+                },
                 _ => None,
             })
             .collect()
@@ -220,7 +220,8 @@ impl Crate {
                                     },
                                 ),
                             })
-                        }
+                        },
+                        ImplItem::ConstEffect => todo!(),
                     }))
                 }
                 _ => vec![],

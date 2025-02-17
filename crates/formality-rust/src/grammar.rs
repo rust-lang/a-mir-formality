@@ -325,6 +325,7 @@ pub enum ImplItem {
     Fn(Fn),
     #[cast]
     AssociatedTyValue(AssociatedTyValue),
+    ConstEffect,
 }
 
 #[term(type $id $binder ;)]
