@@ -204,7 +204,6 @@ pub enum ConstEffect {
     FullyQualified(TraitRef), 
 }
 
-
 #[term($:where $,where_clauses { $*effect_items $*trait_items })]
 pub struct TraitBoundData {
     pub where_clauses: Vec<WhereClause>,

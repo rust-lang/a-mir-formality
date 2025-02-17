@@ -64,7 +64,6 @@ impl super::Check<'_> {
 
         let mut env = Env::default();
 
-        // TODO: add constness to NegTraitImpl if necessary
         let NegTraitImplBoundData {
             trait_id,
             self_ty,
@@ -103,8 +102,6 @@ impl super::Check<'_> {
 
     /// 
     fn check_constness_matches(&self, trait_decl: &Trait, trait_impl: &TraitImpl) -> Fallible<()> {
-        // TODO: should bail out earlier if there is ~const trait declaration / impl ~const instead of here, 
-        // then perhaps reduce it to assert
         let trait_impl_constness = trait_impl.constness();
         if trait_impl_constness == Constness::MaybeConst {
             bail!("`impl ~const {:?}` is not supported", trait_decl.id)
