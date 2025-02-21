@@ -99,8 +99,6 @@ impl super::Check<'_> {
         Ok(())
     }
 
-
-    /// 
     fn check_constness_matches(&self, trait_decl: &Trait, trait_impl: &TraitImpl) -> Fallible<()> {
         let trait_impl_constness = trait_impl.constness();
         if trait_impl_constness == Constness::MaybeConst {
