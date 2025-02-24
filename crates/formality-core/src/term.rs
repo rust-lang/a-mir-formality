@@ -5,18 +5,20 @@ use crate::{
     cast::{DowncastFrom, Upcast},
     collections::Set,
     fold::CoreFold,
+    fuzz::Fuzzable,
     language::Language,
     parse::CoreParse,
 };
 
 pub trait CoreTerm<L: Language>:
     Clone
-    + CoreFold<L>
-    + CoreParse<L>
     + Ord
     + Eq
     + Hash
     + Debug
+    + CoreFold<L>
+    + CoreParse<L>
+    + Fuzzable<L>
     + Upcast<Self>
     + DowncastFrom<Self>
     + 'static

@@ -14,7 +14,7 @@ use clap::Parser;
 use formality_check::check_all_crates;
 use formality_core::Set;
 use formality_prove::{test_util::TestAssertion, Constraints};
-use formality_rust::grammar::Program;
+use formality_rust::{fuzz::FuzzProgram, grammar::Program};
 use formality_types::rust::try_term;
 
 #[cfg(test)]
@@ -38,12 +38,32 @@ struct Args {
     #[arg(long)]
     out_dir: Option<PathBuf>,
 
-    input_path: String,
+    #[arg(long, default_value = "0")]
+    generate_fuzzed_programs: usize,
+
+    input_paths: Vec<String>,
 }
 
 pub fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let input: String = std::fs::read_to_string(&args.input_path)?;
+
+    // Check any of the input paths for correctness.
+    for input_path in &args.input_paths {
+        match check_input(&args, input_path) {
+            Ok(()) => {}
+            Err(err) => {
+                eprintln!("path {} failed to compile:\n{:#?}", input_path, err)
+            }
+        }
+    }
+
+    generate_fuzzed_program(&args);
+
+    Ok(())
+}
+
+fn check_input(args: &Args, input_path: &str) -> anyhow::Result<()> {
+    let input: String = std::fs::read_to_string(input_path)?;
     let program: Program = try_term(&input)?;
 
     if args.print_rust {
@@ -51,6 +71,15 @@ pub fn main() -> anyhow::Result<()> {
     }
 
     check_all_crates(&program)
+}
+
+fn generate_fuzzed_program(args: &Args) {
+    use bolero::check;
+
+    check!()
+        .with_generator(FuzzProgram::default().num_generic_parameters(0..1))
+        .with_iterations(args.generate_fuzzed_programs)
+        .for_each(|p| eprintln!("{p:?}"));
 }
 
 #[macro_export]

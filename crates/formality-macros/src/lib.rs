@@ -13,6 +13,7 @@ mod custom;
 mod debug;
 mod fixed_point;
 mod fold;
+mod fuzz;
 mod parse;
 mod precedence;
 mod spec;
@@ -40,6 +41,8 @@ pub fn term(args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 synstructure::decl_derive!([Visit] => visit::derive_visit);
+
+synstructure::decl_derive!([Fuzz] => fuzz::derive_fuzz);
 
 #[proc_macro_attribute]
 pub fn fixed_point(args: TokenStream, input: TokenStream) -> TokenStream {

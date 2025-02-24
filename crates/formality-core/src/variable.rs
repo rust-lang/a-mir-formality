@@ -1,4 +1,5 @@
 use crate::cast::Upcast;
+use crate::fuzz::Fuzzable;
 use crate::language::CoreKind;
 use crate::language::Language;
 use crate::visit::CoreVisit;
@@ -207,6 +208,16 @@ impl std::ops::Add<usize> for VarIndex {
         VarIndex {
             index: self.index + rhs,
         }
+    }
+}
+
+impl<L: Language> Fuzzable<L> for CoreVariable<L> {
+    fn estimate_cardinality(cx: &mut crate::fuzz::FuzzCx<'_, L>) -> f64 {
+        cx.enter_estimate_cardinality::<Self>(|guard| guard.estimated_free_variable_cardinality())
+    }
+
+    fn fuzz(cx: &mut crate::fuzz::FuzzCx<'_, L>) -> Option<Self> {
+        cx.enter_fuzz::<Self>(|guard| guard.pick_free_variable())
     }
 }
 

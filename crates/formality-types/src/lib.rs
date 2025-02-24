@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+pub mod fuzz;
 pub mod grammar;
 
 // ANCHOR: declare_rust_language

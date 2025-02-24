@@ -10,4 +10,5 @@
   - [Variables](./formality_core/variables.md)
   - [Collections](./formality_core/collections.md)
   - [Judgment functions and inference rules](./formality_core/judgment_fn.md)
+  - [Fuzzing](./formality_core/fuzzing.md)
   - [FAQ and troubleshooting](./formality_core/faq.md)
