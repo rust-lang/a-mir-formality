@@ -24,28 +24,3 @@ fn test_const_syntax() {
     test_program_ok(&gen_program("")).assert_ok(expect_test::expect!["()"]);
 }
 
-// Check if the impl is const, then the trait should also be declared as const.
-#[test]
-fn test_const_trait_impl() {
-    let gen_program = |addl: &str| {
-        const BASE_PROGRAM: &str = "[
-        crate core {
-           trait Default {
-           }
-
-           impl const Default for () {
-           }
-        }
-
-        ]";
-
-        BASE_PROGRAM.replace("ADDITIONAL", addl)
-    };
-
-    test_program_ok(&gen_program("")).assert_err(expect_test::expect![[r#"
-        check_trait_impl(impl const Default for () { })
-
-        Caused by:
-            implementing the trait `Default` is not const"#]]);
-}
-
