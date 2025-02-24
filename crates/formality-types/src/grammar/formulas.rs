@@ -11,6 +11,7 @@ use super::Parameters;
 use super::TraitId;
 use super::Ty;
 
+
 pub type Fallible<T> = anyhow::Result<T>;
 
 /// Atomic predicates are the base goals we can try to prove; the rules for proving them
@@ -110,7 +111,7 @@ impl Predicate {
     pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
         match self {
             Predicate::IsImplemented(TraitRef {
-                constness: _,
+                effect: _,
                 trait_id,
                 parameters,
             }) => (
@@ -118,7 +119,7 @@ impl Predicate {
                 parameters.clone(),
             ),
             Predicate::NotImplemented(TraitRef {
-                constness: _,
+                effect: _,
                 trait_id,
                 parameters,
             }) => (
@@ -131,7 +132,7 @@ impl Predicate {
                 (Skeleton::AliasEq(name.clone()), params)
             }
             Predicate::WellFormedTraitRef(TraitRef {
-                constness: _,
+                effect: _,
                 trait_id,
                 parameters,
             }) => (
@@ -139,7 +140,7 @@ impl Predicate {
                 parameters.clone(),
             ),
             Predicate::IsLocal(TraitRef {
-                constness: _,
+                effect: _,
                 trait_id,
                 parameters,
             }) => (Skeleton::IsLocal(trait_id.clone()), parameters.clone()),
@@ -195,20 +196,22 @@ impl Relation {
     }
 }
 
+
 #[term]
 #[derive(Default)]
-pub enum Constness {
-    #[default]
-    NotConst,
-    #[grammar(~const)]
-    MaybeConst,
+pub enum Effect {
     Const,
+    #[default]
+    Runtime,
+    // TODO: associated effect from trait here
+    // For <T as Trait<..>>::E, TraitRef can uniquely identify an impl, and an impl has only one effect. 
+    Union(Vec<Effect>),
 }
 
 
-#[term($?constness $trait_id ( $,parameters ))]
+#[term($?effect $trait_id ( $,parameters ))]
 pub struct TraitRef {
-    pub constness: Constness,
+    pub effect: Effect,
     pub trait_id: TraitId,
     pub parameters: Parameters,
 }
@@ -216,13 +219,13 @@ pub struct TraitRef {
 impl TraitId {
     pub fn with(
         &self,
-        constness: &Constness,
+        effect: &Effect,
         self_ty: impl Upcast<Ty>,
         parameters: impl Upcast<Vec<Parameter>>,
     ) -> TraitRef {
         let self_ty: Ty = self_ty.upcast();
         let parameters: Vec<Parameter> = parameters.upcast();
-        TraitRef::new(constness, self, (Some(self_ty), parameters))
+        TraitRef::new(effect, self, (Some(self_ty), parameters))
     }
 }
 

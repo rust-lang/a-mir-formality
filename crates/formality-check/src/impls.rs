@@ -12,7 +12,7 @@ use formality_rust::{
     prove::ToWcs,
 };
 use formality_types::{
-    grammar::{Binder, Constness, Fallible, Relation, Substitution, Wcs},
+    grammar::{Binder, Effect, Fallible, Relation, Substitution, Wcs},
     rust::Term,
 };
 
@@ -24,7 +24,7 @@ impl super::Check<'_> {
         let mut env = Env::default();
 
         let TraitImplBoundData {
-            constness,
+            effect,
             trait_id,
             self_ty,
             trait_parameters,
@@ -32,7 +32,7 @@ impl super::Check<'_> {
             impl_items,
         } = env.instantiate_universally(binder);
 
-        let trait_ref = trait_id.with(&constness, self_ty, trait_parameters);
+        let trait_ref = trait_id.with(&effect, self_ty, trait_parameters);
 
         self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?;
 
@@ -48,8 +48,6 @@ impl super::Check<'_> {
         } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?;
 
         self.check_safety_matches(trait_decl, trait_impl)?;
-
-        self.check_constness_matches(trait_decl, trait_impl)?;
 
         for impl_item in &impl_items {
             self.check_trait_impl_item(&env, &where_clauses, &trait_items, impl_item)?;
@@ -71,7 +69,7 @@ impl super::Check<'_> {
             where_clauses,
         } = env.instantiate_universally(binder);
 
-        let trait_ref = trait_id.with(&Constness::NotConst, self_ty, trait_parameters);
+        let trait_ref = trait_id.with(&Effect::Runtime, self_ty, trait_parameters);
 
         // Negative impls are always safe (rustc E0198) regardless of the trait's safety.
         if *safety == Safety::Unsafe {
@@ -96,23 +94,6 @@ impl super::Check<'_> {
                 ),
             }
         }
-        Ok(())
-    }
-
-    fn check_constness_matches(&self, trait_decl: &Trait, trait_impl: &TraitImpl) -> Fallible<()> {
-        let trait_impl_constness = trait_impl.constness();
-        if trait_impl_constness == Constness::MaybeConst {
-            bail!("`impl ~const {:?}` is not supported", trait_decl.id)
-        }
-        match trait_decl.constness {
-            Constness::Const => {},
-            Constness::MaybeConst => bail!("`~const {:?}` declaration is not supported", trait_decl.id),
-            Constness::NotConst => {
-                if trait_impl.constness() != Constness::NotConst {
-                    bail!("implementing the trait `{:?}` is not const", trait_decl.id)
-                }
-            }
-        }   
         Ok(())
     }
 

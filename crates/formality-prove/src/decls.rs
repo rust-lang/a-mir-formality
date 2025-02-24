@@ -4,7 +4,7 @@ use formality_types::grammar::{
     AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc,
     Wcs,
 };
-use formality_types::grammar::Constness;
+use formality_types::grammar::Effect;
 
 #[term]
 pub struct Decls {
@@ -154,9 +154,9 @@ pub enum Safety {
 /// It doesn't capture the trait items, which will be transformed into other sorts of rules.
 ///
 /// In Rust syntax, it covers the `trait Foo: Bar` part of the declaration, but not what appears in the `{...}`.
-#[term($?constness $?safety trait $id $binder)]
+#[term($?effect $?safety trait $id $binder)]
 pub struct TraitDecl {
-    pub constness: Constness,
+    pub effect: Effect,
     /// The name of the trait
     pub id: TraitId,
 
@@ -199,7 +199,7 @@ impl TraitDecl {
                 binder: Binder::new(
                     &variables,
                     TraitInvariantBoundData {
-                        trait_ref: TraitRef::new(Constness::NotConst, &self.id, &variables), 
+                        trait_ref: TraitRef::new(Effect::Runtime, &self.id, &variables), 
                         where_clause,
                     },
                 ),
