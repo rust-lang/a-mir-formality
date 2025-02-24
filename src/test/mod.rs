@@ -5,6 +5,7 @@ mod coherence_overlap;
 mod consts;
 mod decl_safety;
 mod functions;
+mod well_formed_trait_ref;
 
 #[test]
 fn parser() {
@@ -51,14 +52,16 @@ fn hello_world_fail() {
                        judgment `prove_wc_list { goal: {@ WellFormedTraitRef(Bar(!ty_0, !ty_1))}, assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness } }` failed at the following rule(s):
                          the rule "some" failed at step #0 (src/file.rs:LL:CC) because
                            judgment `prove_wc { goal: @ WellFormedTraitRef(Bar(!ty_0, !ty_1)), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness } }` failed at the following rule(s):
-                             the rule "trait well formed" failed at step #2 (src/file.rs:LL:CC) because
-                               judgment `prove { goal: {Baz(!ty_1)}, assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty, ty> where {Bar(^ty0_1, ^ty0_0)}, trait Bar <ty, ty> where {Baz(^ty0_1)}, trait Baz <ty> ], [], [], [], [], [], {Bar, Baz, Foo}, {}) }` failed at the following rule(s):
-                                 failed at (src/file.rs:LL:CC) because
-                                   judgment `prove_wc_list { goal: {Baz(!ty_1)}, assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness } }` failed at the following rule(s):
-                                     the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                                       judgment `prove_wc { goal: Baz(!ty_1), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness } }` failed at the following rule(s):
-                                         the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
-                                           expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
+                             the rule "trait well formed" failed at step #3 (src/file.rs:LL:CC) because
+                               judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_1, !ty_0], bias: Soundness }, known_true: true, substitution: {} }, goal: {Baz(!ty_1)}, assumptions: {Bar(!ty_0, !ty_1)} }` failed at the following rule(s):
+                                 the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
+                                   judgment `prove { goal: {Baz(!ty_1)}, assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness }, decls: decls(222, [trait Foo <ty, ty> where {Bar(^ty0_1, ^ty0_0)}, trait Bar <ty, ty> where {Baz(^ty0_1)}, trait Baz <ty> ], [], [], [], [], [], {Bar, Baz, Foo}, {}) }` failed at the following rule(s):
+                                     failed at (src/file.rs:LL:CC) because
+                                       judgment `prove_wc_list { goal: {Baz(!ty_1)}, assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness } }` failed at the following rule(s):
+                                         the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                                           judgment `prove_wc { goal: Baz(!ty_1), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness } }` failed at the following rule(s):
+                                             the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
+                                               expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }
 
@@ -132,14 +135,16 @@ fn basic_where_clauses_fail() {
                            judgment `prove_wc { goal: for <ty> @ WellFormedTraitRef(A(u32, ^ty0_0)), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
                              the rule "forall" failed at step #2 (src/file.rs:LL:CC) because
                                judgment `prove_wc { goal: @ WellFormedTraitRef(A(u32, !ty_1)), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_1], bias: Soundness } }` failed at the following rule(s):
-                                 the rule "trait well formed" failed at step #2 (src/file.rs:LL:CC) because
-                                   judgment `prove { goal: {B(!ty_0)}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
-                                     failed at (src/file.rs:LL:CC) because
-                                       judgment `prove_wc_list { goal: {B(!ty_0)}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
-                                         the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                                           judgment `prove_wc { goal: B(!ty_0), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
-                                             the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
-                                               expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
+                                 the rule "trait well formed" failed at step #3 (src/file.rs:LL:CC) because
+                                   judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_1], bias: Soundness }, known_true: true, substitution: {} }, goal: {B(!ty_1)}, assumptions: {for <ty> A(u32, ^ty0_0)} }` failed at the following rule(s):
+                                     the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
+                                       judgment `prove { goal: {B(!ty_0)}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
+                                         failed at (src/file.rs:LL:CC) because
+                                           judgment `prove_wc_list { goal: {B(!ty_0)}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                                             the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                                               judgment `prove_wc { goal: B(!ty_0), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness } }` failed at the following rule(s):
+                                                 the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
+                                                   expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }
 
