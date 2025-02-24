@@ -221,7 +221,6 @@ impl Crate {
                                 ),
                             })
                         },
-                        ImplItem::ConstEffect => todo!(),
                     }))
                 }
                 _ => vec![],

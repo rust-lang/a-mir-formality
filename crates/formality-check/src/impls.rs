@@ -133,7 +133,6 @@ impl super::Check<'_> {
             ImplItem::AssociatedTyValue(v) => {
                 self.check_associated_ty_value(env, assumptions, trait_items, v)
             }
-            ImplItem::ConstEffect => todo!()
         }
     }
 
