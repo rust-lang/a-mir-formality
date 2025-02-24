@@ -3,7 +3,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::cast::{DowncastTo, Upcast, UpcastFrom, Upcasted};
+use crate::{
+    cast::{DowncastTo, Upcast, UpcastFrom, Upcasted},
+    Downcast,
+};
 
 pub type Map<K, V> = BTreeMap<K, V>;
 pub type Set<E> = BTreeSet<E>;
@@ -136,6 +139,31 @@ impl<T> DowncastTo<()> for Set<T> {
     }
 }
 
+impl<A, T> DowncastTo<(A,)> for Set<T>
+where
+    T: DowncastTo<A> + Ord,
+{
+    fn downcast_to(&self) -> Option<(A,)> {
+        if self.len() == 1 {
+            let a: A = self.first().unwrap().downcast()?;
+            Some((a,))
+        } else {
+            None
+        }
+    }
+}
+
+impl<A, T> UpcastFrom<(A,)> for Set<T>
+where
+    A: Clone + Upcast<T>,
+    T: Ord + Clone,
+{
+    fn upcast_from(term: (A,)) -> Self {
+        let (a,) = term;
+        set![a.upcast()]
+    }
+}
+
 impl<T> DowncastTo<()> for Vec<T> {
     fn downcast_to(&self) -> Option<()> {
         if self.is_empty() {
@@ -143,6 +171,31 @@ impl<T> DowncastTo<()> for Vec<T> {
         } else {
             None
         }
+    }
+}
+
+impl<A, T> DowncastTo<(A,)> for Vec<T>
+where
+    T: DowncastTo<A>,
+{
+    fn downcast_to(&self) -> Option<(A,)> {
+        if self.len() == 1 {
+            let a: A = self.first().unwrap().downcast()?;
+            Some((a,))
+        } else {
+            None
+        }
+    }
+}
+
+impl<A, T> UpcastFrom<(A,)> for Vec<T>
+where
+    A: Clone + Upcast<T>,
+    T: Clone,
+{
+    fn upcast_from(term: (A,)) -> Self {
+        let (a,) = term;
+        vec![a.upcast()]
     }
 }
 
@@ -187,13 +240,15 @@ tuple_upcast!(Vec: A, B, C, D);
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Cons<T, C>(pub T, pub C);
 
-impl<T, U> UpcastFrom<Cons<U, Set<T>>> for Set<T>
+impl<T, U, V> UpcastFrom<Cons<U, V>> for Set<T>
 where
     T: Ord + Clone,
     U: Upcast<T>,
+    V: Upcast<Set<T>>,
 {
-    fn upcast_from(term: Cons<U, Set<T>>) -> Self {
-        let Cons(elem, mut set) = term;
+    fn upcast_from(term: Cons<U, V>) -> Self {
+        let Cons(elem, set) = term;
+        let mut set: Set<T> = set.upcast();
         set.insert(elem.upcast());
         set
     }
@@ -214,13 +269,14 @@ where
     }
 }
 
-impl<T, U> UpcastFrom<Cons<U, Vec<T>>> for Vec<T>
+impl<T, U, V> UpcastFrom<Cons<U, V>> for Vec<T>
 where
-    T: Ord + Clone,
     U: Upcast<T>,
+    V: Upcast<Vec<T>>,
 {
-    fn upcast_from(term: Cons<U, Vec<T>>) -> Self {
-        let Cons(elem, mut vec) = term;
+    fn upcast_from(term: Cons<U, V>) -> Self {
+        let Cons(elem, vec) = term;
+        let mut vec: Vec<T> = vec.upcast();
         vec.insert(0, elem.upcast());
         vec
     }

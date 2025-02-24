@@ -1,4 +1,5 @@
 mod ambiguity;
+mod commit_points;
 mod grammar;
 mod left_associative;
 mod none_associative;

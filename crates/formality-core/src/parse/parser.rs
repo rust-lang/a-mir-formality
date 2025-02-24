@@ -9,7 +9,9 @@ use crate::{
     Set, Upcast,
 };
 
-use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenResult};
+use super::{
+    CoreParse, ParseError, ParseResult, ReductionKind, Scope, SuccessfulParse, TokenResult,
+};
 
 mod left_recursion;
 
@@ -151,8 +153,11 @@ where
     scope: &'s Scope<L>,
     start_text: &'t str,
     current_text: &'t str,
-    reductions: Vec<&'static str>,
-    is_cast_variant: bool,
+    reductions: Vec<(&'static str, ReductionKind)>,
+    variant_kind: ReductionKind,
+
+    /// A variant is 'committed' when we have seen enough success
+    is_committed: bool,
 }
 
 impl<'s, 't, T, L> Parser<'s, 't, T, L>
@@ -214,6 +219,20 @@ where
         })
     }
 
+    pub fn identifier(
+        scope: &'s Scope<L>,
+        text: &'t str,
+        nonterminal_name: &'static str,
+    ) -> ParseResult<'t, T>
+    where
+        String: Into<T>,
+    {
+        Self::single_variant(scope, text, nonterminal_name, |p| {
+            p.mark_as_identifier();
+            Ok(p.identifier()?.into())
+        })
+    }
+
     /// Shorthand for `parse_variant` where the parsing operation is to
     /// parse the type `V` and then upcast it to the desired result type.
     /// Also marks the variant as a cast variant.
@@ -226,6 +245,20 @@ where
             p.mark_as_cast_variant();
             let v: V = p.nonterminal()?;
             Ok(v)
+        })
+    }
+
+    pub fn parse_variant_variable(
+        &mut self,
+        variant_name: &'static str,
+        variant_precedence: Precedence,
+        kind: L::Kind,
+    ) where
+        CoreVariable<L>: Upcast<T>,
+    {
+        Self::parse_variant(self, variant_name, variant_precedence, |p| {
+            p.mark_as_in_scope_var();
+            p.variable_of_kind(kind)
         })
     }
 
@@ -269,11 +302,11 @@ where
 
         match result {
             Ok(value) => {
-                // Subtle: for cast variants, don't record the variant name in the reduction lits,
+                // Subtle: for cast variants, don't record the variant name in the reduction list,
                 // as it doesn't carry semantic weight. See `mark_as_cast_variant` for more details.
-                if !active_variant.is_cast_variant {
-                    active_variant.reductions.push(variant_name);
-                }
+                active_variant
+                    .reductions
+                    .push((variant_name, active_variant.variant_kind));
 
                 self.successes.push(SuccessfulParse {
                     text: active_variant.current_text,
@@ -289,11 +322,13 @@ where
                 // We only record failures where we actually consumed any tokens.
                 // This is part of our error reporting and recovery mechanism.
                 // Note that we expect (loosely) an LL(1) grammar.
-                self.failures.extend(
-                    errs.into_iter()
-                        .filter(|e| e.consumed_any_since(self.start_text))
-                        .inspect(|e| tracing::trace!("error: {e:?}")),
-                );
+                if active_variant.is_committed {
+                    self.failures.extend(
+                        errs.into_iter()
+                            .filter(|e| e.consumed_any_since(self.start_text))
+                            .inspect(|e| tracing::trace!("error: {e:?}")),
+                    );
+                }
             }
         }
     }
@@ -359,11 +394,42 @@ where
     }
 
     fn is_preferable(s_i: &SuccessfulParse<T>, s_j: &SuccessfulParse<T>) -> bool {
-        fn has_prefix<T: Eq>(l1: &[T], l2: &[T]) -> bool {
-            l1.len() > l2.len() && (0..l2.len()).all(|i| l1[i] == l2[i])
-        }
+        let mut reductions_i = s_i.reductions.iter().peekable();
+        let mut reductions_j = s_j.reductions.iter().peekable();
 
-        has_prefix(&s_i.reductions, &s_j.reductions)
+        loop {
+            match (reductions_i.peek(), reductions_j.peek()) {
+                // Drop casts from left or right if we see them, as they
+                // are not significant. (See `ReductionKind::Cast`)
+                (Some((_, ReductionKind::Cast)), _) => {
+                    reductions_i.next();
+                }
+                (_, Some((_, ReductionKind::Cast))) => {
+                    reductions_j.next();
+                }
+                (Some((_, ReductionKind::Variable)), Some((_, ReductionKind::Identifier))) => {
+                    // at some point, s_i parsed an in-scope variable and s_j parsed an identifier;
+                    // we tilt in favor of in-scope variables in this kind of case
+                    return true;
+                }
+                (Some(_), None) => {
+                    // s_j is a prefix of s_i -- prefer s_i
+                    return true;
+                }
+                (None, Some(_)) | (None, None) => {
+                    // s_i is a prefix of s_j or they are equal -- do NOT prefer s_i
+                    return false;
+                }
+                (Some(reduction_i), Some(reduction_j)) => {
+                    if reduction_i == reduction_j {
+                        reductions_i.next();
+                        reductions_j.next();
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -379,9 +445,31 @@ where
             start_text,
             current_text: start_text,
             reductions: vec![],
-            is_cast_variant: false,
+            variant_kind: ReductionKind::default(),
+            is_committed: true,
         }
     }
+
+    /// A variant is "committed" when it has parsed enough tokens
+    /// for us to be reasonably sure this is what the user meant to type.
+    /// At that point, any parse errors will propagate out.
+    /// This is important for optional or repeated nonterminals.
+    ///
+    /// By default, variants start with committed set to true.
+    /// You can clear it to false explicitly and set it back to true later
+    /// once you've seen enough parsing.
+    ///
+    /// Regardless of the value of this flag, any error that occurs before
+    /// we have consumed any tokens at all will be considered uncommitted.
+    ///
+    /// With auto-generated parsers, this flag is used to implement the `$!`
+    /// marker. If that marker is present, we set committed to false initially,
+    /// and then set it to true when we encounter a `$!`.
+    pub fn set_committed(&mut self, value: bool) {
+        tracing::trace!("set_committed({})", value);
+        self.is_committed = value;
+    }
+
     fn current_state(&self) -> CurrentState {
         // Determine whether we are in Left or Right position -- Left means
         // that we have not yet consumed any tokens. Right means that we have.
@@ -423,35 +511,22 @@ where
         self.current_text = skip_trailing_comma(self.current_text);
     }
 
-    /// Marks this variant as an cast variant,
-    /// which means there is no semantic difference
-    /// between the thing you parsed and the reduced form.
-    /// We do this automatically for enum variants marked
-    /// as `#[cast]` or calls to `parse_variant_cast`.
-    ///
-    /// Cast variants interact differently with ambiguity detection.
-    /// Consider this grammar:
-    ///
-    /// ```text
-    /// X = Y | Z // X has two variants
-    /// Y = A     // Y has 1 variant
-    /// Z = A B   // Z has 1 variant
-    /// A = "a"   // A has 1 variant
-    /// B = "b"   // B has 1 variant
-    /// ```
-    ///
-    /// If you mark the two `X` variants (`X = Y` and `X = Z`)
-    /// as cast variants, then the input `"a b"` is considered
-    /// unambiguous and is parsed as `X = (Z = (A = "a') (B = "b))`
-    /// with no remainder.
-    ///
-    /// If you don't mark those variants as cast variants,
-    /// then we consider this *ambiguous*, because
-    /// it could be that you want `X = (Y = (A = "a"))` with
-    /// a remainder of `"b"`. This is appropriate
-    /// if choosing Y vs Z has different semantic meaning.
+    /// Marks this variant as an cast variant.
+    /// See [`ReductionKind::Cast`].
     pub fn mark_as_cast_variant(&mut self) {
-        self.is_cast_variant = true;
+        self.variant_kind = ReductionKind::Cast;
+    }
+
+    /// Indicates that this variant is parsing *only* an in-scope variable.
+    /// See [`ReducgionKind::Variable`].
+    pub fn mark_as_in_scope_var(&mut self) {
+        self.variant_kind = ReductionKind::Variable;
+    }
+
+    /// Indicates that this variant is parsing *only* an identifier.
+    /// See [`ReducgionKind::Identifier`].
+    pub fn mark_as_identifier(&mut self) {
+        self.variant_kind = ReductionKind::Identifier;
     }
 
     /// Expect *exactly* the given text (after skipping whitespace)
@@ -541,7 +616,8 @@ where
             current_text: self.current_text,
             reductions: vec![],
             scope: self.scope,
-            is_cast_variant: false,
+            variant_kind: ReductionKind::default(),
+            is_committed: true,
         };
 
         match op(&mut this) {
@@ -600,27 +676,13 @@ where
             start_text: self.start_text,
             current_text: self.current_text,
             reductions: vec![],
-            is_cast_variant: false,
+            variant_kind: ReductionKind::default(),
+            is_committed: true,
         };
         let result = op(&mut av);
         self.current_text = av.current_text;
         self.reductions.extend(av.reductions);
         result
-    }
-
-    /// Returns an error if an in-scope variable name is found.
-    /// The derive automatically inserts calls to this for all other variants
-    /// if any variant is declared `#[variable]`.
-    pub fn reject_variable(&self) -> Result<(), Set<ParseError<'t>>> {
-        self.reject::<CoreVariable<L>>(
-            |p| p.variable(),
-            |var| {
-                ParseError::at(
-                    self.current_text,
-                    format!("found unexpected in-scope variable {:?}", var),
-                )
-            },
-        )
     }
 
     /// Parses the next identifier as a variable in scope.
@@ -746,8 +808,16 @@ where
                     // If no errors consumed anything, then self.text
                     // must not have advanced.
                     assert_eq!(skip_whitespace(text0), self.current_text);
+                    tracing::trace!(
+                        "opt_nonterminal({}): parsing did not consume tokens or did not commit",
+                        std::any::type_name::<T>()
+                    );
                     Ok(None)
                 } else {
+                    tracing::trace!(
+                        "opt_nonterminal({}): 'almost' succeeded with parse",
+                        std::any::type_name::<T>()
+                    );
                     Err(errs)
                 }
             }

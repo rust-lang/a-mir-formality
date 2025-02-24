@@ -1,10 +1,14 @@
 use std::cell::RefCell;
 
-use crate::{fixed_point::FixedPointStack, Set};
+use crate::{fixed_point::FixedPointStack, Fallible, Set};
+
+mod assertion;
+pub use assertion::JudgmentAssertion;
 
 mod proven_set;
 pub use proven_set::{FailedJudgment, FailedRule, ProvenSet, RuleFailureCause, TryIntoIter};
 
+mod test_fallible;
 mod test_filtered;
 mod test_reachable;
 
@@ -76,8 +80,18 @@ macro_rules! judgment_fn {
             $(let $input_name: $input_ty = $crate::Upcast::upcast($input_name);)*
 
             $(
-                // Assertions are preconditions
-                assert!($assert_expr);
+                // Assertions are preconditions.
+                //
+                // NB: we can't use `$crate` in this expression because of the `respan!` call,
+                // which messes up `$crate` resolution. But we need the respan call for track_caller to properly
+                // assign the span of the panic to the assertion expression and not the invocation of the judgment_fn
+                // macro. Annoying! But our proc macros already reference `formality_core` so that seems ok.
+                $crate::respan!(
+                    $assert_expr
+                    (
+                        formality_core::judgment::JudgmentAssertion::assert($assert_expr, stringify!($assert_expr));
+                    )
+                );
             )*
 
             $(
@@ -290,14 +304,21 @@ macro_rules! push_rules {
     // output of this rule, once all the conditions are evaluated.
 
     (@body $args:tt; $inputs:tt; $step_index:expr; (if let $p:pat = $e:expr) $($m:tt)*) => {
-        let value = &$e;
-        if let $p = Clone::clone(value) {
-            $crate::push_rules!(@body $args; $inputs; $step_index + 1; $($m)*);
-        } else {
-            $crate::push_rules!(@record_failure $inputs; $step_index, $e; $crate::judgment::RuleFailureCause::IfLetDidNotMatch {
-                pattern: stringify!($p).to_string(),
-                value: format!("{:?}", value),
-            });
+        match $crate::judgment::try_catch(|| Ok($e)) {
+            Ok(value) => {
+                if let $p = Clone::clone(&value) {
+                    $crate::push_rules!(@body $args; $inputs; $step_index + 1; $($m)*);
+                } else {
+                    $crate::push_rules!(@record_failure $inputs; $step_index, $e; $crate::judgment::RuleFailureCause::IfLetDidNotMatch {
+                        pattern: stringify!($p).to_string(),
+                        value: format!("{:?}", value),
+                    });
+                }
+            }
+
+            Err(e) => {
+                $crate::push_rules!(@record_failure $inputs; $step_index, $e; e);
+            }
         }
     };
 
@@ -402,10 +423,31 @@ macro_rules! push_rules {
         }
     };
 
+    (@body $args:tt; $inputs:tt; $step_index:expr; (let $p:ident /*[1]*/: $t:ty = $i:expr) $($m:tt)*) => {
+        // [1] I'd prefer to have `$p:pat` but the follow-set rules don't allow for it.
+        // That's dumb.
+        match $crate::judgment::try_catch::<$t>(|| Ok($i)) {
+            Ok(p) => {
+                let $p = p;
+                $crate::push_rules!(@body $args; $inputs; $step_index + 1; $($m)*);
+            }
+
+            Err(e) => {
+                $crate::push_rules!(@record_failure $inputs; $step_index, $i; e);
+            }
+        }
+    };
+
     (@body $args:tt; $inputs:tt; $step_index:expr; (let $p:pat = $i:expr) $($m:tt)*) => {
-        {
-            let $p = $i;
-            $crate::push_rules!(@body $args; $inputs; $step_index + 1; $($m)*);
+        match $crate::judgment::try_catch(|| Ok($i)) {
+            Ok(p) => {
+                let $p = p; // this enforces that `$p` is infalliblr
+                $crate::push_rules!(@body $args; $inputs; $step_index + 1; $($m)*);
+            }
+
+            Err(e) => {
+                $crate::push_rules!(@record_failure $inputs; $step_index, $i; e);
+            }
         }
     };
 
@@ -453,5 +495,19 @@ macro_rules! push_rules {
                 column = column,
             );
         }
+    }
+}
+
+/// Helper function that just calls `f` and returns the value.
+/// Used for implementing `judgement_fn` macro to allow expressions to include `?`.
+pub fn try_catch<R>(f: impl FnOnce() -> Fallible<R>) -> Result<R, RuleFailureCause> {
+    match f() {
+        Ok(v) => Ok(v),
+
+        // Kind of dumb that `Inapplicable` only includes a `String` and not an `anyhow::Error`
+        // but it's super annoying to package one of those up in the way we want.
+        Err(e) => Err(RuleFailureCause::Inapplicable {
+            reason: e.to_string(),
+        }),
     }
 }

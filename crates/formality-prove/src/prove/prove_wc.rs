@@ -107,7 +107,7 @@ judgment_fn! {
 
         (
             (for_all(&decls, &env, &assumptions, &trait_ref.parameters, &prove_wf) => c)
-            (let t = &decls.trait_decl(&trait_ref.trait_id))
+            (let t = decls.trait_decl(&trait_ref.trait_id))
             (let t = t.binder.instantiate_with(&trait_ref.parameters).unwrap())
             (prove_after(&decls, c, &assumptions, t.where_clause) => c)
             ----------------------------- ("trait well formed")

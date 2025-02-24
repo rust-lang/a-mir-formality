@@ -123,9 +123,7 @@ fn parse_parameters<'t>(
 impl CoreParse<Rust> for ConstData {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::multi_variant(scope, text, "ConstData", |parser| {
-            parser.parse_variant("Variable", Precedence::default(), |p| {
-                p.variable_of_kind(ParameterKind::Const)
-            });
+            parser.parse_variant_variable("Variable", Precedence::default(), ParameterKind::Const);
 
             parser.parse_variant_cast::<Bool>(Precedence::default());
 

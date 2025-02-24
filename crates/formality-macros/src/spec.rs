@@ -21,10 +21,13 @@ pub enum FormalitySpecSymbol {
     /// `$foo` or `$foo*` -- indicates we should parse the type of the given field.
     Field { name: Ident, mode: FieldMode },
 
+    /// `$!` -- indicates where a parse is considered to 'almost' succeed
+    CommitPoint,
+
     /// `foo` -- indicates we should parse the given keyword.
     Keyword { ident: Ident },
 
-    /// `<` -- indicates we should parse the given char. We currently ignoring the spacing rules.
+    /// `<` -- indicates we should parse the given char. We currently ignore the spacing rules.
     Char { punct: Punct },
 
     /// Specific delimeter (e.g., `(`) we should parse.
@@ -36,10 +39,8 @@ pub enum FieldMode {
     /// $x -- just parse `x`
     Single,
 
-    Guarded {
-        guard: Ident,
-        mode: Arc<FieldMode>,
-    },
+    /// $:ident $nt -- try to parse `ident` and, if present, parse `$nt`
+    Guarded { guard: Ident, mode: Arc<FieldMode> },
 
     /// $<x> -- `x` is a `Vec<E>`, parse `<E0,...,En>`
     /// $[x] -- `x` is a `Vec<E>`, parse `[E0,...,En]`
@@ -149,6 +150,12 @@ fn parse_variable_binding(
                 unreachable!()
             };
             Ok(FormalitySpecSymbol::Char { punct })
+        }
+
+        // $!
+        TokenTree::Punct(punct) if punct.as_char() == '!' => {
+            tokens.next();
+            Ok(FormalitySpecSymbol::CommitPoint)
         }
 
         // $,x

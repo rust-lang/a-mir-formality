@@ -246,28 +246,27 @@ where
     }
 }
 
-impl<A, B, A1, B1> UpcastFrom<(A1, B1)> for (A, B)
-where
-    A1: Upcast<A>,
-    B1: Upcast<B>,
-{
-    fn upcast_from(term: (A1, B1)) -> Self {
-        let (a1, b1) = term;
-        (a1.upcast(), b1.upcast())
-    }
+macro_rules! tuple_impl {
+    ($($from:ident),*; $($to:ident),*) => {
+        impl<$($from,)* $($to,)*> UpcastFrom<($($from,)*)> for ($($to,)*)
+        where
+            $($from: Upcast<$to>,)*
+        {
+            #[allow(non_snake_case)]
+            fn upcast_from(term: ($($from,)*)) -> Self {
+                let ($($from,)*) = term;
+                ($($from.upcast(),)*)
+            }
+        }
+    };
 }
 
-impl<A, B, C, A1, B1, C1> UpcastFrom<(A1, B1, C1)> for (A, B, C)
-where
-    A1: Upcast<A>,
-    B1: Upcast<B>,
-    C1: Upcast<C>,
-{
-    fn upcast_from(term: (A1, B1, C1)) -> Self {
-        let (a1, b1, c1) = term;
-        (a1.upcast(), b1.upcast(), c1.upcast())
-    }
-}
+tuple_impl!(A1, B1; A, B);
+tuple_impl!(A1, B1, C1; A, B, C);
+tuple_impl!(A1, B1, C1, D1; A, B, C, D);
+tuple_impl!(A1, B1, C1, D1, E1; A, B, C, D, E);
+tuple_impl!(A1, B1, C1, D1, E1, F1; A, B, C, D, E, F);
+tuple_impl!(A1, B1, C1, D1, E1, F1, G1; A, B, C, D, E, F, G);
 
 #[macro_export]
 macro_rules! cast_impl {
