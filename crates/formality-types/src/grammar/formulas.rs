@@ -205,9 +205,9 @@ pub enum Effect {
     Const,
     #[default]
     Runtime,
+    // For <T as Trait<..>>::E, TraitRef can uniquely identify an impl, and an impl has only one effect. 
     #[grammar(AssociatedEffect($v0))]
     AssociatedEffect(Arc<TraitRef>),
-    // For <T as Trait<..>>::E, TraitRef can uniquely identify an impl, and an impl has only one effect. 
     #[grammar(EffectUnion($v0, $v1))]
     Union(Arc<Effect>, Arc<Effect>),
 }
