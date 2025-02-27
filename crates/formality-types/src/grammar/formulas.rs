@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use formality_core::term;
 
 use formality_core::To;
@@ -203,9 +205,11 @@ pub enum Effect {
     Const,
     #[default]
     Runtime,
-    // TODO: associated effect from trait here
+    #[grammar(AssociatedEffect($v0))]
+    AssociatedEffect(Arc<TraitRef>),
     // For <T as Trait<..>>::E, TraitRef can uniquely identify an impl, and an impl has only one effect. 
-    Union(Vec<Effect>),
+    #[grammar(EffectUnion($v0, $v1))]
+    Union(Arc<Effect>, Arc<Effect>),
 }
 
 
