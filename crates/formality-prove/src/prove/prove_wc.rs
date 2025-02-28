@@ -134,7 +134,7 @@ judgment_fn! {
             (prove_wc(decls, env, assumptions, Predicate::ConstHasType(ct, ty)) => c)
         )
         (
-            (if e1.subset_of(&e2) == true)
+            (if e1.subset_of(&e2, None) == true)
             ------------------------ ("effect subset")
             (prove_wc(_decls, env, _assumptions, Predicate::EffectSubset(e1, e2)) => Constraints::none(env))
         )

@@ -222,17 +222,18 @@ pub enum Effect {
 }
 
 impl Effect {
-    pub fn subset_of(&self, e1: &Effect) -> bool {
-        if *self == *e1 {
+    pub fn subset_of(&self, e1: &Effect, e2: Option<Effect>) -> bool {
+        if *e1 == Effect::Runtime || self == e1 {
             return true;
         }
-        if self.subset_of(e1) {
-            if let Effect::Union(e2, e3) = e1 {
-                if **e2 == *e1 || **e3 == *e1 {
-                    return true;
+        // If self if subset of e1, self is subset of effect union that contains e1.
+        if let Some(effect) = e2 {
+            if self.subset_of(e1, None) {
+                if let Effect::Union(e2, e3) = effect {
+                    return *e2 == *e1 || *e3 == *e1;
                 }
             }
-        }
+        } 
     false
     }
 }
