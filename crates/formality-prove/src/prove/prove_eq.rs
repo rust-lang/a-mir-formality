@@ -73,6 +73,31 @@ judgment_fn! {
     }
 }
 
+judgement_fn! {
+    pub fn prove_traitref_eq(
+        _decls: Decls,
+        env: Env,
+        assumptions: Wcs,
+        a: TraitRef,
+        b: TraitRef,
+    ) => Constraints {
+        debug(a, b, assumptions, env)
+
+        trivial(a == b => Constraints::none(env))
+
+        (
+            (let TraitRef { effect: a_effect, trait_id: a_trait_id, parameters: a_parameters } = a)
+            (let TraitRef { effect: b_effect, trait_id: b_trait_id, parameters: b_parameters } = b)
+            (if a_trait_id == b_trait_id)!
+            (prove(decls, env, assumptions, Wcs::all_eq(a_parameters, b_parameters)) => constraints)
+            (prove_after(decls, constraints, assumptions, WcData::EffectSubset(a_effect, b_effect)) => constraints)
+            (prove_after(decls, constraints, assumptions, WcData::EffectSubset(b_effect, a_effect)) => constraints)
+            ----------------------------- ("traitref")
+            (prove_traitref_eq(decls, env, assumptions, a, b) => constraints)
+        )
+    }
+}
+
 judgment_fn! {
     pub fn prove_existential_var_eq(
         _decls: Decls,

@@ -4,7 +4,7 @@ use formality_core::{
     cast_impl, set, term, Cons, DowncastFrom, DowncastTo, Set, Upcast, UpcastFrom, Upcasted,
 };
 
-use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef};
+use super::{Binder, BoundVar, Effect, Parameter, Predicate, Relation, TraitRef};
 
 #[term($set)]
 #[derive(Default)]
@@ -136,6 +136,9 @@ pub enum WcData {
 
     #[grammar(if $v0 $v1)]
     Implies(Wcs, Wc),
+
+    #[grammar(subset($v0, $v1))]
+    EffectSubset(Effect, Effect),
 }
 
 // ---
