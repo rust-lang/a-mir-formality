@@ -212,6 +212,22 @@ pub enum Effect {
     Union(Arc<Effect>, Arc<Effect>),
 }
 
+impl Effect {
+    fn subset_of(&self, e1: &Effect) -> bool {
+        if *self == *e1 {
+            return true;
+        }
+        if self.subset_of(e1) {
+            if let Effect::Union(e2, e3) = e1 {
+                if **e2 == *e1 || **e3 == *e1 {
+                    return true;
+                }
+            }
+        }
+    false
+    }
+}
+
 
 #[term($?effect $trait_id ( $,parameters ))]
 pub struct TraitRef {
