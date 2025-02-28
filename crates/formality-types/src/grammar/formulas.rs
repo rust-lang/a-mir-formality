@@ -46,6 +46,10 @@ pub enum Predicate {
 
     #[grammar(@ConstHasType($v0, $v1))]
     ConstHasType(Const, Ty),
+
+
+    #[grammar(@EffectSubset($v0, $v1))]
+    EffectSubset(Effect, Effect),
 }
 
 /// A coinductive predicate is one that can be proven via a cycle.
@@ -100,6 +104,7 @@ pub enum Skeleton {
     WellFormedTraitRef(TraitId),
     IsLocal(TraitId),
     ConstHasType,
+    EffectSubset,
 
     Equals,
     Sub,
@@ -150,6 +155,10 @@ impl Predicate {
                 Skeleton::ConstHasType,
                 vec![ct.clone().upcast(), ty.clone().upcast()],
             ),
+            Predicate::EffectSubset(_e1, _e2 ) => (
+                Skeleton::EffectSubset,
+                vec![], // TODO: what is this for?
+            )
         }
     }
 }
@@ -213,7 +222,7 @@ pub enum Effect {
 }
 
 impl Effect {
-    fn subset_of(&self, e1: &Effect) -> bool {
+    pub fn subset_of(&self, e1: &Effect) -> bool {
         if *self == *e1 {
             return true;
         }

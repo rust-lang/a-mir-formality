@@ -7,8 +7,7 @@ mod term_impls;
 use formality_core::{DowncastTo, To, Upcast, UpcastFrom};
 
 use super::{
-    consts::Const, AdtId, AssociatedItemId, Binder, BoundVar, ExistentialVar, FnId, TraitId,
-    UniversalVar, Variable,
+    consts::Const, AdtId, AssociatedItemId, Binder, BoundVar, ExistentialVar, FnId, TraitId, UniversalVar, Variable
 };
 
 #[term]
