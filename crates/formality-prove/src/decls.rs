@@ -189,6 +189,7 @@ impl TraitDecl {
                     is_supertrait(self_var, binder.peek())
                 }
                 formality_types::grammar::WcData::Implies(_, c) => is_supertrait(self_var, c),
+                formality_types::grammar::WcData::EffectSubset(_, _) => todo!(),
             }
         }
 
