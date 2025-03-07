@@ -13,7 +13,6 @@ use super::Parameters;
 use super::TraitId;
 use super::Ty;
 
-
 pub type Fallible<T> = anyhow::Result<T>;
 
 /// Atomic predicates are the base goals we can try to prove; the rules for proving them
@@ -46,7 +45,6 @@ pub enum Predicate {
 
     #[grammar(@ConstHasType($v0, $v1))]
     ConstHasType(Const, Ty),
-
 
     #[grammar(@EffectSubset($v0, $v1))]
     EffectSubset(Effect, Effect),
@@ -111,54 +109,73 @@ pub enum Skeleton {
     Outlives,
 }
 
+/// A "deboned predicate" is an alternate representation
+/// of a [`Predicate`][] where the "constant" parts of the
+/// predicate (e.g., which variant is it, the traid-id, etc)
+/// are pulled into the "skeleton" and the unifiable parts
+/// (types, lifetimes, effects) are pulled into a distinct list.
+///
+/// This is useful for unifying predicates because you can
+/// (1) compare the skeletons with `==` and then (2) unify the rest
+/// and you don't have to write a bunch of tedious code to
+/// match variants one by one.
+#[term]
+pub struct DebonedPredicate {
+    pub skeleton: Skeleton,
+    pub parameters: Vec<Parameter>,
+}
+
 impl Predicate {
     /// Separate an atomic predicate into the "skeleton" (which can be compared for equality using `==`)
     /// and the parameters (which must be related).
     #[tracing::instrument(level = "trace", ret)]
-    pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
+    pub fn debone(&self) -> DebonedPredicate {
         match self {
             Predicate::IsImplemented(TraitRef {
                 effect: _,
                 trait_id,
                 parameters,
-            }) => (
-                Skeleton::IsImplemented(trait_id.clone()),
-                parameters.clone(),
-            ),
+            }) => DebonedPredicate {
+                skeleton: Skeleton::IsImplemented(trait_id.clone()),
+                parameters: parameters.clone(),
+            },
             Predicate::NotImplemented(TraitRef {
                 effect: _,
                 trait_id,
                 parameters,
-            }) => (
-                Skeleton::NotImplemented(trait_id.clone()),
-                parameters.clone(),
-            ),
+            }) => DebonedPredicate {
+                skeleton: Skeleton::NotImplemented(trait_id.clone()),
+                parameters: parameters.clone(),
+            },
             Predicate::AliasEq(AliasTy { name, parameters }, ty) => {
                 let mut params = parameters.clone();
                 params.push(ty.clone().upcast());
-                (Skeleton::AliasEq(name.clone()), params)
+                DebonedPredicate {
+                    skeleton: Skeleton::AliasEq(name.clone()),
+                    parameters: params,
+                }
             }
             Predicate::WellFormedTraitRef(TraitRef {
                 effect: _,
                 trait_id,
                 parameters,
-            }) => (
-                Skeleton::WellFormedTraitRef(trait_id.clone()),
-                parameters.clone(),
-            ),
+            }) => DebonedPredicate {
+                skeleton: Skeleton::WellFormedTraitRef(trait_id.clone()),
+                parameters: parameters.clone(),
+            },
             Predicate::IsLocal(TraitRef {
                 effect: _,
                 trait_id,
                 parameters,
-            }) => (Skeleton::IsLocal(trait_id.clone()), parameters.clone()),
-            Predicate::ConstHasType(ct, ty) => (
-                Skeleton::ConstHasType,
-                vec![ct.clone().upcast(), ty.clone().upcast()],
-            ),
-            Predicate::EffectSubset(_e1, _e2 ) => (
-                Skeleton::EffectSubset,
-                vec![], // TODO: what is this for?
-            )
+            }) => DebonedPredicate {
+                skeleton: Skeleton::IsLocal(trait_id.clone()),
+                parameters: parameters.clone(),
+            },
+            Predicate::ConstHasType(ct, ty) => DebonedPredicate {
+                skeleton: Skeleton::ConstHasType,
+                parameters: vec![ct.clone().upcast(), ty.clone().upcast()],
+            },
+            Predicate::EffectSubset(_e1, _e2) => todo!(),
         }
     }
 }
@@ -197,16 +214,27 @@ pub enum Relation {
 
 impl Relation {
     #[tracing::instrument(level = "trace", ret)]
-    pub fn debone(&self) -> (Skeleton, Vec<Parameter>) {
+    pub fn debone(&self) -> DebonedPredicate {
         match self {
-            Relation::Equals(a, b) => (Skeleton::Equals, vec![a.clone(), b.clone()]),
-            Relation::Sub(a, b) => (Skeleton::Sub, vec![a.clone(), b.clone()]),
-            Relation::Outlives(a, b) => (Skeleton::Outlives, vec![a.clone(), b.clone()]),
-            Relation::WellFormed(p) => (Skeleton::WellFormed, vec![p.clone()]),
+            Relation::Equals(a, b) => DebonedPredicate {
+                skeleton: Skeleton::Equals,
+                parameters: vec![a.clone(), b.clone()],
+            },
+            Relation::Sub(a, b) => DebonedPredicate {
+                skeleton: Skeleton::Sub,
+                parameters: vec![a.clone(), b.clone()],
+            },
+            Relation::Outlives(a, b) => DebonedPredicate {
+                skeleton: Skeleton::Outlives,
+                parameters: vec![a.clone(), b.clone()],
+            },
+            Relation::WellFormed(p) => DebonedPredicate {
+                skeleton: Skeleton::WellFormed,
+                parameters: vec![p.clone()],
+            },
         }
     }
 }
-
 
 #[term]
 #[derive(Default)]
@@ -214,7 +242,7 @@ pub enum Effect {
     Const,
     #[default]
     Runtime,
-    // For <T as Trait<..>>::E, TraitRef can uniquely identify an impl, and an impl has only one effect. 
+    // For <T as Trait<..>>::E, TraitRef can uniquely identify an impl, and an impl has only one effect.
     #[grammar(AssociatedEffect($v0))]
     AssociatedEffect(Arc<TraitRef>),
     #[grammar(EffectUnion($v0, $v1))]
@@ -233,11 +261,10 @@ impl Effect {
                     return *e2 == *e1 || *e3 == *e1;
                 }
             }
-        } 
-    false
+        }
+        false
     }
 }
-
 
 #[term($?effect $trait_id ( $,parameters ))]
 pub struct TraitRef {
@@ -260,13 +287,13 @@ impl TraitId {
 }
 
 pub trait Debone {
-    fn debone(&self) -> (Skeleton, Vec<Parameter>);
+    fn debone(&self) -> DebonedPredicate;
 }
 
 macro_rules! debone_impl {
     ($t:ty) => {
         impl Debone for $t {
-            fn debone(&self) -> (Skeleton, Vec<Parameter>) {
+            fn debone(&self) -> DebonedPredicate {
                 self.debone()
             }
         }
