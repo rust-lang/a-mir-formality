@@ -1,8 +1,7 @@
 use formality_core::{set, Set, Upcast};
 use formality_macros::term;
 use formality_types::grammar::{
-    AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc,
-    Wcs,
+    AdtId, AliasName, AliasTy, AtomicEffect, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc, Wcs
 };
 use formality_types::grammar::Effect;
 
@@ -200,7 +199,7 @@ impl TraitDecl {
                 binder: Binder::new(
                     &variables,
                     TraitInvariantBoundData {
-                        trait_ref: TraitRef::new(Effect::Runtime, &self.id, &variables), 
+                        trait_ref: TraitRef::new(AtomicEffect::Runtime, &self.id, &variables),
                         where_clause,
                     },
                 ),

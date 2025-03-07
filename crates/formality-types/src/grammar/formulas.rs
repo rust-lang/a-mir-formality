@@ -253,33 +253,29 @@ impl Relation {
 }
 
 #[term]
-#[derive(Default)]
 pub enum Effect {
+    #[cast]
+    Atomic(AtomicEffect),
+
+    #[grammar(EffectUnion($v0, $v1))]
+    Union(Arc<Effect>, Arc<Effect>),
+}
+
+impl Default for Effect {
+    fn default() -> Self {
+        AtomicEffect::default().upcast()
+    }
+}
+
+#[term]
+#[derive(Default)]
+pub enum AtomicEffect {
     Const,
     #[default]
     Runtime,
     // For <T as Trait<..>>::E, TraitRef can uniquely identify an impl, and an impl has only one effect.
     #[grammar(AssociatedEffect($v0))]
     AssociatedEffect(Arc<TraitRef>),
-    #[grammar(EffectUnion($v0, $v1))]
-    Union(Arc<Effect>, Arc<Effect>),
-}
-
-impl Effect {
-    pub fn subset_of(&self, e1: &Effect, e2: Option<Effect>) -> bool {
-        if *e1 == Effect::Runtime || self == e1 {
-            return true;
-        }
-        // If self if subset of e1, self is subset of effect union that contains e1.
-        if let Some(effect) = e2 {
-            if self.subset_of(e1, None) {
-                if let Effect::Union(e2, e3) = effect {
-                    return *e2 == *e1 || *e3 == *e1;
-                }
-            }
-        }
-        false
-    }
 }
 
 #[term($?effect $trait_id ( $,parameters ))]
