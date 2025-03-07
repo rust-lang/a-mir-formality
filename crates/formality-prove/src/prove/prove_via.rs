@@ -23,19 +23,24 @@ judgment_fn! {
         debug(goal, via, assumptions, env)
 
         (
-            (let DebonedPredicate { skeleton: skel_c, parameters: parameters_c } = pred_c.debone())
-            (let DebonedPredicate { skeleton: skel_g, parameters: parameters_g } = pred_g.debone())
+            // `c` = "clause", the name for something that we are assuming is true
+            (let DebonedPredicate { skeleton: skel_c, parameters: parameters_c, effects: effects_c } = pred_c.debone())
+            // `g` = "goal, the name for something that we are trying to prove
+            (let DebonedPredicate { skeleton: skel_g, parameters: parameters_g, effects: effects_g } = pred_g.debone())
             (if skel_c == skel_g)!
             (prove(decls, env, assumptions, Wcs::all_eq(parameters_c, parameters_g)) => c)
+            (if effects_c == effects_g) // FIXME: this is not general enough but we will revisit it
             ----------------------------- ("predicate-congruence-axiom")
             (prove_via(decls, env, assumptions, WcData::Predicate(pred_c), WcData::Predicate(pred_g)) => c)
         )
 
         (
-            (let DebonedPredicate { skeleton: skel_c, parameters: parameters_c } = rel_c.debone())
-            (let DebonedPredicate { skeleton: skel_g, parameters: parameters_g } = rel_g.debone())
+            (let DebonedPredicate { skeleton: skel_c, parameters: parameters_c, effects: effects_c } = rel_c.debone())
+            (let DebonedPredicate { skeleton: skel_g, parameters: parameters_g, effects: effects_g } = rel_g.debone())
             (if skel_c == skel_g)
-            (if parameters_c == parameters_g)! // for relations, we require 100% match
+            // for relations, we require 100% match
+            (if parameters_c == parameters_g)
+            (if effects_c == effects_g)!
             ----------------------------- ("relation-axiom")
             (prove_via(_decls, env, _assumptions, WcData::Relation(rel_c), WcData::Relation(rel_g)) => Constraints::none(env))
         )

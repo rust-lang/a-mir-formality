@@ -46,6 +46,7 @@ pub enum Predicate {
     #[grammar(@ConstHasType($v0, $v1))]
     ConstHasType(Const, Ty),
 
+    // FIXME: should be in `Relation`
     #[grammar(@EffectSubset($v0, $v1))]
     EffectSubset(Effect, Effect),
 }
@@ -123,6 +124,7 @@ pub enum Skeleton {
 pub struct DebonedPredicate {
     pub skeleton: Skeleton,
     pub parameters: Vec<Parameter>,
+    pub effects: Vec<Effect>,
 }
 
 impl Predicate {
@@ -138,6 +140,7 @@ impl Predicate {
             }) => DebonedPredicate {
                 skeleton: Skeleton::IsImplemented(trait_id.clone()),
                 parameters: parameters.clone(),
+                effects: Default::default(),
             },
             Predicate::NotImplemented(TraitRef {
                 effect: _,
@@ -146,6 +149,7 @@ impl Predicate {
             }) => DebonedPredicate {
                 skeleton: Skeleton::NotImplemented(trait_id.clone()),
                 parameters: parameters.clone(),
+                effects: Default::default(),
             },
             Predicate::AliasEq(AliasTy { name, parameters }, ty) => {
                 let mut params = parameters.clone();
@@ -153,6 +157,7 @@ impl Predicate {
                 DebonedPredicate {
                     skeleton: Skeleton::AliasEq(name.clone()),
                     parameters: params,
+                    effects: Default::default(),
                 }
             }
             Predicate::WellFormedTraitRef(TraitRef {
@@ -162,6 +167,7 @@ impl Predicate {
             }) => DebonedPredicate {
                 skeleton: Skeleton::WellFormedTraitRef(trait_id.clone()),
                 parameters: parameters.clone(),
+                effects: Default::default(),
             },
             Predicate::IsLocal(TraitRef {
                 effect: _,
@@ -170,12 +176,18 @@ impl Predicate {
             }) => DebonedPredicate {
                 skeleton: Skeleton::IsLocal(trait_id.clone()),
                 parameters: parameters.clone(),
+                effects: Default::default(),
             },
             Predicate::ConstHasType(ct, ty) => DebonedPredicate {
                 skeleton: Skeleton::ConstHasType,
                 parameters: vec![ct.clone().upcast(), ty.clone().upcast()],
+                effects: Default::default(),
             },
-            Predicate::EffectSubset(_e1, _e2) => todo!(),
+            Predicate::EffectSubset(e1, e2) => DebonedPredicate {
+                skeleton: Skeleton::EffectSubset,
+                parameters: Default::default(),
+                effects: vec![e1, e2].upcast(),
+            },
         }
     }
 }
@@ -219,18 +231,22 @@ impl Relation {
             Relation::Equals(a, b) => DebonedPredicate {
                 skeleton: Skeleton::Equals,
                 parameters: vec![a.clone(), b.clone()],
+                effects: Default::default(),
             },
             Relation::Sub(a, b) => DebonedPredicate {
                 skeleton: Skeleton::Sub,
                 parameters: vec![a.clone(), b.clone()],
+                effects: Default::default(),
             },
             Relation::Outlives(a, b) => DebonedPredicate {
                 skeleton: Skeleton::Outlives,
                 parameters: vec![a.clone(), b.clone()],
+                effects: Default::default(),
             },
             Relation::WellFormed(p) => DebonedPredicate {
                 skeleton: Skeleton::WellFormed,
                 parameters: vec![p.clone()],
+                effects: Default::default(),
             },
         }
     }
