@@ -11,11 +11,11 @@ use formality_rust::{
     },
     prove::ToWcs,
 };
+use formality_types::grammar::AtomicEffect::Runtime;
 use formality_types::{
     grammar::{Binder, Effect, Fallible, Relation, Substitution, Wcs},
     rust::Term,
 };
-use formality_types::grammar::AtomicEffect::Runtime;
 
 impl super::Check<'_> {
     #[context("check_trait_impl({trait_impl:?})")]

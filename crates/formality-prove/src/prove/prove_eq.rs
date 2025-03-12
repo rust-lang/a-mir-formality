@@ -1,12 +1,12 @@
 use formality_core::visit::CoreVisit;
 use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast, UpcastFrom};
 use formality_core::{Deduplicate, Upcasted};
-use formality_types::grammar::{
-    AliasTy, ExistentialVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar, Variable, Wc, Wcs
-};
 use formality_types::grammar::TraitRef;
 use formality_types::grammar::WcData;
-
+use formality_types::grammar::{
+    AliasTy, ExistentialVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar,
+    Variable, Wc, Wcs,
+};
 
 use crate::{
     decls::Decls,
@@ -87,7 +87,7 @@ judgment_fn! {
 
         trivial(a == b => Constraints::none(env))
 
-        // Two trait_refs are equal if they have the same id, effect, and parameters. 
+        // Two trait_refs are equal if they have the same id, effect, and parameters.
         (
             (let TraitRef { effect: a_effect, trait_id: a_trait_id, parameters: a_parameters } = a)
             (let TraitRef { effect: b_effect, trait_id: b_trait_id, parameters: b_parameters } = b)

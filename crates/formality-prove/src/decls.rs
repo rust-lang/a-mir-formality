@@ -1,9 +1,10 @@
 use formality_core::{set, Set, Upcast};
 use formality_macros::term;
-use formality_types::grammar::{
-    AdtId, AliasName, AliasTy, AtomicEffect, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc, Wcs
-};
 use formality_types::grammar::Effect;
+use formality_types::grammar::{
+    AdtId, AliasName, AliasTy, AtomicEffect, Binder, Parameter, Predicate, Relation, TraitId,
+    TraitRef, Ty, Wc, Wcs,
+};
 
 #[term]
 pub struct Decls {

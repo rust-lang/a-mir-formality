@@ -1,4 +1,4 @@
-use formality_core::{judgment_fn, ProvenSet, Set, set};
+use formality_core::{judgment_fn, set, ProvenSet, Set};
 use formality_types::grammar::{AtomicEffect, Effect, Wcs};
 use std::fmt::Debug;
 
@@ -6,9 +6,8 @@ use crate::{prove::prove_eq::prove_traitref_eq, Decls};
 
 use super::{Constraints, Env};
 
-
 judgment_fn! {
-    /// Prove an effect is the subset of another effect. 
+    /// Prove an effect is the subset of another effect.
     pub fn prove_effect_subset(
         _decls: Decls,
         env: Env,
@@ -65,7 +64,6 @@ judgment_fn! {
     }
 }
 
-
 judgment_fn! {
     /// Prove that an atomic effect appears in `superset`.
     /// Search for any atomic element of superset and check that it is equal.
@@ -89,9 +87,8 @@ judgment_fn! {
     }
 }
 
-
 judgment_fn! {
-    /// Prove two atomic effects are equal. 
+    /// Prove two atomic effects are equal.
     fn prove_atomic_effect_eq(
         _decls: Decls,
         env: Env,
@@ -119,7 +116,7 @@ pub fn collect<T: Ord + Debug>(judgment: ProvenSet<T>) -> ProvenSet<Set<T>> {
 }
 
 judgment_fn! {
-    /// Get any atomic effect from an Effect::Union. 
+    /// Get any atomic effect from an Effect::Union.
     fn some_atomic_effect(
         f1: Effect
     ) => AtomicEffect {

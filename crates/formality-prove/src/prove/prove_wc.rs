@@ -4,7 +4,14 @@ use formality_types::grammar::{Predicate, Relation, Wc, WcData, Wcs};
 use crate::{
     decls::Decls,
     prove::{
-        env::{Bias, Env}, is_local::{is_local_trait_ref, may_be_remote}, prove, prove_after::prove_after, prove_effect_subset::prove_effect_subset, prove_eq::prove_eq, prove_via::prove_via, prove_wf::prove_wf
+        env::{Bias, Env},
+        is_local::{is_local_trait_ref, may_be_remote},
+        prove,
+        prove_after::prove_after,
+        prove_effect_subset::prove_effect_subset,
+        prove_eq::prove_eq,
+        prove_via::prove_via,
+        prove_wf::prove_wf,
     },
 };
 

@@ -5,13 +5,13 @@ mod is_local;
 mod minimize;
 mod negation;
 mod prove_after;
+mod prove_effect_subset;
 mod prove_eq;
 mod prove_normalize;
 mod prove_via;
 mod prove_wc;
 mod prove_wc_list;
 mod prove_wf;
-mod prove_effect_subset;
 
 pub use constraints::Constraints;
 use formality_core::judgment::{FailedRule, TryIntoIter};

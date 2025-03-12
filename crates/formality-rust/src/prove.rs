@@ -6,10 +6,11 @@ use crate::grammar::{
 };
 use formality_core::{seq, Set, To, Upcast, Upcasted};
 use formality_prove as prove;
-use formality_types::grammar::{
-    AdtId, AliasTy, Binder, BoundVar, Effect, ParameterKind, Predicate, Relation, TraitId, Ty, Wc, Wcs,
-};
 use formality_types::grammar::AtomicEffect::Runtime;
+use formality_types::grammar::{
+    AdtId, AliasTy, Binder, BoundVar, Effect, ParameterKind, Predicate, Relation, TraitId, Ty, Wc,
+    Wcs,
+};
 
 impl Program {
     pub fn to_prove_decls(&self) -> prove::Decls {
@@ -81,7 +82,12 @@ impl Crate {
         self.items
             .iter()
             .flat_map(|item| match item {
-                CrateItem::Trait(Trait { id, binder, safety, effect}) => {
+                CrateItem::Trait(Trait {
+                    id,
+                    binder,
+                    safety,
+                    effect,
+                }) => {
                     let (
                         vars,
                         TraitBoundData {
@@ -131,12 +137,16 @@ impl Crate {
                         binder: Binder::new(
                             vars,
                             prove::ImplDeclBoundData {
-                                trait_ref: trait_id.with(&Effect::Atomic(Runtime), self_ty, trait_parameters),
+                                trait_ref: trait_id.with(
+                                    &Effect::Atomic(Runtime),
+                                    self_ty,
+                                    trait_parameters,
+                                ),
                                 where_clause: where_clauses.to_wcs(),
                             },
                         ),
                     })
-                },
+                }
                 _ => None,
             })
             .collect()
@@ -161,7 +171,11 @@ impl Crate {
                         binder: Binder::new(
                             vars,
                             prove::NegImplDeclBoundData {
-                                trait_ref: trait_id.with(&Effect::Atomic(Runtime), self_ty, trait_parameters),
+                                trait_ref: trait_id.with(
+                                    &Effect::Atomic(Runtime),
+                                    self_ty,
+                                    trait_parameters,
+                                ),
                                 where_clause: where_clauses.to_wcs(),
                             },
                         ),
@@ -221,7 +235,7 @@ impl Crate {
                                     },
                                 ),
                             })
-                        },
+                        }
                     }))
                 }
                 _ => vec![],
@@ -416,9 +430,9 @@ impl ToWcs for [WhereClause] {
 impl ToWcs for WhereClause {
     fn to_wcs(&self) -> Wcs {
         match self.data() {
-            WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
-                trait_id.with(&Effect::Atomic(Runtime), self_ty, parameters).upcast()
-            }
+            WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => trait_id
+                .with(&Effect::Atomic(Runtime), self_ty, parameters)
+                .upcast(),
             WhereClauseData::AliasEq(alias_ty, ty) => {
                 Predicate::AliasEq(alias_ty.clone(), ty.clone()).upcast()
             }
@@ -442,9 +456,9 @@ impl WhereBound {
         let self_ty: Ty = self_ty.upcast();
 
         match self.data() {
-            WhereBoundData::IsImplemented(trait_id, parameters) => {
-                trait_id.with(&Effect::Atomic(Runtime), self_ty, parameters).upcast()
-            }
+            WhereBoundData::IsImplemented(trait_id, parameters) => trait_id
+                .with(&Effect::Atomic(Runtime), self_ty, parameters)
+                .upcast(),
             WhereBoundData::Outlives(lt) => Relation::outlives(self_ty, lt).upcast(),
             WhereBoundData::ForAll(binder) => {
                 let (vars, bound) = binder.open();
