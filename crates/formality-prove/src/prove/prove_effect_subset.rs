@@ -8,6 +8,7 @@ use super::{Constraints, Env};
 
 
 judgment_fn! {
+    /// Prove an effect is the subset of another effect. 
     pub fn prove_effect_subset(
         _decls: Decls,
         env: Env,
@@ -117,8 +118,8 @@ pub fn collect<T: Ord + Debug>(judgment: ProvenSet<T>) -> ProvenSet<Set<T>> {
     }
 }
 
-// TODO: try to convert this to using collect?
 judgment_fn! {
+    /// Get any atomic effect from an Effect::Union. 
     fn some_atomic_effect(
         f1: Effect
     ) => AtomicEffect {
