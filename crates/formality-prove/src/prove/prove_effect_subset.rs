@@ -1,5 +1,5 @@
 use formality_core::{judgment_fn, ProvenSet, Set, set};
-use formality_types::grammar::{Effect, Wcs};
+use formality_types::grammar::{AtomicEffect, Effect, Wcs};
 use std::fmt::Debug;
 
 use crate::{prove::prove_eq::prove_traitref_eq, Decls};
@@ -9,14 +9,14 @@ use super::{Constraints, Env};
 
 judgment_fn! {
     pub fn prove_effect_subset(
-        decls: Decls,
+        _decls: Decls,
         env: Env,
         assumptions: Wcs,
         subset: Effect,
         superset: Effect,
     ) => Constraints {
         debug(subset, superset, assumptions, env)
-        trivial(subset == superset => Constraints::empty())
+        trivial(subset == superset => Constraints::none(env))
 
         // (A union B) is a subset of C if
         // * A is a subset of C and
@@ -31,7 +31,7 @@ judgment_fn! {
             //
             // * first, with c1 = [?T = u32]
             // * later, with c1 = [?T = i32]
-            (prove_effect_subset(decls, env, assumptions, subset1, superset) => c1)
+            (prove_effect_subset(decls, env, assumptions, &*subset1, superset) => c1)
 
             // replace any inference variables in `subset2` that got constrained
             // with the value they were forced to equal
@@ -50,16 +50,16 @@ judgment_fn! {
             (let subset2 = c1.substitution().apply(&subset2))
 
             // prove that this refined version of `subset2` is true
-            (prove_effect_subset(decls, c1.env(), assumptions, subset2, superset) => c2)
+            (prove_effect_subset(&decls, c1.env(), assumptions, &*subset2, superset) => c2)
             --- ("union")
-            (prove_effect_subset(decls, env, assumptions, Effect::Union(subset1, subset2), superset) => c1.seq(c2))
+            (prove_effect_subset(&decls, env, assumptions, Effect::Union(subset1, subset2), superset) => c1.seq(c2))
         )
 
         // If `subset` is an atomic effect, then use the `prove_atomic_effect_subset` rule
         (
-            (prove_atomic_effect_subset(decls, env, assumptions, subeffect, superset) => constraints)
+            (prove_atomic_effect_subset(&decls, env, assumptions, subeffect, superset) => constraints)
             --- ("atomic")
-            (prove_effect_subset(decls, env, assumptions, Effect::Atomic(subeffect), superset) => constraints)
+            (prove_effect_subset(&decls, env, assumptions, Effect::Atomic(subeffect), superset) => constraints)
         )
     }
 }
@@ -72,18 +72,18 @@ judgment_fn! {
         _decls: Decls,
         env: Env,
         assumptions: Wcs,
-        subeffect: AtomicEffect,
+        atomic_subeffect: AtomicEffect,
         superset: Effect,
     ) => Constraints {
-        debug(atomic_subset, superset, assumptions, env)
+        debug(atomic_subeffect, superset, assumptions, env)
 
         (
             // find some atomic effect in the superset...
             (some_atomic_effect(superset) => supereffect)
             // ...and prove it is equal to the atomic from the subset
-            (prove_atomic_effect_eq(&decls, &env, &assumptions, subeffect, supereffect) => constraints)
+            (prove_atomic_effect_eq(&decls, &env, &assumptions, &atomic_subeffect, supereffect) => constraints)
             --- ("union-subset-lhs")
-            (prove_atomic_effect_subset_effect(decls, env, assumptions, subeffect, superset) => constraints)
+            (prove_atomic_effect_subset(decls, env, assumptions, &atomic_subeffect, superset) => constraints)
         )
     }
 }
@@ -124,7 +124,7 @@ judgment_fn! {
 
         (
             --- ("union-lhs")
-            (some_atomic_effect(Effect::Union(f1, _f2)) => &*f1)
+            (some_atomic_effect(Effect::Union(f1, _f2)) => f1)
         )
 
         (
