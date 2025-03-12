@@ -23,4 +23,3 @@ fn test_const_syntax() {
 
     test_program_ok(&gen_program("")).assert_ok(expect_test::expect!["()"]);
 }
-
