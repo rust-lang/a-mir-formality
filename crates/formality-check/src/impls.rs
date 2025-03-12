@@ -15,6 +15,7 @@ use formality_types::{
     grammar::{Binder, Effect, Fallible, Relation, Substitution, Wcs},
     rust::Term,
 };
+use formality_types::grammar::AtomicEffect::Runtime;
 
 impl super::Check<'_> {
     #[context("check_trait_impl({trait_impl:?})")]
@@ -69,7 +70,7 @@ impl super::Check<'_> {
             where_clauses,
         } = env.instantiate_universally(binder);
 
-        let trait_ref = trait_id.with(&Effect::Runtime, self_ty, trait_parameters);
+        let trait_ref = trait_id.with(&Effect::Atomic(Runtime), self_ty, trait_parameters);
 
         // Negative impls are always safe (rustc E0198) regardless of the trait's safety.
         if *safety == Safety::Unsafe {

@@ -9,6 +9,7 @@ use formality_prove as prove;
 use formality_types::grammar::{
     AdtId, AliasTy, Binder, BoundVar, Effect, ParameterKind, Predicate, Relation, TraitId, Ty, Wc, Wcs,
 };
+use formality_types::grammar::AtomicEffect::Runtime;
 
 impl Program {
     pub fn to_prove_decls(&self) -> prove::Decls {
@@ -130,7 +131,7 @@ impl Crate {
                         binder: Binder::new(
                             vars,
                             prove::ImplDeclBoundData {
-                                trait_ref: trait_id.with(&Effect::Runtime, self_ty, trait_parameters),
+                                trait_ref: trait_id.with(&Effect::Atomic(Runtime), self_ty, trait_parameters),
                                 where_clause: where_clauses.to_wcs(),
                             },
                         ),
@@ -160,7 +161,7 @@ impl Crate {
                         binder: Binder::new(
                             vars,
                             prove::NegImplDeclBoundData {
-                                trait_ref: trait_id.with(&Effect::Runtime, self_ty, trait_parameters),
+                                trait_ref: trait_id.with(&Effect::Atomic(Runtime), self_ty, trait_parameters),
                                 where_clause: where_clauses.to_wcs(),
                             },
                         ),
@@ -416,7 +417,7 @@ impl ToWcs for WhereClause {
     fn to_wcs(&self) -> Wcs {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
-                trait_id.with(&Effect::Runtime, self_ty, parameters).upcast()
+                trait_id.with(&Effect::Atomic(Runtime), self_ty, parameters).upcast()
             }
             WhereClauseData::AliasEq(alias_ty, ty) => {
                 Predicate::AliasEq(alias_ty.clone(), ty.clone()).upcast()
@@ -442,7 +443,7 @@ impl WhereBound {
 
         match self.data() {
             WhereBoundData::IsImplemented(trait_id, parameters) => {
-                trait_id.with(&Effect::Runtime, self_ty, parameters).upcast()
+                trait_id.with(&Effect::Atomic(Runtime), self_ty, parameters).upcast()
             }
             WhereBoundData::Outlives(lt) => Relation::outlives(self_ty, lt).upcast(),
             WhereBoundData::ForAll(binder) => {

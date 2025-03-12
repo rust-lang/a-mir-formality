@@ -10,6 +10,7 @@ use formality_types::{
     },
     rust::Term,
 };
+use formality_types::grammar::AtomicEffect::Runtime;
 
 use crate::grammar::mir::MirFnBody;
 
@@ -306,7 +307,7 @@ pub struct NegTraitImplBoundData {
 
 impl NegTraitImplBoundData {
     pub fn trait_ref(&self) -> TraitRef {
-        self.trait_id.with(&Effect::Runtime, &self.self_ty, &self.trait_parameters)
+        self.trait_id.with(&Effect::Atomic(Runtime), &self.self_ty, &self.trait_parameters)
     }
 }
 
@@ -344,7 +345,7 @@ impl WhereClause {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => Some(
                 trait_id
-                    .with(&Effect::Runtime, self_ty, parameters)
+                    .with(&Effect::Atomic(Runtime), self_ty, parameters)
                     .not_implemented()
                     .upcast(),
             ),
@@ -362,7 +363,7 @@ impl WhereClause {
     pub fn well_formed(&self) -> Wcs {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
-                trait_id.with(&Effect::Runtime, self_ty, parameters).well_formed().upcast()
+                trait_id.with(&Effect::Atomic(Runtime), self_ty, parameters).well_formed().upcast()
             }
             WhereClauseData::AliasEq(alias_ty, ty) => {
                 let alias_param: Parameter = alias_ty.upcast();
