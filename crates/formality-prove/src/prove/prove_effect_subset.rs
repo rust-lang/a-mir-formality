@@ -90,6 +90,7 @@ judgment_fn! {
 
 
 judgment_fn! {
+    /// Prove two atomic effects are equal. 
     fn prove_atomic_effect_eq(
         _decls: Decls,
         env: Env,
@@ -124,13 +125,15 @@ judgment_fn! {
         debug(f1)
 
         (
+            (if let Effect::Atomic(e) = *f1)!
             --- ("union-lhs")
-            (some_atomic_effect(Effect::Union(f1, _f2)) => &*f1)
+            (some_atomic_effect(Effect::Union(f1, _f2)) => e)
         )
 
         (
+            (if let Effect::Atomic(e) = *f2)!
             --- ("union-rhs")
-            (some_atomic_effect(Effect::Union(_f1, f2)) => &*f2)
+            (some_atomic_effect(Effect::Union(_f1, f2)) => e)
         )
 
         (
