@@ -45,10 +45,6 @@ pub enum Predicate {
 
     #[grammar(@ConstHasType($v0, $v1))]
     ConstHasType(Const, Ty),
-
-    // FIXME: should be in `Relation`
-    #[grammar(@EffectSubset($v0, $v1))]
-    EffectSubset(Effect, Effect),
 }
 
 /// A coinductive predicate is one that can be proven via a cycle.
@@ -183,11 +179,6 @@ impl Predicate {
                 parameters: vec![ct.clone().upcast(), ty.clone().upcast()],
                 effects: Default::default(),
             },
-            Predicate::EffectSubset(e1, e2) => DebonedPredicate {
-                skeleton: Skeleton::EffectSubset,
-                parameters: Default::default(),
-                effects: vec![e1, e2].upcast(),
-            },
         }
     }
 }
@@ -222,6 +213,10 @@ pub enum Relation {
 
     #[grammar(@wf($v0))]
     WellFormed(Parameter),
+
+    // Means that the effects `$v0` are a subset of `$v1`.
+    #[grammar(subset($v0, $v1))]
+    EffectSubset(Effect, Effect),
 }
 
 impl Relation {
@@ -247,6 +242,11 @@ impl Relation {
                 skeleton: Skeleton::WellFormed,
                 parameters: vec![p.clone()],
                 effects: Default::default(),
+            },
+            Relation::EffectSubset(e1, e2) => DebonedPredicate {
+                skeleton: Skeleton::EffectSubset,
+                parameters: Default::default(),
+                effects: vec![e1, e2].upcast(),
             },
         }
     }

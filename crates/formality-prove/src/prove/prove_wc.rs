@@ -136,7 +136,7 @@ judgment_fn! {
         (
             (prove_effect_subset(decls, env, assumptions, e1, e2) => c)
             ------------------------ ("effect subset")
-            (prove_wc(decls, env, assumptions, Predicate::EffectSubset(e1, e2)) => c)
+            (prove_wc(decls, env, assumptions, Relation::EffectSubset(e1, e2)) => c)
         )
     }
 }
