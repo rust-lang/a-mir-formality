@@ -123,13 +123,13 @@ judgment_fn! {
         debug(f1)
 
         (
-            (if let Effect::Atomic(e) = *f1)!
+            (some_atomic_effect(&*f1) => e)
             --- ("union-lhs")
             (some_atomic_effect(Effect::Union(f1, _f2)) => e)
         )
 
         (
-            (if let Effect::Atomic(e) = *f2)!
+            (some_atomic_effect(&*f2) => e)
             --- ("union-rhs")
             (some_atomic_effect(Effect::Union(_f1, f2)) => e)
         )
