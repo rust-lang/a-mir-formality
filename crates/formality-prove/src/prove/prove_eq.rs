@@ -66,8 +66,21 @@ judgment_fn! {
             (prove_eq(decls, env, assumptions, Variable::ExistentialVar(v), r) => c)
         )
 
+        // Example: we are trying to prove `x` (which equals `<SomeX<?V> as Iterator>::Item`)
+        // is equal to some type `z`.
         (
+            // Normalize `x` will find alternative "spellings" that it is equivalent to.
+            // For example, if there is an impl like
+            // `impl Iterator for SomeX<i32> { type Item = u32; ... }`
+            // then `prove_normalize` would yield `(c, u32)` where `c` are any constraints
+            // needed to show that it normalized (in this case, `c` would include the
+            // substitution `?V = i32`).
             (prove_normalize(&decls, env, &assumptions, &x) => (c, y))
+
+            // Now that we know that `x` is equivalent to `y`, we try to prove
+            // that `y` is equivalent to `z` (our original goal).
+            // We do that with `prove_after` so that the constraints `c` are considered
+            // (e.g., if `z` includes `?V`, it will be replaced with `i32`).
             (prove_after(&decls, c, &assumptions, eq(y, &z)) => c)
             ----------------------------- ("normalize-l")
             (prove_eq(decls, env, assumptions, x, z) => c)
