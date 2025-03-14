@@ -60,8 +60,40 @@ judgment_fn! {
             --- ("union-subset-lhs")
             (prove_atomic_effect_subset(decls, env, assumptions, atomic_subeffect, superset) => constraints)
         )
+
+        // Example: we are trying to prove `X <= S`
+        (
+            // If we can find some other effect `B` such that `X <= B`...
+            (prove_effect_upper_bound(&decls, env, &assumptions, &atomic_subeffect) => (c, bounding_effect))
+
+            // ...and we can prove `B <= S`, then we know `X <= S` (transitivity).
+            (prove_after(&decls, c, &assumptions, Relation::effect_subset(&*bounding_effect, &superset)) => c)
+            ----------------------------- ("transitive")
+            (prove_atomic_effect_subset(decls, env, assumptions, atomic_subeffect, superset) => c)
+        )
+
     }
 }
+
+
+judgment_fn! {
+    /// `prove_effect_bound(..., a) => b` means that `a <= b`
+    fn prove_effect_upper_bound(
+        _decls: Decls,
+        env: Env,
+        assumptions: Wcs,
+        f1: AtomicEffect,
+    ) => (Constraints, AtomicEffect) {
+        debug(f1, assumptions, env)
+
+
+        (
+            --- ("runtime bounded by const")
+            (prove_effect_upper_bound(decls, env, assumptions, AtomicEffect::Const) => (Constraints::none(env), AtomicEffect::Runtime))
+        )
+    }
+}
+
 
 judgment_fn! {
     /// Prove two atomic effects are equal.
