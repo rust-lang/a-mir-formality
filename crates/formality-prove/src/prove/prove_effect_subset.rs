@@ -1,8 +1,8 @@
 use formality_core::{judgment_fn, set, ProvenSet, Set};
-use formality_types::grammar::{AtomicEffect, Effect, Wcs};
+use formality_types::grammar::{AtomicEffect, Effect, Relation, Wcs};
 use std::fmt::Debug;
 
-use crate::{prove::prove_eq::prove_traitref_eq, Decls};
+use crate::{prove::{prove_after::prove_after, prove_eq::prove_traitref_eq}, Decls};
 
 use super::{Constraints, Env};
 
@@ -22,37 +22,13 @@ judgment_fn! {
         // * A is a subset of C and
         // * B is a subset of C
         (
-            // example: imagine that `subset = union({<?T as Trait>::Effect}, {<?T as Trait>::Effect})`, and then
-            //
-            // * subset1 = `{<?T as Trait>::Effect}` and
-            // * superset = `{<u32 as Trait>::Effect, <i32 as Trait>::Effect)`
-            //
-            // this is provable in two ways (and hence will yield two results)
-            //
-            // * first, with c1 = [?T = u32]
-            // * later, with c1 = [?T = i32]
-            (prove_effect_subset(&decls, env, &assumptions, &*subset1, &superset) => c1)
+            // first prove that `A -subset- C`
+            (prove_effect_subset(&decls, env, &assumptions, &*subset1, &superset) => c)
 
-            // replace any inference variables in `subset2` that got constrained
-            // with the value they were forced to equal
-            //
-            // continuing the example, imagine
-            //
-            // * subset2 = `{<?T as Trait>::Effect}`
-            //
-            // with the first value of `c1`, we will substitute and get
-            //
-            // * subset2 = `{u32 as Trait>::Effect}`
-            //
-            // and we will then try to prove it (which succeeds with no constraints).
-            //
-            // in second iteration, we will get `<i32 as Trait>::Effect`, again provable.
-            (let subset2 = c1.substitution().apply(&subset2))
-
-            // prove that this refined version of `subset2` is true
-            (prove_effect_subset(&decls, c1.env(), &assumptions, &*subset2, &superset) => c2)
+            // now prove that `B -subset- C`
+            (prove_after(&decls, c, &assumptions, Relation::effect_subset(&*subset2, &superset)) => c)
             --- ("union")
-            (prove_effect_subset(decls, env, assumptions, Effect::Union(subset1, subset2), superset) => c1.seq(c2))
+            (prove_effect_subset(decls, env, assumptions, Effect::Union(subset1, subset2), superset) => c)
         )
 
         // If `subset` is an atomic effect, then use the `prove_atomic_effect_subset` rule
