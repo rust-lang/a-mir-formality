@@ -9,10 +9,9 @@ use formality_types::{
     },
     rust::Term,
 };
+use minirust::Body;
 
-use crate::grammar::mir::MirFnBody;
-
-pub mod mir;
+pub mod minirust;
 
 #[term($crates)]
 pub struct Program {
@@ -237,8 +236,8 @@ pub enum FnBody {
     TrustedFnBody,
 
     #[cast]
-    #[grammar(= $v0 ;)]
-    MirFnBody(MirFnBody),
+    #[grammar(= $v0;)]
+    MiniRust(minirust::Body),
 }
 
 #[term(type $id $binder ;)]
