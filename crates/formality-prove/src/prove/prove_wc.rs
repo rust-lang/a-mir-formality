@@ -4,6 +4,7 @@ use formality_types::grammar::{Predicate, Relation, Wc, WcData, Wcs};
 use crate::{
     decls::Decls,
     prove::{
+        combinators::for_all,
         env::{Bias, Env},
         is_local::{is_local_trait_ref, may_be_remote},
         prove,

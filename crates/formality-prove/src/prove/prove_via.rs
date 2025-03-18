@@ -61,10 +61,6 @@ judgment_fn! {
         (
             // if the goal is `T: Foo`...
             (prove_via(&decls, env, &assumptions, wc_consequence, goal) => c)
-<<<<<<< HEAD
-=======
-
->>>>>>> 1c31da9 (comments + newtype for DebonedPredicate)
             // ...and we can prove `T: Debug`... then it holds.
             (prove_after(&decls, c, &assumptions, &wc_condition) => c)
             ----------------------------- ("implies")
