@@ -202,7 +202,6 @@ fn three_atomic_test() {
     let const_eff = Effect::Atomic(AtomicEffect::Const);
     let union0 = Effect::Union(Arc::new(const_eff.clone()), Arc::new(const_eff.clone()));
     let union1 = Effect::Union(Arc::new(union0), Arc::new(runtime_eff.clone()));
-    // Test (runtime) <: (runtime, const)
     let constraint_0 = prove(Decls::empty(), Env::default(), Wcs::t(), Relation::EffectSubset(runtime_eff, union1));
     expect![[r#"
         {
