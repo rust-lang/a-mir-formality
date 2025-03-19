@@ -8,3 +8,4 @@ mod magic_copy;
 mod occurs_check;
 mod simple_impl;
 mod universes;
+mod test_effect_subset;
