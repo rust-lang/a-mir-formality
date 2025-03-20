@@ -2,7 +2,10 @@ use formality_core::{judgment_fn, set, ProvenSet, Set};
 use formality_types::grammar::{AtomicEffect, Effect, Relation, Wcs};
 use std::fmt::Debug;
 
-use crate::{prove::{prove_after::prove_after, prove_eq::prove_traitref_eq}, Decls};
+use crate::{
+    prove::{prove_after::prove_after, prove_eq::prove_traitref_eq},
+    Decls,
+};
 
 use super::{Constraints, Env};
 
@@ -75,7 +78,6 @@ judgment_fn! {
     }
 }
 
-
 judgment_fn! {
     /// `prove_effect_bound(..., a) => b` means that `a <= b`
     fn prove_effect_upper_bound(
@@ -93,7 +95,6 @@ judgment_fn! {
         )
     }
 }
-
 
 judgment_fn! {
     /// Prove two atomic effects are equal.
