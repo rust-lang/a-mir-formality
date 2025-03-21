@@ -1,8 +1,9 @@
 use formality_core::{set, Set, Upcast};
 use formality_macros::term;
+use formality_types::grammar::Effect;
 use formality_types::grammar::{
-    AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc,
-    Wcs,
+    AdtId, AliasName, AliasTy, AtomicEffect, Binder, Parameter, Predicate, Relation, TraitId,
+    TraitRef, Ty, Wc, Wcs,
 };
 
 #[term]
@@ -153,8 +154,9 @@ pub enum Safety {
 /// It doesn't capture the trait items, which will be transformed into other sorts of rules.
 ///
 /// In Rust syntax, it covers the `trait Foo: Bar` part of the declaration, but not what appears in the `{...}`.
-#[term($?safety trait $id $binder)]
+#[term($?effect $?safety trait $id $binder)]
 pub struct TraitDecl {
+    pub effect: Effect,
     /// The name of the trait
     pub id: TraitId,
 
@@ -187,6 +189,7 @@ impl TraitDecl {
                     is_supertrait(self_var, binder.peek())
                 }
                 formality_types::grammar::WcData::Implies(_, c) => is_supertrait(self_var, c),
+                formality_types::grammar::WcData::EffectSubset(_, _) => todo!(),
             }
         }
 
@@ -197,7 +200,7 @@ impl TraitDecl {
                 binder: Binder::new(
                     &variables,
                     TraitInvariantBoundData {
-                        trait_ref: TraitRef::new(&self.id, &variables),
+                        trait_ref: TraitRef::new(AtomicEffect::Runtime, &self.id, &variables),
                         where_clause,
                     },
                 ),

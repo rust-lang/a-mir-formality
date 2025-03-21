@@ -11,8 +11,9 @@ use formality_rust::{
     },
     prove::ToWcs,
 };
+use formality_types::grammar::AtomicEffect::Runtime;
 use formality_types::{
-    grammar::{Binder, Fallible, Relation, Substitution, Wcs},
+    grammar::{Binder, Effect, Fallible, Relation, Substitution, Wcs},
     rust::Term,
 };
 
@@ -24,6 +25,7 @@ impl super::Check<'_> {
         let mut env = Env::default();
 
         let TraitImplBoundData {
+            effect,
             trait_id,
             self_ty,
             trait_parameters,
@@ -31,7 +33,7 @@ impl super::Check<'_> {
             impl_items,
         } = env.instantiate_universally(binder);
 
-        let trait_ref = trait_id.with(self_ty, trait_parameters);
+        let trait_ref = trait_id.with(&effect, self_ty, trait_parameters);
 
         self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?;
 
@@ -43,6 +45,7 @@ impl super::Check<'_> {
         let TraitBoundData {
             where_clauses: _,
             trait_items,
+            effect_items: _,
         } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?;
 
         self.check_safety_matches(trait_decl, trait_impl)?;
@@ -67,7 +70,7 @@ impl super::Check<'_> {
             where_clauses,
         } = env.instantiate_universally(binder);
 
-        let trait_ref = trait_id.with(self_ty, trait_parameters);
+        let trait_ref = trait_id.with(&Effect::Atomic(Runtime), self_ty, trait_parameters);
 
         // Negative impls are always safe (rustc E0198) regardless of the trait's safety.
         if *safety == Safety::Unsafe {

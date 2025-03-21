@@ -9,6 +9,7 @@ use crate::{
         is_local::{is_local_trait_ref, may_be_remote},
         prove,
         prove_after::prove_after,
+        prove_effect_subset::prove_effect_subset,
         prove_eq::prove_eq,
         prove_via::prove_via,
         prove_wf::prove_wf,
@@ -132,6 +133,11 @@ judgment_fn! {
             (prove(decls, env, assumptions, Wcs::all_eq(vec![const_ty], vec![ty])) => c)
             ----------------------------- ("const has ty")
             (prove_wc(decls, env, assumptions, Predicate::ConstHasType(ct, ty)) => c)
+        )
+        (
+            (prove_effect_subset(decls, env, assumptions, e1, e2) => c)
+            ------------------------ ("effect subset")
+            (prove_wc(decls, env, assumptions, Relation::EffectSubset(e1, e2)) => c)
         )
     }
 }

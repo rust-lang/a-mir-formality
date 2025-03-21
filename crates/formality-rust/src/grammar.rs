@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use formality_core::{term, Upcast};
 use formality_prove::Safety;
+use formality_types::grammar::AtomicEffect::Runtime;
+use formality_types::grammar::Effect;
 use formality_types::{
     grammar::{
         AdtId, AliasTy, AssociatedItemId, Binder, Const, ConstData, CrateId, Fallible, FieldId,
@@ -174,9 +176,10 @@ pub struct Variant {
     pub fields: Vec<Field>,
 }
 
-#[term($?safety trait $id $binder)]
+#[term($?safety $?effect trait $id $binder)]
 pub struct Trait {
     pub safety: Safety,
+    pub effect: Effect,
     pub id: TraitId,
     pub binder: TraitBinder<TraitBoundData>,
 }
@@ -194,10 +197,11 @@ impl<T: Term> TraitBinder<T> {
     }
 }
 
-#[term($:where $,where_clauses { $*trait_items })]
+#[term($:where $,where_clauses { $*effect_items $*trait_items })]
 pub struct TraitBoundData {
     pub where_clauses: Vec<WhereClause>,
     pub trait_items: Vec<TraitItem>,
+    pub effect_items: Vec<Effect>,
 }
 
 #[term]
@@ -266,10 +270,14 @@ impl TraitImpl {
     pub fn trait_id(&self) -> &TraitId {
         &self.binder.peek().trait_id
     }
+    pub fn effect(&self) -> Effect {
+        self.binder.peek().effect.clone()
+    }
 }
 
-#[term($trait_id $<?trait_parameters> for $self_ty $:where $,where_clauses { $*impl_items })]
+#[term($?effect $trait_id $<?trait_parameters> for $self_ty $:where $,where_clauses { $*impl_items })]
 pub struct TraitImplBoundData {
+    pub effect: Effect,
     pub trait_id: TraitId,
     pub self_ty: Ty,
     pub trait_parameters: Vec<Parameter>,
@@ -279,7 +287,8 @@ pub struct TraitImplBoundData {
 
 impl TraitImplBoundData {
     pub fn trait_ref(&self) -> TraitRef {
-        self.trait_id.with(&self.self_ty, &self.trait_parameters)
+        self.trait_id
+            .with(&self.effect, &self.self_ty, &self.trait_parameters)
     }
 }
 
@@ -299,7 +308,11 @@ pub struct NegTraitImplBoundData {
 
 impl NegTraitImplBoundData {
     pub fn trait_ref(&self) -> TraitRef {
-        self.trait_id.with(&self.self_ty, &self.trait_parameters)
+        self.trait_id.with(
+            &Effect::Atomic(Runtime),
+            &self.self_ty,
+            &self.trait_parameters,
+        )
     }
 }
 
@@ -337,7 +350,7 @@ impl WhereClause {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => Some(
                 trait_id
-                    .with(self_ty, parameters)
+                    .with(&Effect::Atomic(Runtime), self_ty, parameters)
                     .not_implemented()
                     .upcast(),
             ),
@@ -354,9 +367,10 @@ impl WhereClause {
 
     pub fn well_formed(&self) -> Wcs {
         match self.data() {
-            WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
-                trait_id.with(self_ty, parameters).well_formed().upcast()
-            }
+            WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => trait_id
+                .with(&Effect::Atomic(Runtime), self_ty, parameters)
+                .well_formed()
+                .upcast(),
             WhereClauseData::AliasEq(alias_ty, ty) => {
                 let alias_param: Parameter = alias_ty.upcast();
                 let ty_param: Parameter = ty.upcast();
