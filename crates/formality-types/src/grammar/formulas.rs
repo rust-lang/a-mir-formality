@@ -215,7 +215,7 @@ pub enum Relation {
     WellFormed(Parameter),
 
     // Means that the effects `$v0` are a subset of `$v1`.
-    #[grammar(subset($v0, $v1))]
+    #[grammar(@subset($v0, $v1))]
     EffectSubset(Effect, Effect),
 }
 
@@ -257,7 +257,7 @@ pub enum Effect {
     #[cast]
     Atomic(AtomicEffect),
 
-    #[grammar(EffectUnion($v0, $v1))]
+    #[grammar(union($v0, $v1))]
     Union(Arc<Effect>, Arc<Effect>),
 }
 
