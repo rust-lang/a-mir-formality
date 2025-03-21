@@ -109,7 +109,7 @@ fn test_effect_subset_failure() {
     );
     expect![[r#"
         FailedJudgment {
-            judgment: "prove { goal: {subset(runtime , const)}, assumptions: {}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [], [], [], [], [], [], {}, {}) }",
+            judgment: "prove { goal: {@ subset(runtime , const)}, assumptions: {}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [], [], [], [], [], [], {}, {}) }",
             failed_rules: {
                 FailedRule {
                     rule_name_index: None,
@@ -118,7 +118,7 @@ fn test_effect_subset_failure() {
                     column: 59,
                     cause: FailedJudgment(
                         FailedJudgment {
-                            judgment: "prove_wc_list { goal: {subset(runtime , const)}, assumptions: {}, env: Env { variables: [], bias: Soundness } }",
+                            judgment: "prove_wc_list { goal: {@ subset(runtime , const)}, assumptions: {}, env: Env { variables: [], bias: Soundness } }",
                             failed_rules: {
                                 FailedRule {
                                     rule_name_index: Some(
@@ -132,7 +132,7 @@ fn test_effect_subset_failure() {
                                     column: 14,
                                     cause: FailedJudgment(
                                         FailedJudgment {
-                                            judgment: "prove_wc { goal: subset(runtime , const), assumptions: {}, env: Env { variables: [], bias: Soundness } }",
+                                            judgment: "prove_wc { goal: @ subset(runtime , const), assumptions: {}, env: Env { variables: [], bias: Soundness } }",
                                             failed_rules: {
                                                 FailedRule {
                                                     rule_name_index: Some(
@@ -156,7 +156,7 @@ fn test_effect_subset_failure() {
                                                                         ),
                                                                     ),
                                                                     file: "crates/formality-prove/src/prove/prove_effect_subset.rs",
-                                                                    line: 36,
+                                                                    line: 39,
                                                                     column: 14,
                                                                     cause: FailedJudgment(
                                                                         FailedJudgment {
@@ -170,7 +170,7 @@ fn test_effect_subset_failure() {
                                                                                         ),
                                                                                     ),
                                                                                     file: "crates/formality-prove/src/prove/prove_effect_subset.rs",
-                                                                                    line: 67,
+                                                                                    line: 70,
                                                                                     column: 14,
                                                                                     cause: FailedJudgment(
                                                                                         FailedJudgment {
@@ -187,7 +187,7 @@ fn test_effect_subset_failure() {
                                                                                         ),
                                                                                     ),
                                                                                     file: "crates/formality-prove/src/prove/prove_effect_subset.rs",
-                                                                                    line: 59,
+                                                                                    line: 62,
                                                                                     column: 14,
                                                                                     cause: FailedJudgment(
                                                                                         FailedJudgment {
