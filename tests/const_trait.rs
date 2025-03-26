@@ -28,7 +28,7 @@ fn test_const_syntax() {
 fn test_effect_fn() {
     let BASE_PROGRAM: &str = "[
         crate test {
-            fn foo() -> () where effect is runtime {trusted}
+            fn foo() -> () where effect is runtime {(runtime)}
         }
     ]";
     test_where_clause(

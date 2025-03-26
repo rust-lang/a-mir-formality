@@ -243,6 +243,9 @@ pub enum FnBody {
     #[cast]
     #[grammar(= $v0 ;)]
     MirFnBody(MirFnBody),
+
+    #[grammar({($v0)})]
+    FnBodyWithEffect(Effect),
 }
 
 #[term(type $id $binder ;)]
