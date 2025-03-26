@@ -1,6 +1,5 @@
-use formality_core::{judgment_fn, set, ProvenSet, Set};
+use formality_core::judgment_fn;
 use formality_types::grammar::{AtomicEffect, Effect, Relation, Wcs};
-use std::fmt::Debug;
 
 use crate::{
     prove::{prove_after::prove_after, prove_eq::prove_traitref_eq},
@@ -90,7 +89,7 @@ judgment_fn! {
 
 
         (
-            --- ("runtime bounded by const")
+            --- ("const bounded by runtime")
             (prove_effect_upper_bound(_decls, env, _assumptions, AtomicEffect::Const) => (Constraints::none(env), AtomicEffect::Runtime))
         )
     }
@@ -113,14 +112,6 @@ judgment_fn! {
             --- ("associated-effect")
             (prove_atomic_effect_eq(decls, env, assumptions, AtomicEffect::AssociatedEffect(tr1), AtomicEffect::AssociatedEffect(tr2)) => constraints)
         )
-    }
-}
-
-/// Proves judgment for each of the given items.
-pub fn collect<T: Ord + Debug>(judgment: ProvenSet<T>) -> ProvenSet<Set<T>> {
-    match judgment.into_set() {
-        Ok(s) => ProvenSet::proven(set![s]),
-        Err(e) => ProvenSet::from(*e),
     }
 }
 

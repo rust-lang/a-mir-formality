@@ -1,6 +1,7 @@
 use a_mir_formality::test_where_clause;
 use formality_core::test_util::ResultTestExt;
 
+// FIXME: we don't need this for the current set of test to pass, but we might eventually need this, so keep this here. 
 const EFFECT_PREFIX: &str = "[
     crate test {
         trait Trait {
