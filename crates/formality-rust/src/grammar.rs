@@ -346,6 +346,7 @@ impl WhereClause {
         &self.data
     }
 
+    // (tiif): what is this invert for?
     pub fn invert(&self) -> Option<Wc> {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => Some(
@@ -362,6 +363,7 @@ impl WhereClause {
                 Some(Wc::for_all(&vars, wc))
             }
             WhereClauseData::TypeOfConst(_, _) => None,
+            WhereClauseData::FnEffect(_) => None,
         }
     }
 
@@ -413,6 +415,7 @@ impl WhereClause {
                 wcs.push(ty_param.well_formed());
                 wcs.into_iter().map(|r| r.upcast()).collect()
             }
+            WhereClauseData::FnEffect(_) => Wcs::default(),
         }
     }
 }
@@ -433,6 +436,9 @@ pub enum WhereClauseData {
 
     #[grammar(type_of_const $v0 is $v1)]
     TypeOfConst(Const, Ty),
+
+    #[grammar(effect is $v0)]
+    FnEffect(Effect),
 }
 
 #[term($data)]

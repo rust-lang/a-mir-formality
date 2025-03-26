@@ -447,6 +447,11 @@ impl ToWcs for WhereClause {
             WhereClauseData::TypeOfConst(ct, ty) => {
                 Predicate::ConstHasType(ct.clone(), ty.clone()).upcast()
             }
+            // FIXME (tiif): we need to check if the function body's effect is subset of fn's. But we don't have the function body effect 
+            // information for now. 
+            WhereClauseData::FnEffect(e) => {
+                Relation::EffectSubset(e.clone(), e.clone()).upcast()
+            }
         }
     }
 }
