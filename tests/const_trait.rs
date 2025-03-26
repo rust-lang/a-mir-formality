@@ -24,7 +24,21 @@ fn test_const_syntax() {
     test_program_ok(&gen_program("")).assert_ok(expect_test::expect!["()"]);
 }
 
-// FIXME: this test is incorrect?
+#[test]
+fn test_effect_fn() {
+    let BASE_PROGRAM: &str = "[
+        crate test {
+            fn foo() -> () where effect is runtime {trusted}
+        }
+    ]";
+    test_where_clause(
+        BASE_PROGRAM,
+        "{} => {}",
+    )
+    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }}"]);
+}
+
+// FIXME: this test is incorrect, remove this later
 #[test]
 fn test_const_trait_unprovable() {
     let base: &str = "[
