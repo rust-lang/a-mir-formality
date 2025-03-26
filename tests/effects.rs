@@ -8,6 +8,27 @@ const EFFECT_PREFIX: &str = "[
     }
 ]";
 
+// Basic tests for const-runtime relation that should pass.
+#[test]
+fn test_const_runtime_basic() {
+    // (const) <: (runtime)
+    test_where_clause(EFFECT_PREFIX, "{} => {@subset(const, runtime)}")
+        .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }}"]);
+
+    // (runtime) <: (runtime, const)
+    test_where_clause(EFFECT_PREFIX, "{} => {@subset(runtime, union(runtime, const))}")
+        .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }}"]);
+
+    // (const) <: (runtime, const)
+    test_where_clause(EFFECT_PREFIX, "{} => {@subset(const, union(runtime, const))}")
+        .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }}"]);
+
+    // (const, runtime) <: (runtime)
+    test_where_clause(EFFECT_PREFIX, "{} => {@subset(union(const, runtime), runtime)}")
+        .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }}"]);
+}
+
+// Runtime is not subset of const, so this test should fail.
 #[test]
 fn test_runtime_subset_const() {
     test_where_clause(EFFECT_PREFIX, "{} => {@subset(runtime, const)}")
@@ -27,9 +48,10 @@ fn test_runtime_subset_const() {
                                 judgment had no applicable rules: `prove_atomic_effect_eq { f1: runtime, f2: const, assumptions: {}, env: Env { variables: [], bias: Soundness } }`"#]]);
 }
 
-
+// Test if the rule is still correct when there is more than two atomic effects. 
 #[test]
-fn test_const_subset_runtime() {
-    test_where_clause(EFFECT_PREFIX, "{} => {@subset(const, runtime)}")
+fn test_three_atomic_effect() {
+    //union(union(const, const), runtime) <: runtime
+    test_where_clause(EFFECT_PREFIX, "{} => {@subset(union(union(const, const), runtime), runtime)}")
         .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }}"]);
 }

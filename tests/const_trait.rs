@@ -1,11 +1,8 @@
 #![allow(non_snake_case)] // we embed type names into the names for our test functions
 
 use a_mir_formality::{test_program_ok, test_where_clause};
-use expect_test::expect;
 use formality_core::test_util::ResultTestExt;
 use formality_macros::test;
-use formality_prove::{test_util::test_prove, Decls};
-use formality_types::rust::term;
 
 #[test]
 fn test_const_syntax() {
