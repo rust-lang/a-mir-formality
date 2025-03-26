@@ -37,19 +37,3 @@ fn test_effect_fn() {
     )
     .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }}"]);
 }
-
-// FIXME: this test is incorrect, remove this later
-#[test]
-fn test_const_trait_unprovable() {
-    let base: &str = "[
-        crate test {
-            const trait Foo {}
-        }
-    ]";
-
-    test_where_clause(
-        base,
-        "forall<ty T> { const Foo(T) } => { Foo(T) }",
-    )
-    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [!ty_1], bias: Soundness }, known_true: true, substitution: {} }}"]);
-}
