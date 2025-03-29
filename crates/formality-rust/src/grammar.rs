@@ -218,10 +218,11 @@ pub struct Fn {
     pub binder: Binder<FnBoundData>,
 }
 
-#[term($(input_tys) -> $output_ty $:where $,where_clauses $body)]
+#[term($(input_tys) -> $output_ty $:where $,where_clauses $:do $effect $body)]
 pub struct FnBoundData {
     pub input_tys: Vec<Ty>,
     pub output_ty: Ty,
+    pub effect: Effect,
     pub where_clauses: Vec<WhereClause>,
     pub body: MaybeFnBody,
 }
@@ -349,7 +350,6 @@ impl WhereClause {
         &self.data
     }
 
-    // (tiif): what is this invert for?
     pub fn invert(&self) -> Option<Wc> {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => Some(
@@ -366,7 +366,6 @@ impl WhereClause {
                 Some(Wc::for_all(&vars, wc))
             }
             WhereClauseData::TypeOfConst(_, _) => None,
-            WhereClauseData::FnEffect(_) => None,
         }
     }
 
@@ -418,7 +417,6 @@ impl WhereClause {
                 wcs.push(ty_param.well_formed());
                 wcs.into_iter().map(|r| r.upcast()).collect()
             }
-            WhereClauseData::FnEffect(_) => Wcs::default(),
         }
     }
 }
@@ -439,9 +437,6 @@ pub enum WhereClauseData {
 
     #[grammar(type_of_const $v0 is $v1)]
     TypeOfConst(Const, Ty),
-
-    #[grammar(effect is $v0)]
-    FnEffect(Effect),
 }
 
 #[term($data)]
