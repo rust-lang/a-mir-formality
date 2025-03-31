@@ -43,8 +43,8 @@ impl Check<'_> {
 
         self.prove_goal(&env, &fn_assumptions, output_ty.well_formed())?;
 
+
         // prove that the body type checks (if present)
-        eprintln!("check_fn: {body:?}");
         match body {
             MaybeFnBody::NoFnBody => {
                 // No fn body: this occurs e.g. for the fn `bar`
