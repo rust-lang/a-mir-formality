@@ -218,7 +218,7 @@ pub struct Fn {
     pub binder: Binder<FnBoundData>,
 }
 
-#[term($(input_tys) -> $output_ty $:where $,where_clauses $effect $body)]
+#[term($(input_tys) -> $output_ty $:where $,where_clauses $:do $effect $body)]
 pub struct FnBoundData {
     pub input_tys: Vec<Ty>,
     pub output_ty: Ty,

@@ -43,7 +43,6 @@ impl Check<'_> {
 
         self.prove_goal(&env, &fn_assumptions, output_ty.well_formed())?;
 
-
         // prove that the body type checks (if present)
         match body {
             MaybeFnBody::NoFnBody => {
