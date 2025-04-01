@@ -70,7 +70,7 @@ fn test_runtime_fn_with_const_effect() {
 fn test_const_fn_with_runtime_effect() {
     let BASE_PROGRAM: &str = "[
         crate test {
-            fn foo() -> () keyword do const {(runtime)}
+            fn foo() -> () random_keyword do const {(runtime)}
         }
     ]";
     test_where_clause(
