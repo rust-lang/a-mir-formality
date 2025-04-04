@@ -68,6 +68,10 @@ impl TraitRef {
     pub fn not_implemented(&self) -> Predicate {
         Predicate::NotImplemented(self.clone())
     }
+
+    pub fn get_effect(&self) -> Effect {
+        return self.effect.clone();
+    }
 }
 
 impl Ty {

@@ -39,6 +39,16 @@ judgment_fn! {
             --- ("atomic")
             (prove_effect_subset(decls, env, assumptions, Effect::Atomic(subeffect), superset) => constraints)
         )
+        
+        // If it is associated effect, get the effect from the trait_ref, then proceed with normal prove_effect_subset. 
+        (
+            (let subeffect = trait_ref.get_effect())
+            (prove_effect_subset(decls, env, assumptions, subeffect, superset) => constraints)
+            --- ("associated effect")
+            (prove_effect_subset(decls, env, assumptions, Effect::Atomic(AtomicEffect::AssociatedEffect(trait_ref)), superset) => constraints)
+
+        )
+
     }
 }
 
