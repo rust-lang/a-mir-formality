@@ -92,3 +92,57 @@ fn test_const_fn_with_runtime_effect() {
                           the rule "union-subset-lhs" failed at step #1 (src/file.rs:LL:CC) because
                             judgment had no applicable rules: `prove_atomic_effect_eq { f1: runtime, f2: const, assumptions: {}, env: Env { variables: [], bias: Soundness } }`"#]]);
   }
+
+
+#[test]
+fn test_associated_effect_reflexive() {
+    let BASE_PROGRAM: &str = "[
+        crate test {
+          trait Foo {}
+
+          fn foo() -> () random_keyword do AssociatedEffect(Foo()) {(AssociatedEffect(Foo()))}
+        }
+    ]";
+    test_where_clause(
+        BASE_PROGRAM,
+        "{} => {}",
+    )
+    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }}"]);
+  }
+
+
+  // TODO: fix the rule to make this work.  
+#[test]
+fn test_const_associated_effect_in_const_fn() {
+    let BASE_PROGRAM: &str = "[
+        crate test {
+          const trait Foo {}
+
+          fn foo() -> () random_keyword do const {(AssociatedEffect(Foo()))}
+        }
+    ]";
+    test_where_clause(
+        BASE_PROGRAM,
+        "{} => {}",
+    )
+    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }}"]);
+  }
+
+
+#[test]
+fn test_const_associated_effect_in_runtime_fn() {
+    let BASE_PROGRAM: &str = "[
+        crate test {
+          const trait Foo {}
+
+          fn foo() -> () random_keyword do runtime {(AssociatedEffect(Foo()))}
+        }
+    ]";
+    test_where_clause(
+        BASE_PROGRAM,
+        "{} => {}",
+    )
+    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} }}"]);
+  }
+
+  //TODO: add test where associated effect is in the do bound?
