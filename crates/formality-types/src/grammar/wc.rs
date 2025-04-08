@@ -4,7 +4,7 @@ use formality_core::{
     cast_impl, set, term, Cons, DowncastFrom, DowncastTo, Set, Upcast, UpcastFrom, Upcasted,
 };
 
-use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef};
+use super::{Binder, BoundVar, Effect, Parameter, Predicate, Relation, TraitRef};
 
 #[term($set)]
 #[derive(Default)]
@@ -134,8 +134,18 @@ pub enum WcData {
     #[grammar(for $v0)]
     ForAll(Binder<Wc>),
 
+    // An *implication* `if $v0 $v1` says "assuming v0 is true, v1 is true".
+    // These are useful to express hypothetical syntax like
+    // `for<'a: 'b, 'b>` or as part of an implied bounds scheme
+    // where you might make the Rust syntax `for<'a, 'b> T: Something<'a, 'b>`
+    // expand to `for<'a, 'b> if ('a: 'b) (T: Something<'a, 'b>)`
+    // (given `trait Something<'a, 'b> where 'a: 'b`).
     #[grammar(if $v0 $v1)]
     Implies(Wcs, Wc),
+
+    // Means that the effects `$v0` are a subset of `$v1`.
+    #[grammar(subset($v0, $v1))]
+    EffectSubset(Effect, Effect),
 }
 
 // ---

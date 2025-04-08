@@ -33,6 +33,9 @@ fn test_parse_rust_like_trait_impl_syntax() {
                                         Ty,
                                     ],
                                     term: TraitImplBoundData {
+                                        effect: Atomic(
+                                            Runtime,
+                                        ),
                                         trait_id: PartialEq,
                                         self_ty: Ty {
                                             data: Variable(
@@ -84,6 +87,9 @@ fn test_parse_rust_like_trait_syntax() {
                         Trait(
                             Trait {
                                 safety: Safe,
+                                effect: Atomic(
+                                    Runtime,
+                                ),
                                 id: Foo,
                                 binder: <ty, ty> where ^ty0_1 : Bar <^ty0_0> { },
                             },
