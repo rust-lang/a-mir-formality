@@ -9,7 +9,6 @@ use formality_types::{
     },
     rust::Term,
 };
-use minirust::Body;
 
 pub mod minirust;
 

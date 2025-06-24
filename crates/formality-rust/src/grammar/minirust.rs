@@ -1,8 +1,7 @@
-use std::sync::Arc;
 
-use formality_core::{id, Downcast, DowncastFrom, Upcast};
+use formality_core::id;
 use formality_macros::term;
-use formality_types::grammar::{FieldId, Ty};
+use formality_types::grammar::Ty;
 
 // This definition is based on [MiniRust](https://github.com/minirust/minirust/blob/master/spec/lang/syntax.md).
 
@@ -62,10 +61,10 @@ pub enum Terminator {
     // Unreachable
     // Intrinsic
 
-    #[grammar(call $?cc $callee$(arguments) -> $ret $:goto $next_block)]
+    #[grammar(call $callee$(arguments) -> $ret $:goto $next_block)]
     Call {
         callee: ValueExpression,
-        cc: CallingConvention,
+        // cc: CallingConvention,
         arguments: Vec<ArgumentExpression>,
         ret: PlaceExpression,
         next_block: Option<BbId>,
@@ -73,17 +72,6 @@ pub enum Terminator {
 
     #[grammar(return)]
     Return,
-}
-
-#[term]
-#[derive(Default)]
-pub enum CallingConvention {
-    #[default]
-    #[grammar((Rust))]
-    Rust,
-
-    #[grammar((C))]
-    C,
 }
 
 #[term]
@@ -95,8 +83,8 @@ pub enum ArgumentExpression {
 #[term]
 pub enum ValueExpression {
     // Const
-    #[grammar($(v0) as $v1)]
-    Tuple(Vec<ValueExpression>, Ty),
+    // #[grammar($(v0) as $v1)]
+    // Tuple(Vec<ValueExpression>, Ty),
     // Union
     // Variant
     // GetDiscriminant
@@ -110,8 +98,8 @@ pub enum ValueExpression {
 #[term]
 pub enum PlaceExpression {
     Local(LocalId),
-    Deref(Arc<ValueExpression>),
-    Field(Arc<PlaceExpression>, FieldId),
+    // Deref(Arc<ValueExpression>),
+    // Field(Arc<PlaceExpression>, FieldId),
     // Index
     // Downcast
 }
