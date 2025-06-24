@@ -1,12 +1,34 @@
 
 use formality_core::id;
 use formality_macros::term;
-use formality_types::grammar::Ty;
+use formality_types::grammar::{Parameter, Ty};
 
 // This definition is based on [MiniRust](https://github.com/minirust/minirust/blob/master/spec/lang/syntax.md).
 
 id!(BbId);
 id!(LocalId);
+
+// Example:
+//
+// fn foo() -> u32 = minirust(v1) -> v0 {
+//   let v0: u32;
+//   let v1: u32;
+//
+//   bb0:
+//     v0 = v1;
+//     return;
+// }
+//
+// fn bar() -> u32 = minirust(v1) -> v0 {
+//   let v0: u32;
+//   let v1: u32;
+//
+//   bb0:
+//     call foo (v1) -> v0 goto bb1;
+//
+//   bb1:
+//     return;
+// }
 
 /// Based on [MiniRust statements](https://github.com/minirust/minirust/blob/9ae11cc202d040f08bc13ec5254d3d41d5f3cc25/spec/lang/syntax.md#statements-terminators).
 #[term(minirust($,args) -> $ret {
@@ -61,10 +83,15 @@ pub enum Terminator {
     // Unreachable
     // Intrinsic
 
-    #[grammar(call $callee$(arguments) -> $ret $:goto $next_block)]
+    // Example:
+    //
+    //    call foo(x, y)
+    //    call foo.add<u32>(x, y)
+    #[grammar(call $callee $<?generic_arguments> $(arguments) -> $ret $:goto $next_block)]
     Call {
         callee: ValueExpression,
         // cc: CallingConvention,
+        generic_arguments: Vec<Parameter>,
         arguments: Vec<ArgumentExpression>,
         ret: PlaceExpression,
         next_block: Option<BbId>,

@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use formality_types::rust::FormalityLang;
+
 use std::{collections::VecDeque, fmt::Debug};
 
 use anyhow::bail;
@@ -10,6 +12,8 @@ use formality_rust::{
     prove::ToWcs,
 };
 use formality_types::grammar::{Fallible, Wcs};
+
+mod mini_rust_check;;
 
 /// Check all crates in the program. The crates must be in dependency order
 /// such that any prefix of the crates is a complete program.

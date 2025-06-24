@@ -179,6 +179,32 @@ impl super::Check<'_> {
             )?;
         }
 
+        // Check that the impl's declared return type is a subtype of what the trait declared:
+        //
+        // OK
+        //
+        // ```rust
+        // trait Foo {
+        //     fn bar<'a>(&'a self, input: &u32) -> &'a u32;
+        // }
+        //
+        // impl Foo for MyType {
+        //     fn bar(&self, input: &u32) -> &'static u32 {} // <-- subtype, ok
+        // }
+        // ```
+        //
+        // NOT OK
+        //
+        // ```rust
+        // trait Foo {
+        //     fn bar<'a>(&'a self, input: &u32) -> &'a u32;
+        // }
+        //
+        // impl Foo for MyType {
+        //     fn bar<'b>(&self, input: &'b u32) -> &'b u32 {} // <-- not sutype, not ok
+        // }
+        // ```
+
         self.prove_goal(
             &env,
             (&impl_assumptions, &ii_where_clauses),
