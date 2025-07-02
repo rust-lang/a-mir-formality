@@ -63,6 +63,7 @@ pub enum Statement {
     #[grammar($v0 = $v1;)]
     Assign(PlaceExpression, ValueExpression),
 
+    // Represent let _ = place;
     #[grammar($v0;)]
     PlaceMention(PlaceExpression),
 
@@ -89,14 +90,19 @@ pub enum Terminator {
     //    call foo.add<u32>(x, y)
     #[grammar(call $callee $<?generic_arguments> $(arguments) -> $ret $:goto $next_block)]
     Call {
+        /// What function or method to call.
         callee: ValueExpression,
         // cc: CallingConvention,
         generic_arguments: Vec<Parameter>,
+        /// The function arguments to pass.
         arguments: Vec<ArgumentExpression>,
+        /// The place to put the return value into.
         ret: PlaceExpression,
+        /// The block to jump to when this call returns.
         next_block: Option<BbId>,
     },
 
+    /// Return from the current function.
     #[grammar(return)]
     Return,
 }

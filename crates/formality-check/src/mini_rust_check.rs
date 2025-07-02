@@ -1,4 +1,4 @@
-use formality_core::{term, Fallible, Map, Upcast};
+use formality_core::{Fallible, Map, Upcast};
 use formality_prove::Env;
 use formality_rust::grammar::minirust::{self, LocalId};
 use formality_types::grammar::{Ty, Wcs, Relation};
@@ -39,7 +39,7 @@ impl Check<'_> {
         )?;
 
         let env = TypeckEnv {
-            env,
+            env: env.clone(),
             output_ty,
             local_variables,
         };
@@ -57,43 +57,47 @@ impl Check<'_> {
             self.check_statement(env, statement)?;
         }
 
-        self.check_terminator(&block.terminator)?;
+        self.check_terminator(env, &block.terminator)?;
 
         Ok(())
     }
 
-    fn check_statement(&self, env: &TypeckEnv, statement: &minirust::Statement) -> Fallible<()> {
+    fn check_statement(&self, _env: &TypeckEnv, statement: &minirust::Statement) -> Fallible<()> {
         match statement {
-            minirust::Statement::Assign(place_expression, value_expression) => {
+            minirust::Statement::Assign(_place_expression, _value_expression) => {
                 // FIXME: check that the place and value are well-formed
                 // FIXME: check that the type of the value is a subtype of the place's type
+                todo!();
             }
-            minirust::Statement::PlaceMention(place_expression) => {
+            minirust::Statement::PlaceMention(_place_expression) => {
                 // FIXME: check that the place is well-formed
                 // FIXME: check that access the place is allowed per borrowck rules
+                todo!();
             }
         }
     }
 
-    fn check_terminator(&self, env: &TypeckEnv, terminator: &minirust::Terminator) -> Fallible<()> {
+    fn check_terminator(&self, _env: &TypeckEnv, terminator: &minirust::Terminator) -> Fallible<()> {
         match terminator {
-            minirust::Terminator::Goto(bb_id) => {
+            minirust::Terminator::Goto(_bb_id) => {
                 // FIXME: Check that the basic block `bb_id` exists
+                todo!();
             }
-            minirust::Terminator::Call { callee, arguments, ret, next_block } => {
+            minirust::Terminator::Call { callee:_, generic_arguments:_, arguments:_, ret:_, next_block:_ } => {
                 // FIXME: check that the callee is something callable
                 // FIXME: check that the arguments are well formed and their types are subtypes of the expected argument types
                 // FIXME: check that the next block is valid
                 // FIXME: check that the fn's declared return type is a subtype of the type of the local variable `ret`
+                todo!();
             }
             minirust::Terminator::Return => {
                 // FIXME: Check that the return local variable has been initialized
+                todo!();
             }
         }
     }
 }
 
-#[term]
 struct TypeckEnv {
     env: Env,
 
