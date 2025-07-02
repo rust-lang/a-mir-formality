@@ -1,7 +1,8 @@
-
 use formality_core::id;
 use formality_macros::term;
 use formality_types::grammar::{Parameter, Ty};
+
+use crate::grammar::FnId;
 
 // This definition is based on [MiniRust](https://github.com/minirust/minirust/blob/master/spec/lang/syntax.md).
 
@@ -50,7 +51,7 @@ pub struct LocalDecl {
 }
 
 /// Based on [MiniRust statements](https://github.com/minirust/minirust/blob/9ae11cc202d040f08bc13ec5254d3d41d5f3cc25/spec/lang/syntax.md#statements-terminators).
-#[term($id: ${statements} $terminator;)]
+#[term($id: {statements {$*statements} $terminator;})]
 pub struct BasicBlock {
     pub id: BbId,
     pub statements: Vec<Statement>,
@@ -64,9 +65,8 @@ pub enum Statement {
     Assign(PlaceExpression, ValueExpression),
 
     // Represent let _ = place;
-    #[grammar($v0;)]
+    #[grammar(place_mention($v0);)]
     PlaceMention(PlaceExpression),
-
     // SetDiscriminant
     // Validate
     // Deinit
@@ -88,6 +88,7 @@ pub enum Terminator {
     //
     //    call foo(x, y)
     //    call foo.add<u32>(x, y)
+    // FIXME: allow not having next block for goto, and add a comment for it.
     #[grammar(call $callee $<?generic_arguments> $(arguments) -> $ret $:goto $next_block)]
     Call {
         /// What function or method to call.
@@ -99,6 +100,8 @@ pub enum Terminator {
         /// The place to put the return value into.
         ret: PlaceExpression,
         /// The block to jump to when this call returns.
+        /// In minirust, if this is None, then UB will be raised when the function returns.
+        /// FIXME(tiif): should we have the same behaviour as minirust?
         next_block: Option<BbId>,
     },
 
@@ -109,13 +112,16 @@ pub enum Terminator {
 
 #[term]
 pub enum ArgumentExpression {
+    #[grammar(Copy($v0))]
     ByValue(ValueExpression),
+    #[grammar(Move($v0))]
     InPlace(PlaceExpression),
 }
 
 #[term]
 pub enum ValueExpression {
-    // Const
+    #[grammar(fn_id $v0)]
+    Fn(FnId),
     // #[grammar($(v0) as $v1)]
     // Tuple(Vec<ValueExpression>, Ty),
     // Union
@@ -123,6 +129,7 @@ pub enum ValueExpression {
     // GetDiscriminant
     #[grammar(load($v0))]
     Load(PlaceExpression),
+    // TODO: literals
     // AddrOf
     // UnOp
     // BinOp
@@ -130,11 +137,11 @@ pub enum ValueExpression {
 
 #[term]
 pub enum PlaceExpression {
+    // FIXME(tiif): if we remove the local keyword, call bar () -> v1 goto bb1; won't work
+    #[grammar(local($v0))]
     Local(LocalId),
     // Deref(Arc<ValueExpression>),
     // Field(Arc<PlaceExpression>, FieldId),
     // Index
     // Downcast
 }
-
-

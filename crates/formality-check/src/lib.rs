@@ -61,11 +61,18 @@ impl Check<'_> {
 
     fn check_current_crate(&self, c: &Crate) -> Fallible<()> {
         let Crate { id: _, items } = c;
+        // Collect Fn item from current crate.
+        let all_fn: Vec<CrateItem> = c
+            .items
+            .clone()
+            .into_iter()
+            .filter(|item| matches!(item, CrateItem::Fn(_)))
+            .collect();
 
         self.check_for_duplicate_items()?;
 
         for item in items {
-            self.check_crate_item(item)?;
+            self.check_crate_item(item, &all_fn)?;
         }
 
         self.check_coherence(c)?;
@@ -109,13 +116,13 @@ impl Check<'_> {
         Ok(())
     }
 
-    fn check_crate_item(&self, c: &CrateItem) -> Fallible<()> {
+    fn check_crate_item(&self, c: &CrateItem, all_fn: &Vec<CrateItem>) -> Fallible<()> {
         match c {
-            CrateItem::Trait(v) => self.check_trait(v),
-            CrateItem::TraitImpl(v) => self.check_trait_impl(v),
+            CrateItem::Trait(v) => self.check_trait(v, all_fn),
+            CrateItem::TraitImpl(v) => self.check_trait_impl(v, all_fn),
             CrateItem::Struct(s) => self.check_adt(&s.to_adt()),
             CrateItem::Enum(e) => self.check_adt(&e.to_adt()),
-            CrateItem::Fn(f) => self.check_free_fn(f),
+            CrateItem::Fn(f) => self.check_free_fn(f, all_fn),
             CrateItem::NegTraitImpl(i) => self.check_neg_trait_impl(i),
             CrateItem::Test(t) => self.check_test(t),
         }

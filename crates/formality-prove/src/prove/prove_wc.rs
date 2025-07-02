@@ -16,6 +16,7 @@ use crate::{
 };
 
 use super::constraints::Constraints;
+use formality_types::grammar::Parameter::Ty;
 
 judgment_fn! {
     pub fn prove_wc(
@@ -51,6 +52,14 @@ judgment_fn! {
             (prove_via(&decls, &env, &assumptions, a, &goal) => c)
             ----------------------------- ("assumption - relation")
             (prove_wc(decls, env, assumptions, WcData::Relation(goal)) => c)
+        )
+
+        (
+            (if let Ty(_) = param1.clone())!
+            (if let Ty(_) = param2.clone())!
+            (if param1 == param2)!
+                ----------------------------- ("subtype - reflexive")
+            (prove_wc(_decls, env, _assumptions, WcData::Relation(Relation::Sub(param1, param2))) => Constraints::none(env))
         )
 
         (
