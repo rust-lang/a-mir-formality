@@ -1,7 +1,8 @@
 use formality_core::{Fallible, Map, Upcast};
 use formality_prove::Env;
-use formality_rust::grammar::minirust::{self, LocalId, PlaceExpression};
+use formality_rust::grammar::minirust::{self, LocalId, PlaceExpression, ValueExpression};
 use formality_rust::grammar::minirust::PlaceExpression::Local;
+use formality_rust::grammar::minirust::ValueExpression::Load;
 use formality_types::grammar::{Ty, Wcs, Relation};
 
 use anyhow::bail;
@@ -66,9 +67,9 @@ impl Check<'_> {
 
     fn check_statement(&self, env: &TypeckEnv, statement: &minirust::Statement) -> Fallible<()> {
         match statement {
-            minirust::Statement::Assign(place_expression, _value_expression) => {
+            minirust::Statement::Assign(place_expression, value_expression) => {
                 self.check_place(env, place_expression)?;
-                // FIXME: check that the value are well-formed
+                self.check_value(env, value_expression)?;
                 // FIXME: check that the type of the value is a subtype of the place's type
             }
             minirust::Statement::PlaceMention(place_expression) => {
@@ -110,7 +111,17 @@ impl Check<'_> {
             }
         }
         Ok(())
+    }
 
+    // Check if the value expression is well-formed.
+    fn check_value(&self, env: &TypeckEnv, value: &ValueExpression) -> Fallible<()> {
+        match value {
+            Load(place_expression) => {
+                self.check_place(env, place_expression)?;
+                // FIXME(tiif): minirust checks if the type of the value is sized, maybe we should do that.
+            }
+        }
+        Ok(())
     }
 }
 
