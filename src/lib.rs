@@ -1,5 +1,3 @@
-#![feature(control_flow_enum)]
-
 use std::{path::PathBuf, sync::Arc};
 
 use clap::Parser;

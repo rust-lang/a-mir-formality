@@ -5,7 +5,7 @@ use formality_rust::{
 };
 use formality_types::grammar::{Fallible, Wcs};
 
-use crate::{mini_rust_check, Check};
+use crate::Check;
 
 impl Check<'_> {
     /// A "free function" is a free-standing function that is not part of an impl.
@@ -59,7 +59,7 @@ impl Check<'_> {
         for input_ty in &input_tys {
             self.prove_goal(&env, &fn_assumptions, input_ty.well_formed())?;
         }
-        self.prove_goal(&env, &fn_assumptions, output_ty.well_formed())?;
+        self.prove_goal(&env, &fn_assumptions, &output_ty.well_formed())?;
 
         // Type-check the function body, if present.
         match body {
@@ -71,7 +71,7 @@ impl Check<'_> {
                     // A trusted function body is assumed to be valid, all set.
                 }
                 formality_rust::grammar::FnBody::MiniRust(body) => {
-                    mini_rust_check::check_body(&env, &fn_assumptions, body)?;
+                    self.check_body(&env, &output_ty, &fn_assumptions, body)?;
                 }
             }
         }
