@@ -1,8 +1,10 @@
 use formality_core::{Fallible, Map, Upcast};
 use formality_prove::Env;
-use formality_rust::grammar::minirust::{self, LocalId};
+use formality_rust::grammar::minirust::{self, LocalId, PlaceExpression};
+use formality_rust::grammar::minirust::PlaceExpression::Local;
 use formality_types::grammar::{Ty, Wcs, Relation};
 
+use anyhow::bail;
 use crate::Check;
 
 impl Check<'_> {
@@ -62,19 +64,19 @@ impl Check<'_> {
         Ok(())
     }
 
-    fn check_statement(&self, _env: &TypeckEnv, statement: &minirust::Statement) -> Fallible<()> {
+    fn check_statement(&self, env: &TypeckEnv, statement: &minirust::Statement) -> Fallible<()> {
         match statement {
-            minirust::Statement::Assign(_place_expression, _value_expression) => {
-                // FIXME: check that the place and value are well-formed
+            minirust::Statement::Assign(place_expression, _value_expression) => {
+                self.check_place(env, place_expression)?;
+                // FIXME: check that the value are well-formed
                 // FIXME: check that the type of the value is a subtype of the place's type
-                todo!();
             }
-            minirust::Statement::PlaceMention(_place_expression) => {
-                // FIXME: check that the place is well-formed
+            minirust::Statement::PlaceMention(place_expression) => {
+                self.check_place(env, place_expression)?;
                 // FIXME: check that access the place is allowed per borrowck rules
-                todo!();
             }
         }
+        Ok(())
     }
 
     fn check_terminator(&self, _env: &TypeckEnv, terminator: &minirust::Terminator) -> Fallible<()> {
@@ -95,6 +97,20 @@ impl Check<'_> {
                 todo!();
             }
         }
+    }
+
+    // Check if the place expression is well-formed.
+    // FIXME: there might be a way to use prove_goal for this.
+    fn check_place(&self, env: &TypeckEnv, place: &PlaceExpression) -> Fallible<()> {
+        match place {
+            Local(local_id) => {
+                if !env.local_variables.iter().any(|(declared_local_id, _)| declared_local_id == local_id) {
+                    bail!("PlaceExpression::Local: unknown local name") 
+                }
+            }
+        }
+        Ok(())
+
     }
 }
 
