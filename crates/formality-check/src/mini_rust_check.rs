@@ -49,15 +49,15 @@ impl Check<'_> {
 
         // (3) Check statements in body are valid
         for block in &body.blocks {
-            self.check_block(&env, block)?;
+            self.check_block(&env, fn_assumptions, block)?;
         }
 
         Ok(())
     }
     
-    fn check_block(&self, env: &TypeckEnv, block: &minirust::BasicBlock) -> Fallible<()> {
+    fn check_block(&self, env: &TypeckEnv, fn_assumptions: &Wcs, block: &minirust::BasicBlock) -> Fallible<()> {
         for statement in  &block.statements {
-            self.check_statement(env, statement)?;
+            self.check_statement(env, fn_assumptions, statement)?;
         }
 
         self.check_terminator(env, &block.terminator)?;
@@ -65,15 +65,23 @@ impl Check<'_> {
         Ok(())
     }
 
-    fn check_statement(&self, env: &TypeckEnv, statement: &minirust::Statement) -> Fallible<()> {
+    fn check_statement(&self, typeck_env: &TypeckEnv, fn_assumptions: &Wcs,statement: &minirust::Statement) -> Fallible<()> {
         match statement {
             minirust::Statement::Assign(place_expression, value_expression) => {
-                self.check_place(env, place_expression)?;
-                self.check_value(env, value_expression)?;
-                // FIXME: check that the type of the value is a subtype of the place's type
+                // Check if the place expression is well-formed.
+                let place_ty = self.check_place(typeck_env, place_expression)?;
+                // Check if the value expression is well-formed.
+                let value_ty = self.check_value(typeck_env, value_expression)?;
+                // Check that the type of the value is a subtype of the place's type
+                self.prove_goal(
+                    &typeck_env.env,
+                    fn_assumptions,
+                    Relation::sub(value_ty, place_ty),
+                )?;
             }
             minirust::Statement::PlaceMention(place_expression) => {
-                self.check_place(env, place_expression)?;
+                // Check if the place expression is well-formed.
+                self.check_place(typeck_env, place_expression)?;
                 // FIXME: check that access the place is allowed per borrowck rules
             }
         }
@@ -100,28 +108,31 @@ impl Check<'_> {
         }
     }
 
-    // Check if the place expression is well-formed.
+    // Check if the place expression is well-formed, and return the type of the place expression.
     // FIXME: there might be a way to use prove_goal for this.
-    fn check_place(&self, env: &TypeckEnv, place: &PlaceExpression) -> Fallible<()> {
+    fn check_place(&self, env: &TypeckEnv, place: &PlaceExpression) -> Fallible<Ty> {
+        let place_ty;
         match place {
             Local(local_id) => {
-                if !env.local_variables.iter().any(|(declared_local_id, _)| declared_local_id == local_id) {
+                let Some((_, ty)) = env.local_variables.iter().find(|(declared_local_id, _)| *declared_local_id == local_id) else {
                     bail!("PlaceExpression::Local: unknown local name") 
-                }
+                };
+                place_ty = ty;
             }
         }
-        Ok(())
+        Ok(place_ty.clone())
     }
 
-    // Check if the value expression is well-formed.
-    fn check_value(&self, env: &TypeckEnv, value: &ValueExpression) -> Fallible<()> {
+    // Check if the value expression is well-formed, and return the type of the value expression.
+    fn check_value(&self, env: &TypeckEnv, value: &ValueExpression) -> Fallible<Ty> {
+        let value_ty;
         match value {
             Load(place_expression) => {
-                self.check_place(env, place_expression)?;
+                value_ty = self.check_place(env, place_expression)?;
                 // FIXME(tiif): minirust checks if the type of the value is sized, maybe we should do that.
             }
         }
-        Ok(())
+        Ok(value_ty)
     }
 }
 
