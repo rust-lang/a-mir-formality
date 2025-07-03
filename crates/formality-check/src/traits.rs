@@ -6,10 +6,11 @@ use formality_rust::grammar::{
     AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, WhereClause,
 };
 use formality_types::grammar::Fallible;
+use crate::CrateItem;
 
 impl super::Check<'_> {
     #[context("check_trait({:?})", t.id)]
-    pub(super) fn check_trait(&self, t: &Trait) -> Fallible<()> {
+    pub(super) fn check_trait(&self, t: &Trait, all_fn: &Vec<CrateItem>) -> Fallible<()> {
         let Trait {
             safety: _,
             id: _,
@@ -27,7 +28,7 @@ impl super::Check<'_> {
         self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?;
 
         for trait_item in &trait_items {
-            self.check_trait_item(&env, &where_clauses, trait_item)?;
+            self.check_trait_item(&env, &where_clauses, trait_item, all_fn)?;
         }
 
         Ok(())
@@ -62,15 +63,16 @@ impl super::Check<'_> {
         env: &Env,
         where_clauses: &[WhereClause],
         trait_item: &TraitItem,
+        all_fn: &Vec<CrateItem>,
     ) -> Fallible<()> {
         match trait_item {
-            TraitItem::Fn(v) => self.check_fn_in_trait(env, where_clauses, v),
+            TraitItem::Fn(v) => self.check_fn_in_trait(env, where_clauses, v, all_fn),
             TraitItem::AssociatedTy(v) => self.check_associated_ty(env, where_clauses, v),
         }
     }
 
-    fn check_fn_in_trait(&self, env: &Env, where_clauses: &[WhereClause], f: &Fn) -> Fallible<()> {
-        self.check_fn(env, where_clauses, f)
+    fn check_fn_in_trait(&self, env: &Env, where_clauses: &[WhereClause], f: &Fn, all_fn: &Vec<CrateItem>) -> Fallible<()> {
+        self.check_fn(env, where_clauses, f, all_fn)
     }
 
     fn check_associated_ty(

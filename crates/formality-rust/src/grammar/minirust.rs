@@ -3,6 +3,8 @@ use formality_core::id;
 use formality_macros::term;
 use formality_types::grammar::{Parameter, Ty};
 
+use crate::grammar::Fn;
+
 // This definition is based on [MiniRust](https://github.com/minirust/minirust/blob/master/spec/lang/syntax.md).
 
 id!(BbId);
@@ -115,7 +117,7 @@ pub enum ArgumentExpression {
 
 #[term]
 pub enum ValueExpression {
-    // Const
+    Fn(Fn),
     // #[grammar($(v0) as $v1)]
     // Tuple(Vec<ValueExpression>, Ty),
     // Union
@@ -136,5 +138,3 @@ pub enum PlaceExpression {
     // Index
     // Downcast
 }
-
-

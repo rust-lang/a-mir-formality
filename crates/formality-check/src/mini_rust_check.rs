@@ -2,11 +2,12 @@ use formality_core::{Fallible, Map, Upcast};
 use formality_prove::Env;
 use formality_rust::grammar::minirust::{self, LocalId, PlaceExpression, ValueExpression};
 use formality_rust::grammar::minirust::PlaceExpression::Local;
-use formality_rust::grammar::minirust::ValueExpression::Load;
+use formality_rust::grammar::minirust::ValueExpression::{Load, Fn};
 use formality_types::grammar::{Ty, Wcs, Relation};
 
 use anyhow::bail;
 use crate::Check;
+use crate::CrateItem;
 
 impl Check<'_> {
     pub(crate) fn check_body(
@@ -15,6 +16,7 @@ impl Check<'_> {
         output_ty: impl Upcast<Ty>,
         fn_assumptions: &Wcs,
         body: minirust::Body,
+        all_fn: &Vec<CrateItem>,
     ) -> Fallible<()> {
         // Type-check:
         //
@@ -49,29 +51,29 @@ impl Check<'_> {
 
         // (3) Check statements in body are valid
         for block in &body.blocks {
-            self.check_block(&env, fn_assumptions, block)?;
+            self.check_block(&env, fn_assumptions, block, all_fn)?;
         }
 
         Ok(())
     }
     
-    fn check_block(&self, env: &TypeckEnv, fn_assumptions: &Wcs, block: &minirust::BasicBlock) -> Fallible<()> {
+    fn check_block(&self, env: &TypeckEnv, fn_assumptions: &Wcs, block: &minirust::BasicBlock, all_fn: &Vec<CrateItem>) -> Fallible<()> {
         for statement in  &block.statements {
-            self.check_statement(env, fn_assumptions, statement)?;
+            self.check_statement(env, fn_assumptions, statement, all_fn)?;
         }
 
-        self.check_terminator(env, &block.terminator)?;
+        self.check_terminator(env, &block.terminator, all_fn)?;
 
         Ok(())
     }
 
-    fn check_statement(&self, typeck_env: &TypeckEnv, fn_assumptions: &Wcs,statement: &minirust::Statement) -> Fallible<()> {
+    fn check_statement(&self, typeck_env: &TypeckEnv, fn_assumptions: &Wcs,statement: &minirust::Statement, all_fn: &Vec<CrateItem>) -> Fallible<()> {
         match statement {
             minirust::Statement::Assign(place_expression, value_expression) => {
                 // Check if the place expression is well-formed.
                 let place_ty = self.check_place(typeck_env, place_expression)?;
                 // Check if the value expression is well-formed.
-                let value_ty = self.check_value(typeck_env, value_expression)?;
+                let value_ty = self.check_value(typeck_env, value_expression, all_fn)?;
                 // Check that the type of the value is a subtype of the place's type
                 self.prove_goal(
                     &typeck_env.env,
@@ -88,14 +90,15 @@ impl Check<'_> {
         Ok(())
     }
 
-    fn check_terminator(&self, _env: &TypeckEnv, terminator: &minirust::Terminator) -> Fallible<()> {
+    fn check_terminator(&self, env: &TypeckEnv, terminator: &minirust::Terminator, all_fn: &Vec<CrateItem>) -> Fallible<()> {
         match terminator {
             minirust::Terminator::Goto(_bb_id) => {
                 // FIXME: Check that the basic block `bb_id` exists
                 todo!();
             }
-            minirust::Terminator::Call { callee:_, generic_arguments:_, arguments:_, ret:_, next_block:_ } => {
-                // FIXME: check that the callee is something callable
+            minirust::Terminator::Call { callee, generic_arguments:_, arguments:_, ret:_, next_block:_ } => {
+                // Function is part of the value expression, so we will check if the function exists in check_value.
+                self.check_value(env, callee, all_fn)?;
                 // FIXME: check that the arguments are well formed and their types are subtypes of the expected argument types
                 // FIXME: check that the next block is valid
                 // FIXME: check that the fn's declared return type is a subtype of the type of the local variable `ret`
@@ -124,12 +127,16 @@ impl Check<'_> {
     }
 
     // Check if the value expression is well-formed, and return the type of the value expression.
-    fn check_value(&self, env: &TypeckEnv, value: &ValueExpression) -> Fallible<Ty> {
+    fn check_value(&self, env: &TypeckEnv, value: &ValueExpression, _all_fn: &Vec<CrateItem>) -> Fallible<Ty> {
         let value_ty;
         match value {
             Load(place_expression) => {
                 value_ty = self.check_place(env, place_expression)?;
                 // FIXME(tiif): minirust checks if the type of the value is sized, maybe we should do that.
+            }
+            Fn(_fn_value) => {
+                // Check if the function is in the crate
+                todo!() 
             }
         }
         Ok(value_ty)
