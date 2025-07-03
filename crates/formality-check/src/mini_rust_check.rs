@@ -127,19 +127,33 @@ impl Check<'_> {
     }
 
     // Check if the value expression is well-formed, and return the type of the value expression.
-    fn check_value(&self, env: &TypeckEnv, value: &ValueExpression, _all_fn: &Vec<CrateItem>) -> Fallible<Ty> {
+    fn check_value(&self, env: &TypeckEnv, value: &ValueExpression, all_fn: &Vec<CrateItem>) -> Fallible<Ty> {
         let value_ty;
         match value {
             Load(place_expression) => {
                 value_ty = self.check_place(env, place_expression)?;
+                Ok(value_ty)
                 // FIXME(tiif): minirust checks if the type of the value is sized, maybe we should do that.
             }
-            Fn(_fn_value) => {
-                // Check if the function is in the crate
-                todo!() 
+            // Check if the function called is in declared in current crate.
+            // FIXME (tiif): tidy up the code here
+            Fn(fn_called) => {
+                for item in all_fn {
+                    match item {
+                        CrateItem::Fn(fn_declared) => {
+                            if fn_called == fn_declared {
+                                value_ty = env.output_ty.clone();
+                                return Ok(value_ty);
+                            }
+                        }
+                        _ => {
+                            bail!("only CrateItem::Function should be here")
+                        }
+                    }
+                }
+               bail!("The function called is not declared in current crate")
             }
         }
-        Ok(value_ty)
     }
 }
 
