@@ -1,8 +1,9 @@
 use formality_core::{Fallible, Map, Upcast};
 use formality_prove::Env;
-use formality_rust::grammar::minirust::{self, LocalId, PlaceExpression, ValueExpression};
+use formality_rust::grammar::minirust::{self, ArgumentExpression, LocalId, PlaceExpression, ValueExpression};
 use formality_rust::grammar::minirust::PlaceExpression::Local;
 use formality_rust::grammar::minirust::ValueExpression::{Load, Fn};
+use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
 use formality_types::grammar::{Ty, Wcs, Relation};
 
 use anyhow::bail;
@@ -62,7 +63,7 @@ impl Check<'_> {
             self.check_statement(env, fn_assumptions, statement, all_fn)?;
         }
 
-        self.check_terminator(env, &block.terminator, all_fn)?;
+        self.check_terminator(env, fn_assumptions, &block.terminator, all_fn)?;
 
         Ok(())
     }
@@ -90,25 +91,37 @@ impl Check<'_> {
         Ok(())
     }
 
-    fn check_terminator(&self, env: &TypeckEnv, terminator: &minirust::Terminator, all_fn: &Vec<CrateItem>) -> Fallible<()> {
+    fn check_terminator(&self, typeck_env: &TypeckEnv, fn_assumptions: &Wcs, terminator: &minirust::Terminator, all_fn: &Vec<CrateItem>) -> Fallible<()> {
         match terminator {
             minirust::Terminator::Goto(_bb_id) => {
                 // FIXME: Check that the basic block `bb_id` exists
                 todo!();
             }
-            minirust::Terminator::Call { callee, generic_arguments:_, arguments:_, ret:_, next_block:_ } => {
+            minirust::Terminator::Call { callee, generic_arguments:_, arguments, ret, next_block:_ } => {
                 // Function is part of the value expression, so we will check if the function exists in check_value.
-                self.check_value(env, callee, all_fn)?;
-                // FIXME: check that the arguments are well formed and their types are subtypes of the expected argument types
+                self.check_value(typeck_env, callee, all_fn)?;
+                // FIXME: Check that the arguments are well formed and their types are subtypes of the expected argument types
+                for argument in arguments {
+                    let _actual_ty = self.check_argument_expression(typeck_env, argument, all_fn);
+                    // FIXME(tiif): we don't have the expected argument type information yet?
+                    let _expect_ty:Ty = todo!();
+                }
+                // Check if ret is well-formed. 
+                let actual_return_ty = self.check_place(typeck_env, ret)?;
+                // Check that the fn's declared return type is a subtype of the type of the local variable `ret`
+                self.prove_goal(
+                    &typeck_env.env,
+                    fn_assumptions,
+                    Relation::sub( &typeck_env.output_ty, &actual_return_ty),
+                )?;
                 // FIXME: check that the next block is valid
-                // FIXME: check that the fn's declared return type is a subtype of the type of the local variable `ret`
-                todo!();
             }
             minirust::Terminator::Return => {
                 // FIXME: Check that the return local variable has been initialized
                 todo!();
             }
         }
+        Ok(())
     }
 
     // Check if the place expression is well-formed, and return the type of the place expression.
@@ -154,6 +167,19 @@ impl Check<'_> {
                bail!("The function called is not declared in current crate")
             }
         }
+    }
+
+    fn check_argument_expression(&self, env: &TypeckEnv, arg_expr: &ArgumentExpression, all_fn: &Vec<CrateItem>) -> Fallible<Ty> {
+        let ty;
+        match arg_expr {
+            ByValue(val_expr) => {
+                ty = self.check_value(env, val_expr, all_fn)?;
+            },
+            InPlace(place_expr) => {
+                ty = self.check_place(env, place_expr)?;
+            }
+        }
+        Ok(ty)
     }
 }
 
