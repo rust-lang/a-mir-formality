@@ -129,12 +129,6 @@ impl Check<'_> {
                     )?;
 
                 }
-                for argument in actual_arguments {
-                    let _actual_ty = self.check_argument_expression(typeck_env, argument, all_fn);
-                    // FIXME(tiif): we don't have the expected argument type information yet, need to take it from the declared function. 
-                    let _expect_ty:Ty = todo!();
-                    // TODO: check subtyping
-                }
                 // Check if ret is well-formed. 
                 let actual_return_ty = self.check_place(typeck_env, ret)?;
                 // Check that the fn's declared return type is a subtype of the type of the local variable `ret`
