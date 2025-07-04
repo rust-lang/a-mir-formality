@@ -1,6 +1,6 @@
 use formality_core::{Fallible, Map, Upcast};
 use formality_prove::Env;
-use formality_rust::grammar::minirust::{self, ArgumentExpression, LocalId, PlaceExpression, ValueExpression};
+use formality_rust::grammar::minirust::{self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression};
 use formality_rust::grammar::minirust::PlaceExpression::Local;
 use formality_rust::grammar::minirust::ValueExpression::{Load, Fn};
 use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
@@ -48,11 +48,12 @@ impl Check<'_> {
             env: env.clone(),
             output_ty,
             local_variables,
+            blocks: body.blocks.clone(),
         };
 
         // (3) Check statements in body are valid
-        for block in &body.blocks {
-            self.check_block(&env, fn_assumptions, block, all_fn)?;
+        for block in body.blocks {
+            self.check_block(&env, fn_assumptions, &block, all_fn)?;
         }
 
         Ok(())
@@ -93,11 +94,11 @@ impl Check<'_> {
 
     fn check_terminator(&self, typeck_env: &TypeckEnv, fn_assumptions: &Wcs, terminator: &minirust::Terminator, all_fn: &Vec<CrateItem>) -> Fallible<()> {
         match terminator {
-            minirust::Terminator::Goto(_bb_id) => {
-                // FIXME: Check that the basic block `bb_id` exists
-                todo!();
+            minirust::Terminator::Goto(bb_id) => {
+                // Check that the basic block `bb_id` exists.
+                self.check_block_exist(typeck_env, bb_id)?;
             }
-            minirust::Terminator::Call { callee, generic_arguments:_, arguments, ret, next_block:_ } => {
+            minirust::Terminator::Call { callee, generic_arguments:_, arguments, ret, next_block } => {
                 // Function is part of the value expression, so we will check if the function exists in check_value.
                 self.check_value(typeck_env, callee, all_fn)?;
                 // FIXME: Check that the arguments are well formed and their types are subtypes of the expected argument types
@@ -115,7 +116,12 @@ impl Check<'_> {
                     fn_assumptions,
                     Relation::sub( &typeck_env.output_ty, &actual_return_ty),
                 )?;
-                // FIXME: check that the next block is valid
+
+                // Check that the next block is valid.
+                let Some(bb_id) = next_block else {
+                    bail!("There should be next block for Terminator::Call, but it does not exist!");
+                };
+                self.check_block_exist(typeck_env, bb_id)?;
             }
             minirust::Terminator::Return => {
                 // FIXME: Check that the return local variable has been initialized
@@ -182,6 +188,15 @@ impl Check<'_> {
         }
         Ok(ty)
     }
+
+    fn check_block_exist(&self, env: &TypeckEnv, id: &BbId) -> Fallible<()> {
+        for block in env.blocks.iter() {
+            if *id == block.id {
+                return Ok(())
+            }
+        }
+        bail!("Basic block {:?} does not exist", id)
+    }
 }
 
 struct TypeckEnv {
@@ -192,4 +207,7 @@ struct TypeckEnv {
 
     /// Type of each local variable, as declared.
     local_variables: Map<LocalId, Ty>,
+
+    /// All basic blocks of current body.
+    blocks: Vec<BasicBlock>,
 }
