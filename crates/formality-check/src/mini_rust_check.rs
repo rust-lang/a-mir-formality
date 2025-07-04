@@ -44,22 +44,24 @@ impl Check<'_> {
             Relation::sub(&local_variables[&body.ret], &output_ty),
         )?;
 
-        let env = TypeckEnv {
+        let mut env = TypeckEnv {
             env: env.clone(),
             output_ty,
             local_variables,
             blocks: body.blocks.clone(),
+            ret_id: body.ret,
+            ret_place_is_initialised: false,
         };
 
         // (3) Check statements in body are valid
         for block in body.blocks {
-            self.check_block(&env, fn_assumptions, &block, all_fn)?;
+            self.check_block(&mut env, fn_assumptions, &block, all_fn)?;
         }
 
         Ok(())
     }
     
-    fn check_block(&self, env: &TypeckEnv, fn_assumptions: &Wcs, block: &minirust::BasicBlock, all_fn: &Vec<CrateItem>) -> Fallible<()> {
+    fn check_block(&self, env: &mut TypeckEnv, fn_assumptions: &Wcs, block: &minirust::BasicBlock, all_fn: &Vec<CrateItem>) -> Fallible<()> {
         for statement in  &block.statements {
             self.check_statement(env, fn_assumptions, statement, all_fn)?;
         }
@@ -69,7 +71,7 @@ impl Check<'_> {
         Ok(())
     }
 
-    fn check_statement(&self, typeck_env: &TypeckEnv, fn_assumptions: &Wcs,statement: &minirust::Statement, all_fn: &Vec<CrateItem>) -> Fallible<()> {
+    fn check_statement(&self, typeck_env: &mut TypeckEnv, fn_assumptions: &Wcs,statement: &minirust::Statement, all_fn: &Vec<CrateItem>) -> Fallible<()> {
         match statement {
             minirust::Statement::Assign(place_expression, value_expression) => {
                 // Check if the place expression is well-formed.
@@ -82,6 +84,10 @@ impl Check<'_> {
                     fn_assumptions,
                     Relation::sub(value_ty, place_ty),
                 )?;
+                // Record if the return place has been initialised.
+                if *place_expression == PlaceExpression::Local(typeck_env.ret_id.clone()) {
+                        typeck_env.ret_place_is_initialised = true;
+                }
             }
             minirust::Statement::PlaceMention(place_expression) => {
                 // Check if the place expression is well-formed.
@@ -124,8 +130,10 @@ impl Check<'_> {
                 self.check_block_exist(typeck_env, bb_id)?;
             }
             minirust::Terminator::Return => {
-                // FIXME: Check that the return local variable has been initialized
-                todo!();
+                // Check that the return local variable has been initialized
+                if !typeck_env.ret_place_is_initialised {
+                    bail!("The return local variable has not been initialized.")
+                }
             }
         }
         Ok(())
@@ -210,4 +218,10 @@ struct TypeckEnv {
 
     /// All basic blocks of current body.
     blocks: Vec<BasicBlock>,
+
+    /// local_id of return place,
+    ret_id: LocalId,
+
+    /// Record if the return place has been initialised.
+    ret_place_is_initialised: bool,
 }
