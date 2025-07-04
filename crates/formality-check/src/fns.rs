@@ -73,7 +73,7 @@ impl Check<'_> {
                     // A trusted function body is assumed to be valid, all set.
                 }
                 formality_rust::grammar::FnBody::MiniRust(body) => {
-                    self.check_body(&env, &output_ty, &fn_assumptions, body, all_fn)?;
+                    self.check_body(&env, &output_ty, &fn_assumptions, body, all_fn, input_tys)?;
                 }
             }
         }

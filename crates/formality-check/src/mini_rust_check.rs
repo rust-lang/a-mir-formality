@@ -1,3 +1,5 @@
+use std::iter::zip;
+
 use formality_core::{Fallible, Map, Upcast};
 use formality_prove::Env;
 use formality_rust::grammar::minirust::{self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression};
@@ -18,6 +20,7 @@ impl Check<'_> {
         fn_assumptions: &Wcs,
         body: minirust::Body,
         all_fn: &Vec<CrateItem>,
+        declared_input_tys: Vec<Ty>,
     ) -> Fallible<()> {
         // Type-check:
         //
@@ -51,6 +54,7 @@ impl Check<'_> {
             blocks: body.blocks.clone(),
             ret_id: body.ret,
             ret_place_is_initialised: false,
+            declared_input_tys,
         };
 
         // (3) Check statements in body are valid
@@ -104,11 +108,28 @@ impl Check<'_> {
                 // Check that the basic block `bb_id` exists.
                 self.check_block_exist(typeck_env, bb_id)?;
             }
-            minirust::Terminator::Call { callee, generic_arguments:_, arguments, ret, next_block } => {
+            minirust::Terminator::Call { callee, generic_arguments:_, arguments: actual_arguments, ret, next_block } => {
                 // Function is part of the value expression, so we will check if the function exists in check_value.
                 self.check_value(typeck_env, callee, all_fn)?;
-                // FIXME: Check that the arguments are well formed and their types are subtypes of the expected argument types
-                for argument in arguments {
+                // Check if the numbers of arguments passed equals to number of arguments declared.
+                let actual_arg_num = actual_arguments.len();
+                let declared_arg_num = typeck_env.declared_input_tys.len();
+                if actual_arg_num != declared_arg_num {
+                    bail!("The numbers of arguments passed to Terminator::Call is {actual_arg_num}, but the declared function argument number is {declared_arg_num}");
+                }
+                let arguments = zip(typeck_env.declared_input_tys.clone(), actual_arguments);
+                for (declared_ty, actual_argument) in arguments {
+                    // Check if the arguments are well formed.
+                    let actual_ty = self.check_argument_expression(typeck_env, actual_argument, all_fn)?;
+                    // Check if the actual argument type passed in is the subtype of expect argument type.
+                    self.prove_goal(
+                        &typeck_env.env,
+                        fn_assumptions,
+                        Relation::sub( &actual_ty, &declared_ty),
+                    )?;
+
+                }
+                for argument in actual_arguments {
                     let _actual_ty = self.check_argument_expression(typeck_env, argument, all_fn);
                     // FIXME(tiif): we don't have the expected argument type information yet, need to take it from the declared function. 
                     let _expect_ty:Ty = todo!();
@@ -224,4 +245,7 @@ struct TypeckEnv {
 
     /// Record if the return place has been initialised.
     ret_place_is_initialised: bool,
+
+    /// All declared argument type of the function.
+    declared_input_tys: Vec<Ty>,
 }
