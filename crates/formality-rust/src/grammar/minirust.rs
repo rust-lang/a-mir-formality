@@ -1,4 +1,3 @@
-
 use formality_core::id;
 use formality_macros::term;
 use formality_types::grammar::{Parameter, Ty};
@@ -68,7 +67,6 @@ pub enum Statement {
     // Represent let _ = place;
     #[grammar($v0;)]
     PlaceMention(PlaceExpression),
-
     // SetDiscriminant
     // Validate
     // Deinit

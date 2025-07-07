@@ -1,3 +1,4 @@
+use crate::CrateItem;
 use anyhow::bail;
 use fn_error_context::context;
 use formality_core::Set;
@@ -6,7 +7,6 @@ use formality_rust::grammar::{
     AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, WhereClause,
 };
 use formality_types::grammar::Fallible;
-use crate::CrateItem;
 
 impl super::Check<'_> {
     #[context("check_trait({:?})", t.id)]
@@ -71,7 +71,13 @@ impl super::Check<'_> {
         }
     }
 
-    fn check_fn_in_trait(&self, env: &Env, where_clauses: &[WhereClause], f: &Fn, all_fn: &Vec<CrateItem>) -> Fallible<()> {
+    fn check_fn_in_trait(
+        &self,
+        env: &Env,
+        where_clauses: &[WhereClause],
+        f: &Fn,
+        all_fn: &Vec<CrateItem>,
+    ) -> Fallible<()> {
         self.check_fn(env, where_clauses, f, all_fn)
     }
 

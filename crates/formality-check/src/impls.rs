@@ -1,5 +1,6 @@
 use anyhow::bail;
 
+use crate::CrateItem;
 use fn_error_context::context;
 use formality_core::Downcasted;
 use formality_prove::{Env, Safety};
@@ -15,11 +16,14 @@ use formality_types::{
     grammar::{Binder, Fallible, Relation, Substitution, Wcs},
     rust::Term,
 };
-use crate::CrateItem;
 
 impl super::Check<'_> {
     #[context("check_trait_impl({trait_impl:?})")]
-    pub(super) fn check_trait_impl(&self, trait_impl: &TraitImpl, all_fn: &Vec<CrateItem>) -> Fallible<()> {
+    pub(super) fn check_trait_impl(
+        &self,
+        trait_impl: &TraitImpl,
+        all_fn: &Vec<CrateItem>,
+    ) -> Fallible<()> {
         let TraitImpl { binder, safety: _ } = trait_impl;
 
         let mut env = Env::default();
@@ -102,7 +106,7 @@ impl super::Check<'_> {
         assumptions: impl ToWcs,
         trait_items: &[TraitItem],
         impl_item: &ImplItem,
-        all_fn: &Vec<CrateItem>
+        all_fn: &Vec<CrateItem>,
     ) -> Fallible<()> {
         let assumptions: Wcs = assumptions.to_wcs();
         assert!(
@@ -123,7 +127,7 @@ impl super::Check<'_> {
         impl_assumptions: impl ToWcs,
         trait_items: &[TraitItem],
         ii_fn: &Fn,
-        all_fn: &Vec<CrateItem>
+        all_fn: &Vec<CrateItem>,
     ) -> Fallible<()> {
         let impl_assumptions: Wcs = impl_assumptions.to_wcs();
         assert!(

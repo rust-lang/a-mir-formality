@@ -62,7 +62,12 @@ impl Check<'_> {
     fn check_current_crate(&self, c: &Crate) -> Fallible<()> {
         let Crate { id: _, items } = c;
         // Collect all fn informatiion from current crate.
-        let all_fn: Vec<CrateItem> = c.items.clone().into_iter().filter(|item,| matches!(item, CrateItem::Fn(_))).collect();
+        let all_fn: Vec<CrateItem> = c
+            .items
+            .clone()
+            .into_iter()
+            .filter(|item| matches!(item, CrateItem::Fn(_)))
+            .collect();
 
         self.check_for_duplicate_items()?;
 

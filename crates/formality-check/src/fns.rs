@@ -15,9 +15,9 @@ impl Check<'_> {
     }
 
     /// Invoked for both free functions and methods.
-    /// 
+    ///
     /// # Parameters
-    /// 
+    ///
     /// * `in_env` -- the environment from the enclosing impl (if any)
     /// * `in_assumptions` -- where-clauses from the enclosing impl (if any)
     /// * `f` -- the function definition
@@ -75,7 +75,7 @@ impl Check<'_> {
                 formality_rust::grammar::FnBody::MiniRust(body) => {
                     self.check_body(&env, &output_ty, &fn_assumptions, body, all_fn, input_tys)?;
                 }
-            }
+            },
         }
 
         Ok(())
