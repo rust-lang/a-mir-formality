@@ -6,6 +6,7 @@ mod consts;
 mod decl_safety;
 mod functions;
 mod well_formed_trait_ref;
+mod mir_fn_bodies;
 
 #[test]
 fn parser() {
