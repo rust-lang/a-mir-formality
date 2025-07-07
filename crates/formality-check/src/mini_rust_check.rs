@@ -19,7 +19,7 @@ impl Check<'_> {
         output_ty: impl Upcast<Ty>,
         fn_assumptions: &Wcs,
         body: minirust::Body,
-        all_fn: &Vec<CrateItem>,
+        declared_fn: &Vec<CrateItem>,
         declared_input_tys: Vec<Ty>,
     ) -> Fallible<()> {
         // Type-check:
@@ -55,33 +55,34 @@ impl Check<'_> {
             ret_id: body.ret,
             ret_place_is_initialised: false,
             declared_input_tys,
+            declared_fn: declared_fn.to_vec(),
         };
 
         // (3) Check statements in body are valid
         for block in body.blocks {
-            self.check_block(&mut env, fn_assumptions, &block, all_fn)?;
+            self.check_block(&mut env, fn_assumptions, &block)?;
         }
 
         Ok(())
     }
     
-    fn check_block(&self, env: &mut TypeckEnv, fn_assumptions: &Wcs, block: &minirust::BasicBlock, all_fn: &Vec<CrateItem>) -> Fallible<()> {
+    fn check_block(&self, env: &mut TypeckEnv, fn_assumptions: &Wcs, block: &minirust::BasicBlock) -> Fallible<()> {
         for statement in  &block.statements {
-            self.check_statement(env, fn_assumptions, statement, all_fn)?;
+            self.check_statement(env, fn_assumptions, statement)?;
         }
 
-        self.check_terminator(env, fn_assumptions, &block.terminator, all_fn)?;
+        self.check_terminator(env, fn_assumptions, &block.terminator)?;
 
         Ok(())
     }
 
-    fn check_statement(&self, typeck_env: &mut TypeckEnv, fn_assumptions: &Wcs,statement: &minirust::Statement, all_fn: &Vec<CrateItem>) -> Fallible<()> {
+    fn check_statement(&self, typeck_env: &mut TypeckEnv, fn_assumptions: &Wcs,statement: &minirust::Statement) -> Fallible<()> {
         match statement {
             minirust::Statement::Assign(place_expression, value_expression) => {
                 // Check if the place expression is well-formed.
                 let place_ty = self.check_place(typeck_env, place_expression)?;
                 // Check if the value expression is well-formed.
-                let value_ty = self.check_value(typeck_env, value_expression, all_fn)?;
+                let value_ty = self.check_value(typeck_env, value_expression)?;
                 // Check that the type of the value is a subtype of the place's type
                 self.prove_goal(
                     &typeck_env.env,
@@ -102,7 +103,7 @@ impl Check<'_> {
         Ok(())
     }
 
-    fn check_terminator(&self, typeck_env: &TypeckEnv, fn_assumptions: &Wcs, terminator: &minirust::Terminator, all_fn: &Vec<CrateItem>) -> Fallible<()> {
+    fn check_terminator(&self, typeck_env: &TypeckEnv, fn_assumptions: &Wcs, terminator: &minirust::Terminator) -> Fallible<()> {
         match terminator {
             minirust::Terminator::Goto(bb_id) => {
                 // Check that the basic block `bb_id` exists.
@@ -110,7 +111,7 @@ impl Check<'_> {
             }
             minirust::Terminator::Call { callee, generic_arguments:_, arguments: actual_arguments, ret, next_block } => {
                 // Function is part of the value expression, so we will check if the function exists in check_value.
-                self.check_value(typeck_env, callee, all_fn)?;
+                self.check_value(typeck_env, callee)?;
                 // Check if the numbers of arguments passed equals to number of arguments declared.
                 let actual_arg_num = actual_arguments.len();
                 let declared_arg_num = typeck_env.declared_input_tys.len();
@@ -120,7 +121,7 @@ impl Check<'_> {
                 let arguments = zip(typeck_env.declared_input_tys.clone(), actual_arguments);
                 for (declared_ty, actual_argument) in arguments {
                     // Check if the arguments are well formed.
-                    let actual_ty = self.check_argument_expression(typeck_env, actual_argument, all_fn)?;
+                    let actual_ty = self.check_argument_expression(typeck_env, actual_argument)?;
                     // Check if the actual argument type passed in is the subtype of expect argument type.
                     self.prove_goal(
                         &typeck_env.env,
@@ -155,11 +156,11 @@ impl Check<'_> {
     }
 
     // Check if the place expression is well-formed, and return the type of the place expression.
-    // FIXME: there might be a way to use prove_goal for this.
     fn check_place(&self, env: &TypeckEnv, place: &PlaceExpression) -> Fallible<Ty> {
         let place_ty;
         match place {
             Local(local_id) => {
+                // Check if place id is a valid local id. 
                 let Some((_, ty)) = env.local_variables.iter().find(|(declared_local_id, _)| *declared_local_id == local_id) else {
                     bail!("PlaceExpression::Local: unknown local name") 
                 };
@@ -170,40 +171,29 @@ impl Check<'_> {
     }
 
     // Check if the value expression is well-formed, and return the type of the value expression.
-    fn check_value(&self, env: &TypeckEnv, value: &ValueExpression, all_fn: &Vec<CrateItem>) -> Fallible<Ty> {
+    fn check_value(&self, env: &TypeckEnv, value: &ValueExpression) -> Fallible<Ty> {
         let value_ty;
         match value {
             Load(place_expression) => {
                 value_ty = self.check_place(env, place_expression)?;
                 Ok(value_ty)
-                // FIXME(tiif): minirust checks if the type of the value is sized, maybe we should do that.
             }
-            // Check if the function called is in declared in current crate.
-            // FIXME (tiif): tidy up the code here
             Fn(fn_called) => {
-                for item in all_fn {
-                    match item {
-                        CrateItem::Fn(fn_declared) => {
-                            if fn_called == fn_declared {
-                                value_ty = env.output_ty.clone();
-                                return Ok(value_ty);
-                            }
-                        }
-                        _ => {
-                            bail!("only CrateItem::Function should be here")
-                        }
-                    }
+                // Check if the function called is in declared in current crate.
+                if let None = env.declared_fn.iter().find(|&item| *item == CrateItem::Fn(fn_called.clone())) {
+                    bail!("The function called is not declared in current crate")
                 }
-               bail!("The function called is not declared in current crate")
+                value_ty = env.output_ty.clone();
+                Ok(value_ty)
             }
         }
     }
 
-    fn check_argument_expression(&self, env: &TypeckEnv, arg_expr: &ArgumentExpression, all_fn: &Vec<CrateItem>) -> Fallible<Ty> {
+    fn check_argument_expression(&self, env: &TypeckEnv, arg_expr: &ArgumentExpression) -> Fallible<Ty> {
         let ty;
         match arg_expr {
             ByValue(val_expr) => {
-                ty = self.check_value(env, val_expr, all_fn)?;
+                ty = self.check_value(env, val_expr)?;
             },
             InPlace(place_expr) => {
                 ty = self.check_place(env, place_expr)?;
@@ -242,4 +232,7 @@ struct TypeckEnv {
 
     /// All declared argument type of the function.
     declared_input_tys: Vec<Ty>,
+
+    /// All declared fn in current crate.
+    declared_fn: Vec<CrateItem>,
 }
