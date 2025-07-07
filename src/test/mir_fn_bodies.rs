@@ -1,5 +1,4 @@
 
-// All the tests are still failing because the parser cannot accept any statement for some reason?
 #[test]
 fn test_assign_statement() {
     crate::assert_ok!(
