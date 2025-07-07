@@ -206,12 +206,20 @@ impl Check<'_> {
                 value_ty = self.check_place(env, place_expression)?;
                 Ok(value_ty)
             }
-            Fn(fn_called) => {
+            Fn(fn_id) => {
                 // Check if the function called is in declared in current crate.
-                if let None = env
+                let item = env
                     .declared_fn
                     .iter()
-                    .find(|&item| *item == CrateItem::Fn(fn_called.clone()))
+                    .find(|&item| {
+                        match item {
+                            CrateItem::Fn(fn_declared) => {
+                                return fn_declared.id == *fn_id;
+                            }
+                            _ => false
+                        }
+                    });
+                if item == None
                 {
                     bail!("The function called is not declared in current crate")
                 }

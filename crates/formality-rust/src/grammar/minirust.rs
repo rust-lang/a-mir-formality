@@ -2,7 +2,7 @@ use formality_core::id;
 use formality_macros::term;
 use formality_types::grammar::{Parameter, Ty};
 
-use crate::grammar::Fn;
+use crate::grammar::FnId;
 
 // This definition is based on [MiniRust](https://github.com/minirust/minirust/blob/master/spec/lang/syntax.md).
 
@@ -115,7 +115,8 @@ pub enum ArgumentExpression {
 
 #[term]
 pub enum ValueExpression {
-    Fn(Fn),
+    #[grammar(fn $v0)]
+    Fn(FnId),
     // #[grammar($(v0) as $v1)]
     // Tuple(Vec<ValueExpression>, Ty),
     // Union
