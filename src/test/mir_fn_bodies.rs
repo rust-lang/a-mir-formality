@@ -1,5 +1,4 @@
 
-
 // All the tests are still failing because the parser cannot accept any statement for some reason?
 #[test]
 fn test_assign_statement() {
@@ -11,9 +10,12 @@ fn test_assign_statement() {
                     let v1: u32;
                     
                     bb0: {
-                        v1 = v0;
+                        statement { 
+                            local(v1) = v0;
+                        }
+                        return;
                     }
-                    return;
+                    
                 };
             }
         ]
@@ -32,9 +34,12 @@ fn test_place_mention_statement() {
                     let v1: u32;
                     
                     bb0: {
-                        v0;
+                        statement {
+                            local(v0);
+                        }
+                        return;
                     }
-                    return;
+                    
                 };
             }
         ]
@@ -53,13 +58,17 @@ fn test_goto_terminator() {
                     let v1: u32;
                     
                     bb0: {
+                        statement {}
+                        goto bb1;
                     }
-                    goto bb1;
 
                     bb1: {
-                        v1 = v0;
+                        statement {
+                            local(v1) = v0;
+                        }
+                        return;
                     }
-                    return;
+                    
                 };
             }
         ]
@@ -73,24 +82,35 @@ fn test_call_terminator() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo () -> () = minirust() -> v0 {
+                fn foo () -> () = minirust(v1) -> v0 {
                     let v0: ();
                     let v1: ();
                     
                     bb0: {
+                        statement {
+                            local(v0) = v1;
+                        }
+                        call bar() -> local(v1) goto bb1;
                     }
-                    call bar() -> local(v1) goto bb1;
 
-                    bb1: {}
-                    return;
+                    bb1: {
+                        statement {}
+                        return;
+                    }
+                    
                 };
 
-                fn bar() -> () = minirust() -> v0 {
+                fn bar() -> () = minirust(v1) -> v0 {
                     let v0: ();
+                    let v1: ();
                     
                     bb0: {
+                        statement {
+                            local(v0) = v1;
+                        } 
+                        return;
                     }
-                    return;
+                    
                 };
             }
         ]

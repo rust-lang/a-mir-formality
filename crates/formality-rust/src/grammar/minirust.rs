@@ -52,7 +52,7 @@ pub struct LocalDecl {
 
 /// Based on [MiniRust statements](https://github.com/minirust/minirust/blob/9ae11cc202d040f08bc13ec5254d3d41d5f3cc25/spec/lang/syntax.md#statements-terminators).
 // FIXME(tiif): for some reason statements is always not required
-#[term($id: ${statements} $terminator;)]
+#[term($id: {statement ${statements} $terminator;})]
 pub struct BasicBlock {
     pub id: BbId,
     pub statements: Vec<Statement>,
