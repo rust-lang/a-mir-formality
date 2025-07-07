@@ -51,6 +51,7 @@ pub struct LocalDecl {
 }
 
 /// Based on [MiniRust statements](https://github.com/minirust/minirust/blob/9ae11cc202d040f08bc13ec5254d3d41d5f3cc25/spec/lang/syntax.md#statements-terminators).
+// FIXME(tiif): for some reason statements is always not required
 #[term($id: ${statements} $terminator;)]
 pub struct BasicBlock {
     pub id: BbId,
@@ -115,7 +116,7 @@ pub enum ArgumentExpression {
 
 #[term]
 pub enum ValueExpression {
-    #[grammar(fn $v0)]
+    #[grammar($v0)]
     Fn(FnId),
     // #[grammar($(v0) as $v1)]
     // Tuple(Vec<ValueExpression>, Ty),
@@ -131,6 +132,8 @@ pub enum ValueExpression {
 
 #[term]
 pub enum PlaceExpression {
+    // FIXME(tiif): if we remove the local keyword, call bar () -> v1 goto bb1; won't work
+    #[grammar(local($v0))]
     Local(LocalId),
     // Deref(Arc<ValueExpression>),
     // Field(Arc<PlaceExpression>, FieldId),
