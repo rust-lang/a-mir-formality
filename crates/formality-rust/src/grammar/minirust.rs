@@ -110,7 +110,9 @@ pub enum Terminator {
 
 #[term]
 pub enum ArgumentExpression {
+    #[grammar(value($v0))]
     ByValue(ValueExpression),
+    #[grammar(place($v0))]
     InPlace(PlaceExpression),
 }
 
