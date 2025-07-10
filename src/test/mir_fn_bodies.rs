@@ -10,7 +10,7 @@ fn test_assign_statement() {
                     
                     bb0: {
                         statements { 
-                            placeexpr_local(v0) = load(placeexpr_local(v1)); // load(local(v0))
+                            placeexpr_local(v0) = load(placeexpr_local(v1)); 
                         }
                         return;
                     }
@@ -64,7 +64,7 @@ fn test_goto_terminator() {
 
                     bb1: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1)); // load(local(v0))
+                            placeexpr_local(v0) = load(placeexpr_local(v1));
                         }
                         return;
                     }
@@ -96,10 +96,12 @@ fn test_call_terminator() {
 
                 fn bar() -> u32 = minirust() -> v0 {
                     let v0: u32;
-                    let v1: u32; // FIXME(tiif): This might not work because this is not initialised?
+                    let v1: u32;
 
                     bb0: {
-                        statements {} //statements for this.  
+                        statements {
+                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                        } 
                         call fn_id foo (arg_place(placeexpr_local(v1))) -> placeexpr_local(v0) goto bb1;
                     }
                     

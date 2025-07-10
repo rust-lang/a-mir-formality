@@ -136,11 +136,6 @@ impl Check<'_> {
                 // Function is part of the value expression, so we will check if the function exists in check_value.
                 self.check_value(typeck_env, callee)?;
                 // Check if the numbers of arguments passed equals to number of arguments declared.
-                let actual_arg_num = actual_arguments.len();
-                let declared_arg_num = typeck_env.declared_input_tys.len();
-                if actual_arg_num != declared_arg_num {
-                    bail!("The numbers of arguments passed to Terminator::Call is {actual_arg_num}, but the declared function argument number is {declared_arg_num}");
-                }
                 let arguments = zip(typeck_env.declared_input_tys.clone(), actual_arguments);
                 for (declared_ty, actual_argument) in arguments {
                     // Check if the arguments are well formed.
@@ -274,7 +269,7 @@ struct TypeckEnv {
     /// Record if the return place has been initialised.
     ret_place_is_initialised: bool,
 
-    /// All declared argument type of the function.
+    /// All declared argument type of current function.
     declared_input_tys: Vec<Ty>,
 
     /// All declared fn in current crate.
