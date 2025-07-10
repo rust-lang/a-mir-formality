@@ -37,7 +37,7 @@ judgment_fn! {
             (let (skel_c, parameters_c) = rel_1.debone())
             (let (skel_g, parameters_g) = rel_2.debone())
             (if skel_c == skel_g)
-            (if parameters_c == parameters_g)! // for relations, we require 100% match
+            (if parameters_c == parameters_g) // for relations, we require 100% match
             ----------------------------- ("relation-axiom")
             (prove_via(_decls, env, _assumptions, WcData::Relation(rel_1), WcData::Relation(rel_2)) => Constraints::none(env))
         )
