@@ -66,7 +66,7 @@ pub enum Statement {
     Assign(PlaceExpression, ValueExpression),
 
     // Represent let _ = place;
-    #[grammar($v0;)]
+    #[grammar(place_mention($v0);)]
     PlaceMention(PlaceExpression),
     // SetDiscriminant
     // Validate

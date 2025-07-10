@@ -22,30 +22,6 @@ fn test_assign_statement() {
     )
 }
 
-// TODO: we need to add a rule for () <: ()
-#[test]
-fn test_place_mention_statement() {
-    crate::assert_ok!(
-        [
-            crate Foo {
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
-                    let v0: u32;
-                    let v1: u32;
-                    
-                    bb0: {
-                        statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
-                            placeexpr_local(v0);
-                        }
-                        return;
-                    }
-                    
-                };
-            }
-        ]
-        expect_test::expect![["()"]]
-    )
-}
 
 
 #[test]
@@ -115,4 +91,28 @@ fn test_call_terminator() {
         expect_test::expect![["()"]]
     )
 
+}
+
+#[test]
+fn test_place_mention_statement() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    
+                    bb0: {
+                        statements {
+                            place_mention(placeexpr_local(v0));,
+                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                        }
+                        return;
+                    }
+                    
+                };
+            }
+        ]
+        expect_test::expect![["()"]]
+    )
 }
