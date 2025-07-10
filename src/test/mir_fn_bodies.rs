@@ -9,8 +9,8 @@ fn test_assign_statement() {
                     let v1: u32;
                     
                     bb0: {
-                        statement { 
-                            local(v1) = v0;
+                        statements { 
+                            local(v1) = v0; // load(local(v0))
                         }
                         return;
                     }
@@ -33,7 +33,7 @@ fn test_place_mention_statement() {
                     let v1: u32;
                     
                     bb0: {
-                        statement {
+                        statements {
                             local(v0);
                         }
                         return;
@@ -57,13 +57,13 @@ fn test_goto_terminator() {
                     let v1: u32;
                     
                     bb0: {
-                        statement {}
+                        statements {}
                         goto bb1;
                     }
 
                     bb1: {
-                        statement {
-                            local(v1) = v0;
+                        statements {
+                            local(v1) = v0; // load(local(v0))
                         }
                         return;
                     }
@@ -86,7 +86,7 @@ fn test_call_terminator() {
                     let v1: u32;
                     
                     bb0: {
-                        statement {
+                        statements {
                             local(v0) = v1;
                         }
                         return;
@@ -98,12 +98,12 @@ fn test_call_terminator() {
                     let v1: u32; // FIXME(tiif): This might not work because this is not initialised?
 
                     bb0: {
-                        statement {}
+                        statements {} //statements for this.  
                         call foo(place(local(v1))) -> local(v0) goto bb1;
                     }
                     
                     bb1: {
-                        statement {}
+                        statements {}
                         return;
                     }
                 };
