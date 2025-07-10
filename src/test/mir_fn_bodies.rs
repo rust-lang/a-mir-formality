@@ -104,7 +104,7 @@ fn test_place_mention_statement() {
                     
                     bb0: {
                         statements {
-                            place_mention(placeexpr_local(v0));,
+                            place_mention(placeexpr_local(v0));
                             placeexpr_local(v0) = load(placeexpr_local(v1));
                         }
                         return;
