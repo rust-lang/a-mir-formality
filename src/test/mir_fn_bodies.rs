@@ -10,7 +10,7 @@ fn test_assign_statement() {
                     
                     bb0: {
                         statements { 
-                            placeexpr_local(v1) = load(placeexpr_local(v0)); // load(local(v0))
+                            placeexpr_local(v0) = load(placeexpr_local(v1)); // load(local(v0))
                         }
                         return;
                     }
@@ -34,6 +34,7 @@ fn test_place_mention_statement() {
                     
                     bb0: {
                         statements {
+                            placeexpr_local(v0) = load(placeexpr_local(v1));
                             placeexpr_local(v0);
                         }
                         return;
@@ -63,7 +64,7 @@ fn test_goto_terminator() {
 
                     bb1: {
                         statements {
-                            placeexpr_local(v1) = load(placeexpr_local(v0)); // load(local(v0))
+                            placeexpr_local(v0) = load(placeexpr_local(v1)); // load(local(v0))
                         }
                         return;
                     }
