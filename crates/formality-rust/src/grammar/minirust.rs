@@ -112,13 +112,13 @@ pub enum Terminator {
 pub enum ArgumentExpression {
     #[grammar(value($v0))]
     ByValue(ValueExpression),
-    #[grammar(place($v0))]
+    #[grammar(arg_place($v0))]
     InPlace(PlaceExpression),
 }
 
 #[term]
 pub enum ValueExpression {
-    #[grammar($v0)]
+    #[grammar(fn_id $v0)]
     Fn(FnId),
     // #[grammar($(v0) as $v1)]
     // Tuple(Vec<ValueExpression>, Ty),
@@ -135,7 +135,7 @@ pub enum ValueExpression {
 #[term]
 pub enum PlaceExpression {
     // FIXME(tiif): if we remove the local keyword, call bar () -> v1 goto bb1; won't work
-    #[grammar(local($v0))]
+    #[grammar(placeexpr_local($v0))]
     Local(LocalId),
     // Deref(Arc<ValueExpression>),
     // Field(Arc<PlaceExpression>, FieldId),

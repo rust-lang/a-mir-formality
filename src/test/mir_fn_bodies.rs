@@ -10,7 +10,7 @@ fn test_assign_statement() {
                     
                     bb0: {
                         statements { 
-                            local(v1) = v0; // load(local(v0))
+                            placeexpr_local(v1) = load(placeexpr_local(v0)); // load(local(v0))
                         }
                         return;
                     }
@@ -34,7 +34,7 @@ fn test_place_mention_statement() {
                     
                     bb0: {
                         statements {
-                            local(v0);
+                            placeexpr_local(v0);
                         }
                         return;
                     }
@@ -63,7 +63,7 @@ fn test_goto_terminator() {
 
                     bb1: {
                         statements {
-                            local(v1) = v0; // load(local(v0))
+                            placeexpr_local(v1) = load(placeexpr_local(v0)); // load(local(v0))
                         }
                         return;
                     }
@@ -87,7 +87,7 @@ fn test_call_terminator() {
                     
                     bb0: {
                         statements {
-                            local(v0) = v1;
+                            placeexpr_local(v0) = load(placeexpr_local(v1));
                         }
                         return;
                     }
@@ -99,7 +99,7 @@ fn test_call_terminator() {
 
                     bb0: {
                         statements {} //statements for this.  
-                        call foo(place(local(v1))) -> local(v0) goto bb1;
+                        call fn_id foo (arg_place(placeexpr_local(v1))) -> placeexpr_local(v0) goto bb1;
                     }
                     
                     bb1: {
