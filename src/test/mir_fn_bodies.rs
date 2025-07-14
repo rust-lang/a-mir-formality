@@ -1,3 +1,4 @@
+/// Test valid assign statement.
 #[test]
 fn test_assign_statement() {
     crate::assert_ok!(
@@ -21,6 +22,7 @@ fn test_assign_statement() {
     )
 }
 
+/// Test valid goto terminator.
 #[test]
 fn test_goto_terminator() {
     crate::assert_ok!(
@@ -49,6 +51,21 @@ fn test_goto_terminator() {
     )
 }
 
+/// Test valid call terminator.
+/// This is equivalent to:
+/// ```
+///    fn foo(v1: u32) -> u32 {
+///      let v0: u32;
+///      v0 = v1;
+///      return v0;
+///    }
+///    
+///    fn bar(v1: u32) -> u32 {
+///       v0 = v1;
+///       let v0 = foo(v0);
+///       return v0;
+///    }
+/// ```
 #[test]
 fn test_call_terminator() {
     crate::assert_ok!(
@@ -66,7 +83,7 @@ fn test_call_terminator() {
                     }
                 };
 
-                fn bar() -> u32 = minirust() -> v0 {
+                fn bar(u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
 
@@ -74,7 +91,7 @@ fn test_call_terminator() {
                         statements {
                             placeexpr_local(v0) = load(placeexpr_local(v1));
                         }
-                        call fn_id foo (arg_place(placeexpr_local(v1))) -> placeexpr_local(v0) goto bb1;
+                        call fn_id foo (arg_place(placeexpr_local(v0))) -> placeexpr_local(v0) goto bb1;
                     }
 
                     bb1: {
@@ -88,6 +105,18 @@ fn test_call_terminator() {
     )
 }
 
+
+/// Test valid place mention statement.
+/// This is equivalent to:
+/// ```
+///    fn foo(v1: u32) -> u32 {
+///      let v0: u32;
+///      v0;
+///      v0 = v1;
+///      return v0;
+///    }
+///    
+/// ```
 #[test]
 fn test_place_mention_statement() {
     crate::assert_ok!(
@@ -112,7 +141,16 @@ fn test_place_mention_statement() {
     )
 }
 
-// Test the behaviour of assigning value that is not subtype of the place.
+/// Test the behaviour of assigning value that is not subtype of the place.
+/// This is equivalent to:
+/// ```
+///    fn foo(v1: u32) -> () {
+///      let v0: ();
+///      v0 = v1;
+///      return v0;
+///    }
+///    
+/// ```
 #[test]
 fn test_invalid_assign_statement() {
     crate::assert_err!(
@@ -168,7 +206,7 @@ fn test_invalid_local_in_place_mention() {
     )
 }
 
-// Test the behaviour of having invalid bb_id in goto.
+// Test the behaviour of having invalid bb_id in goto terminator.
 #[test]
 fn test_invalid_goto_bbid() {
     crate::assert_err!(
@@ -192,7 +230,7 @@ fn test_invalid_goto_bbid() {
     )
 }
 
-// Test what will happen if we call a function that does not exist .
+// Test the behaviour of calling a function that does not exist .
 #[test]
 fn test_call_invalid_fn() {
     crate::assert_err!(
@@ -219,7 +257,7 @@ fn test_call_invalid_fn() {
 }
 
 #[test]
-// Test what will happen if the type of argument passed in is not subtype of what is expected.
+// Test what will happen if the type of arguments passed in is not subtype of what is expected.
 fn test_pass_non_subtype_arg() {
     crate::assert_err!(
         [
@@ -265,8 +303,7 @@ fn test_pass_non_subtype_arg() {
     )
 }
 
-// Test what will happen if the next block does not exist for Terminator::Call
-// FIXME: we might want to allow this?
+// Test what will happen if the next block does not exist for Terminator::Call.
 #[test]
 fn test_no_next_bb_for_call_terminator() {
     crate::assert_err!(
@@ -304,13 +341,18 @@ fn test_no_next_bb_for_call_terminator() {
     )
 }
 
-// Test what will happen if the fn's declared return type is not subtype of the local variable ret.
+/// Test what will happen if the fn's declared return type is not subtype of the local variable ret.
+/// This is equivalent to:
+/// ```
+/// fn foo() {
+/// }
+/// ```
 #[test]
 fn test_uncompatible_return_type() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo () -> () = minirust(v1) -> v0 {
+                fn foo (u32) -> () = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
 
@@ -333,6 +375,25 @@ fn test_uncompatible_return_type() {
                 judgment `prove_wc_list { goal: {u32 <: ()}, assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
                     judgment had no applicable rules: `prove_wc { goal: u32 <: (), assumptions: {}, env: Env { variables: [], bias: Soundness } }`"#]]
+    )
+}
+
+
+#[test]
+fn test_function_arg_number_mismatch() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo () -> () = minirust(v1) -> v0 {
+                    let v0: ();
+                    let v1: ();
+                };
+            }
+        ]
+
+        []
+
+        expect_test::expect!["Function argument number mismatch: expected 0 arguments, but found 1"]
     )
 }
 

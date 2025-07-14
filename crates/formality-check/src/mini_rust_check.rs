@@ -29,8 +29,9 @@ impl Check<'_> {
         // Type-check:
         //
         // (1) Check that all the types declared for each local variable are well-formed
-        // (2) Check that the type of the returned local is compatible with the declared return type
-        // (3) Check that the statements in the body are valid
+        // (2) Check whether the number of declared function parameters matches the number of arguments provided.
+        // (3) Check that the type of the returned local is compatible with the declared return type
+        // (4) Check that the statements in the body are valid
 
         let output_ty: Ty = output_ty.upcast();
 
@@ -44,7 +45,13 @@ impl Check<'_> {
             .map(|lv| (lv.id.clone(), lv.ty.clone()))
             .collect();
 
-        // (2) Check if the actual return type is the subtype of the declared return type.
+
+        // (2) Check whether the number of declared function parameters matches the number of arguments provided.
+        if declared_input_tys.len() != body.args.len() {
+            bail!("Function argument number mismatch: expected {} arguments, but found {}", declared_input_tys.len(), body.args.len());
+        }
+
+        // (3) Check if the actual return type is the subtype of the declared return type.
         self.prove_goal(
             &env,
             fn_assumptions,
@@ -63,7 +70,7 @@ impl Check<'_> {
             callee_input_tys: Map::new(),
         };
 
-        // (3) Check statements in body are valid
+        // (4) Check statements in body are valid
         for block in body.blocks {
             self.check_block(&mut env, fn_assumptions, &block)?;
         }
