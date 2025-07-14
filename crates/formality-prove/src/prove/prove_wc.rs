@@ -57,7 +57,7 @@ judgment_fn! {
         (
             (if let Ty(_) = param1.clone())!
             (if let Ty(_) = param2.clone())!
-            (if param1 == param2)
+            (if param1 == param2)!
                 ----------------------------- ("subtype - reflexive")
             (prove_wc(_decls, env, _assumptions, WcData::Relation(Relation::Sub(param1, param2))) => Constraints::none(env))
         )

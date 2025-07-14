@@ -138,11 +138,7 @@ fn test_invalid_assign_statement() {
               failed at (src/file.rs:LL:CC) because
                 judgment `prove_wc_list { goal: {u32 <: ()}, assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment `prove_wc { goal: u32 <: (), assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
-                      the rule "subtype - reflexive" failed at step #2 (src/file.rs:LL:CC) because
-                        condition evaluted to false: `param1 == param2`
-                          param1 = u32
-                          param2 = ()"#]]
+                    judgment had no applicable rules: `prove_wc { goal: u32 <: (), assumptions: {}, env: Env { variables: [], bias: Soundness } }`"#]]
     )
 }
 
@@ -265,11 +261,7 @@ fn test_pass_non_subtype_arg() {
               failed at (src/file.rs:LL:CC) because
                 judgment `prove_wc_list { goal: {() <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
-                      the rule "subtype - reflexive" failed at step #2 (src/file.rs:LL:CC) because
-                        condition evaluted to false: `param1 == param2`
-                          param1 = ()
-                          param2 = u32"#]]
+                    judgment had no applicable rules: `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness } }`"#]]
     )
 }
 
@@ -340,11 +332,7 @@ fn test_uncompatible_return_type() {
               failed at (src/file.rs:LL:CC) because
                 judgment `prove_wc_list { goal: {u32 <: ()}, assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment `prove_wc { goal: u32 <: (), assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
-                      the rule "subtype - reflexive" failed at step #2 (src/file.rs:LL:CC) because
-                        condition evaluted to false: `param1 == param2`
-                          param1 = u32
-                          param2 = ()"#]]
+                    judgment had no applicable rules: `prove_wc { goal: u32 <: (), assumptions: {}, env: Env { variables: [], bias: Soundness } }`"#]]
     )
 }
 
