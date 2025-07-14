@@ -5,6 +5,8 @@ use formality_prove::Env;
 use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
 use formality_rust::grammar::minirust::PlaceExpression::Local;
 use formality_rust::grammar::minirust::ValueExpression::{Fn, Load};
+use formality_rust::grammar::FnBoundData;
+use formality_types::grammar::FnId;
 use formality_rust::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
@@ -58,6 +60,7 @@ impl Check<'_> {
             ret_place_is_initialised: false,
             declared_input_tys,
             declared_fn: declared_fn.to_vec(),
+            callee_input_tys: Map::new(),
         };
 
         // (3) Check statements in body are valid
@@ -117,7 +120,7 @@ impl Check<'_> {
 
     fn check_terminator(
         &self,
-        typeck_env: &TypeckEnv,
+        typeck_env: &mut TypeckEnv,
         fn_assumptions: &Wcs,
         terminator: &minirust::Terminator,
     ) -> Fallible<()> {
@@ -135,8 +138,14 @@ impl Check<'_> {
             } => {
                 // Function is part of the value expression, so we will check if the function exists in check_value.
                 self.check_value(typeck_env, callee)?;
+                // Get argument information from the callee.
+                let Fn(callee_fn_id) = callee else {
+                    unreachable!("Callee must exists in Terminator::Call");
+                };
+                let callee_fn_bound_data = typeck_env.callee_input_tys.get(callee_fn_id).unwrap();
+                let callee_declared_input_tys = callee_fn_bound_data.input_tys.clone();
                 // Check if the numbers of arguments passed equals to number of arguments declared.
-                let arguments = zip(typeck_env.declared_input_tys.clone(), actual_arguments);
+                let arguments = zip(callee_declared_input_tys, actual_arguments);
                 for (declared_ty, actual_argument) in arguments {
                     // Check if the arguments are well formed.
                     let actual_ty = self.check_argument_expression(typeck_env, actual_argument)?;
@@ -194,22 +203,28 @@ impl Check<'_> {
     }
 
     // Check if the value expression is well-formed, and return the type of the value expression.
-    fn check_value(&self, env: &TypeckEnv, value: &ValueExpression) -> Fallible<Ty> {
+    fn check_value(&self, typeck_env: &mut TypeckEnv, value: &ValueExpression) -> Fallible<Ty> {
         let value_ty;
         match value {
             Load(place_expression) => {
-                value_ty = self.check_place(env, place_expression)?;
+                value_ty = self.check_place(typeck_env, place_expression)?;
                 Ok(value_ty)
             }
             Fn(fn_id) => {
                 // Check if the function called is in declared in current crate.
-                let item = env
+                let item = typeck_env
                     .declared_fn
                     .iter()
                     .find(|&item| {
                         match item {
                             CrateItem::Fn(fn_declared) => {
-                                return fn_declared.id == *fn_id;
+                                if fn_declared.id == *fn_id {
+                                    let fn_bound_data = typeck_env.env.instantiate_universally(&fn_declared.binder);
+                                    // Store the callee information in typeck_env, we will need this when type checking Terminator::Call. 
+                                    typeck_env.callee_input_tys.insert(fn_declared.id.clone(), fn_bound_data);
+                                    return true;
+                                }
+                                false
                             }
                             _ => false
                         }
@@ -218,7 +233,7 @@ impl Check<'_> {
                 {
                     bail!("The function called is not declared in current crate")
                 }
-                value_ty = env.output_ty.clone();
+                value_ty = typeck_env.output_ty.clone();
                 Ok(value_ty)
             }
         }
@@ -226,7 +241,7 @@ impl Check<'_> {
 
     fn check_argument_expression(
         &self,
-        env: &TypeckEnv,
+        env: &mut TypeckEnv,
         arg_expr: &ArgumentExpression,
     ) -> Fallible<Ty> {
         let ty;
@@ -274,4 +289,8 @@ struct TypeckEnv {
 
     /// All declared fn in current crate.
     declared_fn: Vec<CrateItem>,
+
+    /// All information of callee.
+    callee_input_tys: Map<FnId, FnBoundData>,
+
 }

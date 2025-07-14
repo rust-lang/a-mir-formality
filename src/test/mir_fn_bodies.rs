@@ -558,7 +558,6 @@ fn test_call_invalid_fn() {
 
 #[test]
 // Test what will happen if the type of argument passed in is not subtype of what is expected.
-// FIXME(tiif): figure out why this test passed.
 fn test_pass_non_subtype_arg() {
     crate::assert_err!(
         [
@@ -575,7 +574,7 @@ fn test_pass_non_subtype_arg() {
                     }
                 };
 
-                fn bar() -> () = minirust(v1) -> v0 {
+                fn bar(()) -> () = minirust(v1) -> v0 {
                     let v0: ();
                     let v1: ();
 
@@ -595,7 +594,7 @@ fn test_pass_non_subtype_arg() {
             }
         ]
         []
-        expect_test::expect![[r#""#]]
+        expect_test::expect!["()"]
     )
 }
 
@@ -642,11 +641,11 @@ fn test_no_next_bb_for_call_terminator() {
                1: anyhow::__private::format_err
                          at /home/tiif/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/anyhow-1.0.75/src/lib.rs:675:13
                2: formality_check::mini_rust_check::<impl formality_check::Check>::check_terminator
-                         at ./crates/formality-check/src/mini_rust_check.rs:161:21
+                         at ./crates/formality-check/src/mini_rust_check.rs:170:21
                3: formality_check::mini_rust_check::<impl formality_check::Check>::check_block
-                         at ./crates/formality-check/src/mini_rust_check.rs:81:14
+                         at ./crates/formality-check/src/mini_rust_check.rs:84:14
                4: formality_check::mini_rust_check::<impl formality_check::Check>::check_body
-                         at ./crates/formality-check/src/mini_rust_check.rs:65:18
+                         at ./crates/formality-check/src/mini_rust_check.rs:68:18
                5: formality_check::fns::<impl formality_check::Check>::check_fn
                          at ./crates/formality-check/src/fns.rs:76:26
                6: formality_check::fns::<impl formality_check::Check>::check_free_fn
@@ -666,7 +665,7 @@ fn test_no_next_bb_for_call_terminator() {
               13: a_mir_formality::test::mir_fn_bodies::test_no_next_bb_for_call_terminator
                          at ./src/lib.rs:58:9
               14: a_mir_formality::test::mir_fn_bodies::test_no_next_bb_for_call_terminator::{{closure}}
-                         at ./src/test/mir_fn_bodies.rs:134:41
+                         at ./src/test/mir_fn_bodies.rs:604:41
               15: core::ops::function::FnOnce::call_once
                          at /home/tiif/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ops/function.rs:250:5
               16: core::ops::function::FnOnce::call_once
