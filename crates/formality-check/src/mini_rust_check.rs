@@ -5,11 +5,11 @@ use formality_prove::Env;
 use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
 use formality_rust::grammar::minirust::PlaceExpression::Local;
 use formality_rust::grammar::minirust::ValueExpression::{Fn, Load};
-use formality_rust::grammar::FnBoundData;
-use formality_types::grammar::FnId;
 use formality_rust::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
+use formality_rust::grammar::FnBoundData;
+use formality_types::grammar::FnId;
 use formality_types::grammar::{Relation, Ty, Wcs};
 
 use crate::Check;
@@ -212,25 +212,24 @@ impl Check<'_> {
             }
             Fn(fn_id) => {
                 // Check if the function called is in declared in current crate.
-                let item = typeck_env
-                    .declared_fn
-                    .iter()
-                    .find(|&item| {
-                        match item {
-                            CrateItem::Fn(fn_declared) => {
-                                if fn_declared.id == *fn_id {
-                                    let fn_bound_data = typeck_env.env.instantiate_universally(&fn_declared.binder);
-                                    // Store the callee information in typeck_env, we will need this when type checking Terminator::Call. 
-                                    typeck_env.callee_input_tys.insert(fn_declared.id.clone(), fn_bound_data);
-                                    return true;
-                                }
-                                false
+                let item = typeck_env.declared_fn.iter().find(|&item| {
+                    match item {
+                        CrateItem::Fn(fn_declared) => {
+                            if fn_declared.id == *fn_id {
+                                let fn_bound_data =
+                                    typeck_env.env.instantiate_universally(&fn_declared.binder);
+                                // Store the callee information in typeck_env, we will need this when type checking Terminator::Call.
+                                typeck_env
+                                    .callee_input_tys
+                                    .insert(fn_declared.id.clone(), fn_bound_data);
+                                return true;
                             }
-                            _ => false
+                            false
                         }
-                    });
-                if item == None
-                {
+                        _ => false,
+                    }
+                });
+                if item == None {
                     bail!("The function called is not declared in current crate")
                 }
                 value_ty = typeck_env.output_ty.clone();
@@ -292,5 +291,4 @@ struct TypeckEnv {
 
     /// All information of callee.
     callee_input_tys: Map<FnId, FnBoundData>,
-
 }

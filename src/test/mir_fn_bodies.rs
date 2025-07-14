@@ -1,4 +1,3 @@
-
 #[test]
 fn test_assign_statement() {
     crate::assert_ok!(
@@ -7,22 +6,20 @@ fn test_assign_statement() {
                 fn foo (u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
-                    
+
                     bb0: {
-                        statements { 
-                            placeexpr_local(v0) = load(placeexpr_local(v1)); 
+                        statements {
+                            placeexpr_local(v0) = load(placeexpr_local(v1));
                         }
                         return;
                     }
-                    
+
                 };
             }
         ]
         expect_test::expect![["()"]]
     )
 }
-
-
 
 #[test]
 fn test_goto_terminator() {
@@ -32,7 +29,7 @@ fn test_goto_terminator() {
                 fn foo (u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
-                    
+
                     bb0: {
                         statements {}
                         goto bb1;
@@ -44,13 +41,12 @@ fn test_goto_terminator() {
                         }
                         return;
                     }
-                    
+
                 };
             }
         ]
         expect_test::expect![["()"]]
     )
-    
 }
 
 #[test]
@@ -61,7 +57,7 @@ fn test_call_terminator() {
                 fn foo(u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
-                    
+
                     bb0: {
                         statements {
                             placeexpr_local(v0) = load(placeexpr_local(v1));
@@ -77,10 +73,10 @@ fn test_call_terminator() {
                     bb0: {
                         statements {
                             placeexpr_local(v0) = load(placeexpr_local(v1));
-                        } 
+                        }
                         call fn_id foo (arg_place(placeexpr_local(v1))) -> placeexpr_local(v0) goto bb1;
                     }
-                    
+
                     bb1: {
                         statements {}
                         return;
@@ -90,7 +86,6 @@ fn test_call_terminator() {
         ]
         expect_test::expect![["()"]]
     )
-
 }
 
 #[test]
@@ -101,7 +96,7 @@ fn test_place_mention_statement() {
                 fn foo (u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
-                    
+
                     bb0: {
                         statements {
                             place_mention(placeexpr_local(v0));
@@ -109,7 +104,7 @@ fn test_place_mention_statement() {
                         }
                         return;
                     }
-                    
+
                 };
             }
         ]
@@ -117,8 +112,7 @@ fn test_place_mention_statement() {
     )
 }
 
-
-// Test the behaviour of assigning value that is not subtype of the place. 
+// Test the behaviour of assigning value that is not subtype of the place.
 #[test]
 fn test_invalid_assign_statement() {
     crate::assert_err!(
@@ -127,14 +121,14 @@ fn test_invalid_assign_statement() {
                 fn foo (u32) -> () = minirust(v1) -> v0 {
                     let v0: ();
                     let v1: u32;
-                    
+
                     bb0: {
-                        statements { 
-                            placeexpr_local(v0) = load(placeexpr_local(v1)); 
+                        statements {
+                            placeexpr_local(v0) = load(placeexpr_local(v1));
                         }
                         return;
                     }
-                    
+
                 };
             }
         ]
@@ -161,14 +155,14 @@ fn test_invalid_local_in_place_mention() {
                 fn foo (u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
-                    
+
                     bb0: {
                         statements {
                             place_mention(placeexpr_local(v2));
                         }
                         return;
                     }
-                    
+
                 };
             }
         ]
@@ -178,8 +172,7 @@ fn test_invalid_local_in_place_mention() {
     )
 }
 
-
-// Test the behaviour of having invalid bb_id in goto. 
+// Test the behaviour of having invalid bb_id in goto.
 #[test]
 fn test_invalid_goto_bbid() {
     crate::assert_err!(
@@ -188,7 +181,7 @@ fn test_invalid_goto_bbid() {
                 fn foo (u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
-                    
+
                     bb0: {
                         statements {}
                         goto bb1;
@@ -201,7 +194,6 @@ fn test_invalid_goto_bbid() {
         expect_test::expect![[r#"
             Basic block bb1 does not exist"#]]
     )
-    
 }
 
 // Test what will happen if we call a function that does not exist .
@@ -217,10 +209,10 @@ fn test_call_invalid_fn() {
                     bb0: {
                         statements {
                             placeexpr_local(v0) = load(placeexpr_local(v1));
-                        } 
+                        }
                         call fn_id foo (arg_place(placeexpr_local(v1))) -> placeexpr_local(v0);
                     }
-                    
+
                 };
             }
         ]
@@ -239,7 +231,7 @@ fn test_pass_non_subtype_arg() {
                 fn foo(u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
-                    
+
                     bb0: {
                         statements {
                             placeexpr_local(v0) = load(placeexpr_local(v1));
@@ -255,7 +247,7 @@ fn test_pass_non_subtype_arg() {
                     bb0: {
                         statements {
                             placeexpr_local(v0) = load(placeexpr_local(v1));
-                        } 
+                        }
                         call fn_id foo (arg_place(placeexpr_local(v1))) -> placeexpr_local(v0) goto bb1;
                     }
 
@@ -263,7 +255,7 @@ fn test_pass_non_subtype_arg() {
                         statements {}
                         return;
                     }
-                    
+
                 };
             }
         ]
@@ -291,7 +283,7 @@ fn test_no_next_bb_for_call_terminator() {
                 fn foo(u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
-                    
+
                     bb0: {
                         statements {
                             placeexpr_local(v0) = load(placeexpr_local(v1));
@@ -307,10 +299,10 @@ fn test_no_next_bb_for_call_terminator() {
                     bb0: {
                         statements {
                             placeexpr_local(v0) = load(placeexpr_local(v1));
-                        } 
+                        }
                         call fn_id foo (arg_place(placeexpr_local(v1))) -> placeexpr_local(v0);
                     }
-                    
+
                 };
             }
         ]
@@ -318,10 +310,9 @@ fn test_no_next_bb_for_call_terminator() {
         expect_test::expect![[r#"
             There should be next block for Terminator::Call, but it does not exist!"#]]
     )
-
 }
 
-// Test what will happen if the fn's declared return type is not subtype of the local variable ret. 
+// Test what will happen if the fn's declared return type is not subtype of the local variable ret.
 #[test]
 fn test_uncompatible_return_type() {
     crate::assert_err!(
@@ -330,14 +321,14 @@ fn test_uncompatible_return_type() {
                 fn foo () -> () = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
-                    
+
                     bb0: {
-                        statements { 
+                        statements {
                             placeexpr_local(v0) = load(placeexpr_local(v1));
                         }
                         return;
                     }
-                    
+
                 };
             }
         ]
@@ -357,7 +348,7 @@ fn test_uncompatible_return_type() {
     )
 }
 
-// Test the behaviour of having unitialised return local variable.  
+// Test the behaviour of having unitialised return local variable.
 #[test]
 fn test_uninitialised_return_type() {
     crate::assert_err!(
@@ -365,13 +356,13 @@ fn test_uninitialised_return_type() {
             crate Foo {
                 fn foo () -> u32 = minirust() -> v0 {
                     let v0: u32;
-                    
+
                     bb0: {
-                        statements { 
+                        statements {
                         }
                         return;
                     }
-                    
+
                 };
             }
         ]
