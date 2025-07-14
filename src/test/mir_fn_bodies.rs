@@ -341,20 +341,23 @@ fn test_no_next_bb_for_call_terminator() {
     )
 }
 
-/// Test what will happen if the fn's declared return type is not subtype of the local variable ret.
+/// Test what will happen if the declared and actual return type are not compatible.
 /// This is equivalent to:
 /// ```
-/// fn foo() {
+/// fn foo(v1: ()) -> u32 {
+///     let v0: ();
+///     v0 = v1;
+///     return v0;
 /// }
 /// ```
 #[test]
-fn test_uncompatible_return_type() {
+fn test_incompatible_return_type() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo (u32) -> () = minirust(v1) -> v0 {
-                    let v0: u32;
-                    let v1: u32;
+                fn foo (()) -> u32 = minirust(v1) -> v0 {
+                    let v0: ();
+                    let v1: ();
 
                     bb0: {
                         statements {
@@ -370,11 +373,11 @@ fn test_uncompatible_return_type() {
         []
 
         expect_test::expect![[r#"
-            judgment `prove { goal: {u32 <: ()}, assumptions: {}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+            judgment `prove { goal: {() <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
               failed at (src/file.rs:LL:CC) because
-                judgment `prove_wc_list { goal: {u32 <: ()}, assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
+                judgment `prove_wc_list { goal: {() <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_wc { goal: u32 <: (), assumptions: {}, env: Env { variables: [], bias: Soundness } }`"#]]
+                    judgment had no applicable rules: `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness } }`"#]]
     )
 }
 

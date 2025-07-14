@@ -50,7 +50,7 @@ impl Check<'_> {
         if declared_input_tys.len() != body.args.len() {
             bail!("Function argument number mismatch: expected {} arguments, but found {}", declared_input_tys.len(), body.args.len());
         }
-
+        
         // (3) Check if the actual return type is the subtype of the declared return type.
         self.prove_goal(
             &env,
