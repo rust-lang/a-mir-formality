@@ -105,7 +105,6 @@ fn test_call_terminator() {
     )
 }
 
-
 /// Test valid place mention statement.
 /// This is equivalent to:
 /// ```
@@ -380,7 +379,6 @@ fn test_incompatible_return_type() {
                     judgment had no applicable rules: `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness } }`"#]]
     )
 }
-
 
 #[test]
 fn test_function_arg_number_mismatch() {
