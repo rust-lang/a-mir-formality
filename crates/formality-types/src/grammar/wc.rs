@@ -123,11 +123,11 @@ impl Wc {
 pub enum WcData {
     /// Means the built-in relation holds.
     #[cast]
-    Relation(Relation),
+    Predicate(Predicate),
 
     /// Means the predicate holds.
     #[cast]
-    Predicate(Predicate),
+    Relation(Relation),
 
     // Equivalent to `for<'a>` except that it can also express `for<ty T>` and so forth:
     // means `$v0` is true for any value of the bound variables (e.g., `'a` or `T`).
