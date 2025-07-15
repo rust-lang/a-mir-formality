@@ -89,7 +89,6 @@ pub enum Terminator {
     //
     //    call foo(x, y)
     //    call foo.add<u32>(x, y)
-    // FIXME: allow not having next block for goto, and add a comment for it.
     #[grammar(call $callee $<?generic_arguments> $(arguments) -> $ret $:goto $next_block)]
     Call {
         /// What function or method to call.
@@ -111,9 +110,9 @@ pub enum Terminator {
 
 #[term]
 pub enum ArgumentExpression {
-    #[grammar(Copy($v0))]
+    #[grammar(value($v0))]
     ByValue(ValueExpression),
-    #[grammar(Move($v0))] 
+    #[grammar(arg_place($v0))]
     InPlace(PlaceExpression),
 }
 
@@ -128,7 +127,6 @@ pub enum ValueExpression {
     // GetDiscriminant
     #[grammar(load($v0))]
     Load(PlaceExpression),
-    // TODO: literals
     // AddrOf
     // UnOp
     // BinOp
@@ -137,7 +135,7 @@ pub enum ValueExpression {
 #[term]
 pub enum PlaceExpression {
     // FIXME(tiif): if we remove the local keyword, call bar () -> v1 goto bb1; won't work
-    #[grammar(local($v0))]
+    #[grammar(placeexpr_local($v0))]
     Local(LocalId),
     // Deref(Arc<ValueExpression>),
     // Field(Arc<PlaceExpression>, FieldId),
