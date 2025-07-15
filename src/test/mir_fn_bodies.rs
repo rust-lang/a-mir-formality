@@ -10,7 +10,7 @@ fn test_assign_statement() {
 
                     bb0: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            local(v0) = load(local(v1)); //local for local place
                         }
                         return;
                     }
@@ -39,7 +39,7 @@ fn test_goto_terminator() {
 
                     bb1: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            local(v0) = load(local(v1));
                         }
                         return;
                     }
@@ -77,7 +77,7 @@ fn test_call_terminator() {
 
                     bb0: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            local(v0) = load(local(v1));
                         }
                         return;
                     }
@@ -89,9 +89,9 @@ fn test_call_terminator() {
 
                     bb0: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            local(v0) = load(local(v1));
                         }
-                        call fn_id foo (arg_place(placeexpr_local(v0))) -> placeexpr_local(v0) goto bb1;
+                        call fn_id foo (Move(local(v0))) -> local(v0) goto bb1;
                     }
 
                     bb1: {
@@ -127,8 +127,8 @@ fn test_place_mention_statement() {
 
                     bb0: {
                         statements {
-                            place_mention(placeexpr_local(v0));
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            place_mention(local(v0));
+                            local(v0) = load(local(v1));
                         }
                         return;
                     }
@@ -161,7 +161,7 @@ fn test_invalid_assign_statement() {
 
                     bb0: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            local(v0) = load(local(v1));
                         }
                         return;
                     }
@@ -179,6 +179,8 @@ fn test_invalid_assign_statement() {
     )
 }
 
+// TODO: new test minirust(v3) -> v4, but not mention in let
+
 // Test the behaviour of having invalid local name in place mention.
 #[test]
 fn test_invalid_local_in_place_mention() {
@@ -191,7 +193,7 @@ fn test_invalid_local_in_place_mention() {
 
                     bb0: {
                         statements {
-                            place_mention(placeexpr_local(v2));
+                            place_mention(local(v2));
                         }
                         return;
                     }
@@ -241,9 +243,9 @@ fn test_call_invalid_fn() {
 
                     bb0: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            local(v0) = load(local(v1));
                         }
-                        call fn_id foo (arg_place(placeexpr_local(v1))) -> placeexpr_local(v0);
+                        call fn_id foo (Move(local(v1))) -> local(v0);
                     }
 
                 };
@@ -267,7 +269,7 @@ fn test_pass_non_subtype_arg() {
 
                     bb0: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            local(v0) = load(local(v1));
                         }
                         return;
                     }
@@ -279,9 +281,9 @@ fn test_pass_non_subtype_arg() {
 
                     bb0: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            local(v0) = load(local(v1));
                         }
-                        call fn_id foo (arg_place(placeexpr_local(v1))) -> placeexpr_local(v0) goto bb1;
+                        call fn_id foo (Move(local(v1))) -> local(v0) goto bb1;
                     }
 
                     bb1: {
@@ -314,7 +316,7 @@ fn test_no_next_bb_for_call_terminator() {
 
                     bb0: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            local(v0) = load(local(v1));
                         }
                         return;
                     }
@@ -326,9 +328,9 @@ fn test_no_next_bb_for_call_terminator() {
 
                     bb0: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            local(v0) = load(local(v1));
                         }
-                        call fn_id foo (arg_place(placeexpr_local(v1))) -> placeexpr_local(v0);
+                        call fn_id foo (Move(local(v1))) -> local(v0);
                     }
 
                 };
@@ -360,7 +362,7 @@ fn test_incompatible_return_type() {
 
                     bb0: {
                         statements {
-                            placeexpr_local(v0) = load(placeexpr_local(v1));
+                            local(v0) = load(local(v1));
                         }
                         return;
                     }
