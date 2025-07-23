@@ -361,6 +361,24 @@ where
     }
 }
 
+impl<L> CoreParse<L> for u8
+where
+    L: Language,
+{
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::single_variant(scope, text, "u8", |p| p.number())
+    }
+}
+
+impl<L> CoreParse<L> for u16
+where
+    L: Language,
+{
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::single_variant(scope, text, "u16", |p| p.number())
+    }
+}
+
 impl<L> CoreParse<L> for u32
 where
     L: Language,
@@ -376,6 +394,51 @@ where
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "u64", |p| p.number())
+    }
+}
+
+impl<L> CoreParse<L> for i8
+where
+    L: Language,
+{
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::single_variant(scope, text, "u16", |p| p.number())
+    }
+}
+
+impl<L> CoreParse<L> for i16
+where
+    L: Language,
+{
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::single_variant(scope, text, "u16", |p| p.number())
+    }
+}
+
+impl<L> CoreParse<L> for i32
+where
+    L: Language,
+{
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::single_variant(scope, text, "u16", |p| p.number())
+    }
+}
+
+impl<L> CoreParse<L> for i64
+where
+    L: Language,
+{
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::single_variant(scope, text, "u16", |p| p.number())
+    }
+}
+
+impl<L> CoreParse<L> for isize
+where
+    L: Language,
+{
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::single_variant(scope, text, "u16", |p| p.number())
     }
 }
 

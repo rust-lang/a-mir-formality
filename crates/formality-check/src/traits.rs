@@ -75,7 +75,7 @@ impl super::Check<'_> {
         env: &Env,
         where_clauses: &[WhereClause],
         f: &Fn,
-        crate_id: &CrateId
+        crate_id: &CrateId,
     ) -> Fallible<()> {
         self.check_fn(env, where_clauses, f, crate_id)
     }

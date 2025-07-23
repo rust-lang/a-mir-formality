@@ -25,7 +25,7 @@ impl Check<'_> {
         in_env: &Env,
         in_assumptions: impl ToWcs,
         f: &Fn,
-        crate_id: &CrateId
+        crate_id: &CrateId,
     ) -> Fallible<()> {
         let in_assumptions = in_assumptions.to_wcs();
 

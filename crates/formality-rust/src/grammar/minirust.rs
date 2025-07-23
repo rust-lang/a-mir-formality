@@ -1,7 +1,8 @@
-use formality_core::id;
+use formality_core::{id, UpcastFrom};
 use formality_macros::term;
-use formality_types::grammar::{Parameter, Ty};
+use formality_types::grammar::{Parameter, RigidName, ScalarId, Ty, TyData};
 
+use crate::grammar::minirust::ConstTypePair::*;
 use crate::grammar::FnId;
 
 // This definition is based on [MiniRust](https://github.com/minirust/minirust/blob/master/spec/lang/syntax.md).
@@ -80,7 +81,13 @@ pub enum Terminator {
     #[grammar(goto $v0)]
     Goto(BbId),
 
-    // Switch
+    // Suggestion: try list of a pair, or list of a struct?
+    #[grammar(switch($switch_value) -> $[switch_targets] otherwise: $fallback)]
+    Switch {
+        switch_value: ValueExpression,
+        switch_targets: Vec<SwitchTarget>,
+        fallback: BbId,
+    },
     // Unreachable
     // Intrinsic
 
@@ -88,7 +95,6 @@ pub enum Terminator {
     //
     //    call foo(x, y)
     //    call foo.add<u32>(x, y)
-    // FIXME: allow not having next block for goto, and add a comment for it.
     #[grammar(call $callee $<?generic_arguments> $(arguments) -> $ret $:goto $next_block)]
     Call {
         /// What function or method to call.
@@ -110,6 +116,12 @@ pub enum Terminator {
     Return,
 }
 
+#[term(($value: $target))]
+pub struct SwitchTarget {
+    pub value: u64,
+    pub target: BbId,
+}
+
 #[term]
 pub enum ArgumentExpression {
     #[grammar(Copy($v0))]
@@ -120,6 +132,8 @@ pub enum ArgumentExpression {
 
 #[term]
 pub enum ValueExpression {
+    #[grammar(constant($v0))]
+    Constant(ConstTypePair),
     #[grammar(fn_id $v0)]
     Fn(FnId),
     // #[grammar($(v0) as $v1)]
@@ -129,15 +143,87 @@ pub enum ValueExpression {
     // GetDiscriminant
     #[grammar(load($v0))]
     Load(PlaceExpression),
-    // TODO: literals
     // AddrOf
     // UnOp
     // BinOp
 }
 
 #[term]
+pub enum ConstTypePair {
+    #[grammar($v0: u8)]
+    U8(u8),
+    #[grammar($v0: u16)]
+    U16(u16),
+    #[grammar($v0: u32)]
+    U32(u32),
+    #[grammar($v0: u64)]
+    U64(u64),
+    #[grammar($v0: usize)]
+    Usize(usize),
+    #[grammar($v0: i8)]
+    I8(i8),
+    #[grammar($v0: i16)]
+    I16(i16),
+    #[grammar($v0: i32)]
+    I32(i32),
+    #[grammar($v0: i64)]
+    I64(i64),
+    #[grammar($v0: isize)]
+    Isize(isize),
+    #[grammar($v0)]
+    Bool(Bool),
+}
+
+#[term]
+pub enum Bool {
+    True,
+    False,
+}
+
+impl ConstTypePair {
+    pub fn get_ty(&self) -> Ty {
+        match self {
+            U8(_) => Ty::upcast_from(ScalarId::U8),
+            U16(_) => Ty::upcast_from(ScalarId::U16),
+            U32(_) => Ty::upcast_from(ScalarId::U32),
+            U64(_) => Ty::upcast_from(ScalarId::U64),
+            Usize(_) => Ty::upcast_from(ScalarId::Usize),
+            I8(_) => Ty::upcast_from(ScalarId::I8),
+            I16(_) => Ty::upcast_from(ScalarId::I16),
+            I32(_) => Ty::upcast_from(ScalarId::I32),
+            I64(_) => Ty::upcast_from(ScalarId::I64),
+            Isize(_) => Ty::upcast_from(ScalarId::Isize),
+            Bool(_) => Ty::upcast_from(ScalarId::Bool),
+        }
+    }
+}
+
+pub fn ty_is_int(ty: Ty) -> bool {
+    // integer is rigidty
+    let TyData::RigidTy(rigid_ty) = ty.data() else {
+        return false;
+    };
+    let RigidName::ScalarId(ref scalar_id) = rigid_ty.name else {
+        return false;
+    };
+
+    match scalar_id {
+        ScalarId::U8
+        | ScalarId::U16
+        | ScalarId::U32
+        | ScalarId::U64
+        | ScalarId::I8
+        | ScalarId::I16
+        | ScalarId::I32
+        | ScalarId::I64
+        | ScalarId::Usize
+        | ScalarId::Isize => true,
+        ScalarId::Bool => false,
+    }
+}
+
+#[term]
 pub enum PlaceExpression {
-    // FIXME(tiif): if we remove the local keyword, call bar () -> v1 goto bb1; won't work
     #[grammar(local($v0))]
     Local(LocalId),
     // Deref(Arc<ValueExpression>),

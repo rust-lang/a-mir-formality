@@ -21,7 +21,7 @@ impl super::Check<'_> {
     pub(super) fn check_trait_impl(
         &self,
         trait_impl: &TraitImpl,
-        crate_id: &CrateId
+        crate_id: &CrateId,
     ) -> Fallible<()> {
         let TraitImpl { binder, safety: _ } = trait_impl;
 
@@ -126,7 +126,7 @@ impl super::Check<'_> {
         impl_assumptions: impl ToWcs,
         trait_items: &[TraitItem],
         ii_fn: &Fn,
-        crate_id: &CrateId
+        crate_id: &CrateId,
     ) -> Fallible<()> {
         let impl_assumptions: Wcs = impl_assumptions.to_wcs();
         assert!(
