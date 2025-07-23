@@ -1,6 +1,5 @@
 use anyhow::bail;
 
-use crate::CrateItem;
 use fn_error_context::context;
 use formality_core::Downcasted;
 use formality_prove::{Env, Safety};
@@ -13,7 +12,7 @@ use formality_rust::{
     prove::ToWcs,
 };
 use formality_types::{
-    grammar::{Binder, Fallible, Relation, Substitution, Wcs},
+    grammar::{Binder, CrateId, Fallible, Relation, Substitution, Wcs},
     rust::Term,
 };
 
@@ -22,7 +21,7 @@ impl super::Check<'_> {
     pub(super) fn check_trait_impl(
         &self,
         trait_impl: &TraitImpl,
-        all_fn: &Vec<CrateItem>,
+        crate_id: &CrateId
     ) -> Fallible<()> {
         let TraitImpl { binder, safety: _ } = trait_impl;
 
@@ -53,7 +52,7 @@ impl super::Check<'_> {
         self.check_safety_matches(trait_decl, trait_impl)?;
 
         for impl_item in &impl_items {
-            self.check_trait_impl_item(&env, &where_clauses, &trait_items, impl_item, all_fn)?;
+            self.check_trait_impl_item(&env, &where_clauses, &trait_items, impl_item, crate_id)?;
         }
 
         Ok(())
@@ -106,7 +105,7 @@ impl super::Check<'_> {
         assumptions: impl ToWcs,
         trait_items: &[TraitItem],
         impl_item: &ImplItem,
-        all_fn: &Vec<CrateItem>,
+        crate_id: &CrateId,
     ) -> Fallible<()> {
         let assumptions: Wcs = assumptions.to_wcs();
         assert!(
@@ -114,7 +113,7 @@ impl super::Check<'_> {
         );
 
         match impl_item {
-            ImplItem::Fn(v) => self.check_fn_in_impl(env, &assumptions, trait_items, v, all_fn),
+            ImplItem::Fn(v) => self.check_fn_in_impl(env, &assumptions, trait_items, v, crate_id),
             ImplItem::AssociatedTyValue(v) => {
                 self.check_associated_ty_value(env, assumptions, trait_items, v)
             }
@@ -127,7 +126,7 @@ impl super::Check<'_> {
         impl_assumptions: impl ToWcs,
         trait_items: &[TraitItem],
         ii_fn: &Fn,
-        all_fn: &Vec<CrateItem>,
+        crate_id: &CrateId
     ) -> Fallible<()> {
         let impl_assumptions: Wcs = impl_assumptions.to_wcs();
         assert!(
@@ -146,7 +145,7 @@ impl super::Check<'_> {
 
         tracing::debug!(?ti_fn);
 
-        self.check_fn(env, &impl_assumptions, ii_fn, all_fn)?;
+        self.check_fn(env, &impl_assumptions, ii_fn, crate_id)?;
 
         let mut env = env.clone();
         let (

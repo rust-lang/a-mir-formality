@@ -8,8 +8,8 @@ use formality_rust::grammar::minirust::ValueExpression::{Fn, Load};
 use formality_rust::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
-use formality_rust::grammar::FnBoundData;
-use formality_types::grammar::FnId;
+use formality_rust::grammar::{FnBoundData};
+use formality_types::grammar::{CrateId, FnId};
 use formality_types::grammar::{Relation, Ty, Wcs};
 
 use crate::{Check, CrateItem};
@@ -22,8 +22,8 @@ impl Check<'_> {
         output_ty: impl Upcast<Ty>,
         fn_assumptions: &Wcs,
         body: minirust::Body,
-        declared_fn: &Vec<CrateItem>,
         declared_input_tys: Vec<Ty>,
+        crate_id: &CrateId
     ) -> Fallible<()> {
         // Type-check:
         //
@@ -91,8 +91,8 @@ impl Check<'_> {
             ret_id: body.ret,
             ret_place_is_initialised: false,
             declared_input_tys,
-            declared_fn: declared_fn.to_vec(),
             callee_input_tys: Map::new(),
+            crate_id: crate_id.clone(),
         };
 
         // (4) Check statements in body are valid
@@ -255,24 +255,34 @@ impl Check<'_> {
             }
             Fn(fn_id) => {
                 // Check if the function called is in declared in current crate.
-                let item = typeck_env.declared_fn.iter().find(|&item| {
-                    match item {
-                        CrateItem::Fn(fn_declared) => {
-                            if fn_declared.id == *fn_id {
-                                let fn_bound_data =
-                                    typeck_env.env.instantiate_universally(&fn_declared.binder);
-                                // Store the callee information in typeck_env, we will need this when type checking Terminator::Call.
-                                typeck_env
-                                    .callee_input_tys
-                                    .insert(fn_declared.id.clone(), fn_bound_data);
-                                return true;
+
+                // Find the crate that is currently being typeck. 
+                let curr_crate = self.program.crates.iter().find(|c| c.id == typeck_env.crate_id ).unwrap();
+
+                // Find the callee from current crate. 
+                let callee  = curr_crate
+                    .items
+                    .iter()
+                    .find(|item| {
+                        match item {
+                            CrateItem::Fn(fn_declared) => {
+                                if fn_declared.id == *fn_id {
+                                    let fn_bound_data =
+                                        typeck_env.env.instantiate_universally(&fn_declared.binder);
+                                    // Store the callee information in typeck_env, we will need this when type checking Terminator::Call.
+                                    typeck_env
+                                        .callee_input_tys
+                                        .insert(fn_declared.id.clone(), fn_bound_data);
+                                    return true;
+                                }
+                                false
                             }
-                            false
+                            _ => false,
                         }
-                        _ => false,
-                    }
-                });
-                if item == None {
+                    });
+
+                // If the callee is not found, return error.
+                if callee.is_none() {
                     bail!("The function called is not declared in current crate")
                 }
                 value_ty = typeck_env.output_ty.clone();
@@ -329,9 +339,11 @@ struct TypeckEnv {
     /// All declared argument type of current function.
     declared_input_tys: Vec<Ty>,
 
-    /// All declared fn in current crate.
-    declared_fn: Vec<CrateItem>,
-
     /// All information of callee.
     callee_input_tys: Map<FnId, FnBoundData>,
+
+    /// The id of the crate where this function resides.
+    /// We need this to access information about other functions 
+    /// declared in the current crate.
+    crate_id: CrateId,
 }

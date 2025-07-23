@@ -3,14 +3,14 @@ use formality_rust::{
     grammar::{Fn, FnBoundData, MaybeFnBody},
     prove::ToWcs,
 };
-use formality_types::grammar::{Fallible, Wcs};
+use formality_types::grammar::{CrateId, Fallible, Wcs};
 
-use crate::{Check, CrateItem};
+use crate::Check;
 
 impl Check<'_> {
     /// A "free function" is a free-standing function that is not part of an impl.
-    pub(crate) fn check_free_fn(&self, f: &Fn, all_fn: &Vec<CrateItem>) -> Fallible<()> {
-        self.check_fn(&Env::default(), Wcs::t(), f, all_fn)
+    pub(crate) fn check_free_fn(&self, f: &Fn, crate_id: &CrateId) -> Fallible<()> {
+        self.check_fn(&Env::default(), Wcs::t(), f, crate_id)
     }
 
     /// Invoked for both free functions and methods.
@@ -25,7 +25,7 @@ impl Check<'_> {
         in_env: &Env,
         in_assumptions: impl ToWcs,
         f: &Fn,
-        all_fn: &Vec<CrateItem>,
+        crate_id: &CrateId
     ) -> Fallible<()> {
         let in_assumptions = in_assumptions.to_wcs();
 
@@ -72,7 +72,7 @@ impl Check<'_> {
                     // A trusted function body is assumed to be valid, all set.
                 }
                 formality_rust::grammar::FnBody::MiniRust(body) => {
-                    self.check_body(&env, &output_ty, &fn_assumptions, body, all_fn, input_tys)?;
+                    self.check_body(&env, &output_ty, &fn_assumptions, body, input_tys, crate_id)?;
                 }
             },
         }

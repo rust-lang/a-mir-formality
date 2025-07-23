@@ -9,7 +9,7 @@ use formality_rust::{
     grammar::{Crate, CrateItem, Program, Test, TestBoundData},
     prove::ToWcs,
 };
-use formality_types::grammar::{Fallible, Wcs};
+use formality_types::grammar::{CrateId, Fallible, Wcs};
 
 mod mini_rust_check;
 
@@ -60,19 +60,12 @@ impl Check<'_> {
     }
 
     fn check_current_crate(&self, c: &Crate) -> Fallible<()> {
-        let Crate { id: _, items } = c;
-        // Collect Fn item from current crate.
-        let all_fn: Vec<CrateItem> = c
-            .items
-            .clone()
-            .into_iter()
-            .filter(|item| matches!(item, CrateItem::Fn(_)))
-            .collect();
+        let Crate { id, items } = c;
 
         self.check_for_duplicate_items()?;
 
         for item in items {
-            self.check_crate_item(item, &all_fn)?;
+            self.check_crate_item(item, &id)?;
         }
 
         self.check_coherence(c)?;
@@ -116,13 +109,13 @@ impl Check<'_> {
         Ok(())
     }
 
-    fn check_crate_item(&self, c: &CrateItem, all_fn: &Vec<CrateItem>) -> Fallible<()> {
+    fn check_crate_item(&self, c: &CrateItem, crate_id: &CrateId) -> Fallible<()> {
         match c {
-            CrateItem::Trait(v) => self.check_trait(v, all_fn),
-            CrateItem::TraitImpl(v) => self.check_trait_impl(v, all_fn),
+            CrateItem::Trait(v) => self.check_trait(v, crate_id),
+            CrateItem::TraitImpl(v) => self.check_trait_impl(v, crate_id),
             CrateItem::Struct(s) => self.check_adt(&s.to_adt()),
             CrateItem::Enum(e) => self.check_adt(&e.to_adt()),
-            CrateItem::Fn(f) => self.check_free_fn(f, all_fn),
+            CrateItem::Fn(f) => self.check_free_fn(f, crate_id),
             CrateItem::NegTraitImpl(i) => self.check_neg_trait_impl(i),
             CrateItem::Test(t) => self.check_test(t),
         }
