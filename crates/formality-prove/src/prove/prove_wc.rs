@@ -54,6 +54,7 @@ judgment_fn! {
             (prove_wc(decls, env, assumptions, WcData::Relation(goal)) => c)
         )
 
+        // FIXME: improve the subtype rule after adding lifetime
         (
             (if let Ty(_) = param1.clone())!
             (if let Ty(_) = param2.clone())!
