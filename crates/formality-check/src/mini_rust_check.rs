@@ -93,6 +93,7 @@ impl Check<'_> {
             declared_input_tys,
             callee_input_tys: Map::new(),
             crate_id: crate_id.clone(),
+            fn_args: body.args.clone(),
         };
 
         // (4) Check statements in body are valid
@@ -148,6 +149,24 @@ impl Check<'_> {
                 // Check if the place expression is well-formed.
                 self.check_place(typeck_env, place_expression)?;
                 // FIXME: check that access the place is allowed per borrowck rules
+            }
+            minirust::Statement::StorageLive(local_id) => {
+                // FIXME: We need more checks here after loan is introduced.
+                if self.find_local_id(&typeck_env, local_id).is_none() {
+                    bail!("Statement::StorageLive: invalid local variable")
+                }
+            }
+            minirust::Statement::StorageDead(local_id) => {
+                // FIXME: We need more checks here after loan is introduced.
+                let Some((local_id, _)) = self.find_local_id(&typeck_env, local_id) else {
+                    bail!("Statement::StorageDead: invalid local variable")
+                };
+                // Make sure function arguments and return place are not marked as dead.
+                if local_id == typeck_env.ret_id
+                    || typeck_env.fn_args.iter().any(|fn_arg| local_id == *fn_arg)
+                {
+                    bail!("Statement::StorageDead: trying to mark function arguments or return local as dead")
+                }
             }
         }
         Ok(())
@@ -246,11 +265,7 @@ impl Check<'_> {
         match place {
             Local(local_id) => {
                 // Check if place id is a valid local id.
-                let Some((_, ty)) = env
-                    .local_variables
-                    .iter()
-                    .find(|(declared_local_id, _)| *declared_local_id == local_id)
-                else {
+                let Some((_, ty)) = self.find_local_id(env, local_id) else {
                     bail!(
                         "PlaceExpression::Local: unknown local name `{:?}`",
                         local_id
@@ -260,6 +275,17 @@ impl Check<'_> {
             }
         }
         Ok(place_ty.clone())
+    }
+
+    fn find_local_id(&self, env: &TypeckEnv, local_id: &LocalId) -> Option<(LocalId, Ty)> {
+        if let Some((local_id, ty)) = env
+            .local_variables
+            .iter()
+            .find(|(declared_local_id, _)| *declared_local_id == local_id)
+        {
+            return Some((local_id.clone(), ty.clone()));
+        }
+        return None;
     }
 
     // Check if the value expression is well-formed, and return the type of the value expression.
@@ -370,6 +396,9 @@ struct TypeckEnv {
     /// We need this to access information about other functions
     /// declared in the current crate.
     crate_id: CrateId,
+
+    /// LocalId of function argument.
+    fn_args: Vec<LocalId>,
 }
 
 judgment_fn! {

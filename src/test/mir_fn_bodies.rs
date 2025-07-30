@@ -227,6 +227,33 @@ fn test_place_mention_statement() {
     )
 }
 
+/// Test valid StorageLive and StorageDead statements.
+#[test]
+fn test_storage_live_dead() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: u32;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            StorageLive(v2);
+                            StorageDead(v2);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        expect_test::expect![["()"]]
+    )
+}
+
 // Test what will happen if the next block does not exist for Terminator::Call.
 #[test]
 fn test_no_next_bb_for_call_terminator() {
@@ -662,5 +689,55 @@ fn test_invalid_value_in_switch_terminator() {
               the rule "rigid_ty is int" failed at step #0 (src/file.rs:LL:CC) because
                 condition evaluted to false: `id.is_int()`
                   id = bool"#]]
+    )
+}
+
+/// Test the behaviour of having return place in StorageDead.
+#[test]
+fn test_ret_place_storage_dead() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+
+                    bb0: {
+                        statements {
+                            StorageDead(v1);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["Statement::StorageDead: trying to mark function arguments or return local as dead"]
+    )
+}
+
+/// Test the behaviour of having function argument in StorageDead.
+#[test]
+fn test_fn_arg_storage_dead() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+
+                    bb0: {
+                        statements {
+                            StorageDead(v0);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["Statement::StorageDead: trying to mark function arguments or return local as dead"]
     )
 }
