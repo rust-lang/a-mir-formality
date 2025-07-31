@@ -3,15 +3,15 @@ use std::iter::zip;
 use formality_core::{Fallible, Map, Upcast};
 use formality_prove::Env;
 use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
-use formality_rust::grammar::minirust::PlaceExpression::Local;
-use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load};
+use formality_rust::grammar::minirust::PlaceExpression::*;
+use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load, Struct};
 use formality_rust::grammar::minirust::{
     self, ty_is_int, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression,
     ValueExpression,
 };
-use formality_rust::grammar::FnBoundData;
-use formality_types::grammar::{CrateId, FnId};
-use formality_types::grammar::{Relation, Ty, Wcs};
+use formality_rust::grammar::{FnBoundData, StructBoundData};
+use formality_types::grammar::{AdtId, Relation, Ty, TyData, Wcs};
+use formality_types::grammar::{CrateId, FnId, RigidName};
 
 use crate::{Check, CrateItem};
 use anyhow::bail;
@@ -95,6 +95,7 @@ impl Check<'_> {
             callee_input_tys: Map::new(),
             crate_id: crate_id.clone(),
             fn_args: body.args.clone(),
+            adt_tys: Map::new(),
         };
 
         // (4) Check statements in body are valid
@@ -276,6 +277,38 @@ impl Check<'_> {
                 };
                 place_ty = ty;
             }
+            Field(field_projection) => {
+                let Local(ref local_id) = *field_projection.root else {
+                    bail!("Only Local is allowed as the root of FieldProjection")
+                };
+
+                // Check if the index is valid for the tuple.
+                // FIXME: use let chain here?
+
+                let Some(ty) = env.local_variables.get(&local_id) else {
+                    bail!("The local id used in PlaceExpression::Field is invalid.")
+                };
+
+                // Get the ADT type information.
+                let TyData::RigidTy(rigid_ty) = ty.data() else {
+                    bail!("The type for field projection must be rigid ty")
+                };
+
+                // FIXME: it'd be nice to have the field information in ty data
+                let RigidName::AdtId(ref adt_id) = rigid_ty.name else {
+                    bail!("The type for field projection must be adt")
+                };
+
+                let Some(tys) = env.adt_tys.get(&adt_id) else {
+                    bail!("The ADT used is invalid.")
+                };
+
+                if field_projection.index >= tys.len() {
+                    bail!("The field index used in PlaceExpression::Field is invalid.")
+                }
+
+                place_ty = tys[field_projection.index].clone();
+            }
         }
         Ok(place_ty.clone())
     }
@@ -317,6 +350,7 @@ impl Check<'_> {
                             if fn_declared.id == *fn_id {
                                 let fn_bound_data =
                                     typeck_env.env.instantiate_universally(&fn_declared.binder);
+                                // FIXME: maybe we should store the information somewhere else, like in the value expression?
                                 // Store the callee information in typeck_env, we will need this when type checking Terminator::Call.
                                 typeck_env
                                     .callee_input_tys
@@ -340,6 +374,77 @@ impl Check<'_> {
                 // If the actual value overflows / does not match the type of the constant,
                 // it will be rejected by the parser.
                 Ok(constant.get_ty())
+            }
+            Struct(value_expressions, ty) => {
+                let mut struct_field_ty = Vec::new();
+
+                // Check if the adt type is valid in current crate.
+                if let TyData::RigidTy(rigid_ty) = ty.data() {
+                    if let RigidName::AdtId(adt_id) = &rigid_ty.name {
+                        // Find the crate that is currently being typeck.
+                        let curr_crate = self
+                            .program
+                            .crates
+                            .iter()
+                            .find(|c| c.id == typeck_env.crate_id)
+                            .unwrap();
+
+                        // Find the struct from current crate.
+                        let target_struct = curr_crate.items.iter().find(|item| {
+                            match item {
+                                CrateItem::Struct(struct_item) => {
+                                    if struct_item.id == *adt_id {
+                                        // Get the ty data of the field.
+                                        let (
+                                            _,
+                                            StructBoundData {
+                                                where_clauses: _,
+                                                fields,
+                                            },
+                                        ) = struct_item.binder.open();
+                                        for field in fields {
+                                            struct_field_ty.push(field.ty);
+                                        }
+                                        return true;
+                                    }
+                                    false
+                                }
+                                _ => false,
+                            }
+                        });
+
+                        if target_struct.is_none() {
+                            bail!("The type used in Tuple is not declared in current crate")
+                        }
+                        // We will need the adt type information when type checking field projection.
+                        typeck_env
+                            .adt_tys
+                            .insert(adt_id.clone(), struct_field_ty.clone());
+                    }
+                }
+
+                // Make sure the length of value expression matches the length of field of adt.
+                if value_expressions.len() != struct_field_ty.len() {
+                    bail!("The length of ValueExpression::Tuple does not match the type of the ADT declared")
+                }
+
+                let expression_ty_pair = zip(value_expressions, struct_field_ty);
+
+                // FIXME: we only support const in value expression of tuple for now, we can add support
+                // more in future.
+
+                for (value_expression, declared_ty) in expression_ty_pair {
+                    let Constant(_) = value_expression else {
+                        bail!("Only Constant is supported in ValueExpression::Tuple for now.")
+                    };
+                    let ty = self.check_value(typeck_env, value_expression)?;
+
+                    // Make sure the type matches the declared adt.
+                    if ty != declared_ty {
+                        bail!("The type in ValueExpression::Tuple does not match the ADT declared")
+                    }
+                }
+                Ok(ty.clone())
             }
         }
     }
@@ -402,4 +507,7 @@ struct TypeckEnv {
 
     /// LocalId of function argument.
     fn_args: Vec<LocalId>,
+
+    /// Type information of adt
+    adt_tys: Map<AdtId, Vec<Ty>>,
 }
