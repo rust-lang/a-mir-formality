@@ -5,10 +5,13 @@ use formality_types::grammar::{Parameter, ScalarId, Ty};
 use crate::grammar::minirust::ConstTypePair::*;
 use crate::grammar::FnId;
 
+use std::sync::Arc;
+
 // This definition is based on [MiniRust](https://github.com/minirust/minirust/blob/master/spec/lang/syntax.md).
 
 id!(BbId);
 id!(LocalId);
+id!(FieldId);
 
 // Example:
 //
@@ -138,8 +141,11 @@ pub enum ValueExpression {
     Constant(ConstTypePair),
     #[grammar(fn_id $v0)]
     Fn(FnId),
-    // #[grammar($(v0) as $v1)]
-    // Tuple(Vec<ValueExpression>, Ty),
+    // FIXME: minirust uses typle to represent  arrays, structs, tuples (including unit).
+    // But I think it will be quite annoying to do typecking when we have all these types
+    // together, so I added a variant just for struct.
+    #[grammar(struct ${v0} as $v1)] // FIXME: use comma separated
+    Struct(Vec<ValueExpression>, Ty),
     // Union
     // Variant
     // GetDiscriminant
@@ -205,7 +211,17 @@ pub enum PlaceExpression {
     #[grammar(local($v0))]
     Local(LocalId),
     // Deref(Arc<ValueExpression>),
-    // Field(Arc<PlaceExpression>, FieldId),
+    // Project to a field.
+    #[grammar($v0)]
+    Field(FieldProjection),
     // Index
     // Downcast
+}
+
+#[term($root.$index)]
+pub struct FieldProjection {
+    /// The place to base the projection on.
+    pub root: Arc<PlaceExpression>,
+    /// The field to project to.
+    pub index: usize,
 }

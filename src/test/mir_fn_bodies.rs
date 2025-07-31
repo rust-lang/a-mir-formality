@@ -254,6 +254,37 @@ fn test_storage_live_dead() {
     )
 }
 
+/// Test valid program that uses struct.  
+#[test]
+fn test_struct() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                struct Dummy {
+                    value: u32,
+                }
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: Dummy;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = struct { constant(1: u32) } as Dummy;
+                            local(v2).0 = constant(2: u32);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        expect_test::expect![["()"]]
+    )
+}
+
 // Test what will happen if the next block does not exist for Terminator::Call.
 #[test]
 fn test_no_next_bb_for_call_terminator() {
@@ -739,5 +770,100 @@ fn test_fn_arg_storage_dead() {
         ]
         []
         expect_test::expect!["Statement::StorageDead: trying to mark function arguments or return local as dead"]
+    )
+}
+
+/// Test the behaviour of using invalid index for the struct field.
+#[test]
+fn test_invalid_struct_field() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Dummy {
+                    value: u32,
+                }
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: Dummy;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = struct { constant(1: u32) } as Dummy;
+                            local(v2).1 = constant(2: u32);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["The field index used in PlaceExpression::Field is invalid."]
+    )
+}
+
+/// Test the behaviour of using non-adt local for field projection.
+#[test]
+fn test_field_projection_root_non_adt() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Dummy {
+                    value: u32,
+                }
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: Dummy;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = struct { constant(1: u32) } as Dummy;
+                            local(v1).1 = constant(2: u32);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["The type for field projection must be adt"]
+    )
+}
+
+/// Test the behaviour of initialising the struct with wrong type.
+#[test]
+fn test_struct_wrong_type_in_initialisation() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Dummy {
+                    value: u32,
+                }
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: Dummy;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = struct { constant(false) } as Dummy;
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["The type in ValueExpression::Tuple does not match the ADT declared"]
     )
 }
