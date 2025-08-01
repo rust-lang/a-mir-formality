@@ -42,12 +42,12 @@ fn lifetime() {
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
-            judgment `prove { goal: {@ wf(&!lt_0 !ty_1)}, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+            judgment `prove { goal: {@ wf(&!lt_0 !ty_1)}, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness, pending: [] }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
               failed at (src/file.rs:LL:CC) because
-                judgment `prove_wc_list { goal: {@ wf(&!lt_0 !ty_1)}, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness } }` failed at the following rule(s):
+                judgment `prove_wc_list { goal: {@ wf(&!lt_0 !ty_1)}, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness, pending: [] } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment `prove_wc { goal: @ wf(&!lt_0 !ty_1), assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness } }` failed at the following rule(s):
+                    judgment `prove_wc { goal: @ wf(&!lt_0 !ty_1), assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness, pending: [] } }` failed at the following rule(s):
                       the rule "parameter well formed" failed at step #0 (src/file.rs:LL:CC) because
-                        judgment had no applicable rules: `prove_wf { goal: &!lt_0 !ty_1, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness } }`"#]]
+                        judgment had no applicable rules: `prove_wf { goal: &!lt_0 !ty_1, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness, pending: [] } }`"#]]
     )
 }
