@@ -83,6 +83,13 @@ judgment_fn! {
     ) => Constraints {
         debug(v, b, assumptions, env)
 
+        // If the RHS is *not* a variable, e.g., we are trying to prove something like this
+        //
+        // * `?A = u32`
+        // * `?A = 'static`
+        //
+        // then we have learned something about what `?A` must be. The
+        // `equate_variable` judgment manages that case.
         (
             (if let None = t.downcast::<Variable>())
             (equate_variable(decls, env, assumptions, v, t) => c)
@@ -90,6 +97,24 @@ judgment_fn! {
             (prove_existential_var_eq(decls, env, assumptions, v, t) => c)
         )
 
+        // If the RHS IS an existential variable, e.g., we are trying to prove something like this
+        //
+        // * `?A = ?B`
+        //
+        // then we can either map `?A` to `?B` or vice versa.
+        // Whichever way, they must be the same.
+        //
+        // We pick the variable with the higher universe and map it to the one with the lower universe,
+        // which makes sense, consider:
+        //
+        // exists<A> { forall<C> { exists<B> { A = B } } && A = u32 }
+        // ---------   ---------   ---------
+        // |           |           |
+        // |           universe 1  universe 1
+        // universe 0
+        //
+        // B is not in scope everywhere that A is in scope, so we can't replace
+        // A with B universally. But we CAN replace B with a universally.
         (
             // Map the higher rank variable to the lower rank one.
             (let (a, b) = env.order_by_universe(l, r))
@@ -97,6 +122,20 @@ judgment_fn! {
             (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::ExistentialVar(r)) => (env, (b, a)))
         )
 
+        // If the RHS IS a universal variable, e.g., we are trying to prove something like this
+        //
+        // * `?A = !B`
+        //
+        // then we can map `?A` to `!B`, so long as the universes work out:
+        //
+        // exists<A> { exists<B> { A = B } && A = u32 }
+        // ---------   ---------
+        // |           |
+        // |           universe 2
+        // universe 1
+        //
+        // B is not in scope everywhere that A is in scope, so we can't replace
+        // A with B universally. But we CAN replace B with a universally.
         (
             (if env.universe(p) < env.universe(v))
             ----------------------------- ("existential-universal")
