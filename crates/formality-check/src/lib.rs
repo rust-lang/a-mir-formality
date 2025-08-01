@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use formality_types::rust::FormalityLang;
-
 use std::{collections::VecDeque, fmt::Debug};
 
 use anyhow::bail;
@@ -11,9 +9,9 @@ use formality_rust::{
     grammar::{Crate, CrateItem, Program, Test, TestBoundData},
     prove::ToWcs,
 };
-use formality_types::grammar::{Fallible, Wcs};
+use formality_types::grammar::{CrateId, Fallible, Wcs};
 
-mod mini_rust_check;;
+mod mini_rust_check;
 
 /// Check all crates in the program. The crates must be in dependency order
 /// such that any prefix of the crates is a complete program.
@@ -62,12 +60,12 @@ impl Check<'_> {
     }
 
     fn check_current_crate(&self, c: &Crate) -> Fallible<()> {
-        let Crate { id: _, items } = c;
+        let Crate { id, items } = c;
 
         self.check_for_duplicate_items()?;
 
         for item in items {
-            self.check_crate_item(item)?;
+            self.check_crate_item(item, &id)?;
         }
 
         self.check_coherence(c)?;
@@ -111,13 +109,13 @@ impl Check<'_> {
         Ok(())
     }
 
-    fn check_crate_item(&self, c: &CrateItem) -> Fallible<()> {
+    fn check_crate_item(&self, c: &CrateItem, crate_id: &CrateId) -> Fallible<()> {
         match c {
-            CrateItem::Trait(v) => self.check_trait(v),
-            CrateItem::TraitImpl(v) => self.check_trait_impl(v),
+            CrateItem::Trait(v) => self.check_trait(v, crate_id),
+            CrateItem::TraitImpl(v) => self.check_trait_impl(v, crate_id),
             CrateItem::Struct(s) => self.check_adt(&s.to_adt()),
             CrateItem::Enum(e) => self.check_adt(&e.to_adt()),
-            CrateItem::Fn(f) => self.check_free_fn(f),
+            CrateItem::Fn(f) => self.check_free_fn(f, crate_id),
             CrateItem::NegTraitImpl(i) => self.check_neg_trait_impl(i),
             CrateItem::Test(t) => self.check_test(t),
         }

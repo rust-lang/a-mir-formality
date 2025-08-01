@@ -1,7 +1,9 @@
-
-use formality_core::id;
+use formality_core::{id, UpcastFrom};
 use formality_macros::term;
-use formality_types::grammar::{Parameter, Ty};
+use formality_types::grammar::{Parameter, RigidName, ScalarId, Ty, TyData};
+
+use crate::grammar::minirust::ConstTypePair::*;
+use crate::grammar::FnId;
 
 // This definition is based on [MiniRust](https://github.com/minirust/minirust/blob/master/spec/lang/syntax.md).
 
@@ -50,7 +52,7 @@ pub struct LocalDecl {
 }
 
 /// Based on [MiniRust statements](https://github.com/minirust/minirust/blob/9ae11cc202d040f08bc13ec5254d3d41d5f3cc25/spec/lang/syntax.md#statements-terminators).
-#[term($id: ${statements} $terminator;)]
+#[term($id: {statements {$*statements} $terminator;})]
 pub struct BasicBlock {
     pub id: BbId,
     pub statements: Vec<Statement>,
@@ -63,9 +65,9 @@ pub enum Statement {
     #[grammar($v0 = $v1;)]
     Assign(PlaceExpression, ValueExpression),
 
-    #[grammar($v0;)]
+    // Represent let _ = place;
+    #[grammar(place_mention($v0);)]
     PlaceMention(PlaceExpression),
-
     // SetDiscriminant
     // Validate
     // Deinit
@@ -79,7 +81,13 @@ pub enum Terminator {
     #[grammar(goto $v0)]
     Goto(BbId),
 
-    // Switch
+    // Suggestion: try list of a pair, or list of a struct?
+    #[grammar(switch($switch_value) -> $[switch_targets] otherwise: $fallback)]
+    Switch {
+        switch_value: ValueExpression,
+        switch_targets: Vec<SwitchTarget>,
+        fallback: BbId,
+    },
     // Unreachable
     // Intrinsic
 
@@ -89,27 +97,45 @@ pub enum Terminator {
     //    call foo.add<u32>(x, y)
     #[grammar(call $callee $<?generic_arguments> $(arguments) -> $ret $:goto $next_block)]
     Call {
+        /// What function or method to call.
         callee: ValueExpression,
         // cc: CallingConvention,
         generic_arguments: Vec<Parameter>,
+        /// The function arguments to pass.
         arguments: Vec<ArgumentExpression>,
+        /// The place to put the return value into.
         ret: PlaceExpression,
+        /// The block to jump to when this call returns.
+        /// In minirust, if this is None, then UB will be raised when the function returns.
+        /// FIXME(tiif): should we have the same behaviour as minirust?
         next_block: Option<BbId>,
     },
 
+    /// Return from the current function.
     #[grammar(return)]
     Return,
 }
 
+#[term(($value: $target))]
+pub struct SwitchTarget {
+    pub value: u64,
+    pub target: BbId,
+}
+
 #[term]
 pub enum ArgumentExpression {
+    #[grammar(Copy($v0))]
     ByValue(ValueExpression),
+    #[grammar(Move($v0))]
     InPlace(PlaceExpression),
 }
 
 #[term]
 pub enum ValueExpression {
-    // Const
+    #[grammar(constant($v0))]
+    Constant(ConstTypePair),
+    #[grammar(fn_id $v0)]
+    Fn(FnId),
     // #[grammar($(v0) as $v1)]
     // Tuple(Vec<ValueExpression>, Ty),
     // Union
@@ -123,12 +149,85 @@ pub enum ValueExpression {
 }
 
 #[term]
+pub enum ConstTypePair {
+    #[grammar($v0: u8)]
+    U8(u8),
+    #[grammar($v0: u16)]
+    U16(u16),
+    #[grammar($v0: u32)]
+    U32(u32),
+    #[grammar($v0: u64)]
+    U64(u64),
+    #[grammar($v0: usize)]
+    Usize(usize),
+    #[grammar($v0: i8)]
+    I8(i8),
+    #[grammar($v0: i16)]
+    I16(i16),
+    #[grammar($v0: i32)]
+    I32(i32),
+    #[grammar($v0: i64)]
+    I64(i64),
+    #[grammar($v0: isize)]
+    Isize(isize),
+    #[grammar($v0)]
+    Bool(Bool),
+}
+
+#[term]
+pub enum Bool {
+    True,
+    False,
+}
+
+impl ConstTypePair {
+    pub fn get_ty(&self) -> Ty {
+        match self {
+            U8(_) => Ty::upcast_from(ScalarId::U8),
+            U16(_) => Ty::upcast_from(ScalarId::U16),
+            U32(_) => Ty::upcast_from(ScalarId::U32),
+            U64(_) => Ty::upcast_from(ScalarId::U64),
+            Usize(_) => Ty::upcast_from(ScalarId::Usize),
+            I8(_) => Ty::upcast_from(ScalarId::I8),
+            I16(_) => Ty::upcast_from(ScalarId::I16),
+            I32(_) => Ty::upcast_from(ScalarId::I32),
+            I64(_) => Ty::upcast_from(ScalarId::I64),
+            Isize(_) => Ty::upcast_from(ScalarId::Isize),
+            Bool(_) => Ty::upcast_from(ScalarId::Bool),
+        }
+    }
+}
+
+pub fn ty_is_int(ty: Ty) -> bool {
+    // integer is rigidty
+    let TyData::RigidTy(rigid_ty) = ty.data() else {
+        return false;
+    };
+    let RigidName::ScalarId(ref scalar_id) = rigid_ty.name else {
+        return false;
+    };
+
+    match scalar_id {
+        ScalarId::U8
+        | ScalarId::U16
+        | ScalarId::U32
+        | ScalarId::U64
+        | ScalarId::I8
+        | ScalarId::I16
+        | ScalarId::I32
+        | ScalarId::I64
+        | ScalarId::Usize
+        | ScalarId::Isize => true,
+        ScalarId::Bool => false,
+    }
+}
+
+#[term]
 pub enum PlaceExpression {
+    #[grammar(local($v0))]
     Local(LocalId),
     // Deref(Arc<ValueExpression>),
     // Field(Arc<PlaceExpression>, FieldId),
     // Index
     // Downcast
 }
-
-
