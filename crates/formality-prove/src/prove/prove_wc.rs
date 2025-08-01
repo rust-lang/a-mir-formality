@@ -19,6 +19,8 @@ use super::constraints::Constraints;
 use formality_types::grammar::Parameter::Ty;
 
 judgment_fn! {
+    /// The "heart" of the trait system -- prove that a where-clause holds given a set of declarations, variable environment, and set of assumptions.
+    /// If successful, returns the constraints under which the where-clause holds.
     pub fn prove_wc(
         _decls: Decls,
         env: Env,

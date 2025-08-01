@@ -5,10 +5,27 @@ use formality_types::{
     rust::Visit,
 };
 
+/// Captures the conditions under which something is true.
+///
+/// Examples:
+///
+/// * The `substitution` indicates equality constraints for existential (inference) variables.
+///   E.g. if you try to prove `Vec<?A> = Vec<u32>`, the result will be "True; [?A => u32]".
+///   This substitution is then to be applied to any future goals/terms that may reference `?A`.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Constraints {
+    /// The environment in which future goals should be proven.
+    /// This is an extension of the original environment; it may contain
+    /// new variables and new pending proof obligations.
     pub env: Env,
+
+    /// If this is false, it indicates that the result is actually *ambiguous* and not known to be true.
+    /// This occurs when e.g. we hit overflow or some other condition in which we can neither prove the
+    /// result true nor false.
     pub known_true: bool,
+
+    /// Maps an existential variable to the value which it must be equal to.
+    /// For example `Vec<?A> = Vec<u32>` would result in a substitution `[?A => u32]`.`
     pub substitution: Substitution,
 }
 
@@ -31,9 +48,10 @@ impl Constraints {
     }
 
     pub fn unconditionally_true(&self) -> bool {
-        self.known_true && self.substitution.is_empty()
+        self.known_true && self.substitution.is_empty() && self.env.pending().is_empty()
     }
 
+    /// Construct a set of constraints from a set of substitutions and the previous environment.
     pub fn from(
         env: impl Upcast<Env>,
         iter: impl IntoIterator<Item = (impl Upcast<Variable>, impl Upcast<Parameter>)>,

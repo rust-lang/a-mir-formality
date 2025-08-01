@@ -3,6 +3,7 @@ use formality_macros::term;
 use formality_types::{
     grammar::{
         Binder, ExistentialVar, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable,
+        Wc,
     },
     rust::{Fold, Visit},
 };
@@ -39,8 +40,23 @@ pub enum Bias {
 
 #[derive(Default, Debug, Clone, Hash, Ord, Eq, PartialEq, PartialOrd)]
 pub struct Env {
+    /// The set of variables that are in scope (universal and existential).
+    /// All terms should only reference free variables found in this set.
     variables: Vec<Variable>,
+
+    /// XXX this needs to be explained
     bias: Bias,
+
+    /// Pending goals that have not yet been proven.
+    /// When we prove a conjunction `(A && B)`, proving `A` may result in
+    /// some pending items (e.g., subtype constraints).
+    ///
+    /// These are then added into the env when we prove `B` so that if `B`
+    /// winds up constraining an inference varibale, it can also try to prove
+    /// the pending constraints that are now unlocked.
+    ///
+    /// Whenever a "successful" proof results, the pending obligations
+    pending: Vec<Wc>,
 }
 
 impl Env {
@@ -48,6 +64,7 @@ impl Env {
         Env {
             variables: Default::default(),
             bias,
+            pending: vec![],
         }
     }
 
@@ -130,6 +147,11 @@ impl Env {
         } else {
             (v2, v1)
         }
+    }
+
+    /// Pending goals that must still be proven
+    pub fn pending(&self) -> &[Wc] {
+        &self.pending
     }
 
     /// An env A *encloses* a term `v` if all free variables in `v`
@@ -246,6 +268,7 @@ impl Env {
                 .map(|&v| vs.map_var(v).unwrap_or(v))
                 .collect(),
             bias: self.bias,
+            pending: vs.apply(&self.pending),
         }
     }
 
