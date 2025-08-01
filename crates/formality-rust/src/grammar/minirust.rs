@@ -71,8 +71,10 @@ pub enum Statement {
     // SetDiscriminant
     // Validate
     // Deinit
-    // StorageLive
-    // StorageDead
+    #[grammar(StorageLive($v0);)]
+    StorageLive(LocalId),
+    #[grammar(StorageDead($v0);)]
+    StorageDead(LocalId),
 }
 
 /// Based on [MiniRust terminators](https://github.com/minirust/minirust/blob/9ae11cc202d040f08bc13ec5254d3d41d5f3cc25/spec/lang/syntax.md#statements-terminators).
