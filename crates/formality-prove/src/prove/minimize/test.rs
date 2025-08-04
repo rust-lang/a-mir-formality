@@ -17,10 +17,15 @@ fn minimize_a() {
     let (env, subst) = env.existential_substitution(&term);
     let term = term.instantiate_with(&subst).unwrap();
 
+<<<<<<< HEAD
     expect![
         "(Env { variables: [?ty_1, ?ty_2, ?ty_3], bias: Soundness, pending: [] }, [?ty_1, ?ty_3])"
     ]
     .assert_eq(&format!("{:?}", (&env, &term)));
+=======
+    expect!["(Env { variables: [?ty_1, ?ty_2, ?ty_3], bias: Soundness, pending: [] }, [?ty_1, ?ty_3])"]
+        .assert_eq(&format!("{:?}", (&env, &term)));
+>>>>>>> 9ab1089 (UPDATE_EXPECT=1 for all the tests)
 
     let (mut env_min, term_min, m) = minimize(env, term);
 
