@@ -300,7 +300,7 @@ impl Crate {
                     vars,
                     AdtBoundData {
                         where_clauses,
-                        variants: _,
+                        variants,
                     },
                 ) = binder.open();
                 prove::AdtDecl {
@@ -309,6 +309,10 @@ impl Crate {
                         vars,
                         prove::AdtDeclBoundData {
                             where_clause: where_clauses.iter().flat_map(|wc| wc.to_wcs()).collect(),
+                            variants: variants
+                                .iter()
+                                .map(|variant| variant.to_adt_decl_variant())
+                                .collect(),
                         },
                     ),
                 }

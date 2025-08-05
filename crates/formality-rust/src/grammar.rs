@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use formality_core::{term, Upcast};
-use formality_prove::Safety;
+use formality_prove::{AdtDeclField, AdtDeclFieldName, AdtDeclVariant, Safety};
 use formality_types::{
     grammar::{
         AdtId, AliasTy, AssociatedItemId, Binder, Const, ConstData, CrateId, Fallible, FieldId,
-        FnId, Lt, Parameter, Relation, TraitId, TraitRef, Ty, Wc, Wcs,
+        FnId, Lt, Parameter, Relation, TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
     },
     rust::Term,
 };
@@ -120,6 +120,15 @@ pub struct Field {
     pub ty: Ty,
 }
 
+impl Field {
+    pub fn to_adt_decl_field(&self) -> AdtDeclField {
+        return AdtDeclField {
+            name: self.name.to_adt_decl_field_name(),
+            ty: self.ty.clone(),
+        };
+    }
+}
+
 #[term]
 pub enum FieldName {
     #[cast]
@@ -128,12 +137,16 @@ pub enum FieldName {
     Index(usize),
 }
 
-formality_core::id!(VariantId);
-
-impl VariantId {
-    /// Returns the special variant-id used for the single variant of a struct.
-    pub fn for_struct() -> Self {
-        VariantId::new("struct")
+impl FieldName {
+    pub fn to_adt_decl_field_name(&self) -> AdtDeclFieldName {
+        match self {
+            FieldName::Id(field_id) => {
+                return AdtDeclFieldName::Id(field_id.clone());
+            }
+            FieldName::Index(idx) => {
+                return AdtDeclFieldName::Index(*idx);
+            }
+        }
     }
 }
 
@@ -170,6 +183,19 @@ pub struct AdtBoundData {
 pub struct Variant {
     pub name: VariantId,
     pub fields: Vec<Field>,
+}
+
+impl Variant {
+    pub fn to_adt_decl_variant(&self) -> AdtDeclVariant {
+        AdtDeclVariant {
+            name: self.name.clone(),
+            fields: self
+                .fields
+                .iter()
+                .map(|field| field.to_adt_decl_field())
+                .collect(),
+        }
+    }
 }
 
 #[term($?safety trait $id $binder)]
