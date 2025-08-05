@@ -1,8 +1,8 @@
 use formality_core::{set, Set, Upcast};
 use formality_macros::term;
 use formality_types::grammar::{
-    AdtId, AliasName, AliasTy, Binder, Parameter, Predicate, Relation, TraitId, TraitRef, Ty, Wc,
-    Wcs,
+    AdtId, AliasName, AliasTy, Binder, FieldId, Parameter, Predicate, Relation, TraitId, TraitRef,
+    Ty, VariantId, Wc, Wcs,
 };
 
 #[term]
@@ -286,7 +286,6 @@ pub struct AliasBoundDeclBoundData {
 }
 
 /// An "ADT declaration" declares an ADT name, its generics, and its where-clauses.
-/// It doesn't capture the ADT fields, yet.
 ///
 /// In Rust syntax, it covers the `struct Foo<X> where X: Bar` part of the declaration, but not what appears in the `{...}`.
 #[term(adt $id $binder)]
@@ -298,9 +297,32 @@ pub struct AdtDecl {
     pub binder: Binder<AdtDeclBoundData>,
 }
 
+// FIXME: there is a cyclic dependency if we import from formality-rust, we might be able to fix that.
+
 /// The "bound data" for a [`AdtDecl`][].
-#[term($:where $where_clause)]
+#[term($:where $,where_clause { $,variants })]
 pub struct AdtDeclBoundData {
     /// The where-clauses declared on the ADT,
     pub where_clause: Wcs,
+    pub variants: Vec<AdtDeclVariant>,
+}
+
+#[term($name { $,fields })]
+pub struct AdtDeclVariant {
+    pub name: VariantId,
+    pub fields: Vec<AdtDeclField>,
+}
+
+#[term($name : $ty)]
+pub struct AdtDeclField {
+    pub name: AdtDeclFieldName,
+    pub ty: Ty,
+}
+
+#[term]
+pub enum AdtDeclFieldName {
+    #[cast]
+    Id(FieldId),
+    #[cast]
+    Index(usize),
 }
