@@ -10,8 +10,8 @@ use formality_rust::grammar::minirust::{
     ValueExpression,
 };
 use formality_rust::grammar::FnBoundData;
-use formality_types::grammar::{CrateId, FnId, RigidName};
-use formality_types::grammar::{Relation, Ty, TyData, VariantId, Wcs};
+use formality_types::grammar::{CrateId, FnId};
+use formality_types::grammar::{Relation, Ty, VariantId, Wcs};
 
 use crate::{Check, CrateItem};
 use anyhow::bail;
@@ -281,23 +281,11 @@ impl Check<'_> {
                     bail!("Only Local is allowed as the root of FieldProjection")
                 };
 
-                // Check if the index is valid for the tuple.
-                // FIXME: use let chain here?
-
                 let Some(ty) = env.local_variables.get(&local_id) else {
                     bail!("The local id used in PlaceExpression::Field is invalid.")
                 };
 
-                // Get the ADT type information.
-                let TyData::RigidTy(rigid_ty) = ty.data() else {
-                    bail!("The type for field projection must be rigid ty")
-                };
-
-                // FIXME: directly get the adt_id information from ty
-
-                let RigidName::AdtId(ref adt_id) = rigid_ty.name else {
-                    bail!("The type for field projection must be adt")
-                };
+                let adt_id = ty.get_adt_id().unwrap();
 
                 let (
                     _,
@@ -312,6 +300,7 @@ impl Check<'_> {
                     bail!("The local used for field projection must be struct.")
                 }
 
+                // Check if the index is valid for the tuple.
                 if field_projection.index >= fields.len() {
                     bail!("The field index used in PlaceExpression::Field is invalid.")
                 }
@@ -353,13 +342,13 @@ impl Check<'_> {
                     .unwrap();
 
                 // Find the callee from current crate.
+                // FIXME: get the information from decl too
                 let callee = curr_crate.items.iter().find(|item| {
                     match item {
                         CrateItem::Fn(fn_declared) => {
                             if fn_declared.id == *fn_id {
                                 let fn_bound_data =
                                     typeck_env.env.instantiate_universally(&fn_declared.binder);
-                                // FIXME: maybe we should store the information somewhere else, like in the value expression?
                                 // Store the callee information in typeck_env, we will need this when type checking Terminator::Call.
                                 typeck_env
                                     .callee_input_tys
@@ -385,27 +374,24 @@ impl Check<'_> {
                 Ok(constant.get_ty())
             }
             Struct(value_expressions, ty) => {
-                let mut struct_field_ty = Vec::new();
+                let adt_id = ty.get_adt_id().unwrap();
 
                 // Check the validity of the struct.
-                if let TyData::RigidTy(rigid_ty) = ty.data() {
-                    if let RigidName::AdtId(adt_id) = &rigid_ty.name {
-                        let (
-                            _,
-                            AdtDeclBoundData {
-                                where_clause: _,
-                                variants,
-                            },
-                        ) = self.decls.adt_decl(&adt_id).binder.open();
-                        let AdtDeclVariant { name, fields } = variants.last().unwrap();
+                let (
+                    _,
+                    AdtDeclBoundData {
+                        where_clause: _,
+                        variants,
+                    },
+                ) = self.decls.adt_decl(&adt_id).binder.open();
+                let AdtDeclVariant { name, fields } = variants.last().unwrap();
 
-                        if *name != VariantId::for_struct() {
-                            bail!("This type used in ValueExpression::Struct should be a struct")
-                        }
-
-                        struct_field_ty = fields.iter().map(|field| field.ty.clone()).collect();
-                    }
+                if *name != VariantId::for_struct() {
+                    bail!("This type used in ValueExpression::Struct should be a struct")
                 }
+
+                let struct_field_ty: Vec<Ty> =
+                    fields.iter().map(|field| field.ty.clone()).collect();
 
                 if value_expressions.len() != struct_field_ty.len() {
                     bail!("The length of ValueExpression::Tuple does not match the type of the ADT declared")
