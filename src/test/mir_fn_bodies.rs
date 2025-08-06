@@ -262,6 +262,7 @@ fn test_struct() {
             crate Foo {
                 struct Dummy {
                     value: u32,
+                    is_true: bool,
                 }
 
                 fn foo (u32) -> u32 = minirust(v1) -> v0 {
@@ -272,7 +273,7 @@ fn test_struct() {
                     bb0: {
                         statements {
                             local(v0) = load(local(v1));
-                            local(v2) = struct { constant(1: u32) } as Dummy;
+                            local(v2) = struct { constant(1: u32), constant(false)} as Dummy;
                             local(v2).0 = constant(2: u32);
                         }
                         return;
