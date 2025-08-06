@@ -864,6 +864,6 @@ fn test_struct_wrong_type_in_initialisation() {
             }
         ]
         []
-        expect_test::expect!["The type in ValueExpression::Tuple does not match the ADT declared"]
+        expect_test::expect!["The type in ValueExpression::Tuple does not match the struct declared"]
     )
 }
