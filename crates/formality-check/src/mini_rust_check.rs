@@ -341,7 +341,6 @@ impl Check<'_> {
                     .unwrap();
 
                 // Find the callee from current crate.
-                // FIXME: get the information from decl too
                 let callee = curr_crate.items.iter().find(|item| {
                     match item {
                         CrateItem::Fn(fn_declared) => {

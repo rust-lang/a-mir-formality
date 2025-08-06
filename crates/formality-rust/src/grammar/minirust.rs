@@ -141,10 +141,7 @@ pub enum ValueExpression {
     Constant(ConstTypePair),
     #[grammar(fn_id $v0)]
     Fn(FnId),
-    // FIXME: minirust uses typle to represent  arrays, structs, tuples (including unit).
-    // But I think it will be quite annoying to do typecking when we have all these types
-    // together, so I added a variant just for struct.
-    #[grammar(struct ${v0} as $v1)] // FIXME: use comma separated
+    #[grammar(struct {$,v0} as $v1)]
     Struct(Vec<ValueExpression>, Ty),
     // Union
     // Variant
