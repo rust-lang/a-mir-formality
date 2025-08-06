@@ -1,17 +1,17 @@
 use std::iter::zip;
 
 use formality_core::{Fallible, Map, Upcast};
-use formality_prove::Env;
+use formality_prove::{AdtDeclBoundData, AdtDeclVariant, Env};
 use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
-use formality_rust::grammar::minirust::PlaceExpression::Local;
-use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load};
+use formality_rust::grammar::minirust::PlaceExpression::*;
+use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load, Struct};
 use formality_rust::grammar::minirust::{
     self, ty_is_int, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression,
     ValueExpression,
 };
 use formality_rust::grammar::FnBoundData;
 use formality_types::grammar::{CrateId, FnId};
-use formality_types::grammar::{Relation, Ty, Wcs};
+use formality_types::grammar::{Relation, Ty, VariantId, Wcs};
 
 use crate::{Check, CrateItem};
 use anyhow::bail;
@@ -94,6 +94,7 @@ impl Check<'_> {
             declared_input_tys,
             callee_input_tys: Map::new(),
             crate_id: crate_id.clone(),
+            fn_args: body.args.clone(),
         };
 
         // (4) Check statements in body are valid
@@ -149,6 +150,24 @@ impl Check<'_> {
                 // Check if the place expression is well-formed.
                 self.check_place(typeck_env, place_expression)?;
                 // FIXME: check that access the place is allowed per borrowck rules
+            }
+            minirust::Statement::StorageLive(local_id) => {
+                // FIXME: We need more checks here after loan is introduced.
+                if self.find_local_id(&typeck_env, local_id).is_none() {
+                    bail!("Statement::StorageLive: invalid local variable")
+                }
+            }
+            minirust::Statement::StorageDead(local_id) => {
+                // FIXME: We need more checks here after loan is introduced.
+                let Some((local_id, _)) = self.find_local_id(&typeck_env, local_id) else {
+                    bail!("Statement::StorageDead: invalid local variable")
+                };
+                // Make sure function arguments and return place are not marked as dead.
+                if local_id == typeck_env.ret_id
+                    || typeck_env.fn_args.iter().any(|fn_arg| local_id == *fn_arg)
+                {
+                    bail!("Statement::StorageDead: trying to mark function arguments or return local as dead")
+                }
             }
         }
         Ok(())
@@ -249,11 +268,7 @@ impl Check<'_> {
         match place {
             Local(local_id) => {
                 // Check if place id is a valid local id.
-                let Some((_, ty)) = env
-                    .local_variables
-                    .iter()
-                    .find(|(declared_local_id, _)| *declared_local_id == local_id)
-                else {
+                let Some((_, ty)) = self.find_local_id(env, local_id) else {
                     bail!(
                         "PlaceExpression::Local: unknown local name `{:?}`",
                         local_id
@@ -261,8 +276,52 @@ impl Check<'_> {
                 };
                 place_ty = ty;
             }
+            Field(field_projection) => {
+                let Local(ref local_id) = *field_projection.root else {
+                    bail!("Only Local is allowed as the root of FieldProjection")
+                };
+
+                let Some(ty) = env.local_variables.get(&local_id) else {
+                    bail!("The local id used in PlaceExpression::Field is invalid.")
+                };
+
+                let Some(adt_id) = ty.get_adt_id() else {
+                    bail!("The local used for field projection is not adt.")
+                };
+
+                let (
+                    _,
+                    AdtDeclBoundData {
+                        where_clause: _,
+                        variants,
+                    },
+                ) = self.decls.adt_decl(&adt_id).binder.open();
+                let AdtDeclVariant { name, fields } = variants.last().unwrap();
+
+                if *name != VariantId::for_struct() {
+                    bail!("The local used for field projection must be struct.")
+                }
+
+                // Check if the index is valid for the tuple.
+                if field_projection.index >= fields.len() {
+                    bail!("The field index used in PlaceExpression::Field is invalid.")
+                }
+
+                place_ty = fields[field_projection.index].ty.clone();
+            }
         }
         Ok(place_ty.clone())
+    }
+
+    fn find_local_id(&self, env: &TypeckEnv, local_id: &LocalId) -> Option<(LocalId, Ty)> {
+        if let Some((local_id, ty)) = env
+            .local_variables
+            .iter()
+            .find(|(declared_local_id, _)| *declared_local_id == local_id)
+        {
+            return Some((local_id.clone(), ty.clone()));
+        }
+        return None;
     }
 
     // Check if the value expression is well-formed, and return the type of the value expression.
@@ -314,6 +373,52 @@ impl Check<'_> {
                 // If the actual value overflows / does not match the type of the constant,
                 // it will be rejected by the parser.
                 Ok(constant.get_ty())
+            }
+            Struct(value_expressions, ty) => {
+                let Some(adt_id) = ty.get_adt_id() else {
+                    bail!("The type used in ValueExpression::Struct must be adt")
+                };
+
+                // Check the validity of the struct.
+                let (
+                    _,
+                    AdtDeclBoundData {
+                        where_clause: _,
+                        variants,
+                    },
+                ) = self.decls.adt_decl(&adt_id).binder.open();
+                let AdtDeclVariant { name, fields } = variants.last().unwrap();
+
+                if *name != VariantId::for_struct() {
+                    bail!("This type used in ValueExpression::Struct should be a struct")
+                }
+
+                let struct_field_ty: Vec<Ty> =
+                    fields.iter().map(|field| field.ty.clone()).collect();
+
+                if value_expressions.len() != struct_field_ty.len() {
+                    bail!("The length of ValueExpression::Tuple does not match the type of the ADT declared")
+                }
+
+                let expression_ty_pair = zip(value_expressions, struct_field_ty);
+
+                // FIXME: we only support const in value expression of struct for now, we can add support
+                // more in future.
+
+                for (value_expression, declared_ty) in expression_ty_pair {
+                    let Constant(_) = value_expression else {
+                        bail!("Only Constant is supported in ValueExpression::Struct for now.")
+                    };
+                    let ty = self.check_value(typeck_env, value_expression)?;
+
+                    // Make sure the type matches the declared adt.
+                    if ty != declared_ty {
+                        bail!(
+                            "The type in ValueExpression::Tuple does not match the struct declared"
+                        )
+                    }
+                }
+                Ok(ty.clone())
             }
         }
     }
@@ -373,4 +478,7 @@ struct TypeckEnv {
     /// We need this to access information about other functions
     /// declared in the current crate.
     crate_id: CrateId,
+
+    /// LocalId of function argument.
+    fn_args: Vec<LocalId>,
 }

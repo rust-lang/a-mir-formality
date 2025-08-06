@@ -83,6 +83,15 @@ impl Ty {
         }
         .upcast()
     }
+
+    pub fn get_adt_id(&self) -> Option<AdtId> {
+        if let TyData::RigidTy(rigid_ty) = self.data() {
+            if let RigidName::AdtId(ref adt_id) = rigid_ty.name {
+                return Some(adt_id.clone());
+            };
+        };
+        None
+    }
 }
 
 impl UpcastFrom<TyData> for Ty {
