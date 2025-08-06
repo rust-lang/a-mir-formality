@@ -834,7 +834,7 @@ fn test_field_projection_root_non_adt() {
             }
         ]
         []
-        expect_test::expect!["The type for field projection must be adt"]
+        expect_test::expect!["The local used for field projection is not adt."]
     )
 }
 
@@ -866,5 +866,33 @@ fn test_struct_wrong_type_in_initialisation() {
         ]
         []
         expect_test::expect!["The type in ValueExpression::Tuple does not match the struct declared"]
+    )
+}
+
+/// Test the behaviour of having non-adt as the type for ValueExpression::Struct.
+#[test]
+fn test_non_adt_ty_for_struct() {
+    crate::assert_err!(
+        [
+            crate Foo {
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: u32;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = struct { constant(false) } as u32;
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["The type used in ValueExpression::Struct must be adt"]
     )
 }
