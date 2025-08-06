@@ -285,7 +285,7 @@ pub struct AliasBoundDeclBoundData {
     pub where_clause: Wcs,
 }
 
-/// An "ADT declaration" declares an ADT name, its generics, and its where-clauses.
+/// An "ADT declaration" declares an ADT name, its generics, and its where-clauses, and the field.
 ///
 /// In Rust syntax, it covers the `struct Foo<X> where X: Bar` part of the declaration, but not what appears in the `{...}`.
 #[term(adt $id $binder)]
@@ -297,10 +297,8 @@ pub struct AdtDecl {
     pub binder: Binder<AdtDeclBoundData>,
 }
 
-// FIXME: there is a cyclic dependency if we import from formality-rust, we might be able to fix that.
-
 /// The "bound data" for a [`AdtDecl`][].
-#[term($:where $,where_clause { $,variants })]
+#[term($:where $where_clause { $,variants })]
 pub struct AdtDeclBoundData {
     /// The where-clauses declared on the ADT,
     pub where_clause: Wcs,
