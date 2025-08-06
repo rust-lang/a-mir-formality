@@ -285,7 +285,9 @@ impl Check<'_> {
                     bail!("The local id used in PlaceExpression::Field is invalid.")
                 };
 
-                let adt_id = ty.get_adt_id().unwrap();
+                let Some(adt_id) = ty.get_adt_id() else {
+                    bail!("The local used for field projection is not adt.")
+                };
 
                 let (
                     _,
@@ -373,7 +375,9 @@ impl Check<'_> {
                 Ok(constant.get_ty())
             }
             Struct(value_expressions, ty) => {
-                let adt_id = ty.get_adt_id().unwrap();
+                let Some(adt_id) = ty.get_adt_id() else {
+                    bail!("The type used in ValueExpression::Struct must be adt")
+                };
 
                 // Check the validity of the struct.
                 let (
