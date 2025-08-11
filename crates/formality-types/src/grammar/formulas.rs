@@ -72,6 +72,10 @@ impl Ty {
     pub fn well_formed(&self) -> Relation {
         Relation::WellFormed(self.upcast())
     }
+
+    pub fn is_int(&self) -> Relation {
+        Relation::IsInt(self.clone())
+    }
 }
 
 impl Parameter {
@@ -101,6 +105,7 @@ pub enum Skeleton {
     Equals,
     Sub,
     Outlives,
+    IsInt,
 }
 
 impl Predicate {
@@ -177,6 +182,9 @@ pub enum Relation {
 
     #[grammar(@wf($v0))]
     WellFormed(Parameter),
+
+    #[grammar(@is_int($v0))]
+    IsInt(Ty),
 }
 
 impl Relation {
@@ -187,6 +195,7 @@ impl Relation {
             Relation::Sub(a, b) => (Skeleton::Sub, vec![a.clone(), b.clone()]),
             Relation::Outlives(a, b) => (Skeleton::Outlives, vec![a.clone(), b.clone()]),
             Relation::WellFormed(p) => (Skeleton::WellFormed, vec![p.clone()]),
+            Relation::IsInt(ty) => (Skeleton::IsInt, vec![ty.to_parameter()]),
         }
     }
 }

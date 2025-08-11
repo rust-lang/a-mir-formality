@@ -16,7 +16,9 @@ use crate::{
 };
 
 use super::constraints::Constraints;
-use formality_types::grammar::Parameter::Ty;
+use formality_types::grammar::Parameter::{self, Ty};
+use formality_types::grammar::RigidName;
+use formality_types::grammar::RigidTy;
 
 judgment_fn! {
     /// The "heart" of the trait system -- prove that a where-clause holds given a set of declarations, variable environment, and set of assumptions.
@@ -145,5 +147,30 @@ judgment_fn! {
             ----------------------------- ("const has ty")
             (prove_wc(decls, env, assumptions, Predicate::ConstHasType(ct, ty)) => c)
         )
+
+        (
+            (is_int(decl, env, assumptions, ty) => c)
+            ----------------------------- ("ty is int")
+            (prove_wc(decl, env, assumptions, Relation::IsInt(ty)) => c)
+        )
     }
+}
+
+judgment_fn! {
+    pub fn is_int(
+        _decls: Decls,
+        env: Env,
+        assumptions: Wcs,
+        goal: Parameter,
+    ) => Constraints {
+        debug(goal, assumptions, env)
+
+        (
+            (if id.is_int())
+            ------- ("is int")
+            (is_int(_decls, env, _assumptions, RigidTy {name: RigidName::ScalarId(id), parameters: _}) => Constraints::none(env))
+        )
+
+    }
+
 }
