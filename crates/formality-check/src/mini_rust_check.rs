@@ -6,7 +6,7 @@ use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
 use formality_rust::grammar::minirust::PlaceExpression::Local;
 use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load};
 use formality_rust::grammar::minirust::{
-    self, ty_is_int, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression,
+    self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression,
     ValueExpression,
 };
 use formality_rust::grammar::FnBoundData;
@@ -229,9 +229,7 @@ impl Check<'_> {
                 // Check if the value is well-formed.
                 let value_ty = self.check_value(typeck_env, switch_value).unwrap();
 
-                if !ty_is_int(value_ty) {
-                    bail!("The value used for switch must be an int.");
-                }
+                self.prove_goal(&typeck_env.env, Wcs::default(), value_ty.is_int())?;
 
                 // Ensure all bbid are valid.
                 for switch_target in switch_targets {
