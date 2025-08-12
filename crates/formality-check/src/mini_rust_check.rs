@@ -6,8 +6,7 @@ use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
 use formality_rust::grammar::minirust::PlaceExpression::Local;
 use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load};
 use formality_rust::grammar::minirust::{
-    self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression,
-    ValueExpression,
+    self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
 use formality_rust::grammar::FnBoundData;
 use formality_types::grammar::{CrateId, FnId};
