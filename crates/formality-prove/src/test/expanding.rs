@@ -19,7 +19,7 @@ fn decls() -> Decls {
 fn expanding() {
     test_prove(decls(), term("exists<ty T> {} => {Debug(T)}")).assert_ok(expect![[r#"
         {
-          Constraints { env: Env { variables: [?ty_0], bias: Soundness }, known_true: false, substitution: {} },
+          Constraints { env: Env { variables: [?ty_0], bias: Soundness, pending: [] }, known_true: false, substitution: {} },
         }
     "#]]);
 }

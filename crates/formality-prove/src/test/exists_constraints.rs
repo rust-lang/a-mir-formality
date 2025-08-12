@@ -20,7 +20,7 @@ fn decls() -> Decls {
 fn exists_u_for_t() {
     test_prove(decls(), term("exists<ty U> {} => {Foo(U)}")).assert_ok(expect![[r#"
         {
-          Constraints { env: Env { variables: [?ty_2, ?ty_1], bias: Soundness }, known_true: true, substitution: {?ty_1 => Vec<?ty_2>} },
+          Constraints { env: Env { variables: [?ty_2, ?ty_1], bias: Soundness, pending: [] }, known_true: true, substitution: {?ty_1 => Vec<?ty_2>} },
         }
     "#]]);
 }
