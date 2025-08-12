@@ -90,42 +90,6 @@ fn hello_world() {
 }
 
 #[test]
-fn test_something() {
-    crate::assert_ok!(
-        //@check-pass
-        [
-            crate Foo {
-
-                trait Id {
-                    type This: [];
-                }
-
-                impl<ty T> Id for T {
-                    type This = T;
-                }
-
-                fn bar(()) -> () = minirust(v1) -> v0 {
-                    let v0: ();
-                    let v1: ();
-                    let v2:
-
-                    bb0: {
-                        statements {
-                            local(v0) = load(local(v1));
-                        }
-                    }
-
-
-                };
-
-            }
-        ]
-
-        expect_test::expect!["()"]
-    )
-}
-
-#[test]
 fn basic_where_clauses_pass() {
     crate::assert_ok!(
         //@check-pass
