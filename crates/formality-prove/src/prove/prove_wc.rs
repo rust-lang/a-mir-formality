@@ -150,17 +150,17 @@ judgment_fn! {
         )
 
         (
-            (if ty.is_rigid())!
             (is_int(&decl, &env, assumptions, ty) => c)
-            ----------------------------- ("rigidty is int")
+            ----------------------------- ("ty is int")
             (prove_wc(decl, env, assumptions, Relation::IsInt(ty)) => c)
         )
 
         (
+            (if ty.is_alias())!
             (prove_normalize(&decl, &env, &assumptions, ty) => (c1, p))
             (let assumptions = c1.substitution().apply(&assumptions))
             (is_int(&decl, &env, assumptions, p) => c2)
-            ----------------------------- ("ty is int")
+            ----------------------------- ("aliasty is int")
             (prove_wc(decl, env, assumptions, Relation::IsInt(ty)) => c2)
         )
     }
