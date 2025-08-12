@@ -117,7 +117,6 @@ fn projection_equality() {
     );
 }
 
-
 const TEST_TY_IS_INT: &str = "[
     crate test {
         trait Id {
@@ -130,7 +129,6 @@ const TEST_TY_IS_INT: &str = "[
     }
 ]";
 
-
 #[test]
 fn test_ty_is_int() {
     test_where_clause(
@@ -138,7 +136,6 @@ fn test_ty_is_int() {
         "{} => { <u16 as Id>::This = u16 }",
     )
     .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness, pending: [] }, known_true: true, substitution: {} }}"]);
-
 
     test_where_clause(
         TEST_TY_IS_INT,
@@ -152,6 +149,4 @@ fn test_ty_is_int() {
                 judgment `prove_wc { goal: @ is_int(<u16 as Id>::This), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
                   the rule "ty is int" failed at step #0 (src/file.rs:LL:CC) because
                     judgment had no applicable rules: `is_int { goal: <u16 as Id>::This, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]);
-
 }
-

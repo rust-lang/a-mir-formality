@@ -107,7 +107,7 @@ fn test_something() {
                 fn bar(()) -> () = minirust(v1) -> v0 {
                     let v0: ();
                     let v1: ();
-                    let v2: 
+                    let v2:
 
                     bb0: {
                         statements {
@@ -123,7 +123,6 @@ fn test_something() {
 
         expect_test::expect!["()"]
     )
-
 }
 
 #[test]
