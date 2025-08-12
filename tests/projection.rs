@@ -116,3 +116,42 @@ fn projection_equality() {
         expect_test::expect!["{Constraints { env: Env { variables: [?ty_1], bias: Soundness, pending: [] }, known_true: true, substitution: {?ty_1 => u32} }, Constraints { env: Env { variables: [?ty_1], bias: Soundness, pending: [] }, known_true: true, substitution: {?ty_1 => <S as Trait1>::Type} }}"],
     );
 }
+
+
+const TEST_TY_IS_INT: &str = "[
+    crate test {
+        trait Id {
+            type This: [];
+        }
+
+        impl<ty T> Id for T {
+            type This = T;
+        }
+    }
+]";
+
+
+#[test]
+fn test_ty_is_int() {
+    test_where_clause(
+        TEST_TY_IS_INT,
+        "{} => { <u16 as Id>::This = u16 }",
+    )
+    .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [], bias: Soundness, pending: [] }, known_true: true, substitution: {} }}"]);
+
+
+    test_where_clause(
+        TEST_TY_IS_INT,
+        "{} => { @is_int(<u16 as Id>::This) }",
+    )
+    .assert_err(expect_test::expect![[r#"
+        judgment `prove { goal: {@ is_int(<u16 as Id>::This)}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] }, decls: decls(222, [trait Id <ty> ], [impl <ty> Id(^ty0_0)], [], [alias <ty> <^ty0_0 as Id>::This = ^ty0_0], [], [], {Id}, {}) }` failed at the following rule(s):
+          failed at (src/file.rs:LL:CC) because
+            judgment `prove_wc_list { goal: {@ is_int(<u16 as Id>::This)}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+              the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                judgment `prove_wc { goal: @ is_int(<u16 as Id>::This), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                  the rule "ty is int" failed at step #0 (src/file.rs:LL:CC) because
+                    judgment had no applicable rules: `is_int { goal: <u16 as Id>::This, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]);
+
+}
+
