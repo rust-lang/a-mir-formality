@@ -316,25 +316,6 @@ judgment_fn! {
     }
 }
 
-judgment_fn! {
-    fn is_int(
-        _decls: Decls,
-        env: Env,
-        assumptions: Wcs,
-        goal: Parameter,
-    ) => Constraints {
-        debug(goal, assumptions, env)
-
-        (
-            (if id.is_int())
-            ------- ("is int")
-            (is_int(_decls, env, _assumptions, RigidTy {name: RigidName::ScalarId(id), parameters: _}) => Constraints::none(env))
-        )
-
-    }
-
-}
-
 fn is_fundamental(_decls: &Decls, name: &RigidName) -> bool {
     // From https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html:
     //
