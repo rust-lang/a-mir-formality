@@ -10,6 +10,7 @@ use crate::{
         prove,
         prove_after::prove_after,
         prove_eq::prove_eq,
+        prove_normalize::prove_normalize,
         prove_via::prove_via,
         prove_wf::prove_wf,
     },
@@ -149,9 +150,11 @@ judgment_fn! {
         )
 
         (
-            (is_int(decl, env, assumptions, ty) => c)
+            (prove_normalize(&decl, &env, &assumptions, ty) => (c1, p))
+            (let assumptions = c1.substitution().apply(&assumptions))
+            (is_int(&decl, &env, assumptions, p) => c2)
             ----------------------------- ("ty is int")
-            (prove_wc(decl, env, assumptions, Relation::IsInt(ty)) => c)
+            (prove_wc(decl, env, assumptions, Relation::IsInt(ty)) => c2)
         )
     }
 }
