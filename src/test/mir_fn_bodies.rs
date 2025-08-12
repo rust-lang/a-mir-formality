@@ -663,7 +663,7 @@ fn test_invalid_value_in_switch_terminator() {
                 judgment `prove_wc_list { goal: {@ is_int(bool)}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
                     judgment `prove_wc { goal: @ is_int(bool), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                      the rule "ty is int" failed at step #0 (src/file.rs:LL:CC) because
+                      the rule "rigidty is int" failed at step #1 (src/file.rs:LL:CC) because
                         judgment `is_int { goal: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
                           the rule "is int" failed at step #0 (src/file.rs:LL:CC) because
                             condition evaluted to false: `id.is_int()`
