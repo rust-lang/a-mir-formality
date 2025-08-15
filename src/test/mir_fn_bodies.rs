@@ -657,6 +657,10 @@ fn test_invalid_value_in_switch_terminator() {
             }
         ]
         []
-        expect_test::expect!["The value used for switch must be an int."]
+        expect_test::expect![[r#"
+            judgment `ty_is_int { assumptions: {}, ty: bool, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+              the rule "rigid_ty is int" failed at step #0 (src/file.rs:LL:CC) because
+                condition evaluted to false: `id.is_int()`
+                  id = bool"#]]
     )
 }

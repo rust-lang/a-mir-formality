@@ -14,6 +14,9 @@ use crate::{
 use super::constraints::Constraints;
 
 judgment_fn! {
+    /// Normalize `p` one step, returning a set of constraints and a new parameter `q` that is
+    /// semantically equivalent to `p`. e.g., if p is `<Vec<T> as IntoIterator>::Item`, this would
+    /// return `T`.
     pub fn prove_normalize(
         _decls: Decls,
         env: Env,

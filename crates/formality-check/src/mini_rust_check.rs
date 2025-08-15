@@ -1,16 +1,15 @@
 use std::iter::zip;
 
-use formality_core::{Fallible, Map, Upcast};
-use formality_prove::Env;
+use formality_core::{judgment_fn, Fallible, Map, Upcast};
+use formality_prove::{prove_normalize, Constraints, Decls, Env};
 use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
 use formality_rust::grammar::minirust::PlaceExpression::Local;
 use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load};
 use formality_rust::grammar::minirust::{
-    self, ty_is_int, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression,
-    ValueExpression,
+    self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
 use formality_rust::grammar::FnBoundData;
-use formality_types::grammar::{CrateId, FnId};
+use formality_types::grammar::{CrateId, FnId, Parameter, RigidName, RigidTy};
 use formality_types::grammar::{Relation, Ty, Wcs};
 
 use crate::{Check, CrateItem};
@@ -229,9 +228,7 @@ impl Check<'_> {
                 // Check if the value is well-formed.
                 let value_ty = self.check_value(typeck_env, switch_value).unwrap();
 
-                if !ty_is_int(value_ty) {
-                    bail!("The value used for switch must be an int.");
-                }
+                self.prove_judgment(&typeck_env.env, &fn_assumptions, value_ty, ty_is_int)?;
 
                 // Ensure all bbid are valid.
                 for switch_target in switch_targets {
@@ -374,3 +371,34 @@ struct TypeckEnv {
     /// declared in the current crate.
     crate_id: CrateId,
 }
+
+judgment_fn! {
+    fn ty_is_int(
+        _decls: Decls,
+        env: Env,
+        assumptions: Wcs,
+        ty: Parameter,
+    ) => Constraints {
+        debug(assumptions, ty, env)
+        // If the type that we are currently checking is rigid, check if it is an int.
+        // If the type can be normalized, normalize until rigid then check if it is an int.
+        // For the rest of the case, it should fail.
+
+        (
+            (prove_normalize(&decl, &env, &assumptions, ty) => (c1, p))!
+            (let assumptions = c1.substitution().apply(&assumptions))
+            (ty_is_int(&decl, &env, assumptions, p) => c2)
+            ----------------------------- ("alias_ty is int")
+            (ty_is_int(decl, env, assumptions, ty) => c2)
+        )
+
+        (
+            (if id.is_int())
+            ----------------------------- ("rigid_ty is int")
+            (ty_is_int(_decls, _env, _assumptions, RigidTy {name: RigidName::ScalarId(id), parameters: _}) => Constraints::none(env))
+        )
+
+    }
+}
+
+mod test;

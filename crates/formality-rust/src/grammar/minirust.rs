@@ -1,6 +1,6 @@
 use formality_core::{id, UpcastFrom};
 use formality_macros::term;
-use formality_types::grammar::{Parameter, RigidName, ScalarId, Ty, TyData};
+use formality_types::grammar::{Parameter, ScalarId, Ty};
 
 use crate::grammar::minirust::ConstTypePair::*;
 use crate::grammar::FnId;
@@ -195,30 +195,6 @@ impl ConstTypePair {
             Isize(_) => Ty::upcast_from(ScalarId::Isize),
             Bool(_) => Ty::upcast_from(ScalarId::Bool),
         }
-    }
-}
-
-pub fn ty_is_int(ty: Ty) -> bool {
-    // integer is rigidty
-    let TyData::RigidTy(rigid_ty) = ty.data() else {
-        return false;
-    };
-    let RigidName::ScalarId(ref scalar_id) = rigid_ty.name else {
-        return false;
-    };
-
-    match scalar_id {
-        ScalarId::U8
-        | ScalarId::U16
-        | ScalarId::U32
-        | ScalarId::U64
-        | ScalarId::I8
-        | ScalarId::I16
-        | ScalarId::I32
-        | ScalarId::I64
-        | ScalarId::Usize
-        | ScalarId::Isize => true,
-        ScalarId::Bool => false,
     }
 }
 
