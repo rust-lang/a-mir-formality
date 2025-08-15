@@ -40,10 +40,6 @@ impl Ty {
         }
     }
 
-    pub fn is_alias(&self) -> bool {
-        matches!(self.data(), TyData::AliasTy(_))
-    }
-
     pub fn rigid(name: impl Upcast<RigidName>, parameters: impl Upcast<Vec<Parameter>>) -> Self {
         RigidTy {
             name: name.upcast(),
