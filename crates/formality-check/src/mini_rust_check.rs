@@ -385,7 +385,7 @@ judgment_fn! {
         // For the rest of the case, it should fail.
 
         (
-            (prove_normalize(&decl, &env, &assumptions, ty) => (c1, p))
+            (prove_normalize(&decl, &env, &assumptions, ty) => (c1, p))!
             (let assumptions = c1.substitution().apply(&assumptions))
             (ty_is_int(&decl, &env, assumptions, p) => c2)
             ----------------------------- ("alias_ty is int")
