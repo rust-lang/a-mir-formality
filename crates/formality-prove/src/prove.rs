@@ -1,6 +1,7 @@
 mod combinators;
 mod constraints;
 mod env;
+mod is_int;
 mod is_local;
 mod minimize;
 mod negation;
