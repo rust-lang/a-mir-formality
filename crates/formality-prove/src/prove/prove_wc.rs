@@ -6,7 +6,6 @@ use crate::{
     prove::{
         combinators::for_all,
         env::{Bias, Env},
-        is_int::ty_is_int,
         is_local::{is_local_trait_ref, may_be_remote},
         prove,
         prove_after::prove_after,
@@ -145,12 +144,6 @@ judgment_fn! {
             (prove(decls, env, assumptions, Wcs::all_eq(vec![const_ty], vec![ty])) => c)
             ----------------------------- ("const has ty")
             (prove_wc(decls, env, assumptions, Predicate::ConstHasType(ct, ty)) => c)
-        )
-
-        (
-            (ty_is_int(&decl, env, assumptions, ty) => c)
-            ----------------------------- ("ty is int")
-            (prove_wc(decl, env, assumptions, Relation::IsInt(ty)) => c)
         )
     }
 }

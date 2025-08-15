@@ -658,15 +658,9 @@ fn test_invalid_value_in_switch_terminator() {
         ]
         []
         expect_test::expect![[r#"
-            judgment `prove { goal: {@ is_int(bool)}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-              failed at (src/file.rs:LL:CC) because
-                judgment `prove_wc_list { goal: {@ is_int(bool)}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                  the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment `prove_wc { goal: @ is_int(bool), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                      the rule "ty is int" failed at step #0 (src/file.rs:LL:CC) because
-                        judgment `ty_is_int { assumptions: {}, ty: bool, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                          the rule "rigid_ty is int" failed at step #0 (src/file.rs:LL:CC) because
-                            condition evaluted to false: `id.is_int()`
-                              id = bool"#]]
+            judgment `ty_is_int { assumptions: {}, ty: bool, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+              the rule "rigid_ty is int" failed at step #0 (src/file.rs:LL:CC) because
+                condition evaluted to false: `id.is_int()`
+                  id = bool"#]]
     )
 }

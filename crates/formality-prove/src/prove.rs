@@ -1,13 +1,12 @@
 mod combinators;
 mod constraints;
 mod env;
-mod is_int;
 mod is_local;
 mod minimize;
 mod negation;
 mod prove_after;
 mod prove_eq;
-mod prove_normalize;
+pub mod prove_normalize;
 mod prove_via;
 mod prove_wc;
 mod prove_wc_list;
