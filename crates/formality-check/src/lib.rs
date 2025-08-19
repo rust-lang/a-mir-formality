@@ -3,13 +3,16 @@
 use std::{collections::VecDeque, fmt::Debug};
 
 use anyhow::bail;
-use formality_core::Set;
-use formality_prove::{is_definitely_not_proveable, Decls, Env};
+use formality_core::{ProvenSet, Set};
+use formality_prove::{is_definitely_not_proveable, Constraints, Decls, Env};
 use formality_rust::{
     grammar::{Crate, CrateItem, Program, Test, TestBoundData},
     prove::ToWcs,
 };
-use formality_types::grammar::{CrateId, Fallible, Wcs};
+use formality_types::{
+    grammar::{CrateId, Fallible, Wcs},
+    rust::Visit,
+};
 
 mod mini_rust_check;
 
@@ -134,18 +137,36 @@ impl Check<'_> {
         goal: impl ToWcs + Debug,
     ) -> Fallible<()> {
         let goal: Wcs = goal.to_wcs();
+        self.prove_judgment(env, assumptions, goal.to_wcs(), formality_prove::prove)
+    }
+
+    fn prove_judgment<G>(
+        &self,
+        env: &Env,
+        assumptions: impl ToWcs,
+        goal: G,
+        judgment_fn: impl FnOnce(Decls, Env, Wcs, G) -> ProvenSet<Constraints>,
+    ) -> Fallible<()>
+    where
+        G: Debug + Visit + Clone,
+    {
         let assumptions: Wcs = assumptions.to_wcs();
 
         assert!(env.only_universal_variables());
         assert!(env.encloses((&assumptions, &goal)));
 
-        let cs = formality_prove::prove(self.decls, env, &assumptions, &goal);
+        let cs = judgment_fn(
+            self.decls.clone(),
+            env.clone(),
+            assumptions.clone(),
+            goal.clone(),
+        );
         let cs = cs.into_set()?;
         if cs.iter().any(|c| c.unconditionally_true()) {
             return Ok(());
         }
 
-        bail!("failed to prove {goal:?} given {assumptions:?}, got {cs:?}")
+        bail!("failed to prove `{goal:?}` given `{assumptions:?}`: got {cs:?}")
     }
 
     #[tracing::instrument(level = "Debug", skip(self, assumptions, goal))]

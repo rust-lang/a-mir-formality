@@ -101,6 +101,7 @@ pub enum Skeleton {
     Equals,
     Sub,
     Outlives,
+    IsInt,
 }
 
 impl Predicate {

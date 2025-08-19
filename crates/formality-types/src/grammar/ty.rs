@@ -40,10 +40,6 @@ impl Ty {
         }
     }
 
-    pub fn is_rigid(&self) -> bool {
-        matches!(self.data(), TyData::RigidTy(_))
-    }
-
     pub fn rigid(name: impl Upcast<RigidName>, parameters: impl Upcast<Vec<Parameter>>) -> Self {
         RigidTy {
             name: name.upcast(),
@@ -187,6 +183,24 @@ pub enum ScalarId {
     Usize,
     #[grammar(isize)]
     Isize,
+}
+
+impl ScalarId {
+    pub fn is_int(&self) -> bool {
+        match self {
+            ScalarId::U8
+            | ScalarId::U16
+            | ScalarId::U32
+            | ScalarId::U64
+            | ScalarId::I8
+            | ScalarId::I16
+            | ScalarId::I32
+            | ScalarId::I64
+            | ScalarId::Usize
+            | ScalarId::Isize => true,
+            ScalarId::Bool => false,
+        }
+    }
 }
 
 #[term((alias $name $*parameters))]

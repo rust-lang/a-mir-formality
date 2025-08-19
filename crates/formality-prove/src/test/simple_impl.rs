@@ -22,7 +22,7 @@ fn vec_u32_debug() {
     let goal: Wc = term("Debug(Vec<u32>)");
     prove(decls(), (), (), goal).assert_ok(expect![[r#"
         {
-          Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} },
+          Constraints { env: Env { variables: [], bias: Soundness, pending: [] }, known_true: true, substitution: {} },
         }
     "#]]);
 }
@@ -32,7 +32,7 @@ fn vec_vec_u32_debug() {
     let goal: Wc = term("Debug(Vec<Vec<u32>>)");
     prove(decls(), (), (), goal).assert_ok(expect![[r#"
         {
-          Constraints { env: Env { variables: [], bias: Soundness }, known_true: true, substitution: {} },
+          Constraints { env: Env { variables: [], bias: Soundness, pending: [] }, known_true: true, substitution: {} },
         }
     "#]]);
 }
