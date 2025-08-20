@@ -276,13 +276,7 @@ impl Check<'_> {
                 place_ty = ty;
             }
             Field(field_projection) => {
-                let Local(ref local_id) = *field_projection.root else {
-                    bail!("Only Local is allowed as the root of FieldProjection")
-                };
-
-                let Some(ty) = env.local_variables.get(&local_id) else {
-                    bail!("The local id used in PlaceExpression::Field is invalid.")
-                };
+                let ty = self.check_place(env, &field_projection.root).unwrap();
 
                 let Some(adt_id) = ty.get_adt_id() else {
                     bail!("The local used for field projection is not adt.")
