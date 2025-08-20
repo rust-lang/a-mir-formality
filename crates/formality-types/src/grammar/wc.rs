@@ -28,6 +28,20 @@ impl Wcs {
             .upcasted()
             .collect()
     }
+
+    /// Goal(s) to prove `a` and `b` are subtypes.
+    ///
+    /// FIXME: This should take variance into account.
+    pub fn all_sub(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) -> Wcs {
+        let a: Vec<Parameter> = a.upcast();
+        let b: Vec<Parameter> = b.upcast();
+        assert_eq!(a.len(), b.len());
+        a.into_iter()
+            .zip(b)
+            .map(|(a, b)| Relation::sub(a, b))
+            .upcasted()
+            .collect()
+    }
 }
 
 impl<'w> IntoIterator for &'w Wcs {

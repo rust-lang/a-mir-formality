@@ -10,13 +10,13 @@ use crate::{
         prove,
         prove_after::prove_after,
         prove_eq::prove_eq,
+        prove_sub::prove_sub,
         prove_via::prove_via,
         prove_wf::prove_wf,
     },
 };
 
 use super::constraints::Constraints;
-use formality_types::grammar::Parameter::Ty;
 
 judgment_fn! {
     /// The "heart" of the trait system -- prove that a where-clause holds given a set of declarations, variable environment, and set of assumptions.
@@ -54,15 +54,6 @@ judgment_fn! {
             (prove_via(&decls, &env, &assumptions, a, &goal) => c)
             ----------------------------- ("assumption - relation")
             (prove_wc(decls, env, assumptions, WcData::Relation(goal)) => c)
-        )
-
-        // FIXME: improve the subtype rule after adding lifetime
-        (
-            (if let Ty(_) = param1.clone())!
-            (if let Ty(_) = param2.clone())!
-            (if param1 == param2)!
-            ----------------------------- ("subtype - reflexive")
-            (prove_wc(_decls, env, _assumptions, WcData::Relation(Relation::Sub(param1, param2))) => Constraints::none(env))
         )
 
         (
@@ -115,6 +106,12 @@ judgment_fn! {
             (prove_eq(decls, env, assumptions, a, b) => c)
             ----------------------------- ("eq")
             (prove_wc(decls, env, assumptions, Relation::Equals(a, b)) => c)
+        )
+
+        (
+            (prove_sub(decls, env, assumptions, a, b) => c)
+            ----------------------------- ("subtype")
+            (prove_wc(decls, env, assumptions, WcData::Relation(Relation::Sub(a, b))) => c)
         )
 
         (
