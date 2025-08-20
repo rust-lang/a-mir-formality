@@ -8,6 +8,8 @@ use crate::grammar::FnId;
 use std::sync::Arc;
 
 // This definition is based on [MiniRust](https://github.com/minirust/minirust/blob/master/spec/lang/syntax.md).
+// Difference from minirust:
+// * ValueExpression::Struct - In minirust, struct is represented as Tuple.
 
 id!(BbId);
 id!(LocalId);
