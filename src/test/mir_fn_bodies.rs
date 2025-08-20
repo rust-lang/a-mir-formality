@@ -889,7 +889,18 @@ fn test_struct_wrong_type_in_initialisation() {
             }
         ]
         []
-        expect_test::expect!["The type in ValueExpression::Tuple does not match the struct declared"]
+        expect_test::expect![[r#"
+            judgment `prove { goal: {bool <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] }, decls: decls(222, [], [], [], [], [], [adt Dummy { struct { value : u32 } }], {}, {Dummy}) }` failed at the following rule(s):
+              failed at (src/file.rs:LL:CC) because
+                judgment `prove_wc_list { goal: {bool <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                  the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                    judgment `prove_wc { goal: bool <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                      the rule "subtype" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_sub { a: bool, b: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`
+                          the rule "normalize-r" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
     )
 }
 

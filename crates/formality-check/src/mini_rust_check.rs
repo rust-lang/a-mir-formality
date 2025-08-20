@@ -410,24 +410,28 @@ impl Check<'_> {
                     bail!("The length of ValueExpression::Tuple does not match the type of the ADT declared")
                 }
 
-                let expression_ty_pair = zip(value_expressions, struct_field_tys);
+                let mut value_tys: Vec<Ty> = Vec::new();
 
-                // FIXME: we only support const in value expression of struct for now, we can add support
-                // more in future.
-
-                for (value_expression, declared_ty) in expression_ty_pair {
+                for value_expression in value_expressions {
+                    // FIXME: we only support const in value expression of struct for now, we can add support
+                    // more in future.
                     let Constant(_) = value_expression else {
                         bail!("Only Constant is supported in ValueExpression::Struct for now.")
                     };
-                    let ty = self.check_value(typeck_env, fn_assumptions, value_expression)?;
-
-                    // Make sure the type matches the declared adt.
-                    if ty != declared_ty {
-                        bail!(
-                            "The type in ValueExpression::Tuple does not match the struct declared"
-                        )
-                    }
+                    value_tys.push(self.check_value(
+                        typeck_env,
+                        fn_assumptions,
+                        value_expression,
+                    )?);
                 }
+
+                // Make sure all the types supplied are the subtype of declared types.
+                self.prove_goal(
+                    &typeck_env.env,
+                    &fn_assumptions,
+                    Wcs::all_sub(value_tys, struct_field_tys),
+                )?;
+
                 Ok(ty.clone())
             }
         }
