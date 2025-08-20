@@ -133,7 +133,7 @@ impl Check<'_> {
                 let place_ty = self.check_place(typeck_env, place_expression)?;
 
                 // Check if the value expression is well-formed.
-                let value_ty = self.check_value(typeck_env, value_expression)?;
+                let value_ty = self.check_value(typeck_env, fn_assumptions, value_expression)?;
 
                 // Check that the type of the value is a subtype of the place's type
                 self.prove_goal(
@@ -193,7 +193,7 @@ impl Check<'_> {
                 next_block,
             } => {
                 // Function is part of the value expression, so we will check if the function exists in check_value.
-                self.check_value(typeck_env, callee)?;
+                self.check_value(typeck_env, fn_assumptions, callee)?;
 
                 // Get argument information from the callee.
                 let Fn(callee_fn_id) = callee else {
@@ -210,7 +210,11 @@ impl Check<'_> {
                 let arguments = zip(callee_declared_input_tys, actual_arguments);
                 for (declared_ty, actual_argument) in arguments {
                     // Check if the arguments are well formed.
-                    let actual_ty = self.check_argument_expression(typeck_env, actual_argument)?;
+                    let actual_ty = self.check_argument_expression(
+                        typeck_env,
+                        fn_assumptions,
+                        actual_argument,
+                    )?;
                     // Check if the actual argument type passed in is the subtype of expect argument type.
                     self.prove_goal(
                         &typeck_env.env,
@@ -247,7 +251,9 @@ impl Check<'_> {
                 fallback,
             } => {
                 // Check if the value is well-formed.
-                let value_ty = self.check_value(typeck_env, switch_value).unwrap();
+                let value_ty = self
+                    .check_value(typeck_env, fn_assumptions, switch_value)
+                    .unwrap();
 
                 self.prove_judgment(&typeck_env.env, &fn_assumptions, value_ty, ty_is_int)?;
 
@@ -320,7 +326,12 @@ impl Check<'_> {
     }
 
     // Check if the value expression is well-formed, and return the type of the value expression.
-    fn check_value(&self, typeck_env: &mut TypeckEnv, value: &ValueExpression) -> Fallible<Ty> {
+    fn check_value(
+        &self,
+        typeck_env: &mut TypeckEnv,
+        fn_assumptions: &Wcs,
+        value: &ValueExpression,
+    ) -> Fallible<Ty> {
         let value_ty;
         match value {
             Load(place_expression) => {
@@ -370,11 +381,14 @@ impl Check<'_> {
                 Ok(constant.get_ty())
             }
             Struct(value_expressions, ty) => {
+                // Check if the adt is well-formed.
+                self.prove_goal(&typeck_env.env, &fn_assumptions, ty.well_formed())?;
+
                 let Some(adt_id) = ty.get_adt_id() else {
                     bail!("The type used in ValueExpression::Struct must be adt")
                 };
 
-                // Check the validity of the struct.
+                // Make sure that the adt is struct.
                 let (
                     _,
                     AdtDeclBoundData {
@@ -382,20 +396,22 @@ impl Check<'_> {
                         variants,
                     },
                 ) = self.decls.adt_decl(&adt_id).binder.open();
+
                 let AdtDeclVariant { name, fields } = variants.last().unwrap();
 
                 if *name != VariantId::for_struct() {
                     bail!("This type used in ValueExpression::Struct should be a struct")
                 }
 
-                let struct_field_ty: Vec<Ty> =
+                // Check if the number of value provided match the number of field.
+                let struct_field_tys: Vec<Ty> =
                     fields.iter().map(|field| field.ty.clone()).collect();
 
-                if value_expressions.len() != struct_field_ty.len() {
+                if value_expressions.len() != struct_field_tys.len() {
                     bail!("The length of ValueExpression::Tuple does not match the type of the ADT declared")
                 }
 
-                let expression_ty_pair = zip(value_expressions, struct_field_ty);
+                let expression_ty_pair = zip(value_expressions, struct_field_tys);
 
                 // FIXME: we only support const in value expression of struct for now, we can add support
                 // more in future.
@@ -404,7 +420,7 @@ impl Check<'_> {
                     let Constant(_) = value_expression else {
                         bail!("Only Constant is supported in ValueExpression::Struct for now.")
                     };
-                    let ty = self.check_value(typeck_env, value_expression)?;
+                    let ty = self.check_value(typeck_env, fn_assumptions, value_expression)?;
 
                     // Make sure the type matches the declared adt.
                     if ty != declared_ty {
@@ -421,12 +437,13 @@ impl Check<'_> {
     fn check_argument_expression(
         &self,
         env: &mut TypeckEnv,
+        fn_assumptions: &Wcs,
         arg_expr: &ArgumentExpression,
     ) -> Fallible<Ty> {
         let ty;
         match arg_expr {
             ByValue(val_expr) => {
-                ty = self.check_value(env, val_expr)?;
+                ty = self.check_value(env, fn_assumptions, val_expr)?;
             }
             InPlace(place_expr) => {
                 ty = self.check_place(env, place_expr)?;
