@@ -283,7 +283,7 @@ impl Check<'_> {
             Field(field_projection) => {
                 let ty = self.check_place(env, &field_projection.root).unwrap();
 
-                // FIXME(tiif): We eventuallyw ant to do normalization here, so check_place should eventually be
+                // FIXME(tiif): We eventually want to do normalization here, so check_place should be
                 // a judgment fn.
                 let Some(adt_id) = ty.get_adt_id() else {
                     bail!("The local used for field projection is not adt.")
