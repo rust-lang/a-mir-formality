@@ -7,6 +7,7 @@ mod negation;
 mod prove_after;
 mod prove_eq;
 pub mod prove_normalize;
+mod prove_sub;
 mod prove_via;
 mod prove_wc;
 mod prove_wc_list;

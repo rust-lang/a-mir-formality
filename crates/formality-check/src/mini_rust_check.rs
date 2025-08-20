@@ -1,16 +1,17 @@
 use std::iter::zip;
 
 use formality_core::{judgment_fn, Fallible, Map, Upcast};
-use formality_prove::{prove_normalize, Constraints, Decls, Env};
+use formality_prove::{prove_normalize, AdtDeclBoundData, AdtDeclVariant, Constraints, Decls, Env};
 use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
-use formality_rust::grammar::minirust::PlaceExpression::Local;
-use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load};
+use formality_rust::grammar::minirust::PlaceExpression::*;
+use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load, Struct};
 use formality_rust::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
 use formality_rust::grammar::FnBoundData;
-use formality_types::grammar::{CrateId, FnId, Parameter, RigidName, RigidTy};
-use formality_types::grammar::{Relation, Ty, Wcs};
+use formality_types::grammar::{
+    CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, VariantId, Wcs,
+};
 
 use crate::{Check, CrateItem};
 use anyhow::bail;
@@ -93,6 +94,7 @@ impl Check<'_> {
             declared_input_tys,
             callee_input_tys: Map::new(),
             crate_id: crate_id.clone(),
+            fn_args: body.args.clone(),
         };
 
         // (4) Check statements in body are valid
@@ -130,7 +132,7 @@ impl Check<'_> {
                 let place_ty = self.check_place(typeck_env, place_expression)?;
 
                 // Check if the value expression is well-formed.
-                let value_ty = self.check_value(typeck_env, value_expression)?;
+                let value_ty = self.check_value(typeck_env, fn_assumptions, value_expression)?;
 
                 // Check that the type of the value is a subtype of the place's type
                 self.prove_goal(
@@ -148,6 +150,24 @@ impl Check<'_> {
                 // Check if the place expression is well-formed.
                 self.check_place(typeck_env, place_expression)?;
                 // FIXME: check that access the place is allowed per borrowck rules
+            }
+            minirust::Statement::StorageLive(local_id) => {
+                // FIXME: We need more checks here after loan is introduced.
+                if self.find_local_id(&typeck_env, local_id).is_none() {
+                    bail!("Statement::StorageLive: invalid local variable")
+                }
+            }
+            minirust::Statement::StorageDead(local_id) => {
+                // FIXME: We need more checks here after loan is introduced.
+                let Some((local_id, _)) = self.find_local_id(&typeck_env, local_id) else {
+                    bail!("Statement::StorageDead: invalid local variable")
+                };
+                // Make sure function arguments and return place are not marked as dead.
+                if local_id == typeck_env.ret_id
+                    || typeck_env.fn_args.iter().any(|fn_arg| local_id == *fn_arg)
+                {
+                    bail!("Statement::StorageDead: trying to mark function arguments or return local as dead")
+                }
             }
         }
         Ok(())
@@ -172,7 +192,7 @@ impl Check<'_> {
                 next_block,
             } => {
                 // Function is part of the value expression, so we will check if the function exists in check_value.
-                self.check_value(typeck_env, callee)?;
+                self.check_value(typeck_env, fn_assumptions, callee)?;
 
                 // Get argument information from the callee.
                 let Fn(callee_fn_id) = callee else {
@@ -189,7 +209,11 @@ impl Check<'_> {
                 let arguments = zip(callee_declared_input_tys, actual_arguments);
                 for (declared_ty, actual_argument) in arguments {
                     // Check if the arguments are well formed.
-                    let actual_ty = self.check_argument_expression(typeck_env, actual_argument)?;
+                    let actual_ty = self.check_argument_expression(
+                        typeck_env,
+                        fn_assumptions,
+                        actual_argument,
+                    )?;
                     // Check if the actual argument type passed in is the subtype of expect argument type.
                     self.prove_goal(
                         &typeck_env.env,
@@ -226,7 +250,9 @@ impl Check<'_> {
                 fallback,
             } => {
                 // Check if the value is well-formed.
-                let value_ty = self.check_value(typeck_env, switch_value).unwrap();
+                let value_ty = self
+                    .check_value(typeck_env, fn_assumptions, switch_value)
+                    .unwrap();
 
                 self.prove_judgment(&typeck_env.env, &fn_assumptions, value_ty, ty_is_int)?;
 
@@ -246,11 +272,7 @@ impl Check<'_> {
         match place {
             Local(local_id) => {
                 // Check if place id is a valid local id.
-                let Some((_, ty)) = env
-                    .local_variables
-                    .iter()
-                    .find(|(declared_local_id, _)| *declared_local_id == local_id)
-                else {
+                let Some((_, ty)) = self.find_local_id(env, local_id) else {
                     bail!(
                         "PlaceExpression::Local: unknown local name `{:?}`",
                         local_id
@@ -258,12 +280,57 @@ impl Check<'_> {
                 };
                 place_ty = ty;
             }
+            Field(field_projection) => {
+                let ty = self.check_place(env, &field_projection.root).unwrap();
+
+                // FIXME(tiif): We eventually want to do normalization here, so check_place should be
+                // a judgment fn.
+                let Some(adt_id) = ty.get_adt_id() else {
+                    bail!("The local used for field projection is not adt.")
+                };
+
+                let (
+                    _,
+                    AdtDeclBoundData {
+                        where_clause: _,
+                        variants,
+                    },
+                ) = self.decls.adt_decl(&adt_id).binder.open();
+                let AdtDeclVariant { name, fields } = variants.last().unwrap();
+
+                if *name != VariantId::for_struct() {
+                    bail!("The local used for field projection must be struct.")
+                }
+
+                // Check if the index is valid for the tuple.
+                if field_projection.index >= fields.len() {
+                    bail!("The field index used in PlaceExpression::Field is invalid.")
+                }
+
+                place_ty = fields[field_projection.index].ty.clone();
+            }
         }
         Ok(place_ty.clone())
     }
 
+    fn find_local_id(&self, env: &TypeckEnv, local_id: &LocalId) -> Option<(LocalId, Ty)> {
+        if let Some((local_id, ty)) = env
+            .local_variables
+            .iter()
+            .find(|(declared_local_id, _)| *declared_local_id == local_id)
+        {
+            return Some((local_id.clone(), ty.clone()));
+        }
+        return None;
+    }
+
     // Check if the value expression is well-formed, and return the type of the value expression.
-    fn check_value(&self, typeck_env: &mut TypeckEnv, value: &ValueExpression) -> Fallible<Ty> {
+    fn check_value(
+        &self,
+        typeck_env: &mut TypeckEnv,
+        fn_assumptions: &Wcs,
+        value: &ValueExpression,
+    ) -> Fallible<Ty> {
         let value_ty;
         match value {
             Load(place_expression) => {
@@ -312,18 +379,74 @@ impl Check<'_> {
                 // it will be rejected by the parser.
                 Ok(constant.get_ty())
             }
+            Struct(value_expressions, ty) => {
+                // Check if the adt is well-formed.
+                self.prove_goal(&typeck_env.env, &fn_assumptions, ty.well_formed())?;
+
+                let Some(adt_id) = ty.get_adt_id() else {
+                    bail!("The type used in ValueExpression::Struct must be adt")
+                };
+
+                // Make sure that the adt is struct.
+                let (
+                    _,
+                    AdtDeclBoundData {
+                        where_clause: _,
+                        variants,
+                    },
+                ) = self.decls.adt_decl(&adt_id).binder.open();
+
+                let AdtDeclVariant { name, fields } = variants.last().unwrap();
+
+                if *name != VariantId::for_struct() {
+                    bail!("This type used in ValueExpression::Struct should be a struct")
+                }
+
+                // Check if the number of value provided match the number of field.
+                let struct_field_tys: Vec<Ty> =
+                    fields.iter().map(|field| field.ty.clone()).collect();
+
+                if value_expressions.len() != struct_field_tys.len() {
+                    bail!("The length of ValueExpression::Tuple does not match the type of the ADT declared")
+                }
+
+                let mut value_tys: Vec<Ty> = Vec::new();
+
+                for value_expression in value_expressions {
+                    // FIXME: we only support const in value expression of struct for now, we can add support
+                    // more in future.
+                    let Constant(_) = value_expression else {
+                        bail!("Only Constant is supported in ValueExpression::Struct for now.")
+                    };
+                    value_tys.push(self.check_value(
+                        typeck_env,
+                        fn_assumptions,
+                        value_expression,
+                    )?);
+                }
+
+                // Make sure all the types supplied are the subtype of declared types.
+                self.prove_goal(
+                    &typeck_env.env,
+                    &fn_assumptions,
+                    Wcs::all_sub(value_tys, struct_field_tys),
+                )?;
+
+                Ok(ty.clone())
+            }
         }
     }
 
     fn check_argument_expression(
         &self,
         env: &mut TypeckEnv,
+        fn_assumptions: &Wcs,
         arg_expr: &ArgumentExpression,
     ) -> Fallible<Ty> {
         let ty;
         match arg_expr {
             ByValue(val_expr) => {
-                ty = self.check_value(env, val_expr)?;
+                ty = self.check_value(env, fn_assumptions, val_expr)?;
             }
             InPlace(place_expr) => {
                 ty = self.check_place(env, place_expr)?;
@@ -370,6 +493,9 @@ struct TypeckEnv {
     /// We need this to access information about other functions
     /// declared in the current crate.
     crate_id: CrateId,
+
+    /// LocalId of function argument.
+    fn_args: Vec<LocalId>,
 }
 
 judgment_fn! {

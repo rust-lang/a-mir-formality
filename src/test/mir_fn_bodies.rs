@@ -227,6 +227,65 @@ fn test_place_mention_statement() {
     )
 }
 
+/// Test valid StorageLive and StorageDead statements.
+#[test]
+fn test_storage_live_dead() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: u32;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            StorageLive(v2);
+                            StorageDead(v2);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        expect_test::expect![["()"]]
+    )
+}
+
+/// Test valid program that uses struct.  
+#[test]
+fn test_struct() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                struct Dummy {
+                    value: u32,
+                    is_true: bool,
+                }
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: Dummy;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = struct { constant(1: u32), constant(false)} as Dummy;
+                            local(v2).0 = constant(2: u32);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        expect_test::expect![["()"]]
+    )
+}
+
 // Test what will happen if the next block does not exist for Terminator::Call.
 #[test]
 fn test_no_next_bb_for_call_terminator() {
@@ -298,7 +357,13 @@ fn test_invalid_assign_statement() {
               failed at (src/file.rs:LL:CC) because
                 judgment `prove_wc_list { goal: {u32 <: ()}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_wc { goal: u32 <: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
+                    judgment `prove_wc { goal: u32 <: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                      the rule "subtype" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_sub { a: u32, b: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`
+                          the rule "normalize-r" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
     )
 }
 
@@ -327,7 +392,13 @@ fn test_invalid_assign_constant() {
               failed at (src/file.rs:LL:CC) because
                 judgment `prove_wc_list { goal: {u32 <: usize}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_wc { goal: u32 <: usize, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
+                    judgment `prove_wc { goal: u32 <: usize, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                      the rule "subtype" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_sub { a: u32, b: usize, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`
+                          the rule "normalize-r" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: usize, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
     )
 }
 
@@ -494,7 +565,13 @@ fn test_pass_non_subtype_arg() {
               failed at (src/file.rs:LL:CC) because
                 judgment `prove_wc_list { goal: {() <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
+                    judgment `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                      the rule "subtype" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_sub { a: (), b: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`
+                          the rule "normalize-r" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
     )
 }
 
@@ -571,7 +648,13 @@ fn test_incompatible_return_type() {
               failed at (src/file.rs:LL:CC) because
                 judgment `prove_wc_list { goal: {() <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
+                    judgment `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                      the rule "subtype" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_sub { a: (), b: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`
+                          the rule "normalize-r" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
     )
 }
 
@@ -662,5 +745,189 @@ fn test_invalid_value_in_switch_terminator() {
               the rule "rigid_ty is int" failed at step #0 (src/file.rs:LL:CC) because
                 condition evaluted to false: `id.is_int()`
                   id = bool"#]]
+    )
+}
+
+/// Test the behaviour of having return place in StorageDead.
+#[test]
+fn test_ret_place_storage_dead() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+
+                    bb0: {
+                        statements {
+                            StorageDead(v1);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["Statement::StorageDead: trying to mark function arguments or return local as dead"]
+    )
+}
+
+/// Test the behaviour of having function argument in StorageDead.
+#[test]
+fn test_fn_arg_storage_dead() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+
+                    bb0: {
+                        statements {
+                            StorageDead(v0);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["Statement::StorageDead: trying to mark function arguments or return local as dead"]
+    )
+}
+
+/// Test the behaviour of using invalid index for the struct field.
+#[test]
+fn test_invalid_struct_field() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Dummy {
+                    value: u32,
+                }
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: Dummy;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = struct { constant(1: u32) } as Dummy;
+                            local(v2).1 = constant(2: u32);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["The field index used in PlaceExpression::Field is invalid."]
+    )
+}
+
+/// Test the behaviour of using non-adt local for field projection.
+#[test]
+fn test_field_projection_root_non_adt() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Dummy {
+                    value: u32,
+                }
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: Dummy;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = struct { constant(1: u32) } as Dummy;
+                            local(v1).1 = constant(2: u32);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["The local used for field projection is not adt."]
+    )
+}
+
+/// Test the behaviour of initialising the struct with wrong type.
+#[test]
+fn test_struct_wrong_type_in_initialisation() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Dummy {
+                    value: u32,
+                }
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: Dummy;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = struct { constant(false) } as Dummy;
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect![[r#"
+            judgment `prove { goal: {bool <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] }, decls: decls(222, [], [], [], [], [], [adt Dummy { struct { value : u32 } }], {}, {Dummy}) }` failed at the following rule(s):
+              failed at (src/file.rs:LL:CC) because
+                judgment `prove_wc_list { goal: {bool <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                  the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                    judgment `prove_wc { goal: bool <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                      the rule "subtype" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_sub { a: bool, b: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`
+                          the rule "normalize-r" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
+    )
+}
+
+/// Test the behaviour of having non-adt as the type for ValueExpression::Struct.
+#[test]
+fn test_non_adt_ty_for_struct() {
+    crate::assert_err!(
+        [
+            crate Foo {
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: u32;
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = struct { constant(false) } as u32;
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["The type used in ValueExpression::Struct must be adt"]
     )
 }

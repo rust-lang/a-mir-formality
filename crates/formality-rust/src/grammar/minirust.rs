@@ -5,10 +5,15 @@ use formality_types::grammar::{Parameter, ScalarId, Ty};
 use crate::grammar::minirust::ConstTypePair::*;
 use crate::grammar::FnId;
 
+use std::sync::Arc;
+
 // This definition is based on [MiniRust](https://github.com/minirust/minirust/blob/master/spec/lang/syntax.md).
+// Difference from minirust:
+// * ValueExpression::Struct - In minirust, struct is represented as Tuple.
 
 id!(BbId);
 id!(LocalId);
+id!(FieldId);
 
 // Example:
 //
@@ -71,8 +76,10 @@ pub enum Statement {
     // SetDiscriminant
     // Validate
     // Deinit
-    // StorageLive
-    // StorageDead
+    #[grammar(StorageLive($v0);)]
+    StorageLive(LocalId),
+    #[grammar(StorageDead($v0);)]
+    StorageDead(LocalId),
 }
 
 /// Based on [MiniRust terminators](https://github.com/minirust/minirust/blob/9ae11cc202d040f08bc13ec5254d3d41d5f3cc25/spec/lang/syntax.md#statements-terminators).
@@ -136,8 +143,8 @@ pub enum ValueExpression {
     Constant(ConstTypePair),
     #[grammar(fn_id $v0)]
     Fn(FnId),
-    // #[grammar($(v0) as $v1)]
-    // Tuple(Vec<ValueExpression>, Ty),
+    #[grammar(struct {$,v0} as $v1)]
+    Struct(Vec<ValueExpression>, Ty),
     // Union
     // Variant
     // GetDiscriminant
@@ -203,7 +210,17 @@ pub enum PlaceExpression {
     #[grammar(local($v0))]
     Local(LocalId),
     // Deref(Arc<ValueExpression>),
-    // Field(Arc<PlaceExpression>, FieldId),
+    // Project to a field.
+    #[grammar($v0)]
+    Field(FieldProjection),
     // Index
     // Downcast
+}
+
+#[term($root.$index)]
+pub struct FieldProjection {
+    /// The place to base the projection on.
+    pub root: Arc<PlaceExpression>,
+    /// The field to project to.
+    pub index: usize,
 }
