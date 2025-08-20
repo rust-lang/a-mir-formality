@@ -357,7 +357,13 @@ fn test_invalid_assign_statement() {
               failed at (src/file.rs:LL:CC) because
                 judgment `prove_wc_list { goal: {u32 <: ()}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_wc { goal: u32 <: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
+                    judgment `prove_wc { goal: u32 <: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                      the rule "subtype" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_sub { a: u32, b: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`
+                          the rule "normalize-r" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
     )
 }
 
@@ -386,7 +392,13 @@ fn test_invalid_assign_constant() {
               failed at (src/file.rs:LL:CC) because
                 judgment `prove_wc_list { goal: {u32 <: usize}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_wc { goal: u32 <: usize, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
+                    judgment `prove_wc { goal: u32 <: usize, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                      the rule "subtype" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_sub { a: u32, b: usize, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`
+                          the rule "normalize-r" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: usize, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
     )
 }
 
@@ -553,7 +565,13 @@ fn test_pass_non_subtype_arg() {
               failed at (src/file.rs:LL:CC) because
                 judgment `prove_wc_list { goal: {() <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
+                    judgment `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                      the rule "subtype" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_sub { a: (), b: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`
+                          the rule "normalize-r" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
     )
 }
 
@@ -630,7 +648,13 @@ fn test_incompatible_return_type() {
               failed at (src/file.rs:LL:CC) because
                 judgment `prove_wc_list { goal: {() <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
                   the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment had no applicable rules: `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
+                    judgment `prove_wc { goal: () <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                      the rule "subtype" failed at step #0 (src/file.rs:LL:CC) because
+                        judgment `prove_sub { a: (), b: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                          the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`
+                          the rule "normalize-r" failed at step #0 (src/file.rs:LL:CC) because
+                            judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
     )
 }
 
