@@ -120,6 +120,46 @@ impl super::Check<'_> {
         }
     }
 
+    /// Check that function `ii_fn` that appears in an impl is valid.
+    /// This includes the core check from [`Self::check_fn`],
+    /// but also additional checks to ensure that the signature in the impl
+    /// matches what is declared in the trait.
+    ///
+    /// # Example
+    ///
+    /// Suppose we are checking `<Cup<L> as Potable>::drink` in this example...
+    ///
+    /// ```rust,ignore
+    /// trait Potable {
+    ///     fn drink(&self) // `trait_items` includes both fn drink and fn smell
+    ///     where Self: Copy; // <-- ti_where_clauses
+    ///     fn smell(&self);
+    /// }
+    ///
+    /// struct Water;
+    /// impl Potable for Water {
+    ///     fn drink(&self) {}
+    ///     fn smell(&self) {}
+    /// }
+    ///
+    /// struct Cup<L>;
+    /// impl<L> Potable for Cup<L> // <-- env has `L` in scope
+    /// where
+    ///     L: Potable, // <-- `impl_assumptions`
+    /// {
+    ///     fn drink(&self) {} // <-- `ii_fn`
+    ///     where (Cup<L>,): Copy; // <-- ii_where_clauses, implied by ti_where_clauses, Cup<L>: Copy, ok
+    ///     fn smell(&self) {} // not currently being checked
+    /// }
+    /// ```
+    ///
+    /// # Parameters
+    ///
+    /// * `env`, the environment from the impl header
+    /// * `impl_assumptions`, where-clauses declared on the impl
+    /// * `trait_items`, items declared in the trait that is being implemented
+    ///   (we search this to find the corresponding declaration of the method)
+    /// * `ii_fn`, the fn as declared in the impl
     fn check_fn_in_impl(
         &self,
         env: &Env,
@@ -149,12 +189,14 @@ impl super::Check<'_> {
 
         let mut env = env.clone();
         let (
+            // ii_: the signature of the function as found in the impl item (ii)
             FnBoundData {
                 input_tys: ii_input_tys,
                 output_ty: ii_output_ty,
                 where_clauses: ii_where_clauses,
                 body: _,
             },
+            // ti_: the signature of the function as found in the trait item (ti)
             FnBoundData {
                 input_tys: ti_input_tys,
                 output_ty: ti_output_ty,
@@ -169,6 +211,7 @@ impl super::Check<'_> {
             &ii_where_clauses,
         )?;
 
+        // Must have same number of arguments as declared in the trait
         if ii_input_tys.len() != ti_input_tys.len() {
             bail!(
                 "impl has {} function arguments but trait has {} function arguments",
