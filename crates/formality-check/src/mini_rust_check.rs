@@ -402,12 +402,12 @@ impl Check<'_> {
                     bail!("This type used in ValueExpression::Struct should be a struct")
                 }
 
-                // Check if the number of value provided match the number of field.
+                // Check if the number of value provided matches the number of field.
                 let struct_field_tys: Vec<Ty> =
                     fields.iter().map(|field| field.ty.clone()).collect();
 
                 if value_expressions.len() != struct_field_tys.len() {
-                    bail!("The length of ValueExpression::Tuple does not match the type of the ADT declared")
+                    bail!("The length of ValueExpression::Struct does not match the type of the ADT declared")
                 }
 
                 let mut value_tys: Vec<Ty> = Vec::new();
