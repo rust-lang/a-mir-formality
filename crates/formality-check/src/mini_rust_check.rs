@@ -286,51 +286,20 @@ impl Check<'_> {
                 // FIXME(tiif): We eventually want to do normalization here, so check_place should be
                 // a judgment fn.
 
-                if ty.is_tuple() {
-                    place_ty = self.check_tuple_projection(ty, field_projection.index)?;
-                } else {
-                    // TODO: have a ty is struct
-                    place_ty = self.check_struct_projection(ty, field_projection.index)?;
+                if !ty.is_tuple() && !ty.is_adt() {
+                    bail!("The local used for field projection must be ADT or Tuple")
                 }
+
+                let parameters = ty.get_rigid_ty_parameters().unwrap();
+
+                if field_projection.index >= parameters.len() {
+                    bail!("The field index used in PlaceExpression::Field is invalid.")
+                }
+
+                place_ty = parameters[field_projection.index].as_ty().unwrap().clone();
             }
         }
         Ok(place_ty.clone())
-    }
-
-    fn check_struct_projection(&self, ty: Ty, index: usize) -> Fallible<Ty> {
-        let Some(adt_id) = ty.get_adt_id() else {
-            bail!("The local used for field projection is not adt.")
-        };
-
-        let (
-            _,
-            AdtDeclBoundData {
-                where_clause: _,
-                variants,
-            },
-        ) = self.decls.adt_decl(&adt_id).binder.open();
-        let AdtDeclVariant { name, fields } = variants.last().unwrap();
-
-        if *name != VariantId::for_struct() {
-            bail!("The local used for field projection must be struct.")
-        }
-
-        // Check if the index is valid for the struct.
-        if index >= fields.len() {
-            bail!("The field index used in PlaceExpression::Field is invalid.")
-        }
-
-        return Ok(fields[index].ty.clone());
-    }
-
-    fn check_tuple_projection(&self, ty: Ty, index: usize) -> Fallible<Ty> {
-        // Check if the index is valid for the struct.
-        let tuple_params = ty.get_tuple_parameters().unwrap();
-        if index >= tuple_params.len() {
-            bail!("The field index used in PlaceExpression::Field is invalid.")
-        }
-
-        return Ok(tuple_params[index].as_ty().unwrap().clone());
     }
 
     fn find_local_id(&self, env: &TypeckEnv, local_id: &LocalId) -> Option<(LocalId, Ty)> {
@@ -462,7 +431,7 @@ impl Check<'_> {
                 }
 
                 // Check if the number of value provided matches the number of field.
-                let tuple_params = ty.get_tuple_parameters().unwrap();
+                let tuple_params = ty.get_rigid_ty_parameters().unwrap();
                 let value_length = value_expressions.len();
                 let declared_tuple_length = tuple_params.len();
 
