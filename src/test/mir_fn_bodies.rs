@@ -858,7 +858,7 @@ fn test_field_projection_root_non_adt() {
             }
         ]
         []
-        expect_test::expect!["The local used for field projection is not adt."]
+        expect_test::expect!["The local used for field projection must be ADT or Tuple"]
     )
 }
 
@@ -929,5 +929,131 @@ fn test_non_adt_ty_for_struct() {
         ]
         []
         expect_test::expect!["The type used in ValueExpression::Struct must be adt"]
+    )
+}
+
+// Test valid tuple expression
+#[test]
+fn test_tuple() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: (u32, u32);
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = (constant(1: u32), constant(2: u32)) as (u32, u32);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        expect_test::expect!["()"]
+    )
+}
+
+#[test]
+fn test_tuple_length_mismatch() {
+    crate::assert_err!(
+        [
+            crate Foo {
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: (u32, u32);
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = (constant(1: u32), constant(2: u32)) as (u32, u32, u32);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect!["The length of tuple declared is 3, the number of value provided is 2"]
+    )
+}
+
+// Test the behaviour of type mismatch in tuple.
+#[test]
+fn test_tuple_non_subtype() {
+    crate::assert_err!(
+        [
+            crate Foo {
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: (u32, u32);
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = (constant(1: u32), constant(2: u32)) as (u32, u64);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        []
+        expect_test::expect![[r#"
+            judgment `prove { goal: {u32 <: u32, u32 <: u64}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+              failed at (src/file.rs:LL:CC) because
+                judgment `prove_wc_list { goal: {u32 <: u32, u32 <: u64}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                  the rule "some" failed at step #1 (src/file.rs:LL:CC) because
+                    judgment `prove_after { constraints: Constraints { env: Env { variables: [], bias: Soundness, pending: [] }, known_true: true, substitution: {} }, goal: {u32 <: u64}, assumptions: {} }` failed at the following rule(s):
+                      the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
+                        judgment `prove { goal: {u32 <: u64}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
+                          failed at (src/file.rs:LL:CC) because
+                            judgment `prove_wc_list { goal: {u32 <: u64}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                              the rule "some" failed at step #0 (src/file.rs:LL:CC) because
+                                judgment `prove_wc { goal: u32 <: u64, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                                  the rule "subtype" failed at step #0 (src/file.rs:LL:CC) because
+                                    judgment `prove_sub { a: u32, b: u64, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
+                                      the rule "normalize-l" failed at step #0 (src/file.rs:LL:CC) because
+                                        judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`
+                                      the rule "normalize-r" failed at step #0 (src/file.rs:LL:CC) because
+                                        judgment had no applicable rules: `prove_normalize { p: u64, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [] } }`"#]]
+    )
+}
+
+#[test]
+fn test_tuple_projection() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+
+                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                    let v0: u32;
+                    let v1: u32;
+                    let v2: (u32, u32);
+
+                    bb0: {
+                        statements {
+                            local(v0) = load(local(v1));
+                            local(v2) = (constant(1: u32), constant(2: u32)) as (u32, u32);
+                            local(v2).0 = constant(1: u32);
+                        }
+                        return;
+                    }
+
+                };
+            }
+        ]
+        expect_test::expect!["()"]
     )
 }
