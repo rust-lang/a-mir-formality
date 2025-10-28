@@ -281,36 +281,56 @@ impl Check<'_> {
                 place_ty = ty;
             }
             Field(field_projection) => {
-                let ty = self.check_place(env, &field_projection.root).unwrap();
+                let ty = self.check_place(env, &field_projection.root)?;
 
                 // FIXME(tiif): We eventually want to do normalization here, so check_place should be
                 // a judgment fn.
-                let Some(adt_id) = ty.get_adt_id() else {
-                    bail!("The local used for field projection is not adt.")
-                };
 
-                let (
-                    _,
-                    AdtDeclBoundData {
-                        where_clause: _,
-                        variants,
-                    },
-                ) = self.decls.adt_decl(&adt_id).binder.open();
-                let AdtDeclVariant { name, fields } = variants.last().unwrap();
-
-                if *name != VariantId::for_struct() {
-                    bail!("The local used for field projection must be struct.")
+                if ty.is_tuple() {
+                    place_ty = self.check_tuple_projection(ty, field_projection.index)?;
+                } else {
+                    // TODO: have a ty is struct
+                    place_ty = self.check_struct_projection(ty, field_projection.index)?;
                 }
-
-                // Check if the index is valid for the tuple.
-                if field_projection.index >= fields.len() {
-                    bail!("The field index used in PlaceExpression::Field is invalid.")
-                }
-
-                place_ty = fields[field_projection.index].ty.clone();
             }
         }
         Ok(place_ty.clone())
+    }
+
+    fn check_struct_projection(&self, ty: Ty, index: usize) -> Fallible<Ty> {
+        let Some(adt_id) = ty.get_adt_id() else {
+            bail!("The local used for field projection is not adt.")
+        };
+
+        let (
+            _,
+            AdtDeclBoundData {
+                where_clause: _,
+                variants,
+            },
+        ) = self.decls.adt_decl(&adt_id).binder.open();
+        let AdtDeclVariant { name, fields } = variants.last().unwrap();
+
+        if *name != VariantId::for_struct() {
+            bail!("The local used for field projection must be struct.")
+        }
+
+        // Check if the index is valid for the struct.
+        if index >= fields.len() {
+            bail!("The field index used in PlaceExpression::Field is invalid.")
+        }
+
+        return Ok(fields[index].ty.clone());
+    }
+
+    fn check_tuple_projection(&self, ty: Ty, index: usize) -> Fallible<Ty> {
+        // Check if the index is valid for the struct.
+        let tuple_params = ty.get_tuple_parameters().unwrap();
+        if index >= tuple_params.len() {
+            bail!("The field index used in PlaceExpression::Field is invalid.")
+        }
+
+        return Ok(tuple_params[index].as_ty().unwrap().clone());
     }
 
     fn find_local_id(&self, env: &TypeckEnv, local_id: &LocalId) -> Option<(LocalId, Ty)> {
