@@ -67,12 +67,11 @@ judgment_fn! {
         // Example: we are trying to prove `x` (which equals `<SomeX<?V> as Iterator>::Item`)
         // is equal to some type `z`.
         (
-            // Normalize `x` will find alternative "spellings" that it is equivalent to.
-            // For example, if there is an impl like
-            // `impl Iterator for SomeX<i32> { type Item = u32; ... }`
+            // Normalize `x` will find its underlying type along with its constraints.
+            // For example, if there is an impl like `impl Iterator for SomeX<i32> { type Item = u32; ... }`
             // then `prove_normalize` would yield `(c, u32)` where `c` are any constraints
             // needed to show that it normalized (in this case, `c` would include the
-            // substitution `?V = i32`).
+            // substitution `?V = i32`) to u32.
             (prove_normalize(&decls, env, &assumptions, &x) => (c, y))
 
             // Now that we know that `x` is equivalent to `y`, we try to prove
