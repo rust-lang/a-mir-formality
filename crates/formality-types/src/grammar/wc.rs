@@ -148,6 +148,12 @@ pub enum WcData {
     #[grammar(for $v0)]
     ForAll(Binder<Wc>),
 
+    // An *implication* `if $v0 $v1` says "assuming v0 is true, v1 is true".
+    // These are useful to express hypothetical syntax like
+    // `for<'a: 'b, 'b>` or as part of an implied bounds scheme
+    // where you might make the Rust syntax `for<'a, 'b> T: Something<'a, 'b>`
+    // expand to `for<'a, 'b> if ('a: 'b) (T: Something<'a, 'b>)`
+    // (given `trait Something<'a, 'b> where 'a: 'b`).
     #[grammar(if $v0 $v1)]
     Implies(Wcs, Wc),
 }
