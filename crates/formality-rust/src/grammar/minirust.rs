@@ -145,6 +145,8 @@ pub enum ValueExpression {
     Fn(FnId),
     #[grammar(struct {$,v0} as $v1)]
     Struct(Vec<ValueExpression>, Ty),
+    #[grammar(($,v0) as $v1)]
+    Tuple(Vec<ValueExpression>, Ty),
     // Union
     // Variant
     // GetDiscriminant

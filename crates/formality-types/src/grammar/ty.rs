@@ -88,6 +88,26 @@ impl Ty {
         };
         None
     }
+
+    pub fn is_tuple(&self) -> bool {
+        if let TyData::RigidTy(rigid_ty) = self.data() {
+            if let RigidName::Tuple(_) = rigid_ty.name {
+                return true;
+            }
+        };
+        false
+    }
+
+    pub fn is_adt(&self) -> bool {
+        self.get_adt_id().is_some()
+    }
+
+    pub fn get_rigid_ty_parameters(&self) -> Option<Vec<Parameter>> {
+        if let TyData::RigidTy(rigid_ty) = self.data() {
+            return Some(rigid_ty.parameters.clone());
+        };
+        None
+    }
 }
 
 impl UpcastFrom<TyData> for Ty {

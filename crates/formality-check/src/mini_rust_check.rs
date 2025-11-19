@@ -4,7 +4,7 @@ use formality_core::{judgment_fn, Fallible, Map, Upcast};
 use formality_prove::{prove_normalize, AdtDeclBoundData, AdtDeclVariant, Constraints, Decls, Env};
 use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
 use formality_rust::grammar::minirust::PlaceExpression::*;
-use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load, Struct};
+use formality_rust::grammar::minirust::ValueExpression::*;
 use formality_rust::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
@@ -281,33 +281,22 @@ impl Check<'_> {
                 place_ty = ty;
             }
             Field(field_projection) => {
-                let ty = self.check_place(env, &field_projection.root).unwrap();
+                let ty = self.check_place(env, &field_projection.root)?;
 
                 // FIXME(tiif): We eventually want to do normalization here, so check_place should be
                 // a judgment fn.
-                let Some(adt_id) = ty.get_adt_id() else {
-                    bail!("The local used for field projection is not adt.")
-                };
 
-                let (
-                    _,
-                    AdtDeclBoundData {
-                        where_clause: _,
-                        variants,
-                    },
-                ) = self.decls.adt_decl(&adt_id).binder.open();
-                let AdtDeclVariant { name, fields } = variants.last().unwrap();
-
-                if *name != VariantId::for_struct() {
-                    bail!("The local used for field projection must be struct.")
+                if !ty.is_tuple() && !ty.is_adt() {
+                    bail!("The local used for field projection must be ADT or Tuple")
                 }
 
-                // Check if the index is valid for the tuple.
-                if field_projection.index >= fields.len() {
+                let parameters = ty.get_rigid_ty_parameters().unwrap();
+
+                if field_projection.index >= parameters.len() {
                     bail!("The field index used in PlaceExpression::Field is invalid.")
                 }
 
-                place_ty = fields[field_projection.index].ty.clone();
+                place_ty = parameters[field_projection.index].as_ty().unwrap().clone();
             }
         }
         Ok(place_ty.clone())
@@ -402,12 +391,12 @@ impl Check<'_> {
                     bail!("This type used in ValueExpression::Struct should be a struct")
                 }
 
-                // Check if the number of value provided match the number of field.
+                // Check if the number of value provided matches the number of field.
                 let struct_field_tys: Vec<Ty> =
                     fields.iter().map(|field| field.ty.clone()).collect();
 
                 if value_expressions.len() != struct_field_tys.len() {
-                    bail!("The length of ValueExpression::Tuple does not match the type of the ADT declared")
+                    bail!("The length of ValueExpression::Struct does not match the type of the ADT declared")
                 }
 
                 let mut value_tys: Vec<Ty> = Vec::new();
@@ -430,6 +419,47 @@ impl Check<'_> {
                     &typeck_env.env,
                     &fn_assumptions,
                     Wcs::all_sub(value_tys, struct_field_tys),
+                )?;
+
+                Ok(ty.clone())
+            }
+            Tuple(value_expressions, ty) => {
+                self.prove_goal(&typeck_env.env, &fn_assumptions, ty.well_formed())?;
+
+                if !ty.is_tuple() {
+                    bail!("Non-tuple type provided for tuple expression");
+                }
+
+                // Check if the number of value provided matches the number of field.
+                let tuple_params = ty.get_rigid_ty_parameters().unwrap();
+                let value_length = value_expressions.len();
+                let declared_tuple_length = tuple_params.len();
+
+                if value_length != declared_tuple_length {
+                    bail!("The length of tuple declared is {declared_tuple_length}, the number of value provided is {value_length}");
+                }
+
+                let mut value_tys: Vec<Ty> = Vec::new();
+
+                for value_expression in value_expressions {
+                    // FIXME: we only support const in value expression of tuple for now, we can add support
+                    // more in future.
+                    let Constant(_) = value_expression else {
+                        bail!("Only Constant is supported in ValueExpression::Struct for now.")
+                    };
+
+                    value_tys.push(self.check_value(
+                        typeck_env,
+                        fn_assumptions,
+                        value_expression,
+                    )?);
+                }
+
+                // Make sure all the types supplied are the subtype of declared types.
+                self.prove_goal(
+                    &typeck_env.env,
+                    &fn_assumptions,
+                    Wcs::all_sub(value_tys, tuple_params),
                 )?;
 
                 Ok(ty.clone())
