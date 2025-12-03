@@ -45,6 +45,7 @@ pub use collections::Deduplicate;
 pub use collections::Map;
 pub use collections::Set;
 pub use collections::SetExt;
+pub use collections::Union;
 pub use judgment::ProvenSet;
 
 /// Run an action with a tracing log subscriber. The logging level is loaded

@@ -15,6 +15,13 @@
 // fn foo(k1: Key1, k2: &Key2) -> R {
 //     thread_local! { static _CACHE: RefCell<FixedPointStack<(Key1, Key2), R>> = Default::default() }
 //     fixed_point(
+//         |(k1, k2)| {
+//             tracing::debug_span!(
+//                 stringify!(foo),
+//                 ?k1,
+//                 ?k2,
+//             )
+//         },
 //         &_CACHE,
 //         (k1, k2.clone()),
 //         |(k1, k2)| <E>,
@@ -91,9 +98,25 @@ pub(crate) fn fixed_point(
         }
     };
 
+    // names like k1, k2
+    let input_names: Vec<_> = inputs.iter().map(|input| &input.ident).collect();
+
+    // |(k1, k2)| tracing::debug_span(...)
+    let tracing_span_expr = {
+        let fn_name = &item_fn.sig.ident;
+        quote!(
+            |(#(#input_names),*)| {
+                tracing::debug_span!(
+                    stringify!(#fn_name),
+                    #(?#input_names),*
+                )
+            }
+        )
+    };
+
     //         (k1, k2.clone()),
     let input_expr = {
-        let input_keys: Vec<_> = inputs
+        let input_exprs: Vec<_> = inputs
             .iter()
             .map(|Input { is_ref, ident, .. }| {
                 if *is_ref {
@@ -103,18 +126,20 @@ pub(crate) fn fixed_point(
                 }
             })
             .collect();
-        quote!((#(#input_keys),*))
+        quote!((#(#input_exprs,)*))
     };
 
     //         |(k1, k2)| <E>,
     let default_expr = {
-        let input_names: Vec<_> = inputs.iter().map(|input| &input.ident).collect();
         let default_pattern = quote!((#(#input_names),*));
         let default_body = args
             .default
             .map(|e| quote!(#e))
             .unwrap_or(quote!(Default::default()));
-        quote!(|#default_pattern| #default_body)
+        quote!(
+            #[allow(unused_variables)]
+            |#default_pattern| #default_body
+        )
     };
 
     //         |(k1, ref k2)| <body>,
@@ -146,6 +171,7 @@ pub(crate) fn fixed_point(
             {
                 #thread_local
                 formality_core::fixed_point::fixed_point(
+                    #tracing_span_expr,
                     &__CACHE,
                     #input_expr,
                     #default_expr,

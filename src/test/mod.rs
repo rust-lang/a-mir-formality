@@ -44,32 +44,15 @@ fn hello_world_fail() {
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
-            check_trait(Foo)
-
-            Caused by:
-                0: prove_where_clauses_well_formed([!ty_2 : Bar <!ty_1>])
-                1: judgment `prove { goal: {@ WellFormedTraitRef(Bar(!ty_0, !ty_1))}, assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness, pending: [] }, decls: decls(222, [trait Foo <ty, ty> where {Bar(^ty0_1, ^ty0_0)}, trait Bar <ty, ty> where {Baz(^ty0_1)}, trait Baz <ty> ], [], [], [], [], [], {Bar, Baz, Foo}, {}) }` failed at the following rule(s):
-                     failed at (src/file.rs:LL:CC) because
-                       judgment `prove_wc_list { goal: {@ WellFormedTraitRef(Bar(!ty_0, !ty_1))}, assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                         the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                           judgment `prove_wc { goal: @ WellFormedTraitRef(Bar(!ty_0, !ty_1)), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                             the rule "trait well formed" failed at step #3 (src/file.rs:LL:CC) because
-                               judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_1, !ty_0], bias: Soundness, pending: [] }, known_true: true, substitution: {} }, goal: {Baz(!ty_1)}, assumptions: {Bar(!ty_0, !ty_1)} }` failed at the following rule(s):
-                                 the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
-                                   judgment `prove { goal: {Baz(!ty_1)}, assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness, pending: [] }, decls: decls(222, [trait Foo <ty, ty> where {Bar(^ty0_1, ^ty0_0)}, trait Bar <ty, ty> where {Baz(^ty0_1)}, trait Baz <ty> ], [], [], [], [], [], {Bar, Baz, Foo}, {}) }` failed at the following rule(s):
-                                     failed at (src/file.rs:LL:CC) because
-                                       judgment `prove_wc_list { goal: {Baz(!ty_1)}, assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                                         the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                                           judgment `prove_wc { goal: Baz(!ty_1), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                                             the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
-                                               expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
+            the rule "trait implied bound" at (prove_wc.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }
 
 #[test]
 fn hello_world() {
     crate::assert_ok!(
-        //@check-pass
+
         [
             crate Foo {
                 trait Foo<ty T> where T: Bar<Self>, Self: Baz {}
@@ -84,31 +67,24 @@ fn hello_world() {
                 impl<ty T> Bar<T> for () where T: Baz {}
             }
         ]
-
-        expect_test::expect!["()"]
     )
 }
 
 #[test]
 fn basic_where_clauses_pass() {
     crate::assert_ok!(
-        //@check-pass
-        [
-            crate core {
-                trait A<ty T> where T: B { }
+    [
+        crate core {
+            trait A<ty T> where T: B { }
 
-                trait B { }
+            trait B { }
 
-                trait WellFormed where for<ty T> u32: A<T> { }
+            trait WellFormed where for<ty T> u32: A<T> { }
 
-                impl <ty T> B for T {}
-            }
-        ]
-
-        expect_test::expect!["()"]
-    )
+            impl <ty T> B for T {}
+        }
+    ])
 }
-
 #[test]
 fn basic_where_clauses_fail() {
     crate::assert_err!(
@@ -125,27 +101,8 @@ fn basic_where_clauses_fail() {
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
-            check_trait(WellFormed)
-
-            Caused by:
-                0: prove_where_clauses_well_formed([for <ty> u32 : A <^ty0_0>])
-                1: judgment `prove { goal: {for <ty> @ WellFormedTraitRef(A(u32, ^ty0_0))}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [], bias: Soundness, pending: [] }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
-                     failed at (src/file.rs:LL:CC) because
-                       judgment `prove_wc_list { goal: {for <ty> @ WellFormedTraitRef(A(u32, ^ty0_0))}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                         the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                           judgment `prove_wc { goal: for <ty> @ WellFormedTraitRef(A(u32, ^ty0_0)), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                             the rule "forall" failed at step #2 (src/file.rs:LL:CC) because
-                               judgment `prove_wc { goal: @ WellFormedTraitRef(A(u32, !ty_1)), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_1], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                                 the rule "trait well formed" failed at step #3 (src/file.rs:LL:CC) because
-                                   judgment `prove_after { constraints: Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [] }, known_true: true, substitution: {} }, goal: {B(!ty_1)}, assumptions: {for <ty> A(u32, ^ty0_0)} }` failed at the following rule(s):
-                                     the rule "prove_after" failed at step #1 (src/file.rs:LL:CC) because
-                                       judgment `prove { goal: {B(!ty_0)}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [] }, decls: decls(222, [trait A <ty, ty> where {B(^ty0_1)}, trait B <ty> , trait WellFormed <ty> where {for <ty> A(u32, ^ty0_0)}], [], [], [], [], [], {A, B, WellFormed}, {}) }` failed at the following rule(s):
-                                         failed at (src/file.rs:LL:CC) because
-                                           judgment `prove_wc_list { goal: {B(!ty_0)}, assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                                             the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                                               judgment `prove_wc { goal: B(!ty_0), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                                                 the rule "trait implied bound" failed at step #0 (src/file.rs:LL:CC) because
-                                                   expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
+            the rule "trait implied bound" at (prove_wc.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }
 
@@ -275,7 +232,7 @@ fn crate_with_duplicate_item_names() {
     );
 
     crate::assert_ok!(
-        //@check-pass
+
         [
             crate core {
                 trait a {}
@@ -283,7 +240,5 @@ fn crate_with_duplicate_item_names() {
                 fn a() -> () { trusted }
             }
         ]
-
-        expect_test::expect!["()"]
     );
 }

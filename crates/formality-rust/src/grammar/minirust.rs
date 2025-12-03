@@ -1,6 +1,6 @@
 use formality_core::{id, UpcastFrom};
 use formality_macros::term;
-use formality_types::grammar::{Parameter, ScalarId, Ty};
+use formality_types::grammar::{Binder, Lt, Parameter, ScalarId, Ty};
 
 use crate::grammar::minirust::ConstTypePair::*;
 use crate::grammar::FnId;
@@ -36,15 +36,74 @@ id!(FieldId);
 //   bb1:
 //     return;
 // }
+//
 
 /// Based on [MiniRust statements](https://github.com/minirust/minirust/blob/9ae11cc202d040f08bc13ec5254d3d41d5f3cc25/spec/lang/syntax.md#statements-terminators).
+///
+/// The `exists` is used to capture region inference variables.
+/// In the compiler, every region that appears outside the signature
+/// gets a fresh inference variable. In a-mir-formality, we let the
+/// user tell us how many inference variables there are. Lucky us.
+///
+/// So a Rust function like
+///
+/// ```rust,ignore
+/// fn pick<'a>(x: &'a (u32, u32)) - &'a u32 { let tmp = &x.0; tmp }
+/// ```
+///
+/// might wind up with MIR like this -- note the `r0` and `r1`
+/// variables
+///
+/// ```rust,ignore
+/// fn pick<'a>(v1) -> v0 = minirust(v1) -> v0 {
+///   // Local variables that represent the return type
+///   // and the function parameters are declared first.
+///   //
+///   // Their types do not have region inference variables
+///   // in scope.
+///   let v0: &'a u32;
+///   let v1: &'a (u32, u32);
+///
+///   exists<'r0, 'r1> {
+///     let v2: &'r0 u32;
+///
+///     bb0:
+///       v2 = &'r1 x.0
+///       v0 = v2
+///
+///     bb1:
+///       return;
+///   }
+/// }
+/// ```
+///
+/// You can think of the role of the type checker as proving:
+///
+/// * For all `'a`
+///     * There exists lifetimes `r0`, `r1`
+///         * Such that the body is well-typed
 #[term(minirust($,args) -> $ret {
-    $*locals
-    $*blocks
+    // First declare types etc parameters and return values
+    $*params
+
+    // then declare the body
+    exists $binder
 })]
 pub struct Body {
     pub args: Vec<LocalId>,
     pub ret: LocalId,
+    // params contain function parameters and return local
+    // as their types does not contain region inference variable.
+    pub params: Vec<LocalDecl>,
+    pub binder: Binder<BodyBound>,
+}
+
+#[term({
+    $*locals
+    $*blocks
+})]
+pub struct BodyBound {
+    // locals contain every locals other than function parameters and return local.
     pub locals: Vec<LocalDecl>,
     pub blocks: Vec<BasicBlock>,
 }
@@ -150,9 +209,12 @@ pub enum ValueExpression {
     // GetDiscriminant
     #[grammar(load($v0))]
     Load(PlaceExpression),
-    // AddrOf
-    // UnOp
-    // BinOp
+    // Similar to AddrOf in MiniRust, but we don't deal with other
+    // pointer type such as raw pointer and box yet.
+    #[grammar(&$v0 $v1)]
+    Ref(Lt, PlaceExpression), // AddrOf
+                              // UnOp
+                              // BinOp
 }
 
 #[term]
@@ -209,12 +271,52 @@ impl ConstTypePair {
 pub enum PlaceExpression {
     #[grammar(local($v0))]
     Local(LocalId),
-    // Deref(Arc<ValueExpression>),
+
+    #[grammar(*($v0))] // TODO: change syntax?
+    Deref(Arc<PlaceExpression>), // XXX: we depart from MiniRust here and require a place
+
     // Project to a field.
     #[grammar($v0)]
     Field(FieldProjection),
     // Index
     // Downcast
+}
+
+impl PlaceExpression {
+    /// True if `self` is a prefix of `other` (e.g., `a.b` is a prefix of `a.b` and `a.b.c` but not `a`)
+    pub fn is_prefix_of(&self, mut other: &PlaceExpression) -> bool {
+        loop {
+            if self == other {
+                break true;
+            }
+
+            if let Some(p) = other.prefix() {
+                other = p;
+            } else {
+                break false;
+            }
+        }
+    }
+
+    /// Returns the next prefix of `self` (if any)
+    pub fn prefix(&self) -> Option<&PlaceExpression> {
+        match self {
+            PlaceExpression::Local(_) => None,
+            PlaceExpression::Deref(base) => Some(base),
+            PlaceExpression::Field(FieldProjection { root, index: _ }) => Some(root),
+        }
+    }
+
+    /// Returns all prefixes of `self` (if any)
+    pub fn all_prefixes(&self) -> Vec<&PlaceExpression> {
+        let mut v = vec![self];
+        let mut p = self;
+        while let Some(q) = p.prefix() {
+            v.push(q);
+            p = q;
+        }
+        v
+    }
 }
 
 #[term($root.$index)]
@@ -223,4 +325,10 @@ pub struct FieldProjection {
     pub root: Arc<PlaceExpression>,
     /// The field to project to.
     pub index: usize,
+}
+
+impl UpcastFrom<LocalId> for PlaceExpression {
+    fn upcast_from(term: LocalId) -> Self {
+        PlaceExpression::Local(term)
+    }
 }

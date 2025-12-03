@@ -57,6 +57,12 @@ pub struct Env {
     ///
     /// Whenever a "successful" proof results, the pending obligations
     pending: Vec<Wc>,
+
+    /// When true, outlives constraints like `'a: 'b` can be deferred as pending
+    /// obligations rather than being proven immediately. This is used during
+    /// type checking to accumulate constraints that will be verified by the
+    /// borrow checker. When false, outlives must be proven from assumptions.
+    allow_pending_outlives: bool,
 }
 
 impl Env {
@@ -65,6 +71,7 @@ impl Env {
             variables: Default::default(),
             bias,
             pending: vec![],
+            allow_pending_outlives: false,
         }
     }
 
@@ -74,6 +81,24 @@ impl Env {
 
     pub fn bias(&self) -> Bias {
         self.bias
+    }
+
+    pub fn allow_pending_outlives(&self) -> bool {
+        self.allow_pending_outlives
+    }
+
+    /// Return a clone of the environment with `allow_pending_outlives` set to the given value
+    pub fn with_allow_pending_outlives(&self, allow: bool) -> Self {
+        let mut env = self.clone();
+        env.allow_pending_outlives = allow;
+        env
+    }
+
+    /// Return a clone of the environment with `w` as a pending where-clause
+    pub fn with_pending(&self, w: impl Upcast<Wc>) -> Self {
+        let mut env = self.clone();
+        env.pending.push(w.upcast());
+        env
     }
 }
 
@@ -193,6 +218,10 @@ impl Env {
         vars
     }
 
+    /// Returns `(e,s)` where
+    ///
+    /// * `s` is a list of fresh universal variables for each variable bound in `b`; and,
+    /// * `e` is an extended environment with these universal variables in scope.
     pub fn universal_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<UniversalVar>)
     where
         T: Fold,
@@ -205,6 +234,8 @@ impl Env {
         (env, subst)
     }
 
+    /// Given a bound value `<X..> v`, returns `v` with `X...` replaced with fresh universal variables.
+    /// Modifies `self` to bring those variables into scope.
     pub fn instantiate_universally<T>(&mut self, b: &Binder<T>) -> T
     where
         T: Fold,
@@ -216,6 +247,10 @@ impl Env {
         b.instantiate_with(&subst).unwrap()
     }
 
+    /// Returns `(e,s)` where
+    ///
+    /// * `s` is a list of fresh inference variables for each variable bound in `b`; and,
+    /// * `e` is an extended environment with these inference variables in scope.
     pub fn existential_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<ExistentialVar>)
     where
         T: Fold,
@@ -226,6 +261,18 @@ impl Env {
             var_index,
         });
         (env, subst)
+    }
+
+    /// Given a bound value `<X..> v`, returns `v` with `X...` replaced with fresh inference variables.
+    /// Modifies `self` to bring those variables into scope.
+    pub fn instantiate_existentially<T>(&mut self, b: &Binder<T>) -> T
+    where
+        T: Fold,
+    {
+        let (env, subst) = self.existential_substitution(b);
+        let result = b.instantiate_with(&subst).unwrap();
+        *self = env;
+        result
     }
 
     /// Given a set of variables that was returned by
@@ -269,6 +316,7 @@ impl Env {
                 .collect(),
             bias: self.bias,
             pending: vs.apply(&self.pending),
+            allow_pending_outlives: self.allow_pending_outlives,
         }
     }
 

@@ -1,5 +1,5 @@
 use crate::{Bias, Constraints, Env};
-use formality_core::{fold::CoreFold, ProvenSet, Upcast};
+use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
 use formality_types::{
     grammar::{Substitution, Variable, Wcs},
     rust::FormalityLang,
@@ -90,11 +90,11 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
     let flipped_data = flip_quantification.apply(&data);
 
     let cs = f(flipped_env, flipped_assumptions, flipped_data);
-    match cs.into_set() {
+    match cs.into_map() {
         Ok(s) => {
-            if let Some(constraints) = s
+            if let Some((constraints, _tree)) = s
                 .iter()
-                .find(|constraints| constraints.unconditionally_true())
+                .find(|(constraints, _)| constraints.unconditionally_true())
             {
                 ProvenSet::failed(
                     "negation_via_failure",
@@ -102,13 +102,28 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
                 )
             } else {
                 tracing::debug!("ambiguous `negation_via_failure`, solutions: {s:?}");
-                ProvenSet::singleton(Constraints::none(env).ambiguous())
+                // Ambiguous - grab a tree from one of the results
+                let (_, sample_tree) = s.iter().next().unwrap();
+                let result = Constraints::none(env).ambiguous();
+                ProvenSet::singleton((
+                    result.clone(),
+                    ProofTree::new(
+                        format!("{:?}", result),
+                        Some("ambiguous_negation"),
+                        vec![sample_tree.clone()],
+                    ),
+                ))
             }
         }
 
         Err(err) => {
             tracing::debug!("Proved `negation_via_failure`, error = {err}");
-            ProvenSet::singleton(Constraints::none(env))
+            // Negation succeeded because f failed
+            let result = Constraints::none(env);
+            ProvenSet::singleton((
+                result.clone(),
+                ProofTree::leaf(format!("negation succeeded: {}", err)),
+            ))
         }
     }
 }
