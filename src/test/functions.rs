@@ -3,8 +3,8 @@
 #[test]
 fn ok() {
     crate::assert_ok!(
-        // Test functions, function's arguments, and function's returns
-        //@check-pass
+
+
         [
             crate Foo {
                 // fn simple_fn() {}
@@ -23,31 +23,21 @@ fn ok() {
                 fn multi_arg_ret<ty T, ty Y, ty U, ty I>(T, Y) -> (U, I) { trusted }
             }
         ]
-
-        expect_test::expect!["()"]
     )
 }
 
 #[test]
 fn lifetime() {
-    crate::assert_err!(
-        // Test lifetimes on function
+    crate::assert_ok!(
+
         [
             crate Foo {
                 // fn one_lt_arg<'a, T>(_: &'a T) -> () {}
-                fn one_lt_arg<lt a, ty T>(&a T) -> () { trusted }
+                fn one_lt_arg<lt a, ty T>(&a T) -> ()
+                where
+                    T: a, // FIXME(#202): Implied bounds should not have to be explicit
+                { trusted }
             }
         ]
-
-        [ /* TODO */ ]
-
-        expect_test::expect![[r#"
-            judgment `prove { goal: {@ wf(&!lt_0 !ty_1)}, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness, pending: [] }, decls: decls(222, [], [], [], [], [], [], {}, {}) }` failed at the following rule(s):
-              failed at (src/file.rs:LL:CC) because
-                judgment `prove_wc_list { goal: {@ wf(&!lt_0 !ty_1)}, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                  the rule "some" failed at step #0 (src/file.rs:LL:CC) because
-                    judgment `prove_wc { goal: @ wf(&!lt_0 !ty_1), assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness, pending: [] } }` failed at the following rule(s):
-                      the rule "parameter well formed" failed at step #0 (src/file.rs:LL:CC) because
-                        judgment had no applicable rules: `prove_wf { goal: &!lt_0 !ty_1, assumptions: {}, env: Env { variables: [!lt_0, !ty_1], bias: Soundness, pending: [] } }`"#]]
     )
 }

@@ -3,45 +3,39 @@
 #[test]
 fn unsafe_trait() {
     crate::assert_ok!(
-        //@check-pass
+
         [
             crate baguette {
                 unsafe trait Foo {}
                 unsafe impl Foo for u32 {}
             }
         ]
-
-        expect_test::expect!["()"]
     )
 }
 
 #[test]
 fn safe_trait() {
     crate::assert_ok!(
-        //@check-pass
+
         [
             crate baguette {
                 safe trait Foo {}
                 safe impl Foo for u32 {}
             }
         ]
-
-        expect_test::expect!["()"]
     )
 }
 
 #[test]
 fn unsafe_trait_negative_impl() {
     crate::assert_ok!(
-        //@check-pass
+
         [
             crate baguette {
                 unsafe trait Foo {}
                 impl !Foo for u32 {}
             }
         ]
-
-        expect_test::expect!["()"]
     )
 }
 

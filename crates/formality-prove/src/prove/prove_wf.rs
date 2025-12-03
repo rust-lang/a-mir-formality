@@ -1,12 +1,12 @@
-use formality_core::{judgment_fn, ProvenSet};
+use formality_core::{judgment_fn, Downcast, ProvenSet};
 use formality_types::grammar::{
-    AliasName, AliasTy, ConstData, LtData, Parameter, Parameters, RigidName, RigidTy, UniversalVar,
-    Wcs,
+    AliasName, AliasTy, ConstData, Lt, LtData, Parameter, Parameters, Relation, RigidName, RigidTy,
+    Ty, UniversalVar, Wcs,
 };
 
 use crate::{
     decls::Decls,
-    prove::{combinators::for_all, prove_after::prove_after},
+    prove::{combinators::for_all, prove_after::prove_after, prove_wc::prove_wc},
 };
 
 use super::{constraints::Constraints, env::Env};
@@ -29,6 +29,14 @@ judgment_fn! {
             // for every universal variable. That just seems tedious.
             --- ("universal variables")
             (prove_wf(_decls, env, _assumptions, UniversalVar { .. }) => Constraints::none(env))
+        )
+
+        (
+            // `&'a T` is well-formed if `T: 'a`
+            (let (lt, ty) = parameters.downcast_err::<(Lt, Ty)>()?)
+            (prove_wc(decls, env, assumptions, Relation::outlives(ty, lt)) => c)
+            --- ("references")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Ref(_), parameters }) => c)
         )
 
         (

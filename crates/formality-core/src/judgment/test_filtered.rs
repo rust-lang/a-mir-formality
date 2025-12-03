@@ -49,15 +49,8 @@ fn judgment() {
     });
 
     transitive_reachable(&graph, 0).assert_err(expect_test::expect![[r#"
-        judgment `transitive_reachable { node: 0, g: Graph { edges: [(0, 1), (1, 2), (2, 4), (2, 3), (3, 6), (4, 8), (8, 10)] } }` failed at the following rule(s):
-          the rule "base" failed at step #1 (src/file.rs:LL:CC) because
-            condition evaluted to false: `b % 2 == 0`"#]]);
+        the rule "base" at (test_filtered.rs) failed because
+          condition evaluted to false: `b % 2 == 0`"#]]);
 
-    transitive_reachable(&graph, 2).assert_ok(expect_test::expect![[r#"
-        {
-          4,
-          8,
-          10,
-        }
-    "#]]);
+    transitive_reachable(&graph, 2).assert_ok(expect_test::expect!["{4, 8, 10}"]);
 }

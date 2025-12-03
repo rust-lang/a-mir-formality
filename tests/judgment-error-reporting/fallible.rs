@@ -24,9 +24,8 @@ judgment_fn! {
 }
 
 fn check_sub(a: Ty, b: Ty) -> Fallible<()> {
-    Ok(sub(a, b)
-        .check_proven()
-        .with_context(|| format!("check_sub"))?)
+    let _map = sub(a, b).into_map().with_context(|| format!("check_sub"))?;
+    Ok(())
 }
 
 #[test]
@@ -43,7 +42,7 @@ fn test() {
 
         Caused by:
             judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
-              the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
+              the rule "same class" at (fallible.rs) failed because
                 condition evaluted to false: `name_a == name_b`
                   name_a = Foo
                   name_b = Bar"#]]);

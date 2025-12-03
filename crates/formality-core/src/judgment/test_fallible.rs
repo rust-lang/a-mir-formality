@@ -32,7 +32,7 @@ judgment_fn!(
         assert(check_x(x))
 
         (
-            (let y = c.is(x)?)
+            (let y = c.is(x)?)!
             --------------------------------------- ("rule")
             (jfn(c, x) => y)
         )
@@ -55,31 +55,19 @@ fn check_x(x: u32) -> Fallible<()> {
 
 #[test]
 fn is_equal_22() {
-    jfn(Check { x: 22 }, 22).assert_ok(expect_test::expect![[r#"
-        {
-          22,
-        }
-    "#]]);
+    jfn(Check { x: 22 }, 22).assert_ok(expect_test::expect!["{22}"]);
 }
 
 #[test]
 fn is_equal_44() {
-    jfn(Check { x: 44 }, 44).assert_ok(expect_test::expect![[r#"
-        {
-          44,
-          45,
-        }
-    "#]]);
+    jfn(Check { x: 44 }, 44).assert_ok(expect_test::expect!["{44, 45}"]);
 }
 
 #[test]
 fn is_not_equal() {
     jfn(Check { x: 22 }, 23).assert_err(expect_test::expect![[r#"
-        judgment `jfn { c: Check { x: 22 }, x: 23 }` failed at the following rule(s):
-          the rule "other-rule" failed at step #0 (src/file.rs:LL:CC) because
-            expected 22 got 23
-          the rule "rule" failed at step #0 (src/file.rs:LL:CC) because
-            expected 22 got 23"#]]);
+        the rule "other-rule" at (test_fallible.rs) failed because
+          expected 22 got 23"#]]);
 }
 
 #[test]

@@ -42,7 +42,7 @@ fn test_overlap_normalize_alias_to_LocalType() {
     // `<LocalType as Mirror>::T: Iterator` which requires normalizing
     // the alias to `LocalType`...
 
-    test_program_ok(&gen_program("")).assert_ok(expect_test::expect!["()"]);
+    test_program_ok(&gen_program("")).assert_ok();
 
     // ...but it's an error if LocalType implements Iterator (figuring *this* out also
     // requires normalizing).

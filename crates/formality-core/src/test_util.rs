@@ -37,19 +37,39 @@
 
 use std::fmt::{Debug, Display};
 
+use crate::judgment::FailedJudgment;
+
 /// Converts `s` to a string and replaces path/line/column patterns like `src/blah/foo.rs:22:33` in the string
-/// with `"src/file.rs:LL:CC"`. This makes error messages resilient against changes to the source code.
+/// with just the filename `foo.rs`. This makes error messages resilient against changes to the source code
+/// while still showing which file the error came from.
 pub fn normalize_paths(s: impl Display) -> String {
     let s = s.to_string();
-    let re = regex::Regex::new(r"\([^()]+.rs:\d+:\d+\)").unwrap();
-    re.replace_all(&s, "(src/file.rs:LL:CC)").to_string()
+    // Capture the filename (without path) and strip line:column
+    // Handle both forward slashes (Unix) and backslashes (Windows) as path separators
+    let re = regex::Regex::new(r"\((?:[^()]+[/\\])?([^()/\\]+\.rs):\d+:\d+\)").unwrap();
+    re.replace_all(&s, "($1)").to_string()
+}
+
+/// Format an error, extracting just the leaf failures if it contains a FailedJudgment.
+/// This provides a concise view of what actually failed rather than the full nested tree.
+/// Walks the error chain to find a FailedJudgment even if wrapped in context.
+pub fn format_error_leaves(e: &anyhow::Error) -> String {
+    // Try direct downcast to Box<FailedJudgment> first (how it's typically created)
+    if let Some(failed) = e.downcast_ref::<Box<FailedJudgment>>() {
+        return failed.format_leaves();
+    }
+    // Also try FailedJudgment directly in case it was wrapped differently
+    if let Some(failed) = e.downcast_ref::<FailedJudgment>() {
+        return failed.format_leaves();
+    }
+    // If no FailedJudgment found, fall back to debug format
+    format!("{e:?}")
 }
 
 /// Extension methods for writing tests on functions that return [`Fallible`](crate::Fallible) values.
 pub trait ResultTestExt<T, E> {
-    /// Given a `Fallible<T>` value, assert that its debug representation matches the expected value.
-    /// If the result is an error it is propagated through to the return value.
-    fn assert_ok(self, expect: expect_test::Expect);
+    /// Given a `Fallible<T>` value, assert that it is `Ok`. Panics if it is an error.
+    fn assert_ok(self);
 
     /// Given a `Fallible<T>` value, assert that it is an error with the given string (after normalization).
     /// Returns `Ok(())` if the assertion succeeds, or panics if the assertion fails.
@@ -67,11 +87,9 @@ where
     E: Debug,
 {
     #[track_caller]
-    fn assert_ok(self, expect: expect_test::Expect) {
+    fn assert_ok(self) {
         match self {
-            Ok(v) => {
-                expect.assert_eq(&format!("{v:?}"));
-            }
+            Ok(_) => {}
             Err(e) => {
                 panic!("expected `Ok`, got `Err`: {e:?}");
             }
@@ -86,9 +104,42 @@ where
     #[track_caller]
     fn assert_has_err(self, expect: expect_test::Expect, must_have: &[&str]) {
         match self {
-            Ok(v) => panic!("expected `Err`, got `Ok`: {v:?}"),
+            Ok(v) => panic!("expected `Err`, got `Ok`:\n{v:?}"),
             Err(e) => {
                 let output = normalize_paths(format!("{e:?}"));
+
+                expect.assert_eq(&output);
+
+                for s in must_have {
+                    assert!(output.contains(s), "did not find {s:?} in the output");
+                }
+            }
+        }
+    }
+}
+
+/// Extension trait for anyhow::Result that extracts leaf failures for concise error display
+pub trait AnyhowResultTestExt<T> {
+    /// Assert that the result is an error, showing only the leaf failures
+    fn assert_err_leaves(self, expect: expect_test::Expect);
+
+    /// Assert that the result is an error with the given leaf failures, and check must_have strings
+    fn assert_has_err_leaves(self, expect: expect_test::Expect, must_have: &[&str]);
+}
+
+impl<T: Debug> AnyhowResultTestExt<T> for anyhow::Result<T> {
+    #[track_caller]
+    fn assert_err_leaves(self, expect: expect_test::Expect) {
+        self.assert_has_err_leaves(expect, &[]);
+    }
+
+    #[track_caller]
+    fn assert_has_err_leaves(self, expect: expect_test::Expect, must_have: &[&str]) {
+        match self {
+            Ok(v) => panic!("expected `Err`, got `Ok`:\n{v:?}"),
+            Err(e) => {
+                // Extract just the leaf failures for a concise view
+                let output = normalize_paths(format_error_leaves(&e));
 
                 expect.assert_eq(&output);
 
