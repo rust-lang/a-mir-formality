@@ -152,7 +152,7 @@ impl LiveBefore for ValueExpression {
             ValueExpression::Load(place_expression) => {
                 place_expression.live_before(env, places_live)
             }
-            ValueExpression::Ref(_lt, place_expression) => {
+            ValueExpression::Ref(_ref_kind, _lt, place_expression) => {
                 place_expression.live_before(env, places_live)
             }
         }

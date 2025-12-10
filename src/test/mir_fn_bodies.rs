@@ -770,7 +770,8 @@ fn test_ref_identity() {
     )
 }
 
-/// Basic pass test for lifetime.
+/// Test the holding a shared reference to a local
+/// integer variable prevents it from being incremented.
 ///
 /// The test is equivalent to:
 /// ```rust,ignore
@@ -782,7 +783,7 @@ fn test_ref_identity() {
 /// }
 /// ```
 #[test]
-fn test_borrow_check_basic() {
+fn shared_ref_prevents_mutation() {
     crate::assert_err!(
         [
             crate Foo {
@@ -826,16 +827,63 @@ fn test_borrow_check_basic() {
     )
 }
 
-/// FIXME(tiif): this should not pass, I think Relation::sub does not consider lifetime yet?
-/// Basic fail test for lifetime.
+/// Test the holding a shared reference to a local
+/// integer variable prevents it from being incremented.
 ///
 /// The test is equivalent to:
 /// ```rust,ignore
-/// fn pick<'a, 'b>(v1: &'a u32) -> &'b u32 {
-///     let v2 = v1;
-///     v2
+/// fn mutate() -> i32 {
+///     let mut i = 0;
+///     let j = &mut i;
+///     i = 1; // <-- ERROR
+///     *j
 /// }
 /// ```
+#[test]
+fn mutable_ref_prevents_mutation() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo() -> i32 = minirust() -> v0 {
+                    let v0: i32;
+
+                    exists<lt r0, lt r1> {
+                        let v1: i32;
+                        let v2: &mut r0 i32;
+
+                        bb0: {
+                            statements {
+                                local(v1) = constant(0: i32);
+                                local(v2) = &mut r1 local(v1);
+
+                                // This should result in an error
+                                local(v1) = constant(1: i32);
+
+                                local(v0) = load(*(local(v2)));
+                            }
+                            return;
+                        }
+                    }
+                };
+            }
+        ]
+
+        [
+        ]
+
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = local(v1)
+                &access.place = local(v1)
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2}
+                &lifetime.upcast() = ?lt_1"#]]
+    )
+}
+
 #[formality_core::test]
 fn test_ref_not_subtype() {
     crate::assert_err!(

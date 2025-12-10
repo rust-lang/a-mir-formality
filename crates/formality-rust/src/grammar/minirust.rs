@@ -1,6 +1,6 @@
 use formality_core::{id, UpcastFrom};
 use formality_macros::term;
-use formality_types::grammar::{Binder, Lt, Parameter, ScalarId, Ty};
+use formality_types::grammar::{Binder, Lt, Parameter, RefKind, ScalarId, Ty};
 
 use crate::grammar::minirust::ConstTypePair::*;
 use crate::grammar::FnId;
@@ -209,10 +209,16 @@ pub enum ValueExpression {
     // GetDiscriminant
     #[grammar(load($v0))]
     Load(PlaceExpression),
-    // Similar to AddrOf in MiniRust, but we don't deal with other
-    // pointer type such as raw pointer and box yet.
-    #[grammar(&$v0 $v1)]
-    Ref(Lt, PlaceExpression),
+
+    // NB: We diverge from MiniRust here. In MiniRust, 
+    // AddrOf is used to create pointers/references and other things,
+    // depending on the [PtrType], but that does not include
+    // lifetimes or other information we need.
+    //
+    // [PtrType]: https://github.com/minirust/minirust/blob/master/spec/mem/pointer.md
+    #[grammar(&$?v0 $v1 $v2)]
+    Ref(RefKind, Lt, PlaceExpression),
+
     // AddrOf
     // UnOp
     // BinOp

@@ -521,9 +521,9 @@ impl TypeckEnv {
 
                 value_ty = ty.clone();
             }
-            Ref(borrow_lt, place_expr) => {
+            Ref(ref_kind, borrow_lt, place_expr) => {
                 let place_ty = self.check_place(fn_assumptions, place_expr)?;
-                value_ty = place_ty.ref_ty(borrow_lt);
+                value_ty = place_ty.ref_ty_of_kind(*ref_kind, borrow_lt);
             }
         }
         Ok((value_ty, proof_tree))
