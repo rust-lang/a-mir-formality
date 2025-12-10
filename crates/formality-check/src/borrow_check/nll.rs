@@ -839,7 +839,7 @@ judgment_fn! {
             //
             // In this case, we would be invoked here with `'1`.
             (loan_cannot_outlive(env, assumptions, loan, live_lt) => ())
-            --- ("universal-variable")
+            --- ("lifetime")
             (loan_not_required_by_parameter(env, assumptions, loan, live_lt: Lt) => ())
         )
     }
