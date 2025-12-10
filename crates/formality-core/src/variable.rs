@@ -108,6 +108,14 @@ impl<L: Language> CoreVariable<L> {
             CoreVariable::BoundVar(_) => false,
         }
     }
+
+    pub fn is_existential(&self) -> bool {
+        match self {
+            CoreVariable::UniversalVar(_) => false,
+            CoreVariable::ExistentialVar(_) => true,
+            CoreVariable::BoundVar(_) => false,
+        }
+    }
 }
 
 impl<L: Language> CoreVisit<L> for CoreVariable<L> {

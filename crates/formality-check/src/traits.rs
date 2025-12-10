@@ -1,6 +1,6 @@
 use anyhow::bail;
 use fn_error_context::context;
-use formality_core::Set;
+use formality_core::{judgment::ProofTree, Set};
 use formality_prove::Env;
 use formality_rust::grammar::{
     AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, WhereClause,
@@ -9,7 +9,9 @@ use formality_types::grammar::{CrateId, Fallible};
 
 impl super::Check<'_> {
     #[context("check_trait({:?})", t.id)]
-    pub(super) fn check_trait(&self, t: &Trait, crate_id: &CrateId) -> Fallible<()> {
+    pub(super) fn check_trait(&self, t: &Trait, crate_id: &CrateId) -> Fallible<ProofTree> {
+        let mut proof_tree = ProofTree::leaf("check_trait");
+
         let Trait {
             safety: _,
             id: _,
@@ -22,18 +24,30 @@ impl super::Check<'_> {
             trait_items,
         } = env.instantiate_universally(&binder.explicit_binder);
 
-        self.check_trait_items_have_unique_names(&trait_items)?;
+        proof_tree
+            .children
+            .push(self.check_trait_items_have_unique_names(&trait_items)?);
 
-        self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?;
+        proof_tree
+            .children
+            .push(self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?);
 
         for trait_item in &trait_items {
-            self.check_trait_item(&env, &where_clauses, trait_item, crate_id)?;
+            proof_tree.children.push(self.check_trait_item(
+                &env,
+                &where_clauses,
+                trait_item,
+                crate_id,
+            )?);
         }
 
-        Ok(())
+        Ok(proof_tree)
     }
 
-    fn check_trait_items_have_unique_names(&self, trait_items: &[TraitItem]) -> Fallible<()> {
+    fn check_trait_items_have_unique_names(
+        &self,
+        trait_items: &[TraitItem],
+    ) -> Fallible<ProofTree> {
         let mut functions = Set::new();
         let mut associated_types = Set::new();
         for trait_item in trait_items {
@@ -54,7 +68,9 @@ impl super::Check<'_> {
                 }
             }
         }
-        Ok(())
+        Ok(ProofTree::leaf(format!(
+            "check_trait_items_have_unique_names"
+        )))
     }
 
     fn check_trait_item(
@@ -63,7 +79,7 @@ impl super::Check<'_> {
         where_clauses: &[WhereClause],
         trait_item: &TraitItem,
         crate_id: &CrateId,
-    ) -> Fallible<()> {
+    ) -> Fallible<ProofTree> {
         match trait_item {
             TraitItem::Fn(v) => self.check_fn_in_trait(env, where_clauses, v, crate_id),
             TraitItem::AssociatedTy(v) => self.check_associated_ty(env, where_clauses, v),
@@ -76,7 +92,7 @@ impl super::Check<'_> {
         where_clauses: &[WhereClause],
         f: &Fn,
         crate_id: &CrateId,
-    ) -> Fallible<()> {
+    ) -> Fallible<ProofTree> {
         self.check_fn(env, where_clauses, f, crate_id)
     }
 
@@ -85,16 +101,16 @@ impl super::Check<'_> {
         trait_env: &Env,
         trait_where_clauses: &[WhereClause],
         associated_ty: &AssociatedTy,
-    ) -> Fallible<()> {
+    ) -> Fallible<ProofTree> {
         let mut env = trait_env.clone();
 
-        let AssociatedTy { id: _, binder } = associated_ty;
+        let AssociatedTy { id, binder } = associated_ty;
         let AssociatedTyBoundData {
             ensures: _,
             where_clauses,
         } = env.instantiate_universally(binder);
 
-        self.prove_where_clauses_well_formed(
+        let proof_tree = self.prove_where_clauses_well_formed(
             &env,
             (trait_where_clauses, &where_clauses),
             &where_clauses,
@@ -102,6 +118,10 @@ impl super::Check<'_> {
 
         // FIXME: Do we prove ensures WF? And what do we assume when we do so?
 
-        Ok(())
+        Ok(ProofTree::new(
+            format!("check_associated_ty({id:?})"),
+            None,
+            vec![proof_tree],
+        ))
     }
 }

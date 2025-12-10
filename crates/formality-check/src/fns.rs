@@ -1,3 +1,4 @@
+use formality_core::judgment::ProofTree;
 use formality_prove::Env;
 use formality_rust::{
     grammar::{Fn, FnBoundData, MaybeFnBody},
@@ -9,7 +10,7 @@ use crate::Check;
 
 impl Check<'_> {
     /// A "free function" is a free-standing function that is not part of an impl.
-    pub(crate) fn check_free_fn(&self, f: &Fn, crate_id: &CrateId) -> Fallible<()> {
+    pub(crate) fn check_free_fn(&self, f: &Fn, crate_id: &CrateId) -> Fallible<ProofTree> {
         self.check_fn(&Env::default(), Wcs::t(), f, crate_id)
     }
 
@@ -26,8 +27,12 @@ impl Check<'_> {
         in_assumptions: impl ToWcs,
         f: &Fn,
         crate_id: &CrateId,
-    ) -> Fallible<()> {
+    ) -> Fallible<ProofTree> {
         let in_assumptions = in_assumptions.to_wcs();
+
+        let mut proof_tree = ProofTree::leaf(format!(
+            "check_fn({crate_id:?}, {f:?}, {in_assumptions:?}, {in_env:?})"
+        ));
 
         // We do not expect to have any inference variables in the where clauses.
         //
@@ -56,11 +61,21 @@ impl Check<'_> {
 
         // All of the following must be well-formed:
         // where-clauses, input parameter types, and output type.
-        self.prove_where_clauses_well_formed(&env, &fn_assumptions, &where_clauses)?;
+        proof_tree
+            .children
+            .push(self.prove_where_clauses_well_formed(&env, &fn_assumptions, &where_clauses)?);
         for input_ty in &input_tys {
-            self.prove_goal(&env, &fn_assumptions, input_ty.well_formed())?;
+            proof_tree.children.push(self.prove_goal(
+                &env,
+                &fn_assumptions,
+                input_ty.well_formed(),
+            )?);
         }
-        self.prove_goal(&env, &fn_assumptions, &output_ty.well_formed())?;
+        proof_tree.children.push(self.prove_goal(
+            &env,
+            &fn_assumptions,
+            &output_ty.well_formed(),
+        )?);
 
         // Type-check the function body, if present.
         match body {
@@ -72,11 +87,18 @@ impl Check<'_> {
                     // A trusted function body is assumed to be valid, all set.
                 }
                 formality_rust::grammar::FnBody::MiniRust(body) => {
-                    self.check_body(&env, &output_ty, &fn_assumptions, body, input_tys, crate_id)?;
+                    proof_tree.children.push(self.check_body(
+                        &env,
+                        &output_ty,
+                        &fn_assumptions,
+                        body,
+                        input_tys,
+                        crate_id,
+                    )?);
                 }
             },
         }
 
-        Ok(())
+        Ok(proof_tree)
     }
 }

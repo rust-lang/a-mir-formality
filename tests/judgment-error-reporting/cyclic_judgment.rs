@@ -71,11 +71,55 @@ fn test() {
         name: ClassName::new("Bar"),
     };
     sub(foo, bar).assert_err(expect_test::expect![[r#"
-          judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
-            the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
-              condition evaluted to false: `name_a == name_b`
-                name_a = Foo
-                name_b = Bar"#]]);
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `a1 != a || b1 != b`
+
+        the rule "same class" at (cyclic_judgment.rs) failed because
+          condition evaluted to false: `name_a == name_b`
+            name_a = Foo
+            name_b = Bar"#]]);
 }
 
 #[test]
@@ -86,58 +130,75 @@ fn test1() {
     let bar = Ty::Class {
         name: ClassName::new("Bar"),
     };
-    sub(foo, bar).assert_err(
-      expect_test::expect![[r#"
-          judgment `sub { a: my(class(Foo)), b: class(Bar) }` failed at the following rule(s):
-            the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
-              judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
-                the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
-                  condition evaluted to false: `name_a == name_b`
-                    name_a = Foo
-                    name_b = Bar
-            the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
-              judgment `sub { a: class(Foo), b: my(class(Bar)) }` failed at the following rule(s):
-                the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
-                  judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
-                    the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
-                      condition evaluted to false: `name_a == name_b`
-                        name_a = Foo
-                        name_b = Bar
-                the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
-                  judgment `sub { a: my(class(Foo)), b: my(class(Bar)) }` failed at the following rule(s):
-                    the rule "both my" failed at step #0 (src/file.rs:LL:CC) because
-                      judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
-                        the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
-                          condition evaluted to false: `name_a == name_b`
-                            name_a = Foo
-                            name_b = Bar
-                    the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
-                      judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
-                        the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
-                          condition evaluted to false: `name_a == name_b`
-                            name_a = Foo
-                            name_b = Bar
-            the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
-              judgment `sub { a: my(class(Foo)), b: my(class(Bar)) }` failed at the following rule(s):
-                the rule "both my" failed at step #0 (src/file.rs:LL:CC) because
-                  judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
-                    the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
-                      condition evaluted to false: `name_a == name_b`
-                        name_a = Foo
-                        name_b = Bar
-                the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
-                  judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
-                    the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
-                      condition evaluted to false: `name_a == name_b`
-                        name_a = Foo
-                        name_b = Bar
-                the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
-                  judgment `sub { a: class(Foo), b: my(class(Bar)) }` failed at the following rule(s):
-                    the rule "equivalent" failed at step #3 (src/file.rs:LL:CC) because
-                      judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
-                        the rule "same class" failed at step #0 (src/file.rs:LL:CC) because
-                          condition evaluted to false: `name_a == name_b`
-                            name_a = Foo
-                            name_b = Bar"#]]
-    );
+    sub(foo, bar).assert_err(expect_test::expect![[r#"
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "same class" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `name_a == name_b`
+              name_a = Foo
+              name_b = Bar
+
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "same class" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `name_a == name_b`
+              name_a = Foo
+              name_b = Bar
+
+          the rule "same class" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `name_a == name_b`
+              name_a = Foo
+              name_b = Bar
+
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "same class" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `name_a == name_b`
+              name_a = Foo
+              name_b = Bar
+
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "same class" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `name_a == name_b`
+              name_a = Foo
+              name_b = Bar
+
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "same class" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `name_a == name_b`
+              name_a = Foo
+              name_b = Bar
+
+          the rule "equivalent" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `a1 != a || b1 != b`
+
+          the rule "same class" at (cyclic_judgment.rs) failed because
+            condition evaluted to false: `name_a == name_b`
+              name_a = Foo
+              name_b = Bar"#]]);
 }

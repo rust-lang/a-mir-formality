@@ -1,6 +1,6 @@
-use formality_core::{judgment_fn, Upcast};
+use formality_core::judgment_fn;
 use formality_types::grammar::{
-    AliasTy, BoundVar, Lt, Parameter, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
+    AliasTy, Lt, Parameter, PredicateTy, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
 };
 
 use crate::{
@@ -118,7 +118,7 @@ judgment_fn! {
         (
             // (a) there is some parameter in the alias that may be downstream
             (parameters.iter() => p)
-            (if may_contain_downstream_type(&decls, &env, &assumptions, p))
+            (may_contain_downstream_type(&decls, &env, &assumptions, p) => ())
 
             // (b) the alias cannot be normalized to something that may not be downstream
             (may_not_be_provable(&env, &assumptions, AliasTy::new(&name, &parameters), |env, assumptions, alias|
@@ -130,50 +130,50 @@ judgment_fn! {
     }
 }
 
-fn may_contain_downstream_type(
-    decls: &Decls,
-    env: &Env,
-    assumptions: &Wcs,
-    parameter: impl Upcast<Parameter>,
-) -> bool {
-    assert!(env.bias() == Bias::Completeness);
-    let parameter = parameter.upcast();
+judgment_fn! {
+    fn may_contain_downstream_type(
+        _decls: Decls,
+        env: Env,
+        assumptions: Wcs,
+        parameter: Parameter,
+    ) => () {
+        debug(parameter, assumptions, env)
+        assert(env.bias() == Bias::Completeness)
 
-    let Parameter::Ty(ty) = parameter else {
-        return false;
-    };
+        // Existential variables could be downstream
+        (
+            --- ("existential variable")
+            (may_contain_downstream_type(_decls, _env, _assumptions,
+                TyData::Variable(Variable::ExistentialVar(_))) => ())
+        )
 
-    match ty.data() {
-        TyData::RigidTy(RigidTy {
-            name: _,
-            parameters,
-        }) => parameters
-            .iter()
-            .any(|p| may_contain_downstream_type(decls, env, assumptions, p)),
-        TyData::AliasTy(_) => prove_normalize(decls, env, assumptions, ty)
-            .iter()
-            .any(|(c, p)| {
-                let assumptions = c.substitution().apply(assumptions);
-                may_contain_downstream_type(decls, env, &assumptions, p)
-            }),
-        TyData::PredicateTy(p) => match p {
-            formality_types::grammar::PredicateTy::ForAll(binder) => {
-                let (_, ty) = binder.open();
-                may_contain_downstream_type(decls, env, assumptions, ty)
-            }
-        },
-        TyData::Variable(v) => match v {
-            Variable::ExistentialVar(_) => true,
-            Variable::UniversalVar(_) => panic!("universals are unexpected"),
-            Variable::BoundVar(BoundVar {
-                debruijn,
-                var_index: _,
-                kind: _,
-            }) => {
-                assert!(debruijn.is_none(), "must have been opened on the way down");
-                true
-            }
-        },
+        // Rigid types: recurse into parameters
+        (
+            (parameters.iter() => p)
+            (may_contain_downstream_type(&decls, &env, &assumptions, p) => ())
+            --- ("rigid type parameter")
+            (may_contain_downstream_type(decls, env, assumptions,
+                RigidTy { name: _, parameters }) => ())
+        )
+
+        // Alias types: normalize and check result
+        (
+            (prove_normalize(&decls, &env, &assumptions, parameter) => (c, p))
+            (let assumptions = c.substitution().apply(&assumptions))
+            (may_contain_downstream_type(&decls, &env, &assumptions, p) => ())
+            --- ("via normalize")
+            (may_contain_downstream_type(decls, env, assumptions, parameter) => ())
+        )
+
+        // ForAll predicates: open existentially and check
+        (
+            (let mut env = env)
+            (let ty = env.instantiate_existentially(&binder))
+            (may_contain_downstream_type(&decls, &env, &assumptions, ty) => ())
+            --- ("forall")
+            (may_contain_downstream_type(decls, env, assumptions,
+                TyData::PredicateTy(PredicateTy::ForAll(binder))) => ())
+        )
     }
 }
 

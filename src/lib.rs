@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use clap::Parser;
 use formality_check::check_all_crates;
-use formality_core::Set;
+use formality_core::judgment::ProofTree;
 use formality_prove::{test_util::TestAssertion, Constraints};
 use formality_rust::grammar::Program;
 use formality_types::rust::try_term;
@@ -40,36 +40,37 @@ pub fn main() -> anyhow::Result<()> {
         eprintln!("{:#?}", program);
     }
 
-    check_all_crates(&program)
+    let _proof_tree = check_all_crates(&program)?;
+    Ok(())
 }
 
 #[macro_export]
 macro_rules! assert_ok {
-    ($input:tt $expect:expr) => {{
-        use formality_core::test_util::ResultTestExt;
-        $crate::test_program_ok(stringify!($input)).assert_ok($expect);
+    ($input:tt) => {{
+        let _ = $crate::test_program_ok(stringify!($input)).expect("expected program to pass");
     }};
 }
 
 #[macro_export]
 macro_rules! assert_err {
     ($input:tt [$($must_have:expr,)*] $expect:expr) => {{
-        use formality_core::test_util::ResultTestExt;
-        $crate::test_program_ok(stringify!($input)).assert_has_err($expect, &[$($must_have,)*]);
+        use formality_core::test_util::AnyhowResultTestExt;
+        $crate::test_program_ok(stringify!($input)).assert_has_err_leaves($expect, &[$($must_have,)*]);
     }};
 }
 
-pub fn test_program_ok(input: &str) -> anyhow::Result<()> {
+pub fn test_program_ok(input: &str) -> anyhow::Result<ProofTree> {
     let program: Program = try_term(input)?;
-    check_all_crates(&program)
+    let proof_tree = check_all_crates(&program)?;
+    Ok(proof_tree)
 }
 
-pub fn test_where_clause(program: &str, assertion: &str) -> anyhow::Result<Set<Constraints>> {
+pub fn test_where_clause(program: &str, assertion: &str) -> formality_core::ProvenSet<Constraints> {
     formality_core::with_tracing_logs(|| {
-        let program: Program = try_term(program)?;
-        check_all_crates(&program)?;
-        let assertion: Arc<TestAssertion> = try_term(assertion)?;
+        let program: Program = try_term(program).unwrap();
+        let _proof_tree = check_all_crates(&program).unwrap();
+        let assertion: Arc<TestAssertion> = try_term(assertion).unwrap();
         let decls = program.to_prove_decls();
-        Ok(formality_prove::test_util::test_prove(decls, assertion).into_set()?)
+        formality_prove::test_util::test_prove(decls, assertion)
     })
 }

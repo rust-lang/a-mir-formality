@@ -1,13 +1,15 @@
 use std::collections::HashSet;
 
 use anyhow::bail;
+use formality_core::judgment::ProofTree;
 use formality_prove::Env;
 use formality_rust::grammar::{Adt, AdtBoundData, Field, Variant};
 use formality_types::grammar::Fallible;
 
 impl super::Check<'_> {
-    pub(super) fn check_adt(&self, adt: &Adt) -> Fallible<()> {
-        let Adt { id: _, binder } = adt;
+    pub(super) fn check_adt(&self, adt: &Adt) -> Fallible<ProofTree> {
+        let Adt { id, binder } = adt;
+        let mut proof_tree = ProofTree::leaf(format!("check_adt({id:?})"));
 
         // names is used to check that there are no name conflicts
         let mut names = HashSet::new();
@@ -30,14 +32,20 @@ impl super::Check<'_> {
             variants,
         } = env.instantiate_universally(binder);
 
-        self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?;
+        proof_tree
+            .children
+            .push(self.prove_where_clauses_well_formed(&env, &where_clauses, &where_clauses)?);
 
         for Variant { name: _, fields } in &variants {
             for Field { name: _, ty } in fields {
-                self.prove_goal(&env, &where_clauses, ty.well_formed())?;
+                proof_tree.children.push(self.prove_goal(
+                    &env,
+                    &where_clauses,
+                    ty.well_formed(),
+                )?);
             }
         }
 
-        Ok(())
+        Ok(proof_tree)
     }
 }

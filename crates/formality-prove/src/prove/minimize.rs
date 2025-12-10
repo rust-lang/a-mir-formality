@@ -11,11 +11,42 @@ use super::{Constraints, Env};
 #[cfg(test)]
 mod test;
 
+/// Stores a mapping resulting from [`minimize`][], see that function for detils.
 pub struct Minimization {
     env_max: Env,
     min2max_subst: VarSubstitution,
 }
 
+/// Rewrites the environment given the term so that...
+///
+/// * variables have minimized names starting from `0` based on which appears first
+/// * unused variables that don't appear in the term are removed from the environment.
+///
+/// Returns a [`Minimization`][] which is a mapping from the new variable names *back*
+/// to the old ones. This allows us to translate the result from our minimized variables
+/// back to the names that were being used on entry.
+///
+/// # Why do we do this?
+///
+/// It helps to detect cycles. For example, if you were in the midst of proving
+///
+/// exists<A> { A: Trait }
+///
+/// and that causes you to prove `exists<B> { B: Trait }`, the initial environment
+/// would look like
+///
+/// exists<A, B> { B: Trait}
+///
+/// i.e., the environment contains A and B are existential variables that are in scope.
+/// This does not at first glance appear to be a cycle. But if we apply the same rule
+/// we would next wind up proving `exists<A, B, C> { C: Trait }` and so on, and
+/// never terminate.
+///
+/// Because we minimize it, we see that `exists<A, B> { B: Trait }` is equivalent to
+/// `exists<A> { A: Trait }`, and hence we detect the cycle successfully.
+///
+/// *But* then we have a result that references the variable `A`  and that result must be
+/// translated back to reference the variable `B` in the original context.
 pub fn minimize<T: Term>(env_max: Env, term: T) -> (Env, T, Minimization) {
     let fv = term.free_variables().deduplicate();
 
@@ -114,7 +145,7 @@ impl Minimization {
         }
 
         let Constraints {
-            env: _,
+            env: env_in,
             known_true,
             substitution,
         } = constraints;
@@ -124,6 +155,11 @@ impl Minimization {
                 (env2out_subst.map_var(x).unwrap(), env2out_subst.apply(&p))
             })
             .collect();
+
+        for pending_in in env_in.pending() {
+            env_out = env_out.with_pending(env2out_subst.apply(pending_in));
+        }
+
         Constraints {
             env: env_out,
             known_true,

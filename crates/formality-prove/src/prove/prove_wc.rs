@@ -10,6 +10,7 @@ use crate::{
         prove,
         prove_after::prove_after,
         prove_eq::prove_eq,
+        prove_outlives::prove_outlives,
         prove_sub::prove_sub,
         prove_via::prove_via,
         prove_wf::prove_wf,
@@ -56,14 +57,33 @@ judgment_fn! {
             (prove_wc(decls, env, assumptions, WcData::Relation(goal)) => c)
         )
 
+
+        // This rule is: prove `T: Foo<U>` holds on the basis of an `impl<A,B> Foo<B> for A where WC` impl somewhere.
         (
+            // Get the impl declaration.
             (decls.impl_decls(&trait_ref.trait_id) => i)!
+
+            // Instantiate impl generics with inference variables (in our example, `A => ?A, B => ?B`).
             (let (env, subst) = env.existential_substitution(&i.binder))
             (let i = i.binder.instantiate_with(&subst).unwrap())
+
+            // Instantiate trait where-clauses from `Foo<?B>`. If we had `trait Foo<X: Debug>`, for example,
+            // this would yield `?B: Debug`.
             (let t = decls.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
+
+            // Create a set of assumptions `co_assumptions` that include the predicate the impl itself
+            // is asserting (i.e., `A: Foo<B>`). When proving the impl's where-clauses, we are allowed
+            // to assume this is true (in a coinductive fashion).
+            //
+            // NB: This is actually not what Rust currently does, but it is what "we" (types team) want it to do.
             (let co_assumptions = (&assumptions, &trait_ref))
             (prove(&decls, env, co_assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
             (prove_after(&decls, c, co_assumptions, &i.where_clause) => c)
+
+            // Prove that the well-formedness requirements of the *trait* hold -- for this proof, we cannot
+            // assume that the trait is implemented, because that would allow specious implied bounds
+            // (i.e., we could assume that `B: Debug` based on the trait definition + the existence of an impl,
+            // but actually the impl is responsible for proving that `B: Debug`).
             (prove_after(&decls, c, &assumptions, &t.where_clause) => c)
             ----------------------------- ("positive impl")
             (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
@@ -109,7 +129,7 @@ judgment_fn! {
         )
 
         (
-            (prove_sub(decls, env, assumptions, a, b) => c)
+            (prove_sub(decls, env, assumptions, &a, &b) => c)
             ----------------------------- ("subtype")
             (prove_wc(decls, env, assumptions, WcData::Relation(Relation::Sub(a, b))) => c)
         )
@@ -127,6 +147,12 @@ judgment_fn! {
             (is_local_trait_ref(decls, env, assumptions, trait_ref) => c)
             ----------------------------- ("trait ref is local")
             (prove_wc(decls, env, assumptions, Predicate::IsLocal(trait_ref)) => c)
+        )
+
+        (
+            (prove_outlives(decls, env, assumptions, a, b) => c)
+            ----------------------------- ("outlives")
+            (prove_wc(decls, env, assumptions, Relation::Outlives(a, b)) => c)
         )
 
 

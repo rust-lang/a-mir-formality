@@ -14,27 +14,20 @@ fn u32_not_u32_impls() {
             }
         ]
 
-        [
-            "check_trait_impl",
-            "impl Foo for u32",
-        ]
+        []
 
         expect_test::expect![[r#"
-            check_trait_impl(impl Foo for u32 { })
-
-            Caused by:
-                judgment `negation_via_failure` failed at the following rule(s):
-                  failed at (src/file.rs:LL:CC) because
-                    found an unconditionally true solution Constraints { env: Env { variables: [], bias: Completeness, pending: [] }, known_true: true, substitution: {} }"#]]
+            failed at (negation.rs) because
+              found an unconditionally true solution Constraints { env: Env { variables: [], bias: Completeness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }"#]]
     )
 }
 
 #[test]
 fn neg_CoreTrait_for_CoreStruct_implies_no_overlap() {
     crate::assert_ok!(
-        //@check-pass
-        // Variant of foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait
-        // where there is a negative impl, so it is accepted.
+
+
+
         [
             crate core {
                 trait CoreTrait {}
@@ -47,8 +40,6 @@ fn neg_CoreTrait_for_CoreStruct_implies_no_overlap() {
                 impl FooTrait for CoreStruct {}
             }
         ]
-
-        expect_test::expect!["()"]
     )
 }
 
@@ -103,7 +94,7 @@ fn T_where_Foo_not_u32_impls() {
             check_trait_impl(impl <ty> Foo for ^ty0_0 where ^ty0_0 : Foo { })
 
             Caused by:
-                failed to prove {! Foo(!ty_1)} given {Foo(!ty_1)}, got {Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [] }, known_true: false, substitution: {} }}"#]]
+                failed to prove {! Foo(!ty_1)} given {Foo(!ty_1)}, got [Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]"#]]
     )
 }
 
@@ -137,12 +128,12 @@ fn u32_T_where_T_Is_impls() {
 #[test]
 fn u32_T_where_T_Not_impls() {
     crate::assert_ok!(
-        //@check-pass
 
-        // Test that, within a crate, we are able to rely on the fact
-        // that `u32: Not` is not implemented.
-        //
-        // See also test_foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait
+
+
+
+
+
         [
             crate core {
                 trait Foo {}
@@ -152,8 +143,6 @@ fn u32_T_where_T_Not_impls() {
                 trait Not {}
             }
         ]
-
-        expect_test::expect!["()"]
     )
 }
 
@@ -179,7 +168,7 @@ fn u32_u32_impls() {
 #[test]
 fn u32_i32_impls() {
     crate::assert_ok!(
-        //@check-pass
+
         [
             crate core {
                 trait Foo {}
@@ -187,8 +176,6 @@ fn u32_i32_impls() {
                 impl Foo for i32 {}
             }
         ]
-
-        expect_test::expect!["()"]
     )
 }
 
@@ -293,8 +280,6 @@ fn is_local_unknowable_trait_ref() {
                 impl<ty T> Overlap<LocalType> for () {}
             }
         ]
-
-        expect_test::expect!["()"]
     }
 }
 

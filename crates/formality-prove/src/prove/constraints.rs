@@ -93,6 +93,8 @@ impl Constraints {
     pub fn seq(&self, c2: impl Upcast<Constraints>) -> Constraints {
         let c2: Constraints = c2.upcast();
 
+        tracing::debug!("Constraints::seq({self:?}, {c2:?}");
+
         self.assert_valid();
         c2.assert_valid();
         assert!(c2.is_valid_extension_of(&self.env));

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use anyhow::bail;
+
 use crate::collections::Set;
 
 pub trait To {
@@ -44,6 +46,21 @@ pub trait Downcast: Sized {
     fn downcast<T>(&self) -> Option<T>
     where
         T: DowncastFrom<Self>;
+
+    fn downcast_err<T>(&self) -> anyhow::Result<T>
+    where
+        T: DowncastFrom<Self>,
+    {
+        let Some(value) = self.downcast() else {
+            bail!(
+                "downcasting from `{}` to `{}` failed",
+                std::any::type_name::<Self>(),
+                std::any::type_name::<T>()
+            )
+        };
+
+        Ok(value)
+    }
 
     fn is_a<T>(&self) -> bool
     where
@@ -167,6 +184,22 @@ where
         let b = DowncastFrom::downcast_from(b1)?;
         let c = DowncastFrom::downcast_from(c1)?;
         Some((a, b, c))
+    }
+}
+
+impl<A, B, T> DowncastFrom<Vec<T>> for (A, B)
+where
+    A: DowncastFrom<T>,
+    B: DowncastFrom<T>,
+{
+    fn downcast_from(term: &Vec<T>) -> Option<Self> {
+        if term.len() != 2 {
+            return None;
+        }
+
+        let a = &term[0];
+        let b = &term[1];
+        Some((a.downcast()?, b.downcast()?))
     }
 }
 

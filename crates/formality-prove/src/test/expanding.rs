@@ -17,9 +17,5 @@ fn decls() -> Decls {
 /// There is no U that is equal to all T.
 #[test]
 fn expanding() {
-    test_prove(decls(), term("exists<ty T> {} => {Debug(T)}")).assert_ok(expect![[r#"
-        {
-          Constraints { env: Env { variables: [?ty_0], bias: Soundness, pending: [] }, known_true: false, substitution: {} },
-        }
-    "#]]);
+    test_prove(decls(), term("exists<ty T> {} => {Debug(T)}")).assert_ok(expect!["{Constraints { env: Env { variables: [?ty_0], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }}"]);
 }

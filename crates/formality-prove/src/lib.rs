@@ -15,6 +15,7 @@ mod decls;
 mod prove;
 
 pub use decls::*;
+pub use prove::combinators;
 pub use prove::prove;
 pub use prove::prove_normalize::prove_normalize;
 pub use prove::Constraints;
