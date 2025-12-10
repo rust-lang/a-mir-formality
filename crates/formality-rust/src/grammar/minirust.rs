@@ -48,7 +48,7 @@ id!(FieldId);
 /// So a Rust function like
 ///
 /// ```rust,ignore
-/// fn pick<'a>(x: &'a (u32, u32)) - &'a u32 { let tmp = &x.0; tmp }
+/// fn pick<'a>(x: &'a (u32, u32)) -> &'a u32 { let tmp = &x.0; tmp }
 /// ```
 ///
 /// might wind up with MIR like this -- note the `r0` and `r1`
