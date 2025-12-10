@@ -480,7 +480,7 @@ judgment_fn! {
 
             // The new loan that we are creating
             (let loan = Loan::new(&lt, &place, RefKind::Shared))
-            --- ("struct")
+            --- ("ref")
             (loans_in_value_expression_respected(env, assumptions, loans_live, ValueExpression::Ref(lt, place), places_live) => Cons(loan, &loans_live))
         )
     }
