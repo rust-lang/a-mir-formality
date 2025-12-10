@@ -884,6 +884,144 @@ fn mutable_ref_prevents_mutation() {
     )
 }
 
+
+/// Test the holding a shared reference to a local
+/// integer variable prevents it from being incremented.
+///
+/// The test is equivalent to:
+/// ```rust,ignore
+/// fn min_problem_case_3(m: &mut Map) -> &mut Map {
+///     let n: &mut Map = &mut *m;
+///     if some_condition() {
+///         return n;
+///     } else {
+///         let o: &mut Map = &mut *m;
+///         return o;
+///     }
+/// }
+/// ```
+#[test]
+fn min_problem_case_3() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Map { }
+
+                fn min_problem_case_3<lt a>(&mut a Map) -> &mut a Map        
+                = minirust(m) -> ret {
+                    let ret: &mut a Map;
+                    let m: &mut a Map;
+
+                    exists<lt r0, lt r1> {
+                        let n: &mut r0 Map;
+                        let o: &mut r1 Map;
+
+                        bb0: {
+                            statements {
+                                local(n) = &mut r0 *(local(m));
+                            }
+                            goto bb1, bb2;
+                        }
+
+                        bb1: {
+                            statements {
+                                local(ret) = load(local(n));
+                            }
+                            return;
+                        }
+
+                        bb2: {
+                            statements {
+                                local(o) = &mut r1 *(local(m));
+                                local(ret) = load(local(o));
+                            }
+                            return;
+                        }
+                    }
+                };
+            }
+        ]
+
+        [
+        ]
+
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(local(m))
+                &access.place = *(local(m))
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluted to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.data()
+                  {
+                      LtData::Static => false, LtData::Variable(Variable::UniversalVar(_))
+                      => false, LtData::Variable(Variable::ExistentialVar(_)) => true,
+                      LtData::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"),
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`"#]]
+    )
+}
+
+
+/// Test the holding a shared reference to a local
+/// integer variable prevents it from being incremented.
+///
+/// The test is equivalent to:
+/// ```rust,ignore
+/// fn min_problem_case_3(m: &mut Map) -> &mut Map {
+///     let n: &mut Map = &mut *m;
+///     if some_condition() {
+///     }
+///     let o: &mut Map = &mut *m;
+///     return o;
+/// }
+/// ```
+#[test]
+fn too_min_problem_case_3() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                struct Map { }
+
+                fn min_problem_case_3<lt a>(&mut a Map) -> &mut a Map        
+                = minirust(m) -> ret {
+                    let ret: &mut a Map;
+                    let m: &mut a Map;
+
+                    exists<lt r0, lt r1> {
+                        let n: &mut r0 Map;
+                        let o: &mut r1 Map;
+
+                        bb0: {
+                            statements {
+                                local(n) = &mut r0 *(local(m));
+                            }
+                            goto bb1, bb2;
+                        }
+
+                        bb1: {
+                            statements {
+                            }
+                            goto bb2;
+                        }
+
+                        bb2: {
+                            statements {
+                                local(o) = &mut r1 *(local(m));
+                                local(ret) = load(local(o));
+                            }
+                            return;
+                        }
+                    }
+                };
+            }
+        ]
+    )
+}
+
 /// Upcasting from `'a` to `'b` errors because
 /// there is no declared relationship.
 #[formality_core::test]
