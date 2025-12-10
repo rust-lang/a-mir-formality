@@ -884,7 +884,6 @@ fn mutable_ref_prevents_mutation() {
     )
 }
 
-
 /// Test the holding a shared reference to a local
 /// integer variable prevents it from being incremented.
 ///
@@ -907,7 +906,7 @@ fn min_problem_case_3() {
             crate Foo {
                 struct Map { }
 
-                fn min_problem_case_3<lt a>(&mut a Map) -> &mut a Map        
+                fn min_problem_case_3<lt a>(&mut a Map) -> &mut a Map
                 = minirust(m) -> ret {
                     let ret: &mut a Map;
                     let m: &mut a Map;
@@ -965,7 +964,6 @@ fn min_problem_case_3() {
     )
 }
 
-
 /// Test the holding a shared reference to a local
 /// integer variable prevents it from being incremented.
 ///
@@ -986,7 +984,7 @@ fn too_min_problem_case_3() {
             crate Foo {
                 struct Map { }
 
-                fn min_problem_case_3<lt a>(&mut a Map) -> &mut a Map        
+                fn min_problem_case_3<lt a>(&mut a Map) -> &mut a Map
                 = minirust(m) -> ret {
                     let ret: &mut a Map;
                     let m: &mut a Map;
@@ -1055,7 +1053,6 @@ fn undeclared_universal_region_relationship() {
     )
 }
 
-
 /// Upcasting from `'a` to `'b` is allowed because
 /// there is a declared relationship.
 #[formality_core::test]
@@ -1086,7 +1083,6 @@ fn declared_universal_region_relationship() {
         ]
     )
 }
-
 
 /// Upcasting from `'a` to `'c` should be allowed because of
 /// the transitive relationship.
@@ -1155,8 +1151,6 @@ fn undeclared_transitive_universal_region_relationship() {
         expect_test::expect!["judgment had no applicable rules: `prove { goal: {&!lt_1 u32 <: &!lt_2 u32}, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: decls(222, [], [], [], [], [], [], {}, {}) }`"]
     )
 }
-
-
 
 /// Test ref and deref
 /// FIXME(tiif): This is not implemented yet

@@ -210,7 +210,7 @@ pub enum ValueExpression {
     #[grammar(load($v0))]
     Load(PlaceExpression),
 
-    // NB: We diverge from MiniRust here. In MiniRust, 
+    // NB: We diverge from MiniRust here. In MiniRust,
     // AddrOf is used to create pointers/references and other things,
     // depending on the [PtrType], but that does not include
     // lifetimes or other information we need.
@@ -218,7 +218,6 @@ pub enum ValueExpression {
     // [PtrType]: https://github.com/minirust/minirust/blob/master/spec/mem/pointer.md
     #[grammar(&$?v0 $v1 $v2)]
     Ref(RefKind, Lt, PlaceExpression),
-
     // AddrOf
     // UnOp
     // BinOp
