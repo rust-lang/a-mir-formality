@@ -212,9 +212,10 @@ pub enum ValueExpression {
     // Similar to AddrOf in MiniRust, but we don't deal with other
     // pointer type such as raw pointer and box yet.
     #[grammar(&$v0 $v1)]
-    Ref(Lt, PlaceExpression), // AddrOf
-                              // UnOp
-                              // BinOp
+    Ref(Lt, PlaceExpression),
+    // AddrOf
+    // UnOp
+    // BinOp
 }
 
 #[term]
