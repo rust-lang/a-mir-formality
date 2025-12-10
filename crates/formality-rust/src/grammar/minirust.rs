@@ -144,8 +144,8 @@ pub enum Statement {
 /// Based on [MiniRust terminators](https://github.com/minirust/minirust/blob/9ae11cc202d040f08bc13ec5254d3d41d5f3cc25/spec/lang/syntax.md#statements-terminators).
 #[term]
 pub enum Terminator {
-    #[grammar(goto $v0)]
-    Goto(BbId),
+    #[grammar(goto $,v0)]
+    Goto(Vec<BbId>),
 
     // Suggestion: try list of a pair, or list of a struct?
     #[grammar(switch($switch_value) -> $[switch_targets] otherwise: $fallback)]

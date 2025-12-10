@@ -211,9 +211,18 @@ impl TypeckEnv {
             ProofTree::new(format!("check_terminator({terminator:?})"), None, vec![]);
 
         match terminator {
-            minirust::Terminator::Goto(bb_id) => {
+            minirust::Terminator::Goto(bb_ids) => {
                 // Check that the basic block `bb_id` exists.
-                self.check_block_exists(bb_id)?;
+                for bb_id in bb_ids {
+                    self.check_block_exists(bb_id)?;
+                }
+
+                if bb_ids.len() == 0 {
+                    // Idle thought that will be lost to the sands of time:
+                    //
+                    // Maybe we should allow this but it must be dead code or unreachable or something?!
+                    bail!("Terminator::Goto must have at least one target basic block.")
+                }
             }
             minirust::Terminator::Call {
                 callee,

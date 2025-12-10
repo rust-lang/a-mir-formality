@@ -273,9 +273,10 @@ judgment_fn! {
         debug(loans_live_on_entry, terminator, fn_assumptions, env)
 
         (
-            (loans_in_basic_block_respected(env, assumptions, loans_live, bb) => ())
+            (for_all(bb in &bb_ids)
+                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, bb) => ()))
             --- ("goto")
-            (loans_in_terminator_respected(env, assumptions, loans_live, Terminator::Goto(bb)) => ())
+            (loans_in_terminator_respected(env, assumptions, loans_live, Terminator::Goto(bb_ids)) => ())
         )
 
         (
