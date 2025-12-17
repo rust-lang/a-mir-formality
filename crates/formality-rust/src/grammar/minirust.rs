@@ -144,6 +144,12 @@ pub enum Statement {
 /// Based on [MiniRust terminators](https://github.com/minirust/minirust/blob/9ae11cc202d040f08bc13ec5254d3d41d5f3cc25/spec/lang/syntax.md#statements-terminators).
 #[term]
 pub enum Terminator {
+    // Nondeterminstically jump to one of the given blocks.
+    //
+    // In practice, the compiler "is very very likely" to always
+    // select the first one. But the static analysis does not rely on that.
+    //
+    // NB: Diverges from MiniRust
     #[grammar(goto $,v0)]
     Goto(Vec<BbId>),
 
