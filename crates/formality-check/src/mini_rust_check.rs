@@ -102,7 +102,6 @@ impl Check<'_> {
             local_variables,
             blocks: blocks.clone(),
             ret_id: body.ret,
-            ret_place_is_initialised: false,
             declared_input_tys,
             crate_id: crate_id.clone(),
             fn_args: body.args.clone(),
@@ -170,10 +169,10 @@ impl TypeckEnv {
                     Relation::sub(value_ty, place_ty),
                 )?);
 
-                // Record if the return place has been initialised.
-                if *place_expression == PlaceExpression::Local(self.ret_id.clone()) {
-                    self.ret_place_is_initialised = true;
-                }
+                // TODO: Record if the return place has been initialised (filed as issue)
+                // if *place_expression == PlaceExpression::Local(self.ret_id.clone()) {
+                //     self.ret_place_is_initialised = true;
+                // }
             }
             minirust::Statement::PlaceMention(place_expression) => {
                 // Check if the place expression is well-formed.
@@ -300,10 +299,10 @@ impl TypeckEnv {
                 };
             }
             minirust::Terminator::Return => {
-                // Check if the return local variable has been initialized
-                if !self.ret_place_is_initialised {
-                    bail!("The return local variable has not been initialized.")
-                }
+                // TODO: Check if the return local variable has been initialized (filed as issue)
+                // if !self.ret_place_is_initialised {
+                //     bail!("The return local variable has not been initialized.")
+                // }
             }
 
             minirust::Terminator::Switch {
@@ -605,9 +604,6 @@ pub struct TypeckEnv {
 
     /// local_id of return place,
     pub ret_id: LocalId,
-
-    /// Record if the return place has been initialised.
-    pub ret_place_is_initialised: bool,
 
     /// All declared argument type of current function.
     pub declared_input_tys: Vec<Ty>,
