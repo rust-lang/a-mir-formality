@@ -964,8 +964,8 @@ fn min_problem_case_3() {
     )
 }
 
-/// Test the holding a shared reference to a local
-/// integer variable prevents it from being incremented.
+/// A variant of Problem Case #3 which actually passes NLL
+/// it doesn't exercise the interesting path.
 ///
 /// The test is equivalent to:
 /// ```rust,ignore
