@@ -11,9 +11,9 @@ use formality_rust::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
 use formality_rust::grammar::minirust::{BodyBound, PlaceExpression::*};
-use formality_rust::grammar::{FnBoundData, Program};
+use formality_rust::grammar::{Program};
 use formality_types::grammar::{
-    AdtId, Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId,
+    AdtId, Binder, CrateId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId,
     Wcs,
 };
 use formality_types::rust::Fold;
@@ -104,7 +104,6 @@ impl Check<'_> {
             ret_id: body.ret,
             ret_place_is_initialised: false,
             declared_input_tys,
-            callee_input_tys: Map::new(),
             crate_id: crate_id.clone(),
             fn_args: body.args.clone(),
             pending_outlives: vec![],
@@ -232,16 +231,40 @@ impl TypeckEnv {
                 next_block,
             } => {
                 // Function is part of the value expression, so we will check if the function exists in check_value.
-                let (_callee_ty, callee_pt) = self.check_value(fn_assumptions, callee)?;
+                let (callee_ty, callee_pt) = self.check_value(fn_assumptions, callee)?;
                 proof_tree.children.push(callee_pt);
 
-                // Get argument information from the callee.
-                let Fn(callee_fn_id) = callee else {
+                // Get argument information from the callee type.
+                let Fn(_callee_fn_id) = callee else {
                     unreachable!("Callee must exists in Terminator::Call");
                 };
 
-                let callee_fn_bound_data = self.callee_input_tys.get(callee_fn_id).unwrap();
-                let callee_declared_input_tys = callee_fn_bound_data.input_tys.clone();
+                // Extract function signature from FnDef type
+                let TyData::RigidTy(rigid_ty) = callee_ty.data() else {
+                    bail!("Expected FnDef type for function value");
+                };
+                let RigidName::FnDef(fn_id) = &rigid_ty.name else {
+                    bail!("Expected FnDef type for function value");
+                };
+                
+                // Find the function declaration to get the signature
+                let curr_crate = self
+                    .program
+                    .crates
+                    .iter()
+                    .find(|c| c.id == self.crate_id)
+                    .unwrap();
+                
+                let fn_declared = curr_crate.items.iter().find_map(|item| {
+                    match item {
+                        CrateItem::Fn(fn_declared) if fn_declared.id == *fn_id => Some(fn_declared),
+                        _ => None,
+                    }
+                }).unwrap();
+                
+                let fn_bound_data = self.env.instantiate_universally(&fn_declared.binder);
+                let callee_declared_input_tys = fn_bound_data.input_tys.clone();
+                
                 // Check if the numbers of arguments passed equals to number of arguments declared.
                 if callee_declared_input_tys.len() != actual_arguments.len() {
                     bail!("Function arguments number mismatch: the number expected is {:?}, the actual number is {:?}", callee_declared_input_tys.len(), actual_arguments.len());
@@ -268,7 +291,7 @@ impl TypeckEnv {
                 proof_tree.children.push(self.prove_goal(
                     Location,
                     fn_assumptions,
-                    Relation::sub(&self.output_ty, &actual_return_ty),
+                    Relation::sub(&fn_bound_data.output_ty, &actual_return_ty),
                 )?);
 
                 // Check the validity of next bb_id.
@@ -445,28 +468,22 @@ impl TypeckEnv {
                     .unwrap();
 
                 // Find the callee from current crate.
-                let callee = curr_crate.items.iter().find(|item| {
+                let fn_declared = curr_crate.items.iter().find_map(|item| {
                     match item {
-                        CrateItem::Fn(fn_declared) => {
-                            if fn_declared.id == *fn_id {
-                                let fn_bound_data =
-                                    self.env.instantiate_universally(&fn_declared.binder);
-                                // Store the callee information in typeck_env, we will need this when type checking Terminator::Call.
-                                self.callee_input_tys
-                                    .insert(fn_declared.id.clone(), fn_bound_data);
-                                return true;
-                            }
-                            false
-                        }
-                        _ => false,
+                        CrateItem::Fn(fn_declared) if fn_declared.id == *fn_id => Some(fn_declared),
+                        _ => None,
                     }
                 });
 
-                // If the callee is not found, return error.
-                if callee.is_none() {
+                let Some(fn_declared) = fn_declared else {
                     bail!("The function called is not declared in current crate")
-                }
-                value_ty = self.output_ty.clone();
+                };
+
+                // Return FnDef type
+                value_ty = Ty::rigid(
+                    RigidName::FnDef(fn_declared.id.clone()),
+                    Vec::<Parameter>::new(), // TODO: should extract parameters from binder
+                );
             }
             Constant(constant) => {
                 // If the actual value overflows / does not match the type of the constant,
@@ -594,9 +611,6 @@ pub struct TypeckEnv {
 
     /// All declared argument type of current function.
     pub declared_input_tys: Vec<Ty>,
-
-    /// All information of callee.
-    pub callee_input_tys: Map<FnId, FnBoundData>,
 
     /// The id of the crate where this function resides.
     /// We need this to access information about other functions
