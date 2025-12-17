@@ -139,9 +139,10 @@ pub fn borrow_check(env: &TypeckEnv, fn_assumptions: &Wcs) -> Fallible<ProofTree
 
     // Verify that all pending outlives between universal lifetime variables
     // can be proven from the fn_assumptions.
+    let pending_outlives_set: Set<PendingOutlives> = env.pending_outlives.iter().cloned().collect();
     proof_tree
         .children
-        .push(verify_universal_outlives(env, fn_assumptions).check_proven()?);
+        .push(verify_universal_outlives(env, fn_assumptions, &pending_outlives_set).check_proven()?);
 
     // Start the check from the entry block.
     //
@@ -152,7 +153,7 @@ pub fn borrow_check(env: &TypeckEnv, fn_assumptions: &Wcs) -> Fallible<ProofTree
     };
 
     proof_tree.children.push(
-        loans_in_basic_block_respected(env, fn_assumptions, (), &start_bb.id).check_proven()?,
+        loans_in_basic_block_respected(env, fn_assumptions, (), &pending_outlives_set, &start_bb.id).check_proven()?,
     );
     Ok(proof_tree)
 }
@@ -163,14 +164,15 @@ judgment_fn! {
     fn verify_universal_outlives(
         env: TypeckEnv,
         fn_assumptions: Wcs,
+        outlives: Set<PendingOutlives>,
     ) => () {
-        debug(env, fn_assumptions)
+        debug(env, fn_assumptions, outlives)
 
         (
             (for_all(v in env.env.variables())
-                (only_assumed_outlives(&env, &fn_assumptions, *v) => ()))
+                (only_assumed_outlives(&env, &fn_assumptions, &outlives, *v) => ()))
             --- ("verify_universal_outlives")
-            (verify_universal_outlives(env, fn_assumptions) => ())
+            (verify_universal_outlives(env, fn_assumptions, outlives) => ())
         )
     }
 }
@@ -181,24 +183,25 @@ judgment_fn! {
     fn only_assumed_outlives(
         env: TypeckEnv,
         fn_assumptions: Wcs,
+        outlives: Set<PendingOutlives>,
         v: Variable,
     ) => () {
-        debug(env, fn_assumptions, v)
+        debug(env, fn_assumptions, outlives, v)
 
         // Non-universal variables (existentials) - trivially succeed
         (
             (if v.is_existential())!
             --- ("existential")
-            (only_assumed_outlives(_env, _fn_assumptions, v) => ())
+            (only_assumed_outlives(_env, _fn_assumptions, _outlives, v) => ())
         )
 
         // Universal lifetime variables - check all transitively outlived
         (
             (if v.is_universal())!
             (for_all(param in transitively_outlived_by(&env, &v))
-                (can_outlive(&env, &fn_assumptions, &v, param) => ()))
+                (can_outlive(&env, &fn_assumptions, &outlives, &v, param) => ()))
             --- ("universal lifetime")
-            (only_assumed_outlives(env, fn_assumptions, v) => ())
+            (only_assumed_outlives(env, fn_assumptions, outlives, v) => ())
         )
     }
 }
@@ -210,10 +213,11 @@ judgment_fn! {
     fn can_outlive(
         env: TypeckEnv,
         fn_assumptions: Wcs,
+        outlives: Set<PendingOutlives>,
         param_a: Parameter,
         param_b: Parameter,
     ) => () {
-        debug(param_a, param_b, fn_assumptions, env)
+        debug(param_a, param_b, fn_assumptions, env, outlives)
 
         trivial(param_a == param_b => ())
 
@@ -221,7 +225,7 @@ judgment_fn! {
         (
             (if var_b.is_existential())!
             --- ("existential target")
-            (can_outlive(_env, _fn_assumptions, _param_a, var_b: Variable) => ())
+            (can_outlive(_env, _fn_assumptions, _outlives, _param_a, var_b: Variable) => ())
         )
 
         // Prove that T: !a -- must prove from assumptions
@@ -230,7 +234,7 @@ judgment_fn! {
             (prove(env.decls, env.env, fn_assumptions, Relation::outlives(param_a, var_b)) => c)
             (if c.unconditionally_true())
             --- ("universal target")
-            (can_outlive(env, fn_assumptions, param_a, var_b: Variable) => ())
+            (can_outlive(env, fn_assumptions, outlives, param_a, var_b: Variable) => ())
         )
     }
 }
@@ -241,9 +245,10 @@ judgment_fn! {
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
+        outlives: Set<PendingOutlives>,
         bb_id: BbId,
     ) => () {
-        debug(loans_live_on_entry, bb_id, fn_assumptions, env)
+        debug(loans_live_on_entry, bb_id, fn_assumptions, env, outlives)
 
         (
             (let BasicBlock { id: _, statements, terminator } = env.basic_block(&bb_id)?)
@@ -252,12 +257,13 @@ judgment_fn! {
                 (loans_in_statement_respected(&env,
                     &fn_assumptions,
                     loans_live,
+                    &outlives,
                     &statements[i],
                     &statements[i+1..].live_before(&env, &places_live_before_terminator),
                 ) => loans_live))
-            (loans_in_terminator_respected(&env, &fn_assumptions, loans_live, &terminator) => ())
+            (loans_in_terminator_respected(&env, &fn_assumptions, loans_live, &outlives, &terminator) => ())
             --- ("basic block")
-            (loans_in_basic_block_respected(env, fn_assumptions, loans_live, bb_id) => ())
+            (loans_in_basic_block_respected(env, fn_assumptions, loans_live, outlives, bb_id) => ())
         )
     }
 }
@@ -268,15 +274,16 @@ judgment_fn! {
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
+        outlives: Set<PendingOutlives>,
         terminator: Terminator,
     ) => () {
-        debug(loans_live_on_entry, terminator, fn_assumptions, env)
+        debug(loans_live_on_entry, terminator, fn_assumptions, env, outlives)
 
         (
             (for_all(bb in &bb_ids)
-                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, bb) => ()))
+                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, &outlives, bb) => ()))
             --- ("goto")
-            (loans_in_terminator_respected(env, assumptions, loans_live, Terminator::Goto(bb_ids)) => ())
+            (loans_in_terminator_respected(env, assumptions, loans_live, outlives, Terminator::Goto(bb_ids)) => ())
         )
 
         (
@@ -287,16 +294,16 @@ judgment_fn! {
                 .cloned()
                 .collect())
             (let places_live = places_live_before_basic_blocks(&env, &successors))
-            (loans_in_value_expression_respected(&env, &assumptions, loans_live, switch_value, places_live) => loans_live)
+            (loans_in_value_expression_respected(&env, &assumptions, loans_live, &outlives, switch_value, places_live) => loans_live)
             (for_all(successor in &successors)
-                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, successor) => ()))
+                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, &outlives, successor) => ()))
             --- ("switch")
-            (loans_in_terminator_respected(env, assumptions, loans_live, Terminator::Switch { switch_value, switch_targets, fallback }) => ())
+            (loans_in_terminator_respected(env, assumptions, loans_live, outlives, Terminator::Switch { switch_value, switch_targets, fallback }) => ())
         )
 
         (
             --- ("return")
-            (loans_in_terminator_respected(_env, _assumptions, _loans_live, Terminator::Return) => ())
+            (loans_in_terminator_respected(_env, _assumptions, _loans_live, _outlives, Terminator::Return) => ())
         )
 
         (
@@ -306,6 +313,7 @@ judgment_fn! {
                 &env,
                 &assumptions,
                 loans_live,
+                &outlives,
                 callee,
                 (&arguments, Assignment(&ret)).live_before(&env, &places_live),
             ) => loans_live)
@@ -314,6 +322,7 @@ judgment_fn! {
                 &env,
                 &assumptions,
                 loans_live,
+                &outlives,
                 &arguments,
                 Assignment(&ret).live_before(&env, &places_live),
             ) => loans_live)
@@ -321,9 +330,9 @@ judgment_fn! {
             // here `ret` would be assigned
 
             (for_all(next_block in next_block.iter())
-                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, next_block) => ()))
+                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, &outlives, next_block) => ()))
             --- ("call")
-            (loans_in_terminator_respected(env, assumptions, loans_live, Terminator::Call { callee, generic_arguments: _, arguments, ret, next_block }) => ())
+            (loans_in_terminator_respected(env, assumptions, loans_live, outlives, Terminator::Call { callee, generic_arguments: _, arguments, ret, next_block }) => ())
         )
     }
 }
@@ -334,28 +343,29 @@ judgment_fn! {
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
+        outlives: Set<PendingOutlives>,
         statement: Statement,
         places_live_on_exit: LivePlaces,
     ) => Set<Loan> {
-        debug(loans_live_on_entry, statement, places_live_on_exit, fn_assumptions, env)
+        debug(loans_live_on_entry, statement, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
             // does not issue any loans
             --- ("storage-live")
-            (loans_in_statement_respected(_env, _assumptions, loans_live, Statement::StorageLive(_), _places_live) => loans_live)
+            (loans_in_statement_respected(_env, _assumptions, loans_live, _outlives, Statement::StorageLive(_), _places_live) => loans_live)
         )
 
         (
             // does not issue any loans
             --- ("storage-dead")
-            (loans_in_statement_respected(_env, _assumptions, loans_live, Statement::StorageDead(_), _places_live) => loans_live)
+            (loans_in_statement_respected(_env, _assumptions, loans_live, _outlives, Statement::StorageDead(_), _places_live) => loans_live)
         )
 
         (
             // FIXME: Is `AccessKind::Read` correct?
-            (access_permitted_by_loans(env, assumptions, &loans_live, Access { kind: AccessKind::Read, place: place_accessed }, places_live) => ())
+            (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access { kind: AccessKind::Read, place: place_accessed }, places_live) => ())
             --- ("place-mention")
-            (loans_in_statement_respected(_env, assumptions, loans_live, Statement::PlaceMention(place_accessed), places_live) => &loans_live)
+            (loans_in_statement_respected(_env, assumptions, loans_live, _outlives, Statement::PlaceMention(place_accessed), places_live) => &loans_live)
         )
 
         (
@@ -363,6 +373,7 @@ judgment_fn! {
                 &env,
                 &assumptions,
                 loans_live,
+                &outlives,
                 &value_rhs,
                 Assignment(&place_lhs).live_before(&env, &places_live),
             ) => loans_live)
@@ -371,11 +382,12 @@ judgment_fn! {
                 &env,
                 &assumptions,
                 &loans_live,
+                &outlives,
                 Access::new(AccessKind::Write, &place_lhs),
                 &places_live,
             ) => ())
             --- ("assign")
-            (loans_in_statement_respected(env, assumptions, loans_live, Statement::Assign(place_lhs, value_rhs), places_live) => &loans_live)
+            (loans_in_statement_respected(env, assumptions, loans_live, outlives, Statement::Assign(place_lhs, value_rhs), places_live) => &loans_live)
         )
     }
 }
@@ -386,17 +398,18 @@ judgment_fn! {
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
+        outlives: Set<PendingOutlives>,
         values: Vec<ArgumentExpression>,
         places_live_on_exit: LivePlaces,
     ) => Set<Loan> {
-        debug(loans_live_on_entry, values, places_live_on_exit, fn_assumptions, env)
+        debug(loans_live_on_entry, values, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
             (for_all(i in 0..values.len()) with(loans_live)
-                (loans_in_argument_expression_respected(&env, &assumptions, loans_live, &values[i],
+                (loans_in_argument_expression_respected(&env, &assumptions, loans_live, &outlives, &values[i],
                     &values[i+1..].live_before(&env, &places_live)) => loans_live))
             --- ("loans_in_argument_expressions_respected")
-            (loans_in_argument_expressions_respected(env, assumptions, loans_live, values, places_live) => loans_live)
+            (loans_in_argument_expressions_respected(env, assumptions, loans_live, outlives, values, places_live) => loans_live)
         )
     }
 }
@@ -407,21 +420,22 @@ judgment_fn! {
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
+        outlives: Set<PendingOutlives>,
         value: ArgumentExpression,
         places_live_on_exit: LivePlaces,
     ) => Set<Loan> {
-        debug(loans_live_on_entry, value, places_live_on_exit, fn_assumptions, env)
+        debug(loans_live_on_entry, value, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
-            (access_permitted_by_loans(env, assumptions, &loans_live, Access::new(AccessKind::Move, expr), places_live) => ())
+            (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access::new(AccessKind::Move, expr), places_live) => ())
             --- ("in-place")
-            (loans_in_argument_expression_respected(env, assumptions, loans_live, ArgumentExpression::InPlace(expr), places_live) => &loans_live)
+            (loans_in_argument_expression_respected(env, assumptions, loans_live, outlives, ArgumentExpression::InPlace(expr), places_live) => &loans_live)
         )
 
         (
-            (loans_in_value_expression_respected(env, assumptions, loans_live, expr, places_live) => loans_live)
+            (loans_in_value_expression_respected(env, assumptions, loans_live, &outlives, expr, places_live) => loans_live)
             --- ("by-value")
-            (loans_in_argument_expression_respected(env, assumptions, loans_live, ArgumentExpression::ByValue(expr), places_live) => loans_live)
+            (loans_in_argument_expression_respected(env, assumptions, loans_live, outlives, ArgumentExpression::ByValue(expr), places_live) => loans_live)
         )
     }
 }
@@ -432,17 +446,18 @@ judgment_fn! {
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
+        outlives: Set<PendingOutlives>,
         values: Vec<ValueExpression>,
         places_live_on_exit: LivePlaces,
     ) => Set<Loan> {
-        debug(loans_live_on_entry, values, places_live_on_exit, fn_assumptions, env)
+        debug(loans_live_on_entry, values, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
             (for_all(i in 0..values.len()) with(loans_live)
-                (loans_in_value_expression_respected(&env, &assumptions, loans_live, &values[i],
+                (loans_in_value_expression_respected(&env, &assumptions, loans_live, &outlives, &values[i],
                     &values[i+1..].live_before(&env, &places_live)) => loans_live))
             --- ("loans_in_value_expressions_respected")
-            (loans_in_value_expressions_respected(env, assumptions, loans_live, values, places_live) => loans_live)
+            (loans_in_value_expressions_respected(env, assumptions, loans_live, outlives, values, places_live) => loans_live)
         )
     }
 }
@@ -453,46 +468,47 @@ judgment_fn! {
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
+        outlives: Set<PendingOutlives>,
         value: ValueExpression,
         places_live_on_exit: LivePlaces,
     ) => Set<Loan> {
-        debug(loans_live_on_entry, value, places_live_on_exit, fn_assumptions, env)
+        debug(loans_live_on_entry, value, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
             --- ("constant-or-fn")
-            (loans_in_value_expression_respected(_env, _assumptions, loans_live, ValueExpression::Constant(_) | ValueExpression::Fn(_), _places_live) => loans_live)
+            (loans_in_value_expression_respected(_env, _assumptions, loans_live, _outlives, ValueExpression::Constant(_) | ValueExpression::Fn(_), _places_live) => loans_live)
         )
 
         (
-            (access_permitted_by_loans(&env, &assumptions, &loans_live, Access::new(AccessKind::Read, &place), places_live) => ())
+            (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Read, &place), places_live) => ())
             --- ("load")
-            (loans_in_value_expression_respected(env, assumptions, loans_live, ValueExpression::Load(place), places_live) => &loans_live)
+            (loans_in_value_expression_respected(env, assumptions, loans_live, outlives, ValueExpression::Load(place), places_live) => &loans_live)
         )
 
         (
-            (loans_in_value_expressions_respected(env, assumptions, loans_live, fields, places_live) => loans_live)
+            (loans_in_value_expressions_respected(env, assumptions, loans_live, &outlives, fields, places_live) => loans_live)
             --- ("struct")
-            (loans_in_value_expression_respected(env, assumptions, loans_live, ValueExpression::Struct(fields, _ty), places_live) => loans_live)
+            (loans_in_value_expression_respected(env, assumptions, loans_live, outlives, ValueExpression::Struct(fields, _ty), places_live) => loans_live)
         )
 
         (
             // In order to create a `&`-borrow, we need to be able to read the place.
-            (access_permitted_by_loans(&env, &assumptions, &loans_live, Access::new(AccessKind::Read, &place), places_live) => ())
+            (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Read, &place), places_live) => ())
 
             // The new loan that we are creating
             (let loan = Loan::new(&lt, &place, RefKind::Shared))
             --- ("ref")
-            (loans_in_value_expression_respected(env, assumptions, loans_live, ValueExpression::Ref(RefKind::Shared, lt, place), places_live) => Cons(loan, &loans_live))
+            (loans_in_value_expression_respected(env, assumptions, loans_live, outlives, ValueExpression::Ref(RefKind::Shared, lt, place), places_live) => Cons(loan, &loans_live))
         )
 
         (
             // In order to create a `&mut`-borrow, we need to be able to write the place.
-            (access_permitted_by_loans(&env, &assumptions, &loans_live, Access::new(AccessKind::Write, &place), places_live) => ())
+            (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Write, &place), places_live) => ())
 
             // The new loan that we are creating
             (let loan = Loan::new(&lt, &place, RefKind::Mut))
             --- ("ref-mut")
-            (loans_in_value_expression_respected(env, assumptions, loans_live, ValueExpression::Ref(RefKind::Mut, lt, place), places_live) => Cons(loan, &loans_live))
+            (loans_in_value_expression_respected(env, assumptions, loans_live, outlives, ValueExpression::Ref(RefKind::Mut, lt, place), places_live) => Cons(loan, &loans_live))
         )
     }
 }
@@ -503,16 +519,17 @@ judgment_fn! {
         env: TypeckEnv,
         assumptions: Wcs,
         loans_live_before_access: Set<Loan>,
+        outlives: Set<PendingOutlives>,
         access: Access,
         places_live_after_access: LivePlaces,
     ) => () {
-        debug(loans_live_before_access, access, places_live_after_access, assumptions, env)
+        debug(loans_live_before_access, access, places_live_after_access, assumptions, env, outlives)
 
         (
             (for_all(loan in &loans_live_before_access)
-                (access_permitted_by_loan(&env, &assumptions, loan, &access, &places_live_after_access) => ()))
+                (access_permitted_by_loan(&env, &assumptions, loan, &outlives, &access, &places_live_after_access) => ()))
             --- ("access_permitted_by_loans")
-            (access_permitted_by_loans(env, assumptions, loans_live_before_access, access, places_live_after_access) => ())
+            (access_permitted_by_loans(env, assumptions, loans_live_before_access, outlives, access, places_live_after_access) => ())
         )
     }
 }
@@ -523,15 +540,16 @@ judgment_fn! {
         env: TypeckEnv,
         assumptions: Wcs,
         loan: Loan,
+        outlives: Set<PendingOutlives>,
         access: Access,
         places_live_after_access: LivePlaces,
     ) => () {
-        debug(loan, access, places_live_after_access, assumptions, env)
+        debug(loan, access, places_live_after_access, assumptions, env, outlives)
 
         (
             (if place_disjoint_from_place(&loan.place, &access.place))
             --- ("borrow of disjoint places")
-            (access_permitted_by_loan(_env, _assumptions, loan, access, _places_live_after_access) => ())
+            (access_permitted_by_loan(_env, _assumptions, loan, _outlives, access, _places_live_after_access) => ())
         )
 
         (
@@ -541,6 +559,7 @@ judgment_fn! {
                 _env,
                 _assumptions,
                 Loan { kind: RefKind::Shared, .. },
+                _outlives,
                 Access { kind: AccessKind::Read, .. },
                 _live_places,
             ) => ())
@@ -548,10 +567,10 @@ judgment_fn! {
 
         (
             (if !place_disjoint_from_place(&loan.place, &access.place))! // just for convenience
-            (loan_not_required_by_live_places(env, assumptions, &loan, places_live_after_access) => ())
-            (loan_cannot_outlive_universal_regions(env, assumptions, &loan) => ())
+            (loan_not_required_by_live_places(env, assumptions, &loan, &outlives, places_live_after_access) => ())
+            (loan_cannot_outlive_universal_regions(env, assumptions, &outlives, &loan) => ())
             --- ("borrows of disjoint places")
-            (access_permitted_by_loan(_env, _assumptions, loan, access, _places_live_after_access) => ())
+            (access_permitted_by_loan(_env, _assumptions, loan, _outlives, access, _places_live_after_access) => ())
         )
     }
 }
@@ -593,9 +612,10 @@ judgment_fn! {
     fn loan_cannot_outlive_universal_regions(
         env: TypeckEnv,
         assumptions: Wcs,
+        outlives: Set<PendingOutlives>,
         loan: Loan,
     ) => () {
-        debug(loan, assumptions, env)
+        debug(loan, assumptions, env, outlives)
 
         // Observation: we don't look at the `assumptions`
         //
@@ -635,7 +655,7 @@ judgment_fn! {
                 Parameter::Const(_) => panic!("cannot outlive a constant"),
             }))
             --- ("loan_not_required_by_universal_regions")
-            (loan_cannot_outlive_universal_regions(env, _assumptions, loan) => ())
+            (loan_cannot_outlive_universal_regions(env, _assumptions, _outlives, loan) => ())
         )
     }
 }
@@ -657,15 +677,16 @@ judgment_fn! {
         env: TypeckEnv,
         assumptions: Wcs,
         loan: Loan,
+        outlives: Set<PendingOutlives>,
         places_live_after_access: LivePlaces,
     ) => () {
-        debug(loan, places_live_after_access, assumptions, env)
+        debug(loan, places_live_after_access, assumptions, env, outlives)
 
         (
             (for_all(live_place in &places_live_after_access)
-                (loan_not_required_by_live_place(&env, &assumptions, &loan, live_place) => ()))
+                (loan_not_required_by_live_place(&env, &assumptions, &loan, &outlives, live_place) => ()))
             --- ("loan_not_required_by_live_places")
-            (loan_not_required_by_live_places(env, assumptions, loan, places_live_after_access) => ())
+            (loan_not_required_by_live_places(env, assumptions, loan, outlives, places_live_after_access) => ())
         )
     }
 }
@@ -684,19 +705,21 @@ judgment_fn! {
         env: TypeckEnv,
         assumptions: Wcs,
         loan: Loan,
+        outlives: Set<PendingOutlives>,
         live_place: PlaceExpression,
     ) => () {
-        debug(loan, live_place, assumptions, env)
+        debug(loan, live_place, assumptions, env, outlives)
 
         (
             (let live_place_ty = env.check_place_hackola(&assumptions, &live_place)?)
-            (loan_not_required_by_parameter(&env, &assumptions, &loan, live_place_ty) => ())
-            (loan_not_required_by_live_place_prefix(&env, &assumptions, &loan, &live_place) => ())
+            (loan_not_required_by_parameter(&env, &assumptions, &loan, &outlives, live_place_ty) => ())
+            (loan_not_required_by_live_place_prefix(&env, &assumptions, &loan, &outlives, &live_place) => ())
             --- ("loan is not required by type")
             (loan_not_required_by_live_place(
                 env,
                 assumptions,
                 loan,
+                outlives,
                 live_place,
             ) => ())
         )
@@ -717,25 +740,26 @@ judgment_fn! {
         env: TypeckEnv,
         assumptions: Wcs,
         loan: Loan,
+        outlives: Set<PendingOutlives>,
         live_place: PlaceExpression,
     ) => () {
-        debug(loan, live_place, assumptions, env)
+        debug(loan, live_place, assumptions, env, outlives)
 
         (
             --- ("local")
-            (loan_not_required_by_live_place_prefix(_env, _assumptions, _loan, PlaceExpression::Local(_)) => ())
+            (loan_not_required_by_live_place_prefix(_env, _assumptions, _loan, _outlives, PlaceExpression::Local(_)) => ())
         )
 
         (
-            (loan_not_required_by_live_place_prefix(env, assumptions, loan, &*root) => ())
+            (loan_not_required_by_live_place_prefix(env, assumptions, loan, &outlives, &*root) => ())
             --- ("no prefix")
-            (loan_not_required_by_live_place_prefix(env, assumptions, loan, PlaceExpression::Field(FieldProjection { root, index: _ })) => ())
+            (loan_not_required_by_live_place_prefix(env, assumptions, loan, outlives, PlaceExpression::Field(FieldProjection { root, index: _ })) => ())
         )
 
         (
-            (loan_not_required_by_live_place(env, assumptions, loan, &*ptr) => ())
+            (loan_not_required_by_live_place(env, assumptions, loan, &outlives, &*ptr) => ())
             --- ("field")
-            (loan_not_required_by_live_place_prefix(env, assumptions, loan, PlaceExpression::Deref(ptr)) => ())
+            (loan_not_required_by_live_place_prefix(env, assumptions, loan, outlives, PlaceExpression::Deref(ptr)) => ())
         )
     }
 }
@@ -754,14 +778,15 @@ judgment_fn! {
         env: TypeckEnv,
         assumptions: Wcs,
         loan: Loan,
+        outlives: Set<PendingOutlives>,
         live_parameter: Parameter,
     ) => () {
-        debug(loan, live_parameter, assumptions, env)
+        debug(loan, live_parameter, assumptions, env, outlives)
 
         (
-            (loan_not_required_by_parameters(env, assumptions, loan, parameters) => ())
+            (loan_not_required_by_parameters(env, assumptions, loan, &outlives, parameters) => ())
             --- ("rigid-ty")
-            (loan_not_required_by_parameter(env, assumptions, loan, RigidTy { name: _, parameters }) => ())
+            (loan_not_required_by_parameter(env, assumptions, loan, outlives, RigidTy { name: _, parameters }) => ())
         )
 
         (
@@ -775,9 +800,9 @@ judgment_fn! {
             // In the compiler we also use bivariance in some bizarre hacky way here, but I *think* that's
             // just a hack because we always have ALL lifetime parameters, even though we don't really need
             // them all.
-            (loan_not_required_by_parameters(env, assumptions, loan, parameters) => ())
+            (loan_not_required_by_parameters(env, assumptions, loan, &outlives, parameters) => ())
             --- ("alias-ty RFC 1214")
-            (loan_not_required_by_parameter(env, assumptions, loan, AliasTy { name: _, parameters }) => ())
+            (loan_not_required_by_parameter(env, assumptions, loan, outlives, AliasTy { name: _, parameters }) => ())
         )
 
         // (
@@ -790,9 +815,9 @@ judgment_fn! {
 
         (
             (let (parameter, env1) = env.instantiate_universally(&binder))
-            (loan_not_required_by_parameter(env1, assumptions, loan, parameter) => ())
+            (loan_not_required_by_parameter(env1, assumptions, loan, &outlives, parameter) => ())
             --- ("for-all-type")
-            (loan_not_required_by_parameter(env, assumptions, loan, PredicateTy::ForAll(binder)) => ())
+            (loan_not_required_by_parameter(env, assumptions, loan, outlives, PredicateTy::ForAll(binder)) => ())
         )
 
         (
@@ -833,9 +858,9 @@ judgment_fn! {
             //
             // By enforcing that the loan does not escape to any universal region,
             // we ensure this is not a problem.
-            (loan_cannot_outlive_universal_regions(env, assumptions, loan) => ())
+            (loan_cannot_outlive_universal_regions(env, assumptions, &outlives, &loan) => ())
             --- ("universal-variable")
-            (loan_not_required_by_parameter(env, assumptions, loan, Variable::UniversalVar(_v)) => ())
+            (loan_not_required_by_parameter(env, assumptions, loan, outlives, Variable::UniversalVar(_v)) => ())
         )
 
         (
@@ -849,9 +874,9 @@ judgment_fn! {
             // ```
             //
             // In this case, we would be invoked here with `'1`.
-            (loan_cannot_outlive(env, assumptions, loan, live_lt) => ())
+            (loan_cannot_outlive(env, assumptions, loan, &outlives, live_lt) => ())
             --- ("lifetime")
-            (loan_not_required_by_parameter(env, assumptions, loan, live_lt: Lt) => ())
+            (loan_not_required_by_parameter(env, assumptions, loan, outlives, live_lt: Lt) => ())
         )
     }
 }
@@ -862,15 +887,16 @@ judgment_fn! {
         env: TypeckEnv,
         assumptions: Wcs,
         loan: Loan,
+        outlives: Set<PendingOutlives>,
         lifetime: Lt,
     ) => () {
-        debug(loan, lifetime, assumptions, env)
+        debug(loan, lifetime, assumptions, env, outlives)
 
         (
             (let outlived_by_loan = transitively_outlived_by(&env, &loan.lt))
             (if !outlived_by_loan.contains(&lifetime.upcast()))
             --- ("loan_cannot_outlive")
-            (loan_cannot_outlive(env, _assumptions, loan, lifetime) => ())
+            (loan_cannot_outlive(env, _assumptions, loan, _outlives, lifetime) => ())
         )
     }
 }
@@ -889,15 +915,16 @@ judgment_fn! {
         env: TypeckEnv,
         assumptions: Wcs,
         loan: Loan,
+        outlives: Set<PendingOutlives>,
         live_parameters: Vec<Parameter>,
     ) => () {
-        debug(loan, live_parameters, assumptions, env)
+        debug(loan, live_parameters, assumptions, env, outlives)
 
         (
             (for_all(param in &live_parameters)
-                (loan_not_required_by_parameter(&env, &assumptions, &loan, param) => ()))
+                (loan_not_required_by_parameter(&env, &assumptions, &loan, &outlives, param) => ()))
             --- ("loan_not_required_by_parameters")
-            (loan_not_required_by_parameters(env, assumptions, loan, live_parameters) => ())
+            (loan_not_required_by_parameters(env, assumptions, loan, outlives, live_parameters) => ())
         )
     }
 }

@@ -638,6 +638,8 @@ pub struct PendingOutlives {
     pub b: Parameter,
 }
 
+cast_impl!(PendingOutlives);
+
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone, Hash)]
 pub struct Location;
 
