@@ -1,8 +1,8 @@
 use formality_core::{set, Set, Upcast};
 use formality_macros::term;
 use formality_types::grammar::{
-    AdtId, AliasName, AliasTy, Binder, FieldId, Parameter, Predicate, Relation, TraitId, TraitRef,
-    Ty, VariantId, Wc, Wcs, FeatureGateName,
+    AdtId, AliasName, AliasTy, Binder, FeatureGateName, FieldId, Parameter, Predicate, Relation,
+    TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
 };
 
 #[term]

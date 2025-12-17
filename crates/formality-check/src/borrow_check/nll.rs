@@ -134,7 +134,11 @@ enum AccessKind {
 /// Given the `TypeckEnv`, which includes a (populated) list of `pending_outlives`
 /// constraints, it attempts to find values for the existential lifetime variables (inference variables)
 /// that satisfy those pending-outlives constraints and which meet the borrow checker's rules.
-pub fn borrow_check(env: &TypeckEnv, fn_assumptions: &Wcs, pending_outlives: &Set<PendingOutlives>) -> Fallible<ProofTree> {
+pub fn borrow_check(
+    env: &TypeckEnv,
+    fn_assumptions: &Wcs,
+    pending_outlives: &Set<PendingOutlives>,
+) -> Fallible<ProofTree> {
     let mut proof_tree = ProofTree::new(format!("borrow_check"), None, vec![]);
 
     // Verify that all pending outlives between universal lifetime variables
@@ -152,7 +156,8 @@ pub fn borrow_check(env: &TypeckEnv, fn_assumptions: &Wcs, pending_outlives: &Se
     };
 
     proof_tree.children.push(
-        loans_in_basic_block_respected(env, fn_assumptions, (), pending_outlives, &start_bb.id).check_proven()?,
+        loans_in_basic_block_respected(env, fn_assumptions, (), pending_outlives, &start_bb.id)
+            .check_proven()?,
     );
     Ok(proof_tree)
 }
@@ -930,7 +935,11 @@ judgment_fn! {
 
 /// Given a region `r`, find a set of all regions `r1` where `r: r1` transitively
 /// according to the `pending_outlives` in `env`.
-fn transitively_outlived_by(_env: &TypeckEnv, pending_outlives: &Set<PendingOutlives>, start_lt: impl Upcast<Parameter>) -> Set<Parameter> {
+fn transitively_outlived_by(
+    _env: &TypeckEnv,
+    pending_outlives: &Set<PendingOutlives>,
+    start_lt: impl Upcast<Parameter>,
+) -> Set<Parameter> {
     let start_lt = start_lt.upcast();
     let mut reachable = Set::new();
 
