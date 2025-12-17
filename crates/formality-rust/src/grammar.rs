@@ -10,7 +10,10 @@ use formality_types::{
     rust::Term,
 };
 
+use crate::grammar::feature::FeatureGate;
+
 pub mod minirust;
+pub mod feature;
 
 #[term($crates)]
 pub struct Program {
@@ -50,6 +53,8 @@ pub struct Crate {
 
 #[term]
 pub enum CrateItem {
+    #[cast]
+    FeatureGate(FeatureGate),
     #[cast]
     Struct(Struct),
     #[cast]
