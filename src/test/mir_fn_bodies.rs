@@ -1117,8 +1117,8 @@ fn declared_transitive_universal_region_relationship() {
     )
 }
 
-/// Upcasting from `'a` to `'c` should be allowed because of
-/// the transitive relationship.
+/// Upcasting from `'a` to `'c` errors because of a missing
+/// declared relationship to complete the transitive chain.
 #[formality_core::test]
 fn undeclared_transitive_universal_region_relationship() {
     crate::assert_err!(
