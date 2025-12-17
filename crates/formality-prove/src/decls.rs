@@ -1,8 +1,8 @@
 use formality_core::{set, Set, Upcast};
 use formality_macros::term;
 use formality_types::grammar::{
-    AdtId, AliasName, AliasTy, Binder, FieldId, Parameter, Predicate, Relation, TraitId, TraitRef,
-    Ty, VariantId, Wc, Wcs,
+    AdtId, AliasName, AliasTy, Binder, FeatureGateName, FieldId, Parameter, Predicate, Relation,
+    TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
 };
 
 #[term]
@@ -18,6 +18,8 @@ pub struct Decls {
     pub adt_decls: Vec<AdtDecl>,
     pub local_trait_ids: Set<TraitId>,
     pub local_adt_ids: Set<AdtId>,
+
+    pub feature_gates: Set<FeatureGateName>,
 }
 
 impl Decls {
@@ -98,6 +100,7 @@ impl Decls {
             adt_decls: vec![],
             local_trait_ids: set![],
             local_adt_ids: set![],
+            feature_gates: set![],
         }
     }
 }

@@ -3,7 +3,7 @@ use std::iter::zip;
 use std::sync::Arc;
 
 use formality_core::judgment::{ProofTree, Proven};
-use formality_core::{cast_impl, judgment_fn, Downcast, Fallible, Map, Set, Upcast};
+use formality_core::{cast_impl, judgment_fn, set, Downcast, Fallible, Map, Set, Upcast};
 use formality_prove::{prove_normalize, AdtDeclBoundData, AdtDeclVariant, Constraints, Decls, Env};
 use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
 use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load, Ref, Struct};
@@ -11,10 +11,9 @@ use formality_rust::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
 use formality_rust::grammar::minirust::{BodyBound, PlaceExpression::*};
-use formality_rust::grammar::{FnBoundData, Program};
+use formality_rust::grammar::Program;
 use formality_types::grammar::{
-    AdtId, Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId,
-    Wcs,
+    AdtId, Binder, CrateId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId, Wcs,
 };
 use formality_types::rust::Fold;
 
@@ -102,25 +101,25 @@ impl Check<'_> {
             local_variables,
             blocks: blocks.clone(),
             ret_id: body.ret,
-            ret_place_is_initialised: false,
             declared_input_tys,
-            callee_input_tys: Map::new(),
             crate_id: crate_id.clone(),
             fn_args: body.args.clone(),
-            pending_outlives: vec![],
             decls: self.decls.clone(),
         };
 
         // Check that basic blocks are well-typed
+        let mut pending_outlives = set![];
         for block in &*blocks {
-            proof_tree
-                .children
-                .push(env.check_block(fn_assumptions, block)?);
+            proof_tree.children.push(env.check_block(
+                fn_assumptions,
+                block,
+                &mut pending_outlives,
+            )?);
         }
 
         proof_tree
             .children
-            .push(nll::borrow_check(&env, &fn_assumptions)?);
+            .push(nll::borrow_check(&env, &fn_assumptions, &pending_outlives)?);
 
         Ok(proof_tree)
     }
@@ -131,18 +130,23 @@ impl TypeckEnv {
         &mut self,
         fn_assumptions: &Wcs,
         block: &minirust::BasicBlock,
+        pending_outlives: &mut Set<PendingOutlives>,
     ) -> Fallible<ProofTree> {
         let mut proof_tree = ProofTree::new(format!("check_block({:?})", block.id), None, vec![]);
 
         for statement in &block.statements {
-            proof_tree
-                .children
-                .push(self.check_statement(fn_assumptions, statement)?);
+            proof_tree.children.push(self.check_statement(
+                fn_assumptions,
+                statement,
+                pending_outlives,
+            )?);
         }
 
-        proof_tree
-            .children
-            .push(self.check_terminator(fn_assumptions, &block.terminator)?);
+        proof_tree.children.push(self.check_terminator(
+            fn_assumptions,
+            &block.terminator,
+            pending_outlives,
+        )?);
 
         Ok(proof_tree)
     }
@@ -151,6 +155,7 @@ impl TypeckEnv {
         &mut self,
         fn_assumptions: &Wcs,
         statement: &minirust::Statement,
+        pending_outlives: &mut Set<PendingOutlives>,
     ) -> Fallible<ProofTree> {
         let mut proof_tree =
             ProofTree::new(format!("check_statement({statement:?})"), None, vec![]);
@@ -158,10 +163,12 @@ impl TypeckEnv {
         match statement {
             minirust::Statement::Assign(place_expression, value_expression) => {
                 // Check if the place expression is well-formed.
-                let place_ty = self.check_place(fn_assumptions, place_expression)?;
+                let place_ty =
+                    self.check_place(fn_assumptions, place_expression, pending_outlives)?;
 
                 // Check if the value expression is well-formed.
-                let (value_ty, value_pt) = self.check_value(fn_assumptions, value_expression)?;
+                let (value_ty, value_pt) =
+                    self.check_value(fn_assumptions, value_expression, pending_outlives)?;
                 proof_tree.children.push(value_pt);
 
                 // Check that the type of the value is a subtype of the place's type
@@ -169,16 +176,17 @@ impl TypeckEnv {
                     Location,
                     fn_assumptions,
                     Relation::sub(value_ty, place_ty),
+                    pending_outlives,
                 )?);
 
-                // Record if the return place has been initialised.
-                if *place_expression == PlaceExpression::Local(self.ret_id.clone()) {
-                    self.ret_place_is_initialised = true;
-                }
+                // TODO: Record if the return place has been initialised (filed as issue)
+                // if *place_expression == PlaceExpression::Local(self.ret_id.clone()) {
+                //     self.ret_place_is_initialised = true;
+                // }
             }
             minirust::Statement::PlaceMention(place_expression) => {
                 // Check if the place expression is well-formed.
-                self.check_place(fn_assumptions, place_expression)?;
+                self.check_place(fn_assumptions, place_expression, pending_outlives)?;
                 // FIXME: check that access the place is allowed per borrowck rules
             }
             minirust::Statement::StorageLive(local_id) => {
@@ -206,6 +214,7 @@ impl TypeckEnv {
         &mut self,
         fn_assumptions: &Wcs,
         terminator: &minirust::Terminator,
+        pending_outlives: &mut Set<PendingOutlives>,
     ) -> Fallible<ProofTree> {
         let mut proof_tree =
             ProofTree::new(format!("check_terminator({terminator:?})"), None, vec![]);
@@ -232,16 +241,43 @@ impl TypeckEnv {
                 next_block,
             } => {
                 // Function is part of the value expression, so we will check if the function exists in check_value.
-                let (_callee_ty, callee_pt) = self.check_value(fn_assumptions, callee)?;
+                let (callee_ty, callee_pt) =
+                    self.check_value(fn_assumptions, callee, pending_outlives)?;
                 proof_tree.children.push(callee_pt);
 
-                // Get argument information from the callee.
-                let Fn(callee_fn_id) = callee else {
+                // Get argument information from the callee type.
+                let Fn(_callee_fn_id) = callee else {
                     unreachable!("Callee must exists in Terminator::Call");
                 };
 
-                let callee_fn_bound_data = self.callee_input_tys.get(callee_fn_id).unwrap();
-                let callee_declared_input_tys = callee_fn_bound_data.input_tys.clone();
+                // Extract function signature from FnDef type
+                let TyData::RigidTy(rigid_ty) = callee_ty.data() else {
+                    bail!("Expected FnDef type for function value");
+                };
+                let RigidName::FnDef(fn_id) = &rigid_ty.name else {
+                    bail!("Expected FnDef type for function value");
+                };
+
+                // Find the function declaration to get the signature
+                let curr_crate = self
+                    .program
+                    .crates
+                    .iter()
+                    .find(|c| c.id == self.crate_id)
+                    .unwrap();
+
+                let fn_declared = curr_crate
+                    .items
+                    .iter()
+                    .find_map(|item| match item {
+                        CrateItem::Fn(fn_declared) if fn_declared.id == *fn_id => Some(fn_declared),
+                        _ => None,
+                    })
+                    .unwrap();
+
+                let fn_bound_data = self.env.instantiate_universally(&fn_declared.binder);
+                let callee_declared_input_tys = fn_bound_data.input_tys.clone();
+
                 // Check if the numbers of arguments passed equals to number of arguments declared.
                 if callee_declared_input_tys.len() != actual_arguments.len() {
                     bail!("Function arguments number mismatch: the number expected is {:?}, the actual number is {:?}", callee_declared_input_tys.len(), actual_arguments.len());
@@ -250,25 +286,30 @@ impl TypeckEnv {
                 let arguments = zip(callee_declared_input_tys, actual_arguments);
                 for (declared_ty, actual_argument) in arguments {
                     // Check if the arguments are well formed.
-                    let (actual_ty, arg_pt) =
-                        self.check_argument_expression(fn_assumptions, actual_argument)?;
+                    let (actual_ty, arg_pt) = self.check_argument_expression(
+                        fn_assumptions,
+                        actual_argument,
+                        pending_outlives,
+                    )?;
                     proof_tree.children.push(arg_pt);
                     // Check if the actual argument type passed in is the subtype of expect argument type.
                     proof_tree.children.push(self.prove_goal(
                         Location,
                         fn_assumptions,
                         Relation::sub(&actual_ty, &declared_ty),
+                        pending_outlives,
                     )?);
                 }
 
                 // Check whether ret place is well-formed.
-                let actual_return_ty = self.check_place(fn_assumptions, ret)?;
+                let actual_return_ty = self.check_place(fn_assumptions, ret, pending_outlives)?;
 
                 // Check if the fn's declared return type is a subtype of the type of the local variable `ret`
                 proof_tree.children.push(self.prove_goal(
                     Location,
                     fn_assumptions,
-                    Relation::sub(&self.output_ty, &actual_return_ty),
+                    Relation::sub(&fn_bound_data.output_ty, &actual_return_ty),
+                    pending_outlives,
                 )?);
 
                 // Check the validity of next bb_id.
@@ -277,10 +318,10 @@ impl TypeckEnv {
                 };
             }
             minirust::Terminator::Return => {
-                // Check if the return local variable has been initialized
-                if !self.ret_place_is_initialised {
-                    bail!("The return local variable has not been initialized.")
-                }
+                // TODO: Check if the return local variable has been initialized (filed as issue)
+                // if !self.ret_place_is_initialised {
+                //     bail!("The return local variable has not been initialized.")
+                // }
             }
 
             minirust::Terminator::Switch {
@@ -289,7 +330,8 @@ impl TypeckEnv {
                 fallback,
             } => {
                 // Check if the value is well-formed.
-                let (value_ty, value_pt) = self.check_value(fn_assumptions, switch_value)?;
+                let (value_ty, value_pt) =
+                    self.check_value(fn_assumptions, switch_value, pending_outlives)?;
                 proof_tree.children.push(value_pt);
 
                 proof_tree.children.push(self.prove_judgment(
@@ -297,6 +339,7 @@ impl TypeckEnv {
                     &fn_assumptions,
                     value_ty,
                     ty_is_int,
+                    pending_outlives,
                 )?);
 
                 // Ensure all bbid are valid.
@@ -317,14 +360,15 @@ impl TypeckEnv {
         &self,
         fn_assumptions: &Wcs,
         place: &PlaceExpression,
+        outlives: &Set<PendingOutlives>,
     ) -> Fallible<Ty> {
-        let mut env = self.clone();
-        let ty = env.check_place(fn_assumptions, place)?;
-        for outlives in &env.pending_outlives {
-            if !self.pending_outlives.contains(&outlives) {
+        let mut new_outlives = set![];
+        let ty = self.check_place(fn_assumptions, place, &mut new_outlives)?;
+        for constraint in new_outlives {
+            if !outlives.contains(&constraint) {
                 panic!(
                     "unexpected outlives constraint generated during check_place: {:?}",
-                    outlives
+                    constraint
                 );
             }
         }
@@ -333,9 +377,10 @@ impl TypeckEnv {
 
     // Check if the place expression is well-formed, and return the type of the place expression.
     pub(crate) fn check_place(
-        &mut self,
+        &self,
         fn_assumptions: &Wcs,
         place: &PlaceExpression,
+        pending_outlives: &mut Set<PendingOutlives>,
     ) -> Fallible<Ty> {
         let place_ty;
         match place {
@@ -351,7 +396,7 @@ impl TypeckEnv {
             }
             Field(field_projection) => {
                 let ty = self
-                    .check_place(fn_assumptions, &field_projection.root)
+                    .check_place(fn_assumptions, &field_projection.root, pending_outlives)
                     .unwrap();
 
                 // FIXME(tiif): We eventually want to do normalization here, so check_place should be
@@ -380,7 +425,10 @@ impl TypeckEnv {
 
                 place_ty = fields[field_projection.index].ty.clone();
             }
-            Deref(value_expr) => match self.check_place(fn_assumptions, value_expr)?.data() {
+            Deref(value_expr) => match self
+                .check_place(fn_assumptions, value_expr, pending_outlives)?
+                .data()
+            {
                 TyData::RigidTy(rigid_ty) => match &rigid_ty.name {
                     RigidName::Ref(_ref_kind) => {
                         place_ty = rigid_ty.parameters[1]
@@ -426,12 +474,13 @@ impl TypeckEnv {
         &mut self,
         fn_assumptions: &Wcs,
         value: &ValueExpression,
+        pending_outlives: &mut Set<PendingOutlives>,
     ) -> Fallible<Proven<Ty>> {
         let mut proof_tree = ProofTree::new(format!("check_value({value:?})"), None, vec![]);
         let value_ty;
         match value {
             Load(place_expression) => {
-                value_ty = self.check_place(fn_assumptions, place_expression)?;
+                value_ty = self.check_place(fn_assumptions, place_expression, pending_outlives)?;
             }
             Fn(fn_id) => {
                 // Check if the function called is in declared in current crate.
@@ -445,28 +494,20 @@ impl TypeckEnv {
                     .unwrap();
 
                 // Find the callee from current crate.
-                let callee = curr_crate.items.iter().find(|item| {
-                    match item {
-                        CrateItem::Fn(fn_declared) => {
-                            if fn_declared.id == *fn_id {
-                                let fn_bound_data =
-                                    self.env.instantiate_universally(&fn_declared.binder);
-                                // Store the callee information in typeck_env, we will need this when type checking Terminator::Call.
-                                self.callee_input_tys
-                                    .insert(fn_declared.id.clone(), fn_bound_data);
-                                return true;
-                            }
-                            false
-                        }
-                        _ => false,
-                    }
+                let fn_declared = curr_crate.items.iter().find_map(|item| match item {
+                    CrateItem::Fn(fn_declared) if fn_declared.id == *fn_id => Some(fn_declared),
+                    _ => None,
                 });
 
-                // If the callee is not found, return error.
-                if callee.is_none() {
+                let Some(fn_declared) = fn_declared else {
                     bail!("The function called is not declared in current crate")
-                }
-                value_ty = self.output_ty.clone();
+                };
+
+                // Return FnDef type
+                value_ty = Ty::rigid(
+                    RigidName::FnDef(fn_declared.id.clone()),
+                    Vec::<Parameter>::new(), // TODO: should extract parameters from binder
+                );
             }
             Constant(constant) => {
                 // If the actual value overflows / does not match the type of the constant,
@@ -479,6 +520,7 @@ impl TypeckEnv {
                     Location,
                     &fn_assumptions,
                     ty.well_formed(),
+                    pending_outlives,
                 )?);
 
                 let Some(adt_id) = ty.get_adt_id() else {
@@ -516,7 +558,8 @@ impl TypeckEnv {
                     let Constant(_) = value_expression else {
                         bail!("Only Constant is supported in ValueExpression::Struct for now.")
                     };
-                    let (ty, pt) = self.check_value(fn_assumptions, value_expression)?;
+                    let (ty, pt) =
+                        self.check_value(fn_assumptions, value_expression, pending_outlives)?;
                     value_tys.push(ty);
                     proof_tree.children.push(pt);
                 }
@@ -526,12 +569,13 @@ impl TypeckEnv {
                     Location,
                     &fn_assumptions,
                     Wcs::all_sub(value_tys, struct_field_tys),
+                    pending_outlives,
                 )?);
 
                 value_ty = ty.clone();
             }
             Ref(ref_kind, borrow_lt, place_expr) => {
-                let place_ty = self.check_place(fn_assumptions, place_expr)?;
+                let place_ty = self.check_place(fn_assumptions, place_expr, pending_outlives)?;
                 value_ty = place_ty.ref_ty_of_kind(*ref_kind, borrow_lt);
             }
         }
@@ -542,11 +586,12 @@ impl TypeckEnv {
         &mut self,
         fn_assumptions: &Wcs,
         arg_expr: &ArgumentExpression,
+        pending_outlives: &mut Set<PendingOutlives>,
     ) -> Fallible<Proven<Ty>> {
         match arg_expr {
-            ByValue(val_expr) => self.check_value(fn_assumptions, val_expr),
+            ByValue(val_expr) => self.check_value(fn_assumptions, val_expr, pending_outlives),
             InPlace(place_expr) => {
-                let ty = self.check_place(fn_assumptions, place_expr)?;
+                let ty = self.check_place(fn_assumptions, place_expr, pending_outlives)?;
                 Ok((
                     ty,
                     ProofTree::new(
@@ -589,14 +634,8 @@ pub struct TypeckEnv {
     /// local_id of return place,
     pub ret_id: LocalId,
 
-    /// Record if the return place has been initialised.
-    pub ret_place_is_initialised: bool,
-
     /// All declared argument type of current function.
     pub declared_input_tys: Vec<Ty>,
-
-    /// All information of callee.
-    pub callee_input_tys: Map<FnId, FnBoundData>,
 
     /// The id of the crate where this function resides.
     /// We need this to access information about other functions
@@ -605,10 +644,6 @@ pub struct TypeckEnv {
 
     /// LocalId of function argument.
     pub fn_args: Vec<LocalId>,
-
-    /// As we conduct the type check, we accumulate outlives constraints here
-    /// to hand off to the borrow checker later.
-    pub pending_outlives: Vec<PendingOutlives>,
 
     pub decls: Decls,
 }
@@ -638,20 +673,29 @@ pub struct PendingOutlives {
     pub b: Parameter,
 }
 
+cast_impl!(PendingOutlives);
+
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone, Hash)]
 pub struct Location;
 
 impl TypeckEnv {
     /// Prove the goal in this environment, adding any pending outlive constraints that are required
-    /// for the goal to be true into `self.pending_outlives`.
+    /// for the goal to be true into `pending_outlives`.
     fn prove_goal(
-        &mut self,
+        &self,
         location: Location,
         assumptions: impl ToWcs,
         goal: impl ToWcs + Debug,
+        pending_outlives: &mut Set<PendingOutlives>,
     ) -> Fallible<ProofTree> {
         let goal: Wcs = goal.to_wcs();
-        self.prove_judgment(location, assumptions, goal.to_wcs(), formality_prove::prove)
+        self.prove_judgment(
+            location,
+            assumptions,
+            goal.to_wcs(),
+            formality_prove::prove,
+            pending_outlives,
+        )
     }
 
     /// Prove the goal with the function `judgment_fn`,
@@ -663,11 +707,12 @@ impl TypeckEnv {
     /// In the compiler, we insert existential variables for all
     /// lifetimes that appear in the MIR body, and I expect we will do the same here.
     fn prove_judgment<G>(
-        &mut self,
+        &self,
         location: Location,
         assumptions: impl ToWcs,
         goal: G,
         judgment_fn: impl FnOnce(Decls, Env, Wcs, G) -> ProvenSet<Constraints>,
+        pending_outlives: &mut Set<PendingOutlives>,
     ) -> Fallible<ProofTree>
     where
         G: Debug + Visit + Clone,
@@ -769,7 +814,7 @@ impl TypeckEnv {
             }
         }
 
-        self.pending_outlives.extend(pending_outlives_minimal.0);
+        pending_outlives.extend(pending_outlives_minimal.0);
         Ok(pending_outlives_minimal.1)
     }
 
