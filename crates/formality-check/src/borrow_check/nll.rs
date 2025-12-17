@@ -134,15 +134,14 @@ enum AccessKind {
 /// Given the `TypeckEnv`, which includes a (populated) list of `pending_outlives`
 /// constraints, it attempts to find values for the existential lifetime variables (inference variables)
 /// that satisfy those pending-outlives constraints and which meet the borrow checker's rules.
-pub fn borrow_check(env: &TypeckEnv, fn_assumptions: &Wcs) -> Fallible<ProofTree> {
+pub fn borrow_check(env: &TypeckEnv, fn_assumptions: &Wcs, pending_outlives: &Set<PendingOutlives>) -> Fallible<ProofTree> {
     let mut proof_tree = ProofTree::new(format!("borrow_check"), None, vec![]);
 
     // Verify that all pending outlives between universal lifetime variables
     // can be proven from the fn_assumptions.
-    let pending_outlives_set: Set<PendingOutlives> = env.pending_outlives.iter().cloned().collect();
     proof_tree
         .children
-        .push(verify_universal_outlives(env, fn_assumptions, &pending_outlives_set).check_proven()?);
+        .push(verify_universal_outlives(env, fn_assumptions, pending_outlives).check_proven()?);
 
     // Start the check from the entry block.
     //
@@ -153,7 +152,7 @@ pub fn borrow_check(env: &TypeckEnv, fn_assumptions: &Wcs) -> Fallible<ProofTree
     };
 
     proof_tree.children.push(
-        loans_in_basic_block_respected(env, fn_assumptions, (), &pending_outlives_set, &start_bb.id).check_proven()?,
+        loans_in_basic_block_respected(env, fn_assumptions, (), pending_outlives, &start_bb.id).check_proven()?,
     );
     Ok(proof_tree)
 }
@@ -198,7 +197,7 @@ judgment_fn! {
         // Universal lifetime variables - check all transitively outlived
         (
             (if v.is_universal())!
-            (for_all(param in transitively_outlived_by(&env, &v))
+            (for_all(param in transitively_outlived_by(&env, &outlives, &v))
                 (can_outlive(&env, &fn_assumptions, &outlives, &v, param) => ()))
             --- ("universal lifetime")
             (only_assumed_outlives(env, fn_assumptions, outlives, v) => ())
@@ -234,7 +233,7 @@ judgment_fn! {
             (prove(env.decls, env.env, fn_assumptions, Relation::outlives(param_a, var_b)) => c)
             (if c.unconditionally_true())
             --- ("universal target")
-            (can_outlive(env, fn_assumptions, outlives, param_a, var_b: Variable) => ())
+            (can_outlive(env, fn_assumptions, _outlives, param_a, var_b: Variable) => ())
         )
     }
 }
@@ -633,7 +632,7 @@ judgment_fn! {
         // This is an interesting corner cases.
 
         (
-            (let outlived_by_loan = transitively_outlived_by(&env, &loan.lt))
+            (let outlived_by_loan = transitively_outlived_by(&env, &outlives, &loan.lt))
             (if outlived_by_loan.iter().all(|p| match p {
                 // If `'0: T` then `'0` must hold for entire fn body...
                 Parameter::Ty(_) => false,
@@ -655,7 +654,7 @@ judgment_fn! {
                 Parameter::Const(_) => panic!("cannot outlive a constant"),
             }))
             --- ("loan_not_required_by_universal_regions")
-            (loan_cannot_outlive_universal_regions(env, _assumptions, _outlives, loan) => ())
+            (loan_cannot_outlive_universal_regions(env, _assumptions, outlives, loan) => ())
         )
     }
 }
@@ -711,7 +710,7 @@ judgment_fn! {
         debug(loan, live_place, assumptions, env, outlives)
 
         (
-            (let live_place_ty = env.check_place_hackola(&assumptions, &live_place)?)
+            (let live_place_ty = env.check_place_hackola(&assumptions, &live_place, &outlives)?)
             (loan_not_required_by_parameter(&env, &assumptions, &loan, &outlives, live_place_ty) => ())
             (loan_not_required_by_live_place_prefix(&env, &assumptions, &loan, &outlives, &live_place) => ())
             --- ("loan is not required by type")
@@ -893,10 +892,10 @@ judgment_fn! {
         debug(loan, lifetime, assumptions, env, outlives)
 
         (
-            (let outlived_by_loan = transitively_outlived_by(&env, &loan.lt))
+            (let outlived_by_loan = transitively_outlived_by(&env, &outlives, &loan.lt))
             (if !outlived_by_loan.contains(&lifetime.upcast()))
             --- ("loan_cannot_outlive")
-            (loan_cannot_outlive(env, _assumptions, loan, _outlives, lifetime) => ())
+            (loan_cannot_outlive(env, _assumptions, loan, outlives, lifetime) => ())
         )
     }
 }
@@ -931,7 +930,7 @@ judgment_fn! {
 
 /// Given a region `r`, find a set of all regions `r1` where `r: r1` transitively
 /// according to the `pending_outlives` in `env`.
-fn transitively_outlived_by(env: &TypeckEnv, start_lt: impl Upcast<Parameter>) -> Set<Parameter> {
+fn transitively_outlived_by(_env: &TypeckEnv, pending_outlives: &Set<PendingOutlives>, start_lt: impl Upcast<Parameter>) -> Set<Parameter> {
     let start_lt = start_lt.upcast();
     let mut reachable = Set::new();
 
@@ -939,7 +938,7 @@ fn transitively_outlived_by(env: &TypeckEnv, start_lt: impl Upcast<Parameter>) -
     let mut worklist = vec![start_lt.clone()];
 
     while let Some(current) = worklist.pop() {
-        for PendingOutlives { location: _, a, b } in env.pending_outlives.iter() {
+        for PendingOutlives { location: _, a, b } in pending_outlives.iter() {
             if *a == current {
                 if reachable.insert(b.clone()) {
                     worklist.push(b.clone());
