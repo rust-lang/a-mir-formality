@@ -273,9 +273,10 @@ judgment_fn! {
         debug(loans_live_on_entry, terminator, fn_assumptions, env)
 
         (
-            (loans_in_basic_block_respected(env, assumptions, loans_live, bb) => ())
+            (for_all(bb in &bb_ids)
+                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, bb) => ()))
             --- ("goto")
-            (loans_in_terminator_respected(env, assumptions, loans_live, Terminator::Goto(bb)) => ())
+            (loans_in_terminator_respected(env, assumptions, loans_live, Terminator::Goto(bb_ids)) => ())
         )
 
         (
@@ -475,13 +476,23 @@ judgment_fn! {
         )
 
         (
-            // In order to create a `&`-borrow, we need the place to be live
+            // In order to create a `&`-borrow, we need to be able to read the place.
             (access_permitted_by_loans(&env, &assumptions, &loans_live, Access::new(AccessKind::Read, &place), places_live) => ())
 
             // The new loan that we are creating
             (let loan = Loan::new(&lt, &place, RefKind::Shared))
             --- ("ref")
-            (loans_in_value_expression_respected(env, assumptions, loans_live, ValueExpression::Ref(lt, place), places_live) => Cons(loan, &loans_live))
+            (loans_in_value_expression_respected(env, assumptions, loans_live, ValueExpression::Ref(RefKind::Shared, lt, place), places_live) => Cons(loan, &loans_live))
+        )
+
+        (
+            // In order to create a `&mut`-borrow, we need to be able to write the place.
+            (access_permitted_by_loans(&env, &assumptions, &loans_live, Access::new(AccessKind::Write, &place), places_live) => ())
+
+            // The new loan that we are creating
+            (let loan = Loan::new(&lt, &place, RefKind::Mut))
+            --- ("ref-mut")
+            (loans_in_value_expression_respected(env, assumptions, loans_live, ValueExpression::Ref(RefKind::Mut, lt, place), places_live) => Cons(loan, &loans_live))
         )
     }
 }

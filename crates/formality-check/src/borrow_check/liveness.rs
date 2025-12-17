@@ -34,7 +34,13 @@ pub fn places_live_before_basic_blocks<'a>(
 /// Returns the places that are live before the terminator executes.
 pub fn places_live_before_terminator(env: &TypeckEnv, terminator: &Terminator) -> LivePlaces {
     match terminator {
-        Terminator::Goto(bb_id) => places_live_before_basic_block(env, bb_id),
+        Terminator::Goto(bb_ids) => {
+            let mut places = Set::default();
+            for bb_id in bb_ids {
+                places = places.union_with(places_live_before_basic_block(env, bb_id));
+            }
+            places
+        }
         Terminator::Switch {
             switch_value,
             switch_targets,
@@ -152,7 +158,7 @@ impl LiveBefore for ValueExpression {
             ValueExpression::Load(place_expression) => {
                 place_expression.live_before(env, places_live)
             }
-            ValueExpression::Ref(_lt, place_expression) => {
+            ValueExpression::Ref(_ref_kind, _lt, place_expression) => {
                 place_expression.live_before(env, places_live)
             }
         }

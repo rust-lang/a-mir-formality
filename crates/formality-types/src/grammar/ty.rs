@@ -72,6 +72,11 @@ impl Ty {
         )
     }
 
+    pub fn ref_ty_of_kind(&self, k: RefKind, l: impl Upcast<Lt>) -> Self {
+        let l: Lt = l.upcast();
+        Self::rigid(k, vec![l.to::<Parameter>(), self.to::<Parameter>()])
+    }
+
     pub fn bool() -> Ty {
         RigidTy {
             name: RigidName::ScalarId(ScalarId::Bool),
@@ -163,7 +168,9 @@ pub enum RigidName {
 }
 
 #[term]
+#[derive(Copy, Default)]
 pub enum RefKind {
+    #[default]
     Shared,
     Mut,
 }
