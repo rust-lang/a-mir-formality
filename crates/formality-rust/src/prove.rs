@@ -1,13 +1,14 @@
 use crate::grammar::{
-    Adt, AdtBoundData, AssociatedTy, AssociatedTyBoundData, AssociatedTyValue,
-    AssociatedTyValueBoundData, Crate, CrateItem, ImplItem, NegTraitImpl, NegTraitImplBoundData,
-    Program, Trait, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem, WhereBound,
-    WhereBoundData, WhereClause, WhereClauseData,
+    feature::FeatureGate, Adt, AdtBoundData, AssociatedTy, AssociatedTyBoundData,
+    AssociatedTyValue, AssociatedTyValueBoundData, Crate, CrateItem, ImplItem, NegTraitImpl,
+    NegTraitImplBoundData, Program, Trait, TraitBoundData, TraitImpl, TraitImplBoundData,
+    TraitItem, WhereBound, WhereBoundData, WhereClause, WhereClauseData,
 };
 use formality_core::{seq, Set, To, Upcast, Upcasted};
 use formality_prove as prove;
 use formality_types::grammar::{
-    AdtId, AliasTy, Binder, BoundVar, ParameterKind, Predicate, Relation, TraitId, Ty, Wc, Wcs,
+    AdtId, AliasTy, Binder, BoundVar, FeatureGateName, ParameterKind, Predicate, Relation, TraitId,
+    Ty, Wc, Wcs,
 };
 
 impl Program {
@@ -22,6 +23,7 @@ impl Program {
             adt_decls: self.adt_decls(),
             local_trait_ids: self.local_trait_ids(),
             local_adt_ids: self.local_adt_ids(),
+            feature_gates: self.crates.last().map(|c| c.features()).unwrap_or_default(),
         }
     }
 
@@ -331,6 +333,17 @@ impl Crate {
                 CrateItem::NegTraitImpl(_) => None,
                 CrateItem::Fn(_) => None,
                 CrateItem::Test(_) => None,
+                CrateItem::FeatureGate(_) => None,
+            })
+            .collect()
+    }
+
+    fn features(&self) -> Set<FeatureGateName> {
+        self.items
+            .iter()
+            .flat_map(|item| match item {
+                CrateItem::FeatureGate(FeatureGate { name }) => Some(*name),
+                _ => None,
             })
             .collect()
     }
