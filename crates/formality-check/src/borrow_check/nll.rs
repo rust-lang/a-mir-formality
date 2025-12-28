@@ -152,8 +152,9 @@ pub fn borrow_check(
         return Ok(proof_tree);
     };
 
+    let stack: Vec<StackEntry> = vec![];
     proof_tree.children.push(
-        loans_in_basic_block_respected(env, fn_assumptions, (), pending_outlives, &start_bb.id)
+        loans_in_basic_block_respected(stack, env, fn_assumptions, (), pending_outlives, &start_bb.id)
             .check_proven()?,
     );
     Ok(proof_tree)
@@ -240,18 +241,70 @@ judgment_fn! {
     }
 }
 
+/// Tracks the state when entering a basic block during borrow checking.
+/// Used to detect cycles in the control flow graph: if we visit the same
+/// block with the same set of live loans, we've reached a fixpoint and
+/// can stop recursing. This enables handling of loops without infinite recursion.
+///
+/// Note: Strictly speaking, we should also include `env` and `fn_assumptions`
+/// in this struct, but we omit them for now since they never change during
+/// the traversal of a single function body.
+#[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone, Hash)]
+struct StackEntry {
+    outlives: Set<PendingOutlives>,
+    loans_live_on_entry: Set<Loan>,
+    bb_id: BbId,
+}
+
+formality_core::cast_impl!(StackEntry);
+
+impl StackEntry {
+    fn new(
+        _env: impl Upcast<TypeckEnv>,
+        _fn_assumptions: impl Upcast<Wcs>,
+        loans_live_on_entry: impl Upcast<Set<Loan>>,
+        outlives: impl Upcast<Set<PendingOutlives>>,
+        bb_id: impl Upcast<BbId>,
+    ) -> Self {
+        Self {
+            loans_live_on_entry: loans_live_on_entry.upcast(),
+            bb_id: bb_id.upcast(),
+            outlives: outlives.upcast(),
+        }
+    }
+}
+
 judgment_fn! {
     /// Prove that any loans issued in this basic block are respected.
     fn loans_in_basic_block_respected(
+        stack: Vec<StackEntry>,
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
         outlives: Set<PendingOutlives>,
         bb_id: BbId,
     ) => () {
-        debug(loans_live_on_entry, bb_id, fn_assumptions, env, outlives)
+        debug(loans_live_on_entry, bb_id, fn_assumptions, env, outlives, stack)
+
+        // Cycle detection: if we've already visited this block with the same live loans,
+        // we've reached a fixpoint and can stop recursing. This handles loops in the CFG.
+        //
+        // Note: This is potentially more precise than a real implementation would be.
+        // We check each path through the CFG independently, so two paths arriving at the
+        // same block with different loan sets X and Y are checked separately. A real
+        // implementation might merge to (X ∪ Y) and check once, which could reject
+        // programs this accepts.
+        (
+            (let this_entry = StackEntry::new(&env, &fn_assumptions, &loans_live_on_entry, &outlives, &bb_id))
+            (if stack.contains(&this_entry))!
+            --- ("cycle")
+            (loans_in_basic_block_respected(stack, env, fn_assumptions, loans_live_on_entry, outlives, bb_id) => ())
+        )
 
         (
+            (let this_entry = StackEntry::new(&env, &fn_assumptions, &loans_live_on_entry, &outlives, &bb_id))
+            (if !stack.contains(&this_entry))!
+            (let stack = { let mut s = stack.clone(); s.push(this_entry); s })
             (let BasicBlock { id: _, statements, terminator } = env.basic_block(&bb_id)?)
             (let places_live_before_terminator = places_live_before_terminator(&env, &terminator))
             (for_all(i in 0..statements.len()) with(loans_live)
@@ -262,9 +315,9 @@ judgment_fn! {
                     &statements[i],
                     &statements[i+1..].live_before(&env, &places_live_before_terminator),
                 ) => loans_live))
-            (loans_in_terminator_respected(&env, &fn_assumptions, loans_live, &outlives, &terminator) => ())
+            (loans_in_terminator_respected(&stack, &env, &fn_assumptions, loans_live, &outlives, &terminator) => ())
             --- ("basic block")
-            (loans_in_basic_block_respected(env, fn_assumptions, loans_live, outlives, bb_id) => ())
+            (loans_in_basic_block_respected(stack, env, fn_assumptions, loans_live, outlives, bb_id) => ())
         )
     }
 }
@@ -272,19 +325,20 @@ judgment_fn! {
 judgment_fn! {
     /// Prove that any loans issued in this statement are respected.
     fn loans_in_terminator_respected(
+        stack: Vec<StackEntry>,
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
         outlives: Set<PendingOutlives>,
         terminator: Terminator,
     ) => () {
-        debug(loans_live_on_entry, terminator, fn_assumptions, env, outlives)
+        debug(loans_live_on_entry, terminator, fn_assumptions, env, outlives, stack)
 
         (
             (for_all(bb in &bb_ids)
-                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, &outlives, bb) => ()))
+                (loans_in_basic_block_respected(&stack, &env, &assumptions, &loans_live, &outlives, bb) => ()))
             --- ("goto")
-            (loans_in_terminator_respected(env, assumptions, loans_live, outlives, Terminator::Goto(bb_ids)) => ())
+            (loans_in_terminator_respected(stack, env, assumptions, loans_live, outlives, Terminator::Goto(bb_ids)) => ())
         )
 
         (
@@ -297,14 +351,14 @@ judgment_fn! {
             (let places_live = places_live_before_basic_blocks(&env, &successors))
             (loans_in_value_expression_respected(&env, &assumptions, loans_live, &outlives, switch_value, places_live) => loans_live)
             (for_all(successor in &successors)
-                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, &outlives, successor) => ()))
+                (loans_in_basic_block_respected(&stack, &env, &assumptions, &loans_live, &outlives, successor) => ()))
             --- ("switch")
-            (loans_in_terminator_respected(env, assumptions, loans_live, outlives, Terminator::Switch { switch_value, switch_targets, fallback }) => ())
+            (loans_in_terminator_respected(stack, env, assumptions, loans_live, outlives, Terminator::Switch { switch_value, switch_targets, fallback }) => ())
         )
 
         (
             --- ("return")
-            (loans_in_terminator_respected(_env, _assumptions, _loans_live, _outlives, Terminator::Return) => ())
+            (loans_in_terminator_respected(_stack, _env, _assumptions, _loans_live, _outlives, Terminator::Return) => ())
         )
 
         (
@@ -331,9 +385,9 @@ judgment_fn! {
             // here `ret` would be assigned
 
             (for_all(next_block in next_block.iter())
-                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, &outlives, next_block) => ()))
+                (loans_in_basic_block_respected(&stack, &env, &assumptions, &loans_live, &outlives, next_block) => ()))
             --- ("call")
-            (loans_in_terminator_respected(env, assumptions, loans_live, outlives, Terminator::Call { callee, generic_arguments: _, arguments, ret, next_block }) => ())
+            (loans_in_terminator_respected(stack, env, assumptions, loans_live, outlives, Terminator::Call { callee, generic_arguments: _, arguments, ret, next_block }) => ())
         )
     }
 }

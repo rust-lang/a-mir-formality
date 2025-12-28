@@ -138,6 +138,49 @@ fn test_goto_terminator() {
     )
 }
 
+/// Test cyclic control flow (a loop).
+/// This is equivalent to:
+/// ```rust,ignore
+/// fn foo() -> u32 {
+///     let v0: u32 = 0;
+///     loop {
+///         v0 = v0;  // silly but valid
+///     }
+/// }
+/// ```
+///
+/// Currently this fails because cycles are detected and treated as failures.
+/// We need to handle cycles properly by recognizing that revisiting a block
+/// with the same (or subsumed) loans_live_on_entry is valid.
+#[test]
+// #[ignore] // TODO: Fix cyclic CFG handling
+fn test_cyclic_goto() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo () -> u32 = minirust() -> v0 {
+                    let v0: u32;
+                    exists {
+                        bb0: {
+                            statements {
+                                local(v0) = constant(0: u32);
+                            }
+                            goto bb1;
+                        }
+
+                        bb1: {
+                            statements {
+                                local(v0) = load(local(v0));
+                            }
+                            goto bb1;  // loop back to self
+                        }
+                    }
+                };
+            }
+        ]
+    )
+}
+
 /// Test valid call terminator.
 /// This is equivalent to:
 /// ```
