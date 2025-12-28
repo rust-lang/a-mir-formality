@@ -85,6 +85,19 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
         }
     }
 
+    /// Extract the single proven result from this set.
+    /// Panics if the set contains more than one result.
+    /// Returns an error if the judgment failed.
+    pub fn into_singleton(self) -> Result<Proven<J>, Box<FailedJudgment>> {
+        match self.data {
+            ProvenSetData::Failure(e) => Err(e),
+            ProvenSetData::Success(mut s) => {
+                assert!(s.len() == 1, "expected singleton, got {} results", s.len());
+                Ok(s.pop_first().unwrap())
+            }
+        }
+    }
+
     /// Iterate through all solutions.
     pub fn iter(&self) -> Box<dyn Iterator<Item = Proven<J>> + '_> {
         match &self.data {
