@@ -172,12 +172,11 @@ impl TypeckEnv {
                 proof_tree.children.push(value_pt);
 
                 // Check that the type of the value is a subtype of the place's type
-                proof_tree.children.push(self.prove_goal(
-                    Location,
-                    fn_assumptions,
-                    Relation::sub(value_ty, place_ty),
-                    pending_outlives,
-                )?);
+                let (new_outlives, pt) = self
+                    .prove_goal(Location, fn_assumptions, Relation::sub(value_ty, place_ty))
+                    .into_singleton()?;
+                pending_outlives.extend(new_outlives);
+                proof_tree.children.push(pt);
 
                 // TODO: Record if the return place has been initialised (filed as issue)
                 // if *place_expression == PlaceExpression::Local(self.ret_id.clone()) {
@@ -293,24 +292,26 @@ impl TypeckEnv {
                     )?;
                     proof_tree.children.push(arg_pt);
                     // Check if the actual argument type passed in is the subtype of expect argument type.
-                    proof_tree.children.push(self.prove_goal(
-                        Location,
-                        fn_assumptions,
-                        Relation::sub(&actual_ty, &declared_ty),
-                        pending_outlives,
-                    )?);
+                    let (new_outlives, pt) = self
+                        .prove_goal(Location, fn_assumptions, Relation::sub(&actual_ty, &declared_ty))
+                        .into_singleton()?;
+                    pending_outlives.extend(new_outlives);
+                    proof_tree.children.push(pt);
                 }
 
                 // Check whether ret place is well-formed.
                 let actual_return_ty = self.check_place(fn_assumptions, ret, pending_outlives)?;
 
                 // Check if the fn's declared return type is a subtype of the type of the local variable `ret`
-                proof_tree.children.push(self.prove_goal(
-                    Location,
-                    fn_assumptions,
-                    Relation::sub(&fn_bound_data.output_ty, &actual_return_ty),
-                    pending_outlives,
-                )?);
+                let (new_outlives, pt) = self
+                    .prove_goal(
+                        Location,
+                        fn_assumptions,
+                        Relation::sub(&fn_bound_data.output_ty, &actual_return_ty),
+                    )
+                    .into_singleton()?;
+                pending_outlives.extend(new_outlives);
+                proof_tree.children.push(pt);
 
                 // Check the validity of next bb_id.
                 if let Some(bb_id) = next_block {
@@ -334,13 +335,11 @@ impl TypeckEnv {
                     self.check_value(fn_assumptions, switch_value, pending_outlives)?;
                 proof_tree.children.push(value_pt);
 
-                proof_tree.children.push(self.prove_judgment(
-                    Location,
-                    &fn_assumptions,
-                    value_ty,
-                    ty_is_int,
-                    pending_outlives,
-                )?);
+                let (new_outlives, pt) = self
+                    .prove_judgment(Location, &fn_assumptions, value_ty, ty_is_int)
+                    .into_singleton()?;
+                pending_outlives.extend(new_outlives);
+                proof_tree.children.push(pt);
 
                 // Ensure all bbid are valid.
                 for switch_target in switch_targets {
@@ -516,12 +515,11 @@ impl TypeckEnv {
             }
             Struct(value_expressions, ty) => {
                 // Check if the adt is well-formed.
-                proof_tree.children.push(self.prove_goal(
-                    Location,
-                    &fn_assumptions,
-                    ty.well_formed(),
-                    pending_outlives,
-                )?);
+                let (new_outlives, pt) = self
+                    .prove_goal(Location, &fn_assumptions, ty.well_formed())
+                    .into_singleton()?;
+                pending_outlives.extend(new_outlives);
+                proof_tree.children.push(pt);
 
                 let Some(adt_id) = ty.get_adt_id() else {
                     bail!("The type used in ValueExpression::Struct must be adt")
@@ -565,12 +563,11 @@ impl TypeckEnv {
                 }
 
                 // Make sure all the types supplied are the subtype of declared types.
-                proof_tree.children.push(self.prove_goal(
-                    Location,
-                    &fn_assumptions,
-                    Wcs::all_sub(value_tys, struct_field_tys),
-                    pending_outlives,
-                )?);
+                let (new_outlives, pt) = self
+                    .prove_goal(Location, &fn_assumptions, Wcs::all_sub(value_tys, struct_field_tys))
+                    .into_singleton()?;
+                pending_outlives.extend(new_outlives);
+                proof_tree.children.push(pt);
 
                 value_ty = ty.clone();
             }
@@ -679,28 +676,21 @@ cast_impl!(PendingOutlives);
 pub struct Location;
 
 impl TypeckEnv {
-    /// Prove the goal in this environment, adding any pending outlive constraints that are required
-    /// for the goal to be true into `pending_outlives`.
+    /// Prove the goal in this environment, returning any pending outlive constraints that are required
+    /// for the goal to be true.
     fn prove_goal(
         &self,
         location: Location,
         assumptions: impl ToWcs,
         goal: impl ToWcs + Debug,
-        pending_outlives: &mut Set<PendingOutlives>,
-    ) -> Fallible<ProofTree> {
+    ) -> ProvenSet<Set<PendingOutlives>> {
         let goal: Wcs = goal.to_wcs();
-        self.prove_judgment(
-            location,
-            assumptions,
-            goal.to_wcs(),
-            formality_prove::prove,
-            pending_outlives,
-        )
+        self.prove_judgment(location, assumptions, goal.to_wcs(), formality_prove::prove)
     }
 
     /// Prove the goal with the function `judgment_fn`,
-    /// adding any pending outlive constraints that are required
-    /// for the goal to be true into `self.pending_outlives`.
+    /// returning the pending outlive constraints that are required
+    /// for the goal to be true.
     ///
     /// One of the difference between this prove_judgment and the one in impl Check is
     /// that this version can accept existential variable, which is needed for handling lifetime.
@@ -712,8 +702,7 @@ impl TypeckEnv {
         assumptions: impl ToWcs,
         goal: G,
         judgment_fn: impl FnOnce(Decls, Env, Wcs, G) -> ProvenSet<Constraints>,
-        pending_outlives: &mut Set<PendingOutlives>,
-    ) -> Fallible<ProofTree>
+    ) -> ProvenSet<Set<PendingOutlives>>
     where
         G: Debug + Visit + Clone,
     {
@@ -735,14 +724,17 @@ impl TypeckEnv {
         // to a set of constraints which, if true, mean the goal is true.
         //
         // i.e., `\forall c \in cs. (c => (assumptions => goal))`
-        let cs = cs.into_map()?;
+        let cs = match cs.into_map() {
+            Ok(cs) => cs,
+            Err(e) => return ProvenSet::from(*e),
+        };
 
         // The set of constraints is always non-empty or else the judgment is considered to have failed.
         assert!(!cs.is_empty());
 
         // If there is anything *unconditionally true*, that's great
         if let Some((_, proof_tree)) = cs.iter().find(|(c, _)| c.unconditionally_true()) {
-            return Ok(proof_tree.clone());
+            return ProvenSet::singleton((set![], proof_tree.clone()));
         }
 
         // Each `c` in `cs` is a set of [`Constraints`][] that, if they hold,
@@ -789,22 +781,33 @@ impl TypeckEnv {
 
             match self.convert_to_pending_outlives(&location, c) {
                 Some(p_o) => pending_outlives_sets.push((p_o, proof_tree.clone())),
-                None => bail!("failed to convert `{c:?}` to pending-outlives"),
+                None => {
+                    return ProvenSet::failed(
+                        format!("prove_judgment({goal:?})"),
+                        format!("failed to convert `{c:?}` to pending-outlives"),
+                    );
+                }
             }
         }
 
         // Find the minimal set of the remaining solutions.
         let mut pending_outlives_iter = pending_outlives_sets.into_iter();
         let Some(mut pending_outlives_minimal) = pending_outlives_iter.next() else {
-            bail!("final constraint set had only ambiguous elements: {cs:#?}")
+            return ProvenSet::failed(
+                format!("prove_judgment({goal:?})"),
+                format!("final constraint set had only ambiguous elements: {cs:#?}"),
+            );
         };
-        while let Some(pending_outlives) = pending_outlives_iter.next() {
+        for pending_outlives in pending_outlives_iter {
             // If these outlives constraints are not ordered with respect to `pending_outlives_minimal`, then bail.
             if !pending_outlives.0.is_subset(&pending_outlives_minimal.0)
                 && !pending_outlives_minimal.0.is_subset(&pending_outlives.0)
             {
-                bail!(
-                    "no relationship between `{pending_outlives:?}` and `{pending_outlives_minimal:?}`"
+                return ProvenSet::failed(
+                    format!("prove_judgment({goal:?})"),
+                    format!(
+                        "no relationship between `{pending_outlives:?}` and `{pending_outlives_minimal:?}`"
+                    ),
                 );
             }
 
@@ -814,8 +817,7 @@ impl TypeckEnv {
             }
         }
 
-        pending_outlives.extend(pending_outlives_minimal.0);
-        Ok(pending_outlives_minimal.1)
+        ProvenSet::singleton(pending_outlives_minimal)
     }
 
     // Convert the pending goals into a series of `PendingOutlives`.
