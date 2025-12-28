@@ -130,6 +130,7 @@ impl Check<'_> {
             CrateItem::NegTraitImpl(i) => self.check_neg_trait_impl(i),
             CrateItem::Test(t) => self.check_test(t),
             CrateItem::FeatureGate(_feature_gate) => {
+                // FIXME(#212): reject duplicate feature gates within a crate
                 Ok(ProofTree::leaf("feature gates are OK with me!"))
             }
         }
