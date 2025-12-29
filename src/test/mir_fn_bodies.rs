@@ -681,8 +681,8 @@ fn test_invalid_struct_field() {
         ]
         []
         expect_test::expect![[r#"
-            the rule "assign" at (mini_rust_check.rs) failed because
-              The field index used in PlaceExpression::Field is invalid."#]]
+            the rule "field" at (mini_rust_check.rs) failed because
+              condition evaluted to false: `field_projection.index < fields.len()`"#]]
     )
 }
 
@@ -716,8 +716,8 @@ fn test_field_projection_root_non_adt() {
         ]
         []
         expect_test::expect![[r#"
-            the rule "assign" at (mini_rust_check.rs) failed because
-              The local used for field projection is not adt."#]]
+            the rule "field" at (mini_rust_check.rs) failed because
+              pattern `Some(adt_id)` did not match value `None`"#]]
     )
 }
 
