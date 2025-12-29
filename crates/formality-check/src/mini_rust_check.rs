@@ -159,18 +159,18 @@ judgment_fn! {
         debug(statement, fn_assumptions, env)
 
         (
-            (let place_ty = env.check_place(&fn_assumptions, &place, &mut set![])?)
+            (check_place(&env, &fn_assumptions, &place) => (place_ty, place_outlives))
             (check_value(&env, &fn_assumptions, &value) => (value_ty, value_outlives))
             (env.prove_goal(Location, &fn_assumptions, Relation::sub(value_ty.clone(), place_ty.clone())) => sub_outlives)
-            (let outlives = { let mut s = value_outlives.clone(); s.extend(sub_outlives); s })
+            (let outlives = { let mut s = place_outlives.clone(); s.extend(value_outlives.clone()); s.extend(sub_outlives); s })
             --- ("assign")
             (check_statement(env, fn_assumptions, minirust::Statement::Assign(place, value)) => outlives)
         )
 
         (
-            (let _place_ty = env.check_place(&fn_assumptions, &place, &mut set![])?)
+            (check_place(&env, &fn_assumptions, &place) => (_place_ty, place_outlives))
             --- ("place-mention")
-            (check_statement(env, fn_assumptions, minirust::Statement::PlaceMention(place)) => Set::<PendingOutlives>::new())
+            (check_statement(env, fn_assumptions, minirust::Statement::PlaceMention(place)) => place_outlives)
         )
 
         (
@@ -198,9 +198,9 @@ judgment_fn! {
         debug(value, fn_assumptions, env)
 
         (
-            (let place_ty = env.check_place(&fn_assumptions, &place, &mut set![])?)
+            (check_place(&env, &fn_assumptions, &place) => (place_ty, place_outlives))
             --- ("load")
-            (check_value(env, fn_assumptions, Load(place)) => (place_ty, Set::<PendingOutlives>::new()))
+            (check_value(env, fn_assumptions, Load(place)) => (place_ty, place_outlives))
         )
 
         (
@@ -240,10 +240,47 @@ judgment_fn! {
         )
 
         (
-            (let place_ty = env.check_place(&fn_assumptions, &place_expr, &mut set![])?)
+            (check_place(&env, &fn_assumptions, &place_expr) => (place_ty, place_outlives))
             (let value_ty = place_ty.ref_ty_of_kind(ref_kind, &borrow_lt))
             --- ("ref")
-            (check_value(env, fn_assumptions, Ref(ref_kind, borrow_lt, place_expr)) => (value_ty, Set::<PendingOutlives>::new()))
+            (check_value(env, fn_assumptions, Ref(ref_kind, borrow_lt, place_expr)) => (value_ty, place_outlives))
+        )
+    }
+}
+
+judgment_fn! {
+    fn check_place(
+        env: TypeckEnv,
+        fn_assumptions: Wcs,
+        place: PlaceExpression,
+    ) => (Ty, Set<PendingOutlives>) {
+        debug(place, fn_assumptions, env)
+
+        (
+            (if let Some((_, ty)) = env.find_local_id(&local_id))
+            --- ("local")
+            (check_place(env, fn_assumptions, Local(local_id)) => (ty, Set::<PendingOutlives>::new()))
+        )
+
+        (
+            (check_place(&env, &fn_assumptions, &*field_projection.root) => (root_ty, root_outlives))
+            (if let Some(adt_id) = root_ty.get_adt_id())
+            (let (_, AdtDeclBoundData { where_clause: _, variants }) = env.decls.adt_decl(&adt_id).binder.open())
+            (let AdtDeclVariant { name, fields } = variants.last().unwrap())
+            (if *name == VariantId::for_struct())
+            (if field_projection.index < fields.len())
+            (let place_ty = fields[field_projection.index].ty.clone())
+            --- ("field")
+            (check_place(env, fn_assumptions, Field(field_projection)) => (place_ty, root_outlives))
+        )
+
+        (
+            (check_place(&env, &fn_assumptions, &*value_expr) => (inner_ty, inner_outlives))
+            (if let TyData::RigidTy(rigid_ty) = inner_ty.data())
+            (if let RigidName::Ref(_ref_kind) = &rigid_ty.name)
+            (let place_ty = rigid_ty.parameters[1].as_ty().expect("well-kinded reference").clone())
+            --- ("deref-ref")
+            (check_place(env, fn_assumptions, Deref(value_expr)) => (place_ty, inner_outlives))
         )
     }
 }
