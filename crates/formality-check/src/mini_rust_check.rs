@@ -161,8 +161,9 @@ judgment_fn! {
 
         (
             (let place_ty = env.check_place(&fn_assumptions, &place, &mut set![])?)
-            (let (value_ty, _pt) = env.check_value(&fn_assumptions, &value, &mut set![])?)
-            (env.prove_goal(Location, &fn_assumptions, Relation::sub(value_ty, place_ty)) => outlives)
+            (check_value(&env, &fn_assumptions, &value) => (value_ty, value_outlives))
+            (env.prove_goal(Location, &fn_assumptions, Relation::sub(value_ty.clone(), place_ty.clone())) => sub_outlives)
+            (let outlives = { let mut s = value_outlives.clone(); s.extend(sub_outlives); s })
             --- ("assign")
             (check_statement(env, fn_assumptions, minirust::Statement::Assign(place, value)) => outlives)
         )
@@ -185,6 +186,65 @@ judgment_fn! {
             (if !env.fn_args.iter().any(|fn_arg| local_id == *fn_arg))
             --- ("storage-dead")
             (check_statement(env, _fn_assumptions, minirust::Statement::StorageDead(local_id)) => Set::<PendingOutlives>::new())
+        )
+    }
+}
+
+judgment_fn! {
+    fn check_value(
+        env: TypeckEnv,
+        fn_assumptions: Wcs,
+        value: ValueExpression,
+    ) => (Ty, Set<PendingOutlives>) {
+        debug(value, fn_assumptions, env)
+
+        (
+            (let place_ty = env.check_place(&fn_assumptions, &place, &mut set![])?)
+            --- ("load")
+            (check_value(env, fn_assumptions, Load(place)) => (place_ty, Set::<PendingOutlives>::new()))
+        )
+
+        (
+            (let curr_crate = env.program.crates.iter().find(|c| c.id == env.crate_id).unwrap())
+            (let fn_declared = curr_crate.items.iter().find_map(|item| match item {
+                CrateItem::Fn(fn_declared) if fn_declared.id == fn_id => Some(fn_declared),
+                _ => None,
+            }))
+            (if let Some(fn_declared) = fn_declared)
+            (let value_ty = Ty::rigid(RigidName::FnDef(fn_declared.id.clone()), Vec::<Parameter>::new()))
+            --- ("fn")
+            (check_value(env, fn_assumptions, Fn(fn_id)) => (value_ty, Set::<PendingOutlives>::new()))
+        )
+
+        (
+            (let value_ty = constant.get_ty())
+            --- ("constant")
+            (check_value(env, fn_assumptions, Constant(constant)) => (value_ty, Set::<PendingOutlives>::new()))
+        )
+
+        (
+            (env.prove_goal(Location, &fn_assumptions, ty.well_formed()) => wf_outlives)
+            (if let Some(adt_id) = ty.get_adt_id())
+            (let (_, AdtDeclBoundData { where_clause: _, variants }) = env.decls.adt_decl(&adt_id).binder.open())
+            (let AdtDeclVariant { name, fields } = variants.last().unwrap())
+            (if *name == VariantId::for_struct())
+            (let struct_field_tys: Vec<Ty> = fields.iter().map(|field| field.ty.clone()).collect())
+            (if value_expressions.len() == struct_field_tys.len())
+            (for_all(value_expression in &value_expressions)
+                (if let Constant(_) = value_expression)
+                (check_value(&env, &fn_assumptions, value_expression) => (_ty, _outlives)))
+            (let value_tys: Vec<Ty> = value_expressions.iter().map(|v| match v { Constant(c) => c.get_ty(), _ => unreachable!() }).collect())
+            (env.prove_goal(Location, &fn_assumptions, Wcs::all_sub(value_tys, struct_field_tys)) => sub_outlives)
+            (let outlives = { let mut s = wf_outlives.clone(); s.extend(sub_outlives); s })
+            --- ("struct")
+            (check_value(env, fn_assumptions, Struct(value_expressions, ty)) => (ty.clone(), outlives))
+        )
+
+        (
+            (let place_ty = env.check_place(&fn_assumptions, &place_expr, &mut set![])?)
+            (let value_ty = place_ty.ref_ty_of_kind(ref_kind, &borrow_lt))
+            --- ("ref")
+            (check_value(env, fn_assumptions, Ref(ref_kind, borrow_lt, place_expr)) => (value_ty, Set::<PendingOutlives>::new()))
         )
     }
 }

@@ -749,19 +749,7 @@ fn test_struct_wrong_type_in_initialisation() {
             }
         ]
         []
-        expect_test::expect![[r#"
-            the rule "assign" at (mini_rust_check.rs) failed because
-              judgment `prove { goal: {bool <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true }, decls: decls(222, [], [], [], [], [], [adt Dummy { struct { value : u32 } }], {}, {Dummy}, {}) }` failed at the following rule(s):
-                failed at (prove.rs) because
-                  judgment `prove_wc_list { goals: {bool <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }` failed at the following rule(s):
-                    the rule "some" at (prove_wc_list.rs) failed because
-                      judgment `prove_wc { goal: bool <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }` failed at the following rule(s):
-                        the rule "subtype" at (prove_wc.rs) failed because
-                          judgment `prove_sub { a: bool, b: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }` failed at the following rule(s):
-                            the rule "normalize-l" at (prove_sub.rs) failed because
-                              judgment had no applicable rules: `prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }`
-                            the rule "normalize-r" at (prove_sub.rs) failed because
-                              judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }`"#]]
+        expect_test::expect!["judgment had no applicable rules: `check_statement { statement: local(v2) = struct{ constant(false) } as Dummy ;, fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { struct Dummy { value : u32 } fn foo (u32) -> u32 = minirust(v1) -> v0 { let v0 : u32 ; let v1 : u32 ; exists { let v2 : Dummy ; bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; } } } ; }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: u32, local_variables: {v0: u32, v1: u32, v2: Dummy}, blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; }], ret_id: v0, declared_input_tys: [u32], crate_id: Foo, fn_args: [v1], decls: decls(222, [], [], [], [], [], [adt Dummy { struct { value : u32 } }], {}, {Dummy}, {}) } }`"]
     )
 }
 
@@ -791,8 +779,8 @@ fn test_non_adt_ty_for_struct() {
         ]
         []
         expect_test::expect![[r#"
-            the rule "assign" at (mini_rust_check.rs) failed because
-              The type used in ValueExpression::Struct must be adt"#]]
+            the rule "struct" at (mini_rust_check.rs) failed because
+              pattern `Some(adt_id)` did not match value `None`"#]]
     )
 }
 
