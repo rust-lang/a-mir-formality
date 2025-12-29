@@ -12,7 +12,8 @@ use formality_rust::grammar::minirust::{
 use formality_rust::grammar::minirust::{BodyBound, PlaceExpression::*};
 use formality_rust::grammar::{Fn as FnDecl, Program};
 use formality_types::grammar::{
-    Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId, Wcs,
+    AdtId, Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId,
+    Wcs,
 };
 use formality_types::rust::Fold;
 
@@ -233,8 +234,8 @@ judgment_fn! {
 
         (
             (env.prove_goal(outlives, Location, &fn_assumptions, ty.well_formed()) => outlives)
-            (if let Some(adt_id) = ty.get_adt_id())
-            (let (_, AdtDeclBoundData { where_clause: _, variants }) = env.decls.adt_decl(&adt_id).binder.open())
+            (if let Some((adt_id, parameters)) = ty_is_adt(&ty))
+            (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
             (if value_expressions.len() == fields.len())
@@ -272,8 +273,8 @@ judgment_fn! {
 
         (
             (check_place(&env, outlives, &fn_assumptions, &*field_projection.root) => (root_ty, outlives))
-            (if let Some(adt_id) = root_ty.get_adt_id())
-            (let (_, AdtDeclBoundData { where_clause: _, variants }) = env.decls.adt_decl(&adt_id).binder.open())
+            (if let Some((adt_id, parameters)) = ty_is_adt(&root_ty))
+            (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
             (if field_projection.index < fields.len())
@@ -748,6 +749,18 @@ judgment_fn! {
             (ty_is_int(_decls, _env, _assumptions, RigidTy {name: RigidName::ScalarId(id), parameters: _}) => Constraints::none(env))
         )
 
+    }
+}
+
+/// Extract the ADT id and parameters from a type.
+/// For now, only handles rigid types directly; normalization can be added later.
+fn ty_is_adt(ty: &Ty) -> Option<(AdtId, Vec<Parameter>)> {
+    match ty.data() {
+        TyData::RigidTy(RigidTy {
+            name: RigidName::AdtId(adt_id),
+            parameters,
+        }) => Some((adt_id.clone(), parameters.clone())),
+        _ => None,
     }
 }
 
