@@ -10,9 +10,9 @@ use formality_rust::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
 use formality_rust::grammar::minirust::{BodyBound, PlaceExpression::*};
-use formality_rust::grammar::Program;
+use formality_rust::grammar::{Fn as FnDecl, Program};
 use formality_types::grammar::{
-    Binder, CrateId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId, Wcs,
+    Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId, Wcs,
 };
 use formality_types::rust::Fold;
 
@@ -219,13 +219,8 @@ judgment_fn! {
         )
 
         (
-            (let curr_crate = env.program.crates.iter().find(|c| c.id == env.crate_id).unwrap())
-            (let fn_declared = curr_crate.items.iter().find_map(|item| match item {
-                CrateItem::Fn(fn_declared) if fn_declared.id == fn_id => Some(fn_declared),
-                _ => None,
-            }))
-            (if let Some(fn_declared) = fn_declared)
-            (let value_ty = Ty::rigid(RigidName::FnDef(fn_declared.id.clone()), Vec::<Parameter>::new()))
+            (if let Some(fn_decl) = env.fn_decl(&fn_id))
+            (let value_ty = Ty::rigid(RigidName::FnDef(fn_decl.id.clone()), Vec::<Parameter>::new()))
             --- ("fn")
             (check_value(env, outlives, _fn_assumptions, Fn(fn_id)) => (value_ty, outlives))
         )
@@ -346,15 +341,10 @@ judgment_fn! {
             (if let RigidName::FnDef(fn_id) = &rigid_ty.name)
 
             // Find the function declaration
-            (let curr_crate = env.program.crates.iter().find(|c| c.id == env.crate_id).unwrap())
-            (let fn_declared = curr_crate.items.iter().find_map(|item| match item {
-                CrateItem::Fn(fn_declared) if fn_declared.id == *fn_id => Some(fn_declared),
-                _ => None,
-            }))
-            (if let Some(fn_declared) = fn_declared)
+            (if let Some(fn_decl) = env.fn_decl(fn_id))
 
             // Instantiate the function signature universally (returns new env)
-            (let (fn_bound_data, _env1) = env.instantiate_universally(&fn_declared.binder))
+            (let (fn_bound_data, _env1) = env.instantiate_universally(&fn_decl.binder))
             (let callee_declared_input_tys = fn_bound_data.input_tys.clone())
 
             // Check argument count matches
@@ -406,6 +396,15 @@ judgment_fn! {
 }
 
 impl TypeckEnv {
+    /// Look up a function declaration by its id in the current crate.
+    fn fn_decl(&self, fn_id: &FnId) -> Option<&FnDecl> {
+        let curr_crate = self.program.crates.iter().find(|c| c.id == self.crate_id)?;
+        curr_crate.items.iter().find_map(|item| match item {
+            CrateItem::Fn(fn_decl) if fn_decl.id == *fn_id => Some(fn_decl),
+            _ => None,
+        })
+    }
+
     /// Hacky method that type-checks a place that has already been type-checked.
     /// Asserts therefore that the resulting pending outlives were already pending.
     ///

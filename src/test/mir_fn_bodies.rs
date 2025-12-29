@@ -390,7 +390,7 @@ fn test_call_invalid_fn() {
         []
         expect_test::expect![[r#"
             the rule "fn" at (mini_rust_check.rs) failed because
-              pattern `Some(fn_declared)` did not match value `None`"#]]
+              pattern `Some(fn_decl)` did not match value `None`"#]]
     )
 }
 
