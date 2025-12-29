@@ -135,11 +135,10 @@ impl TypeckEnv {
         let mut proof_tree = ProofTree::new(format!("check_block({:?})", block.id), None, vec![]);
 
         for statement in &block.statements {
-            proof_tree.children.push(self.check_statement(
-                fn_assumptions,
-                statement,
-                pending_outlives,
-            )?);
+            let (new_outlives, pt) = check_statement(self.clone(), fn_assumptions.clone(), statement.clone())
+                .into_singleton()?;
+            pending_outlives.extend(new_outlives);
+            proof_tree.children.push(pt);
         }
 
         proof_tree.children.push(self.check_terminator(
@@ -150,65 +149,47 @@ impl TypeckEnv {
 
         Ok(proof_tree)
     }
+}
 
+judgment_fn! {
     fn check_statement(
-        &self,
-        fn_assumptions: &Wcs,
-        statement: &minirust::Statement,
-        pending_outlives: &mut Set<PendingOutlives>,
-    ) -> Fallible<ProofTree> {
-        let mut proof_tree =
-            ProofTree::new(format!("check_statement({statement:?})"), None, vec![]);
+        env: TypeckEnv,
+        fn_assumptions: Wcs,
+        statement: minirust::Statement,
+    ) => Set<PendingOutlives> {
+        debug(statement, fn_assumptions, env)
 
-        match statement {
-            minirust::Statement::Assign(place_expression, value_expression) => {
-                // Check if the place expression is well-formed.
-                let place_ty =
-                    self.check_place(fn_assumptions, place_expression, pending_outlives)?;
+        (
+            (let place_ty = env.check_place(&fn_assumptions, &place, &mut set![])?)
+            (let (value_ty, _pt) = env.check_value(&fn_assumptions, &value, &mut set![])?)
+            (env.prove_goal(Location, &fn_assumptions, Relation::sub(value_ty, place_ty)) => outlives)
+            --- ("assign")
+            (check_statement(env, fn_assumptions, minirust::Statement::Assign(place, value)) => outlives)
+        )
 
-                // Check if the value expression is well-formed.
-                let (value_ty, value_pt) =
-                    self.check_value(fn_assumptions, value_expression, pending_outlives)?;
-                proof_tree.children.push(value_pt);
+        (
+            (let _place_ty = env.check_place(&fn_assumptions, &place, &mut set![])?)
+            --- ("place-mention")
+            (check_statement(env, fn_assumptions, minirust::Statement::PlaceMention(place)) => Set::<PendingOutlives>::new())
+        )
 
-                // Check that the type of the value is a subtype of the place's type
-                let (new_outlives, pt) = self
-                    .prove_goal(Location, fn_assumptions, Relation::sub(value_ty, place_ty))
-                    .into_singleton()?;
-                pending_outlives.extend(new_outlives);
-                proof_tree.children.push(pt);
+        (
+            (if env.find_local_id(&local_id).is_some())
+            --- ("storage-live")
+            (check_statement(env, _fn_assumptions, minirust::Statement::StorageLive(local_id)) => Set::<PendingOutlives>::new())
+        )
 
-                // TODO: Record if the return place has been initialised (filed as issue)
-                // if *place_expression == PlaceExpression::Local(self.ret_id.clone()) {
-                //     self.ret_place_is_initialised = true;
-                // }
-            }
-            minirust::Statement::PlaceMention(place_expression) => {
-                // Check if the place expression is well-formed.
-                self.check_place(fn_assumptions, place_expression, pending_outlives)?;
-                // FIXME: check that access the place is allowed per borrowck rules
-            }
-            minirust::Statement::StorageLive(local_id) => {
-                // FIXME: We need more checks here after loan is introduced.
-                if self.find_local_id(local_id).is_none() {
-                    bail!("Statement::StorageLive: invalid local variable")
-                }
-            }
-            minirust::Statement::StorageDead(local_id) => {
-                // FIXME: We need more checks here after loan is introduced.
-                let Some((local_id, _)) = self.find_local_id(local_id) else {
-                    bail!("Statement::StorageDead: invalid local variable")
-                };
-                // Make sure function arguments and return place are not marked as dead.
-                if local_id == self.ret_id || self.fn_args.iter().any(|fn_arg| local_id == *fn_arg)
-                {
-                    bail!("Statement::StorageDead: trying to mark function arguments or return local as dead")
-                }
-            }
-        }
-        Ok(proof_tree)
+        (
+            (if let Some((local_id, _)) = env.find_local_id(&local_id))
+            (if local_id != env.ret_id)
+            (if !env.fn_args.iter().any(|fn_arg| local_id == *fn_arg))
+            --- ("storage-dead")
+            (check_statement(env, _fn_assumptions, minirust::Statement::StorageDead(local_id)) => Set::<PendingOutlives>::new())
+        )
     }
+}
 
+impl TypeckEnv {
     fn check_terminator(
         &mut self,
         fn_assumptions: &Wcs,

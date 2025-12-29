@@ -618,7 +618,9 @@ fn test_ret_place_storage_dead() {
             }
         ]
         []
-        expect_test::expect!["Statement::StorageDead: trying to mark function arguments or return local as dead"]
+        expect_test::expect![[r#"
+            the rule "storage-dead" at (mini_rust_check.rs) failed because
+              condition evaluted to false: `!env.fn_args.iter().any(|fn_arg| local_id == *fn_arg)`"#]]
     )
 }
 
@@ -643,7 +645,9 @@ fn test_fn_arg_storage_dead() {
             }
         ]
         []
-        expect_test::expect!["Statement::StorageDead: trying to mark function arguments or return local as dead"]
+        expect_test::expect![[r#"
+            the rule "storage-dead" at (mini_rust_check.rs) failed because
+              condition evaluted to false: `local_id != env.ret_id`"#]]
     )
 }
 
@@ -676,7 +680,9 @@ fn test_invalid_struct_field() {
             }
         ]
         []
-        expect_test::expect!["The field index used in PlaceExpression::Field is invalid."]
+        expect_test::expect![[r#"
+            the rule "assign" at (mini_rust_check.rs) failed because
+              The field index used in PlaceExpression::Field is invalid."#]]
     )
 }
 
@@ -709,7 +715,9 @@ fn test_field_projection_root_non_adt() {
             }
         ]
         []
-        expect_test::expect!["The local used for field projection is not adt."]
+        expect_test::expect![[r#"
+            the rule "assign" at (mini_rust_check.rs) failed because
+              The local used for field projection is not adt."#]]
     )
 }
 
@@ -741,7 +749,19 @@ fn test_struct_wrong_type_in_initialisation() {
             }
         ]
         []
-        expect_test::expect!["judgment had no applicable rules: `prove { goal: {bool <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true }, decls: decls(222, [], [], [], [], [], [adt Dummy { struct { value : u32 } }], {}, {Dummy}, {}) }`"]
+        expect_test::expect![[r#"
+            the rule "assign" at (mini_rust_check.rs) failed because
+              judgment `prove { goal: {bool <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true }, decls: decls(222, [], [], [], [], [], [adt Dummy { struct { value : u32 } }], {}, {Dummy}, {}) }` failed at the following rule(s):
+                failed at (prove.rs) because
+                  judgment `prove_wc_list { goals: {bool <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }` failed at the following rule(s):
+                    the rule "some" at (prove_wc_list.rs) failed because
+                      judgment `prove_wc { goal: bool <: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }` failed at the following rule(s):
+                        the rule "subtype" at (prove_wc.rs) failed because
+                          judgment `prove_sub { a: bool, b: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }` failed at the following rule(s):
+                            the rule "normalize-l" at (prove_sub.rs) failed because
+                              judgment had no applicable rules: `prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }`
+                            the rule "normalize-r" at (prove_sub.rs) failed because
+                              judgment had no applicable rules: `prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }`"#]]
     )
 }
 
@@ -770,7 +790,9 @@ fn test_non_adt_ty_for_struct() {
             }
         ]
         []
-        expect_test::expect!["The type used in ValueExpression::Struct must be adt"]
+        expect_test::expect![[r#"
+            the rule "assign" at (mini_rust_check.rs) failed because
+              The type used in ValueExpression::Struct must be adt"#]]
     )
 }
 
