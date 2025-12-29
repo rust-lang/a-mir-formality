@@ -1,5 +1,4 @@
 use std::collections::BTreeSet;
-use std::iter::zip;
 use std::sync::Arc;
 
 use formality_core::judgment::ProofTree;
@@ -109,11 +108,13 @@ impl Check<'_> {
         // Check that basic blocks are well-typed
         let mut pending_outlives = set![];
         for block in &*blocks {
-            proof_tree.children.push(env.check_block(
-                fn_assumptions,
-                block,
-                &mut pending_outlives,
-            )?);
+            let (block_outlives, block_pt) = check_block(
+                env.clone(),
+                fn_assumptions.clone(),
+                block.clone(),
+            ).into_singleton()?;
+            pending_outlives.extend(block_outlives);
+            proof_tree.children.push(block_pt);
         }
 
         proof_tree
@@ -124,29 +125,44 @@ impl Check<'_> {
     }
 }
 
-impl TypeckEnv {
+judgment_fn! {
     fn check_block(
-        &mut self,
-        fn_assumptions: &Wcs,
-        block: &minirust::BasicBlock,
-        pending_outlives: &mut Set<PendingOutlives>,
-    ) -> Fallible<ProofTree> {
-        let mut proof_tree = ProofTree::new(format!("check_block({:?})", block.id), None, vec![]);
+        env: TypeckEnv,
+        fn_assumptions: Wcs,
+        block: minirust::BasicBlock,
+    ) => Set<PendingOutlives> {
+        debug(block, fn_assumptions, env)
 
-        for statement in &block.statements {
-            let (new_outlives, pt) = check_statement(self.clone(), fn_assumptions.clone(), statement.clone())
-                .into_singleton()?;
-            pending_outlives.extend(new_outlives);
-            proof_tree.children.push(pt);
-        }
+        (
+            // Check all statements
+            (for_all(statement in &block.statements)
+                (check_statement(&env, &fn_assumptions, statement) => _stmt_outlives))
 
-        proof_tree.children.push(self.check_terminator(
-            fn_assumptions,
-            &block.terminator,
-            pending_outlives,
-        )?);
+            // Collect statement outlives
+            (let stmt_outlives_vec: Vec<Set<PendingOutlives>> = {
+                let mut v = vec![];
+                for statement in &block.statements {
+                    if let Ok((stmt_outlives, _)) = check_statement(env.clone(), fn_assumptions.clone(), statement.clone()).into_singleton() {
+                        v.push(stmt_outlives);
+                    }
+                }
+                v
+            })
 
-        Ok(proof_tree)
+            // Check terminator
+            (check_terminator(&env, &fn_assumptions, &block.terminator) => term_outlives)
+
+            // Combine all outlives
+            (let stmt_outlives_vec = stmt_outlives_vec.clone())
+            (let outlives = {
+                let mut s = Set::<PendingOutlives>::new();
+                for stmt_o in stmt_outlives_vec { s.extend(stmt_o); }
+                s.extend(term_outlives.clone());
+                s
+            })
+            --- ("block")
+            (check_block(env, fn_assumptions, block) => outlives)
+        )
     }
 }
 
@@ -307,164 +323,118 @@ judgment_fn! {
     }
 }
 
-impl TypeckEnv {
+judgment_fn! {
     fn check_terminator(
-        &mut self,
-        fn_assumptions: &Wcs,
-        terminator: &minirust::Terminator,
-        pending_outlives: &mut Set<PendingOutlives>,
-    ) -> Fallible<ProofTree> {
-        let mut proof_tree =
-            ProofTree::new(format!("check_terminator({terminator:?})"), None, vec![]);
+        env: TypeckEnv,
+        fn_assumptions: Wcs,
+        terminator: minirust::Terminator,
+    ) => Set<PendingOutlives> {
+        debug(terminator, fn_assumptions, env)
 
-        match terminator {
-            minirust::Terminator::Goto(bb_ids) => {
-                // Check that the basic block `bb_id` exists.
-                for bb_id in bb_ids {
-                    self.check_block_exists(bb_id)?;
-                }
+        (
+            (if !bb_ids.is_empty())
+            (for_all(bb_id in &bb_ids) (if env.block_exists(bb_id)))
+            --- ("goto")
+            (check_terminator(env, fn_assumptions, minirust::Terminator::Goto(bb_ids)) => Set::<PendingOutlives>::new())
+        )
 
-                if bb_ids.len() == 0 {
-                    // Idle thought that will be lost to the sands of time:
-                    //
-                    // Maybe we should allow this but it must be dead code or unreachable or something?!
-                    bail!("Terminator::Goto must have at least one target basic block.")
+        (
+            // Check callee value expression
+            (check_value(&env, &fn_assumptions, &callee) => (callee_ty, callee_outlives))
+
+            // Extract FnDef from callee type
+            (if let TyData::RigidTy(rigid_ty) = callee_ty.data())
+            (if let RigidName::FnDef(fn_id) = &rigid_ty.name)
+
+            // Find the function declaration
+            (let curr_crate = env.program.crates.iter().find(|c| c.id == env.crate_id).unwrap())
+            (let fn_declared = curr_crate.items.iter().find_map(|item| match item {
+                CrateItem::Fn(fn_declared) if fn_declared.id == *fn_id => Some(fn_declared),
+                _ => None,
+            }))
+            (if let Some(fn_declared) = fn_declared)
+
+            // Instantiate the function signature universally (returns new env)
+            (let (fn_bound_data, _env1) = env.instantiate_universally(&fn_declared.binder))
+            (let callee_declared_input_tys = fn_bound_data.input_tys.clone())
+
+            // Check argument count matches
+            (if callee_declared_input_tys.len() == actual_arguments.len())
+
+            // Check each argument
+            (for_all(arg_pair in callee_declared_input_tys.iter().cloned().zip(actual_arguments.iter().cloned()).collect::<Vec<_>>())
+                (let (declared_ty, actual_argument) = arg_pair)
+                (check_argument_expression(&env, &fn_assumptions, &actual_argument) => (actual_ty, _arg_outlives))
+                (env.prove_goal(Location, &fn_assumptions, Relation::sub(actual_ty, declared_ty.clone())) => _sub_outlives))
+
+            // Collect argument outlives
+            (let arg_outlives_vec: Vec<Set<PendingOutlives>> = {
+                let mut v = vec![];
+                for (declared_ty, actual_argument) in callee_declared_input_tys.iter().zip(actual_arguments.iter()) {
+                    if let Ok(((actual_ty, arg_outlives), _)) = check_argument_expression(env.clone(), fn_assumptions.clone(), actual_argument.clone()).into_singleton() {
+                        let mut combined = arg_outlives;
+                        if let Ok((sub_outlives, _)) = env.prove_goal(Location, &fn_assumptions, Relation::sub(&actual_ty, declared_ty)).into_singleton() {
+                            combined.extend(sub_outlives);
+                        }
+                        v.push(combined);
+                    }
                 }
-            }
-            minirust::Terminator::Call {
+                v
+            })
+
+            // Check return place
+            (check_place(&env, &fn_assumptions, &ret) => (actual_return_ty, ret_outlives))
+            (env.prove_goal(Location, &fn_assumptions, Relation::sub(&fn_bound_data.output_ty, &actual_return_ty)) => ret_sub_outlives)
+
+            // Check next block exists if present
+            (if next_block.as_ref().map_or(true, |bb_id| env.block_exists(bb_id)))
+
+            // Combine all outlives
+            (let arg_outlives_vec = arg_outlives_vec.clone())
+            (let outlives = {
+                let mut s = callee_outlives.clone();
+                for arg_o in arg_outlives_vec { s.extend(arg_o); }
+                s.extend(ret_outlives.clone());
+                s.extend(ret_sub_outlives);
+                s
+            })
+            --- ("call")
+            (check_terminator(env, fn_assumptions, minirust::Terminator::Call {
                 callee,
                 generic_arguments: _,
                 arguments: actual_arguments,
                 ret,
                 next_block,
-            } => {
-                // Function is part of the value expression, so we will check if the function exists in check_value.
-                let ((callee_ty, callee_outlives), callee_pt) = check_value(
-                    self.clone(),
-                    fn_assumptions.clone(),
-                    callee.clone(),
-                ).into_singleton()?;
-                pending_outlives.extend(callee_outlives);
-                proof_tree.children.push(callee_pt);
+            }) => outlives)
+        )
 
-                // Get argument information from the callee type.
-                let Fn(_callee_fn_id) = callee else {
-                    unreachable!("Callee must exists in Terminator::Call");
-                };
+        (
+            --- ("return")
+            (check_terminator(env, fn_assumptions, minirust::Terminator::Return) => Set::<PendingOutlives>::new())
+        )
 
-                // Extract function signature from FnDef type
-                let TyData::RigidTy(rigid_ty) = callee_ty.data() else {
-                    bail!("Expected FnDef type for function value");
-                };
-                let RigidName::FnDef(fn_id) = &rigid_ty.name else {
-                    bail!("Expected FnDef type for function value");
-                };
+        (
+            // Check switch value
+            (check_value(&env, &fn_assumptions, &switch_value) => (value_ty, value_outlives))
+            (env.prove_judgment(Location, &fn_assumptions, value_ty, ty_is_int) => int_outlives)
 
-                // Find the function declaration to get the signature
-                let curr_crate = self
-                    .program
-                    .crates
-                    .iter()
-                    .find(|c| c.id == self.crate_id)
-                    .unwrap();
+            // Check all target blocks exist
+            (for_all(switch_target in &switch_targets) (if env.block_exists(&switch_target.target)))
+            (if env.block_exists(&fallback))
 
-                let fn_declared = curr_crate
-                    .items
-                    .iter()
-                    .find_map(|item| match item {
-                        CrateItem::Fn(fn_declared) if fn_declared.id == *fn_id => Some(fn_declared),
-                        _ => None,
-                    })
-                    .unwrap();
-
-                let fn_bound_data = self.env.instantiate_universally(&fn_declared.binder);
-                let callee_declared_input_tys = fn_bound_data.input_tys.clone();
-
-                // Check if the numbers of arguments passed equals to number of arguments declared.
-                if callee_declared_input_tys.len() != actual_arguments.len() {
-                    bail!("Function arguments number mismatch: the number expected is {:?}, the actual number is {:?}", callee_declared_input_tys.len(), actual_arguments.len());
-                }
-
-                let arguments = zip(callee_declared_input_tys, actual_arguments);
-                for (declared_ty, actual_argument) in arguments {
-                    // Check if the arguments are well formed.
-                    let ((actual_ty, arg_outlives), arg_pt) = check_argument_expression(
-                        self.clone(),
-                        fn_assumptions.clone(),
-                        actual_argument.clone(),
-                    ).into_singleton()?;
-                    pending_outlives.extend(arg_outlives);
-                    proof_tree.children.push(arg_pt);
-                    // Check if the actual argument type passed in is the subtype of expect argument type.
-                    let (new_outlives, pt) = self
-                        .prove_goal(Location, fn_assumptions, Relation::sub(&actual_ty, &declared_ty))
-                        .into_singleton()?;
-                    pending_outlives.extend(new_outlives);
-                    proof_tree.children.push(pt);
-                }
-
-                // Check whether ret place is well-formed.
-                let ((actual_return_ty, ret_outlives), ret_pt) = check_place(
-                    self.clone(),
-                    fn_assumptions.clone(),
-                    ret.clone(),
-                ).into_singleton()?;
-                pending_outlives.extend(ret_outlives);
-                proof_tree.children.push(ret_pt);
-
-                // Check if the fn's declared return type is a subtype of the type of the local variable `ret`
-                let (new_outlives, pt) = self
-                    .prove_goal(
-                        Location,
-                        fn_assumptions,
-                        Relation::sub(&fn_bound_data.output_ty, &actual_return_ty),
-                    )
-                    .into_singleton()?;
-                pending_outlives.extend(new_outlives);
-                proof_tree.children.push(pt);
-
-                // Check the validity of next bb_id.
-                if let Some(bb_id) = next_block {
-                    self.check_block_exists(bb_id)?;
-                };
-            }
-            minirust::Terminator::Return => {
-                // TODO: Check if the return local variable has been initialized (filed as issue)
-                // if !self.ret_place_is_initialised {
-                //     bail!("The return local variable has not been initialized.")
-                // }
-            }
-
-            minirust::Terminator::Switch {
+            // Combine outlives
+            (let outlives = { let mut s = value_outlives.clone(); s.extend(int_outlives); s })
+            --- ("switch")
+            (check_terminator(env, fn_assumptions, minirust::Terminator::Switch {
                 switch_value,
                 switch_targets,
                 fallback,
-            } => {
-                // Check if the value is well-formed.
-                let ((value_ty, value_outlives), value_pt) = check_value(
-                    self.clone(),
-                    fn_assumptions.clone(),
-                    switch_value.clone(),
-                ).into_singleton()?;
-                pending_outlives.extend(value_outlives);
-                proof_tree.children.push(value_pt);
-
-                let (new_outlives, pt) = self
-                    .prove_judgment(Location, &fn_assumptions, value_ty, ty_is_int)
-                    .into_singleton()?;
-                pending_outlives.extend(new_outlives);
-                proof_tree.children.push(pt);
-
-                // Ensure all bbid are valid.
-                for switch_target in switch_targets {
-                    self.check_block_exists(&switch_target.target)?;
-                }
-                self.check_block_exists(fallback)?;
-            }
-        }
-        Ok(proof_tree)
+            }) => outlives)
+        )
     }
+}
 
+impl TypeckEnv {
     /// Hacky method that type-checks a place that has already been type-checked.
     /// Asserts therefore that the resulting pending outlives were already pending.
     ///
@@ -509,6 +479,10 @@ impl TypeckEnv {
             }
         }
         bail!("Basic block {:?} does not exist", id)
+    }
+
+    fn block_exists(&self, id: &BbId) -> bool {
+        self.blocks.iter().any(|block| block.id == *id)
     }
 }
 
