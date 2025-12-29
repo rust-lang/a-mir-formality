@@ -719,7 +719,7 @@ fn test_field_projection_root_non_adt() {
         []
         expect_test::expect![[r#"
             the rule "field" at (mini_rust_check.rs) failed because
-              pattern `Some(adt_id)` did not match value `None`"#]]
+              pattern `Some((adt_id, parameters))` did not match value `None`"#]]
     )
 }
 
@@ -782,7 +782,7 @@ fn test_non_adt_ty_for_struct() {
         []
         expect_test::expect![[r#"
             the rule "struct" at (mini_rust_check.rs) failed because
-              pattern `Some(adt_id)` did not match value `None`"#]]
+              pattern `Some((adt_id, parameters))` did not match value `None`"#]]
     )
 }
 
