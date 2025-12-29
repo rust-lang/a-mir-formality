@@ -472,8 +472,9 @@ fn test_invalid_next_bbid_for_call_terminator() {
             }
         ]
         []
-        expect_test::expect![[r#"the rule "call" at (mini_rust_check.rs) failed because
-    condition evaluted to false: `next_block.as_ref().map_or(true, |bb_id| env.block_exists(bb_id))`"#]]
+        expect_test::expect![[r#"
+            the rule "call" at (mini_rust_check.rs) failed because
+              condition evaluted to false: `next_block.as_ref().map_or(true, |bb_id| env.block_exists(bb_id))`"#]]
     )
 }
 
