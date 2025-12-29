@@ -352,7 +352,7 @@ judgment_fn! {
             (if callee_declared_input_tys.len() == actual_arguments.len())
 
             // Check each argument and subtyping
-            (for_all(arg_pair in callee_declared_input_tys.iter().cloned().zip(actual_arguments.iter().cloned()).collect::<Vec<_>>()) with(outlives)
+            (for_all(arg_pair in callee_declared_input_tys.iter().zip(&actual_arguments)) with(outlives)
                 (let (declared_ty, actual_argument) = arg_pair)
                 (check_argument_expression(&env, outlives, &fn_assumptions, &actual_argument) => (actual_ty, outlives))
                 (env.prove_goal(outlives, Location, &fn_assumptions, Relation::sub(actual_ty, declared_ty.clone())) => outlives))
