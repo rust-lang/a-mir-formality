@@ -151,7 +151,7 @@ impl TypeckEnv {
     }
 
     fn check_statement(
-        &mut self,
+        &self,
         fn_assumptions: &Wcs,
         statement: &minirust::Statement,
         pending_outlives: &mut Set<PendingOutlives>,
@@ -472,7 +472,7 @@ impl TypeckEnv {
 
     // Check if the value expression is well-formed, and return the type of the value expression.
     fn check_value(
-        &mut self,
+        &self,
         fn_assumptions: &Wcs,
         value: &ValueExpression,
         pending_outlives: &mut Set<PendingOutlives>,
@@ -580,7 +580,7 @@ impl TypeckEnv {
     }
 
     fn check_argument_expression(
-        &mut self,
+        &self,
         fn_assumptions: &Wcs,
         arg_expr: &ArgumentExpression,
         pending_outlives: &mut Set<PendingOutlives>,
