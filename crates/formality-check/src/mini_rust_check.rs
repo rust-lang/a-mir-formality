@@ -107,22 +107,55 @@ impl Check<'_> {
         };
 
         // Check that basic blocks are well-typed
-        let mut pending_outlives = set![];
-        for block in &*blocks {
-            let (block_outlives, block_pt) = check_block(
-                env.clone(),
-                fn_assumptions.clone(),
-                block.clone(),
-            ).into_singleton()?;
-            pending_outlives.extend(block_outlives);
-            proof_tree.children.push(block_pt);
-        }
+        let (pending_outlives, blocks_pt) = check_blocks(
+            env.clone(),
+            fn_assumptions.clone(),
+            (*blocks).clone(),
+        ).into_singleton()?;
+        proof_tree.children.push(blocks_pt);
 
         proof_tree
             .children
             .push(nll::borrow_check(&env, &fn_assumptions, &pending_outlives)?);
 
         Ok(proof_tree)
+    }
+}
+
+judgment_fn! {
+    fn check_blocks(
+        env: TypeckEnv,
+        fn_assumptions: Wcs,
+        blocks: Vec<minirust::BasicBlock>,
+    ) => Set<PendingOutlives> {
+        debug(blocks, fn_assumptions, env)
+
+        (
+            // Check all blocks
+            (for_all(block in &blocks)
+                (check_block(&env, &fn_assumptions, block) => _block_outlives))
+
+            // Collect block outlives
+            (let block_outlives_vec: Vec<Set<PendingOutlives>> = {
+                let mut v = vec![];
+                for block in &blocks {
+                    if let Ok((block_outlives, _)) = check_block(env.clone(), fn_assumptions.clone(), block.clone()).into_singleton() {
+                        v.push(block_outlives);
+                    }
+                }
+                v
+            })
+
+            // Combine all outlives
+            (let block_outlives_vec = block_outlives_vec.clone())
+            (let outlives = {
+                let mut s = Set::<PendingOutlives>::new();
+                for block_o in block_outlives_vec { s.extend(block_o); }
+                s
+            })
+            --- ("blocks")
+            (check_blocks(env, fn_assumptions, blocks) => outlives)
+        )
     }
 }
 
