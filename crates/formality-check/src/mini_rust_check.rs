@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use formality_core::judgment::ProofTree;
-use formality_core::{Downcast, Fallible, Map, Set, Upcast, cast_impl, judgment_fn};
+use formality_core::{cast_impl, judgment_fn, Downcast, Fallible, Map, Set, Upcast};
 use formality_prove::{prove_normalize, AdtDeclBoundData, AdtDeclVariant, Constraints, Decls, Env};
 use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
 use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load, Ref, Struct};
@@ -107,12 +107,9 @@ impl Check<'_> {
         };
 
         // Check that basic blocks are well-typed
-        let (pending_outlives, blocks_pt) = check_blocks(
-            env.clone(),
-            (),
-            fn_assumptions.clone(),
-            (*blocks).clone(),
-        ).into_singleton()?;
+        let (pending_outlives, blocks_pt) =
+            check_blocks(env.clone(), (), fn_assumptions.clone(), (*blocks).clone())
+                .into_singleton()?;
         proof_tree.children.push(blocks_pt);
 
         proof_tree
@@ -420,7 +417,8 @@ impl TypeckEnv {
             outlives.clone(),
             fn_assumptions.clone(),
             place.clone(),
-        ).into_singleton()?;
+        )
+        .into_singleton()?;
         for constraint in &new_outlives {
             if !outlives.contains(constraint) {
                 panic!(
@@ -532,7 +530,13 @@ impl TypeckEnv {
         goal: impl ToWcs + Debug,
     ) -> ProvenSet<Set<PendingOutlives>> {
         let goal: Wcs = goal.to_wcs();
-        self.prove_judgment(outlives, location, assumptions, goal.to_wcs(), formality_prove::prove)
+        self.prove_judgment(
+            outlives,
+            location,
+            assumptions,
+            goal.to_wcs(),
+            formality_prove::prove,
+        )
     }
 
     /// Prove the goal with the function `judgment_fn`,

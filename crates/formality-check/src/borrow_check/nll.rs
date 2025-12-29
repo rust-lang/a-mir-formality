@@ -154,8 +154,15 @@ pub fn borrow_check(
 
     let stack: Vec<StackEntry> = vec![];
     proof_tree.children.push(
-        loans_in_basic_block_respected(stack, env, fn_assumptions, (), pending_outlives, &start_bb.id)
-            .check_proven()?,
+        loans_in_basic_block_respected(
+            stack,
+            env,
+            fn_assumptions,
+            (),
+            pending_outlives,
+            &start_bb.id,
+        )
+        .check_proven()?,
     );
     Ok(proof_tree)
 }
