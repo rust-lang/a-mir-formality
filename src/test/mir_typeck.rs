@@ -389,7 +389,8 @@ fn test_call_invalid_fn() {
         ]
         []
         expect_test::expect![[r#"
-            The function called is not declared in current crate"#]]
+            the rule "fn" at (mini_rust_check.rs) failed because
+              pattern `Some(fn_declared)` did not match value `None`"#]]
     )
 }
 
