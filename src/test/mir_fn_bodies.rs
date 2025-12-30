@@ -1182,3 +1182,46 @@ fn test_ref_deref() {
         ]
     )
 }
+
+// For `list: &mut Map`, borrow `&mut (*list).value` then assign to `list`.
+// Ignore test because it is still an error.
+#[test]
+#[ignore]
+fn problem_case_4() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                struct Map {
+                    value: u32,
+                 }
+
+                fn min_problem_case_4<lt a>(&mut a Map, &mut a Map) -> u32 = minirust(list, list2) -> ret {
+                    let list: &mut a Map;
+                    let list2: &mut a Map;
+                    let ret: u32;
+
+                    exists<lt r0> {
+                        let num: &mut r0 u32;
+
+                        bb0: {
+                            statements {
+                                local(ret) = constant(0 : u32);
+                            }
+                            goto bb1;
+                        }
+
+                        bb1: {
+                            statements {
+                                local(num) = &mut r0 *(local(list)).0;
+                                local(list) = &mut a *(local(list2));
+                                place_mention(local(num));
+                            }
+                            return;
+                        }
+
+                    }
+                };
+            }
+        ]
+    )
+}
