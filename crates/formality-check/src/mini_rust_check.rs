@@ -93,7 +93,7 @@ impl Check<'_> {
             );
         }
 
-        let mut env = TypeckEnv {
+        let env = TypeckEnv {
             program: Arc::new(self.program.clone()),
             env: env.clone(),
             output_ty,
@@ -175,7 +175,7 @@ judgment_fn! {
             (check_value(&env, outlives, &fn_assumptions, &value) => (value_ty, env, outlives))
             (env.prove_goal(outlives, Location, &fn_assumptions, Relation::sub(value_ty.clone(), place_ty.clone())) => outlives)
             --- ("assign")
-            (check_statement(env, outlives, fn_assumptions, minirust::Statement::Assign(place, value)) => (env.clone(), outlives))
+            (check_statement(env, outlives, fn_assumptions, minirust::Statement::Assign(place, value)) => (env.clone().clone(), outlives))
         )
 
         (
@@ -394,7 +394,7 @@ judgment_fn! {
 
 impl TypeckEnv {
     /// Look up a function declaration by its id in the current crate.
-    fn fn_decl(&self, fn_id: &FnId) -> Option<&FnDecl> {
+    pub(crate) fn fn_decl(&self, fn_id: &FnId) -> Option<&FnDecl> {
         let curr_crate = self.program.crates.iter().find(|c| c.id == self.crate_id)?;
         curr_crate.items.iter().find_map(|item| match item {
             CrateItem::Fn(fn_decl) if fn_decl.id == *fn_id => Some(fn_decl),
@@ -430,7 +430,7 @@ impl TypeckEnv {
         Ok(ty)
     }
 
-    fn find_local_id(&self, local_id: &LocalId) -> Option<(LocalId, Ty)> {
+    pub(crate) fn find_local_id(&self, local_id: &LocalId) -> Option<(LocalId, Ty)> {
         if let Some((local_id, ty)) = self
             .local_variables
             .iter()
@@ -522,7 +522,7 @@ pub struct Location;
 impl TypeckEnv {
     /// Prove the goal in this environment, accumulating any pending outlive constraints
     /// onto the input set and returning the result.
-    fn prove_goal(
+    pub(crate) fn prove_goal(
         &self,
         outlives: Set<PendingOutlives>,
         location: Location,
@@ -757,7 +757,7 @@ judgment_fn! {
 
 /// Extract the ADT id and parameters from a type.
 /// For now, only handles rigid types directly; normalization can be added later.
-fn ty_is_adt(ty: &Ty) -> Option<(AdtId, Vec<Parameter>)> {
+pub(crate) fn ty_is_adt(ty: &Ty) -> Option<(AdtId, Vec<Parameter>)> {
     match ty.data() {
         TyData::RigidTy(RigidTy {
             name: RigidName::AdtId(adt_id),
