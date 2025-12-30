@@ -107,7 +107,7 @@ impl Check<'_> {
         };
 
         // Check that basic blocks are well-typed
-        let (pending_outlives, blocks_pt) =
+        let ((env, pending_outlives), blocks_pt) =
             check_blocks(env.clone(), (), fn_assumptions.clone(), (*blocks).clone())
                 .into_singleton()?;
         proof_tree.children.push(blocks_pt);
@@ -126,15 +126,15 @@ judgment_fn! {
         outlives: Set<PendingOutlives>,
         fn_assumptions: Wcs,
         blocks: Vec<minirust::BasicBlock>,
-    ) => Set<PendingOutlives> {
+    ) => (TypeckEnv, Set<PendingOutlives>) {
         debug(blocks, fn_assumptions, env, outlives)
 
         (
             // Check all blocks
-            (for_all(block in &blocks) with(outlives)
-                (check_block(&env, outlives, &fn_assumptions, block) => outlives))
+            (for_all(block in &blocks) with(env, outlives)
+                (check_block(&env, outlives, &fn_assumptions, block) => (env, outlives)))
             --- ("blocks")
-            (check_blocks(env, outlives, fn_assumptions, blocks) => outlives)
+            (check_blocks(env, outlives, fn_assumptions, blocks) => (env, outlives))
         )
     }
 }
@@ -145,18 +145,18 @@ judgment_fn! {
         outlives: Set<PendingOutlives>,
         fn_assumptions: Wcs,
         block: minirust::BasicBlock,
-    ) => Set<PendingOutlives> {
+    ) => (TypeckEnv, Set<PendingOutlives>) {
         debug(block, fn_assumptions, env, outlives)
 
         (
             // Check all statements
-            (for_all(statement in &block.statements) with(outlives)
-                (check_statement(&env, outlives, &fn_assumptions, statement) => outlives))
+            (for_all(statement in &block.statements) with(env, outlives)
+                (check_statement(&env, outlives, &fn_assumptions, statement) => (env, outlives)))
 
             // Check terminator
-            (check_terminator(&env, outlives, &fn_assumptions, &block.terminator) => outlives)
+            (check_terminator(&env, outlives, &fn_assumptions, &block.terminator) => (env, outlives))
             --- ("block")
-            (check_block(env, outlives, fn_assumptions, block) => outlives)
+            (check_block(env, outlives, fn_assumptions, block) => (env, outlives))
         )
     }
 }
@@ -167,27 +167,27 @@ judgment_fn! {
         outlives: Set<PendingOutlives>,
         fn_assumptions: Wcs,
         statement: minirust::Statement,
-    ) => Set<PendingOutlives> {
+    ) => (TypeckEnv, Set<PendingOutlives>) {
         debug(statement, fn_assumptions, env, outlives)
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &place) => (place_ty, outlives))
-            (check_value(&env, outlives, &fn_assumptions, &value) => (value_ty, outlives))
+            (check_place(&env, outlives, &fn_assumptions, &place) => (place_ty, env, outlives))
+            (check_value(&env, outlives, &fn_assumptions, &value) => (value_ty, env, outlives))
             (env.prove_goal(outlives, Location, &fn_assumptions, Relation::sub(value_ty.clone(), place_ty.clone())) => outlives)
             --- ("assign")
-            (check_statement(env, outlives, fn_assumptions, minirust::Statement::Assign(place, value)) => outlives)
+            (check_statement(env, outlives, fn_assumptions, minirust::Statement::Assign(place, value)) => (env.clone(), outlives))
         )
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &place) => (_place_ty, outlives))
+            (check_place(&env, outlives, &fn_assumptions, &place) => (_place_ty, env, outlives))
             --- ("place-mention")
-            (check_statement(env, outlives, fn_assumptions, minirust::Statement::PlaceMention(place)) => outlives)
+            (check_statement(env, outlives, fn_assumptions, minirust::Statement::PlaceMention(place)) => (env, outlives))
         )
 
         (
             (if env.find_local_id(&local_id).is_some())
             --- ("storage-live")
-            (check_statement(env, outlives, _fn_assumptions, minirust::Statement::StorageLive(local_id)) => outlives)
+            (check_statement(env, outlives, _fn_assumptions, minirust::Statement::StorageLive(local_id)) => (env, outlives))
         )
 
         (
@@ -195,7 +195,7 @@ judgment_fn! {
             (if local_id != env.ret_id)
             (if !env.fn_args.iter().any(|fn_arg| local_id == *fn_arg))
             --- ("storage-dead")
-            (check_statement(env, outlives, _fn_assumptions, minirust::Statement::StorageDead(local_id)) => outlives)
+            (check_statement(env, outlives, _fn_assumptions, minirust::Statement::StorageDead(local_id)) => (env, outlives))
         )
     }
 }
@@ -206,26 +206,26 @@ judgment_fn! {
         outlives: Set<PendingOutlives>,
         fn_assumptions: Wcs,
         value: ValueExpression,
-    ) => (Ty, Set<PendingOutlives>) {
+    ) => (Ty, TypeckEnv, Set<PendingOutlives>) {
         debug(value, fn_assumptions, env, outlives)
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &place) => (place_ty, outlives))
+            (check_place(&env, outlives, &fn_assumptions, &place) => (place_ty, env, outlives))
             --- ("load")
-            (check_value(env, outlives, fn_assumptions, Load(place)) => (place_ty, outlives))
+            (check_value(env, outlives, fn_assumptions, Load(place)) => (place_ty, env, outlives))
         )
 
         (
             (if let Some(fn_decl) = env.fn_decl(&fn_id))
             (let value_ty = Ty::rigid(RigidName::FnDef(fn_decl.id.clone()), Vec::<Parameter>::new()))
             --- ("fn")
-            (check_value(env, outlives, _fn_assumptions, Fn(fn_id)) => (value_ty, outlives))
+            (check_value(env, outlives, _fn_assumptions, Fn(fn_id)) => (value_ty, env, outlives))
         )
 
         (
             (let value_ty = constant.get_ty())
             --- ("constant")
-            (check_value(_env, outlives, _fn_assumptions, Constant(constant)) => (value_ty, outlives))
+            (check_value(env, outlives, _fn_assumptions, Constant(constant)) => (value_ty, env, outlives))
         )
 
         (
@@ -237,17 +237,17 @@ judgment_fn! {
             (if value_expressions.len() == fields.len())
             (for_all(pair in value_expressions.iter().zip(fields)) with(outlives)
                 (let (value_expression, field) = pair)
-                (check_value(&env, outlives, &fn_assumptions, value_expression) => (value_ty, outlives))
+                (check_value(&env, outlives, &fn_assumptions, value_expression) => (value_ty, _env, outlives))
                 (env.prove_goal(outlives, Location, &fn_assumptions, Relation::sub(value_ty, &field.ty)) => outlives))
             --- ("struct")
-            (check_value(env, outlives, fn_assumptions, Struct(value_expressions, ty)) => (ty.clone(), outlives))
+            (check_value(env, outlives, fn_assumptions, Struct(value_expressions, ty)) => (ty.clone(), env.clone(), outlives))
         )
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &place_expr) => (place_ty, outlives))
+            (check_place(&env, outlives, &fn_assumptions, &place_expr) => (place_ty, env, outlives))
             (let value_ty = place_ty.ref_ty_of_kind(ref_kind, &borrow_lt))
             --- ("ref")
-            (check_value(env, outlives, fn_assumptions, Ref(ref_kind, borrow_lt, place_expr)) => (value_ty, outlives))
+            (check_value(env, outlives, fn_assumptions, Ref(ref_kind, borrow_lt, place_expr)) => (value_ty, env, outlives))
         )
     }
 }
@@ -258,17 +258,17 @@ judgment_fn! {
         outlives: Set<PendingOutlives>,
         fn_assumptions: Wcs,
         place: PlaceExpression,
-    ) => (Ty, Set<PendingOutlives>) {
+    ) => (Ty, TypeckEnv, Set<PendingOutlives>) {
         debug(place, fn_assumptions, env, outlives)
 
         (
             (if let Some((_, ty)) = env.find_local_id(&local_id))
             --- ("local")
-            (check_place(env, outlives, _fn_assumptions, Local(local_id)) => (ty, outlives))
+            (check_place(env, outlives, _fn_assumptions, Local(local_id)) => (ty, env, outlives))
         )
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &*field_projection.root) => (root_ty, outlives))
+            (check_place(&env, outlives, &fn_assumptions, &*field_projection.root) => (root_ty, env, outlives))
             (if let Some((adt_id, parameters)) = ty_is_adt(&root_ty))
             (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
@@ -276,16 +276,16 @@ judgment_fn! {
             (if field_projection.index < fields.len())
             (let place_ty = fields[field_projection.index].ty.clone())
             --- ("field")
-            (check_place(env, outlives, fn_assumptions, Field(field_projection)) => (place_ty, outlives))
+            (check_place(env, outlives, fn_assumptions, Field(field_projection)) => (place_ty, env, outlives))
         )
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &*value_expr) => (inner_ty, outlives))
+            (check_place(&env, outlives, &fn_assumptions, &*value_expr) => (inner_ty, env, outlives))
             (if let TyData::RigidTy(rigid_ty) = inner_ty.data())
             (if let RigidName::Ref(_ref_kind) = &rigid_ty.name)
             (let place_ty = rigid_ty.parameters[1].as_ty().expect("well-kinded reference").clone())
             --- ("deref-ref")
-            (check_place(env, outlives, fn_assumptions, Deref(value_expr)) => (place_ty, outlives))
+            (check_place(env, outlives, fn_assumptions, Deref(value_expr)) => (place_ty, env, outlives))
         )
     }
 }
@@ -296,19 +296,19 @@ judgment_fn! {
         outlives: Set<PendingOutlives>,
         fn_assumptions: Wcs,
         arg_expr: ArgumentExpression,
-    ) => (Ty, Set<PendingOutlives>) {
+    ) => (Ty, TypeckEnv, Set<PendingOutlives>) {
         debug(arg_expr, fn_assumptions, env, outlives)
 
         (
-            (check_value(&env, outlives, &fn_assumptions, &val_expr) => (ty, outlives))
+            (check_value(&env, outlives, &fn_assumptions, &val_expr) => (ty, env, outlives))
             --- ("by-value")
-            (check_argument_expression(env, outlives, fn_assumptions, ByValue(val_expr)) => (ty, outlives))
+            (check_argument_expression(env, outlives, fn_assumptions, ByValue(val_expr)) => (ty, env, outlives))
         )
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &place_expr) => (ty, outlives))
+            (check_place(&env, outlives, &fn_assumptions, &place_expr) => (ty, env, outlives))
             --- ("in-place")
-            (check_argument_expression(env, outlives, fn_assumptions, InPlace(place_expr)) => (ty, outlives))
+            (check_argument_expression(env, outlives, fn_assumptions, InPlace(place_expr)) => (ty, env, outlives))
         )
     }
 }
@@ -319,19 +319,19 @@ judgment_fn! {
         outlives: Set<PendingOutlives>,
         fn_assumptions: Wcs,
         terminator: minirust::Terminator,
-    ) => Set<PendingOutlives> {
+    ) => (TypeckEnv, Set<PendingOutlives>) {
         debug(terminator, fn_assumptions, env, outlives)
 
         (
             (if !bb_ids.is_empty())
             (for_all(bb_id in &bb_ids) (if env.block_exists(bb_id)))
             --- ("goto")
-            (check_terminator(env, outlives, _fn_assumptions, minirust::Terminator::Goto(bb_ids)) => outlives)
+            (check_terminator(env, outlives, _fn_assumptions, minirust::Terminator::Goto(bb_ids)) => (env, outlives))
         )
 
         (
             // Check callee value expression
-            (check_value(&env, outlives, &fn_assumptions, &callee) => (callee_ty, outlives))
+            (check_value(&env, outlives, &fn_assumptions, &callee) => (callee_ty, env, outlives))
 
             // Extract FnDef from callee type
             (if let TyData::RigidTy(rigid_ty) = callee_ty.data())
@@ -341,7 +341,7 @@ judgment_fn! {
             (if let Some(fn_decl) = env.fn_decl(fn_id))
 
             // Instantiate the function signature universally (returns new env)
-            (let (fn_bound_data, _env1) = env.instantiate_universally(&fn_decl.binder))
+            (let (fn_bound_data, env) = env.instantiate_universally(&fn_decl.binder))
             (let callee_declared_input_tys = fn_bound_data.input_tys.clone())
 
             // Check argument count matches
@@ -350,11 +350,11 @@ judgment_fn! {
             // Check each argument and subtyping
             (for_all(arg_pair in callee_declared_input_tys.iter().zip(&actual_arguments)) with(outlives)
                 (let (declared_ty, actual_argument) = arg_pair)
-                (check_argument_expression(&env, outlives, &fn_assumptions, &actual_argument) => (actual_ty, outlives))
+                (check_argument_expression(&env, outlives, &fn_assumptions, &actual_argument) => (actual_ty, _env, outlives))
                 (env.prove_goal(outlives, Location, &fn_assumptions, Relation::sub(actual_ty, declared_ty.clone())) => outlives))
 
             // Check return place
-            (check_place(&env, outlives, &fn_assumptions, &ret) => (actual_return_ty, outlives))
+            (check_place(&env, outlives, &fn_assumptions, &ret) => (actual_return_ty, env, outlives))
             (env.prove_goal(outlives, Location, &fn_assumptions, Relation::sub(&fn_bound_data.output_ty, &actual_return_ty)) => outlives)
 
             // Check next block exists if present
@@ -366,17 +366,17 @@ judgment_fn! {
                 arguments: actual_arguments,
                 ret,
                 next_block,
-            }) => outlives)
+            }) => (env.clone(), outlives))
         )
 
         (
             --- ("return")
-            (check_terminator(_env, outlives, _fn_assumptions, minirust::Terminator::Return) => outlives)
+            (check_terminator(env, outlives, _fn_assumptions, minirust::Terminator::Return) => (env, outlives))
         )
 
         (
             // Check switch value
-            (check_value(&env, outlives, &fn_assumptions, &switch_value) => (value_ty, outlives))
+            (check_value(&env, outlives, &fn_assumptions, &switch_value) => (value_ty, env, outlives))
             (env.prove_judgment(outlives, Location, &fn_assumptions, value_ty, ty_is_int) => outlives)
 
             // Check all target blocks exist
@@ -387,7 +387,7 @@ judgment_fn! {
                 switch_value,
                 switch_targets,
                 fallback,
-            }) => outlives)
+            }) => (env.clone(), outlives))
         )
     }
 }
@@ -412,7 +412,7 @@ impl TypeckEnv {
         place: &PlaceExpression,
         outlives: &Set<PendingOutlives>,
     ) -> Fallible<Ty> {
-        let ((ty, new_outlives), _pt) = check_place(
+        let ((ty, _env, new_outlives), _pt) = check_place(
             self.clone(),
             outlives.clone(),
             fn_assumptions.clone(),
