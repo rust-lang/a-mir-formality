@@ -1153,9 +1153,7 @@ fn undeclared_transitive_universal_region_relationship() {
 }
 
 /// Test ref and deref
-/// FIXME(tiif): This is not implemented yet
 #[test]
-#[ignore]
 fn test_ref_deref() {
     crate::assert_ok!(
         [
@@ -1164,15 +1162,14 @@ fn test_ref_deref() {
                 fn foo () -> u32 = minirust() -> v0 {
                     let v0: u32;
                     exists<lt a> {
-                        let v1: u32;
-                        let v2: &a u32;
-                        let v3: u32;
+                        let v1: &a u32;
+                        let v2: u32;
 
                         bb0: {
                             statements {
-                                local(v1) = constant(3: u32);
-                                local(v2) = &(local(v1));
-                                local(v3) = load(*(load(local(v2))));
+                                local(v0) = constant(0: u32);
+                                local(v1) = &a local(v0);
+                                local(v2) = load(*(local(v1)));
                             }
                             return;
                         }
