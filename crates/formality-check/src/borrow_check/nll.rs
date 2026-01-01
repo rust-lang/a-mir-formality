@@ -469,7 +469,7 @@ judgment_fn! {
                 &places_live,
             ) => ())
             --- ("assign")
-            (borrow_check_statement(env, assumptions, loans_live, outlives, Statement::Assign(place_lhs, value_rhs), places_live) => (outlives.clone(), loans_live.clone()))
+            (borrow_check_statement(env, assumptions, loans_live, outlives, Statement::Assign(place_lhs, value_rhs), places_live) => (&outlives, &loans_live))
         )
     }
 }
@@ -577,18 +577,37 @@ judgment_fn! {
         )
 
         (
+            // Struct type must be well-formed
             (env.prove_goal(outlives, Location, &assumptions, ty.well_formed()) => outlives)
+
+            // Get the type of the fields for the struct variant after substituting generics from the struct type
             (if let Some((adt_id, parameters)) = ty_is_adt(&ty))
             (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
+
+            // We must have the right number of field values for the fields
             (if field_values.len() == fields.len())
-            (let loans_live_for_loop = loans_live.clone())
-            (for_all(pair in field_values.iter().zip(fields)) with(outlives, loans_live_for_loop)
-                (let (value_expression, field) = pair)
-                (borrow_check_struct_field(&env, &assumptions, loans_live_for_loop, outlives, value_expression, &field.ty, &places_live) => (outlives, loans_live_for_loop)))
+
+            // Each field value must have a subtype of the type declared in the struct
+            (let loans_live = loans_live.clone()) // FIXME: this clone should move into the desugaring of `for_all`, lame, or perhaps we should be able to pass in `&loans_live`
+            (for_all(i in 0..field_values.len()) with(outlives, loans_live)
+                // Given something like `StructName(..., value_i, value_i+1, ...); ...`
+                //                                                --------------   ---
+                //                                                      |           |
+                //                                                      |      `places_live` represents the
+                //                                                      |      places live due to this code
+                //                                                      |
+                //                                      We want the places live before this code,
+                //                                      since we are about to execute `value_i`,
+                //                                      and what comes after `value_i` is values `i+1..` and
+                //                                      whatever comes after this structure value (`...`).
+                (let places_live_before_field_value = field_values[i+1..].live_before(&env, &places_live))
+                (borrow_check_value_expression(&env, &assumptions, loans_live, outlives, &field_values[i], places_live_before_field_value) => (value_ty, outlives, loans_live))
+                (env.prove_goal(outlives, Location, &assumptions, Relation::sub(value_ty, &fields[i].ty)) => outlives)
+                (let loans_live = loans_live.clone())) // FIXME: this clone should move into the desugaring of `for_all`, lame
             --- ("struct")
-            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Struct(field_values, ty), places_live) => (ty.clone(), outlives, loans_live_for_loop))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Struct(field_values, ty), places_live) => (ty.clone(), outlives, loans_live))
         )
 
         (
@@ -648,28 +667,6 @@ judgment_fn! {
             (let place_ty = rigid_ty.parameters[1].as_ty().expect("well-kinded reference").clone())
             --- ("deref-ref")
             (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Deref(place_expr), places_live) => (place_ty, outlives, loans_live))
-        )
-    }
-}
-
-judgment_fn! {
-    /// Borrow-check a struct field value expression and prove it subtypes the expected field type.
-    fn borrow_check_struct_field(
-        env: TypeckEnv,
-        fn_assumptions: Wcs,
-        loans_live: Set<Loan>,
-        outlives: Set<PendingOutlives>,
-        value_expression: ValueExpression,
-        expected_field_ty: Ty,
-        places_live: LivePlaces,
-    ) => (Set<PendingOutlives>, Set<Loan>) {
-        debug(loans_live, value_expression, expected_field_ty, places_live, fn_assumptions, env, outlives)
-
-        (
-            (borrow_check_value_expression(&env, &assumptions, loans_live, outlives, value_expression, places_live) => (value_ty, outlives, loans_live))
-            (env.prove_goal(outlives, Location, &assumptions, Relation::sub(value_ty, expected_field_ty.clone())) => outlives)
-            --- ("borrow_check_struct_field")
-            (borrow_check_struct_field(env, assumptions, loans_live, outlives, value_expression, expected_field_ty, places_live) => (outlives.clone(), loans_live.clone()))
         )
     }
 }
