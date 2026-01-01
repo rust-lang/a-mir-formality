@@ -301,11 +301,12 @@ judgment_fn! {
         // Cycle detection: if we've already visited this block with the same live loans,
         // we've reached a fixpoint and can stop recursing. This handles loops in the CFG.
         //
-        // Note: This is potentially more precise than a real implementation would be.
+        // FIXME(nikomatsakis): This is potentially more precise than a real implementation would be.
         // We check each path through the CFG independently, so two paths arriving at the
         // same block with different loan sets X and Y are checked separately. A real
         // implementation might merge to (X ∪ Y) and check once, which could reject
-        // programs this accepts.
+        // programs this accepts. An example of such a case can be found in the test 
+        // `cfg_union_approx_cause_false_error`.
         (
             (let this_entry = StackEntry::new(&env, &fn_assumptions, &loans_live_on_entry, &outlives, &bb_id))
             (if stack.contains(&this_entry))!
