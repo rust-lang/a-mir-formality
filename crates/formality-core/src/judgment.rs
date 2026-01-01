@@ -7,7 +7,7 @@ pub use assertion::JudgmentAssertion;
 
 mod proven_set;
 pub use proven_set::{
-    insert_smallest_proof, EachProof, FailedJudgment, FailedRule, ProofTree, Proven, ProvenSet,
+    insert_smallest_proof, CheckProven, EachProof, FailedJudgment, FailedRule, ProofTree, Proven, ProvenSet,
     RuleFailureCause,
 };
 
@@ -597,6 +597,27 @@ macro_rules! push_rules {
     ) => {
         assert!($c);
         $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
+    };
+
+    // Special case for `(expr => ())` - since `()` is a singleton type, there's at most
+    // one successful path. This avoids the closure in `each_proof`, which makes borrowing
+    // easier in the judgment body.
+    (
+        @body $args:tt; $inputs:tt; $child_proof_trees:ident;
+        ($i:expr => ()) $($m:tt)*
+    ) => {
+        match $crate::judgment::CheckProven::check_proven(
+            $i,
+            || stringify!($i).to_string(),
+        ) {
+            Ok(proof_tree) => {
+                $child_proof_trees.push(proof_tree);
+                $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
+            }
+            Err(e) => {
+                $crate::push_rules!(@record_failure $inputs; $i; e);
+            }
+        }
     };
 
     (

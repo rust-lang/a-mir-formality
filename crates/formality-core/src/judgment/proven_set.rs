@@ -851,3 +851,55 @@ impl<T: IntoIterator<Item: Debug>> EachProof for T {
         }
     }
 }
+
+pub trait CheckProven {
+    /// If the iterable is non-empty, invokes `each_proof` for each item and returns `Ok(())`.
+    /// Otherwise, returns `Err(_)` with a description of the failure;
+    /// `stringify_expr` is used to create that description, it should
+    /// return a string representing the expression being enumerated.
+    #[track_caller]
+    fn check_proven(
+        self,
+        stringify_expr: impl FnOnce() -> String,
+    ) -> Result<ProofTree, RuleFailureCause>;
+}
+
+impl CheckProven for ProvenSet<()> {
+    #[track_caller]
+    fn check_proven(
+        self,
+        _stringify_expr: impl FnOnce() -> String,
+    ) -> Result<ProofTree, RuleFailureCause> {
+        self.check_proven()
+        .map_err(|e| RuleFailureCause::FailedJudgment(e.clone()))
+    }
+}
+
+impl CheckProven for &ProvenSet<()> {
+    #[track_caller]
+    fn check_proven(
+        self,
+        _stringify_expr: impl FnOnce() -> String,
+    ) -> Result<ProofTree, RuleFailureCause> {
+        self.clone().check_proven()
+        .map_err(|e| RuleFailureCause::FailedJudgment(e.clone()))
+    }
+}
+
+impl<T: IntoIterator<Item = ()>> CheckProven for T {
+    #[track_caller]
+    fn check_proven(
+        self,
+        stringify_expr: impl FnOnce() -> String,
+    ) -> Result<ProofTree, RuleFailureCause> {
+        let mut iter = self.into_iter().peekable();
+        if iter.peek().is_none() {
+            Err(RuleFailureCause::EmptyCollection {
+                expr: stringify_expr(),
+            })
+        } else {
+            let proof_tree = ProofTree::leaf(format!("item = ()"));
+            Ok(proof_tree)
+        }
+    }
+}
