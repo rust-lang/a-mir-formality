@@ -1183,9 +1183,9 @@ fn test_ref_deref() {
 // For `list: &mut Map`, borrow `&mut (*list).value` then assign to `list`.
 // Ignore test because it is still an error.
 #[test]
-#[ignore]
 fn problem_case_4() {
-    crate::assert_ok!(
+    // FIXME: this should be "ok" once we implement kills.
+    crate::assert_err!(
         [
             crate Foo {
                 struct Map {
@@ -1210,7 +1210,11 @@ fn problem_case_4() {
                         bb1: {
                             statements {
                                 local(num) = &mut r0 *(local(list)).0;
+                                
+                                // FIXME: We don't account for "kills" and so we forbid
+                                // this assignment as `list` is still borrowed.
                                 local(list) = &mut a *(local(list2));
+
                                 place_mention(local(num));
                             }
                             return;
@@ -1220,5 +1224,18 @@ fn problem_case_4() {
                 };
             }
         ]
+
+        []
+
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(local(list)) . 0
+                &access.place = local(list)
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_2}
+                &lifetime.upcast() = ?lt_2"#]]
     )
 }
