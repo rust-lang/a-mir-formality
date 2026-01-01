@@ -432,7 +432,7 @@ judgment_fn! {
         (
             (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access { kind: AccessKind::Read, place: place_accessed }, places_live) => ())
             --- ("place-mention")
-            (borrow_check_statement(_env, assumptions, loans_live, outlives, Statement::PlaceMention(place_accessed), places_live) => (outlives.clone(), loans_live.clone()))
+            (borrow_check_statement(_env, assumptions, loans_live, outlives, Statement::PlaceMention(place_accessed), places_live) => (&outlives, &loans_live))
         )
 
         (
@@ -452,12 +452,12 @@ judgment_fn! {
                 &assumptions,
                 loans_live,
                 outlives,
-                place_lhs.clone(),
+                &place_lhs,
                 &places_live,
             ) => (place_ty, outlives, loans_live))
 
             // Prove subtyping: value_ty <: place_ty
-            (env.prove_goal(outlives, Location, &assumptions, Relation::sub(value_ty.clone(), place_ty)) => outlives)
+            (env.prove_goal(outlives, Location, &assumptions, Relation::sub(&value_ty, place_ty)) => outlives)
 
             // Check write access is permitted
             (access_permitted_by_loans(
@@ -511,7 +511,7 @@ judgment_fn! {
         (
             (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access::new(AccessKind::Move, expr), places_live) => ())
             --- ("in-place")
-            (borrow_check_argument_expression(env, assumptions, loans_live, outlives, ArgumentExpression::InPlace(expr), places_live) => (outlives.clone(), loans_live.clone()))
+            (borrow_check_argument_expression(env, assumptions, loans_live, outlives, ArgumentExpression::InPlace(expr), places_live) => (&outlives, &loans_live))
         )
 
         (
@@ -564,14 +564,14 @@ judgment_fn! {
 
         (
             (if let Some(fn_decl) = env.fn_decl(&fn_id))
-            (let value_ty = Ty::rigid(RigidName::FnDef(fn_decl.id.clone()), Vec::<Parameter>::new()))
+            (let value_ty = Ty::rigid(RigidName::fn_def(&fn_decl.id), Vec::<Parameter>::new()))
             --- ("fn")
             (borrow_check_value_expression(env, _assumptions, loans_live, outlives, ValueExpression::Fn(fn_id), _places_live) => (value_ty, outlives, loans_live))
         )
 
         (
             (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Read, &place), &places_live) => ())
-            (borrow_check_place_expression(&env, &assumptions, loans_live.clone(), outlives.clone(), place.clone(), places_live.clone()) => (place_ty, outlives, loans_live))
+            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_ty, outlives, loans_live))
             --- ("load")
             (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Load(place), places_live) => (place_ty, outlives, loans_live))
         )
@@ -605,25 +605,25 @@ judgment_fn! {
                 (borrow_check_value_expression(&env, &assumptions, loans_live, outlives, &field_values[i], places_live_before_field_value) => (value_ty, outlives, loans_live))
                 (env.prove_goal(outlives, Location, &assumptions, Relation::sub(value_ty, &fields[i].ty)) => outlives))
             --- ("struct")
-            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Struct(field_values, ty), places_live) => (ty.clone(), outlives, loans_live))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Struct(field_values, ty), places_live) => (&ty, outlives, loans_live))
         )
 
         (
             // In order to create a `&`-borrow, we need to be able to read the place.
             (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Read, &place), &places_live) => ())
-            (borrow_check_place_expression(&env, &assumptions, loans_live.clone(), outlives.clone(), place.clone(), places_live.clone()) => (place_ty, outlives, loans_live))
+            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_ty, outlives, loans_live))
             (let value_ty = place_ty.ref_ty_of_kind(ref_kind, &lt))
             --- ("ref")
-            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Ref(ref_kind @ RefKind::Shared, lt, place), places_live) => (value_ty, outlives.clone(), Cons(Loan::new(&lt, &place, RefKind::Shared), &loans_live)))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Ref(ref_kind @ RefKind::Shared, lt, place), places_live) => (value_ty, &outlives, Cons(Loan::new(&lt, &place, RefKind::Shared), &loans_live)))
         )
 
         (
             // In order to create a `&mut`-borrow, we need to be able to write the place.
             (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Write, &place), &places_live) => ())
-            (borrow_check_place_expression(&env, &assumptions, loans_live.clone(), outlives.clone(), place.clone(), places_live.clone()) => (place_ty, outlives, loans_live))
+            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_ty, outlives, loans_live))
             (let value_ty = place_ty.ref_ty_of_kind(ref_kind, &lt))
             --- ("ref-mut")
-            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Ref(ref_kind @ RefKind::Mut, lt, place), places_live) => (value_ty, outlives.clone(), Cons(Loan::new(&lt, &place, RefKind::Mut), &loans_live)))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Ref(ref_kind @ RefKind::Mut, lt, place), places_live) => (value_ty, &outlives, Cons(Loan::new(&lt, &place, RefKind::Mut), &loans_live)))
         )
     }
 }
@@ -653,18 +653,16 @@ judgment_fn! {
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
             (if field_projection.index < fields.len())
-            (let place_ty = fields[field_projection.index].ty.clone())
             --- ("field")
-            (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Field(field_projection), places_live) => (place_ty, outlives, loans_live))
+            (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Field(field_projection), places_live) => (&fields[field_projection.index].ty, outlives, loans_live))
         )
 
         (
             (borrow_check_place_expression(&env, &assumptions, loans_live, outlives, &*place_expr, places_live) => (inner_ty, outlives, loans_live))
             (if let TyData::RigidTy(rigid_ty) = inner_ty.data())
             (if let RigidName::Ref(_ref_kind) = &rigid_ty.name)
-            (let place_ty = rigid_ty.parameters[1].as_ty().expect("well-kinded reference").clone())
             --- ("deref-ref")
-            (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Deref(place_expr), places_live) => (place_ty, outlives, loans_live))
+            (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Deref(place_expr), places_live) => (rigid_ty.parameters[1].as_ty().expect("well-kinded reference"), outlives, loans_live))
         )
     }
 }
