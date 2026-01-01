@@ -1149,9 +1149,7 @@ fn undeclared_transitive_universal_region_relationship() {
 }
 
 /// Test ref and deref
-/// FIXME(tiif): This is not implemented yet
 #[test]
-#[ignore]
 fn test_ref_deref() {
     crate::assert_ok!(
         [
@@ -1160,15 +1158,14 @@ fn test_ref_deref() {
                 fn foo () -> u32 = minirust() -> v0 {
                     let v0: u32;
                     exists<lt a> {
-                        let v1: u32;
-                        let v2: &a u32;
-                        let v3: u32;
+                        let v1: &a u32;
+                        let v2: u32;
 
                         bb0: {
                             statements {
-                                local(v1) = constant(3: u32);
-                                local(v2) = &(local(v1));
-                                local(v3) = load(*(load(local(v2))));
+                                local(v0) = constant(0: u32);
+                                local(v1) = &a local(v0);
+                                local(v2) = load(*(local(v1)));
                             }
                             return;
                         }
@@ -1176,5 +1173,65 @@ fn test_ref_deref() {
                 };
             }
         ]
+    )
+}
+
+// For `list: &mut Map`, borrow `&mut (*list).value` then assign to `list`.
+// Ignore test because it is still an error.
+#[test]
+fn problem_case_4() {
+    // FIXME: this should be "ok" once we implement kills.
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Map {
+                    value: u32,
+                 }
+
+                fn min_problem_case_4<lt a>(&mut a Map, &mut a Map) -> u32 = minirust(list, list2) -> ret {
+                    let list: &mut a Map;
+                    let list2: &mut a Map;
+                    let ret: u32;
+
+                    exists<lt r0> {
+                        let num: &mut r0 u32;
+
+                        bb0: {
+                            statements {
+                                local(ret) = constant(0 : u32);
+                            }
+                            goto bb1;
+                        }
+
+                        bb1: {
+                            statements {
+                                local(num) = &mut r0 *(local(list)).0;
+                                
+                                // FIXME: We don't account for "kills" and so we forbid
+                                // this assignment as `list` is still borrowed.
+                                local(list) = &mut a *(local(list2));
+
+                                place_mention(local(num));
+                            }
+                            return;
+                        }
+
+                    }
+                };
+            }
+        ]
+
+        []
+
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(local(list)) . 0
+                &access.place = local(list)
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_2}
+                &lifetime.upcast() = ?lt_2"#]]
     )
 }
