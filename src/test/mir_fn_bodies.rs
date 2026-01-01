@@ -1206,7 +1206,7 @@ fn problem_case_4() {
                         bb1: {
                             statements {
                                 local(num) = &mut r0 *(local(list)).0;
-                                
+
                                 // FIXME: We don't account for "kills" and so we forbid
                                 // this assignment as `list` is still borrowed.
                                 local(list) = &mut a *(local(list2));
