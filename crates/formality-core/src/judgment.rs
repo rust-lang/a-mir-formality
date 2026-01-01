@@ -542,7 +542,7 @@ macro_rules! push_rules {
 
             let (file, line, column) = $crate::respan!($collection ((file!(), line!(), column!())));
 
-            let mut loop_carried = ($($with_var,)*);
+            let mut loop_carried = ($($with_var.clone(),)*);
 
             let mut for_all_proof_trees = vec![];
             for $loop_var in collection {
@@ -693,7 +693,7 @@ macro_rules! push_rules {
         @body (loop($next_carried:ident, ($($with_var:ident,)*))); $_inputs:tt; $child_proof_trees:ident;
     ) => {
         // when we complete processing a loop with accumulators, capture the final values.
-        $next_carried = Some(($($with_var,)*));
+        $next_carried = Some(($($with_var.clone(),)*));
     };
 
     (@record_failure ($failed_rules:expr, $match_var:expr, $_input_info:tt, $rule_name:literal); $step_expr:expr; $cause:expr) => {

@@ -590,7 +590,6 @@ judgment_fn! {
             (if field_values.len() == fields.len())
 
             // Each field value must have a subtype of the type declared in the struct
-            (let loans_live = loans_live.clone()) // FIXME: this clone should move into the desugaring of `for_all`, lame, or perhaps we should be able to pass in `&loans_live`
             (for_all(i in 0..field_values.len()) with(outlives, loans_live)
                 // Given something like `StructName(..., value_i, value_i+1, ...); ...`
                 //                                                --------------   ---
@@ -601,11 +600,10 @@ judgment_fn! {
                 //                                      We want the places live before this code,
                 //                                      since we are about to execute `value_i`,
                 //                                      and what comes after `value_i` is values `i+1..` and
-                //                                      whatever comes after this structure value (`...`).
+                //                                      fhatever comes after this structure value (`...`).
                 (let places_live_before_field_value = field_values[i+1..].live_before(&env, &places_live))
                 (borrow_check_value_expression(&env, &assumptions, loans_live, outlives, &field_values[i], places_live_before_field_value) => (value_ty, outlives, loans_live))
-                (env.prove_goal(outlives, Location, &assumptions, Relation::sub(value_ty, &fields[i].ty)) => outlives)
-                (let loans_live = loans_live.clone())) // FIXME: this clone should move into the desugaring of `for_all`, lame
+                (env.prove_goal(outlives, Location, &assumptions, Relation::sub(value_ty, &fields[i].ty)) => outlives))
             --- ("struct")
             (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Struct(field_values, ty), places_live) => (ty.clone(), outlives, loans_live))
         )
