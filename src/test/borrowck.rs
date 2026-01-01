@@ -440,3 +440,94 @@ fn problem_case_4() {
                 &lifetime.upcast() = ?lt_2"#]]
     )
 }
+
+/// In this test, the write to `*(q.0)` is in fact safe,
+/// but the borrow checker can't see it.
+///
+/// It is safe because, whichever value is returned by
+/// `nondet()`, `p` and `q` remain disjoint.
+/// But if you union the loans and assume both paths
+/// may have been taken, then you get an error.
+///
+/// (In rustc, we do not get an error when `p` is just a
+/// `&mut` local variable, we have to introduce the tuple,
+/// so presumably something smart is happening around liveness
+/// that I does not fully understand. --nikomatsakis)
+#[test]
+fn cfg_union_approx_cause_false_error() {
+    /*
+    #![allow(warnings)] // whiny rustc
+
+fn foo() -> u32 {
+    let mut a = 0;
+    let mut b = 0;
+    let mut p;
+    let mut q = (&mut a,);
+    if nondet() {
+        p = &mut a;
+        q.0 = &mut b;
+    } else {
+        p = &mut b;
+    }
+    *(q.0) += 1;
+    *p;
+    // is there something that is "ok" if a is borrowed XOR b is borrowed?
+    // but not if a is borrowed OR b is borrowed?
+}
+
+fn nondet() -> bool {
+    true
+}
+ */
+  crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo () -> u32 = minirust() -> v0 {
+                    let v0: u32;
+                    exists<lt l_p, lt l_q, lt loan_0, lt loan_1, lt loan_2, lt loan_3> {
+                        let a: u32;
+                        let b: u32;
+
+                        // In Rustc, the 1-tuple is needed for some reason
+                        // Niko does not 100% understand, else rustc is able to
+                        // see that this program is safe.
+                        let p: &mut l_p u32;
+                        let q: &mut l_q u32;
+
+                        bb0: {
+                            statements {
+                                local(a) = constant(0: u32);
+                                local(b) = constant(0: u32);
+                                local(q) = &mut loan_0 local(a);
+                            }
+                            goto bb1, bb2;
+                        }
+
+                        bb1: {
+                            statements {
+                                local(p) = &mut loan_1 local(a);
+                                local(q) = &mut loan_2 local(b);
+                            }
+                            goto bb3;
+                        }
+
+                        bb2: {
+                            statements {
+                                local(p) = &mut loan_3 local(b);
+                            }
+                            goto bb3;
+                        }
+
+                        bb3: {
+                            statements {
+                                *(local(q)) = constant(1: u32);
+                                local(v0) = load(*(local(p)));
+                            }
+                            return;
+                        }
+                    }
+                };
+            }
+        ]
+    )
+}
