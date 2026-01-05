@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+mod borrowck;
 mod coherence_orphan;
 mod coherence_overlap;
 mod consts;
