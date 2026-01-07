@@ -425,8 +425,9 @@ judgment_fn! {
 
         (
             // does not issue any loans
+            (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access::new(AccessKind::Write, var), places_live) => ())
             --- ("storage-dead")
-            (borrow_check_statement(_env, _assumptions, loans_live, outlives, Statement::StorageDead(_), _places_live) => (outlives, loans_live))
+            (borrow_check_statement(env, assumptions, loans_live, outlives, Statement::StorageDead(var), places_live) => (outlives, loans_live))
         )
 
         (

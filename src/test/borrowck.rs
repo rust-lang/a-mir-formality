@@ -441,6 +441,58 @@ fn problem_case_4() {
     )
 }
 
+/// Test that StorageDead on a borrowed variable is an error.
+///
+/// The test is equivalent to:
+/// ```rust,ignore
+/// fn foo() -> i32 {
+///     let v1: i32 = 0;
+///     let v2: &i32 = &v1;
+///     StorageDead(v1);  // ERROR: v1 is still borrowed
+///     *v2
+/// }
+/// ```
+#[test]
+fn storage_dead_while_borrowed() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo() -> i32 = minirust() -> v0 {
+                    let v0: i32;
+
+                    exists<lt r0> {
+                        let v1: i32;
+                        let v2: &r0 i32;
+
+                        bb0: {
+                            statements {
+                                local(v1) = constant(0: i32);
+                                local(v2) = &r0 local(v1);
+                                StorageDead(v1);
+                                local(v0) = load(*(local(v2)));
+                            }
+                            return;
+                        }
+                    }
+                };
+            }
+        ]
+
+        []
+
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = local(v1)
+                &access.place = local(v1)
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1}
+                &lifetime.upcast() = ?lt_1"#]]
+    )
+}
+
 /// In this test, the write to `*(q.0)` is in fact safe,
 /// but the borrow checker can't see it.
 ///
