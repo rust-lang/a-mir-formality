@@ -1,11 +1,12 @@
 #![allow(non_snake_case)]
 
+mod borrowck;
 mod coherence_orphan;
 mod coherence_overlap;
 mod consts;
 mod decl_safety;
 mod functions;
-mod mir_fn_bodies;
+mod mir_typeck;
 mod well_formed_trait_ref;
 
 #[test]
