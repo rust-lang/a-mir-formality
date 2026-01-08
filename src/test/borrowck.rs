@@ -45,14 +45,17 @@ fn mutable_ref_prevents_mutation() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = local(v1)
+              condition evaluted to false: `typed_place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = local(v1) : i32
                 &access.place = local(v1)
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
               condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
-                &lifetime.upcast() = ?lt_1"#]]
+                &lifetime.upcast() = ?lt_1
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionKind::Deref(place_loaned_ref)` did not match value `local(v1)`"#]]
     )
 }
 
@@ -102,14 +105,17 @@ fn shared_ref_prevents_mutation() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = local(v1)
+              condition evaluted to false: `typed_place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = local(v1) : i32
                 &access.place = local(v1)
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
               condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
-                &lifetime.upcast() = ?lt_1"#]]
+                &lifetime.upcast() = ?lt_1
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionKind::Deref(place_loaned_ref)` did not match value `local(v1)`"#]]
     )
 }
 
@@ -175,8 +181,8 @@ fn min_problem_case_3() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = *(local(m))
+              condition evaluted to false: `typed_place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(local(m) : &mut !lt_1 Map) : Map
                 &access.place = *(local(m))
 
             the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
@@ -189,7 +195,15 @@ fn min_problem_case_3() {
                       LtData::Variable(Variable::BoundVar(_)) =>
                       panic!("cannot outlive a bound var"),
                   }, Parameter::Const(_) => panic!("cannot outlive a constant"),
-              })`"#]]
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionKind::Deref(place_loaned_ref)` did not match value `local(m)`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluted to false: `place_accessed.is_prefix_of(&place_loaned_ref.to_place_expression())`
+                place_accessed = *(local(m))
+                &place_loaned_ref.to_place_expression() = local(m)"#]]
     )
 }
 
@@ -382,11 +396,9 @@ fn undeclared_transitive_universal_region_relationship() {
 }
 
 // For `list: &mut Map`, borrow `&mut (*list).value` then assign to `list`.
-// Ignore test because it is still an error.
 #[test]
 fn problem_case_4() {
-    // FIXME: this should be "ok" once we implement kills.
-    crate::assert_err!(
+    crate::assert_ok!(
         [
             crate Foo {
                 struct Map {
@@ -425,19 +437,6 @@ fn problem_case_4() {
                 };
             }
         ]
-
-        []
-
-        expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = *(local(list)) . 0
-                &access.place = local(list)
-
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {?lt_2}
-                &lifetime.upcast() = ?lt_2"#]]
     )
 }
 
@@ -482,14 +481,17 @@ fn storage_dead_while_borrowed() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = local(v1)
+              condition evaluted to false: `typed_place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = local(v1) : i32
                 &access.place = local(v1)
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
               condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1}
-                &lifetime.upcast() = ?lt_1"#]]
+                &lifetime.upcast() = ?lt_1
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionKind::Deref(place_loaned_ref)` did not match value `local(v1)`"#]]
     )
 }
 

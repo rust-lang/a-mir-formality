@@ -5,20 +5,21 @@ use formality_core::{
 use formality_prove::{prove, AdtDeclBoundData, AdtDeclVariant};
 use formality_rust::grammar::minirust::{
     ArgumentExpression, BasicBlock, BbId, FieldProjection, PlaceExpression, Statement, Terminator,
-    ValueExpression,
+    ValueExpression, LocalId,
 };
 use formality_types::grammar::PredicateTy;
 use formality_types::grammar::{
     AliasTy, Lt, LtData, Parameter, RefKind, Relation, RigidName, RigidTy, Ty, TyData, Variable,
     VariantId, Wcs,
 };
+use std::sync::Arc;
 
 use crate::{
     borrow_check::liveness::{
         places_live_before_basic_blocks, places_live_before_terminator, Assignment, LiveBefore,
         LivePlaces,
     },
-    mini_rust_check::{ty_is_adt, Location, PendingOutlives, TypeckEnv},
+    mini_rust_check::{ty_is_adt, ty_is_ref, Location, PendingOutlives, TypeckEnv},
 };
 
 /// Represents a loan that resulted from executing a borrow expression like `&'0 place`.
@@ -28,7 +29,7 @@ struct Loan {
     lt: Lt,
 
     /// The place being borrowed.
-    place: PlaceExpression,
+    place: TypedPlaceExpression,
 
     /// The kind of borrow (shared, mutable, etc).
     kind: RefKind,
@@ -305,7 +306,7 @@ judgment_fn! {
         // We check each path through the CFG independently, so two paths arriving at the
         // same block with different loan sets X and Y are checked separately. A real
         // implementation might merge to (X ∪ Y) and check once, which could reject
-        // programs this accepts. An example of such a case can be found in the test 
+        // programs this accepts. An example of such a case can be found in the test
         // `cfg_union_approx_cause_false_error`.
         (
             (let this_entry = StackEntry::new(&env, &fn_assumptions, &loans_live_on_entry, &outlives, &bb_id))
@@ -418,13 +419,12 @@ judgment_fn! {
         debug(loans_live_on_entry, statement, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
-            // does not issue any loans
+            // Storage live is always OK.
             --- ("storage-live")
             (borrow_check_statement(_env, _assumptions, loans_live, outlives, Statement::StorageLive(_), _places_live) => (outlives, loans_live))
         )
 
         (
-            // does not issue any loans
             (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access::new(AccessKind::Write, var), places_live) => ())
             --- ("storage-dead")
             (borrow_check_statement(env, assumptions, loans_live, outlives, Statement::StorageDead(var), places_live) => (outlives, loans_live))
@@ -455,10 +455,10 @@ judgment_fn! {
                 outlives,
                 &place_lhs,
                 &places_live,
-            ) => (place_ty, outlives, loans_live))
+            ) => (place_expr, outlives, loans_live))
 
             // Prove subtyping: value_ty <: place_ty
-            (env.prove_goal(outlives, Location, &assumptions, Relation::sub(&value_ty, place_ty)) => outlives)
+            (env.prove_goal(outlives, Location, &assumptions, Relation::sub(&value_ty, &place_expr.ty)) => outlives)
 
             // Check write access is permitted
             (access_permitted_by_loans(
@@ -469,10 +469,26 @@ judgment_fn! {
                 Access::new(AccessKind::Write, &place_lhs),
                 &places_live,
             ) => ())
+
+            // Filter out the killed loans
+            (let loans_live = kill_loans(&place_lhs, &loans_live))
             --- ("assign")
             (borrow_check_statement(env, assumptions, loans_live, outlives, Statement::Assign(place_lhs, value_rhs), places_live) => (&outlives, &loans_live))
         )
     }
+}
+
+/// Prove that any loans issued in thes value expressions (evaluated in this order) are respected.
+fn kill_loans(
+    overwritten_place: impl Upcast<PlaceExpression>,
+    loans_live: impl Upcast<Set<Loan>>,
+) -> Set<Loan> {
+    let overwritten_place = overwritten_place.upcast();
+    let loans_live = loans_live.upcast();
+    loans_live
+        .into_iter()
+        .filter(|loan| !overwritten_place.is_prefix_of(&loan.place.to_place_expression()))
+        .collect()
 }
 
 judgment_fn! {
@@ -564,6 +580,10 @@ judgment_fn! {
         )
 
         (
+            // FIXME: MiniRust should be giving us the "early bound" types on the function
+            //
+            // fn 
+            // for<'a> TFoo<'a, T>
             (if let Some(fn_decl) = env.fn_decl(&fn_id))
             (let value_ty = Ty::rigid(RigidName::fn_def(&fn_decl.id), Vec::<Parameter>::new()))
             --- ("fn")
@@ -572,9 +592,9 @@ judgment_fn! {
 
         (
             (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Read, &place), &places_live) => ())
-            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_ty, outlives, loans_live))
+            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_expr, outlives, loans_live))
             --- ("load")
-            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Load(place), places_live) => (place_ty, outlives, loans_live))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Load(place), places_live) => (place_expr.ty, outlives, loans_live))
         )
 
         (
@@ -582,6 +602,8 @@ judgment_fn! {
             (env.prove_goal(outlives, Location, &assumptions, ty.well_formed()) => outlives)
 
             // Get the type of the fields for the struct variant after substituting generics from the struct type
+            //
+            // FIXME: This only works for structs, but what about enum creation? Probably wrong.
             (if let Some((adt_id, parameters)) = ty_is_adt(&ty))
             (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
@@ -612,20 +634,96 @@ judgment_fn! {
         (
             // In order to create a `&`-borrow, we need to be able to read the place.
             (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Read, &place), &places_live) => ())
-            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_ty, outlives, loans_live))
-            (let value_ty = place_ty.ref_ty_of_kind(ref_kind, &lt))
+            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_expr, outlives, loans_live))
+            (let value_ty = place_expr.ty.ref_ty_of_kind(ref_kind, &lt))
             --- ("ref")
-            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Ref(ref_kind @ RefKind::Shared, lt, place), places_live) => (value_ty, &outlives, Cons(Loan::new(&lt, &place, RefKind::Shared), &loans_live)))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Ref(ref_kind @ RefKind::Shared, lt, place), places_live) => (value_ty, &outlives, Cons(Loan::new(&lt, &place_expr, RefKind::Shared), &loans_live)))
         )
 
         (
             // In order to create a `&mut`-borrow, we need to be able to write the place.
             (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Write, &place), &places_live) => ())
-            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_ty, outlives, loans_live))
-            (let value_ty = place_ty.ref_ty_of_kind(ref_kind, &lt))
+            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_expr, outlives, loans_live))
+            (let value_ty = place_expr.ty.ref_ty_of_kind(ref_kind, &lt))
             --- ("ref-mut")
-            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Ref(ref_kind @ RefKind::Mut, lt, place), places_live) => (value_ty, &outlives, Cons(Loan::new(&lt, &place, RefKind::Mut), &loans_live)))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Ref(ref_kind @ RefKind::Mut, lt, place), places_live) => (value_ty, &outlives, Cons(Loan::new(&lt, &place_expr, RefKind::Mut), &loans_live)))
         )
+    }
+}
+
+
+#[term($root.$index)]
+pub struct TypedFieldProjection {
+    /// The place to base the projection on.
+    pub root: Arc<TypedPlaceExpression>,
+    /// The field to project to.
+    pub index: usize,
+}
+
+#[term($kind: $ty)]
+pub struct TypedPlaceExpression {
+    ty: Ty,
+    kind: TypedPlaceExpressionKind,
+}
+
+#[term]
+pub enum TypedPlaceExpressionKind {
+    #[grammar(local($v0))]
+    Local(LocalId),
+
+    #[grammar(*($v0))]
+    Deref(Arc<TypedPlaceExpression>),
+
+    // Project to a field.
+    #[grammar($v0)]
+    Field(TypedFieldProjection),
+    // Index
+    // Downcast
+}
+
+impl TypedPlaceExpression {
+    /// Convert to an untyped PlaceExpression
+    pub fn to_place_expression(&self) -> PlaceExpression {
+        match &self.kind {
+            TypedPlaceExpressionKind::Local(id) => PlaceExpression::Local(id.clone()),
+            TypedPlaceExpressionKind::Deref(inner) => {
+                PlaceExpression::Deref(Arc::new(inner.to_place_expression()))
+            }
+            TypedPlaceExpressionKind::Field(typed_field) => {
+                PlaceExpression::Field(FieldProjection {
+                    root: Arc::new(typed_field.root.to_place_expression()),
+                    index: typed_field.index,
+                })
+            }
+        }
+    }
+
+    /// True if `self` is a prefix of `other`
+    pub fn is_prefix_of(&self, other: &TypedPlaceExpression) -> bool {
+        self.to_place_expression()
+            .is_prefix_of(&other.to_place_expression())
+    }
+
+    /// Returns all prefixes of `self`
+    pub fn all_prefixes(&self) -> Vec<TypedPlaceExpression> {
+        // For now, we just return self and its prefixes without type info for inner prefixes
+        // This is a simplification - we could track types through the chain if needed
+        let mut v = vec![self.clone()];
+        let mut current = self;
+        while let Some(prefix) = current.prefix() {
+            v.push(prefix.clone());
+            current = prefix;
+        }
+        v
+    }
+
+    /// Returns the next prefix of `self` (if any)
+    pub fn prefix(&self) -> Option<&TypedPlaceExpression> {
+        match &self.kind {
+            TypedPlaceExpressionKind::Local(_) => None,
+            TypedPlaceExpressionKind::Deref(base) => Some(base),
+            TypedPlaceExpressionKind::Field(typed_field) => Some(&typed_field.root)
+        }
     }
 }
 
@@ -638,32 +736,56 @@ judgment_fn! {
         outlives: Set<PendingOutlives>,
         place: PlaceExpression,
         places_live_on_exit: LivePlaces,
-    ) => (Ty, Set<PendingOutlives>, Set<Loan>) {
+    ) => (TypedPlaceExpression, Set<PendingOutlives>, Set<Loan>) {
         debug(loans_live, place, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
             (if let Some((_, ty)) = env.find_local_id(&local_id))
             --- ("local")
-            (borrow_check_place_expression(env, _assumptions, loans_live, outlives, PlaceExpression::Local(local_id), _places_live) => (ty, outlives, loans_live))
+            (borrow_check_place_expression(env, _assumptions, loans_live, outlives, PlaceExpression::Local(local_id), _places_live) => (
+                TypedPlaceExpression {
+                    ty,
+                    kind: TypedPlaceExpressionKind::Local(local_id),
+                }, 
+                outlives, 
+                loans_live,
+            ))
         )
 
         (
-            (borrow_check_place_expression(&env, &assumptions, loans_live, outlives, &*field_projection.root, places_live) => (root_ty, outlives, loans_live))
-            (if let Some((adt_id, parameters)) = ty_is_adt(&root_ty))
+            (borrow_check_place_expression(&env, &assumptions, loans_live, outlives, &*field_projection.root, places_live) => (root_expr, outlives, loans_live))
+            (if let Some((adt_id, parameters)) = ty_is_adt(&root_expr.ty))
             (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
             (if field_projection.index < fields.len())
             --- ("field")
-            (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Field(field_projection), places_live) => (&fields[field_projection.index].ty, outlives, loans_live))
+            (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Field(field_projection), places_live) => (
+                TypedPlaceExpression {
+                    ty: fields[field_projection.index].ty.clone(),
+                    kind: TypedPlaceExpressionKind::Field(TypedFieldProjection {
+                        root: Arc::new(root_expr),
+                        index: field_projection.index,
+                    }),
+                },
+                outlives,
+                loans_live,
+            ))
         )
 
         (
-            (borrow_check_place_expression(&env, &assumptions, loans_live, outlives, &*place_expr, places_live) => (inner_ty, outlives, loans_live))
-            (if let TyData::RigidTy(rigid_ty) = inner_ty.data())
+            (borrow_check_place_expression(&env, &assumptions, loans_live, outlives, &*place_expr, places_live) => (inner_expr, outlives, loans_live))
+            (if let TyData::RigidTy(rigid_ty) = inner_expr.ty.data())
             (if let RigidName::Ref(_ref_kind) = &rigid_ty.name)
             --- ("deref-ref")
-            (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Deref(place_expr), places_live) => (rigid_ty.parameters[1].as_ty().expect("well-kinded reference"), outlives, loans_live))
+            (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Deref(place_expr), places_live) => (
+                TypedPlaceExpression {
+                    ty: rigid_ty.parameters[1].as_ty().expect("well-kinded reference").clone(),
+                    kind: TypedPlaceExpressionKind::Deref(Arc::new(inner_expr)),
+                },
+                outlives,
+                loans_live,
+            ))
         )
     }
 }
@@ -702,7 +824,7 @@ judgment_fn! {
         debug(loan, access, places_live_after_access, assumptions, env, outlives)
 
         (
-            (if place_disjoint_from_place(&loan.place, &access.place))
+            (if typed_place_disjoint_from_place(&loan.place, &access.place))
             --- ("borrow of disjoint places")
             (access_permitted_by_loan(_env, _assumptions, loan, _outlives, access, _places_live_after_access) => ())
         )
@@ -721,7 +843,30 @@ judgment_fn! {
         )
 
         (
-            (if !place_disjoint_from_place(&loan.place, &access.place))! // just for convenience
+            // Allow a write to a place P (or some prefix thereof) from a loan of `*P` (or some suffix thereof)
+            // if P is a borrowed reference.
+            //
+            // Rationale: If you have a loan of (e.g.) `*foo`, and `foo` is a borrowed reference,
+            // then you can write to `foo` (or some prefix of `foo`) without violating
+            // the borrowed data, because `foo` is just a pointer.
+
+            (place_loaned.all_prefixes() => place_loaned)
+            (if let TypedPlaceExpressionKind::Deref(place_loaned_ref) = &place_loaned.kind)
+            (if ty_is_ref(&place_loaned_ref.ty))
+            (if place_accessed.is_prefix_of(&place_loaned_ref.to_place_expression()))
+            --- ("write-indirect")
+            (access_permitted_by_loan(
+                _env,
+                _assumptions,
+                Loan { lt: _, place: place_loaned, kind: _ },
+                _outlives,
+                Access { kind: AccessKind::Write, place: place_accessed },
+                _live_places,
+            ) => ())
+        )
+
+        (
+            (if !typed_place_disjoint_from_place(&loan.place, &access.place))! // just for convenience
             (loan_not_required_by_live_places(env, assumptions, &loan, &outlives, places_live_after_access) => ())
             (loan_cannot_outlive_universal_regions(env, assumptions, &outlives, &loan) => ())
             --- ("borrows of disjoint places")
@@ -1108,6 +1253,55 @@ fn transitively_outlived_by(
     }
 
     reachable
+}
+
+/// Given a region `r`, find a set of all regions `r1` where `r: r1` transitively
+/// according to the `pending_outlives` in `env`.
+fn live_regions_from_place_ty(env: &TypeckEnv, ty: &Ty) -> Set<Lt> {
+    match ty.data() {
+        // Given a type like `Foo<'a, 'b, T>`, we would wind up with a set `{a, b}`.
+        TyData::RigidTy(RigidTy {
+            name: _,
+            parameters,
+        }) => parameters
+            .iter()
+            .flat_map(|parameter| match parameter {
+                Parameter::Ty(ty_parameter) => live_regions_from_place_ty(env, ty_parameter),
+                Parameter::Lt(lt_parameter) => set![lt_parameter.clone()],
+                Parameter::Const(_) => set![], // FIXME: what *do* we do with const expressions *anyway*?
+            })
+            .collect(),
+
+        TyData::AliasTy(_alias_ty) => todo!("oh crapola let's think about this later"),
+
+        TyData::PredicateTy(predicate_ty) => match predicate_ty {
+            // We can ignore binders like the `'a` here, so just peek over them.
+            // The bound regions will show up as bound variables below.
+            //
+            // e.g., `for<'a> fn(&'a u32)`
+            PredicateTy::ForAll(binder) => live_regions_from_place_ty(env, &binder.peek()),
+        },
+
+        TyData::Variable(core_variable) => match core_variable {
+            // a generic type variable like `T` in `fn foo<T>`
+            CoreVariable::UniversalVar(_) => set![],
+
+            // an inference variable like `_` -- we don't expect this
+            CoreVariable::ExistentialVar(_) => {
+                panic!("do not expect existentials in borrow checker")
+            }
+
+            // e.g., the `'a' in `for<'a> fn(&'a u32)` -- this we can ignore because they don't represent a live borrow
+            CoreVariable::BoundVar(_) => set![],
+        },
+    }
+}
+
+fn typed_place_disjoint_from_place(
+    place_a: &TypedPlaceExpression,
+    place_b: &PlaceExpression,
+) -> bool {
+    place_disjoint_from_place(&place_a.to_place_expression(), place_b)
 }
 
 fn place_disjoint_from_place(place_a: &PlaceExpression, place_b: &PlaceExpression) -> bool {

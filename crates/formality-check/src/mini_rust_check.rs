@@ -767,4 +767,15 @@ pub(crate) fn ty_is_adt(ty: &Ty) -> Option<(AdtId, Vec<Parameter>)> {
     }
 }
 
+/// Check if a type is a reference type (either shared or mutable).
+pub(crate) fn ty_is_ref(ty: &Ty) -> bool {
+    matches!(
+        ty.data(),
+        TyData::RigidTy(RigidTy {
+            name: RigidName::Ref(_),
+            ..
+        })
+    )
+}
+
 mod test;
