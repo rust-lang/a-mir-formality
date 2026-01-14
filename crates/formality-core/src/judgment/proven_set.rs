@@ -871,7 +871,7 @@ impl CheckProven for ProvenSet<()> {
         _stringify_expr: impl FnOnce() -> String,
     ) -> Result<ProofTree, RuleFailureCause> {
         self.check_proven()
-        .map_err(|e| RuleFailureCause::FailedJudgment(e.clone()))
+            .map_err(|e| RuleFailureCause::FailedJudgment(e.clone()))
     }
 }
 
@@ -881,8 +881,9 @@ impl CheckProven for &ProvenSet<()> {
         self,
         _stringify_expr: impl FnOnce() -> String,
     ) -> Result<ProofTree, RuleFailureCause> {
-        self.clone().check_proven()
-        .map_err(|e| RuleFailureCause::FailedJudgment(e.clone()))
+        self.clone()
+            .check_proven()
+            .map_err(|e| RuleFailureCause::FailedJudgment(e.clone()))
     }
 }
 

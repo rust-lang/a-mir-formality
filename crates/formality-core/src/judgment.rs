@@ -7,8 +7,8 @@ pub use assertion::JudgmentAssertion;
 
 mod proven_set;
 pub use proven_set::{
-    insert_smallest_proof, CheckProven, EachProof, FailedJudgment, FailedRule, ProofTree, Proven, ProvenSet,
-    RuleFailureCause,
+    insert_smallest_proof, CheckProven, EachProof, FailedJudgment, FailedRule, ProofTree, Proven,
+    ProvenSet, RuleFailureCause,
 };
 
 mod test_fallible;

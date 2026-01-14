@@ -508,30 +508,30 @@ fn storage_dead_while_borrowed() {
 #[test]
 fn cfg_union_approx_cause_false_error() {
     /*
-    #![allow(warnings)] // whiny rustc
+        #![allow(warnings)] // whiny rustc
 
-fn foo() -> u32 {
-    let mut a = 0;
-    let mut b = 0;
-    let mut p;
-    let mut q = (&mut a,);
-    if nondet() {
-        p = &mut a;
-        q.0 = &mut b;
-    } else {
-        p = &mut b;
+    fn foo() -> u32 {
+        let mut a = 0;
+        let mut b = 0;
+        let mut p;
+        let mut q = (&mut a,);
+        if nondet() {
+            p = &mut a;
+            q.0 = &mut b;
+        } else {
+            p = &mut b;
+        }
+        *(q.0) += 1;
+        *p;
+        // is there something that is "ok" if a is borrowed XOR b is borrowed?
+        // but not if a is borrowed OR b is borrowed?
     }
-    *(q.0) += 1;
-    *p;
-    // is there something that is "ok" if a is borrowed XOR b is borrowed?
-    // but not if a is borrowed OR b is borrowed?
-}
 
-fn nondet() -> bool {
-    true
-}
- */
-  crate::assert_ok!(
+    fn nondet() -> bool {
+        true
+    }
+     */
+    crate::assert_ok!(
         [
             crate Foo {
                 fn foo () -> u32 = minirust() -> v0 {

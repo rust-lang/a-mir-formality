@@ -1,12 +1,9 @@
 use formality_core::variable::CoreVariable;
-use formality_core::{
-    judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set,
-    Upcast,
-};
+use formality_core::{judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set, Upcast};
 use formality_prove::{prove, AdtDeclBoundData, AdtDeclVariant};
 use formality_rust::grammar::minirust::{
-    ArgumentExpression, BasicBlock, BbId, FieldProjection, PlaceExpression, Statement, Terminator,
-    ValueExpression, LocalId,
+    ArgumentExpression, BasicBlock, BbId, FieldProjection, LocalId, PlaceExpression, Statement,
+    Terminator, ValueExpression,
 };
 use formality_types::grammar::PredicateTy;
 use formality_types::grammar::{
@@ -656,7 +653,6 @@ judgment_fn! {
     }
 }
 
-
 #[term($root.$index)]
 pub struct TypedFieldProjection {
     /// The place to base the projection on.
@@ -727,7 +723,7 @@ impl TypedPlaceExpression {
         match &self.kind {
             TypedPlaceExpressionKind::Local(_) => None,
             TypedPlaceExpressionKind::Deref(base) => Some(base),
-            TypedPlaceExpressionKind::Field(typed_field) => Some(&typed_field.root)
+            TypedPlaceExpressionKind::Field(typed_field) => Some(&typed_field.root),
         }
     }
 }
@@ -751,8 +747,8 @@ judgment_fn! {
                 TypedPlaceExpression {
                     ty,
                     kind: TypedPlaceExpressionKind::Local(local_id),
-                }, 
-                outlives, 
+                },
+                outlives,
                 loans_live,
             ))
         )
