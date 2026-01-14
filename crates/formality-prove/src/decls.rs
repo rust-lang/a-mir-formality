@@ -282,7 +282,7 @@ impl AliasBoundDecl {
 #[term($alias : $ensures $:where $where_clause)]
 pub struct AliasBoundDeclBoundData {
     pub alias: AliasTy,
-    // This is currently encoded as something like `<T> [T: Foo]` where
+    // FIXME(#226): This is currently encoded as something like `<T> [T: Foo]` where
     // `T` represents the alias.
     pub ensures: Binder<Wc>,
     pub where_clause: Wcs,
