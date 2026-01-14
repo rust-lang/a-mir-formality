@@ -63,7 +63,7 @@ judgment_fn! {
         // the case of a assumption `?X = Y`, which lets us normalize `?X` to `Y`, and ignore
         // everything else. In principle, we could allow the more general normalization rules
         // below handle this case too, but that generates a LOT of false paths, and I *believe*
-        // it is unnecessary (FIXME: prove this).
+        // it is unnecessary
 
         (
             (if let Some(Variable::ExistentialVar(v_a)) = a.downcast())

@@ -1,7 +1,4 @@
-use formality_core::{
-    judgment::ProofTree, judgment_fn, set, term, variable::CoreVariable, Cons, Fallible, Set,
-    Upcast,
-};
+use formality_core::{judgment::ProofTree, judgment_fn, term, Cons, Fallible, Set, Upcast};
 use formality_prove::prove;
 use formality_rust::grammar::minirust::{
     ArgumentExpression, BasicBlock, BbId, FieldProjection, PlaceExpression, Statement, Terminator,
@@ -9,7 +6,7 @@ use formality_rust::grammar::minirust::{
 };
 use formality_types::grammar::PredicateTy;
 use formality_types::grammar::{
-    AliasTy, Lt, LtData, Parameter, RefKind, Relation, RigidTy, Ty, TyData, Variable, Wcs,
+    AliasTy, Lt, LtData, Parameter, RefKind, Relation, RigidTy, Variable, Wcs,
 };
 
 use crate::{
@@ -366,7 +363,6 @@ judgment_fn! {
         )
 
         (
-            // FIXME: Is `AccessKind::Read` correct?
             (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access { kind: AccessKind::Read, place: place_accessed }, places_live) => ())
             --- ("place-mention")
             (loans_in_statement_respected(_env, assumptions, loans_live, _outlives, Statement::PlaceMention(place_accessed), places_live) => &loans_live)
@@ -798,7 +794,7 @@ judgment_fn! {
             // if we can prove that the loan is not required by any of the aliases's parameters,
             // then we know it is not required by the alias, even if we can't normalize the alias.
             //
-            // FIXME(incomplete): We should adjust to account for the bounds we know to hold on the alias
+            // FIXME(incomplete, #224): We should adjust to account for the bounds we know to hold on the alias
             // which might allow us to prove the loan is not required in other ways.
             //
             // In the compiler we also use bivariance in some bizarre hacky way here, but I *think* that's
@@ -957,48 +953,6 @@ fn transitively_outlived_by(
     }
 
     reachable
-}
-
-/// Given a region `r`, find a set of all regions `r1` where `r: r1` transitively
-/// according to the `pending_outlives` in `env`.
-fn live_regions_from_place_ty(env: &TypeckEnv, ty: &Ty) -> Set<Lt> {
-    match ty.data() {
-        // Given a type like `Foo<'a, 'b, T>`, we would wind up with a set `{a, b}`.
-        TyData::RigidTy(RigidTy {
-            name: _,
-            parameters,
-        }) => parameters
-            .iter()
-            .flat_map(|parameter| match parameter {
-                Parameter::Ty(ty_parameter) => live_regions_from_place_ty(env, ty_parameter),
-                Parameter::Lt(lt_parameter) => set![lt_parameter.clone()],
-                Parameter::Const(_) => set![], // FIXME: what *do* we do with const expressions *anyway*?
-            })
-            .collect(),
-
-        TyData::AliasTy(_alias_ty) => todo!("oh crapola let's think about this later"),
-
-        TyData::PredicateTy(predicate_ty) => match predicate_ty {
-            // We can ignore binders like the `'a` here, so just peek over them.
-            // The bound regions will show up as bound variables below.
-            //
-            // e.g., `for<'a> fn(&'a u32)`
-            PredicateTy::ForAll(binder) => live_regions_from_place_ty(env, &binder.peek()),
-        },
-
-        TyData::Variable(core_variable) => match core_variable {
-            // a generic type variable like `T` in `fn foo<T>`
-            CoreVariable::UniversalVar(_) => set![],
-
-            // an inference variable like `_` -- we don't expect this
-            CoreVariable::ExistentialVar(_) => {
-                panic!("do not expect existentials in borrow checker")
-            }
-
-            // e.g., the `'a' in `for<'a> fn(&'a u32)` -- this we can ignore because they don't represent a live borrow
-            CoreVariable::BoundVar(_) => set![],
-        },
-    }
 }
 
 fn place_disjoint_from_place(place_a: &PlaceExpression, place_b: &PlaceExpression) -> bool {

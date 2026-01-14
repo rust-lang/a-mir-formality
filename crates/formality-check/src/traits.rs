@@ -116,7 +116,7 @@ impl super::Check<'_> {
             &where_clauses,
         )?;
 
-        // FIXME: Do we prove ensures WF? And what do we assume when we do so?
+        // Do we prove ensures WF? And what do we assume when we do so?
 
         Ok(ProofTree::new(
             format!("check_associated_ty({id:?})"),

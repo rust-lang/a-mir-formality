@@ -86,6 +86,6 @@ pub fn prove_alias_wf(
     _name: AliasName,
     parameters: Parameters,
 ) -> ProvenSet<Constraints> {
-    // FIXME: verify self type implements trait
+    // FIXME(#217): verify self type implements trait
     for_all(decls, env, assumptions, &parameters, &prove_wf)
 }

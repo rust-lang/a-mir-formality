@@ -421,7 +421,7 @@ impl WhereClause {
                     }
                     ConstData::Variable(_) => {}
                 }
-                // FIXME(oli-obk): prove that there is no `TypeOfConst` bound for a different type.
+                // FIXME(oli-obk, #223): prove that there is no `TypeOfConst` bound for a different type.
                 let ct_param: Parameter = ct.upcast();
                 let ty_param: Parameter = ty.upcast();
                 wcs.push(ct_param.well_formed());

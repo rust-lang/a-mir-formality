@@ -316,7 +316,7 @@ fn declared_universal_region_relationship() {
 /// Upcasting from `'a` to `'c` should be allowed because of
 /// the transitive relationship.
 #[formality_core::test]
-#[should_panic] // FIXME
+#[should_panic] // FIXME(#221)
 fn declared_transitive_universal_region_relationship() {
     crate::assert_ok!(
         [

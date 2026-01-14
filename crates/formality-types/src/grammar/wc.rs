@@ -31,7 +31,7 @@ impl Wcs {
 
     /// Goal(s) to prove `a` and `b` are subtypes.
     ///
-    /// FIXME: This should take variance into account.
+    /// FIXME(#220): This should take variance into account.
     pub fn all_sub(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) -> Wcs {
         let a: Vec<Parameter> = a.upcast();
         let b: Vec<Parameter> = b.upcast();

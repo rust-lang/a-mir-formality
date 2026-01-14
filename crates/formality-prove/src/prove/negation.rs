@@ -35,7 +35,7 @@ pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang>>(
     // where `not (T: Foo)`, only that we could not prove it is true for all `T`
     // (put another way, it may still be true for all T, we just couldn't prove it).
     //
-    // (FIXME(nikomatsakis): This sounds suspicious, if we *truly* handle bias correctly,
+    // (notes from nikomatsakis): This sounds suspicious, if we *truly* handle bias correctly,
     // this might not hold; I suspect we do not, which is why I wonder if we can
     // frame this another way, such as "known not to hold".)
     assert!(env.only_universal_variables());

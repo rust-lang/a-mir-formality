@@ -63,7 +63,6 @@ impl Check<'_> {
         };
 
         // Check if the actual return type is the subtype of the declared return type.
-        // FIXME(tiif): should this be subtype? I think v0's type should always equivalent to the return type?
         proof_tree.children.push(self.prove_goal(
             &env,
             fn_assumptions,
@@ -95,7 +94,7 @@ impl Check<'_> {
         }
 
         let mut env = TypeckEnv {
-            program: Arc::new(self.program.clone()), // FIXME
+            program: Arc::new(self.program.clone()),
             env: env.clone(),
             output_ty,
             local_variables,
@@ -187,16 +186,19 @@ impl TypeckEnv {
             minirust::Statement::PlaceMention(place_expression) => {
                 // Check if the place expression is well-formed.
                 self.check_place(fn_assumptions, place_expression, pending_outlives)?;
-                // FIXME: check that access the place is allowed per borrowck rules
+                // FIXME(merge-typeck-borrowck): check that access the place is allowed per borrowck rules.
+                // This should be done in niko's branch that merged typeck and borrowck together.
             }
             minirust::Statement::StorageLive(local_id) => {
-                // FIXME: We need more checks here after loan is introduced.
+                // FIXME(merge-typeck-borrowck): We need more checks here after loan is introduced.
+                // This should be done in niko's branch that merged typeck and borrowck together.
                 if self.find_local_id(local_id).is_none() {
                     bail!("Statement::StorageLive: invalid local variable")
                 }
             }
             minirust::Statement::StorageDead(local_id) => {
-                // FIXME: We need more checks here after loan is introduced.
+                // FIXME(merge-typeck-borrowck): We need more checks here after loan is introduced.
+                // This should be done in niko's branch that merged typeck and borrowck together.
                 let Some((local_id, _)) = self.find_local_id(local_id) else {
                     bail!("Statement::StorageDead: invalid local variable")
                 };
@@ -399,8 +401,8 @@ impl TypeckEnv {
                     .check_place(fn_assumptions, &field_projection.root, pending_outlives)
                     .unwrap();
 
-                // FIXME(tiif): We eventually want to do normalization here, so check_place should be
-                // a judgment fn.
+                // FIXME(merge-typeck-borrowck): We eventually want to do normalization here, so check_place should be
+                // a judgment fn. This should be done after we merge mir typeck and borrowck together.
                 let Some(adt_id) = ty.get_adt_id() else {
                     bail!("The local used for field projection is not adt.")
                 };
@@ -553,8 +555,6 @@ impl TypeckEnv {
                 let mut value_tys: Vec<Ty> = Vec::new();
 
                 for value_expression in value_expressions {
-                    // FIXME: we only support const in value expression of struct for now, we can add support
-                    // more in future.
                     let Constant(_) = value_expression else {
                         bail!("Only Constant is supported in ValueExpression::Struct for now.")
                     };

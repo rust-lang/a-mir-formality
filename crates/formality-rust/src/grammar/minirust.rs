@@ -179,7 +179,7 @@ pub enum Terminator {
         ret: PlaceExpression,
         /// The block to jump to when this call returns.
         /// In minirust, if this is None, then UB will be raised when the function returns.
-        /// FIXME(tiif): should we have the same behaviour as minirust?
+        /// FIXME(#218): should we just make this not optional?
         next_block: Option<BbId>,
     },
 
