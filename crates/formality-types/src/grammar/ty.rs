@@ -13,7 +13,7 @@ use super::{
 
 #[term]
 #[cast]
-#[customize(constructors)] // FIXME: figure out upcasts with arc or special-case
+#[customize(constructors)] // FIXME(#219): figure out upcasts with arc or special-case
 pub struct Ty {
     data: Arc<TyData>,
 }
@@ -325,7 +325,7 @@ pub enum Variance {
 
 #[term]
 #[cast]
-#[customize(constructors)] // FIXME: figure out upcasts with arc or special-case
+#[customize(constructors)] // FIXME(#219): figure out upcasts with arc or special-case
 pub struct Lt {
     data: Arc<LtData>,
 }

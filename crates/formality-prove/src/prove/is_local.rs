@@ -296,7 +296,7 @@ judgment_fn! {
         // Fundamental types are local if all their arguments are local.
         (
             (if is_fundamental(&decls, &name))
-            (for_all(&decls, &env, &assumptions, &parameters, &is_local_parameter) => c) // FIXME: should be `is_local_parameter`
+            (for_all(&decls, &env, &assumptions, &parameters, &is_local_parameter) => c)
             --- ("fundamental rigid type")
             (is_local_parameter(decls, env, assumptions, RigidTy { name, parameters }) => c)
         )
@@ -326,7 +326,7 @@ fn is_fundamental(_decls: &Decls, name: &RigidName) -> bool {
     // used, `&T`, `&mut T`, and `Box<T>` are not considered covered.
 
     match name {
-        RigidName::AdtId(_) => false, // FIXME
+        RigidName::AdtId(_) => false, // FIXME(#222)
 
         RigidName::Ref(_) => true,
 
