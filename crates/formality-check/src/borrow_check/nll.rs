@@ -1,3 +1,4 @@
+use formality_core::variable::CoreVariable;
 use formality_core::{
     judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set,
     Upcast,
