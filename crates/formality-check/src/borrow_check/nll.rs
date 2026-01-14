@@ -824,13 +824,16 @@ judgment_fn! {
         debug(loan, access, places_live_after_access, assumptions, env, outlives)
 
         (
+            // If the borrowed place and the accesed place are disjoint, then there is no problem.
+
             (if typed_place_disjoint_from_place(&loan.place, &access.place))
             --- ("borrow of disjoint places")
             (access_permitted_by_loan(_env, _assumptions, loan, _outlives, access, _places_live_after_access) => ())
         )
 
         (
-            // e.g. something like `let x = &y; read(y); ...` is ok even if `x` is live
+            // Shared loans permit reads.
+
             --- ("read-shared is ok")
             (access_permitted_by_loan(
                 _env,
@@ -866,6 +869,9 @@ judgment_fn! {
         )
 
         (
+            // Allow the access if the loan has expired (its originated lifetime is not requied to outlive
+            // any live lifetime. Live lifetimes include lifetimes that appear in live places and universal lifetimes.
+
             (if !typed_place_disjoint_from_place(&loan.place, &access.place))! // just for convenience
             (loan_not_required_by_live_places(env, assumptions, &loan, &outlives, places_live_after_access) => ())
             (loan_cannot_outlive_universal_regions(env, assumptions, &outlives, &loan) => ())
