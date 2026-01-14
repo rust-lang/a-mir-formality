@@ -302,7 +302,7 @@ judgment_fn! {
         // Cycle detection: if we've already visited this block with the same live loans,
         // we've reached a fixpoint and can stop recursing. This handles loops in the CFG.
         //
-        // FIXME(nikomatsakis): This is potentially more precise than a real implementation would be.
+        // FIXME(#230): This is potentially more precise than a real implementation would be.
         // We check each path through the CFG independently, so two paths arriving at the
         // same block with different loan sets X and Y are checked separately. A real
         // implementation might merge to (X ∪ Y) and check once, which could reject
@@ -580,10 +580,14 @@ judgment_fn! {
         )
 
         (
-            // FIXME: MiniRust should be giving us the "early bound" types on the function
+            // FIXME(#229): We are assuming that the function definitions have no early-bound parameters here,
+            // but in Rust they do, how should we handle this? e.g., consider
             //
-            // fn 
-            // for<'a> TFoo<'a, T>
+            // ```rust
+            // fn foo<'a, T>(x: &'a T) { }
+            // ```
+            //
+            // in Rust this yields a type like `for<'a> foo<'a, ?X>`.
             (if let Some(fn_decl) = env.fn_decl(&fn_id))
             (let value_ty = Ty::rigid(RigidName::fn_def(&fn_decl.id), Vec::<Parameter>::new()))
             --- ("fn")
@@ -603,7 +607,7 @@ judgment_fn! {
 
             // Get the type of the fields for the struct variant after substituting generics from the struct type
             //
-            // FIXME: This only works for structs, but what about enum creation? Probably wrong.
+            // FIXME(#231): This only works for structs, but what about enum creation? Probably wrong.
             (if let Some((adt_id, parameters)) = ty_is_adt(&ty))
             (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
