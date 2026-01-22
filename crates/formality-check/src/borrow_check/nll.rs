@@ -1,4 +1,3 @@
-use formality_core::variable::CoreVariable;
 use formality_core::{judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set, Upcast};
 use formality_prove::{prove, AdtDeclBoundData, AdtDeclVariant};
 use formality_rust::grammar::minirust::{
@@ -625,7 +624,7 @@ judgment_fn! {
                 //                                      We want the places live before this code,
                 //                                      since we are about to execute `value_i`,
                 //                                      and what comes after `value_i` is values `i+1..` and
-                //                                      fhatever comes after this structure value (`...`).
+                //                                      whatever comes after this structure value (`...`).
                 (let places_live_before_field_value = field_values[i+1..].live_before(&env, &places_live))
                 (borrow_check_value_expression(&env, &assumptions, loans_live, outlives, &field_values[i], places_live_before_field_value) => (value_ty, outlives, loans_live))
                 (env.prove_goal(outlives, Location, &assumptions, Relation::sub(value_ty, &fields[i].ty)) => outlives))
@@ -781,7 +780,7 @@ judgment_fn! {
             --- ("deref-ref")
             (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Deref(place_expr), places_live) => (
                 TypedPlaceExpression {
-                    ty: rigid_ty.parameters[1].as_ty().expect("well-kinded reference").clone(),
+                    ty: rigid_ty.parameters[1].as_ty().expect("well-formed reference").clone(),
                     kind: TypedPlaceExpressionKind::Deref(Arc::new(inner_expr)),
                 },
                 outlives,
@@ -827,7 +826,7 @@ judgment_fn! {
         (
             // If the borrowed place and the accesed place are disjoint, then there is no problem.
 
-            (if typed_place_disjoint_from_place(&loan.place, &access.place))
+            (if place_disjoint_from_place(&loan.place.to_place_expression(), &access.place))
             --- ("borrow of disjoint places")
             (access_permitted_by_loan(_env, _assumptions, loan, _outlives, access, _places_live_after_access) => ())
         )
@@ -873,7 +872,7 @@ judgment_fn! {
             // Allow the access if the loan has expired (its originated lifetime is not requied to outlive
             // any live lifetime. Live lifetimes include lifetimes that appear in live places and universal lifetimes.
 
-            (if !typed_place_disjoint_from_place(&loan.place, &access.place))! // just for convenience
+            (if !place_disjoint_from_place(&loan.place.to_place_expression(), &access.place))! // just for convenience
             (loan_not_required_by_live_places(env, assumptions, &loan, &outlives, places_live_after_access) => ())
             (loan_cannot_outlive_universal_regions(env, assumptions, &outlives, &loan) => ())
             --- ("borrows of disjoint places")
@@ -1260,55 +1259,6 @@ fn transitively_outlived_by(
     }
 
     reachable
-}
-
-/// Given a region `r`, find a set of all regions `r1` where `r: r1` transitively
-/// according to the `pending_outlives` in `env`.
-fn live_regions_from_place_ty(env: &TypeckEnv, ty: &Ty) -> Set<Lt> {
-    match ty.data() {
-        // Given a type like `Foo<'a, 'b, T>`, we would wind up with a set `{a, b}`.
-        TyData::RigidTy(RigidTy {
-            name: _,
-            parameters,
-        }) => parameters
-            .iter()
-            .flat_map(|parameter| match parameter {
-                Parameter::Ty(ty_parameter) => live_regions_from_place_ty(env, ty_parameter),
-                Parameter::Lt(lt_parameter) => set![lt_parameter.clone()],
-                Parameter::Const(_) => set![], // FIXME: what *do* we do with const expressions *anyway*?
-            })
-            .collect(),
-
-        TyData::AliasTy(_alias_ty) => todo!("oh crapola let's think about this later"),
-
-        TyData::PredicateTy(predicate_ty) => match predicate_ty {
-            // We can ignore binders like the `'a` here, so just peek over them.
-            // The bound regions will show up as bound variables below.
-            //
-            // e.g., `for<'a> fn(&'a u32)`
-            PredicateTy::ForAll(binder) => live_regions_from_place_ty(env, &binder.peek()),
-        },
-
-        TyData::Variable(core_variable) => match core_variable {
-            // a generic type variable like `T` in `fn foo<T>`
-            CoreVariable::UniversalVar(_) => set![],
-
-            // an inference variable like `_` -- we don't expect this
-            CoreVariable::ExistentialVar(_) => {
-                panic!("do not expect existentials in borrow checker")
-            }
-
-            // e.g., the `'a' in `for<'a> fn(&'a u32)` -- this we can ignore because they don't represent a live borrow
-            CoreVariable::BoundVar(_) => set![],
-        },
-    }
-}
-
-fn typed_place_disjoint_from_place(
-    place_a: &TypedPlaceExpression,
-    place_b: &PlaceExpression,
-) -> bool {
-    place_disjoint_from_place(&place_a.to_place_expression(), place_b)
 }
 
 fn place_disjoint_from_place(place_a: &PlaceExpression, place_b: &PlaceExpression) -> bool {

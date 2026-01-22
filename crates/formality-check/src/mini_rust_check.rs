@@ -283,7 +283,7 @@ judgment_fn! {
             (check_place(&env, outlives, &fn_assumptions, &*value_expr) => (inner_ty, env, outlives))
             (if let TyData::RigidTy(rigid_ty) = inner_ty.data())
             (if let RigidName::Ref(_ref_kind) = &rigid_ty.name)
-            (let place_ty = rigid_ty.parameters[1].as_ty().expect("well-kinded reference").clone())
+            (let place_ty = rigid_ty.parameters[1].as_ty().expect("well-formed reference").clone())
             --- ("deref-ref")
             (check_place(env, outlives, fn_assumptions, Deref(value_expr)) => (place_ty, env, outlives))
         )

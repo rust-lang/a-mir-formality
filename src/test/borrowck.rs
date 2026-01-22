@@ -45,8 +45,8 @@ fn mutable_ref_prevents_mutation() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `typed_place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = local(v1) : i32
+              condition evaluted to false: `place_disjoint_from_place(&loan.place.to_place_expression(), &access.place)`
+                &loan.place.to_place_expression() = local(v1)
                 &access.place = local(v1)
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
@@ -105,8 +105,8 @@ fn shared_ref_prevents_mutation() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `typed_place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = local(v1) : i32
+              condition evaluted to false: `place_disjoint_from_place(&loan.place.to_place_expression(), &access.place)`
+                &loan.place.to_place_expression() = local(v1)
                 &access.place = local(v1)
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
@@ -181,8 +181,8 @@ fn min_problem_case_3() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `typed_place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = *(local(m) : &mut !lt_1 Map) : Map
+              condition evaluted to false: `place_disjoint_from_place(&loan.place.to_place_expression(), &access.place)`
+                &loan.place.to_place_expression() = *(local(m))
                 &access.place = *(local(m))
 
             the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
@@ -479,8 +479,8 @@ fn storage_dead_while_borrowed() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `typed_place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = local(v1) : i32
+              condition evaluted to false: `place_disjoint_from_place(&loan.place.to_place_expression(), &access.place)`
+                &loan.place.to_place_expression() = local(v1)
                 &access.place = local(v1)
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
@@ -501,7 +501,7 @@ fn storage_dead_while_borrowed() {
 /// But if you union the loans and assume both paths
 /// may have been taken, then you get an error.
 ///
-/// (In rustc, we do not get an error when `p` is just a
+/// (In rustc, we do not get an error when `q` is just a
 /// `&mut` local variable, we have to introduce the tuple,
 /// so presumably something smart is happening around liveness
 /// that I does not fully understand. --nikomatsakis)
