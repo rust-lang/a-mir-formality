@@ -1,20 +1,22 @@
-use formality_core::{judgment::ProofTree, judgment_fn, term, Cons, Fallible, Set, Upcast};
-use formality_prove::prove;
+use formality_core::{judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set, Upcast};
+use formality_prove::{prove, AdtDeclBoundData, AdtDeclVariant};
 use formality_rust::grammar::minirust::{
-    ArgumentExpression, BasicBlock, BbId, FieldProjection, PlaceExpression, Statement, Terminator,
-    ValueExpression,
+    ArgumentExpression, BasicBlock, BbId, FieldProjection, LocalId, PlaceExpression, Statement,
+    Terminator, ValueExpression,
 };
 use formality_types::grammar::PredicateTy;
 use formality_types::grammar::{
-    AliasTy, Lt, LtData, Parameter, RefKind, Relation, RigidTy, Variable, Wcs,
+    AliasTy, Lt, LtData, Parameter, RefKind, Relation, RigidName, RigidTy, Ty, TyData, Variable,
+    VariantId, Wcs,
 };
+use std::sync::Arc;
 
 use crate::{
     borrow_check::liveness::{
         places_live_before_basic_blocks, places_live_before_terminator, Assignment, LiveBefore,
         LivePlaces,
     },
-    mini_rust_check::{PendingOutlives, TypeckEnv},
+    mini_rust_check::{ty_is_adt, ty_is_ref, Location, PendingOutlives, TypeckEnv},
 };
 
 /// Represents a loan that resulted from executing a borrow expression like `&'0 place`.
@@ -24,7 +26,7 @@ struct Loan {
     lt: Lt,
 
     /// The place being borrowed.
-    place: PlaceExpression,
+    place: TypedPlaceExpression,
 
     /// The kind of borrow (shared, mutable, etc).
     kind: RefKind,
@@ -152,9 +154,18 @@ pub fn borrow_check(
         return Ok(proof_tree);
     };
 
+    let stack: Vec<StackEntry> = vec![];
+    let loans_live: Set<Loan> = set![];
     proof_tree.children.push(
-        loans_in_basic_block_respected(env, fn_assumptions, (), pending_outlives, &start_bb.id)
-            .check_proven()?,
+        borrow_check_block(
+            stack,
+            env,
+            fn_assumptions,
+            loans_live,
+            pending_outlives.clone(),
+            &start_bb.id,
+        )
+        .check_proven()?,
     );
     Ok(proof_tree)
 }
@@ -240,51 +251,105 @@ judgment_fn! {
     }
 }
 
+/// Tracks the state when entering a basic block during borrow checking.
+/// Used to detect cycles in the control flow graph: if we visit the same
+/// block with the same set of live loans, we've reached a fixpoint and
+/// can stop recursing. This enables handling of loops without infinite recursion.
+///
+/// Note: Strictly speaking, we should also include `env` and `fn_assumptions`
+/// in this struct, but we omit them for now since they never change during
+/// the traversal of a single function body.
+#[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone, Hash)]
+struct StackEntry {
+    outlives: Set<PendingOutlives>,
+    loans_live_on_entry: Set<Loan>,
+    bb_id: BbId,
+}
+
+formality_core::cast_impl!(StackEntry);
+
+impl StackEntry {
+    fn new(
+        _env: impl Upcast<TypeckEnv>,
+        _fn_assumptions: impl Upcast<Wcs>,
+        loans_live_on_entry: impl Upcast<Set<Loan>>,
+        outlives: impl Upcast<Set<PendingOutlives>>,
+        bb_id: impl Upcast<BbId>,
+    ) -> Self {
+        Self {
+            loans_live_on_entry: loans_live_on_entry.upcast(),
+            bb_id: bb_id.upcast(),
+            outlives: outlives.upcast(),
+        }
+    }
+}
+
 judgment_fn! {
     /// Prove that any loans issued in this basic block are respected.
-    fn loans_in_basic_block_respected(
+    fn borrow_check_block(
+        stack: Vec<StackEntry>,
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
         outlives: Set<PendingOutlives>,
         bb_id: BbId,
     ) => () {
-        debug(loans_live_on_entry, bb_id, fn_assumptions, env, outlives)
+        debug(loans_live_on_entry, bb_id, fn_assumptions, env, outlives, stack)
+
+        // Cycle detection: if we've already visited this block with the same live loans,
+        // we've reached a fixpoint and can stop recursing. This handles loops in the CFG.
+        //
+        // FIXME(#230): This is potentially more precise than a real implementation would be.
+        // We check each path through the CFG independently, so two paths arriving at the
+        // same block with different loan sets X and Y are checked separately. A real
+        // implementation might merge to (X ∪ Y) and check once, which could reject
+        // programs this accepts. An example of such a case can be found in the test
+        // `cfg_union_approx_cause_false_error`.
+        (
+            (let this_entry = StackEntry::new(&env, &fn_assumptions, &loans_live_on_entry, &outlives, &bb_id))
+            (if stack.contains(&this_entry))!
+            --- ("cycle")
+            (borrow_check_block(stack, env, fn_assumptions, loans_live_on_entry, outlives, bb_id) => ())
+        )
 
         (
+            (let this_entry = StackEntry::new(&env, &fn_assumptions, &loans_live_on_entry, &outlives, &bb_id))
+            (if !stack.contains(&this_entry))!
+            (let stack = { let mut s = stack.clone(); s.push(this_entry); s })
             (let BasicBlock { id: _, statements, terminator } = env.basic_block(&bb_id)?)
             (let places_live_before_terminator = places_live_before_terminator(&env, &terminator))
-            (for_all(i in 0..statements.len()) with(loans_live)
-                (loans_in_statement_respected(&env,
+            (for_all(i in 0..statements.len()) with(outlives, loans_live)
+                (borrow_check_statement(&env,
                     &fn_assumptions,
                     loans_live,
-                    &outlives,
+                    outlives,
                     &statements[i],
                     &statements[i+1..].live_before(&env, &places_live_before_terminator),
-                ) => loans_live))
-            (loans_in_terminator_respected(&env, &fn_assumptions, loans_live, &outlives, &terminator) => ())
+                ) => (outlives, loans_live)))
+            (borrow_check_terminator(&stack, &env, &fn_assumptions, loans_live, &outlives, &terminator) => ())
             --- ("basic block")
-            (loans_in_basic_block_respected(env, fn_assumptions, loans_live, outlives, bb_id) => ())
+            (borrow_check_block(stack, env, fn_assumptions, loans_live, outlives, bb_id) => ())
         )
     }
 }
 
 judgment_fn! {
     /// Prove that any loans issued in this statement are respected.
-    fn loans_in_terminator_respected(
+    fn borrow_check_terminator(
+        stack: Vec<StackEntry>,
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
         outlives: Set<PendingOutlives>,
         terminator: Terminator,
     ) => () {
-        debug(loans_live_on_entry, terminator, fn_assumptions, env, outlives)
+        debug(loans_live_on_entry, terminator, fn_assumptions, env, outlives, stack)
 
         (
             (for_all(bb in &bb_ids)
-                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, &outlives, bb) => ()))
+                (borrow_check_block(&stack, &env, &assumptions, &loans_live, &outlives, bb) => ()))
             --- ("goto")
-            (loans_in_terminator_respected(env, assumptions, loans_live, outlives, Terminator::Goto(bb_ids)) => ())
+            (borrow_check_terminator(stack, env, assumptions, loans_live, outlives, Terminator::Goto(bb_ids)) => ())
         )
 
         (
@@ -295,89 +360,104 @@ judgment_fn! {
                 .cloned()
                 .collect())
             (let places_live = places_live_before_basic_blocks(&env, &successors))
-            (loans_in_value_expression_respected(&env, &assumptions, loans_live, &outlives, switch_value, places_live) => loans_live)
+            (borrow_check_value_expression(&env, &assumptions, loans_live, outlives, switch_value, places_live) => (_switch_ty, outlives, loans_live))
             (for_all(successor in &successors)
-                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, &outlives, successor) => ()))
+                (borrow_check_block(&stack, &env, &assumptions, &loans_live, &outlives, successor) => ()))
             --- ("switch")
-            (loans_in_terminator_respected(env, assumptions, loans_live, outlives, Terminator::Switch { switch_value, switch_targets, fallback }) => ())
+            (borrow_check_terminator(stack, env, assumptions, loans_live, outlives, Terminator::Switch { switch_value, switch_targets, fallback }) => ())
         )
 
         (
             --- ("return")
-            (loans_in_terminator_respected(_env, _assumptions, _loans_live, _outlives, Terminator::Return) => ())
+            (borrow_check_terminator(_stack, _env, _assumptions, _loans_live, _outlives, Terminator::Return) => ())
         )
 
         (
             (let places_live = places_live_before_basic_blocks(&env, &next_block))
 
-            (loans_in_value_expression_respected(
+            (borrow_check_value_expression(
                 &env,
                 &assumptions,
                 loans_live,
-                &outlives,
+                outlives,
                 callee,
                 (&arguments, Assignment(&ret)).live_before(&env, &places_live),
-            ) => loans_live)
+            ) => (_callee_ty, outlives, loans_live))
 
-            (loans_in_argument_expressions_respected(
+            (borrow_check_argument_expressions(
                 &env,
                 &assumptions,
                 loans_live,
-                &outlives,
+                outlives,
                 &arguments,
                 Assignment(&ret).live_before(&env, &places_live),
-            ) => loans_live)
+            ) => (outlives, loans_live))
 
             // here `ret` would be assigned
 
             (for_all(next_block in next_block.iter())
-                (loans_in_basic_block_respected(&env, &assumptions, &loans_live, &outlives, next_block) => ()))
+                (borrow_check_block(&stack, &env, &assumptions, &loans_live, &outlives, next_block) => ()))
             --- ("call")
-            (loans_in_terminator_respected(env, assumptions, loans_live, outlives, Terminator::Call { callee, generic_arguments: _, arguments, ret, next_block }) => ())
+            (borrow_check_terminator(stack, env, assumptions, loans_live, outlives, Terminator::Call { callee, generic_arguments: _, arguments, ret, next_block }) => ())
         )
     }
 }
 
 judgment_fn! {
     /// Prove that any loans issued in this statement are respected.
-    fn loans_in_statement_respected(
+    fn borrow_check_statement(
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
         outlives: Set<PendingOutlives>,
         statement: Statement,
         places_live_on_exit: LivePlaces,
-    ) => Set<Loan> {
+    ) => (Set<PendingOutlives>, Set<Loan>) {
         debug(loans_live_on_entry, statement, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
-            // does not issue any loans
+            // Storage live is always OK.
             --- ("storage-live")
-            (loans_in_statement_respected(_env, _assumptions, loans_live, _outlives, Statement::StorageLive(_), _places_live) => loans_live)
+            (borrow_check_statement(_env, _assumptions, loans_live, outlives, Statement::StorageLive(_), _places_live) => (outlives, loans_live))
         )
 
         (
-            // does not issue any loans
+            (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access::new(AccessKind::Write, var), places_live) => ())
             --- ("storage-dead")
-            (loans_in_statement_respected(_env, _assumptions, loans_live, _outlives, Statement::StorageDead(_), _places_live) => loans_live)
+            (borrow_check_statement(env, assumptions, loans_live, outlives, Statement::StorageDead(var), places_live) => (outlives, loans_live))
         )
 
         (
             (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access { kind: AccessKind::Read, place: place_accessed }, places_live) => ())
             --- ("place-mention")
-            (loans_in_statement_respected(_env, assumptions, loans_live, _outlives, Statement::PlaceMention(place_accessed), places_live) => &loans_live)
+            (borrow_check_statement(_env, assumptions, loans_live, outlives, Statement::PlaceMention(place_accessed), places_live) => (&outlives, &loans_live))
         )
 
         (
-            (loans_in_value_expression_respected(
+            // Borrow-check and type-check the RHS value expression
+            (borrow_check_value_expression(
                 &env,
                 &assumptions,
                 loans_live,
-                &outlives,
+                outlives,
                 &value_rhs,
                 Assignment(&place_lhs).live_before(&env, &places_live),
-            ) => loans_live)
+            ) => (value_ty, outlives, loans_live))
 
+            // Borrow-check and type-check the LHS place expression
+            (borrow_check_place_expression(
+                &env,
+                &assumptions,
+                loans_live,
+                outlives,
+                &place_lhs,
+                &places_live,
+            ) => (place_expr, outlives, loans_live))
+
+            // Prove subtyping: value_ty <: place_ty
+            (env.prove_goal(outlives, Location, &assumptions, Relation::sub(&value_ty, &place_expr.ty)) => outlives)
+
+            // Check write access is permitted
             (access_permitted_by_loans(
                 &env,
                 &assumptions,
@@ -386,129 +466,326 @@ judgment_fn! {
                 Access::new(AccessKind::Write, &place_lhs),
                 &places_live,
             ) => ())
+
+            // Filter out the killed loans
+            (let loans_live = kill_loans(&place_lhs, &loans_live))
             --- ("assign")
-            (loans_in_statement_respected(env, assumptions, loans_live, outlives, Statement::Assign(place_lhs, value_rhs), places_live) => &loans_live)
+            (borrow_check_statement(env, assumptions, loans_live, outlives, Statement::Assign(place_lhs, value_rhs), places_live) => (&outlives, &loans_live))
         )
     }
 }
 
+/// Prove that any loans issued in thes value expressions (evaluated in this order) are respected.
+fn kill_loans(
+    overwritten_place: impl Upcast<PlaceExpression>,
+    loans_live: impl Upcast<Set<Loan>>,
+) -> Set<Loan> {
+    let overwritten_place = overwritten_place.upcast();
+    let loans_live = loans_live.upcast();
+    loans_live
+        .into_iter()
+        .filter(|loan| !overwritten_place.is_prefix_of(&loan.place.to_place_expression()))
+        .collect()
+}
+
 judgment_fn! {
     /// Prove that any loans issued in thes value expressions (evaluated in this order) are respected.
-    fn loans_in_argument_expressions_respected(
+    fn borrow_check_argument_expressions(
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
         outlives: Set<PendingOutlives>,
         values: Vec<ArgumentExpression>,
         places_live_on_exit: LivePlaces,
-    ) => Set<Loan> {
+    ) => (Set<PendingOutlives>, Set<Loan>) {
         debug(loans_live_on_entry, values, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
-            (for_all(i in 0..values.len()) with(loans_live)
-                (loans_in_argument_expression_respected(&env, &assumptions, loans_live, &outlives, &values[i],
-                    &values[i+1..].live_before(&env, &places_live)) => loans_live))
-            --- ("loans_in_argument_expressions_respected")
-            (loans_in_argument_expressions_respected(env, assumptions, loans_live, outlives, values, places_live) => loans_live)
+            (for_all(i in 0..values.len()) with(outlives, loans_live)
+                (borrow_check_argument_expression(&env, &assumptions, loans_live, outlives, &values[i],
+                    &values[i+1..].live_before(&env, &places_live)) => (outlives, loans_live)))
+            --- ("borrow_check_argument_expressions")
+            (borrow_check_argument_expressions(env, assumptions, loans_live, outlives, values, places_live) => (outlives, loans_live))
         )
     }
 }
 
 judgment_fn! {
     /// Prove that any loans issued in thes value expressions (evaluated in this order) are respected.
-    fn loans_in_argument_expression_respected(
+    fn borrow_check_argument_expression(
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
         outlives: Set<PendingOutlives>,
         value: ArgumentExpression,
         places_live_on_exit: LivePlaces,
-    ) => Set<Loan> {
+    ) => (Set<PendingOutlives>, Set<Loan>) {
         debug(loans_live_on_entry, value, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
             (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access::new(AccessKind::Move, expr), places_live) => ())
             --- ("in-place")
-            (loans_in_argument_expression_respected(env, assumptions, loans_live, outlives, ArgumentExpression::InPlace(expr), places_live) => &loans_live)
+            (borrow_check_argument_expression(env, assumptions, loans_live, outlives, ArgumentExpression::InPlace(expr), places_live) => (&outlives, &loans_live))
         )
 
         (
-            (loans_in_value_expression_respected(env, assumptions, loans_live, &outlives, expr, places_live) => loans_live)
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, expr, places_live) => (_expr_ty, outlives, loans_live))
             --- ("by-value")
-            (loans_in_argument_expression_respected(env, assumptions, loans_live, outlives, ArgumentExpression::ByValue(expr), places_live) => loans_live)
+            (borrow_check_argument_expression(env, assumptions, loans_live, outlives, ArgumentExpression::ByValue(expr), places_live) => (outlives, loans_live))
         )
     }
 }
 
 judgment_fn! {
     /// Prove that any loans issued in thes value expressions (evaluated in this order) are respected.
-    fn loans_in_value_expressions_respected(
+    fn borrow_check_value_expressions(
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
         outlives: Set<PendingOutlives>,
         values: Vec<ValueExpression>,
         places_live_on_exit: LivePlaces,
-    ) => Set<Loan> {
+    ) => (Set<PendingOutlives>, Set<Loan>) {
         debug(loans_live_on_entry, values, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
-            (for_all(i in 0..values.len()) with(loans_live)
-                (loans_in_value_expression_respected(&env, &assumptions, loans_live, &outlives, &values[i],
-                    &values[i+1..].live_before(&env, &places_live)) => loans_live))
-            --- ("loans_in_value_expressions_respected")
-            (loans_in_value_expressions_respected(env, assumptions, loans_live, outlives, values, places_live) => loans_live)
+            (for_all(i in 0..values.len()) with(outlives, loans_live)
+                (borrow_check_value_expression(&env, &assumptions, loans_live, outlives, &values[i],
+                    &values[i+1..].live_before(&env, &places_live)) => (_value_ty, outlives, loans_live)))
+            --- ("borrow_check_value_expressions")
+            (borrow_check_value_expressions(env, assumptions, loans_live, outlives, values, places_live) => (outlives, loans_live))
         )
     }
 }
 
 judgment_fn! {
-    /// Prove that any loans issued in this value expression are respected.
-    fn loans_in_value_expression_respected(
+    /// Prove that any loans issued in this value expression are respected, and return its type.
+    fn borrow_check_value_expression(
         env: TypeckEnv,
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
         outlives: Set<PendingOutlives>,
         value: ValueExpression,
         places_live_on_exit: LivePlaces,
-    ) => Set<Loan> {
+    ) => (Ty, Set<PendingOutlives>, Set<Loan>) {
         debug(loans_live_on_entry, value, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
-            --- ("constant-or-fn")
-            (loans_in_value_expression_respected(_env, _assumptions, loans_live, _outlives, ValueExpression::Constant(_) | ValueExpression::Fn(_), _places_live) => loans_live)
+            (let value_ty = constant.get_ty())
+            --- ("constant")
+            (borrow_check_value_expression(_env, _assumptions, loans_live, outlives, ValueExpression::Constant(constant), _places_live) => (value_ty, outlives, loans_live))
         )
 
         (
-            (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Read, &place), places_live) => ())
+            // FIXME(#229): We are assuming that the function definitions have no early-bound parameters here,
+            // but in Rust they do, how should we handle this? e.g., consider
+            //
+            // ```rust
+            // fn foo<'a, T>(x: &'a T) { }
+            // ```
+            //
+            // in Rust this yields a type like `for<'a> foo<'a, ?X>`.
+            (if let Some(fn_decl) = env.fn_decl(&fn_id))
+            (let value_ty = Ty::rigid(RigidName::fn_def(&fn_decl.id), Vec::<Parameter>::new()))
+            --- ("fn")
+            (borrow_check_value_expression(env, _assumptions, loans_live, outlives, ValueExpression::Fn(fn_id), _places_live) => (value_ty, outlives, loans_live))
+        )
+
+        (
+            (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Read, &place), &places_live) => ())
+            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_expr, outlives, loans_live))
             --- ("load")
-            (loans_in_value_expression_respected(env, assumptions, loans_live, outlives, ValueExpression::Load(place), places_live) => &loans_live)
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Load(place), places_live) => (place_expr.ty, outlives, loans_live))
         )
 
         (
-            (loans_in_value_expressions_respected(env, assumptions, loans_live, &outlives, fields, places_live) => loans_live)
+            // Struct type must be well-formed
+            (env.prove_goal(outlives, Location, &assumptions, ty.well_formed()) => outlives)
+
+            // Get the type of the fields for the struct variant after substituting generics from the struct type
+            //
+            // FIXME(#231): This only works for structs, but what about enum creation? Probably wrong.
+            (if let Some((adt_id, parameters)) = ty_is_adt(&ty))
+            (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
+            (let AdtDeclVariant { name, fields } = variants.last().unwrap())
+            (if *name == VariantId::for_struct())
+
+            // We must have the right number of field values for the fields
+            (if field_values.len() == fields.len())
+
+            // Each field value must have a subtype of the type declared in the struct
+            (for_all(i in 0..field_values.len()) with(outlives, loans_live)
+                // Given something like `StructName(..., value_i, value_i+1, ...); ...`
+                //                                                --------------   ---
+                //                                                      |           |
+                //                                                      |      `places_live` represents the
+                //                                                      |      places live due to this code
+                //                                                      |
+                //                                      We want the places live before this code,
+                //                                      since we are about to execute `value_i`,
+                //                                      and what comes after `value_i` is values `i+1..` and
+                //                                      whatever comes after this structure value (`...`).
+                (let places_live_before_field_value = field_values[i+1..].live_before(&env, &places_live))
+                (borrow_check_value_expression(&env, &assumptions, loans_live, outlives, &field_values[i], places_live_before_field_value) => (value_ty, outlives, loans_live))
+                (env.prove_goal(outlives, Location, &assumptions, Relation::sub(value_ty, &fields[i].ty)) => outlives))
             --- ("struct")
-            (loans_in_value_expression_respected(env, assumptions, loans_live, outlives, ValueExpression::Struct(fields, _ty), places_live) => loans_live)
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Struct(field_values, ty), places_live) => (&ty, outlives, loans_live))
         )
 
         (
             // In order to create a `&`-borrow, we need to be able to read the place.
-            (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Read, &place), places_live) => ())
-
-            // The new loan that we are creating
-            (let loan = Loan::new(&lt, &place, RefKind::Shared))
+            (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Read, &place), &places_live) => ())
+            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_expr, outlives, loans_live))
+            (let value_ty = place_expr.ty.ref_ty_of_kind(ref_kind, &lt))
             --- ("ref")
-            (loans_in_value_expression_respected(env, assumptions, loans_live, outlives, ValueExpression::Ref(RefKind::Shared, lt, place), places_live) => Cons(loan, &loans_live))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Ref(ref_kind @ RefKind::Shared, lt, place), places_live) => (value_ty, &outlives, Cons(Loan::new(&lt, &place_expr, RefKind::Shared), &loans_live)))
         )
 
         (
             // In order to create a `&mut`-borrow, we need to be able to write the place.
-            (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Write, &place), places_live) => ())
-
-            // The new loan that we are creating
-            (let loan = Loan::new(&lt, &place, RefKind::Mut))
+            (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Write, &place), &places_live) => ())
+            (borrow_check_place_expression(&env, &assumptions, &loans_live, &outlives, &place, &places_live) => (place_expr, outlives, loans_live))
+            (let value_ty = place_expr.ty.ref_ty_of_kind(ref_kind, &lt))
             --- ("ref-mut")
-            (loans_in_value_expression_respected(env, assumptions, loans_live, outlives, ValueExpression::Ref(RefKind::Mut, lt, place), places_live) => Cons(loan, &loans_live))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Ref(ref_kind @ RefKind::Mut, lt, place), places_live) => (value_ty, &outlives, Cons(Loan::new(&lt, &place_expr, RefKind::Mut), &loans_live)))
+        )
+    }
+}
+
+#[term($root.$index)]
+pub struct TypedFieldProjection {
+    /// The place to base the projection on.
+    pub root: Arc<TypedPlaceExpression>,
+    /// The field to project to.
+    pub index: usize,
+}
+
+#[term($kind: $ty)]
+pub struct TypedPlaceExpression {
+    ty: Ty,
+    kind: TypedPlaceExpressionKind,
+}
+
+#[term]
+pub enum TypedPlaceExpressionKind {
+    #[grammar(local($v0))]
+    Local(LocalId),
+
+    #[grammar(*($v0))]
+    Deref(Arc<TypedPlaceExpression>),
+
+    // Project to a field.
+    #[grammar($v0)]
+    Field(TypedFieldProjection),
+    // Index
+    // Downcast
+}
+
+impl TypedPlaceExpression {
+    /// Convert to an untyped PlaceExpression
+    pub fn to_place_expression(&self) -> PlaceExpression {
+        match &self.kind {
+            TypedPlaceExpressionKind::Local(id) => PlaceExpression::Local(id.clone()),
+            TypedPlaceExpressionKind::Deref(inner) => {
+                PlaceExpression::Deref(Arc::new(inner.to_place_expression()))
+            }
+            TypedPlaceExpressionKind::Field(typed_field) => {
+                PlaceExpression::Field(FieldProjection {
+                    root: Arc::new(typed_field.root.to_place_expression()),
+                    index: typed_field.index,
+                })
+            }
+        }
+    }
+
+    /// True if `self` is a prefix of `other`
+    pub fn is_prefix_of(&self, other: &TypedPlaceExpression) -> bool {
+        self.to_place_expression()
+            .is_prefix_of(&other.to_place_expression())
+    }
+
+    /// Returns all prefixes of `self`
+    pub fn all_prefixes(&self) -> Vec<TypedPlaceExpression> {
+        // For now, we just return self and its prefixes without type info for inner prefixes
+        // This is a simplification - we could track types through the chain if needed
+        let mut v = vec![self.clone()];
+        let mut current = self;
+        while let Some(prefix) = current.prefix() {
+            v.push(prefix.clone());
+            current = prefix;
+        }
+        v
+    }
+
+    /// Returns the next prefix of `self` (if any)
+    pub fn prefix(&self) -> Option<&TypedPlaceExpression> {
+        match &self.kind {
+            TypedPlaceExpressionKind::Local(_) => None,
+            TypedPlaceExpressionKind::Deref(base) => Some(base),
+            TypedPlaceExpressionKind::Field(typed_field) => Some(&typed_field.root),
+        }
+    }
+}
+
+judgment_fn! {
+    /// Borrow-check a place expression, returning its type.
+    fn borrow_check_place_expression(
+        env: TypeckEnv,
+        fn_assumptions: Wcs,
+        loans_live: Set<Loan>,
+        outlives: Set<PendingOutlives>,
+        place: PlaceExpression,
+        places_live_on_exit: LivePlaces,
+    ) => (TypedPlaceExpression, Set<PendingOutlives>, Set<Loan>) {
+        debug(loans_live, place, places_live_on_exit, fn_assumptions, env, outlives)
+
+        (
+            (if let Some((_, ty)) = env.find_local_id(&local_id))
+            --- ("local")
+            (borrow_check_place_expression(env, _assumptions, loans_live, outlives, PlaceExpression::Local(local_id), _places_live) => (
+                TypedPlaceExpression {
+                    ty,
+                    kind: TypedPlaceExpressionKind::Local(local_id),
+                },
+                outlives,
+                loans_live,
+            ))
+        )
+
+        (
+            (borrow_check_place_expression(&env, &assumptions, loans_live, outlives, &*field_projection.root, places_live) => (root_expr, outlives, loans_live))
+            (if let Some((adt_id, parameters)) = ty_is_adt(&root_expr.ty))
+            (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
+            (let AdtDeclVariant { name, fields } = variants.last().unwrap())
+            (if *name == VariantId::for_struct())
+            (if field_projection.index < fields.len())
+            --- ("field")
+            (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Field(field_projection), places_live) => (
+                TypedPlaceExpression {
+                    ty: fields[field_projection.index].ty.clone(),
+                    kind: TypedPlaceExpressionKind::Field(TypedFieldProjection {
+                        root: Arc::new(root_expr),
+                        index: field_projection.index,
+                    }),
+                },
+                outlives,
+                loans_live,
+            ))
+        )
+
+        (
+            (borrow_check_place_expression(&env, &assumptions, loans_live, outlives, &*place_expr, places_live) => (inner_expr, outlives, loans_live))
+            (if let TyData::RigidTy(rigid_ty) = inner_expr.ty.data())
+            (if let RigidName::Ref(_ref_kind) = &rigid_ty.name)
+            --- ("deref-ref")
+            (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::Deref(place_expr), places_live) => (
+                TypedPlaceExpression {
+                    ty: rigid_ty.parameters[1].as_ty().expect("well-formed reference").clone(),
+                    kind: TypedPlaceExpressionKind::Deref(Arc::new(inner_expr)),
+                },
+                outlives,
+                loans_live,
+            ))
         )
     }
 }
@@ -547,13 +824,16 @@ judgment_fn! {
         debug(loan, access, places_live_after_access, assumptions, env, outlives)
 
         (
-            (if place_disjoint_from_place(&loan.place, &access.place))
+            // If the borrowed place and the accesed place are disjoint, then there is no problem.
+
+            (if place_disjoint_from_place(&loan.place.to_place_expression(), &access.place))
             --- ("borrow of disjoint places")
             (access_permitted_by_loan(_env, _assumptions, loan, _outlives, access, _places_live_after_access) => ())
         )
 
         (
-            // e.g. something like `let x = &y; read(y); ...` is ok even if `x` is live
+            // Shared loans permit reads.
+
             --- ("read-shared is ok")
             (access_permitted_by_loan(
                 _env,
@@ -566,7 +846,33 @@ judgment_fn! {
         )
 
         (
-            (if !place_disjoint_from_place(&loan.place, &access.place))! // just for convenience
+            // Allow a write to a place P (or some prefix thereof) from a loan of `*P` (or some suffix thereof)
+            // if P is a borrowed reference.
+            //
+            // Rationale: If you have a loan of (e.g.) `*foo`, and `foo` is a borrowed reference,
+            // then you can write to `foo` (or some prefix of `foo`) without violating
+            // the borrowed data, because `foo` is just a pointer.
+
+            (place_loaned.all_prefixes() => place_loaned)
+            (if let TypedPlaceExpressionKind::Deref(place_loaned_ref) = &place_loaned.kind)
+            (if ty_is_ref(&place_loaned_ref.ty))
+            (if place_accessed.is_prefix_of(&place_loaned_ref.to_place_expression()))
+            --- ("write-indirect")
+            (access_permitted_by_loan(
+                _env,
+                _assumptions,
+                Loan { lt: _, place: place_loaned, kind: _ },
+                _outlives,
+                Access { kind: AccessKind::Write, place: place_accessed },
+                _live_places,
+            ) => ())
+        )
+
+        (
+            // Allow the access if the loan has expired (its originated lifetime is not requied to outlive
+            // any live lifetime. Live lifetimes include lifetimes that appear in live places and universal lifetimes.
+
+            (if !place_disjoint_from_place(&loan.place.to_place_expression(), &access.place))! // just for convenience
             (loan_not_required_by_live_places(env, assumptions, &loan, &outlives, places_live_after_access) => ())
             (loan_cannot_outlive_universal_regions(env, assumptions, &outlives, &loan) => ())
             --- ("borrows of disjoint places")

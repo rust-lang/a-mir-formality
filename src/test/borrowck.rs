@@ -45,14 +45,17 @@ fn mutable_ref_prevents_mutation() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = local(v1)
+              condition evaluted to false: `place_disjoint_from_place(&loan.place.to_place_expression(), &access.place)`
+                &loan.place.to_place_expression() = local(v1)
                 &access.place = local(v1)
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
               condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
-                &lifetime.upcast() = ?lt_1"#]]
+                &lifetime.upcast() = ?lt_1
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionKind::Deref(place_loaned_ref)` did not match value `local(v1)`"#]]
     )
 }
 
@@ -102,14 +105,17 @@ fn shared_ref_prevents_mutation() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = local(v1)
+              condition evaluted to false: `place_disjoint_from_place(&loan.place.to_place_expression(), &access.place)`
+                &loan.place.to_place_expression() = local(v1)
                 &access.place = local(v1)
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
               condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
-                &lifetime.upcast() = ?lt_1"#]]
+                &lifetime.upcast() = ?lt_1
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionKind::Deref(place_loaned_ref)` did not match value `local(v1)`"#]]
     )
 }
 
@@ -175,8 +181,8 @@ fn min_problem_case_3() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = *(local(m))
+              condition evaluted to false: `place_disjoint_from_place(&loan.place.to_place_expression(), &access.place)`
+                &loan.place.to_place_expression() = *(local(m))
                 &access.place = *(local(m))
 
             the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
@@ -189,7 +195,15 @@ fn min_problem_case_3() {
                       LtData::Variable(Variable::BoundVar(_)) =>
                       panic!("cannot outlive a bound var"),
                   }, Parameter::Const(_) => panic!("cannot outlive a constant"),
-              })`"#]]
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionKind::Deref(place_loaned_ref)` did not match value `local(m)`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluted to false: `place_accessed.is_prefix_of(&place_loaned_ref.to_place_expression())`
+                place_accessed = *(local(m))
+                &place_loaned_ref.to_place_expression() = local(m)"#]]
     )
 }
 
@@ -382,11 +396,9 @@ fn undeclared_transitive_universal_region_relationship() {
 }
 
 // For `list: &mut Map`, borrow `&mut (*list).value` then assign to `list`.
-// Ignore test because it is still an error.
 #[test]
 fn problem_case_4() {
-    // FIXME: this should be "ok" once we implement kills.
-    crate::assert_err!(
+    crate::assert_ok!(
         [
             crate Foo {
                 struct Map {
@@ -412,8 +424,6 @@ fn problem_case_4() {
                             statements {
                                 local(num) = &mut r0 *(local(list)).0;
 
-                                // FIXME: We don't account for "kills" and so we forbid
-                                // this assignment as `list` is still borrowed.
                                 local(list) = &mut a *(local(list2));
 
                                 place_mention(local(num));
@@ -425,18 +435,151 @@ fn problem_case_4() {
                 };
             }
         ]
+    )
+}
+
+/// Test that StorageDead on a borrowed variable is an error.
+///
+/// The test is equivalent to:
+/// ```rust,ignore
+/// fn foo() -> i32 {
+///     let v1: i32 = 0;
+///     let v2: &i32 = &v1;
+///     StorageDead(v1);  // ERROR: v1 is still borrowed
+///     *v2
+/// }
+/// ```
+#[test]
+fn storage_dead_while_borrowed() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo() -> i32 = minirust() -> v0 {
+                    let v0: i32;
+
+                    exists<lt r0> {
+                        let v1: i32;
+                        let v2: &r0 i32;
+
+                        bb0: {
+                            statements {
+                                local(v1) = constant(0: i32);
+                                local(v2) = &r0 local(v1);
+                                StorageDead(v1);
+                                local(v0) = load(*(local(v2)));
+                            }
+                            return;
+                        }
+                    }
+                };
+            }
+        ]
 
         []
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = *(local(list)) . 0
-                &access.place = local(list)
+              condition evaluted to false: `place_disjoint_from_place(&loan.place.to_place_expression(), &access.place)`
+                &loan.place.to_place_expression() = local(v1)
+                &access.place = local(v1)
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
               condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {?lt_2}
-                &lifetime.upcast() = ?lt_2"#]]
+                outlived_by_loan = {?lt_1}
+                &lifetime.upcast() = ?lt_1
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionKind::Deref(place_loaned_ref)` did not match value `local(v1)`"#]]
+    )
+}
+
+/// In this test, the write to `*(q.0)` is in fact safe,
+/// but the borrow checker can't see it.
+///
+/// It is safe because, whichever value is returned by
+/// `nondet()`, `p` and `q` remain disjoint.
+/// But if you union the loans and assume both paths
+/// may have been taken, then you get an error.
+///
+/// (In rustc, we do not get an error when `q` is just a
+/// `&mut` local variable, we have to introduce the tuple,
+/// so presumably something smart is happening around liveness
+/// that I does not fully understand. --nikomatsakis)
+#[test]
+fn cfg_union_approx_cause_false_error() {
+    /*
+        #![allow(warnings)] // whiny rustc
+
+    fn foo() -> u32 {
+        let mut a = 0;
+        let mut b = 0;
+        let mut p;
+        let mut q = (&mut a,);
+        if nondet() {
+            p = &mut a;
+            q.0 = &mut b;
+        } else {
+            p = &mut b;
+        }
+        *(q.0) += 1;
+        *p;
+        // is there something that is "ok" if a is borrowed XOR b is borrowed?
+        // but not if a is borrowed OR b is borrowed?
+    }
+
+    fn nondet() -> bool {
+        true
+    }
+     */
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo () -> u32 = minirust() -> v0 {
+                    let v0: u32;
+                    exists<lt l_p, lt l_q, lt loan_0, lt loan_1, lt loan_2, lt loan_3> {
+                        let a: u32;
+                        let b: u32;
+
+                        // In Rustc, the 1-tuple is needed for some reason
+                        // Niko does not 100% understand, else rustc is able to
+                        // see that this program is safe.
+                        let p: &mut l_p u32;
+                        let q: &mut l_q u32;
+
+                        bb0: {
+                            statements {
+                                local(a) = constant(0: u32);
+                                local(b) = constant(0: u32);
+                                local(q) = &mut loan_0 local(a);
+                            }
+                            goto bb1, bb2;
+                        }
+
+                        bb1: {
+                            statements {
+                                local(p) = &mut loan_1 local(a);
+                                local(q) = &mut loan_2 local(b);
+                            }
+                            goto bb3;
+                        }
+
+                        bb2: {
+                            statements {
+                                local(p) = &mut loan_3 local(b);
+                            }
+                            goto bb3;
+                        }
+
+                        bb3: {
+                            statements {
+                                *(local(q)) = constant(1: u32);
+                                local(v0) = load(*(local(p)));
+                            }
+                            return;
+                        }
+                    }
+                };
+            }
+        ]
     )
 }

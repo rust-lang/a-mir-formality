@@ -7,8 +7,8 @@ pub use assertion::JudgmentAssertion;
 
 mod proven_set;
 pub use proven_set::{
-    insert_smallest_proof, EachProof, FailedJudgment, FailedRule, ProofTree, Proven, ProvenSet,
-    RuleFailureCause,
+    insert_smallest_proof, CheckProven, EachProof, FailedJudgment, FailedRule, ProofTree, Proven,
+    ProvenSet, RuleFailureCause,
 };
 
 mod test_fallible;
@@ -542,7 +542,7 @@ macro_rules! push_rules {
 
             let (file, line, column) = $crate::respan!($collection ((file!(), line!(), column!())));
 
-            let mut loop_carried = ($($with_var,)*);
+            let mut loop_carried = ($($with_var.clone(),)*);
 
             let mut for_all_proof_trees = vec![];
             for $loop_var in collection {
@@ -597,6 +597,27 @@ macro_rules! push_rules {
     ) => {
         assert!($c);
         $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
+    };
+
+    // Special case for `(expr => ())` - since `()` is a singleton type, there's at most
+    // one successful path. This avoids the closure in `each_proof`, which makes borrowing
+    // easier in the judgment body.
+    (
+        @body $args:tt; $inputs:tt; $child_proof_trees:ident;
+        ($i:expr => ()) $($m:tt)*
+    ) => {
+        match $crate::judgment::CheckProven::check_proven(
+            $i,
+            || stringify!($i).to_string(),
+        ) {
+            Ok(proof_tree) => {
+                $child_proof_trees.push(proof_tree);
+                $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
+            }
+            Err(e) => {
+                $crate::push_rules!(@record_failure $inputs; $i; e);
+            }
+        }
     };
 
     (
@@ -693,7 +714,7 @@ macro_rules! push_rules {
         @body (loop($next_carried:ident, ($($with_var:ident,)*))); $_inputs:tt; $child_proof_trees:ident;
     ) => {
         // when we complete processing a loop with accumulators, capture the final values.
-        $next_carried = Some(($($with_var,)*));
+        $next_carried = Some(($($with_var.clone(),)*));
     };
 
     (@record_failure ($failed_rules:expr, $match_var:expr, $_input_info:tt, $rule_name:literal); $step_expr:expr; $cause:expr) => {

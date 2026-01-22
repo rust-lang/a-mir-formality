@@ -138,6 +138,49 @@ fn test_goto_terminator() {
     )
 }
 
+/// Test cyclic control flow (a loop).
+/// This is equivalent to:
+/// ```rust,ignore
+/// fn foo() -> u32 {
+///     let v0: u32 = 0;
+///     loop {
+///         v0 = v0;  // silly but valid
+///     }
+/// }
+/// ```
+///
+/// Currently this fails because cycles are detected and treated as failures.
+/// We need to handle cycles properly by recognizing that revisiting a block
+/// with the same (or subsumed) loans_live_on_entry is valid.
+#[test]
+// #[ignore] // TODO: Fix cyclic CFG handling
+fn test_cyclic_goto() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo () -> u32 = minirust() -> v0 {
+                    let v0: u32;
+                    exists {
+                        bb0: {
+                            statements {
+                                local(v0) = constant(0: u32);
+                            }
+                            goto bb1;
+                        }
+
+                        bb1: {
+                            statements {
+                                local(v0) = load(local(v0));
+                            }
+                            goto bb1;  // loop back to self
+                        }
+                    }
+                };
+            }
+        ]
+    )
+}
+
 /// Test valid call terminator.
 /// This is equivalent to:
 /// ```
@@ -346,7 +389,8 @@ fn test_call_invalid_fn() {
         ]
         []
         expect_test::expect![[r#"
-            The function called is not declared in current crate"#]]
+            the rule "fn" at (mini_rust_check.rs) failed because
+              pattern `Some(fn_decl)` did not match value `None`"#]]
     )
 }
 
@@ -389,7 +433,7 @@ fn test_pass_non_subtype_arg() {
             }
         ]
         []
-        expect_test::expect!["judgment had no applicable rules: `prove { goal: {() <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true }, decls: decls(222, [], [], [], [], [], [], {}, {}, {}) }`"]
+        expect_test::expect!["judgment had no applicable rules: `check_blocks { blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(v0) goto Some(bb1) ; }, bb1 : { statements{ } return ; }], fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { fn foo (u32) -> u32 = minirust(v1) -> v0 { let v0 : u32 ; let v1 : u32 ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; fn bar (()) -> () = minirust(v1) -> v0 { let v0 : () ; let v1 : () ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(v0) goto Some(bb1) ; } bb1 : { statements{ } return ; } } } ; }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: (), local_variables: {v0: (), v1: ()}, blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(v0) goto Some(bb1) ; }, bb1 : { statements{ } return ; }], ret_id: v0, declared_input_tys: [()], crate_id: Foo, fn_args: [v1], decls: decls(222, [], [], [], [], [], [], {}, {}, {}) }, outlives: {} }`"]
     )
 }
 
@@ -428,7 +472,9 @@ fn test_invalid_next_bbid_for_call_terminator() {
             }
         ]
         []
-        expect_test::expect!["Basic block bb1 does not exist"]
+        expect_test::expect![[r#"
+            the rule "call" at (mini_rust_check.rs) failed because
+              condition evaluted to false: `next_block.as_ref().map_or(true, |bb_id| env.block_exists(bb_id))`"#]]
     )
 }
 
@@ -575,7 +621,9 @@ fn test_ret_place_storage_dead() {
             }
         ]
         []
-        expect_test::expect!["Statement::StorageDead: trying to mark function arguments or return local as dead"]
+        expect_test::expect![[r#"
+            the rule "storage-dead" at (mini_rust_check.rs) failed because
+              condition evaluted to false: `!env.fn_args.iter().any(|fn_arg| local_id == *fn_arg)`"#]]
     )
 }
 
@@ -600,7 +648,9 @@ fn test_fn_arg_storage_dead() {
             }
         ]
         []
-        expect_test::expect!["Statement::StorageDead: trying to mark function arguments or return local as dead"]
+        expect_test::expect![[r#"
+            the rule "storage-dead" at (mini_rust_check.rs) failed because
+              condition evaluted to false: `local_id != env.ret_id`"#]]
     )
 }
 
@@ -633,7 +683,9 @@ fn test_invalid_struct_field() {
             }
         ]
         []
-        expect_test::expect!["The field index used in PlaceExpression::Field is invalid."]
+        expect_test::expect![[r#"
+            the rule "field" at (mini_rust_check.rs) failed because
+              condition evaluted to false: `field_projection.index < fields.len()`"#]]
     )
 }
 
@@ -666,7 +718,9 @@ fn test_field_projection_root_non_adt() {
             }
         ]
         []
-        expect_test::expect!["The local used for field projection is not adt."]
+        expect_test::expect![[r#"
+            the rule "field" at (mini_rust_check.rs) failed because
+              pattern `Some((adt_id, parameters))` did not match value `None`"#]]
     )
 }
 
@@ -698,7 +752,7 @@ fn test_struct_wrong_type_in_initialisation() {
             }
         ]
         []
-        expect_test::expect!["judgment had no applicable rules: `prove { goal: {bool <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true }, decls: decls(222, [], [], [], [], [], [adt Dummy { struct { value : u32 } }], {}, {Dummy}, {}) }`"]
+        expect_test::expect!["judgment had no applicable rules: `check_blocks { blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; }], fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { struct Dummy { value : u32 } fn foo (u32) -> u32 = minirust(v1) -> v0 { let v0 : u32 ; let v1 : u32 ; exists { let v2 : Dummy ; bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; } } } ; }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: u32, local_variables: {v0: u32, v1: u32, v2: Dummy}, blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; }], ret_id: v0, declared_input_tys: [u32], crate_id: Foo, fn_args: [v1], decls: decls(222, [], [], [], [], [], [adt Dummy { struct { value : u32 } }], {}, {Dummy}, {}) }, outlives: {} }`"]
     )
 }
 
@@ -727,7 +781,9 @@ fn test_non_adt_ty_for_struct() {
             }
         ]
         []
-        expect_test::expect!["The type used in ValueExpression::Struct must be adt"]
+        expect_test::expect![[r#"
+            the rule "struct" at (mini_rust_check.rs) failed because
+              pattern `Some((adt_id, parameters))` did not match value `None`"#]]
     )
 }
 
