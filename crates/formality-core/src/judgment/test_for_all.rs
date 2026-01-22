@@ -24,7 +24,7 @@ judgment_fn! {
 
         (
             (for_all(n in &nums)
-                (is_even(n) => ()))
+                (if is_even(n).is_ok()))
             --------------------------------------- ("all_even")
             (all_even(nums) => ())
         )

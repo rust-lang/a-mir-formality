@@ -26,14 +26,14 @@ judgment_fn! {
         debug(p, assumptions, env)
 
         (
-            (&assumptions => a)!
+            (a in &assumptions)!
             (prove_normalize_via(&decls, &env, &assumptions, a, &goal) => c)
             ----------------------------- ("normalize-via-assumption")
             (prove_normalize(decls, env, assumptions, goal) => c)
         )
 
         (
-            (decls.alias_eq_decls(&a.name) => decl)
+            (decl in decls.alias_eq_decls(&a.name))
             (let (env, subst) = env.existential_substitution(&decl.binder))
             (let decl = decl.binder.instantiate_with(&subst).unwrap())
             (let AliasEqDeclBoundData { alias: AliasTy { name, parameters }, ty, where_clause } = decl)

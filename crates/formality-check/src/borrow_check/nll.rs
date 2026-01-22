@@ -853,7 +853,7 @@ judgment_fn! {
             // then you can write to `foo` (or some prefix of `foo`) without violating
             // the borrowed data, because `foo` is just a pointer.
 
-            (place_loaned.all_prefixes() => place_loaned)
+            (place_loaned in place_loaned.all_prefixes())
             (if let TypedPlaceExpressionKind::Deref(place_loaned_ref) = &place_loaned.kind)
             (if ty_is_ref(&place_loaned_ref.ty))
             (if place_accessed.is_prefix_of(&place_loaned_ref.to_place_expression()))

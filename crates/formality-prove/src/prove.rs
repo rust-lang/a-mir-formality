@@ -81,7 +81,6 @@ pub fn prove(
     }
     let mut results = map![];
     let result_set = if let Err(e) = prove_wc_list(decls, &env, assumptions, goal).each_proof(
-        || "".to_string(),
         |(result, proof_tree)| {
             results.insert(result, proof_tree);
         },
