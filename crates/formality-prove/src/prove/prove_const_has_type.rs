@@ -5,7 +5,6 @@ use crate::{
     decls::Decls,
     prove::{
         env::Env,
-        prove_eq::prove_eq,
     },
 };
 
@@ -19,9 +18,8 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         constant: Const,
-        ty: Ty,
-    ) => Constraints {
-        debug(constant, ty, assumptions, env, decls)
+    ) => (Ty, Constraints) {
+        debug(constant, assumptions, env, decls)
 
         // (
         //     --- ("rigid constant")
@@ -29,9 +27,8 @@ judgment_fn! {
         // )
 
         (
-            (prove_eq(decls, env, assumptions, scalar.ty(), ty) => c)
             --- ("rigid constant")
-            (prove_const_has_type(decls, env, assumptions, scalar: ScalarValue, ty) => c)
+            (prove_const_has_type(_decls, env, _assumptions, scalar: ScalarValue) => (scalar.ty(), Constraints::none(env)))
         )
     }
 }

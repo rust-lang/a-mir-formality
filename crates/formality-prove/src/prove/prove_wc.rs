@@ -154,7 +154,8 @@ judgment_fn! {
         )
 
         (
-            (prove_const_has_type(decls, env, assumptions, constant, ty) => c)
+            (prove_const_has_type(&decls, env, &assumptions, constant) => (ty_constant, c))
+            (prove_after(&decls, c, &assumptions, Relation::equals(ty_constant, &ty)) => c)
             ----------------------------- ("const has ty")
             (prove_wc(decls, env, assumptions, Predicate::ConstHasType(constant, ty)) => c)
         )
