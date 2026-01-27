@@ -80,11 +80,10 @@ pub fn prove(
         }
     }
     let mut results = map![];
-    let result_set = if let Err(e) = prove_wc_list(decls, &env, assumptions, goal).each_proof(
-        |(result, proof_tree)| {
+    let result_set = if let Err(e) =
+        prove_wc_list(decls, &env, assumptions, goal).each_proof(|(result, proof_tree)| {
             results.insert(result, proof_tree);
-        },
-    ) {
+        }) {
         ProvenSet::failed_rules(label, set![FailedRule::new(e)])
     } else {
         ProvenSet::proven(results)

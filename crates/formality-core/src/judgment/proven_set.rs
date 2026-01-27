@@ -130,11 +130,9 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
 
                 for proven_item in proven_items {
                     let collection = op(proven_item);
-                    if let Err(cause) = collection.each_proof(
-                        |(item, proof_tree)| {
-                            items.insert(item, proof_tree);
-                        },
-                    ) {
+                    if let Err(cause) = collection.each_proof(|(item, proof_tree)| {
+                        items.insert(item, proof_tree);
+                    }) {
                         failures.insert(FailedRule::new(cause));
                     }
                 }
@@ -826,9 +824,9 @@ impl<T: Clone> EachProof for &ProvenSet<T> {
 
 /// Proof rule for `(x in collection)`.
 /// Invokes `each_proof` for each member of `collection`.
-/// 
+///
 /// # Parameters
-/// 
+///
 /// * `collection` is the value to be iterated.
 /// * `stringify_expr` gives a string for error message purposes, in case the collection is empty
 /// * `each_proof` is the action to take on each item
@@ -857,16 +855,12 @@ pub trait CheckProven {
     /// `stringify_expr` is used to create that description, it should
     /// return a string representing the expression being enumerated.
     #[track_caller]
-    fn check_proven(
-        self,
-    ) -> Result<ProofTree, RuleFailureCause>;
+    fn check_proven(self) -> Result<ProofTree, RuleFailureCause>;
 }
 
 impl CheckProven for ProvenSet<()> {
     #[track_caller]
-    fn check_proven(
-        self,
-    ) -> Result<ProofTree, RuleFailureCause> {
+    fn check_proven(self) -> Result<ProofTree, RuleFailureCause> {
         self.check_proven()
             .map_err(|e| RuleFailureCause::FailedJudgment(e.clone()))
     }
@@ -874,9 +868,7 @@ impl CheckProven for ProvenSet<()> {
 
 impl CheckProven for &ProvenSet<()> {
     #[track_caller]
-    fn check_proven(
-        self,
-    ) -> Result<ProofTree, RuleFailureCause> {
+    fn check_proven(self) -> Result<ProofTree, RuleFailureCause> {
         self.clone()
             .check_proven()
             .map_err(|e| RuleFailureCause::FailedJudgment(e.clone()))
