@@ -42,7 +42,7 @@ fn test_for_all_failure() {
     let nums = vec![Num(2), Num(3), Num(6)];
     all_even(nums).assert_err(expect_test::expect![[r#"
         the rule "all_even" at (test_for_all.rs) failed because
-          expression evaluated to an empty collection: `is_even(n)`"#]]);
+          condition evaluted to false: `is_even(n).is_ok()`"#]]);
 }
 
 #[test]
