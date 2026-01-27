@@ -352,6 +352,26 @@ where
     }
 }
 
+
+impl<L> CoreParse<L> for bool
+where
+    L: Language,
+{
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::multi_variant(scope, text, "bool", |parser| {
+            parser.parse_variant("true", Precedence::default(), |p| {
+                p.expect_keyword("true")?;
+                Ok(true)
+            });
+
+            parser.parse_variant("false", Precedence::default(), |p| {
+                p.expect_keyword("false")?;
+                Ok(false)
+            });            
+        })
+    }
+}
+
 impl<L> CoreParse<L> for usize
 where
     L: Language,

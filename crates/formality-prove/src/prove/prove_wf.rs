@@ -66,9 +66,8 @@ judgment_fn! {
         )
 
         (
-            (prove_wf(&decls, &env, &assumptions, ty) => c)
-            --- ("rigid constants")
-            (prove_wf(decls, env, assumptions, ConstData::Value(_, ty)) => c)
+            --- ("scalar constants are always wf")
+            (prove_wf(_decls, env, _assumptions, ConstData::Scalar(_)) => Constraints::none(env))
         )
 
         (

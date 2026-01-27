@@ -13,6 +13,7 @@ mod prove_via;
 mod prove_wc;
 mod prove_wc_list;
 mod prove_wf;
+mod prove_const_has_type;
 
 pub use constraints::Constraints;
 use formality_core::judgment::{EachProof, FailedRule, ProofTree};

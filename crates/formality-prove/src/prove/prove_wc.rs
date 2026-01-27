@@ -4,16 +4,7 @@ use formality_types::grammar::{Predicate, Relation, Wc, WcData, Wcs};
 use crate::{
     decls::Decls,
     prove::{
-        combinators::for_all,
-        env::{Bias, Env},
-        is_local::{is_local_trait_ref, may_be_remote},
-        prove,
-        prove_after::prove_after,
-        prove_eq::prove_eq,
-        prove_outlives::prove_outlives,
-        prove_sub::prove_sub,
-        prove_via::prove_via,
-        prove_wf::prove_wf,
+        combinators::for_all, env::{Bias, Env}, is_local::{is_local_trait_ref, may_be_remote}, prove, prove_after::prove_after, prove_const_has_type::prove_const_has_type, prove_eq::prove_eq, prove_outlives::prove_outlives, prove_sub::prove_sub, prove_via::prove_via, prove_wf::prove_wf
     },
 };
 
@@ -163,10 +154,9 @@ judgment_fn! {
         )
 
         (
-            (if let Some((_, const_ty)) = ct.as_value())
-            (prove(decls, env, assumptions, Wcs::all_eq(vec![const_ty], vec![ty])) => c)
+            (prove_const_has_type(decls, env, assumptions, constant, ty) => c)
             ----------------------------- ("const has ty")
-            (prove_wc(decls, env, assumptions, Predicate::ConstHasType(ct, ty)) => c)
+            (prove_wc(decls, env, assumptions, Predicate::ConstHasType(constant, ty)) => c)
         )
     }
 }

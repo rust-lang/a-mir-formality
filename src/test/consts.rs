@@ -2,20 +2,13 @@
 
 #[test]
 fn nonsense_rigid_const_bound() {
-    crate::assert_err!(
-        // This test is the short version of `generic_mismatch`, skipping
-        // substituting and directly going to a wrong constant.
+    crate::assert_ok!(
         [
             crate Foo {
+                // This where-clause is not *provable*, but it is well-formed.
                 trait Foo where type_of_const true is u32 {}
             }
         ]
-
-        [ /* TODO */ ]
-
-        expect_test::expect![[r#"
-            the rule "symmetric" at (prove_eq.rs) failed because
-              cyclic proof attempt: `prove_eq { a: u32, b: bool, assumptions: {@ ConstHasType(value(0, bool) , u32)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }`"#]]
     )
 }
 
@@ -41,7 +34,7 @@ fn mismatch() {
             crate Foo {
                 trait Foo<const C> where type_of_const C is bool {}
 
-                impl Foo<const 42_u32> for u32 {}
+                impl Foo<const u32(42)> for u32 {}
             }
         ]
 
@@ -70,9 +63,6 @@ fn holds() {
 #[test]
 fn rigid_const_bound() {
     crate::assert_ok!(
-
-
-
         [
             crate Foo {
                 trait Foo where type_of_const true is bool {}
@@ -88,6 +78,7 @@ fn generic_mismatch() {
             crate Foo {
                 trait Foo<const C> where type_of_const C is bool {}
 
+                // Here, the impl is assuming C is u32, which mismatches the trait bound.
                 impl<const C> Foo<const C> for u32 where type_of_const C is u32 {}
             }
         ]
@@ -95,22 +86,28 @@ fn generic_mismatch() {
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
-            the rule "const has ty" at (prove_wc.rs) failed because
-              pattern `Some((_, const_ty))` did not match value `None`
-
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }
 
 #[test]
+fn generic_match() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                trait Foo<const C> where type_of_const C is bool {}
+
+                // Here, the impl matches the trait bound.
+                impl<const C> Foo<const C> for u32 where type_of_const C is bool {}
+            }
+        ]
+    )
+}
+
+#[test]
 fn multiple_type_of_const() {
     crate::assert_ok!(
-
-
-
-
-
         [
             crate Foo {
                 trait Foo<const C> where type_of_const C is bool, type_of_const C is u32 {}

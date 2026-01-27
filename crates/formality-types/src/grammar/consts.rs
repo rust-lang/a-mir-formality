@@ -1,9 +1,8 @@
-mod valtree;
+use crate::grammar::{ParameterKind, Parameters, RigidName, ScalarId};
 
-use super::{Parameter, Ty, Variable};
-use formality_core::{term, DowncastTo, Upcast, UpcastFrom};
+use super::{Parameter, Variable};
+use formality_core::{DowncastTo, Upcast, UpcastFrom, cast_impl, term};
 use std::sync::Arc;
-pub use valtree::*;
 
 #[term]
 #[cast]
@@ -22,32 +21,78 @@ impl Const {
         }
     }
 
-    pub fn valtree(vt: impl Upcast<ValTree>, ty: impl Upcast<Ty>) -> Self {
-        Self::new(ConstData::Value(vt.upcast(), ty.upcast()))
-    }
-
     pub fn as_variable(&self) -> Option<Variable> {
         match self.data() {
-            ConstData::Value(_, _) => None,
-            ConstData::Variable(var) => Some(*var),
-        }
-    }
-
-    pub fn as_value(&self) -> Option<(ValTree, Ty)> {
-        match self.data() {
-            ConstData::Value(v, t) => Some((v.clone(), t.clone())),
-            ConstData::Variable(_) => None,
+            ConstData::Variable(v) => Some(v.clone()),
+            _ => None,
         }
     }
 }
 
 #[term]
-#[customize(parse)]
 pub enum ConstData {
-    Value(ValTree, Ty),
+    // Sort of equivalent to `ValTreeKind::Branch`
+    #[cast]
+    RigidValue(RigidConstData),
 
-    #[variable]
+    // Sort of equivalent to `ValTreeKind::Leaf`
+    #[cast]
+    Scalar(ScalarValue),
+
+    #[variable(ParameterKind::Const)]
     Variable(Variable),
+}
+
+
+#[term]
+pub enum ScalarValue {
+    #[grammar(u8($v0))]
+    U8(u8),
+    #[grammar(u16($v0))]
+    U16(u16),
+    #[grammar(u32($v0))]
+    U32(u32),
+    #[grammar(u64($v0))]
+    U64(u64),
+    #[grammar(i8($v0))]
+    I8(i8),
+    #[grammar(i16($v0))]
+    I16(i16),
+    #[grammar(i32($v0))]
+    I32(i32),
+    #[grammar(i64($v0))]
+    I64(i64),
+    #[grammar($v0)]
+    Bool(bool),
+    #[grammar(usize($v0))]
+    Usize(usize),
+    #[grammar(isize($v0))]
+    Isize(isize),
+}
+
+impl ScalarValue {
+    pub fn ty(&self) -> ScalarId {
+        match self {
+            ScalarValue::U8(_) => ScalarId::U8,
+            ScalarValue::U16(_) => ScalarId::U16,
+            ScalarValue::U32(_) => ScalarId::U32,
+            ScalarValue::U64(_) => ScalarId::U64,
+            ScalarValue::I8(_) => ScalarId::I8,
+            ScalarValue::I16(_) => ScalarId::I16,
+            ScalarValue::I32(_) => ScalarId::I32,
+            ScalarValue::I64(_) => ScalarId::I64,
+            ScalarValue::Bool(_) => ScalarId::Bool,
+            ScalarValue::Usize(_) => ScalarId::Usize,
+            ScalarValue::Isize(_) => ScalarId::Isize,
+        }
+    }
+}
+
+#[term($name $<parameters> { $,values })]
+pub struct RigidConstData {
+    pub name: RigidName,
+    pub parameters: Parameters,
+    pub values: Vec<Const>,
 }
 
 impl DowncastTo<ConstData> for Const {
@@ -65,36 +110,19 @@ impl DowncastTo<Const> for Parameter {
     }
 }
 
-impl DowncastTo<ConstData> for Parameter {
-    fn downcast_to(&self) -> Option<ConstData> {
-        let c: Const = self.downcast_to()?;
-        c.downcast_to()
-    }
-}
-
-#[term]
-pub enum Bool {
-    #[grammar(true)]
-    True,
-    #[grammar(false)]
-    False,
-}
-
-impl UpcastFrom<Bool> for ConstData {
-    fn upcast_from(term: Bool) -> Self {
-        ConstData::Value(term.upcast(), Ty::bool())
-    }
-}
-
-impl UpcastFrom<Bool> for Const {
-    fn upcast_from(term: Bool) -> Self {
-        let c: ConstData = term.upcast();
-        Const::new(c)
-    }
-}
-
 impl UpcastFrom<Const> for Parameter {
     fn upcast_from(term: Const) -> Self {
         Self::Const(term)
     }
 }
+
+impl UpcastFrom<ConstData> for Const {
+    fn upcast_from(term: ConstData) -> Self {
+        Const { data: Arc::new(term) }
+    }
+}
+
+cast_impl!((ConstData) <: (Const) <: (Parameter));
+cast_impl!((ScalarValue) <: (ConstData) <: (Const));
+
+

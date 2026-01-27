@@ -64,6 +64,12 @@ impl<L: Language, T: CoreFold<L>> CoreFold<L> for Arc<T> {
     }
 }
 
+impl<L: Language> CoreFold<L> for bool {
+    fn substitute(&self, _substitution_fn: SubstitutionFn<'_, L>) -> Self {
+        *self
+    }
+}
+
 impl<L: Language> CoreFold<L> for usize {
     fn substitute(&self, _substitution_fn: SubstitutionFn<'_, L>) -> Self {
         *self

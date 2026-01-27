@@ -177,6 +177,7 @@ pub enum RefKind {
 
 #[term]
 pub enum ScalarId {
+    // FIXME: we should customize parsing here to permit e.g. `22_u8`
     #[grammar(u8)]
     U8,
     #[grammar(u16)]
