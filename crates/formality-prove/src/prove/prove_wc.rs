@@ -45,13 +45,13 @@ judgment_fn! {
         )
 
         (
-            (&assumptions => a)!
+            (a in &assumptions)!
             (prove_via(&decls, &env, &assumptions, a, &goal) => c)
             ----------------------------- ("assumption - predicate")
             (prove_wc(decls, env, assumptions, WcData::Predicate(goal)) => c)
         )
         (
-            (&assumptions => a)!
+            (a in &assumptions)!
             (prove_via(&decls, &env, &assumptions, a, &goal) => c)
             ----------------------------- ("assumption - relation")
             (prove_wc(decls, env, assumptions, WcData::Relation(goal)) => c)
@@ -61,7 +61,7 @@ judgment_fn! {
         // This rule is: prove `T: Foo<U>` holds on the basis of an `impl<A,B> Foo<B> for A where WC` impl somewhere.
         (
             // Get the impl declaration.
-            (decls.impl_decls(&trait_ref.trait_id) => i)!
+            (i in decls.impl_decls(&trait_ref.trait_id))!
 
             // Instantiate impl generics with inference variables (in our example, `A => ?A, B => ?B`).
             (let (env, subst) = env.existential_substitution(&i.binder))
@@ -97,7 +97,7 @@ judgment_fn! {
         )
 
         (
-            (decls.neg_impl_decls(&trait_ref.trait_id) => i)
+            (i in decls.neg_impl_decls(&trait_ref.trait_id))
             (let (env, subst) = env.existential_substitution(&i.binder))
             (let i = i.binder.instantiate_with(&subst).unwrap())
             (prove(&decls, env, &assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
@@ -113,7 +113,7 @@ judgment_fn! {
         )
 
         (
-            (decls.trait_invariants() => ti)
+            (ti in decls.trait_invariants())
             (let (env, subst) = env.existential_substitution(&ti.binder))
             (let ti = ti.binder.instantiate_with(&subst).unwrap())
             (prove_via(&decls, env, &assumptions, &ti.where_clause, &trait_ref) => c)

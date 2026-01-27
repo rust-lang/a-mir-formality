@@ -84,7 +84,7 @@ judgment_fn! {
         assert(env.bias() == Bias::Completeness)
         (
             // There may be a downstream parameter at position i...
-            (&goal.parameters => p)
+            (p in &goal.parameters)
             (may_be_downstream_parameter(&decls, &env, &assumptions, p) => c)
             --- ("may_be_downstream_trait_ref")
             (may_be_downstream_trait_ref(decls, env, assumptions, goal) => c)
@@ -117,7 +117,7 @@ judgment_fn! {
         // is definitely not a downstream parameter.
         (
             // (a) there is some parameter in the alias that may be downstream
-            (parameters.iter() => p)
+            (p in parameters.iter())
             (may_contain_downstream_type(&decls, &env, &assumptions, p) => ())
 
             // (b) the alias cannot be normalized to something that may not be downstream
@@ -149,7 +149,7 @@ judgment_fn! {
 
         // Rigid types: recurse into parameters
         (
-            (parameters.iter() => p)
+            (p in parameters.iter())
             (may_contain_downstream_type(&decls, &env, &assumptions, p) => ())
             --- ("rigid type parameter")
             (may_contain_downstream_type(decls, env, assumptions,
@@ -213,7 +213,7 @@ judgment_fn! {
 
         (
             // There is a local parameter at position i...
-            (0 .. goal.parameters.len() => i)
+            (i in 0 .. goal.parameters.len())
             (is_local_parameter(&decls, &env, &assumptions, &goal.parameters[i]) => c1)
 
             // ...and in positions 0..i, there are no downstream parameters.

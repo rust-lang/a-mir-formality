@@ -7,8 +7,8 @@ pub use assertion::JudgmentAssertion;
 
 mod proven_set;
 pub use proven_set::{
-    insert_smallest_proof, CheckProven, EachProof, FailedJudgment, FailedRule, ProofTree, Proven,
-    ProvenSet, RuleFailureCause,
+    insert_smallest_proof, member_of, CheckProven, EachProof, FailedJudgment, FailedRule,
+    ProofTree, Proven, ProvenSet, RuleFailureCause,
 };
 
 mod test_fallible;
@@ -608,7 +608,6 @@ macro_rules! push_rules {
     ) => {
         match $crate::judgment::CheckProven::check_proven(
             $i,
-            || stringify!($i).to_string(),
         ) {
             Ok(proof_tree) => {
                 $child_proof_trees.push(proof_tree);
@@ -626,7 +625,6 @@ macro_rules! push_rules {
     ) => {
         if let Err(e) = $crate::judgment::EachProof::each_proof(
             $i,
-            || stringify!($i).to_string(),
             |($p, proof_tree)| {
                 // Remember the size of the child proof tree stack
                 let len = $child_proof_trees.len();
@@ -682,6 +680,35 @@ macro_rules! push_rules {
             Err(e) => {
                 $crate::push_rules!(@record_failure $inputs; $i; e);
             }
+        }
+    };
+    // Special case for `(expr => ())` - since `()` is a singleton type, there's at most
+    // one successful path. This avoids the closure in `each_proof`, which makes borrowing
+    // easier in the judgment body.
+    (
+        @body $args:tt; $inputs:tt; $child_proof_trees:ident;
+        ($p:pat in $i:expr) $($m:tt)*
+    ) => {
+        if let Err(e) = $crate::judgment::member_of(
+            $i,
+            || stringify!($i).to_string(),
+            |($p, proof_tree)| {
+                // Remember the size of the child proof tree stack
+                let len = $child_proof_trees.len();
+
+                // Push this child proof tree
+                $child_proof_trees.push(proof_tree);
+
+                // Recursively process successors
+                $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
+
+                // Restore the original child proof tree stack; note that there may be multiple entries
+                // in case "non-iterative" steps like `(let ...)` and `(if ...)` are interspersed.
+                assert!($child_proof_trees.len() > len);
+                $child_proof_trees.truncate(len);
+            },
+        ) {
+            $crate::push_rules!(@record_failure $inputs; $i; e);
         }
     };
 
