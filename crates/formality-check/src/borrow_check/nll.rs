@@ -375,6 +375,7 @@ judgment_fn! {
         (
             (let places_live = places_live_before_basic_blocks(&env, &next_block))
 
+            // Check the callee
             (borrow_check_value_expression(
                 &env,
                 &assumptions,
@@ -382,13 +383,28 @@ judgment_fn! {
                 outlives,
                 callee,
                 (&arguments, Assignment(&ret)).live_before(&env, &places_live),
-            ) => (_callee_ty, outlives, loans_live))
+            ) => (callee_ty, outlives, loans_live))
+
+            // Extract FnDef from callee type -- for now we only support this simple case
+            (if let TyData::RigidTy(rigid_ty) = callee_ty.data())
+            (if let RigidName::FnDef(fn_id) = &rigid_ty.name)
+
+            // Find the function declaration
+            (if let Some(fn_decl) = env.fn_decl(fn_id))
+
+            // Instantiate the function signature universally (returns new env)
+            (let (fn_bound_data, env) = env.instantiate_universally(&fn_decl.binder)) // FIXME: should be existential
+            (let callee_declared_input_tys = fn_bound_data.input_tys.clone())
+
+            // Check argument count matches
+            (if callee_declared_input_tys.len() == arguments.len())
 
             (borrow_check_argument_expressions(
                 &env,
                 &assumptions,
                 loans_live,
                 outlives,
+                &callee_declared_input_tys,
                 &arguments,
                 Assignment(&ret).live_before(&env, &places_live),
             ) => (outlives, loans_live))
@@ -495,17 +511,39 @@ judgment_fn! {
         fn_assumptions: Wcs,
         loans_live_on_entry: Set<Loan>,
         outlives: Set<PendingOutlives>,
+        expected_tys: Vec<Ty>,
         values: Vec<ArgumentExpression>,
         places_live_on_exit: LivePlaces,
     ) => (Set<PendingOutlives>, Set<Loan>) {
-        debug(loans_live_on_entry, values, places_live_on_exit, fn_assumptions, env, outlives)
+        debug(loans_live_on_entry, expected_tys, values, places_live_on_exit, fn_assumptions, env, outlives)
+
+        assert(expected_tys.len() == values.len())
 
         (
+            // Each field value must have a subtype of the type declared in the struct
             (for_all(i in 0..values.len()) with(outlives, loans_live)
-                (borrow_check_argument_expression(&env, &assumptions, loans_live, outlives, &values[i],
-                    &values[i+1..].live_before(&env, &places_live)) => (outlives, loans_live)))
+                // Given something like `foo(..., value_i, value_i+1, ...); ...`
+                //                                         --------------   ---
+                //                                               |           |
+                //                                               |      `places_live` represents the
+                //                                               |      places live due to this code
+                //                                               |
+                //                               We want the places live before this code,
+                //                               since we are about to execute `value_i`,
+                //                               and what comes after `value_i` is values `i+1..` and
+                //                               whatever comes after this structure value (`...`).
+                (let places_live_before_value = values[i+1..].live_before(&env, &places_live))
+                (borrow_check_argument_expression(
+                    &env, 
+                    &assumptions, 
+                    loans_live, 
+                    outlives, 
+                    &values[i],
+                    places_live_before_value,
+                ) => (argument_ty, outlives, loans_live))
+                (env.prove_goal(outlives, Location, &assumptions, Relation::sub(&expected_tys[i], argument_ty)) => outlives))
             --- ("borrow_check_argument_expressions")
-            (borrow_check_argument_expressions(env, assumptions, loans_live, outlives, values, places_live) => (outlives, loans_live))
+            (borrow_check_argument_expressions(env, assumptions, loans_live, outlives, expected_tys, values, places_live) => (outlives, loans_live))
         )
     }
 }
@@ -519,19 +557,20 @@ judgment_fn! {
         outlives: Set<PendingOutlives>,
         value: ArgumentExpression,
         places_live_on_exit: LivePlaces,
-    ) => (Set<PendingOutlives>, Set<Loan>) {
+    ) => (Ty, Set<PendingOutlives>, Set<Loan>) {
         debug(loans_live_on_entry, value, places_live_on_exit, fn_assumptions, env, outlives)
 
         (
-            (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access::new(AccessKind::Move, expr), places_live) => ())
+            (borrow_check_place_expression(&env, &assumptions, loans_live, outlives, &expr, &places_live) => (typed_place, outlives, loans_live))
+            (access_permitted_by_loans(&env, &assumptions, &loans_live, &outlives, Access::new(AccessKind::Move, &expr), &places_live) => ())
             --- ("in-place")
-            (borrow_check_argument_expression(env, assumptions, loans_live, outlives, ArgumentExpression::InPlace(expr), places_live) => (&outlives, &loans_live))
+            (borrow_check_argument_expression(env, assumptions, loans_live, outlives, ArgumentExpression::InPlace(expr), places_live) => (typed_place.ty, &outlives, &loans_live))
         )
 
         (
-            (borrow_check_value_expression(env, assumptions, loans_live, outlives, expr, places_live) => (_expr_ty, outlives, loans_live))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, expr, places_live) => (expr_ty, outlives, loans_live))
             --- ("by-value")
-            (borrow_check_argument_expression(env, assumptions, loans_live, outlives, ArgumentExpression::ByValue(expr), places_live) => (outlives, loans_live))
+            (borrow_check_argument_expression(env, assumptions, loans_live, outlives, ArgumentExpression::ByValue(expr), places_live) => (expr_ty, outlives, loans_live))
         )
     }
 }
