@@ -11,6 +11,7 @@ use formality_types::grammar::{
 };
 use std::sync::Arc;
 
+use crate::borrow_check::wf::terminator_wf;
 use crate::{
     borrow_check::liveness::{
         places_live_before_basic_blocks, places_live_before_terminator, Assignment, LiveBefore,
@@ -317,6 +318,7 @@ judgment_fn! {
             (if !stack.contains(&this_entry))!
             (let stack = { let mut s = stack.clone(); s.push(this_entry); s })
             (let BasicBlock { id: _, statements, terminator } = env.basic_block(&bb_id)?)
+            (terminator_wf(&env, &terminator) => ())
             (let places_live_before_terminator = places_live_before_terminator(&env, &terminator))
             (for_all(i in 0..statements.len()) with(outlives, loans_live)
                 (borrow_check_statement(&env,
