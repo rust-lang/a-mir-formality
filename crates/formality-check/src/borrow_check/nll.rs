@@ -137,15 +137,8 @@ enum AccessKind {
 pub fn borrow_check(
     env: &TypeckEnv,
     fn_assumptions: &Wcs,
-    pending_outlives: &Set<PendingOutlives>,
 ) -> Fallible<ProofTree> {
     let mut proof_tree = ProofTree::new(format!("borrow_check"), None, vec![]);
-
-    // Verify that all pending outlives between universal lifetime variables
-    // can be proven from the fn_assumptions.
-    proof_tree
-        .children
-        .push(verify_universal_outlives(env, fn_assumptions, pending_outlives).check_proven()?);
 
     // Start the check from the entry block.
     //
@@ -163,7 +156,7 @@ pub fn borrow_check(
             env,
             fn_assumptions,
             loans_live,
-            pending_outlives.clone(),
+            (),
             &start_bb.id,
         )
         .check_proven()?,
