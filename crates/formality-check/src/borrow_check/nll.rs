@@ -438,6 +438,10 @@ judgment_fn! {
         )
 
         (
+            // FIXME(ask T-opsem): Is there any flow-sensitive state here?
+            (if let Some(_) = env.find_local_id(&var)) // local variable `var` is declared
+            (if var != env.ret_id)  // you cannot make the return slot storage dead
+            (if let None = env.fn_args.iter().find(|fn_arg| var == **fn_arg))  // you cannot make a parameter storage dead
             (access_permitted_by_loans(env, assumptions, &loans_live, &outlives, Access::new(AccessKind::Write, var), places_live) => ())
             --- ("storage-dead")
             (borrow_check_statement(env, assumptions, loans_live, outlives, Statement::StorageDead(var), places_live) => (outlives, loans_live))
