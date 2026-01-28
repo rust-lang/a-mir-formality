@@ -5,6 +5,7 @@ mod is_local;
 mod minimize;
 mod negation;
 mod prove_after;
+mod prove_const_has_type;
 mod prove_eq;
 pub mod prove_normalize;
 mod prove_outlives;
@@ -13,7 +14,6 @@ mod prove_via;
 mod prove_wc;
 mod prove_wc_list;
 mod prove_wf;
-mod prove_const_has_type;
 
 pub use constraints::Constraints;
 use formality_core::judgment::{EachProof, FailedRule, ProofTree};

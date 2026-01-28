@@ -1,7 +1,7 @@
 use crate::grammar::{ParameterKind, Parameters, RigidName, ScalarId};
 
 use super::{Parameter, Variable};
-use formality_core::{DowncastTo, Upcast, UpcastFrom, cast_impl, term};
+use formality_core::{cast_impl, term, DowncastTo, Upcast, UpcastFrom};
 use std::sync::Arc;
 
 #[term]
@@ -42,7 +42,6 @@ pub enum ConstData {
     #[variable(ParameterKind::Const)]
     Variable(Variable),
 }
-
 
 #[term]
 pub enum ScalarValue {
@@ -118,11 +117,11 @@ impl UpcastFrom<Const> for Parameter {
 
 impl UpcastFrom<ConstData> for Const {
     fn upcast_from(term: ConstData) -> Self {
-        Const { data: Arc::new(term) }
+        Const {
+            data: Arc::new(term),
+        }
     }
 }
 
 cast_impl!((ConstData) <: (Const) <: (Parameter));
 cast_impl!((ScalarValue) <: (ConstData) <: (Const));
-
-

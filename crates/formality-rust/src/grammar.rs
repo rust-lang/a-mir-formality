@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use formality_core::{Upcast, term};
+use formality_core::{term, Upcast};
 use formality_prove::{AdtDeclField, AdtDeclFieldName, AdtDeclVariant, Safety};
 use formality_types::{
     grammar::{
-        AdtId, AliasTy, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId,
-        FnId, Lt, Parameter, TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
+        AdtId, AliasTy, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId, FnId, Lt,
+        Parameter, TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
     },
     rust::Term,
 };
@@ -419,7 +419,8 @@ impl WhereClause {
                 [
                     ct_param.well_formed().upcast(),
                     ty_param.well_formed().upcast(),
-                ].into_iter()
+                ]
+                .into_iter()
                 .collect()
             }
         }

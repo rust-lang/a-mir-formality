@@ -352,7 +352,6 @@ where
     }
 }
 
-
 impl<L> CoreParse<L> for bool
 where
     L: Language,
@@ -367,7 +366,7 @@ where
             parser.parse_variant("false", Precedence::default(), |p| {
                 p.expect_keyword("false")?;
                 Ok(false)
-            });            
+            });
         })
     }
 }

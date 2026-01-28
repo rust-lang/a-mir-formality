@@ -1,12 +1,7 @@
 use formality_core::judgment_fn;
 use formality_types::grammar::{Const, ScalarValue, Ty, Wcs};
 
-use crate::{
-    decls::Decls,
-    prove::{
-        env::Env,
-    },
-};
+use crate::{decls::Decls, prove::env::Env};
 
 use super::constraints::Constraints;
 

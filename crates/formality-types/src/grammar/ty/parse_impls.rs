@@ -6,9 +6,7 @@ use formality_core::parse::{
 use formality_core::Upcast;
 use formality_core::{seq, Set};
 
-use crate::grammar::{
-    AdtId, AssociatedItemId, RefKind, RigidName, TraitId,
-};
+use crate::grammar::{AdtId, AssociatedItemId, RefKind, RigidName, TraitId};
 
 use super::{AliasTy, AssociatedTyName, Lt, Parameter, RigidTy, ScalarId, Ty};
 
