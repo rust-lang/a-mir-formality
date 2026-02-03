@@ -387,6 +387,7 @@ macro_rules! cast_impl {
     };
 }
 
+cast_impl!(bool);
 cast_impl!(usize);
 cast_impl!(u8);
 cast_impl!(u16);

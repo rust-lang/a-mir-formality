@@ -6,11 +6,9 @@ use formality_core::parse::{
 use formality_core::Upcast;
 use formality_core::{seq, Set};
 
-use crate::grammar::{
-    AdtId, AssociatedItemId, Bool, ConstData, RefKind, RigidName, Scalar, TraitId,
-};
+use crate::grammar::{AdtId, AssociatedItemId, RefKind, RigidName, TraitId};
 
-use super::{AliasTy, AssociatedTyName, Lt, Parameter, ParameterKind, RigidTy, ScalarId, Ty};
+use super::{AliasTy, AssociatedTyName, Lt, Parameter, RigidTy, ScalarId, Ty};
 
 use crate::rust::FormalityLang as Rust;
 
@@ -116,23 +114,4 @@ fn parse_parameters<'t>(
     let parameters: Vec<Parameter> = p.comma_nonterminal()?;
     p.expect_char('>')?;
     Ok(parameters)
-}
-
-// For consts, we invest some effort into parsing them decently because it makes
-// writing tests so much more pleasant.
-impl CoreParse<Rust> for ConstData {
-    fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::multi_variant(scope, text, "ConstData", |parser| {
-            parser.parse_variant_variable("Variable", Precedence::default(), ParameterKind::Const);
-
-            parser.parse_variant_cast::<Bool>(Precedence::default());
-
-            parser.parse_variant("Int", Precedence::default(), |p| {
-                let n: u128 = p.number()?;
-                p.expect_char('_')?;
-                let ty: Ty = p.nonterminal()?;
-                Ok(ConstData::Value(Scalar::new(n).upcast(), ty))
-            });
-        })
-    }
 }

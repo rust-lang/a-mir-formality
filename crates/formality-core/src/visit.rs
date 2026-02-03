@@ -87,6 +87,18 @@ impl<L: Language, T: CoreVisit<L> + ?Sized> CoreVisit<L> for Arc<T> {
     }
 }
 
+impl<L: Language> CoreVisit<L> for bool {
+    fn free_variables(&self) -> Vec<CoreVariable<L>> {
+        vec![]
+    }
+
+    fn size(&self) -> usize {
+        1
+    }
+
+    fn assert_valid(&self) {}
+}
+
 impl<L: Language> CoreVisit<L> for usize {
     fn free_variables(&self) -> Vec<CoreVariable<L>> {
         vec![]

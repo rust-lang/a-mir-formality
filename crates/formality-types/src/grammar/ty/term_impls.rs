@@ -1,9 +1,6 @@
-use crate::grammar::{Parameter, ValTree};
+use crate::grammar::Parameter;
 use crate::FormalityLang;
-use formality_core::{
-    fold::{CoreFold, SubstitutionFn},
-    language::CoreKind,
-};
+use formality_core::language::CoreKind;
 
 use super::ParameterKind;
 
@@ -14,11 +11,5 @@ impl formality_core::language::HasKind<FormalityLang> for Parameter {
             Parameter::Lt(_) => ParameterKind::Lt,
             Parameter::Const(_) => ParameterKind::Const,
         }
-    }
-}
-
-impl CoreFold<FormalityLang> for ValTree {
-    fn substitute(&self, _substitution_fn: SubstitutionFn<'_, FormalityLang>) -> Self {
-        self.clone()
     }
 }

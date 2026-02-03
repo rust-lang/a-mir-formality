@@ -91,9 +91,9 @@ fn const_param() {
 
                 struct S1 {}
 
-                impl Trait1<const 3_u32> for S1 {}
+                impl Trait1<const u32(3)> for S1 {}
 
-                struct S2 where S1: Trait1<const 3_u32> {}
+                struct S2 where S1: Trait1<const u32(3)> {}
             }
         ]
     )

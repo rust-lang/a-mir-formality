@@ -4,8 +4,8 @@ use formality_core::{term, Upcast};
 use formality_prove::{AdtDeclField, AdtDeclFieldName, AdtDeclVariant, Safety};
 use formality_types::{
     grammar::{
-        AdtId, AliasTy, AssociatedItemId, Binder, Const, ConstData, CrateId, Fallible, FieldId,
-        FnId, Lt, Parameter, Relation, TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
+        AdtId, AliasTy, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId, FnId, Lt,
+        Parameter, TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
     },
     rust::Term,
 };
@@ -414,19 +414,14 @@ impl WhereClause {
                     .collect()
             }
             WhereClauseData::TypeOfConst(ct, ty) => {
-                let mut wcs = vec![];
-                match ct.data() {
-                    ConstData::Value(_, t) => {
-                        wcs.push(Relation::equals(ty, t));
-                    }
-                    ConstData::Variable(_) => {}
-                }
-                // FIXME(oli-obk, #223): prove that there is no `TypeOfConst` bound for a different type.
                 let ct_param: Parameter = ct.upcast();
                 let ty_param: Parameter = ty.upcast();
-                wcs.push(ct_param.well_formed());
-                wcs.push(ty_param.well_formed());
-                wcs.into_iter().map(|r| r.upcast()).collect()
+                [
+                    ct_param.well_formed().upcast(),
+                    ty_param.well_formed().upcast(),
+                ]
+                .into_iter()
+                .collect()
             }
         }
     }
