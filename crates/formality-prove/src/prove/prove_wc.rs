@@ -61,8 +61,6 @@ judgment_fn! {
 
         // This rule is: prove `T: Foo<U>` holds on the basis of an `impl<A,B> Foo<B> for A where WC` impl somewhere.
         (
-            (let () = eprintln!("WTF IS GOING ON HERE 1: {trait_ref:?}"))
-
             // Get the impl declaration.
             (i in decls.impl_decls(&trait_ref.trait_id))
 
@@ -80,18 +78,14 @@ judgment_fn! {
             //
             // NB: This is actually not what Rust currently does, but it is what "we" (types team) want it to do.
             (let co_assumptions = (&assumptions, &trait_ref))
-            (let () = eprintln!("WTF IS GOING ON HERE 2: {i:?}"))
             (prove(&decls, env, co_assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
-            (let () = eprintln!("WTF IS GOING ON HERE 3: {i:?}"))
             (prove_after(&decls, c, co_assumptions, &i.where_clause) => c)
-            (let () = eprintln!("WTF IS GOING ON HERE 4: {i:?}"))
 
             // Prove that the well-formedness requirements of the *trait* hold -- for this proof, we cannot
             // assume that the trait is implemented, because that would allow specious implied bounds
             // (i.e., we could assume that `B: Debug` based on the trait definition + the existence of an impl,
             // but actually the impl is responsible for proving that `B: Debug`).
             (prove_after(&decls, c, &assumptions, &t.where_clause) => c)
-            (let () = eprintln!("WTF IS GOING ON HERE 5: {i:?}"))
             ----------------------------- ("positive impl")
             (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
