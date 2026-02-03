@@ -3,6 +3,7 @@
 mod borrowck;
 mod coherence_orphan;
 mod coherence_overlap;
+mod const_generics_rv_tsv_parse;
 mod consts;
 mod decl_safety;
 mod functions;

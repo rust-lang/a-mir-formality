@@ -1,6 +1,5 @@
-use formality_core::{id, UpcastFrom};
-use formality_macros::term;
-use formality_types::grammar::{Binder, Lt, Parameter, RefKind, ScalarId, Ty};
+use super::{Binder, Lt, Parameter, RefKind, ScalarId, Ty};
+use formality_core::{id, term, UpcastFrom};
 
 use crate::grammar::minirust::ConstTypePair::*;
 use crate::grammar::FnId;

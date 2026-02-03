@@ -3,6 +3,7 @@ mod feature;
 mod formulas;
 mod ids;
 mod kinded;
+pub mod minirust;
 mod ty;
 mod wc;
 
