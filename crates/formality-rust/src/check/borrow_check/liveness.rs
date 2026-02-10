@@ -1,7 +1,7 @@
-use formality_core::{fixed_point, Set, SetExt, Upcast};
 use crate::grammar::minirust::{
     ArgumentExpression, BasicBlock, BbId, PlaceExpression, Statement, Terminator, ValueExpression,
 };
+use formality_core::{fixed_point, Set, SetExt, Upcast};
 
 use crate::check::mini_rust_check::TypeckEnv;
 
@@ -10,6 +10,7 @@ pub type LivePlaces = Set<PlaceExpression>;
 /// Given a basic-block id, returns the places live on entry to the basic block.
 #[fixed_point]
 fn places_live_before_basic_block(env: &TypeckEnv, bb_id: &BbId) -> LivePlaces {
+    #![allow(unused_assignments)]
     let BasicBlock {
         id: _,
         statements,
