@@ -62,7 +62,7 @@ judgment_fn! {
         // This rule is: prove `T: Foo<U>` holds on the basis of an `impl<A,B> Foo<B> for A where WC` impl somewhere.
         (
             // Get the impl declaration.
-            (i in decls.impl_decls(&trait_ref.trait_id))
+            (i in decls.impl_decls(&trait_ref.trait_id))!
 
             // Instantiate impl generics with inference variables (in our example, `A => ?A, B => ?B`).
             (let (env, subst) = env.existential_substitution(&i.binder))
