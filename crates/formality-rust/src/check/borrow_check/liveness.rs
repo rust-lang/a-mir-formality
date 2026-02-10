@@ -1,9 +1,9 @@
 use formality_core::{fixed_point, Set, SetExt, Upcast};
-use formality_rust::grammar::minirust::{
+use crate::grammar::minirust::{
     ArgumentExpression, BasicBlock, BbId, PlaceExpression, Statement, Terminator, ValueExpression,
 };
 
-use crate::mini_rust_check::TypeckEnv;
+use crate::check::mini_rust_check::TypeckEnv;
 
 pub type LivePlaces = Set<PlaceExpression>;
 

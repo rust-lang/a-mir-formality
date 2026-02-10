@@ -1,24 +1,26 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use formality_core::judgment::ProofTree;
-use formality_core::{cast_impl, judgment_fn, Downcast, Fallible, Map, Set, Upcast};
-use formality_prove::{prove_normalize, AdtDeclBoundData, AdtDeclVariant, Constraints, Decls, Env};
-use formality_rust::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
-use formality_rust::grammar::minirust::ValueExpression::{Constant, Fn, Load, Ref, Struct};
-use formality_rust::grammar::minirust::{
+use crate::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
+use crate::grammar::minirust::ValueExpression::{Constant, Fn, Load, Ref, Struct};
+use crate::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
-use formality_rust::grammar::minirust::{BodyBound, PlaceExpression::*};
-use formality_rust::grammar::{Fn as FnDecl, Program};
+use crate::grammar::minirust::{BodyBound, PlaceExpression::*};
+use crate::grammar::{Fn as FnDecl, Program};
+use crate::prove::prove::{
+    prove_normalize, AdtDeclBoundData, AdtDeclVariant, Constraints, Decls, Env,
+};
+use formality_core::judgment::ProofTree;
+use formality_core::{cast_impl, judgment_fn, Downcast, Fallible, Map, Set, Upcast};
 use formality_types::grammar::{
     AdtId, Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId,
     Wcs,
 };
 use formality_types::rust::Fold;
 
-use crate::borrow_check::nll;
-use crate::{Check, CrateItem, Debug, ProvenSet, ToWcs, Visit};
+use crate::check::borrow_check::nll;
+use crate::check::{Check, CrateItem, Debug, ProvenSet, ToWcs, Visit};
 use anyhow::bail;
 
 impl Check<'_> {
@@ -535,7 +537,7 @@ impl TypeckEnv {
             location,
             assumptions,
             goal.to_wcs(),
-            formality_prove::prove,
+            crate::prove::prove::prove,
         )
     }
 

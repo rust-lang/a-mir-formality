@@ -9,7 +9,6 @@ dependencies = [
  "anyhow",
  "clap",
  "expect-test",
- "formality-check",
  "formality-core",
  "formality-macros",
  "formality-rust",
@@ -250,22 +249,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "formality-check"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "contracts",
- "expect-test",
- "fn-error-context",
- "formality-core",
- "formality-macros",
- "formality-rust",
- "formality-types",
- "itertools 0.10.5",
- "tracing",
-]
-
-[[package]]
 name = "formality-core"
 version = "0.1.1"
 dependencies = [
@@ -305,9 +288,11 @@ dependencies = [
  "anyhow",
  "contracts",
  "expect-test",
+ "fn-error-context",
  "formality-core",
  "formality-macros",
  "formality-types",
+ "itertools 0.10.5",
  "tracing",
 ]
 

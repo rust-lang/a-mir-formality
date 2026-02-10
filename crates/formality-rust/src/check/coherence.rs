@@ -1,12 +1,12 @@
+use crate::grammar::{Crate, NegTraitImpl, TraitImpl};
+use crate::prove::prove::Env;
 use anyhow::bail;
 use fn_error_context::context;
 use formality_core::{judgment::ProofTree, Downcasted};
-use formality_prove::Env;
-use formality_rust::grammar::{Crate, NegTraitImpl, TraitImpl};
 use formality_types::grammar::{Fallible, Wc, Wcs};
 use itertools::Itertools;
 
-use crate::Check;
+use crate::check::Check;
 
 impl Check<'_> {
     pub(crate) fn check_coherence(&self, current_crate: &Crate) -> Fallible<ProofTree> {

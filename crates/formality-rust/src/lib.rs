@@ -3,6 +3,7 @@
 use formality_types::rust::FormalityLang;
 // ANCHOR_END: use_rust_language
 
+pub mod check;
 pub mod grammar;
 pub mod prove;
 mod test;

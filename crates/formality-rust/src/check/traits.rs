@@ -1,10 +1,10 @@
+use crate::grammar::{
+    AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, WhereClause,
+};
+use crate::prove::prove::Env;
 use anyhow::bail;
 use fn_error_context::context;
 use formality_core::{judgment::ProofTree, Set};
-use formality_prove::Env;
-use formality_rust::grammar::{
-    AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, WhereClause,
-};
 use formality_types::grammar::{CrateId, Fallible};
 
 impl super::Check<'_> {

@@ -2,13 +2,13 @@
 
 use std::{collections::VecDeque, fmt::Debug};
 
-use anyhow::{anyhow, bail};
-use formality_core::{judgment::ProofTree, ProvenSet, Set};
-use formality_prove::{is_definitely_not_proveable, Constraints, Decls, Env};
-use formality_rust::{
+use crate::prove::prove::{is_definitely_not_proveable, Constraints, Decls, Env};
+use crate::{
     grammar::{Crate, CrateItem, Program, Test, TestBoundData},
     prove::ToWcs,
 };
+use anyhow::{anyhow, bail};
+use formality_core::{judgment::ProofTree, ProvenSet, Set};
 use formality_types::rust::FormalityLang;
 use formality_types::{
     grammar::{CrateId, Fallible, Wcs},
@@ -149,7 +149,7 @@ impl Check<'_> {
         goal: impl ToWcs + Debug,
     ) -> Fallible<ProofTree> {
         let goal: Wcs = goal.to_wcs();
-        self.prove_judgment(env, assumptions, goal.to_wcs(), formality_prove::prove)
+        self.prove_judgment(env, assumptions, goal.to_wcs(), crate::prove::prove::prove)
     }
 
     fn prove_judgment<G>(
@@ -203,7 +203,9 @@ impl Check<'_> {
             env,
             &assumptions,
             goal.clone(),
-            |env, assumptions, goal| formality_prove::prove(self.decls, env, &assumptions, &goal),
+            |env, assumptions, goal| {
+                crate::prove::prove::prove(self.decls, env, &assumptions, &goal)
+            },
         );
         let cs = cs.into_map()?;
         if let Some((_, proof_tree)) = cs.iter().find(|(c, _)| c.unconditionally_true()) {

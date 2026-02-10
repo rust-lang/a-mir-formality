@@ -1,9 +1,7 @@
 use anyhow::bail;
 
-use fn_error_context::context;
-use formality_core::{judgment::ProofTree, Downcasted};
-use formality_prove::{Env, Safety};
-use formality_rust::{
+use crate::prove::prove::{Env, Safety};
+use crate::{
     grammar::{
         AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
         FnBoundData, ImplItem, NegTraitImpl, NegTraitImplBoundData, Trait, TraitBoundData,
@@ -11,6 +9,8 @@ use formality_rust::{
     },
     prove::ToWcs,
 };
+use fn_error_context::context;
+use formality_core::{judgment::ProofTree, Downcasted};
 use formality_types::{
     grammar::{Binder, CrateId, Fallible, Relation, Substitution, Wcs},
     rust::Term,

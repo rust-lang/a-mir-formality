@@ -1,12 +1,12 @@
-use formality_core::judgment::ProofTree;
-use formality_prove::Env;
-use formality_rust::{
+use crate::prove::prove::Env;
+use crate::{
     grammar::{Fn, FnBoundData, MaybeFnBody},
     prove::ToWcs,
 };
+use formality_core::judgment::ProofTree;
 use formality_types::grammar::{CrateId, Fallible, Wcs};
 
-use crate::Check;
+use crate::check::Check;
 
 impl Check<'_> {
     /// A "free function" is a free-standing function that is not part of an impl.
@@ -83,10 +83,11 @@ impl Check<'_> {
                 // No fn body occurs trait definitions only.
             }
             MaybeFnBody::FnBody(fn_body) => match fn_body {
-                formality_rust::grammar::FnBody::TrustedFnBody => {
+                crate::grammar::FnBody::TrustedFnBody(_) => {
                     // A trusted function body is assumed to be valid, all set.
                 }
-                formality_rust::grammar::FnBody::MiniRust(body) => {
+                crate::grammar::FnBody::Literal(_, _) => todo!(),
+                crate::grammar::FnBody::MiniRust(body) => {
                     proof_tree.children.push(self.check_body(
                         &env,
                         &output_ty,

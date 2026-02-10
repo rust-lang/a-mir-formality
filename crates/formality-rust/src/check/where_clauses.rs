@@ -1,7 +1,7 @@
+use crate::prove::prove::Env;
+use crate::{grammar::WhereClause, prove::ToWcs};
 use fn_error_context::context;
 use formality_core::judgment::ProofTree;
-use formality_prove::Env;
-use formality_rust::{grammar::WhereClause, prove::ToWcs};
 use formality_types::grammar::{Fallible, Wcs};
 
 impl super::Check<'_> {

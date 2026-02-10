@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
+use crate::grammar::{Adt, AdtBoundData, Field, Variant};
+use crate::prove::prove::Env;
 use anyhow::bail;
 use formality_core::judgment::ProofTree;
-use formality_prove::Env;
-use formality_rust::grammar::{Adt, AdtBoundData, Field, Variant};
 use formality_types::grammar::Fallible;
 
 impl super::Check<'_> {

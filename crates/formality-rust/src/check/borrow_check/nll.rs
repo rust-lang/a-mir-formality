@@ -1,9 +1,9 @@
-use formality_core::{judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set, Upcast};
-use formality_prove::{prove, AdtDeclBoundData, AdtDeclVariant};
-use formality_rust::grammar::minirust::{
+use crate::grammar::minirust::{
     ArgumentExpression, BasicBlock, BbId, FieldProjection, LocalId, PlaceExpression, Statement,
     Terminator, ValueExpression,
 };
+use crate::prove::prove::{prove, AdtDeclBoundData, AdtDeclVariant};
+use formality_core::{judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set, Upcast};
 use formality_types::grammar::PredicateTy;
 use formality_types::grammar::{
     AliasTy, Lt, LtData, Parameter, RefKind, Relation, RigidName, RigidTy, Ty, TyData, Variable,
@@ -11,7 +11,7 @@ use formality_types::grammar::{
 };
 use std::sync::Arc;
 
-use crate::{
+use crate::check::{
     borrow_check::liveness::{
         places_live_before_basic_blocks, places_live_before_terminator, Assignment, LiveBefore,
         LivePlaces,
