@@ -5,7 +5,7 @@ use crate::grammar::{
     TraitItem, WhereBound, WhereBoundData, WhereClause, WhereClauseData,
 };
 use formality_core::{seq, Set, To, Upcast, Upcasted};
-use formality_prove as prove;
+pub mod prove;
 use formality_types::grammar::{
     AdtId, AliasTy, Binder, BoundVar, FeatureGateName, ParameterKind, Predicate, Relation, TraitId,
     Ty, Wc, Wcs,
@@ -13,8 +13,8 @@ use formality_types::grammar::{
 
 impl Program {
     pub fn to_prove_decls(&self) -> prove::Decls {
-        formality_prove::Decls {
-            max_size: formality_prove::Decls::DEFAULT_MAX_SIZE,
+        prove::Decls {
+            max_size: prove::Decls::DEFAULT_MAX_SIZE,
             trait_decls: self.trait_decls(),
             impl_decls: self.impl_decls(),
             neg_impl_decls: self.neg_impl_decls(),

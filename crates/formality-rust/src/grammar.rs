@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
+use crate::prove::prove::{AdtDeclField, AdtDeclFieldName, AdtDeclVariant, Safety};
 use formality_core::{term, Upcast};
-use formality_prove::{AdtDeclField, AdtDeclFieldName, AdtDeclVariant, Safety};
 use formality_types::{
     grammar::{
         AdtId, AliasTy, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId, FnId, Lt,

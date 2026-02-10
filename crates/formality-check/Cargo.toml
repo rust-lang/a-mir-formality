@@ -10,7 +10,6 @@ formality-types = { path = "../formality-types" }
 formality-macros = { path = "../formality-macros" }
 formality-core = { path = "../formality-core" }
 formality-rust = { path = "../formality-rust" }
-formality-prove = { path = "../formality-prove" }
 tracing = "0.1"
 contracts = "0.6.3"
 anyhow = "1.0.66"

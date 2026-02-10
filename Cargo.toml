@@ -24,7 +24,6 @@ clap = { version = "4.0.9", features = ["derive"] }
 formality-rust = { version = "0.1.0", path = "crates/formality-rust" }
 formality-types = { version = "0.1.0", path = "crates/formality-types" }
 formality-check = { version = "0.1.0", path = "crates/formality-check" }
-formality-prove = { version = "0.1.0", path = "crates/formality-prove" }
 formality-core = { version = "0.1.0", path = "crates/formality-core" }
 expect-test = "1.4.0"
 
@@ -35,5 +34,4 @@ members = [
     "crates/formality-types",
     "crates/formality-check",
     "crates/formality-rust",
-    "crates/formality-prove",
 ]

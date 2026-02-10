@@ -9,8 +9,8 @@ edition = "2021"
 formality-types = { path = "../formality-types" }
 formality-macros = { path = "../formality-macros" }
 formality-core = { path = "../formality-core" }
-formality-prove = { path = "../formality-prove" }
 anyhow = "1.0.66"
+contracts = "0.6.3"
 tracing = "0.1"
 
 [dev-dependencies]
