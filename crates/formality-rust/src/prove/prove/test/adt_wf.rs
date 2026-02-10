@@ -1,9 +1,9 @@
-use expect_test::expect;
-use formality_core::test;
 use crate::types::{
     grammar::{Parameter, Relation, Wcs},
     rust::term,
 };
+use expect_test::expect;
+use formality_core::test;
 
 use crate::prove::prove::{decls::Decls, prove::prove, Env};
 

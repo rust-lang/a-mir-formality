@@ -2,9 +2,9 @@ use std::collections::HashSet;
 
 use crate::grammar::{Adt, AdtBoundData, Field, Variant};
 use crate::prove::prove::Env;
+use crate::types::grammar::Fallible;
 use anyhow::bail;
 use formality_core::judgment::ProofTree;
-use crate::types::grammar::Fallible;
 
 impl super::Check<'_> {
     pub(super) fn check_adt(&self, adt: &Adt) -> Fallible<ProofTree> {

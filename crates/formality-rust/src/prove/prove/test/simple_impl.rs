@@ -1,7 +1,7 @@
-use expect_test::expect;
-use formality_macros::test;
 use crate::types::grammar::Wc;
 use crate::types::rust::term;
+use expect_test::expect;
+use formality_macros::test;
 
 use crate::prove::prove::{decls::Decls, prove::prove};
 

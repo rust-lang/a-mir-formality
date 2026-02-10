@@ -1,6 +1,10 @@
 use anyhow::bail;
 
 use crate::prove::prove::{Env, Safety};
+use crate::types::{
+    grammar::{Binder, CrateId, Fallible, Relation, Substitution, Wcs},
+    rust::Term,
+};
 use crate::{
     grammar::{
         AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
@@ -11,10 +15,6 @@ use crate::{
 };
 use fn_error_context::context;
 use formality_core::{judgment::ProofTree, Downcasted};
-use crate::types::{
-    grammar::{Binder, CrateId, Fallible, Relation, Substitution, Wcs},
-    rust::Term,
-};
 
 impl super::Check<'_> {
     #[context("check_trait_impl({trait_impl:?})")]

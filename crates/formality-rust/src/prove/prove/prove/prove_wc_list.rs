@@ -1,5 +1,5 @@
-use formality_core::{judgment_fn, Cons};
 use crate::types::grammar::Wcs;
+use formality_core::{judgment_fn, Cons};
 
 use crate::prove::prove::{
     decls::Decls,

@@ -1,15 +1,15 @@
 use std::fmt::Debug;
 
+use crate::types::{
+    grammar::{Binder, BoundVar, ParameterKind},
+    rust::Term,
+};
 use formality_core::{
     fold::CoreFold,
     parse::{Binding, CoreParse, ParseResult, Parser, Scope},
     term::CoreTerm,
     visit::CoreVisit,
     DowncastTo, UpcastFrom,
-};
-use crate::types::{
-    grammar::{Binder, BoundVar, ParameterKind},
-    rust::Term,
 };
 
 use crate::{grammar::TraitBinder, FormalityLang};

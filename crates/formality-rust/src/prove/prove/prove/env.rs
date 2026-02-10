@@ -1,5 +1,3 @@
-use formality_core::{cast_impl, visit::CoreVisit, Set, To, Upcast, UpcastFrom};
-use formality_macros::term;
 use crate::types::{
     grammar::{
         Binder, ExistentialVar, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable,
@@ -7,6 +5,8 @@ use crate::types::{
     },
     rust::{Fold, Visit},
 };
+use formality_core::{cast_impl, visit::CoreVisit, Set, To, Upcast, UpcastFrom};
+use formality_macros::term;
 
 /// Whether the solver has to be sound or complete. While it should
 /// ideally be both at all times, we have some rules which break these

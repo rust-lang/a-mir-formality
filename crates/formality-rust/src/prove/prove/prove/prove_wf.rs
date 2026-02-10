@@ -1,8 +1,8 @@
-use formality_core::{judgment_fn, Downcast, ProvenSet};
 use crate::types::grammar::{
     AliasName, AliasTy, ConstData, Lt, LtData, Parameter, Parameters, Relation, RigidName, RigidTy,
     Ty, UniversalVar, Wcs,
 };
+use formality_core::{judgment_fn, Downcast, ProvenSet};
 
 use crate::prove::prove::{
     decls::Decls,

@@ -1,10 +1,10 @@
-use formality_core::visit::CoreVisit;
-use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
-use formality_core::{Deduplicate, Upcasted};
 use crate::types::grammar::{
     AliasTy, ExistentialVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar,
     Variable, Wcs,
 };
+use formality_core::visit::CoreVisit;
+use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
+use formality_core::{Deduplicate, Upcasted};
 
 use crate::prove::prove::{
     decls::Decls,

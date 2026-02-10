@@ -1,9 +1,9 @@
 use super::env::Env;
-use formality_core::{cast_impl, visit::CoreVisit, Downcast, Upcast, UpcastFrom};
 use crate::types::{
     grammar::{ExistentialVar, Parameter, Substitution, Variable},
     rust::Visit,
 };
+use formality_core::{cast_impl, visit::CoreVisit, Downcast, Upcast, UpcastFrom};
 
 /// Captures the conditions under which something is true.
 ///

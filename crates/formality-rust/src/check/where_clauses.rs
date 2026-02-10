@@ -1,8 +1,8 @@
 use crate::prove::prove::Env;
+use crate::types::grammar::{Fallible, Wcs};
 use crate::{grammar::WhereClause, prove::ToWcs};
 use fn_error_context::context;
 use formality_core::judgment::ProofTree;
-use crate::types::grammar::{Fallible, Wcs};
 
 impl super::Check<'_> {
     #[context("prove_where_clauses_well_formed({where_clauses:?})")]

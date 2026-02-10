@@ -1,9 +1,9 @@
 use crate::grammar::{Crate, NegTraitImpl, TraitImpl};
 use crate::prove::prove::Env;
+use crate::types::grammar::{Fallible, Wc, Wcs};
 use anyhow::bail;
 use fn_error_context::context;
 use formality_core::{judgment::ProofTree, Downcasted};
-use crate::types::grammar::{Fallible, Wc, Wcs};
 use itertools::Itertools;
 
 use crate::check::Check;

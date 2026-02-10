@@ -1,10 +1,10 @@
 use crate::prove::prove::Env;
+use crate::types::grammar::{CrateId, Fallible, Wcs};
 use crate::{
     grammar::{Fn, FnBoundData, MaybeFnBody},
     prove::ToWcs,
 };
 use formality_core::judgment::ProofTree;
-use crate::types::grammar::{CrateId, Fallible, Wcs};
 
 use crate::check::Check;
 

@@ -1,9 +1,9 @@
-use formality_core::{set, Set, Upcast};
-use formality_macros::term;
 use crate::types::grammar::{
     AdtId, AliasName, AliasTy, Binder, FeatureGateName, FieldId, Parameter, Predicate, Relation,
     TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
 };
+use formality_core::{set, Set, Upcast};
+use formality_macros::term;
 
 #[term]
 pub struct Decls {
@@ -178,9 +178,9 @@ impl TraitDecl {
 
         fn is_supertrait(self_var: &Parameter, wc: &Wc) -> bool {
             match wc.data() {
-                crate::types::grammar::WcData::Predicate(Predicate::IsImplemented(
-                    trait_ref,
-                )) => trait_ref.parameters[0] == *self_var,
+                crate::types::grammar::WcData::Predicate(Predicate::IsImplemented(trait_ref)) => {
+                    trait_ref.parameters[0] == *self_var
+                }
                 crate::types::grammar::WcData::Relation(Relation::Outlives(a, _)) => {
                     *a == *self_var
                 }

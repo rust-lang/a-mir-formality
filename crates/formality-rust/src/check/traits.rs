@@ -2,10 +2,10 @@ use crate::grammar::{
     AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, WhereClause,
 };
 use crate::prove::prove::Env;
+use crate::types::grammar::{CrateId, Fallible};
 use anyhow::bail;
 use fn_error_context::context;
 use formality_core::{judgment::ProofTree, Set};
-use crate::types::grammar::{CrateId, Fallible};
 
 impl super::Check<'_> {
     #[context("check_trait({:?})", t.id)]

@@ -1,9 +1,9 @@
 use crate::prove::prove::{Bias, Constraints, Env};
-use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
 use crate::types::{
     grammar::{Substitution, Variable, Wcs},
     rust::FormalityLang,
 };
+use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
 
 /// This succeeds if `f` definitely fails: there are no possible
 /// ways to prove its body.

@@ -1,7 +1,7 @@
-use formality_core::{judgment_fn, Downcast};
 use crate::types::grammar::{
     AliasTy, ExistentialVar, Parameter, Relation, RigidTy, TyData, Variable, Wc, WcData, Wcs,
 };
+use formality_core::{judgment_fn, Downcast};
 
 use crate::prove::prove::{
     decls::{AliasEqDeclBoundData, Decls},

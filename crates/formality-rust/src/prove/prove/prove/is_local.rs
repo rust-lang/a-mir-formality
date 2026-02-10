@@ -1,7 +1,7 @@
-use formality_core::judgment_fn;
 use crate::types::grammar::{
     AliasTy, Lt, Parameter, PredicateTy, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
 };
+use formality_core::judgment_fn;
 
 use crate::prove::prove::{
     decls::Decls,

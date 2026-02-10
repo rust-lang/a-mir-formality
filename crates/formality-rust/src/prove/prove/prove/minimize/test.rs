@@ -1,10 +1,10 @@
-use expect_test::expect;
-use formality_core::To;
-use formality_macros::test;
 use crate::types::{
     grammar::{Binder, Parameter, ScalarId, Ty},
     rust::term,
 };
+use expect_test::expect;
+use formality_core::To;
+use formality_macros::test;
 
 use crate::prove::prove::prove::{Constraints, Env};
 

@@ -1,10 +1,10 @@
-use formality_core::{Deduplicate, Downcast, Upcast};
 use crate::types::{
     grammar::{
         ExistentialVar, Parameter, Substitution, UniversalVar, VarIndex, VarSubstitution, Variable,
     },
     rust::Term,
 };
+use formality_core::{Deduplicate, Downcast, Upcast};
 
 use super::{Constraints, Env};
 

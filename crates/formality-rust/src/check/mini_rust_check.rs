@@ -11,13 +11,13 @@ use crate::grammar::{Fn as FnDecl, Program};
 use crate::prove::prove::{
     prove_normalize, AdtDeclBoundData, AdtDeclVariant, Constraints, Decls, Env,
 };
-use formality_core::judgment::ProofTree;
-use formality_core::{cast_impl, judgment_fn, Downcast, Fallible, Map, Set, Upcast};
 use crate::types::grammar::{
     AdtId, Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId,
     Wcs,
 };
 use crate::types::rust::Fold;
+use formality_core::judgment::ProofTree;
+use formality_core::{cast_impl, judgment_fn, Downcast, Fallible, Map, Set, Upcast};
 
 use crate::check::borrow_check::nll;
 use crate::check::{Check, CrateItem, Debug, ProvenSet, ToWcs, Visit};

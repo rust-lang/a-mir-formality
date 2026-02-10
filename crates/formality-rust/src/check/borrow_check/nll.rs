@@ -3,12 +3,12 @@ use crate::grammar::minirust::{
     Terminator, ValueExpression,
 };
 use crate::prove::prove::{prove, AdtDeclBoundData, AdtDeclVariant};
-use formality_core::{judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set, Upcast};
 use crate::types::grammar::PredicateTy;
 use crate::types::grammar::{
     AliasTy, Lt, LtData, Parameter, RefKind, Relation, RigidName, RigidTy, Ty, TyData, Variable,
     VariantId, Wcs,
 };
+use formality_core::{judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set, Upcast};
 use std::sync::Arc;
 
 use crate::check::{
