@@ -1,6 +1,6 @@
 use crate::prove::prove::{Bias, Constraints, Env};
 use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
-use formality_types::{
+use crate::types::{
     grammar::{Substitution, Variable, Wcs},
     rust::FormalityLang,
 };

@@ -1,5 +1,5 @@
 use formality_core::judgment_fn;
-use formality_types::grammar::{WcData, Wcs};
+use crate::types::grammar::{WcData, Wcs};
 
 use crate::prove::prove::{
     decls::Decls,

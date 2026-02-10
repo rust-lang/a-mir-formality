@@ -4,7 +4,7 @@ use crate::grammar::{Adt, AdtBoundData, Field, Variant};
 use crate::prove::prove::Env;
 use anyhow::bail;
 use formality_core::judgment::ProofTree;
-use formality_types::grammar::Fallible;
+use crate::types::grammar::Fallible;
 
 impl super::Check<'_> {
     pub(super) fn check_adt(&self, adt: &Adt) -> Fallible<ProofTree> {

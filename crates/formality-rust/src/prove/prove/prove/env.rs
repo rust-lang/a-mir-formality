@@ -1,6 +1,6 @@
 use formality_core::{cast_impl, visit::CoreVisit, Set, To, Upcast, UpcastFrom};
 use formality_macros::term;
-use formality_types::{
+use crate::types::{
     grammar::{
         Binder, ExistentialVar, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable,
         Wc,

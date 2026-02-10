@@ -22,7 +22,6 @@ tracing = "0.1.40"
 anyhow = "1"
 clap = { version = "4.0.9", features = ["derive"] }
 formality-rust = { version = "0.1.0", path = "crates/formality-rust" }
-formality-types = { version = "0.1.0", path = "crates/formality-types" }
 formality-core = { version = "0.1.0", path = "crates/formality-core" }
 expect-test = "1.4.0"
 
@@ -30,6 +29,5 @@ expect-test = "1.4.0"
 members = [
     "crates/formality-macros",
     "crates/formality-core",
-    "crates/formality-types",
     "crates/formality-rust",
 ]

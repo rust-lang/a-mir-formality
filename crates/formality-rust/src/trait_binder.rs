@@ -7,7 +7,7 @@ use formality_core::{
     visit::CoreVisit,
     DowncastTo, UpcastFrom,
 };
-use formality_types::{
+use crate::types::{
     grammar::{Binder, BoundVar, ParameterKind},
     rust::Term,
 };
@@ -47,7 +47,7 @@ impl<T> CoreVisit<FormalityLang> for TraitBinder<T>
 where
     T: Term,
 {
-    fn free_variables(&self) -> Vec<formality_types::grammar::Variable> {
+    fn free_variables(&self) -> Vec<crate::types::grammar::Variable> {
         self.explicit_binder.free_variables()
     }
 

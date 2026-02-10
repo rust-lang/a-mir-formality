@@ -5,7 +5,7 @@ use formality_core::judgment::ProofTree;
 use formality_rust::check::check_all_crates;
 use formality_rust::grammar::Program;
 use formality_rust::prove::prove::{test_util::TestAssertion, Constraints};
-use formality_types::rust::try_term;
+use formality_rust::types::rust::try_term;
 
 #[cfg(test)]
 mod test;

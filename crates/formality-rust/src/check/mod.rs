@@ -9,8 +9,8 @@ use crate::{
 };
 use anyhow::{anyhow, bail};
 use formality_core::{judgment::ProofTree, ProvenSet, Set};
-use formality_types::rust::FormalityLang;
-use formality_types::{
+use crate::types::rust::FormalityLang;
+use crate::types::{
     grammar::{CrateId, Fallible, Wcs},
     rust::Visit,
 };

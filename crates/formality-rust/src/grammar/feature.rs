@@ -1,5 +1,5 @@
 use formality_core::term;
-use formality_types::grammar::FeatureGateName;
+use crate::types::grammar::FeatureGateName;
 
 #[term(#![feature($name)])]
 pub struct FeatureGate {

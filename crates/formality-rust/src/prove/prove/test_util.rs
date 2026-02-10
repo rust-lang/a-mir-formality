@@ -1,7 +1,7 @@
 use crate::prove::prove::prove::Bias;
 use formality_core::ProvenSet;
 use formality_macros::term;
-use formality_types::grammar::{Binder, Wcs};
+use crate::types::grammar::{Binder, Wcs};
 use std::sync::Arc;
 
 use crate::prove::prove::{

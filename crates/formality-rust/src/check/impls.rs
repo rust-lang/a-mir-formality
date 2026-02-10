@@ -11,7 +11,7 @@ use crate::{
 };
 use fn_error_context::context;
 use formality_core::{judgment::ProofTree, Downcasted};
-use formality_types::{
+use crate::types::{
     grammar::{Binder, CrateId, Fallible, Relation, Substitution, Wcs},
     rust::Term,
 };

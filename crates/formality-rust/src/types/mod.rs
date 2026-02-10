@@ -6,8 +6,8 @@ pub mod grammar;
 formality_core::declare_language! {
     pub mod rust {
         const NAME = "Rust";
-        type Kind = crate::grammar::ParameterKind;
-        type Parameter = crate::grammar::Parameter;
+        type Kind = crate::types::grammar::ParameterKind;
+        type Parameter = crate::types::grammar::Parameter;
         const BINDING_OPEN = '<';
         const BINDING_CLOSE = '>';
         const KEYWORDS = [
@@ -25,5 +25,5 @@ formality_core::declare_language! {
 // ANCHOR_END: declare_rust_language
 
 // ANCHOR: use_rust_language
-use crate::rust::FormalityLang;
+use crate::types::rust::FormalityLang;
 // ANCHOR_END: use_rust_language

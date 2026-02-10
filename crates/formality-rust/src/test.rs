@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use formality_macros::test;
-use formality_types::rust::term;
+use crate::types::rust::term;
 
 use crate::grammar::Program;
 

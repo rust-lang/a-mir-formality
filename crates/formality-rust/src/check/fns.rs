@@ -4,7 +4,7 @@ use crate::{
     prove::ToWcs,
 };
 use formality_core::judgment::ProofTree;
-use formality_types::grammar::{CrateId, Fallible, Wcs};
+use crate::types::grammar::{CrateId, Fallible, Wcs};
 
 use crate::check::Check;
 

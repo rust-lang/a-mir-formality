@@ -1,6 +1,6 @@
 use expect_test::expect;
 use formality_macros::test;
-use formality_types::{
+use crate::types::{
     grammar::{Wc, Wcs},
     rust::term,
 };

@@ -1,6 +1,6 @@
 use super::env::Env;
 use formality_core::{cast_impl, visit::CoreVisit, Downcast, Upcast, UpcastFrom};
-use formality_types::{
+use crate::types::{
     grammar::{ExistentialVar, Parameter, Substitution, Variable},
     rust::Visit,
 };

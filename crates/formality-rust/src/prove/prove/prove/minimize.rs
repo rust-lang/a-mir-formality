@@ -1,5 +1,5 @@
 use formality_core::{Deduplicate, Downcast, Upcast};
-use formality_types::{
+use crate::types::{
     grammar::{
         ExistentialVar, Parameter, Substitution, UniversalVar, VarIndex, VarSubstitution, Variable,
     },

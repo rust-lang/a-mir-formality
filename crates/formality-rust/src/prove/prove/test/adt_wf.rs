@@ -1,6 +1,6 @@
 use expect_test::expect;
 use formality_core::test;
-use formality_types::{
+use crate::types::{
     grammar::{Parameter, Relation, Wcs},
     rust::term,
 };

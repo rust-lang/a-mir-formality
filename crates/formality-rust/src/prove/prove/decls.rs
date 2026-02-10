@@ -1,6 +1,6 @@
 use formality_core::{set, Set, Upcast};
 use formality_macros::term;
-use formality_types::grammar::{
+use crate::types::grammar::{
     AdtId, AliasName, AliasTy, Binder, FeatureGateName, FieldId, Parameter, Predicate, Relation,
     TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
 };
@@ -178,18 +178,18 @@ impl TraitDecl {
 
         fn is_supertrait(self_var: &Parameter, wc: &Wc) -> bool {
             match wc.data() {
-                formality_types::grammar::WcData::Predicate(Predicate::IsImplemented(
+                crate::types::grammar::WcData::Predicate(Predicate::IsImplemented(
                     trait_ref,
                 )) => trait_ref.parameters[0] == *self_var,
-                formality_types::grammar::WcData::Relation(Relation::Outlives(a, _)) => {
+                crate::types::grammar::WcData::Relation(Relation::Outlives(a, _)) => {
                     *a == *self_var
                 }
-                formality_types::grammar::WcData::Predicate(_) => false,
-                formality_types::grammar::WcData::Relation(_) => false,
-                formality_types::grammar::WcData::ForAll(binder) => {
+                crate::types::grammar::WcData::Predicate(_) => false,
+                crate::types::grammar::WcData::Relation(_) => false,
+                crate::types::grammar::WcData::ForAll(binder) => {
                     is_supertrait(self_var, binder.peek())
                 }
-                formality_types::grammar::WcData::Implies(_, c) => is_supertrait(self_var, c),
+                crate::types::grammar::WcData::Implies(_, c) => is_supertrait(self_var, c),
             }
         }
 

@@ -7,7 +7,7 @@ pub mod minirust;
 mod ty;
 mod wc;
 
-pub use crate::rust::grammar::*;
+pub use crate::types::rust::grammar::*;
 pub use consts::*;
 pub use feature::*;
 pub use formulas::*;

@@ -1,7 +1,7 @@
 use crate::prove::prove::decls::Decls;
 use formality_core::judgment::ProofTree;
 use formality_core::ProvenSet;
-use formality_types::rust::Term;
+use crate::types::rust::Term;
 
 use super::{Constraints, Env};
 

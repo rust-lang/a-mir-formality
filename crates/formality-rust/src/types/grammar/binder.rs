@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use anyhow::bail;
 use lazy_static::lazy_static;
 
-use crate::{
+use crate::types::{
     cast::{Downcast, DowncastFrom, DowncastTo, To, Upcast, UpcastFrom},
     fold::Fold,
     fold::SubstitutionFn,

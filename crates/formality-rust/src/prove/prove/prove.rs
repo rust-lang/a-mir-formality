@@ -19,7 +19,7 @@ pub use constraints::Constraints;
 use formality_core::judgment::{EachProof, FailedRule, ProofTree};
 use formality_core::visit::CoreVisit;
 use formality_core::{map, set, ProvenSet, Upcast};
-use formality_types::grammar::Wcs;
+use crate::types::grammar::Wcs;
 use tracing::Level;
 
 use crate::prove::prove::decls::Decls;

@@ -12,7 +12,6 @@ dependencies = [
  "formality-core",
  "formality-macros",
  "formality-rust",
- "formality-types",
  "pretty_assertions",
  "tracing",
 ]
@@ -288,23 +287,11 @@ dependencies = [
  "anyhow",
  "contracts",
  "expect-test",
+ "extension-trait",
  "fn-error-context",
  "formality-core",
  "formality-macros",
- "formality-types",
  "itertools 0.10.5",
- "tracing",
-]
-
-[[package]]
-name = "formality-types"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "contracts",
- "expect-test",
- "extension-trait",
- "formality-core",
  "lazy_static",
  "stacker",
  "tracing",

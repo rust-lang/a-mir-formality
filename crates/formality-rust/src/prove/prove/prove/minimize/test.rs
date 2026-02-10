@@ -1,7 +1,7 @@
 use expect_test::expect;
 use formality_core::To;
 use formality_macros::test;
-use formality_types::{
+use crate::types::{
     grammar::{Binder, Parameter, ScalarId, Ty},
     rust::term,
 };
@@ -28,7 +28,7 @@ fn minimize_a() {
     let ty0 = term_min[0].as_variable().unwrap();
     let ty1 = term_min[1].as_variable().unwrap();
     let ty2 = env_min.insert_fresh_before(
-        formality_types::grammar::ParameterKind::Ty,
+        crate::types::grammar::ParameterKind::Ty,
         env_min.universe(ty1),
     );
 

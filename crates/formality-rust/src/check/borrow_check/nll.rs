@@ -4,8 +4,8 @@ use crate::grammar::minirust::{
 };
 use crate::prove::prove::{prove, AdtDeclBoundData, AdtDeclVariant};
 use formality_core::{judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set, Upcast};
-use formality_types::grammar::PredicateTy;
-use formality_types::grammar::{
+use crate::types::grammar::PredicateTy;
+use crate::types::grammar::{
     AliasTy, Lt, LtData, Parameter, RefKind, Relation, RigidName, RigidTy, Ty, TyData, Variable,
     VariantId, Wcs,
 };
@@ -1284,7 +1284,7 @@ fn place_prefixes(place: &PlaceExpression) -> Set<PlaceExpression> {
 
 #[test]
 fn test_locals_are_disjoint() {
-    use formality_types::rust::term;
+    use crate::types::rust::term;
     let place_a: PlaceExpression = term("local(a)");
     let place_b: PlaceExpression = term("local(b)");
     assert!(place_disjoint_from_place(&place_a, &place_b));
@@ -1292,7 +1292,7 @@ fn test_locals_are_disjoint() {
 
 #[test]
 fn test_local_plus_field() {
-    use formality_types::rust::term;
+    use crate::types::rust::term;
     let place_a: PlaceExpression = term("local(a)");
     let place_b: PlaceExpression = term("local(a).0");
     assert!(!place_disjoint_from_place(&place_a, &place_b));
@@ -1300,7 +1300,7 @@ fn test_local_plus_field() {
 
 #[test]
 fn test_two_different_fields() {
-    use formality_types::rust::term;
+    use crate::types::rust::term;
     let place_a: PlaceExpression = term("local(a).0");
     let place_b: PlaceExpression = term("local(a).1");
     assert!(place_disjoint_from_place(&place_a, &place_b));

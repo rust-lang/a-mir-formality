@@ -3,7 +3,7 @@ use crate::prove::prove::Env;
 use anyhow::bail;
 use fn_error_context::context;
 use formality_core::{judgment::ProofTree, Downcasted};
-use formality_types::grammar::{Fallible, Wc, Wcs};
+use crate::types::grammar::{Fallible, Wc, Wcs};
 use itertools::Itertools;
 
 use crate::check::Check;

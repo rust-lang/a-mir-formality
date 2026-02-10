@@ -5,7 +5,7 @@ use crate::prove::prove::Env;
 use anyhow::bail;
 use fn_error_context::context;
 use formality_core::{judgment::ProofTree, Set};
-use formality_types::grammar::{CrateId, Fallible};
+use crate::types::grammar::{CrateId, Fallible};
 
 impl super::Check<'_> {
     #[context("check_trait({:?})", t.id)]

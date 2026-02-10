@@ -1,5 +1,5 @@
 use formality_core::judgment_fn;
-use formality_types::grammar::{minirust, Const, ScalarValue, Ty, Wcs};
+use crate::types::grammar::{minirust, Const, ScalarValue, Ty, Wcs};
 
 use crate::prove::prove::{decls::Decls, prove::env::Env};
 

@@ -1,5 +1,5 @@
 use formality_core::judgment_fn;
-use formality_types::grammar::{
+use crate::types::grammar::{
     AliasTy, Lt, Parameter, PredicateTy, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
 };
 

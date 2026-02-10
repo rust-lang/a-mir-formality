@@ -1,5 +1,5 @@
 use formality_core::{judgment_fn, Downcast};
-use formality_types::grammar::{
+use crate::types::grammar::{
     AliasTy, ExistentialVar, Parameter, Relation, RigidTy, TyData, Variable, Wc, WcData, Wcs,
 };
 

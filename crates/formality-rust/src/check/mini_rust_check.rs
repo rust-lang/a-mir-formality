@@ -13,11 +13,11 @@ use crate::prove::prove::{
 };
 use formality_core::judgment::ProofTree;
 use formality_core::{cast_impl, judgment_fn, Downcast, Fallible, Map, Set, Upcast};
-use formality_types::grammar::{
+use crate::types::grammar::{
     AdtId, Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId,
     Wcs,
 };
-use formality_types::rust::Fold;
+use crate::types::rust::Fold;
 
 use crate::check::borrow_check::nll;
 use crate::check::{Check, CrateItem, Debug, ProvenSet, ToWcs, Visit};

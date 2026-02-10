@@ -1,19 +1,19 @@
 use std::sync::Arc;
 
 use crate::prove::prove::{AdtDeclField, AdtDeclFieldName, AdtDeclVariant, Safety};
-use formality_core::{term, Upcast};
-use formality_types::{
+use crate::types::{
     grammar::{
         AdtId, AliasTy, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId, FnId, Lt,
         Parameter, ScalarId, TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
     },
     rust::Term,
 };
+use formality_core::{term, Upcast};
 
 use crate::grammar::feature::FeatureGate;
 
 pub mod feature;
-pub use formality_types::grammar::minirust;
+pub use crate::types::grammar::minirust;
 
 #[term($crates)]
 pub struct Program {
