@@ -13,7 +13,7 @@ use formality_types::{
 use crate::grammar::feature::FeatureGate;
 
 pub mod feature;
-pub mod minirust;
+pub use formality_types::grammar::minirust;
 
 #[term($crates)]
 pub struct Program {

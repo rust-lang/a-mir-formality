@@ -1,4 +1,4 @@
-use crate::grammar::{ParameterKind, Parameters, RigidName, ScalarId};
+use crate::grammar::{minirust, ParameterKind, Parameters, RigidName, ScalarId};
 
 use super::{Parameter, Variable};
 use formality_core::{cast_impl, term, DowncastTo, Upcast, UpcastFrom};
@@ -38,6 +38,9 @@ pub enum ConstData {
     // Sort of equivalent to `ValTreeKind::Leaf`
     #[cast]
     Scalar(ScalarValue),
+
+    #[cast]
+    RvToTsv(minirust::Body),
 
     #[variable(ParameterKind::Const)]
     Variable(Variable),
@@ -125,3 +128,4 @@ impl UpcastFrom<ConstData> for Const {
 
 cast_impl!((ConstData) <: (Const) <: (Parameter));
 cast_impl!((ScalarValue) <: (ConstData) <: (Const));
+cast_impl!((minirust::Body) <: (ConstData) <: (Const));
