@@ -5,7 +5,7 @@ use formality_prove::{AdtDeclField, AdtDeclFieldName, AdtDeclVariant, Safety};
 use formality_types::{
     grammar::{
         AdtId, AliasTy, AssociatedItemId, Binder, Const, CrateId, Fallible, FieldId, FnId, Lt,
-        Parameter, TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
+        Parameter, ScalarId, TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
     },
     rust::Term,
 };
@@ -262,8 +262,11 @@ pub enum MaybeFnBody {
 
 #[term]
 pub enum FnBody {
-    #[grammar({trusted})]
-    TrustedFnBody,
+    #[grammar({trusted as $v0})]
+    TrustedFnBody(Ty),
+
+    #[grammar($v0 _ $v1)]
+    Literal(usize, ScalarId),
 
     #[cast]
     #[grammar(= $v0;)]
