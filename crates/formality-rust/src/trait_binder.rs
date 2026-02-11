@@ -1,15 +1,13 @@
 use std::fmt::Debug;
 
+use crate::grammar::{Binder, BoundVar, ParameterKind};
+use crate::rust::Term;
 use formality_core::{
     fold::CoreFold,
     parse::{Binding, CoreParse, ParseResult, Parser, Scope},
     term::CoreTerm,
     visit::CoreVisit,
     DowncastTo, UpcastFrom,
-};
-use formality_types::{
-    grammar::{Binder, BoundVar, ParameterKind},
-    rust::Term,
 };
 
 use crate::{grammar::TraitBinder, FormalityLang};
@@ -47,7 +45,7 @@ impl<T> CoreVisit<FormalityLang> for TraitBinder<T>
 where
     T: Term,
 {
-    fn free_variables(&self) -> Vec<formality_types::grammar::Variable> {
+    fn free_variables(&self) -> Vec<crate::grammar::Variable> {
         self.explicit_binder.free_variables()
     }
 
