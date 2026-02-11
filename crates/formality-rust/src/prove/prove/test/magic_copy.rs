@@ -9,14 +9,12 @@ use crate::prove::prove::test_util::test_prove;
 /// Simple example decls consisting only of two trait declarations.
 fn decls() -> Decls {
     Decls {
-        trait_decls: vec![
-            term("trait Copy<ty Self> where {}"),
-            term("trait Magic<ty Self> where {Copy(Self)}"),
-        ],
-        impl_decls: vec![
-            term("impl<ty T> Magic(T) where {Magic(T)}"),
-            term("impl Copy(u32) where {}"),
-        ],
+        program: Decls::program_from_items(vec![
+            term("trait Copy where {}"),
+            term("trait Magic where Self : Copy {}"),
+            term("impl<ty T> Magic for T where T : Magic {}"),
+            term("impl Copy for u32 {}"),
+        ]),
         ..Decls::empty()
     }
 }
