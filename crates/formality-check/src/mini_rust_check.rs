@@ -106,15 +106,9 @@ impl Check<'_> {
             decls: self.decls.clone(),
         };
 
-        // Check that basic blocks are well-typed
-        let ((env, pending_outlives), blocks_pt) =
-            check_blocks(env.clone(), (), fn_assumptions.clone(), (*blocks).clone())
-                .into_singleton()?;
-        proof_tree.children.push(blocks_pt);
-
         proof_tree
             .children
-            .push(nll::borrow_check(&env, &fn_assumptions, &pending_outlives)?);
+            .push(nll::borrow_check(&env, &fn_assumptions)?);
 
         Ok(proof_tree)
     }
