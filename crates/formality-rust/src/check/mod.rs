@@ -3,12 +3,9 @@
 use std::{collections::VecDeque, fmt::Debug};
 
 use crate::prove::prove::{is_definitely_not_proveable, Constraints, Decls, Env};
-use crate::types::{
-    grammar::{CrateId, Fallible, Wcs},
-    rust::Visit,
-};
+use crate::rust::Visit;
 use crate::{
-    grammar::{Crate, CrateItem, Program, Test, TestBoundData},
+    grammar::{Crate, CrateId, CrateItem, Fallible, Program, Test, TestBoundData, Wcs},
     prove::ToWcs,
 };
 use anyhow::{anyhow, bail};

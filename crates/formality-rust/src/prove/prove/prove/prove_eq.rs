@@ -1,4 +1,4 @@
-use crate::types::grammar::{
+use crate::grammar::{
     AliasTy, ExistentialVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar,
     Variable, Wcs,
 };

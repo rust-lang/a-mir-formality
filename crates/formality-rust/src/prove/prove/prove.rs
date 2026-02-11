@@ -15,7 +15,7 @@ mod prove_wc;
 mod prove_wc_list;
 mod prove_wf;
 
-use crate::types::grammar::Wcs;
+use crate::grammar::Wcs;
 pub use constraints::Constraints;
 use formality_core::judgment::{EachProof, FailedRule, ProofTree};
 use formality_core::visit::CoreVisit;

@@ -1,4 +1,4 @@
-use crate::types::grammar::{WcData, Wcs};
+use crate::grammar::{WcData, Wcs};
 use formality_core::judgment_fn;
 
 use crate::prove::prove::{

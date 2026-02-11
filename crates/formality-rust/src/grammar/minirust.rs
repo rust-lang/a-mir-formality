@@ -1,8 +1,8 @@
 use super::{Binder, Lt, Parameter, RefKind, ScalarId, Ty};
 use formality_core::{id, term, UpcastFrom};
 
-use crate::types::grammar::minirust::ConstTypePair::*;
-use crate::types::grammar::FnId;
+use crate::grammar::minirust::ConstTypePair::*;
+use crate::grammar::FnId;
 
 use std::sync::Arc;
 

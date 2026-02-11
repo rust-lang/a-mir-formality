@@ -1,5 +1,5 @@
 use crate::prove::prove::decls::Decls;
-use crate::types::rust::Term;
+use crate::rust::Term;
 use formality_core::judgment::ProofTree;
 use formality_core::ProvenSet;
 

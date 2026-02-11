@@ -1,4 +1,4 @@
-use crate::types::grammar::{minirust, ParameterKind, Parameters, RigidName, ScalarId};
+use crate::grammar::{minirust, ParameterKind, Parameters, RigidName, ScalarId};
 
 use super::{Parameter, Variable};
 use formality_core::{cast_impl, term, DowncastTo, Upcast, UpcastFrom};

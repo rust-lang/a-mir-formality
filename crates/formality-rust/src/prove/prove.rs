@@ -8,7 +8,7 @@
 //! * [`prove_normalize`][] -- normalize a type one step (typically used in a recursive setup)
 
 // Defines the language used by derive(term) and friends.
-use crate::types::rust::FormalityLang;
+use crate::rust::FormalityLang;
 
 mod db;
 mod decls;

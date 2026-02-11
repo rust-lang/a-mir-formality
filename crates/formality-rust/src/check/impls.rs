@@ -1,15 +1,13 @@
 use anyhow::bail;
 
 use crate::prove::prove::{Env, Safety};
-use crate::types::{
-    grammar::{Binder, CrateId, Fallible, Relation, Substitution, Wcs},
-    rust::Term,
-};
+use crate::rust::Term;
 use crate::{
     grammar::{
-        AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Fn,
-        FnBoundData, ImplItem, NegTraitImpl, NegTraitImplBoundData, Trait, TraitBoundData,
-        TraitImpl, TraitImplBoundData, TraitItem,
+        AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Binder,
+        CrateId, Fallible, Fn, FnBoundData, ImplItem, NegTraitImpl, NegTraitImplBoundData,
+        Relation, Substitution, Trait, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem,
+        Wcs,
     },
     prove::ToWcs,
 };

@@ -1,8 +1,6 @@
+use crate::grammar::{Substitution, Variable, Wcs};
 use crate::prove::prove::{Bias, Constraints, Env};
-use crate::types::{
-    grammar::{Substitution, Variable, Wcs},
-    rust::FormalityLang,
-};
+use crate::rust::FormalityLang;
 use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
 
 /// This succeeds if `f` definitely fails: there are no possible

@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
+use crate::grammar::Fallible;
 use crate::grammar::{Adt, AdtBoundData, Field, Variant};
 use crate::prove::prove::Env;
-use crate::types::grammar::Fallible;
 use anyhow::bail;
 use formality_core::judgment::ProofTree;
 

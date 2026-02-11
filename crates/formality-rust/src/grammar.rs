@@ -1,5 +1,7 @@
+pub use crate::rust::grammar::*;
+
 pub mod feature;
-pub use crate::types::grammar::minirust;
+pub use feature::*;
 
 mod program;
 pub use program::*;
@@ -16,5 +18,22 @@ pub use fns::*;
 mod traits_and_impls;
 pub use traits_and_impls::*;
 
+mod consts;
+pub use consts::*;
 
+mod formulas;
+pub use formulas::*;
 
+mod ids;
+pub use ids::*;
+
+mod kinded;
+pub use kinded::*;
+
+mod ty;
+pub use ty::*;
+
+mod wc;
+pub use wc::*;
+
+pub mod minirust;

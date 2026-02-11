@@ -1,5 +1,5 @@
-use crate::types::grammar::Wc;
-use crate::types::rust::term;
+use crate::grammar::Wc;
+use crate::rust::term;
 use expect_test::expect;
 use formality_macros::test;
 

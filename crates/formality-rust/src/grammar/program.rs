@@ -1,7 +1,5 @@
 use crate::grammar::{Crate, CrateItem, Trait};
-use crate::types::grammar::{
-        Fallible, TraitId,
-    };
+use crate::grammar::{Fallible, TraitId};
 use formality_core::term;
 
 #[term($crates)]

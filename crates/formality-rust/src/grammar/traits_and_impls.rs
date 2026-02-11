@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
 use crate::grammar::Fn;
-use crate::prove::prove::Safety;
-use crate::types::{
-    grammar::{
-        AliasTy, AssociatedItemId, Binder, Const, Fallible, Lt,
-        Parameter, TraitId, TraitRef, Ty, Wc, Wcs,
-    },
-    rust::Term,
+use crate::grammar::{
+    AliasTy, AssociatedItemId, Binder, Const, Fallible, Lt, Parameter, TraitId, TraitRef, Ty, Wc,
+    Wcs,
 };
+use crate::prove::prove::Safety;
+use crate::rust::Term;
 use formality_core::{term, Upcast};
 
 #[term($?safety trait $id $binder)]

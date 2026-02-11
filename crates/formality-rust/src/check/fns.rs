@@ -1,5 +1,5 @@
+use crate::grammar::{CrateId, Fallible, Wcs};
 use crate::prove::prove::Env;
-use crate::types::grammar::{CrateId, Fallible, Wcs};
 use crate::{
     grammar::{Fn, FnBoundData, MaybeFnBody},
     prove::ToWcs,

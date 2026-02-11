@@ -1,4 +1,4 @@
-use crate::types::grammar::{
+use crate::grammar::{
     AliasTy, Lt, Parameter, PredicateTy, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
 };
 use formality_core::judgment_fn;

@@ -1,5 +1,5 @@
+use crate::grammar::{Binder, Wcs};
 use crate::prove::prove::prove::Bias;
-use crate::types::grammar::{Binder, Wcs};
 use formality_core::ProvenSet;
 use formality_macros::term;
 use std::sync::Arc;

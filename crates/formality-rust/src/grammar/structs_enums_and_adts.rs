@@ -1,9 +1,7 @@
 use crate::grammar::WhereClause;
+use crate::grammar::{AdtId, Binder, FieldId, Ty, VariantId};
 use crate::prove::prove::{AdtDeclField, AdtDeclFieldName, AdtDeclVariant};
-use crate::types::grammar::{
-        AdtId, Binder, FieldId, Ty, VariantId,
-    };
-use formality_core::{term};
+use formality_core::term;
 
 #[term(struct $id $binder)]
 pub struct Struct {

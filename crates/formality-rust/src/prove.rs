@@ -6,7 +6,7 @@ use crate::grammar::{
 };
 use formality_core::{seq, Set, To, Upcast, Upcasted};
 pub mod prove;
-use crate::types::grammar::{
+use crate::grammar::{
     AdtId, AliasTy, Binder, BoundVar, FeatureGateName, ParameterKind, Predicate, Relation, TraitId,
     Ty, Wc, Wcs,
 };

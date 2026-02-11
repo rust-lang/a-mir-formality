@@ -1,8 +1,6 @@
 use super::env::Env;
-use crate::types::{
-    grammar::{ExistentialVar, Parameter, Substitution, Variable},
-    rust::Visit,
-};
+use crate::grammar::{ExistentialVar, Parameter, Substitution, Variable};
+use crate::rust::Visit;
 use formality_core::{cast_impl, visit::CoreVisit, Downcast, Upcast, UpcastFrom};
 
 /// Captures the conditions under which something is true.

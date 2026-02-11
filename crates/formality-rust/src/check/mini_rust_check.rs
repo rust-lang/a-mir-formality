@@ -7,15 +7,15 @@ use crate::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
 use crate::grammar::minirust::{BodyBound, PlaceExpression::*};
+use crate::grammar::{
+    AdtId, Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId,
+    Wcs,
+};
 use crate::grammar::{Fn as FnDecl, Program};
 use crate::prove::prove::{
     prove_normalize, AdtDeclBoundData, AdtDeclVariant, Constraints, Decls, Env,
 };
-use crate::types::grammar::{
-    AdtId, Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId,
-    Wcs,
-};
-use crate::types::rust::Fold;
+use crate::rust::Fold;
 use formality_core::judgment::ProofTree;
 use formality_core::{cast_impl, judgment_fn, Downcast, Fallible, Map, Set, Upcast};
 

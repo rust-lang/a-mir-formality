@@ -1,4 +1,4 @@
-use crate::types::grammar::{
+use crate::grammar::{
     AliasName, AliasTy, ConstData, Lt, LtData, Parameter, Parameters, Relation, RigidName, RigidTy,
     Ty, UniversalVar, Wcs,
 };

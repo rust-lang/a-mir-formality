@@ -1,9 +1,7 @@
-use crate::types::{
-    grammar::{
-        ExistentialVar, Parameter, Substitution, UniversalVar, VarIndex, VarSubstitution, Variable,
-    },
-    rust::Term,
+use crate::grammar::{
+    ExistentialVar, Parameter, Substitution, UniversalVar, VarIndex, VarSubstitution, Variable,
 };
+use crate::rust::Term;
 use formality_core::{Deduplicate, Downcast, Upcast};
 
 use super::{Constraints, Env};

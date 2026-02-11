@@ -1,10 +1,7 @@
-use crate::types::{
-    grammar::{
-        Binder, ExistentialVar, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable,
-        Wc,
-    },
-    rust::{Fold, Visit},
+use crate::grammar::{
+    Binder, ExistentialVar, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable, Wc,
 };
+use crate::rust::{Fold, Visit};
 use formality_core::{cast_impl, visit::CoreVisit, Set, To, Upcast, UpcastFrom};
 use formality_macros::term;
 

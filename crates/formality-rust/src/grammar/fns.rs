@@ -1,7 +1,5 @@
-use crate::grammar::{WhereClause, minirust};
-use crate::types::grammar::{
-        Binder, FnId, ScalarId, Ty,
-    };
+use crate::grammar::{minirust, WhereClause};
+use crate::grammar::{Binder, FnId, ScalarId, Ty};
 use formality_core::term;
 
 #[term(fn $id $binder)]

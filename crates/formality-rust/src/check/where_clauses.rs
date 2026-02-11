@@ -1,5 +1,5 @@
+use crate::grammar::{Fallible, Wcs};
 use crate::prove::prove::Env;
-use crate::types::grammar::{Fallible, Wcs};
 use crate::{grammar::WhereClause, prove::ToWcs};
 use fn_error_context::context;
 use formality_core::judgment::ProofTree;

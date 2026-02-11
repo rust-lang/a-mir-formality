@@ -1,4 +1,4 @@
-use crate::types::grammar::{
+use crate::grammar::{
     AliasTy, ExistentialVar, Parameter, Relation, RigidTy, TyData, Variable, Wc, WcData, Wcs,
 };
 use formality_core::{judgment_fn, Downcast};

@@ -1,4 +1,4 @@
-use crate::types::grammar::{Lt, Parameter, Relation, RigidTy, TyData, Wcs};
+use crate::grammar::{Lt, Parameter, Relation, RigidTy, TyData, Wcs};
 use formality_core::judgment_fn;
 
 use crate::prove::prove::prove::prove_outlives::prove_outlives;

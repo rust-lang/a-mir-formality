@@ -1,5 +1,5 @@
-use crate::types::grammar::Parameter;
-use crate::types::FormalityLang;
+use crate::grammar::Parameter;
+use crate::FormalityLang;
 use formality_core::language::CoreKind;
 
 use super::ParameterKind;

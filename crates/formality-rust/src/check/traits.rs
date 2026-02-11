@@ -1,8 +1,8 @@
 use crate::grammar::{
     AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, WhereClause,
 };
+use crate::grammar::{CrateId, Fallible};
 use crate::prove::prove::Env;
-use crate::types::grammar::{CrateId, Fallible};
 use anyhow::bail;
 use fn_error_context::context;
 use formality_core::{judgment::ProofTree, Set};
