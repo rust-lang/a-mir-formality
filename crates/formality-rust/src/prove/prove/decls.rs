@@ -12,7 +12,6 @@ use formality_macros::term;
 pub struct Decls {
     pub program: Program,
     pub max_size: usize,
-
 }
 
 impl Decls {
@@ -120,7 +119,13 @@ impl Decls {
     }
 
     fn grammar_trait_to_decl(t: &Trait) -> TraitDecl {
-        let (vars, TraitBoundData { where_clauses, trait_items: _ }) = t.binder.open();
+        let (
+            vars,
+            TraitBoundData {
+                where_clauses,
+                trait_items: _,
+            },
+        ) = t.binder.open();
         TraitDecl {
             safety: t.safety.clone(),
             id: t.id.clone(),

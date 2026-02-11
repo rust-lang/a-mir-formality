@@ -1,6 +1,4 @@
-use crate::grammar::{
-    Program, WhereBound, WhereBoundData, WhereClause, WhereClauseData,
-};
+use crate::grammar::{Program, WhereBound, WhereBoundData, WhereClause, WhereClauseData};
 use formality_core::Upcast;
 pub mod prove;
 use crate::grammar::{Predicate, Relation, Ty, Wc, Wcs};
