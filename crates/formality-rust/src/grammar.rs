@@ -262,8 +262,8 @@ pub enum MaybeFnBody {
 
 #[term]
 pub enum FnBody {
-    #[grammar({trusted as $v0})]
-    TrustedFnBody(Ty),
+    #[grammar({trusted})]
+    TrustedFnBody,
 
     #[grammar($v0 _ $v1)]
     Literal(usize, ScalarId),

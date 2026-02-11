@@ -83,7 +83,7 @@ impl Check<'_> {
                 // No fn body occurs trait definitions only.
             }
             MaybeFnBody::FnBody(fn_body) => match fn_body {
-                crate::grammar::FnBody::TrustedFnBody(_) => {
+                crate::grammar::FnBody::TrustedFnBody => {
                     // A trusted function body is assumed to be valid, all set.
                 }
                 crate::grammar::FnBody::Literal(_, _) => todo!(),
