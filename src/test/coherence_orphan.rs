@@ -18,17 +18,17 @@ fn neg_CoreTrait_for_CoreStruct_in_Foo() {
         expect_test::expect![[r#"
             the rule "fundamental rigid type" at (is_local.rs) failed because
               condition evaluted to false: `is_fundamental(&decls, &name)`
-                &decls = decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct { struct { } }], {}, {}, {})
+                &decls = decls([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl ! CoreTrait for CoreStruct {} }], 222)
                 &name = (adt CoreStruct)
 
             the rule "local rigid type" at (is_local.rs) failed because
               condition evaluted to false: `decls.is_local_adt_id(&a)`
-                decls = decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct { struct { } }], {}, {}, {})
+                decls = decls([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl ! CoreTrait for CoreStruct {} }], 222)
                 &a = CoreStruct
 
             the rule "local trait" at (is_local.rs) failed because
               condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
-                decls = decls(222, [trait CoreTrait <ty> ], [], [impl ! CoreTrait(CoreStruct)], [], [], [adt CoreStruct { struct { } }], {}, {}, {})
+                decls = decls([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl ! CoreTrait for CoreStruct {} }], 222)
                 &goal.trait_id = CoreTrait"#]]
     )
 }
@@ -59,17 +59,17 @@ fn mirror_CoreStruct() {
         expect_test::expect![[r#"
             the rule "fundamental rigid type" at (is_local.rs) failed because
               condition evaluted to false: `is_fundamental(&decls, &name)`
-                &decls = decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct { struct { } }], {}, {}, {})
+                &decls = decls([crate core { trait CoreTrait <ty> { } struct CoreStruct { } trait Mirror <ty> { type Assoc : [] ; } impl <ty> Mirror for ^ty0_0 { type Assoc = ^ty1_0 ; } }, crate foo { impl CoreTrait for <CoreStruct as Mirror>::Assoc { } }], 222)
                 &name = (adt CoreStruct)
 
             the rule "local rigid type" at (is_local.rs) failed because
               condition evaluted to false: `decls.is_local_adt_id(&a)`
-                decls = decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct { struct { } }], {}, {}, {})
+                decls = decls([crate core { trait CoreTrait <ty> { } struct CoreStruct { } trait Mirror <ty> { type Assoc : [] ; } impl <ty> Mirror for ^ty0_0 { type Assoc = ^ty1_0 ; } }, crate foo { impl CoreTrait for <CoreStruct as Mirror>::Assoc { } }], 222)
                 &a = CoreStruct
 
             the rule "local trait" at (is_local.rs) failed because
               condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
-                decls = decls(222, [trait CoreTrait <ty> , trait Mirror <ty> ], [impl <ty> Mirror(^ty0_0), impl CoreTrait(<CoreStruct as Mirror>::Assoc)], [], [alias <ty> <^ty0_0 as Mirror>::Assoc = ^ty0_0], [], [adt CoreStruct { struct { } }], {}, {}, {})
+                decls = decls([crate core { trait CoreTrait <ty> { } struct CoreStruct { } trait Mirror <ty> { type Assoc : [] ; } impl <ty> Mirror for ^ty0_0 { type Assoc = ^ty1_0 ; } }, crate foo { impl CoreTrait for <CoreStruct as Mirror>::Assoc { } }], 222)
                 &goal.trait_id = CoreTrait"#]]
     )
 }
@@ -131,7 +131,7 @@ fn uncovered_T() {
         expect_test::expect![[r#"
             the rule "local trait" at (is_local.rs) failed because
               condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
-                decls = decls(222, [trait CoreTrait <ty, ty> ], [impl <ty> CoreTrait(^ty0_0, FooStruct)], [], [], [], [adt FooStruct { struct { } }], {}, {FooStruct}, {})
+                decls = decls([crate core { trait CoreTrait <ty, ty> { } }, crate foo { struct FooStruct { } impl <ty> CoreTrait <FooStruct> for ^ty0_0 { } }], 222)
                 &goal.trait_id = CoreTrait"#]]
     )
 }
@@ -162,12 +162,12 @@ fn alias_to_unit() {
         expect_test::expect![[r#"
             the rule "fundamental rigid type" at (is_local.rs) failed because
               condition evaluted to false: `is_fundamental(&decls, &name)`
-                &decls = decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct { struct { } }], {}, {FooStruct}, {})
+                &decls = decls([crate core { trait CoreTrait <ty> { } trait Unit <ty> { type Assoc : [] ; } impl <ty> Unit for ^ty0_0 { type Assoc = () ; } }, crate foo { struct FooStruct { } impl CoreTrait for <FooStruct as Unit>::Assoc { } }], 222)
                 &name = tuple(0)
 
             the rule "local trait" at (is_local.rs) failed because
               condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
-                decls = decls(222, [trait CoreTrait <ty> , trait Unit <ty> ], [impl <ty> Unit(^ty0_0), impl CoreTrait(<FooStruct as Unit>::Assoc)], [], [alias <ty> <^ty0_0 as Unit>::Assoc = ()], [], [adt FooStruct { struct { } }], {}, {FooStruct}, {})
+                decls = decls([crate core { trait CoreTrait <ty> { } trait Unit <ty> { type Assoc : [] ; } impl <ty> Unit for ^ty0_0 { type Assoc = () ; } }, crate foo { struct FooStruct { } impl CoreTrait for <FooStruct as Unit>::Assoc { } }], 222)
                 &goal.trait_id = CoreTrait"#]]
     )
 }
@@ -190,17 +190,17 @@ fn CoreTrait_for_CoreStruct_in_Foo() {
         expect_test::expect![[r#"
             the rule "fundamental rigid type" at (is_local.rs) failed because
               condition evaluted to false: `is_fundamental(&decls, &name)`
-                &decls = decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct { struct { } }], {}, {}, {})
+                &decls = decls([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl CoreTrait for CoreStruct { } }], 222)
                 &name = (adt CoreStruct)
 
             the rule "local rigid type" at (is_local.rs) failed because
               condition evaluted to false: `decls.is_local_adt_id(&a)`
-                decls = decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct { struct { } }], {}, {}, {})
+                decls = decls([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl CoreTrait for CoreStruct { } }], 222)
                 &a = CoreStruct
 
             the rule "local trait" at (is_local.rs) failed because
               condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`
-                decls = decls(222, [trait CoreTrait <ty> ], [impl CoreTrait(CoreStruct)], [], [], [], [adt CoreStruct { struct { } }], {}, {}, {})
+                decls = decls([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl CoreTrait for CoreStruct { } }], 222)
                 &goal.trait_id = CoreTrait"#]]
     )
 }

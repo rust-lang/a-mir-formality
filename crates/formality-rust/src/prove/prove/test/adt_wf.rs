@@ -7,9 +7,11 @@ use crate::prove::prove::{decls::Decls, prove::prove, Env};
 
 fn decls() -> Decls {
     Decls {
-        trait_decls: vec![term("trait Foo<ty Self> where {}")],
-        impl_decls: vec![term("impl Foo(u32) where {}")],
-        adt_decls: vec![term("adt X<ty T> where {Foo(T)} {}")],
+        program: Decls::program_from_items(vec![
+            term("trait Foo where {}"),
+            term("impl Foo for u32 {}"),
+            term("struct X<ty T> where T : Foo {}"),
+        ]),
         ..Decls::empty()
     }
 }

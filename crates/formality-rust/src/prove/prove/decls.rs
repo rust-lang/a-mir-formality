@@ -1,25 +1,17 @@
 use crate::grammar::{
-    AdtId, AliasName, AliasTy, Binder, FeatureGateName, FieldId, Parameter, Predicate, Relation,
-    TraitId, TraitRef, Ty, VariantId, Wc, Wcs,
+    Adt, AdtBoundData, AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData,
+    Binder, Crate, CrateId, CrateItem, FieldId, ImplItem, NegTraitImpl, NegTraitImplBoundData,
+    Parameter, Predicate, Program, Relation, Trait, TraitBoundData, TraitId, TraitImpl,
+    TraitImplBoundData, TraitRef, Ty, VariantId, Wc, Wcs,
 };
-use formality_core::{set, Set, Upcast};
+use crate::prove::ToWcs;
+use formality_core::{seq, Set, To, Upcast, Upcasted};
 use formality_macros::term;
 
 #[term]
 pub struct Decls {
+    pub program: Program,
     pub max_size: usize,
-
-    /// Each trait in the program
-    pub trait_decls: Vec<TraitDecl>,
-    pub impl_decls: Vec<ImplDecl>,
-    pub neg_impl_decls: Vec<NegImplDecl>,
-    pub alias_eq_decls: Vec<AliasEqDecl>,
-    pub alias_bound_decls: Vec<AliasBoundDecl>,
-    pub adt_decls: Vec<AdtDecl>,
-    pub local_trait_ids: Set<TraitId>,
-    pub local_adt_ids: Set<AdtId>,
-
-    pub feature_gates: Set<FeatureGateName>,
 }
 
 impl Decls {
@@ -27,80 +19,254 @@ impl Decls {
     pub const DEFAULT_MAX_SIZE: usize = 222;
 
     pub fn is_local_trait_id(&self, trait_id: &TraitId) -> bool {
-        self.local_trait_ids.contains(trait_id)
+        self.program
+            .crates
+            .last()
+            .into_iter()
+            .flat_map(|c| c.items.iter())
+            .any(|item| match item {
+                CrateItem::Trait(t) => t.id == *trait_id,
+                _ => false,
+            })
     }
 
     pub fn is_local_adt_id(&self, adt_id: &AdtId) -> bool {
-        self.local_adt_ids.contains(adt_id)
+        self.program
+            .crates
+            .last()
+            .into_iter()
+            .flat_map(|c| c.items.iter())
+            .any(|item| match item {
+                CrateItem::Struct(s) => s.id == *adt_id,
+                CrateItem::Enum(e) => e.id == *adt_id,
+                _ => false,
+            })
     }
 
-    pub fn impl_decls<'s>(&'s self, trait_id: &'s TraitId) -> impl Iterator<Item = &'s ImplDecl> {
-        self.impl_decls
-            .iter()
-            .filter(move |i| i.binder.peek().trait_ref.trait_id == *trait_id)
+    pub fn impl_decls(&self, trait_id: &TraitId) -> Vec<ImplDecl> {
+        self.program
+            .items_from_all_crates()
+            .filter_map(|item| match item {
+                CrateItem::TraitImpl(ti) => Some(ti),
+                _ => None,
+            })
+            .filter(|ti| ti.binder.peek().trait_id == *trait_id)
+            .map(Self::grammar_trait_impl_to_decl)
+            .collect()
     }
 
-    pub fn neg_impl_decls<'s>(
-        &'s self,
-        trait_id: &'s TraitId,
-    ) -> impl Iterator<Item = &'s NegImplDecl> {
-        self.neg_impl_decls
-            .iter()
-            .filter(move |i| i.binder.peek().trait_ref.trait_id == *trait_id)
+    pub fn neg_impl_decls(&self, trait_id: &TraitId) -> Vec<NegImplDecl> {
+        self.program
+            .items_from_all_crates()
+            .filter_map(|item| match item {
+                CrateItem::NegTraitImpl(nti) => Some(nti),
+                _ => None,
+            })
+            .filter(|nti| nti.binder.peek().trait_id == *trait_id)
+            .map(Self::grammar_neg_trait_impl_to_decl)
+            .collect()
     }
 
-    pub fn trait_decl(&self, trait_id: &TraitId) -> &TraitDecl {
+    /// Look up a trait by id from the program grammar and convert to a `TraitDecl`.
+    pub fn trait_decl(&self, trait_id: &TraitId) -> TraitDecl {
+        let grammar_trait = self.program.trait_named(trait_id).unwrap();
+        Self::grammar_trait_to_decl(grammar_trait)
+    }
+
+    fn grammar_trait_impl_to_decl(ti: &TraitImpl) -> ImplDecl {
+        let (
+            vars,
+            TraitImplBoundData {
+                trait_id,
+                self_ty,
+                trait_parameters,
+                where_clauses,
+                impl_items: _,
+            },
+        ) = ti.binder.open();
+        ImplDecl {
+            safety: ti.safety.clone(),
+            binder: Binder::new(
+                vars,
+                ImplDeclBoundData {
+                    trait_ref: trait_id.with(self_ty, trait_parameters),
+                    where_clause: where_clauses.to_wcs(),
+                },
+            ),
+        }
+    }
+
+    fn grammar_neg_trait_impl_to_decl(nti: &NegTraitImpl) -> NegImplDecl {
+        let (
+            vars,
+            NegTraitImplBoundData {
+                trait_id,
+                self_ty,
+                trait_parameters,
+                where_clauses,
+            },
+        ) = nti.binder.open();
+        NegImplDecl {
+            safety: nti.safety.clone(),
+            binder: Binder::new(
+                vars,
+                NegImplDeclBoundData {
+                    trait_ref: trait_id.with(self_ty, trait_parameters),
+                    where_clause: where_clauses.to_wcs(),
+                },
+            ),
+        }
+    }
+
+    fn grammar_trait_to_decl(t: &Trait) -> TraitDecl {
+        let (
+            vars,
+            TraitBoundData {
+                where_clauses,
+                trait_items: _,
+            },
+        ) = t.binder.open();
+        TraitDecl {
+            safety: t.safety.clone(),
+            id: t.id.clone(),
+            binder: Binder::new(
+                vars,
+                TraitDeclBoundData {
+                    where_clause: where_clauses.iter().flat_map(|wc| wc.to_wcs()).collect(),
+                },
+            ),
+        }
+    }
+
+    pub fn alias_eq_decls(&self, name: &AliasName) -> Vec<AliasEqDecl> {
+        self.program
+            .items_from_all_crates()
+            .filter_map(|item| match item {
+                CrateItem::TraitImpl(ti) => Some(ti),
+                _ => None,
+            })
+            .flat_map(|ti| {
+                let (
+                    impl_vars,
+                    TraitImplBoundData {
+                        trait_id,
+                        self_ty,
+                        trait_parameters,
+                        where_clauses: impl_wc,
+                        impl_items,
+                    },
+                ) = ti.binder.open();
+
+                impl_items
+                    .iter()
+                    .filter_map(|impl_item| match impl_item {
+                        ImplItem::Fn(_) => None,
+                        ImplItem::AssociatedTyValue(AssociatedTyValue {
+                            id: item_id,
+                            binder,
+                        }) => {
+                            let (
+                                assoc_vars,
+                                AssociatedTyValueBoundData {
+                                    where_clauses: assoc_wc,
+                                    ty,
+                                },
+                            ) = binder.open();
+                            Some(AliasEqDecl {
+                                binder: Binder::new(
+                                    (&impl_vars, &assoc_vars),
+                                    AliasEqDeclBoundData {
+                                        alias: AliasTy::associated_ty(
+                                            &trait_id,
+                                            item_id,
+                                            assoc_vars.len(),
+                                            seq![
+                                                self_ty.to(),
+                                                ..trait_parameters.iter().cloned(),
+                                                ..assoc_vars.iter().upcasted(),
+                                            ],
+                                        ),
+                                        ty,
+                                        where_clause: (&impl_wc, assoc_wc).to_wcs(),
+                                    },
+                                ),
+                            })
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .filter(|a| a.alias_name() == *name)
+            .collect()
+    }
+
+    pub fn adt_decl(&self, adt_id: &AdtId) -> AdtDecl {
         let mut v: Vec<_> = self
-            .trait_decls
-            .iter()
-            .filter(|t| t.id == *trait_id)
+            .program
+            .items_from_all_crates()
+            .filter_map(|item| match item {
+                CrateItem::Struct(s) => Some(s.to_adt()),
+                CrateItem::Enum(e) => Some(e.to_adt()),
+                _ => None,
+            })
+            .filter(|adt| adt.id == *adt_id)
+            .map(Self::grammar_adt_to_decl)
             .collect();
-        assert!(!v.is_empty(), "no traits named `{trait_id:?}`");
-        assert!(v.len() <= 1, "multiple traits named `{trait_id:?}`");
-        v.pop().unwrap()
-    }
-
-    pub fn alias_eq_decls<'s>(
-        &'s self,
-        name: &'s AliasName,
-    ) -> impl Iterator<Item = &'s AliasEqDecl> {
-        self.alias_eq_decls
-            .iter()
-            .filter(move |a| a.alias_name() == *name)
-    }
-
-    pub fn alias_bound_decls(&self) -> &[AliasBoundDecl] {
-        &self.alias_bound_decls
-    }
-
-    pub fn adt_decl(&self, adt_id: &AdtId) -> &AdtDecl {
-        let mut v: Vec<_> = self.adt_decls.iter().filter(|t| t.id == *adt_id).collect();
         assert!(!v.is_empty(), "no ADT named `{adt_id:?}`");
         assert!(v.len() <= 1, "multiple ADTs named `{adt_id:?}`");
         v.pop().unwrap()
     }
 
+    fn grammar_adt_to_decl(adt: Adt) -> AdtDecl {
+        let Adt { id, binder } = adt;
+        let (
+            vars,
+            AdtBoundData {
+                where_clauses,
+                variants,
+            },
+        ) = binder.open();
+        AdtDecl {
+            id,
+            binder: Binder::new(
+                vars,
+                AdtDeclBoundData {
+                    where_clause: where_clauses.iter().flat_map(|wc| wc.to_wcs()).collect(),
+                    variants: variants
+                        .iter()
+                        .map(|variant| variant.to_adt_decl_variant())
+                        .collect(),
+                },
+            ),
+        }
+    }
+
     /// Return the set of "trait invariants" for all traits.
     /// See [`TraitDecl::trait_invariants`].
     pub fn trait_invariants(&self) -> Set<TraitInvariant> {
-        self.trait_decls
-            .iter()
-            .flat_map(|td| td.trait_invariants())
+        self.program
+            .items_from_all_crates()
+            .filter_map(|item| match item {
+                CrateItem::Trait(t) => Some(t),
+                _ => None,
+            })
+            .flat_map(|t| Self::grammar_trait_to_decl(t).trait_invariants())
             .collect()
+    }
+
+    /// Create a `Program` wrapping the given items in a single crate named "test".
+    pub fn program_from_items(items: Vec<CrateItem>) -> Program {
+        Program {
+            crates: vec![Crate {
+                id: CrateId::new("test"),
+                items,
+            }],
+        }
     }
 
     pub fn empty() -> Self {
         Self {
+            program: Program { crates: vec![] },
             max_size: Decls::DEFAULT_MAX_SIZE,
-            trait_decls: vec![],
-            impl_decls: vec![],
-            neg_impl_decls: vec![],
-            alias_eq_decls: vec![],
-            alias_bound_decls: vec![],
-            adt_decls: vec![],
-            local_trait_ids: set![],
-            local_adt_ids: set![],
-            feature_gates: set![],
         }
     }
 }
@@ -257,30 +423,6 @@ pub struct AliasEqDeclBoundData {
     pub ty: Ty,
 
     /// The where-clauses that must hold for this rule to be applicable; derived from the impl and the GAT
-    pub where_clause: Wcs,
-}
-
-/// Alias bounds indicate things that are always known to be true of an alias type,
-/// even when its precise value is not known.
-/// For example given a trait `trait Foo { type Bar: Baz; }`
-/// we know that `<T as Foo>::Bar: Baz` must hold.
-#[term(alias $binder)]
-pub struct AliasBoundDecl {
-    pub binder: Binder<AliasBoundDeclBoundData>,
-}
-
-impl AliasBoundDecl {
-    pub fn alias_name(&self) -> AliasName {
-        self.binder.peek().alias.name.clone()
-    }
-}
-
-#[term($alias : $ensures $:where $where_clause)]
-pub struct AliasBoundDeclBoundData {
-    pub alias: AliasTy,
-    // FIXME(#226): This is currently encoded as something like `<T> [T: Foo]` where
-    // `T` represents the alias.
-    pub ensures: Binder<Wc>,
     pub where_clause: Wcs,
 }
 
