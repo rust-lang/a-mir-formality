@@ -330,26 +330,24 @@ fn declared_universal_region_relationship() {
 /// Upcasting from `'a` to `'c` should be allowed because of
 /// the transitive relationship.
 #[formality_core::test]
-#[should_panic] // FIXME(#221)
 fn declared_transitive_universal_region_relationship() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo<lt a, lt b, lt c>(&a u32) -> &c u32
+                fn foo<lt a, lt b, lt c>(&a u32, &b u32) -> &c u32
                 where
                     a: b,
                     b: c,
-                = minirust(v1) -> v0 {
-                    let v0: &b u32;
+                = minirust(v1, v2) -> v0 {
+                    let v0: &c u32;
                     let v1: &a u32;
+                    let v2: &b u32;
 
-                    exists<lt r0> {
-                        let v2: &r0 u32;
+                    exists<> {
 
                         bb0: {
                             statements {
-                                local(v2) = load(local(v1));
-                                local(v0) = load(local(v2));
+                                local(v0) = load(local(v1));
                             }
                             return;
                         }
@@ -367,20 +365,19 @@ fn undeclared_transitive_universal_region_relationship() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo<lt a, lt b, lt c>(&a u32) -> &c u32
+                fn foo<lt a, lt b, lt c>(&a u32, &b u32) -> &c u32
                 where
                     a: b,
-                = minirust(v1) -> v0 {
-                    let v0: &b u32;
+                = minirust(v1, v2) -> v0 {
+                    let v0: &c u32;
                     let v1: &a u32;
+                    let v2: &b u32;
 
-                    exists<lt r0> {
-                        let v2: &r0 u32;
+                    exists<> {
 
                         bb0: {
                             statements {
-                                local(v2) = load(local(v1));
-                                local(v0) = load(local(v2));
+                                local(v0) = load(local(v1));
                             }
                             return;
                         }
@@ -391,7 +388,7 @@ fn undeclared_transitive_universal_region_relationship() {
 
         []
 
-        expect_test::expect!["judgment had no applicable rules: `prove { goal: {&!lt_1 u32 <: &!lt_2 u32}, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: decls([crate Foo { fn foo <lt, lt, lt> (&^lt0_0 u32) -> &^lt0_2 u32 where ^lt0_0 : ^lt0_1 = minirust(v1) -> v0 { let v0 : &^lt0_1 u32 ; let v1 : &^lt0_0 u32 ; exists <lt> { let v2 : &^lt0_0 u32 ; bb0 : { statements{ local(v2) = load(local(v1)) ; local(v0) = load(local(v2)) ; } return ; } } } ; }], 222) }`"]
+        expect_test::expect!["judgment had no applicable rules: `verify_universal_outlives { env: TypeckEnv { program: [crate Foo { fn foo <lt, lt, lt> (&^lt0_0 u32, &^lt0_1 u32) -> &^lt0_2 u32 where ^lt0_0 : ^lt0_1 = minirust(v1, v2) -> v0 { let v0 : &^lt0_2 u32 ; let v1 : &^lt0_0 u32 ; let v2 : &^lt0_1 u32 ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; }], env: Env { variables: [!lt_1, !lt_2, !lt_3], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: &!lt_3 u32, local_variables: {v0: &!lt_3 u32, v1: &!lt_1 u32, v2: &!lt_2 u32}, blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; }], ret_id: v0, declared_input_tys: [&!lt_1 u32, &!lt_2 u32], crate_id: Foo, fn_args: [v1, v2], decls: decls([crate Foo { fn foo <lt, lt, lt> (&^lt0_0 u32, &^lt0_1 u32) -> &^lt0_2 u32 where ^lt0_0 : ^lt0_1 = minirust(v1, v2) -> v0 { let v0 : &^lt0_2 u32 ; let v1 : &^lt0_0 u32 ; let v2 : &^lt0_1 u32 ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; }], 222) }, fn_assumptions: {!lt_1 : !lt_2}, outlives: {PendingOutlives { location: Location, a: !lt_1, b: !lt_3 }} }`"]
     )
 }
 
