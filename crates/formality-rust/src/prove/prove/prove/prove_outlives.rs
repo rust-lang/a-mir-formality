@@ -1,8 +1,7 @@
 use crate::grammar::WcData;
 use crate::grammar::{LtData, Parameter, Relation, RigidTy, Wcs};
 use crate::prove::prove::{decls::Decls, prove};
-use formality_core::judgment_fn;
-use formality_core::Set;
+use formality_core::{judgment_fn, Set};
 
 use super::{constraints::Constraints, env::Env};
 
@@ -60,9 +59,11 @@ judgment_fn! {
             (prove_outlives(decls, env, assumptions, RigidTy { name: _, parameters }, b) => c)
         )
 
+        // 'a : 'b if  we can find `'a : 'b` in assumptions, or if there is transtive
+        // outlive relationship (if we have 'a : 'c and 'c : 'b, then we'd know 'a : 'b).
         (
-            (if can_transitively_outlive(assumptions, a, b))!
-            ----------------------------- ("transitively outlive")
+            (if can_outlive(assumptions, a, b))!
+            ----------------------------- ("outlive through assumption")
             (prove_outlives(_decls, env, assumptions, a, b) => Constraints::none(env))
         )
 
@@ -79,35 +80,35 @@ judgment_fn! {
     }
 }
 
-/// Given a region `start_lt`, find a set of all regions `start_lt` where `start_lt: r2` transitively
-/// according to the function assumption.
-fn transitively_outlived_by(assumptions: Wcs, start_lt: Parameter) -> Set<Parameter> {
+/// Given a region `r1`, find a set of all regions `r2` where `r1 : r2` transitively
+/// according to the assumptions.
+fn transitively_outlived_by(assumptions: Wcs, r1: Parameter) -> Set<Parameter> {
     let mut reachable = Set::new();
 
-    reachable.insert(start_lt.clone());
-    let mut worklist = vec![start_lt.clone()];
+    reachable.insert(r1.clone());
+    let mut worklist = vec![r1.clone()];
 
-    // Take all the outlives assumptions
-    let outlives_assumption: Vec<Relation> = assumptions
+    // Take all the outlives assumptions.
+    let outlives_assumptions: Vec<Relation> = assumptions
         .iter()
         .filter_map(|wc| {
-            if let WcData::Relation(Relation::Outlives(a, b)) = wc.data() {
-                return Some(Relation::Outlives(a.clone(), b.clone()));
+            if let WcData::Relation(Relation::Outlives(r1, r2)) = wc.data() {
+                return Some(Relation::Outlives(r1.clone(), r2.clone()));
             }
             None
         })
         .collect();
 
-    // Find the set of lifetime that is transitively outlived by a
+    // Find the set of lifetime that is transitively outlived by r1.
     while let Some(current) = worklist.pop() {
-        for relation in outlives_assumption.iter() {
-            let Relation::Outlives(a, b) = relation else {
+        for relation in outlives_assumptions.iter() {
+            let Relation::Outlives(r1, r2) = relation else {
                 panic!("we should only have outlive relation here");
             };
 
-            if *a == current {
-                if reachable.insert(b.clone()) {
-                    worklist.push(b.clone());
+            if *r1 == current {
+                if reachable.insert(r2.clone()) {
+                    worklist.push(r2.clone());
                 }
             }
         }
@@ -116,8 +117,8 @@ fn transitively_outlived_by(assumptions: Wcs, start_lt: Parameter) -> Set<Parame
     reachable
 }
 
-// Check if a can transitively outlive b
-fn can_transitively_outlive(assumptions: Wcs, a: Parameter, b: Parameter) -> bool {
+// Check if a can outlive b.
+fn can_outlive(assumptions: Wcs, a: Parameter, b: Parameter) -> bool {
     let outlive_by_a = transitively_outlived_by(assumptions, a);
     outlive_by_a.iter().find(|param| **param == b).is_some()
 }
