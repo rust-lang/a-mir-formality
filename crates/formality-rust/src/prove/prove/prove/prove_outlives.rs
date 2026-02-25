@@ -62,7 +62,8 @@ judgment_fn! {
         // 'a : 'b if  we can find `'a : 'b` in assumptions, or if there is transtive
         // outlive relationship (if we have 'a : 'c and 'c : 'b, then we'd know 'a : 'b).
         (
-            (if can_outlive(assumptions, a, b))!
+            (let all_outlives = transitively_outlived_by(assumptions, a))
+            (if all_outlives.iter().find(|param| **param == b).is_some())!
             ----------------------------- ("outlive through assumption")
             (prove_outlives(_decls, env, assumptions, a, b) => Constraints::none(env))
         )
@@ -115,12 +116,6 @@ fn transitively_outlived_by(assumptions: Wcs, r1: Parameter) -> Set<Parameter> {
     }
 
     reachable
-}
-
-// Check if a can outlive b.
-fn can_outlive(assumptions: Wcs, a: Parameter, b: Parameter) -> bool {
-    let outlive_by_a = transitively_outlived_by(assumptions, a);
-    outlive_by_a.iter().find(|param| **param == b).is_some()
 }
 
 // test case
