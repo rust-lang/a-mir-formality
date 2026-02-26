@@ -1,3 +1,4 @@
+use crate::check::mini_rust_check::ty_is_int;
 use crate::grammar::minirust::{
     ArgumentExpression, BasicBlock, BbId, FieldProjection, LocalId, PlaceExpression, Statement,
     Terminator, ValueExpression,
@@ -134,18 +135,8 @@ enum AccessKind {
 /// Given the `TypeckEnv`, and a (populated) list of `pending_outlives`
 /// constraints, it attempts to find values for the existential lifetime variables (inference variables)
 /// that satisfy those pending-outlives constraints and which meet the borrow checker's rules.
-pub fn borrow_check(
-    env: &TypeckEnv,
-    fn_assumptions: &Wcs,
-    pending_outlives: &Set<PendingOutlives>,
-) -> Fallible<ProofTree> {
+pub fn borrow_check(env: &TypeckEnv, fn_assumptions: &Wcs) -> Fallible<ProofTree> {
     let mut proof_tree = ProofTree::new(format!("borrow_check"), None, vec![]);
-
-    // Verify that all pending outlives between universal lifetime variables
-    // can be proven from the fn_assumptions.
-    proof_tree
-        .children
-        .push(verify_universal_outlives(env, fn_assumptions, pending_outlives).check_proven()?);
 
     // Start the check from the entry block.
     //
@@ -158,15 +149,8 @@ pub fn borrow_check(
     let stack: Vec<StackEntry> = vec![];
     let loans_live: Set<Loan> = set![];
     proof_tree.children.push(
-        borrow_check_block(
-            stack,
-            env,
-            fn_assumptions,
-            loans_live,
-            pending_outlives.clone(),
-            &start_bb.id,
-        )
-        .check_proven()?,
+        borrow_check_block(stack, env, fn_assumptions, loans_live, (), &start_bb.id)
+            .check_proven()?,
     );
     Ok(proof_tree)
 }
@@ -174,7 +158,7 @@ pub fn borrow_check(
 judgment_fn! {
     /// Verify that all pending outlives constraints between universal lifetime variables
     /// can be proven from the function's where-clause assumptions.
-    fn verify_universal_outlives(
+    pub(crate) fn verify_universal_outlives(
         env: TypeckEnv,
         fn_assumptions: Wcs,
         outlives: Set<PendingOutlives>,
@@ -362,7 +346,8 @@ judgment_fn! {
                 .cloned()
                 .collect())
             (let places_live = places_live_before_basic_blocks(env, successors))
-            (borrow_check_value_expression(env, assumptions, loans_live, outlives, switch_value, places_live) => (_switch_ty, outlives, loans_live))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, switch_value, places_live) => (switch_ty, outlives, loans_live))
+            (env.prove_judgment(outlives, Location, assumptions, switch_ty, ty_is_int) => outlives)
             (for_all(successor in successors)
                 (borrow_check_block(stack, env, assumptions, loans_live, outlives, successor) => ()))
             --- ("switch")

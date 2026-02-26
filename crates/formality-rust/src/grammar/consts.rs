@@ -1,4 +1,4 @@
-use crate::grammar::{minirust, ParameterKind, Parameters, RigidName, ScalarId};
+use crate::grammar::{minirust, ParameterKind, Parameters, RigidName, ScalarId, Ty};
 
 use super::{Parameter, Variable};
 use formality_core::{cast_impl, term, DowncastTo, Upcast, UpcastFrom};
@@ -40,10 +40,16 @@ pub enum ConstData {
     Scalar(ScalarValue),
 
     #[cast]
-    RvToTsv(minirust::Body),
+    RvToTsv(MiniRustConst),
 
     #[variable(ParameterKind::Const)]
     Variable(Variable),
+}
+
+#[term(($ty) $body)]
+pub struct MiniRustConst {
+    pub ty: Ty,
+    pub body: minirust::Body,
 }
 
 #[term]
@@ -128,4 +134,4 @@ impl UpcastFrom<ConstData> for Const {
 
 cast_impl!((ConstData) <: (Const) <: (Parameter));
 cast_impl!((ScalarValue) <: (ConstData) <: (Const));
-cast_impl!((minirust::Body) <: (ConstData) <: (Const));
+cast_impl!((MiniRustConst) <: (ConstData) <: (Const));

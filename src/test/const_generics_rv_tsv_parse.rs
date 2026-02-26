@@ -7,13 +7,11 @@ fn parse_minirust_22() {
             crate Foo {
                 trait Trait<const N> where type_of_const N is usize {}
                 impl Trait<
-                   const minirust() -> v0 {
-                        let v0: usize;
-
+                   const (usize) minirust {
                         exists<> {
                             bb1: {
                                 statements {
-                                    local(v0) = constant(22: usize);
+                                    local(_return) = constant(22: usize);
                                 }
                                 return;
                             }
