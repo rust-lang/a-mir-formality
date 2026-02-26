@@ -141,7 +141,7 @@ fn min_problem_case_3() {
             crate Foo {
                 struct Map { }
 
-                fn min_problem_case_3<'a>(&mut 'a Map) -> &mut 'a Map
+                fn min_problem_case_3<'a>(m: &mut 'a Map) -> &mut 'a Map
                 = minirust(m) -> ret {
                     let ret: &mut 'a Map;
                     let m: &mut 'a Map;
@@ -227,7 +227,7 @@ fn too_min_problem_case_3() {
             crate Foo {
                 struct Map { }
 
-                fn min_problem_case_3<'a>(&mut 'a Map) -> &mut 'a Map
+                fn min_problem_case_3<'a>(m: &mut 'a Map) -> &mut 'a Map
                 = minirust(m) -> ret {
                     let ret: &mut 'a Map;
                     let m: &mut 'a Map;
@@ -270,7 +270,7 @@ fn undeclared_universal_region_relationship() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo<'a, 'b>(&'a u32) -> &'b u32 = minirust(v1) -> v0 {
+                fn foo<'a, 'b>(v1: &'a u32) -> &'b u32 = minirust(v1) -> v0 {
                     let v0: &'b u32;
                     let v1: &'a u32;
 
@@ -292,7 +292,7 @@ fn undeclared_universal_region_relationship() {
         [
         ]
 
-        expect_test::expect!["judgment had no applicable rules: `verify_universal_outlives { env: TypeckEnv { program: [crate Foo { fn foo <lt, lt> (&^lt0_0 u32) -> &^lt0_1 u32 = minirust(v1) -> v0 { let v0 : &^lt0_1 u32 ; let v1 : &^lt0_0 u32 ; exists <lt> { let v2 : &^lt0_0 u32 ; bb0 : { statements{ local(v2) = load(local(v1)) ; local(v0) = load(local(v2)) ; } return ; } } } ; }], env: Env { variables: [!lt_1, !lt_2, ?lt_3], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: &!lt_2 u32, local_variables: {v0: &!lt_2 u32, v1: &!lt_1 u32, v2: &?lt_3 u32}, blocks: [bb0 : { statements{ local(v2) = load(local(v1)) ; local(v0) = load(local(v2)) ; } return ; }], ret_id: v0, declared_input_tys: [&!lt_1 u32], crate_id: Foo, fn_args: [v1], decls: decls([crate Foo { fn foo <lt, lt> (&^lt0_0 u32) -> &^lt0_1 u32 = minirust(v1) -> v0 { let v0 : &^lt0_1 u32 ; let v1 : &^lt0_0 u32 ; exists <lt> { let v2 : &^lt0_0 u32 ; bb0 : { statements{ local(v2) = load(local(v1)) ; local(v0) = load(local(v2)) ; } return ; } } } ; }], 222) }, fn_assumptions: {}, outlives: {PendingOutlives { location: Location, a: !lt_1, b: ?lt_3 }, PendingOutlives { location: Location, a: ?lt_3, b: !lt_2 }} }`"]
+        expect_test::expect!["judgment had no applicable rules: `verify_universal_outlives { env: TypeckEnv { program: [crate Foo { fn foo <lt, lt> (v1 : &^lt0_0 u32) -> &^lt0_1 u32 = minirust(v1) -> v0 { let v0 : &^lt0_1 u32 ; let v1 : &^lt0_0 u32 ; exists <lt> { let v2 : &^lt0_0 u32 ; bb0 : { statements{ local(v2) = load(local(v1)) ; local(v0) = load(local(v2)) ; } return ; } } } ; }], env: Env { variables: [!lt_1, !lt_2, ?lt_3], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: &!lt_2 u32, local_variables: {v0: &!lt_2 u32, v1: &!lt_1 u32, v2: &?lt_3 u32}, blocks: [bb0 : { statements{ local(v2) = load(local(v1)) ; local(v0) = load(local(v2)) ; } return ; }], ret_id: v0, input_args: [v1 : &!lt_1 u32], crate_id: Foo, decls: decls([crate Foo { fn foo <lt, lt> (v1 : &^lt0_0 u32) -> &^lt0_1 u32 = minirust(v1) -> v0 { let v0 : &^lt0_1 u32 ; let v1 : &^lt0_0 u32 ; exists <lt> { let v2 : &^lt0_0 u32 ; bb0 : { statements{ local(v2) = load(local(v1)) ; local(v0) = load(local(v2)) ; } return ; } } } ; }], 222) }, fn_assumptions: {}, outlives: {PendingOutlives { location: Location, a: !lt_1, b: ?lt_3 }, PendingOutlives { location: Location, a: ?lt_3, b: !lt_2 }} }`"]
     )
 }
 
@@ -303,7 +303,7 @@ fn declared_universal_region_relationship() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo<'a, 'b>(&'a u32) -> &'b u32
+                fn foo<'a, 'b>(v1: &'a u32) -> &'b u32
                 where
                     'a: 'b,
                 = minirust(v1) -> v0 {
@@ -334,7 +334,7 @@ fn declared_transitive_universal_region_relationship() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo<'a, 'b, 'c>(&'a u32) -> &'c u32
+                fn foo<'a, 'b, 'c>(v1: &'a u32) -> &'c u32
                 where
                     'a: 'b,
                     'b: 'c,
@@ -364,7 +364,7 @@ fn undeclared_transitive_universal_region_relationship() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo<'a, 'b, 'c>(&'a u32) -> &'c u32
+                fn foo<'a, 'b, 'c>(v1: &'a u32) -> &'c u32
                 where
                     'a: 'b,
                 = minirust(v1) -> v0 {
@@ -386,7 +386,7 @@ fn undeclared_transitive_universal_region_relationship() {
 
         []
 
-        expect_test::expect!["judgment had no applicable rules: `verify_universal_outlives { env: TypeckEnv { program: [crate Foo { fn foo <lt, lt, lt> (&^lt0_0 u32) -> &^lt0_2 u32 where ^lt0_0 : ^lt0_1 = minirust(v1) -> v0 { let v0 : &^lt0_2 u32 ; let v1 : &^lt0_0 u32 ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; }], env: Env { variables: [!lt_1, !lt_2, !lt_3], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: &!lt_3 u32, local_variables: {v0: &!lt_3 u32, v1: &!lt_1 u32}, blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; }], ret_id: v0, declared_input_tys: [&!lt_1 u32], crate_id: Foo, fn_args: [v1], decls: decls([crate Foo { fn foo <lt, lt, lt> (&^lt0_0 u32) -> &^lt0_2 u32 where ^lt0_0 : ^lt0_1 = minirust(v1) -> v0 { let v0 : &^lt0_2 u32 ; let v1 : &^lt0_0 u32 ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; }], 222) }, fn_assumptions: {!lt_1 : !lt_2}, outlives: {PendingOutlives { location: Location, a: !lt_1, b: !lt_3 }} }`"]
+        expect_test::expect!["judgment had no applicable rules: `verify_universal_outlives { env: TypeckEnv { program: [crate Foo { fn foo <lt, lt, lt> (v1 : &^lt0_0 u32) -> &^lt0_2 u32 where ^lt0_0 : ^lt0_1 = minirust(v1) -> v0 { let v0 : &^lt0_2 u32 ; let v1 : &^lt0_0 u32 ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; }], env: Env { variables: [!lt_1, !lt_2, !lt_3], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: &!lt_3 u32, local_variables: {v0: &!lt_3 u32, v1: &!lt_1 u32}, blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; }], ret_id: v0, input_args: [v1 : &!lt_1 u32], crate_id: Foo, decls: decls([crate Foo { fn foo <lt, lt, lt> (v1 : &^lt0_0 u32) -> &^lt0_2 u32 where ^lt0_0 : ^lt0_1 = minirust(v1) -> v0 { let v0 : &^lt0_2 u32 ; let v1 : &^lt0_0 u32 ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; }], 222) }, fn_assumptions: {!lt_1 : !lt_2}, outlives: {PendingOutlives { location: Location, a: !lt_1, b: !lt_3 }} }`"]
     )
 }
 
@@ -400,7 +400,7 @@ fn problem_case_4() {
                     value: u32,
                  }
 
-                fn min_problem_case_4<'a>(&mut 'a Map, &mut 'a Map) -> u32 = minirust(list, list2) -> ret {
+                fn min_problem_case_4<'a>(list: &mut 'a Map, list2: &mut 'a Map) -> u32 = minirust(list, list2) -> ret {
                     let list: &mut 'a Map;
                     let list2: &mut 'a Map;
                     let ret: u32;

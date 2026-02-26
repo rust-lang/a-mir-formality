@@ -191,13 +191,13 @@ impl super::Check<'_> {
         let mut env = env.clone();
         let (
             FnBoundData {
-                input_tys: ii_input_tys,
+                input_args: ii_input_args,
                 output_ty: ii_output_ty,
                 where_clauses: ii_where_clauses,
                 body: _,
             },
             FnBoundData {
-                input_tys: ti_input_tys,
+                input_args: ti_input_args,
                 output_ty: ti_output_ty,
                 where_clauses: ti_where_clauses,
                 body: _,
@@ -210,19 +210,19 @@ impl super::Check<'_> {
             &ii_where_clauses,
         )?);
 
-        if ii_input_tys.len() != ti_input_tys.len() {
+        if ii_input_args.len() != ti_input_args.len() {
             bail!(
                 "impl has {} function arguments but trait has {} function arguments",
-                ii_input_tys.len(),
-                ti_input_tys.len()
+                ii_input_args.len(),
+                ti_input_args.len()
             )
         }
 
-        for (ii_input_ty, ti_input_ty) in ii_input_tys.iter().zip(&ti_input_tys) {
+        for (ii_input_arg, ti_input_arg) in ii_input_args.iter().zip(&ti_input_args) {
             proof_tree.children.push(self.prove_goal(
                 &env,
                 (&impl_assumptions, &ii_where_clauses),
-                Relation::sub(ti_input_ty, ii_input_ty),
+                Relation::sub(&ti_input_arg.ty, &ii_input_arg.ty),
             )?);
         }
 

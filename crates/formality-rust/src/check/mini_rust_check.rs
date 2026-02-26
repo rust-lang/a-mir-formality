@@ -8,8 +8,8 @@ use crate::grammar::minirust::{
 };
 use crate::grammar::minirust::{BodyBound, PlaceExpression::*};
 use crate::grammar::{
-    AdtId, Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId,
-    Wcs,
+    AdtId, Binder, CrateId, FnId, InputArg, Parameter, Relation, RigidName, RigidTy, Ty, TyData,
+    VariantId, Wcs,
 };
 use crate::grammar::{Fn as FnDecl, Program};
 use crate::prove::prove::{
@@ -30,7 +30,7 @@ impl Check<'_> {
         output_ty: impl Upcast<Ty>,
         fn_assumptions: &Wcs,
         body: minirust::Body,
-        declared_input_tys: Vec<Ty>,
+        input_args: Vec<InputArg>,
         crate_id: &CrateId,
     ) -> Fallible<ProofTree> {
         // ----------------------------------------------------------------------
@@ -86,15 +86,6 @@ impl Check<'_> {
             .chain(locals.iter().map(|lv| (lv.id.clone(), lv.ty.clone())))
             .collect();
 
-        // Check whether the number of declared function parameters matches the number of arguments provided.
-        if declared_input_tys.len() != body.args.len() {
-            bail!(
-                "Function argument number mismatch: expected {} arguments, but found {}",
-                declared_input_tys.len(),
-                body.args.len()
-            );
-        }
-
         let env = TypeckEnv {
             program: Arc::new(self.program.clone()),
             env: env.clone(),
@@ -102,9 +93,8 @@ impl Check<'_> {
             local_variables,
             blocks: blocks.clone(),
             ret_id: body.ret,
-            declared_input_tys,
+            input_args,
             crate_id: crate_id.clone(),
-            fn_args: body.args.clone(),
             decls: self.decls.clone(),
         };
 
@@ -195,7 +185,7 @@ judgment_fn! {
         (
             (if let Some((local_id, _)) = env.find_local_id(local_id))
             (if *local_id != env.ret_id)
-            (if !env.fn_args.iter().any(|fn_arg| *local_id == *fn_arg))
+            (if !env.input_args.iter().any(|arg| *local_id == arg.id))
             --- ("storage-dead")
             (check_statement(env, outlives, _fn_assumptions, minirust::Statement::StorageDead(local_id)) => (env, outlives))
         )
@@ -344,11 +334,13 @@ judgment_fn! {
 
             // Instantiate the function signature universally (returns new env)
             (let (fn_bound_data, env) = env.instantiate_universally(&fn_decl.binder))
+            (let callee_declared_input_tys: Vec<Ty> = fn_bound_data.input_args.iter().map(|a| a.ty.clone()).collect())
+
             // Check argument count matches
-            (if fn_bound_data.input_tys.len() == actual_arguments.len())
+            (if callee_declared_input_tys.len() == actual_arguments.len())
 
             // Check each argument and subtyping
-            (for_all(arg_pair in fn_bound_data.input_tys.iter().zip(actual_arguments)) with(outlives)
+            (for_all(arg_pair in callee_declared_input_tys.iter().zip(actual_arguments)) with(outlives)
                 (let (declared_ty, actual_argument) = arg_pair)
                 (check_argument_expression(env, outlives, fn_assumptions, &actual_argument) => (actual_ty, _env, outlives))
                 (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(actual_ty, declared_ty)) => outlives))
@@ -475,16 +467,13 @@ pub struct TypeckEnv {
     /// local_id of return place,
     pub ret_id: LocalId,
 
-    /// All declared argument type of current function.
-    pub declared_input_tys: Vec<Ty>,
+    /// The input arguments (name + type) of the current function.
+    pub input_args: Vec<InputArg>,
 
     /// The id of the crate where this function resides.
     /// We need this to access information about other functions
     /// declared in the current crate.
     pub crate_id: CrateId,
-
-    /// LocalId of function argument.
-    pub fn_args: Vec<LocalId>,
 
     pub decls: Decls,
 }

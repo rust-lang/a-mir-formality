@@ -6,7 +6,7 @@ fn test_assign_statement_local_only() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -116,7 +116,7 @@ fn test_goto_terminator() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -201,7 +201,7 @@ fn test_call_terminator() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo(u32) -> u32 = minirust(v1) -> v0 {
+                fn foo(v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -214,7 +214,7 @@ fn test_call_terminator() {
                     }
                 };
 
-                fn bar(u32) -> u32 = minirust(v1) -> v0 {
+                fn bar(v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -252,7 +252,7 @@ fn test_place_mention_statement() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -276,7 +276,7 @@ fn test_storage_live_dead() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -308,7 +308,7 @@ fn test_struct() {
                     is_true: bool,
                 }
 
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -335,7 +335,7 @@ fn test_no_next_bb_for_call_terminator() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo(u32) -> u32 = minirust(v1) -> v0 {
+                fn foo(v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -400,7 +400,7 @@ fn test_pass_non_subtype_arg() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo(u32) -> u32 = minirust(v1) -> v0 {
+                fn foo(v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -413,7 +413,7 @@ fn test_pass_non_subtype_arg() {
                     }
                 };
 
-                fn bar(()) -> () = minirust(v1) -> v0 {
+                fn bar(v1: ()) -> () = minirust(v1) -> v0 {
                     let v0: ();
                     let v1: ();
                     exists {
@@ -433,7 +433,7 @@ fn test_pass_non_subtype_arg() {
             }
         ]
         []
-        expect_test::expect!["judgment had no applicable rules: `check_blocks { blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(v0) goto Some(bb1) ; }, bb1 : { statements{ } return ; }], fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { fn foo (u32) -> u32 = minirust(v1) -> v0 { let v0 : u32 ; let v1 : u32 ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; fn bar (()) -> () = minirust(v1) -> v0 { let v0 : () ; let v1 : () ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(v0) goto Some(bb1) ; } bb1 : { statements{ } return ; } } } ; }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: (), local_variables: {v0: (), v1: ()}, blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(v0) goto Some(bb1) ; }, bb1 : { statements{ } return ; }], ret_id: v0, declared_input_tys: [()], crate_id: Foo, fn_args: [v1], decls: decls([crate Foo { fn foo (u32) -> u32 = minirust(v1) -> v0 { let v0 : u32 ; let v1 : u32 ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; fn bar (()) -> () = minirust(v1) -> v0 { let v0 : () ; let v1 : () ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(v0) goto Some(bb1) ; } bb1 : { statements{ } return ; } } } ; }], 222) }, outlives: {} }`"]
+        expect_test::expect!["judgment had no applicable rules: `check_blocks { blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(v0) goto Some(bb1) ; }, bb1 : { statements{ } return ; }], fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { fn foo (v1 : u32) -> u32 = minirust(v1) -> v0 { let v0 : u32 ; let v1 : u32 ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; fn bar (v1 : ()) -> () = minirust(v1) -> v0 { let v0 : () ; let v1 : () ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(v0) goto Some(bb1) ; } bb1 : { statements{ } return ; } } } ; }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: (), local_variables: {v0: (), v1: ()}, blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(v0) goto Some(bb1) ; }, bb1 : { statements{ } return ; }], ret_id: v0, input_args: [v1 : ()], crate_id: Foo, decls: decls([crate Foo { fn foo (v1 : u32) -> u32 = minirust(v1) -> v0 { let v0 : u32 ; let v1 : u32 ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; fn bar (v1 : ()) -> () = minirust(v1) -> v0 { let v0 : () ; let v1 : () ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(v0) goto Some(bb1) ; } bb1 : { statements{ } return ; } } } ; }], 222) }, outlives: {} }`"]
     )
 }
 
@@ -443,7 +443,7 @@ fn test_invalid_next_bbid_for_call_terminator() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo(u32) -> u32 = minirust(v1) -> v0 {
+                fn foo(v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -492,7 +492,7 @@ fn test_incompatible_return_type() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo (()) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: ()) -> u32 = minirust(v1) -> v0 {
                     let v0: ();
                     let v1: ();
                     exists {
@@ -509,13 +509,13 @@ fn test_incompatible_return_type() {
 
         []
 
-        expect_test::expect!["judgment had no applicable rules: `prove { goal: {() <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: decls([crate Foo { fn foo (()) -> u32 = minirust(v1) -> v0 { let v0 : () ; let v1 : () ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; }], 222) }`"]
+        expect_test::expect!["judgment had no applicable rules: `prove { goal: {() <: u32}, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: decls([crate Foo { fn foo (v1 : ()) -> u32 = minirust(v1) -> v0 { let v0 : () ; let v1 : () ; exists { bb0 : { statements{ local(v0) = load(local(v1)) ; } return ; } } } ; }], 222) }`"]
     )
 }
 
 #[test]
 fn test_function_arg_number_mismatch() {
-    crate::assert_err!(
+    crate::assert_ok!(
         [
             crate Foo {
                 fn foo () -> () = minirust(v1) -> v0 {
@@ -526,10 +526,6 @@ fn test_function_arg_number_mismatch() {
                 };
             }
         ]
-
-        []
-
-        expect_test::expect!["Function argument number mismatch: expected 0 arguments, but found 1"]
     )
 }
 
@@ -606,7 +602,7 @@ fn test_ret_place_storage_dead() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -623,7 +619,7 @@ fn test_ret_place_storage_dead() {
         []
         expect_test::expect![[r#"
             the rule "storage-dead" at (mini_rust_check.rs) failed because
-              condition evaluted to false: `!env.fn_args.iter().any(|fn_arg| *local_id == *fn_arg)`"#]]
+              condition evaluted to false: `!env.input_args.iter().any(|arg| *local_id == arg.id)`"#]]
     )
 }
 
@@ -633,7 +629,7 @@ fn test_fn_arg_storage_dead() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -664,7 +660,7 @@ fn test_invalid_struct_field() {
                     value: u32,
                 }
 
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -699,7 +695,7 @@ fn test_field_projection_root_non_adt() {
                     value: u32,
                 }
 
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -734,7 +730,7 @@ fn test_struct_wrong_type_in_initialisation() {
                     value: u32,
                 }
 
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -752,7 +748,7 @@ fn test_struct_wrong_type_in_initialisation() {
             }
         ]
         []
-        expect_test::expect!["judgment had no applicable rules: `check_blocks { blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; }], fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { struct Dummy { value : u32 } fn foo (u32) -> u32 = minirust(v1) -> v0 { let v0 : u32 ; let v1 : u32 ; exists { let v2 : Dummy ; bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; } } } ; }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: u32, local_variables: {v0: u32, v1: u32, v2: Dummy}, blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; }], ret_id: v0, declared_input_tys: [u32], crate_id: Foo, fn_args: [v1], decls: decls([crate Foo { struct Dummy { value : u32 } fn foo (u32) -> u32 = minirust(v1) -> v0 { let v0 : u32 ; let v1 : u32 ; exists { let v2 : Dummy ; bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; } } } ; }], 222) }, outlives: {} }`"]
+        expect_test::expect!["judgment had no applicable rules: `check_blocks { blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; }], fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { struct Dummy { value : u32 } fn foo (v1 : u32) -> u32 = minirust(v1) -> v0 { let v0 : u32 ; let v1 : u32 ; exists { let v2 : Dummy ; bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; } } } ; }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: u32, local_variables: {v0: u32, v1: u32, v2: Dummy}, blocks: [bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; }], ret_id: v0, input_args: [v1 : u32], crate_id: Foo, decls: decls([crate Foo { struct Dummy { value : u32 } fn foo (v1 : u32) -> u32 = minirust(v1) -> v0 { let v0 : u32 ; let v1 : u32 ; exists { let v2 : Dummy ; bb0 : { statements{ local(v0) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; } } } ; }], 222) }, outlives: {} }`"]
     )
 }
 
@@ -763,7 +759,7 @@ fn test_non_adt_ty_for_struct() {
         [
             crate Foo {
 
-                fn foo (u32) -> u32 = minirust(v1) -> v0 {
+                fn foo (v1: u32) -> u32 = minirust(v1) -> v0 {
                     let v0: u32;
                     let v1: u32;
                     exists {
@@ -801,7 +797,7 @@ fn test_ref_identity() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo<'a>(&'a u32) -> &'a u32 = minirust(v1) -> v0 {
+                fn foo<'a>(v1: &'a u32) -> &'a u32 = minirust(v1) -> v0 {
                     let v0: &'a u32;
                     let v1: &'a u32;
 

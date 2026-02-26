@@ -49,7 +49,7 @@ impl Check<'_> {
         // unknown types).
         let Fn { id: _, binder } = f;
         let FnBoundData {
-            input_tys,
+            input_args,
             output_ty,
             where_clauses,
             body,
@@ -64,11 +64,11 @@ impl Check<'_> {
         proof_tree
             .children
             .push(self.prove_where_clauses_well_formed(&env, &fn_assumptions, &where_clauses)?);
-        for input_ty in &input_tys {
+        for input_arg in &input_args {
             proof_tree.children.push(self.prove_goal(
                 &env,
                 &fn_assumptions,
-                input_ty.well_formed(),
+                input_arg.ty.well_formed(),
             )?);
         }
         proof_tree.children.push(self.prove_goal(
@@ -93,7 +93,7 @@ impl Check<'_> {
                         &output_ty,
                         &fn_assumptions,
                         body,
-                        input_tys,
+                        input_args,
                         crate_id,
                     )?);
                 }
