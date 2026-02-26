@@ -1,4 +1,3 @@
-use crate::check::mini_rust_check::ty_is_int;
 use crate::grammar::minirust::{
     ArgumentExpression, BasicBlock, BbId, FieldProjection, LocalId, PlaceExpression, Statement,
     Terminator, ValueExpression,
@@ -18,7 +17,7 @@ use crate::check::{
         places_live_before_basic_blocks, places_live_before_terminator, Assignment, LiveBefore,
         LivePlaces,
     },
-    mini_rust_check::{ty_is_adt, ty_is_ref, Location, PendingOutlives, TypeckEnv},
+    mini_rust_check::{ty_is_adt, ty_is_int, ty_is_ref, Location, PendingOutlives, TypeckEnv},
 };
 
 /// Represents a loan that resulted from executing a borrow expression like `&'0 place`.
