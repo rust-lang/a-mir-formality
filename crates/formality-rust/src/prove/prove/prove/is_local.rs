@@ -65,7 +65,7 @@ judgment_fn! {
         (
             // In principle this rule could be removed and preserve soundness,
             // but then we would accept code that is very prone to semver failures.
-            (may_not_be_provable(env, assumptions.clone(), goal.clone(), |env, assumptions, goal| is_local_trait_ref(decls, &env, assumptions, goal)) => c)
+            (may_not_be_provable(env, assumptions, goal, |env, assumptions, goal| is_local_trait_ref(decls, &env, assumptions, goal)) => c)
             --- ("may be added by upstream in a minor release")
             (may_be_remote(decls, env, assumptions, goal) => c)
         )
@@ -121,7 +121,7 @@ judgment_fn! {
             (may_contain_downstream_type(decls, env, assumptions, p) => ())
 
             // (b) the alias cannot be normalized to something that may not be downstream
-            (may_not_be_provable(env, assumptions.clone(), AliasTy::new(name, parameters), |env, assumptions, alias|
+            (may_not_be_provable(env, assumptions, &AliasTy::new(name, parameters), |env, assumptions, alias|
                 normalizes_to_not_downstream(decls, &env, &assumptions, &alias)
             ) => c)
             --- ("via normalize")

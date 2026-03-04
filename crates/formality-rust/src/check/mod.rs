@@ -198,7 +198,7 @@ impl Check<'_> {
         let cs = is_definitely_not_proveable(
             env,
             &assumptions,
-            goal.clone(),
+            &goal,
             |env, assumptions, goal| {
                 crate::prove::prove::prove(self.decls, env, &assumptions, &goal)
             },

@@ -17,7 +17,7 @@ use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
 pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
-    data: T,
+    data: &T,
     f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints> {
     assert!(env.bias() == Bias::Soundness);
@@ -47,7 +47,7 @@ pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang>>(
 pub fn may_not_be_provable<T: CoreFold<FormalityLang>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
-    data: T,
+    data: &T,
     f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints> {
     assert!(env.bias() == Bias::Completeness);
@@ -57,7 +57,7 @@ pub fn may_not_be_provable<T: CoreFold<FormalityLang>>(
 pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
-    data: T,
+    data: &T,
     f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints> {
     let assumptions: Wcs = assumptions.upcast();
@@ -85,7 +85,7 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
         .collect();
 
     let flipped_assumptions = flip_quantification.apply(&assumptions);
-    let flipped_data = flip_quantification.apply(&data);
+    let flipped_data = flip_quantification.apply(data);
 
     let cs = f(flipped_env, flipped_assumptions, flipped_data);
     match cs.into_map() {
