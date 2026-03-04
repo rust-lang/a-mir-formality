@@ -91,7 +91,10 @@ macro_rules! judgment_fn {
             // assign the span of the panic to the assertion expression and not the invocation of the judgment_fn
             // macro. Annoying! But our proc macros already reference `formality_core` so that seems ok.
             {
-                $(let $input_name = &$input_name;)*
+                $(
+                    #[allow(unused_variables)]
+                    let $input_name = &$input_name;
+                )*
                 $(
                     $crate::respan!(
                         $assert_expr
