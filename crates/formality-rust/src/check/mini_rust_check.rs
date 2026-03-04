@@ -173,27 +173,27 @@ judgment_fn! {
         debug(statement, fn_assumptions, env, outlives)
 
         (
-            (check_place(env, outlives, fn_assumptions, &place) => (place_ty, env, outlives))
-            (check_value(env, outlives, fn_assumptions, &value) => (value_ty, env, outlives))
+            (check_place(env, outlives, fn_assumptions, place) => (place_ty, env, outlives))
+            (check_value(env, outlives, fn_assumptions, value) => (value_ty, env, outlives))
             (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(value_ty.clone(), place_ty.clone())) => outlives)
             --- ("assign")
             (check_statement(env, outlives, fn_assumptions, minirust::Statement::Assign(place, value)) => (env.clone().clone(), outlives))
         )
 
         (
-            (check_place(env, outlives, fn_assumptions, &place) => (_place_ty, env, outlives))
+            (check_place(env, outlives, fn_assumptions, place) => (_place_ty, env, outlives))
             --- ("place-mention")
             (check_statement(env, outlives, fn_assumptions, minirust::Statement::PlaceMention(place)) => (env, outlives))
         )
 
         (
-            (if env.find_local_id(&local_id).is_some())
+            (if env.find_local_id(local_id).is_some())
             --- ("storage-live")
             (check_statement(env, outlives, _fn_assumptions, minirust::Statement::StorageLive(local_id)) => (env, outlives))
         )
 
         (
-            (if let Some((local_id, _)) = env.find_local_id(&local_id))
+            (if let Some((local_id, _)) = env.find_local_id(local_id))
             (if *local_id != env.ret_id)
             (if !env.fn_args.iter().any(|fn_arg| *local_id == *fn_arg))
             --- ("storage-dead")
@@ -212,13 +212,13 @@ judgment_fn! {
         debug(value, fn_assumptions, env, outlives)
 
         (
-            (check_place(env, outlives, fn_assumptions, &place) => (place_ty, env, outlives))
+            (check_place(env, outlives, fn_assumptions, place) => (place_ty, env, outlives))
             --- ("load")
             (check_value(env, outlives, fn_assumptions, Load(place)) => (place_ty, env, outlives))
         )
 
         (
-            (if let Some(fn_decl) = env.fn_decl(&fn_id))
+            (if let Some(fn_decl) = env.fn_decl(fn_id))
             (let value_ty = Ty::rigid(RigidName::FnDef(fn_decl.id.clone()), Vec::<Parameter>::new()))
             --- ("fn")
             (check_value(env, outlives, _fn_assumptions, Fn(fn_id)) => (value_ty, env, outlives))
@@ -232,7 +232,7 @@ judgment_fn! {
 
         (
             (env.prove_goal(outlives, Location, fn_assumptions, ty.well_formed()) => outlives)
-            (if let Some((adt_id, parameters)) = ty_is_adt(&ty))
+            (if let Some((adt_id, parameters)) = ty_is_adt(ty))
             (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
@@ -246,8 +246,8 @@ judgment_fn! {
         )
 
         (
-            (check_place(env, outlives, fn_assumptions, &place_expr) => (place_ty, env, outlives))
-            (let value_ty = place_ty.ref_ty_of_kind(*ref_kind, &borrow_lt))
+            (check_place(env, outlives, fn_assumptions, place_expr) => (place_ty, env, outlives))
+            (let value_ty = place_ty.ref_ty_of_kind(*ref_kind, borrow_lt))
             --- ("ref")
             (check_value(env, outlives, fn_assumptions, Ref(ref_kind, borrow_lt, place_expr)) => (value_ty, env, outlives))
         )
@@ -264,7 +264,7 @@ judgment_fn! {
         debug(place, fn_assumptions, env, outlives)
 
         (
-            (if let Some((_, ty)) = env.find_local_id(&local_id))
+            (if let Some((_, ty)) = env.find_local_id(local_id))
             --- ("local")
             (check_place(env, outlives, _fn_assumptions, Local(local_id)) => (ty, env, outlives))
         )
@@ -302,13 +302,13 @@ judgment_fn! {
         debug(arg_expr, fn_assumptions, env, outlives)
 
         (
-            (check_value(env, outlives, fn_assumptions, &val_expr) => (ty, env, outlives))
+            (check_value(env, outlives, fn_assumptions, val_expr) => (ty, env, outlives))
             --- ("by-value")
             (check_argument_expression(env, outlives, fn_assumptions, ByValue(val_expr)) => (ty, env, outlives))
         )
 
         (
-            (check_place(env, outlives, fn_assumptions, &place_expr) => (ty, env, outlives))
+            (check_place(env, outlives, fn_assumptions, place_expr) => (ty, env, outlives))
             --- ("in-place")
             (check_argument_expression(env, outlives, fn_assumptions, InPlace(place_expr)) => (ty, env, outlives))
         )
@@ -333,7 +333,7 @@ judgment_fn! {
 
         (
             // Check callee value expression
-            (check_value(env, outlives, fn_assumptions, &callee) => (callee_ty, env, outlives))
+            (check_value(env, outlives, fn_assumptions, callee) => (callee_ty, env, outlives))
 
             // Extract FnDef from callee type
             (if let TyData::RigidTy(rigid_ty) = callee_ty.data())
@@ -356,7 +356,7 @@ judgment_fn! {
                 (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(actual_ty, declared_ty)) => outlives))
 
             // Check return place
-            (check_place(env, outlives, fn_assumptions, &ret) => (actual_return_ty, env, outlives))
+            (check_place(env, outlives, fn_assumptions, ret) => (actual_return_ty, env, outlives))
             (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(&fn_bound_data.output_ty, &actual_return_ty)) => outlives)
 
             // Check next block exists if present
@@ -378,12 +378,12 @@ judgment_fn! {
 
         (
             // Check switch value
-            (check_value(env, outlives, fn_assumptions, &switch_value) => (value_ty, env, outlives))
+            (check_value(env, outlives, fn_assumptions, switch_value) => (value_ty, env, outlives))
             (env.prove_judgment(outlives.clone(), Location, fn_assumptions, value_ty, ty_is_int) => outlives)
 
             // Check all target blocks exist
             (for_all(switch_target in switch_targets) (if env.block_exists(&switch_target.target)))
-            (if env.block_exists(&fallback))
+            (if env.block_exists(fallback))
             --- ("switch")
             (check_terminator(env, outlives, fn_assumptions, minirust::Terminator::Switch {
                 switch_value,

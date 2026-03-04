@@ -108,7 +108,7 @@ judgment_fn! {
         // These rules handle the the ∀ and ⇒ cases.
 
         (
-            (let (env, subst) = env.existential_substitution(&binder))
+            (let (env, subst) = env.existential_substitution(binder))
             (let via1 = binder.instantiate_with(&subst).unwrap())
             (prove_normalize_via(decls, env, assumptions, via1, goal) => (c, p))
             (let c = c.clone().pop_subst(&subst))
@@ -118,8 +118,8 @@ judgment_fn! {
         )
 
         (
-            (prove_normalize_via(decls, env, assumptions, &wc_consequence, goal) => (c, p))
-            (prove_after(decls, c, assumptions, &wc_condition) => c)
+            (prove_normalize_via(decls, env, assumptions, wc_consequence, goal) => (c, p))
+            (prove_after(decls, c, assumptions, wc_condition) => c)
             (let p = c.substitution().apply(p))
             ----------------------------- ("implies")
             (prove_normalize_via(decls, env, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => (c, p))

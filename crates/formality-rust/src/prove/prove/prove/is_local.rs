@@ -121,8 +121,8 @@ judgment_fn! {
             (may_contain_downstream_type(decls, env, assumptions, p) => ())
 
             // (b) the alias cannot be normalized to something that may not be downstream
-            (may_not_be_provable(env, assumptions.clone(), AliasTy::new(&name, &parameters), |env, assumptions, alias|
-                normalizes_to_not_downstream(&decls, &env, &assumptions, &alias)
+            (may_not_be_provable(env, assumptions.clone(), AliasTy::new(name, parameters), |env, assumptions, alias|
+                normalizes_to_not_downstream(decls, &env, &assumptions, &alias)
             ) => c)
             --- ("via normalize")
             (may_be_downstream_parameter(decls, env, assumptions, AliasTy { name, parameters }) => c)
@@ -167,7 +167,7 @@ judgment_fn! {
 
         // ForAll predicates: open existentially and check
         (
-            (let (env, ty) = { let mut e = Clone::clone(env); let ty = e.instantiate_existentially(&binder); (e, ty) })
+            (let (env, ty) = { let mut e = Clone::clone(env); let ty = e.instantiate_existentially(binder); (e, ty) })
             (may_contain_downstream_type(decls, env, assumptions, ty) => ())
             --- ("forall")
             (may_contain_downstream_type(decls, env, assumptions,
@@ -294,15 +294,15 @@ judgment_fn! {
 
         // Fundamental types are local if all their arguments are local.
         (
-            (if is_fundamental(&decls, &name))
-            (for_all(decls, env, assumptions, &parameters, &is_local_parameter) => c)
+            (if is_fundamental(decls, name))
+            (for_all(decls, env, assumptions, parameters, &is_local_parameter) => c)
             --- ("fundamental rigid type")
             (is_local_parameter(decls, env, assumptions, RigidTy { name, parameters }) => c)
         )
 
         // ADTs are local if they were declared in this crate.
         (
-            (if decls.is_local_adt_id(&a))
+            (if decls.is_local_adt_id(a))
             --- ("local rigid type")
             (is_local_parameter(decls, env, _assumptions, RigidTy { name: RigidName::AdtId(a), parameters: _ }) => Constraints::none(env))
         )

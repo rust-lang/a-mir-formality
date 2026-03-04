@@ -24,7 +24,7 @@ judgment_fn! {
         (
             (for_all(switch_target in switch_targets)
              (if env.basic_block(&switch_target.target).is_ok()))
-            (if env.basic_block(&fallback).is_ok())
+            (if env.basic_block(fallback).is_ok())
             --- ("switch")
             (terminator_wf(env, Terminator::Switch { switch_value: _, switch_targets, fallback }) => ())
         )

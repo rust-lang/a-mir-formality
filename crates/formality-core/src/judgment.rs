@@ -83,20 +83,24 @@ macro_rules! judgment_fn {
 
             $(let $input_name: $input_ty = $crate::Upcast::upcast($input_name);)*
 
-            $(
-                // Assertions are preconditions.
-                //
-                // NB: we can't use `$crate` in this expression because of the `respan!` call,
-                // which messes up `$crate` resolution. But we need the respan call for track_caller to properly
-                // assign the span of the panic to the assertion expression and not the invocation of the judgment_fn
-                // macro. Annoying! But our proc macros already reference `formality_core` so that seems ok.
-                $crate::respan!(
-                    $assert_expr
-                    (
-                        formality_core::judgment::JudgmentAssertion::assert($assert_expr, stringify!($assert_expr));
-                    )
-                );
-            )*
+            // Assertions are preconditions. We shadow each input as a reference
+            // so the assert expression borrows rather than consuming the variables.
+            //
+            // NB: we can't use `$crate` in this expression because of the `respan!` call,
+            // which messes up `$crate` resolution. But we need the respan call for track_caller to properly
+            // assign the span of the panic to the assertion expression and not the invocation of the judgment_fn
+            // macro. Annoying! But our proc macros already reference `formality_core` so that seems ok.
+            {
+                $(let $input_name = &$input_name;)*
+                $(
+                    $crate::respan!(
+                        $assert_expr
+                        (
+                            formality_core::judgment::JudgmentAssertion::assert($assert_expr, stringify!($assert_expr));
+                        )
+                    );
+                )*
+            }
 
             $(
                 // Trivial cases are an (important) optimization that lets
@@ -478,7 +482,7 @@ macro_rules! push_rules {
         ($($argn:ident = $arge:expr),*); $cond:expr; $origcond:expr; $($m:tt)*
     ) => {
         $(
-            let $argn = &$arge;
+            let $argn = $arge;
         )*
         let if_then = $crate::judgment::IfThen::new(
             stringify!($origcond),
@@ -486,7 +490,7 @@ macro_rules! push_rules {
                 $(
                     (
                         stringify!($arge),
-                        $crate::judgment::DebugString::new(&$argn),
+                        $crate::judgment::DebugString::new($argn),
                     ),
                 )*
             ],

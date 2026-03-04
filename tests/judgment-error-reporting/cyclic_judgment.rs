@@ -18,10 +18,10 @@ judgment_fn! {
         debug(a, b)
 
         (
-            (equivalent(&a) => a1)
-            (equivalent(&b) => b1)
+            (equivalent(a) => a1)
+            (equivalent(b) => b1)
             (if a1 != a || b1 != b)!
-            (sub(&a1, b1) => ())
+            (sub(a1, b1) => ())
             ---------------------- ("equivalent")
             (sub(a: Ty, b: Ty) => ())
         )

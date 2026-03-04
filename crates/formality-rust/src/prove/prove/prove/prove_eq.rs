@@ -65,8 +65,8 @@ judgment_fn! {
         )
 
         (
-            (prove_normalize(decls, env, assumptions, &x) => (c, y))
-            (prove_after(decls, c, assumptions, eq(y, &z)) => c)
+            (prove_normalize(decls, env, assumptions, x) => (c, y))
+            (prove_after(decls, c, assumptions, eq(y, z)) => c)
             ----------------------------- ("normalize-l")
             (prove_eq(decls, env, assumptions, x, z) => c)
         )

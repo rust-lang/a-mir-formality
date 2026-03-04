@@ -28,8 +28,8 @@ impl Check {
 judgment_fn!(
     fn jfn(c: Check, x: u32) => u32 {
         debug(c, x)
-        assert(x < 100)
-        assert(check_x(x))
+        assert(*x < 100)
+        assert(check_x(*x))
 
         (
             (let y = c.is(x)?)!
@@ -71,13 +71,13 @@ fn is_not_equal() {
 }
 
 #[test]
-#[should_panic(expected = "judgment assertion failed: `x < 100` is false")]
+#[should_panic(expected = "judgment assertion failed: `* x < 100` is false")]
 fn bool_assertion_fails() {
     let _ = jfn(Check { x: 22 }, 110);
 }
 
 #[test]
-#[should_panic(expected = "judgment assertion failed: `check_x(x)` got invalid x")]
+#[should_panic(expected = "judgment assertion failed: `check_x(* x)` got invalid x")]
 fn result_assertion_fails() {
     let _ = jfn(Check { x: 22 }, 76);
 }
