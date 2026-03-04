@@ -177,7 +177,7 @@ judgment_fn! {
             (check_value(env, outlives, fn_assumptions, value) => (value_ty, env, outlives))
             (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(value_ty, place_ty)) => outlives)
             --- ("assign")
-            (check_statement(env, outlives, fn_assumptions, minirust::Statement::Assign(place, value)) => (env.clone(), outlives))
+            (check_statement(env, outlives, fn_assumptions, minirust::Statement::Assign(place, value)) => (env, outlives))
         )
 
         (
@@ -242,7 +242,7 @@ judgment_fn! {
                 (check_value(env, outlives, fn_assumptions, value_expression) => (value_ty, _env, outlives))
                 (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(value_ty, &field.ty)) => outlives))
             --- ("struct")
-            (check_value(env, outlives, fn_assumptions, Struct(value_expressions, ty)) => (ty.clone(), env.clone(), outlives))
+            (check_value(env, outlives, fn_assumptions, Struct(value_expressions, ty)) => (ty, env, outlives))
         )
 
         (
@@ -276,7 +276,7 @@ judgment_fn! {
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
             (if field_projection.index < fields.len())
-            (let place_ty = fields[field_projection.index].ty.clone())
+            (let place_ty = &fields[field_projection.index].ty)
             --- ("field")
             (check_place(env, outlives, fn_assumptions, Field(field_projection)) => (place_ty, env, outlives))
         )
@@ -285,7 +285,7 @@ judgment_fn! {
             (check_place(env, outlives, fn_assumptions, &**value_expr) => (inner_ty, env, outlives))
             (if let TyData::RigidTy(rigid_ty) = inner_ty.data())
             (if let RigidName::Ref(_ref_kind) = &rigid_ty.name)
-            (let place_ty = rigid_ty.parameters[1].as_ty().expect("well-formed reference").clone())
+            (let place_ty = rigid_ty.parameters[1].as_ty().expect("well-formed reference"))
             --- ("deref-ref")
             (check_place(env, outlives, fn_assumptions, Deref(value_expr)) => (place_ty, env, outlives))
         )
@@ -366,7 +366,7 @@ judgment_fn! {
                 arguments: actual_arguments,
                 ret,
                 next_block,
-            }) => (env.clone(), outlives))
+            }) => (env, outlives))
         )
 
         (
@@ -387,7 +387,7 @@ judgment_fn! {
                 switch_value,
                 switch_targets,
                 fallback,
-            }) => (env.clone(), outlives))
+            }) => (env, outlives))
         )
     }
 }

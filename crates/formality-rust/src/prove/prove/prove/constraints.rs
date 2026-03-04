@@ -29,12 +29,13 @@ pub struct Constraints {
 
 cast_impl!(Constraints);
 
-impl<A, B> UpcastFrom<(Env, (A, B))> for Constraints
+impl<E, A, B> UpcastFrom<(E, (A, B))> for Constraints
 where
+    E: Upcast<Env>,
     A: Upcast<Variable>,
     B: Upcast<Parameter>,
 {
-    fn upcast_from((env, pair): (Env, (A, B))) -> Self {
+    fn upcast_from((env, pair): (E, (A, B))) -> Self {
         Constraints::from(env, std::iter::once(pair))
     }
 }

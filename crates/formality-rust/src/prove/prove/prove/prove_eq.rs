@@ -119,7 +119,7 @@ judgment_fn! {
             // Map the higher rank variable to the lower rank one.
             (let (a, b) = env.order_by_universe(l, r))
             ----------------------------- ("existential-existential")
-            (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::ExistentialVar(r)) => (Env::clone(env), (ExistentialVar::clone(b), ExistentialVar::clone(a))))
+            (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::ExistentialVar(r)) => (env, (b, a)))
         )
 
         // If the RHS IS a universal variable, e.g., we are trying to prove something like this
@@ -139,7 +139,7 @@ judgment_fn! {
         (
             (if env.universe(p) < env.universe(v))
             ----------------------------- ("existential-universal")
-            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) => (env.clone(), (v.clone(), p.clone())))
+            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) => (env, (v, p)))
         )
     }
 }

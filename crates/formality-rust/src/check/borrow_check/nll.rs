@@ -568,7 +568,7 @@ judgment_fn! {
             (borrow_check_place_expression(env, assumptions, loans_live, outlives, &expr, &places_live) => (typed_place, outlives, loans_live))
             (access_permitted_by_loans(env, assumptions, loans_live, outlives, Access::new(AccessKind::Move, &expr), &places_live) => ())
             --- ("in-place")
-            (borrow_check_argument_expression(env, assumptions, loans_live, outlives, ArgumentExpression::InPlace(expr), places_live) => (typed_place.ty.clone(), &outlives, &loans_live))
+            (borrow_check_argument_expression(env, assumptions, loans_live, outlives, ArgumentExpression::InPlace(expr), places_live) => (&typed_place.ty, &outlives, &loans_live))
         )
 
         (
@@ -638,7 +638,7 @@ judgment_fn! {
             (access_permitted_by_loans(env, assumptions, loans_live, outlives, Access::new(AccessKind::Read, &place), &places_live) => ())
             (borrow_check_place_expression(env, assumptions, loans_live, outlives, &place, &places_live) => (place_expr, outlives, loans_live))
             --- ("load")
-            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Load(place), places_live) => (place_expr.ty.clone(), outlives, loans_live))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Load(place), places_live) => (&place_expr.ty, outlives, loans_live))
         )
 
         (
