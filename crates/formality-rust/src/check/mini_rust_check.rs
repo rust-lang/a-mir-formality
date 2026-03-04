@@ -175,9 +175,9 @@ judgment_fn! {
         (
             (check_place(env, outlives, fn_assumptions, place) => (place_ty, env, outlives))
             (check_value(env, outlives, fn_assumptions, value) => (value_ty, env, outlives))
-            (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(value_ty.clone(), place_ty.clone())) => outlives)
+            (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(value_ty, place_ty)) => outlives)
             --- ("assign")
-            (check_statement(env, outlives, fn_assumptions, minirust::Statement::Assign(place, value)) => (env.clone().clone(), outlives))
+            (check_statement(env, outlives, fn_assumptions, minirust::Statement::Assign(place, value)) => (env.clone(), outlives))
         )
 
         (
@@ -344,13 +344,11 @@ judgment_fn! {
 
             // Instantiate the function signature universally (returns new env)
             (let (fn_bound_data, env) = env.instantiate_universally(&fn_decl.binder))
-            (let callee_declared_input_tys = fn_bound_data.input_tys.clone())
-
             // Check argument count matches
-            (if callee_declared_input_tys.len() == actual_arguments.len())
+            (if fn_bound_data.input_tys.len() == actual_arguments.len())
 
             // Check each argument and subtyping
-            (for_all(arg_pair in callee_declared_input_tys.iter().zip(actual_arguments)) with(outlives)
+            (for_all(arg_pair in fn_bound_data.input_tys.iter().zip(actual_arguments)) with(outlives)
                 (let (declared_ty, actual_argument) = arg_pair)
                 (check_argument_expression(env, outlives, fn_assumptions, &actual_argument) => (actual_ty, _env, outlives))
                 (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(actual_ty, declared_ty)) => outlives))

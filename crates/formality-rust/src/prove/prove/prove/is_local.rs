@@ -213,7 +213,7 @@ judgment_fn! {
         (
             // There is a local parameter at position i...
             (i in 0 .. goal.parameters.len())
-            (is_local_parameter(decls, env, assumptions, goal.parameters[*i].clone()) => c1)
+            (is_local_parameter(decls, env, assumptions, &goal.parameters[*i]) => c1)
 
             // ...and in positions 0..i, there are no downstream parameters.
             (let assumptions = c1.substitution().apply(assumptions))

@@ -55,7 +55,7 @@ judgment_fn! {
             (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
             (let t = decls.adt_decl(adt_id))
             (let t = t.binder.instantiate_with(parameters).unwrap())
-            (prove_after(decls, c, assumptions, t.where_clause.clone()) => c)
+            (prove_after(decls, c, assumptions, &t.where_clause) => c)
             --- ("ADT")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::AdtId(adt_id), parameters }) => c)
         )

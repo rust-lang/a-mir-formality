@@ -396,17 +396,15 @@ judgment_fn! {
 
             // Instantiate the function signature universally (returns new env)
             (let (fn_bound_data, env) = env.instantiate_universally(&fn_decl.binder)) // FIXME: should be existential
-            (let callee_declared_input_tys = fn_bound_data.input_tys.clone())
-
             // Check argument count matches
-            (if callee_declared_input_tys.len() == arguments.len())
+            (if fn_bound_data.input_tys.len() == arguments.len())
 
             (borrow_check_argument_expressions(
                 env,
                 assumptions,
                 loans_live,
                 outlives,
-                callee_declared_input_tys,
+                &fn_bound_data.input_tys,
                 arguments,
                 Assignment(ret).live_before(env, places_live),
             ) => (outlives, loans_live))
