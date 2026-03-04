@@ -65,8 +65,8 @@ judgment_fn! {
         )
 
         (
-            (prove_normalize(&decls, env, &assumptions, &x) => (c, y))
-            (prove_after(&decls, c, &assumptions, eq(y, &z)) => c)
+            (prove_normalize(decls, env, assumptions, &x) => (c, y))
+            (prove_after(decls, c, assumptions, eq(y, &z)) => c)
             ----------------------------- ("normalize-l")
             (prove_eq(decls, env, assumptions, x, z) => c)
         )
@@ -92,7 +92,7 @@ judgment_fn! {
         // `equate_variable` judgment manages that case.
         (
             (if let None = t.downcast::<Variable>())
-            (equate_variable(decls, env, assumptions, v, t) => c)
+            (equate_variable(decls.clone(), env.clone(), assumptions.clone(), v.clone(), t) => c)
             ----------------------------- ("existential-nonvar")
             (prove_existential_var_eq(decls, env, assumptions, v, t) => c)
         )
@@ -119,7 +119,7 @@ judgment_fn! {
             // Map the higher rank variable to the lower rank one.
             (let (a, b) = env.order_by_universe(l, r))
             ----------------------------- ("existential-existential")
-            (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::ExistentialVar(r)) => (env, (b, a)))
+            (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::ExistentialVar(r)) => (Env::clone(env), (ExistentialVar::clone(b), ExistentialVar::clone(a))))
         )
 
         // If the RHS IS a universal variable, e.g., we are trying to prove something like this
@@ -139,7 +139,7 @@ judgment_fn! {
         (
             (if env.universe(p) < env.universe(v))
             ----------------------------- ("existential-universal")
-            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) => (env, (v, p)))
+            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) => (env.clone(), (v.clone(), p.clone())))
         )
     }
 }

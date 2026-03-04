@@ -313,7 +313,7 @@ macro_rules! push_rules {
 
     (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident : $ty0:ty, $($pats:tt)*) args $args:tt) => {
         {
-            if let Some($pat0) = $crate::Downcast::downcast::<$ty0>($in0) {
+            if let Some($pat0) = &$crate::Downcast::downcast::<$ty0>($in0) {
                 $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
             }
         }
@@ -321,13 +321,13 @@ macro_rules! push_rules {
 
     (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident, $($pats:tt)*) args $args:tt) => {
         {
-            let $pat0 = Clone::clone($in0);
+            let $pat0 = $in0;
             $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
         }
     };
 
     (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:pat, $($pats:tt)*) args $args:tt) => {
-        if let Some($pat0) = $crate::Downcast::downcast(&$in0) {
+        if let Some($pat0) = &$crate::Downcast::downcast($in0) {
             $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
         }
     };
@@ -357,7 +357,7 @@ macro_rules! push_rules {
     ) => {
         match $crate::judgment::try_catch(|| Ok($e)) {
             Ok(value) => {
-                if let $p = Clone::clone(&value) {
+                if let $p = &value {
                     $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
                 } else {
                     $crate::push_rules!(@record_failure $inputs; $e; $crate::judgment::RuleFailureCause::IfLetDidNotMatch {
@@ -625,7 +625,9 @@ macro_rules! push_rules {
     ) => {
         if let Err(e) = $crate::judgment::EachProof::each_proof(
             $i,
-            |($p, proof_tree)| {
+            |(value, proof_tree)| {
+                let $p = &value;
+
                 // Remember the size of the child proof tree stack
                 let len = $child_proof_trees.len();
 
@@ -654,7 +656,7 @@ macro_rules! push_rules {
         match $crate::judgment::try_catch::<$t>(|| Ok($i)) {
             Ok(p) => {
                 let proof_tree = $crate::judgment::ProofTree::leaf(format!("{} = {p:?}", stringify!($p)));
-                let $p = p;
+                let $p = &p;
                 $child_proof_trees.push(proof_tree);
                 $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
             }
@@ -672,7 +674,7 @@ macro_rules! push_rules {
         match $crate::judgment::try_catch(|| Ok($i)) {
             Ok(p) => {
                 let proof_tree = $crate::judgment::ProofTree::leaf(format!("{} = {p:?}", stringify!($p)));
-                let $p = p;
+                let $p = &p;
                 $child_proof_trees.push(proof_tree);
                 $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
             }
@@ -692,7 +694,9 @@ macro_rules! push_rules {
         if let Err(e) = $crate::judgment::member_of(
             $i,
             || stringify!($i).to_string(),
-            |($p, proof_tree)| {
+            |(value, proof_tree)| {
+                let $p = &value;
+
                 // Remember the size of the child proof tree stack
                 let len = $child_proof_trees.len();
 

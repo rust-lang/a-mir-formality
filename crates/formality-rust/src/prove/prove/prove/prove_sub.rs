@@ -24,15 +24,15 @@ judgment_fn! {
         trivial(a == b => Constraints::none(env))
 
         (
-            (prove_normalize(&decls, env, &assumptions, &x) => (c, y))
-            (prove_after(&decls, c, &assumptions, Relation::sub(y, &z)) => c)
+            (prove_normalize(decls, env, assumptions, &x) => (c, y))
+            (prove_after(decls, c, assumptions, Relation::sub(y, &z)) => c)
             ----------------------------- ("normalize-l")
             (prove_sub(decls, env, assumptions, x, z) => c)
         )
 
         (
-            (prove_normalize(&decls, env, &assumptions, &y) => (c, z))
-            (prove_after(&decls, c, &assumptions, Relation::sub(&x, &z)) => c)
+            (prove_normalize(decls, env, assumptions, &y) => (c, z))
+            (prove_after(decls, c, assumptions, Relation::sub(&x, &z)) => c)
             ----------------------------- ("normalize-r")
             (prove_sub(decls, env, assumptions, x, y) => c)
         )

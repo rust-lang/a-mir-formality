@@ -29,9 +29,9 @@ judgment_fn! {
         (
             (let minirust::Body { ret, params, .. } = body)
             (p in params)
-            (if p.id == ret)
+            (if p.id == *ret)
             --- ("rv to tsv")
-            (prove_const_has_type(_decls, env, _assumptions, body: minirust::Body) => (p.ty, Constraints::none(&env)))
+            (prove_const_has_type(_decls, env, _assumptions, body: minirust::Body) => (p.ty.clone(), Constraints::none(&env)))
         )
     }
 }

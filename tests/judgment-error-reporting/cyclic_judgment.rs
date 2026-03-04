@@ -33,7 +33,7 @@ judgment_fn! {
         )
 
         (
-            (sub(&*a, &*b) => ())
+            (sub(Ty::clone(a), Ty::clone(b)) => ())
             ---------------------- ("both my")
             (sub(Ty::My(a), Ty::My(b)) => ())
         )
@@ -51,13 +51,13 @@ judgment_fn! {
 
         (
             ----------------------------- ("add my")
-            (equivalent(Ty::Class { name }) => Ty::My(Arc::new(Ty::Class { name })))
+            (equivalent(Ty::Class { name }) => Ty::My(Arc::new(Ty::Class { name: name.clone() })))
         )
 
 
         (
             ----------------------------- ("strip my")
-            (equivalent(Ty::My(t)) => &*t)
+            (equivalent(Ty::My(t)) => Ty::clone(t))
         )
     }
 }

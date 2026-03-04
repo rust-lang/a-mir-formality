@@ -623,7 +623,7 @@ fn test_ret_place_storage_dead() {
         []
         expect_test::expect![[r#"
             the rule "storage-dead" at (mini_rust_check.rs) failed because
-              condition evaluted to false: `!env.fn_args.iter().any(|fn_arg| local_id == *fn_arg)`"#]]
+              condition evaluted to false: `!env.fn_args.iter().any(|fn_arg| *local_id == *fn_arg)`"#]]
     )
 }
 
@@ -650,7 +650,7 @@ fn test_fn_arg_storage_dead() {
         []
         expect_test::expect![[r#"
             the rule "storage-dead" at (mini_rust_check.rs) failed because
-              condition evaluted to false: `local_id != env.ret_id`"#]]
+              condition evaluted to false: `*local_id != env.ret_id`"#]]
     )
 }
 

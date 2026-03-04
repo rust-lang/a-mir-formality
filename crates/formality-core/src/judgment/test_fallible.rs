@@ -16,9 +16,9 @@ struct Check {
 cast_impl!(Check);
 
 impl Check {
-    fn is(&self, x: u32) -> Fallible<u32> {
-        if self.x == x {
-            Ok(x)
+    fn is(&self, x: &u32) -> Fallible<u32> {
+        if &self.x == x {
+            Ok(*x)
         } else {
             bail!("expected {} got {}", self.x, x)
         }

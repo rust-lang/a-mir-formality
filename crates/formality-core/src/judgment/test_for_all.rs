@@ -23,7 +23,7 @@ judgment_fn! {
         debug(nums)
 
         (
-            (for_all(n in &nums)
+            (for_all(n in nums)
                 (if is_even(n).is_ok()))
             --------------------------------------- ("all_even")
             (all_even(nums) => ())
@@ -60,7 +60,7 @@ judgment_fn! {
 
         (
             (let acc: Num = Num(0))
-            (for_all(n in &nums) with(acc)
+            (for_all(n in nums) with(acc)
                 (let acc: Num = Num(acc.0 + n.0)))
             --------------------------------------- ("sum")
             (sum_all(nums) => acc)
