@@ -36,7 +36,7 @@ judgment_fn! {
             (let p1 = binder.instantiate_with(&subst).unwrap())
             (prove_wc(decls, env, assumptions, p1) => c)
             --- ("forall")
-            (prove_wc(decls, env, assumptions, WcData::ForAll(binder)) => c.clone().pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, WcData::ForAll(binder)) => c.pop_subst(&subst))
         )
 
         (
@@ -87,7 +87,7 @@ judgment_fn! {
             // but actually the impl is responsible for proving that `B: Debug`).
             (prove_after(decls, c, assumptions, &t.where_clause) => c)
             ----------------------------- ("positive impl")
-            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.clone().pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
@@ -104,7 +104,7 @@ judgment_fn! {
             (prove(decls, env, assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
             (prove_after(decls, c, assumptions, &i.where_clause) => c)
             ----------------------------- ("negative impl")
-            (prove_wc(decls, env, assumptions, Predicate::NotImplemented(trait_ref)) => c.clone().pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Predicate::NotImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (
@@ -120,7 +120,7 @@ judgment_fn! {
             (prove_via(decls, env, assumptions, &ti.where_clause, trait_ref) => c)
             (prove_after(decls, c, assumptions, &ti.trait_ref) => c)
             ----------------------------- ("trait implied bound")
-            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.clone().pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
         )
 
         (

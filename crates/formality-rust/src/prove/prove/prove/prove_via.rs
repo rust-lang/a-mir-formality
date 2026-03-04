@@ -49,7 +49,7 @@ judgment_fn! {
             // Try to prove `T: Trait<?a> == goal`.
             (prove_via(decls, env, assumptions, via1, goal) => c)
             ----------------------------- ("forall")
-            (prove_via(decls, env, assumptions, WcData::ForAll(binder), goal) => c.clone().pop_subst(&subst))
+            (prove_via(decls, env, assumptions, WcData::ForAll(binder), goal) => c.pop_subst(&subst))
         )
 
         // If you have `where if (T: Debug) T: Foo` (not in Rust but it should be...)...

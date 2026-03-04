@@ -124,18 +124,20 @@ impl Constraints {
         }
     }
 
-    pub fn pop_subst<V>(mut self, v: &[V]) -> Self
+    pub fn pop_subst<V>(&self, v: &[V]) -> Self
     where
         V: Upcast<Variable> + Copy,
     {
+        let mut env = self.clone();
+
         if v.is_empty() {
-            return self;
+            return env.clone();
         }
 
-        let vars = self.env.pop_vars(v);
-        self.substitution -= vars;
+        let vars = env.env.pop_vars(v);
+        env.substitution -= vars;
 
-        self
+        env
     }
 
     pub fn is_valid_extension_of(&self, env0: &Env) -> bool {
