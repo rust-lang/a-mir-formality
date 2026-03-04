@@ -71,7 +71,7 @@ judgment_fn! {
         )
 
         (
-            (prove_alias_wf(decls, env, assumptions, name.clone(), parameters.clone()) => c)
+            (prove_alias_wf(decls, env, assumptions, name, parameters) => c)
             --- ("aliases")
             (prove_wf(decls, env, assumptions, AliasTy { name, parameters }) => c)
         )
@@ -82,9 +82,9 @@ pub fn prove_alias_wf(
     decls: &Decls,
     env: &Env,
     assumptions: &Wcs,
-    _name: AliasName,
-    parameters: Parameters,
+    _name: &AliasName,
+    parameters: &Parameters,
 ) -> ProvenSet<Constraints> {
     // FIXME(#217): verify self type implements trait
-    for_all(decls, env, assumptions, &parameters, &prove_wf)
+    for_all(decls, env, assumptions, parameters, &prove_wf)
 }

@@ -63,7 +63,7 @@ judgment_fn! {
         // outlive relationship (if we have 'a : 'c and 'c : 'b, then we'd know 'a : 'b).
         (
             (let all_outlives = transitively_outlived_by(assumptions, a))
-            (if all_outlives.iter().find(|param| **param == *b).is_some())!
+            (if all_outlives.contains(&*b))!
             ----------------------------- ("outlive through assumption")
             (prove_outlives(_decls, env, assumptions, a, b) => Constraints::none(env))
         )

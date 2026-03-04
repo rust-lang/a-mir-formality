@@ -103,10 +103,11 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
                 // Ambiguous - grab a tree from one of the results
                 let (_, sample_tree) = s.iter().next().unwrap();
                 let result = Constraints::none(env).ambiguous();
+                let label = format!("{:?}", result);
                 ProvenSet::singleton((
-                    result.clone(),
+                    result,
                     ProofTree::new(
-                        format!("{:?}", result),
+                        label,
                         Some("ambiguous_negation"),
                         vec![sample_tree.clone()],
                     ),
@@ -118,10 +119,8 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
             tracing::debug!("Proved `negation_via_failure`, error = {err}");
             // Negation succeeded because f failed
             let result = Constraints::none(env);
-            ProvenSet::singleton((
-                result.clone(),
-                ProofTree::leaf(format!("negation succeeded: {}", err)),
-            ))
+            let leaf = ProofTree::leaf(format!("negation succeeded: {}", err));
+            ProvenSet::singleton((result, leaf))
         }
     }
 }
