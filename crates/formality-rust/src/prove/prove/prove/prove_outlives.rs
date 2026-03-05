@@ -83,7 +83,10 @@ judgment_fn! {
 
 /// Given a region `r1`, find a set of all regions `r2` where `r1 : r2` transitively
 /// according to the assumptions.
-fn transitively_outlived_by(assumptions: impl Upcast<Wcs>, r1: impl Upcast<Parameter>) -> Set<Parameter> {
+fn transitively_outlived_by(
+    assumptions: impl Upcast<Wcs>,
+    r1: impl Upcast<Parameter>,
+) -> Set<Parameter> {
     let assumptions: Wcs = assumptions.upcast();
     let r1: Parameter = r1.upcast();
     let mut reachable = Set::new();

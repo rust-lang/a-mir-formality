@@ -195,14 +195,9 @@ impl Check<'_> {
         assert!(env.only_universal_variables());
         assert!(env.encloses((&assumptions, &goal)));
 
-        let cs = is_definitely_not_proveable(
-            env,
-            &assumptions,
-            &goal,
-            |env, assumptions, goal| {
-                crate::prove::prove::prove(self.decls, env, &assumptions, &goal)
-            },
-        );
+        let cs = is_definitely_not_proveable(env, &assumptions, &goal, |env, assumptions, goal| {
+            crate::prove::prove::prove(self.decls, env, &assumptions, &goal)
+        });
         let cs = cs.into_map()?;
         if let Some((_, proof_tree)) = cs.iter().find(|(c, _)| c.unconditionally_true()) {
             return Ok(proof_tree.clone());

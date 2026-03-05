@@ -106,11 +106,7 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
                 let label = format!("{:?}", result);
                 ProvenSet::singleton((
                     result,
-                    ProofTree::new(
-                        label,
-                        Some("ambiguous_negation"),
-                        vec![sample_tree.clone()],
-                    ),
+                    ProofTree::new(label, Some("ambiguous_negation"), vec![sample_tree.clone()]),
                 ))
             }
         }
