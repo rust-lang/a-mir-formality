@@ -18,10 +18,10 @@ judgment_fn! {
         debug(a, b)
 
         (
-            (equivalent(&a) => a1)
-            (equivalent(&b) => b1)
+            (equivalent(a) => a1)
+            (equivalent(b) => b1)
             (if a1 != a || b1 != b)!
-            (sub(&a1, b1) => ())
+            (sub(a1, b1) => ())
             ---------------------- ("equivalent")
             (sub(a: Ty, b: Ty) => ())
         )
@@ -33,7 +33,7 @@ judgment_fn! {
         )
 
         (
-            (sub(&*a, &*b) => ())
+            (sub(Ty::clone(a), Ty::clone(b)) => ())
             ---------------------- ("both my")
             (sub(Ty::My(a), Ty::My(b)) => ())
         )
@@ -51,13 +51,13 @@ judgment_fn! {
 
         (
             ----------------------------- ("add my")
-            (equivalent(Ty::Class { name }) => Ty::My(Arc::new(Ty::Class { name })))
+            (equivalent(Ty::Class { name }) => Ty::My(Arc::new(Ty::Class { name: name.clone() })))
         )
 
 
         (
             ----------------------------- ("strip my")
-            (equivalent(Ty::My(t)) => &*t)
+            (equivalent(Ty::My(t)) => Ty::clone(t))
         )
     }
 }

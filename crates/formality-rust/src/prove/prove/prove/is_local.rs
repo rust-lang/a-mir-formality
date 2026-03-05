@@ -65,7 +65,7 @@ judgment_fn! {
         (
             // In principle this rule could be removed and preserve soundness,
             // but then we would accept code that is very prone to semver failures.
-            (may_not_be_provable(&env, assumptions, goal, |env, assumptions, goal| is_local_trait_ref(decls, &env, assumptions, goal)) => c)
+            (may_not_be_provable(env, assumptions, goal, |env, assumptions, goal| is_local_trait_ref(decls, &env, assumptions, goal)) => c)
             --- ("may be added by upstream in a minor release")
             (may_be_remote(decls, env, assumptions, goal) => c)
         )
@@ -85,7 +85,7 @@ judgment_fn! {
         (
             // There may be a downstream parameter at position i...
             (p in &goal.parameters)
-            (may_be_downstream_parameter(&decls, &env, &assumptions, p) => c)
+            (may_be_downstream_parameter(decls, env, assumptions, p) => c)
             --- ("may_be_downstream_trait_ref")
             (may_be_downstream_trait_ref(decls, env, assumptions, goal) => c)
         )
@@ -118,11 +118,11 @@ judgment_fn! {
         (
             // (a) there is some parameter in the alias that may be downstream
             (p in parameters.iter())
-            (may_contain_downstream_type(&decls, &env, &assumptions, p) => ())
+            (may_contain_downstream_type(decls, env, assumptions, p) => ())
 
             // (b) the alias cannot be normalized to something that may not be downstream
-            (may_not_be_provable(&env, &assumptions, AliasTy::new(&name, &parameters), |env, assumptions, alias|
-                normalizes_to_not_downstream(&decls, &env, &assumptions, &alias)
+            (may_not_be_provable(env, assumptions, &AliasTy::new(name, parameters), |env, assumptions, alias|
+                normalizes_to_not_downstream(decls, &env, &assumptions, &alias)
             ) => c)
             --- ("via normalize")
             (may_be_downstream_parameter(decls, env, assumptions, AliasTy { name, parameters }) => c)
@@ -150,7 +150,7 @@ judgment_fn! {
         // Rigid types: recurse into parameters
         (
             (p in parameters.iter())
-            (may_contain_downstream_type(&decls, &env, &assumptions, p) => ())
+            (may_contain_downstream_type(decls, env, assumptions, p) => ())
             --- ("rigid type parameter")
             (may_contain_downstream_type(decls, env, assumptions,
                 RigidTy { name: _, parameters }) => ())
@@ -158,18 +158,17 @@ judgment_fn! {
 
         // Alias types: normalize and check result
         (
-            (prove_normalize(&decls, &env, &assumptions, parameter) => (c, p))
-            (let assumptions = c.substitution().apply(&assumptions))
-            (may_contain_downstream_type(&decls, &env, &assumptions, p) => ())
+            (prove_normalize(decls, env, assumptions, parameter) => (c, p))
+            (let assumptions = c.substitution().apply(assumptions))
+            (may_contain_downstream_type(decls, env, assumptions, p) => ())
             --- ("via normalize")
             (may_contain_downstream_type(decls, env, assumptions, parameter) => ())
         )
 
         // ForAll predicates: open existentially and check
         (
-            (let mut env = env)
-            (let ty = env.instantiate_existentially(&binder))
-            (may_contain_downstream_type(&decls, &env, &assumptions, ty) => ())
+            (let (env, ty) = { let mut e = Clone::clone(env); let ty = e.instantiate_existentially(binder); (e, ty) })
+            (may_contain_downstream_type(decls, env, assumptions, ty) => ())
             --- ("forall")
             (may_contain_downstream_type(decls, env, assumptions,
                 TyData::PredicateTy(PredicateTy::ForAll(binder))) => ())
@@ -187,9 +186,9 @@ judgment_fn! {
         debug(parameter, assumptions, env)
 
         (
-            (prove_normalize(&decls, &env, &assumptions, parameter) => (c1, parameter))
-            (let assumptions = c1.substitution().apply(&assumptions))
-            (is_not_downstream(&decls, &env, assumptions, parameter) => c2)
+            (prove_normalize(decls, env, assumptions, parameter) => (c1, parameter))
+            (let assumptions = c1.substitution().apply(assumptions))
+            (is_not_downstream(decls, env, assumptions, parameter) => c2)
             --- ("ambiguous")
             (normalizes_to_not_downstream(decls, env, assumptions, parameter) => c1.seq(c2))
         )
@@ -214,12 +213,12 @@ judgment_fn! {
         (
             // There is a local parameter at position i...
             (i in 0 .. goal.parameters.len())
-            (is_local_parameter(&decls, &env, &assumptions, &goal.parameters[i]) => c1)
+            (is_local_parameter(decls, env, assumptions, &goal.parameters[*i]) => c1)
 
             // ...and in positions 0..i, there are no downstream parameters.
-            (let assumptions = c1.substitution().apply(&assumptions))
-            (let goal = c1.substitution().apply(&goal))
-            (for_all(&decls, &env, &assumptions, &goal.parameters[..i], &is_not_downstream) => c2)
+            (let assumptions = c1.substitution().apply(assumptions))
+            (let goal = c1.substitution().apply(goal))
+            (for_all(decls, env, assumptions, &goal.parameters[..*i], &is_not_downstream) => c2)
             --- ("local parameter")
             (is_local_trait_ref(decls, env, assumptions, goal) => c1.seq(c2))
         )
@@ -257,9 +256,9 @@ judgment_fn! {
         )
 
         (
-            (prove_normalize(&decls, env, &assumptions, parameter) => (c1, p))
-            (let assumptions = c1.substitution().apply(&assumptions))
-            (is_not_downstream(&decls, c1.env(), assumptions, p) => c2)
+            (prove_normalize(decls, env, assumptions, parameter) => (c1, p))
+            (let assumptions = c1.substitution().apply(assumptions))
+            (is_not_downstream(decls, c1.env(), assumptions, p) => c2)
             --- ("via normalize")
             (is_not_downstream(decls, env, assumptions, parameter) => c1.seq(c2))
         )
@@ -286,24 +285,24 @@ judgment_fn! {
 
         // If we can normalize `goal` to something else, check if that normalized form is local.
         (
-            (prove_normalize(&decls, env, &assumptions, goal) => (c1, p))
-            (let assumptions = c1.substitution().apply(&assumptions))
-            (is_local_parameter(&decls, c1.env(), assumptions, p) => c2)
+            (prove_normalize(decls, env, assumptions, goal) => (c1, p))
+            (let assumptions = c1.substitution().apply(assumptions))
+            (is_local_parameter(decls, c1.env(), assumptions, p) => c2)
             --- ("local parameter")
             (is_local_parameter(decls, env, assumptions, goal) => c1.seq(c2))
         )
 
         // Fundamental types are local if all their arguments are local.
         (
-            (if is_fundamental(&decls, &name))
-            (for_all(&decls, &env, &assumptions, &parameters, &is_local_parameter) => c)
+            (if is_fundamental(decls, name))
+            (for_all(decls, env, assumptions, parameters, &is_local_parameter) => c)
             --- ("fundamental rigid type")
             (is_local_parameter(decls, env, assumptions, RigidTy { name, parameters }) => c)
         )
 
         // ADTs are local if they were declared in this crate.
         (
-            (if decls.is_local_adt_id(&a))
+            (if decls.is_local_adt_id(a))
             --- ("local rigid type")
             (is_local_parameter(decls, env, _assumptions, RigidTy { name: RigidName::AdtId(a), parameters: _ }) => Constraints::none(env))
         )

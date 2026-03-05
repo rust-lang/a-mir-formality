@@ -65,8 +65,8 @@ judgment_fn! {
         )
 
         (
-            (prove_normalize(&decls, env, &assumptions, &x) => (c, y))
-            (prove_after(&decls, c, &assumptions, eq(y, &z)) => c)
+            (prove_normalize(decls, env, assumptions, x) => (c, y))
+            (prove_after(decls, c, assumptions, eq(y, z)) => c)
             ----------------------------- ("normalize-l")
             (prove_eq(decls, env, assumptions, x, z) => c)
         )
@@ -145,12 +145,16 @@ judgment_fn! {
 }
 
 fn equate_variable(
-    decls: Decls,
-    mut env: Env,
-    assumptions: Wcs,
-    x: ExistentialVar,
+    decls: impl Upcast<Decls>,
+    env: impl Upcast<Env>,
+    assumptions: impl Upcast<Wcs>,
+    x: impl Upcast<ExistentialVar>,
     p: impl Upcast<Parameter>,
 ) -> ProvenSet<Constraints> {
+    let decls: Decls = decls.upcast();
+    let mut env: Env = env.upcast();
+    let assumptions: Wcs = assumptions.upcast();
+    let x: ExistentialVar = x.upcast();
     let p: Parameter = p.upcast();
 
     let span = tracing::debug_span!("equate_variable", ?x, ?p, ?env);

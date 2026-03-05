@@ -1,7 +1,7 @@
 use crate::grammar::WcData;
 use crate::grammar::{LtData, Parameter, Relation, RigidTy, Wcs};
 use crate::prove::prove::{decls::Decls, prove};
-use formality_core::{judgment_fn, Set};
+use formality_core::{judgment_fn, Set, Upcast};
 
 use super::{constraints::Constraints, env::Env};
 
@@ -63,7 +63,7 @@ judgment_fn! {
         // outlive relationship (if we have 'a : 'c and 'c : 'b, then we'd know 'a : 'b).
         (
             (let all_outlives = transitively_outlived_by(assumptions, a))
-            (if all_outlives.iter().find(|param| **param == b).is_some())!
+            (if all_outlives.contains(&*b))!
             ----------------------------- ("outlive through assumption")
             (prove_outlives(_decls, env, assumptions, a, b) => Constraints::none(env))
         )
@@ -83,7 +83,12 @@ judgment_fn! {
 
 /// Given a region `r1`, find a set of all regions `r2` where `r1 : r2` transitively
 /// according to the assumptions.
-fn transitively_outlived_by(assumptions: Wcs, r1: Parameter) -> Set<Parameter> {
+fn transitively_outlived_by(
+    assumptions: impl Upcast<Wcs>,
+    r1: impl Upcast<Parameter>,
+) -> Set<Parameter> {
+    let assumptions: Wcs = assumptions.upcast();
+    let r1: Parameter = r1.upcast();
     let mut reachable = Set::new();
 
     reachable.insert(r1.clone());

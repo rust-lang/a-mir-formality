@@ -28,14 +28,14 @@ judgment_fn! {
         debug(from, graph)
 
         (
-            (s in graph.successors(start))
+            (s in graph.successors(*start))
             --------------------------------------- ("base")
             (transitive_reachable(graph, start) => s)
         )
 
         (
-            (transitive_reachable(&graph, a) => b)!
-            (transitive_reachable(&graph, b) => c)
+            (transitive_reachable(graph, a) => b)!
+            (transitive_reachable(graph, b) => c)
             --------------------------------------- ("transitive")
             (transitive_reachable(graph, a) => c)
         )

@@ -44,7 +44,7 @@ judgment_fn! {
 
         // If you have `where for<'a> T: Trait<'a>` then you can prove `T: Trait<'b>` for any `'b`.
         (
-            (let (env, subst) = env.existential_substitution(&binder))
+            (let (env, subst) = env.existential_substitution(binder))
             (let via1 = binder.instantiate_with(&subst).unwrap())
             // Try to prove `T: Trait<?a> == goal`.
             (prove_via(decls, env, assumptions, via1, goal) => c)
@@ -55,9 +55,9 @@ judgment_fn! {
         // If you have `where if (T: Debug) T: Foo` (not in Rust but it should be...)...
         (
             // if the goal is `T: Foo`...
-            (prove_via(&decls, env, &assumptions, wc_consequence, goal) => c)
+            (prove_via(decls, env, assumptions, wc_consequence, goal) => c)
             // ...and we can prove `T: Debug`... then it holds.
-            (prove_after(&decls, c, &assumptions, &wc_condition) => c)
+            (prove_after(decls, c, assumptions, wc_condition) => c)
             ----------------------------- ("implies")
             (prove_via(decls, env, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => c)
         )

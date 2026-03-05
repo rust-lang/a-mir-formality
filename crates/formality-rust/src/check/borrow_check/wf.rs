@@ -15,16 +15,16 @@ judgment_fn! {
         debug(terminator, env)
 
         (
-            (for_all(bb_id in &bb_ids)
+            (for_all(bb_id in bb_ids)
              (if env.basic_block(bb_id).is_ok()))
             --- ("goto")
             (terminator_wf(env, Terminator::Goto(bb_ids)) => ())
         )
 
         (
-            (for_all(switch_target in &switch_targets)
+            (for_all(switch_target in switch_targets)
              (if env.basic_block(&switch_target.target).is_ok()))
-            (if env.basic_block(&fallback).is_ok())
+            (if env.basic_block(fallback).is_ok())
             --- ("switch")
             (terminator_wf(env, Terminator::Switch { switch_value: _, switch_targets, fallback }) => ())
         )
@@ -35,7 +35,7 @@ judgment_fn! {
         )
 
         (
-            (if next_block.map(|b| env.basic_block(&b).is_ok()).unwrap_or(true))
+            (if next_block.as_ref().map(|b| env.basic_block(&b).is_ok()).unwrap_or(true))
             --- ("call")
             (terminator_wf(env, Terminator::Call { callee: _, generic_arguments: _, arguments: _, ret: _, next_block }) => ())
         )

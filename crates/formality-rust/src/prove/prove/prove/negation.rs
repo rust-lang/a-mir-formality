@@ -17,7 +17,7 @@ use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
 pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
-    data: T,
+    data: &T,
     f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints> {
     assert!(env.bias() == Bias::Soundness);
@@ -47,7 +47,7 @@ pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang>>(
 pub fn may_not_be_provable<T: CoreFold<FormalityLang>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
-    data: T,
+    data: &T,
     f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints> {
     assert!(env.bias() == Bias::Completeness);
@@ -57,7 +57,7 @@ pub fn may_not_be_provable<T: CoreFold<FormalityLang>>(
 pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
-    data: T,
+    data: &T,
     f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints> {
     let assumptions: Wcs = assumptions.upcast();
@@ -85,7 +85,7 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
         .collect();
 
     let flipped_assumptions = flip_quantification.apply(&assumptions);
-    let flipped_data = flip_quantification.apply(&data);
+    let flipped_data = flip_quantification.apply(data);
 
     let cs = f(flipped_env, flipped_assumptions, flipped_data);
     match cs.into_map() {
@@ -103,13 +103,10 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
                 // Ambiguous - grab a tree from one of the results
                 let (_, sample_tree) = s.iter().next().unwrap();
                 let result = Constraints::none(env).ambiguous();
+                let label = format!("{:?}", result);
                 ProvenSet::singleton((
-                    result.clone(),
-                    ProofTree::new(
-                        format!("{:?}", result),
-                        Some("ambiguous_negation"),
-                        vec![sample_tree.clone()],
-                    ),
+                    result,
+                    ProofTree::new(label, Some("ambiguous_negation"), vec![sample_tree.clone()]),
                 ))
             }
         }
@@ -118,10 +115,8 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
             tracing::debug!("Proved `negation_via_failure`, error = {err}");
             // Negation succeeded because f failed
             let result = Constraints::none(env);
-            ProvenSet::singleton((
-                result.clone(),
-                ProofTree::leaf(format!("negation succeeded: {}", err)),
-            ))
+            let leaf = ProofTree::leaf(format!("negation succeeded: {}", err));
+            ProvenSet::singleton((result, leaf))
         }
     }
 }

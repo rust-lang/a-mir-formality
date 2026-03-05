@@ -83,20 +83,27 @@ macro_rules! judgment_fn {
 
             $(let $input_name: $input_ty = $crate::Upcast::upcast($input_name);)*
 
-            $(
-                // Assertions are preconditions.
-                //
-                // NB: we can't use `$crate` in this expression because of the `respan!` call,
-                // which messes up `$crate` resolution. But we need the respan call for track_caller to properly
-                // assign the span of the panic to the assertion expression and not the invocation of the judgment_fn
-                // macro. Annoying! But our proc macros already reference `formality_core` so that seems ok.
-                $crate::respan!(
-                    $assert_expr
-                    (
-                        formality_core::judgment::JudgmentAssertion::assert($assert_expr, stringify!($assert_expr));
-                    )
-                );
-            )*
+            // Assertions are preconditions. We shadow each input as a reference
+            // so the assert expression borrows rather than consuming the variables.
+            //
+            // NB: we can't use `$crate` in this expression because of the `respan!` call,
+            // which messes up `$crate` resolution. But we need the respan call for track_caller to properly
+            // assign the span of the panic to the assertion expression and not the invocation of the judgment_fn
+            // macro. Annoying! But our proc macros already reference `formality_core` so that seems ok.
+            {
+                $(
+                    #[allow(unused_variables)]
+                    let $input_name = &$input_name;
+                )*
+                $(
+                    $crate::respan!(
+                        $assert_expr
+                        (
+                            formality_core::judgment::JudgmentAssertion::assert($assert_expr, stringify!($assert_expr));
+                        )
+                    );
+                )*
+            }
 
             $(
                 // Trivial cases are an (important) optimization that lets
@@ -313,7 +320,7 @@ macro_rules! push_rules {
 
     (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident : $ty0:ty, $($pats:tt)*) args $args:tt) => {
         {
-            if let Some($pat0) = $crate::Downcast::downcast::<$ty0>($in0) {
+            if let Some($pat0) = &$crate::Downcast::downcast::<$ty0>($in0) {
                 $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
             }
         }
@@ -321,13 +328,13 @@ macro_rules! push_rules {
 
     (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:ident, $($pats:tt)*) args $args:tt) => {
         {
-            let $pat0 = Clone::clone($in0);
+            let $pat0 = $in0;
             $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
         }
     };
 
     (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:pat, $($pats:tt)*) args $args:tt) => {
-        if let Some($pat0) = $crate::Downcast::downcast(&$in0) {
+        if let Some($pat0) = &$crate::Downcast::downcast($in0) {
             $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
         }
     };
@@ -357,7 +364,7 @@ macro_rules! push_rules {
     ) => {
         match $crate::judgment::try_catch(|| Ok($e)) {
             Ok(value) => {
-                if let $p = Clone::clone(&value) {
+                if let $p = &value {
                     $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
                 } else {
                     $crate::push_rules!(@record_failure $inputs; $e; $crate::judgment::RuleFailureCause::IfLetDidNotMatch {
@@ -478,7 +485,7 @@ macro_rules! push_rules {
         ($($argn:ident = $arge:expr),*); $cond:expr; $origcond:expr; $($m:tt)*
     ) => {
         $(
-            let $argn = &$arge;
+            let $argn = $arge;
         )*
         let if_then = $crate::judgment::IfThen::new(
             stringify!($origcond),
@@ -486,7 +493,7 @@ macro_rules! push_rules {
                 $(
                     (
                         stringify!($arge),
-                        $crate::judgment::DebugString::new(&$argn),
+                        $crate::judgment::DebugString::new($argn),
                     ),
                 )*
             ],
@@ -625,7 +632,9 @@ macro_rules! push_rules {
     ) => {
         if let Err(e) = $crate::judgment::EachProof::each_proof(
             $i,
-            |($p, proof_tree)| {
+            |(value, proof_tree)| {
+                let $p = &value;
+
                 // Remember the size of the child proof tree stack
                 let len = $child_proof_trees.len();
 
@@ -654,7 +663,7 @@ macro_rules! push_rules {
         match $crate::judgment::try_catch::<$t>(|| Ok($i)) {
             Ok(p) => {
                 let proof_tree = $crate::judgment::ProofTree::leaf(format!("{} = {p:?}", stringify!($p)));
-                let $p = p;
+                let $p = &p;
                 $child_proof_trees.push(proof_tree);
                 $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
             }
@@ -672,7 +681,7 @@ macro_rules! push_rules {
         match $crate::judgment::try_catch(|| Ok($i)) {
             Ok(p) => {
                 let proof_tree = $crate::judgment::ProofTree::leaf(format!("{} = {p:?}", stringify!($p)));
-                let $p = p;
+                let $p = &p;
                 $child_proof_trees.push(proof_tree);
                 $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
             }
@@ -692,7 +701,9 @@ macro_rules! push_rules {
         if let Err(e) = $crate::judgment::member_of(
             $i,
             || stringify!($i).to_string(),
-            |($p, proof_tree)| {
+            |(value, proof_tree)| {
+                let $p = &value;
+
                 // Remember the size of the child proof tree stack
                 let len = $child_proof_trees.len();
 

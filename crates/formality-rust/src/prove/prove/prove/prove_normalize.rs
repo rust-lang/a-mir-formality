@@ -26,8 +26,8 @@ judgment_fn! {
         debug(p, assumptions, env)
 
         (
-            (a in &assumptions)!
-            (prove_normalize_via(&decls, &env, &assumptions, a, &goal) => c)
+            (a in assumptions)!
+            (prove_normalize_via(decls, env, assumptions, a, goal) => c)
             ----------------------------- ("normalize-via-assumption")
             (prove_normalize(decls, env, assumptions, goal) => c)
         )
@@ -37,10 +37,10 @@ judgment_fn! {
             (let (env, subst) = env.existential_substitution(&decl.binder))
             (let decl = decl.binder.instantiate_with(&subst).unwrap())
             (let AliasEqDeclBoundData { alias: AliasTy { name, parameters }, ty, where_clause } = decl)
-            (assert a.name == name)
-            (prove(&decls, env, &assumptions, Wcs::all_eq(&a.parameters, &parameters)) => c)
-            (prove_after(&decls, c, &assumptions, &where_clause) => c)
-            (let ty = c.substitution().apply(&ty))
+            (assert a.name == *name)
+            (prove(decls, env, assumptions, Wcs::all_eq(&a.parameters, &parameters)) => c)
+            (prove_after(decls, c, assumptions, &where_clause) => c)
+            (let ty = c.substitution().apply(ty))
             (let c = c.pop_subst(&subst))
             (assert c.env().encloses(&ty))
             ----------------------------- ("normalize-via-impl")
@@ -91,7 +91,7 @@ judgment_fn! {
             (if let None = goal.downcast::<ExistentialVar>())
             (if goal != b)!
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
-            (let b = c.substitution().apply(&b))
+            (let b = c.substitution().apply(b))
             ----------------------------- ("axiom-l")
             (prove_normalize_via(decls, env, assumptions, Relation::Equals(a, b), goal) => (c, b))
         )
@@ -100,7 +100,7 @@ judgment_fn! {
             (if let None = goal.downcast::<ExistentialVar>())
             (if goal != b)!
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
-            (let b = c.substitution().apply(&b))
+            (let b = c.substitution().apply(b))
             ----------------------------- ("axiom-r")
             (prove_normalize_via(decls, env, assumptions, Relation::Equals(b, a), goal) => (c, b))
         )
@@ -108,7 +108,7 @@ judgment_fn! {
         // These rules handle the the ∀ and ⇒ cases.
 
         (
-            (let (env, subst) = env.existential_substitution(&binder))
+            (let (env, subst) = env.existential_substitution(binder))
             (let via1 = binder.instantiate_with(&subst).unwrap())
             (prove_normalize_via(decls, env, assumptions, via1, goal) => (c, p))
             (let c = c.pop_subst(&subst))
@@ -118,9 +118,9 @@ judgment_fn! {
         )
 
         (
-            (prove_normalize_via(&decls, &env, &assumptions, &wc_consequence, goal) => (c, p))
-            (prove_after(&decls, c, &assumptions, &wc_condition) => c)
-            (let p = c.substitution().apply(&p))
+            (prove_normalize_via(decls, env, assumptions, wc_consequence, goal) => (c, p))
+            (prove_after(decls, c, assumptions, wc_condition) => c)
+            (let p = c.substitution().apply(p))
             ----------------------------- ("implies")
             (prove_normalize_via(decls, env, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => (c, p))
         )
@@ -149,7 +149,7 @@ judgment_fn! {
             (let RigidTy { name: a_name, parameters: a_parameters } = a)
             (let RigidTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)!
-            (zip(&decls, &env, &assumptions, a_parameters, b_parameters, &prove_syntactically_eq) => c)
+            (zip(decls, env, assumptions, a_parameters.clone(), b_parameters.clone(), &prove_syntactically_eq) => c)
             ----------------------------- ("rigid")
             (prove_syntactically_eq(decls, env, assumptions, TyData::RigidTy(a), TyData::RigidTy(b)) => c)
         )
@@ -158,7 +158,7 @@ judgment_fn! {
             (let AliasTy { name: a_name, parameters: a_parameters } = a)
             (let AliasTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)!
-            (zip(&decls, &env, &assumptions, a_parameters, b_parameters, &prove_syntactically_eq) => c)
+            (zip(decls, env, assumptions, a_parameters.clone(), b_parameters.clone(), &prove_syntactically_eq) => c)
             ----------------------------- ("alias")
             (prove_syntactically_eq(decls, env, assumptions, TyData::AliasTy(a), TyData::AliasTy(b)) => c)
         )

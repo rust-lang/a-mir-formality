@@ -22,10 +22,8 @@ where
 
     if a.is_empty() && b.is_empty() {
         let constraints = Constraints::none(env);
-        return ProvenSet::singleton((
-            constraints.clone(),
-            ProofTree::leaf(format!("{:?}", constraints)),
-        ));
+        let leaf = ProofTree::leaf(format!("{:?}", constraints));
+        return ProvenSet::singleton((constraints, leaf));
     }
 
     let a0 = a.remove(0);
@@ -56,10 +54,8 @@ where
 {
     if a.is_empty() {
         let constraints = Constraints::none(env);
-        return ProvenSet::singleton((
-            constraints.clone(),
-            ProofTree::leaf(format!("{:?}", constraints)),
-        ));
+        let leaf = ProofTree::leaf(format!("{:?}", constraints));
+        return ProvenSet::singleton((constraints, leaf));
     }
 
     let a0 = a[0].clone();

@@ -20,7 +20,7 @@ judgment_fn! {
     ) => Constraints {
         debug(goal, assumptions, env)
 
-        assert(env.encloses((&assumptions, &goal)))
+        assert(env.encloses((assumptions, goal)))
 
         (
             // Always assume that universal variables are WF. This is debatable, it implies
@@ -40,22 +40,22 @@ judgment_fn! {
         )
 
         (
-            (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
+            (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
             --- ("tuples")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Tuple(_), parameters }) => c)
         )
 
         (
-            (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
+            (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
             --- ("integers and booleans")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::ScalarId(_), parameters }) => c)
         )
 
         (
-            (for_all(&decls, &env, &assumptions, &parameters, &prove_wf) => c)
-            (let t = decls.adt_decl(&adt_id))
-            (let t = t.binder.instantiate_with(&parameters).unwrap())
-            (prove_after(&decls, c, &assumptions, t.where_clause) => c)
+            (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
+            (let t = decls.adt_decl(adt_id))
+            (let t = t.binder.instantiate_with(parameters).unwrap())
+            (prove_after(decls, c, assumptions, &t.where_clause) => c)
             --- ("ADT")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::AdtId(adt_id), parameters }) => c)
         )
@@ -71,7 +71,7 @@ judgment_fn! {
         )
 
         (
-            (prove_alias_wf(&decls, &env, &assumptions, name, parameters) => c)
+            (prove_alias_wf(decls, env, assumptions, name, parameters) => c)
             --- ("aliases")
             (prove_wf(decls, env, assumptions, AliasTy { name, parameters }) => c)
         )
@@ -82,9 +82,9 @@ pub fn prove_alias_wf(
     decls: &Decls,
     env: &Env,
     assumptions: &Wcs,
-    _name: AliasName,
-    parameters: Parameters,
+    _name: &AliasName,
+    parameters: &Parameters,
 ) -> ProvenSet<Constraints> {
     // FIXME(#217): verify self type implements trait
-    for_all(decls, env, assumptions, &parameters, &prove_wf)
+    for_all(decls, env, assumptions, parameters, &prove_wf)
 }

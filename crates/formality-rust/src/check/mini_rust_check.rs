@@ -133,8 +133,8 @@ judgment_fn! {
 
         (
             // Check all blocks
-            (for_all(block in &blocks) with(env, outlives)
-                (check_block(&env, outlives, &fn_assumptions, block) => (env, outlives)))
+            (for_all(block in blocks) with(env, outlives)
+                (check_block(env, outlives, fn_assumptions, block) => (env, outlives)))
             --- ("blocks")
             (check_blocks(env, outlives, fn_assumptions, blocks) => (env, outlives))
         )
@@ -153,10 +153,10 @@ judgment_fn! {
         (
             // Check all statements
             (for_all(statement in &block.statements) with(env, outlives)
-                (check_statement(&env, outlives, &fn_assumptions, statement) => (env, outlives)))
+                (check_statement(env, outlives, fn_assumptions, statement) => (env, outlives)))
 
             // Check terminator
-            (check_terminator(&env, outlives, &fn_assumptions, &block.terminator) => (env, outlives))
+            (check_terminator(env, outlives, fn_assumptions, &block.terminator) => (env, outlives))
             --- ("block")
             (check_block(env, outlives, fn_assumptions, block) => (env, outlives))
         )
@@ -173,29 +173,29 @@ judgment_fn! {
         debug(statement, fn_assumptions, env, outlives)
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &place) => (place_ty, env, outlives))
-            (check_value(&env, outlives, &fn_assumptions, &value) => (value_ty, env, outlives))
-            (env.prove_goal(outlives, Location, &fn_assumptions, Relation::sub(value_ty.clone(), place_ty.clone())) => outlives)
+            (check_place(env, outlives, fn_assumptions, place) => (place_ty, env, outlives))
+            (check_value(env, outlives, fn_assumptions, value) => (value_ty, env, outlives))
+            (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(value_ty, place_ty)) => outlives)
             --- ("assign")
-            (check_statement(env, outlives, fn_assumptions, minirust::Statement::Assign(place, value)) => (env.clone().clone(), outlives))
+            (check_statement(env, outlives, fn_assumptions, minirust::Statement::Assign(place, value)) => (env, outlives))
         )
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &place) => (_place_ty, env, outlives))
+            (check_place(env, outlives, fn_assumptions, place) => (_place_ty, env, outlives))
             --- ("place-mention")
             (check_statement(env, outlives, fn_assumptions, minirust::Statement::PlaceMention(place)) => (env, outlives))
         )
 
         (
-            (if env.find_local_id(&local_id).is_some())
+            (if env.find_local_id(local_id).is_some())
             --- ("storage-live")
             (check_statement(env, outlives, _fn_assumptions, minirust::Statement::StorageLive(local_id)) => (env, outlives))
         )
 
         (
-            (if let Some((local_id, _)) = env.find_local_id(&local_id))
-            (if local_id != env.ret_id)
-            (if !env.fn_args.iter().any(|fn_arg| local_id == *fn_arg))
+            (if let Some((local_id, _)) = env.find_local_id(local_id))
+            (if *local_id != env.ret_id)
+            (if !env.fn_args.iter().any(|fn_arg| *local_id == *fn_arg))
             --- ("storage-dead")
             (check_statement(env, outlives, _fn_assumptions, minirust::Statement::StorageDead(local_id)) => (env, outlives))
         )
@@ -212,13 +212,13 @@ judgment_fn! {
         debug(value, fn_assumptions, env, outlives)
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &place) => (place_ty, env, outlives))
+            (check_place(env, outlives, fn_assumptions, place) => (place_ty, env, outlives))
             --- ("load")
             (check_value(env, outlives, fn_assumptions, Load(place)) => (place_ty, env, outlives))
         )
 
         (
-            (if let Some(fn_decl) = env.fn_decl(&fn_id))
+            (if let Some(fn_decl) = env.fn_decl(fn_id))
             (let value_ty = Ty::rigid(RigidName::FnDef(fn_decl.id.clone()), Vec::<Parameter>::new()))
             --- ("fn")
             (check_value(env, outlives, _fn_assumptions, Fn(fn_id)) => (value_ty, env, outlives))
@@ -231,23 +231,23 @@ judgment_fn! {
         )
 
         (
-            (env.prove_goal(outlives, Location, &fn_assumptions, ty.well_formed()) => outlives)
-            (if let Some((adt_id, parameters)) = ty_is_adt(&ty))
+            (env.prove_goal(outlives, Location, fn_assumptions, ty.well_formed()) => outlives)
+            (if let Some((adt_id, parameters)) = ty_is_adt(ty))
             (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
             (if value_expressions.len() == fields.len())
             (for_all(pair in value_expressions.iter().zip(fields)) with(outlives)
                 (let (value_expression, field) = pair)
-                (check_value(&env, outlives, &fn_assumptions, value_expression) => (value_ty, _env, outlives))
-                (env.prove_goal(outlives, Location, &fn_assumptions, Relation::sub(value_ty, &field.ty)) => outlives))
+                (check_value(env, outlives, fn_assumptions, value_expression) => (value_ty, _env, outlives))
+                (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(value_ty, &field.ty)) => outlives))
             --- ("struct")
-            (check_value(env, outlives, fn_assumptions, Struct(value_expressions, ty)) => (ty.clone(), env.clone(), outlives))
+            (check_value(env, outlives, fn_assumptions, Struct(value_expressions, ty)) => (ty, env, outlives))
         )
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &place_expr) => (place_ty, env, outlives))
-            (let value_ty = place_ty.ref_ty_of_kind(ref_kind, &borrow_lt))
+            (check_place(env, outlives, fn_assumptions, place_expr) => (place_ty, env, outlives))
+            (let value_ty = place_ty.ref_ty_of_kind(*ref_kind, borrow_lt))
             --- ("ref")
             (check_value(env, outlives, fn_assumptions, Ref(ref_kind, borrow_lt, place_expr)) => (value_ty, env, outlives))
         )
@@ -264,28 +264,28 @@ judgment_fn! {
         debug(place, fn_assumptions, env, outlives)
 
         (
-            (if let Some((_, ty)) = env.find_local_id(&local_id))
+            (if let Some((_, ty)) = env.find_local_id(local_id))
             --- ("local")
             (check_place(env, outlives, _fn_assumptions, Local(local_id)) => (ty, env, outlives))
         )
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &*field_projection.root) => (root_ty, env, outlives))
+            (check_place(env, outlives, fn_assumptions, &*field_projection.root) => (root_ty, env, outlives))
             (if let Some((adt_id, parameters)) = ty_is_adt(&root_ty))
             (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
             (let AdtDeclVariant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
             (if field_projection.index < fields.len())
-            (let place_ty = fields[field_projection.index].ty.clone())
+            (let place_ty = &fields[field_projection.index].ty)
             --- ("field")
             (check_place(env, outlives, fn_assumptions, Field(field_projection)) => (place_ty, env, outlives))
         )
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &*value_expr) => (inner_ty, env, outlives))
+            (check_place(env, outlives, fn_assumptions, &**value_expr) => (inner_ty, env, outlives))
             (if let TyData::RigidTy(rigid_ty) = inner_ty.data())
             (if let RigidName::Ref(_ref_kind) = &rigid_ty.name)
-            (let place_ty = rigid_ty.parameters[1].as_ty().expect("well-formed reference").clone())
+            (let place_ty = rigid_ty.parameters[1].as_ty().expect("well-formed reference"))
             --- ("deref-ref")
             (check_place(env, outlives, fn_assumptions, Deref(value_expr)) => (place_ty, env, outlives))
         )
@@ -302,13 +302,13 @@ judgment_fn! {
         debug(arg_expr, fn_assumptions, env, outlives)
 
         (
-            (check_value(&env, outlives, &fn_assumptions, &val_expr) => (ty, env, outlives))
+            (check_value(env, outlives, fn_assumptions, val_expr) => (ty, env, outlives))
             --- ("by-value")
             (check_argument_expression(env, outlives, fn_assumptions, ByValue(val_expr)) => (ty, env, outlives))
         )
 
         (
-            (check_place(&env, outlives, &fn_assumptions, &place_expr) => (ty, env, outlives))
+            (check_place(env, outlives, fn_assumptions, place_expr) => (ty, env, outlives))
             --- ("in-place")
             (check_argument_expression(env, outlives, fn_assumptions, InPlace(place_expr)) => (ty, env, outlives))
         )
@@ -326,14 +326,14 @@ judgment_fn! {
 
         (
             (if !bb_ids.is_empty())
-            (for_all(bb_id in &bb_ids) (if env.block_exists(bb_id)))
+            (for_all(bb_id in bb_ids) (if env.block_exists(bb_id)))
             --- ("goto")
             (check_terminator(env, outlives, _fn_assumptions, minirust::Terminator::Goto(bb_ids)) => (env, outlives))
         )
 
         (
             // Check callee value expression
-            (check_value(&env, outlives, &fn_assumptions, &callee) => (callee_ty, env, outlives))
+            (check_value(env, outlives, fn_assumptions, callee) => (callee_ty, env, outlives))
 
             // Extract FnDef from callee type
             (if let TyData::RigidTy(rigid_ty) = callee_ty.data())
@@ -344,20 +344,18 @@ judgment_fn! {
 
             // Instantiate the function signature universally (returns new env)
             (let (fn_bound_data, env) = env.instantiate_universally(&fn_decl.binder))
-            (let callee_declared_input_tys = fn_bound_data.input_tys.clone())
-
             // Check argument count matches
-            (if callee_declared_input_tys.len() == actual_arguments.len())
+            (if fn_bound_data.input_tys.len() == actual_arguments.len())
 
             // Check each argument and subtyping
-            (for_all(arg_pair in callee_declared_input_tys.iter().zip(&actual_arguments)) with(outlives)
+            (for_all(arg_pair in fn_bound_data.input_tys.iter().zip(actual_arguments)) with(outlives)
                 (let (declared_ty, actual_argument) = arg_pair)
-                (check_argument_expression(&env, outlives, &fn_assumptions, &actual_argument) => (actual_ty, _env, outlives))
-                (env.prove_goal(outlives, Location, &fn_assumptions, Relation::sub(actual_ty, declared_ty.clone())) => outlives))
+                (check_argument_expression(env, outlives, fn_assumptions, &actual_argument) => (actual_ty, _env, outlives))
+                (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(actual_ty, declared_ty)) => outlives))
 
             // Check return place
-            (check_place(&env, outlives, &fn_assumptions, &ret) => (actual_return_ty, env, outlives))
-            (env.prove_goal(outlives, Location, &fn_assumptions, Relation::sub(&fn_bound_data.output_ty, &actual_return_ty)) => outlives)
+            (check_place(env, outlives, fn_assumptions, ret) => (actual_return_ty, env, outlives))
+            (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(&fn_bound_data.output_ty, &actual_return_ty)) => outlives)
 
             // Check next block exists if present
             (if next_block.as_ref().map_or(true, |bb_id| env.block_exists(bb_id)))
@@ -368,7 +366,7 @@ judgment_fn! {
                 arguments: actual_arguments,
                 ret,
                 next_block,
-            }) => (env.clone(), outlives))
+            }) => (env, outlives))
         )
 
         (
@@ -378,18 +376,18 @@ judgment_fn! {
 
         (
             // Check switch value
-            (check_value(&env, outlives, &fn_assumptions, &switch_value) => (value_ty, env, outlives))
-            (env.prove_judgment(outlives, Location, &fn_assumptions, value_ty, ty_is_int) => outlives)
+            (check_value(env, outlives, fn_assumptions, switch_value) => (value_ty, env, outlives))
+            (env.prove_judgment(outlives.clone(), Location, fn_assumptions, value_ty, ty_is_int) => outlives)
 
             // Check all target blocks exist
-            (for_all(switch_target in &switch_targets) (if env.block_exists(&switch_target.target)))
-            (if env.block_exists(&fallback))
+            (for_all(switch_target in switch_targets) (if env.block_exists(&switch_target.target)))
+            (if env.block_exists(fallback))
             --- ("switch")
             (check_terminator(env, outlives, fn_assumptions, minirust::Terminator::Switch {
                 switch_value,
                 switch_targets,
                 fallback,
-            }) => (env.clone(), outlives))
+            }) => (env, outlives))
         )
     }
 }
@@ -526,14 +524,14 @@ impl TypeckEnv {
     /// onto the input set and returning the result.
     pub(crate) fn prove_goal(
         &self,
-        outlives: Set<PendingOutlives>,
+        outlives: &Set<PendingOutlives>,
         location: Location,
         assumptions: impl ToWcs,
         goal: impl ToWcs + Debug,
     ) -> ProvenSet<Set<PendingOutlives>> {
         let goal: Wcs = goal.to_wcs();
         self.prove_judgment(
-            outlives,
+            outlives.clone(),
             location,
             assumptions,
             goal.to_wcs(),
@@ -741,9 +739,9 @@ judgment_fn! {
         // For the rest of the case, it should fail.
 
         (
-            (prove_normalize(&decl, &env, &assumptions, ty) => (c1, p))!
-            (let assumptions = c1.substitution().apply(&assumptions))
-            (ty_is_int(&decl, &env, assumptions, p) => c2)
+            (prove_normalize(decl, env, assumptions, ty) => (c1, p))!
+            (let assumptions = c1.substitution().apply(assumptions))
+            (ty_is_int(decl, env, assumptions, p) => c2)
             ----------------------------- ("alias_ty is int")
             (ty_is_int(decl, env, assumptions, ty) => c2)
         )

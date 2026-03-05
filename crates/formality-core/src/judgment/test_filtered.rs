@@ -26,15 +26,15 @@ judgment_fn!(
         debug(node, g)
 
         (
-            (b in graph.successors(a))
+            (b in graph.successors(*a))
             (if b % 2 == 0)
             --------------------------------------- ("base")
             (transitive_reachable(graph, a) => b)
         )
 
         (
-            (transitive_reachable(&graph, a) => b)!
-            (transitive_reachable(&graph, b) => c)
+            (transitive_reachable(graph, a) => b)!
+            (transitive_reachable(graph, b) => c)
             (if c % 2 == 0)
             --------------------------------------- ("transitive")
             (transitive_reachable(graph, a) => c)
