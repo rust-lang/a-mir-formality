@@ -1,9 +1,9 @@
 use crate::grammar::Parameter;
 use crate::FormalityLang;
-use formality_core::Set;
 use formality_core::language::CoreKind;
 use formality_core::parse::{ActiveVariant, CoreParseBinding, ParseError, ParseResult, Scope};
 use formality_core::variable::CoreBoundVar;
+use formality_core::Set;
 
 use super::ParameterKind;
 

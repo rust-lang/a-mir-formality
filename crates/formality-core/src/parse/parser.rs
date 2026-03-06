@@ -999,7 +999,6 @@ where
             value,
         }])
     }
-
 }
 
 /// Extract the next character from input, returning an error if we've reached the input.

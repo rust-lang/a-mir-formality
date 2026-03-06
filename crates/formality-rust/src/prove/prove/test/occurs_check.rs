@@ -40,11 +40,7 @@ fn eq_rigid_to_variable() {
 /// Test that `X = Vec<X>` cannot be solved (when constructed over several steps)
 #[test]
 fn indirect_cycle_1() {
-    test_prove(
-        decls(),
-        term("exists<A, B> {} => {A = Vec<B>, B = A}"),
-    )
-    .assert_err(expect![[r#"
+    test_prove(decls(), term("exists<A, B> {} => {A = Vec<B>, B = A}")).assert_err(expect![[r#"
         failed at (prove_eq.rs) because
           `?ty_0` occurs in `Vec<?ty_0>`"#]]);
 }
@@ -52,11 +48,7 @@ fn indirect_cycle_1() {
 /// Test that `X = Vec<X>` cannot be solved (when constructed over several steps)
 #[test]
 fn indirect_cycle_2() {
-    test_prove(
-        decls(),
-        term("exists<A, B> {} => {B = A, A = Vec<B>}"),
-    )
-    .assert_err(expect![[r#"
+    test_prove(decls(), term("exists<A, B> {} => {B = A, A = Vec<B>}")).assert_err(expect![[r#"
         failed at (prove_eq.rs) because
           `?ty_0` occurs in `Vec<?ty_0>`"#]]);
 }
