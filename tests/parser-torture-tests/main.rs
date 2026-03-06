@@ -1,4 +1,5 @@
 mod ambiguity;
+mod ambiguity_helpers;
 mod commit_points;
 mod grammar;
 mod left_associative;
@@ -19,6 +20,14 @@ formality_core::declare_language! {
             "let",
             "in",
             "integer",
+            "opt",
+            "many",
+            "comma",
+            "delim",
+            "end",
+            "start",
+            "then",
+            "list",
         ];
     }
 }
