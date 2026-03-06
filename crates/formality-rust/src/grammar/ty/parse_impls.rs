@@ -1,10 +1,8 @@
 //! Handwritten parser impls.
 
-use formality_core::parse::{
-    ActiveVariant, CoreParse, ParseError, ParseResult, Parser, Precedence, Scope,
-};
+use formality_core::parse::{ActiveVariant, CoreParse, ParseResult, Parser, Precedence, Scope};
+use formality_core::seq;
 use formality_core::Upcast;
-use formality_core::{seq, Set};
 
 use crate::grammar::{AdtId, AssociatedItemId, RefKind, RigidName, TraitId};
 
@@ -27,45 +25,52 @@ impl CoreParse<Rust> for RigidTy {
                 // Don't accept scalar-ids as Adt names.
                 p.reject_nonterminal::<ScalarId>()?;
 
-                let name: AdtId = p.nonterminal()?;
-                let parameters: Vec<Parameter> = parse_parameters(p)?;
-                Ok(RigidTy {
-                    name: name.upcast(),
-                    parameters,
+                p.each_nonterminal(|name: AdtId, p| {
+                    each_parse_parameters(p, |parameters, p| {
+                        p.ok(RigidTy {
+                            name: name.clone().upcast(),
+                            parameters,
+                        })
+                    })
                 })
             });
 
             // Parse `&`
             parser.parse_variant("Ref", Precedence::default(), |p| {
                 p.expect_char('&')?;
-                let lt: Lt = p.nonterminal()?;
-                let ty: Ty = p.nonterminal()?;
-                Ok(RigidTy {
-                    name: RigidName::Ref(RefKind::Shared),
-                    parameters: seq![lt.upcast(), ty.upcast()],
+                p.each_nonterminal(|lt: Lt, p| {
+                    p.each_nonterminal(|ty: Ty, p| {
+                        p.ok(RigidTy {
+                            name: RigidName::Ref(RefKind::Shared),
+                            parameters: seq![lt.clone().upcast(), ty.upcast()],
+                        })
+                    })
                 })
             });
 
             parser.parse_variant("RefMut", Precedence::default(), |p| {
                 p.expect_char('&')?;
                 p.expect_keyword("mut")?;
-                let lt: Lt = p.nonterminal()?;
-                let ty: Ty = p.nonterminal()?;
-                Ok(RigidTy {
-                    name: RigidName::Ref(RefKind::Mut),
-                    parameters: seq![lt.upcast(), ty.upcast()],
+                p.each_nonterminal(|lt: Lt, p| {
+                    p.each_nonterminal(|ty: Ty, p| {
+                        p.ok(RigidTy {
+                            name: RigidName::Ref(RefKind::Mut),
+                            parameters: seq![lt.clone().upcast(), ty.upcast()],
+                        })
+                    })
                 })
             });
 
             parser.parse_variant("Tuple", Precedence::default(), |p| {
                 p.expect_char('(')?;
                 p.reject_custom_keywords(&["alias", "rigid", "predicate"])?;
-                let types: Vec<Ty> = p.comma_nonterminal()?;
-                p.expect_char(')')?;
-                let name = RigidName::Tuple(types.len());
-                Ok(RigidTy {
-                    name,
-                    parameters: types.upcast(),
+                p.each_comma_nonterminal(|types: Vec<Ty>, p| {
+                    p.expect_char(')')?;
+                    let name = RigidName::Tuple(types.len());
+                    p.ok(RigidTy {
+                        name,
+                        parameters: types.upcast(),
+                    })
                 })
             });
         })
@@ -78,40 +83,51 @@ impl CoreParse<Rust> for AliasTy {
         Parser::multi_variant(scope, text, "AliasTy", |parser| {
             parser.parse_variant("associated type", Precedence::default(), |p| {
                 p.expect_char('<')?;
-                let ty0: Ty = p.nonterminal()?;
-                p.expect_keyword("as")?;
-                let trait_id: TraitId = p.nonterminal()?;
-                let trait_parameters1 = parse_parameters(p)?;
-                p.expect_char('>')?;
-                p.expect_char(':')?;
-                p.expect_char(':')?;
-                let item_id: AssociatedItemId = p.nonterminal()?;
-                let item_parameters = parse_parameters(p)?;
-                let name = AssociatedTyName {
-                    trait_id,
-                    item_id,
-                    item_arity: item_parameters.len(),
-                };
-                let parameters: Vec<Parameter> = std::iter::once(ty0.upcast())
-                    .chain(trait_parameters1)
-                    .chain(item_parameters)
-                    .collect();
-                Ok(AliasTy {
-                    name: name.upcast(),
-                    parameters,
+                p.each_nonterminal(|ty0: Ty, p| {
+                    p.expect_keyword("as")?;
+                    p.each_nonterminal(|trait_id: TraitId, p| {
+                        each_parse_parameters(p, |trait_parameters1, p| {
+                            p.expect_char('>')?;
+                            p.expect_char(':')?;
+                            p.expect_char(':')?;
+                            p.each_nonterminal(|item_id: AssociatedItemId, p| {
+                                let trait_id = trait_id.clone();
+                                let ty0 = ty0.clone();
+                                let trait_parameters1 = trait_parameters1.clone();
+                                each_parse_parameters(p, |item_parameters, p| {
+                                    let name = AssociatedTyName {
+                                        trait_id: trait_id.clone(),
+                                        item_id: item_id.clone(),
+                                        item_arity: item_parameters.len(),
+                                    };
+                                    let parameters: Vec<Parameter> =
+                                        std::iter::once(ty0.clone().upcast())
+                                            .chain(trait_parameters1.clone())
+                                            .chain(item_parameters)
+                                            .collect();
+                                    p.ok(AliasTy {
+                                        name: name.upcast(),
+                                        parameters,
+                                    })
+                                })
+                            })
+                        })
+                    })
                 })
             });
         })
     }
 }
 
-fn parse_parameters<'t>(
-    p: &mut ActiveVariant<'_, 't, Rust>,
-) -> Result<Vec<Parameter>, Set<ParseError<'t>>> {
+fn each_parse_parameters<'s, 't, R: std::fmt::Debug + Clone + Eq + 'static>(
+    p: &mut ActiveVariant<'s, 't, Rust>,
+    op: impl Fn(Vec<Parameter>, &mut ActiveVariant<'s, 't, Rust>) -> ParseResult<'t, R>,
+) -> ParseResult<'t, R> {
     if p.expect_char('<').is_err() {
-        return Ok(vec![]);
+        return op(vec![], p);
     }
-    let parameters: Vec<Parameter> = p.comma_nonterminal()?;
-    p.expect_char('>')?;
-    Ok(parameters)
+    p.each_comma_nonterminal(|parameters: Vec<Parameter>, p| {
+        p.expect_char('>')?;
+        op(parameters, p)
+    })
 }

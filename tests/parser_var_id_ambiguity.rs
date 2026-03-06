@@ -49,7 +49,7 @@ pub enum Ty {
     Apply(Perm, Arc<Ty>),
 
     #[grammar($v0 :: $v1)]
-    Assoc(Arc<Ty>, Id),
+    Assoc(Arc<Ty>, AssocId),
 }
 
 #[term]
@@ -58,7 +58,8 @@ pub enum Perm {
     Variable(Variable),
 }
 
-formality_core::id!(Id);
+formality_core::id!(Id, match_var = false);
+formality_core::id!(AssocId);
 
 formality_core::cast_impl!((BoundVar) <: (Variable) <: (Parameter));
 formality_core::cast_impl!((ExistentialVar) <: (Variable) <: (Parameter));
@@ -135,6 +136,9 @@ fn parse_id() {
 #[test]
 fn parse_assoc() {
     let value: Binder<Ty> = ptt::term("<ty T> i32::T");
+    // `T` after `::` parses as an Id (identifier), not a variable,
+    // because Ty's variable-first short-circuit doesn't apply to the
+    // second field of the Assoc variant.
     expect_test::expect![[r#"
         Binder {
             kinds: [

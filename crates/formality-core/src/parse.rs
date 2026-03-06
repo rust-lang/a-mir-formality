@@ -52,10 +52,11 @@ pub fn default_binding_parse<'t, L: Language>(
     text: &'t str,
 ) -> ParseResult<'t, Binding<L>> {
     Parser::single_variant(scope, text, "Binding", |p| {
-        let kind: CoreKind<L> = p.nonterminal()?;
-        let name = p.identifier()?;
-        let bound_var = CoreBoundVar::fresh(kind);
-        Ok(Binding { name, bound_var })
+        p.each_nonterminal(|kind: CoreKind<L>, p| {
+            let name = p.identifier()?;
+            let bound_var = CoreBoundVar::fresh(kind);
+            p.ok(Binding { name, bound_var })
+        })
     })
 }
 
@@ -74,7 +75,7 @@ where
     B: Upcast<(String, CoreVariable<L>)>,
 {
     let scope = Scope::new(bindings.into_iter().map(|b| b.upcast()));
-    let parse = match T::parse(&scope, text) {
+    let parses = match T::parse(&scope, text) {
         Ok(v) => v,
         Err(errors) => {
             let mut err = crate::anyhow!("failed to parse {text}");
@@ -84,13 +85,28 @@ where
             return Err(err);
         }
     };
-    let (value, remainder) = parse.finish();
 
-    if !skip_whitespace(remainder).is_empty() {
-        crate::bail!("extra tokens after parsing {text:?} to {value:?}: {remainder:?}");
+    // Filter to parses that consumed all input.
+    let mut complete_parses: Vec<_> = parses
+        .into_iter()
+        .filter(|p| skip_whitespace(p.text()).is_empty())
+        .collect();
+
+    if complete_parses.is_empty() {
+        crate::bail!("extra tokens after parsing {text:?}");
     }
 
-    Ok(value)
+    // Deduplicate parses that produced the same value.
+    complete_parses.dedup_by(|a, b| a.value == b.value);
+
+    if complete_parses.len() == 1 {
+        return Ok(complete_parses.into_iter().next().unwrap().finish().0);
+    }
+
+    panic!(
+        "ambiguous parse of `{text:?}`, possibilities are {:#?}",
+        complete_parses.iter().map(|p| &p.value).collect::<Vec<_>>(),
+    );
 }
 
 /// Record from a successful parse.
@@ -98,19 +114,6 @@ where
 pub struct SuccessfulParse<'t, T> {
     /// The new point in the input, after we've consumed whatever text we have.
     text: &'t str,
-
-    /// A list of reductions we had to perform. *Reductions* are the names
-    /// of enum variants that we have produced. For example, given an enum like `Foo { Bar(String, String) }`,
-    /// and an input `foo("hello", "world")`, the reductions that result would be
-    /// `["String", "String", "Foo::Bar"]`. This is used to resolve ambiguities
-    /// more successfully.
-    ///
-    /// Important: reductions are only recorded if they represent a significant
-    /// change. "is-a" relationships do not result in reductions. For example,
-    /// given `enum Expr { #[cast] Base(BaseExpr), ... }`, only the reductions
-    /// from `BaseExpr` would be recorded, there would be no `Expr::Base`
-    /// reduction.
-    reductions: Vec<(&'static str, ReductionKind)>,
 
     /// The precedence of this parse, which is derived from the value given
     /// to `parse_variant`.
@@ -120,71 +123,21 @@ pub struct SuccessfulParse<'t, T> {
     value: T,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub enum ReductionKind {
-    #[default]
-    Normal,
-
-    /// A "cast" reduction is created by invoking `Parser::parse_variant_cast`
-    /// or from the `#[cast]` variants in an enum. This kind of reduction
-    /// represents an "is-a" relationship and does not add semantic meaning.
-    ///
-    /// Cast variants interact differently with ambiguity detection.
-    /// Consider this grammar:
-    ///
-    /// ```text
-    /// X = Y | Z // X has two variants
-    /// Y = A     // Y has 1 variant
-    /// Z = A B   // Z has 1 variant
-    /// A = "a"   // A has 1 variant
-    /// B = "b"   // B has 1 variant
-    /// ```
-    ///
-    /// If you mark the two `X` variants (`X = Y` and `X = Z`)
-    /// as cast variants, then the input `"a b"` is considered
-    /// unambiguous and is parsed as `X = (Z = (A = "a') (B = "b))`
-    /// with no remainder.
-    ///
-    /// If you don't mark those variants as cast variants,
-    /// then we consider this *ambiguous*, because
-    /// it could be that you want `X = (Y = (A = "a"))` with
-    /// a remainder of `"b"`. This is appropriate
-    /// if choosing Y vs Z has different semantic meaning.
-    Cast,
-
-    /// A "variable" reduction results from invoking
-    /// `Parser::parse_variant_variable` to parse an in-scope variable
-    /// or from a `#[variable]` variant in an enum.
-    ///
-    /// In general we prefer to interpret
-    /// an identifier as an in-scope variable if there is one
-    /// (see the test `parser-var-id-ambiguity` for examples).
-    Variable,
-
-    /// A "identifier" reduction results from invoking
-    /// `Parser::parse_variant_identifier` to parse an identifier
-    /// or from parsing a type declared with the `formality_core::id!`
-    /// macro.
-    ///
-    /// In general we prefer to interpret
-    /// an identifier as an in-scope variable if there is one
-    /// (see the test `parser-var-id-ambiguity` for examples).
-    Identifier,
-}
-
 impl<'t, T> SuccessfulParse<'t, T> {
-    /// Extract the value parsed and the remaining text,
-    /// ignoring the reductions.
+    /// Returns the remaining unparsed text.
+    pub fn text(&self) -> &'t str {
+        self.text
+    }
+
+    /// Extract the value parsed and the remaining text.
     pub fn finish(self) -> (T, &'t str) {
         (self.value, self.text)
     }
 
-    /// Maps the value using `op` -- this is meant for 'no-op' conversions like going from `T` to `Arc<T>`,
-    /// and hence the list of reductions does not change.
+    /// Maps the value using `op` -- this is meant for 'no-op' conversions like going from `T` to `Arc<T>`.
     pub fn map<U>(self, op: impl FnOnce(T) -> U) -> SuccessfulParse<'t, U> {
         SuccessfulParse {
             text: self.text,
-            reductions: self.reductions,
             precedence: self.precedence,
             value: op(self.value),
         }
@@ -199,7 +152,6 @@ where
     fn upcast_from(term: SuccessfulParse<'t, T>) -> Self {
         SuccessfulParse {
             text: term.text,
-            reductions: term.reductions,
             precedence: term.precedence,
             value: term.value.upcast(),
         }
@@ -252,7 +204,8 @@ impl<'t> ParseError<'t> {
     }
 }
 
-pub type ParseResult<'t, T> = Result<SuccessfulParse<'t, T>, Set<ParseError<'t>>>;
+pub type ParseResult<'t, T> = Result<Vec<SuccessfulParse<'t, T>>, Set<ParseError<'t>>>;
+
 pub type TokenResult<'t, T> = Result<(T, &'t str), Set<ParseError<'t>>>;
 
 /// Tracks the variables in scope at this point in parsing.
@@ -308,7 +261,7 @@ where
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "Vec", |p| {
-            p.delimited_nonterminal('[', false, ']')
+            p.each_delimited_nonterminal('[', false, ']', |v, p| p.ok(v))
         })
     }
 }
@@ -320,7 +273,9 @@ where
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "Set", |p| {
-            p.delimited_nonterminal('{', false, '}')
+            p.each_delimited_nonterminal('{', false, '}', |v: Vec<T>, p| {
+                p.ok(v.into_iter().collect())
+            })
         })
     }
 }
@@ -331,7 +286,9 @@ where
     T: CoreParse<L>,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "Option", |p| p.opt_nonterminal())
+        Parser::single_variant(scope, text, "Option", |p| {
+            p.each_opt_nonterminal(|v, p| p.ok(v))
+        })
     }
 }
 
@@ -354,20 +311,22 @@ where
             match p.expect_char(L::BINDING_OPEN) {
                 Ok(()) => {}
                 Err(_) => {
-                    return Ok(CoreBinder::dummy(p.nonterminal()?));
+                    return p.each_nonterminal(|data: T, p| p.ok(CoreBinder::dummy(data)));
                 }
             }
 
-            let bindings: Vec<Binding<L>> = p.comma_nonterminal()?;
-            p.expect_char(L::BINDING_CLOSE)?;
+            p.each_comma_nonterminal(|bindings: Vec<Binding<L>>, p| {
+                p.expect_char(L::BINDING_CLOSE)?;
 
-            let data: T = p.with_scope(
-                scope.with_bindings(bindings.iter().map(|b| (&b.name, b.bound_var))),
-                |p| p.nonterminal(),
-            )?;
-
-            let kvis: Vec<CoreBoundVar<L>> = bindings.iter().map(|b| b.bound_var).collect();
-            Ok(CoreBinder::new(kvis, data))
+                let scope1 = scope.with_bindings(bindings.iter().map(|b| (&b.name, b.bound_var)));
+                p.with_scope(scope1, |p| {
+                    p.each_nonterminal(|data: T, p| {
+                        let kvis: Vec<CoreBoundVar<L>> =
+                            bindings.iter().map(|b| b.bound_var).collect();
+                        p.ok(CoreBinder::new(kvis, data))
+                    })
+                })
+            })
         })
     }
 }
@@ -378,7 +337,8 @@ where
     T: CoreParse<L>,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        T::parse(scope, text).map(|success| success.map(Arc::new))
+        T::parse(scope, text)
+            .map(|successes| successes.into_iter().map(|s| s.map(Arc::new)).collect())
     }
 }
 
@@ -390,12 +350,12 @@ where
         Parser::multi_variant(scope, text, "bool", |parser| {
             parser.parse_variant("true", Precedence::default(), |p| {
                 p.expect_keyword("true")?;
-                Ok(true)
+                p.ok(true)
             });
 
             parser.parse_variant("false", Precedence::default(), |p| {
                 p.expect_keyword("false")?;
-                Ok(false)
+                p.ok(false)
             });
         })
     }
@@ -406,7 +366,10 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "usize", |p| p.number())
+        Parser::single_variant(scope, text, "usize", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
     }
 }
 
@@ -415,7 +378,10 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u8", |p| p.number())
+        Parser::single_variant(scope, text, "u8", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
     }
 }
 
@@ -424,7 +390,10 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u16", |p| p.number())
+        Parser::single_variant(scope, text, "u16", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
     }
 }
 
@@ -433,7 +402,10 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u32", |p| p.number())
+        Parser::single_variant(scope, text, "u32", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
     }
 }
 
@@ -442,7 +414,10 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u64", |p| p.number())
+        Parser::single_variant(scope, text, "u64", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
     }
 }
 
@@ -451,7 +426,10 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u16", |p| p.number())
+        Parser::single_variant(scope, text, "u16", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
     }
 }
 
@@ -460,7 +438,10 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u16", |p| p.number())
+        Parser::single_variant(scope, text, "u16", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
     }
 }
 
@@ -469,7 +450,10 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u16", |p| p.number())
+        Parser::single_variant(scope, text, "u16", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
     }
 }
 
@@ -478,7 +462,10 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u16", |p| p.number())
+        Parser::single_variant(scope, text, "u16", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
     }
 }
 
@@ -487,7 +474,10 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u16", |p| p.number())
+        Parser::single_variant(scope, text, "u16", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
     }
 }
 
@@ -496,7 +486,7 @@ impl<L: Language> CoreParse<L> for () {
         Parser::single_variant(scope, text, "`()`", |p| {
             p.expect_char('(')?;
             p.expect_char(')')?;
-            Ok(())
+            p.ok(())
         })
     }
 }
@@ -505,12 +495,14 @@ impl<L: Language, A: CoreParse<L>, B: CoreParse<L>> CoreParse<L> for (A, B) {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "tuple", |p| {
             p.expect_char('(')?;
-            let a: A = p.nonterminal()?;
-            p.expect_char(',')?;
-            let b: B = p.nonterminal()?;
-            p.skip_trailing_comma();
-            p.expect_char(')')?;
-            Ok((a, b))
+            p.each_nonterminal(|a: A, p| {
+                p.expect_char(',')?;
+                p.each_nonterminal(|b: B, p| {
+                    p.skip_trailing_comma();
+                    p.expect_char(')')?;
+                    p.ok((a.clone(), b))
+                })
+            })
         })
     }
 }
@@ -519,20 +511,26 @@ impl<L: Language, A: CoreParse<L>, B: CoreParse<L>, C: CoreParse<L>> CoreParse<L
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "tuple", |p| {
             p.expect_char('(')?;
-            let a: A = p.nonterminal()?;
-            p.expect_char(',')?;
-            let b: B = p.nonterminal()?;
-            p.expect_char(',')?;
-            let c: C = p.nonterminal()?;
-            p.skip_trailing_comma();
-            p.expect_char(')')?;
-            Ok((a, b, c))
+            p.each_nonterminal(|a: A, p| {
+                p.expect_char(',')?;
+                p.each_nonterminal(|b: B, p| {
+                    p.expect_char(',')?;
+                    p.each_nonterminal(|c: C, p| {
+                        p.skip_trailing_comma();
+                        p.expect_char(')')?;
+                        p.ok((a.clone(), b.clone(), c))
+                    })
+                })
+            })
         })
     }
 }
 
 impl<L: Language> CoreParse<L> for CoreVariable<L> {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "variable", |p| p.variable())
+        Parser::single_variant(scope, text, "variable", |p| {
+            let v = p.variable()?;
+            p.ok(v)
+        })
     }
 }

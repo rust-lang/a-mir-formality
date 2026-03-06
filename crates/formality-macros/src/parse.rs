@@ -1,13 +1,13 @@
 extern crate proc_macro;
 
 use convert_case::{Case, Casing};
-use proc_macro2::{Ident, Literal, Span, TokenStream};
+use proc_macro2::{Ident, Literal, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{spanned::Spanned, Attribute};
 use synstructure::BindingInfo;
 
 use crate::{
-    attrs::{has_cast_attr, precedence, variable},
+    attrs::{has_cast_attr, has_variable_attr, precedence, variable},
     spec::{self, FieldMode, FormalitySpec},
     variable::Variable,
 };
@@ -40,16 +40,37 @@ pub(crate) fn derive_parse_with_spec(
         }
     }
 
-    let mut parse_variants = TokenStream::new();
+    // Emit `#[variable]` variants first. If any succeeds, short-circuit
+    // and skip remaining variants. This ensures that in-scope variables
+    // are always preferred over identifiers (e.g., `T` as a type variable
+    // vs `T` as an ADT name) without needing global disambiguation hacks.
+    let mut variable_variants = TokenStream::new();
+    let mut other_variants = TokenStream::new();
     for variant in s.variants() {
         let variant_name = Literal::string(&format!("{}::{}", s.ast().ident, variant.ast().ident));
         let v = parse_variant(variant, external_spec)?;
         let precedence = precedence(variant.ast().attrs)?.expr();
-        parse_variants.extend(quote_spanned!(
+        let is_variable = has_variable_attr(variant.ast().attrs);
+        let target = if is_variable {
+            &mut variable_variants
+        } else {
+            &mut other_variants
+        };
+        target.extend(quote_spanned!(
             variant.ast().ident.span() =>
             __parser.parse_variant(#variant_name, #precedence, |__p| { #v });
         ));
     }
+    let parse_variants = if variable_variants.is_empty() {
+        other_variants
+    } else {
+        quote! {
+            #variable_variants
+            if !__parser.has_success() {
+                #other_variants
+            }
+        }
+    };
 
     let type_name: Literal = as_literal(&s.ast().ident);
     Ok(s.gen_impl(quote! {
@@ -93,7 +114,7 @@ fn parse_variant(
         stream.extend(quote_spanned! {
             ast.ident.span() =>
             __p.expect_keyword(#literal)?;
-            Ok(#construct)
+            __p.ok(#construct)
         });
     } else if let Some(Variable { kind }) = variable_attr {
         // Has the `#[variable]` attribute -- parse an identifier and then check to see if it is present
@@ -109,33 +130,37 @@ fn parse_variant(
         let construct = variant.construct(field_ident);
         stream.extend(quote_spanned! {
             ast.ident.span() =>
-            __p.mark_as_in_scope_var();
             let #v0 = __p.variable_of_kind(#kind)?;
-            Ok(#construct)
+            __p.ok(#construct)
         });
     } else if has_cast_attr(variant.ast().attrs) {
         // Has the `#[cast]` attribute -- just parse the bindings (comma separated, if needed)
-        let build: Vec<TokenStream> = parse_bindings(variant.bindings());
         let construct = variant.construct(field_ident);
+        let tail = quote_spanned! {
+            ast.ident.span() =>
+            __p.ok(#construct)
+        };
+        let body = wrap_bindings_in_each_nonterminal(variant.bindings(), tail);
         stream.extend(quote_spanned! {
             ast.ident.span() =>
-            __p.mark_as_cast_variant();
-            #(#build)*
-            Ok(#construct)
+            #body
         });
     } else {
         // Otherwise -- parse `variant(binding0, ..., bindingN)`
         let literal = Literal::string(&to_parse_ident(ast.ident));
-        let build: Vec<TokenStream> = parse_bindings(variant.bindings());
         let construct = variant.construct(field_ident);
+        let tail = quote_spanned! {
+            ast.ident.span() =>
+            __p.skip_trailing_comma();
+            __p.expect_char(')')?;
+            __p.ok(#construct)
+        };
+        let body = wrap_bindings_in_each_nonterminal(variant.bindings(), tail);
         stream.extend(quote_spanned! {
             ast.ident.span() =>
             __p.expect_keyword(#literal)?;
             __p.expect_char('(')?;
-            #(#build)*
-            __p.skip_trailing_comma();
-            __p.expect_char(')')?;
-            Ok(#construct)
+            #body
         });
     }
 
@@ -173,73 +198,194 @@ fn parse_variant_with_attr(
         stream.extend(quote!(__p.set_committed(false);));
     }
 
-    for symbol in &spec.symbols {
-        stream.extend(match symbol {
-            spec::FormalitySpecSymbol::Field { name, mode } => {
-                let initializer = parse_field_mode(name.span(), mode);
-                quote_spanned!(name.span() =>
-                    let #name = #initializer;
-                )
-            }
-
-            spec::FormalitySpecSymbol::Keyword { ident } => {
-                let literal = as_literal(ident);
-                quote_spanned!(ident.span() =>
-                    __p.expect_keyword(#literal)?;
-                )
-            }
-
-            spec::FormalitySpecSymbol::CommitPoint => {
-                quote!(
-                    let () = __p.set_committed(true);
-                )
-            }
-
-            spec::FormalitySpecSymbol::Char { punct } => {
-                let literal = Literal::character(punct.as_char());
-                quote_spanned!(punct.span() =>
-                    __p.expect_char(#literal)?;
-                )
-            }
-
-            spec::FormalitySpecSymbol::Delimeter { text } => {
-                let literal = Literal::character(*text);
-                quote_spanned!(literal.span() =>
-                    __p.expect_char(#literal)?;
-                )
-            }
-        });
-    }
-
+    // Build the symbols list into a nested structure.
+    // Non-nonterminal symbols (keywords, chars, commit points) stay as flat `?`-based code.
+    // All nonterminal field modes become `each_*` continuation-passing calls,
+    // nesting everything that follows inside the continuation closure.
     let c = variant.construct(field_ident);
+    let tail = quote!(__p.ok(#c));
 
-    stream.extend(quote! {
-        Ok(#c)
-    });
+    let body = wrap_symbols_in_each_nonterminal(variant, &spec.symbols, tail);
+    stream.extend(body);
 
     Ok(stream)
 }
 
-fn parse_field_mode(span: Span, mode: &FieldMode) -> TokenStream {
+/// Recursively wrap a list of spec symbols, nesting `each_nonterminal` for `FieldMode::Single`
+/// fields and keeping other operations flat.
+///
+/// `captured_names` tracks variable names bound by outer `each_nonterminal` calls.
+/// These must be cloned inside inner closures since the closures are `Fn`.
+fn wrap_symbols_in_each_nonterminal(
+    variant: &synstructure::VariantInfo,
+    symbols: &[spec::FormalitySpecSymbol],
+    tail: TokenStream,
+) -> TokenStream {
+    wrap_symbols_inner(variant, symbols, tail, &[])
+}
+
+/// Look up a field's type in a variant by name.
+/// For named fields, matches by name. For tuple fields (v0, v1, etc.),
+/// matches by index.
+fn field_type_by_name<'a>(
+    variant: &'a synstructure::VariantInfo,
+    name: &Ident,
+) -> Option<&'a syn::Type> {
+    // First try matching by name
+    let by_name = variant
+        .bindings()
+        .iter()
+        .find(|b| b.ast().ident.as_ref() == Some(name))
+        .map(|b| &b.ast().ty);
+    if by_name.is_some() {
+        return by_name;
+    }
+
+    // For tuple struct fields, the spec uses names like v0, v1, ...
+    let name_str = name.to_string();
+    if let Some(idx_str) = name_str.strip_prefix('v') {
+        if let Ok(idx) = idx_str.parse::<usize>() {
+            let bindings = variant.bindings();
+            if idx < bindings.len() && bindings[idx].ast().ident.is_none() {
+                return Some(&bindings[idx].ast().ty);
+            }
+        }
+    }
+
+    None
+}
+
+fn wrap_symbols_inner(
+    variant: &synstructure::VariantInfo,
+    symbols: &[spec::FormalitySpecSymbol],
+    tail: TokenStream,
+    captured_names: &[Ident],
+) -> TokenStream {
+    if symbols.is_empty() {
+        return tail;
+    }
+
+    let (first, rest) = symbols.split_first().unwrap();
+
+    match first {
+        spec::FormalitySpecSymbol::Field { name, mode } => {
+            wrap_field_mode(variant, name, mode, rest, tail, captured_names)
+        }
+
+        spec::FormalitySpecSymbol::Keyword { ident } => {
+            let literal = as_literal(ident);
+            let inner = wrap_symbols_inner(variant, rest, tail, captured_names);
+            quote_spanned!(ident.span() =>
+                __p.expect_keyword(#literal)?;
+                #inner
+            )
+        }
+
+        spec::FormalitySpecSymbol::CommitPoint => {
+            let inner = wrap_symbols_inner(variant, rest, tail, captured_names);
+            quote!(
+                let () = __p.set_committed(true);
+                #inner
+            )
+        }
+
+        spec::FormalitySpecSymbol::Char { punct } => {
+            let literal = Literal::character(punct.as_char());
+            let inner = wrap_symbols_inner(variant, rest, tail, captured_names);
+            quote_spanned!(punct.span() =>
+                __p.expect_char(#literal)?;
+                #inner
+            )
+        }
+
+        spec::FormalitySpecSymbol::Delimeter { text } => {
+            let literal = Literal::character(*text);
+            let inner = wrap_symbols_inner(variant, rest, tail, captured_names);
+            quote_spanned!(literal.span() =>
+                __p.expect_char(#literal)?;
+                #inner
+            )
+        }
+    }
+}
+
+/// Wraps a field parse into a continuation-passing `each_*` call that nests the
+/// remaining symbols inside the closure. All field modes now propagate ambiguity.
+fn wrap_field_mode(
+    variant: &synstructure::VariantInfo,
+    name: &Ident,
+    mode: &FieldMode,
+    rest_symbols: &[spec::FormalitySpecSymbol],
+    tail: TokenStream,
+    captured_names: &[Ident],
+) -> TokenStream {
+    let field_ty = field_type_by_name(variant, name);
+
+    // Add this name to captured list for inner closures
+    let mut new_captured = captured_names.to_vec();
+    new_captured.push(name.clone());
+    let inner = wrap_symbols_inner(variant, rest_symbols, tail, &new_captured);
+
+    // Clone captured variables at the top of the closure body
+    let clones: Vec<TokenStream> = captured_names
+        .iter()
+        .map(|n| quote!(let #n = #n.clone();))
+        .collect();
+
     match mode {
         FieldMode::Single => {
-            quote_spanned! {
-                span =>
-                __p.nonterminal()?
+            if let Some(ty) = field_ty {
+                quote_spanned!(name.span() =>
+                    __p.each_nonterminal(|#name: #ty, __p| {
+                        #(#clones)*
+                        #inner
+                    })
+                )
+            } else {
+                quote_spanned!(name.span() =>
+                    __p.each_nonterminal(|#name, __p| {
+                        #(#clones)*
+                        #inner
+                    })
+                )
             }
         }
 
         FieldMode::Optional => {
-            quote_spanned! {
-                span =>
-                __p.opt_nonterminal()?.unwrap_or_default()
+            if let Some(ty) = field_ty {
+                quote_spanned!(name.span() =>
+                    __p.each_opt_nonterminal(|#name: Option<#ty>, __p| {
+                        let #name: #ty = #name.unwrap_or_default();
+                        #(#clones)*
+                        #inner
+                    })
+                )
+            } else {
+                quote_spanned!(name.span() =>
+                    __p.each_opt_nonterminal(|#name, __p| {
+                        let #name = #name.unwrap_or_default();
+                        #(#clones)*
+                        #inner
+                    })
+                )
             }
         }
 
         FieldMode::Many => {
-            quote_spanned! {
-                span =>
-                __p.many_nonterminal()?
+            if let Some(ty) = field_ty {
+                quote_spanned!(name.span() =>
+                    __p.each_many_nonterminal(|#name: #ty, __p| {
+                        #(#clones)*
+                        #inner
+                    })
+                )
+            } else {
+                quote_spanned!(name.span() =>
+                    __p.each_many_nonterminal(|#name, __p| {
+                        #(#clones)*
+                        #inner
+                    })
+                )
             }
         }
 
@@ -250,26 +396,230 @@ fn parse_field_mode(span: Span, mode: &FieldMode) -> TokenStream {
         } => {
             let open = Literal::character(*open);
             let close = Literal::character(*close);
-            quote_spanned! {
-                span =>
-                __p.delimited_nonterminal(#open, #optional, #close)?
+            if let Some(ty) = field_ty {
+                quote_spanned!(name.span() =>
+                    __p.each_delimited_nonterminal(#open, #optional, #close, |#name: #ty, __p| {
+                        #(#clones)*
+                        #inner
+                    })
+                )
+            } else {
+                quote_spanned!(name.span() =>
+                    __p.each_delimited_nonterminal(#open, #optional, #close, |#name, __p| {
+                        #(#clones)*
+                        #inner
+                    })
+                )
             }
         }
+
         FieldMode::Comma => {
-            quote_spanned! {
-                span =>
-                __p.comma_nonterminal()?
+            if let Some(ty) = field_ty {
+                quote_spanned!(name.span() =>
+                    __p.each_comma_nonterminal(|#name: #ty, __p| {
+                        #(#clones)*
+                        #inner
+                    })
+                )
+            } else {
+                quote_spanned!(name.span() =>
+                    __p.each_comma_nonterminal(|#name, __p| {
+                        #(#clones)*
+                        #inner
+                    })
+                )
             }
         }
 
         FieldMode::Guarded { guard, mode } => {
             let guard_keyword = as_literal(guard);
-            let initializer = parse_field_mode(span, mode);
-            quote_spanned! {
-                span =>
-                match __p.expect_keyword(#guard_keyword) {
-                    Ok(()) => #initializer,
-                    Err(_) => Default::default(),
+            match mode.as_ref() {
+                FieldMode::Single => {
+                    if let Some(ty) = field_ty {
+                        quote_spanned!(name.span() =>
+                            match __p.expect_keyword(#guard_keyword) {
+                                Ok(()) => {
+                                    __p.each_nonterminal(|#name: #ty, __p| {
+                                        #(#clones)*
+                                        #inner
+                                    })
+                                }
+                                Err(_) => {
+                                    let #name: #ty = Default::default();
+                                    #(#clones)*
+                                    #inner
+                                }
+                            }
+                        )
+                    } else {
+                        quote_spanned!(name.span() =>
+                            match __p.expect_keyword(#guard_keyword) {
+                                Ok(()) => {
+                                    __p.each_nonterminal(|#name, __p| {
+                                        #(#clones)*
+                                        #inner
+                                    })
+                                }
+                                Err(_) => {
+                                    let #name = Default::default();
+                                    #(#clones)*
+                                    #inner
+                                }
+                            }
+                        )
+                    }
+                }
+                FieldMode::Optional => {
+                    if let Some(ty) = field_ty {
+                        quote_spanned!(name.span() =>
+                            match __p.expect_keyword(#guard_keyword) {
+                                Ok(()) => {
+                                    __p.each_opt_nonterminal(|#name: Option<#ty>, __p| {
+                                        let #name: #ty = #name.unwrap_or_default();
+                                        #(#clones)*
+                                        #inner
+                                    })
+                                }
+                                Err(_) => {
+                                    let #name: #ty = Default::default();
+                                    #(#clones)*
+                                    #inner
+                                }
+                            }
+                        )
+                    } else {
+                        quote_spanned!(name.span() =>
+                            match __p.expect_keyword(#guard_keyword) {
+                                Ok(()) => {
+                                    __p.each_opt_nonterminal(|#name, __p| {
+                                        let #name = #name.unwrap_or_default();
+                                        #(#clones)*
+                                        #inner
+                                    })
+                                }
+                                Err(_) => {
+                                    let #name = Default::default();
+                                    #(#clones)*
+                                    #inner
+                                }
+                            }
+                        )
+                    }
+                }
+                FieldMode::Many => {
+                    if let Some(ty) = field_ty {
+                        quote_spanned!(name.span() =>
+                            match __p.expect_keyword(#guard_keyword) {
+                                Ok(()) => {
+                                    __p.each_many_nonterminal(|#name: #ty, __p| {
+                                        #(#clones)*
+                                        #inner
+                                    })
+                                }
+                                Err(_) => {
+                                    let #name: #ty = Default::default();
+                                    #(#clones)*
+                                    #inner
+                                }
+                            }
+                        )
+                    } else {
+                        quote_spanned!(name.span() =>
+                            match __p.expect_keyword(#guard_keyword) {
+                                Ok(()) => {
+                                    __p.each_many_nonterminal(|#name, __p| {
+                                        #(#clones)*
+                                        #inner
+                                    })
+                                }
+                                Err(_) => {
+                                    let #name = Default::default();
+                                    #(#clones)*
+                                    #inner
+                                }
+                            }
+                        )
+                    }
+                }
+                FieldMode::Comma => {
+                    if let Some(ty) = field_ty {
+                        quote_spanned!(name.span() =>
+                            match __p.expect_keyword(#guard_keyword) {
+                                Ok(()) => {
+                                    __p.each_comma_nonterminal(|#name: #ty, __p| {
+                                        #(#clones)*
+                                        #inner
+                                    })
+                                }
+                                Err(_) => {
+                                    let #name: #ty = Default::default();
+                                    #(#clones)*
+                                    #inner
+                                }
+                            }
+                        )
+                    } else {
+                        quote_spanned!(name.span() =>
+                            match __p.expect_keyword(#guard_keyword) {
+                                Ok(()) => {
+                                    __p.each_comma_nonterminal(|#name, __p| {
+                                        #(#clones)*
+                                        #inner
+                                    })
+                                }
+                                Err(_) => {
+                                    let #name = Default::default();
+                                    #(#clones)*
+                                    #inner
+                                }
+                            }
+                        )
+                    }
+                }
+                FieldMode::DelimitedVec {
+                    open,
+                    optional,
+                    close,
+                } => {
+                    let open = Literal::character(*open);
+                    let close = Literal::character(*close);
+                    if let Some(ty) = field_ty {
+                        quote_spanned!(name.span() =>
+                            match __p.expect_keyword(#guard_keyword) {
+                                Ok(()) => {
+                                    __p.each_delimited_nonterminal(#open, #optional, #close, |#name: #ty, __p| {
+                                        #(#clones)*
+                                        #inner
+                                    })
+                                }
+                                Err(_) => {
+                                    let #name: #ty = Default::default();
+                                    #(#clones)*
+                                    #inner
+                                }
+                            }
+                        )
+                    } else {
+                        quote_spanned!(name.span() =>
+                            match __p.expect_keyword(#guard_keyword) {
+                                Ok(()) => {
+                                    __p.each_delimited_nonterminal(#open, #optional, #close, |#name, __p| {
+                                        #(#clones)*
+                                        #inner
+                                    })
+                                }
+                                Err(_) => {
+                                    let #name = Default::default();
+                                    #(#clones)*
+                                    #inner
+                                }
+                            }
+                        )
+                    }
+                }
+                FieldMode::Guarded { .. } => {
+                    // Nested guarded — unlikely but handle by falling back
+                    panic!("nested Guarded modes are not supported");
                 }
             }
         }
@@ -299,26 +649,54 @@ fn field_ident(field: &syn::Field, index: usize) -> syn::Ident {
     }
 }
 
-/// Creates code to parse `b0, b1, ..., bN` where `bi` is a binding
-fn parse_bindings(bindings: &[BindingInfo]) -> Vec<TokenStream> {
-    bindings
+/// Wraps a sequence of bindings in nested `each_nonterminal` calls.
+/// Each binding becomes an `each_nonterminal` layer, with commas between them.
+/// The `tail` is the code that runs after all bindings are parsed.
+fn wrap_bindings_in_each_nonterminal(bindings: &[BindingInfo], tail: TokenStream) -> TokenStream {
+    wrap_bindings_inner(bindings, tail, 0, &[])
+}
+
+/// Helper that tracks binding index for comma insertion and captured names for cloning.
+fn wrap_bindings_inner(
+    bindings: &[BindingInfo],
+    tail: TokenStream,
+    current_index: usize,
+    captured_names: &[Ident],
+) -> TokenStream {
+    if bindings.is_empty() {
+        return tail;
+    }
+
+    let (first, rest) = bindings.split_first().unwrap();
+    let name = field_ident(first.ast(), current_index);
+    let field_ty = &first.ast().ty;
+
+    // Add this name to captured list for inner closures
+    let mut new_captured = captured_names.to_vec();
+    new_captured.push(name.clone());
+    let inner = wrap_bindings_inner(rest, tail, current_index + 1, &new_captured);
+
+    // Clone captured variables at the top of the closure body
+    let clones: Vec<TokenStream> = captured_names
         .iter()
-        .zip(0..)
-        .map(|(b, index)| {
-            let name = field_ident(b.ast(), index);
-            let parse_comma = if index > 0 {
-                Some(quote_spanned!(
-                    name.span() =>
-                    __p.expect_char(',')?;
-                ))
-            } else {
-                None
-            };
-            quote_spanned! {
-                name.span() =>
-                #parse_comma
-                let #name = __p.nonterminal()?;
-            }
+        .map(|n| quote!(let #n = #n.clone();))
+        .collect();
+
+    let comma = if current_index > 0 {
+        Some(quote_spanned!(
+            name.span() =>
+            __p.expect_char(',')?;
+        ))
+    } else {
+        None
+    };
+
+    quote_spanned! {
+        name.span() =>
+        #comma
+        __p.each_nonterminal(|#name: #field_ty, __p| {
+            #(#clones)*
+            #inner
         })
-        .collect()
+    }
 }

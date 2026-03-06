@@ -37,7 +37,7 @@ impl CoreParseBinding<FormalityLang> for Parameter {
                 (ParameterKind::Ty, p.identifier()?)
             };
             let bound_var = CoreBoundVar::fresh(kind);
-            Ok(formality_core::parse::Binding { name, bound_var })
+            p.ok(formality_core::parse::Binding { name, bound_var })
         })
     }
 

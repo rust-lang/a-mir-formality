@@ -204,7 +204,24 @@ macro_rules! id {
                     scope: &parse::Scope<crate::FormalityLang>,
                     text: &'t str,
                 ) -> parse::ParseResult<'t, Self> {
-                    $crate::parse::Parser::identifier(scope, text, stringify!($n))
+                    $crate::parse::Parser::identifier_nonterminal(scope, text, stringify!($n))
+                }
+            }
+        };
+    };
+
+    ($n:ident, match_var = false) => {
+        $crate::id!(@inner $n);
+
+        const _: () = {
+            use $crate::parse::{self, CoreParse};
+
+            impl CoreParse<crate::FormalityLang> for $n {
+                fn parse<'t>(
+                    scope: &parse::Scope<crate::FormalityLang>,
+                    text: &'t str,
+                ) -> parse::ParseResult<'t, Self> {
+                    $crate::parse::Parser::identifier_no_var(scope, text, stringify!($n))
                 }
             }
         };
