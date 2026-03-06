@@ -232,7 +232,7 @@ where
         })
     }
 
-    /// Like [`Self::identifier_nonterminal`], but rejects identifiers that match a variable in scope.
+    /// Like [`Self::identifier`], but rejects identifiers that match a variable in scope.
     pub fn identifier_no_var(
         scope: &'s Scope<L>,
         text: &'t str,
@@ -248,9 +248,9 @@ where
         })
     }
 
-    /// Like [`Self::identifier_nonterminal`], but uses a custom regex to match the identifier string.
+    /// Like [`Self::identifier`], but uses a custom regex to match the identifier string.
     /// The regex should already be anchored at the start (`^`).
-    /// Still rejects language keywords.
+    /// Still marks the result as an identifier for disambiguation and rejects language keywords.
     pub fn identifier_re(
         scope: &'s Scope<L>,
         text: &'t str,
