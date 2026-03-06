@@ -2,7 +2,7 @@ use crate::jer::{
     grammar::{BoundVar, ExistentialVar, UniversalVar, Variable},
     FormalityLang,
 };
-use formality_core::{language::HasKind, term};
+use formality_core::{language::HasKind, parse::CoreParseBinding, term};
 
 // Create a dummy kind/parameter -- we're not using these for the torture
 // tests, but we need them.
@@ -38,5 +38,14 @@ impl HasKind<FormalityLang> for DummyParameter {
         match self {
             DummyParameter::Ty(_) => DummyKind::Ty,
         }
+    }
+}
+
+impl CoreParseBinding<FormalityLang> for DummyParameter {
+    fn parse_binding<'t>(
+        scope: &formality_core::parse::Scope<FormalityLang>,
+        text: &'t str,
+    ) -> formality_core::parse::ParseResult<'t, formality_core::parse::Binding<FormalityLang>> {
+        formality_core::parse::default_binding_parse(scope, text)
     }
 }

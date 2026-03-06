@@ -728,7 +728,7 @@ where
     pub fn variable(&mut self) -> Result<CoreVariable<L>, Set<ParseError<'t>>> {
         self.skip_whitespace();
         let text0 = self.current_text;
-        let id = self.identifier()?;
+        let id = <L::Parameter as super::CoreParseBinding<L>>::parse_variable_name(self)?;
         match self.scope.lookup(&id) {
             Some(v) => Ok(v),
             None => Err(ParseError::at(text0, "unrecognized variable".to_string())),

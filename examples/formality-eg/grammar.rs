@@ -1,5 +1,6 @@
 use formality_core::{
-    cast_impl, language::HasKind, term, Downcast, DowncastTo, Upcast, UpcastFrom,
+    cast_impl, language::HasKind, parse::CoreParseBinding, term, Downcast, DowncastTo, Upcast,
+    UpcastFrom,
 };
 use std::sync::Arc;
 
@@ -128,6 +129,16 @@ impl HasKind<crate::FormalityLang> for Parameter {
         match self {
             Parameter::Ty(_) => Kind::Ty,
         }
+    }
+}
+
+impl CoreParseBinding<crate::FormalityLang> for Parameter {
+    fn parse_binding<'t>(
+        scope: &formality_core::parse::Scope<crate::FormalityLang>,
+        text: &'t str,
+    ) -> formality_core::parse::ParseResult<'t, formality_core::parse::Binding<crate::FormalityLang>>
+    {
+        formality_core::parse::default_binding_parse(scope, text)
     }
 }
 

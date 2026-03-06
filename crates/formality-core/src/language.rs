@@ -1,4 +1,5 @@
 use crate::cast::UpcastFrom;
+use crate::parse::CoreParseBinding;
 use crate::term::CoreTerm;
 use crate::variable::{CoreBoundVar, CoreExistentialVar, CoreUniversalVar, CoreVariable};
 use std::fmt::Debug;
@@ -17,6 +18,7 @@ pub trait Language: 'static + Copy + Ord + Hash + Debug + Default {
     /// type, a lifetime, etc)
     type Parameter: HasKind<Self>
         + CoreTerm<Self>
+        + CoreParseBinding<Self>
         + UpcastFrom<CoreVariable<Self>>
         + UpcastFrom<CoreUniversalVar<Self>>
         + UpcastFrom<CoreExistentialVar<Self>>

@@ -24,6 +24,41 @@ pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq + 'static + Upcast<
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self>;
 }
 
+/// Trait for defining how bindings are parsed in a language.
+/// Implement this on `L::Parameter` to control the binding syntax.
+/// The default behavior (`$kind $name`, e.g., `ty Foo`) can be
+/// reused via [`default_binding_parse`].
+pub trait CoreParseBinding<L: Language> {
+    fn parse_binding<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Binding<L>>;
+
+    /// Parse a variable name from input. Called by `variable()` to extract
+    /// the name string that will be looked up in scope.
+    ///
+    /// The default implementation parses a standard identifier.
+    /// Override this to support alternative variable syntaxes
+    /// (e.g., tick-prefixed lifetimes like `'a`).
+    fn parse_variable_name<'t>(
+        p: &mut ActiveVariant<'_, 't, L>,
+    ) -> Result<String, Set<ParseError<'t>>> {
+        p.identifier()
+    }
+}
+
+/// Default binding parse: `$kind $name`, e.g., `ty Foo`.
+/// Languages can call this from their [`CoreParseBinding`] impl
+/// to get the standard behavior.
+pub fn default_binding_parse<'t, L: Language>(
+    scope: &Scope<L>,
+    text: &'t str,
+) -> ParseResult<'t, Binding<L>> {
+    Parser::single_variant(scope, text, "Binding", |p| {
+        let kind: CoreKind<L> = p.nonterminal()?;
+        let name = p.identifier()?;
+        let bound_var = CoreBoundVar::fresh(kind);
+        Ok(Binding { name, bound_var })
+    })
+}
+
 mod parser;
 pub use parser::{skip_whitespace, ActiveVariant, Parser, Precedence};
 
@@ -300,15 +335,10 @@ where
     }
 }
 
-/// Binding grammar is `$kind $name`, e.g., `ty Foo`.
+/// Binding grammar delegates to [`CoreParseBinding`] on `L::Parameter`.
 impl<L: Language> CoreParse<L> for Binding<L> {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "Binding", |p| {
-            let kind: CoreKind<L> = p.nonterminal()?;
-            let name = p.identifier()?;
-            let bound_var = CoreBoundVar::fresh(kind);
-            Ok(Binding { name, bound_var })
-        })
+        <L::Parameter as CoreParseBinding<L>>::parse_binding(scope, text)
     }
 }
 

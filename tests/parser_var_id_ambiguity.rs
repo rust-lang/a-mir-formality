@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use formality_core::{Downcast, DowncastTo, Upcast, UpcastFrom};
 // Default language for our crate
-use formality_core::{language::HasKind, term};
+use formality_core::{language::HasKind, parse::CoreParseBinding, term};
 use ptt::grammar::{Binder, BoundVar, ExistentialVar, UniversalVar, Variable};
 use ptt::FormalityLang;
 
@@ -88,6 +88,15 @@ impl HasKind<FormalityLang> for Parameter {
             Parameter::Ty(_) => Kind::Ty,
             Parameter::Perm(_) => Kind::Perm,
         }
+    }
+}
+
+impl CoreParseBinding<FormalityLang> for Parameter {
+    fn parse_binding<'t>(
+        scope: &formality_core::parse::Scope<FormalityLang>,
+        text: &'t str,
+    ) -> formality_core::parse::ParseResult<'t, formality_core::parse::Binding<FormalityLang>> {
+        formality_core::parse::default_binding_parse(scope, text)
     }
 }
 
