@@ -1,123 +1,240 @@
 # Parsing
 
-Formality's `#[term]` and `#[grammar]` attributes let you specify the grammar that will be used to parse your structs/enums.
-
-For structs, there is a single grammar, specified as part of the term:
-
-```rust
-#[term( /* grammar here */ )]
-struct MyStruct { }
-```
-
-For enums, the grammar is placed in `#[grammar]` attributes on each variant:
+Formality's `#[term]` and `#[grammar]` attributes let you specify a grammar for your structs and enums, and the parser will automatically parse strings into those types. Here is a simple example:
 
 ```rust
 #[term]
-enum MyEnum {
-    #[grammar( /* grammar here */ )]
-    Foo(...),
+pub enum Expr {
+    #[grammar($v0)]
+    LocalVariable(Id),
+
+    #[grammar($v0 $(v1))]
+    FnCall(Id, Vec<Id>),
+}
+
+formality_core::id!(Id);
+```
+
+This defines an `Expr` that is either a local variable (a single identifier like `x`) or a function call (like `f(x, y)`). The `#[grammar]` attribute on each variant describes how to parse it: `$v0` means "parse the first field" and `$(v1)` means "parse a parenthesized, comma-separated list for the second field." For structs, the grammar goes directly on `#[term]`:
+
+```rust
+#[term($name : $ty)]
+pub struct TypedBinding {
+    name: Id,
+    ty: Ty,
 }
 ```
 
-### Succeeding, failing, and _almost_ succeeding
+This parses strings like `x : i32`.
 
-When you attempt to parse something, you'll get back a `Result`: either the parse succeeded (`Ok`), or it didn't (`Err`). But we actually distinguish three outcomes:
+### Symbols
 
-- Success: we parsed a value successfully. We generally implement a **greedy** parse, which means we will attempt to consume as many things we can. As a simple example, imagine you are parsing a list of numbers. If the input is `"1, 2, 3"`, we could choose to parse just `[1, 2]` (or indeed just `[1]`), but we will instead parse the full list.
-  - For you parsing nerds, this is analogous to the commonly used rule to prefer shifts over reduces in LR parsers.
-- Failure: we tried to parse the value, but it clearly did not correspond to the thing we are looking for. This usually means that the first token was not a valid first token. This will give a not-very-helpful error message like "expected an `Expr`" (assuming we are parsing an `Expr`).
-- _Almost_ succeeded: this is a special case of failure where we got part-way through parsing, consuming some tokens, but then encountered an error. So for example if we had an input like `"1 / / 3"`, we might give an error like "expected an `Expr`, found `/`". Exactly how many tokens we have to consume before we consider something to have 'almost' succeeded depends on the thing we are parsing (see the discussion on _commit points_ below).
+A grammar consists of a series of _symbols_. Each symbol matches some text in the input string. Symbols come in two varieties:
 
-Both failure and 'almost' succeeding correspond to a return value of `Err`. The difference is in the errors contained in the result. If there is a single error and it occurs at the start of the input (possibly after skipping whitespace), that is considered **failure**. Otherwise the parse "almost" succeeded. The distinction between failure and "almost" succeeding helps us to give better error messages, but it is also important for "optional" parsing or when parsing repeated items.
+- Most things are _terminals_ or _tokens_: this means they just match themselves:
+  - For example, the `*` in `#[grammar($v0 * $v1)]` is a terminal, and it means to parse a `*` from the input.
+  - Delimiters are accepted but must be matched, e.g., `( /* tokens */ )` or `[ /* tokens */ ]`.
+- The `$` character is used to introduce special matches. Generally these are _nonterminals_, which means they parse the contents of a field, where the grammar for a field is determined by its type.
+  - If fields have names, then `$field` should name the field.
+  - For positional fields (e.g., the T and U in `Mul(Expr, Expr)`), use `$v0`, `$v1`, etc.
+- Valid uses of `$` are as follows:
+  - `$field` -- just parse the field's type
+  - `$*field` -- the field must be a collection of `T` (e.g., `Vec<T>`, `Set<T>`) -- parse any number of `T` instances. Something like `[ $*field ]` would parse `[f1 f2 f3]`, assuming `f1`, `f2`, and `f3` are valid values for `field`.
+  - `$,field` -- similar to the above, but uses a comma separated list (with optional trailing comma). So `[ $,field ]` will parse something like `[f1, f2, f3]`.
+  - `$?field` -- will parse `field` and use `Default::default()` value if not present.
+  - `$<field>` -- parse `<E1, E2, E3>`, where `field` is a collection of `E`
+  - `$<?field>` -- parse `<E1, E2, E3>`, where `field` is a collection of `E`, but accept empty string as empty vector
+  - `$(field)` -- parse `(E1, E2, E3)`, where `field` is a collection of `E`
+  - `$(?field)` -- parse `(E1, E2, E3)`, where `field` is a collection of `E`, but accept empty string as empty vector
+  - `$[field]` -- parse `[E1, E2, E3]`, where `field` is a collection of `E`
+  - `$[?field]` -- parse `[E1, E2, E3]`, where `field` is a collection of `E`, but accept empty string as empty vector
+  - `${field}` -- parse `{E1, E2, E3}`, where `field` is a collection of `E`
+  - `${?field}` -- parse `{E1, E2, E3}`, where `field` is a collection of `E`, but accept empty string as empty vector
+  - `$:guard <nonterminal>` -- parses `<nonterminal>` but only if the keyword `guard` is present. For example, `$:where $,where_clauses` would parse `where WhereClause1, WhereClause2, WhereClause3` but would also accept nothing (in which case, you would get an empty vector).
+  - `$!` -- marks a commit point, see the section on [commit points](#commit-points) below
+  - `$$` -- parse the terminal `$`
+
+### Default grammar
+
+If no grammar is supplied, the default grammar is determined as follows:
+
+- If a `#[cast]` or `#[variable]` annotation is present, then the default grammar is just `$v0`.
+- Otherwise, the default grammar is the name of the type (for structs) or variant (for enums), followed by `()`, with the values for the fields in order. So `Mul(Expr, Expr)` would have a default grammar `mul($v0, $v1)`.
 
 ### Ambiguity: parse all possibilities, disambiguate at the top
 
 The parser takes a **parse-all-possibilities** approach. When parsing an enum, all variants are attempted, and *all* successful parses are returned — not just the "best" one. Ambiguity in a child nonterminal propagates upward through the parse tree, producing a cross-product of possibilities. For example, if a struct has two fields and each field's nonterminal is 2-ways ambiguous, the struct produces 2 × 2 = 4 successful parses.
 
-Disambiguation happens once, at the **top level** (when you call `term("...")` or `core_term_with`). After filtering to parses that consumed all input, duplicate values are removed. If exactly one parse remains, it succeeds. If multiple distinct parses remain, the result is an **ambiguity panic** — this means your grammar genuinely has an unresolvable ambiguity for that input.
-
-The key advantage of the parse-all-possibilities design is that disambiguation has full context: a child nonterminal doesn't need to resolve ambiguity on its own, because the parent (or grandparent, or top-level caller) can see the bigger picture.
-
-### Variables vs identifiers
-
-When variables are in scope, there is a natural tension between parsing a name as a *variable* (a bound name) and parsing it as a plain *identifier* (like a type name or trait name). Two mechanisms work together to resolve this.
-
-**Variable-first short-circuit.** When an enum has a `#[variable]` variant, the generated parser tries that variant *first*. If it succeeds, all other variants are skipped — the variable interpretation wins unconditionally. For example, given:
+Consider this example, which parses either a single identifier (e.g., `x`) or a "call" (e.g., `x(y, z)`):
 
 ```rust
 #[term]
-enum Ty {
-    #[variable(Kind::Ty)]
+pub enum Expr {
+    #[grammar($v0)]
+    LocalVariable(Id),
+
+    #[grammar($v0 $(v1))]
+    FnCall(Id, Vec<Id>),
+}
+```
+
+Given an input like `x(y, z)`, the result is actually *ambiguous*. It could be that you parsed as an expression `x` with remaining text `(y, z)` or as a call expression; therefore, the parser returns both.
+
+Disambiguation happens once, at the **top level** (when you call `term("...")` or `core_term_with`). Here we would filter out the parse as `x` because it failed to consume all the input. That leaves exactly one parse, and so `term` succeeds. If multiple distinct parses remain, the result is an **ambiguity panic** — this means your grammar genuinely has an unresolvable ambiguity for that input.
+
+Sometimes disambiguation happens during parsing. For example, if we add another layer the example, like `Sum`:
+
+```rust
+#[term]
+pub enum Expr {
+    #[grammar($v0)]
+    LocalVariable(Id),
+
+    #[grammar($v0 $(v1))]
+    FnCall(Id, Vec<Id>),
+}
+
+#[term]
+pub enum Sum {
+    #[grammar($v0 + $v1)]
+    Add(Expr, Expr),
+}
+```
+
+Now when parsing `x(y) + z` as a `Sum`, we would recursively parse it as an `Expr` and encounter the same two results:
+
+* parsed `x` as a `Expr::LocalVariable`, remaining text `(y) + z`
+* parsed `x(y)` as a `Expr::FnCall`, remaining text `+ z`
+
+However, only the second one can be parsed as a `Sum`, because the `Sum` requires the next character to be `+`.
+
+### Failure, _almost_ succeeding, and commit points
+
+When parsing fails, we distinguish two cases:
+
+- **Failure** — the input clearly didn't match. Usually this means the first token wasn't a valid start for the nonterminal. You'll get an error like "expected an `Expr`".
+- **_Almost_ succeeded** — we got part-way through parsing, consuming some tokens, but then hit an error. For example, parsing `"1 / / 3"` as an `Expr` might give "expected an `Expr`, found `/`".
+
+The distinction matters when parsing optional (`$?field`) or repeated (`$*field`) nonterminals. If parsing `field` outright **fails**, we treat the field as absent and continue with its `Default::default()` value. If parsing `field` **almost succeeds**, we assume it was present but malformed, and report a syntax error.
+
+The default rule is that parsing "almost" succeeds if it consumes at least one token. For example:
+
+```rust
+#[term]
+enum Projection {
+  #[grammar(. $v0)]
+  Field(Id),
+}
+```
+
+Parsing `".#"` as a `Projection` would "almost" succeed — it consumes the `.` but then fails to find an identifier.
+
+Sometimes this default is too aggressive. Consider `Projection` embedded in another type:
+
+```rust
+#[term($*projections . #)]
+struct ProjectionsThenHash {
+  projections: Vec<Projection>,
+}
+```
+
+We'd like `".#"` to be a valid `ProjectionsThenHash` — zero projections followed by `.#`. But the parser sees the `.` as an "almost success" of a `Projection`, so it reports a syntax error instead of treating the projections list as empty.
+
+#### Commit points
+
+You can control this with `$!`, which marks a **commit point**. With `$!`, a parse is only considered to have "almost succeeded" if it reached the commit point. Before the commit point, failure is just failure (the variant wasn't present).
+
+Adding `$!` after the identifier in `Projection` fixes the problem:
+
+```rust
+#[term]
+enum Projection {
+  #[grammar(. $v0 $!)]
+  Field(Id),
+}
+```
+
+Now `.#` fails outright (the commit point after `$v0` was never reached), so `ProjectionsThenHash` correctly treats the projections list as empty and parses `.#` as the trailing literal tokens.
+
+See the `parser_torture_tests::commit_points` code for a working example.
+
+### Variables and scope
+
+Most compilers parse source text into an ambiguous syntax tree first, then apply name resolution and semantics to figure out what things mean. Formality aims to parse more directly into a semantically meaningful representation — for example, distinguishing variables from identifiers *during* parsing rather than in a later pass.
+
+Today this shows up in one place: **variable scope**. When you write `<X> X`, the binder `<X>` introduces `X` into scope, and the body `X` is parsed as a variable reference rather than an identifier. This is the one piece of context the parser carries, but we may expand context-sensitive parsing in the future.
+
+To see why this matters, let's extend our `Expr` example with a `#[variable]` variant:
+
+```rust
+#[term]
+pub enum Expr {
+    #[variable(Kind::Expr)]
     Variable(Variable),
 
-    #[cast]
-    Id(TyId),
+    #[grammar($v0)]
+    Name(Id),
+
+    #[grammar($v0 ( $,v1 ))]
+    FnCall(Id, Vec<Expr>),
 }
 ```
 
-If `T` is a type variable in scope, parsing `T` as a `Ty` will match the `Variable` variant and immediately return — the `Id` variant is never attempted. If the input is `i32` (not a variable), the `Variable` variant fails, and the parser falls through to try `Id`.
-
-**Scoped `id!` types.** The `id!` macro generates identifier types that reject names which are in scope as variables. This handles *indirect* ambiguity — cases where a variable and an identifier compete in different variants of a parent enum, not in the same enum. Consider this grammar:
-
-```rust
-#[term]
-enum WhereClauseData {
-    #[grammar($v0 : $v1 $<?v2>)]
-    IsImplemented(Ty, TraitId, Vec<Parameter>),
-
-    #[grammar($v0 : $v1)]
-    Outlives(Parameter, Lt),
-}
-```
-
-When parsing `T : a` where `a` is a lifetime variable, both variants match the `$v0 : $v1` prefix. The `Outlives` variant parses `a` as an `Lt` (which succeeds via the variable-first rule on `LtData`). The `IsImplemented` variant tries to parse `a` as a `TraitId`. Because `TraitId` is declared with plain `id!(TraitId)`, it rejects `a` (a variable in scope), so `IsImplemented` fails. Only `Outlives` succeeds, resolving the ambiguity.
-
-**Unscoped `id!` types.** Some identifiers appear in positions where they *should* accept variable names — for example, associated item names after `::` in `<T as Trait>::Item`. Here, `Item` is an `AssociatedItemId`, and it might happen to share a name with a variable in scope. Since there is no competing variable interpretation in that position, we declare it as `id!(AssociatedItemId, unscoped)` to opt out of variable rejection.
-
-### Variables and scope: context-sensitive parsing
-
-Formality's parser is *almost* context-free, with one important exception: **variable scope**. When you write `<T> T`, the binder `<T>` introduces `T` into scope, and the body `T` is parsed as a variable reference rather than an identifier. This is the one piece of context that the parser carries.
-
-This matters because variable names (like `T`) look identical to identifier names (like `TraitId` or `AdtId`). Without scope awareness, parsing `T` is ambiguous: is it a variable or an identifier?
-
-#### How it works: `#[variable]` variants get priority
+#### `#[variable]` variants get priority
 
 When an enum has a `#[variable]` variant, the parser tries it **first**, before any other variants. If the name is found in scope with the correct kind, the variable parse succeeds and the remaining variants are skipped entirely.
+
+With `X` in scope, consider parsing `X(y, z)`:
+
+1. The `Variable` variant tries first, finds `X` in scope — succeeds with `Variable(X)`, remaining text `(y, z)`.
+2. The `Name` and `FnCall` variants are never tried.
+
+At the top level, `Variable(X)` didn't consume all the input, so this is a **parse error**. The `#[variable]` short-circuit prevented the `FnCall` parse from ever being attempted.
+
+This is often the right behavior for a type grammar — if `T` is a type variable, then `T` is always a type variable, never a type name. But it's a tradeoff: the short-circuit is aggressive, and it means the parser commits to the variable interpretation without seeing the surrounding context. For our `Expr` grammar, we probably don't want `#[variable]` at all — function names are identifiers, not variables. We'd remove the `#[variable]` variant and let the parse-all-possibilities approach handle things naturally, as we saw in the [Ambiguity section](#ambiguity-parse-all-possibilities-disambiguate-at-the-top).
+
+#### `match_var = false` on `id!` types
+
+The `#[variable]` short-circuit resolves ambiguity *within* an enum — when the variable variant is present, it wins. But what about *indirect* ambiguity, where a variable and an identifier compete in different variants of a parent enum?
+
+The `id!` macro generates identifier types. By default, `id!()` types will happily parse any valid identifier string, even if that string happens to be a variable in scope. To make an `id!` type reject variable names, declare it with `match_var = false`:
+
+```rust
+formality_core::id!(TraitId, match_var = false);
+```
+
+To see why this is useful, imagine a simplified type system where types are *only* type variables — no named types like `i32`. A bound like `T : U` could mean either "`T` implements trait `U`" or "`T` is a subtype of type `U`":
 
 ```rust
 #[term]
 pub enum Ty {
-    #[variable(Kind::Ty)]  // Tried first!
+    #[variable(Kind::Ty)]
     Variable(Variable),
-
-    #[cast]
-    Id(Id),                // Only tried if Variable didn't match
 }
+
+#[term]
+enum Bound {
+    #[grammar($v0 : $v1)]
+    Impl(Ty, TraitId),
+
+    #[grammar($v0 : $v1)]
+    Subtype(Ty, Ty),
+}
+
+formality_core::id!(TraitId);  // default: accepts any identifier
 ```
 
-When parsing `T` with `T` in scope as a type variable:
-1. `Variable` variant: looks up `T` in scope, finds it with `Kind::Ty` — success, done.
-2. `Id` variant: never tried.
+With `T` and `U` in scope as type variables, parsing `T : U` is ambiguous. The `Subtype` variant parses `U` as a `Ty`, which succeeds via the `#[variable]` rule. The `Impl` variant parses `U` as a `TraitId` — and since `id!(TraitId)` accepts any identifier string (including variable names), it also succeeds. Two parses, ambiguity panic.
 
-When parsing `i32` (not in scope):
-1. `Variable` variant: looks up `i32` in scope, not found — fails.
-2. `Id` variant: parses `i32` as an identifier — success.
-
-This is a **local** rule: each enum decides independently based on its own `#[variable]` variant. There is no global disambiguation.
-
-#### The `match_var = false` option on `id!()`
-
-By default, `id!()` types will happily parse any valid identifier string, even if that string happens to be a variable in scope. This is usually fine — in a grammar like `$v0 :: $v1`, the `$v1` position clearly expects an identifier (like a field or associated type name), even if the name coincidentally matches a variable.
-
-However, if you have a grammar where an `id!()` type appears in a position that *could also* be a variable, you may get ambiguity. In that case, you can opt into scope checking:
+Adding `match_var = false` fixes this:
 
 ```rust
-formality_core::id!(Id, match_var = false);
+formality_core::id!(TraitId, match_var = false);  // rejects variables in scope
 ```
 
-With `match_var = false`, the identifier will reject any string that matches a variable currently in scope, eliminating the ambiguity. Use this when the `id!()` type competes directly with a `#[variable]` variant at the same level.
+Now when parsing `T : U`, the `Impl` variant tries to parse `U` as a `TraitId`. Because `U` is a variable in scope, `match_var = false` rejects it, so only `Subtype` succeeds. Parsing `T : Debug` (where `Debug` is *not* a variable) would still succeed as `Impl`, because `match_var = false` only rejects names that are actually variables in scope.
 
-The default is `match_var = true` (i.e., no rejection) because identifiers often appear in positions where variable names are valid strings but not valid variables — like field names, associated type names, or other contexts where scope doesn't apply.
+Identifiers that appear in positions where they *should* accept variable names — like associated item names after `::` in `<T as Trait>::Item` — can use the default `id!(AssociatedItemId)` which accepts any valid identifier string.
 
 ### Precedence and left-recursive grammars
 
@@ -138,82 +255,6 @@ When specifying the `#[precedence]` of a variant, the default is left-associativ
 - `1 + 1 + 1` when left-associative is `(1 + 1) + 1`
 - `1 + 1 + 1` when right-associative is `1 + (1 + 1)`
 - `1 + 1 + 1` when none-associative is an error.
-
-### Symbols
-
-A grammar consists of a series of _symbols_. Each symbol matches some text in the input string. Symbols come in two varieties:
-
-- Most things are _terminals_ or _tokens_: this means they just match themselves:
-  - For example, the `*` in `#[grammar($v0 * $v1)]` is a terminal, and it means to parse a `*` from the input.
-  - Delimeters are accepted but must be matched, e.g., `( /* tokens */ )` or `[ /* tokens */ ]`.
-- The `$` character is used to introduce special matches. Generally these are _nonterminals_, which means they parse the contents of a field, where the grammar for a field is determined by its type.
-  - If fields have names, then `$field` should name the field.
-  - For position fields (e.g., the T and U in `Mul(Expr, Expr)`), use `$v0`, `$v1`, etc.
-- Valid uses of `$` are as follows:
-  - `$field` -- just parse the field's type
-  - `$*field` -- the field must be a collection of `T` (e.g., `Vec<T>`, `Set<T>`) -- parse any number of `T` instances. Something like `[ $*field ]` would parse `[f1 f2 f3]`, assuming `f1`, `f2`, and `f3` are valid values for `field`.
-  - `$,field` -- similar to the above, but uses a comma separated list (with optional trailing comma). So `[ $,field ]` will parse something like `[f1, f2, f3]`.
-  - `$?field` -- will parse `field` and use `Default::default()` value if not present.
-  - `$<field>` -- parse `<E1, E2, E3>`, where `field` is a collection of `E`
-  - `$<?field>` -- parse `<E1, E2, E3>`, where `field` is a collection of `E`, but accept empty string as empty vector
-  - `$(field)` -- parse `(E1, E2, E3)`, where `field` is a collection of `E`
-  - `$(?field)` -- parse `(E1, E2, E3)`, where `field` is a collection of `E`, but accept empty string as empty vector
-  - `$[field]` -- parse `[E1, E2, E3]`, where `field` is a collection of `E`
-  - `$[?field]` -- parse `[E1, E2, E3]`, where `field` is a collection of `E`, but accept empty string as empty vector
-  - `${field}` -- parse `{E1, E2, E3}`, where `field` is a collection of `E`
-  - `${?field}` -- parse `{E1, E2, E3}`, where `field` is a collection of `E`, but accept empty string as empty vector
-  - `$:guard <nonterminal>` -- parses `<nonterminal>` but only if the keyword `guard` is present. For example, `$:where $,where_clauses` would parse `where WhereClause1, WhereClause2, WhereClause3` but would also accept nothing (in which case, you would get an empty vector).
-  - `$!` -- marks a commit point, see the section on greediness below
-  - `$$` -- parse the terminal `$`
-
-### Commit points and greedy parsing
-
-When you parse an optional (e.g., `$?field`) or repeated (e.g., `$*field`) nonterminal, it raises an interesting question. We will attempt to parse the given field, but how do we treat an error? It could mean that the field is not present, but it also could mean a syntax error on the part of the user. To resolve this, we make use of the distinction between failure and _almost_ succeeding that we introduced earlier:
-
-- If parsing `field` outright **fails**, that means that the field was not present, and so the parse can continue with the field having its `Default::default()` value.
-- If parsing `field` **almost succeeds**, then we assume it was present, but there is a syntax error, and so parsing fails.
-
-The default rule is that parsing "almost" succeeds if it consumes at least one token. So e.g. if you had...
-
-```rust
-#[term]
-enum Projection {
-  #[grammar(. $v0)]
-  Field(Id),
-}
-```
-
-...and you tried to parse `".#"`, that would "almost" succeed, because it would consume the `.` but then fail to find an identifier.
-
-Sometimes this rule is not quite right. For example, maybe the `Projection` type is embedded in another type like
-
-```rust
-#[term($*projections . #)]
-struct ProjectionsThenHash {
-  projections: Vec<Projection>,
-}
-```
-
-For `ProjectionsThenHash`, we would consider `".#"` to be a valid parse -- it starts out with no projections and then parses `.#`. But if you try this, you will get an error because the `.#` is considered to be an "almost success" of a projection.
-
-You can control this by indicating a "commit point" with `$!`. If `$!` is present, the parse is failure unless the commit point has been reached. For our grammar above, modifying `Projection` to have a commit point _after_ the identifier will let `ProjectionsThenHash` parse as expected:
-
-```rust
-#[term]
-enum Projection {
-  #[grammar(. $v0 $!)]
-  Field(Id),
-}
-```
-
-See the `parser_torture_tests::commit_points` code for an example of this in action.
-
-### Default grammar
-
-If no grammar is supplied, the default grammar is determined as follows:
-
-- If a `#[cast]` or `#[variable]` annotation is present, then the default grammar is just `$v0`.
-- Otherwise, the default grammar is the name of the type (for structs) or variant (for enums), followed by `()`, with the values for the fields in order. So `Mul(Expr, Expr)` would have a default grammar `mul($v0, $v1)`.
 
 ### Customizing the parse
 
