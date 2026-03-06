@@ -20,8 +20,10 @@ formality_core::declare_language! {
 }
 // ANCHOR_END: declare_rust_language
 
+// ANCHOR: use_rust_language
 /// Declare the language that we will use in `#[term]` macros.
 pub use rust::FormalityLang;
+// ANCHOR_END: use_rust_language
 
 pub mod check;
 pub mod grammar;

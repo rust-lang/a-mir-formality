@@ -30,12 +30,94 @@ When you attempt to parse something, you'll get back a `Result`: either the pars
 
 Both failure and 'almost' succeeding correspond to a return value of `Err`. The difference is in the errors contained in the result. If there is a single error and it occurs at the start of the input (possibly after skipping whitespace), that is considered **failure**. Otherwise the parse "almost" succeeded. The distinction between failure and "almost" succeeding helps us to give better error messages, but it is also important for "optional" parsing or when parsing repeated items.
 
-### Resolving ambiguity, greedy parsing
+### Ambiguity: parse all possibilities, disambiguate at the top
 
-When parsing an enum there will be multiple possibilities. We will attempt to parse them all. If more than one succeeds, the parser will attempt to resolve the ambiguity by looking for the **longest match**. However, we don't just consider the number of characters, we look for a **reduction prefix**:
+The parser takes a **parse-all-possibilities** approach. When parsing an enum, all variants are attempted, and *all* successful parses are returned — not just the "best" one. Ambiguity in a child nonterminal propagates upward through the parse tree, producing a cross-product of possibilities. For example, if a struct has two fields and each field's nonterminal is 2-ways ambiguous, the struct produces 2 × 2 = 4 successful parses.
 
-- When parsing, we track the list of things we had to parse. If there are two variants at the same precedence level, but one of them had to parse strictly more things than the other and in the same way, we'll prefer the longer one. So for example if one variant parsed a `Ty` and the other parsed a `Ty Ty`, we'd take the `Ty Ty`.
-  - When considering whether a reduction is "significant", we take casts into account. See `ActiveVariant::mark_as_cast_variant` for a more detailed explanation and set of examples.
+Disambiguation happens once, at the **top level** (when you call `term("...")` or `core_term_with`). After filtering to parses that consumed all input, duplicate values are removed. If exactly one parse remains, it succeeds. If multiple distinct parses remain, the result is an **ambiguity panic** — this means your grammar genuinely has an unresolvable ambiguity for that input.
+
+The key advantage of the parse-all-possibilities design is that disambiguation has full context: a child nonterminal doesn't need to resolve ambiguity on its own, because the parent (or grandparent, or top-level caller) can see the bigger picture.
+
+### Variables vs identifiers
+
+When variables are in scope, there is a natural tension between parsing a name as a *variable* (a bound name) and parsing it as a plain *identifier* (like a type name or trait name). Two mechanisms work together to resolve this.
+
+**Variable-first short-circuit.** When an enum has a `#[variable]` variant, the generated parser tries that variant *first*. If it succeeds, all other variants are skipped — the variable interpretation wins unconditionally. For example, given:
+
+```rust
+#[term]
+enum Ty {
+    #[variable(Kind::Ty)]
+    Variable(Variable),
+
+    #[cast]
+    Id(TyId),
+}
+```
+
+If `T` is a type variable in scope, parsing `T` as a `Ty` will match the `Variable` variant and immediately return — the `Id` variant is never attempted. If the input is `i32` (not a variable), the `Variable` variant fails, and the parser falls through to try `Id`.
+
+**Scoped `id!` types.** The `id!` macro generates identifier types that reject names which are in scope as variables. This handles *indirect* ambiguity — cases where a variable and an identifier compete in different variants of a parent enum, not in the same enum. Consider this grammar:
+
+```rust
+#[term]
+enum WhereClauseData {
+    #[grammar($v0 : $v1 $<?v2>)]
+    IsImplemented(Ty, TraitId, Vec<Parameter>),
+
+    #[grammar($v0 : $v1)]
+    Outlives(Parameter, Lt),
+}
+```
+
+When parsing `T : a` where `a` is a lifetime variable, both variants match the `$v0 : $v1` prefix. The `Outlives` variant parses `a` as an `Lt` (which succeeds via the variable-first rule on `LtData`). The `IsImplemented` variant tries to parse `a` as a `TraitId`. Because `TraitId` is declared with plain `id!(TraitId)`, it rejects `a` (a variable in scope), so `IsImplemented` fails. Only `Outlives` succeeds, resolving the ambiguity.
+
+**Unscoped `id!` types.** Some identifiers appear in positions where they *should* accept variable names — for example, associated item names after `::` in `<T as Trait>::Item`. Here, `Item` is an `AssociatedItemId`, and it might happen to share a name with a variable in scope. Since there is no competing variable interpretation in that position, we declare it as `id!(AssociatedItemId, unscoped)` to opt out of variable rejection.
+
+### Variables and scope: context-sensitive parsing
+
+Formality's parser is *almost* context-free, with one important exception: **variable scope**. When you write `<T> T`, the binder `<T>` introduces `T` into scope, and the body `T` is parsed as a variable reference rather than an identifier. This is the one piece of context that the parser carries.
+
+This matters because variable names (like `T`) look identical to identifier names (like `TraitId` or `AdtId`). Without scope awareness, parsing `T` is ambiguous: is it a variable or an identifier?
+
+#### How it works: `#[variable]` variants get priority
+
+When an enum has a `#[variable]` variant, the parser tries it **first**, before any other variants. If the name is found in scope with the correct kind, the variable parse succeeds and the remaining variants are skipped entirely.
+
+```rust
+#[term]
+pub enum Ty {
+    #[variable(Kind::Ty)]  // Tried first!
+    Variable(Variable),
+
+    #[cast]
+    Id(Id),                // Only tried if Variable didn't match
+}
+```
+
+When parsing `T` with `T` in scope as a type variable:
+1. `Variable` variant: looks up `T` in scope, finds it with `Kind::Ty` — success, done.
+2. `Id` variant: never tried.
+
+When parsing `i32` (not in scope):
+1. `Variable` variant: looks up `i32` in scope, not found — fails.
+2. `Id` variant: parses `i32` as an identifier — success.
+
+This is a **local** rule: each enum decides independently based on its own `#[variable]` variant. There is no global disambiguation.
+
+#### The `match_var = false` option on `id!()`
+
+By default, `id!()` types will happily parse any valid identifier string, even if that string happens to be a variable in scope. This is usually fine — in a grammar like `$v0 :: $v1`, the `$v1` position clearly expects an identifier (like a field or associated type name), even if the name coincidentally matches a variable.
+
+However, if you have a grammar where an `id!()` type appears in a position that *could also* be a variable, you may get ambiguity. In that case, you can opt into scope checking:
+
+```rust
+formality_core::id!(Id, match_var = false);
+```
+
+With `match_var = false`, the identifier will reject any string that matches a variable currently in scope, eliminating the ambiguity. Use this when the `id!()` type competes directly with a `#[variable]` variant at the same level.
+
+The default is `match_var = true` (i.e., no rejection) because identifiers often appear in positions where variable names are valid strings but not valid variables — like field names, associated type names, or other contexts where scope doesn't apply.
 
 ### Precedence and left-recursive grammars
 
@@ -138,13 +220,24 @@ If no grammar is supplied, the default grammar is determined as follows:
 If you prefer, you can customize the parse by annotating your term with `#[customize(parse)]`. In the Rust case, for example, the parsing of `RigidTy` is customized ([as is the debug impl](./debug.md)):
 
 ```rust
-{{#include ../../../crates/formality-types/src/grammar/ty.rs:RigidTy_decl}}
+{{#include ../../../crates/formality-rust/src/grammar/ty.rs:RigidTy_decl}}
 ```
 
-You must then supply an impl of `Parse` yourself. Because `Parse` is a trait alias, you actually want to implement `CoreParse<L>` for your language type `L`. Inside the code you will want to instantiate a `Parser` and then invoke `parse_variant` for every variant, finally invoking `finish`.
+You must then supply an impl of `CoreParse<L>` for your language type `L`. Inside the impl you will want to instantiate a `Parser` and then invoke `parse_variant` for every variant. The key methods on `ActiveVariant` are:
+
+- **`each_nonterminal(|value: T, p| { ... })`** — the primary way to parse a child nonterminal. Instead of returning a single result, it calls the continuation for *each* successful parse of `T`, passing a forked `ActiveVariant` positioned at that parse's remaining text. This is how ambiguity propagates: if `T` has 2 parses, the continuation runs twice, and the results are collected.
+- **`each_comma_nonterminal(|items: Vec<T>, p| { ... })`** — parse a comma-separated list, then run the continuation with the result.
+- **`each_opt_nonterminal(|opt: Option<T>, p| { ... })`** — parse an optional nonterminal.
+- **`each_many_nonterminal(|items: Vec<T>, p| { ... })`** — parse zero or more nonterminals.
+- **`each_delimited_nonterminal(open, optional, close, |items: Vec<T>, p| { ... })`** — parse a delimited comma-separated list (e.g., `<T1, T2>`).
+- **`p.ok(value)`** — wrap a value into a successful parse result. Use this instead of `Ok(value)` at the end of variant closures.
+- **`expect_char(c)`**, **`expect_keyword(kw)`** — consume expected tokens.
+- **`reject_nonterminal::<T>()`** — fail if the input starts with a `T` (useful for disambiguation).
+
+The continuation-passing style means nonterminal parsing is always nested: you parse the first field, then in its continuation parse the second field, and so on. Each `each_*` call forks for each ambiguous child result, so you get the cross-product automatically.
 
 In the Rust code, the impl for `RigidTy` looks as follows:
 
 ```rust
-{{#include ../../../crates/formality-types/src/grammar/ty/parse_impls.rs:RigidTy_impl}}
+{{#include ../../../crates/formality-rust/src/grammar/ty/parse_impls.rs:RigidTy_impl}}
 ```
