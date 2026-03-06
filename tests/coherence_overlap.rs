@@ -19,7 +19,7 @@ fn test_overlap_normalize_alias_to_LocalType() {
                     type T : [];
                 }
                 
-                impl<ty A> Mirror for A {
+                impl<A> Mirror for A {
                     type T = A;
                 }
                 
@@ -27,7 +27,7 @@ fn test_overlap_normalize_alias_to_LocalType() {
                 
                 trait LocalTrait { }
                 
-                impl<ty T> LocalTrait for T where T: Iterator { }
+                impl<T> LocalTrait for T where T: Iterator { }
                 
                 impl LocalTrait for <LocalType as Mirror>::T { }
 
@@ -70,7 +70,7 @@ fn test_overlap_alias_not_normalizable() {
                     type T : [];
                 }
                 
-                impl<ty A> Mirror for A {
+                impl<A> Mirror for A {
                     type T = A;
                 }
                 
@@ -78,9 +78,9 @@ fn test_overlap_alias_not_normalizable() {
                 
                 trait LocalTrait { }
                 
-                impl<ty T> LocalTrait for T where T: Iterator { }
+                impl<T> LocalTrait for T where T: Iterator { }
                 
-                impl<ty T> LocalTrait for <T as Mirror>::T where T: Mirror { }
+                impl<T> LocalTrait for <T as Mirror>::T where T: Mirror { }
 
                 ADDITIONAL
             }

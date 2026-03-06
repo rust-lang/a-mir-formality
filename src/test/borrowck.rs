@@ -19,14 +19,14 @@ fn mutable_ref_prevents_mutation() {
                 fn foo() -> i32 = minirust() -> v0 {
                     let v0: i32;
 
-                    exists<lt r0, lt r1> {
+                    exists<'r0, 'r1> {
                         let v1: i32;
-                        let v2: &mut r0 i32;
+                        let v2: &mut 'r0 i32;
 
                         bb0: {
                             statements {
                                 local(v1) = constant(0: i32);
-                                local(v2) = &mut r1 local(v1);
+                                local(v2) = &mut 'r1 local(v1);
 
                                 // This should result in an error
                                 local(v1) = constant(1: i32);
@@ -79,14 +79,14 @@ fn shared_ref_prevents_mutation() {
                 fn foo() -> i32 = minirust() -> v0 {
                     let v0: i32;
 
-                    exists<lt r0, lt r1> {
+                    exists<'r0, 'r1> {
                         let v1: i32;
-                        let v2: &r0 i32;
+                        let v2: &'r0 i32;
 
                         bb0: {
                             statements {
                                 local(v1) = constant(0: i32);
-                                local(v2) = &r1 local(v1);
+                                local(v2) = &'r1 local(v1);
 
                                 // This should result in an error
                                 local(v1) = constant(1: i32);
@@ -141,18 +141,18 @@ fn min_problem_case_3() {
             crate Foo {
                 struct Map { }
 
-                fn min_problem_case_3<lt a>(&mut a Map) -> &mut a Map
+                fn min_problem_case_3<'a>(&mut 'a Map) -> &mut 'a Map
                 = minirust(m) -> ret {
-                    let ret: &mut a Map;
-                    let m: &mut a Map;
+                    let ret: &mut 'a Map;
+                    let m: &mut 'a Map;
 
-                    exists<lt r0, lt r1> {
-                        let n: &mut r0 Map;
-                        let o: &mut r1 Map;
+                    exists<'r0, 'r1> {
+                        let n: &mut 'r0 Map;
+                        let o: &mut 'r1 Map;
 
                         bb0: {
                             statements {
-                                local(n) = &mut r0 *(local(m));
+                                local(n) = &mut 'r0 *(local(m));
                             }
                             goto bb1, bb2;
                         }
@@ -166,7 +166,7 @@ fn min_problem_case_3() {
 
                         bb2: {
                             statements {
-                                local(o) = &mut r1 *(local(m));
+                                local(o) = &mut 'r1 *(local(m));
                                 local(ret) = load(local(o));
                             }
                             return;
@@ -227,18 +227,18 @@ fn too_min_problem_case_3() {
             crate Foo {
                 struct Map { }
 
-                fn min_problem_case_3<lt a>(&mut a Map) -> &mut a Map
+                fn min_problem_case_3<'a>(&mut 'a Map) -> &mut 'a Map
                 = minirust(m) -> ret {
-                    let ret: &mut a Map;
-                    let m: &mut a Map;
+                    let ret: &mut 'a Map;
+                    let m: &mut 'a Map;
 
-                    exists<lt r0, lt r1> {
-                        let n: &mut r0 Map;
-                        let o: &mut r1 Map;
+                    exists<'r0, 'r1> {
+                        let n: &mut 'r0 Map;
+                        let o: &mut 'r1 Map;
 
                         bb0: {
                             statements {
-                                local(n) = &mut r0 *(local(m));
+                                local(n) = &mut 'r0 *(local(m));
                             }
                             goto bb1, bb2;
                         }
@@ -251,7 +251,7 @@ fn too_min_problem_case_3() {
 
                         bb2: {
                             statements {
-                                local(o) = &mut r1 *(local(m));
+                                local(o) = &mut 'r1 *(local(m));
                                 local(ret) = load(local(o));
                             }
                             return;
@@ -270,12 +270,12 @@ fn undeclared_universal_region_relationship() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo<lt a, lt b>(&a u32) -> &b u32 = minirust(v1) -> v0 {
-                    let v0: &b u32;
-                    let v1: &a u32;
+                fn foo<'a, 'b>(&'a u32) -> &'b u32 = minirust(v1) -> v0 {
+                    let v0: &'b u32;
+                    let v1: &'a u32;
 
-                    exists<lt r0> {
-                        let v2: &r0 u32;
+                    exists<'r0> {
+                        let v2: &'r0 u32;
 
                         bb0: {
                             statements {
@@ -303,15 +303,15 @@ fn declared_universal_region_relationship() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo<lt a, lt b>(&a u32) -> &b u32
+                fn foo<'a, 'b>(&'a u32) -> &'b u32
                 where
-                    a: b,
+                    'a: 'b,
                 = minirust(v1) -> v0 {
-                    let v0: &b u32;
-                    let v1: &a u32;
+                    let v0: &'b u32;
+                    let v1: &'a u32;
 
-                    exists<lt r0> {
-                        let v2: &r0 u32;
+                    exists<'r0> {
+                        let v2: &'r0 u32;
 
                         bb0: {
                             statements {
@@ -334,13 +334,13 @@ fn declared_transitive_universal_region_relationship() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo<lt a, lt b, lt c>(&a u32) -> &c u32
+                fn foo<'a, 'b, 'c>(&'a u32) -> &'c u32
                 where
-                    a: b,
-                    b: c,
+                    'a: 'b,
+                    'b: 'c,
                 = minirust(v1) -> v0 {
-                    let v0: &c u32;
-                    let v1: &a u32;
+                    let v0: &'c u32;
+                    let v1: &'a u32;
 
                     exists<> {
 
@@ -364,12 +364,12 @@ fn undeclared_transitive_universal_region_relationship() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo<lt a, lt b, lt c>(&a u32) -> &c u32
+                fn foo<'a, 'b, 'c>(&'a u32) -> &'c u32
                 where
-                    a: b,
+                    'a: 'b,
                 = minirust(v1) -> v0 {
-                    let v0: &c u32;
-                    let v1: &a u32;
+                    let v0: &'c u32;
+                    let v1: &'a u32;
 
                     exists<> {
 
@@ -400,13 +400,13 @@ fn problem_case_4() {
                     value: u32,
                  }
 
-                fn min_problem_case_4<lt a>(&mut a Map, &mut a Map) -> u32 = minirust(list, list2) -> ret {
-                    let list: &mut a Map;
-                    let list2: &mut a Map;
+                fn min_problem_case_4<'a>(&mut 'a Map, &mut 'a Map) -> u32 = minirust(list, list2) -> ret {
+                    let list: &mut 'a Map;
+                    let list2: &mut 'a Map;
                     let ret: u32;
 
-                    exists<lt r0> {
-                        let num: &mut r0 u32;
+                    exists<'r0> {
+                        let num: &mut 'r0 u32;
 
                         bb0: {
                             statements {
@@ -417,9 +417,9 @@ fn problem_case_4() {
 
                         bb1: {
                             statements {
-                                local(num) = &mut r0 *(local(list)).0;
+                                local(num) = &mut 'r0 *(local(list)).0;
 
-                                local(list) = &mut a *(local(list2));
+                                local(list) = &mut 'a *(local(list2));
 
                                 place_mention(local(num));
                             }
@@ -452,14 +452,14 @@ fn storage_dead_while_borrowed() {
                 fn foo() -> i32 = minirust() -> v0 {
                     let v0: i32;
 
-                    exists<lt r0> {
+                    exists<'r0> {
                         let v1: i32;
-                        let v2: &r0 i32;
+                        let v2: &'r0 i32;
 
                         bb0: {
                             statements {
                                 local(v1) = constant(0: i32);
-                                local(v2) = &r0 local(v1);
+                                local(v2) = &'r0 local(v1);
                                 StorageDead(v1);
                                 local(v0) = load(*(local(v2)));
                             }
@@ -531,36 +531,36 @@ fn cfg_union_approx_cause_false_error() {
             crate Foo {
                 fn foo () -> u32 = minirust() -> v0 {
                     let v0: u32;
-                    exists<lt l_p, lt l_q, lt loan_0, lt loan_1, lt loan_2, lt loan_3> {
+                    exists<'l_p, 'l_q, 'loan_0, 'loan_1, 'loan_2, 'loan_3> {
                         let a: u32;
                         let b: u32;
 
                         // In Rustc, the 1-tuple is needed for some reason
                         // Niko does not 100% understand, else rustc is able to
                         // see that this program is safe.
-                        let p: &mut l_p u32;
-                        let q: &mut l_q u32;
+                        let p: &mut 'l_p u32;
+                        let q: &mut 'l_q u32;
 
                         bb0: {
                             statements {
                                 local(a) = constant(0: u32);
                                 local(b) = constant(0: u32);
-                                local(q) = &mut loan_0 local(a);
+                                local(q) = &mut 'loan_0 local(a);
                             }
                             goto bb1, bb2;
                         }
 
                         bb1: {
                             statements {
-                                local(p) = &mut loan_1 local(a);
-                                local(q) = &mut loan_2 local(b);
+                                local(p) = &mut 'loan_1 local(a);
+                                local(q) = &mut 'loan_2 local(b);
                             }
                             goto bb3;
                         }
 
                         bb2: {
                             statements {
-                                local(p) = &mut loan_3 local(b);
+                                local(p) = &mut 'loan_3 local(b);
                             }
                             goto bb3;
                         }

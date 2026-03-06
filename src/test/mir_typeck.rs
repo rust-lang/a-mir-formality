@@ -801,12 +801,12 @@ fn test_ref_identity() {
     crate::assert_ok!(
         [
             crate Foo {
-                fn foo<lt a>(&a u32) -> &a u32 = minirust(v1) -> v0 {
-                    let v0: &a u32;
-                    let v1: &a u32;
+                fn foo<'a>(&'a u32) -> &'a u32 = minirust(v1) -> v0 {
+                    let v0: &'a u32;
+                    let v1: &'a u32;
 
-                    exists<lt r0> {
-                        let v2: &r0 u32;
+                    exists<'r0> {
+                        let v2: &'r0 u32;
 
                         bb0: {
                             statements {
@@ -831,14 +831,14 @@ fn test_ref_deref() {
 
                 fn foo () -> u32 = minirust() -> v0 {
                     let v0: u32;
-                    exists<lt a> {
-                        let v1: &a u32;
+                    exists<'a> {
+                        let v1: &'a u32;
                         let v2: u32;
 
                         bb0: {
                             statements {
                                 local(v0) = constant(0: u32);
-                                local(v1) = &a local(v0);
+                                local(v1) = &'a local(v0);
                                 local(v2) = load(*(local(v1)));
                             }
                             return;

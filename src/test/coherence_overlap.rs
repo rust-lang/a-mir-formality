@@ -36,7 +36,7 @@ fn neg_CoreTrait_for_CoreStruct_implies_no_overlap() {
             },
             crate foo {
                 trait FooTrait {}
-                impl<ty T> FooTrait for T where T: CoreTrait {}
+                impl<T> FooTrait for T where T: CoreTrait {}
                 impl FooTrait for CoreStruct {}
             }
         ]
@@ -53,7 +53,7 @@ fn foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait() {
             },
             crate foo {
                 trait FooTrait {}
-                impl<ty T> FooTrait for T where T: CoreTrait {}
+                impl<T> FooTrait for T where T: CoreTrait {}
                 impl FooTrait for CoreStruct {}
             }
         ]
@@ -80,7 +80,7 @@ fn T_where_Foo_not_u32_impls() {
         [
             crate core {
                 trait Foo {}
-                impl<ty T> Foo for T where T: Foo {}
+                impl<T> Foo for T where T: Foo {}
                 impl !Foo for u32 {}
             }
         ]
@@ -107,7 +107,7 @@ fn u32_T_where_T_Is_impls() {
             crate core {
                 trait Foo {}
                 impl Foo for u32 {}
-                impl<ty T> Foo for T where T: Is {}
+                impl<T> Foo for T where T: Is {}
 
                 trait Is {}
                 impl Is for u32 {}
@@ -138,7 +138,7 @@ fn u32_T_where_T_Not_impls() {
             crate core {
                 trait Foo {}
                 impl Foo for u32 {}
-                impl<ty T> Foo for T where T: Not {}
+                impl<T> Foo for T where T: Not {}
 
                 trait Not {}
             }
@@ -186,7 +186,7 @@ fn u32_T_impls() {
             crate core {
                 trait Foo {}
                 impl Foo for u32 {}
-                impl<ty T> Foo for T {}
+                impl<T> Foo for T {}
             }
         ]
 
@@ -210,9 +210,9 @@ fn T_and_T_bar() {
 
                 trait Bar { }
 
-                impl<ty T> Foo for T { }
+                impl<T> Foo for T { }
 
-                impl<ty T> Foo for T where T: Bar { }
+                impl<T> Foo for T where T: Bar { }
             }
         ]
 
@@ -234,11 +234,11 @@ fn T_and_Local_Bar_T() {
             crate core {
                 trait Foo { }
 
-                trait Bar<ty U> { }
+                trait Bar<U> { }
 
-                impl<ty T> Foo for T { }
+                impl<T> Foo for T { }
 
-                impl<ty T> Foo for T where LocalType: Bar<T> { }
+                impl<T> Foo for T where LocalType: Bar<T> { }
 
                 struct LocalType { }
             }
@@ -264,20 +264,20 @@ fn is_local_unknowable_trait_ref() {
                     type Assoc: [];
                 }
 
-                impl<ty T> Project for T {
+                impl<T> Project for T {
                     type Assoc = T;
                 }
 
-                trait Foo<ty U> { }
+                trait Foo<U> { }
             },
             crate foo {
                 struct LocalType {}
 
-                trait Overlap<ty U> {}
-                impl<ty T, ty U> Overlap<U> for T
+                trait Overlap<U> {}
+                impl<T, U> Overlap<U> for T
                 where
                     <T as Project>::Assoc: Foo<U> {}
-                impl<ty T> Overlap<LocalType> for () {}
+                impl<T> Overlap<LocalType> for () {}
             }
         ]
     }
@@ -293,21 +293,21 @@ fn is_local_with_unconstrained_self_ty_blanket_impl() {
                     type Assoc: [];
                 }
 
-                impl<ty T> Project for T {
+                impl<T> Project for T {
                     type Assoc = ();
                 }
 
-                trait Foo<ty U> { }
+                trait Foo<U> { }
             },
             crate foo {
                 struct LocalType {}
                 impl Foo<LocalType> for () {}
 
-                trait Overlap<ty U> {}
-                impl<ty T, ty U> Overlap<U> for T
+                trait Overlap<U> {}
+                impl<T, U> Overlap<U> for T
                 where
                     <T as Project>::Assoc: Foo<U> {}
-                impl<ty T> Overlap<LocalType> for T {}
+                impl<T> Overlap<LocalType> for T {}
             }
         ]
 

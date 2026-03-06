@@ -12,7 +12,7 @@ fn decls() -> Decls {
         program: Decls::program_from_items(vec![
             term("trait Copy where {}"),
             term("trait Magic where Self : Copy {}"),
-            term("impl<ty T> Magic for T where T : Magic {}"),
+            term("impl<T> Magic for T where T : Magic {}"),
             term("impl Copy for u32 {}"),
         ]),
         ..Decls::empty()
@@ -21,7 +21,7 @@ fn decls() -> Decls {
 
 #[test]
 fn all_t_not_magic() {
-    test_prove(decls(), term("{} => {for<ty T> Magic(T)}")).assert_err(
+    test_prove(decls(), term("{} => {for<T> Magic(T)}")).assert_err(
     expect![[r#"
         the rule "symmetric" at (prove_eq.rs) failed because
           cyclic proof attempt: `prove_eq { a: !ty_0, b: u32, assumptions: {Copy(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }`
@@ -32,7 +32,7 @@ fn all_t_not_magic() {
 
 #[test]
 fn all_t_not_copy() {
-    test_prove(decls(), term("{} => {for<ty T> Copy(T)}")).assert_err(
+    test_prove(decls(), term("{} => {for<T> Copy(T)}")).assert_err(
     expect![[r#"
         the rule "symmetric" at (prove_eq.rs) failed because
           cyclic proof attempt: `prove_eq { a: !ty_0, b: u32, assumptions: {Copy(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }`

@@ -10,7 +10,7 @@ fn test_parse_rust_like_trait_impl_syntax() {
     let r: Program = term(
         "[
             crate core {
-                impl<ty A, ty B> PartialEq<A> for B {
+                impl<A, B> PartialEq<A> for B {
 
                 }
             }
@@ -67,7 +67,7 @@ fn test_parse_rust_like_trait_syntax() {
     let r: Program = term(
         "[
             crate core {
-                trait Foo<ty A> where A : Bar<Self> {
+                trait Foo<A> where A : Bar<Self> {
 
                 }
             }
@@ -101,7 +101,7 @@ fn test_parse_rust_like_struct_syntax() {
     let r: Program = term(
         "[
             crate core {
-                struct Foo<ty A> {
+                struct Foo<A> {
                     a : A,
                 }
             }

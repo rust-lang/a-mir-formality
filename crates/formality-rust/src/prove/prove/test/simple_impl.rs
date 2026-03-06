@@ -10,7 +10,7 @@ fn decls() -> Decls {
     Decls {
         program: Decls::program_from_items(vec![
             term("trait Debug where {}"),
-            term("impl<ty T> Debug for Vec<T> where T : Debug {}"),
+            term("impl<T> Debug for Vec<T> where T : Debug {}"),
             term("impl Debug for u32 {}"),
         ]),
         ..Decls::empty()

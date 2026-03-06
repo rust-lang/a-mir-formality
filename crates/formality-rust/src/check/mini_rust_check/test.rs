@@ -7,7 +7,7 @@
 //             type This: [];
 //         }
 
-//         impl<ty T> Id for T {
+//         impl<T> Id for T {
 //             type This = T;
 //         }
 //     }
