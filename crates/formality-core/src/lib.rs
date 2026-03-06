@@ -194,6 +194,45 @@ macro_rules! declare_language {
 #[macro_export]
 macro_rules! id {
     ($n:ident) => {
+        $crate::id!(@inner $n);
+
+        const _: () = {
+            use $crate::parse::{self, CoreParse};
+
+            impl CoreParse<crate::FormalityLang> for $n {
+                fn parse<'t>(
+                    scope: &parse::Scope<crate::FormalityLang>,
+                    text: &'t str,
+                ) -> parse::ParseResult<'t, Self> {
+                    $crate::parse::Parser::identifier(scope, text, stringify!($n))
+                }
+            }
+        };
+    };
+
+    ($n:ident, regex = $regex:expr) => {
+        $crate::id!(@inner $n);
+
+        const _: () = {
+            use $crate::parse::{self, CoreParse};
+
+            impl CoreParse<crate::FormalityLang> for $n {
+                fn parse<'t>(
+                    scope: &parse::Scope<crate::FormalityLang>,
+                    text: &'t str,
+                ) -> parse::ParseResult<'t, Self> {
+                    lazy_static::lazy_static! {
+                        static ref RE: regex::Regex = regex::Regex::new(
+                            concat!("^(?:", $regex, ")")
+                        ).unwrap();
+                    }
+                    $crate::parse::Parser::identifier_re(scope, text, stringify!($n), &RE)
+                }
+            }
+        };
+    };
+
+    (@inner $n:ident) => {
         #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub struct $n {
             data: std::sync::Arc<String>,
@@ -201,7 +240,6 @@ macro_rules! id {
 
         const _: () = {
             use $crate::fold::{self, CoreFold};
-            use $crate::parse::{self, CoreParse};
             use $crate::variable::CoreVariable;
             use $crate::visit::CoreVisit;
 
@@ -249,15 +287,6 @@ macro_rules! id {
                     _substitution_fn: fold::SubstitutionFn<'_, crate::FormalityLang>,
                 ) -> Self {
                     self.clone()
-                }
-            }
-
-            impl CoreParse<crate::FormalityLang> for $n {
-                fn parse<'t>(
-                    scope: &parse::Scope<crate::FormalityLang>,
-                    text: &'t str,
-                ) -> parse::ParseResult<'t, Self> {
-                    $crate::parse::Parser::identifier(scope, text, stringify!($n))
                 }
             }
 

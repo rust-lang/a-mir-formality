@@ -233,6 +233,25 @@ where
         })
     }
 
+    /// Like [`Self::identifier`], but uses a custom regex to match the identifier string.
+    /// The regex should already be anchored at the start (`^`).
+    /// Still marks the result as an identifier for disambiguation and rejects language keywords.
+    pub fn identifier_re(
+        scope: &'s Scope<L>,
+        text: &'t str,
+        nonterminal_name: &'static str,
+        re: &regex::Regex,
+    ) -> ParseResult<'t, T>
+    where
+        String: Into<T>,
+    {
+        Self::single_variant(scope, text, nonterminal_name, |p| {
+            let s = p.regex_str(re, nonterminal_name)?;
+            p.reject_custom_keywords(L::KEYWORDS)?;
+            Ok(s.into())
+        })
+    }
+
     /// Shorthand for `parse_variant` where the parsing operation is to
     /// parse the type `V` and then upcast it to the desired result type.
     /// Also marks the variant as a cast variant.
@@ -640,6 +659,21 @@ where
                 )
             },
         )
+    }
+
+    /// Extracts a string matching the given regex from the start of text.
+    /// The regex should be anchored at the start (caller is responsible for `^`).
+    pub fn regex_str(
+        &mut self,
+        re: &regex::Regex,
+        description: &'static str,
+    ) -> Result<String, Set<ParseError<'t>>> {
+        self.token(|text0| match re.find(text0) {
+            Some(m) if m.start() == 0 && !m.is_empty() => {
+                Ok((m.as_str().to_string(), &text0[m.end()..]))
+            }
+            _ => Err(ParseError::at(text0, format!("{} expected", description))),
+        })
     }
 
     /// Extracts a string that meets the regex for an identifier
