@@ -3,6 +3,7 @@ mod ambiguity_helpers;
 mod commit_points;
 mod grammar;
 mod left_associative;
+mod left_recursion_seed;
 mod none_associative;
 mod path;
 mod right_associative;
