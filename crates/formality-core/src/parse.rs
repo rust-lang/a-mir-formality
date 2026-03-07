@@ -86,26 +86,30 @@ where
         }
     };
 
-    // Filter to parses that consumed all input.
-    let mut complete_parses: Vec<_> = parses
+    // Filter to parses that consumed all input, keeping only the values.
+    let mut values: Vec<T> = parses
         .into_iter()
         .filter(|p| skip_whitespace(p.text()).is_empty())
+        .map(|p| p.finish().0)
         .collect();
 
-    if complete_parses.is_empty() {
+    if values.is_empty() {
         crate::bail!("extra tokens after parsing {text:?}");
     }
 
-    // Deduplicate parses that produced the same value.
-    complete_parses.dedup_by(|a, b| a.value == b.value);
+    // Pop one value and remove all duplicates of it.
+    let value = values.pop().unwrap();
+    values.retain(|v| v != &value);
 
-    if complete_parses.len() == 1 {
-        return Ok(complete_parses.into_iter().next().unwrap().finish().0);
+    if values.is_empty() {
+        return Ok(value);
     }
 
+    // Remaining values are genuinely different — ambiguous parse.
+    values.push(value);
     panic!(
         "ambiguous parse of `{text:?}`, possibilities are {:#?}",
-        complete_parses.iter().map(|p| &p.value).collect::<Vec<_>>(),
+        values,
     );
 }
 
