@@ -135,12 +135,12 @@ fn parse_variant(
         });
     } else if has_cast_attr(variant.ast().attrs) {
         // Has the `#[cast]` attribute -- just parse the bindings (comma separated, if needed)
-        let construct = variant.construct(field_ident);
+        let construct = variant.construct(field_ident_cloned);
         let tail = quote_spanned! {
             ast.ident.span() =>
             __p.ok(#construct)
         };
-        let body = wrap_bindings_in_each_nonterminal(variant.bindings(), tail);
+        let body = wrap_bindings(variant.bindings(), tail, 0);
         stream.extend(quote_spanned! {
             ast.ident.span() =>
             #body
@@ -148,14 +148,14 @@ fn parse_variant(
     } else {
         // Otherwise -- parse `variant(binding0, ..., bindingN)`
         let literal = Literal::string(&to_parse_ident(ast.ident));
-        let construct = variant.construct(field_ident);
+        let construct = variant.construct(field_ident_cloned);
         let tail = quote_spanned! {
             ast.ident.span() =>
             __p.skip_trailing_comma();
             __p.expect_char(')')?;
             __p.ok(#construct)
         };
-        let body = wrap_bindings_in_each_nonterminal(variant.bindings(), tail);
+        let body = wrap_bindings(variant.bindings(), tail, 0);
         stream.extend(quote_spanned! {
             ast.ident.span() =>
             __p.expect_keyword(#literal)?;
@@ -202,26 +202,13 @@ fn parse_variant_with_attr(
     // Non-nonterminal symbols (keywords, chars, commit points) stay as flat `?`-based code.
     // All nonterminal field modes become `each_*` continuation-passing calls,
     // nesting everything that follows inside the continuation closure.
-    let c = variant.construct(field_ident);
+    let c = variant.construct(field_ident_cloned);
     let tail = quote!(__p.ok(#c));
 
-    let body = wrap_symbols_in_each_nonterminal(variant, &spec.symbols, tail);
+    let body = wrap_symbols(variant, &spec.symbols, tail);
     stream.extend(body);
 
     Ok(stream)
-}
-
-/// Recursively wrap a list of spec symbols, nesting `each_nonterminal` for `FieldMode::Single`
-/// fields and keeping other operations flat.
-///
-/// `captured_names` tracks variable names bound by outer `each_nonterminal` calls.
-/// These must be cloned inside inner closures since the closures are `Fn`.
-fn wrap_symbols_in_each_nonterminal(
-    variant: &synstructure::VariantInfo,
-    symbols: &[spec::FormalitySpecSymbol],
-    tail: TokenStream,
-) -> TokenStream {
-    wrap_symbols_inner(variant, symbols, tail, &[])
 }
 
 /// Look up a field's type in a variant by name.
@@ -255,11 +242,12 @@ fn field_type_by_name<'a>(
     None
 }
 
-fn wrap_symbols_inner(
+/// Recursively wrap a list of spec symbols, nesting `each_nonterminal` for field
+/// modes and keeping other operations (keywords, chars, commit points) flat.
+fn wrap_symbols(
     variant: &synstructure::VariantInfo,
     symbols: &[spec::FormalitySpecSymbol],
     tail: TokenStream,
-    captured_names: &[Ident],
 ) -> TokenStream {
     if symbols.is_empty() {
         return tail;
@@ -269,12 +257,12 @@ fn wrap_symbols_inner(
 
     match first {
         spec::FormalitySpecSymbol::Field { name, mode } => {
-            wrap_field_mode(variant, name, mode, rest, tail, captured_names)
+            wrap_field_mode(variant, name, mode, rest, tail)
         }
 
         spec::FormalitySpecSymbol::Keyword { ident } => {
             let literal = as_literal(ident);
-            let inner = wrap_symbols_inner(variant, rest, tail, captured_names);
+            let inner = wrap_symbols(variant, rest, tail);
             quote_spanned!(ident.span() =>
                 __p.expect_keyword(#literal)?;
                 #inner
@@ -282,7 +270,7 @@ fn wrap_symbols_inner(
         }
 
         spec::FormalitySpecSymbol::CommitPoint => {
-            let inner = wrap_symbols_inner(variant, rest, tail, captured_names);
+            let inner = wrap_symbols(variant, rest, tail);
             quote!(
                 let () = __p.set_committed(true);
                 #inner
@@ -291,7 +279,7 @@ fn wrap_symbols_inner(
 
         spec::FormalitySpecSymbol::Char { punct } => {
             let literal = Literal::character(punct.as_char());
-            let inner = wrap_symbols_inner(variant, rest, tail, captured_names);
+            let inner = wrap_symbols(variant, rest, tail);
             quote_spanned!(punct.span() =>
                 __p.expect_char(#literal)?;
                 #inner
@@ -300,7 +288,7 @@ fn wrap_symbols_inner(
 
         spec::FormalitySpecSymbol::Delimeter { text } => {
             let literal = Literal::character(*text);
-            let inner = wrap_symbols_inner(variant, rest, tail, captured_names);
+            let inner = wrap_symbols(variant, rest, tail);
             quote_spanned!(literal.span() =>
                 __p.expect_char(#literal)?;
                 #inner
@@ -317,34 +305,21 @@ fn wrap_field_mode(
     mode: &FieldMode,
     rest_symbols: &[spec::FormalitySpecSymbol],
     tail: TokenStream,
-    captured_names: &[Ident],
 ) -> TokenStream {
     let field_ty = field_type_by_name(variant, name);
-
-    // Add this name to captured list for inner closures
-    let mut new_captured = captured_names.to_vec();
-    new_captured.push(name.clone());
-    let inner = wrap_symbols_inner(variant, rest_symbols, tail, &new_captured);
-
-    // Clone captured variables at the top of the closure body
-    let clones: Vec<TokenStream> = captured_names
-        .iter()
-        .map(|n| quote!(let #n = #n.clone();))
-        .collect();
+    let inner = wrap_symbols(variant, rest_symbols, tail);
 
     match mode {
         FieldMode::Single => {
             if let Some(ty) = field_ty {
                 quote_spanned!(name.span() =>
                     __p.each_nonterminal(|#name: #ty, __p| {
-                        #(#clones)*
                         #inner
                     })
                 )
             } else {
                 quote_spanned!(name.span() =>
                     __p.each_nonterminal(|#name, __p| {
-                        #(#clones)*
                         #inner
                     })
                 )
@@ -356,7 +331,6 @@ fn wrap_field_mode(
                 quote_spanned!(name.span() =>
                     __p.each_opt_nonterminal(|#name: Option<#ty>, __p| {
                         let #name: #ty = #name.unwrap_or_default();
-                        #(#clones)*
                         #inner
                     })
                 )
@@ -364,7 +338,6 @@ fn wrap_field_mode(
                 quote_spanned!(name.span() =>
                     __p.each_opt_nonterminal(|#name, __p| {
                         let #name = #name.unwrap_or_default();
-                        #(#clones)*
                         #inner
                     })
                 )
@@ -375,14 +348,12 @@ fn wrap_field_mode(
             if let Some(ty) = field_ty {
                 quote_spanned!(name.span() =>
                     __p.each_many_nonterminal(|#name: #ty, __p| {
-                        #(#clones)*
                         #inner
                     })
                 )
             } else {
                 quote_spanned!(name.span() =>
                     __p.each_many_nonterminal(|#name, __p| {
-                        #(#clones)*
                         #inner
                     })
                 )
@@ -399,14 +370,12 @@ fn wrap_field_mode(
             if let Some(ty) = field_ty {
                 quote_spanned!(name.span() =>
                     __p.each_delimited_nonterminal(#open, #optional, #close, |#name: #ty, __p| {
-                        #(#clones)*
                         #inner
                     })
                 )
             } else {
                 quote_spanned!(name.span() =>
                     __p.each_delimited_nonterminal(#open, #optional, #close, |#name, __p| {
-                        #(#clones)*
                         #inner
                     })
                 )
@@ -417,14 +386,12 @@ fn wrap_field_mode(
             if let Some(ty) = field_ty {
                 quote_spanned!(name.span() =>
                     __p.each_comma_nonterminal(|#name: #ty, __p| {
-                        #(#clones)*
                         #inner
                     })
                 )
             } else {
                 quote_spanned!(name.span() =>
                     __p.each_comma_nonterminal(|#name, __p| {
-                        #(#clones)*
                         #inner
                     })
                 )
@@ -440,13 +407,11 @@ fn wrap_field_mode(
                             match __p.expect_keyword(#guard_keyword) {
                                 Ok(()) => {
                                     __p.each_nonterminal(|#name: #ty, __p| {
-                                        #(#clones)*
                                         #inner
                                     })
                                 }
                                 Err(_) => {
                                     let #name: #ty = Default::default();
-                                    #(#clones)*
                                     #inner
                                 }
                             }
@@ -456,13 +421,11 @@ fn wrap_field_mode(
                             match __p.expect_keyword(#guard_keyword) {
                                 Ok(()) => {
                                     __p.each_nonterminal(|#name, __p| {
-                                        #(#clones)*
                                         #inner
                                     })
                                 }
                                 Err(_) => {
                                     let #name = Default::default();
-                                    #(#clones)*
                                     #inner
                                 }
                             }
@@ -476,13 +439,11 @@ fn wrap_field_mode(
                                 Ok(()) => {
                                     __p.each_opt_nonterminal(|#name: Option<#ty>, __p| {
                                         let #name: #ty = #name.unwrap_or_default();
-                                        #(#clones)*
                                         #inner
                                     })
                                 }
                                 Err(_) => {
                                     let #name: #ty = Default::default();
-                                    #(#clones)*
                                     #inner
                                 }
                             }
@@ -493,13 +454,11 @@ fn wrap_field_mode(
                                 Ok(()) => {
                                     __p.each_opt_nonterminal(|#name, __p| {
                                         let #name = #name.unwrap_or_default();
-                                        #(#clones)*
                                         #inner
                                     })
                                 }
                                 Err(_) => {
                                     let #name = Default::default();
-                                    #(#clones)*
                                     #inner
                                 }
                             }
@@ -512,13 +471,11 @@ fn wrap_field_mode(
                             match __p.expect_keyword(#guard_keyword) {
                                 Ok(()) => {
                                     __p.each_many_nonterminal(|#name: #ty, __p| {
-                                        #(#clones)*
                                         #inner
                                     })
                                 }
                                 Err(_) => {
                                     let #name: #ty = Default::default();
-                                    #(#clones)*
                                     #inner
                                 }
                             }
@@ -528,13 +485,11 @@ fn wrap_field_mode(
                             match __p.expect_keyword(#guard_keyword) {
                                 Ok(()) => {
                                     __p.each_many_nonterminal(|#name, __p| {
-                                        #(#clones)*
                                         #inner
                                     })
                                 }
                                 Err(_) => {
                                     let #name = Default::default();
-                                    #(#clones)*
                                     #inner
                                 }
                             }
@@ -547,13 +502,11 @@ fn wrap_field_mode(
                             match __p.expect_keyword(#guard_keyword) {
                                 Ok(()) => {
                                     __p.each_comma_nonterminal(|#name: #ty, __p| {
-                                        #(#clones)*
                                         #inner
                                     })
                                 }
                                 Err(_) => {
                                     let #name: #ty = Default::default();
-                                    #(#clones)*
                                     #inner
                                 }
                             }
@@ -563,13 +516,11 @@ fn wrap_field_mode(
                             match __p.expect_keyword(#guard_keyword) {
                                 Ok(()) => {
                                     __p.each_comma_nonterminal(|#name, __p| {
-                                        #(#clones)*
                                         #inner
                                     })
                                 }
                                 Err(_) => {
                                     let #name = Default::default();
-                                    #(#clones)*
                                     #inner
                                 }
                             }
@@ -588,13 +539,11 @@ fn wrap_field_mode(
                             match __p.expect_keyword(#guard_keyword) {
                                 Ok(()) => {
                                     __p.each_delimited_nonterminal(#open, #optional, #close, |#name: #ty, __p| {
-                                        #(#clones)*
                                         #inner
                                     })
                                 }
                                 Err(_) => {
                                     let #name: #ty = Default::default();
-                                    #(#clones)*
                                     #inner
                                 }
                             }
@@ -604,13 +553,11 @@ fn wrap_field_mode(
                             match __p.expect_keyword(#guard_keyword) {
                                 Ok(()) => {
                                     __p.each_delimited_nonterminal(#open, #optional, #close, |#name, __p| {
-                                        #(#clones)*
                                         #inner
                                     })
                                 }
                                 Err(_) => {
                                     let #name = Default::default();
-                                    #(#clones)*
                                     #inner
                                 }
                             }
@@ -649,20 +596,17 @@ fn field_ident(field: &syn::Field, index: usize) -> syn::Ident {
     }
 }
 
+/// Like `field_ident` but wraps in `.clone()` — used in `variant.construct` inside
+/// `Fn` closures where the constructor may run multiple times.
+fn field_ident_cloned(field: &syn::Field, index: usize) -> TokenStream {
+    let name = field_ident(field, index);
+    quote!(#name.clone())
+}
+
 /// Wraps a sequence of bindings in nested `each_nonterminal` calls.
 /// Each binding becomes an `each_nonterminal` layer, with commas between them.
 /// The `tail` is the code that runs after all bindings are parsed.
-fn wrap_bindings_in_each_nonterminal(bindings: &[BindingInfo], tail: TokenStream) -> TokenStream {
-    wrap_bindings_inner(bindings, tail, 0, &[])
-}
-
-/// Helper that tracks binding index for comma insertion and captured names for cloning.
-fn wrap_bindings_inner(
-    bindings: &[BindingInfo],
-    tail: TokenStream,
-    current_index: usize,
-    captured_names: &[Ident],
-) -> TokenStream {
+fn wrap_bindings(bindings: &[BindingInfo], tail: TokenStream, current_index: usize) -> TokenStream {
     if bindings.is_empty() {
         return tail;
     }
@@ -670,17 +614,7 @@ fn wrap_bindings_inner(
     let (first, rest) = bindings.split_first().unwrap();
     let name = field_ident(first.ast(), current_index);
     let field_ty = &first.ast().ty;
-
-    // Add this name to captured list for inner closures
-    let mut new_captured = captured_names.to_vec();
-    new_captured.push(name.clone());
-    let inner = wrap_bindings_inner(rest, tail, current_index + 1, &new_captured);
-
-    // Clone captured variables at the top of the closure body
-    let clones: Vec<TokenStream> = captured_names
-        .iter()
-        .map(|n| quote!(let #n = #n.clone();))
-        .collect();
+    let inner = wrap_bindings(rest, tail, current_index + 1);
 
     let comma = if current_index > 0 {
         Some(quote_spanned!(
@@ -695,7 +629,6 @@ fn wrap_bindings_inner(
         name.span() =>
         #comma
         __p.each_nonterminal(|#name: #field_ty, __p| {
-            #(#clones)*
             #inner
         })
     }
