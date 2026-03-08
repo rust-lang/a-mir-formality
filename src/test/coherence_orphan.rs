@@ -45,7 +45,7 @@ fn mirror_CoreStruct() {
                     type Assoc : [];
                 }
 
-                impl<ty T> Mirror for T {
+                impl<T> Mirror for T {
                     type Assoc = T;
                 }
             },
@@ -85,7 +85,7 @@ fn mirror_FooStruct() {
                     type Assoc : [];
                 }
 
-                impl<ty T> Mirror for T {
+                impl<T> Mirror for T {
                     type Assoc = T;
                 }
             },
@@ -102,12 +102,12 @@ fn covered_VecT() {
     crate::assert_ok!(
         [
             crate core {
-                trait CoreTrait<ty T> {}
-                struct Vec<ty T> {}
+                trait CoreTrait<T> {}
+                struct Vec<T> {}
             },
             crate foo {
                 struct FooStruct {}
-                impl<ty T> CoreTrait<FooStruct> for Vec<T> {}
+                impl<T> CoreTrait<FooStruct> for Vec<T> {}
             }
         ]
     )
@@ -118,11 +118,11 @@ fn uncovered_T() {
     crate::assert_err!(
         [
             crate core {
-                trait CoreTrait<ty T> {}
+                trait CoreTrait<T> {}
             },
             crate foo {
                 struct FooStruct {}
-                impl<ty T> CoreTrait<FooStruct> for T {}
+                impl<T> CoreTrait<FooStruct> for T {}
             }
         ]
 
@@ -147,7 +147,7 @@ fn alias_to_unit() {
                     type Assoc : [];
                 }
 
-                impl<ty T> Unit for T {
+                impl<T> Unit for T {
                     type Assoc = ();
                 }
             },
@@ -211,13 +211,13 @@ fn CoreTraitLocal_for_AliasToKnown_in_Foo() {
     crate::assert_ok!(
     [
         crate core {
-            trait CoreTrait<ty T> {}
+            trait CoreTrait<T> {}
 
             trait Unit {
                 type Assoc : [];
             }
 
-            impl<ty T> Unit for T {
+            impl<T> Unit for T {
                 type Assoc = ();
             }
         },

@@ -10,7 +10,7 @@ use crate::prove::prove::test_util::test_prove;
 #[test]
 fn exists_u_for_t() {
     let decls = Decls::empty();
-    test_prove(decls, term("exists<ty U> {} => {for<ty T> T = U}")).assert_err(expect![[r#"
+    test_prove(decls, term("exists<U> {} => {for<T> T = U}")).assert_err(expect![[r#"
         the rule "existential-nonvar" at (prove_eq.rs) failed because
           pattern `None` did not match value `Some(!ty_1)`
 
@@ -23,11 +23,11 @@ fn exists_u_for_t() {
 fn for_t_exists_u() {
     let decls = Decls {
         program: Decls::program_from_items(vec![
-            term("trait Test<ty T> where {}"),
-            term("impl<ty X> Test<X> for X {}"),
+            term("trait Test<T> where {}"),
+            term("impl<X> Test<X> for X {}"),
         ]),
         ..Decls::empty()
     };
 
-    test_prove(decls, term("{} => {for<ty T> Test(T, T)}")).assert_ok(expect!["{Constraints { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }}"]);
+    test_prove(decls, term("{} => {for<T> Test(T, T)}")).assert_ok(expect!["{Constraints { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }}"]);
 }

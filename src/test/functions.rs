@@ -11,16 +11,16 @@ fn ok() {
                 fn simple_fn() -> () { trusted }
 
                 // fn one_arg<T>(_: T) {}
-                fn one_arg<ty T>(T) -> () { trusted }
+                fn one_arg<T>(T) -> () { trusted }
 
                 // fn one_ret<T>(_: T) {}
-                fn one_ret<ty T>() -> T { trusted }
+                fn one_ret<T>() -> T { trusted }
 
                 // fn arg_ret<T, U>(_: T) -> U {}
-                fn arg_ret<ty T, ty U>(T) -> U { trusted }
+                fn arg_ret<T, U>(T) -> U { trusted }
 
                 // fn multi_arg_ret<T, Y, U, I>(_: T, _: Y) -> (U, I) {}
-                fn multi_arg_ret<ty T, ty Y, ty U, ty I>(T, Y) -> (U, I) { trusted }
+                fn multi_arg_ret<T, Y, U, I>(T, Y) -> (U, I) { trusted }
             }
         ]
     )
@@ -33,9 +33,9 @@ fn lifetime() {
         [
             crate Foo {
                 // fn one_lt_arg<'a, T>(_: &'a T) -> () {}
-                fn one_lt_arg<lt a, ty T>(&a T) -> ()
+                fn one_lt_arg<'a, T>(&'a T) -> ()
                 where
-                    T: a, // FIXME(#202): Implied bounds should not have to be explicit
+                    T: 'a, // FIXME(#202): Implied bounds should not have to be explicit
                 { trusted }
             }
         ]

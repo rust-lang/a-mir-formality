@@ -9,9 +9,7 @@ use crate::{
     Set, Upcast,
 };
 
-use super::{
-    CoreParse, ParseError, ParseResult, ReductionKind, Scope, SuccessfulParse, TokenResult,
-};
+use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenResult};
 
 mod left_recursion;
 
@@ -135,13 +133,14 @@ impl Default for Precedence {
 /// It contains various methods for consuming tokens
 /// (e.g., `identifier`, `number`, `variable`).
 ///
-/// The most common method is `nonterminal`,
+/// The most common method is `each_nonterminal`,
 /// which lets you parse an instance of some other
-/// type that implements [`CoreParse`][].
+/// type that implements [`CoreParse`][] and run a
+/// continuation for each successful parse.
 ///
 /// Another common set of methods are things like
-/// `comma_nonterminal`, which parses a comma-separated
-/// list of nonterminals.
+/// `each_comma_nonterminal`, which parses a comma-separated
+/// list of nonterminals and passes the result to a continuation.
 ///
 /// Note that **all** the methods of active variant skip past whitespace (and comments) implicitly
 #[derive(Clone, Debug)]
@@ -153,8 +152,6 @@ where
     scope: &'s Scope<L>,
     start_text: &'t str,
     current_text: &'t str,
-    reductions: Vec<(&'static str, ReductionKind)>,
-    variant_kind: ReductionKind,
 
     /// A variant is 'committed' when we have seen enough success
     is_committed: bool,
@@ -168,12 +165,12 @@ where
     /// Shorthand to create a parser for a nonterminal with a single variant,
     /// parsed by the function `op`.
     ///
-    /// The nonterminal-name will be used as the reduction name and added after `op` completes.
+    /// The nonterminal-name is used as the variant name.
     pub fn single_variant(
         scope: &'s Scope<L>,
         text: &'t str,
         nonterminal_name: &'static str,
-        mut op: impl FnMut(&mut ActiveVariant<'s, 't, L>) -> Result<T, Set<ParseError<'t>>>,
+        mut op: impl FnMut(&mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, T>,
     ) -> ParseResult<'t, T> {
         Parser::multi_variant(scope, text, nonterminal_name, |parser| {
             parser.parse_variant(nonterminal_name, Precedence::default(), &mut op);
@@ -219,7 +216,9 @@ where
         })
     }
 
-    pub fn identifier(
+    /// Parse an identifier as a standalone nonterminal.
+    /// Used by the `id!` macro.
+    pub fn identifier_nonterminal(
         scope: &'s Scope<L>,
         text: &'t str,
         nonterminal_name: &'static str,
@@ -228,23 +227,55 @@ where
         String: Into<T>,
     {
         Self::single_variant(scope, text, nonterminal_name, |p| {
-            p.mark_as_identifier();
-            Ok(p.identifier()?.into())
+            let id = p.identifier()?;
+            p.ok(id.into())
+        })
+    }
+
+    /// Like [`Self::identifier`], but rejects identifiers that match a variable in scope.
+    pub fn identifier_no_var(
+        scope: &'s Scope<L>,
+        text: &'t str,
+        nonterminal_name: &'static str,
+    ) -> ParseResult<'t, T>
+    where
+        String: Into<T>,
+    {
+        Self::single_variant(scope, text, nonterminal_name, |p| {
+            p.reject_variable()?;
+            let id = p.identifier()?;
+            p.ok(id.into())
+        })
+    }
+
+    /// Like [`Self::identifier`], but uses a custom regex to match the identifier string.
+    /// The regex should already be anchored at the start (`^`).
+    /// Still marks the result as an identifier for disambiguation and rejects language keywords.
+    pub fn identifier_re(
+        scope: &'s Scope<L>,
+        text: &'t str,
+        nonterminal_name: &'static str,
+        re: &regex::Regex,
+    ) -> ParseResult<'t, T>
+    where
+        String: Into<T>,
+    {
+        Self::single_variant(scope, text, nonterminal_name, |p| {
+            let s = p.regex_str(re, nonterminal_name)?;
+            p.reject_custom_keywords(L::KEYWORDS)?;
+            p.ok(s.into())
         })
     }
 
     /// Shorthand for `parse_variant` where the parsing operation is to
     /// parse the type `V` and then upcast it to the desired result type.
-    /// Also marks the variant as a cast variant.
     pub fn parse_variant_cast<V>(&mut self, variant_precedence: Precedence)
     where
         V: CoreParse<L> + Upcast<T>,
     {
         let variant_name = std::any::type_name::<V>();
         Self::parse_variant(self, variant_name, variant_precedence, |p| {
-            p.mark_as_cast_variant();
-            let v: V = p.nonterminal()?;
-            Ok(v)
+            p.each_nonterminal(|v: V, p| p.ok(v))
         })
     }
 
@@ -257,21 +288,30 @@ where
         CoreVariable<L>: Upcast<T>,
     {
         Self::parse_variant(self, variant_name, variant_precedence, |p| {
-            p.mark_as_in_scope_var();
-            p.variable_of_kind(kind)
+            let v = p.variable_of_kind(kind)?;
+            p.ok(v)
         })
     }
 
+    /// Returns true if any variants have already parsed successfully.
+    /// This is used by generated code to short-circuit: if a `#[variable]`
+    /// variant matched, we skip all other variants.
+    pub fn has_successes(&self) -> bool {
+        !self.successes.is_empty()
+    }
+
     /// Parses a single variant for this nonterminal.
-    /// The name of the variant is significant and will be tracked as part of the list of reductions.
     /// The precedence is part of how we resolve conflicts: if there are two successful parses with distinct precedence, higher precedence wins.
     /// The `op` is a closure that defines how the variant itself is parsed.
     /// The closure `op` will be invoked with an [`ActiveVariant`][] struct that has methods for consuming identifiers, numbers, keywords, etc.
+    ///
+    /// The closure returns a `ParseResult` — it may produce multiple successful parses
+    /// (e.g., when child nonterminals are ambiguous and ambiguity propagates via `each_nonterminal`).
     pub fn parse_variant<U>(
         &mut self,
         variant_name: &'static str,
         variant_precedence: Precedence,
-        op: impl FnOnce(&mut ActiveVariant<'s, 't, L>) -> Result<U, Set<ParseError<'t>>>,
+        op: impl FnOnce(&mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, U>,
     ) where
         U: Upcast<T>,
     {
@@ -301,20 +341,17 @@ where
         drop(guard);
 
         match result {
-            Ok(value) => {
-                // Subtle: for cast variants, don't record the variant name in the reduction list,
-                // as it doesn't carry semantic weight. See `mark_as_cast_variant` for more details.
-                active_variant
-                    .reductions
-                    .push((variant_name, active_variant.variant_kind));
+            Ok(successes) => {
+                for success in successes {
+                    let success = SuccessfulParse {
+                        text: success.text,
+                        precedence: variant_precedence,
+                        value: success.value.upcast(),
+                    };
 
-                self.successes.push(SuccessfulParse {
-                    text: active_variant.current_text,
-                    reductions: active_variant.reductions,
-                    precedence: variant_precedence,
-                    value: value.upcast(),
-                });
-                tracing::trace!("success: {:?}", self.successes.last().unwrap());
+                    tracing::trace!("success: {:?}", success);
+                    self.successes.push(success);
+                }
             }
 
             Err(errs) => {
@@ -331,6 +368,13 @@ where
                 }
             }
         }
+    }
+
+    /// Returns true if at least one variant has been successfully parsed.
+    /// Used by generated code to short-circuit after a `#[variable]` variant
+    /// succeeds, skipping remaining variants.
+    pub fn has_success(&self) -> bool {
+        !self.successes.is_empty()
     }
 
     fn finish(self, guard: tracing::span::Entered<'_>) -> ParseResult<'t, T> {
@@ -366,70 +410,11 @@ where
             tracing::trace!("successful parses: `{:?}`", self.successes);
         }
 
-        // Otherwise, check if we had an unambiguous parse.
-        // This results if there exists some success S that is 'better' than every other success.
-        // We say S1 better than S2 if:
-        // * S1 has higher precedence OR
-        // * S1 parsed more tokens and in the same way (i.e., S2.reductions is a prefix of S1.reductions)
-        for (s_i, i) in self.successes.iter().zip(0..) {
-            if self
-                .successes
-                .iter()
-                .zip(0..)
-                .all(|(s_j, j)| i == j || Self::is_preferable(s_i, s_j))
-            {
-                let s_i = self.successes.into_iter().nth(i).unwrap();
-                // It's better to print this result alongside the main parsing section.
-                drop(guard);
-                tracing::trace!("best parse = `{:?}`", s_i);
-                return Ok(s_i);
-            }
-        }
-
-        panic!(
-            "ambiguous parse of `{text:?}`, possibilities are {possibilities:#?}",
-            text = self.start_text,
-            possibilities = self.successes,
-        );
-    }
-
-    fn is_preferable(s_i: &SuccessfulParse<T>, s_j: &SuccessfulParse<T>) -> bool {
-        let mut reductions_i = s_i.reductions.iter().peekable();
-        let mut reductions_j = s_j.reductions.iter().peekable();
-
-        loop {
-            match (reductions_i.peek(), reductions_j.peek()) {
-                // Drop casts from left or right if we see them, as they
-                // are not significant. (See `ReductionKind::Cast`)
-                (Some((_, ReductionKind::Cast)), _) => {
-                    reductions_i.next();
-                }
-                (_, Some((_, ReductionKind::Cast))) => {
-                    reductions_j.next();
-                }
-                (Some((_, ReductionKind::Variable)), Some((_, ReductionKind::Identifier))) => {
-                    // at some point, s_i parsed an in-scope variable and s_j parsed an identifier;
-                    // we tilt in favor of in-scope variables in this kind of case
-                    return true;
-                }
-                (Some(_), None) => {
-                    // s_j is a prefix of s_i -- prefer s_i
-                    return true;
-                }
-                (None, Some(_)) | (None, None) => {
-                    // s_i is a prefix of s_j or they are equal -- do NOT prefer s_i
-                    return false;
-                }
-                (Some(reduction_i), Some(reduction_j)) => {
-                    if reduction_i == reduction_j {
-                        reductions_i.next();
-                        reductions_j.next();
-                    } else {
-                        return false;
-                    }
-                }
-            }
-        }
+        // Return all successful parses. Disambiguation happens at the top level
+        // (in core_term_with) rather than here, so ambiguous parses propagate
+        // upward instead of panicking.
+        drop(guard);
+        Ok(self.successes)
     }
 }
 
@@ -444,8 +429,6 @@ where
             scope,
             start_text,
             current_text: start_text,
-            reductions: vec![],
-            variant_kind: ReductionKind::default(),
             is_committed: true,
         }
     }
@@ -501,32 +484,14 @@ where
         self.scope
     }
 
-    /// Skips whitespace in the input, producing no reduction.
+    /// Skips whitespace in the input.
     pub fn skip_whitespace(&mut self) {
         self.current_text = skip_whitespace(self.current_text);
     }
 
-    /// Skips a comma in the input, producing no reduction.
+    /// Skips a comma in the input.
     pub fn skip_trailing_comma(&mut self) {
         self.current_text = skip_trailing_comma(self.current_text);
-    }
-
-    /// Marks this variant as an cast variant.
-    /// See [`ReductionKind::Cast`].
-    pub fn mark_as_cast_variant(&mut self) {
-        self.variant_kind = ReductionKind::Cast;
-    }
-
-    /// Indicates that this variant is parsing *only* an in-scope variable.
-    /// See [`ReducgionKind::Variable`].
-    pub fn mark_as_in_scope_var(&mut self) {
-        self.variant_kind = ReductionKind::Variable;
-    }
-
-    /// Indicates that this variant is parsing *only* an identifier.
-    /// See [`ReducgionKind::Identifier`].
-    pub fn mark_as_identifier(&mut self) {
-        self.variant_kind = ReductionKind::Identifier;
     }
 
     /// Expect *exactly* the given text (after skipping whitespace)
@@ -614,9 +579,7 @@ where
             precedence: self.precedence,
             start_text: self.start_text,
             current_text: self.current_text,
-            reductions: vec![],
             scope: self.scope,
-            variant_kind: ReductionKind::default(),
             is_committed: true,
         };
 
@@ -624,6 +587,21 @@ where
             Ok(value) => Err(err(value)),
             Err(_) => Ok(()),
         }
+    }
+
+    /// Reject the next identifier if it matches a variable currently in scope.
+    /// Does not consume any input. Used by `id!` types with `match_var = false`
+    /// to avoid ambiguity between variables and identifiers.
+    pub fn reject_variable(&self) -> Result<(), Set<ParseError<'t>>> {
+        self.reject(
+            |p| p.variable(),
+            |var| {
+                ParseError::at(
+                    self.current_text,
+                    format!("expected identifier, found variable `{var:?}` in scope"),
+                )
+            },
+        )
     }
 
     /// Reject next identifier-like string if it is one of the given list of keywords.
@@ -653,6 +631,21 @@ where
         )
     }
 
+    /// Extracts a string matching the given regex from the start of text.
+    /// The regex should be anchored at the start (caller is responsible for `^`).
+    pub fn regex_str(
+        &mut self,
+        re: &regex::Regex,
+        description: &'static str,
+    ) -> Result<String, Set<ParseError<'t>>> {
+        self.token(|text0| match re.find(text0) {
+            Some(m) if m.start() == 0 && !m.is_empty() => {
+                Ok((m.as_str().to_string(), &text0[m.end()..]))
+            }
+            _ => Err(ParseError::at(text0, format!("{} expected", description))),
+        })
+    }
+
     /// Extracts a maximal identifier from the start of text,
     /// following the usual rules. **Disallows language keywords.**
     /// If you want to disallow additional keywords,
@@ -675,13 +668,10 @@ where
             scope: &scope,
             start_text: self.start_text,
             current_text: self.current_text,
-            reductions: vec![],
-            variant_kind: ReductionKind::default(),
             is_committed: true,
         };
         let result = op(&mut av);
         self.current_text = av.current_text;
-        self.reductions.extend(av.reductions);
         result
     }
 
@@ -694,7 +684,7 @@ where
     pub fn variable(&mut self) -> Result<CoreVariable<L>, Set<ParseError<'t>>> {
         self.skip_whitespace();
         let text0 = self.current_text;
-        let id = self.identifier()?;
+        let id = <L::Parameter as super::CoreParseBinding<L>>::parse_variable_name(self)?;
         match self.scope.lookup(&id) {
             Some(v) => Ok(v),
             None => Err(ParseError::at(text0, "unrecognized variable".to_string())),
@@ -746,15 +736,9 @@ where
     }
 
     /// Consumes a single token from the input after skipping whitespace.
-    /// Does not record any reduction.
-    /// We don't generally record reductions for methods on parser,
-    /// the assumption is that they are implied by the nonterminal name / variant.
     ///
     /// The token is defined by `op`, which is a function that takes
     /// the text and returns a result + new text.
-    ///
-    /// Tokens do not have internal
-    /// reductions, so `op` does not need to return reductions.
     fn token<T>(
         &mut self,
         op: impl FnOnce(&'t str) -> TokenResult<'t, T>,
@@ -765,57 +749,59 @@ where
         Ok(value)
     }
 
-    /// Parse an instance of the given type `T` (after skipping whitespace).
-    #[track_caller]
-    pub fn nonterminal<T>(&mut self) -> Result<T, Set<ParseError<'t>>>
-    where
-        T: CoreParse<L>,
-    {
-        self.nonterminal_with(T::parse)
-    }
-
     /// Gives an error if `T` is parsable here.
-    pub fn reject_nonterminal<T>(&mut self) -> Result<(), Set<ParseError<'t>>>
+    pub fn reject_nonterminal<T>(&self) -> Result<(), Set<ParseError<'t>>>
     where
         T: CoreParse<L>,
     {
         self.reject(
-            |p| p.nonterminal::<T>(),
+            |p| {
+                // We only need to know if *any* parse succeeds, so just check the result.
+                let successes = T::parse(p.scope, p.current_text)?;
+                let success = successes.into_iter().next().unwrap();
+                p.current_text = success.text;
+                Ok(success.value)
+            },
             |value| ParseError::at(self.text(), format!("unexpected `{value:?}`")),
         )
     }
 
-    /// Try to parse the current point as `T` and return `None` if there is nothing there.
+    /// Try to parse the current point as `T` and run the continuation for each
+    /// successful parse with `Some(t)`. If no parse succeeds (without consuming
+    /// tokens), runs the continuation with `None`.
     ///
     /// **NB:**  If the parse partially succeeds, i.e., we are able to consume some tokens
     /// but cannot completely parse, then this is an error, not a `None` result.
     /// So for example if the grammar for `T` is `()` and the input is `"foo"`,
-    /// then we will return `None`. But if the input were `"(foo)"`, we would return an error,
+    /// then we will get `None`. But if the input were `"(foo)"`, we would get an error,
     /// because we consumed the open paren `(` from `T` but then encountered an error
     /// looking for the closing paren `)`.
     #[track_caller]
-    #[tracing::instrument(level = "Trace", skip(self), ret)]
-    pub fn opt_nonterminal<T>(&mut self) -> Result<Option<T>, Set<ParseError<'t>>>
+    #[tracing::instrument(level = "Trace", skip(self, op), ret)]
+    pub fn each_opt_nonterminal<T, R>(
+        &mut self,
+        op: impl Fn(Option<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
+    ) -> ParseResult<'t, R>
     where
         T: CoreParse<L>,
+        R: Debug + Clone + Eq + 'static,
     {
         let text0 = self.current_text;
-        match self.nonterminal() {
-            Ok(v) => Ok(Some(v)),
+        match self.each_nonterminal(|t: T, p| op(Some(t), p)) {
+            Ok(successes) => Ok(successes),
             Err(mut errs) => {
                 errs.retain(|e| e.consumed_any_since(text0));
                 if errs.is_empty() {
-                    // If no errors consumed anything, then self.text
-                    // must not have advanced.
+                    // Nothing consumed — parse as None
                     assert_eq!(skip_whitespace(text0), self.current_text);
                     tracing::trace!(
-                        "opt_nonterminal({}): parsing did not consume tokens or did not commit",
+                        "each_opt_nonterminal({}): parsing did not consume tokens or did not commit",
                         std::any::type_name::<T>()
                     );
-                    Ok(None)
+                    op(None, self)
                 } else {
                     tracing::trace!(
-                        "opt_nonterminal({}): 'almost' succeeded with parse",
+                        "each_opt_nonterminal({}): 'almost' succeeded with parse",
                         std::any::type_name::<T>()
                     );
                     Err(errs)
@@ -824,31 +810,51 @@ where
         }
     }
 
-    /// Continue parsing instances of `T` while we can.
-    /// This is a greedy parse.
-    #[tracing::instrument(level = "Trace", skip(self), ret)]
-    pub fn many_nonterminal<C, T>(&mut self) -> Result<C, Set<ParseError<'t>>>
+    /// Continue parsing instances of `T` while we can, then run
+    /// the continuation with each possible sequence result.
+    /// This is a greedy parse that propagates ambiguity.
+    #[tracing::instrument(level = "Trace", skip(self, op), ret)]
+    pub fn each_many_nonterminal<T, R>(
+        &mut self,
+        op: impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
+    ) -> ParseResult<'t, R>
     where
-        T: CoreParse<L>,
-        C: IntoIterator<Item = T> + FromIterator<T> + Debug,
+        T: CoreParse<L> + Clone,
+        R: Debug + Clone + Eq + 'static,
     {
-        let mut result = vec![];
-        while let Some(e) = self.opt_nonterminal()? {
-            result.push(e);
-        }
-        Ok(result.into_iter().collect())
+        self.each_many_nonterminal_accum(vec![], &op)
     }
 
-    #[tracing::instrument(level = "Trace", skip(self), ret)]
-    pub fn delimited_nonterminal<T, C>(
+    fn each_many_nonterminal_accum<T, R>(
+        &mut self,
+        acc: Vec<T>,
+        op: &impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
+    ) -> ParseResult<'t, R>
+    where
+        T: CoreParse<L> + Clone,
+        R: Debug + Clone + Eq + 'static,
+    {
+        self.each_opt_nonterminal(|opt_t: Option<T>, p| match opt_t {
+            Some(t) => {
+                let mut new_acc = acc.clone();
+                new_acc.push(t);
+                p.each_many_nonterminal_accum(new_acc, op)
+            }
+            None => op(acc.clone(), p),
+        })
+    }
+
+    #[tracing::instrument(level = "Trace", skip(self, op), ret)]
+    pub fn each_delimited_nonterminal<T, R>(
         &mut self,
         open: char,
         optional: bool,
         close: char,
-    ) -> Result<C, Set<ParseError<'t>>>
+        op: impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
+    ) -> ParseResult<'t, R>
     where
-        T: CoreParse<L>,
-        C: IntoIterator<Item = T> + FromIterator<T> + Debug,
+        T: CoreParse<L> + Clone,
+        R: Debug + Clone + Eq + 'static,
     {
         // Look for the opening delimiter.
         // If we don't find it, then this is either an empty vector (if optional) or an error (otherwise).
@@ -856,7 +862,7 @@ where
             Ok(()) => {}
             Err(errs) => {
                 return if optional {
-                    Ok(std::iter::empty().collect())
+                    op(vec![], self)
                 } else {
                     Err(errs)
                 };
@@ -864,62 +870,134 @@ where
         }
 
         // Now parse the contents.
-        let result = self.comma_nonterminal()?;
-
-        self.expect_char(close)?;
-
-        Ok(result)
+        self.each_comma_nonterminal(|items: Vec<T>, p| {
+            p.expect_char(close)?;
+            op(items, p)
+        })
     }
 
-    /// Parse multiple instances of `T` separated by commas.
+    /// Parse multiple instances of `T` separated by commas, then run
+    /// the continuation with each possible sequence result.
     #[track_caller]
-    pub fn comma_nonterminal<C, T>(&mut self) -> Result<C, Set<ParseError<'t>>>
+    pub fn each_comma_nonterminal<T, R>(
+        &mut self,
+        op: impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
+    ) -> ParseResult<'t, R>
+    where
+        T: CoreParse<L> + Clone,
+        R: Debug + Clone + Eq + 'static,
+    {
+        self.each_comma_nonterminal_accum(vec![], &op)
+    }
+
+    fn each_comma_nonterminal_accum<T, R>(
+        &mut self,
+        acc: Vec<T>,
+        op: &impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
+    ) -> ParseResult<'t, R>
+    where
+        T: CoreParse<L> + Clone,
+        R: Debug + Clone + Eq + 'static,
+    {
+        self.each_opt_nonterminal(|opt_t: Option<T>, p| match opt_t {
+            Some(t) => {
+                let mut new_acc = acc.clone();
+                new_acc.push(t);
+                if p.expect_char(',').is_ok() {
+                    p.each_comma_nonterminal_accum(new_acc, op)
+                } else {
+                    op(new_acc, p)
+                }
+            }
+            None => op(acc.clone(), p),
+        })
+    }
+
+    /// Parse a nonterminal and run a continuation for each successful parse,
+    /// propagating ambiguity. This is the primary way to parse nonterminals
+    /// in variant closures.
+    ///
+    /// For each successful parse of `T`, the continuation `op` is called
+    /// with the parsed value and a forked `ActiveVariant` positioned at
+    /// that parse's text position.
+    /// All results from all continuations are collected and returned.
+    #[track_caller]
+    pub fn each_nonterminal<T, R>(
+        &mut self,
+        op: impl Fn(T, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
+    ) -> ParseResult<'t, R>
     where
         T: CoreParse<L>,
-        C: IntoIterator<Item = T> + FromIterator<T> + Debug,
+        R: Debug + Clone + Eq + 'static,
     {
-        let mut result = vec![];
-        while let Some(e) = self.opt_nonterminal()? {
-            result.push(e);
-
-            if self.expect_char(',').is_err() {
-                break;
-            }
-        }
-        Ok(result.into_iter().collect())
+        self.each_nonterminal_with(T::parse, op)
     }
 
-    /// Consumes a nonterminal from the input after skipping whitespace.
-    /// The nonterminal is defined by `op`, which is some parse function
-    /// that goes from text to a `ParseResult`. The `ParseResult` is assumed
-    /// to contain all the reductions (including the final reduction for
-    /// the nonterminal itself).
-    /// This is rarely used, prefer `nonterminal` when you can.
+    /// Like `each_nonterminal` but with a custom parse function.
     #[track_caller]
-    pub fn nonterminal_with<T>(
+    pub fn each_nonterminal_with<T, R>(
         &mut self,
-        op: impl FnOnce(&'s Scope<L>, &'t str) -> ParseResult<'t, T>,
-    ) -> Result<T, Set<ParseError<'t>>> {
+        parse_op: impl FnOnce(&'s Scope<L>, &'t str) -> ParseResult<'t, T>,
+        cont: impl Fn(T, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
+    ) -> ParseResult<'t, R>
+    where
+        T: Debug + Clone + Eq + 'static,
+        R: Debug + Clone + Eq + 'static,
+    {
         self.skip_whitespace();
 
-        let SuccessfulParse {
-            text,
-            reductions,
-            precedence: _,
+        let successes = left_recursion::recurse(self.current_state(), || {
+            parse_op(self.scope, self.current_text)
+        })?;
+
+        let mut all_successes: Vec<SuccessfulParse<'t, R>> = vec![];
+        let mut all_errors: Set<ParseError<'t>> = set![];
+
+        for success in successes {
+            // Fork the active variant for this parse result
+            let mut forked = self.clone();
+            forked.current_text = success.text;
+
+            // Run the continuation
+            match cont(success.value, &mut forked) {
+                Ok(cont_successes) => {
+                    all_successes.extend(cont_successes);
+                }
+                Err(errs) => {
+                    all_errors.extend(errs);
+                }
+            }
+        }
+
+        if all_successes.is_empty() {
+            if all_errors.is_empty() {
+                // No child parses succeeded at all — this shouldn't normally happen
+                // since we already got successes from the child, but the continuations
+                // all failed. Return the continuation errors.
+                Err(ParseError::at(
+                    self.current_text,
+                    format!(
+                        "{} expected (continuation failed)",
+                        std::any::type_name::<R>()
+                    ),
+                ))
+            } else {
+                Err(all_errors)
+            }
+        } else {
+            Ok(all_successes)
+        }
+    }
+
+    /// Wrap a single value into a `ParseResult` at the current parsing position.
+    /// This is the leaf of an `each_nonterminal` chain — it creates a single
+    /// `SuccessfulParse` capturing the current text position.
+    pub fn ok<T: Debug + Clone + Eq + 'static>(&self, value: T) -> ParseResult<'t, T> {
+        Ok(vec![SuccessfulParse {
+            text: self.current_text,
+            precedence: self.precedence,
             value,
-        } = left_recursion::recurse(self.current_state(), || op(self.scope, self.current_text))?;
-
-        // Adjust our point in the input text
-        self.current_text = text;
-
-        // Some value was produced, so there must have been a reduction
-        assert!(!reductions.is_empty());
-
-        // Accumulate the reductions we have done so far
-        self.reductions.extend(reductions);
-
-        // And return the value
-        Ok(value)
+        }])
     }
 }
 

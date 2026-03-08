@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use formality_core::{Downcast, DowncastTo, Upcast, UpcastFrom};
 // Default language for our crate
-use formality_core::{language::HasKind, term};
+use formality_core::{language::HasKind, parse::CoreParseBinding, term};
 use ptt::grammar::{Binder, BoundVar, ExistentialVar, UniversalVar, Variable};
 use ptt::FormalityLang;
 
@@ -49,7 +49,7 @@ pub enum Ty {
     Apply(Perm, Arc<Ty>),
 
     #[grammar($v0 :: $v1)]
-    Assoc(Arc<Ty>, Id),
+    Assoc(Arc<Ty>, AssocId),
 }
 
 #[term]
@@ -58,7 +58,8 @@ pub enum Perm {
     Variable(Variable),
 }
 
-formality_core::id!(Id);
+formality_core::id!(Id, match_var = false);
+formality_core::id!(AssocId);
 
 formality_core::cast_impl!((BoundVar) <: (Variable) <: (Parameter));
 formality_core::cast_impl!((ExistentialVar) <: (Variable) <: (Parameter));
@@ -88,6 +89,15 @@ impl HasKind<FormalityLang> for Parameter {
             Parameter::Ty(_) => Kind::Ty,
             Parameter::Perm(_) => Kind::Perm,
         }
+    }
+}
+
+impl CoreParseBinding<FormalityLang> for Parameter {
+    fn parse_binding<'t>(
+        scope: &formality_core::parse::Scope<FormalityLang>,
+        text: &'t str,
+    ) -> formality_core::parse::ParseResult<'t, formality_core::parse::Binding<FormalityLang>> {
+        formality_core::parse::default_binding_parse(scope, text)
     }
 }
 
@@ -126,6 +136,9 @@ fn parse_id() {
 #[test]
 fn parse_assoc() {
     let value: Binder<Ty> = ptt::term("<ty T> i32::T");
+    // `T` after `::` parses as an Id (identifier), not a variable,
+    // because Ty's variable-first short-circuit doesn't apply to the
+    // second field of the Assoc variant.
     expect_test::expect![[r#"
         Binder {
             kinds: [

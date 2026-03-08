@@ -4,7 +4,7 @@ use crate::grammar::{Binder, BoundVar, ParameterKind};
 use crate::rust::Term;
 use formality_core::{
     fold::CoreFold,
-    parse::{Binding, CoreParse, ParseResult, Parser, Scope},
+    parse::{ActiveVariant, Binding, CoreParse, ParseResult, Parser, Scope},
     term::CoreTerm,
     visit::CoreVisit,
     DowncastTo, UpcastFrom,
@@ -89,36 +89,42 @@ where
     #[tracing::instrument(level = "trace", ret)]
     fn parse<'t>(scope: &Scope<FormalityLang>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "TraitBinder", |p| {
-            let mut bindings = match p.expect_char('<') {
-                Ok(()) => {
-                    let bindings: Vec<Binding<FormalityLang>> = p.comma_nonterminal()?;
+            let parse_body =
+                |mut bindings: Vec<Binding<FormalityLang>>,
+                 p: &mut ActiveVariant<'_, 't, FormalityLang>| {
+                    // insert the `Self` binding at position 0
+                    let bound_var = BoundVar::fresh(ParameterKind::Ty);
+                    bindings.insert(
+                        0,
+                        Binding {
+                            name: "Self".to_string(),
+                            bound_var,
+                        },
+                    );
+
+                    // parse the contents with those names in scope
+                    let scope1 =
+                        scope.with_bindings(bindings.iter().map(|b| (&b.name, &b.bound_var)));
+                    p.with_scope(scope1, |p| {
+                        p.each_nonterminal(|data: T, p| {
+                            let bound_vars: Vec<BoundVar> =
+                                bindings.iter().map(|b| b.bound_var).collect();
+                            let explicit_binder = Binder::new(bound_vars, data);
+                            p.ok(TraitBinder { explicit_binder })
+                        })
+                    })
+                };
+
+            match p.expect_char('<') {
+                Ok(()) => p.each_comma_nonterminal(|bindings: Vec<Binding<FormalityLang>>, p| {
                     p.expect_char('>')?;
-                    bindings
-                }
+                    parse_body(bindings, p)
+                }),
                 Err(_) => {
                     // If we don't see a `<`, assume there are no add'l bound variables.
-                    vec![]
+                    parse_body(vec![], p)
                 }
-            };
-
-            // insert the `Self` binding at position 0
-            let bound_var = BoundVar::fresh(ParameterKind::Ty);
-            bindings.insert(
-                0,
-                Binding {
-                    name: "Self".to_string(),
-                    bound_var,
-                },
-            );
-
-            // parse the contents with those names in scope
-            let scope1 = scope.with_bindings(bindings.iter().map(|b| (&b.name, &b.bound_var)));
-            let data: T = p.with_scope(scope1, |p| p.nonterminal())?;
-
-            let bound_vars: Vec<BoundVar> = bindings.iter().map(|b| b.bound_var).collect();
-            let explicit_binder = Binder::new(bound_vars, data);
-
-            Ok(TraitBinder { explicit_binder })
+            }
         })
     }
 }

@@ -10,7 +10,7 @@ fn decls() -> Decls {
         program: Decls::program_from_items(vec![
             term("trait Foo where {}"),
             term("impl Foo for u32 {}"),
-            term("struct X<ty T> where T : Foo {}"),
+            term("struct X<T> where T : Foo {}"),
         ]),
         ..Decls::empty()
     }

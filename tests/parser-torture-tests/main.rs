@@ -1,7 +1,9 @@
 mod ambiguity;
+mod ambiguity_helpers;
 mod commit_points;
 mod grammar;
 mod left_associative;
+mod left_recursion_seed;
 mod none_associative;
 mod path;
 mod right_associative;
@@ -19,6 +21,14 @@ formality_core::declare_language! {
             "let",
             "in",
             "integer",
+            "opt",
+            "many",
+            "comma",
+            "delim",
+            "end",
+            "start",
+            "then",
+            "list",
         ];
     }
 }
@@ -29,7 +39,10 @@ where
     T: CoreParse<FormalityLang>,
 {
     match T::parse(&Default::default(), text) {
-        Ok(parse) => {
+        Ok(mut parses) => {
+            // Pick the longest parse (shortest remaining text)
+            parses.sort_by_key(|s| s.text().len());
+            let parse = parses.into_iter().next().unwrap();
             let (value, remainder) = parse.finish();
             assert!(
                 !remainder.is_empty(),

@@ -278,7 +278,7 @@ where
                     }
 
                     // Return the previous value.
-                    return ControlFlow::Break(Ok(previous_result));
+                    return ControlFlow::Break(Ok(vec![previous_result]));
 
                     // [1] UNSAFE: We need to justify that `entry.value` will be valid.
                     //
@@ -383,59 +383,61 @@ where
     // tokens, so that arm fails. In our loop below, we search back through the result and find that `2` has already
     // occurred, so we take `2 + 3` as the best overall parse.
     //
-    // It's a bit subtle why this is ok. It's relying on some properties of grammars and parsing.
-    // To be more obviously correct we would want to return sets of successful results.
-    // In particular, the assumption is that `op` is always returning a best result (if any) and panicking on
-    // ambiguity.
+    // Now we return sets of successful results rather than a single best result.
+    // The fixed-point iteration accumulates all successful parses across rounds,
+    // using the best (longest) parse as the seed for left-recursion reuse.
 
     // First round parse is a bit special, because if we get an error here, we can just return immediately,
     // as there is no base case to build from.
-    let mut values = vec![];
-    match op(min_precedence_level) {
-        Ok(v) => values.push(v),
+    let mut all_values: Vec<SuccessfulParse<'t, T>> = match op(min_precedence_level) {
+        Ok(v) => v,
         Err(errs) => return Err(errs),
     };
 
     // Check whether there was recursion to begin with.
     let observed = with_top!(|top| top.observed);
     if !observed {
-        return Ok(values.pop().unwrap()); // If not, we are done.
+        return Ok(all_values); // If not, we are done.
     }
 
     // OK, this is the interesting case. We may be able to get a better parse.
     loop {
         tracing::trace!(
-            "reparsing of left-recursive grammar: values = {:#?}",
-            values
+            "reparsing of left-recursive grammar: all_values = {:#?}",
+            all_values
         );
 
-        // If we have an intermediate value, update the stack entry to point at.
-        // This takes a borrow of `value` but converts it into a raw pointer.
+        // Pick the "best" (longest consumed) parse as the seed for left-recursion reuse.
+        // This takes a borrow of the value and converts it into a raw pointer.
         // This borrow lasts until after `op` is complete.
-        let best_value = values.last().unwrap();
+        let best_value = all_values.iter().min_by_key(|s| s.text.len()).unwrap();
         with_top!(|top| {
             top.value = Some(erase_type(best_value));
         });
 
         // Invoke the operation. As noted above, if we get a failed parse NOW,
         // we know we already found the best result, so we can just use it.
-        let Ok(value1) = op(min_precedence_level) else {
-            return Ok(values.pop().unwrap()); // If not, we are done.
+        let Ok(new_values) = op(min_precedence_level) else {
+            return Ok(all_values); // If not, we are done.
         };
 
-        tracing::trace!("left-recursive grammar yielded: value1 = {:?}", value1);
+        tracing::trace!(
+            "left-recursive grammar yielded: new_values = {:?}",
+            new_values
+        );
 
-        // If we got back on the previous results we saw, then we're entering
-        // a loop and we can stop and take the best one (which should also be the longest).
-        // In our example, this occurs when we parse `6` -- the first result
-        // succeeds, but we have to try again to see if there's a more complex
-        // expression that can be produced (there isn't).
-        if values.iter().any(|v| *v == value1) {
-            return Ok(values.pop().unwrap()); // If not, we are done.
+        // If all new results already exist in our accumulated set, we've reached
+        // a fixed point and can stop.
+        if new_values.iter().all(|nv| all_values.contains(nv)) {
+            return Ok(all_values); // Fixed point reached.
         }
 
-        // Otherwise, we have to try again.
-        values.push(value1);
+        // Otherwise, merge new values and try again.
+        for nv in new_values {
+            if !all_values.contains(&nv) {
+                all_values.push(nv);
+            }
+        }
     }
 }
 

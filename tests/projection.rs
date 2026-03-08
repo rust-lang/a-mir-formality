@@ -6,11 +6,11 @@ const NORMALIZE_BASIC: &str = "[
             type Item : [];
         }
 
-        struct Vec<ty T> {}
+        struct Vec<T> {}
 
         struct Foo {}
 
-        impl<ty T> Iterator for Vec<T> {
+        impl<T> Iterator for Vec<T> {
             type Item = T;
         }
     }
@@ -20,38 +20,38 @@ const NORMALIZE_BASIC: &str = "[
 fn normalize_basic() {
     test_where_clause(
         NORMALIZE_BASIC,
-        "forall<ty T> exists<ty U> {} => { <Vec<T> as Iterator>::Item = U }",
+        "forall<T> exists<U> {} => { <Vec<T> as Iterator>::Item = U }",
     )
     .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [!ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {?ty_2 => <Vec<!ty_1> as Iterator>::Item} }, Constraints { env: Env { variables: [!ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {?ty_2 => !ty_1} }}"]);
 
     test_where_clause(
         NORMALIZE_BASIC,
-        "forall<ty T> {} => { Iterator(Vec<T>), <Vec<T> as Iterator>::Item = T }",
+        "forall<T> {} => { Iterator(Vec<T>), <Vec<T> as Iterator>::Item = T }",
     )
     .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }}"]);
 
     test_where_clause(
         NORMALIZE_BASIC,
-        "forall<ty T> { Iterator(T), <T as Iterator>::Item = Foo } => { <T as Iterator>::Item = Foo }",
+        "forall<T> { Iterator(T), <T as Iterator>::Item = Foo } => { <T as Iterator>::Item = Foo }",
     ).assert_ok(
         expect_test::expect!["{Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }}"]
     );
 
     test_where_clause(
         NORMALIZE_BASIC,
-        "forall<ty T> exists<ty U> { Iterator(T) } => { <T as Iterator>::Item = U }",
+        "forall<T> exists<U> { Iterator(T) } => { <T as Iterator>::Item = U }",
     )
     .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [!ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {?ty_2 => <!ty_1 as Iterator>::Item} }}"]);
 
     test_where_clause(
         NORMALIZE_BASIC,
-        "forall<ty T> { Iterator(T) } => { <T as Iterator>::Item = <T as Iterator>::Item }",
+        "forall<T> { Iterator(T) } => { <T as Iterator>::Item = <T as Iterator>::Item }",
     )
     .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }}"]);
 
     test_where_clause(
         NORMALIZE_BASIC,
-        "forall<ty T> exists<ty U> { Iterator(T) } => { <T as Iterator>::Item = <U as Iterator>::Item }",
+        "forall<T> exists<U> { Iterator(T) } => { <T as Iterator>::Item = <U as Iterator>::Item }",
     ).assert_ok(
     expect_test::expect!["{Constraints { env: Env { variables: [!ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {?ty_2 => !ty_1} }, Constraints { env: Env { variables: [!ty_1, ?ty_3, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {?ty_2 => Vec<<!ty_1 as Iterator>::Item>, ?ty_3 => <!ty_1 as Iterator>::Item} }}"]);
 }
@@ -66,15 +66,15 @@ const NORMALIZE_INTO_ITERATOR: &str = "[
             type Item : [];
         }
 
-        struct Vec<ty T> {}
+        struct Vec<T> {}
 
         struct Foo {}
 
-        impl<ty T> IntoIterator for Vec<T> {
+        impl<T> IntoIterator for Vec<T> {
             type Item = T;
         }
 
-        impl<ty T> IntoIterator for T where  T: Iterator  {
+        impl<T> IntoIterator for T where  T: Iterator  {
             type Item = <T as Iterator>::Item;
         }
     }
@@ -84,7 +84,7 @@ const NORMALIZE_INTO_ITERATOR: &str = "[
 fn normalize_into_iterator() {
     test_where_clause(
         NORMALIZE_INTO_ITERATOR,
-        "forall<ty T> exists<ty U> {} => { <Vec<T> as IntoIterator>::Item = U }",
+        "forall<T> exists<U> {} => { <Vec<T> as IntoIterator>::Item = U }",
     )
     .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [!ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {?ty_2 => <Vec<!ty_1> as IntoIterator>::Item} }, Constraints { env: Env { variables: [!ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {?ty_2 => !ty_1} }}"]);
 }
@@ -94,8 +94,8 @@ const PROJECTION_EQUALITY: &str = "[
         trait Trait1<> {
             type Type : [];
         }
-        trait Trait2<ty T> {}
-        impl<ty T, ty U> Trait2<T> for U where  U: Trait1<>, <S as Trait1>::Type => T  {}
+        trait Trait2<T> {}
+        impl<T, U> Trait2<T> for U where  U: Trait1<>, <S as Trait1>::Type => T  {}
         struct S {}
         impl Trait1<> for S {
             type Type = u32;
@@ -107,10 +107,10 @@ const PROJECTION_EQUALITY: &str = "[
 fn projection_equality() {
     test_where_clause(
         PROJECTION_EQUALITY,
-        "exists<ty U> {} => { Trait1(S), <S as Trait1<>>::Type = U }",
+        "exists<U> {} => { Trait1(S), <S as Trait1<>>::Type = U }",
     )
     .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [?ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {?ty_1 => u32} }, Constraints { env: Env { variables: [?ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {?ty_1 => <S as Trait1>::Type} }}"]);
 
-    test_where_clause(PROJECTION_EQUALITY, "exists<ty U> {} => { Trait2(S, U) }")
+    test_where_clause(PROJECTION_EQUALITY, "exists<U> {} => { Trait2(S, U) }")
         .assert_ok(expect_test::expect!["{Constraints { env: Env { variables: [?ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {?ty_1 => u32} }, Constraints { env: Env { variables: [?ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {?ty_1 => <S as Trait1>::Type} }}"]);
 }

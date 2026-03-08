@@ -8,11 +8,11 @@ fn dependent_where_clause() {
 
                 trait Trait2 {}
 
-                struct S1<ty T> where T: Trait1 {
+                struct S1<T> where T: Trait1 {
                     dummy: T,
                 }
 
-                struct S2<ty T> where T: Trait1, S1<T> : Trait2 {
+                struct S2<T> where T: Trait1, S1<T> : Trait2 {
                     dummy: T,
                 }
             }
@@ -29,11 +29,11 @@ fn missing_dependent_where_clause() {
 
                 trait Trait2 {}
 
-                struct S1<ty T> where T: Trait1 {
+                struct S1<T> where T: Trait1 {
                     dummy: T,
                 }
 
-                struct S2<ty T> where S1<T> : Trait2 {
+                struct S2<T> where S1<T> : Trait2 {
                     dummy: T,
                 }
             }
@@ -53,11 +53,11 @@ fn lifetime_param() {
 
         [
             crate foo {
-                trait Trait1<lt a> {}
+                trait Trait1<'a> {}
 
                 struct S1 {}
 
-                struct S2<lt a> where S1: Trait1<a> {}
+                struct S2<'a> where S1: Trait1<'a> {}
             }
         ]
     )
@@ -69,7 +69,7 @@ fn static_lifetime_param() {
 
         [
             crate foo {
-                trait Trait1<lt a> {}
+                trait Trait1<'a> {}
 
                 struct S1 {}
 
@@ -109,7 +109,7 @@ fn type_with_wrong_number_of_parameters() {
 
                 struct S1 {}
 
-                struct S2<ty T> where S1<T> : Trait1 {
+                struct S2<T> where S1<T> : Trait1 {
                     dummy: T,
                 }
             }

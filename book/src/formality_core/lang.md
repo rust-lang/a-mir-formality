@@ -4,7 +4,7 @@ The very first thing you do to define your own language is to use the `formality
 You use it like so:
 
 ```rust
-{{#include ../../../crates/formality-types/src/lib.rs:declare_rust_language}}
+{{#include ../../../crates/formality-rust/src/lib.rs:declare_rust_language}}
 ```
 
 The `declare_language` macro will create a module with the name you specify (here, `rust`).
@@ -28,13 +28,7 @@ Other parts of the formality system (e.g., autoderives and the like)
 will need to know the current language you are defining,
 and they expect to find it at `crate::FormalityLang`. 
 Best practice is to add a `use` at the top of your crate defining your language.
-For example, the `formality_types` crate has:
-
-```rust
-{{#include ../../../crates/formality-types/src/lib.rs:use_rust_language}}
-```
-
-and other crates like `formality_rust` have:
+For example, the `formality_rust` crate has:
 
 ```rust
 {{#include ../../../crates/formality-rust/src/lib.rs:use_rust_language}}

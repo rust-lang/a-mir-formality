@@ -336,8 +336,8 @@ pub struct TraitDecl {
 
 impl TraitDecl {
     /// Return the set of "trait invariants", i.e., things we know to be true
-    /// because of the trait where-clauses. For example, given `trait Ord<ty Self> where {PartialOrd(Self)}`,
-    /// this would return the set `{trait_invariant(<ty Self> Ord(Self) => PartialOrd(Self)}`
+    /// because of the trait where-clauses. For example, given `trait Ord<Self> where {PartialOrd(Self)}`,
+    /// this would return the set `{trait_invariant(<Self> Ord(Self) => PartialOrd(Self)}`
     pub fn trait_invariants(&self) -> Set<TraitInvariant> {
         let (variables, TraitDeclBoundData { where_clause }) = self.binder.open();
         let self_var: Parameter = variables[0].upcast();
