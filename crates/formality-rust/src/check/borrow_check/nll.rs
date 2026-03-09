@@ -132,9 +132,8 @@ enum AccessKind {
 }
 
 /// The borrow checker's job is to pick up where the type-checker left off:
-/// Given the `TypeckEnv`, and a (populated) list of `pending_outlives`
-/// constraints, it attempts to find values for the existential lifetime variables (inference variables)
-/// that satisfy those pending-outlives constraints and which meet the borrow checker's rules.
+/// Given the `TypeckEnv`, it attempts to find values for the existential lifetime variables (inference variables)
+/// that satisfy the outlives constraints and which meet the borrow checker's rules.
 pub fn borrow_check(env: &TypeckEnv, fn_assumptions: &Wcs) -> Fallible<ProofTree> {
     let mut proof_tree = ProofTree::new(format!("borrow_check"), None, vec![]);
 

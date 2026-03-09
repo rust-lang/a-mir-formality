@@ -85,24 +85,6 @@ impl Check<'_> {
     }
 }
 
-judgment_fn! {
-    fn check_blocks(
-        env: TypeckEnv,
-        outlives: Set<PendingOutlives>,
-        fn_assumptions: Wcs,
-        blocks: Vec<minirust::BasicBlock>,
-    ) => (TypeckEnv, Set<PendingOutlives>) {
-        debug(blocks, fn_assumptions, env, outlives)
-
-        (
-            // Check all blocks
-            (for_all(block in blocks) with(env, outlives)
-                (check_block(env, outlives, fn_assumptions, block) => (env, outlives)))
-            --- ("blocks")
-            (check_blocks(env, outlives, fn_assumptions, blocks) => (env, outlives))
-        )
-    }
-}
 
 judgment_fn! {
     fn check_block(

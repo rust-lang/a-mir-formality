@@ -71,7 +71,7 @@ id!(FieldId);
 ///     * There exists lifetimes `r0`, `r1`
 ///         * Such that the body is well-typed
 #[term(minirust {
-    // then declare the body
+    // the body
     exists $binder
 })]
 pub struct Body {
