@@ -347,7 +347,7 @@ judgment_fn! {
                 .collect())
             (let places_live = places_live_before_basic_blocks(env, successors))
             (borrow_check_value_expression(env, assumptions, loans_live, outlives, switch_value, places_live) => (switch_ty, outlives, loans_live))
-            (env.prove_judgment(outlives, Location, assumptions, switch_ty, ty_is_int) => outlives)
+            (env.prove_judgment(outlives.clone(), Location, assumptions, switch_ty, ty_is_int) => outlives)
             (for_all(successor in successors)
                 (borrow_check_block(stack, env, assumptions, loans_live, outlives, successor) => ()))
             --- ("switch")

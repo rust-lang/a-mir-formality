@@ -263,9 +263,9 @@ fn undeclared_universal_region_relationship_no_return() {
     crate::assert_err!(
         [
             crate Foo {
-                fn foo<lt a, lt b>(v1: &a u32) -> &b u32 = minirust {
-                    exists<lt r0> {
-                        let v2: &r0 u32;
+                fn foo<'a, 'b>(v1: &'a u32) -> &'b u32 = minirust {
+                    exists<'r0> {
+                        let v2: &'r0 u32;
 
                         bb0: {
                             statements {

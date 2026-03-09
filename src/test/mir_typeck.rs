@@ -446,7 +446,7 @@ fn test_invalid_next_bbid_for_call_terminator() {
         []
         expect_test::expect![[r#"
             the rule "call" at (wf.rs) failed because
-              condition evaluted to false: `next_block.map(|b| env.basic_block(&b).is_ok()).unwrap_or(true)`"#]]
+              condition evaluted to false: `next_block.as_ref().map(|b| env.basic_block(&b).is_ok()).unwrap_or(true)`"#]]
     )
 }
 
