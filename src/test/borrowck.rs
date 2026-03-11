@@ -552,3 +552,120 @@ fn cfg_union_approx_cause_false_error() {
         ]
     )
 }
+
+/// Fail test for loan_cannot_outlive's "lifetime" rule.
+/// This is equivalent to:
+/// ```
+/// fn foo() -> u32 {
+///     let mut x: u32 = 22;
+///     let p = &x;
+///     let q = p;
+///     x += 1;
+///     println!("{q}");
+///     return 0;
+/// }
+/// ```
+#[formality_core::test]
+fn loan_cannot_outlive_lifetime_fail() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo() -> u32 = minirust {
+
+                    exists<'r0, 'r1> {
+                        let x: u32;
+                        let p: &'r0 u32;
+                        let q: &'r1 u32;
+
+
+                        bb0: {
+                            statements {
+                                local(x) = constant(22: u32);
+                                local(p) = &'r0 local(x);
+                                local(q) = load(local(p));
+                                local(x) = constant(23: u32);
+                                // we should pass if we remove the line below
+                                place_mention(local(q));
+                            }
+                            goto bb1;
+                        }
+
+
+                        bb1: {
+                            statements {
+                                // not important, just return 0
+                                local(_return) = constant(0: u32);
+                            }
+                            return;
+                        }
+                    }
+                };
+            }
+        ]
+
+        [
+        ]
+
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluted to false: `place_disjoint_from_place(&loan.place.to_place_expression(), &access.place)`
+                &loan.place.to_place_expression() = local(x)
+                &access.place = local(x)
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2}
+                &lifetime.upcast() = ?lt_2
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionKind::Deref(place_loaned_ref)` did not match value `local(x)`"#]]
+    )
+}
+
+/// Pass test for loan_cannot_outlive's "lifetime" rule.
+/// This is equivalent to:
+/// ```
+/// fn foo() -> u32 {
+///     let mut x: u32 = 22;
+///     let p = &x;
+///     let q = p;
+///     x += 1;
+///     return 0;
+/// }
+/// ```
+#[formality_core::test]
+fn loan_cannot_outlive_lifetime_pass() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo() -> u32 = minirust {
+
+                    exists<'r0, 'r1> {
+                        let x: u32;
+                        let p: &'r0 u32;
+                        let q: &'r1 u32;
+
+
+                        bb0: {
+                            statements {
+                                local(x) = constant(22: u32);
+                                local(p) = &'r0 local(x);
+                                local(q) = load(local(p));
+                                local(x) = constant(23: u32);
+                            }
+                            goto bb1;
+                        }
+
+
+                        bb1: {
+                            statements {
+                                local(_return) = constant(0: u32);
+                            }
+                            return;
+                        }
+                    }
+                };
+            }
+        ]
+    )
+}
