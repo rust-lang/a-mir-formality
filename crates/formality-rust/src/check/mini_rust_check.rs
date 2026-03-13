@@ -85,7 +85,6 @@ impl Check<'_> {
     }
 }
 
-
 judgment_fn! {
     fn check_block(
         env: TypeckEnv,
