@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
+use crate::check::borrow_check::nll::verify_universal_outlives;
 use crate::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
 use crate::grammar::minirust::ValueExpression::{Constant, Fn, Load, Ref, Struct};
 use crate::grammar::minirust::{
@@ -8,8 +9,8 @@ use crate::grammar::minirust::{
 };
 use crate::grammar::minirust::{BodyBound, PlaceExpression::*};
 use crate::grammar::{
-    AdtId, Binder, CrateId, FnId, Parameter, Relation, RigidName, RigidTy, Ty, TyData, VariantId,
-    Wcs,
+    AdtId, Binder, CrateId, FnId, InputArg, Parameter, Relation, RigidName, RigidTy, Ty, TyData,
+    VariantId, Wcs,
 };
 use crate::grammar::{Fn as FnDecl, Program};
 use crate::prove::prove::{
@@ -30,7 +31,7 @@ impl Check<'_> {
         output_ty: impl Upcast<Ty>,
         fn_assumptions: &Wcs,
         body: minirust::Body,
-        declared_input_tys: Vec<Ty>,
+        input_args: Vec<InputArg>,
         crate_id: &CrateId,
     ) -> Fallible<ProofTree> {
         // ----------------------------------------------------------------------
@@ -39,37 +40,15 @@ impl Check<'_> {
         let output_ty: Ty = output_ty.upcast();
         let mut proof_tree = ProofTree::new(format!("check_body"), None, vec![]);
 
-        //  Check that all the types declared for each local variable are well-formed
-        for lv in &body.params {
-            proof_tree.children.push(self.prove_goal(
-                &env,
-                &fn_assumptions,
-                lv.ty.well_formed(),
-            )?);
-        }
+        // The return slot is always named `_return` with its type from the signature.
+        let ret_id = LocalId::new("_return");
 
-        let parameters: Map<LocalId, Ty> = body
-            .params
+        // Build parameter map from input args + the return slot
+        let parameters: Map<LocalId, Ty> = input_args
             .iter()
-            .map(|lv| (lv.id.clone(), lv.ty.clone()))
+            .map(|arg| (arg.id.clone(), arg.ty.clone()))
+            .chain(std::iter::once((ret_id.clone(), output_ty.clone())))
             .collect();
-
-        // Check whether the local_id in function arguments are declared.
-        for function_arg_id in &body.args {
-            if !parameters.contains_key(function_arg_id) {
-                bail!("Function argument {:?} is not declared, consider declaring them with `let {:?}: type;`", function_arg_id, function_arg_id);
-            }
-        }
-        let Some(body_ret_ty) = parameters.get(&body.ret) else {
-            bail!("return variable {:?} is not declared, consider declaring them with `let {:?}: type;`", body.ret, body.ret);
-        };
-
-        // Check if the actual return type is the subtype of the declared return type.
-        proof_tree.children.push(self.prove_goal(
-            &env,
-            fn_assumptions,
-            Relation::sub(body_ret_ty, &output_ty),
-        )?);
 
         // ----------------------------------------------------------------------
         // Type check the fn body
@@ -86,58 +65,23 @@ impl Check<'_> {
             .chain(locals.iter().map(|lv| (lv.id.clone(), lv.ty.clone())))
             .collect();
 
-        // Check whether the number of declared function parameters matches the number of arguments provided.
-        if declared_input_tys.len() != body.args.len() {
-            bail!(
-                "Function argument number mismatch: expected {} arguments, but found {}",
-                declared_input_tys.len(),
-                body.args.len()
-            );
-        }
-
         let env = TypeckEnv {
             program: Arc::new(self.program.clone()),
             env: env.clone(),
             output_ty,
             local_variables,
             blocks: blocks.clone(),
-            ret_id: body.ret,
-            declared_input_tys,
+            ret_id,
+            input_args,
             crate_id: crate_id.clone(),
-            fn_args: body.args.clone(),
             decls: self.decls.clone(),
         };
 
-        // Check that basic blocks are well-typed
-        let ((env, pending_outlives), blocks_pt) =
-            check_blocks(env.clone(), (), fn_assumptions.clone(), (*blocks).clone())
-                .into_singleton()?;
-        proof_tree.children.push(blocks_pt);
-
         proof_tree
             .children
-            .push(nll::borrow_check(&env, &fn_assumptions, &pending_outlives)?);
+            .push(nll::borrow_check(&env, &fn_assumptions)?);
 
         Ok(proof_tree)
-    }
-}
-
-judgment_fn! {
-    fn check_blocks(
-        env: TypeckEnv,
-        outlives: Set<PendingOutlives>,
-        fn_assumptions: Wcs,
-        blocks: Vec<minirust::BasicBlock>,
-    ) => (TypeckEnv, Set<PendingOutlives>) {
-        debug(blocks, fn_assumptions, env, outlives)
-
-        (
-            // Check all blocks
-            (for_all(block in blocks) with(env, outlives)
-                (check_block(env, outlives, fn_assumptions, block) => (env, outlives)))
-            --- ("blocks")
-            (check_blocks(env, outlives, fn_assumptions, blocks) => (env, outlives))
-        )
     }
 }
 
@@ -195,7 +139,7 @@ judgment_fn! {
         (
             (if let Some((local_id, _)) = env.find_local_id(local_id))
             (if *local_id != env.ret_id)
-            (if !env.fn_args.iter().any(|fn_arg| *local_id == *fn_arg))
+            (if !env.input_args.iter().any(|arg| *local_id == arg.id))
             --- ("storage-dead")
             (check_statement(env, outlives, _fn_assumptions, minirust::Statement::StorageDead(local_id)) => (env, outlives))
         )
@@ -344,11 +288,13 @@ judgment_fn! {
 
             // Instantiate the function signature universally (returns new env)
             (let (fn_bound_data, env) = env.instantiate_universally(&fn_decl.binder))
+            (let callee_declared_input_tys: Vec<Ty> = fn_bound_data.input_args.iter().map(|a| a.ty.clone()).collect())
+
             // Check argument count matches
-            (if fn_bound_data.input_tys.len() == actual_arguments.len())
+            (if callee_declared_input_tys.len() == actual_arguments.len())
 
             // Check each argument and subtyping
-            (for_all(arg_pair in fn_bound_data.input_tys.iter().zip(actual_arguments)) with(outlives)
+            (for_all(arg_pair in callee_declared_input_tys.iter().zip(actual_arguments)) with(outlives)
                 (let (declared_ty, actual_argument) = arg_pair)
                 (check_argument_expression(env, outlives, fn_assumptions, &actual_argument) => (actual_ty, _env, outlives))
                 (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(actual_ty, declared_ty)) => outlives))
@@ -475,16 +421,13 @@ pub struct TypeckEnv {
     /// local_id of return place,
     pub ret_id: LocalId,
 
-    /// All declared argument type of current function.
-    pub declared_input_tys: Vec<Ty>,
+    /// The input arguments (name + type) of the current function.
+    pub input_args: Vec<InputArg>,
 
     /// The id of the crate where this function resides.
     /// We need this to access information about other functions
     /// declared in the current crate.
     pub crate_id: CrateId,
-
-    /// LocalId of function argument.
-    pub fn_args: Vec<LocalId>,
 
     pub decls: Decls,
 }
@@ -546,7 +489,7 @@ impl TypeckEnv {
     /// that this version can accept existential variable, which is needed for handling lifetime.
     /// In the compiler, we insert existential variables for all
     /// lifetimes that appear in the MIR body, and I expect we will do the same here.
-    fn prove_judgment<G>(
+    pub(crate) fn prove_judgment<G>(
         &self,
         outlives: Set<PendingOutlives>,
         location: Location,
@@ -671,6 +614,17 @@ impl TypeckEnv {
         // Accumulate the new constraints onto the input set
         let (new_outlives, proof_tree) = pending_outlives_minimal;
         let combined: Set<PendingOutlives> = outlives.union(&new_outlives).cloned().collect();
+
+        // Verify that the accumulated outlives constraints between universal lifetime
+        // variables are justified by the function's where-clause assumptions. This check
+        // runs every time outlives may change, so unsound relationships are caught
+        // immediately rather than only at return terminators.
+        if let Err(e) =
+            verify_universal_outlives(self.clone(), assumptions, combined.clone()).check_proven()
+        {
+            return ProvenSet::from(*e);
+        }
+
         ProvenSet::singleton((combined, proof_tree))
     }
 
@@ -727,7 +681,7 @@ impl TypeckEnv {
 }
 
 judgment_fn! {
-    fn ty_is_int(
+    pub(crate) fn ty_is_int(
         _decls: Decls,
         env: Env,
         assumptions: Wcs,

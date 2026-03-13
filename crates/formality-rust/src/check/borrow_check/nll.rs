@@ -1,3 +1,4 @@
+use crate::check::mini_rust_check::ty_is_int;
 use crate::grammar::minirust::{
     ArgumentExpression, BasicBlock, BbId, FieldProjection, LocalId, PlaceExpression, Statement,
     Terminator, ValueExpression,
@@ -131,21 +132,10 @@ enum AccessKind {
 }
 
 /// The borrow checker's job is to pick up where the type-checker left off:
-/// Given the `TypeckEnv`, and a (populated) list of `pending_outlives`
-/// constraints, it attempts to find values for the existential lifetime variables (inference variables)
-/// that satisfy those pending-outlives constraints and which meet the borrow checker's rules.
-pub fn borrow_check(
-    env: &TypeckEnv,
-    fn_assumptions: &Wcs,
-    pending_outlives: &Set<PendingOutlives>,
-) -> Fallible<ProofTree> {
+/// Given the `TypeckEnv`, it attempts to find values for the existential lifetime variables (inference variables)
+/// that satisfy the outlives constraints and which meet the borrow checker's rules.
+pub fn borrow_check(env: &TypeckEnv, fn_assumptions: &Wcs) -> Fallible<ProofTree> {
     let mut proof_tree = ProofTree::new(format!("borrow_check"), None, vec![]);
-
-    // Verify that all pending outlives between universal lifetime variables
-    // can be proven from the fn_assumptions.
-    proof_tree
-        .children
-        .push(verify_universal_outlives(env, fn_assumptions, pending_outlives).check_proven()?);
 
     // Start the check from the entry block.
     //
@@ -158,15 +148,8 @@ pub fn borrow_check(
     let stack: Vec<StackEntry> = vec![];
     let loans_live: Set<Loan> = set![];
     proof_tree.children.push(
-        borrow_check_block(
-            stack,
-            env,
-            fn_assumptions,
-            loans_live,
-            pending_outlives.clone(),
-            &start_bb.id,
-        )
-        .check_proven()?,
+        borrow_check_block(stack, env, fn_assumptions, loans_live, (), &start_bb.id)
+            .check_proven()?,
     );
     Ok(proof_tree)
 }
@@ -174,7 +157,7 @@ pub fn borrow_check(
 judgment_fn! {
     /// Verify that all pending outlives constraints between universal lifetime variables
     /// can be proven from the function's where-clause assumptions.
-    fn verify_universal_outlives(
+    pub(crate) fn verify_universal_outlives(
         env: TypeckEnv,
         fn_assumptions: Wcs,
         outlives: Set<PendingOutlives>,
@@ -362,7 +345,8 @@ judgment_fn! {
                 .cloned()
                 .collect())
             (let places_live = places_live_before_basic_blocks(env, successors))
-            (borrow_check_value_expression(env, assumptions, loans_live, outlives, switch_value, places_live) => (_switch_ty, outlives, loans_live))
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, switch_value, places_live) => (switch_ty, outlives, loans_live))
+            (env.prove_judgment(outlives.clone(), Location, assumptions, switch_ty, ty_is_int) => outlives)
             (for_all(successor in successors)
                 (borrow_check_block(stack, env, assumptions, loans_live, outlives, successor) => ()))
             --- ("switch")
@@ -396,15 +380,17 @@ judgment_fn! {
 
             // Instantiate the function signature universally (returns new env)
             (let (fn_bound_data, env) = env.instantiate_universally(&fn_decl.binder)) // FIXME: should be existential
+            (let callee_declared_input_tys: Vec<Ty> = fn_bound_data.input_args.iter().map(|a| a.ty.clone()).collect())
+
             // Check argument count matches
-            (if fn_bound_data.input_tys.len() == arguments.len())
+            (if callee_declared_input_tys.len() == arguments.len())
 
             (borrow_check_argument_expressions(
                 env,
                 assumptions,
                 loans_live,
                 outlives,
-                &fn_bound_data.input_tys,
+                &callee_declared_input_tys,
                 arguments,
                 Assignment(ret).live_before(env, places_live),
             ) => (outlives, loans_live))
@@ -441,7 +427,7 @@ judgment_fn! {
             // FIXME(ask T-opsem): Is there any flow-sensitive state here?
             (if let Some(_) = env.find_local_id(var)) // local variable `var` is declared
             (if *var != env.ret_id)  // you cannot make the return slot storage dead
-            (if let None = env.fn_args.iter().find(|fn_arg| *var == **fn_arg))  // you cannot make a parameter storage dead
+            (if let None = env.input_args.iter().find(|arg| *var == arg.id))  // you cannot make a parameter storage dead
             (access_permitted_by_loans(env, assumptions, loans_live, outlives, Access::new(AccessKind::Write, var), places_live) => ())
             --- ("storage-dead")
             (borrow_check_statement(env, assumptions, loans_live, outlives, Statement::StorageDead(var), places_live) => (outlives, loans_live))
