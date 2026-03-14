@@ -41,3 +41,10 @@ pub mod prove;
 mod test;
 mod trait_binder;
 pub mod types;
+
+#[macro_export]
+macro_rules! parse_term {
+    ($($term:tt)*) => {
+        $crate::rust::term(::core::stringify!($($term)*))
+    };
+}
