@@ -1,3 +1,5 @@
+use crate::grammar::PtrKind;
+
 use super::{AliasName, AliasTy, AssociatedTyName, Parameter, RefKind, RigidName, RigidTy};
 use std::fmt::Debug;
 
@@ -22,6 +24,12 @@ impl Debug for RigidTy {
             }
             RigidName::Ref(RefKind::Mut) if parameters.len() == 2 => {
                 write!(f, "&mut {:?} {:?}", parameters[0], parameters[1])
+            }
+            RigidName::Raw(PtrKind::Const) if parameters.len() == 1 => {
+                write!(f, "*const {:?}", parameters[0])
+            }
+            RigidName::Raw(PtrKind::Mut) if parameters.len() == 1 => {
+                write!(f, "*mut {:?}", parameters[0])
             }
             RigidName::Tuple(arity) if parameters.len() == *arity => {
                 if *arity != 0 {

@@ -186,7 +186,7 @@ impl ExprBuilder<'_> {
                         size: libspecr::Size::from_bytes_const(size),
                     }))
                 }
-                RigidName::Ref(ref_kind) => unimplemented!("refs and pointers"),
+                RigidName::Ref(_) | RigidName::Raw(_) => unimplemented!("refs and pointers"),
                 RigidName::Tuple(_) => unimplemented!("tuples"),
                 RigidName::FnPtr(_) => unimplemented!("fnptrs"),
                 RigidName::FnDef(_) => unimplemented!("fndefs"),

@@ -6,7 +6,7 @@ use formality_core::parse::{
 use formality_core::seq;
 use formality_core::Upcast;
 
-use crate::grammar::{AdtId, AssociatedItemId, RefKind, RigidName, TraitId};
+use crate::grammar::{AdtId, AssociatedItemId, PtrKind, RefKind, RigidName, TraitId};
 
 use super::{AliasTy, AssociatedTyName, Lt, Parameter, RigidTy, ScalarId, Ty};
 
@@ -59,6 +59,28 @@ impl CoreParse<Rust> for RigidTy {
                             name: RigidName::Ref(RefKind::Mut),
                             parameters: seq![lt.clone().upcast(), ty.upcast()],
                         })
+                    })
+                })
+            });
+
+            parser.parse_variant("RawConst", Precedence::default(), |p| {
+                p.expect_char('*')?;
+                p.expect_keyword("const")?;
+                p.each_nonterminal(|ty: Ty, p| {
+                    p.ok(RigidTy {
+                        name: RigidName::Raw(PtrKind::Const),
+                        parameters: seq![ty.upcast()],
+                    })
+                })
+            });
+
+            parser.parse_variant("RawMut", Precedence::default(), |p| {
+                p.expect_char('*')?;
+                p.expect_keyword("mut")?;
+                p.each_nonterminal(|ty: Ty, p| {
+                    p.ok(RigidTy {
+                        name: RigidName::Raw(PtrKind::Mut),
+                        parameters: seq![ty.upcast()],
                     })
                 })
             });
