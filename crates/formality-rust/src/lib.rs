@@ -36,6 +36,7 @@ pub use rust::FormalityLang;
 // ANCHOR_END: use_rust_language
 
 pub mod check;
+pub mod convert;
 pub mod grammar;
 pub mod prove;
 mod test;
