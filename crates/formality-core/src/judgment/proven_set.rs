@@ -366,7 +366,7 @@ impl ProofTree {
             judgment_name: judgment.to_string(),
             attributes: Vec::new(),
             rule_name,
-            file: caller.file().to_string(),
+            file: caller.file().replace('\\', "/"),
             line: caller.line(),
             column: caller.column(),
             children,
@@ -388,7 +388,7 @@ impl ProofTree {
             judgment_name: judgment_name.to_string(),
             attributes,
             rule_name,
-            file: caller.file().to_string(),
+            file: caller.file().replace('\\', "/"),
             line: caller.line(),
             column: caller.column(),
             children,
@@ -434,7 +434,7 @@ impl FailureLocation {
     pub fn caller() -> Self {
         let caller = std::panic::Location::caller();
         Self {
-            file: caller.file().to_string(),
+            file: caller.file().replace('\\', "/"),
             line: caller.line(),
             column: caller.column(),
         }
