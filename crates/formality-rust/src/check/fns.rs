@@ -1,3 +1,6 @@
+use crate::check::borrow_check::env::TypeckEnv;
+use crate::check::borrow_check::flow_state::FlowState;
+use crate::check::borrow_check::nll::borrow_check;
 use crate::grammar::{CrateId, Fallible, Wcs};
 use crate::prove::prove::Env;
 use crate::{
@@ -53,29 +56,28 @@ impl Check<'_> {
             output_ty,
             where_clauses,
             body,
-        } = env.instantiate_universally(binder);
+        } = &env.instantiate_universally(binder);
+        let env = &env;
 
         // The in-scope assumtion are the union of the assumptions from
         // the impl and the fn.
-        let fn_assumptions: Wcs = (in_assumptions, &where_clauses).to_wcs();
+        let fn_assumptions: &Wcs = &(in_assumptions, where_clauses).to_wcs();
 
         // All of the following must be well-formed:
         // where-clauses, input parameter types, and output type.
         proof_tree
             .children
-            .push(self.prove_where_clauses_well_formed(&env, &fn_assumptions, &where_clauses)?);
-        for input_arg in &input_args {
+            .push(self.prove_where_clauses_well_formed(env, fn_assumptions, where_clauses)?);
+        for input_arg in input_args {
             proof_tree.children.push(self.prove_goal(
-                &env,
-                &fn_assumptions,
+                env,
+                fn_assumptions,
                 input_arg.ty.well_formed(),
             )?);
         }
-        proof_tree.children.push(self.prove_goal(
-            &env,
-            &fn_assumptions,
-            &output_ty.well_formed(),
-        )?);
+        proof_tree
+            .children
+            .push(self.prove_goal(&env, fn_assumptions, output_ty.well_formed())?);
 
         // Type-check the function body, if present.
         match body {
@@ -86,15 +88,13 @@ impl Check<'_> {
                 crate::grammar::FnBody::TrustedFnBody => {
                     // A trusted function body is assumed to be valid, all set.
                 }
-                crate::grammar::FnBody::MiniRust(body) => {
-                    proof_tree.children.push(self.check_body(
-                        &env,
-                        &output_ty,
-                        &fn_assumptions,
-                        body,
-                        input_args,
-                        crate_id,
-                    )?);
+                crate::grammar::FnBody::Expr(block) => {
+                    let typeck_env = TypeckEnv::for_fn_body(env, self.decls, output_ty);
+                    let initial_state = FlowState::for_fn_body(env, input_args)?;
+                    proof_tree.children.push(
+                        borrow_check(typeck_env, fn_assumptions, initial_state, block)
+                            .check_proven()?,
+                    );
                 }
             },
         }

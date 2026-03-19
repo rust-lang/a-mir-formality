@@ -228,6 +228,7 @@ macro_rules! id {
                     }
                     $crate::parse::Parser::identifier_re(scope, text, stringify!($n), &RE)
                 }
+
             }
         };
     };

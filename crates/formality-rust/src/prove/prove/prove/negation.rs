@@ -1,11 +1,8 @@
 use crate::grammar::{Substitution, Variable, Wcs};
 use crate::prove::prove::{Bias, Constraints, Env};
 use crate::rust::FormalityLang;
-use formality_core::{
-    fold::CoreFold,
-    judgment::{FailureLocation, ProofTree},
-    ProvenSet, Upcast,
-};
+use formality_core::judgment::FailureLocation;
+use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
 
 /// This succeeds if `f` definitely fails: there are no possible
 /// ways to prove its body.
@@ -58,6 +55,7 @@ pub fn may_not_be_provable<T: CoreFold<FormalityLang>>(
     negation_via_failure(env, assumptions, data, f)
 }
 
+#[track_caller]
 pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,

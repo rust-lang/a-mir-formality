@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use formality_core::{
-    cast_impl, set, term, Cons, DowncastFrom, DowncastTo, Set, Upcast, UpcastFrom, Upcasted,
-};
+use formality_core::{cast_impl, set, term, Cons, DowncastTo, Set, Upcast, UpcastFrom, Upcasted};
+
+use crate::{grammar::WhereClause, prove::ToWcs};
 
 use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef};
 
@@ -110,6 +110,18 @@ tuple_upcast!(A, B);
 tuple_upcast!(A, B, C);
 tuple_upcast!(A, B, C, D);
 
+impl UpcastFrom<Vec<WhereClause>> for Wcs {
+    fn upcast_from(clauses: Vec<WhereClause>) -> Self {
+        clauses.to_wcs()
+    }
+}
+
+impl UpcastFrom<&[WhereClause]> for Wcs {
+    fn upcast_from(clauses: &[WhereClause]) -> Self {
+        clauses.to_wcs()
+    }
+}
+
 impl DowncastTo<Cons<Wc, Wcs>> for Wcs {
     fn downcast_to(&self) -> Option<Cons<Wc, Wcs>> {
         let Cons(wc, set) = self.set.downcast_to()?;
@@ -181,9 +193,9 @@ impl UpcastFrom<Wc> for WcData {
     }
 }
 
-impl DowncastFrom<Wc> for WcData {
-    fn downcast_from(t: &Wc) -> Option<Self> {
-        Some(t.data().clone())
+impl DowncastTo<WcData> for Wc {
+    fn downcast_to(&self) -> Option<WcData> {
+        Some(self.data().clone())
     }
 }
 

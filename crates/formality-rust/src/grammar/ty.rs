@@ -29,6 +29,10 @@ impl Ty {
         &self.data
     }
 
+    pub fn never() -> Self {
+        RigidTy::new(RigidName::Never, ()).upcast()
+    }
+
     pub fn to_parameter(&self) -> Parameter {
         Parameter::Ty(self.clone())
     }
@@ -72,7 +76,7 @@ impl Ty {
         )
     }
 
-    pub fn ref_ty_of_kind(&self, k: RefKind, l: impl Upcast<Lt>) -> Self {
+    pub fn ref_ty_of_kind(&self, k: &RefKind, l: impl Upcast<Lt>) -> Self {
         let l: Lt = l.upcast();
         Self::rigid(k, vec![l.to::<Parameter>(), self.to::<Parameter>()])
     }
@@ -92,6 +96,10 @@ impl Ty {
             };
         };
         None
+    }
+
+    pub fn unit() -> Self {
+        Ty::rigid(RigidName::Tuple(0), ())
     }
 }
 
@@ -156,15 +164,23 @@ pub enum RigidName {
     #[grammar((adt $v0))]
     #[cast]
     AdtId(AdtId),
+
     #[grammar((scalar $v0))]
     #[cast]
     ScalarId(ScalarId),
+
     #[cast]
     #[grammar(&($v0))]
     Ref(RefKind),
+
     Tuple(usize),
+
     FnPtr(usize),
+
     FnDef(ValueId),
+
+    #[grammar(!)]
+    Never,
 }
 
 #[term]
@@ -277,7 +293,7 @@ pub enum Parameter {
     Ty(Ty),
     #[cast]
     Lt(Lt),
-    #[grammar(const $v0)]
+    #[cast]
     Const(Const),
 }
 

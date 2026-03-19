@@ -14,6 +14,23 @@ impl Program {
         self.crates.iter().flat_map(|c| &c.items)
     }
 
+    pub fn fn_named(&self, fn_id: &ValueId) -> Fallible<&Fn> {
+        let mut fns: Vec<&Fn> = self
+            .items_from_all_crates()
+            .filter_map(|crate_item| match crate_item {
+                CrateItem::Fn(t) if t.id == *fn_id => Some(t),
+                _ => None,
+            })
+            .collect();
+        if fns.is_empty() {
+            anyhow::bail!("no fn named `{fn_id:?}`")
+        } else if fns.len() > 1 {
+            anyhow::bail!("multiple fn named `{fn_id:?}`")
+        } else {
+            Ok(fns.pop().unwrap())
+        }
+    }
+
     pub fn trait_named(&self, trait_id: &TraitId) -> Fallible<&Trait> {
         let mut traits: Vec<&Trait> = self
             .items_from_all_crates()
@@ -31,35 +48,26 @@ impl Program {
         }
     }
 
-    pub fn fn_named(&self, fn_id: &ValueId) -> Fallible<&Fn> {
-        let mut fns: Vec<&Fn> = self
-            .items_from_all_crates()
-            .filter_map(|crate_item| match crate_item {
-                CrateItem::Fn(f) if f.id == *fn_id => Some(f),
-                _ => None,
-            })
-            .collect();
-        if fns.is_empty() {
-            anyhow::bail!("no fn named `{fn_id:?}`")
-        } else if fns.len() > 1 {
-            anyhow::bail!("multiple fns named `{fn_id:?}`")
-        } else {
-            Ok(fns.pop().unwrap())
-        }
-    }
-
     pub fn struct_named(&self, adt_id: &AdtId) -> Fallible<&Struct> {
         let mut structs: Vec<&Struct> = self
             .items_from_all_crates()
             .filter_map(|crate_item| match crate_item {
                 CrateItem::AdtItem(AdtItem::Struct(s)) if s.id == *adt_id => Some(s),
-                _ => None,
+
+                CrateItem::AdtItem(_)
+                | CrateItem::FeatureGate(_)
+                | CrateItem::Trait(_)
+                | CrateItem::TraitImpl(_)
+                | CrateItem::NegTraitImpl(_)
+                | CrateItem::Fn(_)
+                | CrateItem::Test(_) => None,
             })
             .collect();
+
         if structs.is_empty() {
-            anyhow::bail!("no struct named `{adt_id:?}`")
+            anyhow::bail!("no ADT named `{adt_id:?}`")
         } else if structs.len() > 1 {
-            anyhow::bail!("multiple structs named `{adt_id:?}`")
+            anyhow::bail!("multiple ADTs named `{adt_id:?}`")
         } else {
             Ok(structs.pop().unwrap())
         }
@@ -69,10 +77,18 @@ impl Program {
         let mut adts: Vec<&AdtItem> = self
             .items_from_all_crates()
             .filter_map(|crate_item| match crate_item {
-                CrateItem::AdtItem(a) if a.name() == *adt_id => Some(a),
-                _ => None,
+                CrateItem::AdtItem(a) if a.name() == adt_id => Some(a),
+
+                CrateItem::AdtItem(_)
+                | CrateItem::FeatureGate(_)
+                | CrateItem::Trait(_)
+                | CrateItem::TraitImpl(_)
+                | CrateItem::NegTraitImpl(_)
+                | CrateItem::Fn(_)
+                | CrateItem::Test(_) => None,
             })
             .collect();
+
         if adts.is_empty() {
             anyhow::bail!("no ADT named `{adt_id:?}`")
         } else if adts.len() > 1 {

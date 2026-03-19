@@ -37,13 +37,16 @@ pub enum AdtItem {
 }
 
 impl AdtItem {
-    pub fn name(&self) -> AdtId {
+    pub fn name(&self) -> &AdtId {
         match self {
-            AdtItem::Struct(s) => s.id.clone(),
-            AdtItem::Enum(e) => e.id.clone(),
+            AdtItem::Struct(s) => &s.id,
+            AdtItem::Enum(e) => &e.id,
         }
     }
 
+    /// Convert from an "adt item" (which is either a struct or an enum)
+    /// to a unified `Adt` that the variants/members of both in a consistent
+    /// way. This is a form that doesn't exist in Rust grammar.
     pub fn to_adt(&self) -> Adt {
         match self {
             AdtItem::Struct(s) => s.to_adt(),

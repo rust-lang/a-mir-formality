@@ -61,29 +61,24 @@ pub(crate) fn derive_parse_with_spec(
         }
     }
 
-    // Build all variant parsers in a single stream.
-    // If any variant carries `#[variable]`, we emit a `try_claim_as_var`
-    // probe *before* parsing any variants so that `id!` types will
-    // reject the same text as a plain identifier.
+    // Separate variable variants from non-variable variants.
+    // Variable variants are parsed first; if any succeed, we mark
+    // `claimed_as_var` on the left-recursion stack so that `id!` types
+    // will reject the same text as a plain identifier.
     let mut parse_variants = TokenStream::new();
     let mut has_variable_variant = false;
+
     for variant in s.variants() {
         let variant_name = Literal::string(&format!("{}::{}", s.ast().ident, variant.ast().ident));
         let v = parse_variant(variant, external_spec)?;
         let precedence = precedence(variant.ast().attrs)?.expr();
-        if has_variable_attr(variant.ast().attrs) {
-            has_variable_variant = true;
-        }
-        parse_variants.extend(quote_spanned!(
+        let is_variable = has_variable_attr(variant.ast().attrs);
+        has_variable_variant |= is_variable;
+        let variant_code = quote_spanned!(
             variant.ast().ident.span() =>
             __parser.parse_variant(#variant_name, #precedence, |__p| { #v });
-        ));
-    }
-    if has_variable_variant {
-        parse_variants = quote! {
-            parse::Parser::<Self, crate::FormalityLang>::try_claim_as_var(scope, text);
-            #parse_variants
-        };
+        );
+        parse_variants.extend(variant_code);
     }
 
     let type_name: Literal = as_literal(&s.ast().ident);
@@ -94,7 +89,11 @@ pub(crate) fn derive_parse_with_spec(
             fn parse<'t>(scope: &parse::Scope<crate::FormalityLang>, text: &'t str) -> parse::ParseResult<'t, Self>
             {
                 parse::Parser::multi_variant(scope, text, #type_name, |__parser| {
-                    #parse_variants;
+                    if #has_variable_variant {
+                        __parser.try_claim_as_var();
+                    }
+
+                    #parse_variants
                 })
             }
         }

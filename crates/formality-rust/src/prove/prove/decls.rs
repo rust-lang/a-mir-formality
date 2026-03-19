@@ -18,6 +18,10 @@ impl Decls {
     /// Max size used in unit tests that are not stress testing maximum size.
     pub const DEFAULT_MAX_SIZE: usize = 222;
 
+    pub fn program(&self) -> &Program {
+        &self.program
+    }
+
     pub fn is_local_trait_id(&self, trait_id: &TraitId) -> bool {
         self.program
             .crates
@@ -37,7 +41,7 @@ impl Decls {
             .into_iter()
             .flat_map(|c| c.items.iter())
             .any(|item| match item {
-                CrateItem::AdtItem(s) => s.name() == *adt_id,
+                CrateItem::AdtItem(s) => s.name() == adt_id,
                 _ => false,
             })
     }
@@ -196,10 +200,6 @@ impl Decls {
             })
             .filter(|a| a.alias_name() == *name)
             .collect()
-    }
-
-    pub fn program(&self) -> &Program {
-        &self.program
     }
 
     /// Return the set of "trait invariants" for all traits.

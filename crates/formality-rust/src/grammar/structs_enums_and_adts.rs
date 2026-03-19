@@ -1,5 +1,6 @@
 use crate::grammar::WhereClause;
 use crate::grammar::{AdtId, Binder, FieldId, Ty, VariantId};
+
 use formality_core::term;
 
 #[term(struct $id $binder)]
@@ -83,9 +84,11 @@ pub struct AdtBoundData {
 }
 
 impl AdtBoundData {
-    pub fn struct_variant(&self) -> &Variant {
-        assert_eq!(self.variants.len(), 1);
-        &self.variants[0]
+    pub fn struct_variant(&self) -> anyhow::Result<&Variant> {
+        if self.variants.len() != 1 {
+            anyhow::bail!("expected single struct variant")
+        }
+        Ok(&self.variants[0])
     }
 }
 

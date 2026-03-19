@@ -41,7 +41,11 @@ where
     match T::parse(&Default::default(), text) {
         Ok(parses) => {
             // Pick the longest parse (shortest remaining text)
-            let parse = parses.into_iter().min_by_key(|s| s.text().len()).unwrap();
+            let parse = parses
+                .iter()
+                .max_by_key(|s| s.text().len())
+                .expect("at least one parse")
+                .clone();
             let (value, remainder) = parse.finish();
             assert!(
                 !remainder.is_empty(),

@@ -9,7 +9,7 @@ use crate::prove::prove::test_util::test_prove;
 #[test]
 fn test_forall_not_local() {
     test_prove(Decls::empty(), term("{} => {for<T> @IsLocal(Debug(T))}")).assert_err(expect![[r#"
-        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: !ty_1, assumptions: {}, env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: !ty_1, assumptions: {}, env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "local trait" at (is_local.rs) failed because
           condition evaluted to false: `decls.is_local_trait_id(&goal.trait_id)`

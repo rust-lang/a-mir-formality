@@ -14,8 +14,6 @@ fn u32_not_u32_impls() {
             }
         ]
 
-        []
-
         expect_test::expect![[r#"
             failed at (proven_set.rs) because
               found an unconditionally true solution Constraints { env: Env { variables: [], bias: Completeness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }"#]]
@@ -58,10 +56,6 @@ fn foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait() {
             }
         ]
 
-        [
-            "impls may overlap",
-        ]
-
         expect_test::expect![[r#"
             impls may overlap:
             impl <ty> FooTrait for ^ty0_0 where ^ty0_0 : CoreTrait { }
@@ -83,11 +77,6 @@ fn T_where_Foo_not_u32_impls() {
                 impl<T> Foo for T where T: Foo {}
                 impl !Foo for u32 {}
             }
-        ]
-
-        [
-            "check_trait_impl",
-            "Foo for ^ty0_0",
         ]
 
         expect_test::expect![[r#"
@@ -112,10 +101,6 @@ fn u32_T_where_T_Is_impls() {
                 trait Is {}
                 impl Is for u32 {}
             }
-        ]
-
-        [
-            "impls may overlap",
         ]
 
         expect_test::expect![[r#"
@@ -157,10 +142,6 @@ fn u32_u32_impls() {
             }
         ]
 
-        [
-            "duplicate impl",
-        ]
-
         expect_test::expect!["duplicate impl in current crate: impl Foo for u32 { }"]
     )
 }
@@ -190,10 +171,6 @@ fn u32_T_impls() {
             }
         ]
 
-        [
-            "impls may overlap",
-        ]
-
         expect_test::expect![[r#"
             impls may overlap:
             impl Foo for u32 { }
@@ -214,10 +191,6 @@ fn T_and_T_bar() {
 
                 impl<T> Foo for T where T: Bar { }
             }
-        ]
-
-        [
-            "impls may overlap",
         ]
 
         expect_test::expect![[r#"
@@ -242,10 +215,6 @@ fn T_and_Local_Bar_T() {
 
                 struct LocalType { }
             }
-        ]
-
-        [
-            "impls may overlap",
         ]
 
         expect_test::expect![[r#"
@@ -310,8 +279,6 @@ fn is_local_with_unconstrained_self_ty_blanket_impl() {
                 impl<T> Overlap<LocalType> for T {}
             }
         ]
-
-        [        ]
 
         expect_test::expect![[r#"
             impls may overlap:

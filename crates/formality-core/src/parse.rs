@@ -220,10 +220,9 @@ where
     panic!("{msg}");
 }
 
-/// Trait alias for the bounds required on types stored in [`ParseResult`].
-/// This ensures `SuccessfulParse<T>` can be placed into a `BTreeSet`.
-pub trait ParseSuccessType: Sized + Debug + Clone + Ord + Eq + 'static {}
-impl<T> ParseSuccessType for T where T: Sized + Debug + Clone + Ord + Eq + 'static {}
+/// Traits required for parse results
+pub trait ParseSuccessType: Sized + Debug + Clone + Ord + Eq + 'static + Upcast<Self> {}
+impl<T: Debug + Clone + Ord + Eq + 'static + Upcast<T>> ParseSuccessType for T {}
 
 /// Record from a successful parse.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]

@@ -67,7 +67,7 @@ fn test_normalize_assoc_ty_existential0() {
         the rule "existential-universal" at (prove_eq.rs) failed because
           condition evaluted to false: `env.universe(p) < env.universe(v)`
 
-        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:52:1: no applicable rules for prove_normalize_via { goal: ?ty_1, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ?ty_1, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: u32 = <?ty_1 as Iterator>::Item, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
@@ -94,7 +94,7 @@ fn test_normalize_assoc_ty_existential0() {
         the rule "existential-universal" at (prove_eq.rs) failed because
           condition evaluted to false: `env.universe(p) < env.universe(v)`
 
-        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:52:1: no applicable rules for prove_normalize_via { goal: ?ty_1, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ?ty_1, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "existential-nonvar" at (prove_eq.rs) failed because
           pattern `None` did not match value `Some(!ty_0)`

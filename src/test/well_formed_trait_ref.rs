@@ -39,8 +39,6 @@ fn missing_dependent_where_clause() {
             }
         ]
 
-        [ /* TODO */ ]
-
         expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ WellFormedTraitRef(Trait2(S1<!ty_0>)), via: Trait2(S1<!ty_0>), assumptions: {Trait2(S1<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
@@ -95,9 +93,9 @@ fn const_param() {
 
                 struct S1 {}
 
-                impl Trait1<const u32(3)> for S1 {}
+                impl Trait1<u32(3)> for S1 {}
 
-                struct S2 where S1: Trait1<const u32(3)> {}
+                struct S2 where S1: Trait1<u32(3)> {}
             }
         ]
     )

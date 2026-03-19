@@ -16,7 +16,7 @@ mod prove_wc_list;
 mod prove_wf;
 
 use crate::grammar::Wcs;
-pub use constraints::Constraints;
+pub use constraints::{Constrained, Constraints};
 use formality_core::judgment::{EachProof, FailedRule, FailureLocation, ProofTree};
 use formality_core::visit::CoreVisit;
 use formality_core::{map, set, ProvenSet, Upcast};
@@ -24,11 +24,12 @@ use tracing::Level;
 
 use crate::prove::prove::decls::Decls;
 
-pub use self::env::{Bias, Env};
+pub use self::env::{Bias, Env, MaxUniverse, Universe};
 use self::prove_wc_list::prove_wc_list;
 pub use negation::{is_definitely_not_proveable, may_not_be_provable, negation_via_failure};
 
 /// Top-level entry point for proving things; other rules recurse to this one.
+#[track_caller]
 pub fn prove(
     decls: impl Upcast<Decls>,
     env: impl Upcast<Env>,

@@ -1,6 +1,5 @@
-use crate::grammar::minirust::LocalId;
-use crate::grammar::{minirust, WhereClause};
-use crate::grammar::{Binder, Ty, ValueId};
+use crate::grammar::expr::Block;
+use crate::grammar::{Binder, Ty, ValueId, WhereClause};
 use formality_core::term;
 
 #[term(fn $id $binder)]
@@ -9,7 +8,7 @@ pub struct Fn {
     pub binder: Binder<FnBoundData>,
 }
 
-#[term(($,input_args) -> $output_ty $:where $,where_clauses $body)]
+#[term($(input_args) -> $output_ty $:where $,where_clauses $body)]
 pub struct FnBoundData {
     pub input_args: Vec<InputArg>,
     pub output_ty: Ty,
@@ -19,7 +18,7 @@ pub struct FnBoundData {
 
 #[term($id : $ty)]
 pub struct InputArg {
-    pub id: LocalId,
+    pub id: ValueId,
     pub ty: Ty,
 }
 
@@ -34,10 +33,9 @@ pub enum MaybeFnBody {
 
 #[term]
 pub enum FnBody {
-    #[grammar(trusted ;)]
+    #[grammar(trusted;)]
     TrustedFnBody,
 
     #[cast]
-    #[grammar(= $v0;)]
-    MiniRust(minirust::Body),
+    Expr(Block),
 }

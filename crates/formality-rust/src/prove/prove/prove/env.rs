@@ -2,6 +2,7 @@ use crate::grammar::{
     Binder, ExistentialVar, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable, Wc,
 };
 use crate::rust::{Fold, Visit};
+use formality_core::set;
 use formality_core::{cast_impl, visit::CoreVisit, Set, To, Upcast, UpcastFrom};
 use formality_macros::term;
 
@@ -102,12 +103,52 @@ impl Env {
 cast_impl!(Env);
 
 #[term(U($index))]
-#[derive(Copy)]
+#[derive(Copy, Default)]
 pub struct Universe {
     index: usize,
 }
 
+/// Maximum universe of a variable in an environment or a term.
+///
+/// This is isomorphic to `Option<Universe>` but (a) conveys semantic
+/// meaning and (b) has the correct ordering (no universe < some universe).
+#[term]
+#[derive(Copy)]
+pub enum MaxUniverse {
+    /// No universes in the variable or term. This is the *least* value.
+    None,
+
+    /// Maximum universe that appears. This is greater.
+    Some(Universe),
+}
+
+impl MaxUniverse {
+    pub fn contains(self, u: Universe) -> bool {
+        match self {
+            MaxUniverse::None => false,
+            MaxUniverse::Some(max) => u <= max,
+        }
+    }
+}
+
+impl Default for MaxUniverse {
+    fn default() -> Self {
+        MaxUniverse::None
+    }
+}
+
 impl Env {
+    /// Maximum universe of any free variable in this environment (or None if there are no free variables).
+    pub fn max_universe(&self) -> MaxUniverse {
+        if self.variables.is_empty() {
+            MaxUniverse::None
+        } else {
+            MaxUniverse::Some(Universe {
+                index: self.variables.len(),
+            })
+        }
+    }
+
     /// A variable's *universe* in the environment determines what
     /// other variables it can be related to. For example, an
     /// existential variable in universe U1 can be equated to variables
@@ -276,12 +317,12 @@ impl Env {
     /// `existential_substitution` or `universal_substitution`,
     /// removes those variables from `self` along with anything created afterwards.
     /// Returns the list of variables created since the universal subst.
-    pub(crate) fn pop_vars<V>(&mut self, v: &[V]) -> Vec<Variable>
+    pub(crate) fn pop_vars<V>(&mut self, v: &[V]) -> Set<Variable>
     where
         V: Upcast<Variable> + Copy,
     {
         if v.is_empty() {
-            return vec![];
+            return set![];
         }
 
         let p0 = v[0];

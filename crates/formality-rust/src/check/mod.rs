@@ -11,8 +11,7 @@ use crate::{
 use anyhow::{anyhow, bail};
 use formality_core::{judgment::ProofTree, ProvenSet, Set};
 
-mod borrow_check;
-mod mini_rust_check;
+pub mod borrow_check;
 
 /// Check all crates in the program. The crates must be in dependency order
 /// such that any prefix of the crates is a complete program.

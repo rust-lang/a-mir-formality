@@ -1,4 +1,7 @@
-use crate::grammar::{Const, MiniRustConst, ScalarValue, Ty, Wcs};
+use crate::{
+    check::borrow_check::{env::TypeckEnv, flow_state::FlowState, nll::borrow_check},
+    grammar::{Const, ConstData, Ty, Wcs},
+};
 use formality_core::judgment_fn;
 
 use crate::prove::prove::{decls::Decls, prove::env::Env};
@@ -23,12 +26,14 @@ judgment_fn! {
 
         (
             --- ("rigid constant")
-            (prove_const_has_type(_decls, env, _assumptions, scalar: ScalarValue) => (scalar.ty(), Constraints::none(env)))
+            (prove_const_has_type(_decls, env, _assumptions, ConstData::Scalar(scalar)) => (scalar.ty(), Constraints::none(env)))
         )
 
+
         (
-            --- ("rv to tsv")
-            (prove_const_has_type(_decls, env, _assumptions, mrc: MiniRustConst) => (&mrc.ty, Constraints::none(env)))
+            (borrow_check(TypeckEnv::for_const(env, decls), assumptions, FlowState::default(), block) => ())
+            --- ("block")
+            (prove_const_has_type(decls, env, assumptions, ConstData::Block(block)) => (Ty::unit(), Constraints::none(env)))
         )
     }
 }

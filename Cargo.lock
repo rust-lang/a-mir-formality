@@ -367,6 +367,7 @@ dependencies = [
  "lazy_static",
  "libspecr",
  "minirust-rs",
+ "regex",
  "stacker",
  "tracing",
 ]

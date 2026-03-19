@@ -3,6 +3,51 @@ use crate::grammar::{ExistentialVar, Parameter, Substitution, Variable};
 use crate::rust::Visit;
 use formality_core::{cast_impl, visit::CoreVisit, Downcast, Upcast, UpcastFrom};
 
+/// A wrapper around a value that is constrained by a set of conditions.
+///
+/// We sometimes use `Constrained<()>` as a "upcast-able synonym" for `Constraints`.
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub struct Constrained<T, C = Constraints>(pub T, pub C);
+
+impl<T> Constrained<T> {
+    pub fn none(env: impl Upcast<Env>, value: T) -> Self {
+        Self(value, Constraints::none(env))
+    }
+
+    pub fn constraints(&self) -> &Constraints {
+        &self.1
+    }
+
+    pub fn unconditionally_true(&self) -> bool {
+        self.constraints().unconditionally_true()
+    }
+}
+
+impl<C> UpcastFrom<Constrained<(), C>> for Constraints
+where
+    C: Upcast<Constraints>,
+{
+    fn upcast_from(Constrained((), c): Constrained<(), C>) -> Self {
+        c.upcast()
+    }
+}
+
+impl UpcastFrom<Constraints> for Constrained<()> {
+    fn upcast_from(c: Constraints) -> Self {
+        Constrained((), c)
+    }
+}
+
+impl<T: Clone, U, C, D> UpcastFrom<Constrained<T, C>> for Constrained<U, D>
+where
+    T: Upcast<U>,
+    C: Upcast<D>,
+{
+    fn upcast_from(Constrained(t, c): Constrained<T, C>) -> Self {
+        Constrained(t.upcast(), c.upcast())
+    }
+}
+
 /// Captures the conditions under which something is true.
 ///
 /// Examples:
@@ -124,6 +169,9 @@ impl Constraints {
         }
     }
 
+    /// Given a set of variables `v` created via [`Env::instantiate_universally`][]
+    /// or [`Env::instantiate_existentially`][], removes `v` and all variables created *since* `v`
+    /// from the environment and from the substitution.
     pub fn pop_subst<V>(&self, v: &[V]) -> Self
     where
         V: Upcast<Variable> + Copy,
@@ -135,7 +183,6 @@ impl Constraints {
         }
 
         let vars = env.env.pop_vars(v);
-        let vars: formality_core::Set<_> = vars.into_iter().collect();
         env.substitution -= vars;
 
         env

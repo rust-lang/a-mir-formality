@@ -35,7 +35,7 @@ fn lifetime() {
                 // fn one_lt_arg<'a, T>(_: &'a T) -> () {}
                 fn one_lt_arg<'a, T>(v0: &'a T) -> ()
                 where
-                    T: 'a // FIXME(#202): Implied bounds should not have to be explicit
+                    T: 'a, // FIXME(#202): Implied bounds should not have to be explicit
                 trusted;
             }
         ]

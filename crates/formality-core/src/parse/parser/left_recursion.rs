@@ -41,14 +41,14 @@ struct StackEntry {
     ///
     observed: bool,
 
+    /// True if, at this parse position, the text can be parsed as
+    /// an in-scope variable. When true, `identifier_nonterminal`
+    /// will reject parsing the same text as a plain identifier.
+    claimed_as_var: bool,
+
     /// Human-readable name of the nonterminal being parsed (e.g., "Expr", "Stmt").
     /// Used for parse error backtraces.
     nonterminal_name: &'static str,
-
-    /// Set to true by `try_claim_as_var` when the current text was
-    /// successfully probed as a variable.  Checked by `is_claimed_as_var`
-    /// so that `id!` types can reject the same text as a plain identifier.
-    claimed_as_var: bool,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -96,8 +96,8 @@ impl StackEntry {
             type_id: TypeId::of::<T>(),
             value: None,
             observed: false,
-            nonterminal_name,
             claimed_as_var: false,
+            nonterminal_name,
         }
     }
 
@@ -200,7 +200,7 @@ pub(super) fn enter<'s, 't, L, T>(
 ) -> ParseResult<'t, T>
 where
     L: Language,
-    T: Debug + Clone + Ord + Eq + 'static,
+    T: Debug + Clone + Eq + Ord + 'static,
 {
     tracing::trace!(
         "enter<{}>(scope={:?}, text={:?})",
@@ -472,6 +472,39 @@ pub(super) fn recurse<R>(current_state: CurrentState, op: impl FnOnce() -> R) ->
     op()
 }
 
+/// Set `claimed_as_var` on the top stack entry.
+/// Called from [`Parser::try_claim_as_var`] when the probe determines
+/// that the current text can be parsed as an in-scope variable.
+///
+/// See the "Variables and scope" section of the formality-core book for details.
+pub fn set_claimed_as_var() {
+    STACK.with_borrow_mut(|stack| {
+        if let Some(top) = stack.last_mut() {
+            top.claimed_as_var = true;
+        }
+    });
+}
+
+/// Check whether any stack entry at this scope and text position
+/// has `claimed_as_var` set. Used by `identifier_nonterminal` and
+/// `identifier_re` to reject identifiers that should be parsed as
+/// variables instead. Matches on pointer equality for both scope
+/// and text, so the flag only applies at the exact parse position
+/// where the probe ran.
+///
+/// See the "Variables and scope" section of the formality-core book for details.
+pub(super) fn is_claimed_as_var<L: Language>(scope: &Scope<L>, text: &str) -> bool {
+    let scope_ptr: *const () = erase_type(scope);
+    let text_ptr: *const str = text;
+    STACK.with_borrow(|stack| {
+        stack.iter().rev().any(|entry| {
+            entry.scope == scope_ptr
+                && std::ptr::eq(text_ptr, entry.start_text)
+                && entry.claimed_as_var
+        })
+    })
+}
+
 /// Snapshot the current nonterminal parse stack.
 /// Returns a vector of `(nonterminal_name, start_text)` pairs
 /// from outermost to innermost.
@@ -489,34 +522,6 @@ pub(crate) fn snapshot_nonterminal_stack() -> Vec<(&'static str, *const str)> {
             .map(|entry| (entry.nonterminal_name, entry.start_text))
             .collect(),
         Err(_) => Vec::new(),
-    })
-}
-
-/// Record on the *current* stack frame that the text at `(scope, text)` was
-/// successfully probed as a variable.  Called from `Parser::try_claim_as_var`.
-pub(super) fn set_claimed_as_var<L: Language>(scope: &Scope<L>, text: &str) {
-    STACK.with_borrow_mut(|stack| {
-        if let Some(top) = stack.last_mut() {
-            let scope_ptr: *const () = erase_type(scope);
-            let text_ptr: *const str = text;
-            // Only set the flag when the pointers match (same parse position).
-            if scope_ptr == top.scope && std::ptr::eq(text_ptr, top.start_text) {
-                top.claimed_as_var = true;
-            }
-        }
-    });
-}
-
-/// Returns `true` when a *parent* stack frame at exactly `(scope, text)` has
-/// its `claimed_as_var` flag set.  Used by `id!` identifier parsing to reject
-/// text that has already been claimed as a variable.
-pub(super) fn is_claimed_as_var<L: Language>(scope: &Scope<L>, text: &str) -> bool {
-    STACK.with_borrow(|stack| {
-        let scope_ptr: *const () = erase_type(scope);
-        let text_ptr: *const str = text;
-        stack.iter().any(|e| {
-            scope_ptr == e.scope && std::ptr::eq(text_ptr, e.start_text) && e.claimed_as_var
-        })
     })
 }
 
