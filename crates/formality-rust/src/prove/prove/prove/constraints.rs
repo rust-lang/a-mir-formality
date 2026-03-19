@@ -135,6 +135,7 @@ impl Constraints {
         }
 
         let vars = env.env.pop_vars(v);
+        let vars: formality_core::Set<_> = vars.into_iter().collect();
         env.substitution -= vars;
 
         env

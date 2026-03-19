@@ -1,7 +1,11 @@
 use crate::grammar::{Substitution, Variable, Wcs};
 use crate::prove::prove::{Bias, Constraints, Env};
 use crate::rust::FormalityLang;
-use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
+use formality_core::{
+    fold::CoreFold,
+    judgment::{FailureLocation, ProofTree},
+    ProvenSet, Upcast,
+};
 
 /// This succeeds if `f` definitely fails: there are no possible
 /// ways to prove its body.
@@ -96,6 +100,7 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
             {
                 ProvenSet::failed(
                     "negation_via_failure",
+                    FailureLocation::caller(),
                     format!("found an unconditionally true solution {constraints:?}"),
                 )
             } else {

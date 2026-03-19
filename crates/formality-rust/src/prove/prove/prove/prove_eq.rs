@@ -3,7 +3,7 @@ use crate::grammar::{
     Variable, Wcs,
 };
 use formality_core::visit::CoreVisit;
-use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
+use formality_core::{judgment::FailureLocation, judgment_fn, Downcast, ProvenSet, Upcast};
 use formality_core::{Deduplicate, Upcasted};
 
 use crate::prove::prove::{
@@ -171,7 +171,11 @@ fn equate_variable(
 
     // Ensure that `x` passes the occurs check for the free variables in `p`.
     if occurs_in(x, &fvs) {
-        return ProvenSet::failed("equate_variable", format!("`{x:?}` occurs in `{p:?}`"));
+        return ProvenSet::failed(
+            "equate_variable",
+            FailureLocation::caller(),
+            format!("`{x:?}` occurs in `{p:?}`"),
+        );
     }
 
     // Map each free variable `fv` in `p` that is of higher universe than `x`

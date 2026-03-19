@@ -45,10 +45,14 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
     }
 
     /// Creates a `JudgmentSet` from a Rust function that failed for the given reason.
-    #[track_caller]
-    pub fn failed(description: impl std::fmt::Display, reason: impl std::fmt::Display) -> Self {
+    pub fn failed(
+        description: impl std::fmt::Display,
+        location: FailureLocation,
+        reason: impl std::fmt::Display,
+    ) -> Self {
         FailedJudgment::new(
             description.to_string(),
+            location,
             set![FailedRule::new(RuleFailureCause::Inapplicable {
                 reason: reason.to_string()
             })],
@@ -58,9 +62,13 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
 
     /// Creates a judgment set that resulted from a failed judgment.
     /// Meant to be used from the judgment macro, probably annoying to call manually.
-    pub fn failed_rules(judgment: impl std::fmt::Debug, failed_rules: Set<FailedRule>) -> Self {
+    pub fn failed_rules(
+        judgment: impl std::fmt::Debug,
+        location: FailureLocation,
+        failed_rules: Set<FailedRule>,
+    ) -> Self {
         let judgment = format!("{judgment:?}");
-        FailedJudgment::new(judgment, failed_rules).into()
+        FailedJudgment::new(judgment, location, failed_rules).into()
     }
 
     /// True if the judgment whose result this set represents was proven at least once.
@@ -140,7 +148,7 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
                 if !items.is_empty() {
                     ProvenSet::proven(items)
                 } else {
-                    ProvenSet::failed_rules("flat_map", failures)
+                    ProvenSet::failed_rules("flat_map", FailureLocation::caller(), failures)
                 }
             }
         }
@@ -213,10 +221,11 @@ impl ProvenSet<()> {
 }
 
 impl<J: Ord + Debug + Clone> FromIterator<Proven<J>> for ProvenSet<J> {
+    #[track_caller]
     fn from_iter<T: IntoIterator<Item = Proven<J>>>(iter: T) -> Self {
         let set: Map<J, ProofTree> = iter.into_iter().collect();
         if set.is_empty() {
-            ProvenSet::failed("collect", "empty collection")
+            ProvenSet::failed("collect", FailureLocation::caller(), "empty collection")
         } else {
             ProvenSet::proven(set)
         }
@@ -414,13 +423,42 @@ pub fn insert_smallest_proof<K: Ord + Clone>(
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+pub struct FailureLocation {
+    pub file: String,
+    pub line: u32,
+    pub column: u32,
+}
+
+impl FailureLocation {
+    #[track_caller]
+    pub fn caller() -> Self {
+        let caller = std::panic::Location::caller();
+        Self {
+            file: caller.file().to_string(),
+            line: caller.line(),
+            column: caller.column(),
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub struct FailedJudgment {
     /// Trying to prove this judgment...
     pub judgment: String,
 
+    /// ...defined at this location...
+    pub location: FailureLocation,
+
     /// ...failed with these partially applicable rules.
     /// If empty, it means no rules matched.
     pub failed_rules: Set<FailedRule>,
+}
+
+impl std::fmt::Display for FailureLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let FailureLocation { file, line, column } = self;
+        write!(f, "{file}:{line}:{column}")
+    }
 }
 
 #[derive(Debug)]
@@ -437,13 +475,15 @@ impl FailedJudgment {
     /// show only the non-cyclic failures, as usually that's what the user
     /// is interested in.
     #[tracing::instrument(level = "Debug", ret)]
-    fn new(judgment: String, failed_rules: Set<FailedRule>) -> Self {
+    fn new(judgment: String, location: FailureLocation, failed_rules: Set<FailedRule>) -> Self {
         // Strip cycles out from the set of failed rules. Note that this algorithm
         // has an O(n^2) character, as the set of failed rules will get recursively
         // simplified as we progress up the stack, but .. who cares?
-        let (failed_rules, _) = Self::strip_cycles(set![&judgment], failed_rules);
+        let (failed_rules, _) = Self::strip_cycles(&set![&judgment], failed_rules);
+
         Self {
             judgment,
+            location,
             failed_rules,
         }
     }
@@ -453,9 +493,16 @@ impl FailedJudgment {
     /// returns `(set, has_non_cycle)`. The `set` represents a new, simplified set of failued
     #[tracing::instrument(level = "Debug", skip(stack), ret)]
     fn strip_cycles(
-        stack: Set<&String>,
+        stack: &Set<&String>,
         failed_rules: Set<FailedRule>,
     ) -> (Set<FailedRule>, HasNonCycle) {
+        // If we did not find any applicable rules at all,
+        // then this is not a cycle failure, it's just an
+        // unhandled case.
+        if failed_rules.is_empty() {
+            return (set![], HasNonCycle(true));
+        }
+
         // Collect all the failures that were due to cycles
         let mut cycles = set![];
 
@@ -486,7 +533,7 @@ impl FailedJudgment {
 
                     let judgment_has_non_cycle;
                     (judgment.failed_rules, judgment_has_non_cycle) =
-                        Self::strip_cycles(stack1, judgment.failed_rules);
+                        Self::strip_cycles(&stack1, judgment.failed_rules);
                     failed_rule.cause = RuleFailureCause::FailedJudgment(judgment);
 
                     if judgment_has_non_cycle.0 {
@@ -507,6 +554,7 @@ impl FailedJudgment {
         tracing::debug!(?cycles, ?non_cycles);
 
         if non_cycles.is_empty() {
+            assert!(!cycles.is_empty());
             (cycles, HasNonCycle(false))
         } else {
             (non_cycles, HasNonCycle(true))
@@ -515,10 +563,14 @@ impl FailedJudgment {
 
     /// Extract "leaf" failures - the actual terminal failure causes
     /// rather than the full nested tree of failed judgments.
-    pub fn leaf_failures(&self) -> Vec<&FailedRule> {
+    pub fn leaf_failures(&self) -> Vec<LeafFailure> {
         let mut leaves = Vec::new();
-        for rule in &self.failed_rules {
-            rule.collect_leaves(&mut leaves);
+        if self.failed_rules.is_empty() {
+            leaves.push(LeafFailure::JudgmentNoRules(self.clone()));
+        } else {
+            for rule in &self.failed_rules {
+                rule.collect_leaves(&mut leaves);
+            }
         }
         leaves
     }
@@ -540,17 +592,36 @@ impl FailedJudgment {
 
 impl FailedRule {
     /// Recursively collect leaf failures (failures whose cause is not another FailedJudgment)
-    fn collect_leaves<'a>(&'a self, leaves: &mut Vec<&'a FailedRule>) {
+    fn collect_leaves<'a>(&'a self, leaves: &mut Vec<LeafFailure>) {
         match &self.cause {
             RuleFailureCause::FailedJudgment(inner) => {
-                for rule in &inner.failed_rules {
-                    rule.collect_leaves(leaves);
-                }
+                leaves.extend(inner.leaf_failures());
             }
             _ => {
                 // This is a leaf - the cause is a terminal condition
-                leaves.push(self);
+                leaves.push(LeafFailure::Rule(self.clone()));
             }
+        }
+    }
+}
+
+pub enum LeafFailure {
+    /// Indicates a specific rule within a judgment that failed
+    Rule(FailedRule),
+
+    /// Indicates a judgment with no matching rules
+    JudgmentNoRules(FailedJudgment),
+}
+
+impl std::fmt::Display for LeafFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LeafFailure::Rule(failed_rule) => std::fmt::Display::fmt(failed_rule, f),
+            LeafFailure::JudgmentNoRules(FailedJudgment {
+                judgment,
+                location,
+                failed_rules: _,
+            }) => write!(f, "{location}: no applicable rules for {judgment}"),
         }
     }
 }
@@ -629,9 +700,13 @@ impl std::fmt::Display for FailedJudgment {
         let FailedJudgment {
             judgment,
             failed_rules,
+            location,
         } = self;
         if failed_rules.is_empty() {
-            write!(f, "judgment had no applicable rules: `{judgment}` ",)
+            write!(
+                f,
+                "{location}: judgment had no applicable rules: `{judgment}`",
+            )
         } else {
             let rules: Vec<String> = failed_rules.iter().map(|r| r.to_string()).collect();
             let rules = indent(rules.join("\n"));

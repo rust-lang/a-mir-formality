@@ -40,6 +40,8 @@ fn test_normalize_assoc_ty_existential0() {
         term("exists<A> {} => {for<T> if { <T as Iterator>::Item = u32 } <A as Iterator>::Item = u32}"),
     ).assert_err(
     expect![[r#"
+        crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <?ty_0 as Iterator>::Item = u32, via: <!ty_1 as Iterator>::Item = u32, assumptions: {<!ty_1 as Iterator>::Item = u32}, env: Env { variables: [?ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
         the rule "existential-nonvar" at (prove_eq.rs) failed because
           pattern `None` did not match value `Some(!ty_1)`
 
@@ -55,11 +57,19 @@ fn test_normalize_assoc_ty_existential0() {
         the rule "normalize-via-impl" at (prove_normalize.rs) failed because
           expression evaluated to an empty collection: `decls.alias_eq_decls(&a.name)`
 
+        crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: <!ty_0 as Iterator>::Item = <?ty_1 as Iterator>::Item, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !ty_0 = ?ty_1, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
         the rule "existential-nonvar" at (prove_eq.rs) failed because
           pattern `None` did not match value `Some(!ty_0)`
 
         the rule "existential-universal" at (prove_eq.rs) failed because
           condition evaluted to false: `env.universe(p) < env.universe(v)`
+
+        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:52:1: no applicable rules for prove_normalize_via { goal: ?ty_1, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: u32 = <?ty_1 as Iterator>::Item, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "existential-nonvar" at (prove_eq.rs) failed because
           pattern `None` did not match value `Some(!ty_0)`
@@ -76,11 +86,15 @@ fn test_normalize_assoc_ty_existential0() {
         the rule "normalize-via-impl" at (prove_normalize.rs) failed because
           expression evaluated to an empty collection: `decls.alias_eq_decls(&a.name)`
 
+        crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ?ty_1 = !ty_0, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
         the rule "existential-nonvar" at (prove_eq.rs) failed because
           pattern `None` did not match value `Some(!ty_0)`
 
         the rule "existential-universal" at (prove_eq.rs) failed because
           condition evaluted to false: `env.universe(p) < env.universe(v)`
+
+        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:52:1: no applicable rules for prove_normalize_via { goal: ?ty_1, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "existential-nonvar" at (prove_eq.rs) failed because
           pattern `None` did not match value `Some(!ty_0)`

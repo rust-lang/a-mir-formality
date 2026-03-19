@@ -21,8 +21,12 @@ fn decls() -> Decls {
 #[test]
 fn direct_cycle() {
     test_prove(decls(), term("exists<A> {} => {A = Vec<A>}")).assert_err(expect![[r#"
-                failed at (prove_eq.rs) because
-                  `?ty_0` occurs in `Vec<?ty_0>`"#]]);
+        failed at (proven_set.rs) because
+          `?ty_0` occurs in `Vec<?ty_0>`
+
+        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: Vec<?ty_0>, assumptions: {}, env: Env { variables: [?ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 }
 
 /// Test that `X = Vec<Y>` can be solved
@@ -41,14 +45,22 @@ fn eq_rigid_to_variable() {
 #[test]
 fn indirect_cycle_1() {
     test_prove(decls(), term("exists<A, B> {} => {A = Vec<B>, B = A}")).assert_err(expect![[r#"
-        failed at (prove_eq.rs) because
-          `?ty_0` occurs in `Vec<?ty_0>`"#]]);
+        failed at (proven_set.rs) because
+          `?ty_0` occurs in `Vec<?ty_0>`
+
+        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: Vec<?ty_0>, assumptions: {}, env: Env { variables: [?ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 }
 
 /// Test that `X = Vec<X>` cannot be solved (when constructed over several steps)
 #[test]
 fn indirect_cycle_2() {
     test_prove(decls(), term("exists<A, B> {} => {B = A, A = Vec<B>}")).assert_err(expect![[r#"
-        failed at (prove_eq.rs) because
-          `?ty_0` occurs in `Vec<?ty_0>`"#]]);
+        failed at (proven_set.rs) because
+          `?ty_0` occurs in `Vec<?ty_0>`
+
+        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: Vec<?ty_0>, assumptions: {}, env: Env { variables: [?ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 }

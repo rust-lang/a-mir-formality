@@ -41,6 +41,10 @@ fn mismatch() {
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
@@ -86,6 +90,16 @@ fn generic_mismatch() {
         [ /* TODO */ ]
 
         expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Foo(u32, const !const_0), via: @ ConstHasType(!const_0 , u32), assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: u32 = bool, via: @ ConstHasType(!const_0 , u32), assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:52:1: no applicable rules for prove_normalize_via { goal: u32, via: @ ConstHasType(!const_0 , u32), assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:52:1: no applicable rules for prove_normalize_via { goal: bool, via: @ ConstHasType(!const_0 , u32), assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_const_has_type.rs:8:1: no applicable rules for prove_const_has_type { constant: !const_0, assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: decls([crate Foo { trait Foo <ty, const> where type_of_const ^const0_1 is bool { } impl <const> Foo <const ^const0_0> for u32 where type_of_const ^const0_0 is u32 { } }], 222) }
+
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )

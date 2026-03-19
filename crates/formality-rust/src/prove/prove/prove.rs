@@ -17,7 +17,7 @@ mod prove_wf;
 
 use crate::grammar::Wcs;
 pub use constraints::Constraints;
-use formality_core::judgment::{EachProof, FailedRule, ProofTree};
+use formality_core::judgment::{EachProof, FailedRule, FailureLocation, ProofTree};
 use formality_core::visit::CoreVisit;
 use formality_core::{map, set, ProvenSet, Upcast};
 use tracing::Level;
@@ -85,7 +85,7 @@ pub fn prove(
         prove_wc_list(decls, &env, assumptions, goal).each_proof(|(result, proof_tree)| {
             results.insert(result, proof_tree);
         }) {
-        ProvenSet::failed_rules(label, set![FailedRule::new(e)])
+        ProvenSet::failed_rules(label, FailureLocation::caller(), set![FailedRule::new(e)])
     } else {
         ProvenSet::proven(results)
     };

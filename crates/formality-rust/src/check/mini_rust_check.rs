@@ -17,7 +17,7 @@ use crate::prove::prove::{
     prove_normalize, AdtDeclBoundData, AdtDeclVariant, Constraints, Decls, Env,
 };
 use crate::rust::Fold;
-use formality_core::judgment::ProofTree;
+use formality_core::judgment::{FailureLocation, ProofTree};
 use formality_core::{cast_impl, judgment_fn, Downcast, Fallible, Map, Set, Upcast};
 
 use crate::check::borrow_check::nll;
@@ -578,6 +578,7 @@ impl TypeckEnv {
                 None => {
                     return ProvenSet::failed(
                         format!("prove_judgment({goal:?})"),
+                        FailureLocation::caller(),
                         format!("failed to convert `{c:?}` to pending-outlives"),
                     );
                 }
@@ -589,6 +590,7 @@ impl TypeckEnv {
         let Some(mut pending_outlives_minimal) = pending_outlives_iter.next() else {
             return ProvenSet::failed(
                 format!("prove_judgment({goal:?})"),
+                FailureLocation::caller(),
                 format!("final constraint set had only ambiguous elements: {cs:#?}"),
             );
         };
@@ -599,6 +601,7 @@ impl TypeckEnv {
             {
                 return ProvenSet::failed(
                     format!("prove_judgment({goal:?})"),
+                    FailureLocation::caller(),
                     format!(
                         "no relationship between `{pending_outlives:?}` and `{pending_outlives_minimal:?}`"
                     ),

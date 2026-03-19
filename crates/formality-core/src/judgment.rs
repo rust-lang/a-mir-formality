@@ -8,7 +8,7 @@ pub use assertion::JudgmentAssertion;
 mod proven_set;
 pub use proven_set::{
     insert_smallest_proof, member_of, CheckProven, EachProof, FailedJudgment, FailedRule,
-    ProofTree, Proven, ProvenSet, RuleFailureCause,
+    FailureLocation, ProofTree, Proven, ProvenSet, RuleFailureCause,
 };
 
 mod test_fallible;
@@ -182,7 +182,11 @@ macro_rules! judgment_fn {
             if !output.is_empty() {
                 $crate::ProvenSet::proven(output)
             } else {
-                $crate::ProvenSet::failed_rules(&input, failed_rules)
+                $crate::ProvenSet::failed_rules(
+                    &input,
+                    $crate::judgment::FailureLocation::caller(),
+                    failed_rules,
+                )
             }
         }
     }
@@ -558,14 +562,14 @@ macro_rules! push_rules {
                 }
 
                 #[allow(unused)]
-                let ($($with_var,)*) = loop_carried.clone();
+                let ($($with_var,)*) = &loop_carried.clone();
 
                 let attributes = vec![("item".to_string(), format!("{:?}", $loop_var))];
                 let mut item_proof_trees = vec![];
-                let mut next_carried = None;
-                $crate::push_rules!(@body (loop(next_carried, ($($with_var,)*))); $inputs; item_proof_trees; $($inner_step)*);
+                let mut next_carried_and_proof = None;
+                $crate::push_rules!(@body (loop(next_carried_and_proof, ($($with_var,)*))); $inputs; item_proof_trees; $($inner_step)*);
 
-                if let Some(next_carried) = next_carried {
+                if let Some((next_carried, next_proof)) = next_carried_and_proof {
                     for_all_proof_trees.push($crate::judgment::ProofTree::with_all(
                         "for_all",
                         attributes,
@@ -573,7 +577,7 @@ macro_rules! push_rules {
                         &file[..],
                         line,
                         column,
-                        item_proof_trees,
+                        next_proof,
                     ));
 
                     loop_carried = next_carried;
@@ -584,7 +588,7 @@ macro_rules! push_rules {
 
             if !errored {
                 #[allow(unused)]
-                let ($($with_var,)*) = loop_carried.clone();
+                let ($($with_var,)*) = &loop_carried.clone();
 
                 // All iterations succeeded
                 let for_all_tree = $crate::judgment::ProofTree::new(
@@ -633,21 +637,27 @@ macro_rules! push_rules {
         if let Err(e) = $crate::judgment::EachProof::each_proof(
             $i,
             |(value, proof_tree)| {
-                let $p = &value;
+                #[allow(irrefutable_let_patterns)]
+                if let $p = &value {
+                    // Remember the size of the child proof tree stack
+                    let len = $child_proof_trees.len();
 
-                // Remember the size of the child proof tree stack
-                let len = $child_proof_trees.len();
+                    // Push this child proof tree
+                    $child_proof_trees.push(proof_tree);
 
-                // Push this child proof tree
-                $child_proof_trees.push(proof_tree);
+                    // Recursively process successors
+                    $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
 
-                // Recursively process successors
-                $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
-
-                // Restore the original child proof tree stack; note that there may be multiple entries
-                // in case "non-iterative" steps like `(let ...)` and `(if ...)` are interspersed.
-                assert!($child_proof_trees.len() > len);
-                $child_proof_trees.truncate(len);
+                    // Restore the original child proof tree stack; note that there may be multiple entries
+                    // in case "non-iterative" steps like `(let ...)` and `(if ...)` are interspersed.
+                    assert!($child_proof_trees.len() > len);
+                    $child_proof_trees.truncate(len);
+                } else {
+                    $crate::push_rules!(@record_failure $inputs; $i; $crate::judgment::RuleFailureCause::IfLetDidNotMatch {
+                        pattern: stringify!($p).to_string(),
+                        value: format!("{:?}", value),
+                    });
+                }
             },
         ) {
             $crate::push_rules!(@record_failure $inputs; $i; e);
@@ -749,10 +759,10 @@ macro_rules! push_rules {
     };
 
     (
-        @body (loop($next_carried:ident, ($($with_var:ident,)*))); $_inputs:tt; $child_proof_trees:ident;
+        @body (loop($next_carried_and_proof:ident, ($($with_var:ident,)*))); $_inputs:tt; $child_proof_trees:ident;
     ) => {
         // when we complete processing a loop with accumulators, capture the final values.
-        $next_carried = Some(($($with_var.clone(),)*));
+        $next_carried_and_proof = Some((($($with_var.clone(),)*), $child_proof_trees.clone()));
     };
 
     (@record_failure ($failed_rules:expr, $match_var:expr, $_input_info:tt, $rule_name:literal); $step_expr:expr; $cause:expr) => {

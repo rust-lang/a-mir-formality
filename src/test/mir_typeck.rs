@@ -408,7 +408,10 @@ fn test_pass_non_subtype_arg() {
             }
         ]
         []
-        expect_test::expect!["judgment had no applicable rules: `borrow_check_block { loans_live_on_entry: {}, bb_id: bb0, fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { fn foo (v1 : u32) -> u32 = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } return ; } } } ; fn bar (v1 : ()) -> () = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(_return) goto Some(bb1) ; } bb1 : { statements{ } return ; } } } ; }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: (), local_variables: {_return: (), v1: ()}, blocks: [bb0 : { statements{ local(_return) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(_return) goto Some(bb1) ; }, bb1 : { statements{ } return ; }], ret_id: _return, input_args: [v1 : ()], crate_id: Foo, decls: decls([crate Foo { fn foo (v1 : u32) -> u32 = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } return ; } } } ; fn bar (v1 : ()) -> () = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(_return) goto Some(bb1) ; } bb1 : { statements{ } return ; } } } ; }], 222) }, outlives: {}, stack: [] }`"]
+        expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
     )
 }
 
@@ -479,7 +482,10 @@ fn test_incompatible_return_type() {
 
         []
 
-        expect_test::expect!["judgment had no applicable rules: `borrow_check_block { loans_live_on_entry: {}, bb_id: bb0, fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { fn foo (v1 : ()) -> u32 = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } return ; } } } ; }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: u32, local_variables: {_return: u32, v1: ()}, blocks: [bb0 : { statements{ local(_return) = load(local(v1)) ; } return ; }], ret_id: _return, input_args: [v1 : ()], crate_id: Foo, decls: decls([crate Foo { fn foo (v1 : ()) -> u32 = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } return ; } } } ; }], 222) }, outlives: {}, stack: [] }`"]
+        expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
     )
 }
 
@@ -690,7 +696,10 @@ fn test_struct_wrong_type_in_initialisation() {
             }
         ]
         []
-        expect_test::expect!["judgment had no applicable rules: `borrow_check_block { loans_live_on_entry: {}, bb_id: bb0, fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { struct Dummy { value : u32 } fn foo (v1 : u32) -> u32 = minirust{ exists { let v2 : Dummy ; bb0 : { statements{ local(_return) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; } } } ; }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: u32, local_variables: {_return: u32, v1: u32, v2: Dummy}, blocks: [bb0 : { statements{ local(_return) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; }], ret_id: _return, input_args: [v1 : u32], crate_id: Foo, decls: decls([crate Foo { struct Dummy { value : u32 } fn foo (v1 : u32) -> u32 = minirust{ exists { let v2 : Dummy ; bb0 : { statements{ local(_return) = load(local(v1)) ; local(v2) = struct{ constant(false) } as Dummy ; } return ; } } } ; }], 222) }, outlives: {}, stack: [] }`"]
+        expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:16:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
     )
 }
 

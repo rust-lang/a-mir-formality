@@ -17,7 +17,7 @@ fn u32_not_u32_impls() {
         []
 
         expect_test::expect![[r#"
-            failed at (negation.rs) because
+            failed at (proven_set.rs) because
               found an unconditionally true solution Constraints { env: Env { variables: [], bias: Completeness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }"#]]
     )
 }

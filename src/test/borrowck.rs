@@ -251,7 +251,7 @@ fn undeclared_universal_region_relationship() {
         [
         ]
 
-        expect_test::expect!["judgment had no applicable rules: `borrow_check_block { loans_live_on_entry: {}, bb_id: bb0, fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { fn foo <lt, lt> (v1 : &^lt0_0 u32) -> &^lt0_1 u32 = minirust{ exists <lt> { let v2 : &^lt0_0 u32 ; bb0 : { statements{ local(v2) = load(local(v1)) ; local(_return) = load(local(v2)) ; } return ; } } } ; }], env: Env { variables: [!lt_1, !lt_2, ?lt_3], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: &!lt_2 u32, local_variables: {_return: &!lt_2 u32, v1: &!lt_1 u32, v2: &?lt_3 u32}, blocks: [bb0 : { statements{ local(v2) = load(local(v1)) ; local(_return) = load(local(v2)) ; } return ; }], ret_id: _return, input_args: [v1 : &!lt_1 u32], crate_id: Foo, decls: decls([crate Foo { fn foo <lt, lt> (v1 : &^lt0_0 u32) -> &^lt0_1 u32 = minirust{ exists <lt> { let v2 : &^lt0_0 u32 ; bb0 : { statements{ local(v2) = load(local(v1)) ; local(_return) = load(local(v2)) ; } return ; } } } ; }], 222) }, outlives: {}, stack: [] }`"]
+        expect_test::expect!["crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"]
     )
 }
 
@@ -282,7 +282,7 @@ fn undeclared_universal_region_relationship_no_return() {
         [
         ]
 
-        expect_test::expect!["judgment had no applicable rules: `borrow_check_block { loans_live_on_entry: {}, bb_id: bb0, fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { fn foo <lt, lt> (v1 : &^lt0_0 u32) -> &^lt0_1 u32 = minirust{ exists <lt> { let v2 : &^lt0_0 u32 ; bb0 : { statements{ local(v2) = load(local(v1)) ; local(_return) = load(local(v2)) ; } goto bb0 ; } } } ; }], env: Env { variables: [!lt_1, !lt_2, ?lt_3], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: &!lt_2 u32, local_variables: {_return: &!lt_2 u32, v1: &!lt_1 u32, v2: &?lt_3 u32}, blocks: [bb0 : { statements{ local(v2) = load(local(v1)) ; local(_return) = load(local(v2)) ; } goto bb0 ; }], ret_id: _return, input_args: [v1 : &!lt_1 u32], crate_id: Foo, decls: decls([crate Foo { fn foo <lt, lt> (v1 : &^lt0_0 u32) -> &^lt0_1 u32 = minirust{ exists <lt> { let v2 : &^lt0_0 u32 ; bb0 : { statements{ local(v2) = load(local(v1)) ; local(_return) = load(local(v2)) ; } goto bb0 ; } } } ; }], 222) }, outlives: {}, stack: [] }`"]
+        expect_test::expect!["crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"]
     )
 }
 
@@ -367,7 +367,10 @@ fn undeclared_transitive_universal_region_relationship() {
 
         []
 
-        expect_test::expect!["judgment had no applicable rules: `borrow_check_block { loans_live_on_entry: {}, bb_id: bb0, fn_assumptions: {!lt_1 : !lt_2}, env: TypeckEnv { program: [crate Foo { fn foo <lt, lt, lt> (v1 : &^lt0_0 u32) -> &^lt0_2 u32 where ^lt0_0 : ^lt0_1 = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } return ; } } } ; }], env: Env { variables: [!lt_1, !lt_2, !lt_3], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: &!lt_3 u32, local_variables: {_return: &!lt_3 u32, v1: &!lt_1 u32}, blocks: [bb0 : { statements{ local(_return) = load(local(v1)) ; } return ; }], ret_id: _return, input_args: [v1 : &!lt_1 u32], crate_id: Foo, decls: decls([crate Foo { fn foo <lt, lt, lt> (v1 : &^lt0_0 u32) -> &^lt0_2 u32 where ^lt0_0 : ^lt0_1 = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } return ; } } } ; }], 222) }, outlives: {}, stack: [] }`"]
+        expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]
     )
 }
 
