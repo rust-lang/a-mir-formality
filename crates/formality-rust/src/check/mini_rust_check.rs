@@ -8,14 +8,13 @@ use crate::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
 use crate::grammar::minirust::{BodyBound, PlaceExpression::*};
+use crate::grammar::{AdtBoundData, Variant};
 use crate::grammar::{
     AdtId, Binder, CrateId, FnId, InputArg, Parameter, Relation, RigidName, RigidTy, Ty, TyData,
     VariantId, Wcs,
 };
 use crate::grammar::{Fn as FnDecl, Program};
-use crate::prove::prove::{
-    prove_normalize, AdtDeclBoundData, AdtDeclVariant, Constraints, Decls, Env,
-};
+use crate::prove::prove::{prove_normalize, Constraints, Decls, Env};
 use crate::rust::Fold;
 use formality_core::judgment::{FailureLocation, ProofTree};
 use formality_core::{cast_impl, judgment_fn, Downcast, Fallible, Map, Set, Upcast};
@@ -177,8 +176,8 @@ judgment_fn! {
         (
             (env.prove_goal(outlives, Location, fn_assumptions, ty.well_formed()) => outlives)
             (if let Some((adt_id, parameters)) = ty_is_adt(ty))
-            (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
-            (let AdtDeclVariant { name, fields } = variants.last().unwrap())
+            (let AdtBoundData { where_clauses: _, variants } = env.decls.program().adt_item_named(&adt_id)?.to_adt().binder.instantiate_with(&parameters)?)
+            (let Variant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
             (if value_expressions.len() == fields.len())
             (for_all(pair in value_expressions.iter().zip(fields)) with(outlives)
@@ -216,8 +215,8 @@ judgment_fn! {
         (
             (check_place(env, outlives, fn_assumptions, &*field_projection.root) => (root_ty, env, outlives))
             (if let Some((adt_id, parameters)) = ty_is_adt(&root_ty))
-            (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
-            (let AdtDeclVariant { name, fields } = variants.last().unwrap())
+            (let AdtBoundData { where_clauses: _, variants } = env.decls.program().adt_item_named(&adt_id)?.to_adt().binder.instantiate_with(&parameters)?)
+            (let Variant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
             (if field_projection.index < fields.len())
             (let place_ty = &fields[field_projection.index].ty)

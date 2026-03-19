@@ -4,11 +4,12 @@ use crate::grammar::minirust::{
     Terminator, ValueExpression,
 };
 use crate::grammar::PredicateTy;
+use crate::grammar::{AdtBoundData, Variant};
 use crate::grammar::{
     AliasTy, Lt, LtData, Parameter, RefKind, Relation, RigidName, RigidTy, Ty, TyData, Variable,
     VariantId, Wcs,
 };
-use crate::prove::prove::{prove, AdtDeclBoundData, AdtDeclVariant};
+use crate::prove::prove::prove;
 use formality_core::{judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set, Upcast};
 use std::sync::Arc;
 
@@ -635,8 +636,8 @@ judgment_fn! {
             //
             // FIXME(#231): This only works for structs, but what about enum creation? Probably wrong.
             (if let Some((adt_id, parameters)) = ty_is_adt(&ty))
-            (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
-            (let AdtDeclVariant { name, fields } = variants.last().unwrap())
+            (let AdtBoundData { where_clauses: _, variants } = env.decls.program().adt_item_named(&adt_id)?.to_adt().binder.instantiate_with(&parameters)?)
+            (let Variant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
 
             // We must have the right number of field values for the fields
@@ -784,8 +785,8 @@ judgment_fn! {
         (
             (borrow_check_place_expression(env, assumptions, loans_live, outlives, PlaceExpression::clone(&field_projection.root), places_live) => (root_expr, outlives, loans_live))
             (if let Some((adt_id, parameters)) = ty_is_adt(&root_expr.ty))
-            (let AdtDeclBoundData { where_clause: _, variants } = env.decls.adt_decl(&adt_id).binder.instantiate_with(&parameters)?)
-            (let AdtDeclVariant { name, fields } = variants.last().unwrap())
+            (let AdtBoundData { where_clauses: _, variants } = env.decls.program().adt_item_named(&adt_id)?.to_adt().binder.instantiate_with(&parameters)?)
+            (let Variant { name, fields } = variants.last().unwrap())
             (if *name == VariantId::for_struct())
             (if field_projection.index < fields.len())
             --- ("field")

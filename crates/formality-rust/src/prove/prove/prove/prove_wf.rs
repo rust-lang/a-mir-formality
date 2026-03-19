@@ -8,6 +8,7 @@ use crate::prove::prove::{
     decls::Decls,
     prove::{combinators::for_all, prove_after::prove_after, prove_wc::prove_wc},
 };
+use crate::prove::ToWcs;
 
 use super::{constraints::Constraints, env::Env};
 
@@ -53,9 +54,9 @@ judgment_fn! {
 
         (
             (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
-            (let t = decls.adt_decl(adt_id))
+            (let t = decls.program().adt_item_named(adt_id)?.to_adt())
             (let t = t.binder.instantiate_with(parameters).unwrap())
-            (prove_after(decls, c, assumptions, &t.where_clause) => c)
+            (prove_after(decls, c, assumptions, t.where_clauses.to_wcs()) => c)
             --- ("ADT")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::AdtId(adt_id), parameters }) => c)
         )
