@@ -44,6 +44,11 @@ struct StackEntry {
     /// Human-readable name of the nonterminal being parsed (e.g., "Expr", "Stmt").
     /// Used for parse error backtraces.
     nonterminal_name: &'static str,
+
+    /// Set to true by `try_claim_as_var` when the current text was
+    /// successfully probed as a variable.  Checked by `is_claimed_as_var`
+    /// so that `id!` types can reject the same text as a plain identifier.
+    claimed_as_var: bool,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -92,6 +97,7 @@ impl StackEntry {
             value: None,
             observed: false,
             nonterminal_name,
+            claimed_as_var: false,
         }
     }
 
@@ -483,6 +489,34 @@ pub(crate) fn snapshot_nonterminal_stack() -> Vec<(&'static str, *const str)> {
             .map(|entry| (entry.nonterminal_name, entry.start_text))
             .collect(),
         Err(_) => Vec::new(),
+    })
+}
+
+/// Record on the *current* stack frame that the text at `(scope, text)` was
+/// successfully probed as a variable.  Called from `Parser::try_claim_as_var`.
+pub(super) fn set_claimed_as_var<L: Language>(scope: &Scope<L>, text: &str) {
+    STACK.with_borrow_mut(|stack| {
+        if let Some(top) = stack.last_mut() {
+            let scope_ptr: *const () = erase_type(scope);
+            let text_ptr: *const str = text;
+            // Only set the flag when the pointers match (same parse position).
+            if scope_ptr == top.scope && std::ptr::eq(text_ptr, top.start_text) {
+                top.claimed_as_var = true;
+            }
+        }
+    });
+}
+
+/// Returns `true` when a *parent* stack frame at exactly `(scope, text)` has
+/// its `claimed_as_var` flag set.  Used by `id!` identifier parsing to reject
+/// text that has already been claimed as a variable.
+pub(super) fn is_claimed_as_var<L: Language>(scope: &Scope<L>, text: &str) -> bool {
+    STACK.with_borrow(|stack| {
+        let scope_ptr: *const () = erase_type(scope);
+        let text_ptr: *const str = text;
+        stack.iter().any(|e| {
+            scope_ptr == e.scope && std::ptr::eq(text_ptr, e.start_text) && e.claimed_as_var
+        })
     })
 }
 

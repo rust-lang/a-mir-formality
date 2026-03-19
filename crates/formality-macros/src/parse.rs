@@ -61,37 +61,30 @@ pub(crate) fn derive_parse_with_spec(
         }
     }
 
-    // Emit `#[variable]` variants first. If any succeeds, short-circuit
-    // and skip remaining variants. This ensures that in-scope variables
-    // are always preferred over identifiers (e.g., `T` as a type variable
-    // vs `T` as an ADT name) without needing global disambiguation hacks.
-    let mut variable_variants = TokenStream::new();
-    let mut other_variants = TokenStream::new();
+    // Build all variant parsers in a single stream.
+    // If any variant carries `#[variable]`, we emit a `try_claim_as_var`
+    // probe *before* parsing any variants so that `id!` types will
+    // reject the same text as a plain identifier.
+    let mut parse_variants = TokenStream::new();
+    let mut has_variable_variant = false;
     for variant in s.variants() {
         let variant_name = Literal::string(&format!("{}::{}", s.ast().ident, variant.ast().ident));
         let v = parse_variant(variant, external_spec)?;
         let precedence = precedence(variant.ast().attrs)?.expr();
-        let is_variable = has_variable_attr(variant.ast().attrs);
-        let target = if is_variable {
-            &mut variable_variants
-        } else {
-            &mut other_variants
-        };
-        target.extend(quote_spanned!(
+        if has_variable_attr(variant.ast().attrs) {
+            has_variable_variant = true;
+        }
+        parse_variants.extend(quote_spanned!(
             variant.ast().ident.span() =>
             __parser.parse_variant(#variant_name, #precedence, |__p| { #v });
         ));
     }
-    let parse_variants = if variable_variants.is_empty() {
-        other_variants
-    } else {
-        quote! {
-            #variable_variants
-            if !__parser.has_success() {
-                #other_variants
-            }
-        }
-    };
+    if has_variable_variant {
+        parse_variants = quote! {
+            parse::Parser::<Self, crate::FormalityLang>::try_claim_as_var(scope, text);
+            #parse_variants
+        };
+    }
 
     let type_name: Literal = as_literal(&s.ast().ident);
     Ok(s.gen_impl(quote! {

@@ -219,8 +219,27 @@ where
         })
     }
 
+    /// Probe whether the current text can be parsed as an in-scope variable
+    /// (of **any** kind).  If so, set the `claimed_as_var` flag on the
+    /// left-recursion stack so that `id!` types will reject the same text.
+    ///
+    /// Called by generated code *before* any variant is attempted, when the
+    /// enum has a `#[variable]` variant.
+    pub fn try_claim_as_var(scope: &'s Scope<L>, text: &'t str) {
+        let text = skip_whitespace(text);
+        // Probe: try to parse a variable at this position.
+        let mut probe = ActiveVariant::new(Precedence::default(), scope, text);
+        if probe.variable().is_ok() {
+            left_recursion::set_claimed_as_var(scope, text);
+        }
+    }
+
     /// Parse an identifier as a standalone nonterminal.
     /// Used by the `id!` macro.
+    ///
+    /// If `claimed_as_var` is set for this (scope, text), the parse is
+    /// rejected — the text has already been claimed as a variable by a
+    /// parent enum.
     pub fn identifier_nonterminal(
         scope: &'s Scope<L>,
         text: &'t str,
@@ -230,22 +249,12 @@ where
         String: Into<T>,
     {
         Self::single_variant(scope, text, nonterminal_name, |p| {
-            let id = p.identifier()?;
-            p.ok(id.into())
-        })
-    }
-
-    /// Like [`Self::identifier`], but rejects identifiers that match a variable in scope.
-    pub fn identifier_no_var(
-        scope: &'s Scope<L>,
-        text: &'t str,
-        nonterminal_name: &'static str,
-    ) -> ParseResult<'t, T>
-    where
-        String: Into<T>,
-    {
-        Self::single_variant(scope, text, nonterminal_name, |p| {
-            p.reject_variable()?;
+            if left_recursion::is_claimed_as_var(p.scope, p.current_text) {
+                return Err(ParseError::at(
+                    p.current_text,
+                    format!("{nonterminal_name} cannot match a variable in scope"),
+                ));
+            }
             let id = p.identifier()?;
             p.ok(id.into())
         })
@@ -254,6 +263,8 @@ where
     /// Like [`Self::identifier`], but uses a custom regex to match the identifier string.
     /// The regex should already be anchored at the start (`^`).
     /// Still marks the result as an identifier for disambiguation and rejects language keywords.
+    ///
+    /// Also checks `is_claimed_as_var`, just like `identifier_nonterminal`.
     pub fn identifier_re(
         scope: &'s Scope<L>,
         text: &'t str,
@@ -264,8 +275,14 @@ where
         String: Into<T>,
     {
         Self::single_variant(scope, text, nonterminal_name, |p| {
-            let s = p.regex_str(re, nonterminal_name)?;
+            if left_recursion::is_claimed_as_var(p.scope, p.current_text) {
+                return Err(ParseError::at(
+                    p.current_text,
+                    format!("{nonterminal_name} cannot match a variable in scope"),
+                ));
+            }
             p.reject_custom_keywords(L::KEYWORDS)?;
+            let s = p.regex_str(re, nonterminal_name)?;
             p.ok(s.into())
         })
     }
@@ -613,8 +630,9 @@ where
     }
 
     /// Reject the next identifier if it matches a variable currently in scope.
-    /// Does not consume any input. Used by `id!` types with `match_var = false`
-    /// to avoid ambiguity between variables and identifiers.
+    /// Does not consume any input.  Historically used by `id!` types with
+    /// `match_var = false`; now largely superseded by the `claimed_as_var`
+    /// mechanism but still available for custom `CoreParse` impls.
     pub fn reject_variable(&self) -> Result<(), Set<ParseError<'t>>> {
         self.reject(
             |p| p.variable(),

@@ -58,7 +58,7 @@ pub enum Perm {
     Variable(Variable),
 }
 
-formality_core::id!(Id, match_var = false);
+formality_core::id!(Id);
 formality_core::id!(AssocId);
 
 formality_core::cast_impl!((BoundVar) <: (Variable) <: (Parameter));

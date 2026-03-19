@@ -164,77 +164,49 @@ Most compilers parse source text into an ambiguous syntax tree first, then apply
 
 Today this shows up in one place: **variable scope**. When you write `<X> X`, the binder `<X>` introduces `X` into scope, and the body `X` is parsed as a variable reference rather than an identifier. This is the one piece of context the parser carries, but we may expand context-sensitive parsing in the future.
 
-To see why this matters, let's extend our `Expr` example with a `#[variable]` variant:
+#### How variable/identifier disambiguation works
 
-```rust
-#[term]
-pub enum Expr {
-    #[variable(Kind::Expr)]
-    Variable(Variable),
+The problem: when an enum has both a `#[variable]` variant and fields that use `id!` types, the same text could parse as either a variable or an identifier. Without disambiguation, this produces an ambiguity panic.
 
-    #[grammar($v0)]
-    Name(Id),
+The solution: when the parser begins parsing an enum that has a `#[variable]` variant, it runs an upfront **probe** — "can this text be parsed as any in-scope variable?" If yes, it sets a flag on the parser stack. All `id!` types check this flag before accepting an identifier and reject the text if the flag is set.
 
-    #[grammar($v0 ( $,v1 ))]
-    FnCall(Id, Vec<Expr>),
-}
-```
-
-#### `#[variable]` variants get priority
-
-When an enum has a `#[variable]` variant, the parser tries it **first**, before any other variants. If the name is found in scope with the correct kind, the variable parse succeeds and the remaining variants are skipped entirely.
-
-With `X` in scope, consider parsing `X(y, z)`:
-
-1. The `Variable` variant tries first, finds `X` in scope — succeeds with `Variable(X)`, remaining text `(y, z)`.
-2. The `Name` and `FnCall` variants are never tried.
-
-At the top level, `Variable(X)` didn't consume all the input, so this is a **parse error**. The `#[variable]` short-circuit prevented the `FnCall` parse from ever being attempted.
-
-This is often the right behavior for a type grammar — if `T` is a type variable, then `T` is always a type variable, never a type name. But it's a tradeoff: the short-circuit is aggressive, and it means the parser commits to the variable interpretation without seeing the surrounding context. For our `Expr` grammar, we probably don't want `#[variable]` at all — function names are identifiers, not variables. We'd remove the `#[variable]` variant and let the parse-all-possibilities approach handle things naturally, as we saw in the [Ambiguity section](#ambiguity-parse-all-possibilities-disambiguate-at-the-top).
-
-#### `match_var = false` on `id!` types
-
-The `#[variable]` short-circuit resolves ambiguity *within* an enum — when the variable variant is present, it wins. But what about *indirect* ambiguity, where a variable and an identifier compete in different variants of a parent enum?
-
-The `id!` macro generates identifier types. By default, `id!()` types will happily parse any valid identifier string, even if that string happens to be a variable in scope. To make an `id!` type reject variable names, declare it with `match_var = false`:
-
-```rust
-formality_core::id!(TraitId, match_var = false);
-```
-
-To see why this is useful, imagine a simplified type system where types are *only* type variables — no named types like `i32`. A bound like `T : U` could mean either "`T` implements trait `U`" or "`T` is a subtype of type `U`":
+To see how this works, consider a type system with types and permissions, where types can be variables, named types, or a permission applied to a type:
 
 ```rust
 #[term]
 pub enum Ty {
     #[variable(Kind::Ty)]
     Variable(Variable),
+
+    #[cast]
+    Id(Id),
+
+    #[grammar($v0 $v1)]
+    Apply(Perm, Arc<Ty>),
+
+    #[grammar($v0 :: $v1)]
+    Assoc(Arc<Ty>, AssocId),
 }
 
 #[term]
-enum Bound {
-    #[grammar($v0 : $v1)]
-    Impl(Ty, TraitId),
-
-    #[grammar($v0 : $v1)]
-    Subtype(Ty, Ty),
+pub enum Perm {
+    #[variable(Kind::Perm)]
+    Variable(Variable),
 }
 
-formality_core::id!(TraitId);  // default: accepts any identifier
+formality_core::id!(Id);
+formality_core::id!(AssocId);
 ```
 
-With `T` and `U` in scope as type variables, parsing `T : U` is ambiguous. The `Subtype` variant parses `U` as a `Ty`, which succeeds via the `#[variable]` rule. The `Impl` variant parses `U` as a `TraitId` — and since `id!(TraitId)` accepts any identifier string (including variable names), it also succeeds. Two parses, ambiguity panic.
+**Same-type disambiguation.** With type variable `T` in scope, parse `T` as a `Ty`. Because `Ty` has a `#[variable]` variant, the parser probes: "can `T` be parsed as any in-scope variable?" Yes — `T` is a type variable. The flag is set. Now when the `Id` variant tries to parse `T`, `Id` (an `id!` type) checks the flag, sees it's set, and rejects. Only `Variable(T)` succeeds. Without the flag, both `Variable(T)` and `Id(T)` would succeed — ambiguity panic.
 
-Adding `match_var = false` fixes this:
+**Cross-type disambiguation.** With perm variable `P` in scope, parse `P i32` as a `Ty`. The parser begins parsing `Ty` at `P` and runs the probe. The probe asks "can `P` be parsed as any in-scope variable?" — and it can, because `P` is a perm variable. The probe checks for variables **of any kind**, not just the kind associated with this type's `#[variable]` variant. So the flag is set. `Id` rejects `P`. But `Perm`'s `#[variable]` variant *does* match `P`, so the `Apply` variant succeeds: `Apply(Variable(P), Id(i32))`.
 
-```rust
-formality_core::id!(TraitId, match_var = false);  // rejects variables in scope
-```
+This cross-kind behavior is what makes the mechanism work across type boundaries. `Ty`'s probe finds the perm variable `P` even though `Ty`'s own `#[variable]` variant only accepts type variables. This prevents `Id` from claiming a name that belongs to a sibling type's variable namespace.
 
-Now when parsing `T : U`, the `Impl` variant tries to parse `U` as a `TraitId`. Because `U` is a variable in scope, `match_var = false` rejects it, so only `Subtype` succeeds. Parsing `T : Debug` (where `Debug` is *not* a variable) would still succeed as `Impl`, because `match_var = false` only rejects names that are actually variables in scope.
+**Positional scoping.** Parse `i32::T` as a `Ty`, with type variable `T` in scope. The outer `Ty` parse starts at `i32::T`. The probe asks "can `i32::T` be parsed as a variable?" No — `i32` isn't a variable name, so no flag is set. The `Assoc` variant parses `i32` as a `Ty`, consumes `::`, then parses `T` as an `AssocId`. At that text position, no type with a `#[variable]` variant is being parsed (only `AssocId`, an `id!` type, is being parsed here), so no probe has run. `AssocId` accepts `T` as a plain identifier. This is the right behavior — `T` after `::` is an associated item name, not a variable reference.
 
-Identifiers that appear in positions where they *should* accept variable names — like associated item names after `::` in `<T as Trait>::Item` — can use the default `id!(AssociatedItemId)` which accepts any valid identifier string.
+See `tests/parser_var_id_ambiguity.rs` for working tests of all three scenarios.
 
 ### Precedence and left-recursive grammars
 
