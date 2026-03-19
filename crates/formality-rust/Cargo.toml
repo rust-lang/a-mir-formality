@@ -16,6 +16,8 @@ fn-error-context = "0.2.0"
 itertools = "0.10.5"
 stacker = "0.1.15"
 extension-trait = "1.0.1"
+minirust-rs = { path = "../minirust-rs" }
+libspecr = "=0.1.36"
 
 [dev-dependencies]
 expect-test = "1.4.0"
