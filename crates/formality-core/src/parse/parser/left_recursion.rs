@@ -12,6 +12,7 @@ use std::{any::TypeId, cell::RefCell, fmt::Debug, ops::ControlFlow};
 use crate::{
     language::Language,
     parse::{parser::Associativity, ParseError, ParseResult, Scope, SuccessfulParse},
+    set, Set,
 };
 
 use super::Precedence;
@@ -193,7 +194,7 @@ pub(super) fn enter<'s, 't, L, T>(
 ) -> ParseResult<'t, T>
 where
     L: Language,
-    T: Debug + Clone + Eq + 'static,
+    T: Debug + Clone + Ord + Eq + 'static,
 {
     tracing::trace!(
         "enter<{}>(scope={:?}, text={:?})",
@@ -284,7 +285,7 @@ where
                     }
 
                     // Return the previous value.
-                    return ControlFlow::Break(Ok(vec![previous_result]));
+                    return ControlFlow::Break(Ok(set![previous_result]));
 
                     // [1] UNSAFE: We need to justify that `entry.value` will be valid.
                     //
@@ -395,7 +396,7 @@ where
 
     // First round parse is a bit special, because if we get an error here, we can just return immediately,
     // as there is no base case to build from.
-    let mut all_values: Vec<SuccessfulParse<'t, T>> = match op(min_precedence_level) {
+    let mut all_values: Set<SuccessfulParse<'t, T>> = match op(min_precedence_level) {
         Ok(v) => v,
         Err(errs) => return Err(errs),
     };
@@ -439,11 +440,7 @@ where
         }
 
         // Otherwise, merge new values and try again.
-        for nv in new_values {
-            if !all_values.contains(&nv) {
-                all_values.push(nv);
-            }
-        }
+        all_values.extend(new_values);
     }
 }
 

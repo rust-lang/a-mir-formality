@@ -39,10 +39,9 @@ where
     T: CoreParse<FormalityLang>,
 {
     match T::parse(&Default::default(), text) {
-        Ok(mut parses) => {
+        Ok(parses) => {
             // Pick the longest parse (shortest remaining text)
-            parses.sort_by_key(|s| s.text().len());
-            let parse = parses.into_iter().next().unwrap();
+            let parse = parses.into_iter().min_by_key(|s| s.text().len()).unwrap();
             let (value, remainder) = parse.finish();
             assert!(
                 !remainder.is_empty(),

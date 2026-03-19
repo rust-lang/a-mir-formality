@@ -16,7 +16,7 @@ use std::fmt::Debug;
 /// Trait for parsing a [`Term<L>`](`crate::term::Term`) as input.
 /// Typically this is auto-generated with the `#[term]` procedural macro,
 /// but you can implement it by hand if you want a very customized parse.
-pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq + 'static + Upcast<Self> {
+pub trait CoreParse<L: Language>: ParseSuccessType + Upcast<Self> {
     /// Parse a single instance of this type, returning an error if no such
     /// instance is present.
     ///
@@ -220,8 +220,13 @@ where
     panic!("{msg}");
 }
 
+/// Trait alias for the bounds required on types stored in [`ParseResult`].
+/// This ensures `SuccessfulParse<T>` can be placed into a `BTreeSet`.
+pub trait ParseSuccessType: Sized + Debug + Clone + Ord + Eq + 'static {}
+impl<T> ParseSuccessType for T where T: Sized + Debug + Clone + Ord + Eq + 'static {}
+
 /// Record from a successful parse.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SuccessfulParse<'t, T> {
     /// The new point in the input, after we've consumed whatever text we have.
     text: &'t str,
@@ -382,7 +387,7 @@ impl<'t> ParseError<'t> {
     }
 }
 
-pub type ParseResult<'t, T> = Result<Vec<SuccessfulParse<'t, T>>, Set<ParseError<'t>>>;
+pub type ParseResult<'t, T> = Result<Set<SuccessfulParse<'t, T>>, Set<ParseError<'t>>>;
 
 pub type TokenResult<'t, T> = Result<(T, &'t str), Set<ParseError<'t>>>;
 
@@ -421,7 +426,7 @@ impl<L: Language> Scope<L> {
 }
 
 /// Records a single binding, used when parsing [`Binder`].
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Binding<L: Language> {
     /// Name the user during during parsing
     pub name: String,

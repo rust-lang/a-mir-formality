@@ -9,7 +9,9 @@ use crate::{
     Set, Upcast,
 };
 
-use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenResult};
+use super::{
+    CoreParse, ParseError, ParseResult, ParseSuccessType, Scope, SuccessfulParse, TokenResult,
+};
 
 mod left_recursion;
 pub(crate) use left_recursion::snapshot_nonterminal_stack;
@@ -27,12 +29,12 @@ pub(crate) use left_recursion::snapshot_nonterminal_stack;
 pub struct Parser<'s, 't, T, L>
 where
     L: Language,
-    T: Debug + Clone + Eq + 'static,
+    T: ParseSuccessType,
 {
     scope: &'s Scope<L>,
     start_text: &'t str,
     nonterminal_name: &'static str,
-    successes: Vec<SuccessfulParse<'t, T>>,
+    successes: Set<SuccessfulParse<'t, T>>,
     failures: Set<ParseError<'t>>,
     min_precedence_level: usize,
 }
@@ -50,7 +52,7 @@ where
 /// The tricky bit is what happens with *equal*
 /// precedence. In that case, we have to consider
 /// the [`Associativity`][] (see enum for details).
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Precedence {
     level: usize,
     associativity: Associativity,
@@ -75,7 +77,7 @@ pub struct Precedence {
 /// `1 + 2 + 3` is just an error and you have to explicitly add parentheses.
 ///
 /// Use `Precedence::default` for cases where precedence is not relevant.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Associativity {
     Left,
     Right,
@@ -161,7 +163,7 @@ where
 impl<'s, 't, T, L> Parser<'s, 't, T, L>
 where
     L: Language,
-    T: Debug + Clone + Eq + 'static + Upcast<T>,
+    T: ParseSuccessType + Upcast<T>,
 {
     /// Shorthand to create a parser for a nonterminal with a single variant,
     /// parsed by the function `op`.
@@ -206,7 +208,7 @@ where
                 scope,
                 start_text: text,
                 nonterminal_name,
-                successes: vec![],
+                successes: set![],
                 failures: set![],
                 min_precedence_level,
             };
@@ -351,7 +353,7 @@ where
                     };
 
                     tracing::trace!("success: {:?}", success);
-                    self.successes.push(success);
+                    self.successes.insert(success);
                 }
             }
 
@@ -472,6 +474,26 @@ where
             left_right,
             precedence: self.precedence,
             current_text: self.current_text,
+        }
+    }
+
+    /// Combine two parse results, keeping all successes from both branches.
+    /// If both branches fail, the errors are merged.
+    fn combine_parse_results<R: ParseSuccessType>(
+        a: ParseResult<'t, R>,
+        b: ParseResult<'t, R>,
+    ) -> ParseResult<'t, R> {
+        match (a, b) {
+            (Ok(mut a_ok), Ok(b_ok)) => {
+                a_ok.extend(b_ok);
+                Ok(a_ok)
+            }
+            (Ok(a_ok), Err(_)) => Ok(a_ok),
+            (Err(_), Ok(b_ok)) => Ok(b_ok),
+            (Err(mut a_err), Err(b_err)) => {
+                a_err.extend(b_err);
+                Err(a_err)
+            }
         }
     }
 
@@ -780,35 +802,38 @@ where
     #[track_caller]
     #[tracing::instrument(level = "Trace", skip(self, op), ret)]
     pub fn each_opt_nonterminal<T, R>(
-        &mut self,
+        &self,
         op: impl Fn(Option<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L>,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
         let text0 = self.current_text;
-        match self.each_nonterminal(|t: T, p| op(Some(t), p)) {
-            Ok(successes) => Ok(successes),
-            Err(mut errs) => {
-                errs.retain(|e| e.consumed_any_since(text0));
-                if errs.is_empty() {
-                    // Nothing consumed — parse as None
-                    assert_eq!(skip_whitespace(text0), self.current_text);
-                    tracing::trace!(
-                        "each_opt_nonterminal({}): parsing did not consume tokens or did not commit",
-                        std::any::type_name::<T>()
-                    );
-                    op(None, self)
-                } else {
-                    tracing::trace!(
-                        "each_opt_nonterminal({}): 'almost' succeeded with parse",
-                        std::any::type_name::<T>()
-                    );
-                    Err(errs)
-                }
+
+        // Try parsing as Some(t)
+        let some_result = self.each_nonterminal(|t: T, p| op(Some(t), p));
+
+        // Check if there were committed errors (consumed tokens before failing).
+        // If so, don't try the None branch — it's a hard error.
+        if let Err(errs) = &some_result {
+            if errs.iter().any(|e| e.consumed_any_since(text0)) {
+                tracing::trace!(
+                    "each_opt_nonterminal({}): 'almost' succeeded with parse",
+                    std::any::type_name::<T>()
+                );
+                return some_result;
             }
         }
+
+        // Also try parsing as None and combine both branches
+        tracing::trace!(
+            "each_opt_nonterminal({}): also trying None branch",
+            std::any::type_name::<T>()
+        );
+        let mut forked = self.clone();
+        let none_result = op(None, &mut forked);
+        Self::combine_parse_results(some_result, none_result)
     }
 
     /// Continue parsing instances of `T` while we can, then run
@@ -821,19 +846,19 @@ where
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
         self.each_many_nonterminal_accum(vec![], &op)
     }
 
     fn each_many_nonterminal_accum<T, R>(
-        &mut self,
+        &self,
         acc: Vec<T>,
         op: &impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
         self.each_opt_nonterminal(|opt_t: Option<T>, p| match opt_t {
             Some(t) => {
@@ -855,7 +880,7 @@ where
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
         // Look for the opening delimiter.
         // If we don't find it, then this is either an empty vector (if optional) or an error (otherwise).
@@ -886,19 +911,19 @@ where
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
         self.each_comma_nonterminal_accum(vec![], &op)
     }
 
     fn each_comma_nonterminal_accum<T, R>(
-        &mut self,
+        &self,
         acc: Vec<T>,
         op: &impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
         self.each_opt_nonterminal(|opt_t: Option<T>, p| match opt_t {
             Some(t) => {
@@ -924,43 +949,30 @@ where
     /// All results from all continuations are collected and returned.
     #[track_caller]
     pub fn each_nonterminal<T, R>(
-        &mut self,
+        &self,
         op: impl Fn(T, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L>,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
-        self.each_nonterminal_with(T::parse, op)
-    }
+        let mut this = self.clone();
+        this.skip_whitespace();
 
-    /// Like `each_nonterminal` but with a custom parse function.
-    #[track_caller]
-    pub fn each_nonterminal_with<T, R>(
-        &mut self,
-        parse_op: impl FnOnce(&'s Scope<L>, &'t str) -> ParseResult<'t, T>,
-        cont: impl Fn(T, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
-    ) -> ParseResult<'t, R>
-    where
-        T: Debug + Clone + Eq + 'static,
-        R: Debug + Clone + Eq + 'static,
-    {
-        self.skip_whitespace();
-
-        let successes = left_recursion::recurse(self.current_state(), || {
-            parse_op(self.scope, self.current_text)
+        let successes = left_recursion::recurse(this.current_state(), || {
+            T::parse(this.scope, this.current_text)
         })?;
 
-        let mut all_successes: Vec<SuccessfulParse<'t, R>> = vec![];
+        let mut all_successes: Set<SuccessfulParse<'t, R>> = set![];
         let mut all_errors: Set<ParseError<'t>> = set![];
 
         for success in successes {
             // Fork the active variant for this parse result
-            let mut forked = self.clone();
+            let mut forked = this.clone();
             forked.current_text = success.text;
 
             // Run the continuation
-            match cont(success.value, &mut forked) {
+            match op(success.value, &mut forked) {
                 Ok(cont_successes) => {
                     all_successes.extend(cont_successes);
                 }
@@ -972,11 +984,8 @@ where
 
         if all_successes.is_empty() {
             if all_errors.is_empty() {
-                // No child parses succeeded at all — this shouldn't normally happen
-                // since we already got successes from the child, but the continuations
-                // all failed. Return the continuation errors.
                 Err(ParseError::at(
-                    self.current_text,
+                    this.current_text,
                     format!(
                         "{} expected (continuation failed)",
                         std::any::type_name::<R>()
@@ -993,8 +1002,8 @@ where
     /// Wrap a single value into a `ParseResult` at the current parsing position.
     /// This is the leaf of an `each_nonterminal` chain — it creates a single
     /// `SuccessfulParse` capturing the current text position.
-    pub fn ok<T: Debug + Clone + Eq + 'static>(&self, value: T) -> ParseResult<'t, T> {
-        Ok(vec![SuccessfulParse {
+    pub fn ok<T: ParseSuccessType>(&self, value: T) -> ParseResult<'t, T> {
+        Ok(set![SuccessfulParse {
             text: self.current_text,
             precedence: self.precedence,
             value,
