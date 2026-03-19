@@ -12,6 +12,7 @@ use crate::{
 use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenResult};
 
 mod left_recursion;
+pub(crate) use left_recursion::snapshot_nonterminal_stack;
 
 /// Create this struct when implementing the [`CoreParse`][] trait.
 /// Each `Parser` corresponds to some symbol in the grammar.
@@ -191,7 +192,7 @@ where
     ) -> ParseResult<'t, T> {
         let text = skip_whitespace(text);
 
-        left_recursion::enter(scope, text, |min_precedence_level| {
+        left_recursion::enter(scope, text, nonterminal_name, |min_precedence_level| {
             let tracing_span = tracing::span!(
                 tracing::Level::TRACE,
                 "nonterminal",
@@ -1016,6 +1017,16 @@ pub fn next_char(text: &str) -> TokenResult<'_, char> {
 #[tracing::instrument(level = "trace", ret)]
 pub fn skip_trailing_comma(text: &str) -> &str {
     text.strip_prefix(',').unwrap_or(text)
+}
+
+/// Given a start text and a current text that results from having consumed
+/// some (possibly zero) number of characters, returns true if any
+/// non-whitespace and (non-comment) characters were consumed.
+pub fn consumed_any_since(start_text: &str, current_text: &str) -> bool {
+    assert!(start_text.ends_with(current_text));
+    let consumed_len = start_text.len() - current_text.len();
+    let consumed = &start_text[..consumed_len];
+    !skip_whitespace(consumed).is_empty()
 }
 
 /// Skips leading whitespace and comments.

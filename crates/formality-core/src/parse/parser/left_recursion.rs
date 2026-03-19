@@ -39,6 +39,10 @@ struct StackEntry {
 
     ///
     observed: bool,
+
+    /// Human-readable name of the nonterminal being parsed (e.g., "Expr", "Stmt").
+    /// Used for parse error backtraces.
+    nonterminal_name: &'static str,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -74,7 +78,7 @@ pub(super) enum LeftRight {
 }
 
 impl StackEntry {
-    pub fn new<L, T>(scope: &Scope<L>, start_text: &str) -> Self
+    pub fn new<L, T>(scope: &Scope<L>, start_text: &str, nonterminal_name: &'static str) -> Self
     where
         L: Language,
         T: Clone + 'static,
@@ -86,6 +90,7 @@ impl StackEntry {
             type_id: TypeId::of::<T>(),
             value: None,
             observed: false,
+            nonterminal_name,
         }
     }
 
@@ -183,6 +188,7 @@ impl StackEntry {
 pub(super) fn enter<'s, 't, L, T>(
     scope: &'s Scope<L>,
     text: &'t str,
+    nonterminal_name: &'static str,
     mut op: impl FnMut(usize) -> ParseResult<'t, T>,
 ) -> ParseResult<'t, T>
 where
@@ -331,7 +337,7 @@ where
             }
         }
 
-        stack.push(StackEntry::new::<L, T>(scope, text));
+        stack.push(StackEntry::new::<L, T>(scope, text, nonterminal_name));
         ControlFlow::Continue(())
     });
 
@@ -461,6 +467,26 @@ pub(super) fn recurse<R>(current_state: CurrentState, op: impl FnOnce() -> R) ->
     }));
 
     op()
+}
+
+/// Snapshot the current nonterminal parse stack.
+/// Returns a vector of `(nonterminal_name, start_text)` pairs
+/// from outermost to innermost.
+///
+/// The returned `*const str` pointers are subslices of the original
+/// input `&'t str`. The caller must ensure the input is still alive
+/// before converting back to references.
+///
+/// Returns an empty vec if the STACK is already mutably borrowed
+/// (e.g., when called from within `enter`'s `with_borrow_mut` block).
+pub(crate) fn snapshot_nonterminal_stack() -> Vec<(&'static str, *const str)> {
+    STACK.with(|cell| match cell.try_borrow() {
+        Ok(stack) => stack
+            .iter()
+            .map(|entry| (entry.nonterminal_name, entry.start_text))
+            .collect(),
+        Err(_) => Vec::new(),
+    })
 }
 
 fn erase_type<T>(s: &T) -> *const () {

@@ -55,7 +55,11 @@ macro_rules! assert_ok {
 macro_rules! assert_err {
     ($input:tt [$($must_have:expr,)*] $expect:expr) => {{
         use formality_core::test_util::AnyhowResultTestExt;
-        $crate::test_program_ok(stringify!($input)).assert_has_err_leaves($expect, &[$($must_have,)*]);
+        $crate::test_program_ok(stringify!($input)).assert_err_leaves($expect);
+    }};
+    ($input:tt $expect:expr) => {{
+        use formality_core::test_util::AnyhowResultTestExt;
+        $crate::test_program_ok(stringify!($input)).assert_err_leaves($expect);
     }};
 }
 
