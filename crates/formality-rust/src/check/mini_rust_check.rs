@@ -10,7 +10,7 @@ use crate::grammar::minirust::{
 use crate::grammar::minirust::{BodyBound, PlaceExpression::*};
 use crate::grammar::{AdtBoundData, Variant};
 use crate::grammar::{
-    AdtId, Binder, CrateId, FnId, InputArg, Parameter, Relation, RigidName, RigidTy, Ty, TyData,
+    AdtId, Binder, CrateId, InputArg, Parameter, Relation, RigidName, RigidTy, Ty, TyData, ValueId,
     VariantId, Wcs,
 };
 use crate::grammar::{Fn as FnDecl, Program};
@@ -293,10 +293,10 @@ judgment_fn! {
             (if callee_declared_input_tys.len() == actual_arguments.len())
 
             // Check each argument and subtyping
-            (for_all(arg_pair in callee_declared_input_tys.iter().zip(actual_arguments)) with(outlives)
-                (let (declared_ty, actual_argument) = arg_pair)
+            (for_all(arg_pair in fn_bound_data.input_args.iter().zip(actual_arguments)) with(outlives)
+                (let (declared_arg, actual_argument) = arg_pair)
                 (check_argument_expression(env, outlives, fn_assumptions, &actual_argument) => (actual_ty, _env, outlives))
-                (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(actual_ty, declared_ty)) => outlives))
+                (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(actual_ty, &declared_arg.ty)) => outlives))
 
             // Check return place
             (check_place(env, outlives, fn_assumptions, ret) => (actual_return_ty, env, outlives))
@@ -339,7 +339,7 @@ judgment_fn! {
 
 impl TypeckEnv {
     /// Look up a function declaration by its id in the current crate.
-    pub(crate) fn fn_decl(&self, fn_id: &FnId) -> Option<&FnDecl> {
+    pub(crate) fn fn_decl(&self, fn_id: &ValueId) -> Option<&FnDecl> {
         let curr_crate = self.program.crates.iter().find(|c| c.id == self.crate_id)?;
         curr_crate.items.iter().find_map(|item| match item {
             CrateItem::Fn(fn_decl) if fn_decl.id == *fn_id => Some(fn_decl),

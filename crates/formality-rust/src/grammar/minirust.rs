@@ -2,7 +2,7 @@ use super::{Binder, Lt, Parameter, RefKind, ScalarId, Ty};
 use formality_core::{id, term, UpcastFrom};
 
 use crate::grammar::minirust::ConstTypePair::*;
-use crate::grammar::FnId;
+use crate::grammar::ValueId;
 
 use std::sync::Arc;
 
@@ -187,7 +187,7 @@ pub enum ValueExpression {
     #[grammar(constant($v0))]
     Constant(ConstTypePair),
     #[grammar(fn_id $v0)]
-    Fn(FnId),
+    Fn(ValueId),
     #[grammar(struct {$,v0} as $v1)]
     Struct(Vec<ValueExpression>, Ty),
     // Union

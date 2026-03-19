@@ -86,7 +86,6 @@ impl Check<'_> {
                 crate::grammar::FnBody::TrustedFnBody => {
                     // A trusted function body is assumed to be valid, all set.
                 }
-                crate::grammar::FnBody::Literal(_, _) => todo!(),
                 crate::grammar::FnBody::MiniRust(body) => {
                     proof_tree.children.push(self.check_body(
                         &env,

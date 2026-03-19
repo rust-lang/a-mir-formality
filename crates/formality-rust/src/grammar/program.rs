@@ -1,4 +1,4 @@
-use crate::grammar::{AdtId, AdtItem, Crate, CrateItem, Fn, FnId, Struct, Trait};
+use crate::grammar::{AdtId, AdtItem, Crate, CrateItem, Fn, Struct, Trait, ValueId};
 use crate::grammar::{Fallible, TraitId};
 use formality_core::term;
 
@@ -31,7 +31,7 @@ impl Program {
         }
     }
 
-    pub fn fn_named(&self, fn_id: &FnId) -> Fallible<&Fn> {
+    pub fn fn_named(&self, fn_id: &ValueId) -> Fallible<&Fn> {
         let mut fns: Vec<&Fn> = self
             .items_from_all_crates()
             .filter_map(|crate_item| match crate_item {
