@@ -161,48 +161,6 @@ pub struct FlowState {
     pub continues: Set<LabeledFlowState>,
 }
 
-/*
-   'a: loop {
-       if P=NP {
-           p = &foo;
-           break 'a; // breaks: { 'a: { loans_live: [&'0 foo], outlives: [] } }
-           // current: {}
-       } else {
-           // current: {}
-       } // breaks: { 'a: { loans_live: [&'0 foo], outlives: [] } }
-       // current: {}
-
-       if P=NP {
-           p = &foo2;
-           break 'a; // breaks: { 'a: { loans_live: [&'0 foo], outlives: [] }, 'a: { loans_live: [&'0 foo2], outlives: [] } }
-           // current: {}
-       } else {
-           // current: {}
-       } // breaks: { 'a: { loans_live: [&'0 foo, &'0 foo2], outlives: [] } }
-       // current: {}
-
-       if P=NP {
-           p = &bar; // continue: { 'a: { loans_live: [&'0 bar], outlives: [] } }
-           continue 'a;
-       } else {}
-       // breaks: { 'a: { loans_live: [&'0 foo, &'0 foo2], outlives: [] } }
-       // continue: { 'a: { loans_live: [&'0 bar], outlives: [] } }
-       // current: {}
-
-       p = &baz;
-       // breaks: { 'a: { loans_live: [&'0 foo, &'0 foo2], outlives: [] } }
-       // continue: { 'a: { loans_live: [&'0 bar], outlives: [] } }
-       // current: { loans_live: [&'0 baz], outlives: [] }
-   }
-   // start over with
-   //    current: { loans_live: [&'0 baz, &'0 bar], outlives: [] }
-   //    breaks: { 'a: { loans_live: [&'0 foo, &'0 foo2], outlives: [] } }
-   //    continue: { 'a: { loans_live: [&'0 bar], outlives: [] } }
-
-   // current: { loans_live: [&'0 baz, &'0 foo, &'0 foo2, &'0 bar], outlives: [] }
-   p;
-*/
-
 impl FlowState {
     /// Create an initial FlowState for a function body with input args as locals
     /// in an initial scope.
