@@ -509,25 +509,21 @@ pub(super) fn is_claimed_as_var<L: Language>(scope: &Scope<L>, text: &str) -> bo
 /// Snapshot the current nonterminal parse stack as [`ParseFrame`]s
 /// from outermost to innermost.
 ///
-/// # Safety
-///
-/// The `start_text` pointers in each stack entry are subslices of the
-/// original input `&'t str`, which is still alive — each `StackEntry`
-/// is only alive while its corresponding `enter` frame is active on the
-/// call stack. We convert them to `&'static str` here; the caller
-/// must not retain them beyond the parse lifetime.
-///
 /// Returns an empty vec if the STACK is already mutably borrowed
 /// (e.g., when called from within `enter`'s `with_borrow_mut` block).
-pub(crate) fn snapshot_nonterminal_stack() -> Vec<ParseFrame<'static>> {
+pub(crate) fn snapshot_nonterminal_stack() -> Vec<ParseFrame> {
     STACK.with(|cell| match cell.try_borrow() {
         Ok(stack) => stack
             .iter()
-            .map(|entry| ParseFrame {
-                name: entry.nonterminal_name,
+            .map(|entry| {
                 // SAFETY: start_text is a subslice of the original input
-                // that outlives this stack frame.
-                start_text: unsafe { &*entry.start_text },
+                // that is alive for the duration of the parse. We only
+                // read its length here, so no reference escapes.
+                let remaining_len = unsafe { &*entry.start_text }.len();
+                ParseFrame {
+                    name: entry.nonterminal_name,
+                    remaining_len,
+                }
             })
             .collect(),
         Err(_) => Vec::new(),

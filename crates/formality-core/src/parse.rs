@@ -95,7 +95,7 @@ impl ParseDiagnostic {
             .backtrace
             .iter()
             .map(|frame| {
-                let offset = full_input.len() - frame.start_text.len();
+                let offset = full_input.len() - frame.remaining_len;
                 DiagnosticFrame {
                     name: frame.name,
                     offset,
@@ -277,13 +277,13 @@ where
 /// Records which nonterminal was being parsed and where
 /// in the input it started.
 #[derive(Clone, Debug)]
-pub struct ParseFrame<'t> {
+pub struct ParseFrame {
     /// Name of the nonterminal (e.g., "Expr", "Stmt", "FnBody").
     pub name: &'static str,
 
-    /// The input text position where this nonterminal's parse began.
-    /// This is a suffix of the original input string.
-    pub start_text: &'t str,
+    /// Length of the remaining input when this nonterminal's parse began.
+    /// Used to compute the byte offset: `full_input.len() - remaining_len`.
+    pub remaining_len: usize,
 }
 
 /// Tracks an error that occurred while parsing.
@@ -310,7 +310,7 @@ pub struct ParseError<'t> {
 
     /// Chain of nonterminals being parsed when this error occurred,
     /// from outermost to innermost.
-    pub backtrace: Vec<ParseFrame<'t>>,
+    pub backtrace: Vec<ParseFrame>,
 }
 
 impl<'t> PartialEq for ParseError<'t> {
@@ -342,7 +342,7 @@ impl<'t> ParseError<'t> {
     pub fn at(text: &'t str, message: String) -> Set<Self> {
         let text = parser::skip_whitespace(text);
 
-        let backtrace: Vec<ParseFrame<'t>> = parser::snapshot_nonterminal_stack();
+        let backtrace: Vec<ParseFrame> = parser::snapshot_nonterminal_stack();
 
         set![ParseError {
             text,
