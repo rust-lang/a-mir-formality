@@ -477,17 +477,6 @@ impl FlowState {
         }
     }
 
-    /// Checks that there are no entries in the `continues` set targeting
-    /// the given label. Returns `true` if no such entries exist (or if
-    /// `label` is `None`).
-    pub fn no_continues(&self, label: &Option<Label>) -> bool {
-        let Some(Label { id: label }) = label else {
-            return true;
-        };
-
-        self.continues.iter().all(|lfs| &lfs.label != label)
-    }
-
     /// Given a set of variables `v` created via [`Env::instantiate_universally`][]
     /// or [`Env::instantiate_existentially`][], removes `v` and all variables created *since* `v`
     /// from the environment and from the substitution.
