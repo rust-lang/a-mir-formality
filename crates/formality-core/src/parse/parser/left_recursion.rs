@@ -479,9 +479,10 @@ pub(super) fn recurse<R>(current_state: CurrentState, op: impl FnOnce() -> R) ->
 /// See the "Variables and scope" section of the formality-core book for details.
 pub fn set_claimed_as_var() {
     STACK.with_borrow_mut(|stack| {
-        if let Some(top) = stack.last_mut() {
-            top.claimed_as_var = true;
-        }
+        let top = stack
+            .last_mut()
+            .expect("set_claimed_as_var called with empty stack");
+        top.claimed_as_var = true;
     });
 }
 
