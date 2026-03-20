@@ -342,18 +342,7 @@ impl<'t> ParseError<'t> {
     pub fn at(text: &'t str, message: String) -> Set<Self> {
         let text = parser::skip_whitespace(text);
 
-        // Snapshot the nonterminal stack. Convert raw pointers back to &'t str.
-        // SAFETY: The start_text pointers in the stack are subslices of the
-        // original input &'t str, which is still alive — each StackEntry is
-        // only alive while its corresponding `enter` frame is active on the
-        // call stack, and we are inside such a frame.
-        let backtrace: Vec<ParseFrame<'t>> = parser::snapshot_nonterminal_stack()
-            .into_iter()
-            .map(|(name, start_text_ptr)| {
-                let start_text: &'t str = unsafe { &*start_text_ptr };
-                ParseFrame { name, start_text }
-            })
-            .collect();
+        let backtrace: Vec<ParseFrame<'t>> = parser::snapshot_nonterminal_stack();
 
         set![ParseError {
             text,

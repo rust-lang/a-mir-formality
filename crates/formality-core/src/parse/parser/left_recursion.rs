@@ -11,7 +11,7 @@ use std::{any::TypeId, cell::RefCell, fmt::Debug, ops::ControlFlow};
 
 use crate::{
     language::Language,
-    parse::{parser::Associativity, ParseError, ParseResult, Scope, SuccessfulParse},
+    parse::{parser::Associativity, ParseError, ParseFrame, ParseResult, Scope, SuccessfulParse},
     set, Set,
 };
 
@@ -506,21 +506,29 @@ pub(super) fn is_claimed_as_var<L: Language>(scope: &Scope<L>, text: &str) -> bo
     })
 }
 
-/// Snapshot the current nonterminal parse stack.
-/// Returns a vector of `(nonterminal_name, start_text)` pairs
+/// Snapshot the current nonterminal parse stack as [`ParseFrame`]s
 /// from outermost to innermost.
 ///
-/// The returned `*const str` pointers are subslices of the original
-/// input `&'t str`. The caller must ensure the input is still alive
-/// before converting back to references.
+/// # Safety
+///
+/// The `start_text` pointers in each stack entry are subslices of the
+/// original input `&'t str`, which is still alive — each `StackEntry`
+/// is only alive while its corresponding `enter` frame is active on the
+/// call stack. We convert them to `&'static str` here; the caller
+/// must not retain them beyond the parse lifetime.
 ///
 /// Returns an empty vec if the STACK is already mutably borrowed
 /// (e.g., when called from within `enter`'s `with_borrow_mut` block).
-pub(crate) fn snapshot_nonterminal_stack() -> Vec<(&'static str, *const str)> {
+pub(crate) fn snapshot_nonterminal_stack() -> Vec<ParseFrame<'static>> {
     STACK.with(|cell| match cell.try_borrow() {
         Ok(stack) => stack
             .iter()
-            .map(|entry| (entry.nonterminal_name, entry.start_text))
+            .map(|entry| ParseFrame {
+                name: entry.nonterminal_name,
+                // SAFETY: start_text is a subslice of the original input
+                // that outlives this stack frame.
+                start_text: unsafe { &*entry.start_text },
+            })
             .collect(),
         Err(_) => Vec::new(),
     })
