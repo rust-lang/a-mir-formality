@@ -443,6 +443,9 @@ impl FlowState {
             .unwrap_or_default()
     }
 
+    /// Removes the scope from the top of the stack and checks that its label
+    /// matches `expected_label`. Any control-flow that is pending in the `breaks`
+    /// set for a block with this label is incorporated into the current state.
     pub fn pop_scope(&self, expected_label: &Option<Label>) -> Self {
         let Self {
             mut scopes,
@@ -516,6 +519,9 @@ impl FlowState {
         }
     }
 
+    /// Checks that there are no entries in the `continues` set targeting
+    /// the given label. Returns `true` if no such entries exist (or if
+    /// `label` is `None`).
     pub fn no_continues(&self, label: &Option<Label>) -> bool {
         let Some(Label { id: label }) = label else {
             return true;

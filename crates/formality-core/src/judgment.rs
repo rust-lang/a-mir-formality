@@ -566,6 +566,9 @@ macro_rules! push_rules {
 
                 let attributes = vec![("item".to_string(), format!("{:?}", $loop_var))];
                 let mut item_proof_trees = vec![];
+                // Collect the proof tree from each iteration together with the
+                // next values of any loop-carried variables, so the `for_all`
+                // proof tree reflects all iterations (not just the last one).
                 let mut next_carried_and_proof = None;
                 $crate::push_rules!(@body (loop(next_carried_and_proof, ($($with_var,)*))); $inputs; item_proof_trees; $($inner_step)*);
 

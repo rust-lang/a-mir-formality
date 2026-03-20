@@ -422,6 +422,7 @@ pub fn insert_smallest_proof<K: Ord + Clone>(
     }
 }
 
+/// Tracks the location in the source where the failure occurred.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub struct FailureLocation {
     pub file: String,
@@ -496,9 +497,8 @@ impl FailedJudgment {
         stack: &Set<&String>,
         failed_rules: Set<FailedRule>,
     ) -> (Set<FailedRule>, HasNonCycle) {
-        // If we did not find any applicable rules at all,
-        // then this is not a cycle failure, it's just an
-        // unhandled case.
+        // No rules were even applicable to this input, so this
+        // can't be a cycle — report it as a genuine failure.
         if failed_rules.is_empty() {
             return (set![], HasNonCycle(true));
         }

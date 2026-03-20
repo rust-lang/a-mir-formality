@@ -62,9 +62,11 @@ pub(crate) fn derive_parse_with_spec(
     }
 
     // Separate variable variants from non-variable variants.
-    // Variable variants are parsed first; if any succeed, we mark
-    // `claimed_as_var` on the left-recursion stack so that `id!` types
-    // will reject the same text as a plain identifier.
+    // If there is at least one variable variant, we invoke
+    // `try_claim_as_var` which will try to parse the string as a
+    // variable *of any kind*; if it succeeds, we mark `claimed_as_var`
+    // on the left-recursion stack so that `id!` types will reject the
+    // same text as a plain identifier.
     let mut parse_variants = TokenStream::new();
     let mut has_variable_variant = false;
 
