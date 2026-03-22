@@ -1,6 +1,9 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Deref};
 
-use crate::grammar::ParameterKind;
+use crate::grammar::{
+    Lt, LtData, Parameter, ParameterKind, Parameters, RefKind, RigidName, RigidTy, ScalarId, Ty,
+    TyData,
+};
 use formality_core::variable::CoreVariable;
 
 type Stack<T> = Vec<T>;
@@ -48,6 +51,15 @@ impl NameContext {
         pop(self, n, ParameterKind::Const);
     }
 
+    pub fn pretty_print_type(&mut self, ty: &Ty) -> String {
+        match ty.data() {
+            TyData::RigidTy(rigid_ty) => self.pretty_print_rigid_ty(rigid_ty),
+            TyData::AliasTy(_alias_ty) => todo!(),
+            TyData::PredicateTy(_predicate_ty) => todo!(),
+            TyData::Variable(core_variable) => self.variable_name(core_variable),
+        }
+    }
+
     /// Returns a pretty printable name for the `given CoreVaribale`.
     pub fn variable_name(&self, variable: &CoreVariable<crate::FormalityLang>) -> String {
         let CoreVariable::BoundVar(core_bound_var) = variable else {
@@ -77,6 +89,68 @@ impl NameContext {
             }
         }
         name
+    }
+
+    fn pretty_print_rigid_ty(&mut self, rigid_ty: &RigidTy) -> String {
+        match &rigid_ty.name {
+            RigidName::AdtId(adt_id) => adt_id.deref().into(),
+            RigidName::ScalarId(scalar_id) => self.pretty_print_scalar(scalar_id),
+            RigidName::Ref(ref_kind) => self.pretty_print_ref(ref_kind, &rigid_ty.parameters),
+            RigidName::Tuple(_) => todo!(),
+            RigidName::FnPtr(_) => todo!(),
+            RigidName::FnDef(_fn_id) => todo!(),
+        }
+    }
+
+    fn pretty_print_scalar(&self, scalar_id: &ScalarId) -> String {
+        match scalar_id {
+            ScalarId::U8 => "u8",
+            ScalarId::U16 => "u16",
+            ScalarId::U32 => "u32",
+            ScalarId::U64 => "u64",
+            ScalarId::I8 => "i8",
+            ScalarId::I16 => "i16",
+            ScalarId::I32 => "i32",
+            ScalarId::I64 => "i64",
+            ScalarId::Bool => "bool",
+            ScalarId::Usize => "usize",
+            ScalarId::Isize => "isize",
+        }
+        .into()
+    }
+
+    fn pretty_print_ref(&mut self, ref_kind: &RefKind, parameters: &Parameters) -> String {
+        let kind = match ref_kind {
+            RefKind::Shared => "",
+            RefKind::Mut => "mut ",
+        };
+
+        let lt = parameters
+            .get(0)
+            .and_then(|p| match p {
+                Parameter::Lt(lt) => Some(lt),
+                _ => None,
+            })
+            .expect("the first parameter of a reference must be a life time");
+        let ty = parameters
+            .get(1)
+            .and_then(|p| match p {
+                Parameter::Ty(ty) => Some(ty),
+                _ => None,
+            })
+            .expect("The second parameter of a reference muse be a type");
+
+        let lt = self.pretty_print_lt(lt);
+        let ty = self.pretty_print_type(ty);
+
+        format!("&{lt} {kind}{ty}")
+    }
+
+    fn pretty_print_lt(&mut self, lt: &Lt) -> String {
+        match lt.data() {
+            LtData::Static => "'static".into(),
+            LtData::Variable(core_variable) => self.variable_name(core_variable),
+        }
     }
 }
 
@@ -111,6 +185,8 @@ fn pop(ctx: &mut NameContext, n: usize, kind: ParameterKind) {
 mod test {
     use formality_core::variable::{CoreBoundVar, DebruijnIndex, VarIndex};
 
+    use crate::grammar::AdtId;
+
     use super::*;
 
     fn create_ty() -> CoreVariable<crate::FormalityLang> {
@@ -138,7 +214,7 @@ mod test {
     }
 
     #[test]
-    fn pretty_print_type() {
+    fn pretty_print_type_variables() {
         let mut ctx = NameContext::default();
 
         ctx.push_tys(1);
@@ -159,7 +235,7 @@ mod test {
     }
 
     #[test]
-    fn pretty_print_life_times() {
+    fn pretty_print_life_time_variables() {
         let mut ctx = NameContext::default();
 
         ctx.push_lts(1);
@@ -180,7 +256,7 @@ mod test {
     }
 
     #[test]
-    fn pretty_print_consts() {
+    fn pretty_print_const_variables() {
         let mut ctx = NameContext::default();
 
         ctx.push_const(1);
@@ -198,5 +274,75 @@ mod test {
         }
 
         assert_eq!("N1", ctx.variable_name(&const1));
+    }
+
+    #[test]
+    fn pretty_print_adt() {
+        let mut ctx = NameContext::default();
+        let ty = Ty::new(TyData::RigidTy(RigidTy {
+            name: RigidName::AdtId(AdtId::new("Foo")),
+            parameters: Vec::new(),
+        }));
+        let t = ctx.pretty_print_type(&ty);
+
+        assert_eq!("Foo", t);
+    }
+
+    #[test]
+    fn pretty_print_scalar() {
+        let mut ctx = NameContext::default();
+        let ty = Ty::new(TyData::RigidTy(RigidTy {
+            name: RigidName::ScalarId(ScalarId::U8),
+            parameters: Vec::new(),
+        }));
+        let t = ctx.pretty_print_type(&ty);
+
+        assert_eq!("u8", t);
+    }
+
+    #[test]
+    fn pretty_print_ref() {
+        let mut ctx = NameContext::default();
+        ctx.push_lts(1);
+
+        // &'a u8
+        let ty = Ty::new(TyData::RigidTy(RigidTy {
+            name: RigidName::Ref(RefKind::Shared),
+            parameters: vec![
+                Parameter::Lt(Lt::new(create_lt())),
+                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                    name: RigidName::ScalarId(ScalarId::U8),
+                    parameters: Vec::new(),
+                }))),
+            ],
+        }));
+        let t = ctx.pretty_print_type(&ty);
+        assert_eq!("&'a1 u8", t);
+
+        let ty = Ty::new(TyData::RigidTy(RigidTy {
+            name: RigidName::Ref(RefKind::Mut),
+            parameters: vec![
+                Parameter::Lt(Lt::new(create_lt())),
+                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                    name: RigidName::ScalarId(ScalarId::U8),
+                    parameters: Vec::new(),
+                }))),
+            ],
+        }));
+        let t = ctx.pretty_print_type(&ty);
+        assert_eq!("&'a1 mut u8", t);
+
+        let ty = Ty::new(TyData::RigidTy(RigidTy {
+            name: RigidName::Ref(RefKind::Mut),
+            parameters: vec![
+                Parameter::Lt(Lt::new(LtData::Static)),
+                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                    name: RigidName::ScalarId(ScalarId::U8),
+                    parameters: Vec::new(),
+                }))),
+            ],
+        }));
+        let t = ctx.pretty_print_type(&ty);
+        assert_eq!("&'static mut u8", t);
     }
 }
