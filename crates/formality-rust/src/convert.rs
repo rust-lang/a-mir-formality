@@ -10,6 +10,9 @@ pub use structs_enums_and_adts::*;
 mod traits_and_impls;
 pub use traits_and_impls::*;
 
+mod tys;
+pub use tys::*;
+
 // mod ty;
 
 pub fn convert(program: &Program) -> String {
