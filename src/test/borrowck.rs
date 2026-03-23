@@ -835,3 +835,53 @@ fn integer_in_outer_scope() {
         ]
     )
 }
+
+/// Writing to a borrowed variable inside a loop before `continue`
+/// should be an error when the borrow is live after the loop.
+///
+/// The liveness of `p` after the loop (used by `return *p`) should
+/// propagate backward through the continue edge to the loop entry,
+/// making `p` live at the point of `a = 23`. Since `p` borrows `a`,
+/// the write to `a` conflicts with the live loan.
+///
+/// ```rust,compile_fail
+/// fn foo() -> u32 {
+///     let a: u32 = 22;
+///     let p: &u32 = &a;
+///     loop {
+///         if true {
+///             a = 23;       // ERROR: p's loan on a is live
+///             continue;
+///         }
+///         break;
+///     }
+///     *p
+/// }
+/// ```
+#[test]
+#[ignore = "liveness does not propagate through continue edges yet"]
+fn write_to_borrowed_before_continue() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo() -> u32 {
+                    exists<'r0, 'r1> {
+                        let a: u32 = 22 _ u32;
+                        let p: &'r0 u32 = &'r1 a;
+                        'l: loop {
+                            if true {
+                                a = 23 _ u32;
+                                continue 'l;
+                            } else {
+                                break 'l;
+                            }
+                        }
+                        return *p;
+                    }
+                }
+            }
+        ]
+
+        expect_test::expect!["TODO: fill in when liveness is fixed"]
+    )
+}
