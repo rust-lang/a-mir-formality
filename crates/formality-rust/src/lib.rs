@@ -15,6 +15,11 @@ formality_core::declare_language! {
             "true",
             "false",
             "static",
+            "closure",
+            "closure_ty",
+            "by_value",
+            "by_ref",
+            "by_mut_ref",
         ];
     }
 }

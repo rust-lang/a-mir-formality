@@ -3,14 +3,14 @@ use std::sync::Arc;
 
 use crate::check::borrow_check::nll::verify_universal_outlives;
 use crate::grammar::minirust::ArgumentExpression::{ByValue, InPlace};
-use crate::grammar::minirust::ValueExpression::{Constant, Fn, Load, Ref, Struct};
+use crate::grammar::minirust::ValueExpression::{Closure, Constant, Fn, Load, Ref, Struct};
 use crate::grammar::minirust::{
     self, ArgumentExpression, BasicBlock, BbId, LocalId, PlaceExpression, ValueExpression,
 };
 use crate::grammar::minirust::{BodyBound, PlaceExpression::*};
 use crate::grammar::{
-    AdtId, Binder, CrateId, FnId, InputArg, Parameter, Relation, RigidName, RigidTy, Ty, TyData,
-    VariantId, Wcs,
+    AdtId, Binder, ClosureDef, ClosureId, CrateId, FnId, InputArg, Parameter, Relation, RigidName,
+    RigidTy, Ty, TyData, VariantId, Wcs,
 };
 use crate::grammar::{Fn as FnDecl, Program};
 use crate::prove::prove::{
@@ -195,6 +195,21 @@ judgment_fn! {
             --- ("ref")
             (check_value(env, outlives, fn_assumptions, Ref(ref_kind, borrow_lt, place_expr)) => (value_ty, env, outlives))
         )
+
+        (
+            (if let Some(closure_def) = env.closure_def(closure_id))
+            (if let TyData::RigidTy(rigid_ty) = ty.data())
+            (if let RigidName::ClosureDef(_) = &rigid_ty.name)
+            (let closure_bound = closure_def.binder.instantiate_with(&rigid_ty.parameters)?)
+            (if value_expressions.len() == closure_bound.captures.len())
+            (for_all(pair in value_expressions.iter().zip(&closure_bound.captures)) with(outlives)
+                (let (value_expression, capture) = pair)
+                (check_value(env, outlives, fn_assumptions, value_expression) => (value_ty, _env, outlives))
+                (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(value_ty, &capture.ty)) => outlives))
+            (let value_ty = ty)
+            --- ("closure")
+            (check_value(env, outlives, fn_assumptions, Closure(closure_id, value_expressions, ty)) => (value_ty, env, outlives))
+        )
     }
 }
 
@@ -316,6 +331,46 @@ judgment_fn! {
         )
 
         (
+            // Check callee value expression
+            (check_value(env, outlives, fn_assumptions, callee) => (callee_ty, env, outlives))
+
+            // Extract ClosureDef from callee type
+            (if let TyData::RigidTy(rigid_ty) = callee_ty.data())
+            (if let RigidName::ClosureDef(closure_id) = &rigid_ty.name)
+
+            // Find the closure definition
+            (if let Some(closure_def) = env.closure_def(closure_id))
+
+            // Instantiate the closure signature with the type parameters from the callee type
+            (let closure_bound = closure_def.binder.instantiate_with(&rigid_ty.parameters)?)
+            (let callee_declared_input_tys: Vec<Ty> = closure_bound.input_args.iter().map(|a| a.ty.clone()).collect())
+
+            // Check argument count matches
+            (if callee_declared_input_tys.len() == actual_arguments.len())
+
+            // Check each argument and subtyping
+            (for_all(arg_pair in callee_declared_input_tys.iter().zip(actual_arguments)) with(outlives)
+                (let (declared_ty, actual_argument) = arg_pair)
+                (check_argument_expression(env, outlives, fn_assumptions, &actual_argument) => (actual_ty, _env, outlives))
+                (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(actual_ty, declared_ty)) => outlives))
+
+            // Check return place
+            (check_place(env, outlives, fn_assumptions, ret) => (actual_return_ty, env, outlives))
+            (env.prove_goal(outlives, Location, fn_assumptions, Relation::sub(&closure_bound.output_ty, &actual_return_ty)) => outlives)
+
+            // Check next block exists if present
+            (if next_block.as_ref().map_or(true, |bb_id| env.block_exists(bb_id)))
+            --- ("call-closure")
+            (check_terminator(env, outlives, fn_assumptions, minirust::Terminator::Call {
+                callee,
+                generic_arguments: _,
+                arguments: actual_arguments,
+                ret,
+                next_block,
+            }) => (env, outlives))
+        )
+
+        (
             --- ("return")
             (check_terminator(env, outlives, _fn_assumptions, minirust::Terminator::Return) => (env, outlives))
         )
@@ -344,6 +399,17 @@ impl TypeckEnv {
         let curr_crate = self.program.crates.iter().find(|c| c.id == self.crate_id)?;
         curr_crate.items.iter().find_map(|item| match item {
             CrateItem::Fn(fn_decl) if fn_decl.id == *fn_id => Some(fn_decl),
+            _ => None,
+        })
+    }
+
+    /// Look up a closure definition by its id in the current crate.
+    pub(crate) fn closure_def(&self, closure_id: &ClosureId) -> Option<&ClosureDef> {
+        let curr_crate = self.program.crates.iter().find(|c| c.id == self.crate_id)?;
+        curr_crate.items.iter().find_map(|item| match item {
+            CrateItem::ClosureDef(closure_def) if closure_def.id == *closure_id => {
+                Some(closure_def)
+            }
             _ => None,
         })
     }

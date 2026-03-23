@@ -1,5 +1,5 @@
 use crate::grammar::{Binder, CrateId};
-use crate::grammar::{Enum, Fn, NegTraitImpl, Struct, Trait, TraitImpl, WhereClause};
+use crate::grammar::{ClosureDef, Enum, Fn, NegTraitImpl, Struct, Trait, TraitImpl, WhereClause};
 use formality_core::term;
 
 use crate::grammar::feature::FeatureGate;
@@ -26,6 +26,8 @@ pub enum CrateItem {
     NegTraitImpl(NegTraitImpl),
     #[cast]
     Fn(Fn),
+    #[cast]
+    ClosureDef(ClosureDef),
     #[cast]
     Test(Test),
 }

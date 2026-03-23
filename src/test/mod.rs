@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 mod borrowck;
+mod closures;
 mod coherence_orphan;
 mod coherence_overlap;
 mod const_generics_rv_tsv_parse;

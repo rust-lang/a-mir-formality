@@ -332,6 +332,7 @@ fn is_fundamental(_decls: &Decls, name: &RigidName) -> bool {
         RigidName::ScalarId(_)
         | RigidName::Tuple(_)
         | RigidName::FnPtr(_)
-        | RigidName::FnDef(_) => false,
+        | RigidName::FnDef(_)
+        | RigidName::ClosureDef(_) => false,
     }
 }

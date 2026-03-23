@@ -5,8 +5,8 @@ use crate::grammar::minirust::{
 };
 use crate::grammar::PredicateTy;
 use crate::grammar::{
-    AliasTy, Lt, LtData, Parameter, RefKind, Relation, RigidName, RigidTy, Ty, TyData, Variable,
-    VariantId, Wcs,
+    AliasTy, ClosureId, Lt, LtData, Parameter, RefKind, Relation, RigidName, RigidTy, Ty, TyData,
+    Variable, VariantId, Wcs,
 };
 use crate::prove::prove::{prove, AdtDeclBoundData, AdtDeclVariant};
 use formality_core::{judgment::ProofTree, judgment_fn, set, term, Cons, Fallible, Set, Upcast};
@@ -402,6 +402,50 @@ judgment_fn! {
             --- ("call")
             (borrow_check_terminator(stack, env, assumptions, loans_live, outlives, Terminator::Call { callee, generic_arguments: _, arguments, ret, next_block }) => ())
         )
+
+        (
+            (let places_live = places_live_before_basic_blocks(env, next_block))
+
+            // Check the callee
+            (borrow_check_value_expression(
+                env,
+                assumptions,
+                loans_live,
+                outlives,
+                callee,
+                (arguments, Assignment(ret)).live_before(env, places_live),
+            ) => (callee_ty, outlives, loans_live))
+
+            // Extract ClosureDef from callee type
+            (if let TyData::RigidTy(rigid_ty) = callee_ty.data())
+            (if let RigidName::ClosureDef(closure_id) = &rigid_ty.name)
+            (let closure_id: ClosureId = closure_id.clone())
+
+            // Find the closure definition
+            (if let Some(closure_def) = env.closure_def(&closure_id))
+
+            // Instantiate the closure signature with the type parameters from the callee type
+            (let closure_bound = closure_def.binder.instantiate_with(&rigid_ty.parameters)?)
+            (let callee_declared_input_tys: Vec<Ty> = closure_bound.input_args.iter().map(|a| a.ty.clone()).collect())
+
+            // Check argument count matches
+            (if callee_declared_input_tys.len() == arguments.len())
+
+            (borrow_check_argument_expressions(
+                env,
+                assumptions,
+                loans_live,
+                outlives,
+                callee_declared_input_tys,
+                arguments,
+                Assignment(ret).live_before(env, places_live),
+            ) => (outlives, loans_live))
+
+            (for_all(next_block in next_block.iter())
+                (borrow_check_block(stack, env, assumptions, loans_live, outlives, next_block) => ()))
+            --- ("call-closure")
+            (borrow_check_terminator(stack, env, assumptions, loans_live, outlives, Terminator::Call { callee, generic_arguments: _, arguments, ret, next_block }) => ())
+        )
     }
 }
 
@@ -659,6 +703,21 @@ judgment_fn! {
                 (env.prove_goal(outlives, Location, assumptions, Relation::sub(value_ty, &fields[i].ty)) => outlives))
             --- ("struct")
             (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Struct(field_values, ty), places_live) => (&ty, outlives, loans_live))
+        )
+
+        (
+            // Closure construction: borrow-check each captured value expression
+            (if let Some(closure_def) = env.closure_def(&closure_id))
+            (if let TyData::RigidTy(rigid_ty) = ty.data())
+            (if let RigidName::ClosureDef(_) = &rigid_ty.name)
+            (let closure_bound = closure_def.binder.instantiate_with(&rigid_ty.parameters)?)
+            (if capture_values.len() == closure_bound.captures.len())
+            (for_all(i in 0..capture_values.len()) with(outlives, loans_live)
+                (let places_live_before = capture_values[i+1..].live_before(&env, &places_live))
+                (borrow_check_value_expression(env, assumptions, loans_live, outlives, &capture_values[i], places_live_before) => (value_ty, outlives, loans_live))
+                (env.prove_goal(outlives, Location, assumptions, Relation::sub(value_ty, &closure_bound.captures[i].ty)) => outlives))
+            --- ("closure")
+            (borrow_check_value_expression(env, assumptions, loans_live, outlives, ValueExpression::Closure(closure_id, capture_values, ty), places_live) => (&ty, outlives, loans_live))
         )
 
         (

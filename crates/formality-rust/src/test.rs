@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate::rust::term;
+use crate::rust::{term, try_term};
 use formality_macros::test;
 
 use crate::grammar::Program;
@@ -145,4 +145,19 @@ fn test_parse_rust_like_struct_syntax() {
         }
     "#]]
     .assert_debug_eq(&r);
+}
+
+#[test]
+fn test_parse_closure_def_directly() {
+    let r: Result<crate::grammar::ClosureDef, _> =
+        try_term("closure my_cl [] () -> u32 { trusted }");
+    eprintln!("closure parse result: {:?}", r);
+    assert!(r.is_ok(), "Failed to parse: {:?}", r.unwrap_err());
+}
+
+#[test]
+fn test_parse_program_with_closure() {
+    let r: Result<Program, _> = try_term("[crate Foo { closure my_cl [] () -> u32 { trusted } }]");
+    eprintln!("program parse result: {:?}", r);
+    assert!(r.is_ok(), "Failed to parse: {:?}", r.unwrap_err());
 }

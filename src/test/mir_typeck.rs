@@ -369,6 +369,9 @@ fn test_call_invalid_fn() {
         []
         expect_test::expect![[r#"
             the rule "fn" at (nll.rs) failed because
+              pattern `Some(fn_decl)` did not match value `None`
+
+            the rule "fn" at (nll.rs) failed because
               pattern `Some(fn_decl)` did not match value `None`"#]]
     )
 }
@@ -408,7 +411,9 @@ fn test_pass_non_subtype_arg() {
             }
         ]
         []
-        expect_test::expect!["judgment had no applicable rules: `borrow_check_block { loans_live_on_entry: {}, bb_id: bb0, fn_assumptions: {}, env: TypeckEnv { program: [crate Foo { fn foo (v1 : u32) -> u32 = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } return ; } } } ; fn bar (v1 : ()) -> () = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(_return) goto Some(bb1) ; } bb1 : { statements{ } return ; } } } ; }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: (), local_variables: {_return: (), v1: ()}, blocks: [bb0 : { statements{ local(_return) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(_return) goto Some(bb1) ; }, bb1 : { statements{ } return ; }], ret_id: _return, input_args: [v1 : ()], crate_id: Foo, decls: decls([crate Foo { fn foo (v1 : u32) -> u32 = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } return ; } } } ; fn bar (v1 : ()) -> () = minirust{ exists { bb0 : { statements{ local(_return) = load(local(v1)) ; } call fn_id foo (Move(local(v1))) -> local(_return) goto Some(bb1) ; } bb1 : { statements{ } return ; } } } ; }], 222) }, outlives: {}, stack: [] }`"]
+        expect_test::expect![[r#"
+            the rule "call-closure" at (nll.rs) failed because
+              pattern `RigidName::ClosureDef(closure_id)` did not match value `fn_def(foo)`"#]]
     )
 }
 

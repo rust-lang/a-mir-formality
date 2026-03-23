@@ -12,6 +12,7 @@ use anyhow::{anyhow, bail};
 use formality_core::{judgment::ProofTree, ProvenSet, Set};
 
 mod borrow_check;
+mod closures;
 mod mini_rust_check;
 
 /// Check all crates in the program. The crates must be in dependency order
@@ -108,6 +109,7 @@ impl Check<'_> {
                         }
                     }
                     CrateItem::TraitImpl(_) | CrateItem::NegTraitImpl(_) | CrateItem::Test(_) => {}
+                    CrateItem::ClosureDef(_) => {}
                     CrateItem::FeatureGate(_) => {}
                 }
             }
@@ -124,6 +126,7 @@ impl Check<'_> {
             CrateItem::Enum(e) => self.check_adt(&e.to_adt()),
             CrateItem::Fn(f) => self.check_free_fn(f, crate_id),
             CrateItem::NegTraitImpl(i) => self.check_neg_trait_impl(i),
+            CrateItem::ClosureDef(c) => self.check_closure_def(c, crate_id),
             CrateItem::Test(t) => self.check_test(t),
             CrateItem::FeatureGate(_feature_gate) => {
                 // FIXME(#212): reject duplicate feature gates within a crate

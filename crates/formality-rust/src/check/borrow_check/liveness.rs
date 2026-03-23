@@ -162,6 +162,9 @@ impl LiveBefore for ValueExpression {
             ValueExpression::Ref(_ref_kind, _lt, place_expression) => {
                 place_expression.live_before(env, places_live)
             }
+            ValueExpression::Closure(_closure_id, value_expressions, _ty) => {
+                value_expressions.live_before(env, places_live)
+            }
         }
     }
 }

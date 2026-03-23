@@ -7,6 +7,7 @@ id!(AssociatedItemId);
 id!(CrateId);
 id!(FieldId);
 id!(VariantId);
+id!(ClosureId);
 
 impl VariantId {
     /// Returns the special variant-id used for the single variant of a struct.

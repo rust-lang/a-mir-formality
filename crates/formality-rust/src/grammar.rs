@@ -12,6 +12,9 @@ pub use crates::*;
 mod structs_enums_and_adts;
 pub use structs_enums_and_adts::*;
 
+mod closures;
+pub use closures::*;
+
 mod fns;
 pub use fns::*;
 

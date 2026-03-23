@@ -1,3 +1,4 @@
+use crate::grammar::ClosureId;
 use formality_core::{cast_impl, term};
 use std::sync::Arc;
 
@@ -165,6 +166,7 @@ pub enum RigidName {
     Tuple(usize),
     FnPtr(usize),
     FnDef(FnId),
+    ClosureDef(ClosureId),
 }
 
 #[term]

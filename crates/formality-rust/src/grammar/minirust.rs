@@ -2,7 +2,7 @@ use super::{Binder, Lt, Parameter, RefKind, ScalarId, Ty};
 use formality_core::{id, term, UpcastFrom};
 
 use crate::grammar::minirust::ConstTypePair::*;
-use crate::grammar::FnId;
+use crate::grammar::{ClosureId, FnId};
 
 use std::sync::Arc;
 
@@ -207,6 +207,8 @@ pub enum ValueExpression {
     // AddrOf
     // UnOp
     // BinOp
+    #[grammar(closure $v0 {$,v1} as $v2)]
+    Closure(ClosureId, Vec<ValueExpression>, Ty),
 }
 
 #[term]

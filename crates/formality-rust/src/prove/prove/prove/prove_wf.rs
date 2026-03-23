@@ -71,6 +71,24 @@ judgment_fn! {
         )
 
         (
+            (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
+            --- ("fn-ptr")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::FnPtr(_), parameters }) => c)
+        )
+
+        (
+            (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
+            --- ("fn-def")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::FnDef(_), parameters }) => c)
+        )
+
+        (
+            (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
+            --- ("closure-def")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::ClosureDef(_), parameters }) => c)
+        )
+
+        (
             (prove_alias_wf(decls, env, assumptions, name, parameters) => c)
             --- ("aliases")
             (prove_wf(decls, env, assumptions, AliasTy { name, parameters }) => c)

@@ -4,7 +4,7 @@ use formality_core::parse::{ActiveVariant, CoreParse, ParseResult, Parser, Prece
 use formality_core::seq;
 use formality_core::Upcast;
 
-use crate::grammar::{AdtId, AssociatedItemId, RefKind, RigidName, TraitId};
+use crate::grammar::{AdtId, AssociatedItemId, ClosureId, RefKind, RigidName, TraitId};
 
 use super::{AliasTy, AssociatedTyName, Lt, Parameter, RigidTy, ScalarId, Ty};
 
@@ -57,6 +57,19 @@ impl CoreParse<Rust> for RigidTy {
                             name: RigidName::Ref(RefKind::Mut),
                             parameters: seq![lt.clone().upcast(), ty.upcast()],
                         })
+                    })
+                })
+            });
+
+            // Parse `closure_ty(id)` as a closure type.
+            parser.parse_variant("ClosureDef", Precedence::default(), |p| {
+                p.expect_keyword("closure_ty")?;
+                p.expect_char('(')?;
+                p.each_nonterminal(|id: ClosureId, p| {
+                    p.expect_char(')')?;
+                    p.ok(RigidTy {
+                        name: RigidName::ClosureDef(id),
+                        parameters: vec![],
                     })
                 })
             });
