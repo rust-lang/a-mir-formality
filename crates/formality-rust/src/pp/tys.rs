@@ -1,95 +1,19 @@
-use std::{collections::HashSet, ops::Deref};
+use std::ops::Deref;
 
 use crate::grammar::{
-    Lt, LtData, Parameter, ParameterKind, Parameters, RefKind, RigidName, RigidTy, ScalarId, Ty,
-    TyData,
+    Lt, LtData, Parameter, Parameters, RefKind, RigidName, RigidTy, ScalarId, Ty, TyData,
 };
-use formality_core::variable::CoreVariable;
+use crate::pp::PrettyPrinter;
 use itertools::Itertools;
 
-type Stack<T> = Vec<T>;
-
-/// Keeps track
-#[derive(Debug, Default)]
-pub struct NameContext {
-    ty_names: Stack<String>,
-    lt_names: Stack<String>,
-    const_names: Stack<String>,
-    used: HashSet<String>,
-}
-
-impl NameContext {
-    /// Pushes `n` fresh type names to the context.
-    pub fn push_tys(&mut self, n: usize) {
-        push(self, n, ParameterKind::Ty);
-    }
-
-    /// Removes the `n` latest type names from the context.
-    /// Panics if `n` is bigger than the numbers of names in the context.
-    pub fn pop_tys(&mut self, n: usize) {
-        pop(self, n, ParameterKind::Ty);
-    }
-
-    /// Pushes `n` fresh life time names to the context.
-    pub fn push_lts(&mut self, n: usize) {
-        push(self, n, ParameterKind::Lt);
-    }
-
-    /// Removes the `n` latest life time names from the context.
-    /// Panics if `n` is bigger than the numbers of names in the context.
-    pub fn pop_lts(&mut self, n: usize) {
-        pop(self, n, ParameterKind::Lt);
-    }
-
-    /// Pushes `n` fresh const names to the context.
-    pub fn push_const(&mut self, n: usize) {
-        push(self, n, ParameterKind::Const);
-    }
-
-    /// Removes the `n` latest const names from the context.
-    /// Panics if `n` is bigger than the numbers of names in the context.
-    pub fn pop_const(&mut self, n: usize) {
-        pop(self, n, ParameterKind::Const);
-    }
-
+impl PrettyPrinter {
     pub fn pretty_print_type(&mut self, ty: &Ty) -> String {
         match ty.data() {
             TyData::RigidTy(rigid_ty) => self.pretty_print_rigid_ty(rigid_ty),
             TyData::AliasTy(_alias_ty) => todo!(),
             TyData::PredicateTy(_predicate_ty) => todo!(),
-            TyData::Variable(core_variable) => self.variable_name(core_variable),
+            TyData::Variable(core_variable) => self.ty_name(core_variable),
         }
-    }
-
-    /// Returns a pretty printable name for the `given CoreVaribale`.
-    pub fn variable_name(&self, variable: &CoreVariable<crate::FormalityLang>) -> String {
-        let CoreVariable::BoundVar(core_bound_var) = variable else {
-            unimplemented!()
-        };
-
-        let index = core_bound_var.debruijn.unwrap().index;
-        match core_bound_var.kind {
-            ParameterKind::Ty => self.ty_names.get(index).unwrap().clone(),
-            ParameterKind::Lt => self.lt_names.get(index).unwrap().clone(),
-            ParameterKind::Const => self.const_names.get(index).unwrap().clone(),
-        }
-    }
-
-    fn fresh_name(&mut self, kind: ParameterKind) -> String {
-        let prefix = match kind {
-            ParameterKind::Ty => "T",
-            ParameterKind::Lt => "'a",
-            ParameterKind::Const => "N",
-        };
-
-        let mut name = String::new();
-        for i in 1.. {
-            name = format!("{prefix}{i}");
-            if self.used.insert(name.clone()) {
-                break;
-            }
-        }
-        name
     }
 
     fn pretty_print_rigid_ty(&mut self, rigid_ty: &RigidTy) -> String {
@@ -150,7 +74,7 @@ impl NameContext {
     fn pretty_print_lt(&mut self, lt: &Lt) -> String {
         match lt.data() {
             LtData::Static => "'static".into(),
-            LtData::Variable(core_variable) => self.variable_name(core_variable),
+            LtData::Variable(core_variable) => self.ty_name(core_variable),
         }
     }
 
@@ -195,38 +119,11 @@ impl NameContext {
     }
 }
 
-fn push(ctx: &mut NameContext, n: usize, kind: ParameterKind) {
-    let insert = match kind {
-        ParameterKind::Ty => |ctx: &mut NameContext, name: String| ctx.ty_names.insert(0, name),
-        ParameterKind::Lt => |ctx: &mut NameContext, name: String| ctx.lt_names.insert(0, name),
-        ParameterKind::Const => {
-            |ctx: &mut NameContext, name: String| ctx.const_names.insert(0, name)
-        }
-    };
-
-    for _ in 0..n {
-        let name = ctx.fresh_name(kind);
-        insert(ctx, name);
-    }
-}
-
-fn pop(ctx: &mut NameContext, n: usize, kind: ParameterKind) {
-    let remove = match kind {
-        ParameterKind::Ty => |ctx: &mut NameContext| ctx.ty_names.remove(0),
-        ParameterKind::Lt => |ctx: &mut NameContext| ctx.lt_names.remove(0),
-        ParameterKind::Const => |ctx: &mut NameContext| ctx.const_names.remove(0),
-    };
-    for _ in 0..n {
-        let name = remove(ctx);
-        ctx.used.remove(&name);
-    }
-}
-
 #[cfg(test)]
 mod test {
-    use formality_core::variable::{CoreBoundVar, DebruijnIndex, VarIndex};
+    use formality_core::variable::{CoreBoundVar, CoreVariable, DebruijnIndex, VarIndex};
 
-    use crate::grammar::AdtId;
+    use crate::{grammar::AdtId, pp::NameContext};
 
     use super::*;
 
@@ -319,32 +216,32 @@ mod test {
 
     #[test]
     fn pretty_print_adt() {
-        let mut ctx = NameContext::default();
+        let mut pp = PrettyPrinter::default();
         let ty = Ty::new(TyData::RigidTy(RigidTy {
             name: RigidName::AdtId(AdtId::new("Foo")),
             parameters: Vec::new(),
         }));
-        let t = ctx.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty);
 
         assert_eq!("Foo", t);
     }
 
     #[test]
     fn pretty_print_scalar() {
-        let mut ctx = NameContext::default();
+        let mut pp = PrettyPrinter::default();
         let ty = Ty::new(TyData::RigidTy(RigidTy {
             name: RigidName::ScalarId(ScalarId::U8),
             parameters: Vec::new(),
         }));
-        let t = ctx.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty);
 
         assert_eq!("u8", t);
     }
 
     #[test]
     fn pretty_print_ref() {
-        let mut ctx = NameContext::default();
-        ctx.push_lts(1);
+        let mut pp = PrettyPrinter::default();
+        pp.ctx.push_lts(1);
 
         // &'a u8
         let ty = Ty::new(TyData::RigidTy(RigidTy {
@@ -357,7 +254,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = ctx.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty);
         assert_eq!("&'a1 u8", t);
 
         let ty = Ty::new(TyData::RigidTy(RigidTy {
@@ -370,7 +267,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = ctx.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty);
         assert_eq!("&'a1 mut u8", t);
 
         let ty = Ty::new(TyData::RigidTy(RigidTy {
@@ -383,13 +280,13 @@ mod test {
                 }))),
             ],
         }));
-        let t = ctx.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty);
         assert_eq!("&'static mut u8", t);
     }
 
     #[test]
     fn pretty_print_tuple() {
-        let mut ctx = NameContext::default();
+        let mut pp = PrettyPrinter::default();
         let ty = Ty::new(TyData::RigidTy(RigidTy {
             name: RigidName::Tuple(2),
             parameters: vec![
@@ -403,14 +300,14 @@ mod test {
                 }))),
             ],
         }));
-        let t = ctx.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty);
 
         assert_eq!("(u8, i64)", t);
     }
 
     #[test]
     fn pretty_print_fn_ptr() {
-        let mut ctx = NameContext::default();
+        let mut pp = PrettyPrinter::default();
         let ty = Ty::new(TyData::RigidTy(RigidTy {
             name: RigidName::FnPtr(3),
             parameters: vec![
@@ -428,7 +325,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = ctx.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty);
 
         assert_eq!("fn(u8, i64) -> isize", t);
     }
