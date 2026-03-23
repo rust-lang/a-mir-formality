@@ -5,6 +5,7 @@ use crate::grammar::{
     TyData,
 };
 use formality_core::variable::CoreVariable;
+use itertools::Itertools;
 
 type Stack<T> = Vec<T>;
 
@@ -96,9 +97,9 @@ impl NameContext {
             RigidName::AdtId(adt_id) => adt_id.deref().into(),
             RigidName::ScalarId(scalar_id) => self.pretty_print_scalar(scalar_id),
             RigidName::Ref(ref_kind) => self.pretty_print_ref(ref_kind, &rigid_ty.parameters),
-            RigidName::Tuple(_) => todo!(),
-            RigidName::FnPtr(_) => todo!(),
-            RigidName::FnDef(_fn_id) => todo!(),
+            RigidName::Tuple(size) => self.pretty_print_tuple(*size, &rigid_ty.parameters),
+            RigidName::FnPtr(size) => self.pretty_print_fn_ptr(*size, &rigid_ty.parameters),
+            RigidName::FnDef(fn_id) => todo!("Implement pretty printing FnDef: {fn_id:?}"),
         }
     }
 
@@ -151,6 +152,46 @@ impl NameContext {
             LtData::Static => "'static".into(),
             LtData::Variable(core_variable) => self.variable_name(core_variable),
         }
+    }
+
+    fn pretty_print_tuple(&mut self, size: usize, parameters: &Parameters) -> String {
+        assert_eq!(size, parameters.len());
+
+        let types = parameters
+            .iter()
+            .filter_map(|p| match p {
+                Parameter::Ty(ty) => Some(self.pretty_print_type(ty)),
+                _ => None,
+            })
+            .join(", ");
+
+        format!("({types})")
+    }
+
+    fn pretty_print_fn_ptr(&mut self, size: usize, parameters: &Parameters) -> String {
+        assert_eq!(size, parameters.len());
+
+        let input_args = parameters
+            .iter()
+            .take(size - 1)
+            .filter_map(|p| match p {
+                Parameter::Ty(ty) => Some(self.pretty_print_type(ty)),
+                _ => None,
+            })
+            .join(", ");
+
+        let output_arg = parameters
+            .iter()
+            .rev()
+            .next()
+            .map(|p| match p {
+                Parameter::Ty(ty) => Some(self.pretty_print_type(ty)),
+                _ => None,
+            })
+            .flatten()
+            .expect("Must be a type");
+
+        format!("fn({input_args}) -> {output_arg}")
     }
 }
 
@@ -344,5 +385,51 @@ mod test {
         }));
         let t = ctx.pretty_print_type(&ty);
         assert_eq!("&'static mut u8", t);
+    }
+
+    #[test]
+    fn pretty_print_tuple() {
+        let mut ctx = NameContext::default();
+        let ty = Ty::new(TyData::RigidTy(RigidTy {
+            name: RigidName::Tuple(2),
+            parameters: vec![
+                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                    name: RigidName::ScalarId(ScalarId::U8),
+                    parameters: vec![],
+                }))),
+                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                    name: RigidName::ScalarId(ScalarId::I64),
+                    parameters: vec![],
+                }))),
+            ],
+        }));
+        let t = ctx.pretty_print_type(&ty);
+
+        assert_eq!("(u8, i64)", t);
+    }
+
+    #[test]
+    fn pretty_print_fn_ptr() {
+        let mut ctx = NameContext::default();
+        let ty = Ty::new(TyData::RigidTy(RigidTy {
+            name: RigidName::FnPtr(3),
+            parameters: vec![
+                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                    name: RigidName::ScalarId(ScalarId::U8),
+                    parameters: vec![],
+                }))),
+                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                    name: RigidName::ScalarId(ScalarId::I64),
+                    parameters: vec![],
+                }))),
+                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                    name: RigidName::ScalarId(ScalarId::Isize),
+                    parameters: vec![],
+                }))),
+            ],
+        }));
+        let t = ctx.pretty_print_type(&ty);
+
+        assert_eq!("fn(u8, i64) -> isize", t);
     }
 }
