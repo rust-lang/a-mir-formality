@@ -150,7 +150,7 @@ judgment_fn! {
                     assumptions,
                     state,
                     &stmts[i],
-                    stmts[i+1..].live_before(env, places_live_on_exit),
+                    stmts[i+1..].live_before(env, &state, places_live_on_exit),
                 ) => (env, state)))
             // Drop locals declared in this scope (reverse declaration order)
             (let locals_to_drop = state.locals_dropped_in_innermost_scope())
@@ -183,7 +183,7 @@ judgment_fn! {
                     state,
                     expr,
                     ty,
-                    LiveBefore::live_before(&Assignment(id), env, &places_live_on_exit),
+                    LiveBefore::live_before(&Assignment(id), env, &state, &places_live_on_exit),
                 ) => state))
 
             (let state = state.with_local_in_scope(&env.env, label, id, ty)?)
@@ -199,7 +199,7 @@ judgment_fn! {
                 state,
                 condition,
                 Ty::bool(),
-                Either(then_block, else_block).live_before(env, places_live_on_exit),
+                Either(then_block, else_block).live_before(env, &state, places_live_on_exit),
             ) => state)
 
             // Check both branches
@@ -225,8 +225,11 @@ judgment_fn! {
         )
 
         (
-            // Loop statement: create scope with continue_live_places, iterate to fixed point
-            (let state = state.push_continue_scope(&env.env, label, places_live_on_exit, body.live_before(&env, places_live_on_exit))?)
+            // Loop statement: create scope with continue_live_places, iterate to fixed point.
+            // Use Stmt::Loop::live_before which builds a LivenessContext that includes
+            // the loop's own label, so that continue/break inside the body resolve correctly.
+            (let continue_live = Stmt::loop_(label, body).live_before(&env, &state, places_live_on_exit))
+            (let state = state.push_continue_scope(&env.env, label, places_live_on_exit, continue_live)?)
             (borrow_check_loop(env, assumptions, state, body, places_live_on_exit) => state)
             (let state = state.pop_scope(label))
             ------------------------------------------------------------ ("loop")
@@ -322,7 +325,7 @@ judgment_fn! {
                 assumptions,
                 state,
                 expr,
-                Assignment(place).live_before(env, places_live_on_exit),
+                Assignment(place).live_before(env, &state, places_live_on_exit),
             ) => (value_ty, state))
 
             // Borrow-check and type-check the LHS place expression
@@ -357,7 +360,7 @@ judgment_fn! {
                 assumptions,
                 state,
                 callee,
-                args.live_before(env, places_live),
+                args.live_before(env, &state, places_live),
             ) => (callee_ty, state))
 
             // We only support calling FnDef right now

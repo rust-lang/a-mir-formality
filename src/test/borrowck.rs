@@ -859,7 +859,6 @@ fn integer_in_outer_scope() {
 /// }
 /// ```
 #[test]
-#[ignore = "liveness does not propagate through continue edges yet"]
 fn write_to_borrowed_before_continue() {
     crate::assert_err!(
         [
@@ -882,6 +881,81 @@ fn write_to_borrowed_before_continue() {
             }
         ]
 
-        expect_test::expect!["TODO: fill in when liveness is fixed"]
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = a : u32
+                &access.place = a : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2}
+                &lifetime.upcast() = ?lt_1
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = a : u32
+                &access.place = a : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2}
+                &lifetime.upcast() = ?lt_1
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`"#]]
+    )
+}
+
+/// Writing to a borrowed variable before a loop that might not execute
+/// should be an error, because the borrow is live along the zero-iteration path.
+///
+/// ```rust,ignore
+/// let a = 2;
+/// let b = 2;
+/// let p = &a;
+/// a = 3;        // <-- error: p borrows a, and if the loop runs 0 times, p is still &a
+/// loop {
+///     p = &b;   // kills p's borrow of a, but only if the loop runs
+/// }
+/// *p
+/// ```
+#[test]
+fn write_to_borrowed_before_zero_iteration_loop() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo() -> u32 {
+                    exists<'r0, 'r1, 'r2> {
+                        let a: u32 = 22 _ u32;
+                        let b: u32 = 22 _ u32;
+                        let p: &'r0 u32 = &'r1 a;
+                        a = 23 _ u32;
+                        'l: loop {
+                            p = &'r2 b;
+                            break 'l;
+                        }
+                        return *p;
+                    }
+                }
+            }
+        ]
+
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = a : u32
+                &access.place = a : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2}
+                &lifetime.upcast() = ?lt_1
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`"#]]
     )
 }
