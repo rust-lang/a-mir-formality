@@ -61,37 +61,27 @@ pub(crate) fn derive_parse_with_spec(
         }
     }
 
-    // Emit `#[variable]` variants first. If any succeeds, short-circuit
-    // and skip remaining variants. This ensures that in-scope variables
-    // are always preferred over identifiers (e.g., `T` as a type variable
-    // vs `T` as an ADT name) without needing global disambiguation hacks.
-    let mut variable_variants = TokenStream::new();
-    let mut other_variants = TokenStream::new();
+    // Separate variable variants from non-variable variants.
+    // If there is at least one variable variant, we invoke
+    // `try_claim_as_var` which will try to parse the string as a
+    // variable *of any kind*; if it succeeds, we mark `claimed_as_var`
+    // on the left-recursion stack so that `id!` types will reject the
+    // same text as a plain identifier.
+    let mut parse_variants = TokenStream::new();
+    let mut has_variable_variant = false;
+
     for variant in s.variants() {
         let variant_name = Literal::string(&format!("{}::{}", s.ast().ident, variant.ast().ident));
         let v = parse_variant(variant, external_spec)?;
         let precedence = precedence(variant.ast().attrs)?.expr();
         let is_variable = has_variable_attr(variant.ast().attrs);
-        let target = if is_variable {
-            &mut variable_variants
-        } else {
-            &mut other_variants
-        };
-        target.extend(quote_spanned!(
+        has_variable_variant |= is_variable;
+        let variant_code = quote_spanned!(
             variant.ast().ident.span() =>
             __parser.parse_variant(#variant_name, #precedence, |__p| { #v });
-        ));
+        );
+        parse_variants.extend(variant_code);
     }
-    let parse_variants = if variable_variants.is_empty() {
-        other_variants
-    } else {
-        quote! {
-            #variable_variants
-            if !__parser.has_success() {
-                #other_variants
-            }
-        }
-    };
 
     let type_name: Literal = as_literal(&s.ast().ident);
     Ok(s.gen_impl(quote! {
@@ -101,7 +91,11 @@ pub(crate) fn derive_parse_with_spec(
             fn parse<'t>(scope: &parse::Scope<crate::FormalityLang>, text: &'t str) -> parse::ParseResult<'t, Self>
             {
                 parse::Parser::multi_variant(scope, text, #type_name, |__parser| {
-                    #parse_variants;
+                    if #has_variable_variant {
+                        __parser.try_claim_as_var();
+                    }
+
+                    #parse_variants
                 })
             }
         }

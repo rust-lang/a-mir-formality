@@ -210,23 +210,6 @@ macro_rules! id {
         };
     };
 
-    ($n:ident, match_var = false) => {
-        $crate::id!(@inner $n);
-
-        const _: () = {
-            use $crate::parse::{self, CoreParse};
-
-            impl CoreParse<crate::FormalityLang> for $n {
-                fn parse<'t>(
-                    scope: &parse::Scope<crate::FormalityLang>,
-                    text: &'t str,
-                ) -> parse::ParseResult<'t, Self> {
-                    $crate::parse::Parser::identifier_no_var(scope, text, stringify!($n))
-                }
-            }
-        };
-    };
-
     ($n:ident, regex = $regex:expr) => {
         $crate::id!(@inner $n);
 
@@ -245,6 +228,7 @@ macro_rules! id {
                     }
                     $crate::parse::Parser::identifier_re(scope, text, stringify!($n), &RE)
                 }
+
             }
         };
     };

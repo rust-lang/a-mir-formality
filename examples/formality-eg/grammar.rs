@@ -117,8 +117,8 @@ pub struct FieldExpr {
 
 formality_core::id!(StructId);
 formality_core::id!(FieldId);
-formality_core::id!(FnId);
 formality_core::id!(LocalVarId);
+formality_core::id!(FnId);
 
 cast_impl!((BoundVar) <: (Variable) <: (Parameter));
 cast_impl!((ExistentialVar) <: (Variable) <: (Parameter));

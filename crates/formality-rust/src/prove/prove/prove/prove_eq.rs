@@ -2,6 +2,8 @@ use crate::grammar::{
     AliasTy, ExistentialVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar,
     Variable, Wcs,
 };
+use crate::prove::prove::Constrained;
+use formality_core::judgment::FailureLocation;
 use formality_core::visit::CoreVisit;
 use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 use formality_core::{Deduplicate, Upcasted};
@@ -65,7 +67,7 @@ judgment_fn! {
         )
 
         (
-            (prove_normalize(decls, env, assumptions, x) => (c, y))
+            (prove_normalize(decls, env, assumptions, x) => Constrained(y, c))
             (prove_after(decls, c, assumptions, eq(y, z)) => c)
             ----------------------------- ("normalize-l")
             (prove_eq(decls, env, assumptions, x, z) => c)
@@ -144,6 +146,7 @@ judgment_fn! {
     }
 }
 
+#[track_caller]
 fn equate_variable(
     decls: impl Upcast<Decls>,
     env: impl Upcast<Env>,
@@ -171,7 +174,11 @@ fn equate_variable(
 
     // Ensure that `x` passes the occurs check for the free variables in `p`.
     if occurs_in(x, &fvs) {
-        return ProvenSet::failed("equate_variable", format!("`{x:?}` occurs in `{p:?}`"));
+        return ProvenSet::failed(
+            "equate_variable",
+            FailureLocation::caller(),
+            format!("`{x:?}` occurs in `{p:?}`"),
+        );
     }
 
     // Map each free variable `fv` in `p` that is of higher universe than `x`

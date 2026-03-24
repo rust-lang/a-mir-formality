@@ -1,4 +1,5 @@
-use crate::grammar::{minirust, ParameterKind, Parameters, RigidName, ScalarId, Ty};
+use crate::grammar::expr::Block;
+use crate::grammar::{ParameterKind, Parameters, RigidName, ScalarId};
 
 use super::{Parameter, Variable};
 use formality_core::{cast_impl, term, DowncastTo, Upcast, UpcastFrom};
@@ -39,17 +40,13 @@ pub enum ConstData {
     #[cast]
     Scalar(ScalarValue),
 
+    /// A block expression that evaluates to a const value,
+    /// e.g. `{ 22_usize }` in `Foo<{ 22_usize }>`.
     #[cast]
-    RvToTsv(MiniRustConst),
+    Block(Block),
 
     #[variable(ParameterKind::Const)]
     Variable(Variable),
-}
-
-#[term(($ty) $body)]
-pub struct MiniRustConst {
-    pub ty: Ty,
-    pub body: minirust::Body,
 }
 
 #[term]
@@ -109,21 +106,6 @@ impl DowncastTo<ConstData> for Const {
     }
 }
 
-impl DowncastTo<Const> for Parameter {
-    fn downcast_to(&self) -> Option<Const> {
-        match self {
-            Parameter::Ty(_) | Parameter::Lt(_) => None,
-            Parameter::Const(c) => Some(c.clone()),
-        }
-    }
-}
-
-impl UpcastFrom<Const> for Parameter {
-    fn upcast_from(term: Const) -> Self {
-        Self::Const(term)
-    }
-}
-
 impl UpcastFrom<ConstData> for Const {
     fn upcast_from(term: ConstData) -> Self {
         Const {
@@ -134,4 +116,3 @@ impl UpcastFrom<ConstData> for Const {
 
 cast_impl!((ConstData) <: (Const) <: (Parameter));
 cast_impl!((ScalarValue) <: (ConstData) <: (Const));
-cast_impl!((MiniRustConst) <: (ConstData) <: (Const));

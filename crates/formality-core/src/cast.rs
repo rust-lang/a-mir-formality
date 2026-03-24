@@ -149,6 +149,15 @@ where
     }
 }
 
+impl<T> DowncastFrom<Option<T>> for () {
+    fn downcast_from(t: &Option<T>) -> Option<Self> {
+        match t {
+            Some(_) => None,
+            None => Some(()),
+        }
+    }
+}
+
 impl<T, U> DowncastFrom<Arc<U>> for Arc<T>
 where
     T: DowncastFrom<U>,

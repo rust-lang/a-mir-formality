@@ -114,30 +114,32 @@ fn test_parse_rust_like_struct_syntax() {
                 Crate {
                     id: core,
                     items: [
-                        Struct(
-                            Struct {
-                                id: Foo,
-                                binder: Binder {
-                                    kinds: [
-                                        Ty,
-                                    ],
-                                    term: StructBoundData {
-                                        where_clauses: [],
-                                        fields: [
-                                            Field {
-                                                name: Id(
-                                                    a,
-                                                ),
-                                                ty: Ty {
-                                                    data: Variable(
-                                                        ^ty0_0,
-                                                    ),
-                                                },
-                                            },
+                        AdtItem(
+                            Struct(
+                                Struct {
+                                    id: Foo,
+                                    binder: Binder {
+                                        kinds: [
+                                            Ty,
                                         ],
+                                        term: StructBoundData {
+                                            where_clauses: [],
+                                            fields: [
+                                                Field {
+                                                    name: Id(
+                                                        a,
+                                                    ),
+                                                    ty: Ty {
+                                                        data: Variable(
+                                                            ^ty0_0,
+                                                        ),
+                                                    },
+                                                },
+                                            ],
+                                        },
                                     },
                                 },
-                            },
+                            ),
                         ),
                     ],
                 },

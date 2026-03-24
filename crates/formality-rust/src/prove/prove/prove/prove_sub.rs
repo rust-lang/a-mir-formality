@@ -1,4 +1,5 @@
 use crate::grammar::{Lt, Parameter, Relation, RigidTy, TyData, Wcs};
+use crate::prove::prove::Constrained;
 use formality_core::judgment_fn;
 
 use crate::prove::prove::prove::prove_outlives::prove_outlives;
@@ -24,14 +25,14 @@ judgment_fn! {
         trivial(a == b => Constraints::none(env))
 
         (
-            (prove_normalize(decls, env, assumptions, x) => (c, y))
+            (prove_normalize(decls, env, assumptions, x) => Constrained(y, c))
             (prove_after(decls, c, assumptions, Relation::sub(y, z)) => c)
             ----------------------------- ("normalize-l")
             (prove_sub(decls, env, assumptions, x, z) => c)
         )
 
         (
-            (prove_normalize(decls, env, assumptions, y) => (c, z))
+            (prove_normalize(decls, env, assumptions, y) => Constrained(z, c))
             (prove_after(decls, c, assumptions, Relation::sub(x, &z)) => c)
             ----------------------------- ("normalize-r")
             (prove_sub(decls, env, assumptions, x, y) => c)

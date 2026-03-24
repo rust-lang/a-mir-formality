@@ -1,5 +1,8 @@
-use crate::grammar::{
-    AliasTy, ExistentialVar, Parameter, Relation, RigidTy, TyData, Variable, Wc, WcData, Wcs,
+use crate::{
+    grammar::{
+        AliasTy, ExistentialVar, Parameter, Relation, RigidTy, TyData, Variable, Wc, WcData, Wcs,
+    },
+    prove::prove::Constrained,
 };
 use formality_core::{judgment_fn, Downcast};
 
@@ -22,7 +25,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         p: Parameter,
-    ) => (Constraints, Parameter) {
+    ) => Constrained<Parameter> {
         debug(p, assumptions, env)
 
         (
@@ -44,7 +47,7 @@ judgment_fn! {
             (let c = c.pop_subst(&subst))
             (assert c.env().encloses(&ty))
             ----------------------------- ("normalize-via-impl")
-            (prove_normalize(decls, env, assumptions, TyData::AliasTy(a)) => (c, ty))
+            (prove_normalize(decls, env, assumptions, TyData::AliasTy(a)) => Constrained(ty, c))
         )
     }
 }
@@ -56,7 +59,7 @@ judgment_fn! {
         assumptions: Wcs,
         via: Wc,
         goal: Parameter,
-    ) => (Constraints, Parameter) {
+    ) => Constrained<Parameter> {
         debug(goal, via, assumptions, env)
 
         // The following 2 rules handle normalization of existential variables. We look specifically for
@@ -69,14 +72,14 @@ judgment_fn! {
             (if let Some(Variable::ExistentialVar(v_a)) = a.downcast())
             (if v_goal == v_a)!
             ----------------------------- ("var-axiom-l")
-            (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(a, b), Variable::ExistentialVar(v_goal)) => (Constraints::none(env), b))
+            (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(a, b), Variable::ExistentialVar(v_goal)) => Constrained::none(env, b))
         )
 
         (
             (if let Some(Variable::ExistentialVar(v_a)) = a.downcast())
             (if v_goal == v_a)!
             ----------------------------- ("var-axiom-r")
-            (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(b, a), Variable::ExistentialVar(v_goal)) => (Constraints::none(env), b))
+            (prove_normalize_via(_decls, env, _assumptions, Relation::Equals(b, a), Variable::ExistentialVar(v_goal)) => Constrained::none(env, b))
         )
 
         // The following 2 rules handle normalization of a type `X` given an assumption `X = Y`.
@@ -93,7 +96,7 @@ judgment_fn! {
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(b))
             ----------------------------- ("axiom-l")
-            (prove_normalize_via(decls, env, assumptions, Relation::Equals(a, b), goal) => (c, b))
+            (prove_normalize_via(decls, env, assumptions, Relation::Equals(a, b), goal) => Constrained(b, c))
         )
 
         (
@@ -102,7 +105,7 @@ judgment_fn! {
             (prove_syntactically_eq(decls, env, assumptions, a, goal) => c)
             (let b = c.substitution().apply(b))
             ----------------------------- ("axiom-r")
-            (prove_normalize_via(decls, env, assumptions, Relation::Equals(b, a), goal) => (c, b))
+            (prove_normalize_via(decls, env, assumptions, Relation::Equals(b, a), goal) => Constrained(b, c))
         )
 
         // These rules handle the the ∀ and ⇒ cases.
@@ -110,19 +113,19 @@ judgment_fn! {
         (
             (let (env, subst) = env.existential_substitution(binder))
             (let via1 = binder.instantiate_with(&subst).unwrap())
-            (prove_normalize_via(decls, env, assumptions, via1, goal) => (c, p))
+            (prove_normalize_via(decls, env, assumptions, via1, goal) => Constrained(p, c))
             (let c = c.pop_subst(&subst))
             (assert c.env().encloses(&p))
             ----------------------------- ("forall")
-            (prove_normalize_via(decls, env, assumptions, WcData::ForAll(binder), goal) => (c, p))
+            (prove_normalize_via(decls, env, assumptions, WcData::ForAll(binder), goal) => Constrained(p, c))
         )
 
         (
-            (prove_normalize_via(decls, env, assumptions, wc_consequence, goal) => (c, p))
+            (prove_normalize_via(decls, env, assumptions, wc_consequence, goal) => Constrained(p, c))
             (prove_after(decls, c, assumptions, wc_condition) => c)
             (let p = c.substitution().apply(p))
             ----------------------------- ("implies")
-            (prove_normalize_via(decls, env, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => (c, p))
+            (prove_normalize_via(decls, env, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => Constrained(p, c))
         )
     }
 }

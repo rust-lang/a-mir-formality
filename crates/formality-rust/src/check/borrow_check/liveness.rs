@@ -1,76 +1,119 @@
-use crate::grammar::minirust::{
-    ArgumentExpression, BasicBlock, BbId, PlaceExpression, Statement, Terminator, ValueExpression,
+use crate::{
+    check::borrow_check::env::TypeckEnv,
+    check::borrow_check::flow_state::FlowState,
+    grammar::expr::{Block, Expr, ExprData, FieldExpr, Init, Label, LabelId, PlaceExpr, Stmt},
 };
-use formality_core::{fixed_point, Set, SetExt, Upcast};
+use formality_core::{Set, Upcast};
 
-use crate::check::mini_rust_check::TypeckEnv;
+pub type LivePlaces = Set<PlaceExpr>;
 
-pub type LivePlaces = Set<PlaceExpression>;
-
-/// Given a basic-block id, returns the places live on entry to the basic block.
-#[fixed_point]
-fn places_live_before_basic_block(env: &TypeckEnv, bb_id: &BbId) -> LivePlaces {
-    #![allow(unused_assignments)]
-    let BasicBlock {
-        id: _,
-        statements,
-        terminator,
-    } = env.basic_block(bb_id).expect("valid basic block id");
-
-    let places = places_live_before_terminator(env, terminator);
-    let places = statements.live_before(env, places);
-    places
+/// Liveness context for control-flow targets (break/continue).
+/// Each entry corresponds to a labeled scope (block or loop).
+#[derive(Clone, Debug)]
+pub struct LivenessContext {
+    scopes: Vec<LivenessScope>,
 }
 
-pub fn places_live_before_basic_blocks<'a>(
-    env: &TypeckEnv,
-    bb_ids: impl IntoIterator<Item = &'a BbId>,
-) -> LivePlaces {
-    bb_ids
-        .into_iter()
-        .flat_map(|bb_id| places_live_before_basic_block(env, bb_id))
-        .collect()
+#[derive(Clone, Debug)]
+struct LivenessScope {
+    label: Option<LabelId>,
+    /// Places live after this scope exits (break target).
+    break_live: LivePlaces,
+    /// Places live at loop entry (continue target). `None` for non-loop scopes.
+    continue_live: Option<LivePlaces>,
 }
 
-/// Returns the places that are live before the terminator executes.
-pub fn places_live_before_terminator(env: &TypeckEnv, terminator: &Terminator) -> LivePlaces {
-    match terminator {
-        Terminator::Goto(bb_ids) => {
-            let mut places = Set::default();
-            for bb_id in bb_ids {
-                places = places.union_with(places_live_before_basic_block(env, bb_id));
-            }
-            places
+impl LivenessContext {
+    pub fn empty() -> Self {
+        LivenessContext { scopes: Vec::new() }
+    }
+
+    /// Look up the break target liveness for the given label.
+    fn break_live(&self, label: &LabelId) -> LivePlaces {
+        self.scopes
+            .iter()
+            .rev()
+            .find(|s| s.label.as_ref() == Some(label))
+            .map(|s| s.break_live.clone())
+            .unwrap_or_default()
+    }
+
+    /// Look up the continue target liveness for the given label.
+    fn continue_live(&self, label: &LabelId) -> LivePlaces {
+        self.scopes
+            .iter()
+            .rev()
+            .find(|s| s.label.as_ref() == Some(label))
+            .and_then(|s| s.continue_live.clone())
+            .unwrap_or_default()
+    }
+
+    /// Push a loop scope and return a new context.
+    fn with_loop(
+        &self,
+        label: &Option<Label>,
+        break_live: LivePlaces,
+        continue_live: LivePlaces,
+    ) -> Self {
+        let mut ctx = self.clone();
+        ctx.scopes.push(LivenessScope {
+            label: label.as_ref().map(|l| l.id.clone()),
+            break_live,
+            continue_live: Some(continue_live),
+        });
+        ctx
+    }
+
+    /// Update the continue liveness for the innermost scope.
+    fn set_continue_live(&mut self, live: LivePlaces) {
+        if let Some(scope) = self.scopes.last_mut() {
+            scope.continue_live = Some(live);
         }
-        Terminator::Switch {
-            switch_value,
-            switch_targets,
-            fallback,
-        } => {
-            let mut places = places_live_before_basic_block(env, fallback);
-            for target in switch_targets {
-                places = places.union_with(places_live_before_basic_block(env, &target.target));
-            }
-            places = switch_value.live_before(env, places);
-            places
+    }
+
+    /// Push a block scope (no continue target).
+    fn with_block(&self, label: &Option<Label>, break_live: LivePlaces) -> Self {
+        let mut ctx = self.clone();
+        ctx.scopes.push(LivenessScope {
+            label: label.as_ref().map(|l| l.id.clone()),
+            break_live,
+            continue_live: None,
+        });
+        ctx
+    }
+}
+
+/// Trait for types that can be converted to a [`LivenessContext`].
+/// This allows `live_before` to accept either a `&FlowState` or a `&LivenessContext`.
+pub trait IntoLivenessContext {
+    fn into_liveness_context(&self) -> LivenessContext;
+}
+
+impl IntoLivenessContext for FlowState {
+    fn into_liveness_context(&self) -> LivenessContext {
+        LivenessContext {
+            scopes: self
+                .scopes
+                .iter()
+                .map(|s| LivenessScope {
+                    label: s.label.clone(),
+                    break_live: s.break_live_places.clone(),
+                    continue_live: s.continue_live_places.clone(),
+                })
+                .collect(),
         }
-        Terminator::Call {
-            callee,
-            generic_arguments: _,
-            arguments,
-            ret,
-            next_block,
-        } => {
-            let mut places_live = match next_block {
-                Some(bb_id) => places_live_before_basic_block(env, bb_id),
-                None => LivePlaces::default(),
-            };
-            places_live = Assignment(ret).live_before(env, places_live);
-            places_live = arguments.live_before(env, places_live);
-            places_live = callee.live_before(env, places_live);
-            places_live
-        }
-        Terminator::Return => LivePlaces::default(),
+    }
+}
+
+impl<T: IntoLivenessContext> IntoLivenessContext for &T {
+    fn into_liveness_context(&self) -> LivenessContext {
+        T::into_liveness_context(self)
+    }
+}
+
+impl IntoLivenessContext for LivenessContext {
+    fn into_liveness_context(&self) -> LivenessContext {
+        self.clone()
     }
 }
 
@@ -78,112 +121,283 @@ pub trait LiveBefore {
     /// Given a term `term` and a set of places `places_live` that are live after `term` executes,
     /// returns the set of places live BEFORE `term`. This will include all places in `places_live`
     /// minus any places overwritten by `term`, plus any places accessed.
-    fn live_before(&self, env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces;
+    ///
+    /// The `scopes` parameter provides liveness targets for break/continue statements.
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces;
 }
 
-impl<A: LiveBefore, B: LiveBefore> LiveBefore for (A, B) {
-    fn live_before(&self, env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces {
-        let (a, b) = self;
-        let places_live = b.live_before(env, places_live);
-        a.live_before(env, places_live)
+/// Sequential execution: `a` runs before `b`.
+/// Places live before `Seq(a, b)` = places live before `a`,
+/// given that places live after `a` = places live before `b`.
+pub struct Seq<A, B>(pub A, pub B);
+
+impl<A: LiveBefore, B: LiveBefore> LiveBefore for Seq<A, B> {
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
+        let Seq(a, b) = self;
+        let places_live = b.live_before(env, scopes, places_live);
+        a.live_before(env, scopes, places_live)
     }
 }
 
-impl<A: LiveBefore, B: LiveBefore, C: LiveBefore> LiveBefore for (A, B, C) {
-    fn live_before(&self, env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces {
-        let (a, b, c) = self;
-        let places_live = c.live_before(env, places_live);
-        let places_live = b.live_before(env, places_live);
-        a.live_before(env, places_live)
+/// Parallel paths: either `a` or `b` executes (but not both).
+/// Places live before `Either(a, b)` = union of places live before each.
+pub struct Either<A, B>(pub A, pub B);
+
+impl<A: LiveBefore, B: LiveBefore> LiveBefore for Either<A, B> {
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
+        let Either(a, b) = self;
+        let places_live: LivePlaces = places_live.upcast();
+        let a_live = a.live_before(env, scopes, &places_live);
+        let b_live = b.live_before(env, scopes, &places_live);
+        a_live.union(&b_live).cloned().collect()
     }
 }
 
 impl<T: ?Sized + LiveBefore> LiveBefore for &T {
-    fn live_before(&self, env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces {
-        T::live_before(self, env, places_live)
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
+        T::live_before(self, env, scopes, places_live)
     }
 }
 
 impl<T: LiveBefore> LiveBefore for [T] {
-    fn live_before(&self, env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces {
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
         let mut places_live: LivePlaces = places_live.upcast();
         for element in self.iter().rev() {
-            places_live = T::live_before(element, env, places_live);
+            places_live = T::live_before(element, env, scopes, places_live);
         }
         places_live
     }
 }
 
 impl<T: LiveBefore> LiveBefore for Vec<T> {
-    fn live_before(&self, env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces {
-        <[T]>::live_before(self, env, places_live)
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
+        <[T]>::live_before(self, env, scopes, places_live)
     }
 }
 
 impl<T: LiveBefore> LiveBefore for Option<T> {
-    fn live_before(&self, env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces {
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
         let places_live = places_live.upcast();
         match self {
-            Some(t) => t.live_before(env, places_live),
+            Some(t) => t.live_before(env, scopes, places_live),
             None => places_live,
         }
     }
 }
 
-impl LiveBefore for Statement {
-    fn live_before(&self, env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces {
-        let mut places_live = places_live.upcast();
+impl LiveBefore for Stmt {
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
+        let places_live: LivePlaces = places_live.upcast();
         match self {
-            Statement::Assign(place_expression, value_expression) => {
-                places_live = Assignment(place_expression).live_before(env, places_live);
-                places_live = value_expression.live_before(env, places_live);
-                places_live
+            Stmt::Let {
+                label: _,
+                id,
+                ty: _,
+                init,
+            } => {
+                let places_live = Assignment(id).live_before(env, scopes, places_live);
+                init.live_before(env, scopes, places_live)
             }
-            Statement::PlaceMention(place_expression) => {
-                place_expression.live_before(env, places_live)
+            Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
+                Seq(condition, Either(then_block, else_block)).live_before(env, scopes, places_live)
             }
-            Statement::StorageLive(_) | Statement::StorageDead(_) => places_live,
+            Stmt::Expr { expr } => expr.live_before(env, scopes, places_live),
+            Stmt::Loop { label, body } => {
+                //
+                //             Before  .............. places_live
+                //               |     :            :
+                //               v     v            :
+                //     +----->  Loop ----> After    :
+                //     |         |            ^     :
+                //     |         v            | <....
+                //  continue -- Body --break--+
+                //
+                // So `places_live` is the liveness on exit from the
+                // loop. The liveness on entry to the loop begins
+                // as `places_live` but then we compute the liveness
+                // of with the body taken into account.
+                //
+                // Meanwhile, the liveness on entry to the loop is the
+                // union of after + body.
+                //
+                // We also record the liveness on exit / on loop entry
+                // for use with embedded break/continue.
+                let ctx = scopes.into_liveness_context();
+                // Fixed-point iteration: start with places_live (live after loop)
+                // as the initial approximation for both break and continue targets.
+                // We assume all loops might not execute, so the loop entry starts
+                // with the same liveness as the exit.
+                let mut ctx = ctx.with_loop(label, places_live.clone(), places_live.clone());
+                loop {
+                    let new_live = body.live_before(env, &ctx, &places_live);
+                    let prev_continue = ctx.scopes.last().unwrap().continue_live.clone();
+                    if prev_continue.as_ref() == Some(&new_live) {
+                        // Union with places_live for the zero-iteration path:
+                        // the loop might not execute, so anything live after
+                        // the loop is also live before it.
+                        break new_live.union(&places_live).cloned().collect();
+                    }
+                    ctx.set_continue_live(new_live);
+                }
+            }
+            Stmt::Break { label } => {
+                let ctx = scopes.into_liveness_context();
+                ctx.break_live(label)
+            }
+            Stmt::Continue { label } => {
+                let ctx = scopes.into_liveness_context();
+                ctx.continue_live(label)
+            }
+            Stmt::Return { expr } => {
+                // The return expression is evaluated, but nothing after return is live.
+                expr.live_before(env, scopes, LivePlaces::default())
+            }
+            Stmt::Block(block) => block.live_before(env, scopes, places_live),
+            Stmt::Exists { binder } => {
+                let (_vars, block) = binder.open();
+                block.live_before(env, scopes, places_live)
+            }
         }
     }
 }
 
-impl LiveBefore for ValueExpression {
-    fn live_before(&self, env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces {
-        let places_live = places_live.upcast();
-        match self {
-            ValueExpression::Constant(_) => places_live,
-            ValueExpression::Fn(_) => places_live,
-            ValueExpression::Struct(value_expressions, _ty) => {
-                value_expressions.live_before(env, places_live)
+impl LiveBefore for Expr {
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
+        let places_live: LivePlaces = places_live.upcast();
+        match self.data() {
+            // place = expr: the assignment kills `place`, then we need liveness of `expr`.
+            ExprData::Assign { place, expr } => {
+                Seq(expr, Assignment(place)).live_before(env, scopes, places_live)
             }
-            ValueExpression::Load(place_expression) => {
-                place_expression.live_before(env, places_live)
+
+            // call callee(args): callee and args are all evaluated (callee first, then args left-to-right).
+            ExprData::Call { callee, args } => {
+                Seq(callee, args).live_before(env, scopes, places_live)
             }
-            ValueExpression::Ref(_ref_kind, _lt, place_expression) => {
-                place_expression.live_before(env, places_live)
+
+            // Literals don't access any places.
+            ExprData::Literal { .. } | ExprData::True | ExprData::False => places_live,
+
+            // &expr or &mut expr: the operand place is accessed.
+            ExprData::Ref {
+                kind: _,
+                lt: _,
+                place: expr,
+            } => expr.live_before(env, scopes, places_live),
+
+            // A place expression used as a value: the place is live.
+            ExprData::Place(place_expr) => place_expr.live_before(env, scopes, places_live),
+
+            // Struct { field_exprs }: each field expression is evaluated.
+            ExprData::Struct {
+                field_exprs,
+                adt_id: _,
+                turbofish: _,
+            } => field_exprs.live_before(env, scopes, places_live),
+
+            // Turbofish is just a variable reference with explicit type args —
+            // the variable itself is live.
+            ExprData::Turbofish { id, args: _ } => {
+                let place_expr: PlaceExpr = id.upcast();
+                place_expr.live_before(env, scopes, places_live)
             }
         }
     }
 }
 
-impl LiveBefore for PlaceExpression {
-    fn live_before(&self, _env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces {
+impl LiveBefore for Init {
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
+        self.expr.live_before(env, scopes, places_live)
+    }
+}
+
+impl LiveBefore for FieldExpr {
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
+        self.value.live_before(env, scopes, places_live)
+    }
+}
+
+impl LiveBefore for Block {
+    fn live_before(
+        &self,
+        env: &TypeckEnv,
+        scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
+        let places_live: LivePlaces = places_live.upcast();
+        self.stmts.live_before(env, scopes, places_live)
+    }
+}
+
+impl LiveBefore for PlaceExpr {
+    fn live_before(
+        &self,
+        _env: &TypeckEnv,
+        _scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
         let mut places_live = places_live.upcast();
         places_live.insert(self.clone());
         places_live
-    }
-}
-
-impl LiveBefore for ArgumentExpression {
-    fn live_before(&self, env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces {
-        match self {
-            ArgumentExpression::ByValue(value_expression) => {
-                value_expression.live_before(env, places_live)
-            }
-            ArgumentExpression::InPlace(place_expression) => {
-                place_expression.live_before(env, places_live)
-            }
-        }
     }
 }
 
@@ -192,13 +406,21 @@ impl LiveBefore for ArgumentExpression {
 /// except those that are overwritten by assigning to `place_assigned`.
 ///
 /// This is because whatever value resides in `place_assigned` before the assignment is not relevant afterwards.
-pub struct Assignment<'a>(pub &'a PlaceExpression);
+pub struct Assignment<P>(pub P);
 
-impl LiveBefore for Assignment<'_> {
-    fn live_before(&self, _env: &TypeckEnv, places_live: impl Upcast<LivePlaces>) -> LivePlaces {
+impl<P> LiveBefore for Assignment<P>
+where
+    P: Upcast<PlaceExpr> + Clone,
+{
+    fn live_before(
+        &self,
+        _env: &TypeckEnv,
+        _scopes: &impl IntoLivenessContext,
+        places_live: impl Upcast<LivePlaces>,
+    ) -> LivePlaces {
         let mut places_live = places_live.upcast();
-        let Assignment(place_assigned) = self;
-        places_live.retain(|p| !place_assigned.is_prefix_of(p));
+        let place_expr: PlaceExpr = self.0.clone().upcast();
+        places_live.retain(|p| !place_expr.is_prefix_of(p));
         places_live
     }
 }

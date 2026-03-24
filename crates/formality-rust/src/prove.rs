@@ -74,6 +74,7 @@ where
         (a, b, c).upcast()
     }
 }
+
 impl ToWcs for Vec<WhereClause> {
     fn to_wcs(&self) -> Wcs {
         self.iter().flat_map(|wc| wc.to_wcs()).collect()

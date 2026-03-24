@@ -120,21 +120,13 @@ where
 
 /// Extension trait for anyhow::Result that extracts leaf failures for concise error display
 pub trait AnyhowResultTestExt<T> {
-    /// Assert that the result is an error, showing only the leaf failures
+    /// Assert that the result is an error with the given leaf failures
     fn assert_err_leaves(self, expect: expect_test::Expect);
-
-    /// Assert that the result is an error with the given leaf failures, and check must_have strings
-    fn assert_has_err_leaves(self, expect: expect_test::Expect, must_have: &[&str]);
 }
 
 impl<T: Debug> AnyhowResultTestExt<T> for anyhow::Result<T> {
     #[track_caller]
     fn assert_err_leaves(self, expect: expect_test::Expect) {
-        self.assert_has_err_leaves(expect, &[]);
-    }
-
-    #[track_caller]
-    fn assert_has_err_leaves(self, expect: expect_test::Expect, must_have: &[&str]) {
         match self {
             Ok(v) => panic!("expected `Err`, got `Ok`:\n{v:?}"),
             Err(e) => {
@@ -142,10 +134,6 @@ impl<T: Debug> AnyhowResultTestExt<T> for anyhow::Result<T> {
                 let output = normalize_paths(format_error_leaves(&e));
 
                 expect.assert_eq(&output);
-
-                for s in must_have {
-                    assert!(output.contains(s), "did not find {s:?} in the output");
-                }
             }
         }
     }

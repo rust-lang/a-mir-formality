@@ -1,6 +1,8 @@
 //! Handwritten parser impls.
 
-use formality_core::parse::{ActiveVariant, CoreParse, ParseResult, Parser, Precedence, Scope};
+use formality_core::parse::{
+    ActiveVariant, CoreParse, ParseResult, ParseSuccessType, Parser, Precedence, Scope,
+};
 use formality_core::seq;
 use formality_core::Upcast;
 
@@ -119,7 +121,7 @@ impl CoreParse<Rust> for AliasTy {
     }
 }
 
-fn each_parse_parameters<'s, 't, R: std::fmt::Debug + Clone + Eq + 'static>(
+fn each_parse_parameters<'s, 't, R: ParseSuccessType>(
     p: &mut ActiveVariant<'s, 't, Rust>,
     op: impl Fn(Vec<Parameter>, &mut ActiveVariant<'s, 't, Rust>) -> ParseResult<'t, R>,
 ) -> ParseResult<'t, R> {

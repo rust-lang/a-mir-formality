@@ -66,15 +66,10 @@ fn add_add() {
     let term = expect_remainder::<Expr>("a + b + c");
     expect_test::expect![[r#"
         (
-            Add(
-                Id(
-                    a,
-                ),
-                Id(
-                    b,
-                ),
+            Id(
+                a,
             ),
-            " + c",
+            " + b + c",
         )
     "#]]
     .assert_debug_eq(&term);
@@ -85,15 +80,10 @@ fn mul_mul() {
     let term = expect_remainder::<Expr>("a * b * c");
     expect_test::expect![[r#"
         (
-            Mul(
-                Id(
-                    a,
-                ),
-                Id(
-                    b,
-                ),
+            Id(
+                a,
             ),
-            " * c",
+            " * b * c",
         )
     "#]]
     .assert_debug_eq(&term);
@@ -104,15 +94,10 @@ fn mul_mul_mul() {
     let term = expect_remainder::<Expr>("a * b * c * d");
     expect_test::expect![[r#"
         (
-            Mul(
-                Id(
-                    a,
-                ),
-                Id(
-                    b,
-                ),
+            Id(
+                a,
             ),
-            " * c * d",
+            " * b * c * d",
         )
     "#]]
     .assert_debug_eq(&term);
@@ -123,15 +108,10 @@ fn add_add_mul_add() {
     let term = expect_remainder::<Expr>("a + b + c * d + e");
     expect_test::expect![[r#"
         (
-            Add(
-                Id(
-                    a,
-                ),
-                Id(
-                    b,
-                ),
+            Id(
+                a,
             ),
-            " + c * d + e",
+            " + b + c * d + e",
         )
     "#]]
     .assert_debug_eq(&term);
