@@ -1,4 +1,4 @@
-use crate::grammar::{Enum, Field, Struct, Variant};
+use crate::grammar::{Enum, Field, FieldName, Struct, Variant};
 use crate::pp::PrettyPrinter;
 use itertools::Itertools;
 
@@ -8,20 +8,20 @@ impl PrettyPrinter {
     pub fn print_struct(&mut self, strukt: &Struct) -> String {
         let id = strukt.id.deref();
         let data = strukt.binder.peek();
-        // emit_where(w, &data.where_clauses)?;
+        let wc = self.print_where(&data.where_clauses);
 
         let fields = data
             .fields
             .iter()
             .map(|f| format!("{:?}: {}", f.name, self.pretty_print_type(&f.ty))) // TODO: Implement pp for names
             .join(", ");
-        format!("structr {id} {{ {fields} }}")
+        format!("struct {id}{wc} {{ {fields} }}")
     }
 
     pub fn print_enum(&mut self, e: &Enum) -> String {
         let id = e.id.deref();
         let data = e.binder.peek();
-        // emit_where(w, &data.where_clauses)?;
+        let wc = self.print_where(&data.where_clauses);
 
         let variants = data
             .variants
@@ -29,36 +29,36 @@ impl PrettyPrinter {
             .map(|v| self.print_variant(v))
             .join(", ");
 
-        format!("enum {id} {{ {variants} }}")
+        format!("enum {id}{wc} {{ {variants} }}")
     }
 
-    pub fn print_variant(&mut self, _variant: &Variant) -> String {
-        todo!()
+    pub fn print_variant(&mut self, variant: &Variant) -> String {
+        let name = variant.name.deref();
+        let fields = self.print_fields(&variant.fields);
+
+        format!("{name}{fields}")
     }
 
-    pub fn print_fields(&mut self, _fields: &Vec<Field>) -> String {
-        // if fields.len() == 0 {
-        //     return Ok(());
-        // }
+    pub fn print_fields(&mut self, fields: &Vec<Field>) -> String {
+        if fields.len() == 0 {
+            return "".into();
+        }
+        let (opening, closing) = if matches!(fields[0].name, FieldName::Index(_)) {
+            ("(", ")")
+        } else {
+            (" { ", " }")
+        };
 
-        // let is_tuple = matches!(fields[0].name, FieldName::Index(_));
-        // if is_tuple {
-        //     write!(w, "(")?;
-        // } else {
-        //     write!(w, " {{")?;
-        // }
-        // for field in fields {
-        //     match &field.name {
-        //         FieldName::Id(field_id) => write!(w, " {:?}: {:?} ", *field_id, field.ty)?,
-        //         FieldName::Index(_) => write!(w, "{:?}", field.ty)?,
-        //     }
-        // }
-        // if is_tuple {
-        //     write!(w, ")")
-        // } else {
-        //     write!(w, " }}")
-        // }
-        todo!()
+        let fields = fields
+            .iter()
+            .map(|f| match &f.name {
+                FieldName::Id(field_id) => {
+                    format!("{}: {}", field_id.deref(), self.pretty_print_type(&f.ty))
+                }
+                FieldName::Index(_) => format!("{}", self.pretty_print_type(&f.ty)),
+            })
+            .join(", ");
+        format!("{opening}{fields}{closing}")
     }
 }
 
@@ -77,7 +77,7 @@ mod test {
             ],
             struct Bar {
                 a: i32,
-                b: i32,
+                b: i32
             }
         );
     }
@@ -97,9 +97,9 @@ mod test {
             ],
             struct Bar<T>
             where
-                T: Baz,
+                T: Baz
             {
-                a: T,
+                a: T
             }
         );
     }
@@ -111,13 +111,13 @@ mod test {
                 crate Foo {
                     enum Bar {
                         A { },
-                        B { },
+                        B { }
                     }
                 }
             ],
             enum Bar {
                 A,
-                B,
+                B
             }
         );
     }
@@ -138,10 +138,10 @@ mod test {
             ],
             enum Bar<T>
             where
-                T: Baz,
+                T: Baz
             {
                 A { t: T },
-                B(T),
+                B(T)
             }
         );
     }

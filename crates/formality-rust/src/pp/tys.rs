@@ -1,12 +1,16 @@
 use std::ops::Deref;
 
 use crate::grammar::{
-    Lt, LtData, Parameter, Parameters, RefKind, RigidName, RigidTy, ScalarId, Ty, TyData,
+    Const, Lt, LtData, Parameter, Parameters, RefKind, RigidName, RigidTy, ScalarId, Ty, TyData,
 };
 use crate::pp::PrettyPrinter;
 use itertools::Itertools;
 
 impl PrettyPrinter {
+    pub fn pretty_print_const(&mut self, _konst: &Const) -> String {
+        todo!()
+    }
+
     pub fn pretty_print_type(&mut self, ty: &Ty) -> String {
         match ty.data() {
             TyData::RigidTy(rigid_ty) => self.pretty_print_rigid_ty(rigid_ty),

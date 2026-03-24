@@ -19,15 +19,15 @@ impl PrettyPrinter {
 
         let body = match &data.body {
             MaybeFnBody::NoFnBody => ";".into(),
-            MaybeFnBody::FnBody(fn_body) => self.print_fn_body(fn_body),
+            MaybeFnBody::FnBody(fn_body) => format!(" {}", self.print_fn_body(fn_body)),
         };
 
-        format!("fn {id}({input_args} -> {output_arg}{body})")
+        format!("fn {id}({input_args}) -> {output_arg}{body}")
     }
 
     pub fn print_fn_body(&mut self, fn_body: &FnBody) -> String {
         match fn_body {
-            FnBody::TrustedFnBody => unimplemented!(),
+            FnBody::TrustedFnBody => format!("{{ panic!(\"Trusted Fn Body\") }}"),
             FnBody::Literal(value, _) => format!("{{ {value} }}"),
             FnBody::MiniRust(_) => unimplemented!(),
         }

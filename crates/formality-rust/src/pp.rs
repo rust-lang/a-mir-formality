@@ -1,17 +1,14 @@
 use crate::grammar::{Crate, CrateItem, FeatureGate, ParameterKind, Program};
+use formality_core::variable::CoreVariable;
 use itertools::Itertools;
 
 use std::collections::HashSet;
 
 mod fns;
-pub use fns::*;
 
 mod structs_enums_and_adts;
-use formality_core::variable::CoreVariable;
-pub use structs_enums_and_adts::*;
 
 mod traits_and_impls;
-pub use traits_and_impls::*;
 
 mod tys;
 
@@ -70,11 +67,16 @@ impl NameContext {
             unimplemented!()
         };
 
+        // TODO: I must take var_index into account.
+        // The Debruijn index indicates the nesting level, while var_index indicates the index inside the binder.
+        // Idea: to not store Vec<String> but Vec<Vec<String>>, where the db index is used to index Vec<Vec<String>> and var_index Vec<String>.
+        // let type_name = self.ty_names[index][var_index];
+        let _var_index = core_bound_var.var_index;
         let index = core_bound_var.debruijn.unwrap().index;
         match core_bound_var.kind {
-            ParameterKind::Ty => self.ty_names.get(index).unwrap().clone(),
-            ParameterKind::Lt => self.lt_names.get(index).unwrap().clone(),
-            ParameterKind::Const => self.const_names.get(index).unwrap().clone(),
+            ParameterKind::Ty => self.ty_names[index].clone(),
+            ParameterKind::Lt => self.lt_names[index].clone(),
+            ParameterKind::Const => self.const_names[index].clone(),
         }
     }
 
@@ -130,6 +132,7 @@ pub struct PrettyPrinter {
 
 impl PrettyPrinter {
     pub fn ty_name(&self, core_variable: &CoreVariable<crate::FormalityLang>) -> String {
+        dbg!(&core_variable);
         self.ctx.variable_name(core_variable)
     }
 
@@ -154,7 +157,7 @@ impl PrettyPrinter {
             CrateItem::FeatureGate(gate) => self.print_feature_gate(gate),
             CrateItem::Struct(strukt) => self.print_struct(strukt),
             CrateItem::Enum(e) => self.print_enum(e),
-            CrateItem::Trait(t) => self.emit_trait(t),
+            CrateItem::Trait(t) => self.print_trait(t),
             CrateItem::TraitImpl(trait_impl) => self.print_trait_impl(trait_impl),
             CrateItem::NegTraitImpl(neg_trait_impl) => self.print_neg_trait_impl(neg_trait_impl),
             CrateItem::Fn(f) => self.print_fn(f),
@@ -191,9 +194,8 @@ pub fn assert_rust(program: &Program, expected: &str) {
 macro_rules! assert_rust2 {
     ([$($input:tt)*], $fn:ident, $expected:expr) => {{
         let term = $crate::rust::try_term(stringify!($($input)*)).unwrap();
-        let mut buffer = String::new();
-        $fn(&mut buffer, term);
-        let rust = buffer
+        let r = $fn(term);
+        let rust = r
             .split_whitespace()
             .collect::<Vec<_>>()
             .join(" ");
@@ -260,12 +262,13 @@ mod test {
 
         let program: Program = crate::rust::try_term(source).unwrap();
         let rust = pretty_print(&program);
-        let rust = rust[0];
+        let rust = &rust[0];
         let mut file = std::fs::File::create("/tmp/test.rs").unwrap();
         file.write_all(rust.as_bytes()).unwrap();
     }
 
     #[test]
+    #[ignore]
     fn blub2() {
         let source = stringify!(
             [
