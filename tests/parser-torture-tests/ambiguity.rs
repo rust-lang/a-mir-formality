@@ -1,5 +1,5 @@
-use formality_core::parse::{self, CoreParse};
-use formality_core::{term, test};
+use formality_core::parse::CoreParse;
+use formality_core::{parse, term, test};
 use std::sync::Arc;
 
 #[test]
@@ -52,10 +52,17 @@ fn reduce_reduce_ambig() {
 
     formality_core::id!(Id);
 
-    // This grammar is ambiguous: `a b c` could be parsed multiple ways.
-    // With "parse all possibilities" semantics, when a child nonterminal
-    // returns multiple results, we pick the one that consumed the most input.
-    // This deterministically resolves to TwoRr(TwoId(a, b), OneId(c)).
+    // This can be parsed in multiple ways (using a variant of Reverse Polish Notation)
+    // and none is obviously better than the other:
+    //
+    // Root = ((Id Root::OneId) (Id Id Root::TwoId) Root::TwoRr)
+    // Root = (Id Id Root::TwoId) (Id Root::OneId) Root::TwoRr)
+    // Root = ((Id Root::OneId) (Id Root::OneId) (Id Root::OneId) Root::TwoRr)
+    //
+    // With parse-all-possibilities, the parser no longer panics on ambiguity.
+    // The child-level ambiguity here (Arc<Root> nonterminals within TwoRr)
+    // is collapsed by longest-match in nonterminal_with, so we get 1 complete
+    // parse rather than all possibilities. But the key property is: no panic.
     let term: Root = crate::ptt::term("a b c");
     expect_test::expect![[r#"
         TwoRr(

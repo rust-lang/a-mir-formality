@@ -1,6 +1,6 @@
 use crate::grammar::WhereClause;
 use crate::grammar::{AdtId, Binder, FieldId, Ty, VariantId};
-use crate::prove::prove::{AdtDeclField, AdtDeclFieldName, AdtDeclVariant};
+
 use formality_core::term;
 
 #[term(struct $id $binder)]
@@ -46,34 +46,12 @@ pub struct Field {
     pub ty: Ty,
 }
 
-impl Field {
-    pub fn to_adt_decl_field(&self) -> AdtDeclField {
-        return AdtDeclField {
-            name: self.name.to_adt_decl_field_name(),
-            ty: self.ty.clone(),
-        };
-    }
-}
-
 #[term]
 pub enum FieldName {
     #[cast]
     Id(FieldId),
     #[cast]
     Index(usize),
-}
-
-impl FieldName {
-    pub fn to_adt_decl_field_name(&self) -> AdtDeclFieldName {
-        match self {
-            FieldName::Id(field_id) => {
-                return AdtDeclFieldName::Id(field_id.clone());
-            }
-            FieldName::Index(idx) => {
-                return AdtDeclFieldName::Index(*idx);
-            }
-        }
-    }
 }
 
 #[term(enum $id $binder)]
@@ -105,21 +83,17 @@ pub struct AdtBoundData {
     pub variants: Vec<Variant>,
 }
 
+impl AdtBoundData {
+    pub fn struct_variant(&self) -> anyhow::Result<&Variant> {
+        if self.variants.len() != 1 {
+            anyhow::bail!("expected single struct variant")
+        }
+        Ok(&self.variants[0])
+    }
+}
+
 #[term($name { $,fields })]
 pub struct Variant {
     pub name: VariantId,
     pub fields: Vec<Field>,
-}
-
-impl Variant {
-    pub fn to_adt_decl_variant(&self) -> AdtDeclVariant {
-        AdtDeclVariant {
-            name: self.name.clone(),
-            fields: self
-                .fields
-                .iter()
-                .map(|field| field.to_adt_decl_field())
-                .collect(),
-        }
-    }
 }

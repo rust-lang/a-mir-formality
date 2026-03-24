@@ -11,7 +11,8 @@ use std::{any::TypeId, cell::RefCell, fmt::Debug, ops::ControlFlow};
 
 use crate::{
     language::Language,
-    parse::{parser::Associativity, ParseError, ParseResult, Scope, SuccessfulParse},
+    parse::{parser::Associativity, ParseError, ParseFrame, ParseResult, Scope, SuccessfulParse},
+    set, Set,
 };
 
 use super::Precedence;
@@ -39,6 +40,15 @@ struct StackEntry {
 
     ///
     observed: bool,
+
+    /// True if, at this parse position, the text can be parsed as
+    /// an in-scope variable. When true, `identifier_nonterminal`
+    /// will reject parsing the same text as a plain identifier.
+    claimed_as_var: bool,
+
+    /// Human-readable name of the nonterminal being parsed (e.g., "Expr", "Stmt").
+    /// Used for parse error backtraces.
+    nonterminal_name: &'static str,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -74,7 +84,7 @@ pub(super) enum LeftRight {
 }
 
 impl StackEntry {
-    pub fn new<L, T>(scope: &Scope<L>, start_text: &str) -> Self
+    pub fn new<L, T>(scope: &Scope<L>, start_text: &str, nonterminal_name: &'static str) -> Self
     where
         L: Language,
         T: Clone + 'static,
@@ -86,6 +96,8 @@ impl StackEntry {
             type_id: TypeId::of::<T>(),
             value: None,
             observed: false,
+            claimed_as_var: false,
+            nonterminal_name,
         }
     }
 
@@ -183,11 +195,12 @@ impl StackEntry {
 pub(super) fn enter<'s, 't, L, T>(
     scope: &'s Scope<L>,
     text: &'t str,
+    nonterminal_name: &'static str,
     mut op: impl FnMut(usize) -> ParseResult<'t, T>,
 ) -> ParseResult<'t, T>
 where
     L: Language,
-    T: Debug + Clone + Eq + 'static,
+    T: Debug + Clone + Eq + Ord + 'static,
 {
     tracing::trace!(
         "enter<{}>(scope={:?}, text={:?})",
@@ -278,7 +291,7 @@ where
                     }
 
                     // Return the previous value.
-                    return ControlFlow::Break(Ok(vec![previous_result]));
+                    return ControlFlow::Break(Ok(set![previous_result]));
 
                     // [1] UNSAFE: We need to justify that `entry.value` will be valid.
                     //
@@ -331,7 +344,7 @@ where
             }
         }
 
-        stack.push(StackEntry::new::<L, T>(scope, text));
+        stack.push(StackEntry::new::<L, T>(scope, text, nonterminal_name));
         ControlFlow::Continue(())
     });
 
@@ -389,7 +402,7 @@ where
 
     // First round parse is a bit special, because if we get an error here, we can just return immediately,
     // as there is no base case to build from.
-    let mut all_values: Vec<SuccessfulParse<'t, T>> = match op(min_precedence_level) {
+    let mut all_values: Set<SuccessfulParse<'t, T>> = match op(min_precedence_level) {
         Ok(v) => v,
         Err(errs) => return Err(errs),
     };
@@ -433,11 +446,7 @@ where
         }
 
         // Otherwise, merge new values and try again.
-        for nv in new_values {
-            if !all_values.contains(&nv) {
-                all_values.push(nv);
-            }
-        }
+        all_values.extend(new_values);
     }
 }
 
@@ -461,6 +470,64 @@ pub(super) fn recurse<R>(current_state: CurrentState, op: impl FnOnce() -> R) ->
     }));
 
     op()
+}
+
+/// Set `claimed_as_var` on the top stack entry.
+/// Called from [`Parser::try_claim_as_var`] when the probe determines
+/// that the current text can be parsed as an in-scope variable.
+///
+/// See the "Variables and scope" section of the formality-core book for details.
+pub fn set_claimed_as_var() {
+    STACK.with_borrow_mut(|stack| {
+        let top = stack
+            .last_mut()
+            .expect("set_claimed_as_var called with empty stack");
+        top.claimed_as_var = true;
+    });
+}
+
+/// Check whether any stack entry at this scope and text position
+/// has `claimed_as_var` set. Used by `identifier_nonterminal` and
+/// `identifier_re` to reject identifiers that should be parsed as
+/// variables instead. Matches on pointer equality for both scope
+/// and text, so the flag only applies at the exact parse position
+/// where the probe ran.
+///
+/// See the "Variables and scope" section of the formality-core book for details.
+pub(super) fn is_claimed_as_var<L: Language>(scope: &Scope<L>, text: &str) -> bool {
+    let scope_ptr: *const () = erase_type(scope);
+    let text_ptr: *const str = text;
+    STACK.with_borrow(|stack| {
+        stack.iter().rev().any(|entry| {
+            entry.scope == scope_ptr
+                && std::ptr::eq(text_ptr, entry.start_text)
+                && entry.claimed_as_var
+        })
+    })
+}
+
+/// Snapshot the current nonterminal parse stack as [`ParseFrame`]s
+/// from outermost to innermost.
+///
+/// Returns an empty vec if the STACK is already mutably borrowed
+/// (e.g., when called from within `enter`'s `with_borrow_mut` block).
+pub(crate) fn snapshot_nonterminal_stack() -> Vec<ParseFrame> {
+    STACK.with(|cell| match cell.try_borrow() {
+        Ok(stack) => stack
+            .iter()
+            .map(|entry| {
+                // SAFETY: start_text is a subslice of the original input
+                // that is alive for the duration of the parse. We only
+                // read its length here, so no reference escapes.
+                let remaining_len = unsafe { &*entry.start_text }.len();
+                ParseFrame {
+                    name: entry.nonterminal_name,
+                    remaining_len,
+                }
+            })
+            .collect(),
+        Err(_) => Vec::new(),
+    })
 }
 
 fn erase_type<T>(s: &T) -> *const () {

@@ -11,8 +11,7 @@ use crate::{
 use anyhow::{anyhow, bail};
 use formality_core::{judgment::ProofTree, ProvenSet, Set};
 
-mod borrow_check;
-mod mini_rust_check;
+pub mod borrow_check;
 
 /// Check all crates in the program. The crates must be in dependency order
 /// such that any prefix of the crates is a complete program.
@@ -87,14 +86,9 @@ impl Check<'_> {
             let mut functions = Set::new();
             for item in c.items.iter() {
                 match item {
-                    CrateItem::Struct(s) => {
-                        if !items.insert(&s.id) {
-                            bail!("the item name `{:?}` is defined multiple times", s.id);
-                        }
-                    }
-                    CrateItem::Enum(e) => {
-                        if !items.insert(&e.id) {
-                            bail!("the item name `{:?}` is defined multiple times", e.id);
+                    CrateItem::AdtItem(s) => {
+                        if !items.insert(s.name()) {
+                            bail!("the item name `{:?}` is defined multiple times", s.name());
                         }
                     }
                     CrateItem::Trait(t) => {
@@ -120,8 +114,7 @@ impl Check<'_> {
         match c {
             CrateItem::Trait(v) => self.check_trait(v, crate_id),
             CrateItem::TraitImpl(v) => self.check_trait_impl(v, crate_id),
-            CrateItem::Struct(s) => self.check_adt(&s.to_adt()),
-            CrateItem::Enum(e) => self.check_adt(&e.to_adt()),
+            CrateItem::AdtItem(s) => self.check_adt(&s.to_adt()),
             CrateItem::Fn(f) => self.check_free_fn(f, crate_id),
             CrateItem::NegTraitImpl(i) => self.check_neg_trait_impl(i),
             CrateItem::Test(t) => self.check_test(t),

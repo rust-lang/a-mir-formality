@@ -19,14 +19,22 @@ fn parser() {
             }
         ]
 
-        [ /* TODO */ ]
-
         expect_test::expect![[r#"
-            expected `:`
-
-            Caused by:
-                0: {} }]
-                1: failed to parse [crate Foo { trait Baz where cake {} }]"#]]
+            × expected `:`
+               ╭────
+             1 │ [crate Foo { trait Baz where cake {} }]
+               · ▲▲▲          ▲▲        ▲▲    ▲▲   ▲
+               · │││          ││        ││    ││   ╰── expected `:`
+               · │││          ││        ││    │╰── while parsing WhereClauseData
+               · │││          ││        ││    ╰── while parsing WhereClause
+               · │││          ││        │╰── while parsing TraitBoundData
+               · │││          ││        ╰── while parsing TraitBinder
+               · │││          │╰── while parsing Trait
+               · │││          ╰── while parsing CrateItem
+               · ││╰── while parsing Crate
+               · │╰── while parsing Vec
+               · ╰── while parsing Program
+               ╰────"#]]
     )
 }
 
@@ -43,9 +51,11 @@ fn hello_world_fail() {
             }
         ]
 
-        [ /* TODO */ ]
-
         expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ WellFormedTraitRef(Bar(!ty_0, !ty_1)), via: Bar(!ty_0, !ty_1), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Baz(!ty_1), via: Bar(!ty_0, !ty_1), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
@@ -100,9 +110,11 @@ fn basic_where_clauses_fail() {
             }
         ]
 
-        [ /* TODO */ ]
-
         expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ WellFormedTraitRef(A(u32, !ty_1)), via: A(u32, ?ty_2), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: B(!ty_0), via: A(u32, ?ty_1), assumptions: {for <ty> A(u32, ^ty0_0)}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
@@ -120,8 +132,6 @@ fn basic_adt_variant_dup() {
             }
         ]
 
-        [ r#"variant "Baz" defined multiple times"#, ]
-
         expect_test::expect![[r#"variant "Baz" defined multiple times"#]]
     )
 }
@@ -138,8 +148,6 @@ fn basic_adt_field_dup() {
             }
         ]
 
-        [ r#"field "baz" of variant "struct" defined multiple times"#, ]
-
         expect_test::expect![[r#"field "baz" of variant "struct" defined multiple times"#]]
     )
 }
@@ -155,8 +163,6 @@ fn trait_items_with_duplicate_fn_names() {
                 }
             }
         ]
-
-        ["the function name `a` is defined multiple times",]
 
         expect_test::expect![[r#"
             check_trait(A)
@@ -179,8 +185,6 @@ fn trait_items_with_duplicate_associated_type_names() {
             }
         ]
 
-        ["the associated type name `Assoc` is defined multiple times",]
-
         expect_test::expect![[r#"
             check_trait(A)
 
@@ -200,8 +204,6 @@ fn crate_with_duplicate_item_names() {
             }
         ]
 
-        ["the item name `A` is defined multiple times",]
-
         expect_test::expect![[r#"the item name `A` is defined multiple times"#]]
     );
 
@@ -214,21 +216,17 @@ fn crate_with_duplicate_item_names() {
             }
         ]
 
-        ["the trait name `a` is defined multiple times",]
-
         expect_test::expect![[r#"the trait name `a` is defined multiple times"#]]
     );
 
     crate::assert_err!(
         [
             crate core {
-                fn a() -> () { trusted }
+                fn a() -> () trusted;
 
-                fn a() -> () { trusted }
+                fn a() -> () trusted;
             }
         ]
-
-        ["the function name `a` is defined multiple times",]
 
         expect_test::expect![[r#"the function name `a` is defined multiple times"#]]
     );
@@ -239,7 +237,7 @@ fn crate_with_duplicate_item_names() {
             crate core {
                 trait a {}
 
-                fn a() -> () { trusted }
+                fn a() -> () trusted;
             }
         ]
     );

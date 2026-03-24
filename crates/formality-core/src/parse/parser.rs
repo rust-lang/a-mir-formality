@@ -3,7 +3,10 @@ use std::str::FromStr;
 
 use crate::{
     language::Language,
-    parse::parser::left_recursion::{CurrentState, LeftRight},
+    parse::{
+        parser::left_recursion::{CurrentState, LeftRight},
+        ParseSuccessType,
+    },
     set,
     variable::CoreVariable,
     Set, Upcast,
@@ -12,6 +15,7 @@ use crate::{
 use super::{CoreParse, ParseError, ParseResult, Scope, SuccessfulParse, TokenResult};
 
 mod left_recursion;
+pub(crate) use left_recursion::snapshot_nonterminal_stack;
 
 /// Create this struct when implementing the [`CoreParse`][] trait.
 /// Each `Parser` corresponds to some symbol in the grammar.
@@ -26,12 +30,12 @@ mod left_recursion;
 pub struct Parser<'s, 't, T, L>
 where
     L: Language,
-    T: Debug + Clone + Eq + 'static,
+    T: ParseSuccessType,
 {
     scope: &'s Scope<L>,
     start_text: &'t str,
     nonterminal_name: &'static str,
-    successes: Vec<SuccessfulParse<'t, T>>,
+    successes: Set<SuccessfulParse<'t, T>>,
     failures: Set<ParseError<'t>>,
     min_precedence_level: usize,
 }
@@ -49,7 +53,7 @@ where
 /// The tricky bit is what happens with *equal*
 /// precedence. In that case, we have to consider
 /// the [`Associativity`][] (see enum for details).
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Precedence {
     level: usize,
     associativity: Associativity,
@@ -74,7 +78,7 @@ pub struct Precedence {
 /// `1 + 2 + 3` is just an error and you have to explicitly add parentheses.
 ///
 /// Use `Precedence::default` for cases where precedence is not relevant.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Associativity {
     Left,
     Right,
@@ -160,7 +164,7 @@ where
 impl<'s, 't, T, L> Parser<'s, 't, T, L>
 where
     L: Language,
-    T: Debug + Clone + Eq + 'static + Upcast<T>,
+    T: ParseSuccessType,
 {
     /// Shorthand to create a parser for a nonterminal with a single variant,
     /// parsed by the function `op`.
@@ -191,7 +195,7 @@ where
     ) -> ParseResult<'t, T> {
         let text = skip_whitespace(text);
 
-        left_recursion::enter(scope, text, |min_precedence_level| {
+        left_recursion::enter(scope, text, nonterminal_name, |min_precedence_level| {
             let tracing_span = tracing::span!(
                 tracing::Level::TRACE,
                 "nonterminal",
@@ -205,7 +209,7 @@ where
                 scope,
                 start_text: text,
                 nonterminal_name,
-                successes: vec![],
+                successes: set![],
                 failures: set![],
                 min_precedence_level,
             };
@@ -214,6 +218,33 @@ where
 
             parser.finish(guard)
         })
+    }
+
+    /// Probe whether the current text can be parsed as an in-scope variable.
+    /// If so, set the `claimed_as_var` flag on the parser stack so that
+    /// `id!` types will reject this text as a plain identifier.
+    ///
+    /// Called by macro-generated code for enums that have a `#[variable]` variant.
+    /// The probe checks for variables of *any* kind, not just the kind of this
+    /// type's variable variant -- this is what enables cross-type disambiguation
+    /// (e.g., a perm variable being rejected by a type-level `Id`).
+    ///
+    /// See the "Variables and scope" section of the formality-core book for details.
+    pub fn try_claim_as_var(&self) {
+        // This is supposed to be called before we do any parses at all
+        assert!(self.successes.is_empty());
+        assert!(self.failures.is_empty());
+
+        let can_be_parsed_as_var =
+            Parser::single_variant(self.scope, self.start_text, "variable", |p| {
+                let _v = p.variable()?;
+                p.ok(())
+            })
+            .is_ok();
+
+        if can_be_parsed_as_var {
+            left_recursion::set_claimed_as_var();
+        }
     }
 
     /// Parse an identifier as a standalone nonterminal.
@@ -227,22 +258,12 @@ where
         String: Into<T>,
     {
         Self::single_variant(scope, text, nonterminal_name, |p| {
-            let id = p.identifier()?;
-            p.ok(id.into())
-        })
-    }
-
-    /// Like [`Self::identifier`], but rejects identifiers that match a variable in scope.
-    pub fn identifier_no_var(
-        scope: &'s Scope<L>,
-        text: &'t str,
-        nonterminal_name: &'static str,
-    ) -> ParseResult<'t, T>
-    where
-        String: Into<T>,
-    {
-        Self::single_variant(scope, text, nonterminal_name, |p| {
-            p.reject_variable()?;
+            if left_recursion::is_claimed_as_var(p.scope, p.current_text) {
+                return Err(ParseError::at(
+                    p.current_text,
+                    format!("found in-scope variable name"),
+                ));
+            }
             let id = p.identifier()?;
             p.ok(id.into())
         })
@@ -261,8 +282,14 @@ where
         String: Into<T>,
     {
         Self::single_variant(scope, text, nonterminal_name, |p| {
-            let s = p.regex_str(re, nonterminal_name)?;
+            if left_recursion::is_claimed_as_var(p.scope, p.current_text) {
+                return Err(ParseError::at(
+                    p.current_text,
+                    format!("found in-scope variable name"),
+                ));
+            }
             p.reject_custom_keywords(L::KEYWORDS)?;
+            let s = p.regex_str(re, nonterminal_name)?;
             p.ok(s.into())
         })
     }
@@ -350,7 +377,7 @@ where
                     };
 
                     tracing::trace!("success: {:?}", success);
-                    self.successes.push(success);
+                    self.successes.insert(success);
                 }
             }
 
@@ -430,6 +457,34 @@ where
             start_text,
             current_text: start_text,
             is_committed: true,
+        }
+    }
+
+    /// Used to combine two branching parse results, `a` and `b`. If there are possible parse(s),
+    /// return them, otherwise return the best errors we can.
+    fn combine_parse_results<R: ParseSuccessType>(
+        &self,
+        a: ParseResult<'t, R>,
+        b: ParseResult<'t, R>,
+    ) -> ParseResult<'t, R> {
+        match (a, b) {
+            (Ok(mut parses), Ok(b_parses)) => {
+                parses.extend(b_parses);
+                Ok(parses)
+            }
+            (Ok(parses), Err(_)) | (Err(_), Ok(parses)) => Ok(parses),
+            (Err(mut errs), Err(b_errs)) => {
+                errs.extend(b_errs);
+
+                // Heuristic: if we have any errors that consumed at least one token,
+                // report them. Otherwise, report that we expected a `R` here.
+                errs.retain(|e| e.consumed_any_since(self.current_text));
+                if errs.is_empty() {
+                    errs.extend(ParseError::expected_type::<R>(self.current_text));
+                }
+
+                Err(errs)
+            }
         }
     }
 
@@ -589,10 +644,11 @@ where
         }
     }
 
-    /// Reject the next identifier if it matches a variable currently in scope.
-    /// Does not consume any input. Used by `id!` types with `match_var = false`
-    /// to avoid ambiguity between variables and identifiers.
+    /// *If* we are in a position where we *could* parse a variable,
+    /// and the next token is the name of an in-scope variable (of any kind),
+    /// then reject it.
     pub fn reject_variable(&self) -> Result<(), Set<ParseError<'t>>> {
+        // Reject in-scope variable names.
         self.reject(
             |p| p.variable(),
             |var| {
@@ -779,35 +835,17 @@ where
     #[track_caller]
     #[tracing::instrument(level = "Trace", skip(self, op), ret)]
     pub fn each_opt_nonterminal<T, R>(
-        &mut self,
+        &self,
         op: impl Fn(Option<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L>,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
-        let text0 = self.current_text;
-        match self.each_nonterminal(|t: T, p| op(Some(t), p)) {
-            Ok(successes) => Ok(successes),
-            Err(mut errs) => {
-                errs.retain(|e| e.consumed_any_since(text0));
-                if errs.is_empty() {
-                    // Nothing consumed — parse as None
-                    assert_eq!(skip_whitespace(text0), self.current_text);
-                    tracing::trace!(
-                        "each_opt_nonterminal({}): parsing did not consume tokens or did not commit",
-                        std::any::type_name::<T>()
-                    );
-                    op(None, self)
-                } else {
-                    tracing::trace!(
-                        "each_opt_nonterminal({}): 'almost' succeeded with parse",
-                        std::any::type_name::<T>()
-                    );
-                    Err(errs)
-                }
-            }
-        }
+        self.combine_parse_results(
+            op(None, &mut self.clone()),
+            self.each_nonterminal(|t: T, p| op(Some(t), p)),
+        )
     }
 
     /// Continue parsing instances of `T` while we can, then run
@@ -820,28 +858,28 @@ where
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
         self.each_many_nonterminal_accum(vec![], &op)
     }
 
     fn each_many_nonterminal_accum<T, R>(
-        &mut self,
+        &self,
         acc: Vec<T>,
         op: &impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
-        self.each_opt_nonterminal(|opt_t: Option<T>, p| match opt_t {
-            Some(t) => {
+        self.combine_parse_results(
+            op(acc.clone(), &mut self.clone()),
+            self.each_nonterminal(|t: T, p| {
                 let mut new_acc = acc.clone();
                 new_acc.push(t);
                 p.each_many_nonterminal_accum(new_acc, op)
-            }
-            None => op(acc.clone(), p),
-        })
+            }),
+        )
     }
 
     #[tracing::instrument(level = "Trace", skip(self, op), ret)]
@@ -854,7 +892,7 @@ where
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
         // Look for the opening delimiter.
         // If we don't find it, then this is either an empty vector (if optional) or an error (otherwise).
@@ -885,22 +923,23 @@ where
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
         self.each_comma_nonterminal_accum(vec![], &op)
     }
 
     fn each_comma_nonterminal_accum<T, R>(
-        &mut self,
+        &self,
         acc: Vec<T>,
         op: &impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
-        R: Debug + Clone + Eq + 'static,
+        R: ParseSuccessType,
     {
-        self.each_opt_nonterminal(|opt_t: Option<T>, p| match opt_t {
-            Some(t) => {
+        self.combine_parse_results(
+            op(acc.clone(), &mut self.clone()),
+            self.each_nonterminal(|t: T, p| {
                 let mut new_acc = acc.clone();
                 new_acc.push(t);
                 if p.expect_char(',').is_ok() {
@@ -908,9 +947,8 @@ where
                 } else {
                     op(new_acc, p)
                 }
-            }
-            None => op(acc.clone(), p),
-        })
+            }),
+        )
     }
 
     /// Parse a nonterminal and run a continuation for each successful parse,
@@ -920,42 +958,30 @@ where
     /// For each successful parse of `T`, the continuation `op` is called
     /// with the parsed value and a forked `ActiveVariant` positioned at
     /// that parse's text position.
+    ///
     /// All results from all continuations are collected and returned.
     #[track_caller]
     pub fn each_nonterminal<T, R>(
-        &mut self,
-        op: impl Fn(T, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
-    ) -> ParseResult<'t, R>
-    where
-        T: CoreParse<L>,
-        R: Debug + Clone + Eq + 'static,
-    {
-        self.each_nonterminal_with(T::parse, op)
-    }
-
-    /// Like `each_nonterminal` but with a custom parse function.
-    #[track_caller]
-    pub fn each_nonterminal_with<T, R>(
-        &mut self,
-        parse_op: impl FnOnce(&'s Scope<L>, &'t str) -> ParseResult<'t, T>,
+        &self,
         cont: impl Fn(T, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
     ) -> ParseResult<'t, R>
     where
-        T: Debug + Clone + Eq + 'static,
-        R: Debug + Clone + Eq + 'static,
+        T: CoreParse<L>,
+        R: ParseSuccessType,
     {
-        self.skip_whitespace();
+        let mut this = self.clone();
+        this.skip_whitespace();
 
-        let successes = left_recursion::recurse(self.current_state(), || {
-            parse_op(self.scope, self.current_text)
+        let successes = left_recursion::recurse(this.current_state(), || {
+            T::parse(this.scope, this.current_text)
         })?;
 
-        let mut all_successes: Vec<SuccessfulParse<'t, R>> = vec![];
+        let mut all_successes: Set<SuccessfulParse<'t, R>> = set![];
         let mut all_errors: Set<ParseError<'t>> = set![];
 
         for success in successes {
             // Fork the active variant for this parse result
-            let mut forked = self.clone();
+            let mut forked = this.clone();
             forked.current_text = success.text;
 
             // Run the continuation
@@ -974,13 +1000,7 @@ where
                 // No child parses succeeded at all — this shouldn't normally happen
                 // since we already got successes from the child, but the continuations
                 // all failed. Return the continuation errors.
-                Err(ParseError::at(
-                    self.current_text,
-                    format!(
-                        "{} expected (continuation failed)",
-                        std::any::type_name::<R>()
-                    ),
-                ))
+                Err(ParseError::expected_type::<R>(this.current_text))
             } else {
                 Err(all_errors)
             }
@@ -992,8 +1012,8 @@ where
     /// Wrap a single value into a `ParseResult` at the current parsing position.
     /// This is the leaf of an `each_nonterminal` chain — it creates a single
     /// `SuccessfulParse` capturing the current text position.
-    pub fn ok<T: Debug + Clone + Eq + 'static>(&self, value: T) -> ParseResult<'t, T> {
-        Ok(vec![SuccessfulParse {
+    pub fn ok<T: ParseSuccessType>(&self, value: T) -> ParseResult<'t, T> {
+        Ok(set![SuccessfulParse {
             text: self.current_text,
             precedence: self.precedence,
             value,
@@ -1016,6 +1036,16 @@ pub fn next_char(text: &str) -> TokenResult<'_, char> {
 #[tracing::instrument(level = "trace", ret)]
 pub fn skip_trailing_comma(text: &str) -> &str {
     text.strip_prefix(',').unwrap_or(text)
+}
+
+/// Given a start text and a current text that results from having consumed
+/// some (possibly zero) number of characters, returns true if any
+/// non-whitespace and (non-comment) characters were consumed.
+pub fn consumed_any_since(start_text: &str, current_text: &str) -> bool {
+    assert!(start_text.ends_with(current_text));
+    let consumed_len = start_text.len() - current_text.len();
+    let consumed = &start_text[..consumed_len];
+    !skip_whitespace(consumed).is_empty()
 }
 
 /// Skips leading whitespace and comments.

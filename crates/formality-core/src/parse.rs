@@ -5,6 +5,7 @@ use crate::{
     cast_impl,
     collections::Set,
     language::{CoreKind, Language},
+    parse::parser::consumed_any_since,
     set,
     term::CoreTerm,
     variable::{CoreBoundVar, CoreVariable},
@@ -15,7 +16,7 @@ use std::fmt::Debug;
 /// Trait for parsing a [`Term<L>`](`crate::term::Term`) as input.
 /// Typically this is auto-generated with the `#[term]` procedural macro,
 /// but you can implement it by hand if you want a very customized parse.
-pub trait CoreParse<L: Language>: Sized + Debug + Clone + Eq + 'static + Upcast<Self> {
+pub trait CoreParse<L: Language>: ParseSuccessType + Upcast<Self> {
     /// Parse a single instance of this type, returning an error if no such
     /// instance is present.
     ///
@@ -63,6 +64,86 @@ pub fn default_binding_parse<'t, L: Language>(
 mod parser;
 pub use parser::{skip_whitespace, ActiveVariant, Parser, Precedence};
 
+/// A diagnostic for parse failures, rendered with source context
+/// and nonterminal backtrace using miette.
+#[derive(Debug)]
+struct ParseDiagnostic {
+    /// The full source text being parsed.
+    source_code: String,
+
+    /// The error message (e.g., "expected `}`").
+    message: String,
+
+    /// Byte offset of the error point in the source.
+    error_offset: usize,
+
+    /// The nonterminal backtrace frames, converted to byte offsets.
+    frames: Vec<DiagnosticFrame>,
+}
+
+#[derive(Debug)]
+struct DiagnosticFrame {
+    name: &'static str,
+    offset: usize,
+}
+
+impl ParseDiagnostic {
+    /// Create a diagnostic from a ParseError and the full input text.
+    fn from_error(error: &ParseError<'_>, full_input: &str) -> Self {
+        let error_offset = error.offset(full_input);
+        let frames: Vec<DiagnosticFrame> = error
+            .backtrace
+            .iter()
+            .map(|frame| {
+                let offset = full_input.len() - frame.remaining_len;
+                DiagnosticFrame {
+                    name: frame.name,
+                    offset,
+                }
+            })
+            .collect();
+
+        ParseDiagnostic {
+            source_code: full_input.to_owned(),
+            message: error.message.clone(),
+            error_offset,
+            frames,
+        }
+    }
+
+    /// Render using miette's GraphicalReportHandler to produce
+    /// a string with source context, labeled spans, and backtrace.
+    fn render(self) -> String {
+        use miette::{GraphicalReportHandler, GraphicalTheme, LabeledSpan};
+
+        let mut labels = Vec::new();
+
+        // Add backtrace frames as context labels (outermost first)
+        for frame in &self.frames {
+            labels.push(LabeledSpan::at_offset(
+                frame.offset,
+                format!("while parsing {}", frame.name),
+            ));
+        }
+
+        // The error point itself (added last so it renders as primary)
+        labels.push(LabeledSpan::at_offset(self.error_offset, &self.message));
+
+        let report =
+            miette::miette!(labels = labels, "{}", self.message).with_source_code(self.source_code);
+
+        let mut out = String::new();
+        GraphicalReportHandler::new()
+            .with_theme(GraphicalTheme::unicode_nocolor())
+            .render_report(&mut out, report.as_ref())
+            .unwrap();
+
+        // Trim leading/trailing whitespace to avoid expect_test
+        // indentation normalization issues.
+        out.trim().to_string()
+    }
+}
+
 /// Parses `text` as a term with the given bindings in scope.
 ///
 /// References to the given string will be replaced with the given parameter
@@ -78,11 +159,13 @@ where
     let parses = match T::parse(&scope, text) {
         Ok(v) => v,
         Err(errors) => {
-            let mut err = crate::anyhow!("failed to parse {text}");
-            for error in errors {
-                err = err.context(error.text.to_owned()).context(error.message);
-            }
-            return Err(err);
+            // Find the "best" error: the one that consumed the most input
+            // (shortest remaining text). This heuristic picks the error from
+            // the deepest successful parse attempt.
+            let best_error = errors.iter().min_by_key(|e| e.text.len()).unwrap();
+
+            let diagnostic = ParseDiagnostic::from_error(best_error, text);
+            return Err(crate::anyhow!("{}", diagnostic.render()));
         }
     };
 
@@ -107,14 +190,42 @@ where
 
     // Remaining values are genuinely different — ambiguous parse.
     values.push(value);
-    panic!(
-        "ambiguous parse of `{text:?}`, possibilities are {:#?}",
-        values,
-    );
+
+    let pretty: Vec<String> = values.iter().map(|v| format!("{v:#?}")).collect();
+
+    let reference = &pretty[0];
+    let mut msg = String::from("ambiguous parse of:\n\n");
+    for line in text.lines() {
+        msg.push_str(&format!("  {line}\n"));
+    }
+    msg.push_str(&format!("\ninterpretation 0 (reference):\n\n"));
+    for line in reference.lines() {
+        msg.push_str(&format!("  {line}\n"));
+    }
+    for (i, other) in pretty[1..].iter().enumerate() {
+        msg.push_str(&format!(
+            "\ninterpretation {} (diff from reference):\n\n",
+            i + 1
+        ));
+        let diff = similar::TextDiff::from_lines(reference, other);
+        for change in diff.iter_all_changes() {
+            let sign = match change.tag() {
+                similar::ChangeTag::Delete => "-",
+                similar::ChangeTag::Insert => "+",
+                similar::ChangeTag::Equal => " ",
+            };
+            msg.push_str(&format!("  {sign}{change}"));
+        }
+    }
+    panic!("{msg}");
 }
 
+/// Traits required for parse results
+pub trait ParseSuccessType: Sized + Debug + Clone + Ord + Eq + 'static + Upcast<Self> {}
+impl<T: Debug + Clone + Ord + Eq + 'static + Upcast<T>> ParseSuccessType for T {}
+
 /// Record from a successful parse.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SuccessfulParse<'t, T> {
     /// The new point in the input, after we've consumed whatever text we have.
     text: &'t str,
@@ -162,6 +273,19 @@ where
     }
 }
 
+/// A single frame in the nonterminal parse backtrace.
+/// Records which nonterminal was being parsed and where
+/// in the input it started.
+#[derive(Clone, Debug)]
+pub struct ParseFrame {
+    /// Name of the nonterminal (e.g., "Expr", "Stmt", "FnBody").
+    pub name: &'static str,
+
+    /// Length of the remaining input when this nonterminal's parse began.
+    /// Used to compute the byte offset: `full_input.len() - remaining_len`.
+    pub remaining_len: usize,
+}
+
 /// Tracks an error that occurred while parsing.
 /// The parse error records the input text it saw, which will be
 /// some suffix of the original input, along with a message.
@@ -170,7 +294,12 @@ where
 /// When parse errors are generated, there is just one (e.g., "expected identifier"),
 /// but when there are choice points in the grammar (e.g., when parsing an enum),
 /// those errors can be combined by [`require_unambiguous`].
-#[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
+///
+/// The `backtrace` field records the chain of nonterminals being parsed
+/// when this error was created. It is excluded from `Ord`/`Eq` comparisons
+/// so that errors at the same position with the same message are deduplicated
+/// in `BTreeSet<ParseError>`.
+#[derive(Clone, Debug)]
 pub struct ParseError<'t> {
     /// Input that triggered the parse error. Some suffix
     /// of the original input.
@@ -178,14 +307,52 @@ pub struct ParseError<'t> {
 
     /// Message describing what was expected.
     pub message: String,
+
+    /// Chain of nonterminals being parsed when this error occurred,
+    /// from outermost to innermost.
+    pub backtrace: Vec<ParseFrame>,
+}
+
+impl<'t> PartialEq for ParseError<'t> {
+    fn eq(&self, other: &Self) -> bool {
+        self.text == other.text && self.message == other.message
+    }
+}
+
+impl<'t> Eq for ParseError<'t> {}
+
+impl<'t> PartialOrd for ParseError<'t> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<'t> Ord for ParseError<'t> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (&self.text, &self.message).cmp(&(&other.text, &other.message))
+    }
 }
 
 impl<'t> ParseError<'t> {
     /// Creates a single parse error at the given point. Returns
     /// a set so that it can be wrapped as a [`ParseResult`].
+    ///
+    /// Captures a snapshot of the current nonterminal parse stack
+    /// as a backtrace for error reporting.
     pub fn at(text: &'t str, message: String) -> Set<Self> {
         let text = parser::skip_whitespace(text);
-        set![ParseError { text, message }]
+
+        let backtrace: Vec<ParseFrame> = parser::snapshot_nonterminal_stack();
+
+        set![ParseError {
+            text,
+            message,
+            backtrace,
+        }]
+    }
+
+    pub fn expected_type<R>(text: &'t str) -> Set<Self> {
+        Self::at(text, format!("{} expected", std::any::type_name::<R>()))
     }
 
     /// Offset of this error relative to the starting point `text`
@@ -204,11 +371,11 @@ impl<'t> ParseError<'t> {
     /// True if any tokens were consumed before this error occurred,
     /// with `text` as the starting point of the parse.
     pub fn consumed_any_since(&self, text: &str) -> bool {
-        !skip_whitespace(self.consumed_before(text)).is_empty()
+        consumed_any_since(text, self.text)
     }
 }
 
-pub type ParseResult<'t, T> = Result<Vec<SuccessfulParse<'t, T>>, Set<ParseError<'t>>>;
+pub type ParseResult<'t, T> = Result<Set<SuccessfulParse<'t, T>>, Set<ParseError<'t>>>;
 
 pub type TokenResult<'t, T> = Result<(T, &'t str), Set<ParseError<'t>>>;
 
@@ -247,7 +414,7 @@ impl<L: Language> Scope<L> {
 }
 
 /// Records a single binding, used when parsing [`Binder`].
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Binding<L: Language> {
     /// Name the user during during parsing
     pub name: String,

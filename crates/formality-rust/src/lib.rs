@@ -15,6 +15,16 @@ formality_core::declare_language! {
             "true",
             "false",
             "static",
+            "let",
+            "in",
+            "loop",
+            "break",
+            "continue",
+            "return",
+
+            "fn_id",
+            "exists",
+            "call",
         ];
     }
 }

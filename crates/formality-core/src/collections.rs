@@ -11,6 +11,48 @@ use crate::{
 pub type Map<K, V> = BTreeMap<K, V>;
 pub type Set<E> = BTreeSet<E>;
 
+pub trait Collection {
+    type Element;
+
+    fn len(&self) -> usize;
+
+    fn iter(&self) -> impl Iterator<Item = &Self::Element>;
+
+    fn collection_of(iter: impl IntoIterator<Item = Self::Element>) -> Self;
+}
+
+impl<T: Ord + Eq> Collection for Set<T> {
+    type Element = T;
+
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &Self::Element> {
+        Set::iter(self)
+    }
+
+    fn collection_of(iter: impl IntoIterator<Item = Self::Element>) -> Self {
+        iter.into_iter().collect()
+    }
+}
+
+impl<T> Collection for Vec<T> {
+    type Element = T;
+
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &Self::Element> {
+        <[T]>::iter(self)
+    }
+
+    fn collection_of(iter: impl IntoIterator<Item = Self::Element>) -> Self {
+        iter.into_iter().collect()
+    }
+}
+
 #[macro_export]
 macro_rules! map {
     () => {
@@ -252,21 +294,21 @@ pub struct Union<T>(pub T);
 /// Downcasting doesn't work, because how would we know how many
 /// things to put in each collection? But see `Cons` below.
 #[allow(non_snake_case)]
-impl<A, B, T> UpcastFrom<Union<(A, B)>> for Set<T>
+impl<A, B, D> UpcastFrom<Union<(A, B)>> for D
 where
+    D: Collection,
+
     A: IntoIterator + Clone,
-    A::Item: Upcast<T>,
+    A::Item: Upcast<D::Element>,
 
     B: IntoIterator + Clone,
-    B::Item: Upcast<T>,
-
-    T: Ord + Clone,
+    B::Item: Upcast<D::Element>,
 {
     fn upcast_from(Union((a, b)): Union<(A, B)>) -> Self {
         let c = None.into_iter();
         let c = c.chain(a.upcasted());
         let c = c.chain(b.upcasted());
-        c.collect()
+        Collection::collection_of(c)
     }
 }
 

@@ -1,8 +1,8 @@
 use crate::grammar::{
-    Adt, AdtBoundData, AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData,
-    Binder, Crate, CrateId, CrateItem, FieldId, ImplItem, NegTraitImpl, NegTraitImplBoundData,
-    Parameter, Predicate, Program, Relation, Trait, TraitBoundData, TraitId, TraitImpl,
-    TraitImplBoundData, TraitRef, Ty, VariantId, Wc, Wcs,
+    AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData, Binder, Crate,
+    CrateId, CrateItem, ImplItem, NegTraitImpl, NegTraitImplBoundData, Parameter, Predicate,
+    Program, Relation, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty,
+    Wc, Wcs,
 };
 use crate::prove::ToWcs;
 use formality_core::{seq, Set, To, Upcast, Upcasted};
@@ -17,6 +17,10 @@ pub struct Decls {
 impl Decls {
     /// Max size used in unit tests that are not stress testing maximum size.
     pub const DEFAULT_MAX_SIZE: usize = 222;
+
+    pub fn program(&self) -> &Program {
+        &self.program
+    }
 
     pub fn is_local_trait_id(&self, trait_id: &TraitId) -> bool {
         self.program
@@ -37,8 +41,7 @@ impl Decls {
             .into_iter()
             .flat_map(|c| c.items.iter())
             .any(|item| match item {
-                CrateItem::Struct(s) => s.id == *adt_id,
-                CrateItem::Enum(e) => e.id == *adt_id,
+                CrateItem::AdtItem(s) => s.name() == adt_id,
                 _ => false,
             })
     }
@@ -197,47 +200,6 @@ impl Decls {
             })
             .filter(|a| a.alias_name() == *name)
             .collect()
-    }
-
-    pub fn adt_decl(&self, adt_id: &AdtId) -> AdtDecl {
-        let mut v: Vec<_> = self
-            .program
-            .items_from_all_crates()
-            .filter_map(|item| match item {
-                CrateItem::Struct(s) => Some(s.to_adt()),
-                CrateItem::Enum(e) => Some(e.to_adt()),
-                _ => None,
-            })
-            .filter(|adt| adt.id == *adt_id)
-            .map(Self::grammar_adt_to_decl)
-            .collect();
-        assert!(!v.is_empty(), "no ADT named `{adt_id:?}`");
-        assert!(v.len() <= 1, "multiple ADTs named `{adt_id:?}`");
-        v.pop().unwrap()
-    }
-
-    fn grammar_adt_to_decl(adt: Adt) -> AdtDecl {
-        let Adt { id, binder } = adt;
-        let (
-            vars,
-            AdtBoundData {
-                where_clauses,
-                variants,
-            },
-        ) = binder.open();
-        AdtDecl {
-            id,
-            binder: Binder::new(
-                vars,
-                AdtDeclBoundData {
-                    where_clause: where_clauses.iter().flat_map(|wc| wc.to_wcs()).collect(),
-                    variants: variants
-                        .iter()
-                        .map(|variant| variant.to_adt_decl_variant())
-                        .collect(),
-                },
-            ),
-        }
     }
 
     /// Return the set of "trait invariants" for all traits.
@@ -424,44 +386,4 @@ pub struct AliasEqDeclBoundData {
 
     /// The where-clauses that must hold for this rule to be applicable; derived from the impl and the GAT
     pub where_clause: Wcs,
-}
-
-/// An "ADT declaration" declares an ADT name, its generics, and its where-clauses, and the field.
-///
-/// In Rust syntax, it covers the `struct Foo<X> where X: Bar` part of the declaration, but not what appears in the `{...}`.
-#[term(adt $id $binder)]
-pub struct AdtDecl {
-    /// The name of the ADT.
-    pub id: AdtId,
-
-    /// The binder here captures the generics of the ADT.
-    pub binder: Binder<AdtDeclBoundData>,
-}
-
-/// The "bound data" for a [`AdtDecl`][].
-#[term($:where $where_clause { $,variants })]
-pub struct AdtDeclBoundData {
-    /// The where-clauses declared on the ADT,
-    pub where_clause: Wcs,
-    pub variants: Vec<AdtDeclVariant>,
-}
-
-#[term($name { $,fields })]
-pub struct AdtDeclVariant {
-    pub name: VariantId,
-    pub fields: Vec<AdtDeclField>,
-}
-
-#[term($name : $ty)]
-pub struct AdtDeclField {
-    pub name: AdtDeclFieldName,
-    pub ty: Ty,
-}
-
-#[term]
-pub enum AdtDeclFieldName {
-    #[cast]
-    Id(FieldId),
-    #[cast]
-    Index(usize),
 }

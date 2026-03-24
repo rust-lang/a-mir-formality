@@ -1,4 +1,4 @@
-use crate::grammar::{Binder, CrateId};
+use crate::grammar::{Adt, AdtId, Binder, CrateId};
 use crate::grammar::{Enum, Fn, NegTraitImpl, Struct, Trait, TraitImpl, WhereClause};
 use formality_core::term;
 
@@ -15,9 +15,7 @@ pub enum CrateItem {
     #[cast]
     FeatureGate(FeatureGate),
     #[cast]
-    Struct(Struct),
-    #[cast]
-    Enum(Enum),
+    AdtItem(AdtItem),
     #[cast]
     Trait(Trait),
     #[cast]
@@ -28,6 +26,33 @@ pub enum CrateItem {
     Fn(Fn),
     #[cast]
     Test(Test),
+}
+
+#[term]
+pub enum AdtItem {
+    #[cast]
+    Struct(Struct),
+    #[cast]
+    Enum(Enum),
+}
+
+impl AdtItem {
+    pub fn name(&self) -> &AdtId {
+        match self {
+            AdtItem::Struct(s) => &s.id,
+            AdtItem::Enum(e) => &e.id,
+        }
+    }
+
+    /// Convert from an "adt item" (which is either a struct or an enum)
+    /// to a unified `Adt` that the variants/members of both in a consistent
+    /// way. This is a form that doesn't exist in Rust grammar.
+    pub fn to_adt(&self) -> Adt {
+        match self {
+            AdtItem::Struct(s) => s.to_adt(),
+            AdtItem::Enum(e) => e.to_adt(),
+        }
+    }
 }
 
 #[term(test $binder)]

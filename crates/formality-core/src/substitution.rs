@@ -59,10 +59,10 @@ impl<L: Language> std::fmt::Debug for CoreSubstitution<L> {
 
 impl<L: Language, Vs> std::ops::SubAssign<Vs> for CoreSubstitution<L>
 where
-    Vs: Upcast<Vec<CoreVariable<L>>>,
+    Vs: Upcast<Set<CoreVariable<L>>>,
 {
     fn sub_assign(&mut self, rhs: Vs) {
-        let rhs: Vec<CoreVariable<L>> = rhs.upcast();
+        let rhs: Set<CoreVariable<L>> = rhs.upcast();
 
         for v in rhs {
             self.map.remove(&v);

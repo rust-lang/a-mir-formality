@@ -1,6 +1,6 @@
 use formality_core::id;
 
-id!(FnId);
+id!(ValueId);
 id!(AdtId);
 id!(TraitId);
 id!(AssociatedItemId);

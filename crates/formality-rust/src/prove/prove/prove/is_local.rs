@@ -1,5 +1,8 @@
-use crate::grammar::{
-    AliasTy, Lt, Parameter, PredicateTy, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
+use crate::{
+    grammar::{
+        AliasTy, Lt, Parameter, PredicateTy, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
+    },
+    prove::prove::Constrained,
 };
 use formality_core::judgment_fn;
 
@@ -158,7 +161,7 @@ judgment_fn! {
 
         // Alias types: normalize and check result
         (
-            (prove_normalize(decls, env, assumptions, parameter) => (c, p))
+            (prove_normalize(decls, env, assumptions, parameter) => Constrained(p, c))
             (let assumptions = c.substitution().apply(assumptions))
             (may_contain_downstream_type(decls, env, assumptions, p) => ())
             --- ("via normalize")
@@ -186,7 +189,7 @@ judgment_fn! {
         debug(parameter, assumptions, env)
 
         (
-            (prove_normalize(decls, env, assumptions, parameter) => (c1, parameter))
+            (prove_normalize(decls, env, assumptions, parameter) => Constrained(parameter, c1))
             (let assumptions = c1.substitution().apply(assumptions))
             (is_not_downstream(decls, env, assumptions, parameter) => c2)
             --- ("ambiguous")
@@ -256,7 +259,7 @@ judgment_fn! {
         )
 
         (
-            (prove_normalize(decls, env, assumptions, parameter) => (c1, p))
+            (prove_normalize(decls, env, assumptions, parameter) => Constrained(p, c1))
             (let assumptions = c1.substitution().apply(assumptions))
             (is_not_downstream(decls, c1.env(), assumptions, p) => c2)
             --- ("via normalize")
@@ -285,7 +288,7 @@ judgment_fn! {
 
         // If we can normalize `goal` to something else, check if that normalized form is local.
         (
-            (prove_normalize(decls, env, assumptions, goal) => (c1, p))
+            (prove_normalize(decls, env, assumptions, goal) => Constrained(p, c1))
             (let assumptions = c1.substitution().apply(assumptions))
             (is_local_parameter(decls, c1.env(), assumptions, p) => c2)
             --- ("local parameter")
@@ -328,6 +331,8 @@ fn is_fundamental(_decls: &Decls, name: &RigidName) -> bool {
         RigidName::AdtId(_) => false, // FIXME(#222)
 
         RigidName::Ref(_) => true,
+
+        RigidName::Never => false,
 
         RigidName::ScalarId(_)
         | RigidName::Tuple(_)
