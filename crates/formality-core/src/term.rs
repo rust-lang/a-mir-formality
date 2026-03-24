@@ -11,7 +11,7 @@ use crate::{
 
 pub trait CoreTerm<L: Language>:
     Clone
-    + CoreFold<L>
+    + CoreFold<L, Output = Self>
     + CoreParse<L>
     + Ord
     + Eq

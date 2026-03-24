@@ -22,7 +22,7 @@ pub struct CoreBinder<L: Language, T> {
     term: T,
 }
 
-impl<L: Language, T: CoreFold<L>> CoreBinder<L, T> {
+impl<L: Language, T: CoreFold<L, Output = T>> CoreBinder<L, T> {
     /// Accesses the contents of the binder.
     ///
     /// The variables inside will be renamed to fresh var indices
@@ -158,7 +158,7 @@ impl<L: Language, T: CoreFold<L>> CoreBinder<L, T> {
         &self.kinds
     }
 
-    pub fn map<U: CoreFold<L>>(&self, op: impl FnOnce(T) -> U) -> CoreBinder<L, U> {
+    pub fn map<U: CoreFold<L, Output = U>>(&self, op: impl FnOnce(T) -> U) -> CoreBinder<L, U> {
         let (vars, t) = self.open();
         let u = op(t);
         CoreBinder::new(vars, u)
@@ -197,7 +197,9 @@ impl<L: Language, T: CoreVisit<L>> CoreVisit<L> for CoreBinder<L, T> {
     }
 }
 
-impl<L: Language, T: CoreFold<L>> CoreFold<L> for CoreBinder<L, T> {
+impl<L: Language, T: CoreFold<L, Output = T>> CoreFold<L> for CoreBinder<L, T> {
+    type Output = Self;
+
     fn substitute(&self, substitution_fn: SubstitutionFn<'_, L>) -> Self {
         let term = self.term.substitute(&mut |v| {
             // Shift this variable out through the binder. If that fails,

@@ -126,7 +126,7 @@ macro_rules! declare_language {
             }
 
             $crate::trait_alias! {
-                pub trait Fold = $crate::fold::CoreFold<FormalityLang>
+                pub trait Fold = $crate::fold::CoreFold<FormalityLang, Output = Self>
             }
 
             $crate::trait_alias! {
@@ -299,6 +299,8 @@ macro_rules! id {
             }
 
             impl CoreFold<crate::FormalityLang> for $n {
+                type Output = Self;
+
                 fn substitute(
                     &self,
                     _substitution_fn: fold::SubstitutionFn<'_, crate::FormalityLang>,
