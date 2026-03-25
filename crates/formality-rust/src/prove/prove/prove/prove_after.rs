@@ -15,7 +15,7 @@ judgment_fn! {
         debug(constraints, goal, assumptions)
 
         (
-            (let (assumptions, goal) = c1.substitution().apply((&assumptions, &goal)))
+            (let (assumptions, goal) = c1.substitution().apply((assumptions, goal)))
             (prove(decls, c1.env(), assumptions, goal) => c2)
             --- ("prove_after")
             (prove_after(decls, c1, assumptions, goal) => c1.seq(c2))
