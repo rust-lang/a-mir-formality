@@ -1,7 +1,7 @@
 use crate::{
     cast::{Upcast, UpcastFrom},
     collections::{Map, Set},
-    fold::{CoreFold, CoreIntoFold},
+    fold::CoreFold,
     language::{CoreParameter, Language},
     variable::CoreVariable,
     visit::CoreVisit,
@@ -115,8 +115,8 @@ where
 }
 
 impl<L: Language> CoreSubstitution<L> {
-    pub fn apply<T: CoreIntoFold<L>>(&self, t: T) -> T::Output {
-        t.fold_into(&mut |v| self.map.get(&v).cloned())
+    pub fn apply<T: CoreFold<L>>(&self, t: T) -> T::Output {
+        t.substitute(&mut |v| self.map.get(&v).cloned())
     }
 
     pub fn get(&self, v: CoreVariable<L>) -> Option<CoreParameter<L>> {
@@ -195,8 +195,8 @@ impl<L: Language> CoreVarSubstitution<L> {
         self.map.iter().map(|(k, v)| (*v, *k)).collect()
     }
 
-    pub fn apply<T: CoreIntoFold<L>>(&self, t: T) -> T::Output {
-        t.fold_into(&mut |v| Some(self.map.get(&v)?.upcast()))
+    pub fn apply<T: CoreFold<L>>(&self, t: T) -> T::Output {
+        t.substitute(&mut |v| Some(self.map.get(&v)?.upcast()))
     }
 
     pub fn map_var(&self, v: CoreVariable<L>) -> Option<CoreVariable<L>> {
