@@ -205,4 +205,3 @@ impl<L: Language, A: CoreFold<L>, B: CoreFold<L>, C: CoreFold<L>> CoreFold<L> fo
         )
     }
 }
-
