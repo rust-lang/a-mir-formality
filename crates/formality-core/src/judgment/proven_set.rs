@@ -490,14 +490,14 @@ impl FailedJudgment {
     }
 
     /// Simplifies a set of failed rules to exclude cycles, but only if there are non-cyclic results to show instead.
-    /// Recursively Given a set of failed rules, along with the `stack` of judgments that was being solved at the time these failures occurred,
-    /// returns `(set, has_non_cycle)`. The `set` represents a new, simplified set of failued
+    /// Given a set of failed rules, along with the `stack` of judgments that was being solved at the time these failures occurred,
+    /// recursively returns `(set, has_non_cycle)`. The `set` represents a new, simplified set of failed rules.
     #[tracing::instrument(level = "Debug", skip(stack), ret)]
     fn strip_cycles(
         stack: &Set<&String>,
         failed_rules: Set<FailedRule>,
     ) -> (Set<FailedRule>, HasNonCycle) {
-        // No rules were even applicable to this input, so this
+        // The input doesn't match any of the judgment rules, so this
         // can't be a cycle — report it as a genuine failure.
         if failed_rules.is_empty() {
             return (set![], HasNonCycle(true));
