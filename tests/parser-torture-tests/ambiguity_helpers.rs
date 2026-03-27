@@ -5,6 +5,7 @@
 //! each collection helper (`$?`, `$*`, `$,`, `$<>`, `$()`, `$[]`)
 //! propagates that ambiguity.
 
+use expect_test::expect;
 use formality_core::parse::{self, CoreParse};
 use formality_core::Set;
 use formality_core::{term, test};
@@ -23,14 +24,33 @@ pub enum Amb {
 
 formality_core::id!(Id);
 
-/// Count the number of complete parses (no remaining input).
-fn count_complete_parses<T: CoreParse<crate::ptt::FormalityLang>>(input: &str) -> usize {
+/// Checks both the number of complete parses and their textual representation.
+///
+/// The `expected_count` parameter guards against accidental changes even when
+/// running `UPDATE_EXPECT=1` (which would silently update the snapshot but
+/// not the count).
+fn count_complete_parses<T: CoreParse<crate::ptt::FormalityLang> + std::fmt::Debug>(
+    input: &str,
+    expected_count: usize,
+    expect: &expect_test::Expect,
+) {
     let scope = Default::default();
     let parses = T::parse(&scope, input).unwrap();
-    parses
+    let complete: Vec<_> = parses
         .into_iter()
         .filter(|p| parse::skip_whitespace(p.text()).is_empty())
-        .count()
+        .collect();
+    let values: Vec<T> = complete
+        .into_iter()
+        .map(|p| p.finish().0)
+        .collect();
+    assert_eq!(
+        values.len(),
+        expected_count,
+        "unexpected number of complete parses for {:?}",
+        input,
+    );
+    expect.assert_debug_eq(&values);
 }
 
 // ========================================================================
@@ -46,7 +66,24 @@ fn opt_ambiguous_present() {
         amb: Option<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<OptAmb>("opt a"), 2);
+    count_complete_parses::<OptAmb>("opt a", 2, &expect![[r#"
+        [
+            OptAmb {
+                amb: Some(
+                    AmbX(
+                        a,
+                    ),
+                ),
+            },
+            OptAmb {
+                amb: Some(
+                    AmbY(
+                        a,
+                    ),
+                ),
+            },
+        ]
+    "#]]);
 }
 
 /// `$?amb` — optional ambiguous child with input absent.
@@ -58,7 +95,13 @@ fn opt_ambiguous_absent() {
         amb: Option<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<OptAmbEnd>("opt end"), 1);
+    count_complete_parses::<OptAmbEnd>("opt end", 1, &expect![[r#"
+        [
+            OptAmbEnd {
+                amb: None,
+            },
+        ]
+    "#]]);
 }
 
 /// `$?amb` with a trailing required token — ambiguity from `$?` should
@@ -70,7 +113,24 @@ fn opt_ambiguous_with_suffix() {
         amb: Option<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<OptAmbDone>("opt a done"), 2);
+    count_complete_parses::<OptAmbDone>("opt a done", 2, &expect![[r#"
+        [
+            OptAmbDone {
+                amb: Some(
+                    AmbX(
+                        a,
+                    ),
+                ),
+            },
+            OptAmbDone {
+                amb: Some(
+                    AmbY(
+                        a,
+                    ),
+                ),
+            },
+        ]
+    "#]]);
 }
 
 // ========================================================================
@@ -86,7 +146,24 @@ fn many_one_ambiguous() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<ManyAmb>("many a end"), 2);
+    count_complete_parses::<ManyAmb>("many a end", 2, &expect![[r#"
+        [
+            ManyAmb {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                ],
+            },
+            ManyAmb {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 /// `$*items` where two items are each ambiguous.
@@ -98,7 +175,50 @@ fn many_two_ambiguous() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<ManyAmb>("many a b end"), 4);
+    count_complete_parses::<ManyAmb>("many a b end", 4, &expect![[r#"
+        [
+            ManyAmb {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            },
+            ManyAmb {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            },
+            ManyAmb {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            },
+            ManyAmb {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 /// `$*items` where three items are each ambiguous.
@@ -110,7 +230,114 @@ fn many_three_ambiguous() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<ManyAmb>("many a b c end"), 8);
+    count_complete_parses::<ManyAmb>("many a b c end", 8, &expect![[r#"
+        [
+            ManyAmb {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                    AmbX(
+                        c,
+                    ),
+                ],
+            },
+            ManyAmb {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                    AmbY(
+                        c,
+                    ),
+                ],
+            },
+            ManyAmb {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                    AmbX(
+                        c,
+                    ),
+                ],
+            },
+            ManyAmb {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                    AmbY(
+                        c,
+                    ),
+                ],
+            },
+            ManyAmb {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                    AmbX(
+                        c,
+                    ),
+                ],
+            },
+            ManyAmb {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                    AmbY(
+                        c,
+                    ),
+                ],
+            },
+            ManyAmb {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                    AmbX(
+                        c,
+                    ),
+                ],
+            },
+            ManyAmb {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                    AmbY(
+                        c,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 /// `$*items` with zero items should produce exactly 1 parse (empty vec).
@@ -121,7 +348,13 @@ fn many_zero_items() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<ManyAmb>("many end"), 1);
+    count_complete_parses::<ManyAmb>("many end", 1, &expect![[r#"
+        [
+            ManyAmb {
+                items: [],
+            },
+        ]
+    "#]]);
 }
 
 // ========================================================================
@@ -136,7 +369,24 @@ fn comma_one_ambiguous() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<CommaAmb>("comma a end"), 2);
+    count_complete_parses::<CommaAmb>("comma a end", 2, &expect![[r#"
+        [
+            CommaAmb {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                ],
+            },
+            CommaAmb {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 /// `$,items` — two ambiguous comma-separated items → 2 * 2 = 4 parses.
@@ -147,7 +397,50 @@ fn comma_two_ambiguous() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<CommaAmb>("comma a, b end"), 4);
+    count_complete_parses::<CommaAmb>("comma a, b end", 4, &expect![[r#"
+        [
+            CommaAmb {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            },
+            CommaAmb {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            },
+            CommaAmb {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            },
+            CommaAmb {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 /// `$,items` — zero items → 1 parse.
@@ -158,7 +451,13 @@ fn comma_zero_items() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<CommaAmb>("comma end"), 1);
+    count_complete_parses::<CommaAmb>("comma end", 1, &expect![[r#"
+        [
+            CommaAmb {
+                items: [],
+            },
+        ]
+    "#]]);
 }
 
 // ========================================================================
@@ -173,7 +472,24 @@ fn delimited_angle_one_ambiguous() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimAngle>("delim <a>"), 2);
+    count_complete_parses::<DelimAngle>("delim <a>", 2, &expect![[r#"
+        [
+            DelimAngle {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                ],
+            },
+            DelimAngle {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 /// `$<items>` — two comma-separated ambiguous items → 4 parses.
@@ -184,7 +500,50 @@ fn delimited_angle_two_ambiguous() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimAngle>("delim <a, b>"), 4);
+    count_complete_parses::<DelimAngle>("delim <a, b>", 4, &expect![[r#"
+        [
+            DelimAngle {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            },
+            DelimAngle {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            },
+            DelimAngle {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            },
+            DelimAngle {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 /// `$<items>` — empty angle brackets → 1 parse.
@@ -195,7 +554,13 @@ fn delimited_angle_empty() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimAngle>("delim <>"), 1);
+    count_complete_parses::<DelimAngle>("delim <>", 1, &expect![[r#"
+        [
+            DelimAngle {
+                items: [],
+            },
+        ]
+    "#]]);
 }
 
 /// `$<?items>` is optional — missing delimiters → 1 parse (empty vec).
@@ -206,9 +571,32 @@ fn delimited_angle_absent() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimAngle>("delim end"), 1);
+    count_complete_parses::<DelimAngle>("delim end", 1, &expect![[r#"
+        [
+            DelimAngle {
+                items: [],
+            },
+        ]
+    "#]]);
     // When present, still propagates ambiguity
-    assert_eq!(count_complete_parses::<DelimAngle>("delim <a> end"), 2);
+    count_complete_parses::<DelimAngle>("delim <a> end", 2, &expect![[r#"
+        [
+            DelimAngle {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                ],
+            },
+            DelimAngle {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 // ========================================================================
@@ -223,7 +611,50 @@ fn delimited_paren_two_ambiguous() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimParen>("delim (a, b)"), 4);
+    count_complete_parses::<DelimParen>("delim (a, b)", 4, &expect![[r#"
+        [
+            DelimParen {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            },
+            DelimParen {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            },
+            DelimParen {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            },
+            DelimParen {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 // ========================================================================
@@ -238,7 +669,50 @@ fn delimited_bracket_two_ambiguous() {
         items: Vec<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimBracket>("delim [a, b]"), 4);
+    count_complete_parses::<DelimBracket>("delim [a, b]", 4, &expect![[r#"
+        [
+            DelimBracket {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            },
+            DelimBracket {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            },
+            DelimBracket {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            },
+            DelimBracket {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 // ========================================================================
@@ -256,7 +730,50 @@ fn opt_then_required_both_ambiguous() {
     }
 
     // "start a b end" — opt consumes `a` (2 ways), req consumes `b` (2 ways) → 4
-    assert_eq!(count_complete_parses::<OptThenReq>("start a b end"), 4);
+    count_complete_parses::<OptThenReq>("start a b end", 4, &expect![[r#"
+        [
+            OptThenReq {
+                opt_item: Some(
+                    AmbX(
+                        a,
+                    ),
+                ),
+                req_item: AmbX(
+                    b,
+                ),
+            },
+            OptThenReq {
+                opt_item: Some(
+                    AmbX(
+                        a,
+                    ),
+                ),
+                req_item: AmbY(
+                    b,
+                ),
+            },
+            OptThenReq {
+                opt_item: Some(
+                    AmbY(
+                        a,
+                    ),
+                ),
+                req_item: AmbX(
+                    b,
+                ),
+            },
+            OptThenReq {
+                opt_item: Some(
+                    AmbY(
+                        a,
+                    ),
+                ),
+                req_item: AmbY(
+                    b,
+                ),
+            },
+        ]
+    "#]]);
 }
 
 /// Two ambiguous fields where opt is absent.
@@ -269,7 +786,22 @@ fn opt_absent_then_required_ambiguous() {
         req_item: Amb,
     }
 
-    assert_eq!(count_complete_parses::<OptThenReq>("start then a end"), 2);
+    count_complete_parses::<OptThenReq>("start then a end", 2, &expect![[r#"
+        [
+            OptThenReq {
+                opt_item: None,
+                req_item: AmbX(
+                    a,
+                ),
+            },
+            OptThenReq {
+                opt_item: None,
+                req_item: AmbY(
+                    a,
+                ),
+            },
+        ]
+    "#]]);
 }
 
 /// Ambiguous items inside a `$*` followed by an ambiguous required item.
@@ -283,10 +815,50 @@ fn many_then_required_both_ambiguous() {
     }
 
     // "start a then b end" — many gets [a] (2 ways), last gets b (2 ways) → 4
-    assert_eq!(
-        count_complete_parses::<ManyThenReq>("start a then b end"),
-        4
-    );
+    count_complete_parses::<ManyThenReq>("start a then b end", 4, &expect![[r#"
+        [
+            ManyThenReq {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                ],
+                last: AmbX(
+                    b,
+                ),
+            },
+            ManyThenReq {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                ],
+                last: AmbY(
+                    b,
+                ),
+            },
+            ManyThenReq {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                ],
+                last: AmbX(
+                    b,
+                ),
+            },
+            ManyThenReq {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                ],
+                last: AmbY(
+                    b,
+                ),
+            },
+        ]
+    "#]]);
 }
 
 /// Ambiguous items in angle brackets followed by another ambiguous item.
@@ -299,7 +871,114 @@ fn delimited_then_required_both_ambiguous() {
         last: Amb,
     }
 
-    assert_eq!(count_complete_parses::<DelimThenReq>("start <a, b> c"), 8);
+    count_complete_parses::<DelimThenReq>("start <a, b> c", 8, &expect![[r#"
+        [
+            DelimThenReq {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+                last: AmbX(
+                    c,
+                ),
+            },
+            DelimThenReq {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+                last: AmbY(
+                    c,
+                ),
+            },
+            DelimThenReq {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+                last: AmbX(
+                    c,
+                ),
+            },
+            DelimThenReq {
+                items: [
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+                last: AmbY(
+                    c,
+                ),
+            },
+            DelimThenReq {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+                last: AmbX(
+                    c,
+                ),
+            },
+            DelimThenReq {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+                last: AmbY(
+                    c,
+                ),
+            },
+            DelimThenReq {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+                last: AmbX(
+                    c,
+                ),
+            },
+            DelimThenReq {
+                items: [
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+                last: AmbY(
+                    c,
+                ),
+            },
+        ]
+    "#]]);
 }
 
 // ========================================================================
@@ -320,10 +999,96 @@ fn enum_variants_with_collections() {
     }
 
     // "many a b end" → Many variant, 2 items, 2^2 = 4
-    assert_eq!(count_complete_parses::<Wrapper>("many a b end"), 4);
+    count_complete_parses::<Wrapper>("many a b end", 4, &expect![[r#"
+        [
+            Many(
+                [
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            ),
+            Many(
+                [
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            ),
+            Many(
+                [
+                    AmbY(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            ),
+            Many(
+                [
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            ),
+        ]
+    "#]]);
 
     // "comma a, b end" → Comma variant, 2 items, 2^2 = 4
-    assert_eq!(count_complete_parses::<Wrapper>("comma a, b end"), 4);
+    count_complete_parses::<Wrapper>("comma a, b end", 4, &expect![[r#"
+        [
+            Comma(
+                [
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            ),
+            Comma(
+                [
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            ),
+            Comma(
+                [
+                    AmbY(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                ],
+            ),
+            Comma(
+                [
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                ],
+            ),
+        ]
+    "#]]);
 }
 
 // ========================================================================
@@ -350,7 +1115,46 @@ fn many_of_ambiguous_wrapper() {
     }
 
     // One element `(a)`: AmbWrap has 2 parses (WrapA/WrapB) * Amb has 2 parses each = 4
-    assert_eq!(count_complete_parses::<ListWrap>("list (a) end"), 4);
+    count_complete_parses::<ListWrap>("list (a) end", 4, &expect![[r#"
+        [
+            ListWrap {
+                items: [
+                    WrapA(
+                        AmbX(
+                            a,
+                        ),
+                    ),
+                ],
+            },
+            ListWrap {
+                items: [
+                    WrapA(
+                        AmbY(
+                            a,
+                        ),
+                    ),
+                ],
+            },
+            ListWrap {
+                items: [
+                    WrapB(
+                        AmbX(
+                            a,
+                        ),
+                    ),
+                ],
+            },
+            ListWrap {
+                items: [
+                    WrapB(
+                        AmbY(
+                            a,
+                        ),
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 // ========================================================================
@@ -371,8 +1175,24 @@ fn opt_unambiguous() {
         item: Option<Unamb>,
     }
 
-    assert_eq!(count_complete_parses::<OptUnamb>("opt a end"), 1);
-    assert_eq!(count_complete_parses::<OptUnamb>("opt end"), 1);
+    count_complete_parses::<OptUnamb>("opt a end", 1, &expect![[r#"
+        [
+            OptUnamb {
+                item: Some(
+                    Only(
+                        a,
+                    ),
+                ),
+            },
+        ]
+    "#]]);
+    count_complete_parses::<OptUnamb>("opt end", 1, &expect![[r#"
+        [
+            OptUnamb {
+                item: None,
+            },
+        ]
+    "#]]);
 }
 
 #[test]
@@ -382,7 +1202,23 @@ fn many_unambiguous() {
         items: Vec<Unamb>,
     }
 
-    assert_eq!(count_complete_parses::<ManyUnamb>("many a b c end"), 1);
+    count_complete_parses::<ManyUnamb>("many a b c end", 1, &expect![[r#"
+        [
+            ManyUnamb {
+                items: [
+                    Only(
+                        a,
+                    ),
+                    Only(
+                        b,
+                    ),
+                    Only(
+                        c,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 #[test]
@@ -392,7 +1228,23 @@ fn comma_unambiguous() {
         items: Vec<Unamb>,
     }
 
-    assert_eq!(count_complete_parses::<CommaUnamb>("comma a, b, c end"), 1);
+    count_complete_parses::<CommaUnamb>("comma a, b, c end", 1, &expect![[r#"
+        [
+            CommaUnamb {
+                items: [
+                    Only(
+                        a,
+                    ),
+                    Only(
+                        b,
+                    ),
+                    Only(
+                        c,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 #[test]
@@ -402,7 +1254,23 @@ fn delimited_unambiguous() {
         items: Vec<Unamb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimUnamb>("delim <a, b, c>"), 1);
+    count_complete_parses::<DelimUnamb>("delim <a, b, c>", 1, &expect![[r#"
+        [
+            DelimUnamb {
+                items: [
+                    Only(
+                        a,
+                    ),
+                    Only(
+                        b,
+                    ),
+                    Only(
+                        c,
+                    ),
+                ],
+            },
+        ]
+    "#]]);
 }
 
 // ========================================================================
@@ -418,7 +1286,20 @@ fn comma_into_set_two_items() {
         items: Set<Unamb>,
     }
 
-    assert_eq!(count_complete_parses::<CommaSet>("comma a, b end"), 1);
+    count_complete_parses::<CommaSet>("comma a, b end", 1, &expect![[r#"
+        [
+            CommaSet {
+                items: {
+                    Only(
+                        a,
+                    ),
+                    Only(
+                        b,
+                    ),
+                },
+            },
+        ]
+    "#]]);
 }
 
 /// `$,items` into a `Set<Unamb>` — zero items → 1 parse (empty set).
@@ -429,7 +1310,13 @@ fn comma_into_set_zero_items() {
         items: Set<Unamb>,
     }
 
-    assert_eq!(count_complete_parses::<CommaSet>("comma end"), 1);
+    count_complete_parses::<CommaSet>("comma end", 1, &expect![[r#"
+        [
+            CommaSet {
+                items: {},
+            },
+        ]
+    "#]]);
 }
 
 /// `$<items>` into a `Set<Unamb>` — angle-bracket delimited items.
@@ -440,7 +1327,23 @@ fn delimited_angle_into_set() {
         items: Set<Unamb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimAngleSet>("delim <a, b, c>"), 1);
+    count_complete_parses::<DelimAngleSet>("delim <a, b, c>", 1, &expect![[r#"
+        [
+            DelimAngleSet {
+                items: {
+                    Only(
+                        a,
+                    ),
+                    Only(
+                        b,
+                    ),
+                    Only(
+                        c,
+                    ),
+                },
+            },
+        ]
+    "#]]);
 }
 
 /// `$<items>` into a `Set<Unamb>` — empty angle brackets → 1 parse.
@@ -451,7 +1354,13 @@ fn delimited_angle_into_set_empty() {
         items: Set<Unamb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimAngleSet>("delim <>"), 1);
+    count_complete_parses::<DelimAngleSet>("delim <>", 1, &expect![[r#"
+        [
+            DelimAngleSet {
+                items: {},
+            },
+        ]
+    "#]]);
 }
 
 /// `$<?items>` into a `Set<Unamb>` — optional, absent → 1 parse (empty set).
@@ -462,8 +1371,27 @@ fn delimited_angle_into_set_optional_absent() {
         items: Set<Unamb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimAngleSet>("delim end"), 1);
-    assert_eq!(count_complete_parses::<DelimAngleSet>("delim <a, b> end"), 1);
+    count_complete_parses::<DelimAngleSet>("delim end", 1, &expect![[r#"
+        [
+            DelimAngleSet {
+                items: {},
+            },
+        ]
+    "#]]);
+    count_complete_parses::<DelimAngleSet>("delim <a, b> end", 1, &expect![[r#"
+        [
+            DelimAngleSet {
+                items: {
+                    Only(
+                        a,
+                    ),
+                    Only(
+                        b,
+                    ),
+                },
+            },
+        ]
+    "#]]);
 }
 
 /// `$(items)` into a `Set<Unamb>` — paren-delimited into Set.
@@ -474,7 +1402,20 @@ fn delimited_paren_into_set() {
         items: Set<Unamb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimParenSet>("delim (a, b)"), 1);
+    count_complete_parses::<DelimParenSet>("delim (a, b)", 1, &expect![[r#"
+        [
+            DelimParenSet {
+                items: {
+                    Only(
+                        a,
+                    ),
+                    Only(
+                        b,
+                    ),
+                },
+            },
+        ]
+    "#]]);
 }
 
 /// `$[items]` into a `Set<Unamb>` — bracket-delimited into Set.
@@ -485,7 +1426,20 @@ fn delimited_bracket_into_set() {
         items: Set<Unamb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimBracketSet>("delim [a, b]"), 1);
+    count_complete_parses::<DelimBracketSet>("delim [a, b]", 1, &expect![[r#"
+        [
+            DelimBracketSet {
+                items: {
+                    Only(
+                        a,
+                    ),
+                    Only(
+                        b,
+                    ),
+                },
+            },
+        ]
+    "#]]);
 }
 
 /// `$,items` into `Set<Amb>` — ambiguous elements into Set.
@@ -498,8 +1452,68 @@ fn comma_into_set_ambiguous() {
         items: Set<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<CommaSetAmb>("comma a end"), 2);
-    assert_eq!(count_complete_parses::<CommaSetAmb>("comma a, b end"), 4);
+    count_complete_parses::<CommaSetAmb>("comma a end", 2, &expect![[r#"
+        [
+            CommaSetAmb {
+                items: {
+                    AmbX(
+                        a,
+                    ),
+                },
+            },
+            CommaSetAmb {
+                items: {
+                    AmbY(
+                        a,
+                    ),
+                },
+            },
+        ]
+    "#]]);
+    count_complete_parses::<CommaSetAmb>("comma a, b end", 4, &expect![[r#"
+        [
+            CommaSetAmb {
+                items: {
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                },
+            },
+            CommaSetAmb {
+                items: {
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                },
+            },
+            CommaSetAmb {
+                items: {
+                    AmbX(
+                        b,
+                    ),
+                    AmbY(
+                        a,
+                    ),
+                },
+            },
+            CommaSetAmb {
+                items: {
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                },
+            },
+        ]
+    "#]]);
 }
 
 /// `$<items>` into `Set<Amb>` — ambiguous elements in angle brackets into Set.
@@ -510,5 +1524,48 @@ fn delimited_angle_into_set_ambiguous() {
         items: Set<Amb>,
     }
 
-    assert_eq!(count_complete_parses::<DelimAngleSetAmb>("delim <a, b>"), 4);
+    count_complete_parses::<DelimAngleSetAmb>("delim <a, b>", 4, &expect![[r#"
+        [
+            DelimAngleSetAmb {
+                items: {
+                    AmbX(
+                        a,
+                    ),
+                    AmbX(
+                        b,
+                    ),
+                },
+            },
+            DelimAngleSetAmb {
+                items: {
+                    AmbX(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                },
+            },
+            DelimAngleSetAmb {
+                items: {
+                    AmbX(
+                        b,
+                    ),
+                    AmbY(
+                        a,
+                    ),
+                },
+            },
+            DelimAngleSetAmb {
+                items: {
+                    AmbY(
+                        a,
+                    ),
+                    AmbY(
+                        b,
+                    ),
+                },
+            },
+        ]
+    "#]]);
 }
