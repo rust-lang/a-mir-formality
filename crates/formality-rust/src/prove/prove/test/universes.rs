@@ -26,7 +26,7 @@ fn exists_u_for_t() {
 #[test]
 fn for_t_exists_u() {
     let decls = Decls {
-        program: Decls::program_from_items(vec![
+        crates: Decls::program_from_items(vec![
             term("trait Test<T> where {}"),
             term("impl<X> Test<X> for X {}"),
         ]),

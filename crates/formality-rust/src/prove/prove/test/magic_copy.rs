@@ -9,7 +9,7 @@ use crate::prove::prove::test_util::test_prove;
 /// Simple example decls consisting only of two trait declarations.
 fn decls() -> Decls {
     Decls {
-        program: Decls::program_from_items(vec![
+        crates: Decls::program_from_items(vec![
             term("trait Copy where {}"),
             term("trait Magic where Self : Copy {}"),
             term("impl<T> Magic for T where T : Magic {}"),

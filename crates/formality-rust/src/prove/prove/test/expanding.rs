@@ -8,7 +8,7 @@ use crate::prove::prove::{test_util::test_prove, Decls};
 fn decls() -> Decls {
     Decls {
         max_size: 10,
-        program: Decls::program_from_items(vec![
+        crates: Decls::program_from_items(vec![
             term("trait Debug where {}"),
             term("impl<T> Debug for Vec<T> where T : Debug {}"),
         ]),

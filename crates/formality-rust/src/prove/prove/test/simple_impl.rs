@@ -8,7 +8,7 @@ use crate::prove::prove::{decls::Decls, prove::prove};
 /// Simple example decls consisting only of two trait declarations.
 fn decls() -> Decls {
     Decls {
-        program: Decls::program_from_items(vec![
+        crates: Decls::program_from_items(vec![
             term("trait Debug where {}"),
             term("impl<T> Debug for Vec<T> where T : Debug {}"),
             term("impl Debug for u32 {}"),

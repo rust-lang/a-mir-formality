@@ -32,7 +32,7 @@ cast_impl!(TypeckEnv);
 impl TypeckEnv {
     pub(crate) fn for_const(env: impl Upcast<Env>, decls: &Decls) -> Self {
         Self {
-            program: Arc::new(decls.program.clone()),
+            program: Arc::new(decls.crates.clone()),
             env: env.upcast(),
             output_ty: None,
             decls: decls.clone(),
@@ -41,7 +41,7 @@ impl TypeckEnv {
 
     pub(crate) fn for_fn_body(env: impl Upcast<Env>, decls: &Decls, output_ty: &Ty) -> Self {
         Self {
-            program: Arc::new(decls.program.clone()),
+            program: Arc::new(decls.crates.clone()),
             env: env.upcast(),
             output_ty: Some(output_ty.clone()),
             decls: decls.clone(),

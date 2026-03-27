@@ -7,7 +7,7 @@ use crate::prove::prove::{decls::Decls, prove::prove, Env};
 
 fn decls() -> Decls {
     Decls {
-        program: Decls::program_from_items(vec![
+        crates: Decls::program_from_items(vec![
             term("trait Foo where {}"),
             term("impl Foo for u32 {}"),
             term("struct X<T> where T : Foo {}"),

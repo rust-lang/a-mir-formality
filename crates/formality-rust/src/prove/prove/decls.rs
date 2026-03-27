@@ -1,8 +1,8 @@
 use crate::grammar::{
     AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData, Binder, Crate,
-    CrateId, CrateItem, ImplItem, NegTraitImpl, NegTraitImplBoundData, Parameter, Predicate,
-    Crates, Relation, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty,
-    Wc, Wcs,
+    CrateId, CrateItem, Crates, ImplItem, NegTraitImpl, NegTraitImplBoundData, Parameter,
+    Predicate, Relation, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef,
+    Ty, Wc, Wcs,
 };
 use crate::prove::ToWcs;
 use formality_core::{seq, Set, To, Upcast, Upcasted};
@@ -10,7 +10,7 @@ use formality_macros::term;
 
 #[term]
 pub struct Decls {
-    pub program: Crates,
+    pub crates: Crates,
     pub max_size: usize,
 }
 
@@ -19,11 +19,11 @@ impl Decls {
     pub const DEFAULT_MAX_SIZE: usize = 222;
 
     pub fn program(&self) -> &Crates {
-        &self.program
+        &self.crates
     }
 
     pub fn is_local_trait_id(&self, trait_id: &TraitId) -> bool {
-        self.program
+        self.crates
             .crates
             .last()
             .into_iter()
@@ -35,7 +35,7 @@ impl Decls {
     }
 
     pub fn is_local_adt_id(&self, adt_id: &AdtId) -> bool {
-        self.program
+        self.crates
             .crates
             .last()
             .into_iter()
@@ -47,7 +47,7 @@ impl Decls {
     }
 
     pub fn impl_decls(&self, trait_id: &TraitId) -> Vec<ImplDecl> {
-        self.program
+        self.crates
             .items_from_all_crates()
             .filter_map(|item| match item {
                 CrateItem::TraitImpl(ti) => Some(ti),
@@ -59,7 +59,7 @@ impl Decls {
     }
 
     pub fn neg_impl_decls(&self, trait_id: &TraitId) -> Vec<NegImplDecl> {
-        self.program
+        self.crates
             .items_from_all_crates()
             .filter_map(|item| match item {
                 CrateItem::NegTraitImpl(nti) => Some(nti),
@@ -72,7 +72,7 @@ impl Decls {
 
     /// Look up a trait by id from the program grammar and convert to a `TraitDecl`.
     pub fn trait_decl(&self, trait_id: &TraitId) -> TraitDecl {
-        let grammar_trait = self.program.trait_named(trait_id).unwrap();
+        let grammar_trait = self.crates.trait_named(trait_id).unwrap();
         Self::grammar_trait_to_decl(grammar_trait)
     }
 
@@ -142,7 +142,7 @@ impl Decls {
     }
 
     pub fn alias_eq_decls(&self, name: &AliasName) -> Vec<AliasEqDecl> {
-        self.program
+        self.crates
             .items_from_all_crates()
             .filter_map(|item| match item {
                 CrateItem::TraitImpl(ti) => Some(ti),
@@ -205,7 +205,7 @@ impl Decls {
     /// Return the set of "trait invariants" for all traits.
     /// See [`TraitDecl::trait_invariants`].
     pub fn trait_invariants(&self) -> Set<TraitInvariant> {
-        self.program
+        self.crates
             .items_from_all_crates()
             .filter_map(|item| match item {
                 CrateItem::Trait(t) => Some(t),
@@ -227,7 +227,7 @@ impl Decls {
 
     pub fn empty() -> Self {
         Self {
-            program: Crates { crates: vec![] },
+            crates: Crates { crates: vec![] },
             max_size: Decls::DEFAULT_MAX_SIZE,
         }
     }
