@@ -1,5 +1,7 @@
 ## What does this PR do?
 
+Closes #issue-number
+
 
 ## AI/LLM disclosure
 
