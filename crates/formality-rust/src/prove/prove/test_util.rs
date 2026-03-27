@@ -5,7 +5,7 @@ use formality_macros::term;
 use std::sync::Arc;
 
 use crate::prove::prove::{
-    decls::Decls,
+    decls::Program,
     prove::{prove, Constraints, Env},
 };
 
@@ -32,7 +32,7 @@ pub enum TestAssertion {
 /// Returns the constraints that result from proving assumptions/goals. These will reference
 /// existential variables created for the bindings, so they're really just suitable for
 /// using with expect.
-pub fn test_prove(decls: Decls, assertion: Arc<TestAssertion>) -> ProvenSet<Constraints> {
+pub fn test_prove(decls: Program, assertion: Arc<TestAssertion>) -> ProvenSet<Constraints> {
     let (mut assertion, bias) = match &*assertion {
         TestAssertion::Default(assertion) => (assertion.clone(), Bias::Soundness),
         TestAssertion::CoherenceMode(assertion) => (assertion.clone(), Bias::Completeness),

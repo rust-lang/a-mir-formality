@@ -17,7 +17,7 @@ impl Check<'_> {
         );
 
         let all_crate_impls: Vec<TraitImpl> =
-            self.program.items_from_all_crates().downcasted().collect();
+            self.program.program().items_from_all_crates().downcasted().collect();
         let current_crate_impls: Vec<TraitImpl> = current_crate.items.iter().downcasted().collect();
         let current_crate_neg_impls: Vec<NegTraitImpl> =
             current_crate.items.iter().downcasted().collect();

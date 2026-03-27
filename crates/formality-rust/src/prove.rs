@@ -4,10 +4,10 @@ pub mod prove;
 use crate::grammar::{Predicate, Relation, Ty, Wc, Wcs};
 
 impl Crates {
-    pub fn to_prove_decls(&self) -> prove::Decls {
-        prove::Decls {
+    pub fn to_prove_decls(&self) -> prove::Program {
+        prove::Program {
             crates: self.clone(),
-            max_size: prove::Decls::DEFAULT_MAX_SIZE,
+            max_size: prove::Program::DEFAULT_MAX_SIZE,
         }
     }
 }

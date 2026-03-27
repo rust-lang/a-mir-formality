@@ -3,17 +3,17 @@ use crate::rust::term;
 use expect_test::expect;
 use formality_macros::test;
 
-use crate::prove::prove::{decls::Decls, prove::prove};
+use crate::prove::prove::{decls::Program, prove::prove};
 
 /// Simple example decls consisting only of two trait declarations.
-fn decls() -> Decls {
-    Decls {
-        crates: Decls::program_from_items(vec![
+fn decls() -> Program {
+    Program {
+        crates: Program::program_from_items(vec![
             term("trait Debug where {}"),
             term("impl<T> Debug for Vec<T> where T : Debug {}"),
             term("impl Debug for u32 {}"),
         ]),
-        ..Decls::empty()
+        ..Program::empty()
     }
 }
 

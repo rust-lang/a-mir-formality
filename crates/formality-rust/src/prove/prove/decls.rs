@@ -9,12 +9,12 @@ use formality_core::{seq, Set, To, Upcast, Upcasted};
 use formality_macros::term;
 
 #[term]
-pub struct Decls {
+pub struct Program {
     pub crates: Crates,
     pub max_size: usize,
 }
 
-impl Decls {
+impl Program {
     /// Max size used in unit tests that are not stress testing maximum size.
     pub const DEFAULT_MAX_SIZE: usize = 222;
 
@@ -228,7 +228,7 @@ impl Decls {
     pub fn empty() -> Self {
         Self {
             crates: Crates { crates: vec![] },
-            max_size: Decls::DEFAULT_MAX_SIZE,
+            max_size: Program::DEFAULT_MAX_SIZE,
         }
     }
 }

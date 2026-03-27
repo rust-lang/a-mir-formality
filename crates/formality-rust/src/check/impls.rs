@@ -52,7 +52,7 @@ impl super::Check<'_> {
             trait_ref.not_implemented(),
         )?);
 
-        let trait_decl = self.program.trait_named(&trait_ref.trait_id)?;
+        let trait_decl = self.program.program().trait_named(&trait_ref.trait_id)?;
         let TraitBoundData {
             where_clauses: _,
             trait_items,

@@ -367,7 +367,7 @@ judgment_fn! {
             (prove_ty_is_rigid(env, assumptions, state, callee_ty) => (RigidTy { name: RigidName::FnDef(fn_id), parameters }, state))
 
             // Find the function declaration and instantiate it
-            (let fn_decl = env.program.fn_named(fn_id)?)
+            (let fn_decl = env.crates().fn_named(fn_id)?)
             (let FnBoundData { input_args, output_ty, where_clauses, body: _ } =
                 fn_decl.binder.instantiate_with(parameters)?)
 
@@ -439,7 +439,7 @@ judgment_fn! {
             // Only applies when `id` is NOT a local variable.
             (if let PlaceExprData::Var(id) = place.data())
             (if !state.has_local(id))!
-            (let fn_decl = env.program.fn_named(id)?)
+            (let fn_decl = env.crates().fn_named(id)?)
             (if fn_decl.binder.len() == 0)
             (let ty: Ty = RigidTy { name: RigidName::FnDef(ValueId::clone(id)), parameters: vec![] }.upcast())
             // FIXME: check where clauses from fn
@@ -449,7 +449,7 @@ judgment_fn! {
 
         (
             // A function name with explicit type arguments (e.g., `foo::<'a, T>(args)`).
-            (let fn_decl = env.program.fn_named(id)?)
+            (let fn_decl = env.crates().fn_named(id)?)
             (if fn_decl.binder.len() == args.len())
             (let ty: Ty = RigidTy { name: RigidName::FnDef(ValueId::clone(id)), parameters: args.to_vec() }.upcast())
             // FIXME: check where clauses from fn
@@ -474,7 +474,7 @@ judgment_fn! {
 
         (
             // Struct construction: `Foo { field1: expr1, field2: expr2 }`
-            (let Struct { id: _, binder } = env.program.struct_named(&adt_id)?)
+            (let Struct { id: _, binder } = env.crates().struct_named(&adt_id)?)
             (if turbofish.parameters.len() == binder.len())
             (let StructBoundData { where_clauses, fields } = binder.instantiate_with(&turbofish.parameters)?)
 
@@ -548,7 +548,7 @@ judgment_fn! {
         (
             (borrow_check_place_expr(env, assumptions, state, prefix) => (prefix_typed, state))
             (prove_ty_is_rigid(env, assumptions, state, &prefix_typed.ty) => (RigidTy { name: RigidName::AdtId(adt_id), parameters }, state))
-            (let Struct { id: _, binder } = env.program.struct_named(&adt_id)?)
+            (let Struct { id: _, binder } = env.crates().struct_named(&adt_id)?)
             (let StructBoundData { where_clauses, fields } = binder.instantiate_with(&parameters)?)
             (prove_where_clauses(env, assumptions, state, where_clauses) => state)
             (field in fields)

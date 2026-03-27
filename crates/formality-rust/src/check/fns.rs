@@ -89,7 +89,7 @@ impl Check<'_> {
                     // A trusted function body is assumed to be valid, all set.
                 }
                 crate::grammar::FnBody::Expr(block) => {
-                    let typeck_env = TypeckEnv::for_fn_body(env, self.decls, output_ty);
+                    let typeck_env = TypeckEnv::for_fn_body(env, self.program, output_ty);
                     let initial_state = FlowState::for_fn_body(env, input_args)?;
                     proof_tree.children.push(
                         borrow_check(typeck_env, fn_assumptions, initial_state, block)

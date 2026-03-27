@@ -1,6 +1,6 @@
 use crate::grammar::WcData;
 use crate::grammar::{LtData, Parameter, Relation, RigidTy, Wcs};
-use crate::prove::prove::{decls::Decls, prove};
+use crate::prove::prove::{decls::Program, prove};
 use formality_core::{judgment_fn, Set, Upcast};
 
 use super::{constraints::Constraints, env::Env};
@@ -34,7 +34,7 @@ judgment_fn! {
     /// }
     /// ```
     pub fn prove_outlives(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         a: Parameter,

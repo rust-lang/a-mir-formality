@@ -2,7 +2,7 @@
 
 use std::{collections::VecDeque, fmt::Debug};
 
-use crate::prove::prove::{is_definitely_not_proveable, Constraints, Decls, Env};
+use crate::prove::prove::{is_definitely_not_proveable, Constraints, Env, Program};
 use crate::rust::Visit;
 use crate::{
     grammar::{Crate, CrateId, CrateItem, Crates, Fallible, Test, TestBoundData, Wcs},
@@ -35,8 +35,7 @@ pub fn check_all_crates(program: &Crates) -> Fallible<ProofTree> {
 fn check_current_crate(program: &Crates) -> Fallible<ProofTree> {
     let decls = program.to_prove_decls();
     Check {
-        program,
-        decls: &decls,
+        program: &decls,
     }
     .check()
 }
@@ -49,13 +48,12 @@ mod traits;
 mod where_clauses;
 
 struct Check<'p> {
-    program: &'p Crates,
-    decls: &'p Decls,
+    program: &'p Program,
 }
 
 impl Check<'_> {
     fn check(&self) -> Fallible<ProofTree> {
-        let Crates { crates } = &self.program;
+        let Crates { crates } = self.program.program();
         if let Some(current_crate) = crates.last() {
             self.check_current_crate(current_crate)
         } else {
@@ -79,7 +77,7 @@ impl Check<'_> {
     }
 
     fn check_for_duplicate_items(&self) -> Fallible<()> {
-        let Crates { crates } = &self.program;
+        let Crates { crates } = self.program.program();
         for c in crates.iter() {
             let mut items = Set::new();
             let mut traits = Set::new();
@@ -146,7 +144,7 @@ impl Check<'_> {
         env: &Env,
         assumptions: impl ToWcs,
         goal: G,
-        judgment_fn: impl FnOnce(Decls, Env, Wcs, G) -> ProvenSet<Constraints>,
+        judgment_fn: impl FnOnce(Program, Env, Wcs, G) -> ProvenSet<Constraints>,
     ) -> Fallible<ProofTree>
     where
         G: Debug + Visit + Clone,
@@ -160,7 +158,7 @@ impl Check<'_> {
         assert!(env.encloses((&assumptions, &goal)));
 
         let cs = judgment_fn(
-            self.decls.clone(),
+            (*self.program).clone(),
             env.clone(),
             assumptions.clone(),
             goal.clone(),
@@ -189,7 +187,7 @@ impl Check<'_> {
         assert!(env.encloses((&assumptions, &goal)));
 
         let cs = is_definitely_not_proveable(env, &assumptions, &goal, |env, assumptions, goal| {
-            crate::prove::prove::prove(self.decls, env, &assumptions, &goal)
+            crate::prove::prove::prove(self.program, env, &assumptions, &goal)
         });
         let cs = cs.into_map()?;
         if let Some((_, proof_tree)) = cs.iter().find(|(c, _)| c.unconditionally_true()) {
