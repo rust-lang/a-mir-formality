@@ -20,21 +20,21 @@ pub struct TypeckEnv {
     /// The declared return type from the function signature.
     pub output_ty: Option<Ty>,
 
-    pub decls: Program,
+    pub program: Program,
 }
 
 cast_impl!(TypeckEnv);
 
 impl TypeckEnv {
     pub fn crates(&self) -> &Crates {
-        &self.decls.crates
+        &self.program.crates
     }
 
     pub(crate) fn for_const(env: impl Upcast<Env>, decls: &Program) -> Self {
         Self {
             env: env.upcast(),
             output_ty: None,
-            decls: decls.clone(),
+            program: decls.clone(),
         }
     }
 
@@ -42,7 +42,7 @@ impl TypeckEnv {
         Self {
             env: env.upcast(),
             output_ty: Some(output_ty.clone()),
-            decls: decls.clone(),
+            program: decls.clone(),
         }
     }
 
@@ -121,7 +121,7 @@ impl TypeckEnv {
         // We allow pending outlives so that outlives constraints can be deferred
         // and later verified by the borrow checker.
         let cs = judgment_fn(
-            self.decls.clone(),
+            self.program.clone(),
             self.env.with_allow_pending_outlives(true),
             assumptions.clone(),
             goal.clone(),
