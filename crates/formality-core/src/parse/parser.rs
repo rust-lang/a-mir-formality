@@ -883,15 +883,16 @@ where
     }
 
     #[tracing::instrument(level = "Trace", skip(self, op), ret)]
-    pub fn each_delimited_nonterminal<T, R>(
+    pub fn each_delimited_nonterminal<T, C, R>(
         &mut self,
         open: char,
         optional: bool,
         close: char,
-        op: impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
+        op: impl Fn(C, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
+        C: FromIterator<T> + Debug,
         R: ParseSuccessType,
     {
         // Look for the opening delimiter.
@@ -900,7 +901,7 @@ where
             Ok(()) => {}
             Err(errs) => {
                 return if optional {
-                    op(vec![], self)
+                    op(std::iter::empty().collect(), self)
                 } else {
                     Err(errs)
                 };
@@ -908,7 +909,7 @@ where
         }
 
         // Now parse the contents.
-        self.each_comma_nonterminal(|items: Vec<T>, p| {
+        self.each_comma_nonterminal(|items: C, p| {
             p.expect_char(close)?;
             op(items, p)
         })
@@ -916,36 +917,41 @@ where
 
     /// Parse multiple instances of `T` separated by commas, then run
     /// the continuation with each possible sequence result.
+    ///
+    /// The collection type `C` is generic — it can be `Vec<T>`, `Set<T>`,
+    /// or any type implementing `FromIterator<T>`.
     #[track_caller]
-    pub fn each_comma_nonterminal<T, R>(
+    pub fn each_comma_nonterminal<T, C, R>(
         &mut self,
-        op: impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
+        op: impl Fn(C, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
+        C: FromIterator<T> + Debug,
         R: ParseSuccessType,
     {
         self.each_comma_nonterminal_accum(vec![], &op)
     }
 
-    fn each_comma_nonterminal_accum<T, R>(
+    fn each_comma_nonterminal_accum<T, C, R>(
         &self,
         acc: Vec<T>,
-        op: &impl Fn(Vec<T>, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
+        op: &impl Fn(C, &mut ActiveVariant<'s, 't, L>) -> ParseResult<'t, R>,
     ) -> ParseResult<'t, R>
     where
         T: CoreParse<L> + Clone,
+        C: FromIterator<T> + Debug,
         R: ParseSuccessType,
     {
         self.combine_parse_results(
-            op(acc.clone(), &mut self.clone()),
+            op(acc.iter().cloned().collect(), &mut self.clone()),
             self.each_nonterminal(|t: T, p| {
                 let mut new_acc = acc.clone();
                 new_acc.push(t);
                 if p.expect_char(',').is_ok() {
                     p.each_comma_nonterminal_accum(new_acc, op)
                 } else {
-                    op(new_acc, p)
+                    op(new_acc.into_iter().collect(), p)
                 }
             }),
         )
