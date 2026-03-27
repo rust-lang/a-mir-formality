@@ -6,6 +6,7 @@
 //! propagates that ambiguity.
 
 use formality_core::parse::{self, CoreParse};
+use formality_core::Set;
 use formality_core::{term, test};
 
 // ---- Shared ambiguous nonterminal ----
@@ -402,4 +403,112 @@ fn delimited_unambiguous() {
     }
 
     assert_eq!(count_complete_parses::<DelimUnamb>("delim <a, b, c>"), 1);
+}
+
+// ========================================================================
+// Set<T> collection type (each_comma_nonterminal / each_delimited_nonterminal
+// generalized over FromIterator — regression tests for collection genericity)
+// ========================================================================
+
+/// `$,items` into a `Set<Unamb>` — two comma-separated items → 1 parse.
+#[test]
+fn comma_into_set_two_items() {
+    #[term(comma $,items end)]
+    pub struct CommaSet {
+        items: Set<Unamb>,
+    }
+
+    assert_eq!(count_complete_parses::<CommaSet>("comma a, b end"), 1);
+}
+
+/// `$,items` into a `Set<Unamb>` — zero items → 1 parse (empty set).
+#[test]
+fn comma_into_set_zero_items() {
+    #[term(comma $,items end)]
+    pub struct CommaSet {
+        items: Set<Unamb>,
+    }
+
+    assert_eq!(count_complete_parses::<CommaSet>("comma end"), 1);
+}
+
+/// `$<items>` into a `Set<Unamb>` — angle-bracket delimited items.
+#[test]
+fn delimited_angle_into_set() {
+    #[term(delim $<items>)]
+    pub struct DelimAngleSet {
+        items: Set<Unamb>,
+    }
+
+    assert_eq!(count_complete_parses::<DelimAngleSet>("delim <a, b, c>"), 1);
+}
+
+/// `$<items>` into a `Set<Unamb>` — empty angle brackets → 1 parse.
+#[test]
+fn delimited_angle_into_set_empty() {
+    #[term(delim $<items>)]
+    pub struct DelimAngleSet {
+        items: Set<Unamb>,
+    }
+
+    assert_eq!(count_complete_parses::<DelimAngleSet>("delim <>"), 1);
+}
+
+/// `$<?items>` into a `Set<Unamb>` — optional, absent → 1 parse (empty set).
+#[test]
+fn delimited_angle_into_set_optional_absent() {
+    #[term(delim $<?items> end)]
+    pub struct DelimAngleSet {
+        items: Set<Unamb>,
+    }
+
+    assert_eq!(count_complete_parses::<DelimAngleSet>("delim end"), 1);
+    assert_eq!(count_complete_parses::<DelimAngleSet>("delim <a, b> end"), 1);
+}
+
+/// `$(items)` into a `Set<Unamb>` — paren-delimited into Set.
+#[test]
+fn delimited_paren_into_set() {
+    #[term(delim $(items))]
+    pub struct DelimParenSet {
+        items: Set<Unamb>,
+    }
+
+    assert_eq!(count_complete_parses::<DelimParenSet>("delim (a, b)"), 1);
+}
+
+/// `$[items]` into a `Set<Unamb>` — bracket-delimited into Set.
+#[test]
+fn delimited_bracket_into_set() {
+    #[term(delim $[items])]
+    pub struct DelimBracketSet {
+        items: Set<Unamb>,
+    }
+
+    assert_eq!(count_complete_parses::<DelimBracketSet>("delim [a, b]"), 1);
+}
+
+/// `$,items` into `Set<Amb>` — ambiguous elements into Set.
+/// Two ambiguous items → 2 * 2 = 4 parses (Set doesn't collapse ambiguity
+/// because AmbX(a) ≠ AmbY(a), so both variants remain distinct in the set).
+#[test]
+fn comma_into_set_ambiguous() {
+    #[term(comma $,items end)]
+    pub struct CommaSetAmb {
+        items: Set<Amb>,
+    }
+
+    assert_eq!(count_complete_parses::<CommaSetAmb>("comma a end"), 2);
+    assert_eq!(count_complete_parses::<CommaSetAmb>("comma a, b end"), 4);
+}
+
+/// `$<items>` into `Set<Amb>` — ambiguous elements in angle brackets into Set.
+#[test]
+fn delimited_angle_into_set_ambiguous() {
+    #[term(delim $<items>)]
+    pub struct DelimAngleSetAmb {
+        items: Set<Amb>,
+    }
+
+    assert_eq!(count_complete_parses::<DelimAngleSetAmb>("delim <a, b>"), 4);
 }
