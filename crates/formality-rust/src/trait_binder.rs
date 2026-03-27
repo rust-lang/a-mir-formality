@@ -62,6 +62,8 @@ impl<T> CoreFold<FormalityLang> for TraitBinder<T>
 where
     T: Term,
 {
+    type Output = Self;
+
     fn substitute(
         &self,
         substitution_fn: formality_core::fold::SubstitutionFn<'_, FormalityLang>,

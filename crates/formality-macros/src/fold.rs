@@ -45,6 +45,8 @@ pub(crate) fn derive_fold(mut s: synstructure::Structure) -> TokenStream {
         use formality_core::{fold::CoreFold, fold::SubstitutionFn};
 
         gen impl CoreFold<crate::FormalityLang> for @Self {
+            type Output = Self;
+
             fn substitute(&self, substitution_fn: SubstitutionFn<'_, crate::FormalityLang>) -> Self {
                 match self {
                     #substitute_body

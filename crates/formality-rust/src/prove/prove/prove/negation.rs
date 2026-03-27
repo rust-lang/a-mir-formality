@@ -15,7 +15,7 @@ use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
 /// Proving `∀X. not(F(X))` is the same as proving `not(∃X. F(X))`, so
 /// this replaces all universal variables with existantials.
 #[tracing::instrument(level = "Debug", skip_all)]
-pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang>>(
+pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang, Output = T>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
     data: &T,
@@ -45,7 +45,7 @@ pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang>>(
 /// This should only be used if we're currently biased towards completeness
 /// as it returns success even if there's still ambiguity.
 #[tracing::instrument(level = "Debug", skip_all)]
-pub fn may_not_be_provable<T: CoreFold<FormalityLang>>(
+pub fn may_not_be_provable<T: CoreFold<FormalityLang, Output = T>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
     data: &T,
@@ -56,7 +56,7 @@ pub fn may_not_be_provable<T: CoreFold<FormalityLang>>(
 }
 
 #[track_caller]
-pub fn negation_via_failure<T: CoreFold<FormalityLang>>(
+pub fn negation_via_failure<T: CoreFold<FormalityLang, Output = T>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
     data: &T,

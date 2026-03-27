@@ -115,7 +115,7 @@ where
 }
 
 impl<L: Language> CoreSubstitution<L> {
-    pub fn apply<T: CoreFold<L>>(&self, t: &T) -> T {
+    pub fn apply<T: CoreFold<L>>(&self, t: T) -> T::Output {
         t.substitute(&mut |v| self.map.get(&v).cloned())
     }
 
@@ -125,6 +125,8 @@ impl<L: Language> CoreSubstitution<L> {
 }
 
 impl<L: Language> CoreFold<L> for CoreSubstitution<L> {
+    type Output = Self;
+
     fn substitute(&self, substitution_fn: crate::fold::SubstitutionFn<'_, L>) -> Self {
         self.iter()
             .map(|(v, p)| (v, p.substitute(substitution_fn)))
@@ -193,7 +195,7 @@ impl<L: Language> CoreVarSubstitution<L> {
         self.map.iter().map(|(k, v)| (*v, *k)).collect()
     }
 
-    pub fn apply<T: CoreFold<L>>(&self, t: &T) -> T {
+    pub fn apply<T: CoreFold<L>>(&self, t: T) -> T::Output {
         t.substitute(&mut |v| Some(self.map.get(&v)?.upcast()))
     }
 
