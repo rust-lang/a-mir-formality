@@ -1,4 +1,4 @@
-use crate::{judgment::IfThen, set, Map, Set};
+use crate::{judgment::IfThen, set, Fallible, Map, Set};
 use std::{
     fmt::Debug,
     hash::{Hash, Hasher},
@@ -681,6 +681,20 @@ pub enum RuleFailureCause {
     Cycle { judgment: String },
 }
 
+impl RuleFailureCause {
+    pub fn from_anyhow(e: anyhow::Error) -> Self {
+        if let Some(failed) = e.downcast_ref::<Box<FailedJudgment>>() {
+            RuleFailureCause::FailedJudgment(Box::new((**failed).clone()))
+        } else if let Some(failed) = e.downcast_ref::<FailedJudgment>() {
+            RuleFailureCause::FailedJudgment(Box::new(failed.clone()))
+        } else {
+            RuleFailureCause::Inapplicable {
+                reason: format!("{e:?}"),
+            }
+        }
+    }
+}
+
 impl std::error::Error for FailedJudgment {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         None
@@ -931,6 +945,16 @@ pub trait CheckProven {
     /// return a string representing the expression being enumerated.
     #[track_caller]
     fn check_proven(self) -> Result<ProofTree, RuleFailureCause>;
+}
+
+impl CheckProven for Fallible<ProofTree> {
+    #[track_caller]
+    fn check_proven(self) -> Result<ProofTree, RuleFailureCause> {
+        match self {
+            Ok(proof_tree) => Ok(proof_tree),
+            Err(e) => Err(RuleFailureCause::from_anyhow(e)),
+        }
+    }
 }
 
 impl CheckProven for ProvenSet<()> {
