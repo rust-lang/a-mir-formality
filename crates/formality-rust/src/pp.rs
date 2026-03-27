@@ -60,20 +60,6 @@ impl NameContext {
         }
     }
 
-    pub fn with_binder<T: CoreFold<crate::FormalityLang>>(
-        &mut self,
-        binder: &Binder<T>,
-        op: impl Fn(&T, &mut NameContext) -> Fallible<String>,
-    ) -> Fallible<String> {
-        let term = binder.peek();
-        self.push(binder.kinds());
-
-        let result = op(term, self);
-
-        self.pop();
-        result
-    }
-
     fn fresh_name(&mut self, kind: &ParameterKind) -> String {
         let prefix = match kind {
             ParameterKind::Ty => "T",
@@ -98,6 +84,20 @@ pub struct PrettyPrinter {
 }
 
 impl PrettyPrinter {
+    pub fn with_binder<T: CoreFold<crate::FormalityLang>>(
+        &mut self,
+        binder: &Binder<T>,
+        mut op: impl FnMut(&T, &mut PrettyPrinter) -> Fallible<String>,
+    ) -> Fallible<String> {
+        let term = binder.peek();
+        self.ctx.push(binder.kinds());
+
+        let result = op(term, self);
+
+        self.ctx.pop();
+        result
+    }
+
     pub fn variable_name(
         &self,
         core_variable: &CoreVariable<crate::FormalityLang>,
@@ -140,43 +140,22 @@ impl PrettyPrinter {
     }
 }
 
-// TODO: replace allocate and close_binder with a with_binder.
-#[macro_export]
-macro_rules! allocate {
-    ($binder:expr, $ctx:expr) => {{
-        let term = $binder.peek();
-        $ctx.push(&$binder.kinds());
-        term
-    }};
-}
-
-#[macro_export]
-macro_rules! close_binder {
-    ($ctx:expr) => {{
-        $ctx.pop();
-    }};
-}
-
-// TODO: Replace iterator chaining with fn call
 #[macro_export]
 macro_rules! assert_rust {
     ($input:tt, $($expected:tt)*) => {{
-        let program = $crate::rust::try_term(stringify!($input)).unwrap();
-        let rust = $crate::pp::PrettyPrinter::default().print_program(&program).unwrap()[0]
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
-        assert_eq!(rust, stringify!($($expected)*).split_whitespace().collect::<Vec<_>>().join(" "));
+        $crate::pp::assert_rust(stringify!($input), stringify!($($expected)*));
     }};
 }
 
-pub fn assert_rust(program: &Program, expected: &str) {
+pub fn assert_rust(input: &str, expected: &str) {
+    let program = crate::rust::try_term(input).unwrap();
     let rust = crate::pp::PrettyPrinter::default()
         .print_program(&program)
         .unwrap()[0]
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ");
+    let expected = expected.split_whitespace().collect::<Vec<_>>().join(" ");
     assert_eq!(rust, expected);
 }
 
