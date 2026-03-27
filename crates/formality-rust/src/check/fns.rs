@@ -2,103 +2,100 @@ use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::FlowState;
 use crate::check::borrow_check::nll::borrow_check;
 use crate::grammar::{CrateId, Fallible, Wcs};
-use crate::prove::prove::Env;
+use crate::prove::prove::{Env, Program};
 use crate::{
     grammar::{Fn, FnBoundData, MaybeFnBody},
     prove::ToWcs,
 };
 use formality_core::judgment::ProofTree;
 
-use crate::check::Check;
+/// A "free function" is a free-standing function that is not part of an impl.
+pub(crate) fn check_free_fn(program: &Program, f: &Fn, crate_id: &CrateId) -> Fallible<ProofTree> {
+    check_fn(program, &Env::default(), Wcs::t(), f, crate_id)
+}
 
-impl Check<'_> {
-    /// A "free function" is a free-standing function that is not part of an impl.
-    pub(crate) fn check_free_fn(&self, f: &Fn, crate_id: &CrateId) -> Fallible<ProofTree> {
-        self.check_fn(&Env::default(), Wcs::t(), f, crate_id)
+/// Invoked for both free functions and methods.
+///
+/// # Parameters
+///
+/// * `in_env` -- the environment from the enclosing impl (if any)
+/// * `in_assumptions` -- where-clauses from the enclosing impl (if any)
+/// * `f` -- the function definition
+pub(crate) fn check_fn(
+    program: &Program,
+    in_env: &Env,
+    in_assumptions: impl ToWcs,
+    f: &Fn,
+    crate_id: &CrateId,
+) -> Fallible<ProofTree> {
+    let in_assumptions = in_assumptions.to_wcs();
+
+    let mut proof_tree = ProofTree::leaf(format!(
+        "check_fn({crate_id:?}, {f:?}, {in_assumptions:?}, {in_env:?})"
+    ));
+
+    // We do not expect to have any inference variables in the where clauses.
+    //
+    // e.g., `impl<T: Ord> Foo<T> { ... }` would have a reference to a
+    // universal variable `T`, not an existential one.
+    assert!(in_env.only_universal_variables() && in_env.encloses((&in_assumptions, f)));
+
+    // Create a mutable copy of the environment which we will extend
+    // with the generic parameters from the function.
+    let mut env = in_env.clone();
+
+    // Instantiate the generic parameters declared on the fn
+    // with universal variables (i.e., treat them as fresh,
+    // unknown types).
+    let Fn { id: _, binder } = f;
+    let FnBoundData {
+        input_args,
+        output_ty,
+        where_clauses,
+        body,
+    } = &env.instantiate_universally(binder);
+    let env = &env;
+
+    // The in-scope assumtion are the union of the assumptions from
+    // the impl and the fn.
+    let fn_assumptions: &Wcs = &(in_assumptions, where_clauses).to_wcs();
+
+    // All of the following must be well-formed:
+    // where-clauses, input parameter types, and output type.
+    proof_tree
+        .children
+        .push(super::where_clauses::prove_where_clauses_well_formed(program, env, fn_assumptions, where_clauses)?);
+    for input_arg in input_args {
+        proof_tree.children.push(super::prove_goal(
+            program,
+            env,
+            fn_assumptions,
+            input_arg.ty.well_formed(),
+        )?);
     }
+    proof_tree
+        .children
+        .push(super::prove_goal(program, &env, fn_assumptions, output_ty.well_formed())?);
 
-    /// Invoked for both free functions and methods.
-    ///
-    /// # Parameters
-    ///
-    /// * `in_env` -- the environment from the enclosing impl (if any)
-    /// * `in_assumptions` -- where-clauses from the enclosing impl (if any)
-    /// * `f` -- the function definition
-    pub(crate) fn check_fn(
-        &self,
-        in_env: &Env,
-        in_assumptions: impl ToWcs,
-        f: &Fn,
-        crate_id: &CrateId,
-    ) -> Fallible<ProofTree> {
-        let in_assumptions = in_assumptions.to_wcs();
-
-        let mut proof_tree = ProofTree::leaf(format!(
-            "check_fn({crate_id:?}, {f:?}, {in_assumptions:?}, {in_env:?})"
-        ));
-
-        // We do not expect to have any inference variables in the where clauses.
-        //
-        // e.g., `impl<T: Ord> Foo<T> { ... }` would have a reference to a
-        // universal variable `T`, not an existential one.
-        assert!(in_env.only_universal_variables() && in_env.encloses((&in_assumptions, f)));
-
-        // Create a mutable copy of the environment which we will extend
-        // with the generic parameters from the function.
-        let mut env = in_env.clone();
-
-        // Instantiate the generic parameters declared on the fn
-        // with universal variables (i.e., treat them as fresh,
-        // unknown types).
-        let Fn { id: _, binder } = f;
-        let FnBoundData {
-            input_args,
-            output_ty,
-            where_clauses,
-            body,
-        } = &env.instantiate_universally(binder);
-        let env = &env;
-
-        // The in-scope assumtion are the union of the assumptions from
-        // the impl and the fn.
-        let fn_assumptions: &Wcs = &(in_assumptions, where_clauses).to_wcs();
-
-        // All of the following must be well-formed:
-        // where-clauses, input parameter types, and output type.
-        proof_tree
-            .children
-            .push(self.prove_where_clauses_well_formed(env, fn_assumptions, where_clauses)?);
-        for input_arg in input_args {
-            proof_tree.children.push(self.prove_goal(
-                env,
-                fn_assumptions,
-                input_arg.ty.well_formed(),
-            )?);
+    // Type-check the function body, if present.
+    match body {
+        MaybeFnBody::NoFnBody => {
+            // No fn body occurs trait definitions only.
         }
-        proof_tree
-            .children
-            .push(self.prove_goal(&env, fn_assumptions, output_ty.well_formed())?);
-
-        // Type-check the function body, if present.
-        match body {
-            MaybeFnBody::NoFnBody => {
-                // No fn body occurs trait definitions only.
+        MaybeFnBody::FnBody(fn_body) => match fn_body {
+            crate::grammar::FnBody::TrustedFnBody => {
+                // A trusted function body is assumed to be valid, all set.
             }
-            MaybeFnBody::FnBody(fn_body) => match fn_body {
-                crate::grammar::FnBody::TrustedFnBody => {
-                    // A trusted function body is assumed to be valid, all set.
-                }
-                crate::grammar::FnBody::Expr(block) => {
-                    let typeck_env = TypeckEnv::for_fn_body(env, self.program, output_ty);
-                    let initial_state = FlowState::for_fn_body(env, input_args)?;
-                    proof_tree.children.push(
-                        borrow_check(typeck_env, fn_assumptions, initial_state, block)
-                            .check_proven()?,
-                    );
-                }
-            },
-        }
-
-        Ok(proof_tree)
+            crate::grammar::FnBody::Expr(block) => {
+                let typeck_env = TypeckEnv::for_fn_body(env, program, output_ty);
+                let initial_state = FlowState::for_fn_body(env, input_args)?;
+                proof_tree.children.push(
+                    borrow_check(typeck_env, fn_assumptions, initial_state, block)
+                        .check_proven()?,
+                );
+            }
+        },
     }
+
+    Ok(proof_tree)
 }
