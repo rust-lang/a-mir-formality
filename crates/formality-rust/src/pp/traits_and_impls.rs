@@ -257,14 +257,14 @@ mod test {
             [
                 crate Foo {
                     impl Write for Bar {
-                        fn write() -> i32 0 _ i32
+                        fn write() -> i32 trusted;
                     }
                 }
             ],
             impl Write for Bar {
                 fn write() -> i32 {
-                    0
-                }
+                    panic!("Trusted Fn Body")
+                };
             }
         );
     }

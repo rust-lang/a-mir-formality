@@ -1,4 +1,4 @@
-use crate::grammar::{Crate, CrateItem, FeatureGate, ParameterKind, Program};
+use crate::grammar::{AdtItem, Crate, CrateItem, FeatureGate, ParameterKind, Program};
 use formality_core::variable::CoreVariable;
 use itertools::Itertools;
 
@@ -155,8 +155,8 @@ impl PrettyPrinter {
     fn print_crate_item(&mut self, crate_item: &CrateItem) -> String {
         match crate_item {
             CrateItem::FeatureGate(gate) => self.print_feature_gate(gate),
-            CrateItem::Struct(strukt) => self.print_struct(strukt),
-            CrateItem::Enum(e) => self.print_enum(e),
+            CrateItem::AdtItem(AdtItem::Struct(strukt)) => self.print_struct(strukt),
+            CrateItem::AdtItem(AdtItem::Enum(e)) => self.print_enum(e),
             CrateItem::Trait(t) => self.print_trait(t),
             CrateItem::TraitImpl(trait_impl) => self.print_trait_impl(trait_impl),
             CrateItem::NegTraitImpl(neg_trait_impl) => self.print_neg_trait_impl(neg_trait_impl),
@@ -255,7 +255,7 @@ mod test {
                         f2: Kind,
                     }
 
-                    fn run() -> i32 0 _ i32
+                    fn run() -> i32 trusted;
                 }
             ]
         );

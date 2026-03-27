@@ -28,6 +28,7 @@ impl PrettyPrinter {
             RigidName::Tuple(size) => self.pretty_print_tuple(*size, &rigid_ty.parameters),
             RigidName::FnPtr(size) => self.pretty_print_fn_ptr(*size, &rigid_ty.parameters),
             RigidName::FnDef(fn_id) => todo!("Implement pretty printing FnDef: {fn_id:?}"),
+            RigidName::Never => "!".into(),
         }
     }
 

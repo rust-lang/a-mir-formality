@@ -28,8 +28,7 @@ impl PrettyPrinter {
     pub fn print_fn_body(&mut self, fn_body: &FnBody) -> String {
         match fn_body {
             FnBody::TrustedFnBody => format!("{{ panic!(\"Trusted Fn Body\") }}"),
-            FnBody::Literal(value, _) => format!("{{ {value} }}"),
-            FnBody::MiniRust(_) => unimplemented!(),
+            FnBody::Expr(_) => unimplemented!("expr fn body"),
         }
     }
 }
@@ -42,12 +41,10 @@ mod test {
         crate::assert_rust!(
             [
                 crate Foo {
-                    fn run () -> i32 0 _ i32
+                    fn run () -> i32 trusted;
                 }
             ],
-            fn run() -> i32 {
-                0
-            }
+            fn run() -> i32 { panic!("Trusted Fn Body") }
         );
     }
 }
