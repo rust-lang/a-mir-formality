@@ -910,6 +910,45 @@ fn write_to_borrowed_before_continue() {
     )
 }
 
+/// Test that `false` works as a condition in `if` with borrow checking.
+/// The borrow checker must analyse both branches regardless of the
+/// statically-known condition value.
+///
+/// ```rust,ignore
+/// fn foo() -> &'a Map {
+///     let m: Map = Map {};
+///     let n: &mut Map = &mut m;
+///     if false {
+///         return n;
+///     } else {
+///         let o: &mut Map = &mut m;
+///         return o;
+///     }
+/// }
+/// ```
+#[test]
+fn if_false_borrowck() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                struct Map { }
+
+                fn foo<'a>(m: &mut 'a Map) -> &mut 'a Map {
+                    exists<'r0, 'r1> {
+                        let n: &mut 'r0 Map = &mut 'r0 *m;
+                        if false {
+                            return n;
+                        } else {
+                            let o: &mut 'r1 Map = &mut 'r1 *m;
+                            return o;
+                        }
+                    }
+                }
+            }
+        ]
+    )
+}
+
 /// Writing to a borrowed variable before a loop that might not execute
 /// should be an error, because the borrow is live along the zero-iteration path.
 ///
