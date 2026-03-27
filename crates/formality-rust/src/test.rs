@@ -148,3 +148,47 @@ fn test_parse_rust_like_struct_syntax() {
     "#]]
     .assert_debug_eq(&r);
 }
+
+#[test]
+fn test_parse_trusted_fn() {
+    let r: Program = term(
+        "[
+            crate core {
+              fn run() -> () trusted;
+            }
+        ]",
+    );
+
+    expect_test::expect![[r#"
+        Program {
+            crates: [
+                Crate {
+                    id: core,
+                    items: [
+                        Fn(
+                            Fn {
+                                id: run,
+                                binder: Binder {
+                                    kinds: [],
+                                    term: FnBoundData {
+                                        input_args: [],
+                                        output_ty: Ty {
+                                            data: RigidTy(
+                                                (),
+                                            ),
+                                        },
+                                        where_clauses: [],
+                                        body: FnBody(
+                                            TrustedFnBody,
+                                        ),
+                                    },
+                                },
+                            },
+                        ),
+                    ],
+                },
+            ],
+        }
+    "#]]
+    .assert_debug_eq(&r);
+}
