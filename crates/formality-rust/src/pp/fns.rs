@@ -1,19 +1,19 @@
 use std::ops::Deref;
 
-use crate::grammar::{Fn, FnBody, MaybeFnBody};
+use crate::grammar::{Fallible, Fn, FnBody, MaybeFnBody};
 use crate::pp::PrettyPrinter;
-use itertools::Itertools;
 
 impl PrettyPrinter {
-    pub fn print_fn(&mut self, function: &Fn) -> String {
+    pub fn print_fn(&mut self, function: &Fn) -> Fallible<String> {
         let id = function.id.deref();
         let data = function.binder.peek();
         let input_args = data
             .input_args
             .iter()
             .map(|a| self.pretty_print_type(&a.ty))
+            .collect::<Result<Vec<_>, _>>()?
             .join(", ");
-        let output_arg = self.pretty_print_type(&data.output_ty);
+        let output_arg = self.pretty_print_type(&data.output_ty)?;
         // TODO: Where clauses
         // self.print_where(&data.where_clauses)?;
 
@@ -22,7 +22,7 @@ impl PrettyPrinter {
             MaybeFnBody::FnBody(fn_body) => format!(" {}", self.print_fn_body(fn_body)),
         };
 
-        format!("fn {id}({input_args}) -> {output_arg}{body}")
+        Ok(format!("fn {id}({input_args}) -> {output_arg}{body}"))
     }
 
     pub fn print_fn_body(&mut self, fn_body: &FnBody) -> String {

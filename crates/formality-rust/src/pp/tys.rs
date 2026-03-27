@@ -1,14 +1,13 @@
 use std::ops::Deref;
 
 use crate::grammar::{
-    Const, ConstData, Lt, LtData, Parameter, Parameters, RefKind, RigidName, RigidTy, ScalarId, Ty,
-    TyData,
+    Const, ConstData, Fallible, Lt, LtData, Parameter, Parameters, RefKind, RigidName, RigidTy,
+    ScalarId, Ty, TyData,
 };
 use crate::pp::PrettyPrinter;
-use itertools::Itertools;
 
 impl PrettyPrinter {
-    pub fn pretty_print_const(&mut self, konst: &Const) -> String {
+    pub fn pretty_print_const(&mut self, konst: &Const) -> Fallible<String> {
         match konst.data() {
             ConstData::RigidValue(_rigid_const_data) => todo!(),
             ConstData::Scalar(_scalar_value) => todo!(),
@@ -17,7 +16,7 @@ impl PrettyPrinter {
         }
     }
 
-    pub fn pretty_print_type(&mut self, ty: &Ty) -> String {
+    pub fn pretty_print_type(&mut self, ty: &Ty) -> Fallible<String> {
         match ty.data() {
             TyData::RigidTy(rigid_ty) => self.pretty_print_rigid_ty(rigid_ty),
             TyData::AliasTy(_alias_ty) => todo!(),
@@ -26,15 +25,15 @@ impl PrettyPrinter {
         }
     }
 
-    fn pretty_print_rigid_ty(&mut self, rigid_ty: &RigidTy) -> String {
+    fn pretty_print_rigid_ty(&mut self, rigid_ty: &RigidTy) -> Fallible<String> {
         match &rigid_ty.name {
-            RigidName::AdtId(adt_id) => adt_id.deref().into(),
-            RigidName::ScalarId(scalar_id) => self.pretty_print_scalar(scalar_id),
+            RigidName::AdtId(adt_id) => Ok(adt_id.deref().into()),
+            RigidName::ScalarId(scalar_id) => Ok(self.pretty_print_scalar(scalar_id)),
             RigidName::Ref(ref_kind) => self.pretty_print_ref(ref_kind, &rigid_ty.parameters),
             RigidName::Tuple(size) => self.pretty_print_tuple(*size, &rigid_ty.parameters),
             RigidName::FnPtr(size) => self.pretty_print_fn_ptr(*size, &rigid_ty.parameters),
             RigidName::FnDef(fn_id) => todo!("Implement pretty printing FnDef: {fn_id:?}"),
-            RigidName::Never => "!".into(),
+            RigidName::Never => Ok("!".into()),
         }
     }
 
@@ -55,7 +54,11 @@ impl PrettyPrinter {
         .into()
     }
 
-    fn pretty_print_ref(&mut self, ref_kind: &RefKind, parameters: &Parameters) -> String {
+    fn pretty_print_ref(
+        &mut self,
+        ref_kind: &RefKind,
+        parameters: &Parameters,
+    ) -> Fallible<String> {
         let kind = match ref_kind {
             RefKind::Shared => "",
             RefKind::Mut => "mut ",
@@ -67,29 +70,31 @@ impl PrettyPrinter {
                 Parameter::Lt(lt) => Some(lt),
                 _ => None,
             })
-            .expect("the first parameter of a reference must be a life time");
+            .ok_or_else(|| {
+                anyhow::anyhow!("the first parameter of a reference must be a life time")
+            })?;
         let ty = parameters
             .get(1)
             .and_then(|p| match p {
                 Parameter::Ty(ty) => Some(ty),
                 _ => None,
             })
-            .expect("The second parameter of a reference muse be a type");
+            .ok_or_else(|| anyhow::anyhow!("The second parameter of a reference muse be a type"))?;
 
-        let lt = self.pretty_print_lt(lt);
-        let ty = self.pretty_print_type(ty);
+        let lt = self.pretty_print_lt(lt)?;
+        let ty = self.pretty_print_type(ty)?;
 
-        format!("&{lt} {kind}{ty}")
+        Ok(format!("&{lt} {kind}{ty}"))
     }
 
-    fn pretty_print_lt(&mut self, lt: &Lt) -> String {
+    fn pretty_print_lt(&mut self, lt: &Lt) -> Fallible<String> {
         match lt.data() {
-            LtData::Static => "'static".into(),
+            LtData::Static => Ok("'static".into()),
             LtData::Variable(core_variable) => self.variable_name(core_variable),
         }
     }
 
-    fn pretty_print_tuple(&mut self, size: usize, parameters: &Parameters) -> String {
+    fn pretty_print_tuple(&mut self, size: usize, parameters: &Parameters) -> Fallible<String> {
         assert_eq!(size, parameters.len());
 
         let types = parameters
@@ -98,12 +103,13 @@ impl PrettyPrinter {
                 Parameter::Ty(ty) => Some(self.pretty_print_type(ty)),
                 _ => None,
             })
+            .collect::<Result<Vec<_>, _>>()?
             .join(", ");
 
-        format!("({types})")
+        Ok(format!("({types})"))
     }
 
-    fn pretty_print_fn_ptr(&mut self, size: usize, parameters: &Parameters) -> String {
+    fn pretty_print_fn_ptr(&mut self, size: usize, parameters: &Parameters) -> Fallible<String> {
         assert_eq!(size, parameters.len());
 
         let input_args = parameters
@@ -113,6 +119,7 @@ impl PrettyPrinter {
                 Parameter::Ty(ty) => Some(self.pretty_print_type(ty)),
                 _ => None,
             })
+            .collect::<Result<Vec<_>, _>>()?
             .join(", ");
 
         let output_arg = parameters
@@ -120,13 +127,12 @@ impl PrettyPrinter {
             .rev()
             .next()
             .map(|p| match p {
-                Parameter::Ty(ty) => Some(self.pretty_print_type(ty)),
-                _ => None,
+                Parameter::Ty(ty) => self.pretty_print_type(ty),
+                _ => unimplemented!(),
             })
-            .flatten()
-            .expect("Must be a type");
+            .ok_or_else(|| anyhow::anyhow!("Return type is missing"))??;
 
-        format!("fn({input_args}) -> {output_arg}")
+        Ok(format!("fn({input_args}) -> {output_arg}"))
     }
 }
 
@@ -172,18 +178,18 @@ mod test {
         ctx.push(&[ParameterKind::Ty]);
         let ty1 = create_ty();
 
-        assert_eq!("T1", ctx.variable_name(&ty1));
+        assert_eq!("T1", ctx.variable_name(&ty1).unwrap());
 
         {
             ctx.push(&[ParameterKind::Ty]);
             let ty1 = ty1.shift_in();
             let ty2 = create_ty();
-            assert_eq!("T1", ctx.variable_name(&ty1));
-            assert_eq!("T2", ctx.variable_name(&ty2));
+            assert_eq!("T1", ctx.variable_name(&ty1).unwrap());
+            assert_eq!("T2", ctx.variable_name(&ty2).unwrap());
             ctx.pop();
         }
 
-        assert_eq!("T1", ctx.variable_name(&ty1));
+        assert_eq!("T1", ctx.variable_name(&ty1).unwrap());
     }
 
     #[test]
@@ -193,18 +199,18 @@ mod test {
         ctx.push(&[ParameterKind::Lt]);
         let lt1 = create_lt();
 
-        assert_eq!("'a1", ctx.variable_name(&lt1));
+        assert_eq!("'a1", ctx.variable_name(&lt1).unwrap());
 
         {
             ctx.push(&[ParameterKind::Lt]);
             let lt1 = lt1.shift_in();
             let lt2 = create_lt();
-            assert_eq!("'a1", ctx.variable_name(&lt1));
-            assert_eq!("'a2", ctx.variable_name(&lt2));
+            assert_eq!("'a1", ctx.variable_name(&lt1).unwrap());
+            assert_eq!("'a2", ctx.variable_name(&lt2).unwrap());
             ctx.pop();
         }
 
-        assert_eq!("'a1", ctx.variable_name(&lt1));
+        assert_eq!("'a1", ctx.variable_name(&lt1).unwrap());
     }
 
     #[test]
@@ -214,18 +220,18 @@ mod test {
         ctx.push(&[ParameterKind::Const]);
         let const1 = create_const();
 
-        assert_eq!("N1", ctx.variable_name(&const1));
+        assert_eq!("N1", ctx.variable_name(&const1).unwrap());
 
         {
             ctx.push(&[ParameterKind::Const]);
             let const1 = const1.shift_in();
             let const2 = create_const();
-            assert_eq!("N1", ctx.variable_name(&const1));
-            assert_eq!("N2", ctx.variable_name(&const2));
+            assert_eq!("N1", ctx.variable_name(&const1).unwrap());
+            assert_eq!("N2", ctx.variable_name(&const2).unwrap());
             ctx.pop();
         }
 
-        assert_eq!("N1", ctx.variable_name(&const1));
+        assert_eq!("N1", ctx.variable_name(&const1).unwrap());
     }
 
     #[test]
@@ -237,7 +243,7 @@ mod test {
         }));
         let t = pp.pretty_print_type(&ty);
 
-        assert_eq!("Foo", t);
+        assert_eq!("Foo", t.unwrap());
     }
 
     #[test]
@@ -249,7 +255,7 @@ mod test {
         }));
         let t = pp.pretty_print_type(&ty);
 
-        assert_eq!("u8", t);
+        assert_eq!("u8", t.unwrap());
     }
 
     #[test]
@@ -268,7 +274,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty).unwrap();
         assert_eq!("&'a1 u8", t);
 
         let ty = Ty::new(TyData::RigidTy(RigidTy {
@@ -281,7 +287,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty).unwrap();
         assert_eq!("&'a1 mut u8", t);
 
         let ty = Ty::new(TyData::RigidTy(RigidTy {
@@ -294,7 +300,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty).unwrap();
         assert_eq!("&'static mut u8", t);
     }
 
@@ -314,7 +320,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty).unwrap();
 
         assert_eq!("(u8, i64)", t);
     }
@@ -339,7 +345,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.pretty_print_type(&ty);
+        let t = pp.pretty_print_type(&ty).unwrap();
 
         assert_eq!("fn(u8, i64) -> isize", t);
     }

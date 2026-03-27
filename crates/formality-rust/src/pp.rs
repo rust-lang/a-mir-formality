@@ -1,6 +1,7 @@
-use crate::grammar::{AdtItem, Crate, CrateItem, FeatureGate, ParameterKind, Program};
-use formality_core::variable::CoreVariable;
-use itertools::Itertools;
+use crate::grammar::{
+    AdtItem, Binder, Crate, CrateItem, Fallible, FeatureGate, ParameterKind, Program,
+};
+use formality_core::{fold::CoreFold, variable::CoreVariable};
 
 use std::collections::HashSet;
 
@@ -12,7 +13,7 @@ mod traits_and_impls;
 
 mod tys;
 
-pub fn pretty_print(program: &Program) -> Vec<String> {
+pub fn pretty_print(program: &Program) -> Fallible<Vec<String>> {
     PrettyPrinter::default().print_program(program)
 }
 
@@ -27,18 +28,21 @@ pub struct NameContext {
 
 impl NameContext {
     /// Returns a pretty printable name for the `given CoreVaribale`.
-    pub fn variable_name(&self, variable: &CoreVariable<crate::FormalityLang>) -> String {
+    pub fn variable_name(&self, variable: &CoreVariable<crate::FormalityLang>) -> Fallible<String> {
         let CoreVariable::BoundVar(core_bound_var) = variable else {
             unimplemented!()
         };
 
         let var_index = core_bound_var.var_index.index;
-        let index = core_bound_var.debruijn.unwrap().index;
-        match core_bound_var.kind {
-            ParameterKind::Ty => self.variable_names[index][var_index].clone(),
-            ParameterKind::Lt => self.variable_names[index][var_index].clone(),
-            ParameterKind::Const => self.variable_names[index][var_index].clone(),
-        }
+        let index = core_bound_var
+            .debruijn
+            .ok_or_else(|| anyhow::anyhow!("binder was opened"))?
+            .index;
+        self.variable_names
+            .get(index)
+            .and_then(|vars| vars.get(var_index))
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("unbound variable {core_bound_var:?}"))
     }
 
     pub fn pop(&mut self) {
@@ -54,6 +58,20 @@ impl NameContext {
             let name = self.fresh_name(kind);
             self.variable_names[0].push(name);
         }
+    }
+
+    pub fn with_binder<T: CoreFold<crate::FormalityLang>>(
+        &mut self,
+        binder: &Binder<T>,
+        op: impl Fn(&T, &mut NameContext) -> Fallible<String>,
+    ) -> Fallible<String> {
+        let term = binder.peek();
+        self.push(binder.kinds());
+
+        let result = op(term, self);
+
+        self.pop();
+        result
     }
 
     fn fresh_name(&mut self, kind: &ParameterKind) -> String {
@@ -80,27 +98,31 @@ pub struct PrettyPrinter {
 }
 
 impl PrettyPrinter {
-    pub fn variable_name(&self, core_variable: &CoreVariable<crate::FormalityLang>) -> String {
+    pub fn variable_name(
+        &self,
+        core_variable: &CoreVariable<crate::FormalityLang>,
+    ) -> Fallible<String> {
         self.ctx.variable_name(core_variable)
     }
 
-    pub fn print_program(&mut self, program: &Program) -> Vec<String> {
+    pub fn print_program(&mut self, program: &Program) -> Fallible<Vec<String>> {
         program
             .crates
             .iter()
             .map(|krate| self.print_crate(krate))
-            .collect()
+            .collect::<Result<Vec<_>, _>>()
     }
 
-    fn print_crate(&mut self, krate: &Crate) -> String {
-        krate
+    fn print_crate(&mut self, krate: &Crate) -> Fallible<String> {
+        Ok(krate
             .items
             .iter()
             .map(|item| self.print_crate_item(item))
-            .join("\n")
+            .collect::<Result<Vec<_>, _>>()?
+            .join("\n"))
     }
 
-    fn print_crate_item(&mut self, crate_item: &CrateItem) -> String {
+    fn print_crate_item(&mut self, crate_item: &CrateItem) -> Fallible<String> {
         match crate_item {
             CrateItem::FeatureGate(gate) => self.print_feature_gate(gate),
             CrateItem::AdtItem(AdtItem::Struct(strukt)) => self.print_struct(strukt),
@@ -113,11 +135,12 @@ impl PrettyPrinter {
         }
     }
 
-    fn print_feature_gate(&mut self, gate: &FeatureGate) -> String {
-        format!("{:?}", gate)
+    fn print_feature_gate(&mut self, gate: &FeatureGate) -> Fallible<String> {
+        Ok(format!("{:?}", gate))
     }
 }
 
+// TODO: replace allocate and close_binder with a with_binder.
 #[macro_export]
 macro_rules! allocate {
     ($binder:expr, $ctx:expr) => {{
@@ -134,11 +157,12 @@ macro_rules! close_binder {
     }};
 }
 
+// TODO: Replace iterator chaining with fn call
 #[macro_export]
 macro_rules! assert_rust {
     ($input:tt, $($expected:tt)*) => {{
         let program = $crate::rust::try_term(stringify!($input)).unwrap();
-        let rust = $crate::pp::PrettyPrinter::default().print_program(&program)[0]
+        let rust = $crate::pp::PrettyPrinter::default().print_program(&program).unwrap()[0]
             .split_whitespace()
             .collect::<Vec<_>>()
             .join(" ");
@@ -147,7 +171,9 @@ macro_rules! assert_rust {
 }
 
 pub fn assert_rust(program: &Program, expected: &str) {
-    let rust = crate::pp::PrettyPrinter::default().print_program(&program)[0]
+    let rust = crate::pp::PrettyPrinter::default()
+        .print_program(&program)
+        .unwrap()[0]
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ");
@@ -169,10 +195,6 @@ macro_rules! assert_rust2 {
 
 #[cfg(test)]
 mod test {
-    use crate::grammar::TraitItem;
-
-    use super::*;
-
     #[test]
     fn empty_crate() {
         assert_rust!(
@@ -192,67 +214,5 @@ mod test {
             ],
             #![feature(polonius_alpha)]
         );
-    }
-
-    #[test]
-    fn blub() {
-        use std::io::Write;
-        let source = stringify!(
-            [
-                crate Foo {
-                    trait Write {
-                        fn test() -> i32;
-                    }
-
-                    enum Kind {
-                        A { },
-                        B { }
-                    }
-
-                    struct Map
-                    where
-                        T: Write,
-                        K: Write,
-                    {
-                        f0: T,
-                        f1: K,
-                        f2: Kind,
-                    }
-
-                    fn run() -> i32 trusted;
-                }
-            ]
-        );
-
-        let program: Program = crate::rust::try_term(source).unwrap();
-        let rust = pretty_print(&program);
-        let rust = &rust[0];
-        let mut file = std::fs::File::create("/tmp/test.rs").unwrap();
-        file.write_all(rust.as_bytes()).unwrap();
-    }
-
-    #[test]
-    #[ignore]
-    fn blub2() {
-        let source = stringify!(
-            [
-                crate Foo {
-                    trait Bar {
-                        fn foo() -> i32;
-                    }
-                }
-            ]
-        );
-
-        let program: Program = crate::rust::try_term(source).unwrap();
-        let CrateItem::Trait(item) = program.crates.get(0).unwrap().items.get(0).unwrap() else {
-            panic!();
-        };
-        let data = item.binder.open();
-        let TraitItem::Fn(_f) = data.1.trait_items.get(0).unwrap() else {
-            panic!();
-        };
-
-        assert!(false);
     }
 }

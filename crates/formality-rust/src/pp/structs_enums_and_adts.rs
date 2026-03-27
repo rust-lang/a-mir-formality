@@ -1,48 +1,53 @@
-use crate::grammar::{Enum, Field, FieldName, Struct, Variant};
+use crate::grammar::{Enum, Fallible, Field, FieldName, Struct, Variant};
 use crate::pp::PrettyPrinter;
-use itertools::Itertools;
 
 use std::ops::Deref;
 
 impl PrettyPrinter {
-    pub fn print_struct(&mut self, strukt: &Struct) -> String {
+    pub fn print_struct(&mut self, strukt: &Struct) -> Fallible<String> {
         let id = strukt.id.deref();
         let data = strukt.binder.peek();
-        let wc = self.print_where(&data.where_clauses);
+        let wc = self.print_where(&data.where_clauses)?;
 
         let fields = data
             .fields
             .iter()
-            .map(|f| format!("{:?}: {}", f.name, self.pretty_print_type(&f.ty))) // TODO: Implement pp for names
+            .map(|f| {
+                self.pretty_print_type(&f.ty)
+                    .map(|ty| format!("{:?}: {}", f.name, ty))
+            }) // TODO: Implement pp for names
+            .collect::<Result<Vec<_>, _>>()?
             .join(", ");
-        format!("struct {id}{wc} {{ {fields} }}")
+        Ok(format!("struct {id}{wc} {{ {fields} }}"))
     }
 
-    pub fn print_enum(&mut self, e: &Enum) -> String {
+    pub fn print_enum(&mut self, e: &Enum) -> Fallible<String> {
         let id = e.id.deref();
         let data = e.binder.peek();
-        let wc = self.print_where(&data.where_clauses);
+        let wc = self.print_where(&data.where_clauses)?;
 
         let variants = data
             .variants
             .iter()
             .map(|v| self.print_variant(v))
+            .collect::<Result<Vec<_>, _>>()?
             .join(", ");
 
-        format!("enum {id}{wc} {{ {variants} }}")
+        Ok(format!("enum {id}{wc} {{ {variants} }}"))
     }
 
-    pub fn print_variant(&mut self, variant: &Variant) -> String {
+    pub fn print_variant(&mut self, variant: &Variant) -> Fallible<String> {
         let name = variant.name.deref();
-        let fields = self.print_fields(&variant.fields);
+        let fields = self.print_fields(&variant.fields)?;
 
-        format!("{name}{fields}")
+        Ok(format!("{name}{fields}"))
     }
 
-    pub fn print_fields(&mut self, fields: &Vec<Field>) -> String {
+    pub fn print_fields(&mut self, fields: &Vec<Field>) -> Fallible<String> {
         if fields.len() == 0 {
-            return "".into();
+            return Ok("".into());
         }
+
         let (opening, closing) = if matches!(fields[0].name, FieldName::Index(_)) {
             ("(", ")")
         } else {
@@ -52,13 +57,14 @@ impl PrettyPrinter {
         let fields = fields
             .iter()
             .map(|f| match &f.name {
-                FieldName::Id(field_id) => {
-                    format!("{}: {}", field_id.deref(), self.pretty_print_type(&f.ty))
-                }
-                FieldName::Index(_) => format!("{}", self.pretty_print_type(&f.ty)),
+                FieldName::Id(field_id) => self
+                    .pretty_print_type(&f.ty)
+                    .map(|ty| format!("{}: {}", field_id.deref(), ty)),
+                FieldName::Index(_) => self.pretty_print_type(&f.ty).map(|ty| format!("{}", ty)),
             })
+            .collect::<Result<Vec<_>, _>>()?
             .join(", ");
-        format!("{opening}{fields}{closing}")
+        Ok(format!("{opening}{fields}{closing}"))
     }
 }
 
