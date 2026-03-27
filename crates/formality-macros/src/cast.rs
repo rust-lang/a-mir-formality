@@ -38,6 +38,7 @@ fn arc_cast(s: &synstructure::Structure) -> TokenStream {
     quote_spanned! { type_name.span() =>
         const _: () = {
             use formality_core::Upcast;
+            use formality_core::UpcastFrom;
             use formality_core::DowncastFrom;
             use std::sync::Arc;
 
@@ -53,6 +54,13 @@ fn arc_cast(s: &synstructure::Structure) -> TokenStream {
             #where_clauses {
                 fn downcast_from(t: &Arc<Self>) -> Option<Self> {
                     Some(Self::clone(t))
+                }
+            }
+
+            impl #impl_generics UpcastFrom<Arc<Self>> for #type_name #type_generics
+            #where_clauses {
+                fn upcast_from(term: Arc<Self>) -> Self {
+                    term.as_ref().clone()
                 }
             }
         };

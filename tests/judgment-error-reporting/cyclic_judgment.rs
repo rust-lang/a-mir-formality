@@ -33,7 +33,7 @@ judgment_fn! {
         )
 
         (
-            (sub(Ty::clone(a), Ty::clone(b)) => ())
+            (sub(a, b) => ())
             ---------------------- ("both my")
             (sub(Ty::My(a), Ty::My(b)) => ())
         )
