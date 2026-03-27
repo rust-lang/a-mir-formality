@@ -1,6 +1,7 @@
 use crate::rust::term;
 use expect_test::expect;
 use formality_macros::test;
+use std::sync::Arc;
 
 use crate::prove::prove::{test_util::test_prove, Program};
 
@@ -8,10 +9,10 @@ use crate::prove::prove::{test_util::test_prove, Program};
 fn decls() -> Program {
     Program {
         max_size: 10,
-        crates: Program::program_from_items(vec![
+        crates: Arc::new(Program::program_from_items(vec![
             term("trait Debug where {}"),
             term("impl<T> Debug for Vec<T> where T : Debug {}"),
-        ]),
+        ])),
         ..Program::empty()
     }
 }

@@ -2,16 +2,17 @@ use crate::grammar::{Parameter, Relation, Wcs};
 use crate::rust::term;
 use expect_test::expect;
 use formality_core::test;
+use std::sync::Arc;
 
 use crate::prove::prove::{decls::Program, prove::prove, Env};
 
 fn decls() -> Program {
     Program {
-        crates: Program::program_from_items(vec![
+        crates: Arc::new(Program::program_from_items(vec![
             term("trait Foo where {}"),
             term("impl Foo for u32 {}"),
             term("struct X<T> where T : Foo {}"),
-        ]),
+        ])),
         ..Program::empty()
     }
 }

@@ -1,6 +1,7 @@
 use crate::rust::term;
 use expect_test::expect;
 use formality_macros::test;
+use std::sync::Arc;
 
 use crate::prove::prove::decls::Program;
 
@@ -26,10 +27,10 @@ fn exists_u_for_t() {
 #[test]
 fn for_t_exists_u() {
     let decls = Program {
-        crates: Program::program_from_items(vec![
+        crates: Arc::new(Program::program_from_items(vec![
             term("trait Test<T> where {}"),
             term("impl<X> Test<X> for X {}"),
-        ]),
+        ])),
         ..Program::empty()
     };
 

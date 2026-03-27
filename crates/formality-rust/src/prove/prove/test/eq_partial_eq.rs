@@ -2,16 +2,17 @@ use crate::grammar::{Wc, Wcs};
 use crate::rust::term;
 use expect_test::expect;
 use formality_macros::test;
+use std::sync::Arc;
 
 use crate::prove::prove::{decls::Program, prove::prove};
 
 /// Simple example decls consisting only of two trait declarations.
 fn decls() -> Program {
     Program {
-        crates: Program::program_from_items(vec![
+        crates: Arc::new(Program::program_from_items(vec![
             term("trait Eq where Self : PartialEq {}"),
             term("trait PartialEq where {}"),
-        ]),
+        ])),
         ..Program::empty()
     }
 }

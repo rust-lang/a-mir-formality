@@ -2,11 +2,12 @@ use crate::grammar::{Crates, WhereBound, WhereBoundData, WhereClause, WhereClaus
 use formality_core::Upcast;
 pub mod prove;
 use crate::grammar::{Predicate, Relation, Ty, Wc, Wcs};
+use std::sync::Arc;
 
 impl Crates {
     pub fn to_prove_decls(&self) -> prove::Program {
         prove::Program {
-            crates: self.clone(),
+            crates: Arc::new(self.clone()),
             max_size: prove::Program::DEFAULT_MAX_SIZE,
         }
     }

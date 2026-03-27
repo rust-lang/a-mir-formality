@@ -7,10 +7,11 @@ use crate::grammar::{
 use crate::prove::ToWcs;
 use formality_core::{seq, Set, To, Upcast, Upcasted};
 use formality_macros::term;
+use std::sync::Arc;
 
 #[term]
 pub struct Program {
-    pub crates: Crates,
+    pub crates: Arc<Crates>,
     pub max_size: usize,
 }
 
@@ -227,7 +228,7 @@ impl Program {
 
     pub fn empty() -> Self {
         Self {
-            crates: Crates { crates: vec![] },
+            crates: Arc::new(Crates { crates: vec![] }),
             max_size: Program::DEFAULT_MAX_SIZE,
         }
     }
