@@ -5,7 +5,7 @@ use std::{collections::VecDeque, fmt::Debug};
 use crate::prove::prove::{is_definitely_not_proveable, Constraints, Decls, Env};
 use crate::rust::Visit;
 use crate::{
-    grammar::{Crate, CrateId, CrateItem, Fallible, Program, Test, TestBoundData, Wcs},
+    grammar::{Crate, CrateId, CrateItem, Crates, Fallible, Test, TestBoundData, Wcs},
     prove::ToWcs,
 };
 use anyhow::{anyhow, bail};
@@ -15,12 +15,12 @@ pub mod borrow_check;
 
 /// Check all crates in the program. The crates must be in dependency order
 /// such that any prefix of the crates is a complete program.
-pub fn check_all_crates(program: &Program) -> Fallible<ProofTree> {
-    let Program { crates } = program;
+pub fn check_all_crates(program: &Crates) -> Fallible<ProofTree> {
+    let Crates { crates } = program;
     let mut crates: VecDeque<_> = crates.iter().cloned().collect();
 
     let mut proof_tree = ProofTree::new("check_all_crates", None, vec![]);
-    let mut prefix_program = Program { crates: vec![] };
+    let mut prefix_program = Crates { crates: vec![] };
     while let Some(c) = crates.pop_front() {
         prefix_program.crates.push(c);
         proof_tree
@@ -32,7 +32,7 @@ pub fn check_all_crates(program: &Program) -> Fallible<ProofTree> {
 }
 
 /// Checks the current crate in the program, assuming all other crates are valid.
-fn check_current_crate(program: &Program) -> Fallible<ProofTree> {
+fn check_current_crate(program: &Crates) -> Fallible<ProofTree> {
     let decls = program.to_prove_decls();
     Check {
         program,
@@ -49,13 +49,13 @@ mod traits;
 mod where_clauses;
 
 struct Check<'p> {
-    program: &'p Program,
+    program: &'p Crates,
     decls: &'p Decls,
 }
 
 impl Check<'_> {
     fn check(&self) -> Fallible<ProofTree> {
-        let Program { crates } = &self.program;
+        let Crates { crates } = &self.program;
         if let Some(current_crate) = crates.last() {
             self.check_current_crate(current_crate)
         } else {
@@ -79,7 +79,7 @@ impl Check<'_> {
     }
 
     fn check_for_duplicate_items(&self) -> Fallible<()> {
-        let Program { crates } = &self.program;
+        let Crates { crates } = &self.program;
         for c in crates.iter() {
             let mut items = Set::new();
             let mut traits = Set::new();

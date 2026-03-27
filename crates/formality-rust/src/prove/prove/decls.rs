@@ -1,7 +1,7 @@
 use crate::grammar::{
     AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData, Binder, Crate,
     CrateId, CrateItem, ImplItem, NegTraitImpl, NegTraitImplBoundData, Parameter, Predicate,
-    Program, Relation, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty,
+    Crates, Relation, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty,
     Wc, Wcs,
 };
 use crate::prove::ToWcs;
@@ -10,7 +10,7 @@ use formality_macros::term;
 
 #[term]
 pub struct Decls {
-    pub program: Program,
+    pub program: Crates,
     pub max_size: usize,
 }
 
@@ -18,7 +18,7 @@ impl Decls {
     /// Max size used in unit tests that are not stress testing maximum size.
     pub const DEFAULT_MAX_SIZE: usize = 222;
 
-    pub fn program(&self) -> &Program {
+    pub fn program(&self) -> &Crates {
         &self.program
     }
 
@@ -216,8 +216,8 @@ impl Decls {
     }
 
     /// Create a `Program` wrapping the given items in a single crate named "test".
-    pub fn program_from_items(items: Vec<CrateItem>) -> Program {
-        Program {
+    pub fn program_from_items(items: Vec<CrateItem>) -> Crates {
+        Crates {
             crates: vec![Crate {
                 id: CrateId::new("test"),
                 items,
@@ -227,7 +227,7 @@ impl Decls {
 
     pub fn empty() -> Self {
         Self {
-            program: Program { crates: vec![] },
+            program: Crates { crates: vec![] },
             max_size: Decls::DEFAULT_MAX_SIZE,
         }
     }

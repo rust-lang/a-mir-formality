@@ -5,7 +5,7 @@ use crate::check::borrow_check::flow_state::{FlowState, PendingOutlives};
 
 use crate::check::borrow_check::outlives::verify_universal_outlives;
 use crate::grammar::{Binder, ExistentialVar, Relation, Ty, UniversalVar, Wcs};
-use crate::grammar::{Parameter, Program};
+use crate::grammar::{Crates, Parameter};
 use crate::prove::prove::{prove_normalize, Constrained, Constraints, Decls, Env};
 use crate::rust::Fold;
 use formality_core::judgment::{FailureLocation, ProofTree, Proven};
@@ -16,7 +16,7 @@ use crate::check::{Debug, ProvenSet, ToWcs, Visit};
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone, Hash)]
 pub struct TypeckEnv {
     /// Program being typechecked that contains this functon
-    pub program: Arc<Program>,
+    pub program: Arc<Crates>,
 
     /// The environment (set of universal, existential variables)
     pub env: Env,
