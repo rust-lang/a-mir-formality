@@ -40,10 +40,7 @@ fn count_complete_parses<T: CoreParse<crate::ptt::FormalityLang> + std::fmt::Deb
         .into_iter()
         .filter(|p| parse::skip_whitespace(p.text()).is_empty())
         .collect();
-    let values: Vec<T> = complete
-        .into_iter()
-        .map(|p| p.finish().0)
-        .collect();
+    let values: Vec<T> = complete.into_iter().map(|p| p.finish().0).collect();
     assert_eq!(
         values.len(),
         expected_count,
@@ -66,7 +63,10 @@ fn opt_ambiguous_present() {
         amb: Option<Amb>,
     }
 
-    count_complete_parses::<OptAmb>("opt a", 2, &expect![[r#"
+    count_complete_parses::<OptAmb>(
+        "opt a",
+        2,
+        &expect![[r#"
         [
             OptAmb {
                 amb: Some(
@@ -83,7 +83,8 @@ fn opt_ambiguous_present() {
                 ),
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$?amb` — optional ambiguous child with input absent.
@@ -95,13 +96,17 @@ fn opt_ambiguous_absent() {
         amb: Option<Amb>,
     }
 
-    count_complete_parses::<OptAmbEnd>("opt end", 1, &expect![[r#"
+    count_complete_parses::<OptAmbEnd>(
+        "opt end",
+        1,
+        &expect![[r#"
         [
             OptAmbEnd {
                 amb: None,
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$?amb` with a trailing required token — ambiguity from `$?` should
@@ -113,7 +118,10 @@ fn opt_ambiguous_with_suffix() {
         amb: Option<Amb>,
     }
 
-    count_complete_parses::<OptAmbDone>("opt a done", 2, &expect![[r#"
+    count_complete_parses::<OptAmbDone>(
+        "opt a done",
+        2,
+        &expect![[r#"
         [
             OptAmbDone {
                 amb: Some(
@@ -130,7 +138,8 @@ fn opt_ambiguous_with_suffix() {
                 ),
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 // ========================================================================
@@ -146,7 +155,10 @@ fn many_one_ambiguous() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<ManyAmb>("many a end", 2, &expect![[r#"
+    count_complete_parses::<ManyAmb>(
+        "many a end",
+        2,
+        &expect![[r#"
         [
             ManyAmb {
                 items: [
@@ -163,7 +175,8 @@ fn many_one_ambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$*items` where two items are each ambiguous.
@@ -175,7 +188,10 @@ fn many_two_ambiguous() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<ManyAmb>("many a b end", 4, &expect![[r#"
+    count_complete_parses::<ManyAmb>(
+        "many a b end",
+        4,
+        &expect![[r#"
         [
             ManyAmb {
                 items: [
@@ -218,7 +234,8 @@ fn many_two_ambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$*items` where three items are each ambiguous.
@@ -230,7 +247,10 @@ fn many_three_ambiguous() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<ManyAmb>("many a b c end", 8, &expect![[r#"
+    count_complete_parses::<ManyAmb>(
+        "many a b c end",
+        8,
+        &expect![[r#"
         [
             ManyAmb {
                 items: [
@@ -337,7 +357,8 @@ fn many_three_ambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$*items` with zero items should produce exactly 1 parse (empty vec).
@@ -348,13 +369,17 @@ fn many_zero_items() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<ManyAmb>("many end", 1, &expect![[r#"
+    count_complete_parses::<ManyAmb>(
+        "many end",
+        1,
+        &expect![[r#"
         [
             ManyAmb {
                 items: [],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 // ========================================================================
@@ -369,7 +394,10 @@ fn comma_one_ambiguous() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<CommaAmb>("comma a end", 2, &expect![[r#"
+    count_complete_parses::<CommaAmb>(
+        "comma a end",
+        2,
+        &expect![[r#"
         [
             CommaAmb {
                 items: [
@@ -386,7 +414,8 @@ fn comma_one_ambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$,items` — two ambiguous comma-separated items → 2 * 2 = 4 parses.
@@ -397,7 +426,10 @@ fn comma_two_ambiguous() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<CommaAmb>("comma a, b end", 4, &expect![[r#"
+    count_complete_parses::<CommaAmb>(
+        "comma a, b end",
+        4,
+        &expect![[r#"
         [
             CommaAmb {
                 items: [
@@ -440,7 +472,8 @@ fn comma_two_ambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$,items` — zero items → 1 parse.
@@ -451,13 +484,17 @@ fn comma_zero_items() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<CommaAmb>("comma end", 1, &expect![[r#"
+    count_complete_parses::<CommaAmb>(
+        "comma end",
+        1,
+        &expect![[r#"
         [
             CommaAmb {
                 items: [],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 // ========================================================================
@@ -472,7 +509,10 @@ fn delimited_angle_one_ambiguous() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<DelimAngle>("delim <a>", 2, &expect![[r#"
+    count_complete_parses::<DelimAngle>(
+        "delim <a>",
+        2,
+        &expect![[r#"
         [
             DelimAngle {
                 items: [
@@ -489,7 +529,8 @@ fn delimited_angle_one_ambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$<items>` — two comma-separated ambiguous items → 4 parses.
@@ -500,7 +541,10 @@ fn delimited_angle_two_ambiguous() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<DelimAngle>("delim <a, b>", 4, &expect![[r#"
+    count_complete_parses::<DelimAngle>(
+        "delim <a, b>",
+        4,
+        &expect![[r#"
         [
             DelimAngle {
                 items: [
@@ -543,7 +587,8 @@ fn delimited_angle_two_ambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$<items>` — empty angle brackets → 1 parse.
@@ -554,13 +599,17 @@ fn delimited_angle_empty() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<DelimAngle>("delim <>", 1, &expect![[r#"
+    count_complete_parses::<DelimAngle>(
+        "delim <>",
+        1,
+        &expect![[r#"
         [
             DelimAngle {
                 items: [],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$<?items>` is optional — missing delimiters → 1 parse (empty vec).
@@ -571,15 +620,22 @@ fn delimited_angle_absent() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<DelimAngle>("delim end", 1, &expect![[r#"
+    count_complete_parses::<DelimAngle>(
+        "delim end",
+        1,
+        &expect![[r#"
         [
             DelimAngle {
                 items: [],
             },
         ]
-    "#]]);
+    "#]],
+    );
     // When present, still propagates ambiguity
-    count_complete_parses::<DelimAngle>("delim <a> end", 2, &expect![[r#"
+    count_complete_parses::<DelimAngle>(
+        "delim <a> end",
+        2,
+        &expect![[r#"
         [
             DelimAngle {
                 items: [
@@ -596,7 +652,8 @@ fn delimited_angle_absent() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 // ========================================================================
@@ -611,7 +668,10 @@ fn delimited_paren_two_ambiguous() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<DelimParen>("delim (a, b)", 4, &expect![[r#"
+    count_complete_parses::<DelimParen>(
+        "delim (a, b)",
+        4,
+        &expect![[r#"
         [
             DelimParen {
                 items: [
@@ -654,7 +714,8 @@ fn delimited_paren_two_ambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 // ========================================================================
@@ -669,7 +730,10 @@ fn delimited_bracket_two_ambiguous() {
         items: Vec<Amb>,
     }
 
-    count_complete_parses::<DelimBracket>("delim [a, b]", 4, &expect![[r#"
+    count_complete_parses::<DelimBracket>(
+        "delim [a, b]",
+        4,
+        &expect![[r#"
         [
             DelimBracket {
                 items: [
@@ -712,7 +776,8 @@ fn delimited_bracket_two_ambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 // ========================================================================
@@ -730,7 +795,10 @@ fn opt_then_required_both_ambiguous() {
     }
 
     // "start a b end" — opt consumes `a` (2 ways), req consumes `b` (2 ways) → 4
-    count_complete_parses::<OptThenReq>("start a b end", 4, &expect![[r#"
+    count_complete_parses::<OptThenReq>(
+        "start a b end",
+        4,
+        &expect![[r#"
         [
             OptThenReq {
                 opt_item: Some(
@@ -773,7 +841,8 @@ fn opt_then_required_both_ambiguous() {
                 ),
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// Two ambiguous fields where opt is absent.
@@ -786,7 +855,10 @@ fn opt_absent_then_required_ambiguous() {
         req_item: Amb,
     }
 
-    count_complete_parses::<OptThenReq>("start then a end", 2, &expect![[r#"
+    count_complete_parses::<OptThenReq>(
+        "start then a end",
+        2,
+        &expect![[r#"
         [
             OptThenReq {
                 opt_item: None,
@@ -801,7 +873,8 @@ fn opt_absent_then_required_ambiguous() {
                 ),
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// Ambiguous items inside a `$*` followed by an ambiguous required item.
@@ -815,7 +888,10 @@ fn many_then_required_both_ambiguous() {
     }
 
     // "start a then b end" — many gets [a] (2 ways), last gets b (2 ways) → 4
-    count_complete_parses::<ManyThenReq>("start a then b end", 4, &expect![[r#"
+    count_complete_parses::<ManyThenReq>(
+        "start a then b end",
+        4,
+        &expect![[r#"
         [
             ManyThenReq {
                 items: [
@@ -858,7 +934,8 @@ fn many_then_required_both_ambiguous() {
                 ),
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// Ambiguous items in angle brackets followed by another ambiguous item.
@@ -871,7 +948,10 @@ fn delimited_then_required_both_ambiguous() {
         last: Amb,
     }
 
-    count_complete_parses::<DelimThenReq>("start <a, b> c", 8, &expect![[r#"
+    count_complete_parses::<DelimThenReq>(
+        "start <a, b> c",
+        8,
+        &expect![[r#"
         [
             DelimThenReq {
                 items: [
@@ -978,7 +1058,8 @@ fn delimited_then_required_both_ambiguous() {
                 ),
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 // ========================================================================
@@ -999,7 +1080,10 @@ fn enum_variants_with_collections() {
     }
 
     // "many a b end" → Many variant, 2 items, 2^2 = 4
-    count_complete_parses::<Wrapper>("many a b end", 4, &expect![[r#"
+    count_complete_parses::<Wrapper>(
+        "many a b end",
+        4,
+        &expect![[r#"
         [
             Many(
                 [
@@ -1042,10 +1126,14 @@ fn enum_variants_with_collections() {
                 ],
             ),
         ]
-    "#]]);
+    "#]],
+    );
 
     // "comma a, b end" → Comma variant, 2 items, 2^2 = 4
-    count_complete_parses::<Wrapper>("comma a, b end", 4, &expect![[r#"
+    count_complete_parses::<Wrapper>(
+        "comma a, b end",
+        4,
+        &expect![[r#"
         [
             Comma(
                 [
@@ -1088,7 +1176,8 @@ fn enum_variants_with_collections() {
                 ],
             ),
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 // ========================================================================
@@ -1115,7 +1204,10 @@ fn many_of_ambiguous_wrapper() {
     }
 
     // One element `(a)`: AmbWrap has 2 parses (WrapA/WrapB) * Amb has 2 parses each = 4
-    count_complete_parses::<ListWrap>("list (a) end", 4, &expect![[r#"
+    count_complete_parses::<ListWrap>(
+        "list (a) end",
+        4,
+        &expect![[r#"
         [
             ListWrap {
                 items: [
@@ -1154,7 +1246,8 @@ fn many_of_ambiguous_wrapper() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 // ========================================================================
@@ -1175,7 +1268,10 @@ fn opt_unambiguous() {
         item: Option<Unamb>,
     }
 
-    count_complete_parses::<OptUnamb>("opt a end", 1, &expect![[r#"
+    count_complete_parses::<OptUnamb>(
+        "opt a end",
+        1,
+        &expect![[r#"
         [
             OptUnamb {
                 item: Some(
@@ -1185,14 +1281,19 @@ fn opt_unambiguous() {
                 ),
             },
         ]
-    "#]]);
-    count_complete_parses::<OptUnamb>("opt end", 1, &expect![[r#"
+    "#]],
+    );
+    count_complete_parses::<OptUnamb>(
+        "opt end",
+        1,
+        &expect![[r#"
         [
             OptUnamb {
                 item: None,
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -1202,7 +1303,10 @@ fn many_unambiguous() {
         items: Vec<Unamb>,
     }
 
-    count_complete_parses::<ManyUnamb>("many a b c end", 1, &expect![[r#"
+    count_complete_parses::<ManyUnamb>(
+        "many a b c end",
+        1,
+        &expect![[r#"
         [
             ManyUnamb {
                 items: [
@@ -1218,7 +1322,8 @@ fn many_unambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -1228,7 +1333,10 @@ fn comma_unambiguous() {
         items: Vec<Unamb>,
     }
 
-    count_complete_parses::<CommaUnamb>("comma a, b, c end", 1, &expect![[r#"
+    count_complete_parses::<CommaUnamb>(
+        "comma a, b, c end",
+        1,
+        &expect![[r#"
         [
             CommaUnamb {
                 items: [
@@ -1244,7 +1352,8 @@ fn comma_unambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 #[test]
@@ -1254,7 +1363,10 @@ fn delimited_unambiguous() {
         items: Vec<Unamb>,
     }
 
-    count_complete_parses::<DelimUnamb>("delim <a, b, c>", 1, &expect![[r#"
+    count_complete_parses::<DelimUnamb>(
+        "delim <a, b, c>",
+        1,
+        &expect![[r#"
         [
             DelimUnamb {
                 items: [
@@ -1270,7 +1382,8 @@ fn delimited_unambiguous() {
                 ],
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 // ========================================================================
@@ -1286,7 +1399,10 @@ fn comma_into_set_two_items() {
         items: Set<Unamb>,
     }
 
-    count_complete_parses::<CommaSet>("comma a, b end", 1, &expect![[r#"
+    count_complete_parses::<CommaSet>(
+        "comma a, b end",
+        1,
+        &expect![[r#"
         [
             CommaSet {
                 items: {
@@ -1299,7 +1415,8 @@ fn comma_into_set_two_items() {
                 },
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$,items` into a `Set<Unamb>` — zero items → 1 parse (empty set).
@@ -1310,13 +1427,17 @@ fn comma_into_set_zero_items() {
         items: Set<Unamb>,
     }
 
-    count_complete_parses::<CommaSet>("comma end", 1, &expect![[r#"
+    count_complete_parses::<CommaSet>(
+        "comma end",
+        1,
+        &expect![[r#"
         [
             CommaSet {
                 items: {},
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$<items>` into a `Set<Unamb>` — angle-bracket delimited items.
@@ -1327,7 +1448,10 @@ fn delimited_angle_into_set() {
         items: Set<Unamb>,
     }
 
-    count_complete_parses::<DelimAngleSet>("delim <a, b, c>", 1, &expect![[r#"
+    count_complete_parses::<DelimAngleSet>(
+        "delim <a, b, c>",
+        1,
+        &expect![[r#"
         [
             DelimAngleSet {
                 items: {
@@ -1343,7 +1467,8 @@ fn delimited_angle_into_set() {
                 },
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$<items>` into a `Set<Unamb>` — empty angle brackets → 1 parse.
@@ -1354,13 +1479,17 @@ fn delimited_angle_into_set_empty() {
         items: Set<Unamb>,
     }
 
-    count_complete_parses::<DelimAngleSet>("delim <>", 1, &expect![[r#"
+    count_complete_parses::<DelimAngleSet>(
+        "delim <>",
+        1,
+        &expect![[r#"
         [
             DelimAngleSet {
                 items: {},
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$<?items>` into a `Set<Unamb>` — optional, absent → 1 parse (empty set).
@@ -1371,14 +1500,21 @@ fn delimited_angle_into_set_optional_absent() {
         items: Set<Unamb>,
     }
 
-    count_complete_parses::<DelimAngleSet>("delim end", 1, &expect![[r#"
+    count_complete_parses::<DelimAngleSet>(
+        "delim end",
+        1,
+        &expect![[r#"
         [
             DelimAngleSet {
                 items: {},
             },
         ]
-    "#]]);
-    count_complete_parses::<DelimAngleSet>("delim <a, b> end", 1, &expect![[r#"
+    "#]],
+    );
+    count_complete_parses::<DelimAngleSet>(
+        "delim <a, b> end",
+        1,
+        &expect![[r#"
         [
             DelimAngleSet {
                 items: {
@@ -1391,7 +1527,8 @@ fn delimited_angle_into_set_optional_absent() {
                 },
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$(items)` into a `Set<Unamb>` — paren-delimited into Set.
@@ -1402,7 +1539,10 @@ fn delimited_paren_into_set() {
         items: Set<Unamb>,
     }
 
-    count_complete_parses::<DelimParenSet>("delim (a, b)", 1, &expect![[r#"
+    count_complete_parses::<DelimParenSet>(
+        "delim (a, b)",
+        1,
+        &expect![[r#"
         [
             DelimParenSet {
                 items: {
@@ -1415,7 +1555,8 @@ fn delimited_paren_into_set() {
                 },
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$[items]` into a `Set<Unamb>` — bracket-delimited into Set.
@@ -1426,7 +1567,10 @@ fn delimited_bracket_into_set() {
         items: Set<Unamb>,
     }
 
-    count_complete_parses::<DelimBracketSet>("delim [a, b]", 1, &expect![[r#"
+    count_complete_parses::<DelimBracketSet>(
+        "delim [a, b]",
+        1,
+        &expect![[r#"
         [
             DelimBracketSet {
                 items: {
@@ -1439,7 +1583,8 @@ fn delimited_bracket_into_set() {
                 },
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$,items` into `Set<Amb>` — ambiguous elements into Set.
@@ -1452,7 +1597,10 @@ fn comma_into_set_ambiguous() {
         items: Set<Amb>,
     }
 
-    count_complete_parses::<CommaSetAmb>("comma a end", 2, &expect![[r#"
+    count_complete_parses::<CommaSetAmb>(
+        "comma a end",
+        2,
+        &expect![[r#"
         [
             CommaSetAmb {
                 items: {
@@ -1469,8 +1617,12 @@ fn comma_into_set_ambiguous() {
                 },
             },
         ]
-    "#]]);
-    count_complete_parses::<CommaSetAmb>("comma a, b end", 4, &expect![[r#"
+    "#]],
+    );
+    count_complete_parses::<CommaSetAmb>(
+        "comma a, b end",
+        4,
+        &expect![[r#"
         [
             CommaSetAmb {
                 items: {
@@ -1513,7 +1665,8 @@ fn comma_into_set_ambiguous() {
                 },
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
 
 /// `$<items>` into `Set<Amb>` — ambiguous elements in angle brackets into Set.
@@ -1524,7 +1677,10 @@ fn delimited_angle_into_set_ambiguous() {
         items: Set<Amb>,
     }
 
-    count_complete_parses::<DelimAngleSetAmb>("delim <a, b>", 4, &expect![[r#"
+    count_complete_parses::<DelimAngleSetAmb>(
+        "delim <a, b>",
+        4,
+        &expect![[r#"
         [
             DelimAngleSetAmb {
                 items: {
@@ -1567,5 +1723,6 @@ fn delimited_angle_into_set_ambiguous() {
                 },
             },
         ]
-    "#]]);
+    "#]],
+    );
 }
