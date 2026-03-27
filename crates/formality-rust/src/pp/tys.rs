@@ -1,14 +1,20 @@
 use std::ops::Deref;
 
 use crate::grammar::{
-    Const, Lt, LtData, Parameter, Parameters, RefKind, RigidName, RigidTy, ScalarId, Ty, TyData,
+    Const, ConstData, Lt, LtData, Parameter, Parameters, RefKind, RigidName, RigidTy, ScalarId, Ty,
+    TyData,
 };
 use crate::pp::PrettyPrinter;
 use itertools::Itertools;
 
 impl PrettyPrinter {
-    pub fn pretty_print_const(&mut self, _konst: &Const) -> String {
-        todo!()
+    pub fn pretty_print_const(&mut self, konst: &Const) -> String {
+        match konst.data() {
+            ConstData::RigidValue(_rigid_const_data) => todo!(),
+            ConstData::Scalar(_scalar_value) => todo!(),
+            ConstData::Block(_block) => todo!(),
+            ConstData::Variable(core_variable) => self.variable_name(core_variable),
+        }
     }
 
     pub fn pretty_print_type(&mut self, ty: &Ty) -> String {
@@ -16,7 +22,7 @@ impl PrettyPrinter {
             TyData::RigidTy(rigid_ty) => self.pretty_print_rigid_ty(rigid_ty),
             TyData::AliasTy(_alias_ty) => todo!(),
             TyData::PredicateTy(_predicate_ty) => todo!(),
-            TyData::Variable(core_variable) => self.ty_name(core_variable),
+            TyData::Variable(core_variable) => self.variable_name(core_variable),
         }
     }
 
@@ -79,7 +85,7 @@ impl PrettyPrinter {
     fn pretty_print_lt(&mut self, lt: &Lt) -> String {
         match lt.data() {
             LtData::Static => "'static".into(),
-            LtData::Variable(core_variable) => self.ty_name(core_variable),
+            LtData::Variable(core_variable) => self.variable_name(core_variable),
         }
     }
 
@@ -128,7 +134,10 @@ impl PrettyPrinter {
 mod test {
     use formality_core::variable::{CoreBoundVar, CoreVariable, DebruijnIndex, VarIndex};
 
-    use crate::{grammar::AdtId, pp::NameContext};
+    use crate::{
+        grammar::{AdtId, ParameterKind},
+        pp::NameContext,
+    };
 
     use super::*;
 
@@ -160,18 +169,18 @@ mod test {
     fn pretty_print_type_variables() {
         let mut ctx = NameContext::default();
 
-        ctx.push_tys(1);
+        ctx.push(&[ParameterKind::Ty]);
         let ty1 = create_ty();
 
         assert_eq!("T1", ctx.variable_name(&ty1));
 
         {
-            ctx.push_tys(1);
+            ctx.push(&[ParameterKind::Ty]);
             let ty1 = ty1.shift_in();
             let ty2 = create_ty();
             assert_eq!("T1", ctx.variable_name(&ty1));
             assert_eq!("T2", ctx.variable_name(&ty2));
-            ctx.pop_tys(1);
+            ctx.pop();
         }
 
         assert_eq!("T1", ctx.variable_name(&ty1));
@@ -181,18 +190,18 @@ mod test {
     fn pretty_print_life_time_variables() {
         let mut ctx = NameContext::default();
 
-        ctx.push_lts(1);
+        ctx.push(&[ParameterKind::Lt]);
         let lt1 = create_lt();
 
         assert_eq!("'a1", ctx.variable_name(&lt1));
 
         {
-            ctx.push_lts(1);
+            ctx.push(&[ParameterKind::Lt]);
             let lt1 = lt1.shift_in();
             let lt2 = create_lt();
             assert_eq!("'a1", ctx.variable_name(&lt1));
             assert_eq!("'a2", ctx.variable_name(&lt2));
-            ctx.pop_lts(1);
+            ctx.pop();
         }
 
         assert_eq!("'a1", ctx.variable_name(&lt1));
@@ -202,18 +211,18 @@ mod test {
     fn pretty_print_const_variables() {
         let mut ctx = NameContext::default();
 
-        ctx.push_const(1);
+        ctx.push(&[ParameterKind::Const]);
         let const1 = create_const();
 
         assert_eq!("N1", ctx.variable_name(&const1));
 
         {
-            ctx.push_const(1);
+            ctx.push(&[ParameterKind::Const]);
             let const1 = const1.shift_in();
             let const2 = create_const();
             assert_eq!("N1", ctx.variable_name(&const1));
             assert_eq!("N2", ctx.variable_name(&const2));
-            ctx.pop_const(1);
+            ctx.pop();
         }
 
         assert_eq!("N1", ctx.variable_name(&const1));
@@ -246,7 +255,7 @@ mod test {
     #[test]
     fn pretty_print_ref() {
         let mut pp = PrettyPrinter::default();
-        pp.ctx.push_lts(1);
+        pp.ctx.push(&[ParameterKind::Lt]);
 
         // &'a u8
         let ty = Ty::new(TyData::RigidTy(RigidTy {

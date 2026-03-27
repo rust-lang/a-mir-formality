@@ -21,93 +21,42 @@ type Stack<T> = Vec<T>;
 /// Keeps track
 #[derive(Debug, Default)]
 pub struct NameContext {
-    ty_names: Stack<String>,
-    lt_names: Stack<String>,
-    const_names: Stack<String>,
+    variable_names: Stack<Vec<String>>,
     used: HashSet<String>,
 }
 
 impl NameContext {
-    /// Pushes `n` fresh type names to the context.
-    pub fn push_tys(&mut self, n: usize) {
-        self.push(n, ParameterKind::Ty);
-    }
-
-    /// Removes the `n` latest type names from the context.
-    /// Panics if `n` is bigger than the numbers of names in the context.
-    pub fn pop_tys(&mut self, n: usize) {
-        self.pop(n, ParameterKind::Ty);
-    }
-
-    /// Pushes `n` fresh life time names to the context.
-    pub fn push_lts(&mut self, n: usize) {
-        self.push(n, ParameterKind::Lt);
-    }
-
-    /// Removes the `n` latest life time names from the context.
-    /// Panics if `n` is bigger than the numbers of names in the context.
-    pub fn pop_lts(&mut self, n: usize) {
-        self.pop(n, ParameterKind::Lt);
-    }
-
-    /// Pushes `n` fresh const names to the context.
-    pub fn push_const(&mut self, n: usize) {
-        self.push(n, ParameterKind::Const);
-    }
-
-    /// Removes the `n` latest const names from the context.
-    /// Panics if `n` is bigger than the numbers of names in the context.
-    pub fn pop_const(&mut self, n: usize) {
-        self.pop(n, ParameterKind::Const);
-    }
-
     /// Returns a pretty printable name for the `given CoreVaribale`.
     pub fn variable_name(&self, variable: &CoreVariable<crate::FormalityLang>) -> String {
         let CoreVariable::BoundVar(core_bound_var) = variable else {
             unimplemented!()
         };
 
-        // TODO: I must take var_index into account.
-        // The Debruijn index indicates the nesting level, while var_index indicates the index inside the binder.
-        // Idea: to not store Vec<String> but Vec<Vec<String>>, where the db index is used to index Vec<Vec<String>> and var_index Vec<String>.
-        // let type_name = self.ty_names[index][var_index];
-        let _var_index = core_bound_var.var_index;
+        let var_index = core_bound_var.var_index.index;
         let index = core_bound_var.debruijn.unwrap().index;
         match core_bound_var.kind {
-            ParameterKind::Ty => self.ty_names[index].clone(),
-            ParameterKind::Lt => self.lt_names[index].clone(),
-            ParameterKind::Const => self.const_names[index].clone(),
+            ParameterKind::Ty => self.variable_names[index][var_index].clone(),
+            ParameterKind::Lt => self.variable_names[index][var_index].clone(),
+            ParameterKind::Const => self.variable_names[index][var_index].clone(),
         }
     }
 
-    fn push(&mut self, n: usize, kind: ParameterKind) {
-        let insert = match kind {
-            ParameterKind::Ty => |ctx: &mut NameContext, name: String| ctx.ty_names.insert(0, name),
-            ParameterKind::Lt => |ctx: &mut NameContext, name: String| ctx.lt_names.insert(0, name),
-            ParameterKind::Const => {
-                |ctx: &mut NameContext, name: String| ctx.const_names.insert(0, name)
-            }
-        };
+    pub fn pop(&mut self) {
+        let name = self.variable_names.remove(0);
+        for n in name {
+            self.used.remove(&n);
+        }
+    }
 
-        for _ in 0..n {
+    pub fn push(&mut self, kinds: &[ParameterKind]) {
+        self.variable_names.insert(0, Vec::new());
+        for kind in kinds {
             let name = self.fresh_name(kind);
-            insert(self, name);
+            self.variable_names[0].push(name);
         }
     }
 
-    fn pop(&mut self, n: usize, kind: ParameterKind) {
-        let remove = match kind {
-            ParameterKind::Ty => |ctx: &mut NameContext| ctx.ty_names.remove(0),
-            ParameterKind::Lt => |ctx: &mut NameContext| ctx.lt_names.remove(0),
-            ParameterKind::Const => |ctx: &mut NameContext| ctx.const_names.remove(0),
-        };
-        for _ in 0..n {
-            let name = remove(self);
-            self.used.remove(&name);
-        }
-    }
-
-    fn fresh_name(&mut self, kind: ParameterKind) -> String {
+    fn fresh_name(&mut self, kind: &ParameterKind) -> String {
         let prefix = match kind {
             ParameterKind::Ty => "T",
             ParameterKind::Lt => "'a",
@@ -131,8 +80,7 @@ pub struct PrettyPrinter {
 }
 
 impl PrettyPrinter {
-    pub fn ty_name(&self, core_variable: &CoreVariable<crate::FormalityLang>) -> String {
-        dbg!(&core_variable);
+    pub fn variable_name(&self, core_variable: &CoreVariable<crate::FormalityLang>) -> String {
         self.ctx.variable_name(core_variable)
     }
 
@@ -171,6 +119,22 @@ impl PrettyPrinter {
 }
 
 #[macro_export]
+macro_rules! allocate {
+    ($binder:expr, $ctx:expr) => {{
+        let term = $binder.peek();
+        $ctx.push(&$binder.kinds());
+        term
+    }};
+}
+
+#[macro_export]
+macro_rules! close_binder {
+    ($ctx:expr) => {{
+        $ctx.pop();
+    }};
+}
+
+#[macro_export]
 macro_rules! assert_rust {
     ($input:tt, $($expected:tt)*) => {{
         let program = $crate::rust::try_term(stringify!($input)).unwrap();
@@ -178,7 +142,7 @@ macro_rules! assert_rust {
             .split_whitespace()
             .collect::<Vec<_>>()
             .join(" ");
-        assert_eq!(rust, stringify!($($expected)*));
+        assert_eq!(rust, stringify!($($expected)*).split_whitespace().collect::<Vec<_>>().join(" "));
     }};
 }
 
@@ -285,10 +249,9 @@ mod test {
             panic!();
         };
         let data = item.binder.open();
-        let TraitItem::Fn(f) = data.1.trait_items.get(0).unwrap() else {
+        let TraitItem::Fn(_f) = data.1.trait_items.get(0).unwrap() else {
             panic!();
         };
-        dbg!(f.binder.open().1.output_ty);
 
         assert!(false);
     }
