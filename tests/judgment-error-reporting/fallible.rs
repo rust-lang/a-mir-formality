@@ -43,7 +43,7 @@ fn test() {
         Caused by:
             judgment `sub { a: class(Foo), b: class(Bar) }` failed at the following rule(s):
               the rule "same class" at (fallible.rs) failed because
-                condition evaluted to false: `name_a == name_b`
+                condition evaluated to false: `name_a == name_b`
                   name_a = Foo
                   name_b = Bar"#]]);
 }

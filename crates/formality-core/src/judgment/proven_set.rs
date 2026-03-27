@@ -748,7 +748,7 @@ impl std::fmt::Display for RuleFailureCause {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RuleFailureCause::IfFalse(IfThen { cond, args }) => {
-                write!(f, "condition evaluted to false: `{cond}`")?;
+                write!(f, "condition evaluated to false: `{cond}`")?;
                 for (arg_expr, arg_value) in args {
                     write!(f, "\n  {arg_expr} = {arg_value:?}")?;
                 }

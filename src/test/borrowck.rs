@@ -30,12 +30,12 @@ fn mutable_ref_prevents_mutation() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = v1 : i32
                 &access.place = v1 : i32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -74,12 +74,12 @@ fn shared_ref_prevents_mutation() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = v1 : i32
                 &access.place = v1 : i32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -160,12 +160,12 @@ fn drop_while_borrowed() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = v1 : i32
                 &access.place = v1 : i32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -240,12 +240,12 @@ fn drop_while_mutably_borrowed() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = v1 : i32
                 &access.place = v1 : i32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -288,12 +288,12 @@ fn drop_on_break_while_borrowed() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = v1 : i32
                 &access.place = v1 : i32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -631,12 +631,12 @@ fn continue_drops_borrowed_local_false_edge() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = y : i32
                 &access.place = y : i32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -644,12 +644,12 @@ fn continue_drops_borrowed_local_false_edge() {
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `y`
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = y : i32
                 &access.place = y : i32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -683,12 +683,12 @@ fn continue_drops_borrowed_local_loop_carried() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = y : i32
                 &access.place = y : i32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -696,12 +696,12 @@ fn continue_drops_borrowed_local_loop_carried() {
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `y`
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = y : i32
                 &access.place = y : i32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -746,12 +746,12 @@ fn break_drops_borrowed_local() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = x : i32
                 &access.place = x : i32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -759,12 +759,12 @@ fn break_drops_borrowed_local() {
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = x : i32
                 &access.place = x : i32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -883,12 +883,12 @@ fn write_to_borrowed_before_continue() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = a : u32
                 &access.place = a : u32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -896,12 +896,12 @@ fn write_to_borrowed_before_continue() {
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = a : u32
                 &access.place = a : u32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
@@ -946,12 +946,12 @@ fn write_to_borrowed_before_zero_iteration_loop() {
 
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluted to false: `place_disjoint_from_place(&loan.place, &access.place)`
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = a : u32
                 &access.place = a : u32
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluted to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
                 outlived_by_loan = {?lt_1, ?lt_2}
                 &lifetime.upcast() = ?lt_1
 
