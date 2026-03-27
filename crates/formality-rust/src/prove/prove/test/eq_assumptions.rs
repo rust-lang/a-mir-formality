@@ -46,13 +46,13 @@ fn test_normalize_assoc_ty_existential0() {
           pattern `None` did not match value `Some(!ty_1)`
 
         the rule "existential-universal" at (prove_eq.rs) failed because
-          condition evaluted to false: `env.universe(p) < env.universe(v)`
+          condition evaluated to false: `env.universe(p) < env.universe(v)`
 
         the rule "existential-nonvar" at (prove_eq.rs) failed because
           pattern `None` did not match value `Some(!ty_1)`
 
         the rule "existential-universal" at (prove_eq.rs) failed because
-          condition evaluted to false: `env.universe(p) < env.universe(v)`
+          condition evaluated to false: `env.universe(p) < env.universe(v)`
 
         the rule "normalize-via-impl" at (prove_normalize.rs) failed because
           expression evaluated to an empty collection: `decls.alias_eq_decls(&a.name)`
@@ -65,7 +65,7 @@ fn test_normalize_assoc_ty_existential0() {
           pattern `None` did not match value `Some(!ty_0)`
 
         the rule "existential-universal" at (prove_eq.rs) failed because
-          condition evaluted to false: `env.universe(p) < env.universe(v)`
+          condition evaluated to false: `env.universe(p) < env.universe(v)`
 
         crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ?ty_1, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
@@ -75,13 +75,13 @@ fn test_normalize_assoc_ty_existential0() {
           pattern `None` did not match value `Some(!ty_0)`
 
         the rule "existential-universal" at (prove_eq.rs) failed because
-          condition evaluted to false: `env.universe(p) < env.universe(v)`
+          condition evaluated to false: `env.universe(p) < env.universe(v)`
 
         the rule "existential-nonvar" at (prove_eq.rs) failed because
           pattern `None` did not match value `Some(!ty_0)`
 
         the rule "existential-universal" at (prove_eq.rs) failed because
-          condition evaluted to false: `env.universe(p) < env.universe(v)`
+          condition evaluated to false: `env.universe(p) < env.universe(v)`
 
         the rule "normalize-via-impl" at (prove_normalize.rs) failed because
           expression evaluated to an empty collection: `decls.alias_eq_decls(&a.name)`
@@ -92,7 +92,7 @@ fn test_normalize_assoc_ty_existential0() {
           pattern `None` did not match value `Some(!ty_0)`
 
         the rule "existential-universal" at (prove_eq.rs) failed because
-          condition evaluted to false: `env.universe(p) < env.universe(v)`
+          condition evaluated to false: `env.universe(p) < env.universe(v)`
 
         crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ?ty_1, via: <!ty_0 as Iterator>::Item = u32, assumptions: {<!ty_0 as Iterator>::Item = u32}, env: Env { variables: [?ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
@@ -100,13 +100,13 @@ fn test_normalize_assoc_ty_existential0() {
           pattern `None` did not match value `Some(!ty_0)`
 
         the rule "existential-universal" at (prove_eq.rs) failed because
-          condition evaluted to false: `env.universe(p) < env.universe(v)`
+          condition evaluated to false: `env.universe(p) < env.universe(v)`
 
         the rule "existential-nonvar" at (prove_eq.rs) failed because
           pattern `None` did not match value `Some(!ty_0)`
 
         the rule "existential-universal" at (prove_eq.rs) failed because
-          condition evaluted to false: `env.universe(p) < env.universe(v)`
+          condition evaluated to false: `env.universe(p) < env.universe(v)`
 
         the rule "normalize-via-impl" at (prove_normalize.rs) failed because
           expression evaluated to an empty collection: `decls.alias_eq_decls(&a.name)`"#]]);

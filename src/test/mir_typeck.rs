@@ -264,7 +264,7 @@ fn test_call_generic_fn_without_turbofish() {
         ]
         expect_test::expect![[r#"
             the rule "fn-name" at (nll.rs) failed because
-              condition evaluted to false: `fn_decl.binder.len() == 0`
+              condition evaluated to false: `fn_decl.binder.len() == 0`
 
             the rule "local" at (nll.rs) failed because
               unknown local variable `identity`"#]]
@@ -308,7 +308,7 @@ fn test_call_generic_fn_wrong_arity() {
         ]
         expect_test::expect![[r#"
             the rule "turbofish" at (nll.rs) failed because
-              condition evaluted to false: `fn_decl.binder.len() == args.len()`"#]]
+              condition evaluated to false: `fn_decl.binder.len() == args.len()`"#]]
     )
 }
 
@@ -522,7 +522,7 @@ fn test_invalid_struct_field() {
         ]
         expect_test::expect![[r#"
             the rule "struct field" at (nll.rs) failed because
-              condition evaluted to false: `field.name == *field_name`"#]]
+              condition evaluated to false: `field.name == *field_name`"#]]
     )
 }
 

@@ -50,7 +50,7 @@ fn judgment() {
 
     transitive_reachable(&graph, 0).assert_err(expect_test::expect![[r#"
         the rule "base" at (test_filtered.rs) failed because
-          condition evaluted to false: `b % 2 == 0`"#]]);
+          condition evaluated to false: `b % 2 == 0`"#]]);
 
     transitive_reachable(&graph, 2).assert_ok(expect_test::expect!["{4, 8, 10}"]);
 }

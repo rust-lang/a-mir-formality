@@ -72,52 +72,52 @@ fn test() {
     };
     sub(foo, bar).assert_err(expect_test::expect![[r#"
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "equivalent" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `a1 != a || b1 != b`
+          condition evaluated to false: `a1 != a || b1 != b`
 
         the rule "same class" at (cyclic_judgment.rs) failed because
-          condition evaluted to false: `name_a == name_b`
+          condition evaluated to false: `name_a == name_b`
             name_a = Foo
             name_b = Bar"#]]);
 }
@@ -131,74 +131,74 @@ fn test1() {
         name: ClassName::new("Bar"),
     };
     sub(foo, bar).assert_err(expect_test::expect![[r#"
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "same class" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `name_a == name_b`
-              name_a = Foo
-              name_b = Bar
+        the rule "same class" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `name_a == name_b`
+            name_a = Foo
+            name_b = Bar
 
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "same class" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `name_a == name_b`
-              name_a = Foo
-              name_b = Bar
+        the rule "same class" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `name_a == name_b`
+            name_a = Foo
+            name_b = Bar
 
-          the rule "same class" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `name_a == name_b`
-              name_a = Foo
-              name_b = Bar
+        the rule "same class" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `name_a == name_b`
+            name_a = Foo
+            name_b = Bar
 
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "same class" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `name_a == name_b`
-              name_a = Foo
-              name_b = Bar
+        the rule "same class" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `name_a == name_b`
+            name_a = Foo
+            name_b = Bar
 
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "same class" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `name_a == name_b`
-              name_a = Foo
-              name_b = Bar
+        the rule "same class" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `name_a == name_b`
+            name_a = Foo
+            name_b = Bar
 
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "same class" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `name_a == name_b`
-              name_a = Foo
-              name_b = Bar
+        the rule "same class" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `name_a == name_b`
+            name_a = Foo
+            name_b = Bar
 
-          the rule "equivalent" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `a1 != a || b1 != b`
+        the rule "equivalent" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `a1 != a || b1 != b`
 
-          the rule "same class" at (cyclic_judgment.rs) failed because
-            condition evaluted to false: `name_a == name_b`
-              name_a = Foo
-              name_b = Bar"#]]);
+        the rule "same class" at (cyclic_judgment.rs) failed because
+          condition evaluated to false: `name_a == name_b`
+            name_a = Foo
+            name_b = Bar"#]]);
 }

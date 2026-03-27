@@ -17,7 +17,7 @@ fn exists_u_for_t() {
           pattern `None` did not match value `Some(!ty_1)`
 
         the rule "existential-universal" at (prove_eq.rs) failed because
-          condition evaluted to false: `env.universe(p) < env.universe(v)`
+          condition evaluated to false: `env.universe(p) < env.universe(v)`
 
         crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: ?ty_0, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 }
