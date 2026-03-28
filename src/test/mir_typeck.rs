@@ -607,6 +607,28 @@ fn test_non_adt_ty_for_struct() {
     )
 }
 
+/// Test that the `false` literal type-checks as `bool`.
+///
+/// ```rust,ignore
+/// fn foo() -> bool {
+///     let v1: bool = false;
+///     return v1;
+/// }
+/// ```
+#[test]
+fn test_false_literal() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo() -> bool {
+                    let v1: bool = false;
+                    return v1;
+                }
+            }
+        ]
+    )
+}
+
 /// Basic pass test for lifetime.
 ///
 /// The test is equivalent to:
