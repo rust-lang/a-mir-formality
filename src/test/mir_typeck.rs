@@ -146,6 +146,28 @@ fn if_else() {
     )
 }
 
+// if / else (Stmt::If) with different return types.
+#[test]
+fn if_else_different_return_types() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo (b: bool) -> u32 {
+                    if b {
+                        return 1 _ u32;
+                    } else {
+                        return 0 _ bool;
+                    }
+                }
+            }
+        ]
+        expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
+    )
+}
+
 /// Test valid call: bar calls foo.
 #[test]
 fn test_call_terminator() {
