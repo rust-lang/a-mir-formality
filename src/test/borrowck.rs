@@ -990,3 +990,64 @@ fn call_generic_fn_with_turbofish() {
         ]
     )
 }
+
+/// Test call to a generic function using turbofish syntax and upcasting.
+///
+/// ```rust
+/// fn identity<T>(v1: T) -> T {
+///     return v1
+/// }
+///
+/// fn foo<'a, 'b>(a: &'a u32) -> &'b u32 where 'a: 'b {
+///     return identity::<&'b u32>(a)
+/// }
+/// ```
+#[test]
+fn call_generic_fn_with_turbofish_upcast() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn identity<T>(v1: T) -> T {
+                    return v1;
+                }
+
+                fn foo<'a, 'b>(a: &'a u32) -> &'b u32
+                where 'a: 'b {
+                    let r: &'b u32 = identity::<&'b u32>(a);
+                    return r;
+                }
+            }
+        ]
+    )
+}
+
+/// Test call to a generic function using turbofish syntax and wrong lifetime.
+///
+/// ```rust
+/// fn identity<T>(v1: T) -> T {
+///     return v1
+/// }
+///
+/// fn foo<'a, 'b>(a: &'a u32) -> &'b u32 {
+///     return identity::<&'b u32>(a)
+/// }
+/// ```
+#[test]
+fn call_generic_fn_with_turbofish_missing_relation_upcast() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn identity<T>(v1: T) -> T {
+                    return v1;
+                }
+
+                fn foo<'a, 'b>(a: &'a u32) -> &'b u32 {
+                    let r: &'b u32 = identity::<&'b u32>(a);
+                    return r;
+                }
+            }
+        ]
+
+        expect_test::expect!["crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"]
+    )
+}
