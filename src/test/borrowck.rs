@@ -959,3 +959,34 @@ fn write_to_borrowed_before_zero_iteration_loop() {
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`"#]]
     )
 }
+
+/// Test call to a generic function using turbofish syntax.
+///
+/// ```rust
+/// fn identity<T>(v1: T) -> T {
+///     return v1
+/// }
+///
+/// fn foo<'a>(a: &'a u32) -> &'a u32 {
+///     return identity(a)
+/// }
+/// ```
+#[test]
+fn call_generic_fn_with_turbofish() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn identity<T>(v1: T) -> T {
+                    return v1;
+                }
+
+                fn foo<'a>(a: &'a u32) -> &'a u32 {
+                    exists<'r0> {
+                        let r: &'r0 u32 = identity::<&'r0 u32>(a);
+                        return r;
+                    }
+                }
+            }
+        ]
+    )
+}
