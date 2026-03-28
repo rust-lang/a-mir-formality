@@ -64,7 +64,12 @@ pub(crate) fn check_fn(
     // where-clauses, input parameter types, and output type.
     proof_tree
         .children
-        .push(super::where_clauses::prove_where_clauses_well_formed(program, env, fn_assumptions, where_clauses)?);
+        .push(super::where_clauses::prove_where_clauses_well_formed(
+            program,
+            env,
+            fn_assumptions,
+            where_clauses,
+        )?);
     for input_arg in input_args {
         proof_tree.children.push(super::prove_goal(
             program,
@@ -73,9 +78,12 @@ pub(crate) fn check_fn(
             input_arg.ty.well_formed(),
         )?);
     }
-    proof_tree
-        .children
-        .push(super::prove_goal(program, &env, fn_assumptions, output_ty.well_formed())?);
+    proof_tree.children.push(super::prove_goal(
+        program,
+        &env,
+        fn_assumptions,
+        output_ty.well_formed(),
+    )?);
 
     // Type-check the function body, if present.
     match body {

@@ -7,7 +7,7 @@ use minirust_rs::lang;
 
 use crate::grammar::{
     expr::{Block, Expr, PlaceExpr, Stmt, ValueId},
-    Fallible, PredicateTy, Crates, RigidName, ScalarId, Ty, TyData,
+    Crates, Fallible, PredicateTy, RigidName, ScalarId, Ty, TyData,
 };
 
 use super::{ExprData, PlaceExprData};

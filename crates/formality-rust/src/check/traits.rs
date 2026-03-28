@@ -29,7 +29,12 @@ pub(super) fn check_trait(program: &Program, t: &Trait, crate_id: &CrateId) -> F
 
     proof_tree
         .children
-        .push(super::where_clauses::prove_where_clauses_well_formed(program, &env, &where_clauses, &where_clauses)?);
+        .push(super::where_clauses::prove_where_clauses_well_formed(
+            program,
+            &env,
+            &where_clauses,
+            &where_clauses,
+        )?);
 
     for trait_item in &trait_items {
         proof_tree.children.push(check_trait_item(
@@ -44,9 +49,7 @@ pub(super) fn check_trait(program: &Program, t: &Trait, crate_id: &CrateId) -> F
     Ok(proof_tree)
 }
 
-fn check_trait_items_have_unique_names(
-    trait_items: &[TraitItem],
-) -> Fallible<ProofTree> {
+fn check_trait_items_have_unique_names(trait_items: &[TraitItem]) -> Fallible<ProofTree> {
     let mut functions = Set::new();
     let mut associated_types = Set::new();
     for trait_item in trait_items {

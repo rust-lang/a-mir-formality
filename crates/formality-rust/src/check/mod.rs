@@ -66,7 +66,9 @@ fn check_crate(program: &Program, c: &Crate) -> Fallible<ProofTree> {
     check_for_duplicate_items(program)?;
 
     for item in items {
-        proof_tree.children.push(check_crate_item(program, item, &id)?);
+        proof_tree
+            .children
+            .push(check_crate_item(program, item, &id)?);
     }
 
     proof_tree.children.push(check_coherence(program, c)?);
@@ -134,7 +136,13 @@ fn prove_goal(
     goal: impl ToWcs + Debug,
 ) -> Fallible<ProofTree> {
     let goal: Wcs = goal.to_wcs();
-    prove_judgment(program, env, assumptions, goal.to_wcs(), crate::prove::prove::prove)
+    prove_judgment(
+        program,
+        env,
+        assumptions,
+        goal.to_wcs(),
+        crate::prove::prove::prove,
+    )
 }
 
 fn prove_judgment<G>(

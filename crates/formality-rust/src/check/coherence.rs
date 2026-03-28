@@ -13,8 +13,11 @@ pub(crate) fn check_coherence(program: &Program, current_crate: &Crate) -> Falli
         vec![],
     );
 
-    let all_crate_impls: Vec<TraitImpl> =
-        program.program().items_from_all_crates().downcasted().collect();
+    let all_crate_impls: Vec<TraitImpl> = program
+        .program()
+        .items_from_all_crates()
+        .downcasted()
+        .collect();
     let current_crate_impls: Vec<TraitImpl> = current_crate.items.iter().downcasted().collect();
     let current_crate_neg_impls: Vec<NegTraitImpl> =
         current_crate.items.iter().downcasted().collect();

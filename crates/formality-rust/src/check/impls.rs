@@ -37,7 +37,12 @@ pub(super) fn check_trait_impl(
 
     proof_tree
         .children
-        .push(super::where_clauses::prove_where_clauses_well_formed(program, &env, &where_clauses, &where_clauses)?);
+        .push(super::where_clauses::prove_where_clauses_well_formed(
+            program,
+            &env,
+            &where_clauses,
+            &where_clauses,
+        )?);
 
     proof_tree.children.push(super::prove_goal(
         program,
@@ -78,7 +83,10 @@ pub(super) fn check_trait_impl(
 }
 
 #[context("check_neg_trait_impl({trait_impl:?})")]
-pub(super) fn check_neg_trait_impl(program: &Program, trait_impl: &NegTraitImpl) -> Fallible<ProofTree> {
+pub(super) fn check_neg_trait_impl(
+    program: &Program,
+    trait_impl: &NegTraitImpl,
+) -> Fallible<ProofTree> {
     let NegTraitImpl { binder, safety } = trait_impl;
 
     let mut env = Env::default();
@@ -102,7 +110,12 @@ pub(super) fn check_neg_trait_impl(program: &Program, trait_impl: &NegTraitImpl)
 
     proof_tree
         .children
-        .push(super::where_clauses::prove_where_clauses_well_formed(program, &env, &where_clauses, &where_clauses)?);
+        .push(super::where_clauses::prove_where_clauses_well_formed(
+            program,
+            &env,
+            &where_clauses,
+            &where_clauses,
+        )?);
 
     proof_tree.children.push(super::prove_goal(
         program,
@@ -115,10 +128,7 @@ pub(super) fn check_neg_trait_impl(program: &Program, trait_impl: &NegTraitImpl)
 }
 
 /// Validate that the declared safety of an impl matches the one from the trait declaration.
-fn check_safety_matches(
-    trait_decl: &Trait,
-    trait_impl: &TraitImpl,
-) -> Fallible<ProofTree> {
+fn check_safety_matches(trait_decl: &Trait, trait_impl: &TraitImpl) -> Fallible<ProofTree> {
     let proof_tree = ProofTree::leaf(format!(
         "safety_matches({:?}, {:?})",
         trait_decl.safety, trait_impl.safety
@@ -146,9 +156,7 @@ fn check_trait_impl_item(
     crate_id: &CrateId,
 ) -> Fallible<ProofTree> {
     let assumptions: Wcs = assumptions.to_wcs();
-    assert!(
-        env.only_universal_variables() && env.encloses((&assumptions, trait_items, impl_item))
-    );
+    assert!(env.only_universal_variables() && env.encloses((&assumptions, trait_items, impl_item)));
 
     match impl_item {
         ImplItem::Fn(v) => check_fn_in_impl(program, env, &assumptions, trait_items, v, crate_id),
@@ -183,12 +191,15 @@ fn check_fn_in_impl(
 
     tracing::debug!(?ti_fn);
 
-    let mut proof_tree =
-        ProofTree::new(format!("check_fn_in_impl({:?})", ii_fn.id), None, vec![]);
+    let mut proof_tree = ProofTree::new(format!("check_fn_in_impl({:?})", ii_fn.id), None, vec![]);
 
-    proof_tree
-        .children
-        .push(super::fns::check_fn(program, env, &impl_assumptions, ii_fn, crate_id)?);
+    proof_tree.children.push(super::fns::check_fn(
+        program,
+        env,
+        &impl_assumptions,
+        ii_fn,
+        crate_id,
+    )?);
 
     let mut env = env.clone();
     let (

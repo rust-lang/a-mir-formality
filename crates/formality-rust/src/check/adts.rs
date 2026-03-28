@@ -33,7 +33,12 @@ pub(super) fn check_adt(program: &Program, adt: &Adt) -> Fallible<ProofTree> {
 
     proof_tree
         .children
-        .push(super::where_clauses::prove_where_clauses_well_formed(program, &env, &where_clauses, &where_clauses)?);
+        .push(super::where_clauses::prove_where_clauses_well_formed(
+            program,
+            &env,
+            &where_clauses,
+            &where_clauses,
+        )?);
 
     for Variant { name: _, fields } in &variants {
         for Field { name: _, ty } in fields {
