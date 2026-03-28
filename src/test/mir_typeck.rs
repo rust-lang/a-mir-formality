@@ -114,6 +114,20 @@ fn test_cyclic_goto() {
     )
 }
 
+/// Returns true (ExprData::True) type-checking coverage
+#[test]
+fn test_ret_true() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo () -> bool {
+                    return true;
+                }
+            }
+        ]
+    )
+}
+
 /// Test valid call: bar calls foo.
 #[test]
 fn test_call_terminator() {
