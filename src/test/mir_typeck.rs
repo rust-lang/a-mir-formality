@@ -750,6 +750,38 @@ fn test_continue_block_label() {
     )
 }
 
+/// Test parenthesized place expression: `(*v).field`.
+///
+/// The parens around `*v1` are required so the deref applies before
+/// the field projection (without them, `*v1.value` would try to
+/// project first and then deref).
+///
+/// ```rust,ignore
+/// fn foo(v1: &Pair) -> u32 {
+///     let v2: u32 = (*v1).value;
+///     v2
+/// }
+/// ```
+#[test]
+fn test_parens_place_expr() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                struct Pair {
+                    value: u32,
+                }
+
+                fn foo<'a>(v1: &'a Pair) -> u32 {
+                    exists<'r0> {
+                        let v2: u32 = (*v1).value;
+                        return v2;
+                    }
+                }
+            }
+        ]
+    )
+}
+
 /// `break` targeting a block label (not a loop) should pass.
 /// In Rust, you can `break` out of a labeled block.
 ///
