@@ -75,9 +75,9 @@ fn static_lifetime_param() {
 
                 struct S1 {}
 
-                impl Trait1<static> for S1 {}
+                impl Trait1<'static> for S1 {}
 
-                struct S2 where S1: Trait1<static> {}
+                struct S2 where S1: Trait1<'static> {}
             }
         ]
     )

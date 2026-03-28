@@ -384,6 +384,7 @@ impl DowncastTo<LtData> for Lt {
 
 #[term]
 pub enum LtData {
+    #[grammar('static)]
     Static,
 
     #[variable(ParameterKind::Lt)]
