@@ -3,9 +3,9 @@
 Closes #issue-number
 
 
-## AI/LLM disclosure
+## Disclosure and PR context
 
-<!-- If you used AI/LLM tools, fill in the sections below. Delete this section if not applicable. -->
+**AI tools used:** <!-- describe briefly if AI tools were used and how, e.g., "No" or "Yes, for research" or "Yes, for code". Feel free to provide more details, I'm curious to learn about people's workflows. =) -->
 
 **Confidence level:** <!-- e.g., "Early draft, want feedback" / "I think it's right, want confirmation" / "Feel good about it" -->
 
