@@ -57,9 +57,10 @@ fn foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait() {
         ]
 
         expect_test::expect![[r#"
-            impls may overlap:
-            impl <ty> FooTrait for ^ty0_0 where ^ty0_0 : CoreTrait { }
-            impl FooTrait for CoreStruct { }"#]]
+            the rule "check crate" at (mod.rs) failed because
+              impls may overlap:
+              impl <ty> FooTrait for ^ty0_0 where ^ty0_0 : CoreTrait { }
+              impl FooTrait for CoreStruct { }"#]]
     )
 }
 
@@ -80,10 +81,11 @@ fn T_where_Foo_not_u32_impls() {
         ]
 
         expect_test::expect![[r#"
-            check_trait_impl(impl <ty> Foo for ^ty0_0 where ^ty0_0 : Foo { })
+            the rule "trait impl" at (mod.rs) failed because
+              check_trait_impl(impl <ty> Foo for ^ty0_0 where ^ty0_0 : Foo { })
 
-            Caused by:
-                failed to prove {! Foo(!ty_1)} given {Foo(!ty_1)}, got [Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]"#]]
+              Caused by:
+                  failed to prove {! Foo(!ty_1)} given {Foo(!ty_1)}, got [Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]"#]]
     )
 }
 
@@ -104,9 +106,10 @@ fn u32_T_where_T_Is_impls() {
         ]
 
         expect_test::expect![[r#"
-            impls may overlap:
-            impl Foo for u32 { }
-            impl <ty> Foo for ^ty0_0 where ^ty0_0 : Is { }"#]]
+            the rule "check crate" at (mod.rs) failed because
+              impls may overlap:
+              impl Foo for u32 { }
+              impl <ty> Foo for ^ty0_0 where ^ty0_0 : Is { }"#]]
     )
 }
 
@@ -142,7 +145,9 @@ fn u32_u32_impls() {
             }
         ]
 
-        expect_test::expect!["duplicate impl in current crate: impl Foo for u32 { }"]
+        expect_test::expect![[r#"
+            the rule "check crate" at (mod.rs) failed because
+              duplicate impl in current crate: impl Foo for u32 { }"#]]
     )
 }
 
@@ -172,9 +177,10 @@ fn u32_T_impls() {
         ]
 
         expect_test::expect![[r#"
-            impls may overlap:
-            impl Foo for u32 { }
-            impl <ty> Foo for ^ty0_0 { }"#]]
+            the rule "check crate" at (mod.rs) failed because
+              impls may overlap:
+              impl Foo for u32 { }
+              impl <ty> Foo for ^ty0_0 { }"#]]
     )
 }
 
@@ -194,9 +200,10 @@ fn T_and_T_bar() {
         ]
 
         expect_test::expect![[r#"
-            impls may overlap:
-            impl <ty> Foo for ^ty0_0 { }
-            impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }"#]]
+            the rule "check crate" at (mod.rs) failed because
+              impls may overlap:
+              impl <ty> Foo for ^ty0_0 { }
+              impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }"#]]
     }
 }
 
@@ -218,9 +225,10 @@ fn T_and_Local_Bar_T() {
         ]
 
         expect_test::expect![[r#"
-            impls may overlap:
-            impl <ty> Foo for ^ty0_0 { }
-            impl <ty> Foo for ^ty0_0 where LocalType : Bar <^ty0_0> { }"#]]
+            the rule "check crate" at (mod.rs) failed because
+              impls may overlap:
+              impl <ty> Foo for ^ty0_0 { }
+              impl <ty> Foo for ^ty0_0 where LocalType : Bar <^ty0_0> { }"#]]
     }
 }
 
@@ -281,8 +289,9 @@ fn is_local_with_unconstrained_self_ty_blanket_impl() {
         ]
 
         expect_test::expect![[r#"
-            impls may overlap:
-            impl <ty, ty> Overlap <^ty0_1> for ^ty0_0 where <^ty0_0 as Project>::Assoc : Foo <^ty0_1> { }
-            impl <ty> Overlap <LocalType> for ^ty0_0 { }"#]]
+            the rule "check crate" at (mod.rs) failed because
+              impls may overlap:
+              impl <ty, ty> Overlap <^ty0_1> for ^ty0_0 where <^ty0_0 as Project>::Assoc : Foo <^ty0_1> { }
+              impl <ty> Overlap <LocalType> for ^ty0_0 { }"#]]
     }
 }
