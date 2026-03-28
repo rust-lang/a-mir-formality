@@ -128,6 +128,24 @@ fn test_ret_true() {
     )
 }
 
+// if / else (Stmt::If) bool condition, each arm returns a u32.
+#[test]
+fn if_else() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo (b: bool) -> u32 {
+                    if b {
+                        return 1 _ u32;
+                    } else {
+                        return 2 _ u32;
+                    }
+                }
+            }
+        ]
+    )
+}
+
 /// Test valid call: bar calls foo.
 #[test]
 fn test_call_terminator() {
