@@ -154,7 +154,7 @@ fn test_parse_trusted_fn() {
     let r: Program = term(
         "[
             crate core {
-              fn run() -> () trusted;
+              fn run() -> () {trusted}
             }
         ]",
     );
