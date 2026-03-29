@@ -788,7 +788,7 @@ fn wrap_with_reject(
     let reject_clauses: Vec<TokenStream> = rejects
         .iter()
         .map(|reject| reject_clause(variant, reject))
-        .collect::< syn::Result<Vec<_>>>()?;
+        .collect::<syn::Result<Vec<_>>>()?;
 
     // OR all reject clauses together
     let combined = if reject_clauses.len() == 1 {
