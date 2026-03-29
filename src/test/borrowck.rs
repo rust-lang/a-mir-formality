@@ -998,3 +998,90 @@ fn write_to_borrowed_before_zero_iteration_loop() {
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`"#]]
     )
 }
+
+/// pass &T to generic foo.
+#[test]
+fn call_pass_ref() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo<'a>(x: &'a u32) -> u32 {
+                    exists {
+                        return *x;
+                    }
+                }
+
+                fn bar() -> u32 {
+                    exists<'r1> {
+                        let v: u32 = 7 _ u32;
+                        let r: u32 = foo::<'r1>(&'r1 v);
+                        return r;
+                    }
+                }
+            }
+        ]
+    )
+}
+
+/// Call foo while p, &v is live then use p.
+#[test]
+fn call_while_borrow_live() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo(x: u32) -> u32 {
+                    return x;
+                }
+
+                fn bar() -> u32 {
+                    exists<'r0, 'r1> {
+                        let v: u32 = 1 _ u32;
+                        let p: &'r0 u32 = &'r1 v;
+                        foo(0 _ u32);
+                        return *p;
+                    }
+                }
+            }
+        ]
+    )
+}
+
+/// shared &v passing &mut v into foo in the same scope is a borrow error.
+#[test]
+fn call_mut_under_shared_borrow() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo<'a>(x: &mut 'a u32) -> u32 {
+                    exists {
+                        *x = 1 _ u32;
+                        return 1 _ u32;
+                    }
+                }
+
+                fn bar() -> u32 {
+                    exists<'r0, 'r1, 'r2> {
+                        let v: u32 = 0 _ u32;
+                        let p: &'r0 u32 = &'r1 v;
+                        let _: u32 = foo::<'r2>(&mut 'r2 v);
+                        return *p;
+                    }
+                }
+            }
+        ]
+
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = v : u32
+                &access.place = v : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2}
+                &lifetime.upcast() = ?lt_1
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v`"#]]
+    )
+}
