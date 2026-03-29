@@ -2,7 +2,7 @@
 
 use syn::{spanned::Spanned, Attribute, DeriveInput};
 
-use crate::{custom::Customize, precedence::Precedence, variable::Variable};
+use crate::{custom::Customize, precedence::Precedence, reject::RejectAttr, variable::Variable};
 
 /// Checks for any kind of attribute that indicates an "is-a" relationship,
 /// e.g. `#[cast]` and `#[variable]`.
@@ -47,6 +47,15 @@ pub(crate) fn variable(attrs: &[Attribute]) -> syn::Result<Option<Variable>> {
 /// Extract a `#[precedence]` level, defaults to 0
 pub(crate) fn precedence(attrs: &[Attribute]) -> syn::Result<Precedence> {
     Ok(parse_attr_named(attrs, "precedence")?.unwrap_or_default())
+}
+
+/// Extract all `#[reject(...)]` attributes. Multiple are allowed (OR'd semantics).
+pub(crate) fn reject_attrs(attrs: &[Attribute]) -> syn::Result<Vec<RejectAttr>> {
+    attrs
+        .iter()
+        .filter(|a| a.path().is_ident("reject"))
+        .map(|a| a.parse_args())
+        .collect()
 }
 
 /// Extracts any customization attribute from a list of attributes.
@@ -99,5 +108,6 @@ fn remove_formality_attributes_from_vec(attrs: &mut Vec<Attribute>) {
             && !attr.path().is_ident("variable")
             && !attr.path().is_ident("customize")
             && !attr.path().is_ident("precedence")
+            && !attr.path().is_ident("reject")
     });
 }

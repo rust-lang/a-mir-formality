@@ -7,7 +7,8 @@ use syn::{spanned::Spanned, Attribute};
 use synstructure::BindingInfo;
 
 use crate::{
-    attrs::{has_cast_attr, has_variable_attr, precedence, variable},
+    attrs::{has_cast_attr, has_variable_attr, precedence, reject_attrs, variable},
+    reject::{RejectAttr, RejectFieldPattern},
     spec::{self, FieldMode, FormalitySpec},
     variable::Variable,
 };
@@ -67,12 +68,21 @@ pub(crate) fn derive_parse_with_spec(
     // variable *of any kind*; if it succeeds, we mark `claimed_as_var`
     // on the left-recursion stack so that `id!` types will reject the
     // same text as a plain identifier.
+    // For structs, #[reject] is on the struct itself (external).
+    // For enums, #[reject] is on each variant (handled inside parse_variant).
+    let struct_rejects = reject_attrs(&s.ast().attrs)?;
+    let external_rejects: Option<&[RejectAttr]> = if external_spec.is_some() {
+        Some(&struct_rejects)
+    } else {
+        None
+    };
+
     let mut parse_variants = TokenStream::new();
     let mut has_variable_variant = false;
 
     for variant in s.variants() {
         let variant_name = Literal::string(&format!("{}::{}", s.ast().ident, variant.ast().ident));
-        let v = parse_variant(variant, external_spec)?;
+        let v = parse_variant(variant, external_spec, external_rejects)?;
         let precedence = precedence(variant.ast().attrs)?.expr();
         let is_variable = has_variable_attr(variant.ast().attrs);
         has_variable_variant |= is_variable;
@@ -132,19 +142,28 @@ pub(crate) fn derive_parse_with_spec(
 fn parse_variant(
     variant: &synstructure::VariantInfo,
     external_spec: Option<&FormalitySpec>,
+    external_rejects: Option<&[RejectAttr]>,
 ) -> syn::Result<TokenStream> {
     let ast = variant.ast();
     let variable_attr = variable(ast.attrs)?;
     let mut stream = TokenStream::default();
 
+    // Collect #[reject] attrs from variant, or use external ones (for structs)
+    let variant_rejects = reject_attrs(ast.attrs)?;
+    let rejects: &[RejectAttr] = if let Some(ext) = external_rejects {
+        ext
+    } else {
+        &variant_rejects
+    };
+
     // When invoked like `#[term(foo)]`, use the spec from `foo`
     if let Some(spec) = external_spec {
-        return parse_variant_with_attr(variant, spec, stream);
+        return parse_variant_with_attr(variant, spec, stream, rejects);
     }
 
     // Else, look for a `#[grammar]` attribute on the variant
     if let Some(attr) = get_grammar_attr(ast.attrs) {
-        return parse_variant_with_attr(variant, &attr?, stream);
+        return parse_variant_with_attr(variant, &attr?, stream, rejects);
     }
 
     // If no `#[grammar(...)]` attribute is provided, then we provide default behavior.
@@ -178,9 +197,10 @@ fn parse_variant(
     } else if has_cast_attr(variant.ast().attrs) {
         // Has the `#[cast]` attribute -- just parse the bindings (comma separated, if needed)
         let construct = variant.construct(field_ident_cloned);
+        let ok_expr = wrap_with_reject(quote!(#construct), variant, rejects)?;
         let tail = quote_spanned! {
             ast.ident.span() =>
-            __p.ok(#construct)
+            #ok_expr
         };
         let body = wrap_bindings(variant.bindings(), tail, 0);
         stream.extend(quote_spanned! {
@@ -191,11 +211,12 @@ fn parse_variant(
         // Otherwise -- parse `variant(binding0, ..., bindingN)`
         let literal = Literal::string(&to_parse_ident(ast.ident));
         let construct = variant.construct(field_ident_cloned);
+        let ok_expr = wrap_with_reject(quote!(#construct), variant, rejects)?;
         let tail = quote_spanned! {
             ast.ident.span() =>
             __p.skip_trailing_comma();
             __p.expect_char(')')?;
-            __p.ok(#construct)
+            #ok_expr
         };
         let body = wrap_bindings(variant.bindings(), tail, 0);
         stream.extend(quote_spanned! {
@@ -243,6 +264,7 @@ fn parse_variant_with_attr(
     variant: &synstructure::VariantInfo,
     spec: &FormalitySpec,
     mut stream: TokenStream,
+    rejects: &[RejectAttr],
 ) -> syn::Result<TokenStream> {
     // If the user added a commit point, then clear the committed flag initially.
     // It will be set back to true once we reach that commit point.
@@ -259,7 +281,8 @@ fn parse_variant_with_attr(
     // All nonterminal field modes become `each_*` continuation-passing calls,
     // nesting everything that follows inside the continuation closure.
     let c = variant.construct(field_ident_cloned);
-    let tail = quote!(__p.ok(#c));
+    let ok_expr = wrap_with_reject(quote!(#c), variant, rejects)?;
+    let tail = quote!(#ok_expr);
 
     let body = wrap_symbols(variant, &spec.symbols, tail);
     stream.extend(body);
@@ -734,5 +757,131 @@ fn wrap_bindings(bindings: &[BindingInfo], tail: TokenStream, current_index: usi
         __p.each_nonterminal(|#name: #field_ty, __p| {
             #inner
         })
+    }
+}
+
+/// Wraps a construct expression with `#[reject]` checks.
+///
+/// If there are no `#[reject]` attributes, returns `__p.ok(construct)` as-is.
+/// Otherwise, generates:
+///
+/// ```rust,ignore
+/// let __rejected = /* check 1 */ || /* check 2 */ || ...;
+/// if __rejected {
+///     Ok(Default::default())
+/// } else {
+///     __p.ok(construct)
+/// }
+/// ```
+///
+/// Each `#[reject]` attribute contributes one OR'd clause. Within a single
+/// `#[reject]`, non-wildcard fields are AND'd.
+fn wrap_with_reject(
+    construct: TokenStream,
+    variant: &synstructure::VariantInfo,
+    rejects: &[RejectAttr],
+) -> syn::Result<TokenStream> {
+    if rejects.is_empty() {
+        return Ok(quote!(__p.ok(#construct)));
+    }
+
+    let reject_clauses: Vec<TokenStream> = rejects
+        .iter()
+        .map(|reject| reject_clause(variant, reject))
+        .collect::< syn::Result<Vec<_>>>()?;
+
+    // OR all reject clauses together
+    let combined = if reject_clauses.len() == 1 {
+        reject_clauses.into_iter().next().unwrap()
+    } else {
+        let mut iter = reject_clauses.into_iter();
+        let first = iter.next().unwrap();
+        iter.fold(first, |acc, clause| quote!((#acc) || (#clause)))
+    };
+
+    Ok(quote! {
+        {
+            use formality_core::DowncastFrom;
+            let __rejected = #combined;
+            if __rejected {
+                Ok(Default::default())
+            } else {
+                __p.ok(#construct)
+            }
+        }
+    })
+}
+
+/// Generates the boolean expression for a single `#[reject(...)]` attribute.
+///
+/// Non-wildcard fields are AND'd. If all fields are wildcards (or the attribute
+/// uses `..` for everything), the result is `true` (always reject).
+fn reject_clause(
+    variant: &synstructure::VariantInfo,
+    reject: &RejectAttr,
+) -> syn::Result<TokenStream> {
+    let bindings = variant.bindings();
+    let num_fields = bindings.len();
+    let num_patterns = reject.fields.len();
+
+    if !reject.has_trailing_dotdot && num_patterns != num_fields {
+        return Err(syn::Error::new_spanned(
+            &variant.ast().ident,
+            format!(
+                "#[reject] has {} field pattern(s) but the variant has {} field(s); \
+                 use `_` for wildcards or `..` to skip remaining fields",
+                num_patterns, num_fields,
+            ),
+        ));
+    }
+
+    if num_patterns > num_fields {
+        return Err(syn::Error::new_spanned(
+            &variant.ast().ident,
+            format!(
+                "#[reject] has {} field pattern(s) but the variant only has {} field(s)",
+                num_patterns, num_fields,
+            ),
+        ));
+    }
+
+    let mut checks: Vec<TokenStream> = Vec::new();
+
+    for (i, field_pat) in reject.fields.iter().enumerate() {
+        match field_pat {
+            RejectFieldPattern::Wildcard => {
+                // Skip — no constraint
+            }
+            RejectFieldPattern::Positional(pattern) => {
+                let field_name = field_ident(bindings[i].ast(), i);
+                checks.push(quote! {
+                    matches!(DowncastFrom::downcast_from(&#field_name), Some(#pattern))
+                });
+            }
+            RejectFieldPattern::Named { name, pattern } => {
+                // Check if pattern is just `_`
+                let pat_str = pattern.to_string();
+                if pat_str.trim() == "_" {
+                    // Skip — wildcard
+                } else {
+                    checks.push(quote! {
+                        matches!(DowncastFrom::downcast_from(&#name), Some(#pattern))
+                    });
+                }
+            }
+        }
+    }
+
+    // Remaining fields (if `..` was used) are implicitly unconstrained.
+
+    if checks.is_empty() {
+        // All fields were wildcards — vacuously true → always reject
+        Ok(quote!(true))
+    } else if checks.len() == 1 {
+        Ok(checks.into_iter().next().unwrap())
+    } else {
+        let mut iter = checks.into_iter();
+        let first = iter.next().unwrap();
+        Ok(iter.fold(first, |acc, check| quote!((#acc) && (#check))))
     }
 }
