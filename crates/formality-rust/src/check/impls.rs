@@ -199,7 +199,7 @@ fn check_fn_in_impl(
         &impl_assumptions,
         ii_fn,
         crate_id,
-    )?);
+    ).check_proven()?);
 
     let mut env = env.clone();
     let (

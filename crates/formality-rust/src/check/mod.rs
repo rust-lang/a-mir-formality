@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::fmt::Debug;
+use std::{collections::VecDeque, fmt::Debug};
 
 use crate::prove::prove::{is_definitely_not_proveable, Constraints, Env, Program};
 use crate::rust::Visit;
@@ -9,7 +9,7 @@ use crate::{
     prove::ToWcs,
 };
 use anyhow::{anyhow, bail};
-use formality_core::{judgment::ProofTree, judgment_fn, ProvenSet, Set};
+use formality_core::{judgment::ProofTree, ProvenSet, Set};
 
 use adts::check_adt;
 use coherence::check_coherence;
@@ -19,61 +19,64 @@ use traits::check_trait;
 
 pub mod borrow_check;
 
+/// Check all crates in the program. The crates must be in dependency order
+/// such that any prefix of the crates is a complete program.
+pub fn check_all_crates(all_crates: &Crates) -> Fallible<ProofTree> {
+    let Crates { crates } = all_crates;
+    let mut crates: VecDeque<_> = crates.iter().cloned().collect();
+
+    let mut proof_tree = ProofTree::new("check_all_crates", None, vec![]);
+    let mut prefix_crates = Crates { crates: vec![] };
+    while let Some(c) = crates.pop_front() {
+        prefix_crates.crates.push(c);
+        proof_tree
+            .children
+            .push(check_current_crate(&prefix_crates)?);
+    }
+
+    Ok(proof_tree)
+}
+
+/// Checks the current crate in the program, assuming all other crates are valid.
+fn check_current_crate(crates: &Crates) -> Fallible<ProofTree> {
+    let program = crates.to_prove_decls();
+    check(&program)
+}
+
 mod adts;
 mod coherence;
-mod core_crate;
 mod fns;
 mod impls;
 mod traits;
 mod where_clauses;
 
-judgment_fn! {
-    pub fn check_all_crates(
-        crates: Crates,
-    ) => () {
-        debug(crates)
-
-        (
-            // Add the core crate if the first crate isn't called `core`.
-            (let crates = if crates.crates.first().map_or(true, |first| &*first.id == "core") {
-                crates.clone()
-            } else {
-                let Crates { mut crates } = crates.clone();
-                crates.push(core_crate::krate());
-                Crates { crates: crates }
-            })
-            // Check that all crates up to and including crate #i are valid.
-            // Crate #i will be considered the "current crate".
-            (for_all(i in 0..crates.len())
-                (let program = crates.prefix(i).to_prove_decls())
-                (check_crate(program, &crates.crates[i]) => ()))
-            ------------------------------------------------------------ ("check all prefixes")
-            (check_all_crates(crates) => ())
-        )
+fn check(program: &Program) -> Fallible<ProofTree> {
+    let Crates { crates } = program.program();
+    if let Some(current_crate) = crates.last() {
+        check_crate(program, current_crate)
+    } else {
+        Ok(ProofTree::leaf("check (no crates)"))
     }
 }
 
-judgment_fn! {
-    /// Check that the current crate `c` is valid,
-    /// given the complete program (which includes dependencies).
-    fn check_crate(
-        program: Program,
-        c: Crate,
-    ) => () {
-        debug(c, program)
+fn check_crate(program: &Program, c: &Crate) -> Fallible<ProofTree> {
+    let Crate { id, items } = c;
+    let mut proof_tree = ProofTree::new(format!("check_current_crate({id:?})"), None, vec![]);
 
-        (
-            (check_for_duplicate_items(program) => ())
-            (for_all(item in items)
-                (check_crate_item(program, item, id) => ()))
-            (check_coherence(program, c) => ())
-            ------------------------------------------------------------ ("check crate")
-            (check_crate(program, Crate { id, items }) => ())
-        )
+    check_for_duplicate_items(program)?;
+
+    for item in items {
+        proof_tree
+            .children
+            .push(check_crate_item(program, item, &id)?);
     }
+
+    proof_tree.children.push(check_coherence(program, c)?);
+
+    Ok(proof_tree)
 }
 
-fn check_for_duplicate_items(program: &Program) -> Fallible<ProofTree> {
+fn check_for_duplicate_items(program: &Program) -> Fallible<()> {
     let Crates { crates } = program.program();
     for c in crates.iter() {
         let mut items = Set::new();
@@ -102,60 +105,21 @@ fn check_for_duplicate_items(program: &Program) -> Fallible<ProofTree> {
         }
     }
 
-    Ok(ProofTree::leaf(
-        "check_for_duplicate_items: no duplicates found",
-    ))
+    Ok(())
 }
 
-judgment_fn! {
-    fn check_crate_item(
-        program: Program,
-        c: CrateItem,
-        crate_id: CrateId,
-    ) => () {
-        debug(program, c, crate_id)
-
-        (
-            (check_trait(program, v, crate_id) => ())
-            ------------------------------------------------------------ ("trait")
-            (check_crate_item(program, CrateItem::Trait(v), crate_id) => ())
-        )
-
-        (
-            (check_trait_impl(program, v, crate_id) => ())
-            ------------------------------------------------------------ ("trait impl")
-            (check_crate_item(program, CrateItem::TraitImpl(v), crate_id) => ())
-        )
-
-        (
-            (check_adt(program, &s.to_adt()) => ())
-            ------------------------------------------------------------ ("adt")
-            (check_crate_item(program, CrateItem::AdtItem(s), crate_id) => ())
-        )
-
-        (
-            (check_free_fn(program, f, crate_id) => ())
-            ------------------------------------------------------------ ("free fn")
-            (check_crate_item(program, CrateItem::Fn(f), crate_id) => ())
-        )
-
-        (
-            (check_neg_trait_impl(program, i) => ())
-            ------------------------------------------------------------ ("neg trait impl")
-            (check_crate_item(program, CrateItem::NegTraitImpl(i), crate_id) => ())
-        )
-
-        (
-            (check_test(program, t) => ())
-            ------------------------------------------------------------ ("test")
-            (check_crate_item(program, CrateItem::Test(t), crate_id) => ())
-        )
-
-        (
+fn check_crate_item(program: &Program, c: &CrateItem, crate_id: &CrateId) -> Fallible<ProofTree> {
+    match c {
+        CrateItem::Trait(v) => check_trait(program, v, crate_id),
+        CrateItem::TraitImpl(v) => check_trait_impl(program, v, crate_id),
+        CrateItem::AdtItem(s) => check_adt(program, &s.to_adt()),
+        CrateItem::Fn(f) => Ok(check_free_fn(program, f, crate_id).check_proven()?),
+        CrateItem::NegTraitImpl(i) => check_neg_trait_impl(program, i),
+        CrateItem::Test(t) => check_test(program, t),
+        CrateItem::FeatureGate(_feature_gate) => {
             // FIXME(#212): reject duplicate feature gates within a crate
-            ------------------------------------------------------------ ("feature gate")
-            (check_crate_item(program, CrateItem::FeatureGate(_feature_gate), crate_id) => ())
-        )
+            Ok(ProofTree::leaf("feature gates are OK with me!"))
+        }
     }
 }
 

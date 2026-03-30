@@ -95,7 +95,7 @@ fn check_fn_in_trait(
     f: &Fn,
     crate_id: &CrateId,
 ) -> Fallible<ProofTree> {
-    super::fns::check_fn(program, env, where_clauses, f, crate_id)
+    Ok(super::fns::check_fn(program, env, where_clauses, f, crate_id).check_proven()?)
 }
 
 fn check_associated_ty(
