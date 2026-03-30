@@ -10,6 +10,16 @@ pub struct Crates {
 }
 
 impl Crates {
+    pub fn len(&self) -> usize {
+        self.crates.len()
+    }
+
+    pub fn prefix(&self, tail: usize) -> Crates {
+        Crates {
+            crates: self.crates[..=tail].to_vec(),
+        }
+    }
+
     pub fn items_from_all_crates(&self) -> impl Iterator<Item = &CrateItem> {
         self.crates.iter().flat_map(|c| &c.items)
     }

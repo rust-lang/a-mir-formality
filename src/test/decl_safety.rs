@@ -50,10 +50,11 @@ fn unsafe_trait_negative_impl_mismatch() {
         ]
 
         expect_test::expect![[r#"
-            check_neg_trait_impl(unsafe impl ! Foo for u32 {})
+            the rule "neg trait impl" at (mod.rs) failed because
+              check_neg_trait_impl(unsafe impl ! Foo for u32 {})
 
-            Caused by:
-                negative impls cannot be unsafe"#]]
+              Caused by:
+                  negative impls cannot be unsafe"#]]
     )
 }
 
@@ -68,10 +69,11 @@ fn safe_trait_negative_impl_mismatch() {
         ]
 
         expect_test::expect![[r#"
-            check_neg_trait_impl(unsafe impl ! Foo for u32 {})
+            the rule "neg trait impl" at (mod.rs) failed because
+              check_neg_trait_impl(unsafe impl ! Foo for u32 {})
 
-            Caused by:
-                negative impls cannot be unsafe"#]]
+              Caused by:
+                  negative impls cannot be unsafe"#]]
     )
 }
 
@@ -86,10 +88,11 @@ fn unsafe_trait_mismatch() {
         ]
 
         expect_test::expect![[r#"
-            check_trait_impl(impl Foo for u32 { })
+            the rule "trait impl" at (mod.rs) failed because
+              check_trait_impl(impl Foo for u32 { })
 
-            Caused by:
-                the trait `Foo` requires an `unsafe impl` declaration"#]]
+              Caused by:
+                  the trait `Foo` requires an `unsafe impl` declaration"#]]
     )
 }
 
@@ -104,9 +107,10 @@ fn safe_trait_mismatch() {
         ]
 
         expect_test::expect![[r#"
-            check_trait_impl(unsafe impl Foo for u32 { })
+            the rule "trait impl" at (mod.rs) failed because
+              check_trait_impl(unsafe impl Foo for u32 { })
 
-            Caused by:
-                implementing the trait `Foo` is not unsafe"#]]
+              Caused by:
+                  implementing the trait `Foo` is not unsafe"#]]
     )
 }

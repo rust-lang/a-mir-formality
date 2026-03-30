@@ -132,7 +132,9 @@ fn basic_adt_variant_dup() {
             }
         ]
 
-        expect_test::expect![[r#"variant "Baz" defined multiple times"#]]
+        expect_test::expect![[r#"
+            the rule "adt" at (mod.rs) failed because
+              variant "Baz" defined multiple times"#]]
     )
 }
 
@@ -148,7 +150,9 @@ fn basic_adt_field_dup() {
             }
         ]
 
-        expect_test::expect![[r#"field "baz" of variant "struct" defined multiple times"#]]
+        expect_test::expect![[r#"
+            the rule "adt" at (mod.rs) failed because
+              field "baz" of variant "struct" defined multiple times"#]]
     )
 }
 
@@ -165,10 +169,11 @@ fn trait_items_with_duplicate_fn_names() {
         ]
 
         expect_test::expect![[r#"
-            check_trait(A)
+            the rule "trait" at (mod.rs) failed because
+              check_trait(A)
 
-            Caused by:
-                the function name `a` is defined multiple times"#]]
+              Caused by:
+                  the function name `a` is defined multiple times"#]]
 
     );
 }
@@ -186,10 +191,11 @@ fn trait_items_with_duplicate_associated_type_names() {
         ]
 
         expect_test::expect![[r#"
-            check_trait(A)
+            the rule "trait" at (mod.rs) failed because
+              check_trait(A)
 
-            Caused by:
-                the associated type name `Assoc` is defined multiple times"#]]
+              Caused by:
+                  the associated type name `Assoc` is defined multiple times"#]]
     );
 }
 
@@ -204,7 +210,9 @@ fn crate_with_duplicate_item_names() {
             }
         ]
 
-        expect_test::expect![[r#"the item name `A` is defined multiple times"#]]
+        expect_test::expect![[r#"
+            the rule "check crate" at (mod.rs) failed because
+              the item name `A` is defined multiple times"#]]
     );
 
     crate::assert_err!(
@@ -216,7 +224,9 @@ fn crate_with_duplicate_item_names() {
             }
         ]
 
-        expect_test::expect![[r#"the trait name `a` is defined multiple times"#]]
+        expect_test::expect![[r#"
+            the rule "check crate" at (mod.rs) failed because
+              the trait name `a` is defined multiple times"#]]
     );
 
     crate::assert_err!(
@@ -228,7 +238,9 @@ fn crate_with_duplicate_item_names() {
             }
         ]
 
-        expect_test::expect![[r#"the function name `a` is defined multiple times"#]]
+        expect_test::expect![[r#"
+            the rule "check crate" at (mod.rs) failed because
+              the function name `a` is defined multiple times"#]]
     );
 
     crate::assert_ok!(
