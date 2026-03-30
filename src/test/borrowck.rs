@@ -1051,3 +1051,23 @@ fn call_generic_fn_with_turbofish_missing_relation_upcast() {
         expect_test::expect!["crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"]
     )
 }
+
+/// Test call to a generic function using turbofish syntax with lifetime and type.
+#[test]
+fn call_generic_fn_with_turbofish_lifetime_type() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn bar<'a, T>(v1: T) -> T where T : 'a{
+                    return v1;
+                }
+
+                fn foo<'b>(a: &'b u32) -> &'b u32 {
+                    let r: &'b u32 = bar::<'b, &'b u32>(a);
+                    return r;
+                }
+            }
+        ]
+
+    )
+}

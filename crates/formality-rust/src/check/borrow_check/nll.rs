@@ -462,14 +462,14 @@ judgment_fn! {
         //    -- introduce placeholder 'a
         //    -- *try* to prove &'b u32: 'a
         //    -- *try* to prove 'b: 'a ===> succeed with a pending outlives
-        //  -- for<'a> -- would hvae to check that there are no pending outlives (that can't be proven)
+        //  -- for<'a> -- would have to check that there are no pending outlives (that can't be proven)
         //                fail
 
         // let x = for<'a> where('b: 'a) { foo::<'a, &'b u32>() }
         //    -- introduce placeholder 'a
         //    -- *try* to prove &'b u32: 'a
         //    -- *try* to prove 'b: 'a ===> succeed with a pending outlives
-        //  -- for<'a> -- would hvae to check that there are no pending outlives (that can't be proven)
+        //  -- for<'a> -- would have to check that there are no pending outlives (that can't be proven)
         //                fail
 
         (

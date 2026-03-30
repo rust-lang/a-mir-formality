@@ -313,6 +313,28 @@ fn test_call_generic_fn_wrong_type_with_turbofish() {
     )
 }
 
+/// Test calling a generic function using turbofish syntax with an incorrect number of parameters.
+#[test]
+fn test_call_generic_fn_wrong_parameters_number_with_turbofish() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn identity<T>(v1: T) -> T {
+                    return v1;
+                }
+
+                fn bar(v1: u32) -> u32 {
+                    let v0: u32 = identity::<u32>(v1, v1);
+                    return v0;
+                }
+            }
+        ]
+        expect_test::expect![[r#"
+            the rule "call" at (nll.rs) failed because
+              condition evaluated to false: `input_tys.len() == args.len()`"#]]
+    )
+}
+
 /// Test calling a generic function with wrong number of type args via turbofish.
 #[test]
 fn test_call_generic_fn_wrong_arity() {
