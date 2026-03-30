@@ -193,13 +193,9 @@ fn check_fn_in_impl(
 
     let mut proof_tree = ProofTree::new(format!("check_fn_in_impl({:?})", ii_fn.id), None, vec![]);
 
-    proof_tree.children.push(super::fns::check_fn(
-        program,
-        env,
-        &impl_assumptions,
-        ii_fn,
-        crate_id,
-    ).check_proven()?);
+    proof_tree.children.push(
+        super::fns::check_fn(program, env, &impl_assumptions, ii_fn, crate_id).check_proven()?,
+    );
 
     let mut env = env.clone();
     let (

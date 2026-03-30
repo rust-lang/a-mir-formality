@@ -40,7 +40,10 @@ fn check_fn_body(
             FnBody::Expr(block) => {
                 let typeck_env = TypeckEnv::for_fn_body(env, program, output_ty);
                 let initial_state = FlowState::for_fn_body(env, input_args)?;
-                Ok(borrow_check(typeck_env, fn_assumptions, initial_state, block).check_proven()?)
+                Ok(
+                    borrow_check(typeck_env, fn_assumptions, initial_state, block)
+                        .check_proven()?,
+                )
             }
         },
     }
