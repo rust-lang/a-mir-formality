@@ -62,27 +62,26 @@ fn left_recursion_seed_shadow() {
     let scope: formality_core::parse::Scope<crate::FormalityLang> = Default::default();
     let parses = E::parse(&scope, "x . then . end");
 
-    match parses {
-        Ok(parses) => {
-            let complete: Vec<_> = parses
-                .into_iter()
-                .filter(|p| parse::skip_whitespace(p.text()).is_empty())
-                .collect();
+    let parses = parses.expect("parse should succeed");
+    let complete: Vec<_> = parses
+        .into_iter()
+        .filter(|p| parse::skip_whitespace(p.text()).is_empty())
+        .collect();
 
-            // Current (incorrect) behavior: no complete parse is found.
-            // The correct result would be ThenEnd(Id(x)).
-            assert_eq!(
-                complete.len(),
-                0,
-                "if this starts passing, the seed selection bug may be fixed — \
-                 update this test to assert the expected ThenEnd(Id(x)) result"
-            );
-        }
-        Err(_errs) => {
-            // Also acceptable for the current buggy behavior — the parse
-            // may fail entirely rather than returning incomplete parses.
-        }
-    }
+    // The shorter base case Id(x) is also tried as a seed, composing with
+    // the left-recursive variant to produce ThenEnd(Id(x)).
+    let complete_values: Vec<E> = complete.into_iter().map(|p| p.finish().0).collect();
+    assert_eq!(complete_values.len(), 1);
+    expect_test::expect![[r#"
+        [
+            ThenEnd(
+                Id(
+                    x,
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&complete_values);
 }
 
 /// Sanity check: the base cases parse correctly on their own.

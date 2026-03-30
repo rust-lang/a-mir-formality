@@ -227,6 +227,7 @@ impl DowncastTo<PlaceExprData> for PlaceExpr {
     }
 }
 
+// ANCHOR: PlaceExprData
 #[term]
 pub enum PlaceExprData {
     /// `x`
@@ -245,7 +246,7 @@ pub enum PlaceExprData {
 
     /// `( expr )`
     ///
-    /// Parenthesized expression.
+    /// Parenthesized expression, needed so users can write `(*x).field`.
     #[grammar(($v0))]
     Parens(PlaceExpr),
 
@@ -258,6 +259,7 @@ pub enum PlaceExprData {
         field_name: FieldName,
     },
 }
+// ANCHOR_END: PlaceExprData
 
 cast_impl!((ValueId) <: (PlaceExprData) <: (PlaceExpr));
 

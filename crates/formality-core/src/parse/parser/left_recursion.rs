@@ -2,23 +2,61 @@
 //! operation, but we re-implement it to avoid having to return multiple
 //! success values, since we know that's not really needed here.
 //!
-//! This unfortunately requires unsafe and even `type_id`. This is because
-//! we need to be generic over the language `L` and the result type
-//! `T` in our `thread_local!` and you can't have generic thread-local values.
-//! So we have to erase types. Annoying!
+//! This unfortunately requires `type_id` and type erasure via `dyn Any`.
+//! This is because we need to be generic over the language `L` and the
+//! result type `T` in our `thread_local!` and you can't have generic
+//! thread-local values. So we have to erase types.
 
-use std::{any::TypeId, cell::RefCell, fmt::Debug, ops::ControlFlow};
+use std::{any::Any, any::TypeId, cell::RefCell, fmt::Debug, ops::ControlFlow};
 
 use crate::{
     language::Language,
     parse::{parser::Associativity, ParseError, ParseFrame, ParseResult, Scope, SuccessfulParse},
-    set, Set,
+    Set,
 };
 
 use super::Precedence;
 
 thread_local! {
     static STACK: RefCell<Vec<StackEntry>> = Default::default()
+}
+
+/// A `'static` version of `SuccessfulParse` for storage in type-erased containers.
+///
+/// `SuccessfulParse<'t, T>` can't be stored as `dyn Any` because of the `'t`
+/// lifetime on its `text: &'t str` field. Since `text` is always a suffix of
+/// the `start_text` passed to `enter`, we can store just the remaining length
+/// and reconstruct the `&'t str` safely when observed.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct StoredParse<T> {
+    /// `text.len()` from the original `SuccessfulParse`.
+    /// Used to reconstruct `&'t str` via `&start_text[start_text.len() - remaining_len..]`.
+    remaining_len: usize,
+
+    /// The precedence of this parse.
+    precedence: Precedence,
+
+    /// The parsed value.
+    value: T,
+}
+
+impl<T: Clone> StoredParse<T> {
+    fn from_successful_parse(sp: &SuccessfulParse<'_, T>) -> Self {
+        StoredParse {
+            remaining_len: sp.text().len(),
+            precedence: sp.precedence,
+            value: sp.value.clone(),
+        }
+    }
+
+    fn to_successful_parse<'t>(&self, start_text: &'t str) -> SuccessfulParse<'t, T> {
+        let text = &start_text[start_text.len() - self.remaining_len..];
+        SuccessfulParse {
+            text,
+            precedence: self.precedence,
+            value: self.value.clone(),
+        }
+    }
 }
 
 /// Tracks an active parse that is taking place.
@@ -29,14 +67,19 @@ struct StackEntry {
     /// The starting text: we use `*const` instead of `&'t str`
     start_text: *const str,
 
+    /// Length of start_text, stored separately so `snapshot_nonterminal_stack`
+    /// can read it without dereferencing the raw pointer.
+    start_text_len: usize,
+
     current_state: Option<CurrentState>,
 
     /// The TypeId of the type `T`.
     type_id: TypeId,
 
-    /// The intermediate value produced. If `Some`, this is a pointer
-    /// to a `SuccessfulParse<'t, T>`.
-    value: Option<*const ()>,
+    /// The accumulated seed values, type-erased. When `Some`, contains a
+    /// `Box<Set<StoredParse<T>>>` erased to `Box<dyn Any>`. The `TypeId`
+    /// in `type_id` is used to downcast back to the correct type.
+    value: Option<Box<dyn Any>>,
 
     ///
     observed: bool,
@@ -92,6 +135,7 @@ impl StackEntry {
         Self {
             scope: erase_type(scope),
             current_state: None,
+            start_text_len: start_text.len(),
             start_text,
             type_id: TypeId::of::<T>(),
             value: None,
@@ -172,23 +216,45 @@ impl StackEntry {
         Some(*current_state)
     }
 
-    /// UNSAFE: Caller must guarantee that `self.value` pointer is valid.
-    pub unsafe fn observe<'t, T>(&mut self, start_text: &'t str) -> Option<SuccessfulParse<'t, T>>
+    /// Returns all accumulated seed values, reconstructing the `'t` lifetime
+    /// from `start_text`. The caller filters by precedence.
+    fn observe<'t, T>(&mut self, start_text: &'t str) -> Set<SuccessfulParse<'t, T>>
     where
-        T: Clone + 'static,
+        T: Clone + Ord + 'static,
     {
         assert_eq!(self.type_id, TypeId::of::<T>());
-        assert_eq!(self.start_text, start_text); // must be left-recursion
+        assert_eq!(self.start_text, start_text as *const str);
         assert!(self.current_state.is_some());
 
         self.observed = true;
 
-        let ptr = self.value?;
-        let ptr = ptr as *const SuccessfulParse<'t, T>;
-        // UNSAFE: We rely on the caller to entry ptr is valid.
-        let ptr = unsafe { &*ptr };
+        let Some(boxed) = &self.value else {
+            return Set::new();
+        };
 
-        Some(ptr.clone())
+        let stored_set = boxed.downcast_ref::<Set<StoredParse<T>>>().expect(
+            "type mismatch in left-recursion seed storage (TypeId matched but downcast failed)",
+        );
+
+        stored_set
+            .iter()
+            .map(|sp| sp.to_successful_parse(start_text))
+            .collect()
+    }
+
+    /// Store a snapshot of all accumulated values as type-erased seeds.
+    fn store_seeds<T>(&mut self, all_values: &Set<SuccessfulParse<'_, T>>)
+    where
+        T: Clone + Ord + 'static,
+    {
+        assert_eq!(self.type_id, TypeId::of::<T>());
+
+        let stored: Set<StoredParse<T>> = all_values
+            .iter()
+            .map(StoredParse::from_successful_parse)
+            .collect();
+
+        self.value = Some(Box::new(stored));
     }
 }
 
@@ -245,17 +311,15 @@ where
                     precedence: current_precedence,
                     ..
                 }) => {
-                    let previous_result = unsafe {
-                        // UNSAFE: See [1] below for justification.
-                        entry.observe::<T>(text)
-                    };
+                    let all_seeds = entry.observe::<T>(text);
                     tracing::trace!(
-                        "found left-recursive stack entry with precedence {:?}, previous_result = {:?}",
+                        "found left-recursive stack entry with precedence {:?}, seeds = {:?}",
                         current_precedence,
-                        previous_result
+                        all_seeds
                     );
-                    let Some(previous_result) = previous_result else {
-                        // Case 1: no previous value.
+
+                    if all_seeds.is_empty() {
+                        // Case 1: no previous value (first round).
                         return ControlFlow::Break(Err(ParseError::at(
                             text,
                             format!(
@@ -263,49 +327,57 @@ where
                                 std::any::type_name::<T>()
                             ),
                         )));
-                    };
+                    }
 
-                    // If there is a previous value, check the precedence as described above.
-                    let precedence_valid = match current_precedence.associativity {
-                        Associativity::Left => {
-                            previous_result.precedence.level >= current_precedence.level
-                        }
-                        Associativity::Right | Associativity::None => {
-                            previous_result.precedence.level > current_precedence.level
-                        }
-                        Associativity::Both => true,
-                    };
-                    tracing::trace!(
-                        "precedence_valid = {}",
-                        precedence_valid,
-                    );
-                    if !precedence_valid {
+                    // Filter seeds by precedence compatibility with the current variant.
+                    //
+                    // For example, given `E = int | E + E | E * E` where `+` is level 1
+                    // and `*` is level 2 (both left-associative):
+                    //
+                    // When parsing the left `E` in `E * E`, a seed like `a + b` (level 1)
+                    // is rejected because level 1 < level 2. This prevents `a + b * c`
+                    // from being parsed as `(a + b) * c`. But a seed like `a * b` (level 2)
+                    // is accepted, allowing `a * b * c` to be `(a * b) * c`.
+                    //
+                    // For left-associative variants, seeds with >= the variant's level are
+                    // accepted (same level OK, enabling `a + b + c` → `(a + b) + c`).
+                    // For right or non-associative, seeds must be strictly higher level
+                    // (same level rejected, preventing `a + b + c` → `(a + b) + c`).
+                    let valid_seeds: Set<SuccessfulParse<'_, T>> = all_seeds
+                        .into_iter()
+                        .filter(|seed| {
+                            let precedence_valid = match current_precedence.associativity {
+                                Associativity::Left => {
+                                    seed.precedence.level >= current_precedence.level
+                                }
+                                Associativity::Right | Associativity::None => {
+                                    seed.precedence.level > current_precedence.level
+                                }
+                                Associativity::Both => true,
+                            };
+                            tracing::trace!(
+                                "seed {:?} precedence_valid = {}",
+                                seed,
+                                precedence_valid,
+                            );
+                            precedence_valid
+                        })
+                        .collect();
+
+                    if valid_seeds.is_empty() {
                         return ControlFlow::Break(Err(ParseError::at(
                             text,
                             format!(
-                                "left-recursion with invalid precedence \
-                                (current variant has precedence {:?}, previous value has level {})",
-                                current_precedence, previous_result.precedence.level,
+                                "left-recursion with no valid seeds \
+                                (current variant has precedence {:?})",
+                                current_precedence,
                             ),
                         )));
                     }
 
-                    // Return the previous value.
-                    return ControlFlow::Break(Ok(set![previous_result]));
-
-                    // [1] UNSAFE: We need to justify that `entry.value` will be valid.
-                    //
-                    // Each entry in `stack` corresponds to an active stack frame `F` on this thread
-                    // and each entry in `stack` is only mutated by `F`
-                    //
-                    // The value in `entry.value` will either be `None` (in which case it is valid)
-                    // or `Some(p)` where `p` is a pointer.
-                    //
-                    // `p` will have been assigned by `F` just before invoking `op()`. It is a reference
-                    // to the last value in a vector owned by `F`. Since `F` is still active, that vector
-                    // is still valid. The borrow to produce `p` is valid (by inspection) because there are no
-                    // accesses to the vector until `op` completes
-                    // (and, to arrive at this code, `op` has not yet completed).
+                    // Return all valid seeds — each will be tried as a left-recursive
+                    // reuse via each_nonterminal's iteration over multiple successes.
+                    return ControlFlow::Break(Ok(valid_seeds));
                 }
 
                 // If this is right-recursion, then we will not reuse the previous value, but we will
@@ -398,7 +470,7 @@ where
     //
     // Now we return sets of successful results rather than a single best result.
     // The fixed-point iteration accumulates all successful parses across rounds,
-    // using the best (longest) parse as the seed for left-recursion reuse.
+    // using ALL accumulated values as seeds for left-recursion reuse.
 
     // First round parse is a bit special, because if we get an error here, we can just return immediately,
     // as there is no base case to build from.
@@ -420,16 +492,15 @@ where
             all_values
         );
 
-        // Pick the "best" (longest consumed) parse as the seed for left-recursion reuse.
-        // This takes a borrow of the value and converts it into a raw pointer.
-        // This borrow lasts until after `op` is complete.
-        let best_value = all_values.iter().min_by_key(|s| s.text.len()).unwrap();
+        // Store a type-erased snapshot of all accumulated values as seeds.
+        // `observe()` will downcast and reconstruct `SuccessfulParse<'t, T>`
+        // from the stored `StoredParse<T>` values.
         with_top!(|top| {
-            top.value = Some(erase_type(best_value));
+            top.store_seeds::<T>(&all_values);
         });
 
-        // Invoke the operation. As noted above, if we get a failed parse NOW,
-        // we know we already found the best result, so we can just use it.
+        // Invoke the operation. During `op`, left-recursive calls will observe
+        // all accumulated seeds via the stored snapshot.
         let Ok(new_values) = op(min_precedence_level) else {
             return Ok(all_values); // If not, we are done.
         };
@@ -515,15 +586,9 @@ pub(crate) fn snapshot_nonterminal_stack() -> Vec<ParseFrame> {
     STACK.with(|cell| match cell.try_borrow() {
         Ok(stack) => stack
             .iter()
-            .map(|entry| {
-                // SAFETY: start_text is a subslice of the original input
-                // that is alive for the duration of the parse. We only
-                // read its length here, so no reference escapes.
-                let remaining_len = unsafe { &*entry.start_text }.len();
-                ParseFrame {
-                    name: entry.nonterminal_name,
-                    remaining_len,
-                }
+            .map(|entry| ParseFrame {
+                name: entry.nonterminal_name,
+                remaining_len: entry.start_text_len,
             })
             .collect(),
         Err(_) => Vec::new(),
