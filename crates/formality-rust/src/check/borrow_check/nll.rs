@@ -174,6 +174,7 @@ judgment_fn! {
         debug(state, statement, places_live_on_exit, assumptions, env)
 
         (
+            (prove_ty_is_wf(env, assumptions, state, ty) => state)
             // The variable being declared is not yet live before this `let`,
             // so remove it from places_live_on_exit before checking the initializer (if any).
             (for_all(init in init.into_iter()) with (state) // FIXME: should make syntax for this
@@ -823,6 +824,15 @@ fn prove_where_clauses(
     where_clauses: &[WhereClause],
 ) -> ProvenSet<FlowState> {
     TypeckEnv::prove_goal(env, assumptions, state, where_clauses)
+}
+
+fn prove_ty_is_wf(
+    env: &TypeckEnv,
+    assumptions: &Wcs,
+    state: &FlowState,
+    ty: &Ty,
+) -> ProvenSet<FlowState> {
+    TypeckEnv::prove_goal(env, assumptions, state, ty.well_formed())
 }
 
 fn prove_normalize_ty(

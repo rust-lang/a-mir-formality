@@ -256,6 +256,46 @@ fn test_struct() {
     )
 }
 
+/// Test let statement with well-formed type
+#[test]
+fn test_let_with_well_formed_type() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                trait Trait1 {}
+                struct S1<T> {
+                    t: T,
+                }
+                fn foo() -> () {
+                    let s1: S1<u8>;
+                }
+            }
+        ]
+    )
+}
+
+/// Test let statement with ill-formed type
+#[test]
+fn test_let_with_ill_formed_type() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                trait Trait1 {}
+                struct S1 {}
+                struct S2<T> where T: Trait1 {
+                    t: T,
+                }
+                fn foo() -> () {
+                    let s2: S2<S1>;
+                }
+            }
+        ]
+        expect_test::expect![[r#"
+            the rule "trait implied bound" at (prove_wc.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
+    )
+}
+
 // Test calling a function that does not exist.
 #[test]
 fn test_call_invalid_fn() {
