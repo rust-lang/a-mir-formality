@@ -1,4 +1,4 @@
-use crate::{judgment::IfThen, set, Map, Set};
+use crate::{judgment::IfThen, set, Fallible, Map, Set};
 use std::{
     fmt::Debug,
     hash::{Hash, Hasher},
@@ -490,14 +490,14 @@ impl FailedJudgment {
     }
 
     /// Simplifies a set of failed rules to exclude cycles, but only if there are non-cyclic results to show instead.
-    /// Recursively Given a set of failed rules, along with the `stack` of judgments that was being solved at the time these failures occurred,
-    /// returns `(set, has_non_cycle)`. The `set` represents a new, simplified set of failued
+    /// Given a set of failed rules, along with the `stack` of judgments that was being solved at the time these failures occurred,
+    /// recursively returns `(set, has_non_cycle)`. The `set` represents a new, simplified set of failed rules.
     #[tracing::instrument(level = "Debug", skip(stack), ret)]
     fn strip_cycles(
         stack: &Set<&String>,
         failed_rules: Set<FailedRule>,
     ) -> (Set<FailedRule>, HasNonCycle) {
-        // No rules were even applicable to this input, so this
+        // The input doesn't match any of the judgment rules, so this
         // can't be a cycle — report it as a genuine failure.
         if failed_rules.is_empty() {
             return (set![], HasNonCycle(true));
@@ -679,6 +679,20 @@ pub enum RuleFailureCause {
 
     /// The rule attempted to prove something that was already in the process of being proven
     Cycle { judgment: String },
+}
+
+impl RuleFailureCause {
+    pub fn from_anyhow(e: anyhow::Error) -> Self {
+        if let Some(failed) = e.downcast_ref::<Box<FailedJudgment>>() {
+            RuleFailureCause::FailedJudgment(Box::new((**failed).clone()))
+        } else if let Some(failed) = e.downcast_ref::<FailedJudgment>() {
+            RuleFailureCause::FailedJudgment(Box::new(failed.clone()))
+        } else {
+            RuleFailureCause::Inapplicable {
+                reason: format!("{e:?}"),
+            }
+        }
+    }
 }
 
 impl std::error::Error for FailedJudgment {
@@ -931,6 +945,16 @@ pub trait CheckProven {
     /// return a string representing the expression being enumerated.
     #[track_caller]
     fn check_proven(self) -> Result<ProofTree, RuleFailureCause>;
+}
+
+impl CheckProven for Fallible<ProofTree> {
+    #[track_caller]
+    fn check_proven(self) -> Result<ProofTree, RuleFailureCause> {
+        match self {
+            Ok(proof_tree) => Ok(proof_tree),
+            Err(e) => Err(RuleFailureCause::from_anyhow(e)),
+        }
+    }
 }
 
 impl CheckProven for ProvenSet<()> {

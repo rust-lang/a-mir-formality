@@ -3,11 +3,11 @@
 use crate::rust::term;
 use formality_macros::test;
 
-use crate::grammar::Program;
+use crate::grammar::Crates;
 
 #[test]
 fn test_parse_rust_like_trait_impl_syntax() {
-    let r: Program = term(
+    let r: Crates = term(
         "[
             crate core {
                 impl<A, B> PartialEq<A> for B {
@@ -19,7 +19,7 @@ fn test_parse_rust_like_trait_impl_syntax() {
 
     // Note: the for etc are correctly accounted.
     expect_test::expect![[r#"
-        Program {
+        Crates {
             crates: [
                 Crate {
                     id: core,
@@ -64,7 +64,7 @@ fn test_parse_rust_like_trait_impl_syntax() {
 
 #[test]
 fn test_parse_rust_like_trait_syntax() {
-    let r: Program = term(
+    let r: Crates = term(
         "[
             crate core {
                 trait Foo<A> where A : Bar<Self> {
@@ -76,7 +76,7 @@ fn test_parse_rust_like_trait_syntax() {
 
     // Note: two type parameters, and the 0th one is self:
     expect_test::expect![[r#"
-        Program {
+        Crates {
             crates: [
                 Crate {
                     id: core,
@@ -98,7 +98,7 @@ fn test_parse_rust_like_trait_syntax() {
 
 #[test]
 fn test_parse_rust_like_struct_syntax() {
-    let r: Program = term(
+    let r: Crates = term(
         "[
             crate core {
                 struct Foo<A> {
@@ -109,7 +109,7 @@ fn test_parse_rust_like_struct_syntax() {
     );
 
     expect_test::expect![[r#"
-        Program {
+        Crates {
             crates: [
                 Crate {
                     id: core,

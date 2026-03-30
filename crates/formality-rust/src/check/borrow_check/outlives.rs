@@ -78,7 +78,7 @@ judgment_fn! {
         // Prove that T: !a -- must prove from assumptions
         (
             (if var_b.is_universal())!
-            (prove(&env.decls, &env.env, assumptions, Relation::outlives(param_a, var_b)) => c)
+            (prove(&env.program, &env.env, assumptions, Relation::outlives(param_a, var_b)) => c)
             (if c.unconditionally_true())
             --- ("universal target")
             (can_outlive(env, assumptions, _outlives, param_a, var_b: Variable) => ())

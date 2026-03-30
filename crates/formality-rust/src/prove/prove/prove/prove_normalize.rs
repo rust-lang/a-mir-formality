@@ -7,7 +7,7 @@ use crate::{
 use formality_core::{judgment_fn, Downcast};
 
 use crate::prove::prove::{
-    decls::{AliasEqDeclBoundData, Decls},
+    decls::{AliasEqDeclBoundData, Program},
     prove::{
         combinators::zip, env::Env, prove, prove_after::prove_after,
         prove_eq::prove_existential_var_eq,
@@ -21,7 +21,7 @@ judgment_fn! {
     /// semantically equivalent to `p`. e.g., if p is `<Vec<T> as IntoIterator>::Item`, this would
     /// return `T`.
     pub fn prove_normalize(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         p: Parameter,
@@ -54,7 +54,7 @@ judgment_fn! {
 
 judgment_fn! {
     fn prove_normalize_via(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         via: Wc,
@@ -132,7 +132,7 @@ judgment_fn! {
 
 judgment_fn! {
     fn prove_syntactically_eq(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         a: Parameter,

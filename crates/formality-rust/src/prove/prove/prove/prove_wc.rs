@@ -2,7 +2,7 @@ use crate::grammar::{Predicate, Relation, Wc, WcData, Wcs};
 use formality_core::judgment_fn;
 
 use crate::prove::prove::{
-    decls::Decls,
+    decls::Program,
     prove::{
         combinators::for_all,
         env::{Bias, Env},
@@ -24,7 +24,7 @@ judgment_fn! {
     /// The "heart" of the trait system -- prove that a where-clause holds given a set of declarations, variable environment, and set of assumptions.
     /// If successful, returns the constraints under which the where-clause holds.
     pub fn prove_wc(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         goal: Wc,

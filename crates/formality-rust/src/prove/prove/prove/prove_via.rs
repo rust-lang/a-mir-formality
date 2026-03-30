@@ -2,7 +2,7 @@ use crate::grammar::{WcData, Wcs};
 use formality_core::judgment_fn;
 
 use crate::prove::prove::{
-    decls::Decls,
+    decls::Program,
     prove::{constraints::Constraints, env::Env, prove, prove_after::prove_after},
 };
 
@@ -14,7 +14,7 @@ judgment_fn! {
     /// but done lazilly. For example, if you have `where T: Eq` then you can clearly prove `T: Eq`
     /// but you can also prove `T: PartialEq` because `trait Eq: PartialEq`.
     pub fn prove_via(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         via: WcData,

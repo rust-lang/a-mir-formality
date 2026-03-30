@@ -7,7 +7,7 @@ use crate::{
 use formality_core::judgment_fn;
 
 use crate::prove::prove::{
-    decls::Decls,
+    decls::Program,
     prove::{
         combinators::for_all, env::Bias, negation::may_not_be_provable,
         prove_normalize::prove_normalize, Constraints,
@@ -51,7 +51,7 @@ judgment_fn! {
     /// Note that per RFC #2451, upstream crates are not permitted to add blanket impls
     /// and so new upstream impls for local types cannot be added.
     pub fn may_be_remote(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
@@ -78,7 +78,7 @@ judgment_fn! {
 judgment_fn! {
     /// True if an impl defining this trait-reference could appear in a downstream crate.
     fn may_be_downstream_trait_ref(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
@@ -97,7 +97,7 @@ judgment_fn! {
 
 judgment_fn! {
     fn may_be_downstream_parameter(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
@@ -135,7 +135,7 @@ judgment_fn! {
 
 judgment_fn! {
     fn may_contain_downstream_type(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
@@ -181,7 +181,7 @@ judgment_fn! {
 
 judgment_fn! {
     fn normalizes_to_not_downstream(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
@@ -200,7 +200,7 @@ judgment_fn! {
 
 judgment_fn! {
     pub fn is_local_trait_ref(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
@@ -237,7 +237,7 @@ judgment_fn! {
     /// with something like `Vec<DownstreamType>`, but that is not considered downstream
     /// as the outermost type (`Vec`) is upstream.
     fn is_not_downstream(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
@@ -278,7 +278,7 @@ judgment_fn! {
 
 judgment_fn! {
     fn is_local_parameter(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         goal: Parameter,
@@ -318,7 +318,7 @@ judgment_fn! {
     }
 }
 
-fn is_fundamental(_decls: &Decls, name: &RigidName) -> bool {
+fn is_fundamental(_decls: &Program, name: &RigidName) -> bool {
     // From https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html:
     //
     // Fundamental Type: A type for which you cannot add a blanket impl backwards

@@ -4,7 +4,7 @@ use crate::{
 };
 use formality_core::judgment_fn;
 
-use crate::prove::prove::{decls::Decls, prove::env::Env};
+use crate::prove::prove::{decls::Program, prove::env::Env};
 
 use super::constraints::Constraints;
 
@@ -12,7 +12,7 @@ judgment_fn! {
     /// The "heart" of the trait system -- prove that a where-clause holds given a set of declarations, variable environment, and set of assumptions.
     /// If successful, returns the constraints under which the where-clause holds.
     pub fn prove_const_has_type(
-        decls: Decls,
+        decls: Program,
         env: Env,
         assumptions: Wcs,
         constant: Const,

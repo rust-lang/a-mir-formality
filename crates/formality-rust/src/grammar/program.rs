@@ -3,13 +3,13 @@ use crate::grammar::{Fallible, TraitId};
 use formality_core::term;
 
 #[term($crates)]
-pub struct Program {
+pub struct Crates {
     /// List of all crates.
     /// The last crate in the list is the current crate.
     pub crates: Vec<Crate>,
 }
 
-impl Program {
+impl Crates {
     pub fn items_from_all_crates(&self) -> impl Iterator<Item = &CrateItem> {
         self.crates.iter().flat_map(|c| &c.items)
     }
