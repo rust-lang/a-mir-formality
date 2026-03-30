@@ -7,13 +7,13 @@ use minirust_rs::lang;
 
 use crate::grammar::{
     expr::{Block, Expr, PlaceExpr, Stmt, ValueId},
-    Fallible, PredicateTy, Program, RigidName, ScalarId, Ty, TyData,
+    Crates, Fallible, PredicateTy, RigidName, ScalarId, Ty, TyData,
 };
 
 use super::{ExprData, PlaceExprData};
 
 struct ExprBuilder<'b> {
-    program: &'b Program,
+    program: &'b Crates,
 
     /// Map from source-level local variable IDs to minirust local variable names.
     variables: Map<ValueId, lang::LocalName>,

@@ -1,13 +1,14 @@
-use crate::grammar::{Program, WhereBound, WhereBoundData, WhereClause, WhereClauseData};
+use crate::grammar::{Crates, WhereBound, WhereBoundData, WhereClause, WhereClauseData};
 use formality_core::Upcast;
 pub mod prove;
 use crate::grammar::{Predicate, Relation, Ty, Wc, Wcs};
+use std::sync::Arc;
 
-impl Program {
-    pub fn to_prove_decls(&self) -> prove::Decls {
-        prove::Decls {
-            program: self.clone(),
-            max_size: prove::Decls::DEFAULT_MAX_SIZE,
+impl Crates {
+    pub fn to_prove_decls(&self) -> prove::Program {
+        prove::Program {
+            crates: Arc::new(self.clone()),
+            max_size: prove::Program::DEFAULT_MAX_SIZE,
         }
     }
 }

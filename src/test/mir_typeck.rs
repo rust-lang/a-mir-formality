@@ -114,6 +114,60 @@ fn test_cyclic_goto() {
     )
 }
 
+/// Returns true (ExprData::True) type-checking coverage
+#[test]
+fn test_ret_true() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo () -> bool {
+                    return true;
+                }
+            }
+        ]
+    )
+}
+
+// if / else (Stmt::If) bool condition, each arm returns a u32.
+#[test]
+fn if_else() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo (b: bool) -> u32 {
+                    if b {
+                        return 1 _ u32;
+                    } else {
+                        return 2 _ u32;
+                    }
+                }
+            }
+        ]
+    )
+}
+
+// if / else (Stmt::If) with different return types.
+#[test]
+fn if_else_different_return_types() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo (b: bool) -> u32 {
+                    if b {
+                        return 1 _ u32;
+                    } else {
+                        return 0 _ bool;
+                    }
+                }
+            }
+        ]
+        expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
+    )
+}
+
 /// Test valid call: bar calls foo.
 #[test]
 fn test_call_terminator() {
@@ -199,6 +253,46 @@ fn test_struct() {
                 }
             }
         ]
+    )
+}
+
+/// Test let statement with well-formed type
+#[test]
+fn test_let_with_well_formed_type() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                trait Trait1 {}
+                struct S1<T> {
+                    t: T,
+                }
+                fn foo() -> () {
+                    let s1: S1<u8>;
+                }
+            }
+        ]
+    )
+}
+
+/// Test let statement with ill-formed type
+#[test]
+fn test_let_with_ill_formed_type() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                trait Trait1 {}
+                struct S1 {}
+                struct S2<T> where T: Trait1 {
+                    t: T,
+                }
+                fn foo() -> () {
+                    let s2: S2<S1>;
+                }
+            }
+        ]
+        expect_test::expect![[r#"
+            the rule "trait implied bound" at (prove_wc.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`"#]]
     )
 }
 
@@ -638,6 +732,28 @@ fn test_non_adt_ty_for_struct() {
     )
 }
 
+/// Test that the `false` literal type-checks as `bool`.
+///
+/// ```rust,ignore
+/// fn foo() -> bool {
+///     let v1: bool = false;
+///     return v1;
+/// }
+/// ```
+#[test]
+fn test_false_literal() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo() -> bool {
+                    let v1: bool = false;
+                    return v1;
+                }
+            }
+        ]
+    )
+}
+
 /// Basic pass test for lifetime.
 ///
 /// The test is equivalent to:
@@ -734,9 +850,9 @@ fn test_break_nonexistent_label() {
         ]
 
         expect_test::expect![[r#"
-            crates/formality-rust/src/check/borrow_check/nll.rs:165:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { program: [crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), decls: decls([crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }
+            crates/formality-rust/src/check/borrow_check/nll.rs:165:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }
 
-            crates/formality-rust/src/check/borrow_check/nll.rs:165:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { program: [crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), decls: decls([crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }"#]]
+            crates/formality-rust/src/check/borrow_check/nll.rs:165:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }"#]]
     )
 }
 
@@ -792,6 +908,38 @@ fn test_continue_block_label() {
         expect_test::expect![[r#"
             the rule "continue" at (nll.rs) failed because
               pattern `Some(places_live_on_continue)` did not match value `None`"#]]
+    )
+}
+
+/// Test parenthesized place expression: `(*v).field`.
+///
+/// The parens around `*v1` are required so the deref applies before
+/// the field projection (without them, `*v1.value` would try to
+/// project first and then deref).
+///
+/// ```rust,ignore
+/// fn foo(v1: &Pair) -> u32 {
+///     let v2: u32 = (*v1).value;
+///     v2
+/// }
+/// ```
+#[test]
+fn test_parens_place_expr() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                struct Pair {
+                    value: u32,
+                }
+
+                fn foo<'a>(v1: &'a Pair) -> u32 {
+                    exists<'r0> {
+                        let v2: u32 = (*v1).value;
+                        return v2;
+                    }
+                }
+            }
+        ]
     )
 }
 

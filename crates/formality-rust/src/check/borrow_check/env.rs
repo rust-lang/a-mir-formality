@@ -1,12 +1,11 @@
 use std::collections::BTreeSet;
-use std::sync::Arc;
 
 use crate::check::borrow_check::flow_state::{FlowState, PendingOutlives};
 
 use crate::check::borrow_check::outlives::verify_universal_outlives;
 use crate::grammar::{Binder, ExistentialVar, Relation, Ty, UniversalVar, Wcs};
-use crate::grammar::{Parameter, Program};
-use crate::prove::prove::{prove_normalize, Constrained, Constraints, Decls, Env};
+use crate::grammar::{Crates, Parameter};
+use crate::prove::prove::{prove_normalize, Constrained, Constraints, Env, Program};
 use crate::rust::Fold;
 use formality_core::judgment::{FailureLocation, ProofTree, Proven};
 use formality_core::{cast_impl, Downcast, DowncastTo, Set, Upcast};
@@ -15,36 +14,35 @@ use crate::check::{Debug, ProvenSet, ToWcs, Visit};
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone, Hash)]
 pub struct TypeckEnv {
-    /// Program being typechecked that contains this functon
-    pub program: Arc<Program>,
-
     /// The environment (set of universal, existential variables)
     pub env: Env,
 
     /// The declared return type from the function signature.
     pub output_ty: Option<Ty>,
 
-    pub decls: Decls,
+    pub program: Program,
 }
 
 cast_impl!(TypeckEnv);
 
 impl TypeckEnv {
-    pub(crate) fn for_const(env: impl Upcast<Env>, decls: &Decls) -> Self {
+    pub fn crates(&self) -> &Crates {
+        &self.program.crates
+    }
+
+    pub(crate) fn for_const(env: impl Upcast<Env>, decls: &Program) -> Self {
         Self {
-            program: Arc::new(decls.program.clone()),
             env: env.upcast(),
             output_ty: None,
-            decls: decls.clone(),
+            program: decls.clone(),
         }
     }
 
-    pub(crate) fn for_fn_body(env: impl Upcast<Env>, decls: &Decls, output_ty: &Ty) -> Self {
+    pub(crate) fn for_fn_body(env: impl Upcast<Env>, decls: &Program, output_ty: &Ty) -> Self {
         Self {
-            program: Arc::new(decls.program.clone()),
             env: env.upcast(),
             output_ty: Some(output_ty.clone()),
-            decls: decls.clone(),
+            program: decls.clone(),
         }
     }
 
@@ -108,7 +106,7 @@ impl TypeckEnv {
         state: &FlowState,
         assumptions: impl ToWcs,
         goal: G,
-        judgment_fn: impl FnOnce(Decls, Env, Wcs, G) -> ProvenSet<C>,
+        judgment_fn: impl FnOnce(Program, Env, Wcs, G) -> ProvenSet<C>,
     ) -> ProvenSet<(T, FlowState)>
     where
         G: Debug + Visit + Clone,
@@ -123,7 +121,7 @@ impl TypeckEnv {
         // We allow pending outlives so that outlives constraints can be deferred
         // and later verified by the borrow checker.
         let cs = judgment_fn(
-            self.decls.clone(),
+            self.program.clone(),
             self.env.with_allow_pending_outlives(true),
             assumptions.clone(),
             goal.clone(),

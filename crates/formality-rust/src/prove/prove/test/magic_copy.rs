@@ -1,21 +1,22 @@
 use crate::rust::term;
 use expect_test::expect;
 use formality_macros::test;
+use std::sync::Arc;
 
-use crate::prove::prove::decls::Decls;
+use crate::prove::prove::decls::Program;
 
 use crate::prove::prove::test_util::test_prove;
 
 /// Simple example decls consisting only of two trait declarations.
-fn decls() -> Decls {
-    Decls {
-        program: Decls::program_from_items(vec![
+fn decls() -> Program {
+    Program {
+        crates: Arc::new(Program::program_from_items(vec![
             term("trait Copy where {}"),
             term("trait Magic where Self : Copy {}"),
             term("impl<T> Magic for T where T : Magic {}"),
             term("impl Copy for u32 {}"),
-        ]),
-        ..Decls::empty()
+        ])),
+        ..Program::empty()
     }
 }
 

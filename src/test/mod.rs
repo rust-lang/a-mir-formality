@@ -33,7 +33,7 @@ fn parser() {
                · │││          ╰── while parsing CrateItem
                · ││╰── while parsing Crate
                · │╰── while parsing Vec
-               · ╰── while parsing Program
+               · ╰── while parsing Crates
                ╰────"#]]
     )
 }

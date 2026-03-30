@@ -59,23 +59,67 @@ fn reduce_reduce_ambig() {
     // Root = (Id Id Root::TwoId) (Id Root::OneId) Root::TwoRr)
     // Root = ((Id Root::OneId) (Id Root::OneId) (Id Root::OneId) Root::TwoRr)
     //
-    // With parse-all-possibilities, the parser no longer panics on ambiguity.
-    // The child-level ambiguity here (Arc<Root> nonterminals within TwoRr)
-    // is collapsed by longest-match in nonterminal_with, so we get 1 complete
-    // parse rather than all possibilities. But the key property is: no panic.
-    let term: Root = crate::ptt::term("a b c");
+    // The parser finds multiple complete parses.
+    // Use raw parse to inspect all results rather than `term()` which panics on ambiguity.
+    let scope: formality_core::parse::Scope<crate::FormalityLang> = Default::default();
+    let parses = Root::parse(&scope, "a b c").unwrap();
+    let mut complete: Vec<Root> = parses
+        .into_iter()
+        .filter(|p| parse::skip_whitespace(p.text()).is_empty())
+        .map(|p| p.finish().0)
+        .collect();
+    complete.sort();
+
+    assert_eq!(complete.len(), 4);
     expect_test::expect![[r#"
-        TwoRr(
-            TwoId(
-                a,
-                b,
+        [
+            TwoRr(
+                OneId(
+                    a,
+                ),
+                TwoId(
+                    b,
+                    c,
+                ),
             ),
-            OneId(
-                c,
+            TwoRr(
+                OneId(
+                    a,
+                ),
+                TwoRr(
+                    OneId(
+                        b,
+                    ),
+                    OneId(
+                        c,
+                    ),
+                ),
             ),
-        )
+            TwoRr(
+                TwoId(
+                    a,
+                    b,
+                ),
+                OneId(
+                    c,
+                ),
+            ),
+            TwoRr(
+                TwoRr(
+                    OneId(
+                        a,
+                    ),
+                    OneId(
+                        b,
+                    ),
+                ),
+                OneId(
+                    c,
+                ),
+            ),
+        ]
     "#]]
-    .assert_debug_eq(&term);
+    .assert_debug_eq(&complete);
 }
 
 /// Test that deep ambiguity propagates through child nonterminals.

@@ -705,3 +705,31 @@ impl<L: Language> CoreParse<L> for CoreVariable<L> {
         })
     }
 }
+
+/// `#[reject]` requires that all fields are listed (using `_` for wildcards),
+/// or that trailing `..` is used to skip the rest. Omitting fields without
+/// `..` is a compile error:
+///
+/// ```compile_fail
+/// use formality_core::term;
+/// use std::sync::Arc;
+///
+/// #[term]
+/// pub enum Perm {
+///     #[grammar(leaf)]
+///     Leaf,
+///     #[grammar($v0 $v1)]
+///     Apply(Arc<Perm>, Arc<Perm>),
+/// }
+///
+/// #[term]
+/// pub enum Ty {
+///     #[grammar($v0)]
+///     Named(TyId),
+///     #[grammar($v0 $v1)]
+///     #[reject(Perm::Apply(..))]
+///     ApplyPerm(Perm, Arc<Ty>),
+/// }
+/// formality_core::id!(TyId);
+/// ```
+pub mod reject_field_count_tests {}

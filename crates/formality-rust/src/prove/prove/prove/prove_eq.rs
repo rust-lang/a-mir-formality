@@ -9,7 +9,7 @@ use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 use formality_core::{Deduplicate, Upcasted};
 
 use crate::prove::prove::{
-    decls::Decls,
+    decls::Program,
     prove::{
         constraints::occurs_in, prove, prove_after::prove_after, prove_normalize::prove_normalize,
     },
@@ -24,7 +24,7 @@ pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> Relation {
 
 judgment_fn! {
     pub fn prove_eq(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         a: Parameter,
@@ -77,7 +77,7 @@ judgment_fn! {
 
 judgment_fn! {
     pub fn prove_existential_var_eq(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         v: ExistentialVar,
@@ -148,13 +148,13 @@ judgment_fn! {
 
 #[track_caller]
 fn equate_variable(
-    decls: impl Upcast<Decls>,
+    decls: impl Upcast<Program>,
     env: impl Upcast<Env>,
     assumptions: impl Upcast<Wcs>,
     x: impl Upcast<ExistentialVar>,
     p: impl Upcast<Parameter>,
 ) -> ProvenSet<Constraints> {
-    let decls: Decls = decls.upcast();
+    let decls: Program = decls.upcast();
     let mut env: Env = env.upcast();
     let assumptions: Wcs = assumptions.upcast();
     let x: ExistentialVar = x.upcast();

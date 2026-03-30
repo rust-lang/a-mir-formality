@@ -1,15 +1,16 @@
 use crate::rust::term;
 use expect_test::expect;
 use formality_macros::test;
+use std::sync::Arc;
 
-use crate::prove::prove::decls::Decls;
+use crate::prove::prove::decls::Program;
 
 use crate::prove::prove::test_util::test_prove;
 
 /// There is no U that is equal to all T.
 #[test]
 fn exists_u_for_t() {
-    let decls = Decls::empty();
+    let decls = Program::empty();
     test_prove(decls, term("exists<U> {} => {for<T> T = U}")).assert_err(expect![[r#"
         crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: !ty_1, assumptions: {}, env: Env { variables: [?ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
@@ -25,12 +26,12 @@ fn exists_u_for_t() {
 /// There is U that is equal to some T.
 #[test]
 fn for_t_exists_u() {
-    let decls = Decls {
-        program: Decls::program_from_items(vec![
+    let decls = Program {
+        crates: Arc::new(Program::program_from_items(vec![
             term("trait Test<T> where {}"),
             term("impl<X> Test<X> for X {}"),
-        ]),
-        ..Decls::empty()
+        ])),
+        ..Program::empty()
     };
 
     test_prove(decls, term("{} => {for<T> Test(T, T)}")).assert_ok(expect!["{Constraints { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: true, substitution: {} }}"]);

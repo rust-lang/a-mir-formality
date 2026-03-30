@@ -4,7 +4,7 @@ use formality_core::judgment_fn;
 
 use crate::prove::prove::prove::prove_outlives::prove_outlives;
 use crate::prove::prove::{
-    decls::Decls,
+    decls::Program,
     prove::{prove, prove_after::prove_after, prove_normalize::prove_normalize},
 };
 
@@ -12,7 +12,7 @@ use super::{constraints::Constraints, env::Env};
 
 judgment_fn! {
     pub fn prove_sub(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         a: Parameter,

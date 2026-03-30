@@ -1,13 +1,13 @@
 use crate::grammar::Wcs;
 use formality_core::judgment_fn;
 
-use crate::prove::prove::{decls::Decls, prove::prove};
+use crate::prove::prove::{decls::Program, prove::prove};
 
 use super::constraints::Constraints;
 
 judgment_fn! {
     pub fn prove_after(
-        _decls: Decls,
+        _decls: Program,
         constraints: Constraints,
         assumptions: Wcs,
         goal: Wcs,

@@ -1,4 +1,4 @@
-use crate::prove::prove::decls::Decls;
+use crate::prove::prove::decls::Program;
 use crate::rust::Term;
 use formality_core::judgment::ProofTree;
 use formality_core::ProvenSet;
@@ -6,12 +6,12 @@ use formality_core::ProvenSet;
 use super::{Constraints, Env};
 
 pub fn zip<A, B, C>(
-    decls: &Decls,
+    decls: &Program,
     env: &Env,
     context: &C,
     mut a: Vec<A>,
     mut b: Vec<B>,
-    op: &impl Fn(Decls, Env, C, A, B) -> ProvenSet<Constraints>,
+    op: &impl Fn(Program, Env, C, A, B) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints>
 where
     A: Term,
@@ -42,11 +42,11 @@ where
 }
 
 pub fn for_all<A, C>(
-    decls: &Decls,
+    decls: &Program,
     env: &Env,
     context: &C,
     a: &[A],
-    op: &impl Fn(Decls, Env, C, A) -> ProvenSet<Constraints>,
+    op: &impl Fn(Program, Env, C, A) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints>
 where
     A: Term,

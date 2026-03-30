@@ -4,8 +4,10 @@ mod commit_points;
 mod grammar;
 mod left_associative;
 mod left_recursion_seed;
+mod left_recursion_seed_bias;
 mod none_associative;
 mod path;
+mod reject;
 mod right_associative;
 
 formality_core::declare_language! {
@@ -29,6 +31,11 @@ formality_core::declare_language! {
             "start",
             "then",
             "list",
+            "leaf",
+            "given",
+            "apply",
+            "named",
+            "apply_perm",
         ];
     }
 }

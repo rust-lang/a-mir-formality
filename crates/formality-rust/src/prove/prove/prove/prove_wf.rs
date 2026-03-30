@@ -5,7 +5,7 @@ use crate::grammar::{
 use formality_core::{judgment_fn, Downcast, ProvenSet};
 
 use crate::prove::prove::{
-    decls::Decls,
+    decls::Program,
     prove::{combinators::for_all, prove_after::prove_after, prove_wc::prove_wc},
 };
 
@@ -13,7 +13,7 @@ use super::{constraints::Constraints, env::Env};
 
 judgment_fn! {
     pub fn prove_wf(
-        _decls: Decls,
+        _decls: Program,
         env: Env,
         assumptions: Wcs,
         goal: Parameter,
@@ -79,7 +79,7 @@ judgment_fn! {
 }
 
 pub fn prove_alias_wf(
-    decls: &Decls,
+    decls: &Program,
     env: &Env,
     assumptions: &Wcs,
     _name: &AliasName,

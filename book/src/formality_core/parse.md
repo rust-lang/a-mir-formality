@@ -80,7 +80,7 @@ pub enum Expr {
 
 Given an input like `x(y, z)`, the result is actually *ambiguous*. It could be that you parsed as an expression `x` with remaining text `(y, z)` or as a call expression; therefore, the parser returns both.
 
-Disambiguation happens once, at the **top level** (when you call `term("...")` or `core_term_with`). Here we would filter out the parse as `x` because it failed to consume all the input. That leaves exactly one parse, and so `term` succeeds. If multiple distinct parses remain, the result is an **ambiguity panic** — this means your grammar genuinely has an unresolvable ambiguity for that input.
+Disambiguation happens once, at the **top level** (when you call `term("...")` or `core_term_with`). Here we would filter out the parse as `x` because it failed to consume all the input. That leaves exactly one parse, and so `term` succeeds. If multiple distinct parses remain, the result is an **ambiguity panic** — this means your grammar genuinely has an unresolvable ambiguity for that input. You can resolve these with [`#[precedence]`](#precedence) for intra-type ambiguity (like expression operator precedence) or [`#[reject]`](#cross-type-ambiguity-and-reject) for cross-type ambiguity (like boundary ambiguity between two types).
 
 Sometimes disambiguation happens during parsing. For example, if we add another layer the example, like `Sum`:
 
@@ -208,25 +208,75 @@ This cross-kind behavior is what makes the mechanism work across type boundaries
 
 See `tests/parser_var_id_ambiguity.rs` for working tests of all three scenarios.
 
-### Precedence and left-recursive grammars
+### Left-recursive grammars
 
-We support left-recursive grammars like this one from the `parse-torture-tests`:
+We support left-recursive grammars. A grammar is left-recursive when one of its variants starts by parsing itself. For example, a path like `a.b[c.d].e` is naturally left-recursive:
 
 ```rust
 {{#include ../../../tests/parser-torture-tests/path.rs:path}}
 ```
 
-We also support ambiguous grammars. For example, you can code up arithmetic expressions like this:
+This works because the parser handles left-recursion with a fixed-point loop: it first parses the base cases (just an `Id`), then repeatedly tries to extend those results with the left-recursive variants (`Field`, `Index`), accumulating all successful parses until no new ones are found. In this grammar there's no ambiguity because `.` and `[` are unambiguous delimiters between the parts.
+
+### Precedence
+
+Often left-recursive grammars *are* ambiguous. For example, arithmetic expressions:
 
 ```rust
 {{#include ../../../tests/parser-torture-tests/left_associative.rs:Expr}}
 ```
 
-When specifying the `#[precedence]` of a variant, the default is left-associativity, which can be written more explicitly as `#[precedence(L, left)]`. If you prefer, you can specify right-associativity (`#[precedence(L, right)]`) or non-associativity `#[precedence(L, none)]`. This affects how things of the same level are parsed:
+Without the `#[precedence]` annotations, `a + b * c` would have two parses: `(a + b) * c` and `a + (b * c)`. The precedence annotations resolve this. Higher numbers bind tighter, so `*` (level 2) binds tighter than `+` (level 1), giving `a + (b * c)`.
 
-- `1 + 1 + 1` when left-associative is `(1 + 1) + 1`
-- `1 + 1 + 1` when right-associative is `1 + (1 + 1)`
-- `1 + 1 + 1` when none-associative is an error.
+The default associativity is left, which can be written explicitly as `#[precedence(L, left)]`. You can also specify right-associativity (`#[precedence(L, right)]`) or non-associativity (`#[precedence(L, none)]`). This affects how things of the same level are parsed:
+
+- `a + b + c` when left-associative is `(a + b) + c`
+- `a + b + c` when right-associative is `a + (b + c)`
+- `a + b + c` when none-associative is an error.
+
+### Explicit parenthesization
+
+One thing precedence doesn't give you is user-controlled grouping. In a real expression grammar you'd want to write `(a + b) * c` to override the default precedence. Formality doesn't currently handle this automatically. You have to add an explicit `Parens` variant to your grammar:
+
+```rust
+{{#include ../../../crates/formality-rust/src/grammar/expr/mod.rs:PlaceExprData}}
+```
+
+Here `PlaceExprData` has a prefix operator (`* expr`) and a postfix operator (`expr . field`). Without the `Parens` variant, there's no way to distinguish `*(x.field)` from `(*x).field`. Adding `#[grammar(($v0))] Parens(PlaceExpr)` lets the user write `(*x).field` to make the grouping explicit.
+
+This is admittedly a bit awkward. Formality's design goal is that the type structure matches what you'd find in a paper, and `Parens` nodes are parser machinery, not semantics. We may improve this in the future.
+
+### Cross-type ambiguity and `#[reject]`
+
+Precedence handles ambiguity *within* a single recursive type, but sometimes the ambiguity is *between* two types. Consider a grammar where a `Perm` can be composed by juxtaposition (`Perm Perm`) and a `Ty` can apply a perm to a type (also by juxtaposition):
+
+```rust
+{{#include ../../../tests/parser-torture-tests/reject.rs:reject_example}}
+```
+
+Parsing `leaf x Data` as a `Ty` is ambiguous. The parser doesn't know where `Perm` ends and `Ty` begins:
+
+- `Perm` = `leaf`, `Ty` = `ApplyPerm(Id(x), Named(Data))` ... i.e., the perm is just `leaf`
+- `Perm` = `Apply(Leaf, Id(x))`, `Ty` = `Named(Data)` ... i.e., the perm is `leaf x`
+
+Both consume all the input, so the normal disambiguation (longest match) doesn't help. You *could* restructure the grammar, but in formality the grammar is the type, and you likely don't want to extract a different type just to control parsing.
+
+The `#[reject]` attribute solves this at the use site. In the example above, `#[reject(Perm::Apply(..), _)]` on `Ty::ApplyPerm` says "reject any parse where the first field is a compound perm." The second interpretation is silently dropped, leaving just one unambiguous parse.
+
+The syntax: each position in `#[reject]` corresponds to a field of the variant. Use `_` to skip a field (no constraint). Non-wildcard positions use Rust patterns and are checked with `matches!` under the hood. All fields must be listed explicitly, or you can use trailing `..` to skip remaining fields (e.g., `#[reject(Perm::Apply(..), ..)]`). Omitting fields without `..` is a compile error. Multiple `#[reject]` attributes on the same variant are OR'd (any match rejects). Within a single `#[reject]`, non-wildcard fields are AND'd.
+
+For named fields (on structs), use `name: pattern` syntax:
+
+```rust
+#[term($perm $ty)]
+#[reject(perm: Perm::Apply(..), ty: _)]
+pub struct ApplyPerm {
+    perm: Perm,
+    ty: Arc<Ty>,
+}
+```
+
+See `tests/parser-torture-tests/reject.rs` for the full set of examples.
 
 ### Customizing the parse
 

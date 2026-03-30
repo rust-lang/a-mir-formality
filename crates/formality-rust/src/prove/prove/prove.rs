@@ -22,7 +22,7 @@ use formality_core::visit::CoreVisit;
 use formality_core::{map, set, ProvenSet, Upcast};
 use tracing::Level;
 
-use crate::prove::prove::decls::Decls;
+use crate::prove::prove::decls::Program;
 
 pub use self::env::{Bias, Env, MaxUniverse, Universe};
 use self::prove_wc_list::prove_wc_list;
@@ -31,12 +31,12 @@ pub use negation::{is_definitely_not_proveable, may_not_be_provable, negation_vi
 /// Top-level entry point for proving things; other rules recurse to this one.
 #[track_caller]
 pub fn prove(
-    decls: impl Upcast<Decls>,
+    decls: impl Upcast<Program>,
     env: impl Upcast<Env>,
     assumptions: impl Upcast<Wcs>,
     goal: impl Upcast<Wcs>,
 ) -> ProvenSet<Constraints> {
-    let decls: Decls = decls.upcast();
+    let decls: Program = decls.upcast();
     let env: Env = env.upcast();
     let assumptions: Wcs = assumptions.upcast();
     let goal: Wcs = goal.upcast();
