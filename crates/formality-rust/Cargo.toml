@@ -22,3 +22,8 @@ regex = "1.12.3"
 
 [dev-dependencies]
 expect-test = "1.4.0"
+
+[package.metadata.rust-analyzer]
+# This crate uses rustc crates.
+# More info: https://github.com/rust-analyzer/rust-analyzer/pull/7891
+rustc_private = true

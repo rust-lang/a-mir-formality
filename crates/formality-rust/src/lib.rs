@@ -1,3 +1,11 @@
+#![feature(rustc_private)]
+extern crate rustc_driver;
+extern crate rustc_interface;
+extern crate rustc_middle;
+extern crate rustc_public;
+extern crate rustc_session;
+extern crate rustc_span;
+
 // ANCHOR: declare_rust_language
 formality_core::declare_language! {
     pub mod rust {
@@ -40,6 +48,7 @@ pub mod grammar;
 pub mod pp;
 pub mod prove;
 mod test;
+pub mod test_util;
 mod trait_binder;
 pub mod types;
 
