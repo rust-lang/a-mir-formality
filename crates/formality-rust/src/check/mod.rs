@@ -21,6 +21,7 @@ pub mod borrow_check;
 
 mod adts;
 mod coherence;
+mod core_crate;
 mod fns;
 mod impls;
 mod traits;
@@ -33,6 +34,14 @@ judgment_fn! {
         debug(crates)
 
         (
+            // Add the core crate if the first crate isn't called `core`.
+            (let crates = if crates.crates.first().map_or(true, |first| &*first.id == "core") {
+                crates.clone()
+            } else {
+                let Crates { mut crates } = crates.clone();
+                crates.push(core_crate::krate());
+                Crates { crates: crates }
+            })
             // Check that all crates up to and including crate #i are valid.
             // Crate #i will be considered the "current crate".
             (for_all(i in 0..crates.len())
