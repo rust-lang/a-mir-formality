@@ -33,7 +33,7 @@ pub enum MaybeFnBody {
 
 #[term]
 pub enum FnBody {
-    #[grammar(trusted;)]
+    #[grammar({trusted})]
     TrustedFnBody,
 
     #[cast]
