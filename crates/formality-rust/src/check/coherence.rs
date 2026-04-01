@@ -19,7 +19,7 @@ judgment_fn! {
 
         (
             (let current_crate_impls: Vec<TraitImpl> = trait_impls_in_crate(current_crate))
-            (let _ = ensure_no_duplicate_impls(current_crate_impls)?)
+            (let _ = ensure_no_duplicate_impls(&current_crate_impls)?)
             (let all_crate_impls: Vec<TraitImpl> = all_trait_impls(&program))
             (for_all(i in 0..current_crate_impls.len())
                 (for_all(j in 0..all_crate_impls.len())
@@ -31,9 +31,9 @@ judgment_fn! {
                 )
             )
             (for_all(idx in 0..current_crate_impls.len())
-                (orphan_check(&program, current_crate_impls[idx].clone()) => ()))
+                (orphan_check(program.clone(), current_crate_impls[idx].clone()) => ()))
             (for_all(impl_a in neg_trait_impls_in_crate(current_crate))
-                (orphan_check_neg(&program, impl_a) => ()))
+                (orphan_check_neg(program.clone(), impl_a) => ()))
             --- ("check_coherence")
             (check_coherence_judgment(program, current_crate) => ())
         )
@@ -102,11 +102,9 @@ fn overlap_check_impl(
         ));
     }
 
-    let mut env = Env::default();
-
     // ∀P_a, ∀P_b — e.g. impl<P_a..> Tr<T_a…> for T_a0 where Wc_a vs same for b.
-    let a = env.instantiate_universally(&impl_a.binder);
-    let b = env.instantiate_universally(&impl_b.binder);
+    let (env, a) = Env::default().instantiate_universally(&impl_a.binder);
+    let (env, b) = env.instantiate_universally(&impl_b.binder);
 
     let trait_ref_a = a.trait_ref();
     let trait_ref_b = b.trait_ref();
