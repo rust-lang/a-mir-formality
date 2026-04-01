@@ -47,8 +47,8 @@ judgment_fn! {
         (
             // Instantiate the generic parameters declared on the fn
             // with universal variables.
-            (let (env, FnBoundData { input_args, output_ty, where_clauses, body }) =
-                env.instantiate_universally_into(&f.binder))
+            (let (env, bound_data) = env.instantiate_universally(&f.binder))
+            (let FnBoundData { input_args, output_ty, where_clauses, body } = bound_data)
 
             // The in-scope assumptions are the union of the assumptions
             // from the impl and the fn.
@@ -56,13 +56,10 @@ judgment_fn! {
 
             // All of the following must be well-formed:
             // where-clauses, input parameter types, and output type.
-            (prove_where_clauses_well_formed(
-                program, env, assumptions, where_clauses) => ())
+            (prove_where_clauses_well_formed(program, env, assumptions, where_clauses) => ())
             (for_all(input_arg in input_args)
-                (prove_goal(
-                    program, env, assumptions, input_arg.ty.well_formed()) => ()))
-            (prove_goal(
-                program, env, assumptions, output_ty.well_formed()) => ())
+                (prove_goal(program, env, assumptions, input_arg.ty.well_formed()) => ()))
+            (prove_goal(program, env, assumptions, output_ty.well_formed()) => ())
 
             // Type-check the function body, if present.
             (check_fn_body(program, env, assumptions, body, input_args, output_ty) => ())
