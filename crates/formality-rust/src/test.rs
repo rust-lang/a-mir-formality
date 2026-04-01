@@ -151,7 +151,7 @@ fn test_parse_rust_like_struct_syntax() {
 
 #[test]
 fn test_parse_trusted_fn() {
-    let r: Program = term(
+    let r: Crates = term(
         "[
             crate core {
               fn run() -> () {trusted}
@@ -160,7 +160,7 @@ fn test_parse_trusted_fn() {
     );
 
     expect_test::expect![[r#"
-        Program {
+        Crates {
             crates: [
                 Crate {
                     id: core,
