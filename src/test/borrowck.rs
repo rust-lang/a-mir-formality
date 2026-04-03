@@ -1307,6 +1307,7 @@ fn struct_with_mutable_reference_locks_local() {
                 }
             }
         ]
+        // FIXME(#304) -- This does not look like the error message we expect.
         expect_test::expect!["crates/formality-rust/src/prove/prove/prove/prove_wf.rs:14:1: no applicable rules for prove_wf { goal: ?lt_0, assumptions: {}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }"]
     )
 }
