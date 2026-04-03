@@ -1197,3 +1197,117 @@ fn call_mut_under_shared_borrow() {
 
     )
 }
+
+/// mutably borrowing two distinct fields of a struct -> assert_ok!
+#[test]
+fn struct_disjoint_field_borrows() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                struct Point { x: u32, y: u32 }
+                fn foo() -> u32 {
+                    exists<'r0, 'r1, 'r2, 'r3> {
+                        let p: Point = Point { x: 0 _ u32, y: 0 _ u32 };
+                        let b1: &mut 'r0 u32 = &mut 'r1 p.x;
+                        let b2: &mut 'r2 u32 = &mut 'r3 p.y;
+                        *b1 = 1 _ u32;
+                        *b2 = 2 _ u32;
+                        return 0 _ u32;
+                    }
+                }
+            }
+        ]
+    )
+}
+
+/// accessing a field while it is already mutably borrowed -> borrow error
+#[test]
+fn struct_conflicting_field_borrows() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Point { x: u32, y: u32 }
+                fn foo() -> u32 {
+                    exists<'r0, 'r1> {
+                        let p: Point = Point { x: 0 _ u32, y: 0 _ u32 };
+                        let b1: &mut 'r0 u32 = &mut 'r1 p.x;
+                        p.x = 1 _ u32;
+                        return *b1;
+                    }
+                }
+            }
+        ]
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = p : Point . x : u32
+                &access.place = p : Point . x : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2}
+                &lifetime.upcast() = ?lt_1
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p : Point . x`"#]]
+    )
+}
+
+// constructing a struct reading a local variable that is mutably borrowed -> borrow error
+#[test]
+fn struct_construction_with_borrowed_local() {
+    crate::assert_err!(
+    [
+        crate Foo {
+            struct Wrapper {
+                value: u32,
+            }
+            fn foo() -> u32 {
+                exists<'r0, 'r1> {
+                    let v1: u32 = 22 _ u32;
+                    let v2: &mut 'r0 u32 = &mut 'r1 v1;
+                    let w: Wrapper = Wrapper { value: v1 };
+                    return *v2;
+                }
+            }
+        }
+    ]
+    expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = v1 : u32
+            &access.place = v1 : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_1"#]]
+    )
+}
+
+/// placing a mutable reference inside a struct -> locks the underlying local variable
+#[test]
+fn struct_with_mutable_reference_locks_local() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Wrapper<'a> {
+                    value: &mut 'a u32,
+                }
+                fn foo() -> u32 {
+                    exists<'r0> {
+                        let v1: u32 = 0 _ u32;
+                        let w: Wrapper<'r0> = Wrapper::<'r0> { value: &mut 'r0 v1 };
+                        v1 = 1 _ u32;
+                        return *(w.value);
+                    }
+                }
+            }
+        ]
+        // FIXME(#304) -- This does not look like the error message we expect.
+        expect_test::expect!["crates/formality-rust/src/prove/prove/prove/prove_wf.rs:14:1: no applicable rules for prove_wf { goal: ?lt_0, assumptions: {}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }"]
+    )
+}
