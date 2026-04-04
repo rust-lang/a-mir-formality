@@ -1,10 +1,12 @@
 use crate::grammar::expr::Block;
 use crate::grammar::{Binder, Ty, ValueId, WhereClause};
+use crate::prove::prove::Safety;
 use formality_core::term;
 
-#[term(fn $id $binder)]
+#[term($?safety fn $id $binder)]
 pub struct Fn {
     pub id: ValueId,
+    pub safety: Safety,
     pub binder: Binder<FnBoundData>,
 }
 
