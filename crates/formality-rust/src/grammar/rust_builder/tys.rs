@@ -1,12 +1,12 @@
 use std::ops::Deref;
 
+use crate::grammar::rust_builder::RustBuilder;
 use crate::grammar::{
     Const, ConstData, Fallible, Lt, LtData, Parameter, Parameters, RefKind, RigidName, RigidTy,
     ScalarId, Ty, TyData,
 };
-use crate::pp::PrettyPrinter;
 
-impl PrettyPrinter {
+impl RustBuilder {
     pub fn pretty_print_const(&mut self, konst: &Const) -> Fallible<String> {
         match konst.data() {
             ConstData::RigidValue(_rigid_const_data) => todo!(),
@@ -140,10 +140,7 @@ impl PrettyPrinter {
 mod test {
     use formality_core::variable::{CoreBoundVar, CoreVariable, DebruijnIndex, VarIndex};
 
-    use crate::{
-        grammar::{AdtId, ParameterKind},
-        pp::NameContext,
-    };
+    use crate::grammar::{rust_builder::NameContext, AdtId, ParameterKind};
 
     use super::*;
 
@@ -236,7 +233,7 @@ mod test {
 
     #[test]
     fn pretty_print_adt() {
-        let mut pp = PrettyPrinter::default();
+        let mut pp = RustBuilder::default();
         let ty = Ty::new(TyData::RigidTy(RigidTy {
             name: RigidName::AdtId(AdtId::new("Foo")),
             parameters: Vec::new(),
@@ -248,7 +245,7 @@ mod test {
 
     #[test]
     fn pretty_print_scalar() {
-        let mut pp = PrettyPrinter::default();
+        let mut pp = RustBuilder::default();
         let ty = Ty::new(TyData::RigidTy(RigidTy {
             name: RigidName::ScalarId(ScalarId::U8),
             parameters: Vec::new(),
@@ -260,7 +257,7 @@ mod test {
 
     #[test]
     fn pretty_print_ref() {
-        let mut pp = PrettyPrinter::default();
+        let mut pp = RustBuilder::default();
         pp.ctx.push(&[ParameterKind::Lt]);
 
         // &'a u8
@@ -306,7 +303,7 @@ mod test {
 
     #[test]
     fn pretty_print_tuple() {
-        let mut pp = PrettyPrinter::default();
+        let mut pp = RustBuilder::default();
         let ty = Ty::new(TyData::RigidTy(RigidTy {
             name: RigidName::Tuple(2),
             parameters: vec![
@@ -327,7 +324,7 @@ mod test {
 
     #[test]
     fn pretty_print_fn_ptr() {
-        let mut pp = PrettyPrinter::default();
+        let mut pp = RustBuilder::default();
         let ty = Ty::new(TyData::RigidTy(RigidTy {
             name: RigidName::FnPtr(3),
             parameters: vec![

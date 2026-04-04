@@ -4,7 +4,7 @@ use rustc_driver::{run_compiler, Callbacks, Compilation};
 use rustc_public::CompilerError;
 use std::{cell::LazyCell, ops::ControlFlow};
 
-use crate::{grammar::Crates, pp::PrettyPrinter};
+use crate::grammar::{rust_builder::RustBuilder, Crates};
 
 /// This object controls rustc's behavior.
 pub struct RustCompiler {
@@ -170,7 +170,7 @@ pub fn run(file_name: &str, crates: &Crates, args: &[String]) -> anyhow::Result<
     if crates.crates.len() != 1 {
         anyhow::bail!("Only a single crate is supported");
     }
-    let krates = PrettyPrinter::default().print_crates(crates)?;
+    let krates = RustBuilder::default().build_crates(crates)?;
     RustCompiler::run(file_name.to_owned(), &krates[0], args)
         .map_err(|err| anyhow::anyhow!("{err:?}"))
 }

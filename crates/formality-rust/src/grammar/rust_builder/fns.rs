@@ -1,10 +1,10 @@
 use std::ops::Deref;
 
+use crate::grammar::rust_builder::RustBuilder;
 use crate::grammar::{Fallible, Fn, FnBody, MaybeFnBody};
-use crate::pp::PrettyPrinter;
 
-impl PrettyPrinter {
-    pub fn print_fn(&mut self, function: &Fn) -> Fallible<String> {
+impl RustBuilder {
+    pub fn build_fn(&mut self, function: &Fn) -> Fallible<String> {
         let id = function.id.deref();
         let data = function.binder.peek();
         let input_args = data
@@ -19,13 +19,13 @@ impl PrettyPrinter {
 
         let body = match &data.body {
             MaybeFnBody::NoFnBody => ";".into(),
-            MaybeFnBody::FnBody(fn_body) => format!(" {}", self.print_fn_body(fn_body)),
+            MaybeFnBody::FnBody(fn_body) => format!(" {}", self.build_fn_body(fn_body)),
         };
 
         Ok(format!("fn {id}({input_args}) -> {output_arg}{body}"))
     }
 
-    pub fn print_fn_body(&mut self, fn_body: &FnBody) -> String {
+    pub fn build_fn_body(&mut self, fn_body: &FnBody) -> String {
         match fn_body {
             FnBody::TrustedFnBody => format!("{{ panic!(\"Trusted Fn Body\") }}"),
             FnBody::Expr(_) => unimplemented!("expr fn body"),

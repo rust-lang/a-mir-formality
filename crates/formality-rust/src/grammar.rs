@@ -37,3 +37,5 @@ mod wc;
 pub use wc::*;
 
 pub mod expr;
+
+pub mod rust_builder;

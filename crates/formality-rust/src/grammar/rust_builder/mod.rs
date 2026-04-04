@@ -13,8 +13,8 @@ mod traits_and_impls;
 
 mod tys;
 
-pub fn pretty_print(crates: &Crates) -> Fallible<Vec<String>> {
-    PrettyPrinter::default().print_crates(crates)
+pub fn build_rust(crates: &Crates) -> Fallible<Vec<String>> {
+    RustBuilder::default().build_crates(crates)
 }
 
 type Stack<T> = Vec<T>;
@@ -79,15 +79,15 @@ impl NameContext {
 }
 
 #[derive(Debug, Default)]
-pub struct PrettyPrinter {
+pub struct RustBuilder {
     ctx: NameContext,
 }
 
-impl PrettyPrinter {
+impl RustBuilder {
     pub fn with_binder<T: CoreFold<crate::FormalityLang, Output = T>>(
         &mut self,
         binder: &Binder<T>,
-        mut op: impl FnMut(&T, &mut PrettyPrinter) -> Fallible<String>,
+        mut op: impl FnMut(&T, &mut RustBuilder) -> Fallible<String>,
     ) -> Fallible<String> {
         let term = binder.peek();
         self.ctx.push(binder.kinds());
@@ -105,37 +105,37 @@ impl PrettyPrinter {
         self.ctx.variable_name(core_variable)
     }
 
-    pub fn print_crates(&mut self, crates: &Crates) -> Fallible<Vec<String>> {
+    pub fn build_crates(&mut self, crates: &Crates) -> Fallible<Vec<String>> {
         crates
             .crates
             .iter()
-            .map(|krate| self.print_crate(krate))
+            .map(|krate| self.build_crate(krate))
             .collect::<Result<Vec<_>, _>>()
     }
 
-    fn print_crate(&mut self, krate: &Crate) -> Fallible<String> {
+    fn build_crate(&mut self, krate: &Crate) -> Fallible<String> {
         Ok(krate
             .items
             .iter()
-            .map(|item| self.print_crate_item(item))
+            .map(|item| self.build_crate_item(item))
             .collect::<Result<Vec<_>, _>>()?
             .join("\n"))
     }
 
-    fn print_crate_item(&mut self, crate_item: &CrateItem) -> Fallible<String> {
+    fn build_crate_item(&mut self, crate_item: &CrateItem) -> Fallible<String> {
         match crate_item {
-            CrateItem::FeatureGate(gate) => self.print_feature_gate(gate),
-            CrateItem::AdtItem(AdtItem::Struct(strukt)) => self.print_struct(strukt),
-            CrateItem::AdtItem(AdtItem::Enum(e)) => self.print_enum(e),
-            CrateItem::Trait(t) => self.print_trait(t),
-            CrateItem::TraitImpl(trait_impl) => self.print_trait_impl(trait_impl),
-            CrateItem::NegTraitImpl(neg_trait_impl) => self.print_neg_trait_impl(neg_trait_impl),
-            CrateItem::Fn(f) => self.print_fn(f),
+            CrateItem::FeatureGate(gate) => self.build_feature_gate(gate),
+            CrateItem::AdtItem(AdtItem::Struct(strukt)) => self.build_struct(strukt),
+            CrateItem::AdtItem(AdtItem::Enum(e)) => self.build_enum(e),
+            CrateItem::Trait(t) => self.build_trait(t),
+            CrateItem::TraitImpl(trait_impl) => self.build_trait_impl(trait_impl),
+            CrateItem::NegTraitImpl(neg_trait_impl) => self.build_neg_trait_impl(neg_trait_impl),
+            CrateItem::Fn(f) => self.build_fn(f),
             CrateItem::Test(_) => unimplemented!(),
         }
     }
 
-    fn print_feature_gate(&mut self, gate: &FeatureGate) -> Fallible<String> {
+    fn build_feature_gate(&mut self, gate: &FeatureGate) -> Fallible<String> {
         Ok(format!("{:?}", gate))
     }
 }
@@ -143,14 +143,14 @@ impl PrettyPrinter {
 #[macro_export]
 macro_rules! assert_rust {
     ($input:tt, $($expected:tt)*) => {{
-        $crate::pp::assert_rust(stringify!($input), stringify!($($expected)*));
+        $crate::grammar::rust_builder::assert_rust(stringify!($input), stringify!($($expected)*));
     }};
 }
 
 pub fn assert_rust(input: &str, expected: &str) {
     let program = crate::rust::try_term(input).unwrap();
-    let rust = crate::pp::PrettyPrinter::default()
-        .print_crates(&program)
+    let rust = crate::grammar::rust_builder::RustBuilder::default()
+        .build_crates(&program)
         .unwrap()[0]
         .split_whitespace()
         .collect::<Vec<_>>()

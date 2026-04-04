@@ -1,13 +1,13 @@
+use crate::grammar::rust_builder::RustBuilder;
 use crate::grammar::{Enum, Fallible, Field, FieldName, Struct, Variant};
-use crate::pp::PrettyPrinter;
 
 use std::ops::Deref;
 
-impl PrettyPrinter {
-    pub fn print_struct(&mut self, strukt: &Struct) -> Fallible<String> {
+impl RustBuilder {
+    pub fn build_struct(&mut self, strukt: &Struct) -> Fallible<String> {
         let id = strukt.id.deref();
         let data = strukt.binder.peek();
-        let wc = self.print_where(&data.where_clauses)?;
+        let wc = self.build_where(&data.where_clauses)?;
 
         let fields = data
             .fields
@@ -21,29 +21,29 @@ impl PrettyPrinter {
         Ok(format!("struct {id}{wc} {{ {fields} }}"))
     }
 
-    pub fn print_enum(&mut self, e: &Enum) -> Fallible<String> {
+    pub fn build_enum(&mut self, e: &Enum) -> Fallible<String> {
         let id = e.id.deref();
         let data = e.binder.peek();
-        let wc = self.print_where(&data.where_clauses)?;
+        let wc = self.build_where(&data.where_clauses)?;
 
         let variants = data
             .variants
             .iter()
-            .map(|v| self.print_variant(v))
+            .map(|v| self.build_print_variant(v))
             .collect::<Result<Vec<_>, _>>()?
             .join(", ");
 
         Ok(format!("enum {id}{wc} {{ {variants} }}"))
     }
 
-    pub fn print_variant(&mut self, variant: &Variant) -> Fallible<String> {
+    pub fn build_print_variant(&mut self, variant: &Variant) -> Fallible<String> {
         let name = variant.name.deref();
-        let fields = self.print_fields(&variant.fields)?;
+        let fields = self.build_fields(&variant.fields)?;
 
         Ok(format!("{name}{fields}"))
     }
 
-    pub fn print_fields(&mut self, fields: &Vec<Field>) -> Fallible<String> {
+    pub fn build_fields(&mut self, fields: &Vec<Field>) -> Fallible<String> {
         if fields.len() == 0 {
             return Ok("".into());
         }

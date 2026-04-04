@@ -45,7 +45,6 @@ pub use rust::FormalityLang;
 
 pub mod check;
 pub mod grammar;
-pub mod pp;
 pub mod prove;
 mod test;
 pub mod test_util;

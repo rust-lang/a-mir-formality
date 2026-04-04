@@ -2,15 +2,15 @@ use std::ops::Deref;
 
 use itertools::Itertools;
 
+use crate::grammar::rust_builder::RustBuilder;
 use crate::grammar::{
     AssociatedTy, Fallible, ImplItem, NegTraitImpl, Trait, TraitImpl, TraitItem, WhereClause,
     WhereClauseData,
 };
-use crate::pp::PrettyPrinter;
 use crate::prove::prove::Safety;
 
-impl PrettyPrinter {
-    pub fn print_trait(&mut self, t: &Trait) -> Fallible<String> {
+impl RustBuilder {
+    pub fn build_trait(&mut self, t: &Trait) -> Fallible<String> {
         self.with_binder(&t.binder.explicit_binder, |term, pp| {
             let safety = if let Safety::Unsafe = t.safety {
                 "unsafe "
@@ -19,14 +19,14 @@ impl PrettyPrinter {
             };
 
             let id = t.id.deref();
-            let wc = pp.print_where(&term.where_clauses)?;
+            let wc = pp.build_where(&term.where_clauses)?;
 
             let items = term
                 .trait_items
                 .iter()
                 .map(|i| match i {
-                    TraitItem::Fn(f) => pp.print_fn(f),
-                    TraitItem::AssociatedTy(assoc_ty) => pp.print_assoc_ty(assoc_ty),
+                    TraitItem::Fn(f) => pp.build_fn(f),
+                    TraitItem::AssociatedTy(assoc_ty) => pp.build_assoc_ty(assoc_ty),
                 })
                 .collect::<Result<Vec<_>, _>>()?
                 .join("\n");
@@ -35,7 +35,7 @@ impl PrettyPrinter {
         })
     }
 
-    pub fn print_assoc_ty(&mut self, assoc_ty: &AssociatedTy) -> Fallible<String> {
+    pub fn build_assoc_ty(&mut self, assoc_ty: &AssociatedTy) -> Fallible<String> {
         self.with_binder(&assoc_ty.binder, |term, pp| {
             let id = assoc_ty.id.deref();
 
@@ -93,7 +93,7 @@ impl PrettyPrinter {
         })
     }
 
-    pub fn print_trait_impl(&mut self, trait_impl: &TraitImpl) -> Fallible<String> {
+    pub fn build_trait_impl(&mut self, trait_impl: &TraitImpl) -> Fallible<String> {
         self.with_binder(&trait_impl.binder, |term, pp| {
             let safety = if let Safety::Unsafe = trait_impl.safety {
                 "unsafe "
@@ -107,7 +107,7 @@ impl PrettyPrinter {
                 .impl_items
                 .iter()
                 .map(|item| match item {
-                    ImplItem::Fn(f) => pp.print_fn(f),
+                    ImplItem::Fn(f) => pp.build_fn(f),
                     ImplItem::AssociatedTyValue(_) => todo!(),
                 })
                 .collect::<Result<Vec<_>, _>>()?
@@ -117,7 +117,7 @@ impl PrettyPrinter {
         })
     }
 
-    pub fn print_neg_trait_impl(&mut self, neg_trait_impl: &NegTraitImpl) -> Fallible<String> {
+    pub fn build_neg_trait_impl(&mut self, neg_trait_impl: &NegTraitImpl) -> Fallible<String> {
         self.with_binder(&neg_trait_impl.binder, |term, pp| {
             let safety = if let Safety::Unsafe = neg_trait_impl.safety {
                 "unsafe "
@@ -133,7 +133,7 @@ impl PrettyPrinter {
     }
 
     /// Prints a where clauses according to the [this](https://doc.rust-lang.org/reference/items/generics.html#where-clauses)
-    pub fn print_where(&mut self, where_clauses: &Vec<WhereClause>) -> Fallible<String> {
+    pub fn build_where(&mut self, where_clauses: &Vec<WhereClause>) -> Fallible<String> {
         if where_clauses.is_empty() {
             return Ok("".into());
         }
@@ -279,7 +279,7 @@ mod test {
     #[test]
     fn where_is_implemented() {
         fn t(term: crate::grammar::Trait) -> String {
-            PrettyPrinter::default().print_trait(&term).unwrap()
+            RustBuilder::default().build_trait(&term).unwrap()
         }
 
         crate::assert_rust2!(
@@ -292,7 +292,7 @@ mod test {
     #[test]
     fn where_is_implemented_with_params() {
         fn t(term: crate::grammar::Trait) -> String {
-            PrettyPrinter::default().print_trait(&term).unwrap()
+            RustBuilder::default().build_trait(&term).unwrap()
         }
         crate::assert_rust2!(
             [trait Foo where T: Bar<i32, String> {}],
@@ -304,7 +304,7 @@ mod test {
     #[test]
     fn trait_assoc_type() {
         fn t(term: crate::grammar::Trait) -> String {
-            PrettyPrinter::default().print_trait(&term).unwrap()
+            RustBuilder::default().build_trait(&term).unwrap()
         }
         crate::assert_rust2!(
             [trait Foo where K: Bar { type Error: []; fn test() -> K; }],
@@ -316,7 +316,7 @@ mod test {
     #[test]
     fn where_type_of_const() {
         fn t(term: crate::grammar::Trait) -> String {
-            PrettyPrinter::default().print_trait(&term).unwrap()
+            RustBuilder::default().build_trait(&term).unwrap()
         }
         crate::assert_rust2!(
             [trait Foo<const C> where type_of_const C is bool {}],
