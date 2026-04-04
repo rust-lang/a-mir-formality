@@ -1,5 +1,5 @@
 use crate::grammar::{
-    AdtItem, Binder, Crate, CrateItem, Fallible, FeatureGate, ParameterKind, Program,
+    AdtItem, Binder, Crate, CrateItem, Crates, Fallible, FeatureGate, ParameterKind,
 };
 use formality_core::{fold::CoreFold, variable::CoreVariable};
 
@@ -13,8 +13,8 @@ mod traits_and_impls;
 
 mod tys;
 
-pub fn pretty_print(program: &Program) -> Fallible<Vec<String>> {
-    PrettyPrinter::default().print_program(program)
+pub fn pretty_print(crates: &Crates) -> Fallible<Vec<String>> {
+    PrettyPrinter::default().print_crates(crates)
 }
 
 type Stack<T> = Vec<T>;
@@ -84,7 +84,7 @@ pub struct PrettyPrinter {
 }
 
 impl PrettyPrinter {
-    pub fn with_binder<T: CoreFold<crate::FormalityLang>>(
+    pub fn with_binder<T: CoreFold<crate::FormalityLang, Output = T>>(
         &mut self,
         binder: &Binder<T>,
         mut op: impl FnMut(&T, &mut PrettyPrinter) -> Fallible<String>,
@@ -105,8 +105,8 @@ impl PrettyPrinter {
         self.ctx.variable_name(core_variable)
     }
 
-    pub fn print_program(&mut self, program: &Program) -> Fallible<Vec<String>> {
-        program
+    pub fn print_crates(&mut self, crates: &Crates) -> Fallible<Vec<String>> {
+        crates
             .crates
             .iter()
             .map(|krate| self.print_crate(krate))
@@ -150,7 +150,7 @@ macro_rules! assert_rust {
 pub fn assert_rust(input: &str, expected: &str) {
     let program = crate::rust::try_term(input).unwrap();
     let rust = crate::pp::PrettyPrinter::default()
-        .print_program(&program)
+        .print_crates(&program)
         .unwrap()[0]
         .split_whitespace()
         .collect::<Vec<_>>()
