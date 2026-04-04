@@ -1,9 +1,10 @@
+#![cfg(test)]
+
 use rustc_driver::{run_compiler, Callbacks, Compilation};
-use rustc_interface::Config;
 use rustc_public::CompilerError;
 use std::{cell::LazyCell, ops::ControlFlow};
 
-use crate::{pp::PrettyPrinter, rust::try_term};
+use crate::{grammar::Crates, pp::PrettyPrinter};
 
 /// This object controls rustc's behavior.
 pub struct RustCompiler {
@@ -64,7 +65,7 @@ impl RustCompiler {
 }
 
 impl Callbacks for RustCompiler {
-    fn config(&mut self, config: &mut Config) {
+    fn config(&mut self, config: &mut rustc_interface::Config) {
         config.input = rustc_session::config::Input::Str {
             name: rustc_span::FileName::Custom(self.file_name.clone()),
             input: self.input.clone(),
@@ -92,34 +93,67 @@ const DEFAULT_ARGS: LazyCell<[String; 6]> = LazyCell::new(|| {
     ]
 });
 
+/// Parses the given token tree as Formality crates, generates valid
+/// Rust code from them, and then compiles and analyzes that code
+/// using `rustc`.
+///
+/// Asserts that `rustc` can successfully compile the generated code.
+///
+/// Panics if the input is not a valid Formality program or if compilation
+/// fails.
 #[macro_export]
-macro_rules! assert_ok {
+macro_rules! assert_rustc_ok {
     ($input:tt) => {{
-        let _ = $crate::test_util::run(
-            "dummy-file.rs",
-            stringify!($input),
-            &*$crate::test_util::DEFAULT_ARGS,
-        )
-        .unwrap();
+        let crates = $crate::rust::term(stringify!($input));
+        let _ = $crate::test_util::run("dummy-file.rs", &crates, &*$crate::test_util::DEFAULT_ARGS)
+            .unwrap();
     }};
 }
 
+/// Parses the given token tree as Formality crates, generates valid
+/// Rust code from them, and then compiles and analyzes that code
+/// using `rustc`.
+///
+/// Asserts that `rustc` can **not** successfully compile the generated code.
+///
+/// Panics if the input is not a valid Formality program or if compilation
+/// succeeds.
 #[macro_export]
-macro_rules! assert_err {
+macro_rules! assert_rustc_err {
     ($input:tt) => {{
-        let _ = $crate::test_util::run(
+        let crates = $crate::rust::term(stringify!($input));
+        let _ = $crate::test_util::run("dummy-file.rs", &crates, &*$crate::test_util::DEFAULT_ARGS)
+            .unwrap_err();
+    }};
+}
+
+/// Parses the given token tree as Formality crates, generates valid
+/// Rust code from them, and then compiles and analyzes that code
+/// using `rustc`.
+///
+/// Asserts that Formality and `rustc` arrive at the same conclusion about the
+/// program’s validity.
+///
+/// Panics if the input is not a valid Formality program or if Formality and
+/// `rustc` produce differing outcomes
+#[macro_export]
+macro_rules! assert_rustc_equality {
+    ($input:tt) => {{
+        let crates = $crate::rust::term(stringify!($input));
+        let result = $crate::test_util::formality_rustc_equality(
             "dummy-file.rs",
-            stringify!($input),
+            crates,
             &*$crate::test_util::DEFAULT_ARGS,
         )
-        .unwrap_err();
+        .unwrap();
+        assert!(result);
     }};
 }
 
 /// Compiles a Formality program into Rust code and invokes `rustc` to
 /// type‑check and analyze the generated crate.
 ///
-/// The function expands the Formality `input` into a Rust crate and forwards
+/// The function expands the Formality `crates` into a Rust crate and forwards
 /// it, together with the dummy file name `file_name`, to the compiler.
 /// Only programs that translate into a single crate are supported.
 ///
@@ -127,35 +161,68 @@ macro_rules! assert_err {
 ///
 /// ```no_run
 /// # use formality_rust::test_util::run;
+/// # use formality_rust::grammar::Crates;
+/// let formality = Crates { todo!() };
 /// let rust_args = vec!["--crate-type=lib".into()];
-/// run("virtual.rs", "some_formality_program", &rust_args).unwrap();
+/// run("virtual.rs", formality, &rust_args).unwrap();
 /// ```
-pub fn run(file_name: &str, input: &str, args: &[String]) -> anyhow::Result<()> {
-    let program = try_term(input)?;
-    let krates = PrettyPrinter::default().print_crates(&program)?;
-
-    if krates.len() != 1 {
+pub fn run(file_name: &str, crates: &Crates, args: &[String]) -> anyhow::Result<()> {
+    if crates.crates.len() != 1 {
         anyhow::bail!("Only a single crate is supported");
     }
-
-    let krate = &krates[0];
-
-    RustCompiler::run(file_name.to_owned(), krate, args).map_err(|err| anyhow::anyhow!("{err:?}"))
+    let krates = PrettyPrinter::default().print_crates(crates)?;
+    RustCompiler::run(file_name.to_owned(), &krates[0], args)
+        .map_err(|err| anyhow::anyhow!("{err:?}"))
 }
 
-#[cfg(test)]
-mod test {
-    #[test]
-    fn blub() {
-        assert_ok!([
-            crate Foo { fn foo() -> i32 { trusted }}
-        ]);
+/// Compiles a Formality program into Rust code, invokes `rustc`,
+/// and compares rustc’s analysis result with Formality’s analysis result.
+///
+/// # Example
+///
+/// ```no_run
+/// # use formality_rust::test_util::formality_rustc_equality;
+/// # use formality_rust::grammar::Crates;
+/// let formality = Crates { todo!() };
+/// let rust_args = vec!["--crate-type=lib".into()];
+/// assert!(formality_rustc_equality("virtual.rs", formality, &rust_args).unwrap());
+/// ```
+pub fn formality_rustc_equality(
+    file_name: &str,
+    crates: Crates,
+    args: &[String],
+) -> anyhow::Result<bool> {
+    use crate::check::check_all_crates;
 
-        // Fails, because Bar is not a known type for rustc.
-        assert_err!([
-            crate Foo {
-                fn foo() -> Bar { trusted }
-            }
-        ]);
+    let rustc_result = run(file_name, &crates, args);
+    let formality_result = check_all_crates(crates).check_proven();
+
+    match (formality_result, rustc_result) {
+        (Ok(_), Ok(_)) => Ok(true),
+        (Err(_), Err(_)) => Ok(true),
+        _ => Ok(false),
     }
+}
+
+#[test]
+fn test_macros() {
+    assert_rustc_ok!([
+        crate Foo { fn foo() -> i32 { trusted }}
+    ]);
+
+    assert_rustc_err!([
+        crate Foo {
+            fn foo() -> Bar { trusted }
+        }
+    ]);
+
+    assert_rustc_equality!([
+        crate Foo { fn foo() -> i32 { trusted }}
+    ]);
+
+    assert_rustc_equality!([
+        crate Foo {
+            fn foo() -> Bar { trusted }
+        }
+    ]);
 }
