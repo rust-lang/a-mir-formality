@@ -5,7 +5,7 @@ use crate::prove::prove::{Env, Program};
 use anyhow::bail;
 
 use super::{prove_goal, prove_not_goal};
-use formality_core::{judgment::ProofTree, judgment_fn, Downcasted, ProvenSet};
+use formality_core::{judgment::ProofTree, judgment_fn, ProvenSet};
 
 /// Runs coherence checking (orphan, overlap, duplicates) for the current crate.
 /// Returns ProvenSet<()> caller.
@@ -206,3 +206,4 @@ fn all_trait_impls(program: &Program) -> Vec<TraitImpl> {
         .downcasted()
         .collect()
 }
+

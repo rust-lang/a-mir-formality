@@ -57,7 +57,7 @@ fn foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait() {
         ]
 
         expect_test::expect![[r#"
-            the rule "check crate" at (mod.rs) failed because
+            the rule "check_coherence" at (coherence.rs) failed because
               impls may overlap:
               impl <ty> FooTrait for ^ty0_0 where ^ty0_0 : CoreTrait { }
               impl FooTrait for CoreStruct { }"#]]
@@ -106,7 +106,7 @@ fn u32_T_where_T_Is_impls() {
         ]
 
         expect_test::expect![[r#"
-            the rule "check crate" at (mod.rs) failed because
+            the rule "check_coherence" at (coherence.rs) failed because
               impls may overlap:
               impl Foo for u32 { }
               impl <ty> Foo for ^ty0_0 where ^ty0_0 : Is { }"#]]
@@ -146,7 +146,7 @@ fn u32_u32_impls() {
         ]
 
         expect_test::expect![[r#"
-            the rule "check crate" at (mod.rs) failed because
+            the rule "check_coherence" at (coherence.rs) failed because
               duplicate impl in current crate: impl Foo for u32 { }"#]]
     )
 }
@@ -177,7 +177,7 @@ fn u32_T_impls() {
         ]
 
         expect_test::expect![[r#"
-            the rule "check crate" at (mod.rs) failed because
+            the rule "check_coherence" at (coherence.rs) failed because
               impls may overlap:
               impl Foo for u32 { }
               impl <ty> Foo for ^ty0_0 { }"#]]
@@ -200,7 +200,7 @@ fn T_and_T_bar() {
         ]
 
         expect_test::expect![[r#"
-            the rule "check crate" at (mod.rs) failed because
+            the rule "check_coherence" at (coherence.rs) failed because
               impls may overlap:
               impl <ty> Foo for ^ty0_0 { }
               impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }"#]]
@@ -225,7 +225,7 @@ fn T_and_Local_Bar_T() {
         ]
 
         expect_test::expect![[r#"
-            the rule "check crate" at (mod.rs) failed because
+            the rule "check_coherence" at (coherence.rs) failed because
               impls may overlap:
               impl <ty> Foo for ^ty0_0 { }
               impl <ty> Foo for ^ty0_0 where LocalType : Bar <^ty0_0> { }"#]]
@@ -289,7 +289,7 @@ fn is_local_with_unconstrained_self_ty_blanket_impl() {
         ]
 
         expect_test::expect![[r#"
-            the rule "check crate" at (mod.rs) failed because
+            the rule "check_coherence" at (coherence.rs) failed because
               impls may overlap:
               impl <ty, ty> Overlap <^ty0_1> for ^ty0_0 where <^ty0_0 as Project>::Assoc : Foo <^ty0_1> { }
               impl <ty> Overlap <LocalType> for ^ty0_0 { }"#]]
