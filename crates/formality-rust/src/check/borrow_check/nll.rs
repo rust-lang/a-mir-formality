@@ -430,7 +430,7 @@ judgment_fn! {
         (
             (borrow_check_place_expr(env, assumptions, state, place) => (place, state))
             (access_permitted(env, assumptions, state, Access::new(AccessKind::Read, place), places_live_on_exit) => state)
-            // FIXME(#296, #297): need to check that either the type is copy or this place can be moved from
+            // FIXME: need to check that either the type is copy or this place can be moved from
             ------------------------------------------------------------ ("place")
             (borrow_check_expr(env, assumptions, state, ExprData::Place(place), places_live_on_exit) => (&place.ty, state))
         )
@@ -633,7 +633,7 @@ judgment_fn! {
 judgment_fn! {
     /// Check that the given access is permitted. Currently this just checks
     /// that no live loans conflict with the access; in the future, this will
-    /// also check initialization, moves, etc. (#296, #297, #298)
+    /// also check initialization, moves, etc.
     fn access_permitted(
         env: TypeckEnv,
         assumptions: Wcs,
