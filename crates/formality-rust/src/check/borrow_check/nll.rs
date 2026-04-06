@@ -430,9 +430,17 @@ judgment_fn! {
         (
             (borrow_check_place_expr(env, assumptions, state, place) => (place, state))
             (access_permitted(env, assumptions, state, Access::new(AccessKind::Read, place), places_live_on_exit) => state)
-            // FIXME(#296): need to check that the type is copy or this place can be moved from
+            // FIXME(#296): also need to track that the place has been moved from
             (prove_place_is_movable(env, assumptions, state, place) => state)
-            ------------------------------------------------------------ ("place")
+            ------------------------------------------------------------ ("place-move")
+            (borrow_check_expr(env, assumptions, state, ExprData::Place(place), places_live_on_exit) => (&place.ty, state))
+        )
+
+        (
+            (borrow_check_place_expr(env, assumptions, state, place) => (place, state))
+            (access_permitted(env, assumptions, state, Access::new(AccessKind::Read, place), places_live_on_exit) => state)
+            (prove_ty_is_copy(env, assumptions, state, &place.ty) => state)
+            ------------------------------------------------------------ ("place-copy")
             (borrow_check_expr(env, assumptions, state, ExprData::Place(place), places_live_on_exit) => (&place.ty, state))
         )
 
@@ -737,6 +745,31 @@ judgment_fn! {
             (loan_cannot_outlive_universal_regions(env, assumptions, &state.current.outlives, &loan) => ())
             ------------------------------------------------------------ ("loan is dead")
             (access_permitted_by_loan(env, assumptions, state, loan, access, places_live_after_access) => state)
+        )
+    }
+}
+
+judgment_fn! {
+    /// Prove that a type is `Copy`. For now, scalar types and references are
+    /// considered `Copy`. This will eventually be replaced by a proper trait check.
+    fn prove_ty_is_copy(
+        env: TypeckEnv,
+        assumptions: Wcs,
+        state: FlowState,
+        ty: Ty,
+    ) => FlowState {
+        debug(env, assumptions, state, ty)
+
+        (
+            (prove_ty_is_rigid(env, assumptions, state, ty) => (RigidTy { name: RigidName::ScalarId(_), .. }, state))
+            ------------------------------------------------------------ ("scalar")
+            (prove_ty_is_copy(env, assumptions, state, ty) => state)
+        )
+
+        (
+            (prove_ty_is_rigid(env, assumptions, state, ty) => (RigidTy { name: RigidName::Ref(RefKind::Shared), .. }, state))
+            ------------------------------------------------------------ ("shared-ref")
+            (prove_ty_is_copy(env, assumptions, state, ty) => state)
         )
     }
 }
