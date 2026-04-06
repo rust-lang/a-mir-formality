@@ -47,7 +47,7 @@ judgment_fn! {
         (
             // Instantiate the generic parameters declared on the fn
             // with universal variables.
-            (let (env, bound_data) = env.instantiate_universally(&f.binder))
+            (let (env, bound_data) = env.instantiate_universally_into(&f.binder))
             (let FnBoundData { input_args, output_ty, where_clauses, body } = bound_data)
 
             // The in-scope assumptions are the union of the assumptions

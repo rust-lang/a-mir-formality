@@ -285,6 +285,17 @@ impl Env {
         b.instantiate_with(&subst).unwrap()
     }
 
+    /// Like [`Self::instantiate_universally`], but non-mutating: clones `self`,
+    /// instantiates the binder, and returns `(extended_env, value)`.
+    pub fn instantiate_universally_into<T>(&self, b: &Binder<T>) -> (Env, T)
+    where
+        T: Fold,
+    {
+        let mut env = self.clone();
+        let value = env.instantiate_universally(b);
+        (env, value)
+    }
+
     /// Returns `(e,s)` where
     ///
     /// * `s` is a list of fresh inference variables for each variable bound in `b`; and,
