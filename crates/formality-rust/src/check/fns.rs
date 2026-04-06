@@ -48,20 +48,17 @@ pub(crate) fn check_fn(
     // with universal variables (i.e., treat them as fresh,
     // unknown types).
     let Fn { id: _, binder } = f;
-    let (
-        env,
-        FnBoundData {
-            input_args,
-            output_ty,
-            where_clauses,
-            body,
-        },
-    ) = env.instantiate_universally(binder);
+    let FnBoundData {
+        input_args,
+        output_ty,
+        where_clauses,
+        body,
+    } = &env.instantiate_universally(binder);
     let env = &env;
 
     // The in-scope assumtion are the union of the assumptions from
     // the impl and the fn.
-    let fn_assumptions: &Wcs = &(in_assumptions, where_clauses.clone()).to_wcs();
+    let fn_assumptions: &Wcs = &(in_assumptions, where_clauses).to_wcs();
 
     // All of the following must be well-formed:
     // where-clauses, input parameter types, and output type.
@@ -71,9 +68,9 @@ pub(crate) fn check_fn(
             program,
             env,
             fn_assumptions,
-            &where_clauses,
+            where_clauses,
         )?);
-    for input_arg in &input_args {
+    for input_arg in input_args {
         proof_tree.children.push(super::prove_goal(
             program,
             env,
@@ -98,8 +95,8 @@ pub(crate) fn check_fn(
                 // A trusted function body is assumed to be valid, all set.
             }
             crate::grammar::FnBody::Expr(block) => {
-                let typeck_env = TypeckEnv::for_fn_body(env, program, &output_ty);
-                let initial_state = FlowState::for_fn_body(env, &input_args)?;
+                let typeck_env = TypeckEnv::for_fn_body(env, program, output_ty);
+                let initial_state = FlowState::for_fn_body(env, input_args)?;
                 proof_tree.children.push(
                     borrow_check(typeck_env, fn_assumptions, initial_state, block)
                         .check_proven()?,

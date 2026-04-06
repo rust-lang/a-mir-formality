@@ -169,8 +169,11 @@ fn trait_items_with_duplicate_fn_names() {
         ]
 
         expect_test::expect![[r#"
-            the rule "check trait" at (traits.rs) failed because
-              the function name `a` is defined multiple times"#]]
+            the rule "trait" at (mod.rs) failed because
+              check_trait(A)
+
+              Caused by:
+                  the function name `a` is defined multiple times"#]]
 
     );
 }
@@ -188,8 +191,11 @@ fn trait_items_with_duplicate_associated_type_names() {
         ]
 
         expect_test::expect![[r#"
-            the rule "check trait" at (traits.rs) failed because
-              the associated type name `Assoc` is defined multiple times"#]]
+            the rule "trait" at (mod.rs) failed because
+              check_trait(A)
+
+              Caused by:
+                  the associated type name `Assoc` is defined multiple times"#]]
     );
 }
 
