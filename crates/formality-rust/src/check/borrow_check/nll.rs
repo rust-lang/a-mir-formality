@@ -432,15 +432,7 @@ judgment_fn! {
             (access_permitted(env, assumptions, state, Access::new(AccessKind::Read, place), places_live_on_exit) => state)
             // FIXME(#296): also need to track that the place has been moved from
             (prove_place_is_movable(env, assumptions, state, place) => state)
-            ------------------------------------------------------------ ("place-move")
-            (borrow_check_expr(env, assumptions, state, ExprData::Place(place), places_live_on_exit) => (&place.ty, state))
-        )
-
-        (
-            (borrow_check_place_expr(env, assumptions, state, place) => (place, state))
-            (access_permitted(env, assumptions, state, Access::new(AccessKind::Read, place), places_live_on_exit) => state)
-            (prove_ty_is_copy(env, assumptions, state, &place.ty) => state)
-            ------------------------------------------------------------ ("place-copy")
+            ------------------------------------------------------------ ("place")
             (borrow_check_expr(env, assumptions, state, ExprData::Place(place), places_live_on_exit) => (&place.ty, state))
         )
 
@@ -750,8 +742,10 @@ judgment_fn! {
 }
 
 judgment_fn! {
-    /// Prove that a type is `Copy`. For now, scalar types and references are
-    /// considered `Copy`. This will eventually be replaced by a proper trait check.
+    /// Prove that a type is `Copy`. For now, scalar types and shared references
+    /// are considered `Copy`.
+    ///
+    /// FIXME: replace with a proper trait check once lang-items are available.
     fn prove_ty_is_copy(
         env: TypeckEnv,
         assumptions: Wcs,
@@ -790,21 +784,36 @@ judgment_fn! {
         debug(env, assumptions, state, place)
 
         (
-            (if let TypedPlaceExpressionData::Local(_) = place.data())
             ------------------------------------------------------------ ("local")
-            (prove_place_is_movable(_env, _assumptions, state, place) => state)
+            (prove_place_is_movable(
+                _env,
+                _assumptions,
+                state,
+                TypedPlaceExpressionData::Local(_),
+            ) => state)
         )
 
         (
-            (if let TypedPlaceExpressionData::Field(prefix, _) = place.data())
             (prove_place_is_movable(env, assumptions, state, prefix) => state)
             ------------------------------------------------------------ ("field")
+            (prove_place_is_movable(
+                env,
+                assumptions,
+                state,
+                TypedPlaceExpressionData::Field(prefix, _),
+            ) => state)
+        )
+
+        (
+            (prove_ty_is_copy(env, assumptions, state, &place.ty) => state)
+            ------------------------------------------------------------ ("copy")
             (prove_place_is_movable(env, assumptions, state, place) => state)
         )
 
-        // For a deref, we would need to prove the prefix type is an "owned deref"
-        // (e.g., Box). Since no owned deref types exist yet, this rule has no
-        // matching cases and derefs through references naturally fail.
+        // For a deref of a non-Copy type, we would need to prove the prefix type
+        // is an "owned deref" (e.g., Box). Since no owned deref types exist yet,
+        // this rule has no matching cases and derefs through references naturally
+        // fail.
     }
 }
 
