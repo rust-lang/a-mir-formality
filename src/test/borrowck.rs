@@ -403,7 +403,6 @@ fn move_parent_then_access_child() {
 /// }
 /// ```
 #[test]
-#[ignore = "needs move-out-of-reference check (#297)"]
 fn move_out_of_shared_ref() {
     crate::assert_err!(
         [
@@ -423,7 +422,12 @@ fn move_out_of_shared_ref() {
             }
         ]
 
-        expect_test::expect![[""]]
+        expect_test::expect![[r#"
+            the rule "field" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Field(prefix, _)` did not match value `*(r : &?lt_1 Datum)`
+
+            the rule "local" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Local(_)` did not match value `*(r : &?lt_1 Datum)`"#]]
     )
 }
 
@@ -439,7 +443,6 @@ fn move_out_of_shared_ref() {
 /// }
 /// ```
 #[test]
-#[ignore = "needs move-out-of-reference check (#297)"]
 fn move_out_of_mut_ref() {
     crate::assert_err!(
         [
@@ -459,7 +462,12 @@ fn move_out_of_mut_ref() {
             }
         ]
 
-        expect_test::expect![[""]]
+        expect_test::expect![[r#"
+            the rule "field" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Field(prefix, _)` did not match value `*(r : &mut ?lt_1 Datum)`
+
+            the rule "local" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Local(_)` did not match value `*(r : &mut ?lt_1 Datum)`"#]]
     )
 }
 
