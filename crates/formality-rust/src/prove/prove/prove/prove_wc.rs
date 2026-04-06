@@ -1,4 +1,4 @@
-use crate::grammar::{Predicate, Relation, Wc, WcData, Wcs};
+use crate::grammar::{Parameter, Predicate, Relation, Variable, Wc, WcData, Wcs};
 use formality_core::judgment_fn;
 
 use crate::prove::prove::{
@@ -19,6 +19,10 @@ use crate::prove::prove::{
 };
 
 use super::constraints::Constraints;
+
+fn parameter_is_existential_variable(p: &Parameter) -> bool {
+    matches!(p.as_variable(), Some(Variable::ExistentialVar(_)))
+}
 
 judgment_fn! {
     /// The "heart" of the trait system -- prove that a where-clause holds given a set of declarations, variable environment, and set of assumptions.
@@ -158,6 +162,7 @@ judgment_fn! {
 
 
         (
+            (if !parameter_is_existential_variable(&p))!
             (prove_wf(decls, env, assumptions, p) => c)
             ----------------------------- ("parameter well formed")
             (prove_wc(decls, env, assumptions, Relation::WellFormed(p)) => c)

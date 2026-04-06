@@ -1,8 +1,8 @@
 use crate::grammar::{
     AliasName, AliasTy, ConstData, Lt, LtData, Parameter, Parameters, Relation, RigidName, RigidTy,
-    Ty, UniversalVar, Wcs,
+    Ty, UniversalVar, Variable, Wcs,
 };
-use formality_core::{judgment_fn, Downcast, ProvenSet};
+use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 
 use crate::prove::prove::{
     decls::Program,
@@ -29,6 +29,19 @@ judgment_fn! {
             // for every universal variable. That just seems tedious.
             --- ("universal variables")
             (prove_wf(_decls, env, _assumptions, UniversalVar { .. }) => Constraints::none(env))
+        )
+
+        (
+            // Use prove_wc so earlier assumptions still apply the well-formed rule skips these
+            // variables there so we do not loop forever.
+            (prove_wc(
+                decls,
+                env,
+                assumptions,
+                Upcast::<Parameter>::upcast(v.clone()).well_formed(),
+            ) => c)
+            --- ("existential variables")
+            (prove_wf(decls, env, assumptions, Variable::ExistentialVar(v)) => c)
         )
 
         (
