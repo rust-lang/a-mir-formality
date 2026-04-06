@@ -116,7 +116,7 @@ judgment_fn! {
         debug(program, c, crate_id)
 
         (
-            (check_trait(program, v, crate_id) => ())
+            (check_trait(program, Env::default(), v, crate_id) => ())
             ------------------------------------------------------------ ("trait")
             (check_crate_item(program, CrateItem::Trait(v), crate_id) => ())
         )
@@ -160,8 +160,8 @@ judgment_fn! {
 }
 
 fn check_test(program: &Program, test: &Test) -> Fallible<ProofTree> {
-    let mut env = Env::default();
-    let TestBoundData { assumptions, goals } = env.instantiate_universally(&test.binder);
+    let (env, TestBoundData { assumptions, goals }) =
+        Env::default().instantiate_universally(&test.binder);
     prove_goal(program, &env, assumptions, goals)
 }
 
