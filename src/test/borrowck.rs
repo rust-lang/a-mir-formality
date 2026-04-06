@@ -423,6 +423,12 @@ fn move_out_of_shared_ref() {
         ]
 
         expect_test::expect![[r#"
+            the rule "scalar" at (nll.rs) failed because
+              pattern `(RigidTy { name: RigidName::ScalarId(_), .. }, state)` did not match value `(Datum, flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, Datum), (r, &?lt_1 Datum)], [x : Datum, r : &?lt_1 Datum])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, x : Datum, shared)}), {}, {}))`
+
+            the rule "shared-ref" at (nll.rs) failed because
+              pattern `(RigidTy { name: RigidName::Ref(RefKind::Shared), .. }, state)` did not match value `(Datum, flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, Datum), (r, &?lt_1 Datum)], [x : Datum, r : &?lt_1 Datum])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, x : Datum, shared)}), {}, {}))`
+
             the rule "field" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Field(prefix, _)` did not match value `*(r : &?lt_1 Datum)`
 
@@ -463,6 +469,12 @@ fn move_out_of_mut_ref() {
         ]
 
         expect_test::expect![[r#"
+            the rule "scalar" at (nll.rs) failed because
+              pattern `(RigidTy { name: RigidName::ScalarId(_), .. }, state)` did not match value `(Datum, flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, Datum), (r, &mut ?lt_1 Datum)], [x : Datum, r : &mut ?lt_1 Datum])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, x : Datum, mut)}), {}, {}))`
+
+            the rule "shared-ref" at (nll.rs) failed because
+              pattern `(RigidTy { name: RigidName::Ref(RefKind::Shared), .. }, state)` did not match value `(Datum, flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, Datum), (r, &mut ?lt_1 Datum)], [x : Datum, r : &mut ?lt_1 Datum])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, x : Datum, mut)}), {}, {}))`
+
             the rule "field" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Field(prefix, _)` did not match value `*(r : &mut ?lt_1 Datum)`
 

@@ -313,6 +313,9 @@ fn test_call_invalid_fn() {
               no fn named `foo`
 
             the rule "local" at (nll.rs) failed because
+              unknown local variable `foo`
+
+            the rule "local" at (nll.rs) failed because
               unknown local variable `foo`"#]]
     )
 }
@@ -359,6 +362,9 @@ fn test_call_generic_fn_without_turbofish() {
         expect_test::expect![[r#"
             the rule "fn-name" at (nll.rs) failed because
               condition evaluated to false: `fn_decl.binder.len() == 0`
+
+            the rule "local" at (nll.rs) failed because
+              unknown local variable `identity`
 
             the rule "local" at (nll.rs) failed because
               unknown local variable `identity`"#]]
