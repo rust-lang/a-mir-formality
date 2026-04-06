@@ -23,16 +23,15 @@ pub(super) fn check_trait_impl(
     let TraitImpl { binder, safety: _ } = trait_impl;
     let mut proof_tree = ProofTree::leaf("check_trait_impl");
 
-    let (
-        env,
-        TraitImplBoundData {
-            trait_id,
-            self_ty,
-            trait_parameters,
-            where_clauses,
-            impl_items,
-        },
-    ) = Env::default().instantiate_universally(binder);
+    let mut env = Env::default();
+
+    let TraitImplBoundData {
+        trait_id,
+        self_ty,
+        trait_parameters,
+        where_clauses,
+        impl_items,
+    } = env.instantiate_universally(binder);
 
     let trait_ref = trait_id.with(self_ty, trait_parameters);
 
@@ -90,15 +89,14 @@ pub(super) fn check_neg_trait_impl(
 ) -> Fallible<ProofTree> {
     let NegTraitImpl { binder, safety } = trait_impl;
 
-    let (
-        env,
-        NegTraitImplBoundData {
-            trait_id,
-            self_ty,
-            trait_parameters,
-            where_clauses,
-        },
-    ) = Env::default().instantiate_universally(binder);
+    let mut env = Env::default();
+
+    let NegTraitImplBoundData {
+        trait_id,
+        self_ty,
+        trait_parameters,
+        where_clauses,
+    } = env.instantiate_universally(binder);
 
     let trait_ref = trait_id.with(self_ty, trait_parameters);
 
@@ -203,22 +201,20 @@ fn check_fn_in_impl(
         crate_id,
     )?);
 
+    let mut env = env.clone();
     let (
-        env,
-        (
-            FnBoundData {
-                input_args: ii_input_args,
-                output_ty: ii_output_ty,
-                where_clauses: ii_where_clauses,
-                body: _,
-            },
-            FnBoundData {
-                input_args: ti_input_args,
-                output_ty: ti_output_ty,
-                where_clauses: ti_where_clauses,
-                body: _,
-            },
-        ),
+        FnBoundData {
+            input_args: ii_input_args,
+            output_ty: ii_output_ty,
+            where_clauses: ii_where_clauses,
+            body: _,
+        },
+        FnBoundData {
+            input_args: ti_input_args,
+            output_ty: ti_output_ty,
+            where_clauses: ti_where_clauses,
+            body: _,
+        },
     ) = env.instantiate_universally(&merge_binders(&ii_fn.binder, &ti_fn.binder)?);
 
     proof_tree.children.push(super::prove_goal(
@@ -307,19 +303,18 @@ fn check_associated_ty_value(
         None => bail!("no associated type `{:?}` in the trait", id),
     };
 
+    let mut env = impl_env.clone();
+
     let (
-        env,
-        (
-            AssociatedTyValueBoundData {
-                where_clauses: ii_where_clauses,
-                ty: ii_ty,
-            },
-            AssociatedTyBoundData {
-                ensures: ti_ensures,
-                where_clauses: ti_where_clauses,
-            },
-        ),
-    ) = impl_env.instantiate_universally(&merge_binders(binder, &trait_associated_ty.binder)?);
+        AssociatedTyValueBoundData {
+            where_clauses: ii_where_clauses,
+            ty: ii_ty,
+        },
+        AssociatedTyBoundData {
+            ensures: ti_ensures,
+            where_clauses: ti_where_clauses,
+        },
+    ) = env.instantiate_universally(&merge_binders(binder, &trait_associated_ty.binder)?);
 
     let mut proof_tree = ProofTree::new(
         format!("check_associated_ty_value({:?})", impl_value.id),

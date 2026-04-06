@@ -56,7 +56,9 @@ pub(crate) fn check_coherence(program: &Program, current_crate: &Crate) -> Falli
 
 #[context("orphan_check({impl_a:?})")]
 fn orphan_check(program: &Program, impl_a: &TraitImpl) -> Fallible<ProofTree> {
-    let (env, a) = Env::default().instantiate_universally(&impl_a.binder);
+    let mut env = Env::default();
+
+    let a = env.instantiate_universally(&impl_a.binder);
     let trait_ref = a.trait_ref();
 
     // The orphan check passes if
@@ -71,7 +73,9 @@ fn orphan_check(program: &Program, impl_a: &TraitImpl) -> Fallible<ProofTree> {
 
 #[context("orphan_check_neg({impl_a:?})")]
 fn orphan_check_neg(program: &Program, impl_a: &NegTraitImpl) -> Fallible<ProofTree> {
-    let (env, a) = Env::default().instantiate_universally(&impl_a.binder);
+    let mut env = Env::default();
+
+    let a = env.instantiate_universally(&impl_a.binder);
     let trait_ref = a.trait_ref();
 
     super::prove_goal(program, &env, &a.where_clauses, trait_ref.is_local())
@@ -79,8 +83,7 @@ fn orphan_check_neg(program: &Program, impl_a: &NegTraitImpl) -> Fallible<ProofT
 
 #[tracing::instrument(level = "Debug", skip(program))]
 fn overlap_check(program: &Program, impl_a: &TraitImpl, impl_b: &TraitImpl) -> Fallible<ProofTree> {
-    let (env, a) = Env::default().instantiate_universally(&impl_a.binder);
-    let (env, b) = env.instantiate_universally(&impl_b.binder);
+    let mut env = Env::default();
 
     // Example:
     //
@@ -90,6 +93,8 @@ fn overlap_check(program: &Program, impl_a: &TraitImpl, impl_b: &TraitImpl) -> F
     //   impl<P_b..> SomeTrait<T_b...> for T_b0 where Wc_b { }
 
     // ∀P_a, ∀P_b....
+    let a = env.instantiate_universally(&impl_a.binder);
+    let b = env.instantiate_universally(&impl_b.binder);
 
     // ...get the trait refs from each impl...
     let trait_ref_a = a.trait_ref();
