@@ -274,17 +274,18 @@ impl Env {
 
     /// Given a bound value `<X..> v`, returns `v` with `X...` replaced with fresh universal variables.
     /// Modifies `self` to bring those variables into scope.
-    pub fn instantiate_universally<T>(&mut self, b: &Binder<T>) -> T
+    pub fn instantiate_universally<T>(&self, b: &Binder<T>) -> (Env, T)
     where
         T: Fold,
     {
-        let subst = self.fresh_substitution(b.kinds(), |kind, var_index| UniversalVar {
+        let mut env = self.clone();
+        let subst = env.fresh_substitution(b.kinds(), |kind, var_index| UniversalVar {
             kind,
             var_index,
         });
-        b.instantiate_with(&subst).unwrap()
+        let value = b.instantiate_with(&subst).unwrap();
+        (env, value)
     }
-
     /// Returns `(e,s)` where
     ///
     /// * `s` is a list of fresh inference variables for each variable bound in `b`; and,
