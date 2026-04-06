@@ -18,7 +18,7 @@ judgment_fn! {
             (let (env, bound_data) = env.instantiate_universally(&binder.explicit_binder))
             (let TraitBoundData { where_clauses, trait_items } = bound_data)
             (check_trait_items_have_unique_names(&trait_items) => ())
-            (super::where_clauses::prove_where_clauses_well_formed(&program, &new_env, &where_clauses, &where_clauses) => ())
+            (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
             ------------------------------------------------------------ ("check trait")
             (check_trait(program, env, t, crate_id) => ())
         )
