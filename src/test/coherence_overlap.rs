@@ -81,11 +81,8 @@ fn T_where_Foo_not_u32_impls() {
         ]
 
         expect_test::expect![[r#"
-            the rule "trait impl" at (mod.rs) failed because
-              check_trait_impl(impl <ty> Foo for ^ty0_0 where ^ty0_0 : Foo { })
-
-              Caused by:
-                  failed to prove {! Foo(!ty_1)} given {Foo(!ty_1)}, got [Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]"#]]
+            the rule "check_trait_impl" at (impls.rs) failed because
+              failed to prove {! Foo(!ty_1)} given {Foo(!ty_1)}, got [Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]"#]]
     )
 }
 
