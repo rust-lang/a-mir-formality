@@ -14,7 +14,13 @@ impl Crates {
         self.crates.len()
     }
 
+    /// Inclusive prefix.
     pub fn prefix(&self, tail: usize) -> Crates {
+        assert!(
+            tail < self.crates.len(),
+            "Crates::prefix: tail {tail} out of range (len is {})",
+            self.crates.len()
+        );
         Crates {
             crates: self.crates[..=tail].to_vec(),
         }
