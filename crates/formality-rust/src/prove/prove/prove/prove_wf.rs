@@ -6,7 +6,7 @@ use formality_core::{judgment_fn, Downcast, ProvenSet};
 
 use crate::prove::prove::{
     decls::Program,
-    prove::{combinators::for_all, prove_after::prove_after, prove_wc::prove_wc},
+    prove::{combinators::for_all, prove_after::prove_after},
 };
 
 use super::{constraints::Constraints, env::Env};
@@ -34,7 +34,8 @@ judgment_fn! {
         (
             // `&'a T` is well-formed if `T: 'a`
             (let (lt, ty) = parameters.downcast_err::<(Lt, Ty)>()?)
-            (prove_wc(decls, env, assumptions, Relation::outlives(ty, lt)) => c)
+            (prove_wf(decls, env, assumptions, ty) => c)
+            (prove_after(decls, c, assumptions, Relation::outlives(ty, lt)) => c)
             --- ("references")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Ref(_), parameters }) => c)
         )

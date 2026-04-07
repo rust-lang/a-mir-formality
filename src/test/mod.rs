@@ -8,6 +8,7 @@ mod consts;
 mod decl_safety;
 mod functions;
 mod mir_typeck;
+mod references;
 mod well_formed_trait_ref;
 
 #[test]
