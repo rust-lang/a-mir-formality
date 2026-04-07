@@ -1,6 +1,7 @@
 //! Test for how we handle ambiguity between a variable and an identifier in the parser.
 //! This can't be part of parser-torture-tests because it requires settting up a custom variable.
 
+#![feature(rustc_private)]
 use std::sync::Arc;
 
 use formality_core::{Downcast, DowncastTo, Upcast, UpcastFrom};

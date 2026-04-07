@@ -1,3 +1,4 @@
+#![feature(rustc_private)]
 use std::{path::PathBuf, sync::Arc};
 
 use clap::Parser;

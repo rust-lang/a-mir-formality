@@ -1,3 +1,4 @@
+#![feature(rustc_private)]
 #![allow(non_snake_case)] // we embed type names into the names for our test functions
 
 use a_mir_formality::test_program_ok;
@@ -18,17 +19,17 @@ fn test_overlap_normalize_alias_to_LocalType() {
                 trait Mirror {
                     type T : [];
                 }
-                
+
                 impl<A> Mirror for A {
                     type T = A;
                 }
-                
+
                 struct LocalType {}
-                
+
                 trait LocalTrait { }
-                
+
                 impl<T> LocalTrait for T where T: Iterator { }
-                
+
                 impl LocalTrait for <LocalType as Mirror>::T { }
 
                 ADDITIONAL
@@ -74,17 +75,17 @@ fn test_overlap_alias_not_normalizable() {
                 trait Mirror {
                     type T : [];
                 }
-                
+
                 impl<A> Mirror for A {
                     type T = A;
                 }
-                
+
                 struct LocalType {}
-                
+
                 trait LocalTrait { }
-                
+
                 impl<T> LocalTrait for T where T: Iterator { }
-                
+
                 impl<T> LocalTrait for <T as Mirror>::T where T: Mirror { }
 
                 ADDITIONAL
