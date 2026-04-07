@@ -6,6 +6,7 @@ mod coherence_overlap;
 mod const_generics_rv_tsv_parse;
 mod consts;
 mod decl_safety;
+mod field_projection;
 mod functions;
 mod mir_typeck;
 mod references;

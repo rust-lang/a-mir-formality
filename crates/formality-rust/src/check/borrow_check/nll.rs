@@ -7,11 +7,12 @@ use crate::check::borrow_check::typed_place_expression::{
 
 use crate::grammar::expr::{Block, Expr, ExprData, Init, PlaceExpr, PlaceExprData, Stmt};
 use crate::grammar::{
-    AliasTy, ExistentialVar, FieldName, Fn, Lt, Parameter, RefKind, Relation, RigidName, RigidTy,
-    ScalarId, Struct, StructBoundData, Ty, TyData, Variable, Wcs, WhereClause,
+    AliasTy, AssociatedItemId, ExistentialVar, FieldName, Fn, Lt, Parameter, Predicate, RefKind,
+    Relation, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId, TraitRef, Ty, TyData,
+    Variable, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
-use crate::prove::prove::Safety;
+use crate::prove::prove::{prove, Safety};
 use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 
@@ -599,9 +600,9 @@ judgment_fn! {
 
         (
             (borrow_check_place_expr(env, assumptions, state, prefix) => (prefix_typed, state))
-            // FIXME: to generalize beyond references, we probably want to add a `prove_rigid_ty_is_deref` judgment that results in the referent ty
-            (prove_ty_is_rigid(env, assumptions, state, &prefix_typed.ty) => (RigidTy { name: RigidName::Ref(_ref_kind), parameters }, state))
-            (if let Parameter::Ty(referent_ty) = &parameters[1])
+            // FIXME: how do we propagate the changes from this prove-constraint up the chain?
+            (prove(&env.program, &env.env, assumptions, Predicate::IsImplemented(TraitId::new("Place").with_self(&prefix_typed.ty))) => c)
+            (let referent_ty = AliasTy::associated_ty(TraitId::new("Place"), AssociatedItemId::new("Target"), 0, vec![&prefix_typed.ty]))
             ------------------------------------------------------------ ("deref-ref")
             (borrow_check_place_expr(env, assumptions, state, PlaceExprData::Deref { prefix }) => (
                 TypedPlaceExpr::new(referent_ty, TypedPlaceExpressionData::deref(prefix_typed)),
