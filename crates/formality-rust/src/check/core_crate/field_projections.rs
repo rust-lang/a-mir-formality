@@ -8,6 +8,20 @@ pub fn lang_items() -> LangItems {
             type Target: [];
         }
 
+        impl<'a, T> Place for &'a T
+        where
+            T: 'a,
+        {
+            type Target = T;
+        }
+
+        impl<'a, T> Place for &mut 'a T
+        where
+            T: 'a,
+        {
+            type Target = T;
+        }
+
         unsafe trait Subplace {
             type Source: [];
             type Target: [];
