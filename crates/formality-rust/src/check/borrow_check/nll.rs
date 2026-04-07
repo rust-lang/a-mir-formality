@@ -7,10 +7,12 @@ use crate::check::borrow_check::typed_place_expression::{
 
 use crate::grammar::expr::{Block, Expr, ExprData, Init, PlaceExpr, PlaceExprData, Stmt};
 use crate::grammar::{
-    AliasTy, FieldName, Lt, LtData, Parameter, RefKind, Relation, RigidName, RigidTy, ScalarId,
+    AliasTy, FieldName, Fn, Lt, LtData, Parameter, RefKind, Relation, RigidName, RigidTy, ScalarId,
     Struct, StructBoundData, Ty, TyData, ValueId, Variable, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
+use crate::prove::prove::Safety;
+use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 
 use crate::check::borrow_check::liveness::{Assignment, Either, LiveBefore, LivePlaces};
@@ -368,9 +370,11 @@ judgment_fn! {
             (prove_ty_is_rigid(env, assumptions, state, callee_ty) => (RigidTy { name: RigidName::FnDef(fn_id), parameters }, state))
 
             // Find the function declaration and instantiate it
-            (let fn_decl = env.crates().fn_named(fn_id)?)
+            (let Fn { id: _, safety, binder } = env.crates().fn_named(fn_id)?)
+            // FIXME: add `unsafe` blocks and only allow calling unsafe functions from there.
+            (ProvenSet::singleton((safety, ProofTree::leaf("safety"))) => Safety::Safe)
             (let FnBoundData { input_args, output_ty, where_clauses, body: _ } =
-                fn_decl.binder.instantiate_with(parameters)?)
+                binder.instantiate_with(parameters)?)
 
             // Check argument count matches
             (let input_tys: Vec<Ty> = input_args.iter().map(|a| a.ty.clone()).collect())

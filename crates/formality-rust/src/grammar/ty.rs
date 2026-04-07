@@ -173,6 +173,10 @@ pub enum RigidName {
     #[grammar(&($v0))]
     Ref(RefKind),
 
+    #[cast]
+    #[grammar(*$v0)]
+    Raw(PtrKind),
+
     Tuple(usize),
 
     FnPtr(usize),
@@ -188,6 +192,13 @@ pub enum RigidName {
 pub enum RefKind {
     #[default]
     Shared,
+    Mut,
+}
+
+#[term]
+#[derive(Copy)]
+pub enum PtrKind {
+    Const,
     Mut,
 }
 

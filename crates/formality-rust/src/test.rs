@@ -168,6 +168,7 @@ fn test_parse_trusted_fn() {
                         Fn(
                             Fn {
                                 id: run,
+                                safety: Safe,
                                 binder: Binder {
                                     kinds: [],
                                     term: FnBoundData {

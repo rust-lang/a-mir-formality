@@ -331,6 +331,7 @@ fn is_fundamental(_decls: &Program, name: &RigidName) -> bool {
         RigidName::AdtId(_) => false, // FIXME(#222)
 
         RigidName::Ref(_) => true,
+        RigidName::Raw(_) => true,
 
         RigidName::Never => false,
 

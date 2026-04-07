@@ -41,6 +41,14 @@ judgment_fn! {
         )
 
         (
+            // `*const T`/`*mut T` is well-formed if `T` is.
+            (let (ty,) = parameters.downcast_err::<(Ty,)>()?)
+            (prove_wf(decls, env, assumptions, ty) => c)
+            --- ("raw-pointers")
+            (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Raw(_), parameters }) => c)
+        )
+
+        (
             (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
             --- ("tuples")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Tuple(_), parameters }) => c)
