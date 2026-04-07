@@ -88,11 +88,8 @@ fn unsafe_trait_mismatch() {
         ]
 
         expect_test::expect![[r#"
-            the rule "trait impl" at (mod.rs) failed because
-              check_trait_impl(impl Foo for u32 { })
-
-              Caused by:
-                  the trait `Foo` requires an `unsafe impl` declaration"#]]
+            the rule "safety matches" at (impls.rs) failed because
+              condition evaluated to false: `trait_decl.safety == trait_impl.safety`"#]]
     )
 }
 
@@ -107,10 +104,7 @@ fn safe_trait_mismatch() {
         ]
 
         expect_test::expect![[r#"
-            the rule "trait impl" at (mod.rs) failed because
-              check_trait_impl(unsafe impl Foo for u32 { })
-
-              Caused by:
-                  implementing the trait `Foo` is not unsafe"#]]
+            the rule "safety matches" at (impls.rs) failed because
+              condition evaluated to false: `trait_decl.safety == trait_impl.safety`"#]]
     )
 }
