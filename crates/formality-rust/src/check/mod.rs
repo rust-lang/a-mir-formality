@@ -35,12 +35,12 @@ judgment_fn! {
 
         (
             // Add the core crate if the first crate isn't called `core`.
-            (let crates = if crates.crates.first().map_or(true, |first| &*first.id == "core") {
-                crates.clone()
-            } else {
+            (let crates = {
                 let Crates { mut crates } = crates.clone();
-                crates.push(core_crate::krate());
-                Crates { crates: crates }
+                if Some("core") != crates.first().map(|first| &**first.id) {
+                    crates.push(core_crate::krate());
+                }
+                Crates { crates }
             })
             // Check that all crates up to and including crate #i are valid.
             // Crate #i will be considered the "current crate".
