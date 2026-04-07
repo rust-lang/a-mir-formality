@@ -206,4 +206,3 @@ fn all_trait_impls(program: &Program) -> Vec<TraitImpl> {
         .downcasted()
         .collect()
 }
-
