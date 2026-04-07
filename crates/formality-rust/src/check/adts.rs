@@ -24,12 +24,13 @@ pub(super) fn check_adt(program: &Program, adt: &Adt) -> Fallible<ProofTree> {
         }
     }
 
-    let mut env = Env::default();
-
-    let AdtBoundData {
-        where_clauses,
-        variants,
-    } = env.instantiate_universally(binder);
+    let (
+        env,
+        AdtBoundData {
+            where_clauses,
+            variants,
+        },
+    ) = Env::default().instantiate_universally(binder);
 
     proof_tree
         .children

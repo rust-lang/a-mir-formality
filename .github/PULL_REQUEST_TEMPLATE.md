@@ -1,16 +1,33 @@
 ## What does this PR do?
 
-Closes #issue-number
+e.g., closes #issue-number
 
+<details>
+<summary>Disclosure questions</summary>
 
-## Disclosure and PR context
+**AI disclosure.**
 
-**AI tools used:** <!-- describe briefly if AI tools were used and how, e.g., "No" or "Yes, for research" or "Yes, for code". Feel free to provide more details, I'm curious to learn about people's workflows. =) -->
+<!-- The use of AI tooling for a-mir-formality is permitted. We require disclosure to help calibrate our reviews. -->
 
-**Confidence level:** <!-- e.g., "Early draft, want feedback" / "I think it's right, want confirmation" / "Feel good about it" -->
+<!-- Remove the items that do not apply. -->
 
-**Review depth:** <!-- e.g., "I skimmed briefly" / "I read it but bits I don't understand" / "I reviewed closely and understand it well" -->
+* I used an AI tool for research, autocomplete, or in other minimal ways agent
+* The AI tool authored small parts of the code (e.g., autocomplete, comments)
+* The AI tool authored large parts of the code
+* The AI tool authored and opened this PR autonomously
+* Other: (explain)
 
-**Testing:** <!-- e.g., "Not tested" / "I ran full test suite (cargo test --all)" / "I tested by hand" -->
+**Confidence level.**
 
-**Questions for mentors:** <!-- Any specific areas of uncertainty or things you'd like reviewers to look at -->
+<!-- Remove the items that do not apply. -->
+
+* Early draft, want feedback
+* It seems reasonable to me, I'd like to know what others think
+* I am very happy with it
+* Other: (explain)
+
+**Questions for reviewers.**
+
+<!-- Any specific areas of uncertainty or things you'd like reviewers to look at? -->
+
+</details>
