@@ -479,7 +479,7 @@ fn test_incompatible_return_type() {
 }
 
 // Test the behaviour of having unitialised return local variable.
-// FIXME(#209): This test should fail but currently passes due to removed return place initialization check
+// FIXME(#209, #296): This test should fail but currently passes due to removed return place initialization check
 #[test]
 #[ignore = "needs uninitialized return detection in expr grammar"]
 fn test_uninitialised_return_type() {

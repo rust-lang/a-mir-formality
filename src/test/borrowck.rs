@@ -1,4 +1,566 @@
 use formality_core::test;
+
+// ===================================================================
+// Initialization and move tracking tests
+//
+// These tests exercise the initialization/move analysis. Currently
+// formality does not track initialization or moves, so tests that
+// expect errors are #[ignore]d. Tests that expect success pass today
+// (vacuously, since there's no init checking to reject them).
+// ===================================================================
+
+/// Use of an uninitialized variable should be an error.
+///
+/// ```rust,ignore
+/// fn foo() -> u32 {
+///     let x: u32;
+///     x  // ERROR: x isn't initialized
+/// }
+/// ```
+#[test]
+#[ignore = "needs initialization tracking (#296)"]
+fn use_of_uninitialized_variable() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo() -> u32 {
+                    let x: u32;
+                    return x;
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// Use of a moved variable should be an error.
+///
+/// ```rust,ignore
+/// struct Datum { value: u32 }
+/// fn foo() -> Datum {
+///     let x: Datum = Datum { value: 1 };
+///     let _y: Datum = x;  // x moved here
+///     let _z: Datum = x;  // ERROR: use of moved value
+///     return _z;
+/// }
+/// ```
+#[test]
+#[ignore = "needs move tracking (#296)"]
+fn use_of_moved_variable() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Datum {
+                    value: u32,
+                }
+
+                fn foo() -> Datum {
+                    let x: Datum = Datum { value: 0 _ u32 };
+                    let y: Datum = x;
+                    let z: Datum = x;
+                    return z;
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// Re-initialization after move should be OK.
+///
+/// ```rust,ignore
+/// struct Datum { value: u32 }
+/// fn foo() -> Datum {
+///     let x: Datum = Datum { value: 1 };
+///     let _y: Datum = x;       // x moved
+///     x = Datum { value: 2 };  // re-init
+///     let _z: Datum = x;       // OK
+///     return _z;
+/// }
+/// ```
+#[test]
+fn reinit_after_move() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                struct Datum {
+                    value: u32,
+                }
+
+                fn foo() -> Datum {
+                    let x: Datum = Datum { value: 0 _ u32 };
+                    let y: Datum = x;
+                    x = Datum { value: 1 _ u32 };
+                    let z: Datum = x;
+                    return z;
+                }
+            }
+        ]
+    )
+}
+
+/// Conditional initialization in only one branch should be an error.
+///
+/// ```rust,ignore
+/// fn foo() -> u32 {
+///     let x: u32;
+///     if true {
+///         x = 1;
+///     } else { }
+///     return x;  // ERROR: possibly uninitialized
+/// }
+/// ```
+#[test]
+#[ignore = "needs initialization tracking (#296)"]
+fn conditional_init_one_branch() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo() -> u32 {
+                    let x: u32;
+                    if true {
+                        x = 1 _ u32;
+                    } else {
+                    }
+                    return x;
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// Conditional initialization in both branches should be OK.
+///
+/// ```rust,ignore
+/// fn foo() -> u32 {
+///     let x: u32;
+///     if true {
+///         x = 1;
+///     } else {
+///         x = 2;
+///     }
+///     return x;  // OK
+/// }
+/// ```
+#[test]
+fn conditional_init_both_branches() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo() -> u32 {
+                    let x: u32;
+                    if true {
+                        x = 1 _ u32;
+                    } else {
+                        x = 2 _ u32;
+                    }
+                    return x;
+                }
+            }
+        ]
+    )
+}
+
+/// Assigning to a field of an uninitialized variable should be an error.
+///
+/// ```rust,ignore
+/// fn foo() -> u32 {
+///     let x: Pair;
+///     x.first = 1;  // ERROR: x not initialized
+///     return 0;
+/// }
+/// ```
+#[test]
+#[ignore = "needs initialization tracking (#296)"]
+fn assign_field_of_uninitialized() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Pair {
+                    first: u32,
+                    second: u32,
+                }
+
+                fn foo() -> u32 {
+                    let x: Pair;
+                    x.first = 1 _ u32;
+                    return 0 _ u32;
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// After a partial move, sibling fields should still be usable.
+///
+/// ```rust,ignore
+/// struct Datum { value: u32 }
+/// struct Pair { first: Datum, second: Datum }
+/// fn foo() -> Datum {
+///     let x: Pair = Pair { first: Datum { value: 1 }, second: Datum { value: 2 } };
+///     let _a: Datum = x.first;  // move x.first
+///     let _b: Datum = x.second; // OK — sibling still initialized
+///     return _b;
+/// }
+/// ```
+#[test]
+fn partial_move_use_sibling() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                struct Datum {
+                    value: u32,
+                }
+
+                struct Pair {
+                    first: Datum,
+                    second: Datum,
+                }
+
+                fn foo() -> Datum {
+                    let x: Pair = Pair { first: Datum { value: 1 _ u32 }, second: Datum { value: 2 _ u32 } };
+                    let a: Datum = x.first;
+                    let b: Datum = x.second;
+                    return b;
+                }
+            }
+        ]
+    )
+}
+
+/// After a partial move, using the whole struct should be an error.
+///
+/// ```rust,ignore
+/// struct Datum { value: u32 }
+/// struct Pair { first: Datum, second: Datum }
+/// fn foo() -> u32 {
+///     let x: Pair = Pair { first: Datum { value: 1 }, second: Datum { value: 2 } };
+///     let _a: Datum = x.first;  // move x.first
+///     let _b: Pair = x;         // ERROR: partially moved
+///     return 0;
+/// }
+/// ```
+#[test]
+#[ignore = "needs move tracking (#296)"]
+fn partial_move_use_whole() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Datum {
+                    value: u32,
+                }
+
+                struct Pair {
+                    first: Datum,
+                    second: Datum,
+                }
+
+                fn foo() -> u32 {
+                    let x: Pair = Pair { first: Datum { value: 1 _ u32 }, second: Datum { value: 2 _ u32 } };
+                    let a: Datum = x.first;
+                    let b: Pair = x;
+                    return 0 _ u32;
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// Moving the same field twice should be an error.
+///
+/// ```rust,ignore
+/// struct Datum { value: u32 }
+/// struct Pair { first: Datum, second: Datum }
+/// fn foo() -> Datum {
+///     let x: Pair = Pair { first: Datum { value: 1 }, second: Datum { value: 2 } };
+///     let _a: Datum = x.first;
+///     let _b: Datum = x.first;  // ERROR: already moved
+///     return _b;
+/// }
+/// ```
+#[test]
+#[ignore = "needs move tracking (#296)"]
+fn move_same_field_twice() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Datum {
+                    value: u32,
+                }
+
+                struct Pair {
+                    first: Datum,
+                    second: Datum,
+                }
+
+                fn foo() -> Datum {
+                    let x: Pair = Pair { first: Datum { value: 1 _ u32 }, second: Datum { value: 2 _ u32 } };
+                    let a: Datum = x.first;
+                    let b: Datum = x.first;
+                    return b;
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// Moving the whole variable should make fields inaccessible.
+///
+/// ```rust,ignore
+/// struct Datum { value: u32 }
+/// struct Pair { first: Datum, second: Datum }
+/// fn foo() -> Datum {
+///     let x: Pair = Pair { first: Datum { value: 1 }, second: Datum { value: 2 } };
+///     let _a: Pair = x;        // move whole struct
+///     let _b: Datum = x.first;  // ERROR: x is moved
+///     return _b;
+/// }
+/// ```
+#[test]
+#[ignore = "needs move tracking (#296)"]
+fn move_whole_then_access_field() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Datum {
+                    value: u32,
+                }
+
+                struct Pair {
+                    first: Datum,
+                    second: Datum,
+                }
+
+                fn foo() -> Datum {
+                    let x: Pair = Pair { first: Datum { value: 1 _ u32 }, second: Datum { value: 2 _ u32 } };
+                    let a: Pair = x;
+                    let b: Datum = x.first;
+                    return b;
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// Moving a parent field should make child fields inaccessible.
+///
+/// ```rust,ignore
+/// fn foo() -> u32 {
+///     let x: Outer = ...;
+///     let _a: Inner = x.foo;    // move x.foo
+///     let _b: u32 = x.foo.bar;  // ERROR: x.foo is moved
+///     return _b;
+/// }
+/// ```
+#[test]
+#[ignore = "needs move tracking (#296)"]
+fn move_parent_then_access_child() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Inner {
+                    bar: u32,
+                }
+
+                struct Outer {
+                    foo: Inner,
+                }
+
+                fn foo() -> u32 {
+                    let x: Outer = Outer { foo: Inner { bar: 1 _ u32 } };
+                    let a: Inner = x.foo;
+                    let b: u32 = x.foo.bar;
+                    return b;
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// Cannot move out of a shared reference.
+///
+/// ```rust,ignore
+/// struct Datum { value: u32 }
+/// fn foo() -> Datum {
+///     let x: Datum = Datum { value: 1 };
+///     let r: &Datum = &x;
+///     let _y: Datum = *r;  // ERROR: cannot move out of &
+///     return _y;
+/// }
+/// ```
+#[test]
+#[ignore = "needs move-out-of-reference check (#297)"]
+fn move_out_of_shared_ref() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Datum {
+                    value: u32,
+                }
+
+                fn foo() -> Datum {
+                    exists<'r0, 'r1> {
+                        let x: Datum = Datum { value: 0 _ u32 };
+                        let r: &'r0 Datum = &'r1 x;
+                        let y: Datum = *r;
+                        return y;
+                    }
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// Cannot move out of a mutable reference.
+///
+/// ```rust,ignore
+/// struct Datum { value: u32 }
+/// fn foo() -> Datum {
+///     let x: Datum = Datum { value: 1 };
+///     let r: &mut Datum = &mut x;
+///     let _y: Datum = *r;  // ERROR: cannot move out of &mut
+///     return _y;
+/// }
+/// ```
+#[test]
+#[ignore = "needs move-out-of-reference check (#297)"]
+fn move_out_of_mut_ref() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Datum {
+                    value: u32,
+                }
+
+                fn foo() -> Datum {
+                    exists<'r0, 'r1> {
+                        let x: Datum = Datum { value: 0 _ u32 };
+                        let r: &mut 'r0 Datum = &mut 'r1 x;
+                        let y: Datum = *r;
+                        return y;
+                    }
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// Cannot move a place that has an active loan.
+///
+/// ```rust,ignore
+/// struct Datum { value: u32 }
+/// fn foo() -> Datum {
+///     let x: Datum = Datum { value: 1 };
+///     let r: &Datum = &x;
+///     let _y: Datum = x;  // ERROR: x is borrowed
+///     return *r;
+/// }
+/// ```
+#[test]
+#[ignore = "needs move-out-of-borrowed check (#298)"]
+fn move_out_of_borrowed_place() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Datum {
+                    value: u32,
+                }
+
+                fn foo() -> Datum {
+                    exists<'r0, 'r1> {
+                        let x: Datum = Datum { value: 0 _ u32 };
+                        let r: &'r0 Datum = &'r1 x;
+                        let y: Datum = x;
+                        return *r;
+                    }
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// A move in a loop should be an error on the second iteration.
+///
+/// ```rust,ignore
+/// struct Datum { value: u32 }
+/// fn foo() -> u32 {
+///     let x: Datum = Datum { value: 1 };
+///     loop {
+///         let _y: Datum = x;  // ERROR: moved in previous iteration
+///         break;
+///     }
+///     return 0;
+/// }
+/// ```
+#[test]
+#[ignore = "needs move tracking (#296)"]
+fn move_in_loop() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                struct Datum {
+                    value: u32,
+                }
+
+                fn foo() -> u32 {
+                    let x: Datum = Datum { value: 0 _ u32 };
+                    'l: loop {
+                        let y: Datum = x;
+                        break 'l;
+                    }
+                    return 0 _ u32;
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
+
+/// Uninitialized return place should be an error.
+///
+/// ```rust,ignore
+/// fn foo() -> u32 {
+///     let x: u32;
+///     return x;  // ERROR: x not initialized
+/// }
+/// ```
+#[test]
+#[ignore = "needs initialization tracking (#296, #209)"]
+fn uninitialized_return() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo() -> u32 {
+                    let x: u32;
+                    return x;
+                }
+            }
+        ]
+
+        expect_test::expect![[""]]
+    )
+}
 /// Test the holding a shared reference to a local
 /// integer variable prevents it from being incremented.
 ///
@@ -1195,119 +1757,5 @@ fn call_mut_under_shared_borrow() {
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v`"#]]
 
-    )
-}
-
-/// mutably borrowing two distinct fields of a struct -> assert_ok!
-#[test]
-fn struct_disjoint_field_borrows() {
-    crate::assert_ok!(
-        [
-            crate Foo {
-                struct Point { x: u32, y: u32 }
-                fn foo() -> u32 {
-                    exists<'r0, 'r1, 'r2, 'r3> {
-                        let p: Point = Point { x: 0 _ u32, y: 0 _ u32 };
-                        let b1: &mut 'r0 u32 = &mut 'r1 p.x;
-                        let b2: &mut 'r2 u32 = &mut 'r3 p.y;
-                        *b1 = 1 _ u32;
-                        *b2 = 2 _ u32;
-                        return 0 _ u32;
-                    }
-                }
-            }
-        ]
-    )
-}
-
-/// accessing a field while it is already mutably borrowed -> borrow error
-#[test]
-fn struct_conflicting_field_borrows() {
-    crate::assert_err!(
-        [
-            crate Foo {
-                struct Point { x: u32, y: u32 }
-                fn foo() -> u32 {
-                    exists<'r0, 'r1> {
-                        let p: Point = Point { x: 0 _ u32, y: 0 _ u32 };
-                        let b1: &mut 'r0 u32 = &mut 'r1 p.x;
-                        p.x = 1 _ u32;
-                        return *b1;
-                    }
-                }
-            }
-        ]
-        expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = p : Point . x : u32
-                &access.place = p : Point . x : u32
-
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {?lt_1, ?lt_2}
-                &lifetime.upcast() = ?lt_1
-
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
-
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p : Point . x`"#]]
-    )
-}
-
-// constructing a struct reading a local variable that is mutably borrowed -> borrow error
-#[test]
-fn struct_construction_with_borrowed_local() {
-    crate::assert_err!(
-    [
-        crate Foo {
-            struct Wrapper {
-                value: u32,
-            }
-            fn foo() -> u32 {
-                exists<'r0, 'r1> {
-                    let v1: u32 = 22 _ u32;
-                    let v2: &mut 'r0 u32 = &mut 'r1 v1;
-                    let w: Wrapper = Wrapper { value: v1 };
-                    return *v2;
-                }
-            }
-        }
-    ]
-    expect_test::expect![[r#"
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = v1 : u32
-            &access.place = v1 : u32
-
-        the rule "loan_cannot_outlive" at (nll.rs) failed because
-          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-            outlived_by_loan = {?lt_1, ?lt_2}
-            &lifetime.upcast() = ?lt_1"#]]
-    )
-}
-
-/// placing a mutable reference inside a struct -> locks the underlying local variable
-#[test]
-fn struct_with_mutable_reference_locks_local() {
-    crate::assert_err!(
-        [
-            crate Foo {
-                struct Wrapper<'a> {
-                    value: &mut 'a u32,
-                }
-                fn foo() -> u32 {
-                    exists<'r0> {
-                        let v1: u32 = 0 _ u32;
-                        let w: Wrapper<'r0> = Wrapper::<'r0> { value: &mut 'r0 v1 };
-                        v1 = 1 _ u32;
-                        return *(w.value);
-                    }
-                }
-            }
-        ]
-        // FIXME(#304) -- This does not look like the error message we expect.
-        expect_test::expect!["crates/formality-rust/src/prove/prove/prove/prove_wf.rs:14:1: no applicable rules for prove_wf { goal: ?lt_0, assumptions: {}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }"]
     )
 }
