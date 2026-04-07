@@ -2,7 +2,7 @@ use crate::grammar::{
     expr::{PlaceExpr, PlaceExprData},
     FieldName, Ty, ValueId,
 };
-use formality_core::{cast_impl, term, Upcast};
+use formality_core::{cast_impl, term, DowncastTo, Upcast};
 use std::sync::Arc;
 
 #[term($data: $ty)]
@@ -26,6 +26,12 @@ pub enum TypedPlaceExpressionData {
     Field(TypedPlaceExpr, FieldName),
     // Index
     // Downcast
+}
+
+impl DowncastTo<TypedPlaceExpressionData> for TypedPlaceExpr {
+    fn downcast_to(&self) -> Option<TypedPlaceExpressionData> {
+        Some(self.data().clone())
+    }
 }
 
 impl TypedPlaceExpr {

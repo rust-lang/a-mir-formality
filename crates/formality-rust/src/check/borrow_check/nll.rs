@@ -430,7 +430,8 @@ judgment_fn! {
         (
             (borrow_check_place_expr(env, assumptions, state, place) => (place, state))
             (access_permitted(env, assumptions, state, Access::new(AccessKind::Read, place), places_live_on_exit) => state)
-            // FIXME(#296, #297): need to check that either the type is copy or this place can be moved from
+            // FIXME(#296): also need to track that the place has been moved from
+            (prove_place_is_movable(env, assumptions, state, place) => state)
             ------------------------------------------------------------ ("place")
             (borrow_check_expr(env, assumptions, state, ExprData::Place(place), places_live_on_exit) => (&place.ty, state))
         )
@@ -633,7 +634,7 @@ judgment_fn! {
 judgment_fn! {
     /// Check that the given access is permitted. Currently this just checks
     /// that no live loans conflict with the access; in the future, this will
-    /// also check initialization, moves, etc. (#296, #297, #298)
+    /// also check initialization, moves, etc. (#296, #298)
     fn access_permitted(
         env: TypeckEnv,
         assumptions: Wcs,
@@ -737,6 +738,82 @@ judgment_fn! {
             ------------------------------------------------------------ ("loan is dead")
             (access_permitted_by_loan(env, assumptions, state, loan, access, places_live_after_access) => state)
         )
+    }
+}
+
+judgment_fn! {
+    /// Prove that a type is `Copy`. For now, scalar types and shared references
+    /// are considered `Copy`.
+    ///
+    /// FIXME: replace with a proper trait check once lang-items are available.
+    fn prove_ty_is_copy(
+        env: TypeckEnv,
+        assumptions: Wcs,
+        state: FlowState,
+        ty: Ty,
+    ) => FlowState {
+        debug(env, assumptions, state, ty)
+
+        (
+            (prove_ty_is_rigid(env, assumptions, state, ty) => (RigidTy { name: RigidName::ScalarId(_), .. }, state))
+            ------------------------------------------------------------ ("scalar")
+            (prove_ty_is_copy(env, assumptions, state, ty) => state)
+        )
+
+        (
+            (prove_ty_is_rigid(env, assumptions, state, ty) => (RigidTy { name: RigidName::Ref(RefKind::Shared), .. }, state))
+            ------------------------------------------------------------ ("shared-ref")
+            (prove_ty_is_copy(env, assumptions, state, ty) => state)
+        )
+    }
+}
+
+judgment_fn! {
+    /// Prove that a place can be moved from.
+    ///
+    /// A place is movable if it is not behind a reference. When a `Deref` is
+    /// encountered, the deref'd type must be an "owned deref" (e.g., `Box`).
+    /// Since we don't model owned deref types yet, all derefs through
+    /// references (`&T` / `&mut T`) will cause this judgment to fail.
+    fn prove_place_is_movable(
+        env: TypeckEnv,
+        assumptions: Wcs,
+        state: FlowState,
+        place: TypedPlaceExpr,
+    ) => FlowState {
+        debug(env, assumptions, state, place)
+
+        (
+            ------------------------------------------------------------ ("local")
+            (prove_place_is_movable(
+                _env,
+                _assumptions,
+                state,
+                TypedPlaceExpressionData::Local(_),
+            ) => state)
+        )
+
+        (
+            (prove_place_is_movable(env, assumptions, state, prefix) => state)
+            ------------------------------------------------------------ ("field")
+            (prove_place_is_movable(
+                env,
+                assumptions,
+                state,
+                TypedPlaceExpressionData::Field(prefix, _),
+            ) => state)
+        )
+
+        (
+            (prove_ty_is_copy(env, assumptions, state, &place.ty) => state)
+            ------------------------------------------------------------ ("copy")
+            (prove_place_is_movable(env, assumptions, state, place) => state)
+        )
+
+        // For a deref of a non-Copy type, we would need to prove the prefix type
+        // is an "owned deref" (e.g., Box). Since no owned deref types exist yet,
+        // this rule has no matching cases and derefs through references naturally
+        // fail.
     }
 }
 
