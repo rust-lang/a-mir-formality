@@ -5,7 +5,7 @@ use crate::prove::prove::{Env, Program};
 use anyhow::bail;
 
 use super::{prove_goal, prove_not_goal};
-use formality_core::{judgment::ProofTree, judgment_fn, Downcasted};
+use formality_core::{judgment::ProofTree, judgment_fn};
 
 judgment_fn! {
     /// Runs coherence checking (orphan, overlap, duplicates) for the current crate.
@@ -14,18 +14,18 @@ judgment_fn! {
         debug(program, current_crate)
 
         (
-            (let current_crate_impls: Vec<TraitImpl> = trait_impls_in_crate(&current_crate))
-            (ensure_no_duplicate_impls(&current_crate_impls) => ())
-            (let all_crate_impls: Vec<TraitImpl> = all_trait_impls(&program))
-            (for_all(i in 0..current_crate_impls.len())
-                (for_all(j in 0..all_crate_impls.len())
-                    (overlap_check_impl(program, &current_crate_impls[i], &all_crate_impls[j]) => ())
+            (let current_crate_impls = program.trait_impls_in_crate(&current_crate))
+            (ensure_no_duplicate_impls(current_crate_impls) => ())
+            (let all_crate_impls = program.trait_impls())
+            (for_all(impl_a in current_crate_impls)
+                (for_all(impl_b in all_crate_impls)
+                    (overlap_check_impl(program, impl_a, impl_b) => ())
                 )
             )
-            (for_all(idx in 0..current_crate_impls.len())
-                (orphan_check(program.clone(), current_crate_impls[idx].clone()) => ()))
-            (for_all(impl_a in neg_trait_impls_in_crate(&current_crate))
-                (orphan_check_neg(program.clone(), impl_a) => ()))
+            (for_all(trait_impl in current_crate_impls)
+                (orphan_check(program, trait_impl) => ()))
+            (for_all(neg_trait_impl in program.neg_trait_impls_in_crate(&current_crate))
+                (orphan_check_neg(program, neg_trait_impl) => ()))
             --- ("check_coherence")
             (check_coherence(program, current_crate) => ())
         )
@@ -79,6 +79,7 @@ fn overlap_check_impl(
     impl_a: &TraitImpl,
     impl_b: &TraitImpl,
 ) -> Fallible<ProofTree> {
+    // An impl cannot overlap with itself.
     if impl_a == impl_b {
         return Ok(ProofTree::new(
             "overlap_check",
@@ -86,6 +87,7 @@ fn overlap_check_impl(
             vec![],
         ));
     }
+    // Impls of two distinct traits cannot overlap.
     if impl_a.trait_id() != impl_b.trait_id() {
         return Ok(ProofTree::new(
             "overlap_check",
@@ -94,7 +96,14 @@ fn overlap_check_impl(
         ));
     }
 
-    // ∀P_a, ∀P_b — e.g. impl<P_a..> Tr<T_a…> for T_a0 where Wc_a vs same for b.
+    // Example:
+    //
+    // Given two impls...
+    //
+    //   impl<P_a..> SomeTrait<T_a...> for T_a0 where Wc_a { }
+    //   impl<P_b..> SomeTrait<T_b...> for T_b0 where Wc_b { }
+    //
+    // We want to prove that ∀P_a, ∀P_b ...
     let (env, a) = Env::default().instantiate_universally(&impl_a.binder);
     let (env, b) = env.instantiate_universally(&impl_b.binder);
 
@@ -103,7 +112,15 @@ fn overlap_check_impl(
 
     assert_eq!(trait_ref_a.trait_id, trait_ref_b.trait_id);
 
-    // ∀P_a, ∀P_b. ¬(coherence_mode => (Ts_a = Ts_b ∧ Wc_a ∧ Wc_b)) — then no overlap.
+    // ... ¬(coherence_mode => (Ts_a = Ts_b ∧ Wc_a ∧ Wc_b))
+    //
+    // i.e., there is no overlap if, in coherence mode, if we can prove that either
+    // * the parameters cannot be equated ¬(Ts_a = Ts_b)
+    // * or the where-clauses don't hold (¬Wc_a || ¬Wc_b).
+    //
+    // TODO: feels like we do want a general "not goal", flipping existentials
+    // and universals and the coherence mode.
+    // self.prove_not_goal(&env, &(Wcs::wf))
     if let Ok(proof_tree) = prove_not_goal(
         program,
         &env,
@@ -168,33 +185,12 @@ fn overlap_check_impl(
     bail!("impls may overlap:\n{impl_a:?}\n{impl_b:?}")
 }
 
-fn trait_impls_in_crate(krate: &Crate) -> Vec<TraitImpl> {
-    krate.items.iter().downcasted().collect()
-}
-
-fn neg_trait_impls_in_crate(krate: &Crate) -> Vec<NegTraitImpl> {
-    krate.items.iter().downcasted().collect()
-}
-
 /// Binder opening via universal_substitution so judgment rules need not use &mut Env.
 fn open_trait_impl(impl_a: &TraitImpl) -> (Env, TraitImplBoundData) {
-    let (env, subst) = Env::default().universal_substitution(&impl_a.binder);
-    let a = impl_a.binder.instantiate_with(&subst).unwrap();
-    (env, a)
+    Env::default().instantiate_universally(&impl_a.binder)
 }
 
 /// Same pattern as open_trait_impl for negative impls.
 fn open_neg_trait_impl(impl_a: &NegTraitImpl) -> (Env, NegTraitImplBoundData) {
-    let (env, subst) = Env::default().universal_substitution(&impl_a.binder);
-    let a = impl_a.binder.instantiate_with(&subst).unwrap();
-    (env, a)
-}
-
-/// All TraitImpl`s visible across crates.
-fn all_trait_impls(program: &Program) -> Vec<TraitImpl> {
-    program
-        .program()
-        .items_from_all_crates()
-        .downcasted()
-        .collect()
+    Env::default().instantiate_universally(&impl_a.binder)
 }
