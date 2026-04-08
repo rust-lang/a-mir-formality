@@ -2,9 +2,8 @@ use anyhow::bail;
 
 use crate::grammar::{
     AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Binder,
-    CrateId, Fallible, Fn, FnBoundData, ImplItem, MaybeFnBody, NegTraitImpl,
-    NegTraitImplBoundData, Relation, Substitution, Trait, TraitBoundData, TraitImpl,
-    TraitImplBoundData, TraitItem, Wcs,
+    CrateId, Fallible, Fn, FnBoundData, ImplItem, MaybeFnBody, NegTraitImpl, NegTraitImplBoundData,
+    Relation, Substitution, Trait, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem, Wcs,
 };
 use crate::prove::prove::{Env, Program, Safety};
 use crate::rust::Term;
@@ -121,7 +120,10 @@ fn check_all_required_items_present(
                         .downcasted::<Fn>()
                         .any(|impl_fn| impl_fn.id == trait_fn.id)
                     {
-                        bail!("not all trait items implemented, missing: `{:?}`", trait_fn.id);
+                        bail!(
+                            "not all trait items implemented, missing: `{:?}`",
+                            trait_fn.id
+                        );
                     }
                 }
             }
