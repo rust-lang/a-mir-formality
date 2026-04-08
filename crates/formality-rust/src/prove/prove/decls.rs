@@ -5,7 +5,7 @@ use crate::grammar::{
     Ty, Wc, Wcs,
 };
 use crate::prove::ToWcs;
-use formality_core::{seq, Set, To, Upcast, Upcasted};
+use formality_core::{seq, Downcasted, Set, To, Upcast, Upcasted};
 use formality_macros::term;
 use std::sync::Arc;
 
@@ -45,6 +45,18 @@ impl Program {
                 CrateItem::AdtItem(s) => s.name() == adt_id,
                 _ => false,
             })
+    }
+
+    pub fn trait_impls(&self) -> Vec<TraitImpl> {
+        self.crates.items_from_all_crates().downcasted().collect()
+    }
+
+    pub fn trait_impls_in_crate(&self, krate: &Crate) -> Vec<TraitImpl> {
+        krate.items.iter().downcasted().collect()
+    }
+
+    pub fn neg_trait_impls_in_crate(&self, krate: &Crate) -> Vec<NegTraitImpl> {
+        krate.items.iter().downcasted().collect()
     }
 
     pub fn impl_decls(&self, trait_id: &TraitId) -> Vec<ImplDecl> {
