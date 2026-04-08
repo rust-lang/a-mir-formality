@@ -182,13 +182,3 @@ fn overlap_check_impl(
 
     bail!("impls may overlap:\n{impl_a:?}\n{impl_b:?}")
 }
-
-/// Binder opening via universal_substitution so judgment rules need not use &mut Env.
-fn open_trait_impl(impl_a: &TraitImpl) -> (Env, TraitImplBoundData) {
-    Env::default().instantiate_universally(&impl_a.binder)
-}
-
-/// Same pattern as open_trait_impl for negative impls.
-fn open_neg_trait_impl(impl_a: &NegTraitImpl) -> (Env, NegTraitImplBoundData) {
-    Env::default().instantiate_universally(&impl_a.binder)
-}
