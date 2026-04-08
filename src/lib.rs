@@ -40,7 +40,7 @@ pub fn main() -> anyhow::Result<()> {
         eprintln!("{:#?}", program);
     }
 
-    let _proof_tree = check_all_crates(&program)?;
+    let _proof_tree = check_all_crates(&program).check_proven()?;
     Ok(())
 }
 
@@ -61,14 +61,14 @@ macro_rules! assert_err {
 
 pub fn test_program_ok(input: &str) -> anyhow::Result<ProofTree> {
     let program: Crates = try_term(input)?;
-    let proof_tree = check_all_crates(&program)?;
+    let proof_tree = check_all_crates(&program).check_proven()?;
     Ok(proof_tree)
 }
 
 pub fn test_where_clause(program: &str, assertion: &str) -> formality_core::ProvenSet<Constraints> {
     formality_core::with_tracing_logs(|| {
         let program: Crates = try_term(program).unwrap();
-        let _proof_tree = check_all_crates(&program).unwrap();
+        let _proof_tree = check_all_crates(&program).check_proven().unwrap();
         let assertion: Arc<TestAssertion> = try_term(assertion).unwrap();
         let decls = program.to_prove_decls();
         formality_rust::prove::prove::test_util::test_prove(decls, assertion)

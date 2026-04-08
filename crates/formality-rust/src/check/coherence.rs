@@ -5,37 +5,29 @@ use crate::prove::prove::{Env, Program};
 use anyhow::bail;
 
 use super::{prove_goal, prove_not_goal};
-use formality_core::{judgment::ProofTree, judgment_fn, Downcasted, ProvenSet};
-
-/// Runs coherence checking (orphan, overlap, duplicates) for the current crate.
-/// Returns ProvenSet<()> caller.
-pub(crate) fn check_coherence(program: &Program, current_crate: &Crate) -> ProvenSet<()> {
-    check_coherence_judgment(program.clone(), current_crate.clone())
-}
+use formality_core::{judgment::ProofTree, judgment_fn, Downcasted};
 
 judgment_fn! {
-    fn check_coherence_judgment(program: Program, current_crate: Crate) => () {
+    /// Runs coherence checking (orphan, overlap, duplicates) for the current crate.
+    /// Returns ProvenSet<()> caller.
+    pub(crate) fn check_coherence(program: Program, current_crate: Crate) => () {
         debug(program, current_crate)
 
         (
-            (let current_crate_impls: Vec<TraitImpl> = trait_impls_in_crate(current_crate))
-            (let _ = ensure_no_duplicate_impls(&current_crate_impls)?)
+            (let current_crate_impls: Vec<TraitImpl> = trait_impls_in_crate(&current_crate))
+            (ensure_no_duplicate_impls(&current_crate_impls) => ())
             (let all_crate_impls: Vec<TraitImpl> = all_trait_impls(&program))
             (for_all(i in 0..current_crate_impls.len())
                 (for_all(j in 0..all_crate_impls.len())
-                    (let _overlap: ProofTree = overlap_check_impl(
-                        &program,
-                        &current_crate_impls[i],
-                        &all_crate_impls[j],
-                    )?)
+                    (overlap_check_impl(program, &current_crate_impls[i], &all_crate_impls[j]) => ())
                 )
             )
             (for_all(idx in 0..current_crate_impls.len())
                 (orphan_check(program.clone(), current_crate_impls[idx].clone()) => ()))
-            (for_all(impl_a in neg_trait_impls_in_crate(current_crate))
+            (for_all(impl_a in neg_trait_impls_in_crate(&current_crate))
                 (orphan_check_neg(program.clone(), impl_a) => ()))
             --- ("check_coherence")
-            (check_coherence_judgment(program, current_crate) => ())
+            (check_coherence(program, current_crate) => ())
         )
     }
 }
@@ -70,13 +62,13 @@ judgment_fn! {
 }
 
 /// Reject duplicate trait impls in the current crate so overlap pairing cannot match an impl with itself.
-fn ensure_no_duplicate_impls(impls: &[TraitImpl]) -> Fallible<()> {
+fn ensure_no_duplicate_impls(impls: &[TraitImpl]) -> Fallible<ProofTree> {
     for (i, impl_a) in impls.iter().enumerate() {
         if impls[i + 1..].contains(impl_a) {
             bail!("duplicate impl in current crate: {:?}", impl_a);
         }
     }
-    Ok(())
+    Ok(ProofTree::leaf("no duplicate impls"))
 }
 
 /// Two impls of the same trait prove they do not overlap or report impls may overlap.

@@ -8,7 +8,7 @@ use crate::{
     grammar::{Crate, CrateId, CrateItem, Crates, Fallible, Test, TestBoundData, Wcs},
     prove::ToWcs,
 };
-use anyhow::{anyhow, bail, Error};
+use anyhow::{anyhow, bail};
 use formality_core::{judgment::ProofTree, judgment_fn, ProvenSet, Set};
 
 use adts::check_adt;
@@ -27,7 +27,7 @@ mod traits;
 mod where_clauses;
 
 judgment_fn! {
-    fn check_all_crates_judgment(
+    pub fn check_all_crates(
         crates: Crates,
     ) => () {
         debug(crates)
@@ -51,7 +51,7 @@ judgment_fn! {
                 (let program = crates.prefix(i).to_prove_decls())
                 (check_crate(program, crates.crates[i].clone()) => ()))
             ------------------------------------------------------------ ("check all prefixes")
-            (check_all_crates_judgment(crates) => ())
+            (check_all_crates(crates) => ())
         )
     }
 }
@@ -63,15 +63,15 @@ judgment_fn! {
         program: Program,
         c: Crate,
     ) => () {
-        debug(c, program)
+        debug(program, c)
 
         (
-            (check_for_duplicate_items(&program) => ())
-            (for_all(item in c.items.clone())
-                (check_crate_item(program, item, c.id.clone()) => ()))
-            (check_coherence(&program, &c) => ())
+            (check_for_duplicate_items(program) => ())
+            (for_all(item in &c.items)
+                (check_crate_item(program, item, &c.id) => ()))
+            (check_coherence(program, c) => ())
             ------------------------------------------------------------ ("check crate")
-            (check_crate(program, c) => ())
+            (check_crate(program, Crate { id, items }) => ())
         )
     }
 }
@@ -241,11 +241,4 @@ fn prove_not_goal(
 
     let constraints: Vec<_> = cs.keys().collect();
     bail!("failed to prove {goal:?} given {assumptions:?}, got {constraints:?}")
-}
-
-/// Returns a single proof tree or a failed judgment.
-pub fn check_all_crates(crates: &Crates) -> anyhow::Result<ProofTree> {
-    check_all_crates_judgment(crates.clone())
-        .check_proven()
-        .map_err(|e| Error::from(*e))
 }
