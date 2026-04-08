@@ -249,3 +249,59 @@ fn crate_with_duplicate_item_names() {
         ]
     );
 }
+
+#[test]
+fn impl_missing_required_fn() {
+    crate::assert_err!(
+        [
+            crate core {
+                trait Foo {
+                    fn bar(self_: u32) -> u32;
+                }
+                struct MyStruct {}
+                impl Foo for MyStruct {}
+            }
+        ]
+
+        expect_test::expect![[r#"
+            the rule "check_trait_impl" at (impls.rs) failed because
+              not all trait items implemented, missing: `bar`"#]]
+    );
+}
+
+#[test]
+fn impl_missing_one_of_two_fns() {
+    crate::assert_err!(
+        [
+            crate core {
+                trait Foo {
+                    fn bar(self_: u32) -> u32;
+                    fn baz(self_: u32) -> u32;
+                }
+                struct MyStruct {}
+                impl Foo for MyStruct {
+                    fn bar(self_: u32) -> u32 {trusted}
+                }
+            }
+        ]
+
+        expect_test::expect![[r#"
+            the rule "check_trait_impl" at (impls.rs) failed because
+              not all trait items implemented, missing: `baz`"#]]
+    );
+}
+
+#[test]
+fn impl_with_default_fn_body_ok() {
+    crate::assert_ok!(
+        [
+            crate core {
+                trait Foo {
+                    fn bar(self_: u32) -> u32 {trusted}
+                }
+                struct MyStruct {}
+                impl Foo for MyStruct {}
+            }
+        ]
+    );
+}
