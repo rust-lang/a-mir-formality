@@ -49,6 +49,12 @@ judgment_fn! {
     fn orphan_check_neg(program: Program, impl_a: NegTraitImpl) => () {
         debug(program, impl_a)
 
+        // The orphan check passes if
+        // ∀P. ⌐ (coherence_mode => (wf(Ts) && cannot_be_proven(is_local_trait_ref)))
+        //
+        // TODO: feels like we do want a general "not goal", flipping existentials
+        // and universals and the coherence mode
+        // self.prove_not_goal(&env, &(Wcs::wf)) // ??
         (
             (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
             (let trait_ref = a.trait_ref())
