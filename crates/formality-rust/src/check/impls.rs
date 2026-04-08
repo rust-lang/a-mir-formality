@@ -34,7 +34,7 @@ judgment_fn! {
             (for_all(impl_item in impl_items)
                 (check_trait_impl_item(program, &env, &where_clauses, &trait_items, impl_item, crate_id) => ()))
 
-            (let () = check_all_required_items_present(&trait_items, &impl_items)?)
+            (check_all_required_items_present(trait_items, impl_items) => ())
 
             ---- ("check_trait_impl")
             (check_trait_impl(program, trait_impl, crate_id) => ())
@@ -109,7 +109,7 @@ judgment_fn! {
 fn check_all_required_items_present(
     trait_items: &[TraitItem],
     impl_items: &[ImplItem],
-) -> Fallible<()> {
+) -> Fallible<ProofTree> {
     for trait_item in trait_items {
         match trait_item {
             TraitItem::Fn(trait_fn) => {
@@ -141,7 +141,7 @@ fn check_all_required_items_present(
             }
         }
     }
-    Ok(())
+    Ok(ProofTree::leaf("check_all_required_items_present"))
 }
 
 judgment_fn! {
