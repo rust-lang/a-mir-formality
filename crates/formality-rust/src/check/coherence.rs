@@ -85,6 +85,7 @@ fn overlap_check_impl(
             vec![],
         ));
     }
+
     // Impls of two distinct traits cannot overlap.
     if impl_a.trait_id() != impl_b.trait_id() {
         return Ok(ProofTree::new(
