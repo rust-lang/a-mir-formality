@@ -50,7 +50,7 @@ judgment_fn! {
         debug(program, impl_a)
 
         (
-            (let (env, a) = open_neg_trait_impl(&impl_a))
+            (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
             (let trait_ref = a.trait_ref())
             (prove_goal(program, env, &a.where_clauses, trait_ref.is_local()) => ())
             --- ("orphan_check_neg")
