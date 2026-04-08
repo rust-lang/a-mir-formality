@@ -2,8 +2,9 @@ use anyhow::bail;
 
 use crate::grammar::{
     AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Binder,
-    CrateId, Fallible, Fn, FnBoundData, ImplItem, NegTraitImpl, NegTraitImplBoundData, Relation,
-    Substitution, Trait, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem, Wcs,
+    CrateId, Fallible, Fn, FnBoundData, ImplItem, MaybeFnBody, NegTraitImpl,
+    NegTraitImplBoundData, Relation, Substitution, Trait, TraitBoundData, TraitImpl,
+    TraitImplBoundData, TraitItem, Wcs,
 };
 use crate::prove::prove::{Env, Program, Safety};
 use crate::rust::Term;
@@ -33,6 +34,8 @@ judgment_fn! {
 
             (for_all(impl_item in impl_items)
                 (check_trait_impl_item(program, &env, &where_clauses, &trait_items, impl_item, crate_id) => ()))
+
+            (let () = check_all_required_items_present(&trait_items, &impl_items)?)
 
             ---- ("check_trait_impl")
             (check_trait_impl(program, trait_impl, crate_id) => ())
@@ -99,6 +102,44 @@ judgment_fn! {
             (check_safety_matches(trait_decl, trait_impl) => ())
         )
     }
+}
+
+/// Check that every required trait item has a corresponding impl item.
+/// A trait fn is required if it has no default body (`NoFnBody`).
+/// Associated types are always required (no defaults supported yet).
+fn check_all_required_items_present(
+    trait_items: &[TraitItem],
+    impl_items: &[ImplItem],
+) -> Fallible<()> {
+    for trait_item in trait_items {
+        match trait_item {
+            TraitItem::Fn(trait_fn) => {
+                let (_, bound_data) = trait_fn.binder.open();
+                if matches!(bound_data.body, MaybeFnBody::NoFnBody) {
+                    if !impl_items
+                        .iter()
+                        .downcasted::<Fn>()
+                        .any(|impl_fn| impl_fn.id == trait_fn.id)
+                    {
+                        bail!("not all trait items implemented, missing: `{:?}`", trait_fn.id);
+                    }
+                }
+            }
+            TraitItem::AssociatedTy(trait_assoc_ty) => {
+                if !impl_items
+                    .iter()
+                    .downcasted::<AssociatedTyValue>()
+                    .any(|impl_assoc| impl_assoc.id == trait_assoc_ty.id)
+                {
+                    bail!(
+                        "not all trait items implemented, missing: `{:?}`",
+                        trait_assoc_ty.id
+                    );
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 judgment_fn! {
