@@ -6,7 +6,7 @@ use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 
 use crate::prove::prove::{
     decls::Program,
-    prove::{combinators::for_all, prove_after::prove_after},
+    prove::{combinators::for_all, prove_after::prove_after, prove_wc::prove_wc},
 };
 
 use super::{constraints::Constraints, env::Env};
