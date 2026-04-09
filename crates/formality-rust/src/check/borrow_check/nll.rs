@@ -7,8 +7,8 @@ use crate::check::borrow_check::typed_place_expression::{
 
 use crate::grammar::expr::{Block, Expr, ExprData, Init, PlaceExpr, PlaceExprData, Stmt};
 use crate::grammar::{
-    AliasTy, FieldName, Fn, Lt, Parameter, RefKind, Relation, RigidName, RigidTy, ScalarId,
-    Struct, StructBoundData, Ty, TyData, ValueId, Variable, Wcs, WhereClause,
+    AliasTy, FieldName, Fn, Lt, Parameter, RefKind, Relation, RigidName, RigidTy, ScalarId, Struct,
+    StructBoundData, Ty, TyData, ValueId, Variable, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
 use crate::prove::prove::Safety;
