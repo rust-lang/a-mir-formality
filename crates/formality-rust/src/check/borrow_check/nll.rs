@@ -433,7 +433,8 @@ judgment_fn! {
 
         (
             (borrow_check_place_expr(env, assumptions, state, place) => (place, state))
-            (access_permitted(env, assumptions, state, Access::new(AccessKind::Read, place), places_live_on_exit) => state)
+            (access_kind_for_place_use(env, assumptions, state, place) => (access_kind, state))
+            (access_permitted(env, assumptions, state, Access::new(access_kind, place), places_live_on_exit) => state)
             // FIXME(#296): also need to track that the place has been moved from
             (prove_place_is_movable(env, assumptions, state, place) => state)
             ------------------------------------------------------------ ("place")
@@ -741,6 +742,37 @@ judgment_fn! {
             (loan_cannot_outlive_universal_regions(env, assumptions, &state.current.outlives, &loan) => ())
             ------------------------------------------------------------ ("loan is dead")
             (access_permitted_by_loan(env, assumptions, state, loan, access, places_live_after_access) => state)
+        )
+    }
+}
+
+judgment_fn! {
+    /// Determine whether evaluating a place reads from it or moves from it.
+    /// Known Copy places behave like reads for loan checking everything else
+    /// is treated as a move so overlapping live loans can reject it.
+    fn access_kind_for_place_use(
+        env: TypeckEnv,
+        assumptions: Wcs,
+        state: FlowState,
+        place: TypedPlaceExpr,
+    ) => (AccessKind, FlowState) {
+        debug(env, assumptions, state, place)
+
+        (
+            (if let TyData::RigidTy(RigidTy { name: RigidName::ScalarId(_), .. }) = place.ty.data())
+            ------------------------------------------------------------ ("scalar-copy")
+            (access_kind_for_place_use(_env, _assumptions, state, _place) => (AccessKind::Read, state))
+        )
+
+        (
+            (if let TyData::RigidTy(RigidTy { name: RigidName::Ref(RefKind::Shared), .. }) = place.ty.data())
+            ------------------------------------------------------------ ("shared-ref-copy")
+            (access_kind_for_place_use(_env, _assumptions, state, _place) => (AccessKind::Read, state))
+        )
+
+        (
+            ------------------------------------------------------------ ("move")
+            (access_kind_for_place_use(_env, _assumptions, state, _place) => (AccessKind::Move, state))
         )
     }
 }
