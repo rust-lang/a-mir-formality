@@ -305,25 +305,3 @@ fn impl_with_default_fn_body_ok() {
         ]
     );
 }
-
-    crate::assert_ok!(
-        [
-            crate core {
-                trait A {
-                    fn a() -> ();
-                }
-            }
-        ]
-    );
-}
-
-    crate::assert_ok!(
-        [
-            crate core {
-                trait A {
-                    type Assoc : [];
-                }
-            }
-        ]
-    );
-}
