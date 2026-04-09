@@ -158,8 +158,8 @@ impl ExprBuilder<'_> {
     }
 
     fn minirust_ty(&mut self, ty: &Ty) -> Fallible<lang::Type> {
-        match ty.data() {
-            TyData::RigidTy(rigid_ty) => match &rigid_ty.name {
+        match ty {
+            Ty::RigidTy(rigid_ty) => match &rigid_ty.name {
                 RigidName::AdtId(adt_id) => {
                     unimplemented!("adts")
                 }

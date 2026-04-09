@@ -34,18 +34,14 @@ fn test_parse_rust_like_trait_impl_syntax() {
                                     ],
                                     term: TraitImplBoundData {
                                         trait_id: PartialEq,
-                                        self_ty: Ty {
-                                            data: Variable(
-                                                ^ty0_1,
-                                            ),
-                                        },
+                                        self_ty: Variable(
+                                            ^ty0_1,
+                                        ),
                                         trait_parameters: [
                                             Ty(
-                                                Ty {
-                                                    data: Variable(
-                                                        ^ty0_0,
-                                                    ),
-                                                },
+                                                Variable(
+                                                    ^ty0_0,
+                                                ),
                                             ),
                                         ],
                                         where_clauses: [],
@@ -129,11 +125,9 @@ fn test_parse_rust_like_struct_syntax() {
                                                     name: Id(
                                                         a,
                                                     ),
-                                                    ty: Ty {
-                                                        data: Variable(
-                                                            ^ty0_0,
-                                                        ),
-                                                    },
+                                                    ty: Variable(
+                                                        ^ty0_0,
+                                                    ),
                                                 },
                                             ],
                                         },
@@ -173,11 +167,9 @@ fn test_parse_trusted_fn() {
                                     kinds: [],
                                     term: FnBoundData {
                                         input_args: [],
-                                        output_ty: Ty {
-                                            data: RigidTy(
-                                                (),
-                                            ),
-                                        },
+                                        output_ty: RigidTy(
+                                            (),
+                                        ),
                                         where_clauses: [],
                                         body: FnBody(
                                             TrustedFnBody,

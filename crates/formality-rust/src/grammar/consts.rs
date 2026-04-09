@@ -2,36 +2,10 @@ use crate::grammar::expr::Block;
 use crate::grammar::{ParameterKind, Parameters, RigidName, ScalarId};
 
 use super::{Parameter, Variable};
-use formality_core::{cast_impl, term, DowncastTo, Upcast, UpcastFrom};
-use std::sync::Arc;
+use formality_core::{cast_impl, term};
 
 #[term]
-#[cast]
-#[customize(constructors)] // FIXME(#219): figure out upcasts with arc or special-case
-pub struct Const {
-    data: Arc<ConstData>,
-}
-impl Const {
-    pub fn data(&self) -> &ConstData {
-        &self.data
-    }
-
-    pub fn new(data: impl Upcast<ConstData>) -> Self {
-        Self {
-            data: Arc::new(data.upcast()),
-        }
-    }
-
-    pub fn as_variable(&self) -> Option<Variable> {
-        match self.data() {
-            ConstData::Variable(v) => Some(v.clone()),
-            _ => None,
-        }
-    }
-}
-
-#[term]
-pub enum ConstData {
+pub enum Const {
     // Sort of equivalent to `ValTreeKind::Branch`
     #[cast]
     RigidValue(RigidConstData),
@@ -48,6 +22,9 @@ pub enum ConstData {
     #[variable(ParameterKind::Const)]
     Variable(Variable),
 }
+
+/// Temporary alias for migration.
+pub type ConstData = Const;
 
 #[term]
 pub enum ScalarValue {
@@ -100,19 +77,5 @@ pub struct RigidConstData {
     pub values: Vec<Const>,
 }
 
-impl DowncastTo<ConstData> for Const {
-    fn downcast_to(&self) -> Option<ConstData> {
-        Some(self.data().clone())
-    }
-}
-
-impl UpcastFrom<ConstData> for Const {
-    fn upcast_from(term: ConstData) -> Self {
-        Const {
-            data: Arc::new(term),
-        }
-    }
-}
-
-cast_impl!((ConstData) <: (Const) <: (Parameter));
-cast_impl!((ScalarValue) <: (ConstData) <: (Const));
+cast_impl!((ScalarValue) <: (Const) <: (Parameter));
+cast_impl!((RigidConstData) <: (Const) <: (Parameter));
