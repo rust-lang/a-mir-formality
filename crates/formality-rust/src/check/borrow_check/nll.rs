@@ -22,10 +22,7 @@ use crate::check::borrow_check::liveness::{Assignment, Either, LiveBefore, LiveP
 fn wf_assumptions_for_existential_subst(subst: &[ExistentialVar]) -> Wcs {
     subst
         .iter()
-        .map(|v| {
-            let p: Parameter = v.clone().upcast();
-            Upcast::<Wc>::upcast(p.well_formed())
-        })
+        .map(|v| Relation::well_formed(v.clone()))
         .collect()
 }
 

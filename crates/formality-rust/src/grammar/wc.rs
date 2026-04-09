@@ -79,10 +79,13 @@ impl IntoIterator for Wcs {
     }
 }
 
-impl FromIterator<Wc> for Wcs {
-    fn from_iter<T: IntoIterator<Item = Wc>>(iter: T) -> Self {
+impl<I> FromIterator<I> for Wcs
+where
+    I: Upcast<Wc>,
+{
+    fn from_iter<T: IntoIterator<Item = I>>(iter: T) -> Self {
         Wcs {
-            set: iter.into_iter().collect(),
+            set: iter.into_iter().upcasted().collect(),
         }
     }
 }
