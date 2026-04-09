@@ -1,5 +1,5 @@
-use crate::grammar::{AssociatedTy, Trait, TraitBoundData, TraitItem};
-use crate::grammar::{CrateId, Fallible};
+use crate::grammar::{AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem};
+use crate::grammar::{CrateId, Fallible, Wcs};
 use crate::prove::prove::{Env, Program};
 use anyhow::bail;
 use formality_core::{judgment::ProofTree, judgment_fn, Set};
@@ -18,9 +18,76 @@ judgment_fn! {
             (let (env, bound_data) = env.instantiate_universally(&binder.explicit_binder))
             (let TraitBoundData { where_clauses, trait_items } = bound_data)
             (check_trait_items_have_unique_names(&trait_items) => ())
-            (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
+            (super::where_clauses::prove_where_clauses_well_formed(program, &env, &where_clauses, &where_clauses) => ())
+            (for_all(trait_item in &trait_items)
+                (check_trait_item(program, &env, &where_clauses, trait_item, crate_id) => ()))
             ------------------------------------------------------------ ("check trait")
             (check_trait(program, env, t, crate_id) => ())
+        )
+    }
+}
+
+judgment_fn! {
+    fn check_trait_item(
+        program: Program,
+        env: Env,
+        where_clauses: Wcs,
+        trait_item: TraitItem,
+        crate_id: CrateId,
+    ) => () {
+        debug(program, env, where_clauses, trait_item, crate_id)
+
+        (
+            (check_fn_in_trait(program, env, where_clauses, f, crate_id) => ())
+            ------------------------------------------------------------ ("fn in trait")
+            (check_trait_item(program, env, where_clauses, TraitItem::Fn(f), crate_id) => ())
+        )
+
+        (
+            (check_associated_ty(program, env, where_clauses, v) => ())
+            ------------------------------------------------------------ ("associated ty in trait")
+            (check_trait_item(program, env, where_clauses, TraitItem::AssociatedTy(v), crate_id) => ())
+        )
+    }
+}
+
+judgment_fn! {
+    fn check_fn_in_trait(
+        program: Program,
+        env: Env,
+        assumptions: Wcs,
+        f: Fn,
+        crate_id: CrateId,
+    ) => () {
+        debug(program, env, assumptions, f, crate_id)
+
+        (
+            (super::fns::check_fn(program, env, assumptions, f, crate_id) => ())
+            ------------------------------------------------------------ ("check fn in trait")
+            (check_fn_in_trait(program, env, assumptions, f, crate_id) => ())
+        )
+    }
+}
+
+judgment_fn! {
+    fn check_associated_ty(
+        program: Program,
+        env: Env,
+        trait_where_clauses: Wcs,
+        associated_ty: AssociatedTy,
+    ) => () {
+        debug(program, env, trait_where_clauses, associated_ty)
+
+        (
+            (let AssociatedTy { id: _, binder } = &associated_ty)
+            (let (env, bound_data) = env.instantiate_universally(binder))
+            (let AssociatedTyBoundData { ensures: _, where_clauses } = bound_data)
+            (super::where_clauses::prove_where_clauses_well_formed(
+                program, env, (&trait_where_clauses, &where_clauses), &where_clauses,
+            ) => ())
+            // FIXME(#228): Do we prove ensures WF? And what do we assume when we do so?
+            ------------------------------------------------------------ ("check associated ty")
+            (check_associated_ty(program, env, trait_where_clauses, associated_ty) => ())
         )
     }
 }
