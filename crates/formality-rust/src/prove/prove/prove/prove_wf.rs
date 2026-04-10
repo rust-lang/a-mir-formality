@@ -1,12 +1,12 @@
 use crate::grammar::{
     AliasName, AliasTy, ConstData, Lt, LtData, Parameter, Parameters, Relation, RigidName, RigidTy,
-    Ty, UniversalVar, Variable, Wcs,
+    Ty, UniversalVar, Wcs,
 };
-use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
+use formality_core::{judgment_fn, Downcast, ProvenSet};
 
 use crate::prove::prove::{
     decls::Program,
-    prove::{combinators::for_all, prove_after::prove_after, prove_wc::prove_wc},
+    prove::{combinators::for_all, prove_after::prove_after},
 };
 
 use super::{constraints::Constraints, env::Env};

@@ -1,4 +1,4 @@
-use crate::grammar::{Predicate, Relation, Variable, Wc, WcData, Wcs};
+use crate::grammar::{Predicate, Relation, Wc, WcData, Wcs};
 use formality_core::judgment_fn;
 
 use crate::prove::prove::{
