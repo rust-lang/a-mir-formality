@@ -32,19 +32,6 @@ judgment_fn! {
         )
 
         (
-            // Use prove_wc so earlier assumptions still apply the well-formed rule skips these
-            // variables there so we do not loop forever.
-            (prove_wc(
-                decls,
-                env,
-                assumptions,
-                Upcast::<Parameter>::upcast(v.clone()).well_formed(),
-            ) => c)
-            --- ("existential variables")
-            (prove_wf(decls, env, assumptions, Variable::ExistentialVar(v)) => c)
-        )
-
-        (
             // `&'a T` is well-formed if `T: 'a`
             (let (lt, ty) = parameters.downcast_err::<(Lt, Ty)>()?)
             (prove_wf(decls, env, assumptions, ty) => c)
