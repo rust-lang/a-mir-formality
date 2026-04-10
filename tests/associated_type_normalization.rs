@@ -1,4 +1,3 @@
-#![feature(rustc_private)]
 use a_mir_formality::test_where_clause;
 use formality_core::test;
 

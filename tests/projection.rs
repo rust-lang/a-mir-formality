@@ -1,4 +1,3 @@
-#![feature(rustc_private)]
 use a_mir_formality::test_where_clause;
 
 const NORMALIZE_BASIC: &str = "[
