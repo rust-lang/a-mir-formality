@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
-use crate::grammar::rust_builder::RustBuilder;
 use crate::grammar::{Fallible, Fn, FnBody, MaybeFnBody};
+use crate::to_rust::RustBuilder;
 
 impl RustBuilder {
     pub fn build_fn(&mut self, function: &Fn) -> Fallible<String> {

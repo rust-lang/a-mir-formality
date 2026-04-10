@@ -143,13 +143,13 @@ impl RustBuilder {
 #[macro_export]
 macro_rules! assert_rust {
     ($input:tt, $($expected:tt)*) => {{
-        $crate::grammar::rust_builder::assert_rust(stringify!($input), stringify!($($expected)*));
+        $crate::to_rust::assert_rust(stringify!($input), stringify!($($expected)*));
     }};
 }
 
 pub fn assert_rust(input: &str, expected: &str) {
     let program = crate::rust::try_term(input).unwrap();
-    let rust = crate::grammar::rust_builder::RustBuilder::default()
+    let rust = crate::to_rust::RustBuilder::default()
         .build_crates(&program)
         .unwrap()[0]
         .split_whitespace()

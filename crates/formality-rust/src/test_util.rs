@@ -4,7 +4,8 @@ use rustc_driver::{run_compiler, Callbacks, Compilation};
 use rustc_public::CompilerError;
 use std::{cell::LazyCell, ops::ControlFlow};
 
-use crate::grammar::{rust_builder::RustBuilder, Crates};
+use crate::grammar::Crates;
+use crate::to_rust::RustBuilder;
 
 /// This object controls rustc's behavior.
 pub struct RustCompiler {

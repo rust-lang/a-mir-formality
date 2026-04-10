@@ -1,5 +1,5 @@
-use crate::grammar::rust_builder::RustBuilder;
 use crate::grammar::{Enum, Fallible, Field, FieldName, Struct, Variant};
+use crate::to_rust::RustBuilder;
 
 use std::ops::Deref;
 

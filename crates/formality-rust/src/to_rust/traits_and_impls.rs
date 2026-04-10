@@ -2,12 +2,12 @@ use std::ops::Deref;
 
 use itertools::Itertools;
 
-use crate::grammar::rust_builder::RustBuilder;
 use crate::grammar::{
     AssociatedTy, Fallible, ImplItem, NegTraitImpl, Trait, TraitImpl, TraitItem, WhereClause,
     WhereClauseData,
 };
 use crate::prove::prove::Safety;
+use crate::to_rust::RustBuilder;
 
 impl RustBuilder {
     pub fn build_trait(&mut self, t: &Trait) -> Fallible<String> {

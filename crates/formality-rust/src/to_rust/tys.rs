@@ -1,10 +1,10 @@
 use std::ops::Deref;
 
-use crate::grammar::rust_builder::RustBuilder;
 use crate::grammar::{
     Const, ConstData, Fallible, Lt, LtData, Parameter, Parameters, RefKind, RigidName, RigidTy,
     ScalarId, Ty, TyData,
 };
+use crate::to_rust::RustBuilder;
 
 impl RustBuilder {
     pub fn pretty_print_const(&mut self, konst: &Const) -> Fallible<String> {
@@ -140,7 +140,10 @@ impl RustBuilder {
 mod test {
     use formality_core::variable::{CoreBoundVar, CoreVariable, DebruijnIndex, VarIndex};
 
-    use crate::grammar::{rust_builder::NameContext, AdtId, ParameterKind};
+    use crate::{
+        grammar::{AdtId, ParameterKind},
+        to_rust::NameContext,
+    };
 
     use super::*;
 
