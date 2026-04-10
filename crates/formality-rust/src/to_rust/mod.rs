@@ -3,7 +3,10 @@ use crate::grammar::{
 };
 use formality_core::{fold::CoreFold, variable::CoreVariable};
 
-use std::collections::HashSet;
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Deref,
+};
 
 mod fns;
 
@@ -13,7 +16,7 @@ mod traits_and_impls;
 
 mod tys;
 
-pub fn build_rust(crates: &Crates) -> Fallible<Vec<String>> {
+pub fn build_rust(crates: &Crates) -> Fallible<HashMap<String, String>> {
     RustBuilder::default().build_crates(crates)
 }
 
@@ -105,12 +108,18 @@ impl RustBuilder {
         self.ctx.variable_name(core_variable)
     }
 
-    pub fn build_crates(&mut self, crates: &Crates) -> Fallible<Vec<String>> {
+    pub fn build_crates(&mut self, crates: &Crates) -> Fallible<HashMap<String, String>> {
         crates
             .crates
             .iter()
-            .map(|krate| self.build_crate(krate))
-            .collect::<Result<Vec<_>, _>>()
+            .map(|krate| {
+                let krate_src = self.build_crate(krate);
+                if let Ok(krate_src) = krate_src {
+                    return Ok((krate.id.deref().clone(), krate_src));
+                }
+                Err(krate_src.unwrap_err())
+            })
+            .collect::<Result<HashMap<_, _>, _>>()
     }
 
     fn build_crate(&mut self, krate: &Crate) -> Fallible<String> {
@@ -140,36 +149,36 @@ impl RustBuilder {
     }
 }
 
+/// Asserts that the given Formality input is translated into the expected
+/// Rust code. Only a single crate is supported.
+///
+/// The Formality `input` must be provided as a token tree. The `expected` Rust
+/// output may be given either as a string literal or as another token tree.
 #[macro_export]
 macro_rules! assert_rust {
+    ($input:tt, $expected:literal) => {{
+        $crate::to_rust::assert_rust(stringify!($input), $expected);
+    }};
     ($input:tt, $($expected:tt)*) => {{
         $crate::to_rust::assert_rust(stringify!($input), stringify!($($expected)*));
     }};
 }
 
+#[track_caller]
 pub fn assert_rust(input: &str, expected: &str) {
     let program = crate::rust::try_term(input).unwrap();
     let rust = crate::to_rust::RustBuilder::default()
         .build_crates(&program)
-        .unwrap()[0]
+        .unwrap()
+        .into_iter()
+        .next()
+        .unwrap()
+        .1
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ");
     let expected = expected.split_whitespace().collect::<Vec<_>>().join(" ");
     assert_eq!(rust, expected);
-}
-
-#[macro_export]
-macro_rules! assert_rust2 {
-    ([$($input:tt)*], $fn:ident, $expected:expr) => {{
-        let term = $crate::rust::try_term(stringify!($($input)*)).unwrap();
-        let r = $fn(term);
-        let rust = r
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
-        assert_eq!(rust, $expected);
-    }};
 }
 
 #[cfg(test)]

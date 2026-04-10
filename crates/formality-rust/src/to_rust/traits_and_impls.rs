@@ -191,8 +191,6 @@ impl RustBuilder {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     #[test]
     fn simple_trait() {
         crate::assert_rust!(
@@ -272,56 +270,58 @@ mod test {
                     impl !Write for Bar { }
                 }
             ],
-            impl !Write for Bar { }
+            "impl !Write for Bar {}"
         );
     }
 
     #[test]
     fn where_is_implemented() {
-        fn t(term: crate::grammar::Trait) -> String {
-            RustBuilder::default().build_trait(&term).unwrap()
-        }
-
-        crate::assert_rust2!(
-            [trait Foo where T: Bar {}],
-            t,
-            "trait Foo<T> where T: Bar { }"
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait Bar where T: Baz {}
+                }
+            ],
+            "trait Bar<T> where T: Baz { }"
         );
     }
 
     #[test]
     fn where_is_implemented_with_params() {
-        fn t(term: crate::grammar::Trait) -> String {
-            RustBuilder::default().build_trait(&term).unwrap()
-        }
-        crate::assert_rust2!(
-            [trait Foo where T: Bar<i32, String> {}],
-            t,
-            "trait Foo<T> where T: Bar<i32, String> { }"
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait Bar where T: Baz<i32, String> {}
+                }
+            ],
+            "trait Bar<T> where T: Baz<i32, String> { }"
         );
     }
 
     #[test]
     fn trait_assoc_type() {
-        fn t(term: crate::grammar::Trait) -> String {
-            RustBuilder::default().build_trait(&term).unwrap()
-        }
-        crate::assert_rust2!(
-            [trait Foo where K: Bar { type Error: []; fn test() -> K; }],
-            t,
-            "trait Foo<K> where K: Bar { type Error; fn test() -> K; }"
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait Bar where K: Baz {
+                        type Error: [];
+                        fn test() -> K;
+                    }
+                }
+            ],
+            "trait Bar<K> where K: Baz { type Error; fn test() -> K; }"
         );
     }
 
     #[test]
     fn where_type_of_const() {
-        fn t(term: crate::grammar::Trait) -> String {
-            RustBuilder::default().build_trait(&term).unwrap()
-        }
-        crate::assert_rust2!(
-            [trait Foo<const C> where type_of_const C is bool {}],
-            t,
-            "trait Foo<const N1: bool> { }"
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait Bar<const C> where type_of_const C is bool {}
+                }
+            ],
+            "trait Bar<const N1: bool> { }"
         );
     }
 }
