@@ -1,70 +1,79 @@
 use crate::grammar::{Enum, Fallible, Field, FieldName, Struct, Variant};
-use crate::to_rust::RustBuilder;
+use crate::to_rust::{CodeWriter, RustBuilder};
 
-use std::ops::Deref;
+use std::{fmt::Write, ops::Deref};
 
 impl RustBuilder {
-    pub fn build_struct(&mut self, strukt: &Struct) -> Fallible<String> {
-        let id = strukt.id.deref();
-        let data = strukt.binder.peek();
-        let wc = self.build_where(&data.where_clauses)?;
+    pub fn write_struct(&mut self, out: &mut CodeWriter, strukt: &Struct) -> Fallible<()> {
+        self.with_binder(&strukt.binder, |term, pp| {
+            write!(out, "struct {}", strukt.id.deref())?;
 
-        let fields = data
-            .fields
-            .iter()
-            .map(|f| {
-                self.pretty_print_type(&f.ty)
-                    .map(|ty| format!("{:?}: {}", f.name, ty))
-            }) // TODO: Implement pp for names
-            .collect::<Result<Vec<_>, _>>()?
-            .join(", ");
-        Ok(format!("struct {id}{wc} {{ {fields} }}"))
+            pp.write_where(out, &term.where_clauses)?;
+
+            writeln!(out, " {{")?;
+            for field in &term.fields {
+                let ty = pp.ty_to_string(&field.ty)?;
+                let name = &field.name; // TODO: field_name_to_string()
+                writeln!(out, "{name:?}: {ty},")?;
+            }
+            writeln!(out, "}}")?;
+            Ok(())
+        })
     }
 
-    pub fn build_enum(&mut self, e: &Enum) -> Fallible<String> {
-        let id = e.id.deref();
-        let data = e.binder.peek();
-        let wc = self.build_where(&data.where_clauses)?;
+    pub fn write_enum(&mut self, out: &mut CodeWriter, e: &Enum) -> Fallible<()> {
+        self.with_binder(&e.binder, |term, pp| {
+            write!(out, "enum {}", e.id.deref())?;
 
-        let variants = data
-            .variants
-            .iter()
-            .map(|v| self.build_print_variant(v))
-            .collect::<Result<Vec<_>, _>>()?
-            .join(", ");
+            pp.write_where(out, &term.where_clauses)?;
 
-        Ok(format!("enum {id}{wc} {{ {variants} }}"))
+            writeln!(out, " {{")?;
+            for variant in &term.variants {
+                pp.write_variant(out, variant)?;
+            }
+
+            writeln!(out, "}}")?;
+            Ok(())
+        })
     }
 
-    pub fn build_print_variant(&mut self, variant: &Variant) -> Fallible<String> {
-        let name = variant.name.deref();
-        let fields = self.build_fields(&variant.fields)?;
-
-        Ok(format!("{name}{fields}"))
+    pub fn write_variant(&mut self, out: &mut CodeWriter, variant: &Variant) -> Fallible<()> {
+        write!(out, "{}", variant.name.deref())?;
+        self.write_fields(out, &variant.fields)?;
+        writeln!(out, ",")?;
+        Ok(())
     }
 
-    pub fn build_fields(&mut self, fields: &Vec<Field>) -> Fallible<String> {
+    pub fn write_fields(&mut self, out: &mut CodeWriter, fields: &Vec<Field>) -> Fallible<()> {
         if fields.len() == 0 {
-            return Ok("".into());
+            return Ok(());
         }
 
-        let (opening, closing) = if matches!(fields[0].name, FieldName::Index(_)) {
-            ("(", ")")
+        let closing = if matches!(fields[0].name, FieldName::Index(_)) {
+            write!(out, "(")?;
+            ")"
         } else {
-            (" { ", " }")
+            write!(out, " {{ ")?;
+            " }"
         };
 
-        let fields = fields
-            .iter()
-            .map(|f| match &f.name {
-                FieldName::Id(field_id) => self
-                    .pretty_print_type(&f.ty)
-                    .map(|ty| format!("{}: {}", field_id.deref(), ty)),
-                FieldName::Index(_) => self.pretty_print_type(&f.ty).map(|ty| format!("{}", ty)),
-            })
-            .collect::<Result<Vec<_>, _>>()?
-            .join(", ");
-        Ok(format!("{opening}{fields}{closing}"))
+        let mut sep = "";
+        for field in fields {
+            match &field.name {
+                FieldName::Id(field_id) => {
+                    let ty = self.ty_to_string(&field.ty)?;
+                    write!(out, "{sep}{}: {ty}", field_id.deref())?;
+                    sep = ",\n";
+                }
+                FieldName::Index(_) => {
+                    let ty = self.ty_to_string(&field.ty)?;
+                    write!(out, "{sep}{ty}")?;
+                    sep = ",\n";
+                }
+            }
+        }
+        write!(out, "{closing}")?;
+        Ok(())
     }
 }
 
@@ -83,7 +92,7 @@ mod test {
             ],
             struct Bar {
                 a: i32,
-                b: i32
+                b: i32,
             }
         );
     }
@@ -105,7 +114,7 @@ mod test {
             where
                 T: Baz
             {
-                a: T
+                a: T,
             }
         );
     }
@@ -123,7 +132,7 @@ mod test {
             ],
             enum Bar {
                 A,
-                B
+                B,
             }
         );
     }
@@ -147,7 +156,7 @@ mod test {
                 T: Baz
             {
                 A { t: T },
-                B(T)
+                B(T),
             }
         );
     }

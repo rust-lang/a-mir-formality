@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{fmt::Write, ops::Deref};
 
 use itertools::Itertools;
 
@@ -7,190 +7,213 @@ use crate::grammar::{
     WhereClauseData,
 };
 use crate::prove::prove::Safety;
-use crate::to_rust::RustBuilder;
+use crate::to_rust::{CodeWriter, RustBuilder};
 
 impl RustBuilder {
-    pub fn build_trait(&mut self, t: &Trait) -> Fallible<String> {
+    pub fn write_trait(&mut self, out: &mut CodeWriter, t: &Trait) -> Fallible<()> {
         self.with_binder(&t.binder.explicit_binder, |term, pp| {
-            let safety = if let Safety::Unsafe = t.safety {
-                "unsafe "
-            } else {
-                ""
-            };
+            if let Safety::Unsafe = t.safety {
+                write!(out, "unsafe ")?;
+            }
 
-            let id = t.id.deref();
-            let wc = pp.build_where(&term.where_clauses)?;
+            write!(out, "trait {}", t.id.deref())?;
+            pp.write_where(out, &term.where_clauses)?;
+            writeln!(out, " {{")?;
 
-            let items = term
-                .trait_items
-                .iter()
-                .map(|i| match i {
-                    TraitItem::Fn(f) => pp.build_fn(f),
-                    TraitItem::AssociatedTy(assoc_ty) => pp.build_assoc_ty(assoc_ty),
-                })
-                .collect::<Result<Vec<_>, _>>()?
-                .join("\n");
+            for item in &term.trait_items {
+                match item {
+                    TraitItem::Fn(f) => pp.write_fn(out, f)?,
+                    TraitItem::AssociatedTy(assoc_ty) => pp.write_assoc_ty(out, assoc_ty)?,
+                }
+            }
 
-            Ok(format!("{safety}trait {id}{wc} {{ {items} }}"))
+            writeln!(out, "}}")?;
+            Ok(())
         })
     }
 
-    pub fn build_assoc_ty(&mut self, assoc_ty: &AssociatedTy) -> Fallible<String> {
+    pub fn write_assoc_ty(
+        &mut self,
+        out: &mut CodeWriter,
+        assoc_ty: &AssociatedTy,
+    ) -> Fallible<()> {
         self.with_binder(&assoc_ty.binder, |term, pp| {
-            let id = assoc_ty.id.deref();
+            write!(out, "type {}", assoc_ty.id.deref())?;
 
-            let params = term
-                .where_clauses
-                .iter()
-                .map(|w| match w.data() {
+            if !&term.where_clauses.is_empty() {
+                write!(out, "<")?;
+            }
+
+            let mut sep = "";
+            for param in &term.where_clauses {
+                match param.data() {
                     WhereClauseData::IsImplemented(ty, _trait_id, _parameters) => {
-                        pp.pretty_print_type(ty)
+                        let ty = pp.ty_to_string(ty)?;
+                        write!(out, "{sep}{ty}")?;
+                        sep = ", ";
                     }
                     _ => unimplemented!(),
-                })
-                .collect::<Result<Vec<_>, _>>()?
-                .join(", ");
+                }
+            }
+
+            if !&term.where_clauses.is_empty() {
+                write!(out, ">")?;
+            }
 
             // Bounds := :Bar + Sized
             // Bounds := <empty string>
-            let bound = if term.ensures.is_empty() {
-                "".into()
-            } else {
-                format!(
+            if !term.ensures.is_empty() {
+                write!(
+                    out,
                     ": {}",
                     term.ensures.iter().map(|b| format!("{b:?}")).join(" + ")
-                )
+                )?;
             };
 
             // Where := where Bar, Baz
-            let wc = term
-                .where_clauses
-                .iter()
-                .map(|w| match w.data() {
-                    WhereClauseData::IsImplemented(ty, trait_id, _parameters) => pp
-                        .pretty_print_type(ty)
-                        .map(|ty| format!("{}: {}", ty, trait_id.deref())),
+            // TODO: write where
+            let mut sep = "";
+            let mut first = true;
+            for wc in &term.where_clauses {
+                if first {
+                    write!(out, " where ")?;
+                    first = false;
+                }
+                match wc.data() {
+                    WhereClauseData::IsImplemented(ty, trait_id, _parameters) => {
+                        let ty = pp.ty_to_string(ty)?;
+                        // TODO: parameters are probably needed as well?
+                        write!(out, "{sep}{ty}: {}", trait_id.deref())?;
+                    }
                     WhereClauseData::AliasEq(_alias_ty, _ty) => todo!(),
                     WhereClauseData::Outlives(_parameter, _lt) => todo!(),
                     WhereClauseData::ForAll(_core_binder) => todo!(),
                     WhereClauseData::TypeOfConst(_, _ty) => todo!(),
-                })
-                .collect::<Result<Vec<_>, _>>()?
-                .join(", ");
+                }
+                sep = ", ";
+            }
 
-            let wc = if wc.is_empty() {
-                wc
-            } else {
-                format!(" where {wc}")
-            };
-            let params = if params.is_empty() {
-                params
-            } else {
-                format!("<{params}>")
-            };
-
-            Ok(format!("type {id}{params}{bound}{wc};",))
+            writeln!(out, ";")?;
+            Ok(())
         })
     }
 
-    pub fn build_trait_impl(&mut self, trait_impl: &TraitImpl) -> Fallible<String> {
+    pub fn write_trait_impl(
+        &mut self,
+        out: &mut CodeWriter,
+        trait_impl: &TraitImpl,
+    ) -> Fallible<()> {
         self.with_binder(&trait_impl.binder, |term, pp| {
-            let safety = if let Safety::Unsafe = trait_impl.safety {
-                "unsafe "
-            } else {
-                ""
-            };
-            let id = term.trait_id.deref();
-            let ty = pp.pretty_print_type(&term.self_ty)?;
-            // let where = print_where(w, &data.where_clauses)?;
-            let items = term
-                .impl_items
-                .iter()
-                .map(|item| match item {
-                    ImplItem::Fn(f) => pp.build_fn(f),
-                    ImplItem::AssociatedTyValue(_) => todo!(),
-                })
-                .collect::<Result<Vec<_>, _>>()?
-                .join("\n");
+            if let Safety::Unsafe = trait_impl.safety {
+                write!(out, "unsafe ")?;
+            }
 
-            Ok(format!("{safety}impl {id} for {ty} {{ {items} }}"))
+            let id = term.trait_id.deref();
+            let ty = pp.ty_to_string(&term.self_ty)?;
+            writeln!(out, "impl {id} for {ty} {{")?;
+            // TODO: write where
+
+            for item in &term.impl_items {
+                match item {
+                    ImplItem::Fn(f) => pp.write_fn(out, f)?,
+                    ImplItem::AssociatedTyValue(_) => todo!(),
+                }
+            }
+
+            // Ok(format!("{safety}impl {id} for {ty} {{ {items} }}"))
+            writeln!(out, "}}")?;
+            Ok(())
         })
     }
 
-    pub fn build_neg_trait_impl(&mut self, neg_trait_impl: &NegTraitImpl) -> Fallible<String> {
+    pub fn write_neg_trait_impl(
+        &mut self,
+        out: &mut CodeWriter,
+        neg_trait_impl: &NegTraitImpl,
+    ) -> Fallible<()> {
         self.with_binder(&neg_trait_impl.binder, |term, pp| {
-            let safety = if let Safety::Unsafe = neg_trait_impl.safety {
-                "unsafe "
-            } else {
-                ""
-            };
-            let id = term.trait_id.deref();
-            let ty = pp.pretty_print_type(&term.self_ty)?;
-            // let wc = self.print_where(&data.where_clauses);
+            if let Safety::Unsafe = neg_trait_impl.safety {
+                write!(out, "unsafe ")?;
+            }
 
-            Ok(format!("{safety}impl !{id} for {ty} {{}}"))
+            let id = term.trait_id.deref();
+            let ty = pp.ty_to_string(&term.self_ty)?;
+            // let wc = self.print_where(&data.where_clauses);
+            writeln!(out, "impl !{id} for {ty} {{}}")?;
+            Ok(())
         })
     }
 
     /// Prints a where clauses according to the [this](https://doc.rust-lang.org/reference/items/generics.html#where-clauses)
-    pub fn build_where(&mut self, where_clauses: &Vec<WhereClause>) -> Fallible<String> {
+    pub fn write_where(
+        &mut self,
+        out: &mut CodeWriter,
+        where_clauses: &Vec<WhereClause>,
+    ) -> Fallible<()> {
         if where_clauses.is_empty() {
-            return Ok("".into());
+            return Ok(());
         }
 
-        let params = where_clauses
-            .iter()
-            .map(|i| match i.data() {
-                WhereClauseData::IsImplemented(ty, _, _) => self.pretty_print_type(ty),
-                WhereClauseData::AliasEq(_, _) => todo!(),
-                WhereClauseData::Outlives(_, _) => todo!(),
-                WhereClauseData::ForAll(_) => todo!(),
-                WhereClauseData::TypeOfConst(konst, ty) => self
-                    .pretty_print_const(konst)
-                    .and_then(|konst| self.pretty_print_type(ty).map(|ty| (konst, ty)))
-                    .map(|(konst, ty)| format!("const {konst}: {ty}",)),
-            })
-            .collect::<Result<Vec<_>, _>>()?
-            .join(", ");
-
-        let bounds = where_clauses
-            .iter()
-            .filter_map(|i| match i.data() {
-                WhereClauseData::IsImplemented(ty, trait_id, params) => {
-                    let params = if params.is_empty() {
-                        "".into()
-                    } else {
-                        let params = params
-                            .iter()
-                            .map(|p| format!("{:?}", p))
-                            .collect::<Vec<_>>()
-                            .join(", ");
-                        format!("<{params}>")
-                    };
-
-                    Some(
-                        self.pretty_print_type(ty)
-                            .map(|ty| format!("{}: {}{params}", ty, trait_id.deref())),
-                    )
+        write!(out, "<")?;
+        let mut has_bounds = false;
+        for param in where_clauses {
+            match param.data() {
+                WhereClauseData::IsImplemented(ty, _, _) => {
+                    has_bounds = true;
+                    let ty = self.ty_to_string(ty)?;
+                    write!(out, "{ty}")?;
                 }
                 WhereClauseData::AliasEq(_, _) => todo!(),
                 WhereClauseData::Outlives(_, _) => todo!(),
                 WhereClauseData::ForAll(_) => todo!(),
-                WhereClauseData::TypeOfConst(_, _) => None,
-            })
-            .collect::<Result<Vec<_>, _>>()?
-            .join("\n");
+                WhereClauseData::TypeOfConst(konst, ty) => {
+                    let konst = self.const_to_string(konst)?;
+                    let ty = self.ty_to_string(ty)?;
+                    write!(out, "const {konst}: {ty}")?;
+                }
+            }
+        }
+        write!(out, ">")?;
 
-        Ok(if bounds.is_empty() {
-            format!("<{params}>")
-        } else {
-            format!("<{params}> where {bounds}")
-        })
+        // Condition
+        if !has_bounds {
+            return Ok(());
+        }
+
+        write!(out, " where ")?;
+        for bound in where_clauses {
+            match bound.data() {
+                WhereClauseData::IsImplemented(ty, trait_id, params) => {
+                    let ty = self.ty_to_string(ty)?;
+                    let trait_id = trait_id.deref();
+                    write!(out, "{ty}: {trait_id}")?;
+
+                    if params.is_empty() {
+                        continue;
+                    }
+
+                    write!(out, "<")?;
+                    let mut sep = "";
+                    for param in params {
+                        write!(out, "{sep}{param:?}")?; // TODO: param_to_string
+                        sep = ", ";
+                    }
+                    write!(out, ">")?;
+                }
+                WhereClauseData::AliasEq(_, _) => todo!(),
+                WhereClauseData::Outlives(_, _) => todo!(),
+                WhereClauseData::ForAll(_) => todo!(),
+                WhereClauseData::TypeOfConst(_, _) => continue,
+            }
+        }
+
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod test {
+
     #[test]
     fn simple_trait() {
         crate::assert_rust!(
@@ -244,20 +267,19 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn simple_trait_impl() {
         crate::assert_rust!(
             [
                 crate Foo {
                     impl Write for Bar {
-                        fn write() -> i32 trusted;
+                        fn write() -> i32 {trusted}
                     }
                 }
             ],
             impl Write for Bar {
                 fn write() -> i32 {
                     panic!("Trusted Fn Body")
-                };
+                }
             }
         );
     }

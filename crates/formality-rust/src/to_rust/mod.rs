@@ -5,6 +5,7 @@ use formality_core::{fold::CoreFold, variable::CoreVariable};
 
 use std::{
     collections::{HashMap, HashSet},
+    fmt::Write,
     ops::Deref,
 };
 
@@ -82,6 +83,25 @@ impl NameContext {
 }
 
 #[derive(Debug, Default)]
+pub struct CodeWriter {
+    indention_level: i32,
+    buffer: String,
+}
+
+const INDENT_SIZE: i32 = 4;
+
+impl Write for CodeWriter {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        let n_spaces = self.indention_level * INDENT_SIZE;
+        let spaces = " ".repeat(n_spaces as usize);
+
+        // TODO: Update indention level
+
+        write!(self.buffer, "{spaces}{s}")
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct RustBuilder {
     ctx: NameContext,
 }
@@ -90,8 +110,8 @@ impl RustBuilder {
     pub fn with_binder<T: CoreFold<crate::FormalityLang, Output = T>>(
         &mut self,
         binder: &Binder<T>,
-        mut op: impl FnMut(&T, &mut RustBuilder) -> Fallible<String>,
-    ) -> Fallible<String> {
+        mut op: impl FnMut(&T, &mut RustBuilder) -> Fallible<()>,
+    ) -> Fallible<()> {
         let term = binder.peek();
         self.ctx.push(binder.kinds());
 
@@ -113,39 +133,41 @@ impl RustBuilder {
             .crates
             .iter()
             .map(|krate| {
-                let krate_src = self.build_crate(krate);
-                if let Ok(krate_src) = krate_src {
-                    return Ok((krate.id.deref().clone(), krate_src));
+                let mut out = CodeWriter::default();
+                let result = self.write_crate(&mut out, krate);
+                if result.is_ok() {
+                    return Ok((krate.id.deref().clone(), out.buffer));
                 }
-                Err(krate_src.unwrap_err())
+                Err(result.unwrap_err())
             })
             .collect::<Result<HashMap<_, _>, _>>()
     }
 
-    fn build_crate(&mut self, krate: &Crate) -> Fallible<String> {
-        Ok(krate
-            .items
-            .iter()
-            .map(|item| self.build_crate_item(item))
-            .collect::<Result<Vec<_>, _>>()?
-            .join("\n"))
+    fn write_crate(&mut self, out: &mut CodeWriter, krate: &Crate) -> Fallible<()> {
+        for item in &krate.items {
+            self.write_crate_item(out, item)?;
+        }
+        Ok(())
     }
 
-    fn build_crate_item(&mut self, crate_item: &CrateItem) -> Fallible<String> {
+    fn write_crate_item(&mut self, out: &mut CodeWriter, crate_item: &CrateItem) -> Fallible<()> {
         match crate_item {
-            CrateItem::FeatureGate(gate) => self.build_feature_gate(gate),
-            CrateItem::AdtItem(AdtItem::Struct(strukt)) => self.build_struct(strukt),
-            CrateItem::AdtItem(AdtItem::Enum(e)) => self.build_enum(e),
-            CrateItem::Trait(t) => self.build_trait(t),
-            CrateItem::TraitImpl(trait_impl) => self.build_trait_impl(trait_impl),
-            CrateItem::NegTraitImpl(neg_trait_impl) => self.build_neg_trait_impl(neg_trait_impl),
-            CrateItem::Fn(f) => self.build_fn(f),
+            CrateItem::FeatureGate(gate) => self.write_feature_gate(out, gate),
+            CrateItem::AdtItem(AdtItem::Struct(strukt)) => self.write_struct(out, strukt),
+            CrateItem::AdtItem(AdtItem::Enum(e)) => self.write_enum(out, e),
+            CrateItem::Trait(t) => self.write_trait(out, t),
+            CrateItem::TraitImpl(trait_impl) => self.write_trait_impl(out, trait_impl),
+            CrateItem::NegTraitImpl(neg_trait_impl) => {
+                self.write_neg_trait_impl(out, neg_trait_impl)
+            }
+            CrateItem::Fn(f) => self.write_fn(out, f),
             CrateItem::Test(_) => unimplemented!(),
         }
     }
 
-    fn build_feature_gate(&mut self, gate: &FeatureGate) -> Fallible<String> {
-        Ok(format!("{:?}", gate))
+    fn write_feature_gate(&mut self, out: &mut CodeWriter, gate: &FeatureGate) -> Fallible<()> {
+        writeln!(out, "{:?}", gate)?;
+        Ok(())
     }
 }
 

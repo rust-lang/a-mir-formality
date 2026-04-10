@@ -7,7 +7,7 @@ use crate::grammar::{
 use crate::to_rust::RustBuilder;
 
 impl RustBuilder {
-    pub fn pretty_print_const(&mut self, konst: &Const) -> Fallible<String> {
+    pub fn const_to_string(&mut self, konst: &Const) -> Fallible<String> {
         match konst.data() {
             ConstData::RigidValue(_rigid_const_data) => todo!(),
             ConstData::Scalar(_scalar_value) => todo!(),
@@ -16,7 +16,7 @@ impl RustBuilder {
         }
     }
 
-    pub fn pretty_print_type(&mut self, ty: &Ty) -> Fallible<String> {
+    pub fn ty_to_string(&mut self, ty: &Ty) -> Fallible<String> {
         match ty.data() {
             TyData::RigidTy(rigid_ty) => self.pretty_print_rigid_ty(rigid_ty),
             TyData::AliasTy(_alias_ty) => todo!(),
@@ -82,7 +82,7 @@ impl RustBuilder {
             .ok_or_else(|| anyhow::anyhow!("The second parameter of a reference muse be a type"))?;
 
         let lt = self.pretty_print_lt(lt)?;
-        let ty = self.pretty_print_type(ty)?;
+        let ty = self.ty_to_string(ty)?;
 
         Ok(format!("&{lt} {kind}{ty}"))
     }
@@ -100,7 +100,7 @@ impl RustBuilder {
         let types = parameters
             .iter()
             .filter_map(|p| match p {
-                Parameter::Ty(ty) => Some(self.pretty_print_type(ty)),
+                Parameter::Ty(ty) => Some(self.ty_to_string(ty)),
                 _ => None,
             })
             .collect::<Result<Vec<_>, _>>()?
@@ -116,7 +116,7 @@ impl RustBuilder {
             .iter()
             .take(size - 1)
             .filter_map(|p| match p {
-                Parameter::Ty(ty) => Some(self.pretty_print_type(ty)),
+                Parameter::Ty(ty) => Some(self.ty_to_string(ty)),
                 _ => None,
             })
             .collect::<Result<Vec<_>, _>>()?
@@ -127,7 +127,7 @@ impl RustBuilder {
             .rev()
             .next()
             .map(|p| match p {
-                Parameter::Ty(ty) => self.pretty_print_type(ty),
+                Parameter::Ty(ty) => self.ty_to_string(ty),
                 _ => unimplemented!(),
             })
             .ok_or_else(|| anyhow::anyhow!("Return type is missing"))??;
@@ -241,7 +241,7 @@ mod test {
             name: RigidName::AdtId(AdtId::new("Foo")),
             parameters: Vec::new(),
         }));
-        let t = pp.pretty_print_type(&ty);
+        let t = pp.ty_to_string(&ty);
 
         assert_eq!("Foo", t.unwrap());
     }
@@ -253,7 +253,7 @@ mod test {
             name: RigidName::ScalarId(ScalarId::U8),
             parameters: Vec::new(),
         }));
-        let t = pp.pretty_print_type(&ty);
+        let t = pp.ty_to_string(&ty);
 
         assert_eq!("u8", t.unwrap());
     }
@@ -274,7 +274,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.pretty_print_type(&ty).unwrap();
+        let t = pp.ty_to_string(&ty).unwrap();
         assert_eq!("&'a1 u8", t);
 
         let ty = Ty::new(TyData::RigidTy(RigidTy {
@@ -287,7 +287,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.pretty_print_type(&ty).unwrap();
+        let t = pp.ty_to_string(&ty).unwrap();
         assert_eq!("&'a1 mut u8", t);
 
         let ty = Ty::new(TyData::RigidTy(RigidTy {
@@ -300,7 +300,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.pretty_print_type(&ty).unwrap();
+        let t = pp.ty_to_string(&ty).unwrap();
         assert_eq!("&'static mut u8", t);
     }
 
@@ -320,7 +320,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.pretty_print_type(&ty).unwrap();
+        let t = pp.ty_to_string(&ty).unwrap();
 
         assert_eq!("(u8, i64)", t);
     }
@@ -345,7 +345,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.pretty_print_type(&ty).unwrap();
+        let t = pp.ty_to_string(&ty).unwrap();
 
         assert_eq!("fn(u8, i64) -> isize", t);
     }
