@@ -17,8 +17,59 @@ mod traits_and_impls;
 
 mod tys;
 
-pub fn build_rust(crates: &Crates) -> Fallible<HashMap<String, String>> {
-    RustBuilder::default().build_crates(crates)
+pub fn build_workspace(crates: &Crates, root_direcotry: &std::path::Path) -> Fallible<()> {
+    let root_toml = create_workspace(crates, root_direcotry)?;
+
+    std::process::Command::new("cargo")
+        .args(["build", "--manifest-path", &root_toml])
+        .spawn()?;
+
+    Ok(())
+}
+
+/// Produces a Cargo workspaces on the file system in the `root_direcotry`. After sucesfully creating all the files, `cargo fmt` is run.
+pub fn create_workspace(crates: &Crates, root_directory: &std::path::Path) -> Fallible<String> {
+    use std::io::Write;
+    let crates = RustBuilder::default().build_crates(crates)?;
+    let crates_path = root_directory.join("crates");
+    let root_toml_path = root_directory.join("Cargo.toml");
+
+    std::fs::create_dir_all(&crates_path)?;
+
+    let root_toml_file = std::fs::File::create(&root_toml_path)?;
+    writeln!(&root_toml_file, "[workspace]")?;
+    writeln!(&root_toml_file, "resolver = \"2\"")?;
+    writeln!(&root_toml_file, "members = [")?;
+
+    for (name, source) in crates {
+        let crate_path = crates_path.join(&name);
+        let crate_toml_path = crate_path.join("Cargo.toml");
+        let src_path = crate_path.join("src");
+        let lib_path = src_path.join("lib.rs");
+        std::fs::create_dir_all(&src_path)?;
+
+        let mut file = std::fs::File::create(&lib_path)?;
+        file.write_all(&source.as_bytes())?;
+
+        let file = std::fs::File::create(&crate_toml_path)?;
+        writeln!(&file, "[package]")?;
+        writeln!(&file, "name = \"{name}\"")?;
+        writeln!(&file, "version = \"0.1.0\"")?;
+        writeln!(&file, "edition = \"2021\"")?;
+
+        writeln!(&root_toml_file, "    \"crates/{name}\",")?;
+    }
+
+    writeln!(&root_toml_file, "]")?;
+    let location = root_toml_path
+        .to_str()
+        .ok_or_else(|| anyhow::anyhow!("Could not convert location to a &str"))?;
+
+    std::process::Command::new("cargo")
+        .args(["fmt", "--manifest-path", location])
+        .spawn()?;
+
+    Ok(location.to_string())
 }
 
 type Stack<T> = Vec<T>;
