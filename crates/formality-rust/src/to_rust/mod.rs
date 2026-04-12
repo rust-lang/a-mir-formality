@@ -85,7 +85,10 @@ pub struct NameContext {
 
 impl NameContext {
     /// Returns a pretty printable name for the `given CoreVaribale`.
-    pub fn variable_name(&self, variable: &CoreVariable<crate::FormalityLang>) -> Fallible<String> {
+    pub fn core_variable_to_string(
+        &self,
+        variable: &CoreVariable<crate::FormalityLang>,
+    ) -> Fallible<String> {
         let CoreVariable::BoundVar(core_bound_var) = variable else {
             unimplemented!()
         };
@@ -136,14 +139,14 @@ impl NameContext {
 }
 
 #[derive(Debug, Default)]
-pub struct CodeWriter {
+pub struct CodeWriter<W: Write = String> {
     indention_level: i32,
-    buffer: String,
+    buffer: W,
 }
 
 const INDENT_SIZE: i32 = 4;
 
-impl Write for CodeWriter {
+impl<W: Write> Write for CodeWriter<W> {
     fn write_str(&mut self, s: &str) -> std::fmt::Result {
         let n_spaces = self.indention_level * INDENT_SIZE;
         let spaces = " ".repeat(n_spaces as usize);
@@ -174,11 +177,11 @@ impl RustBuilder {
         result
     }
 
-    pub fn variable_name(
+    pub fn core_variable_to_string(
         &self,
         core_variable: &CoreVariable<crate::FormalityLang>,
     ) -> Fallible<String> {
-        self.ctx.variable_name(core_variable)
+        self.ctx.core_variable_to_string(core_variable)
     }
 
     pub fn build_crates(&mut self, crates: &Crates) -> Fallible<HashMap<String, String>> {

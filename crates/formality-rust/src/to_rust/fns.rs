@@ -60,7 +60,7 @@ impl RustBuilder {
                 None
             }
         }) {
-            let var = self.variable_name(var)?;
+            let var = self.core_variable_to_string(var)?;
             write!(&mut buffer, "{sep}{var}")?;
             sep = ", ";
         }

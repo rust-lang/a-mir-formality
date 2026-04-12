@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{fmt::Write, ops::Deref};
 
 use crate::grammar::{
     Const, ConstData, Fallible, Lt, LtData, Parameter, Parameters, PtrKind, RefKind, RigidName,
@@ -20,7 +20,7 @@ impl RustBuilder {
             ConstData::RigidValue(_rigid_const_data) => todo!(),
             ConstData::Scalar(_scalar_value) => todo!(),
             ConstData::Block(_block) => todo!(),
-            ConstData::Variable(core_variable) => self.variable_name(core_variable),
+            ConstData::Variable(core_variable) => self.core_variable_to_string(core_variable),
         }
     }
 
@@ -29,13 +29,27 @@ impl RustBuilder {
             TyData::RigidTy(rigid_ty) => self.rigid_ty_to_string(rigid_ty),
             TyData::AliasTy(_alias_ty) => todo!(),
             TyData::PredicateTy(_predicate_ty) => todo!(),
-            TyData::Variable(core_variable) => self.variable_name(core_variable),
+            TyData::Variable(core_variable) => self.core_variable_to_string(core_variable),
         }
     }
 
     pub fn rigid_ty_to_string(&mut self, rigid_ty: &RigidTy) -> Fallible<String> {
         match &rigid_ty.name {
-            RigidName::AdtId(adt_id) => Ok(adt_id.deref().into()),
+            RigidName::AdtId(adt_id) => {
+                let id = adt_id.deref();
+                let mut buffer = String::new();
+                let mut sep = "";
+                for param in &rigid_ty.parameters {
+                    let param = self.parameter_to_string(&param)?;
+                    write!(buffer, "{sep}{param}")?;
+                    sep = ", ";
+                }
+                if buffer.is_empty() {
+                    Ok(format!("{id}"))
+                } else {
+                    Ok(format!("{id}<{buffer}>"))
+                }
+            }
             RigidName::ScalarId(scalar_id) => Ok(self.scalar_to_string(scalar_id)),
             RigidName::Ref(ref_kind) => self.ref_to_string(ref_kind, &rigid_ty.parameters),
             RigidName::Raw(ptr_kind) => self.ptr_to_string(ptr_kind, &rigid_ty.parameters),
@@ -125,7 +139,7 @@ impl RustBuilder {
     pub fn lt_to_string(&mut self, lt: &Lt) -> Fallible<String> {
         match lt.data() {
             LtData::Static => Ok("'static".into()),
-            LtData::Variable(core_variable) => self.variable_name(core_variable),
+            LtData::Variable(core_variable) => self.core_variable_to_string(core_variable),
         }
     }
 
@@ -213,18 +227,18 @@ mod test {
         ctx.push(&[ParameterKind::Ty]);
         let ty1 = create_ty();
 
-        assert_eq!("T1", ctx.variable_name(&ty1).unwrap());
+        assert_eq!("T1", ctx.core_variable_to_string(&ty1).unwrap());
 
         {
             ctx.push(&[ParameterKind::Ty]);
             let ty1 = ty1.shift_in();
             let ty2 = create_ty();
-            assert_eq!("T1", ctx.variable_name(&ty1).unwrap());
-            assert_eq!("T2", ctx.variable_name(&ty2).unwrap());
+            assert_eq!("T1", ctx.core_variable_to_string(&ty1).unwrap());
+            assert_eq!("T2", ctx.core_variable_to_string(&ty2).unwrap());
             ctx.pop();
         }
 
-        assert_eq!("T1", ctx.variable_name(&ty1).unwrap());
+        assert_eq!("T1", ctx.core_variable_to_string(&ty1).unwrap());
     }
 
     #[test]
@@ -234,18 +248,18 @@ mod test {
         ctx.push(&[ParameterKind::Lt]);
         let lt1 = create_lt();
 
-        assert_eq!("'a1", ctx.variable_name(&lt1).unwrap());
+        assert_eq!("'a1", ctx.core_variable_to_string(&lt1).unwrap());
 
         {
             ctx.push(&[ParameterKind::Lt]);
             let lt1 = lt1.shift_in();
             let lt2 = create_lt();
-            assert_eq!("'a1", ctx.variable_name(&lt1).unwrap());
-            assert_eq!("'a2", ctx.variable_name(&lt2).unwrap());
+            assert_eq!("'a1", ctx.core_variable_to_string(&lt1).unwrap());
+            assert_eq!("'a2", ctx.core_variable_to_string(&lt2).unwrap());
             ctx.pop();
         }
 
-        assert_eq!("'a1", ctx.variable_name(&lt1).unwrap());
+        assert_eq!("'a1", ctx.core_variable_to_string(&lt1).unwrap());
     }
 
     #[test]
@@ -255,18 +269,18 @@ mod test {
         ctx.push(&[ParameterKind::Const]);
         let const1 = create_const();
 
-        assert_eq!("N1", ctx.variable_name(&const1).unwrap());
+        assert_eq!("N1", ctx.core_variable_to_string(&const1).unwrap());
 
         {
             ctx.push(&[ParameterKind::Const]);
             let const1 = const1.shift_in();
             let const2 = create_const();
-            assert_eq!("N1", ctx.variable_name(&const1).unwrap());
-            assert_eq!("N2", ctx.variable_name(&const2).unwrap());
+            assert_eq!("N1", ctx.core_variable_to_string(&const1).unwrap());
+            assert_eq!("N2", ctx.core_variable_to_string(&const2).unwrap());
             ctx.pop();
         }
 
-        assert_eq!("N1", ctx.variable_name(&const1).unwrap());
+        assert_eq!("N1", ctx.core_variable_to_string(&const1).unwrap());
     }
 
     #[test]

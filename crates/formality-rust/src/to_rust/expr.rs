@@ -141,7 +141,7 @@ impl RustBuilder {
                     self.write_expr(out, arg)?;
                     sep = ", ";
                 }
-                write!(out, ")")?;
+                write!(out, ");")?;
                 Ok(())
             }
             ExprData::Literal { value, ty } => {
@@ -208,6 +208,7 @@ impl RustBuilder {
                     self.write_field_expr(out, field_expr)?;
                     sep = ", ";
                 }
+                write!(out, "}}")?;
 
                 Ok(())
             }

@@ -19,7 +19,7 @@ extension-trait = "1.0.1"
 minirust-rs = { path = "../minirust-rs" }
 libspecr = "=0.1.36"
 regex = "1.12.3"
+tempfile = "3.27.0"
 
 [dev-dependencies]
 expect-test = "1.4.0"
-tempfile = "3.27.0"

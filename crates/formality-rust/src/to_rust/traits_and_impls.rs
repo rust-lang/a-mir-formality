@@ -3,7 +3,7 @@ use std::{fmt::Write, ops::Deref};
 use itertools::Itertools;
 
 use crate::grammar::{
-    AssociatedTy, Fallible, ImplItem, NegTraitImpl, Parameter, Trait, TraitImpl, TraitItem,
+    AssociatedTy, Fallible, ImplItem, NegTraitImpl, Parameter, Trait, TraitImpl, TraitItem, TyData,
     WhereClause, WhereClauseData,
 };
 use crate::prove::prove::Safety;
@@ -92,7 +92,10 @@ impl RustBuilder {
         }
 
         let mut buffer = String::new();
+        let mut sep = "";
         for bound in where_clauses {
+            write!(buffer, "{sep}")?;
+            sep = ", ";
             match bound.data() {
                 WhereClauseData::IsImplemented(ty, trait_id, params) => {
                     let ty = self.ty_to_string(ty)?;
@@ -216,11 +219,17 @@ impl RustBuilder {
         }
 
         write!(out, "<")?;
+        let mut sep = "";
         for param in where_clauses {
+            write!(out, "{sep}")?;
             match param.data() {
                 WhereClauseData::IsImplemented(ty, _, _) => {
-                    let ty = self.ty_to_string(ty)?;
-                    write!(out, "{ty}")?;
+                    if let TyData::Variable(var) = ty.data() {
+                        let var = self.core_variable_to_string(var)?;
+                        write!(out, "{var}")?;
+                    } else {
+                        continue;
+                    }
                 }
                 WhereClauseData::AliasEq(_, _) => todo!(),
                 WhereClauseData::Outlives(_, _) => todo!(),
@@ -231,6 +240,7 @@ impl RustBuilder {
                     write!(out, "const {konst}: {ty}")?;
                 }
             }
+            sep = ", ";
         }
         write!(out, ">")?;
         Ok(())
