@@ -12,17 +12,21 @@ use std::{
 mod expr;
 mod fns;
 mod structs_enums_and_adts;
+pub mod test_utils;
 mod traits_and_impls;
 mod tys;
 
-pub fn build_workspace(crates: &Crates, root_direcotry: &std::path::Path) -> Fallible<()> {
+pub fn build_workspace(
+    crates: &Crates,
+    root_direcotry: &std::path::Path,
+) -> Fallible<std::process::Output> {
     let root_toml = create_workspace(crates, root_direcotry)?;
 
-    std::process::Command::new("cargo")
+    let output = std::process::Command::new("cargo")
+        .env("RUSTFLAGS", "-A warnings")
         .args(["build", "--manifest-path", &root_toml])
-        .spawn()?;
-
-    Ok(())
+        .output()?;
+    Ok(output)
 }
 
 /// Produces a Cargo workspaces on the file system in the `root_direcotry`. After sucesfully creating all the files, `cargo fmt` is run.
@@ -220,43 +224,11 @@ impl RustBuilder {
     }
 }
 
-/// Asserts that the given Formality input is translated into the expected
-/// Rust code. Only a single crate is supported.
-///
-/// The Formality `input` must be provided as a token tree. The `expected` Rust
-/// output may be given either as a string literal or as another token tree.
-#[macro_export]
-macro_rules! assert_rust {
-    ($input:tt, $expected:literal) => {{
-        $crate::to_rust::assert_rust(stringify!($input), $expected);
-    }};
-    ($input:tt, $($expected:tt)*) => {{
-        $crate::to_rust::assert_rust(stringify!($input), stringify!($($expected)*));
-    }};
-}
-
-#[track_caller]
-pub fn assert_rust(input: &str, expected: &str) {
-    let program = crate::rust::try_term(input).unwrap();
-    let rust = crate::to_rust::RustBuilder::default()
-        .build_crates(&program)
-        .unwrap()
-        .into_iter()
-        .next()
-        .unwrap()
-        .1
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
-    let expected = expected.split_whitespace().collect::<Vec<_>>().join(" ");
-    assert_eq!(rust, expected);
-}
-
 #[cfg(test)]
 mod test {
     #[test]
     fn empty_crate() {
-        assert_rust!(
+        crate::assert_rust!(
             [
                 crate Foo {}
             ],
@@ -265,7 +237,7 @@ mod test {
 
     #[test]
     fn simple_feature_gate() {
-        assert_rust!(
+        crate::assert_rust!(
             [
                 crate Foo {
                     #![feature(polonius_alpha)]
