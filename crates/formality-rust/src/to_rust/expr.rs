@@ -23,7 +23,7 @@ impl RustBuilder {
         Ok(())
     }
 
-    pub fn write_stmt(&mut self, out: &mut CodeWriter, stmt: &Stmt) -> Fallible<()> {
+    fn write_stmt(&mut self, out: &mut CodeWriter, stmt: &Stmt) -> Fallible<()> {
         match stmt {
             Stmt::Let {
                 label,
@@ -46,7 +46,7 @@ impl RustBuilder {
         }
     }
 
-    pub fn write_let(
+    fn write_let(
         &mut self,
         out: &mut CodeWriter,
         _label: Option<&Label>,
@@ -69,7 +69,7 @@ impl RustBuilder {
         Ok(())
     }
 
-    pub fn write_if(
+    fn write_if(
         &mut self,
         out: &mut CodeWriter,
         condition: &Expr,
@@ -88,7 +88,7 @@ impl RustBuilder {
         Ok(())
     }
 
-    pub fn write_loop(
+    fn write_loop(
         &mut self,
         out: &mut CodeWriter,
         label: Option<&Label>,
@@ -102,28 +102,28 @@ impl RustBuilder {
         self.write_block(out, body)
     }
 
-    pub fn write_break(&mut self, out: &mut CodeWriter, label: &LabelId) -> Fallible<()> {
+    fn write_break(&mut self, out: &mut CodeWriter, label: &LabelId) -> Fallible<()> {
         writeln!(out, "break {}", label.deref())?;
         Ok(())
     }
 
-    pub fn write_continue(&mut self, out: &mut CodeWriter, label: &LabelId) -> Fallible<()> {
+    fn write_continue(&mut self, out: &mut CodeWriter, label: &LabelId) -> Fallible<()> {
         writeln!(out, "continue {};", label.deref())?;
         Ok(())
     }
 
-    pub fn write_return(&mut self, out: &mut CodeWriter, expr: &Expr) -> Fallible<()> {
+    fn write_return(&mut self, out: &mut CodeWriter, expr: &Expr) -> Fallible<()> {
         writeln!(out, "return ")?;
         self.write_expr(out, expr)?;
         writeln!(out, ";")?;
         Ok(())
     }
 
-    pub fn write_exists(&mut self, out: &mut CodeWriter, binder: &Binder<Block>) -> Fallible<()> {
+    fn write_exists(&mut self, out: &mut CodeWriter, binder: &Binder<Block>) -> Fallible<()> {
         self.with_binder(binder, |term, pp| pp.write_block(out, term))
     }
 
-    pub fn write_expr(&mut self, out: &mut CodeWriter, expr: &Expr) -> Fallible<()> {
+    fn write_expr(&mut self, out: &mut CodeWriter, expr: &Expr) -> Fallible<()> {
         match expr.data() {
             ExprData::Assign { place, expr } => {
                 self.write_place_expr(out, place)?;
@@ -174,7 +174,7 @@ impl RustBuilder {
                 let id = id.deref();
                 let args = args
                     .iter()
-                    .map(|arg| self.pretty_print_parameter(arg))
+                    .map(|arg| self.parameter_to_string(arg))
                     .collect::<Result<Vec<_>, _>>()
                     .unwrap()
                     .join(", ");
@@ -191,7 +191,7 @@ impl RustBuilder {
                 let args = turbofish
                     .parameters
                     .iter()
-                    .map(|arg| self.pretty_print_parameter(arg))
+                    .map(|arg| self.parameter_to_string(arg))
                     .collect::<Result<Vec<_>, _>>()
                     .unwrap()
                     .join(", ");
@@ -214,11 +214,7 @@ impl RustBuilder {
         }
     }
 
-    pub fn write_place_expr(
-        &mut self,
-        out: &mut CodeWriter,
-        place_expr: &PlaceExpr,
-    ) -> Fallible<()> {
+    fn write_place_expr(&mut self, out: &mut CodeWriter, place_expr: &PlaceExpr) -> Fallible<()> {
         match place_expr.data() {
             PlaceExprData::Var(value_id) => {
                 write!(out, "{}", value_id.deref())?;
@@ -242,11 +238,7 @@ impl RustBuilder {
         }
     }
 
-    pub fn write_field_expr(
-        &mut self,
-        out: &mut CodeWriter,
-        field_expr: &FieldExpr,
-    ) -> Fallible<()> {
+    fn write_field_expr(&mut self, out: &mut CodeWriter, field_expr: &FieldExpr) -> Fallible<()> {
         match &field_expr.name {
             FieldName::Id(id) => {
                 write!(out, "{}:", id.deref())?;

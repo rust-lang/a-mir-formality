@@ -7,6 +7,14 @@ use crate::grammar::{
 use crate::to_rust::RustBuilder;
 
 impl RustBuilder {
+    pub fn parameter_to_string(&mut self, parameter: &Parameter) -> Fallible<String> {
+        match parameter {
+            Parameter::Ty(ty) => self.ty_to_string(ty),
+            Parameter::Lt(lt) => self.lt_to_string(lt),
+            Parameter::Const(konst) => self.const_to_string(konst),
+        }
+    }
+
     pub fn const_to_string(&mut self, konst: &Const) -> Fallible<String> {
         match konst.data() {
             ConstData::RigidValue(_rigid_const_data) => todo!(),
@@ -160,10 +168,6 @@ impl RustBuilder {
             .ok_or_else(|| anyhow::anyhow!("Return type is missing"))??;
 
         Ok(format!("fn({input_args}) -> {output_arg}"))
-    }
-
-    pub fn pretty_print_parameter(&mut self, _parameter: &Parameter) -> Fallible<String> {
-        todo!()
     }
 }
 

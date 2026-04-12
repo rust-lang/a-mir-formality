@@ -8,7 +8,8 @@ impl RustBuilder {
         self.with_binder(&strukt.binder, |term, pp| {
             write!(out, "struct {}", strukt.id.deref())?;
 
-            pp.write_where(out, &term.where_clauses)?;
+            pp.write_generic_params(out, &term.where_clauses)?;
+            pp.write_where_bounds(out, &term.where_clauses)?;
 
             writeln!(out, " {{")?;
             for field in &term.fields {
@@ -25,7 +26,8 @@ impl RustBuilder {
         self.with_binder(&e.binder, |term, pp| {
             write!(out, "enum {}", e.id.deref())?;
 
-            pp.write_where(out, &term.where_clauses)?;
+            pp.write_generic_params(out, &term.where_clauses)?;
+            pp.write_where_bounds(out, &term.where_clauses)?;
 
             writeln!(out, " {{")?;
             for variant in &term.variants {
@@ -37,14 +39,21 @@ impl RustBuilder {
         })
     }
 
-    pub fn write_variant(&mut self, out: &mut CodeWriter, variant: &Variant) -> Fallible<()> {
+    pub fn field_name_to_string(&mut self, field_name: &FieldName) -> String {
+        match field_name {
+            FieldName::Id(id) => id.deref().clone(),
+            FieldName::Index(idx) => format!("{idx}"),
+        }
+    }
+
+    fn write_variant(&mut self, out: &mut CodeWriter, variant: &Variant) -> Fallible<()> {
         write!(out, "{}", variant.name.deref())?;
         self.write_fields(out, &variant.fields)?;
         writeln!(out, ",")?;
         Ok(())
     }
 
-    pub fn write_fields(&mut self, out: &mut CodeWriter, fields: &Vec<Field>) -> Fallible<()> {
+    fn write_fields(&mut self, out: &mut CodeWriter, fields: &Vec<Field>) -> Fallible<()> {
         if fields.len() == 0 {
             return Ok(());
         }
@@ -74,13 +83,6 @@ impl RustBuilder {
         }
         write!(out, "{closing}")?;
         Ok(())
-    }
-
-    pub fn field_name_to_string(&mut self, field_name: &FieldName) -> String {
-        match field_name {
-            FieldName::Id(id) => id.deref().clone(),
-            FieldName::Index(idx) => format!("{idx}"),
-        }
     }
 }
 

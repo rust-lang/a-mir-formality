@@ -3,8 +3,8 @@ use std::{fmt::Write, ops::Deref};
 use itertools::Itertools;
 
 use crate::grammar::{
-    AssociatedTy, Fallible, ImplItem, NegTraitImpl, Trait, TraitImpl, TraitItem, WhereClause,
-    WhereClauseData,
+    AssociatedTy, Fallible, ImplItem, NegTraitImpl, Parameter, Trait, TraitImpl, TraitItem,
+    WhereClause, WhereClauseData,
 };
 use crate::prove::prove::Safety;
 use crate::to_rust::{CodeWriter, RustBuilder};
@@ -17,7 +17,8 @@ impl RustBuilder {
             }
 
             write!(out, "trait {}", t.id.deref())?;
-            pp.write_where(out, &term.where_clauses)?;
+            pp.write_generic_params(out, &term.where_clauses)?;
+            pp.write_where_bounds(out, &term.where_clauses)?;
             writeln!(out, " {{")?;
 
             for item in &term.trait_items {
@@ -32,11 +33,120 @@ impl RustBuilder {
         })
     }
 
-    pub fn write_assoc_ty(
+    pub fn write_trait_impl(
         &mut self,
         out: &mut CodeWriter,
-        assoc_ty: &AssociatedTy,
+        trait_impl: &TraitImpl,
     ) -> Fallible<()> {
+        // Ok(format!("{safety}impl<params> {id} for {ty} where {bounds} {{ {items} }}"))
+        self.with_binder(&trait_impl.binder, |term, pp| {
+            if let Safety::Unsafe = trait_impl.safety {
+                write!(out, "unsafe ")?;
+            }
+
+            let id = term.trait_id.deref();
+            let ty = pp.ty_to_string(&term.self_ty)?;
+            write!(out, "impl {id}")?;
+            pp.write_impl_trait_params(out, &term.trait_parameters)?;
+            writeln!(out, " for {ty} ")?;
+            pp.write_where_bounds(out, &term.where_clauses)?;
+            writeln!(out, " {{")?;
+
+            for item in &term.impl_items {
+                match item {
+                    ImplItem::Fn(f) => pp.write_fn(out, f)?,
+                    ImplItem::AssociatedTyValue(_) => todo!(),
+                }
+            }
+
+            writeln!(out, "}}")?;
+            Ok(())
+        })
+    }
+
+    pub fn write_neg_trait_impl(
+        &mut self,
+        out: &mut CodeWriter,
+        neg_trait_impl: &NegTraitImpl,
+    ) -> Fallible<()> {
+        self.with_binder(&neg_trait_impl.binder, |term, pp| {
+            if let Safety::Unsafe = neg_trait_impl.safety {
+                write!(out, "unsafe ")?;
+            }
+
+            let id = term.trait_id.deref();
+            let ty = pp.ty_to_string(&term.self_ty)?;
+            // let wc = self.print_where(&data.where_clauses);
+            writeln!(out, "impl !{id} for {ty} {{}}")?;
+            Ok(())
+        })
+    }
+
+    pub fn write_where_bounds(
+        &mut self,
+        out: &mut CodeWriter,
+        where_clauses: &Vec<WhereClause>,
+    ) -> Fallible<()> {
+        if where_clauses.is_empty() {
+            return Ok(());
+        }
+
+        let mut buffer = String::new();
+        for bound in where_clauses {
+            match bound.data() {
+                WhereClauseData::IsImplemented(ty, trait_id, params) => {
+                    let ty = self.ty_to_string(ty)?;
+                    let trait_id = trait_id.deref();
+                    write!(buffer, "{ty}: {trait_id}")?;
+
+                    if params.is_empty() {
+                        continue;
+                    }
+
+                    write!(buffer, "<")?;
+                    let mut sep = "";
+                    for param in params {
+                        let param = self.parameter_to_string(param)?;
+                        write!(buffer, "{sep}{param}")?;
+                        sep = ", ";
+                    }
+                    write!(buffer, ">")?;
+                }
+                WhereClauseData::AliasEq(_, _) => todo!(),
+                WhereClauseData::Outlives(_, _) => todo!(),
+                WhereClauseData::ForAll(_) => todo!(),
+                WhereClauseData::TypeOfConst(_, _) => continue,
+            }
+        }
+
+        if !buffer.is_empty() {
+            write!(out, " where {buffer}")?;
+        }
+        Ok(())
+    }
+
+    fn write_impl_trait_params(
+        &mut self,
+        out: &mut CodeWriter,
+        trait_parameters: &Vec<Parameter>,
+    ) -> Fallible<()> {
+        if trait_parameters.is_empty() {
+            return Ok(());
+        }
+
+        write!(out, "<")?;
+        let mut sep = "";
+        for parameter in trait_parameters {
+            let p = self.parameter_to_string(parameter)?;
+            write!(out, "{sep}{}", p)?;
+            sep = ", "
+        }
+
+        write!(out, ">")?;
+        Ok(())
+    }
+
+    fn write_assoc_ty(&mut self, out: &mut CodeWriter, assoc_ty: &AssociatedTy) -> Fallible<()> {
         self.with_binder(&assoc_ty.binder, |term, pp| {
             write!(out, "type {}", assoc_ty.id.deref())?;
 
@@ -71,19 +181,14 @@ impl RustBuilder {
             };
 
             // Where := where Bar, Baz
-            // TODO: write where
+            let mut buffer = String::new();
             let mut sep = "";
-            let mut first = true;
             for wc in &term.where_clauses {
-                if first {
-                    write!(out, " where ")?;
-                    first = false;
-                }
                 match wc.data() {
                     WhereClauseData::IsImplemented(ty, trait_id, _parameters) => {
                         let ty = pp.ty_to_string(ty)?;
                         // TODO: parameters are probably needed as well?
-                        write!(out, "{sep}{ty}: {}", trait_id.deref())?;
+                        write!(buffer, "{sep}{ty}: {}", trait_id.deref())?;
                     }
                     WhereClauseData::AliasEq(_alias_ty, _ty) => todo!(),
                     WhereClauseData::Outlives(_parameter, _lt) => todo!(),
@@ -93,59 +198,15 @@ impl RustBuilder {
                 sep = ", ";
             }
 
+            if !buffer.is_empty() {
+                write!(out, " where {buffer}")?;
+            }
             writeln!(out, ";")?;
             Ok(())
         })
     }
 
-    pub fn write_trait_impl(
-        &mut self,
-        out: &mut CodeWriter,
-        trait_impl: &TraitImpl,
-    ) -> Fallible<()> {
-        self.with_binder(&trait_impl.binder, |term, pp| {
-            if let Safety::Unsafe = trait_impl.safety {
-                write!(out, "unsafe ")?;
-            }
-
-            let id = term.trait_id.deref();
-            let ty = pp.ty_to_string(&term.self_ty)?;
-            writeln!(out, "impl {id} for {ty} {{")?;
-            // TODO: write where
-
-            for item in &term.impl_items {
-                match item {
-                    ImplItem::Fn(f) => pp.write_fn(out, f)?,
-                    ImplItem::AssociatedTyValue(_) => todo!(),
-                }
-            }
-
-            // Ok(format!("{safety}impl {id} for {ty} {{ {items} }}"))
-            writeln!(out, "}}")?;
-            Ok(())
-        })
-    }
-
-    pub fn write_neg_trait_impl(
-        &mut self,
-        out: &mut CodeWriter,
-        neg_trait_impl: &NegTraitImpl,
-    ) -> Fallible<()> {
-        self.with_binder(&neg_trait_impl.binder, |term, pp| {
-            if let Safety::Unsafe = neg_trait_impl.safety {
-                write!(out, "unsafe ")?;
-            }
-
-            let id = term.trait_id.deref();
-            let ty = pp.ty_to_string(&term.self_ty)?;
-            // let wc = self.print_where(&data.where_clauses);
-            writeln!(out, "impl !{id} for {ty} {{}}")?;
-            Ok(())
-        })
-    }
-
-    /// Prints a where clauses according to the [this](https://doc.rust-lang.org/reference/items/generics.html#where-clauses)
-    pub fn write_where(
+    pub fn write_generic_params(
         &mut self,
         out: &mut CodeWriter,
         where_clauses: &Vec<WhereClause>,
@@ -155,11 +216,9 @@ impl RustBuilder {
         }
 
         write!(out, "<")?;
-        let mut has_bounds = false;
         for param in where_clauses {
             match param.data() {
                 WhereClauseData::IsImplemented(ty, _, _) => {
-                    has_bounds = true;
                     let ty = self.ty_to_string(ty)?;
                     write!(out, "{ty}")?;
                 }
@@ -174,39 +233,6 @@ impl RustBuilder {
             }
         }
         write!(out, ">")?;
-
-        // Condition
-        if !has_bounds {
-            return Ok(());
-        }
-
-        write!(out, " where ")?;
-        for bound in where_clauses {
-            match bound.data() {
-                WhereClauseData::IsImplemented(ty, trait_id, params) => {
-                    let ty = self.ty_to_string(ty)?;
-                    let trait_id = trait_id.deref();
-                    write!(out, "{ty}: {trait_id}")?;
-
-                    if params.is_empty() {
-                        continue;
-                    }
-
-                    write!(out, "<")?;
-                    let mut sep = "";
-                    for param in params {
-                        write!(out, "{sep}{param:?}")?; // TODO: param_to_string
-                        sep = ", ";
-                    }
-                    write!(out, ">")?;
-                }
-                WhereClauseData::AliasEq(_, _) => todo!(),
-                WhereClauseData::Outlives(_, _) => todo!(),
-                WhereClauseData::ForAll(_) => todo!(),
-                WhereClauseData::TypeOfConst(_, _) => continue,
-            }
-        }
-
         Ok(())
     }
 }
@@ -267,36 +293,6 @@ mod test {
     }
 
     #[test]
-    fn simple_trait_impl() {
-        crate::assert_rust!(
-            [
-                crate Foo {
-                    impl Write for Bar {
-                        fn write() -> i32 {trusted}
-                    }
-                }
-            ],
-            impl Write for Bar {
-                fn write() -> i32 {
-                    panic!("Trusted Fn Body")
-                }
-            }
-        );
-    }
-
-    #[test]
-    fn simple_neg_trait_impl() {
-        crate::assert_rust!(
-            [
-                crate Foo {
-                    impl !Write for Bar { }
-                }
-            ],
-            "impl !Write for Bar {}"
-        );
-    }
-
-    #[test]
     fn where_is_implemented() {
         crate::assert_rust!(
             [
@@ -344,6 +340,54 @@ mod test {
                 }
             ],
             "trait Bar<const N1: bool> { }"
+        );
+    }
+
+    #[test]
+    fn simple_trait_impl() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    impl Bar<T> for Baz where T: Bur {
+                        fn run() -> T {trusted}
+                    }
+                }
+            ],
+            impl Bar<T> for Baz where T: Bur {
+                fn run() -> T {
+                    panic!("Trusted Fn Body")
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn trait_impl_bounds() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    impl Bar for Baz {
+                        fn run() -> i32 {trusted}
+                    }
+                }
+            ],
+            impl Bar for Baz {
+                fn run() -> i32 {
+                    panic!("Trusted Fn Body")
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn simple_neg_trait_impl() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    impl !Write for Bar { }
+                }
+            ],
+            "impl !Write for Bar {}"
         );
     }
 }
