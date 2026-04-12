@@ -12,7 +12,7 @@ use std::{
 mod expr;
 mod fns;
 mod structs_enums_and_adts;
-pub mod test_utils;
+pub mod test_util;
 mod traits_and_impls;
 mod tys;
 

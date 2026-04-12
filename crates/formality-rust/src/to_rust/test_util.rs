@@ -18,10 +18,10 @@ use std::path::Path;
 #[macro_export]
 macro_rules! assert_rust {
     ($input:tt, $expected:literal) => {{
-        $crate::to_rust::test_utils::assert_rust(stringify!($input), $expected);
+        $crate::to_rust::test_util::assert_rust(stringify!($input), $expected);
     }};
     ($input:tt, $($expected:tt)*) => {{
-        $crate::to_rust::test_utils::assert_rust(stringify!($input), stringify!($($expected)*));
+        $crate::to_rust::test_util::assert_rust(stringify!($input), stringify!($($expected)*));
     }};
 }
 
@@ -53,10 +53,10 @@ pub fn assert_rust(input: &str, expected: &str) {
 macro_rules! assert_rustc_success {
     ($input:tt) => {{
         let mut tmp_dir = tempfile::TempDir::with_prefix("formality-").unwrap();
-        if crate::to_rust::test_utils::keep_dir() {
+        if crate::to_rust::test_util::keep_dir() {
             tmp_dir.disable_cleanup(true);
         }
-        $crate::to_rust::test_utils::assert_rustc_success(stringify!($input), tmp_dir.path());
+        $crate::to_rust::test_util::assert_rustc_success(stringify!($input), tmp_dir.path());
     }};
 }
 
@@ -81,20 +81,20 @@ pub fn assert_rustc_success(input: &str, workspace_path: &Path) {
 macro_rules! assert_rustc_error {
     ($input:tt) => {{
         let mut tmp_dir = tempfile::TempDir::with_prefix("formality-").unwrap();
-        if crate::to_rust::test_utils::keep_dir() {
+        if crate::to_rust::test_util::keep_dir() {
             tmp_dir.disable_cleanup(true);
         }
-        $crate::to_rust::test_utils::assert_rustc_error(stringify!($input), &[], tmp_dir.path());
+        $crate::to_rust::test_util::assert_rustc_error(stringify!($input), &[], tmp_dir.path());
     }};
     ($input:tt, [$($codes:expr),*]) => {{
         let mut tmp_dir = tempfile::TempDir::with_prefix("formality-").unwrap();
-        if crate::to_rust::test_utils::keep_dir() {
+        if crate::to_rust::test_util::keep_dir() {
             tmp_dir.disable_cleanup(true);
         }
         let args: &[&str] = &[
             $($codes)*
         ];
-        $crate::to_rust::test_utils::assert_rustc_error(stringify!($input), args, tmp_dir.path());
+        $crate::to_rust::test_util::assert_rustc_error(stringify!($input), args, tmp_dir.path());
     }};
 }
 
@@ -121,10 +121,10 @@ pub fn assert_rustc_error(input: &str, codes: &[&str], workspace_path: &Path) {
 macro_rules! assert_equivalence {
     ($input:tt) => {{
         let mut tmp_dir = tempfile::TempDir::with_prefix("formality-").unwrap();
-        if crate::to_rust::test_utils::keep_dir() {
+        if crate::to_rust::test_util::keep_dir() {
             tmp_dir.disable_cleanup(true);
         }
-        $crate::to_rust::test_utils::assert_equivalence(stringify!($input), tmp_dir.path());
+        $crate::to_rust::test_util::assert_equivalence(stringify!($input), tmp_dir.path());
     }};
 }
 
