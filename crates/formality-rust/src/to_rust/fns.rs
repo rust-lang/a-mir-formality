@@ -37,7 +37,7 @@ impl RustBuilder {
     pub fn write_fn_body(&mut self, out: &mut CodeWriter, fn_body: &FnBody) -> Fallible<()> {
         match fn_body {
             FnBody::TrustedFnBody => writeln!(out, "{{ panic!(\"Trusted Fn Body\") }}")?,
-            FnBody::Expr(_) => unimplemented!("expr fn body"),
+            FnBody::Expr(block) => self.write_block(out, block)?,
         }
         Ok(())
     }

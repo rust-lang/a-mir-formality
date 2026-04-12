@@ -18,26 +18,26 @@ impl RustBuilder {
 
     pub fn ty_to_string(&mut self, ty: &Ty) -> Fallible<String> {
         match ty.data() {
-            TyData::RigidTy(rigid_ty) => self.pretty_print_rigid_ty(rigid_ty),
+            TyData::RigidTy(rigid_ty) => self.rigid_ty_to_string(rigid_ty),
             TyData::AliasTy(_alias_ty) => todo!(),
             TyData::PredicateTy(_predicate_ty) => todo!(),
             TyData::Variable(core_variable) => self.variable_name(core_variable),
         }
     }
 
-    fn pretty_print_rigid_ty(&mut self, rigid_ty: &RigidTy) -> Fallible<String> {
+    pub fn rigid_ty_to_string(&mut self, rigid_ty: &RigidTy) -> Fallible<String> {
         match &rigid_ty.name {
             RigidName::AdtId(adt_id) => Ok(adt_id.deref().into()),
-            RigidName::ScalarId(scalar_id) => Ok(self.pretty_print_scalar(scalar_id)),
-            RigidName::Ref(ref_kind) => self.pretty_print_ref(ref_kind, &rigid_ty.parameters),
-            RigidName::Tuple(size) => self.pretty_print_tuple(*size, &rigid_ty.parameters),
-            RigidName::FnPtr(size) => self.pretty_print_fn_ptr(*size, &rigid_ty.parameters),
+            RigidName::ScalarId(scalar_id) => Ok(self.scalar_to_string(scalar_id)),
+            RigidName::Ref(ref_kind) => self.ref_to_string(ref_kind, &rigid_ty.parameters),
+            RigidName::Tuple(size) => self.tuple_to_string(*size, &rigid_ty.parameters),
+            RigidName::FnPtr(size) => self.fn_ptr_to_string(*size, &rigid_ty.parameters),
             RigidName::FnDef(fn_id) => todo!("Implement pretty printing FnDef: {fn_id:?}"),
             RigidName::Never => Ok("!".into()),
         }
     }
 
-    fn pretty_print_scalar(&self, scalar_id: &ScalarId) -> String {
+    pub fn scalar_to_string(&self, scalar_id: &ScalarId) -> String {
         match scalar_id {
             ScalarId::U8 => "u8",
             ScalarId::U16 => "u16",
@@ -54,7 +54,7 @@ impl RustBuilder {
         .into()
     }
 
-    fn pretty_print_ref(
+    pub fn ref_to_string(
         &mut self,
         ref_kind: &RefKind,
         parameters: &Parameters,
@@ -81,20 +81,20 @@ impl RustBuilder {
             })
             .ok_or_else(|| anyhow::anyhow!("The second parameter of a reference muse be a type"))?;
 
-        let lt = self.pretty_print_lt(lt)?;
+        let lt = self.lt_to_string(lt)?;
         let ty = self.ty_to_string(ty)?;
 
         Ok(format!("&{lt} {kind}{ty}"))
     }
 
-    fn pretty_print_lt(&mut self, lt: &Lt) -> Fallible<String> {
+    pub fn lt_to_string(&mut self, lt: &Lt) -> Fallible<String> {
         match lt.data() {
             LtData::Static => Ok("'static".into()),
             LtData::Variable(core_variable) => self.variable_name(core_variable),
         }
     }
 
-    fn pretty_print_tuple(&mut self, size: usize, parameters: &Parameters) -> Fallible<String> {
+    pub fn tuple_to_string(&mut self, size: usize, parameters: &Parameters) -> Fallible<String> {
         assert_eq!(size, parameters.len());
 
         let types = parameters
@@ -109,7 +109,7 @@ impl RustBuilder {
         Ok(format!("({types})"))
     }
 
-    fn pretty_print_fn_ptr(&mut self, size: usize, parameters: &Parameters) -> Fallible<String> {
+    pub fn fn_ptr_to_string(&mut self, size: usize, parameters: &Parameters) -> Fallible<String> {
         assert_eq!(size, parameters.len());
 
         let input_args = parameters
@@ -133,6 +133,10 @@ impl RustBuilder {
             .ok_or_else(|| anyhow::anyhow!("Return type is missing"))??;
 
         Ok(format!("fn({input_args}) -> {output_arg}"))
+    }
+
+    pub fn pretty_print_parameter(&mut self, _parameter: &Parameter) -> Fallible<String> {
+        todo!()
     }
 }
 

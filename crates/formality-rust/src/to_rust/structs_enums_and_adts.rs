@@ -13,8 +13,8 @@ impl RustBuilder {
             writeln!(out, " {{")?;
             for field in &term.fields {
                 let ty = pp.ty_to_string(&field.ty)?;
-                let name = &field.name; // TODO: field_name_to_string()
-                writeln!(out, "{name:?}: {ty},")?;
+                let name = pp.field_name_to_string(&field.name);
+                writeln!(out, "{name}: {ty},")?;
             }
             writeln!(out, "}}")?;
             Ok(())
@@ -74,6 +74,13 @@ impl RustBuilder {
         }
         write!(out, "{closing}")?;
         Ok(())
+    }
+
+    pub fn field_name_to_string(&mut self, field_name: &FieldName) -> String {
+        match field_name {
+            FieldName::Id(id) => id.deref().clone(),
+            FieldName::Index(idx) => format!("{idx}"),
+        }
     }
 }
 
