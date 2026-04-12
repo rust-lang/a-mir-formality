@@ -1,6 +1,4 @@
-use crate::grammar::{
-    Crate, Fallible, NegTraitImpl, NegTraitImplBoundData, TraitImpl, TraitImplBoundData, Wc, Wcs,
-};
+use crate::grammar::{Crate, Fallible, NegTraitImpl, TraitImpl, Wc, Wcs};
 use crate::prove::prove::{Env, Program};
 use anyhow::bail;
 

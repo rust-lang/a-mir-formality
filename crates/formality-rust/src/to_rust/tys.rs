@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
 use crate::grammar::{
-    Const, ConstData, Fallible, Lt, LtData, Parameter, Parameters, RefKind, RigidName, RigidTy,
-    ScalarId, Ty, TyData,
+    Const, ConstData, Fallible, Lt, LtData, Parameter, Parameters, PtrKind, RefKind, RigidName,
+    RigidTy, ScalarId, Ty, TyData,
 };
 use crate::to_rust::RustBuilder;
 
@@ -30,6 +30,7 @@ impl RustBuilder {
             RigidName::AdtId(adt_id) => Ok(adt_id.deref().into()),
             RigidName::ScalarId(scalar_id) => Ok(self.scalar_to_string(scalar_id)),
             RigidName::Ref(ref_kind) => self.ref_to_string(ref_kind, &rigid_ty.parameters),
+            RigidName::Raw(ptr_kind) => self.ptr_to_string(ptr_kind, &rigid_ty.parameters),
             RigidName::Tuple(size) => self.tuple_to_string(*size, &rigid_ty.parameters),
             RigidName::FnPtr(size) => self.fn_ptr_to_string(*size, &rigid_ty.parameters),
             RigidName::FnDef(fn_id) => todo!("Implement pretty printing FnDef: {fn_id:?}"),
@@ -79,12 +80,38 @@ impl RustBuilder {
                 Parameter::Ty(ty) => Some(ty),
                 _ => None,
             })
-            .ok_or_else(|| anyhow::anyhow!("The second parameter of a reference muse be a type"))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!("The second parameter of a reference muste be a type")
+            })?;
 
         let lt = self.lt_to_string(lt)?;
         let ty = self.ty_to_string(ty)?;
 
         Ok(format!("&{lt} {kind}{ty}"))
+    }
+
+    pub fn ptr_to_string(
+        &mut self,
+        ptr_kind: &PtrKind,
+        parameters: &Parameters,
+    ) -> Fallible<String> {
+        let kind = match ptr_kind {
+            PtrKind::Const => "const",
+            PtrKind::Mut => "mut",
+        };
+
+        let ty = parameters
+            .get(0)
+            .and_then(|p| match p {
+                Parameter::Ty(ty) => Some(ty),
+                _ => None,
+            })
+            .ok_or_else(|| {
+                anyhow::anyhow!("The first parameter of a raw pointer muste be a type")
+            })?;
+
+        let ty = self.ty_to_string(ty)?;
+        Ok(format!("*{kind} {ty}"))
     }
 
     pub fn lt_to_string(&mut self, lt: &Lt) -> Fallible<String> {
@@ -306,6 +333,32 @@ mod test {
         }));
         let t = pp.ty_to_string(&ty).unwrap();
         assert_eq!("&'static mut u8", t);
+    }
+
+    #[test]
+    fn pretty_print_raw_ptr() {
+        let mut pp = RustBuilder::default();
+        pp.ctx.push(&[ParameterKind::Lt]);
+
+        let ty = Ty::new(TyData::RigidTy(RigidTy {
+            name: RigidName::Raw(PtrKind::Const),
+            parameters: vec![Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                name: RigidName::ScalarId(ScalarId::U8),
+                parameters: Vec::new(),
+            })))],
+        }));
+        let t = pp.ty_to_string(&ty).unwrap();
+        assert_eq!("*const u8", t);
+
+        let ty = Ty::new(TyData::RigidTy(RigidTy {
+            name: RigidName::Raw(PtrKind::Mut),
+            parameters: vec![Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                name: RigidName::ScalarId(ScalarId::U8),
+                parameters: Vec::new(),
+            })))],
+        }));
+        let t = pp.ty_to_string(&ty).unwrap();
+        assert_eq!("*mut u8", t);
     }
 
     #[test]

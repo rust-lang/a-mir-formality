@@ -71,7 +71,7 @@ judgment_fn! {
                 (check_crate_item(program, item, &c.id) => ()))
             (check_coherence(program, c) => ())
             ------------------------------------------------------------ ("check crate")
-            (check_crate(program, Crate { id, items }) => ())
+            (check_crate(program, Crate { id: _id, items: _items }) => ())
         )
     }
 }
