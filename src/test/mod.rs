@@ -57,11 +57,11 @@ fn hello_world_fail() {
 
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Baz(!ty_1), via: Bar(!ty_0, !ty_1), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Baz(!ty_1), via: HasPlace(?ty_2), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0, ?ty_2, ?ty_3, ?ty_4], bias: Soundness, pending: [], allow_pending_outlives: false } }
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Baz(!ty_1), via: Place(?ty_2), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0, ?ty_2, ?ty_3, ?ty_4], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Baz(!ty_1), via: HasPlace(?ty_2), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0, ?ty_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: false } }
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Baz(!ty_1), via: Place(?ty_2), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0, ?ty_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Baz(!ty_1), via: HasPlace(?ty_2), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Baz(!ty_1), via: Place(?ty_2), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Baz(!ty_1), via: PlaceRead(?ty_2, ?ty_3), assumptions: {Bar(!ty_0, !ty_1)}, env: Env { variables: [!ty_1, !ty_0, ?ty_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]
     )
