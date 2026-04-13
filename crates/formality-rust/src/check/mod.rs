@@ -38,7 +38,7 @@ judgment_fn! {
             (let crates = {
                 let Crates { mut crates } = crates.clone();
                 if Some("core") != crates.first().map(|first| &**first.id) {
-                    crates.push(core_crate::krate());
+                    crates.insert(0, core_crate::krate());
                 }
                 Crates { crates }
             })
