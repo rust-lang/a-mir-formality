@@ -21,6 +21,7 @@ pub mod borrow_check;
 
 mod adts;
 mod coherence;
+mod core_crate;
 mod fns;
 mod impls;
 mod traits;
@@ -38,18 +39,14 @@ judgment_fn! {
                 crates.clone()
             } else {
                 let Crates { mut crates } = crates.clone();
-                // Empty core when the program omits it.
-                crates.push(Crate {
-                    id: CrateId::new("core"),
-                    items: vec![],
-                });
+                crates.push(core_crate::krate());
                 Crates { crates: crates }
             })
             // Check that all crates up to and including crate #i are valid.
             // Crate #i will be considered the "current crate".
             (for_all(i in 0..crates.len())
                 (let program = crates.prefix(i).to_prove_decls())
-                (check_crate(program, crates.crates[i].clone()) => ()))
+                (check_crate(program, &crates.crates[i]) => ()))
             ------------------------------------------------------------ ("check all prefixes")
             (check_all_crates(crates) => ())
         )
