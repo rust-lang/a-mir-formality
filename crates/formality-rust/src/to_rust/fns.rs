@@ -1,99 +1,72 @@
-use std::{fmt::Write, ops::Deref};
+use std::ops::Deref;
 
 use crate::grammar::{
-    Fallible, Fn, FnBody, InputArg, MaybeFnBody, TyData, WhereClause, WhereClauseData,
+    Fallible, Fn, FnBody, InputArg, MaybeFnBody, ParameterKind, TyData, WhereClause,
 };
-use crate::to_rust::{CodeWriter, RustBuilder};
+use crate::prove::prove::Safety;
+
+use super::{syntax, RustBuilder};
 
 impl RustBuilder {
-    pub fn write_fn(&mut self, out: &mut CodeWriter, function: &Fn) -> Fallible<()> {
-        // "fn {id}{params}({input_args}) -> {output_arg}{bounds}{body}"
+    pub fn lower_fn(&mut self, function: &Fn) -> Fallible<syntax::FunctionItem> {
         self.with_binder(&function.binder, |term, pp| {
-            write!(out, "fn {}", function.id.deref())?;
+            let generics = pp.lower_generics_for_fn(
+                function.binder.kinds(),
+                &term.where_clauses,
+                &term.input_args,
+            )?;
+            let params = term
+                .input_args
+                .iter()
+                .map(|arg| pp.lower_fn_param(arg))
+                .collect::<Result<Vec<_>, _>>()?;
+            let return_ty = pp.lower_ty(&term.output_ty)?;
+            let body = pp.lower_fn_body(&term.body)?;
 
-            pp.write_params(out, &term.where_clauses, &term.input_args)?;
-
-            write!(out, "(")?;
-            let mut sep = "";
-            for arg in &term.input_args {
-                let ty = pp.ty_to_string(&arg.ty)?;
-                let name = arg.id.deref();
-                write!(out, "{sep}{name}: {ty}")?;
-                sep = ", ";
-            }
-
-            let output_arg = pp.ty_to_string(&term.output_ty)?;
-            write!(out, ") -> {output_arg}")?;
-
-            // pp.write_bounds(out, &term.where_clauses)?;
-            pp.write_where_bounds(out, &term.where_clauses)?;
-
-            match &term.body {
-                MaybeFnBody::NoFnBody => writeln!(out, ";")?,
-                MaybeFnBody::FnBody(fn_body) => {
-                    writeln!(out, "")?;
-                    pp.write_fn_body(out, fn_body)?;
-                }
-            };
-
-            Ok(())
+            Ok(syntax::FunctionItem {
+                is_unsafe: matches!(function.safety, Safety::Unsafe),
+                name: function.id.deref().clone(),
+                generics,
+                params,
+                return_ty,
+                body,
+            })
         })
     }
 
-    fn write_params(
+    fn lower_generics_for_fn(
         &mut self,
-        out: &mut CodeWriter,
-        where_clauses: &Vec<WhereClause>,
-        input_args: &Vec<InputArg>,
-    ) -> Fallible<()> {
-        // <T1, T2, const N1: bool, const N2: u8>
-        if where_clauses.is_empty() && input_args.is_empty() {
-            return Ok(());
-        }
+        binder_kinds: &[ParameterKind],
+        where_clauses: &[WhereClause],
+        input_args: &[InputArg],
+    ) -> Fallible<syntax::Generics> {
+        let mut generics = self.lower_generics_for_binder(binder_kinds, where_clauses, false)?;
 
-        let mut buffer = String::new();
-        let mut sep = "";
-        for var in input_args.iter().filter_map(|arg| {
+        for arg in input_args {
             if let TyData::Variable(var) = arg.ty.data() {
-                Some(var)
-            } else {
-                None
+                let name = self.core_variable_to_string(var)?;
+                Self::push_type_param_if_missing(&mut generics.params, name);
             }
-        }) {
-            let var = self.core_variable_to_string(var)?;
-            write!(&mut buffer, "{sep}{var}")?;
-            sep = ", ";
         }
 
-        for wc in where_clauses {
-            match wc.data() {
-                WhereClauseData::IsImplemented(_, _, _) => continue,
-                WhereClauseData::AliasEq(_, _) => todo!(),
-                WhereClauseData::Outlives(_, _) => todo!(),
-                WhereClauseData::ForAll(_) => todo!(),
-                WhereClauseData::TypeOfConst(konst, ty) => {
-                    let konst = self.const_to_string(konst)?;
-                    let ty = self.ty_to_string(ty)?;
-                    write!(buffer, "const {konst}: {ty}")?;
-                }
-            }
-            write!(out, "{sep}")?;
-            sep = ", ";
-        }
-
-        if !buffer.is_empty() {
-            write!(out, "<{buffer}>")?;
-        }
-
-        Ok(())
+        Ok(generics)
     }
 
-    fn write_fn_body(&mut self, out: &mut CodeWriter, fn_body: &FnBody) -> Fallible<()> {
-        match fn_body {
-            FnBody::TrustedFnBody => writeln!(out, "{{ panic!(\"Trusted Fn Body\") }}")?,
-            FnBody::Expr(block) => self.write_block(out, block)?,
+    fn lower_fn_param(&mut self, arg: &InputArg) -> Fallible<syntax::FnParam> {
+        Ok(syntax::FnParam {
+            name: arg.id.deref().clone(),
+            ty: self.lower_ty(&arg.ty)?,
+        })
+    }
+
+    fn lower_fn_body(&mut self, body: &MaybeFnBody) -> Fallible<syntax::FunctionBody> {
+        match body {
+            MaybeFnBody::NoFnBody => Ok(syntax::FunctionBody::Declaration),
+            MaybeFnBody::FnBody(fn_body) => match fn_body {
+                FnBody::TrustedFnBody => Ok(syntax::FunctionBody::Trusted),
+                FnBody::Expr(block) => Ok(syntax::FunctionBody::Block(self.lower_block(block)?)),
+            },
         }
-        Ok(())
     }
 }
 
@@ -108,7 +81,11 @@ mod test {
                     fn run() -> i32 {trusted}
                 }
             ],
-            fn run() -> i32 { panic!("Trusted Fn Body") }
+            r#"
+fn run() -> i32 {
+    panic!("Trusted Fn Body")
+}
+"#
         );
     }
 
@@ -120,7 +97,11 @@ mod test {
                     fn run(p1: i32, p2: i32) -> i32 {trusted}
                 }
             ],
-            fn run(p1: i32, p2: i32) -> i32 { panic!("Trusted Fn Body") }
+            r#"
+fn run(p1: i32, p2: i32) -> i32 {
+    panic!("Trusted Fn Body")
+}
+"#
         );
     }
 
@@ -132,7 +113,11 @@ mod test {
                     fn run<T>(p1: T) -> T {trusted}
                 }
             ],
-            fn run<T1>(p1: T1) -> T1 { panic!("Trusted Fn Body") }
+            r#"
+fn run<T1>(p1: T1) -> T1 {
+    panic!("Trusted Fn Body")
+}
+"#
         );
     }
 
@@ -141,10 +126,17 @@ mod test {
         crate::assert_rust!(
             [
                 crate Foo {
+                    trait Bar { }
                     fn run<T>(p1: T) -> T where T: Bar {trusted}
                 }
             ],
-            fn run<T1>(p1: T1) -> T1 where T1: Bar { panic!("Trusted Fn Body") }
+            r#"
+trait Bar { }
+
+fn run<T1>(p1: T1) -> T1 where T1: Bar {
+    panic!("Trusted Fn Body")
+}
+"#
         );
     }
 
@@ -157,7 +149,11 @@ mod test {
 
                 }
             ],
-            fn run<const N1: i32>() -> i32 { panic!("Trusted Fn Body") }
+            r#"
+fn run<const N1: i32>() -> i32 {
+    panic!("Trusted Fn Body")
+}
+"#
         );
     }
 }

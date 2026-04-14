@@ -4,21 +4,18 @@
 use crate::{
     check::check_all_crates,
     rust::term,
-    to_rust::{build_workspace, RustBuilder},
+    to_rust::{check_workspace, RustBuilder},
 };
 
 /// Asserts that the given Formality input is translated into the expected
 /// Rust code. Only a single crate is supported.
 ///
 /// The Formality `input` must be provided as a token tree. The `expected` Rust
-/// output may be given either as a string literal or as another token tree.
+/// output must be given as as string literal.
 #[macro_export]
 macro_rules! assert_rust {
     ($input:tt, $expected:literal) => {{
         $crate::to_rust::test_util::assert_rust(stringify!($input), $expected);
-    }};
-    ($input:tt, $($expected:tt)*) => {{
-        $crate::to_rust::test_util::assert_rust(stringify!($input), stringify!($($expected)*));
     }};
 }
 
@@ -31,11 +28,8 @@ pub fn assert_rust(input: &str, expected: &str) {
         .into_iter()
         .next()
         .unwrap()
-        .1
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
-    let expected = expected.split_whitespace().collect::<Vec<_>>().join(" ");
+        .1;
+    let expected = expected.trim();
     assert_eq!(rust, expected);
 }
 
@@ -61,7 +55,7 @@ pub fn assert_rustc_success(input: &str) {
     }
 
     let crates = term(input);
-    let result = build_workspace(&crates, tmp_dir.path()).unwrap();
+    let result = check_workspace(&crates, tmp_dir.path()).unwrap();
     let stderr = String::from_utf8_lossy(&result.stderr);
     assert!(result.status.success(), "{stderr}");
 }
@@ -96,7 +90,7 @@ pub fn assert_rustc_error(input: &str, codes: &[&str]) {
         tmp_dir.disable_cleanup(true);
     }
     let crates = term(input);
-    let result = build_workspace(&crates, tmp_dir.path()).unwrap();
+    let result = check_workspace(&crates, tmp_dir.path()).unwrap();
     assert!(!result.status.success());
 
     let stderr = String::from_utf8_lossy(&result.stderr);
@@ -125,7 +119,7 @@ pub fn assert_equivalence(input: &str) {
         tmp_dir.disable_cleanup(true);
     }
     let crates = term(input);
-    let rustc_result = build_workspace(&crates, tmp_dir.path()).unwrap();
+    let rustc_result = check_workspace(&crates, tmp_dir.path()).unwrap();
     let formality_result = check_all_crates(crates).check_proven();
 
     match formality_result {

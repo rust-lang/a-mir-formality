@@ -1,62 +1,97 @@
-use std::{fmt::Write, ops::Deref};
+use std::ops::Deref;
 
 use crate::grammar::{
     Const, ConstData, Fallible, Lt, LtData, Parameter, Parameters, PtrKind, RefKind, RigidName,
-    RigidTy, ScalarId, Ty, TyData,
+    RigidTy, ScalarId, ScalarValue, Ty, TyData,
 };
-use crate::to_rust::RustBuilder;
+
+use super::{syntax, RustBuilder};
 
 impl RustBuilder {
-    pub fn parameter_to_string(&mut self, parameter: &Parameter) -> Fallible<String> {
+    pub fn lower_generic_arg(&mut self, parameter: &Parameter) -> Fallible<syntax::GenericArg> {
         match parameter {
-            Parameter::Ty(ty) => self.ty_to_string(ty),
-            Parameter::Lt(lt) => self.lt_to_string(lt),
-            Parameter::Const(konst) => self.const_to_string(konst),
+            Parameter::Ty(ty) => Ok(syntax::GenericArg::Type(self.lower_ty(ty)?)),
+            Parameter::Lt(lt) => Ok(syntax::GenericArg::Lifetime(self.lower_lt(lt)?)),
+            Parameter::Const(konst) => Ok(syntax::GenericArg::Const(self.lower_const(konst)?)),
         }
     }
 
-    pub fn const_to_string(&mut self, konst: &Const) -> Fallible<String> {
+    pub fn lower_const(&mut self, konst: &Const) -> Fallible<syntax::ConstExpr> {
         match konst.data() {
-            ConstData::RigidValue(_rigid_const_data) => todo!(),
-            ConstData::Scalar(_scalar_value) => todo!(),
-            ConstData::Block(_block) => todo!(),
-            ConstData::Variable(core_variable) => self.core_variable_to_string(core_variable),
+            ConstData::RigidValue(_) => {
+                todo!("lowering rigid const values is not implemented yet")
+            }
+            ConstData::Scalar(value) => {
+                let (value, suffix) = match value {
+                    ScalarValue::U8(v) => (v.to_string(), "u8"),
+                    ScalarValue::U16(v) => (v.to_string(), "u16"),
+                    ScalarValue::U32(v) => (v.to_string(), "u32"),
+                    ScalarValue::U64(v) => (v.to_string(), "u64"),
+                    ScalarValue::I8(v) => (v.to_string(), "i8"),
+                    ScalarValue::I16(v) => (v.to_string(), "i16"),
+                    ScalarValue::I32(v) => (v.to_string(), "i32"),
+                    ScalarValue::I64(v) => (v.to_string(), "i64"),
+                    ScalarValue::Usize(v) => (v.to_string(), "usize"),
+                    ScalarValue::Isize(v) => (v.to_string(), "isize"),
+                    ScalarValue::Bool(v) => {
+                        return Ok(syntax::ConstExpr::Ident(v.to_string()));
+                    }
+                };
+
+                Ok(syntax::ConstExpr::Scalar {
+                    value,
+                    suffix: suffix.to_owned(),
+                })
+            }
+            ConstData::Block(_) => {
+                todo!("lowering const block expressions is not implemented yet")
+            }
+            ConstData::Variable(core_variable) => Ok(syntax::ConstExpr::Ident(
+                self.core_variable_to_string(core_variable)?,
+            )),
         }
     }
 
-    pub fn ty_to_string(&mut self, ty: &Ty) -> Fallible<String> {
+    pub fn lower_ty(&mut self, ty: &Ty) -> Fallible<syntax::Type> {
         match ty.data() {
-            TyData::RigidTy(rigid_ty) => self.rigid_ty_to_string(rigid_ty),
-            TyData::AliasTy(_alias_ty) => todo!(),
-            TyData::PredicateTy(_predicate_ty) => todo!(),
-            TyData::Variable(core_variable) => self.core_variable_to_string(core_variable),
+            TyData::RigidTy(rigid_ty) => self.lower_rigid_ty(rigid_ty),
+            TyData::AliasTy(_) => todo!("lowering alias types is not implemented yet"),
+            TyData::PredicateTy(_) => {
+                todo!("lowering predicate types is not implemented yet")
+            }
+            TyData::Variable(core_variable) => Ok(syntax::Type::Path {
+                name: self.core_variable_to_string(core_variable)?,
+                args: Vec::new(),
+            }),
         }
     }
 
-    pub fn rigid_ty_to_string(&mut self, rigid_ty: &RigidTy) -> Fallible<String> {
+    pub fn lower_rigid_ty(&mut self, rigid_ty: &RigidTy) -> Fallible<syntax::Type> {
         match &rigid_ty.name {
             RigidName::AdtId(adt_id) => {
-                let id = adt_id.deref();
-                let mut buffer = String::new();
-                let mut sep = "";
-                for param in &rigid_ty.parameters {
-                    let param = self.parameter_to_string(&param)?;
-                    write!(buffer, "{sep}{param}")?;
-                    sep = ", ";
-                }
-                if buffer.is_empty() {
-                    Ok(format!("{id}"))
-                } else {
-                    Ok(format!("{id}<{buffer}>"))
-                }
+                let args = rigid_ty
+                    .parameters
+                    .iter()
+                    .map(|arg| self.lower_generic_arg(arg))
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                Ok(syntax::Type::Path {
+                    name: adt_id.deref().clone(),
+                    args,
+                })
             }
-            RigidName::ScalarId(scalar_id) => Ok(self.scalar_to_string(scalar_id)),
-            RigidName::Ref(ref_kind) => self.ref_to_string(ref_kind, &rigid_ty.parameters),
-            RigidName::Raw(ptr_kind) => self.ptr_to_string(ptr_kind, &rigid_ty.parameters),
-            RigidName::Tuple(size) => self.tuple_to_string(*size, &rigid_ty.parameters),
-            RigidName::FnPtr(size) => self.fn_ptr_to_string(*size, &rigid_ty.parameters),
-            RigidName::FnDef(fn_id) => todo!("Implement pretty printing FnDef: {fn_id:?}"),
-            RigidName::Never => Ok("!".into()),
+            RigidName::ScalarId(scalar_id) => Ok(syntax::Type::Path {
+                name: self.scalar_to_string(scalar_id),
+                args: Vec::new(),
+            }),
+            RigidName::Ref(ref_kind) => self.lower_ref(ref_kind, &rigid_ty.parameters),
+            RigidName::Raw(ptr_kind) => self.lower_ptr(ptr_kind, &rigid_ty.parameters),
+            RigidName::Tuple(size) => self.lower_tuple(*size, &rigid_ty.parameters),
+            RigidName::FnPtr(size) => self.lower_fn_ptr(*size, &rigid_ty.parameters),
+            RigidName::FnDef(fn_id) => {
+                todo!("lowering fn def type `{:?}` is not implemented yet", fn_id)
+            }
+            RigidName::Never => Ok(syntax::Type::Never),
         }
     }
 
@@ -74,114 +109,105 @@ impl RustBuilder {
             ScalarId::Usize => "usize",
             ScalarId::Isize => "isize",
         }
-        .into()
+        .to_owned()
     }
 
-    pub fn ref_to_string(
-        &mut self,
-        ref_kind: &RefKind,
-        parameters: &Parameters,
-    ) -> Fallible<String> {
-        let kind = match ref_kind {
-            RefKind::Shared => "",
-            RefKind::Mut => "mut ",
-        };
-
-        let lt = parameters
-            .get(0)
+    fn lower_ref(&mut self, ref_kind: &RefKind, parameters: &Parameters) -> Fallible<syntax::Type> {
+        let lifetime = parameters
+            .first()
             .and_then(|p| match p {
                 Parameter::Lt(lt) => Some(lt),
                 _ => None,
             })
-            .ok_or_else(|| {
-                anyhow::anyhow!("the first parameter of a reference must be a life time")
-            })?;
-        let ty = parameters
+            .ok_or_else(|| anyhow::anyhow!("reference type is missing lifetime argument"))?;
+
+        let pointee = parameters
             .get(1)
             .and_then(|p| match p {
                 Parameter::Ty(ty) => Some(ty),
                 _ => None,
             })
-            .ok_or_else(|| {
-                anyhow::anyhow!("The second parameter of a reference muste be a type")
-            })?;
+            .ok_or_else(|| anyhow::anyhow!("reference type is missing pointee type argument"))?;
 
-        let lt = self.lt_to_string(lt)?;
-        let ty = self.ty_to_string(ty)?;
+        let lifetime = self.lower_lt(lifetime)?;
+        let pointee = self.lower_ty(pointee)?;
 
-        Ok(format!("&{lt} {kind}{ty}"))
+        Ok(syntax::Type::Ref {
+            lifetime: Some(lifetime),
+            mutable: matches!(ref_kind, RefKind::Mut),
+            ty: Box::new(pointee),
+        })
     }
 
-    pub fn ptr_to_string(
-        &mut self,
-        ptr_kind: &PtrKind,
-        parameters: &Parameters,
-    ) -> Fallible<String> {
-        let kind = match ptr_kind {
-            PtrKind::Const => "const",
-            PtrKind::Mut => "mut",
-        };
-
-        let ty = parameters
-            .get(0)
+    fn lower_ptr(&mut self, ptr_kind: &PtrKind, parameters: &Parameters) -> Fallible<syntax::Type> {
+        let pointee = parameters
+            .first()
             .and_then(|p| match p {
                 Parameter::Ty(ty) => Some(ty),
                 _ => None,
             })
-            .ok_or_else(|| {
-                anyhow::anyhow!("The first parameter of a raw pointer muste be a type")
-            })?;
+            .ok_or_else(|| anyhow::anyhow!("raw pointer type is missing pointee type argument"))?;
 
-        let ty = self.ty_to_string(ty)?;
-        Ok(format!("*{kind} {ty}"))
+        Ok(syntax::Type::RawPtr {
+            mutable: matches!(ptr_kind, PtrKind::Mut),
+            ty: Box::new(self.lower_ty(pointee)?),
+        })
     }
 
-    pub fn lt_to_string(&mut self, lt: &Lt) -> Fallible<String> {
+    pub fn lower_lt(&mut self, lt: &Lt) -> Fallible<String> {
         match lt.data() {
-            LtData::Static => Ok("'static".into()),
+            LtData::Static => Ok("'static".to_owned()),
             LtData::Variable(core_variable) => self.core_variable_to_string(core_variable),
         }
     }
 
-    pub fn tuple_to_string(&mut self, size: usize, parameters: &Parameters) -> Fallible<String> {
-        assert_eq!(size, parameters.len());
+    fn lower_tuple(&mut self, size: usize, parameters: &Parameters) -> Fallible<syntax::Type> {
+        if size != parameters.len() {
+            anyhow::bail!(
+                "tuple arity mismatch: expected {size} arguments but found {}",
+                parameters.len()
+            );
+        }
 
         let types = parameters
             .iter()
-            .filter_map(|p| match p {
-                Parameter::Ty(ty) => Some(self.ty_to_string(ty)),
-                _ => None,
+            .map(|p| match p {
+                Parameter::Ty(ty) => self.lower_ty(ty),
+                _ => anyhow::bail!("tuple parameters must all be types"),
             })
-            .collect::<Result<Vec<_>, _>>()?
-            .join(", ");
+            .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(format!("({types})"))
+        Ok(syntax::Type::Tuple(types))
     }
 
-    pub fn fn_ptr_to_string(&mut self, size: usize, parameters: &Parameters) -> Fallible<String> {
-        assert_eq!(size, parameters.len());
+    fn lower_fn_ptr(&mut self, size: usize, parameters: &Parameters) -> Fallible<syntax::Type> {
+        if size != parameters.len() {
+            anyhow::bail!(
+                "function pointer arity mismatch: expected {size} arguments but found {}",
+                parameters.len()
+            );
+        }
 
-        let input_args = parameters
-            .iter()
-            .take(size - 1)
-            .filter_map(|p| match p {
-                Parameter::Ty(ty) => Some(self.ty_to_string(ty)),
-                _ => None,
-            })
-            .collect::<Result<Vec<_>, _>>()?
-            .join(", ");
+        if parameters.is_empty() {
+            anyhow::bail!("function pointer must include a return type")
+        }
 
-        let output_arg = parameters
+        let mut types = parameters
             .iter()
-            .rev()
-            .next()
             .map(|p| match p {
-                Parameter::Ty(ty) => self.ty_to_string(ty),
-                _ => unimplemented!(),
+                Parameter::Ty(ty) => self.lower_ty(ty),
+                _ => anyhow::bail!("function pointer parameters must all be types"),
             })
-            .ok_or_else(|| anyhow::anyhow!("Return type is missing"))??;
+            .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(format!("fn({input_args}) -> {output_arg}"))
+        let output = types
+            .pop()
+            .ok_or_else(|| anyhow::anyhow!("function pointer must include a return type"))?;
+
+        Ok(syntax::Type::FnPtr {
+            inputs: types,
+            output: Box::new(output),
+        })
     }
 }
 
@@ -290,9 +316,9 @@ mod test {
             name: RigidName::AdtId(AdtId::new("Foo")),
             parameters: Vec::new(),
         }));
-        let t = pp.ty_to_string(&ty);
+        let t = pp.lower_ty(&ty).unwrap().to_string();
 
-        assert_eq!("Foo", t.unwrap());
+        assert_eq!("Foo", t);
     }
 
     #[test]
@@ -302,9 +328,9 @@ mod test {
             name: RigidName::ScalarId(ScalarId::U8),
             parameters: Vec::new(),
         }));
-        let t = pp.ty_to_string(&ty);
+        let t = pp.lower_ty(&ty).unwrap().to_string();
 
-        assert_eq!("u8", t.unwrap());
+        assert_eq!("u8", t);
     }
 
     #[test]
@@ -312,7 +338,6 @@ mod test {
         let mut pp = RustBuilder::default();
         pp.ctx.push(&[ParameterKind::Lt]);
 
-        // &'a u8
         let ty = Ty::new(TyData::RigidTy(RigidTy {
             name: RigidName::Ref(RefKind::Shared),
             parameters: vec![
@@ -323,7 +348,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.ty_to_string(&ty).unwrap();
+        let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("&'a1 u8", t);
 
         let ty = Ty::new(TyData::RigidTy(RigidTy {
@@ -336,7 +361,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.ty_to_string(&ty).unwrap();
+        let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("&'a1 mut u8", t);
 
         let ty = Ty::new(TyData::RigidTy(RigidTy {
@@ -349,7 +374,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.ty_to_string(&ty).unwrap();
+        let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("&'static mut u8", t);
     }
 
@@ -365,7 +390,7 @@ mod test {
                 parameters: Vec::new(),
             })))],
         }));
-        let t = pp.ty_to_string(&ty).unwrap();
+        let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("*const u8", t);
 
         let ty = Ty::new(TyData::RigidTy(RigidTy {
@@ -375,7 +400,7 @@ mod test {
                 parameters: Vec::new(),
             })))],
         }));
-        let t = pp.ty_to_string(&ty).unwrap();
+        let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("*mut u8", t);
     }
 
@@ -395,7 +420,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.ty_to_string(&ty).unwrap();
+        let t = pp.lower_ty(&ty).unwrap().to_string();
 
         assert_eq!("(u8, i64)", t);
     }
@@ -420,7 +445,7 @@ mod test {
                 }))),
             ],
         }));
-        let t = pp.ty_to_string(&ty).unwrap();
+        let t = pp.lower_ty(&ty).unwrap().to_string();
 
         assert_eq!("fn(u8, i64) -> isize", t);
     }

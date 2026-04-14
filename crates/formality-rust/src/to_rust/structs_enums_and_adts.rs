@@ -1,88 +1,83 @@
-use crate::grammar::{Enum, Fallible, Field, FieldName, Struct, Variant};
-use crate::to_rust::{CodeWriter, RustBuilder};
+use std::ops::Deref;
 
-use std::{fmt::Write, ops::Deref};
+use crate::grammar::{Enum, Fallible, Field, FieldName, Struct, Variant};
+
+use super::{syntax, RustBuilder};
 
 impl RustBuilder {
-    pub fn write_struct(&mut self, out: &mut CodeWriter, strukt: &Struct) -> Fallible<()> {
+    pub fn lower_struct(&mut self, strukt: &Struct) -> Fallible<syntax::StructItem> {
         self.with_binder(&strukt.binder, |term, pp| {
-            write!(out, "struct {}", strukt.id.deref())?;
+            let generics =
+                pp.lower_generics_for_binder(strukt.binder.kinds(), &term.where_clauses, false)?;
+            let fields = term
+                .fields
+                .iter()
+                .map(|field| pp.lower_named_struct_field(field))
+                .collect::<Result<Vec<_>, _>>()?;
 
-            pp.write_generic_params(out, &term.where_clauses)?;
-            pp.write_where_bounds(out, &term.where_clauses)?;
-
-            writeln!(out, " {{")?;
-            for field in &term.fields {
-                let ty = pp.ty_to_string(&field.ty)?;
-                let name = pp.field_name_to_string(&field.name);
-                writeln!(out, "{name}: {ty},")?;
-            }
-            writeln!(out, "}}")?;
-            Ok(())
+            Ok(syntax::StructItem {
+                name: strukt.id.deref().clone(),
+                generics,
+                fields,
+            })
         })
     }
 
-    pub fn write_enum(&mut self, out: &mut CodeWriter, e: &Enum) -> Fallible<()> {
+    pub fn lower_enum(&mut self, e: &Enum) -> Fallible<syntax::EnumItem> {
         self.with_binder(&e.binder, |term, pp| {
-            write!(out, "enum {}", e.id.deref())?;
-
-            pp.write_generic_params(out, &term.where_clauses)?;
-            pp.write_where_bounds(out, &term.where_clauses)?;
-
-            writeln!(out, " {{")?;
-            for variant in &term.variants {
-                pp.write_variant(out, variant)?;
-            }
-
-            writeln!(out, "}}")?;
-            Ok(())
+            let generics =
+                pp.lower_generics_for_binder(e.binder.kinds(), &term.where_clauses, false)?;
+            let variants = term
+                .variants
+                .iter()
+                .map(|variant| pp.lower_variant(variant))
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(syntax::EnumItem {
+                name: e.id.deref().clone(),
+                generics,
+                variants,
+            })
         })
     }
 
-    pub fn field_name_to_string(&mut self, field_name: &FieldName) -> String {
-        match field_name {
-            FieldName::Id(id) => id.deref().clone(),
-            FieldName::Index(idx) => format!("{idx}"),
-        }
+    fn lower_variant(&mut self, variant: &Variant) -> Fallible<syntax::EnumVariant> {
+        let fields = self.lower_variant_fields(&variant.fields)?;
+        Ok(syntax::EnumVariant {
+            name: variant.name.deref().clone(),
+            fields,
+        })
     }
 
-    fn write_variant(&mut self, out: &mut CodeWriter, variant: &Variant) -> Fallible<()> {
-        write!(out, "{}", variant.name.deref())?;
-        self.write_fields(out, &variant.fields)?;
-        writeln!(out, ",")?;
-        Ok(())
+    fn lower_variant_fields(&mut self, fields: &[Field]) -> Fallible<syntax::VariantFields> {
+        if fields.is_empty() {
+            return Ok(syntax::VariantFields::Unit);
+        }
+
+        if matches!(fields[0].name, FieldName::Index(_)) {
+            let tys = fields
+                .iter()
+                .map(|field| self.lower_ty(&field.ty))
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(syntax::VariantFields::Tuple(tys));
+        }
+
+        let named = fields
+            .iter()
+            .map(|field| self.lower_named_struct_field(field))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(syntax::VariantFields::Struct(named))
     }
 
-    fn write_fields(&mut self, out: &mut CodeWriter, fields: &Vec<Field>) -> Fallible<()> {
-        if fields.len() == 0 {
-            return Ok(());
+    fn lower_named_struct_field(&mut self, field: &Field) -> Fallible<syntax::StructField> {
+        match &field.name {
+            FieldName::Id(id) => Ok(syntax::StructField {
+                name: id.deref().clone(),
+                ty: self.lower_ty(&field.ty)?,
+            }),
+            FieldName::Index(idx) => anyhow::bail!(
+                "expected named field but found tuple field index `{idx}` while lowering struct"
+            ),
         }
-
-        let closing = if matches!(fields[0].name, FieldName::Index(_)) {
-            write!(out, "(")?;
-            ")"
-        } else {
-            write!(out, " {{ ")?;
-            " }"
-        };
-
-        let mut sep = "";
-        for field in fields {
-            match &field.name {
-                FieldName::Id(field_id) => {
-                    let ty = self.ty_to_string(&field.ty)?;
-                    write!(out, "{sep}{}: {ty}", field_id.deref())?;
-                    sep = ",\n";
-                }
-                FieldName::Index(_) => {
-                    let ty = self.ty_to_string(&field.ty)?;
-                    write!(out, "{sep}{ty}")?;
-                    sep = ",\n";
-                }
-            }
-        }
-        write!(out, "{closing}")?;
-        Ok(())
     }
 }
 
@@ -99,10 +94,12 @@ mod test {
                     }
                 }
             ],
-            struct Bar {
-                a: i32,
-                b: i32,
-            }
+            r#"
+struct Bar {
+    a: i32,
+    b: i32,
+}
+"#
         );
     }
 
@@ -111,7 +108,8 @@ mod test {
         crate::assert_rust!(
             [
                 crate Foo {
-                    struct Bar
+                    trait Baz { }
+                    struct Bar<T>
                         where
                         T: Baz
                     {
@@ -119,12 +117,13 @@ mod test {
                     }
                 }
             ],
-            struct Bar<T>
-            where
-                T: Baz
-            {
-                a: T,
-            }
+            r#"
+trait Baz { }
+
+struct Bar<T1> where T1: Baz {
+    a: T1,
+}
+"#
         );
     }
 
@@ -139,10 +138,12 @@ mod test {
                     }
                 }
             ],
-            enum Bar {
-                A,
-                B,
-            }
+            r#"
+enum Bar {
+    A,
+    B,
+}
+"#
         );
     }
 
@@ -151,7 +152,8 @@ mod test {
         crate::assert_rust!(
             [
                 crate Foo {
-                    enum Bar
+                    trait Baz { }
+                    enum Bar<T>
                         where
                         T : Baz
                     {
@@ -160,13 +162,14 @@ mod test {
                     }
                 }
             ],
-            enum Bar<T>
-            where
-                T: Baz
-            {
-                A { t: T },
-                B(T),
-            }
+            r#"
+trait Baz { }
+
+enum Bar<T1> where T1: Baz {
+    A { t: T1 },
+    B(T1),
+}
+"#
         );
     }
 }

@@ -1,252 +1,188 @@
-use std::{fmt::Write, ops::Deref};
+use std::ops::Deref;
 
-use crate::{
-    grammar::{
-        expr::{
-            Block, Expr, ExprData, FieldExpr, Init, Label, LabelId, PlaceExpr, PlaceExprData, Stmt,
-        },
-        Binder, Fallible, FieldName, RefKind, Ty, ValueId,
-    },
-    to_rust::{CodeWriter, RustBuilder},
+use crate::grammar::{
+    expr::{Block, Expr, ExprData, FieldExpr, Init, Label, PlaceExpr, PlaceExprData, Stmt},
+    Binder, Fallible, FieldName, RefKind, Ty, ValueId,
 };
 
-impl RustBuilder {
-    pub fn write_block(&mut self, out: &mut CodeWriter, block: &Block) -> Fallible<()> {
-        // format!("{{ {statements} }}")
-        writeln!(out, "{{")?;
-        for stmt in &block.stmts {
-            self.write_stmt(out, stmt)?;
-            write!(out, "\n")?;
-        }
-        writeln!(out, "}}")?;
+use super::{syntax, RustBuilder};
 
-        Ok(())
+impl RustBuilder {
+    pub fn lower_block(&mut self, block: &Block) -> Fallible<syntax::Block> {
+        let stmts = block
+            .stmts
+            .iter()
+            .map(|stmt| self.lower_stmt(stmt))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(syntax::Block { stmts })
     }
 
-    fn write_stmt(&mut self, out: &mut CodeWriter, stmt: &Stmt) -> Fallible<()> {
+    fn lower_stmt(&mut self, stmt: &Stmt) -> Fallible<syntax::Stmt> {
         match stmt {
             Stmt::Let {
                 label,
                 id,
                 ty,
                 init,
-            } => self.write_let(out, label.as_ref(), id, ty, init.as_ref()),
+            } => self.lower_let(label.as_ref(), id, ty, init.as_ref()),
             Stmt::If {
                 condition,
                 then_block,
                 else_block,
-            } => self.write_if(out, condition, then_block, else_block),
-            Stmt::Expr { expr } => self.write_expr(out, expr),
-            Stmt::Loop { label, body } => self.write_loop(out, label.as_ref(), body),
-            Stmt::Break { label } => self.write_break(out, label),
-            Stmt::Continue { label } => self.write_continue(out, label),
-            Stmt::Return { expr } => self.write_return(out, expr),
-            Stmt::Block(block) => self.write_block(out, block),
-            Stmt::Exists { binder } => self.write_exists(out, binder),
+            } => Ok(syntax::Stmt::If {
+                condition: self.lower_expr(condition)?,
+                then_block: self.lower_block(then_block)?,
+                else_block: self.lower_block(else_block)?,
+            }),
+            Stmt::Expr { expr } => Ok(syntax::Stmt::Expr(self.lower_expr(expr)?)),
+            Stmt::Loop { label, body } => Ok(syntax::Stmt::Loop {
+                label: label.as_ref().map(|l| l.id.deref().clone()),
+                body: self.lower_block(body)?,
+            }),
+            Stmt::Break { label } => Ok(syntax::Stmt::Break {
+                label: label.deref().clone(),
+            }),
+            Stmt::Continue { label } => Ok(syntax::Stmt::Continue {
+                label: label.deref().clone(),
+            }),
+            Stmt::Return { expr } => Ok(syntax::Stmt::Return {
+                expr: self.lower_expr(expr)?,
+            }),
+            Stmt::Block(block) => Ok(syntax::Stmt::Block(self.lower_block(block)?)),
+            Stmt::Exists { binder } => self.lower_exists_stmt(binder),
         }
     }
 
-    fn write_let(
+    fn lower_let(
         &mut self,
-        out: &mut CodeWriter,
         _label: Option<&Label>,
         id: &ValueId,
         ty: &Ty,
         init: Option<&Init>,
-    ) -> Fallible<()> {
-        // format!("let mut {id}: {ty}{init};")
-        let id = id.deref();
-        let ty = self.ty_to_string(ty).unwrap();
-
-        // TODO: Is there a way to decided if the variable should be mutable or not?
-        write!(out, "let mut {id}: {ty}")?;
-        if let Some(i) = init {
-            write!(out, " = ")?;
-            self.write_expr(out, &i.expr)?;
-        }
-        write!(out, ";")?;
-
-        Ok(())
+    ) -> Fallible<syntax::Stmt> {
+        Ok(syntax::Stmt::Let {
+            // TODO: is there a way to knwo, if the variable must be mutable or not?
+            mutable: true,
+            name: id.deref().clone(),
+            ty: self.lower_ty(ty)?,
+            init: init.map(|init| self.lower_expr(&init.expr)).transpose()?,
+        })
     }
 
-    fn write_if(
-        &mut self,
-        out: &mut CodeWriter,
-        condition: &Expr,
-        then_block: &Block,
-        else_block: &Block,
-    ) -> Fallible<()> {
-        // format!("if {condition} {{ {then_block} }} else {{ {else_block} }}")
-        write!(out, "if ")?;
-        self.write_expr(out, condition)?;
-        write!(out, " {{")?;
-        self.write_block(out, then_block)?;
-        write!(out, " }} else {{ ")?;
-        self.write_block(out, else_block)?;
-        write!(out, " }}")?;
-
-        Ok(())
+    fn lower_exists_stmt(&mut self, binder: &Binder<Block>) -> Fallible<syntax::Stmt> {
+        self.with_binder(binder, |term, pp| {
+            Ok(syntax::Stmt::Block(pp.lower_block(term)?))
+        })
     }
 
-    fn write_loop(
-        &mut self,
-        out: &mut CodeWriter,
-        label: Option<&Label>,
-        body: &Block,
-    ) -> Fallible<()> {
-        // format!("{label}loop {{ {body} }}")
-        let label = label
-            .map(|l| format!("{}: ", l.id.deref()))
-            .unwrap_or_default();
-        write!(out, "{label}")?;
-        self.write_block(out, body)
-    }
-
-    fn write_break(&mut self, out: &mut CodeWriter, label: &LabelId) -> Fallible<()> {
-        writeln!(out, "break {}", label.deref())?;
-        Ok(())
-    }
-
-    fn write_continue(&mut self, out: &mut CodeWriter, label: &LabelId) -> Fallible<()> {
-        writeln!(out, "continue {};", label.deref())?;
-        Ok(())
-    }
-
-    fn write_return(&mut self, out: &mut CodeWriter, expr: &Expr) -> Fallible<()> {
-        writeln!(out, "return ")?;
-        self.write_expr(out, expr)?;
-        writeln!(out, ";")?;
-        Ok(())
-    }
-
-    fn write_exists(&mut self, out: &mut CodeWriter, binder: &Binder<Block>) -> Fallible<()> {
-        self.with_binder(binder, |term, pp| pp.write_block(out, term))
-    }
-
-    fn write_expr(&mut self, out: &mut CodeWriter, expr: &Expr) -> Fallible<()> {
+    pub fn lower_expr(&mut self, expr: &Expr) -> Fallible<syntax::Expr> {
         match expr.data() {
-            ExprData::Assign { place, expr } => {
-                self.write_place_expr(out, place)?;
-                write!(out, " = ")?;
-                self.write_expr(out, expr)?;
-                writeln!(out, ";")?;
-                Ok(())
-            }
-            ExprData::Call { callee, args } => {
-                self.write_expr(out, callee)?;
-                write!(out, "(")?;
-                let mut sep = "";
-                for arg in args {
-                    write!(out, "{sep}")?;
-                    self.write_expr(out, arg)?;
-                    sep = ", ";
-                }
-                write!(out, ");")?;
-                Ok(())
-            }
-            ExprData::Literal { value, ty } => {
-                write!(out, "{value}_{}", self.scalar_to_string(ty))?;
-                Ok(())
-            }
-            ExprData::True => {
-                write!(out, "true")?;
-                Ok(())
-            }
-            ExprData::False => {
-                write!(out, "false")?;
-                Ok(())
-            }
-            ExprData::Ref {
-                kind,
-                lt: _lt,
-                place,
-            } => {
-                // format!("&{kind} {place}")
-                write!(out, "&")?;
-
-                if matches!(kind, RefKind::Mut) {
-                    write!(out, "mut ")?;
-                }
-                self.write_place_expr(out, place)
-            }
-            ExprData::Place(place_expr) => self.write_place_expr(out, place_expr),
-            ExprData::Turbofish { id, args } => {
-                let id = id.deref();
-                let args = args
+            ExprData::Assign { place, expr } => Ok(syntax::Expr::Assign {
+                place: self.lower_place_expr(place)?,
+                value: Box::new(self.lower_expr(expr)?),
+            }),
+            ExprData::Call { callee, args } => Ok(syntax::Expr::Call {
+                callee: Box::new(self.lower_expr(callee)?),
+                args: args
                     .iter()
-                    .map(|arg| self.parameter_to_string(arg))
-                    .collect::<Result<Vec<_>, _>>()
-                    .unwrap()
-                    .join(", ");
-                write!(out, "{id}::<{args}>")?;
-                Ok(())
+                    .map(|arg| self.lower_expr(arg))
+                    .collect::<Result<Vec<_>, _>>()?,
+            }),
+            ExprData::Literal { value, ty } => Ok(syntax::Expr::Literal {
+                value: value.to_string(),
+                suffix: self.scalar_to_string(ty),
+            }),
+            ExprData::True => Ok(syntax::Expr::Bool(true)),
+            ExprData::False => Ok(syntax::Expr::Bool(false)),
+            ExprData::Ref { kind, lt: _, place } => Ok(syntax::Expr::Ref {
+                mutable: matches!(kind, RefKind::Mut),
+                place: self.lower_place_expr(place)?,
+            }),
+            ExprData::Place(place_expr) => {
+                Ok(syntax::Expr::Place(self.lower_place_expr(place_expr)?))
             }
+            ExprData::Turbofish { id, args } => Ok(syntax::Expr::Path {
+                name: id.deref().clone(),
+                args: args
+                    .iter()
+                    .map(|arg| self.lower_generic_arg(arg))
+                    .collect::<Result<Vec<_>, _>>()?,
+            }),
             ExprData::Struct {
                 field_exprs,
                 adt_id,
                 turbofish,
             } => {
-                // format!("{adt_id}{turbofish} {{ {field_exprs} }}")
-                let adt_id = adt_id.deref();
                 let args = turbofish
                     .parameters
                     .iter()
-                    .map(|arg| self.parameter_to_string(arg))
-                    .collect::<Result<Vec<_>, _>>()
-                    .unwrap()
-                    .join(", ");
-                let turbofish = if args.is_empty() {
-                    args
-                } else {
-                    format!("<{args}>")
-                };
+                    .map(|arg| self.lower_generic_arg(arg))
+                    .collect::<Result<Vec<_>, _>>()?;
 
-                let mut sep = "";
-                write!(out, "{adt_id}{turbofish} {{")?;
-                for field_expr in field_exprs {
-                    write!(out, "{sep}")?;
-                    self.write_field_expr(out, field_expr)?;
-                    sep = ", ";
+                let named_fields = field_exprs
+                    .iter()
+                    .filter_map(|field| match field.name {
+                        FieldName::Id(_) => Some(self.lower_named_field_expr(field)),
+                        FieldName::Index(_) => None,
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                if named_fields.len() == field_exprs.len() {
+                    return Ok(syntax::Expr::Struct {
+                        path: adt_id.deref().clone(),
+                        args,
+                        fields: syntax::StructExprFields::Named(named_fields),
+                    });
                 }
-                write!(out, "}}")?;
 
-                Ok(())
+                let tuple_fields = field_exprs
+                    .iter()
+                    .map(|field| self.lower_expr(&field.value))
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                Ok(syntax::Expr::Struct {
+                    path: adt_id.deref().clone(),
+                    args,
+                    fields: syntax::StructExprFields::Tuple(tuple_fields),
+                })
             }
         }
     }
 
-    fn write_place_expr(&mut self, out: &mut CodeWriter, place_expr: &PlaceExpr) -> Fallible<()> {
+    pub fn lower_place_expr(&mut self, place_expr: &PlaceExpr) -> Fallible<syntax::PlaceExpr> {
         match place_expr.data() {
-            PlaceExprData::Var(value_id) => {
-                write!(out, "{}", value_id.deref())?;
-                Ok(())
-            }
-            PlaceExprData::Deref { prefix } => {
-                write!(out, "*")?;
-                self.write_place_expr(out, prefix)
-            }
-            PlaceExprData::Parens(place_expr) => {
-                write!(out, "(")?;
-                self.write_place_expr(out, place_expr)?;
-                write!(out, ")")?;
-                Ok(())
-            }
-            PlaceExprData::Field { prefix, field_name } => {
-                self.write_place_expr(out, prefix)?;
-                write!(out, ".{}", self.field_name_to_string(field_name))?;
-                Ok(())
-            }
+            PlaceExprData::Var(value_id) => Ok(syntax::PlaceExpr::Var(value_id.deref().clone())),
+            PlaceExprData::Deref { prefix } => Ok(syntax::PlaceExpr::Deref(Box::new(
+                self.lower_place_expr(prefix)?,
+            ))),
+            PlaceExprData::Parens(place_expr) => Ok(syntax::PlaceExpr::Paren(Box::new(
+                self.lower_place_expr(place_expr)?,
+            ))),
+            PlaceExprData::Field { prefix, field_name } => Ok(syntax::PlaceExpr::Field {
+                prefix: Box::new(self.lower_place_expr(prefix)?),
+                field: match field_name {
+                    FieldName::Id(id) => id.deref().clone(),
+                    FieldName::Index(idx) => idx.to_string(),
+                },
+            }),
         }
     }
 
-    fn write_field_expr(&mut self, out: &mut CodeWriter, field_expr: &FieldExpr) -> Fallible<()> {
-        match &field_expr.name {
-            FieldName::Id(id) => {
-                write!(out, "{}:", id.deref())?;
-                self.write_expr(out, &field_expr.value)
+    fn lower_named_field_expr(
+        &mut self,
+        field_expr: &FieldExpr,
+    ) -> Fallible<syntax::NamedFieldExpr> {
+        let name = match &field_expr.name {
+            FieldName::Id(id) => id.deref().clone(),
+            FieldName::Index(_) => {
+                anyhow::bail!("expected named field expression but found tuple field")
             }
-            FieldName::Index(_) => self.write_expr(out, &field_expr.value),
-        }
+        };
+
+        Ok(syntax::NamedFieldExpr {
+            name,
+            expr: self.lower_expr(&field_expr.value)?,
+        })
     }
 }
 
@@ -264,10 +200,12 @@ mod test {
                     }
                 }
             ],
-            fn foo() -> u32 {
-                let mut x: u32;
-                return x;
-            }
+            r#"
+fn foo() -> u32 {
+    let mut x: u32;
+    return x;
+}
+"#
         );
     }
 }

@@ -1,22 +1,26 @@
 use crate::grammar::{
-    AdtItem, Binder, Crate, CrateItem, Crates, Fallible, FeatureGate, ParameterKind,
+    AdtItem, Binder, Crate, CrateItem, Crates, Fallible, FeatureGate, FeatureGateName,
+    ParameterKind, TyData, WhereClause, WhereClauseData,
 };
 use formality_core::{fold::CoreFold, variable::CoreVariable};
 
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Write,
     ops::Deref,
 };
 
 mod expr;
 mod fns;
 mod structs_enums_and_adts;
+pub mod syntax;
 pub mod test_util;
 mod traits_and_impls;
 mod tys;
 
-pub fn build_workspace(
+/// Produces a Cargo workspaces on the file system in the
+/// `root_direcotry`. After sucesfully creating all the files,
+/// `cargo check` is run.
+pub fn check_workspace(
     crates: &Crates,
     root_direcotry: &std::path::Path,
 ) -> Fallible<std::process::Output> {
@@ -24,14 +28,17 @@ pub fn build_workspace(
 
     let output = std::process::Command::new("cargo")
         .env("RUSTFLAGS", "-A warnings")
-        .args(["build", "--manifest-path", &root_toml])
+        .args(["check", "--manifest-path", &root_toml])
         .output()?;
     Ok(output)
 }
 
-/// Produces a Cargo workspaces on the file system in the `root_direcotry`. After sucesfully creating all the files, `cargo fmt` is run.
+/// Produces a Cargo workspaces on the file system in the
+/// `root_direcotry`. After sucesfully creating all the files,
+/// `cargo fmt` is run.
 pub fn create_workspace(crates: &Crates, root_directory: &std::path::Path) -> Fallible<String> {
     use std::io::Write;
+
     let crates = RustBuilder::default().build_crates(crates)?;
     let crates_path = root_directory.join("crates");
     let root_toml_path = root_directory.join("Cargo.toml");
@@ -51,7 +58,7 @@ pub fn create_workspace(crates: &Crates, root_directory: &std::path::Path) -> Fa
         std::fs::create_dir_all(&src_path)?;
 
         let mut file = std::fs::File::create(&lib_path)?;
-        file.write_all(&source.as_bytes())?;
+        file.write_all(source.as_bytes())?;
 
         let file = std::fs::File::create(&crate_toml_path)?;
         writeln!(&file, "[package]")?;
@@ -76,7 +83,6 @@ pub fn create_workspace(crates: &Crates, root_directory: &std::path::Path) -> Fa
 
 type Stack<T> = Vec<T>;
 
-/// Keeps track
 #[derive(Debug, Default)]
 pub struct NameContext {
     variable_names: Stack<Vec<String>>,
@@ -84,31 +90,46 @@ pub struct NameContext {
 }
 
 impl NameContext {
-    /// Returns a pretty printable name for the `given CoreVaribale`.
     pub fn core_variable_to_string(
         &self,
         variable: &CoreVariable<crate::FormalityLang>,
     ) -> Fallible<String> {
-        let CoreVariable::BoundVar(core_bound_var) = variable else {
-            unimplemented!()
-        };
+        match variable {
+            CoreVariable::BoundVar(core_bound_var) => {
+                let var_index = core_bound_var.var_index.index;
+                let binder_index = core_bound_var
+                    .debruijn
+                    .ok_or_else(|| anyhow::anyhow!("binder was opened"))?
+                    .index;
 
-        let var_index = core_bound_var.var_index.index;
-        let index = core_bound_var
-            .debruijn
-            .ok_or_else(|| anyhow::anyhow!("binder was opened"))?
-            .index;
+                self.variable_names
+                    .get(binder_index)
+                    .and_then(|vars| vars.get(var_index))
+                    .cloned()
+                    .ok_or_else(|| anyhow::anyhow!("unbound variable {core_bound_var:?}"))
+            }
+            CoreVariable::UniversalVar(v) => {
+                Ok(self.free_variable_name(true, v.kind, v.var_index.index))
+            }
+            CoreVariable::ExistentialVar(v) => {
+                Ok(self.free_variable_name(false, v.kind, v.var_index.index))
+            }
+        }
+    }
+
+    pub fn current_names(&self) -> Fallible<&[String]> {
         self.variable_names
-            .get(index)
-            .and_then(|vars| vars.get(var_index))
-            .cloned()
-            .ok_or_else(|| anyhow::anyhow!("unbound variable {core_bound_var:?}"))
+            .first()
+            .map(|v| v.as_slice())
+            .ok_or_else(|| anyhow::anyhow!("no active binder frame"))
     }
 
     pub fn pop(&mut self) {
-        let name = self.variable_names.remove(0);
-        for n in name {
-            self.used.remove(&n);
+        if let Some(names) = self.variable_names.first().cloned() {
+            self.variable_names.remove(0);
+            for name in names {
+                self.used.remove(&name);
+            }
         }
     }
 
@@ -127,33 +148,27 @@ impl NameContext {
             ParameterKind::Const => "N",
         };
 
-        let mut name = String::new();
         for i in 1.. {
-            name = format!("{prefix}{i}");
+            let name = format!("{prefix}{i}");
             if self.used.insert(name.clone()) {
-                break;
+                return name;
             }
         }
-        name
+
+        unreachable!("fresh name generation should always terminate")
     }
-}
 
-#[derive(Debug, Default)]
-pub struct CodeWriter<W: Write = String> {
-    indention_level: i32,
-    buffer: W,
-}
-
-const INDENT_SIZE: i32 = 4;
-
-impl<W: Write> Write for CodeWriter<W> {
-    fn write_str(&mut self, s: &str) -> std::fmt::Result {
-        let n_spaces = self.indention_level * INDENT_SIZE;
-        let spaces = " ".repeat(n_spaces as usize);
-
-        // TODO: Update indention level
-
-        write!(self.buffer, "{spaces}{s}")
+    fn free_variable_name(&self, universal: bool, kind: ParameterKind, var_index: usize) -> String {
+        let suffix = var_index + 1;
+        let prefix = match (universal, kind) {
+            (true, ParameterKind::Ty) => "U",
+            (true, ParameterKind::Lt) => "'u",
+            (true, ParameterKind::Const) => "CU",
+            (false, ParameterKind::Ty) => "E",
+            (false, ParameterKind::Lt) => "'e",
+            (false, ParameterKind::Const) => "CE",
+        };
+        format!("{prefix}{suffix}")
     }
 }
 
@@ -163,11 +178,11 @@ pub struct RustBuilder {
 }
 
 impl RustBuilder {
-    pub fn with_binder<T: CoreFold<crate::FormalityLang, Output = T>>(
+    pub fn with_binder<T: CoreFold<crate::FormalityLang, Output = T>, R>(
         &mut self,
         binder: &Binder<T>,
-        mut op: impl FnMut(&T, &mut RustBuilder) -> Fallible<()>,
-    ) -> Fallible<()> {
+        mut op: impl FnMut(&T, &mut RustBuilder) -> Fallible<R>,
+    ) -> Fallible<R> {
         let term = binder.peek();
         self.ctx.push(binder.kinds());
 
@@ -189,41 +204,205 @@ impl RustBuilder {
             .crates
             .iter()
             .map(|krate| {
-                let mut out = CodeWriter::default();
-                let result = self.write_crate(&mut out, krate);
-                if result.is_ok() {
-                    return Ok((krate.id.deref().clone(), out.buffer));
-                }
-                Err(result.unwrap_err())
+                let lowered = self.lower_crate(krate)?;
+                Ok((krate.id.deref().clone(), lowered.to_string()))
             })
-            .collect::<Result<HashMap<_, _>, _>>()
+            .collect()
     }
 
-    fn write_crate(&mut self, out: &mut CodeWriter, krate: &Crate) -> Fallible<()> {
+    fn lower_crate(&mut self, krate: &Crate) -> Fallible<syntax::RustCrate> {
+        let mut attrs = Vec::new();
+        let mut items = Vec::new();
+
         for item in &krate.items {
-            self.write_crate_item(out, item)?;
-        }
-        Ok(())
-    }
-
-    fn write_crate_item(&mut self, out: &mut CodeWriter, crate_item: &CrateItem) -> Fallible<()> {
-        match crate_item {
-            CrateItem::FeatureGate(gate) => self.write_feature_gate(out, gate),
-            CrateItem::AdtItem(AdtItem::Struct(strukt)) => self.write_struct(out, strukt),
-            CrateItem::AdtItem(AdtItem::Enum(e)) => self.write_enum(out, e),
-            CrateItem::Trait(t) => self.write_trait(out, t),
-            CrateItem::TraitImpl(trait_impl) => self.write_trait_impl(out, trait_impl),
-            CrateItem::NegTraitImpl(neg_trait_impl) => {
-                self.write_neg_trait_impl(out, neg_trait_impl)
+            match item {
+                CrateItem::FeatureGate(gate) => attrs.push(self.lower_feature_gate(gate)?),
+                CrateItem::AdtItem(AdtItem::Struct(strukt)) => {
+                    items.push(syntax::Item::Struct(self.lower_struct(strukt)?));
+                }
+                CrateItem::AdtItem(AdtItem::Enum(e)) => {
+                    items.push(syntax::Item::Enum(self.lower_enum(e)?));
+                }
+                CrateItem::Trait(t) => {
+                    items.push(syntax::Item::Trait(self.lower_trait(t)?));
+                }
+                CrateItem::TraitImpl(trait_impl) => {
+                    items.push(syntax::Item::Impl(self.lower_trait_impl(trait_impl)?));
+                }
+                CrateItem::NegTraitImpl(neg_trait_impl) => {
+                    items.push(syntax::Item::NegImpl(
+                        self.lower_neg_trait_impl(neg_trait_impl)?,
+                    ));
+                }
+                CrateItem::Fn(function) => {
+                    items.push(syntax::Item::Function(self.lower_fn(function)?));
+                }
+                CrateItem::Test(_) => {
+                    todo!("lowering `test` crate items is not implemented yet")
+                }
             }
-            CrateItem::Fn(f) => self.write_fn(out, f),
-            CrateItem::Test(_) => unimplemented!(),
+        }
+
+        Ok(syntax::RustCrate { attrs, items })
+    }
+
+    fn lower_feature_gate(&mut self, gate: &FeatureGate) -> Fallible<syntax::Attr> {
+        let name = match gate.name {
+            FeatureGateName::PoloniusAlpha => "polonius_alpha",
+        };
+        Ok(syntax::Attr::Feature(name.to_owned()))
+    }
+
+    /// Lowers generic parameters and `where` clauses for a binder.
+    ///
+    /// Set `skip_first` when lowering generics for a trait
+    /// declaration.  In trait declarations, the first parameter
+    /// represents `Self` and must not be treated as a regular generic
+    /// parameter.
+    pub fn lower_generics_for_binder(
+        &mut self,
+        binder_kinds: &[ParameterKind],
+        where_clauses: &[WhereClause],
+        skip_first: bool,
+    ) -> Fallible<syntax::Generics> {
+        let names = self.ctx.current_names()?;
+
+        if names.len() != binder_kinds.len() {
+            anyhow::bail!(
+                "binder metadata mismatch: {} names but {} kinds",
+                names.len(),
+                binder_kinds.len()
+            );
+        }
+
+        let start = usize::from(skip_first);
+        let mut params: Vec<syntax::GenericParam> = names
+            .iter()
+            .skip(start)
+            .cloned()
+            .zip(binder_kinds.iter().copied().skip(start))
+            .map(|(name, kind)| Self::generic_param_from_kind(name, kind))
+            .collect();
+
+        for wc in where_clauses {
+            match wc.data() {
+                WhereClauseData::IsImplemented(ty, _, _) => {
+                    if let TyData::Variable(var) = ty.data() {
+                        let name = self.core_variable_to_string(var)?;
+                        // If the `where` clause referes to a type
+                        // variable from an outer binder, that
+                        // variable is not yet included in `params`.
+                        Self::push_type_param_if_missing(&mut params, name);
+                    }
+                }
+                WhereClauseData::TypeOfConst(konst, ty) => {
+                    let name = match self.lower_const(konst)? {
+                        syntax::ConstExpr::Ident(id) => id,
+                        other => anyhow::bail!(
+                            "const generic parameter must be an identifier, found `{other}`"
+                        ),
+                    };
+                    let ty = self.lower_ty(ty)?;
+
+                    if let Some(existing_ty) = params.iter_mut().find_map(|param| match param {
+                        syntax::GenericParam::Const { name: existing, ty } if existing == &name => {
+                            Some(ty)
+                        }
+                        _ => None,
+                    }) {
+                        *existing_ty = ty;
+                    } else {
+                        // If the `where` clause referes to a type
+                        // variable from an outer binder, that
+                        // variable is not yet included in `params`.
+                        params.push(syntax::GenericParam::Const { name, ty });
+                    }
+                }
+                WhereClauseData::AliasEq(_, _) => {
+                    todo!("lowering `AliasEq` where-clauses is not implemented yet")
+                }
+                WhereClauseData::Outlives(_, _) => {
+                    todo!("lowering `Outlives` where-clauses is not implemented yet")
+                }
+                WhereClauseData::ForAll(_) => {
+                    todo!("lowering `ForAll` where-clauses is not implemented yet")
+                }
+            }
+        }
+
+        let where_clauses = self.lower_where_clauses(where_clauses)?;
+
+        Ok(syntax::Generics {
+            params,
+            where_clauses,
+        })
+    }
+
+    pub fn lower_where_clauses(
+        &mut self,
+        where_clauses: &[WhereClause],
+    ) -> Fallible<Vec<syntax::WhereClause>> {
+        let mut preds = Vec::new();
+
+        for wc in where_clauses {
+            match wc.data() {
+                WhereClauseData::IsImplemented(ty, trait_id, params) => {
+                    preds.push(syntax::WhereClause::Trait {
+                        ty: self.lower_ty(ty)?,
+                        trait_name: trait_id.deref().clone(),
+                        args: params
+                            .iter()
+                            .map(|param| self.lower_generic_arg(param))
+                            .collect::<Result<Vec<_>, _>>()?,
+                    });
+                }
+                WhereClauseData::TypeOfConst(_, _) => {}
+                WhereClauseData::AliasEq(_, _) => {
+                    anyhow::bail!("lowering `AliasEq` where-clauses is not implemented yet")
+                }
+                WhereClauseData::Outlives(_, _) => {
+                    anyhow::bail!("lowering `Outlives` where-clauses is not implemented yet")
+                }
+                WhereClauseData::ForAll(_) => {
+                    anyhow::bail!("lowering `ForAll` where-clauses is not implemented yet")
+                }
+            }
+        }
+
+        Ok(preds)
+    }
+
+    fn push_type_param_if_missing(params: &mut Vec<syntax::GenericParam>, name: String) {
+        if name == "Self" {
+            return;
+        }
+
+        if !params
+            .iter()
+            .any(|param| matches!(param, syntax::GenericParam::Type(existing) if existing == &name))
+        {
+            params.push(syntax::GenericParam::Type(name));
         }
     }
 
-    fn write_feature_gate(&mut self, out: &mut CodeWriter, gate: &FeatureGate) -> Fallible<()> {
-        writeln!(out, "{:?}", gate)?;
-        Ok(())
+    /// Creates a generic parameter nameed `name` with the given
+    /// `kind`.
+    ///
+    /// For const generics, a default type of `usize` is used.  This
+    /// default should not be relied upon, as it is an implementation
+    /// detail and my change in the future.
+    fn generic_param_from_kind(name: String, kind: ParameterKind) -> syntax::GenericParam {
+        match kind {
+            ParameterKind::Ty => syntax::GenericParam::Type(name),
+            ParameterKind::Lt => syntax::GenericParam::Lifetime(name),
+            ParameterKind::Const => syntax::GenericParam::Const {
+                name,
+                ty: syntax::Type::Path {
+                    name: "usize".to_owned(),
+                    args: Vec::new(),
+                },
+            },
+        }
     }
 }
 
@@ -235,6 +414,7 @@ mod test {
             [
                 crate Foo {}
             ],
+            ""
         );
     }
 
@@ -246,7 +426,7 @@ mod test {
                     #![feature(polonius_alpha)]
                 }
             ],
-            #![feature(polonius_alpha)]
+            "#![feature(polonius_alpha)]"
         );
     }
 }

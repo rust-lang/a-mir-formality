@@ -1,249 +1,160 @@
-use std::{fmt::Write, ops::Deref};
-
-use itertools::Itertools;
+use std::ops::Deref;
 
 use crate::grammar::{
-    AssociatedTy, Fallible, ImplItem, NegTraitImpl, Parameter, Trait, TraitImpl, TraitItem, TyData,
-    WhereClause, WhereClauseData,
+    AssociatedTy, AssociatedTyValue, Fallible, ImplItem, NegTraitImpl, Trait, TraitImpl, TraitItem,
+    WhereBoundData,
 };
 use crate::prove::prove::Safety;
-use crate::to_rust::{CodeWriter, RustBuilder};
+
+use super::{syntax, RustBuilder};
 
 impl RustBuilder {
-    pub fn write_trait(&mut self, out: &mut CodeWriter, t: &Trait) -> Fallible<()> {
+    pub fn lower_trait(&mut self, t: &Trait) -> Fallible<syntax::TraitItem> {
+        // NOTE: Is this right with explicit binder?
         self.with_binder(&t.binder.explicit_binder, |term, pp| {
-            if let Safety::Unsafe = t.safety {
-                write!(out, "unsafe ")?;
-            }
+            let generics = pp.lower_generics_for_binder(
+                t.binder.explicit_binder.kinds(),
+                &term.where_clauses,
+                true,
+            )?;
 
-            write!(out, "trait {}", t.id.deref())?;
-            pp.write_generic_params(out, &term.where_clauses)?;
-            pp.write_where_bounds(out, &term.where_clauses)?;
-            writeln!(out, " {{")?;
-
+            let mut items = Vec::new();
             for item in &term.trait_items {
                 match item {
-                    TraitItem::Fn(f) => pp.write_fn(out, f)?,
-                    TraitItem::AssociatedTy(assoc_ty) => pp.write_assoc_ty(out, assoc_ty)?,
+                    TraitItem::Fn(f) => items.push(syntax::TraitMember::Function(pp.lower_fn(f)?)),
+                    TraitItem::AssociatedTy(assoc_ty) => items.push(
+                        syntax::TraitMember::AssociatedType(pp.lower_assoc_ty(assoc_ty)?),
+                    ),
                 }
             }
 
-            writeln!(out, "}}")?;
-            Ok(())
+            Ok(syntax::TraitItem {
+                is_unsafe: matches!(t.safety, Safety::Unsafe),
+                name: t.id.deref().clone(),
+                generics,
+                items,
+            })
         })
     }
 
-    pub fn write_trait_impl(
-        &mut self,
-        out: &mut CodeWriter,
-        trait_impl: &TraitImpl,
-    ) -> Fallible<()> {
-        // Ok(format!("{safety}impl<params> {id} for {ty} where {bounds} {{ {items} }}"))
+    pub fn lower_trait_impl(&mut self, trait_impl: &TraitImpl) -> Fallible<syntax::ImplItem> {
         self.with_binder(&trait_impl.binder, |term, pp| {
-            if let Safety::Unsafe = trait_impl.safety {
-                write!(out, "unsafe ")?;
-            }
-
-            let id = term.trait_id.deref();
-            let ty = pp.ty_to_string(&term.self_ty)?;
-            write!(out, "impl {id}")?;
-            pp.write_impl_trait_params(out, &term.trait_parameters)?;
-            writeln!(out, " for {ty} ")?;
-            pp.write_where_bounds(out, &term.where_clauses)?;
-            writeln!(out, " {{")?;
-
+            let mut items = Vec::new();
             for item in &term.impl_items {
                 match item {
-                    ImplItem::Fn(f) => pp.write_fn(out, f)?,
-                    ImplItem::AssociatedTyValue(_) => todo!(),
+                    ImplItem::Fn(f) => items.push(syntax::ImplMember::Function(pp.lower_fn(f)?)),
+                    ImplItem::AssociatedTyValue(v) => {
+                        items.push(syntax::ImplMember::AssociatedTypeValue(
+                            pp.lower_assoc_ty_value(v)?,
+                        ));
+                    }
                 }
             }
 
-            writeln!(out, "}}")?;
-            Ok(())
+            let generics = pp.lower_generics_for_binder(
+                trait_impl.binder.kinds(),
+                &term.where_clauses,
+                false,
+            )?;
+            let trait_args = term
+                .trait_parameters
+                .iter()
+                .map(|arg| pp.lower_generic_arg(arg))
+                .collect::<Result<Vec<_>, _>>()?;
+            let self_ty = pp.lower_ty(&term.self_ty)?;
+
+            Ok(syntax::ImplItem {
+                is_unsafe: matches!(trait_impl.safety, Safety::Unsafe),
+                generics,
+                trait_name: term.trait_id.deref().clone(),
+                trait_args,
+                self_ty,
+                items,
+            })
         })
     }
 
-    pub fn write_neg_trait_impl(
+    pub fn lower_neg_trait_impl(
         &mut self,
-        out: &mut CodeWriter,
         neg_trait_impl: &NegTraitImpl,
-    ) -> Fallible<()> {
+    ) -> Fallible<syntax::NegImplItem> {
         self.with_binder(&neg_trait_impl.binder, |term, pp| {
-            if let Safety::Unsafe = neg_trait_impl.safety {
-                write!(out, "unsafe ")?;
-            }
+            let generics = pp.lower_generics_for_binder(
+                neg_trait_impl.binder.kinds(),
+                &term.where_clauses,
+                false,
+            )?;
+            let trait_args = term
+                .trait_parameters
+                .iter()
+                .map(|arg| pp.lower_generic_arg(arg))
+                .collect::<Result<Vec<_>, _>>()?;
+            let self_ty = pp.lower_ty(&term.self_ty)?;
+            let where_clauses = pp.lower_where_clauses(&term.where_clauses)?;
 
-            let id = term.trait_id.deref();
-            let ty = pp.ty_to_string(&term.self_ty)?;
-            // let wc = self.print_where(&data.where_clauses);
-            writeln!(out, "impl !{id} for {ty} {{}}")?;
-            Ok(())
+            Ok(syntax::NegImplItem {
+                is_unsafe: matches!(neg_trait_impl.safety, Safety::Unsafe),
+                generics,
+                trait_name: term.trait_id.deref().clone(),
+                trait_args,
+                self_ty,
+                where_clauses,
+            })
         })
     }
 
-    pub fn write_where_bounds(
-        &mut self,
-        out: &mut CodeWriter,
-        where_clauses: &Vec<WhereClause>,
-    ) -> Fallible<()> {
-        if where_clauses.is_empty() {
-            return Ok(());
-        }
-
-        let mut buffer = String::new();
-        let mut sep = "";
-        for bound in where_clauses {
-            write!(buffer, "{sep}")?;
-            sep = ", ";
-            match bound.data() {
-                WhereClauseData::IsImplemented(ty, trait_id, params) => {
-                    let ty = self.ty_to_string(ty)?;
-                    let trait_id = trait_id.deref();
-                    write!(buffer, "{ty}: {trait_id}")?;
-
-                    if params.is_empty() {
-                        continue;
-                    }
-
-                    write!(buffer, "<")?;
-                    let mut sep = "";
-                    for param in params {
-                        let param = self.parameter_to_string(param)?;
-                        write!(buffer, "{sep}{param}")?;
-                        sep = ", ";
-                    }
-                    write!(buffer, ">")?;
-                }
-                WhereClauseData::AliasEq(_, _) => todo!(),
-                WhereClauseData::Outlives(_, _) => todo!(),
-                WhereClauseData::ForAll(_) => todo!(),
-                WhereClauseData::TypeOfConst(_, _) => continue,
-            }
-        }
-
-        if !buffer.is_empty() {
-            write!(out, " where {buffer}")?;
-        }
-        Ok(())
-    }
-
-    fn write_impl_trait_params(
-        &mut self,
-        out: &mut CodeWriter,
-        trait_parameters: &Vec<Parameter>,
-    ) -> Fallible<()> {
-        if trait_parameters.is_empty() {
-            return Ok(());
-        }
-
-        write!(out, "<")?;
-        let mut sep = "";
-        for parameter in trait_parameters {
-            let p = self.parameter_to_string(parameter)?;
-            write!(out, "{sep}{}", p)?;
-            sep = ", "
-        }
-
-        write!(out, ">")?;
-        Ok(())
-    }
-
-    fn write_assoc_ty(&mut self, out: &mut CodeWriter, assoc_ty: &AssociatedTy) -> Fallible<()> {
+    fn lower_assoc_ty(&mut self, assoc_ty: &AssociatedTy) -> Fallible<syntax::AssociatedTypeItem> {
         self.with_binder(&assoc_ty.binder, |term, pp| {
-            write!(out, "type {}", assoc_ty.id.deref())?;
-
-            if !&term.where_clauses.is_empty() {
-                write!(out, "<")?;
-            }
-
-            let mut sep = "";
-            for param in &term.where_clauses {
-                match param.data() {
-                    WhereClauseData::IsImplemented(ty, _trait_id, _parameters) => {
-                        let ty = pp.ty_to_string(ty)?;
-                        write!(out, "{sep}{ty}")?;
-                        sep = ", ";
+            let mut bounds = Vec::new();
+            for ensure in &term.ensures {
+                match ensure.data() {
+                    WhereBoundData::IsImplemented(trait_id, parameters) => {
+                        bounds.push(syntax::TypeBound::Trait {
+                            trait_name: trait_id.deref().clone(),
+                            args: parameters
+                                .iter()
+                                .map(|arg| pp.lower_generic_arg(arg))
+                                .collect::<Result<Vec<_>, _>>()?,
+                        });
                     }
-                    _ => unimplemented!(),
+                    WhereBoundData::Outlives(_) => {
+                        anyhow::bail!(
+                            "lowering associated type outlives bounds is not implemented yet"
+                        )
+                    }
+                    WhereBoundData::ForAll(_) => {
+                        anyhow::bail!(
+                            "lowering associated type `for` bounds is not implemented yet"
+                        )
+                    }
                 }
             }
 
-            if !&term.where_clauses.is_empty() {
-                write!(out, ">")?;
-            }
+            let generics =
+                pp.lower_generics_for_binder(assoc_ty.binder.kinds(), &term.where_clauses, false)?;
 
-            // Bounds := :Bar + Sized
-            // Bounds := <empty string>
-            if !term.ensures.is_empty() {
-                write!(
-                    out,
-                    ": {}",
-                    term.ensures.iter().map(|b| format!("{b:?}")).join(" + ")
-                )?;
-            };
-
-            // Where := where Bar, Baz
-            let mut buffer = String::new();
-            let mut sep = "";
-            for wc in &term.where_clauses {
-                match wc.data() {
-                    WhereClauseData::IsImplemented(ty, trait_id, _parameters) => {
-                        let ty = pp.ty_to_string(ty)?;
-                        // TODO: parameters are probably needed as well?
-                        write!(buffer, "{sep}{ty}: {}", trait_id.deref())?;
-                    }
-                    WhereClauseData::AliasEq(_alias_ty, _ty) => todo!(),
-                    WhereClauseData::Outlives(_parameter, _lt) => todo!(),
-                    WhereClauseData::ForAll(_core_binder) => todo!(),
-                    WhereClauseData::TypeOfConst(_, _ty) => todo!(),
-                }
-                sep = ", ";
-            }
-
-            if !buffer.is_empty() {
-                write!(out, " where {buffer}")?;
-            }
-            writeln!(out, ";")?;
-            Ok(())
+            Ok(syntax::AssociatedTypeItem {
+                name: assoc_ty.id.deref().clone(),
+                generics,
+                bounds,
+            })
         })
     }
 
-    pub fn write_generic_params(
+    fn lower_assoc_ty_value(
         &mut self,
-        out: &mut CodeWriter,
-        where_clauses: &Vec<WhereClause>,
-    ) -> Fallible<()> {
-        if where_clauses.is_empty() {
-            return Ok(());
-        }
-
-        write!(out, "<")?;
-        let mut sep = "";
-        for param in where_clauses {
-            write!(out, "{sep}")?;
-            match param.data() {
-                WhereClauseData::IsImplemented(ty, _, _) => {
-                    if let TyData::Variable(var) = ty.data() {
-                        let var = self.core_variable_to_string(var)?;
-                        write!(out, "{var}")?;
-                    } else {
-                        continue;
-                    }
-                }
-                WhereClauseData::AliasEq(_, _) => todo!(),
-                WhereClauseData::Outlives(_, _) => todo!(),
-                WhereClauseData::ForAll(_) => todo!(),
-                WhereClauseData::TypeOfConst(konst, ty) => {
-                    let konst = self.const_to_string(konst)?;
-                    let ty = self.ty_to_string(ty)?;
-                    write!(out, "const {konst}: {ty}")?;
-                }
-            }
-            sep = ", ";
-        }
-        write!(out, ">")?;
-        Ok(())
+        assoc_ty: &AssociatedTyValue,
+    ) -> Fallible<syntax::AssociatedTypeValueItem> {
+        self.with_binder(&assoc_ty.binder, |term, pp| {
+            let generics =
+                pp.lower_generics_for_binder(assoc_ty.binder.kinds(), &term.where_clauses, false)?;
+            let ty = pp.lower_ty(&term.ty)?;
+            Ok(syntax::AssociatedTypeValueItem {
+                name: assoc_ty.id.deref().clone(),
+                generics,
+                ty,
+            })
+        })
     }
 }
 
@@ -260,9 +171,11 @@ mod test {
                     }
                 }
             ],
-            trait Write {
-                fn test() -> i32;
-            }
+            r#"
+trait Write {
+    fn test() -> i32;
+}
+"#
         );
     }
 
@@ -277,10 +190,12 @@ mod test {
                     }
                 }
             ],
-            trait Write {
-                type Error;
-                fn test() -> i32;
-            }
+            r#"
+trait Write {
+    type Error;
+    fn test() -> i32;
+}
+"#
         );
     }
 
@@ -295,10 +210,12 @@ mod test {
                     }
                 }
             ],
-            trait Write {
-                type Error<T2, T3>: Sized + Bar where T2: Read, T3: Write;
-                fn test() -> i32;
-            }
+            r#"
+trait Write {
+    type Error<T2, T3>: Sized + Bar where T2: Read, T3: Write;
+    fn test() -> i32;
+}
+"#
         );
     }
 
@@ -307,10 +224,15 @@ mod test {
         crate::assert_rust!(
             [
                 crate Foo {
-                    trait Bar where T: Baz {}
+                    trait Baz { }
+                    trait Bar<T> where T: Baz {}
                 }
             ],
-            "trait Bar<T> where T: Baz { }"
+            "
+trait Baz { }
+
+trait Bar<T2> where T2: Baz { }
+"
         );
     }
 
@@ -319,10 +241,15 @@ mod test {
         crate::assert_rust!(
             [
                 crate Foo {
-                    trait Bar where T: Baz<i32, String> {}
+                    trait Baz<T, K> { }
+                    trait Bar<T> where T: Baz<i32, u8> {}
                 }
             ],
-            "trait Bar<T> where T: Baz<i32, String> { }"
+            "
+trait Baz<T2, T3> { }
+
+trait Bar<T2> where T2: Baz<i32, u8> { }
+"
         );
     }
 
@@ -331,13 +258,21 @@ mod test {
         crate::assert_rust!(
             [
                 crate Foo {
-                    trait Bar where K: Baz {
+                    trait Baz { }
+                    trait Bar<K> where K: Baz {
                         type Error: [];
                         fn test() -> K;
                     }
                 }
             ],
-            "trait Bar<K> where K: Baz { type Error; fn test() -> K; }"
+            r#"
+trait Baz { }
+
+trait Bar<T2> where T2: Baz {
+    type Error;
+    fn test() -> T2;
+}
+"#
         );
     }
 
@@ -358,16 +293,30 @@ mod test {
         crate::assert_rust!(
             [
                 crate Foo {
-                    impl Bar<T> for Baz where T: Bur {
+                    trait Bar<T> {
+                        fn run() -> T;
+                    }
+                    trait Bur { }
+                    struct Baz { }
+                    impl<T> Bar<T> for Baz where T: Bur {
                         fn run() -> T {trusted}
                     }
                 }
             ],
-            impl Bar<T> for Baz where T: Bur {
-                fn run() -> T {
-                    panic!("Trusted Fn Body")
-                }
-            }
+            r#"
+trait Bar<T2> {
+    fn run() -> T2;
+}
+
+trait Bur { }
+
+struct Baz {}
+
+impl<T1> Bar<T1> for Baz where T1: Bur {
+    fn run() -> T1 {
+        panic!("Trusted Fn Body")
+    }
+}"#
         );
     }
 
@@ -376,16 +325,26 @@ mod test {
         crate::assert_rust!(
             [
                 crate Foo {
+                    trait Bar { fn run() -> i32; }
+                    struct Baz { }
                     impl Bar for Baz {
                         fn run() -> i32 {trusted}
                     }
                 }
             ],
-            impl Bar for Baz {
-                fn run() -> i32 {
-                    panic!("Trusted Fn Body")
-                }
-            }
+            r#"
+trait Bar {
+    fn run() -> i32;
+}
+
+struct Baz {}
+
+impl Bar for Baz {
+    fn run() -> i32 {
+        panic!("Trusted Fn Body")
+    }
+}
+"#
         );
     }
 
@@ -394,10 +353,18 @@ mod test {
         crate::assert_rust!(
             [
                 crate Foo {
-                    impl !Write for Bar { }
+                    trait Bar { }
+                    struct Baz { }
+                    impl !Bar for Baz { }
                 }
             ],
-            "impl !Write for Bar {}"
+            r#"
+trait Bar { }
+
+struct Baz {}
+
+impl !Bar for Baz {}
+"#
         );
     }
 }
