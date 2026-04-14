@@ -483,7 +483,6 @@ fn move_out_of_mut_ref() {
 /// }
 /// ```
 #[test]
-#[ignore = "needs move-out-of-borrowed check (#298)"]
 fn move_out_of_borrowed_place() {
     crate::assert_err!(
         [
@@ -503,7 +502,16 @@ fn move_out_of_borrowed_place() {
             }
         ]
 
-        expect_test::expect![[""]]
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = x : Datum
+                &access.place = x : Datum
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2}
+                &lifetime.upcast() = ?lt_1"#]]
     )
 }
 
@@ -1846,6 +1854,16 @@ fn struct_construction_with_borrowed_local() {
         }
     ]
     expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = v1 : u32
+            &access.place = v1 : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_1
+
         the rule "borrow of disjoint places" at (nll.rs) failed because
           condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
             &loan.place = v1 : u32
