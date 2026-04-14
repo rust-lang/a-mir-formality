@@ -759,13 +759,13 @@ judgment_fn! {
         debug(env, assumptions, state, place)
 
         (
-            (if let TyData::RigidTy(RigidTy { name: RigidName::ScalarId(_), .. }) = place.ty.data())
+            (if let Ty::RigidTy(RigidTy { name: RigidName::ScalarId(_), .. }) = &place.ty)
             ------------------------------------------------------------ ("scalar-copy")
             (access_kind_for_place_use(_env, _assumptions, state, _place) => (AccessKind::Read, state))
         )
 
         (
-            (if let TyData::RigidTy(RigidTy { name: RigidName::Ref(RefKind::Shared), .. }) = place.ty.data())
+            (if let Ty::RigidTy(RigidTy { name: RigidName::Ref(RefKind::Shared), .. }) = &place.ty)
             ------------------------------------------------------------ ("shared-ref-copy")
             (access_kind_for_place_use(_env, _assumptions, state, _place) => (AccessKind::Read, state))
         )
