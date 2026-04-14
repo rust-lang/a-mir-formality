@@ -1020,7 +1020,7 @@ judgment_fn! {
                 // If `'0: T` then `'0` must hold for entire fn body...
                 Parameter::Ty(_) => false,
 
-                Parameter::Lt(lt) => match &**lt {
+                Parameter::Lt(lt) => match lt.as_ref() {
                     // If `'0: 'static` then `'0` must hold for entire fn body...
                     Lt::Static => false,
 

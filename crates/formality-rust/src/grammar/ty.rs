@@ -32,7 +32,7 @@ impl Ty {
     }
 
     pub fn to_parameter(&self) -> Parameter {
-        Parameter::Ty(Arc::new(self.clone()))
+        self.clone().upcast()
     }
 
     pub fn rigid(name: impl Upcast<RigidName>, parameters: impl Upcast<Vec<Parameter>>) -> Self {
@@ -344,51 +344,10 @@ impl DowncastTo<Variable> for Parameter {
     }
 }
 
-// Manual Ty/Lt/Const <-> Parameter casts (since Parameter holds Arc<Ty> etc.)
-impl UpcastFrom<Ty> for Parameter {
-    fn upcast_from(v: Ty) -> Self {
-        Parameter::Ty(Arc::new(v))
-    }
-}
-
-impl DowncastTo<Ty> for Parameter {
-    fn downcast_to(&self) -> Option<Ty> {
-        match self {
-            Parameter::Ty(v) => Some((**v).clone()),
-            _ => None,
-        }
-    }
-}
-
-impl UpcastFrom<Lt> for Parameter {
-    fn upcast_from(v: Lt) -> Self {
-        Parameter::Lt(Arc::new(v))
-    }
-}
-
-impl DowncastTo<Lt> for Parameter {
-    fn downcast_to(&self) -> Option<Lt> {
-        match self {
-            Parameter::Lt(v) => Some((**v).clone()),
-            _ => None,
-        }
-    }
-}
-
-impl UpcastFrom<Const> for Parameter {
-    fn upcast_from(v: Const) -> Self {
-        Parameter::Const(Arc::new(v))
-    }
-}
-
-impl DowncastTo<Const> for Parameter {
-    fn downcast_to(&self) -> Option<Const> {
-        match self {
-            Parameter::Const(v) => Some((**v).clone()),
-            _ => None,
-        }
-    }
-}
+// Ty/Lt/Const <-> Parameter casts via the Arc<T> <-> T impls provided by #[term]
+cast_impl!((Ty) <: (Arc<Ty>) <: (Parameter));
+cast_impl!((Lt) <: (Arc<Lt>) <: (Parameter));
+cast_impl!((Const) <: (Arc<Const>) <: (Parameter));
 
 // Transitive casts
 cast_impl!((RigidTy) <: (Ty) <: (Parameter));
