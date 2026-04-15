@@ -832,7 +832,14 @@ impl ProofTree {
         // Print attributes indented under the judgment name
         let attr_prefix = format!("{prefix}       ");
         for (field, value) in &self.attributes {
-            writeln!(f, "{attr_prefix}{field}: {value}")?;
+            let value_str = format!("{value}");
+            for (i, line) in value_str.lines().enumerate() {
+                if i == 0 {
+                    writeln!(f, "{attr_prefix}{field}: {line}")?;
+                } else {
+                    writeln!(f, "{attr_prefix}  {line}")?;
+                }
+            }
         }
 
         let child_prefix = format!("{prefix}   ");
