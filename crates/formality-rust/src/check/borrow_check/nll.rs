@@ -281,6 +281,13 @@ judgment_fn! {
         (
             // Existential variables: open the binder and check the inner block
             (let (env, subst, block) = env.instantiate_existentially(binder))
+            (let wf_assumptions: Wcs = subst.iter().fold(Wcs::default(), |acc, v| {
+                let p: Parameter = v.upcast();
+                let r: Relation = p.well_formed();
+                let w: Wcs = r.upcast();
+                (acc, w).upcast()
+            }))
+            (let assumptions: Wcs = (assumptions, wf_assumptions).upcast())
             (borrow_check_block(env, assumptions, state, block, places_live_on_exit) => state)
             (let state = state.pop_subst(&env.env, subst))
             ------------------------------------------------------------ ("exists")
