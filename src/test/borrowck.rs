@@ -1899,3 +1899,79 @@ fn struct_with_mutable_reference_locks_local() {
         expect_test::expect!["crates/formality-rust/src/prove/prove/prove/prove_wf.rs:14:1: no applicable rules for prove_wf { goal: ?lt_0, assumptions: {}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }"]
     )
 }
+
+#[test]
+/// Fail test for loan_cannot_outlive's "lifetime" rule.
+/// This is equivalent to:
+/// ```
+/// fn foo() -> u32 {
+///     let mut x: u32 = 22;
+///     let p = &x;
+///     let q = p;
+///     x += 1;
+///     println!("{q}");
+///     return 0;
+/// }
+/// ```
+fn loan_cannot_outlive_lifetime_fail() {
+    crate::assert_err!(
+        [
+            crate Foo {
+                fn foo() -> u32 {
+                    exists<'r0, 'r1, 'r2> {
+                        let x: u32 = 22 _ u32;
+                        let p: &'r1 u32 = &'r0 x;
+                        let q: &'r2 u32 = p;
+                        x = 1 _ u32;
+                        q;
+                        return 0 _ u32;
+                    }
+                }
+            }
+        ]
+
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = x : u32
+                &access.place = x : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = ?lt_3
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]]
+    )
+}
+
+/// Pass test for loan_cannot_outlive's "lifetime" rule.
+/// This is equivalent to:
+/// ```
+/// fn foo() -> u32 {
+///     let mut x: u32 = 22;
+///     let p = &x;
+///     let q = p;
+///     x += 1;
+///     return 0;
+/// }
+/// ```
+#[formality_core::test]
+fn loan_cannot_outlive_lifetime_pass() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn foo() -> u32 {
+                    exists<'r0, 'r1, 'r2> {
+                        let x: u32 = 22 _ u32;
+                        let p: &'r1 u32 = &'r0 x;
+                        let q: &'r2 u32 = p;
+                        x = 1 _ u32;
+                        return 0 _ u32;
+                    }
+                }
+            }
+        ]
+    )
+}
