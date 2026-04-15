@@ -342,10 +342,13 @@ mod test {
             name: RigidName::Ref(RefKind::Shared),
             parameters: vec![
                 Parameter::Lt(Lt::Variable(create_lt()).into()),
-                Parameter::Ty(Ty::RigidTy(RigidTy {
-                    name: RigidName::ScalarId(ScalarId::U8),
-                    parameters: Vec::new(),
-                }).into()),
+                Parameter::Ty(
+                    Ty::RigidTy(RigidTy {
+                        name: RigidName::ScalarId(ScalarId::U8),
+                        parameters: Vec::new(),
+                    })
+                    .into(),
+                ),
             ],
         });
         let t = pp.lower_ty(&ty).unwrap().to_string();
@@ -355,10 +358,13 @@ mod test {
             name: RigidName::Ref(RefKind::Mut),
             parameters: vec![
                 Parameter::Lt(Lt::Variable(create_lt()).into()),
-                Parameter::Ty(Ty::RigidTy(RigidTy {
-                    name: RigidName::ScalarId(ScalarId::U8),
-                    parameters: Vec::new(),
-                }).into()),
+                Parameter::Ty(
+                    Ty::RigidTy(RigidTy {
+                        name: RigidName::ScalarId(ScalarId::U8),
+                        parameters: Vec::new(),
+                    })
+                    .into(),
+                ),
             ],
         });
         let t = pp.lower_ty(&ty).unwrap().to_string();
@@ -368,10 +374,13 @@ mod test {
             name: RigidName::Ref(RefKind::Mut),
             parameters: vec![
                 Parameter::Lt(Lt::Static.into()),
-                Parameter::Ty(Ty::RigidTy(RigidTy {
-                    name: RigidName::ScalarId(ScalarId::U8),
-                    parameters: Vec::new(),
-                }).into()),
+                Parameter::Ty(
+                    Ty::RigidTy(RigidTy {
+                        name: RigidName::ScalarId(ScalarId::U8),
+                        parameters: Vec::new(),
+                    })
+                    .into(),
+                ),
             ],
         });
         let t = pp.lower_ty(&ty).unwrap().to_string();
@@ -385,20 +394,26 @@ mod test {
 
         let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Raw(PtrKind::Const),
-            parameters: vec![Parameter::Ty(Ty::RigidTy(RigidTy {
-                name: RigidName::ScalarId(ScalarId::U8),
-                parameters: Vec::new(),
-            }).into())],
+            parameters: vec![Parameter::Ty(
+                Ty::RigidTy(RigidTy {
+                    name: RigidName::ScalarId(ScalarId::U8),
+                    parameters: Vec::new(),
+                })
+                .into(),
+            )],
         });
         let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("*const u8", t);
 
         let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Raw(PtrKind::Mut),
-            parameters: vec![Parameter::Ty(Ty::RigidTy(RigidTy {
-                name: RigidName::ScalarId(ScalarId::U8),
-                parameters: Vec::new(),
-            }).into())],
+            parameters: vec![Parameter::Ty(
+                Ty::RigidTy(RigidTy {
+                    name: RigidName::ScalarId(ScalarId::U8),
+                    parameters: Vec::new(),
+                })
+                .into(),
+            )],
         });
         let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("*mut u8", t);
@@ -410,14 +425,20 @@ mod test {
         let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Tuple(2),
             parameters: vec![
-                Parameter::Ty(Ty::RigidTy(RigidTy {
-                    name: RigidName::ScalarId(ScalarId::U8),
-                    parameters: vec![],
-                }).into()),
-                Parameter::Ty(Ty::RigidTy(RigidTy {
-                    name: RigidName::ScalarId(ScalarId::I64),
-                    parameters: vec![],
-                }).into()),
+                Parameter::Ty(
+                    Ty::RigidTy(RigidTy {
+                        name: RigidName::ScalarId(ScalarId::U8),
+                        parameters: vec![],
+                    })
+                    .into(),
+                ),
+                Parameter::Ty(
+                    Ty::RigidTy(RigidTy {
+                        name: RigidName::ScalarId(ScalarId::I64),
+                        parameters: vec![],
+                    })
+                    .into(),
+                ),
             ],
         });
         let t = pp.lower_ty(&ty).unwrap().to_string();
@@ -431,18 +452,27 @@ mod test {
         let ty = Ty::RigidTy(RigidTy {
             name: RigidName::FnPtr(3),
             parameters: vec![
-                Parameter::Ty(Ty::RigidTy(RigidTy {
-                    name: RigidName::ScalarId(ScalarId::U8),
-                    parameters: vec![],
-                }).into()),
-                Parameter::Ty(Ty::RigidTy(RigidTy {
-                    name: RigidName::ScalarId(ScalarId::I64),
-                    parameters: vec![],
-                }).into()),
-                Parameter::Ty(Ty::RigidTy(RigidTy {
-                    name: RigidName::ScalarId(ScalarId::Isize),
-                    parameters: vec![],
-                }).into()),
+                Parameter::Ty(
+                    Ty::RigidTy(RigidTy {
+                        name: RigidName::ScalarId(ScalarId::U8),
+                        parameters: vec![],
+                    })
+                    .into(),
+                ),
+                Parameter::Ty(
+                    Ty::RigidTy(RigidTy {
+                        name: RigidName::ScalarId(ScalarId::I64),
+                        parameters: vec![],
+                    })
+                    .into(),
+                ),
+                Parameter::Ty(
+                    Ty::RigidTy(RigidTy {
+                        name: RigidName::ScalarId(ScalarId::Isize),
+                        parameters: vec![],
+                    })
+                    .into(),
+                ),
             ],
         });
         let t = pp.lower_ty(&ty).unwrap().to_string();
