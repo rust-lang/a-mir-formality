@@ -318,15 +318,15 @@ impl TraitDecl {
         let self_var: Parameter = variables[0].upcast();
 
         fn is_supertrait(self_var: &Parameter, wc: &Wc) -> bool {
-            match wc.data() {
-                crate::grammar::WcData::Predicate(Predicate::IsImplemented(trait_ref)) => {
+            match wc {
+                Wc::Predicate(Predicate::IsImplemented(trait_ref)) => {
                     trait_ref.parameters[0] == *self_var
                 }
-                crate::grammar::WcData::Relation(Relation::Outlives(a, _)) => *a == *self_var,
-                crate::grammar::WcData::Predicate(_) => false,
-                crate::grammar::WcData::Relation(_) => false,
-                crate::grammar::WcData::ForAll(binder) => is_supertrait(self_var, binder.peek()),
-                crate::grammar::WcData::Implies(_, c) => is_supertrait(self_var, c),
+                Wc::Relation(Relation::Outlives(a, _)) => *a == *self_var,
+                Wc::Predicate(_) => false,
+                Wc::Relation(_) => false,
+                Wc::ForAll(binder) => is_supertrait(self_var, binder.peek()),
+                Wc::Implies(_, c) => is_supertrait(self_var, c),
             }
         }
 

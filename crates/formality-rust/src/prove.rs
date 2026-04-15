@@ -1,7 +1,7 @@
 use crate::grammar::{Crates, WhereBound, WhereBoundData, WhereClause, WhereClauseData};
 use formality_core::Upcast;
 pub mod prove;
-use crate::grammar::{Predicate, Relation, Ty, Wc, Wcs};
+use crate::grammar::{Binder, Predicate, Relation, Ty, Wc, Wcs};
 use std::sync::Arc;
 
 impl Crates {
@@ -102,7 +102,7 @@ impl ToWcs for WhereClause {
                 let (vars, wc) = binder.open();
                 wc.to_wcs()
                     .into_iter()
-                    .map(|wc| Wc::for_all(&vars, wc))
+                    .map(|wc| Wc::ForAll(Binder::new(&vars, Arc::new(wc))))
                     .collect()
             }
             WhereClauseData::TypeOfConst(ct, ty) => {
@@ -123,7 +123,7 @@ impl WhereBound {
             WhereBoundData::Outlives(lt) => Relation::outlives(self_ty, lt).upcast(),
             WhereBoundData::ForAll(binder) => {
                 let (vars, bound) = binder.open();
-                Wc::for_all(&vars, bound.to_wc(self_ty))
+                Wc::ForAll(Binder::new(&vars, Arc::new(bound.to_wc(self_ty))))
             }
         }
     }

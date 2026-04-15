@@ -1,4 +1,4 @@
-use crate::grammar::WcData;
+use crate::grammar::Wc;
 use crate::grammar::{LtData, Parameter, Relation, RigidTy, Wcs};
 use crate::prove::prove::{decls::Program, prove};
 use formality_core::{judgment_fn, Set, Upcast};
@@ -98,8 +98,8 @@ fn transitively_outlived_by(
     let outlives_assumptions: Vec<Relation> = assumptions
         .iter()
         .filter_map(|wc| {
-            if let WcData::Relation(Relation::Outlives(r1, r2)) = wc.data() {
-                return Some(Relation::Outlives(r1.clone(), r2.clone()));
+            if let Wc::Relation(Relation::Outlives(r1, r2)) = wc {
+                return Some(Relation::Outlives(r1, r2));
             }
             None
         })

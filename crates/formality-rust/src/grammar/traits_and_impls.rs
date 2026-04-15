@@ -145,7 +145,7 @@ impl WhereClause {
             WhereClauseData::ForAll(binder) => {
                 let (vars, where_clause) = binder.open();
                 let wc = where_clause.invert()?;
-                Some(Wc::for_all(&vars, wc))
+                Some(Wc::ForAll(Binder::new(&vars, Arc::new(wc))))
             }
             WhereClauseData::TypeOfConst(_, _) => None,
         }
@@ -168,7 +168,7 @@ impl WhereClause {
                 let (vars, body) = binder.open();
                 body.well_formed()
                     .into_iter()
-                    .map(|wc| Wc::for_all(&vars, wc))
+                    .map(|wc| Wc::ForAll(Binder::new(&vars, Arc::new(wc))))
                     .collect()
             }
             WhereClauseData::TypeOfConst(ct, ty) => {
