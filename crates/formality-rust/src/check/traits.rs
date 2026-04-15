@@ -17,13 +17,10 @@ judgment_fn! {
             (let Trait { safety: _, id: _, binder } = t)
             (let (env, bound_data) = env.instantiate_universally(&binder.explicit_binder))
             (let TraitBoundData { where_clauses, trait_items } = bound_data)
-
             (check_trait_items_have_unique_names(&trait_items) => ())
-
-            (super::where_clauses::prove_where_clauses_well_formed(program, &env, &where_clauses, &where_clauses) => ())
-
-            (for_all(trait_item in trait_items.iter())
-                (check_trait_item(program, &env, &where_clauses, trait_item, crate_id) => ()))
+            (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
+            (for_all(trait_item in trait_items)
+                (check_trait_item(program, env, where_clauses, trait_item, crate_id) => ()))
             ------------------------------------------------------------ ("check trait")
             (check_trait(program, env, t, crate_id) => ())
         )
@@ -85,9 +82,8 @@ judgment_fn! {
             (let AssociatedTy { id: _, binder } = associated_ty)
             (let (env, bound_data) = env.instantiate_universally(binder))
             (let AssociatedTyBoundData { ensures: _, where_clauses } = bound_data)
-
             (super::where_clauses::prove_where_clauses_well_formed(
-                program, env, (&trait_where_clauses, &where_clauses), &where_clauses,
+                program, env, (trait_where_clauses, where_clauses), where_clauses,
             ) => ())
             ------------------------------------------------------------ ("check associated ty")
             (check_associated_ty(program, env, trait_where_clauses, associated_ty) => ())
