@@ -69,7 +69,7 @@ In this case, `has_type(env, expr) => ty` is the equivalent of `Γ ⊢ E : T`. N
 When we write the `judgement_fn`, it is going to desugar into an actual Rust function that looks like this:
 
 ```rust
-pub fn has_type(arg0: impl Upcast<Env>, arg1: impl Upcast<Expr>) -> Set<Type> {
+pub fn has_type(arg0: impl Upcast<Env>, arg1: impl Upcast<Expr>) -> ProvenSet<Type> {
     let arg0: Env = arg0.upcast();
     let arg1: Expr = arg1.upcast();
     
@@ -79,30 +79,34 @@ pub fn has_type(arg0: impl Upcast<Env>, arg1: impl Upcast<Expr>) -> Set<Type> {
 
 Some things to note. First, the function arguments (`arg0`, `arg1`) implicitly accept anything that "upcasts" (infallibly converts) into the desired types. `Upcast` is a trait defined within a-mir-formality and implemented by the `#[term]` macro automatically. 
 
-Second, the function always returns a `Set`. This is because there can be more rules, and they may match in any ways. The generated code is going to exhaustively search to find all the ways that the rules could match. At a high-level the code looks like this (at least if we ignore the possibility of cycles; we'll come back to that later):
+Second, the function always returns a `ProvenSet`. This is because there can be more rules, and they may match in any ways. The generated code is going to exhaustively search to find all the ways that the rules could match. Unlike a plain `Set`, a `ProvenSet` also preserves proof trees for successful results and structured failure information when no rule applies. At a high-level the code looks like this (at least if we ignore the possibility of cycles; we'll come back to that later):
 
 ```rust
-pub fn has_type(arg0: impl Upcast<Env>, arg1: impl Upcast<Expr>) -> Set<Type> {
+pub fn has_type(arg0: impl Upcast<Env>, arg1: impl Upcast<Expr>) -> ProvenSet<Type> {
     let arg0: Env = arg0.upcast();
     let arg1: Expr = arg1.upcast();
     
-    let mut results = set![]; // we define this macro
+    let mut results = Map::new();
 
     if /* inference rule 1 matches */ {
-        results.push(/* result from inference rule 1 */);
+        results.insert(/* result from inference rule 1 */, /* proof tree */);
     }
     
     if /* inference rule 2 matches */ {
-        results.push(/* result from inference rule 1 */);
+        results.insert(/* result from inference rule 2 */, /* proof tree */);
     }
     
     // ... 
     
     if /* inference rule N matches */ {
-        results.push(/* result from inference rule N */);
+        results.insert(/* result from inference rule N */, /* proof tree */);
     }
     
-    results
+    if !results.is_empty() {
+        ProvenSet::proven(results)
+    } else {
+        ProvenSet::failed_rules(/* judgment */, /* location */, /* failed rules */)
+    }
 }
 ```
 
