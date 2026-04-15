@@ -8,7 +8,7 @@ use crate::check::borrow_check::typed_place_expression::{
 use crate::grammar::expr::{Block, Expr, ExprData, Init, PlaceExpr, PlaceExprData, Stmt};
 use crate::grammar::{
     AliasTy, FieldName, Fn, Lt, Parameter, RefKind, Relation, RigidName, RigidTy, ScalarId, Struct,
-    StructBoundData, Ty, TyData, ValueId, Variable, Wcs, WhereClause,
+    StructBoundData, Ty, TyData, Variable, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
 use crate::prove::prove::Safety;
@@ -448,7 +448,7 @@ judgment_fn! {
             (if !state.has_local(id))!
             (let fn_decl = env.crates().fn_named(id)?)
             (if fn_decl.binder.len() == 0)
-            (let ty: Ty = RigidTy { name: RigidName::FnDef(ValueId::clone(id)), parameters: vec![] }.upcast())
+            (let ty = Ty::rigid(RigidName::fn_def(id), ()))
             // FIXME: check where clauses from fn
             ------------------------------------------------------------ ("fn-name")
             (borrow_check_expr(env, _assumptions, state, ExprData::Place(place), _places_live_on_exit) => (ty, state))
@@ -458,7 +458,7 @@ judgment_fn! {
             // A function name with explicit type arguments (e.g., `foo::<'a, T>(args)`).
             (let fn_decl = env.crates().fn_named(id)?)
             (if fn_decl.binder.len() == args.len())
-            (let ty: Ty = RigidTy { name: RigidName::FnDef(ValueId::clone(id)), parameters: args.to_vec() }.upcast())
+            (let ty = Ty::rigid(RigidName::fn_def(id), args))
             // FIXME: check where clauses from fn
             ------------------------------------------------------------ ("turbofish")
             (borrow_check_expr(env, _assumptions, state, ExprData::Turbofish { id, args }, _places_live_on_exit) => (ty, state))
