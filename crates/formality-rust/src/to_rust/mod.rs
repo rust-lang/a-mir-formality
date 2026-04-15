@@ -287,8 +287,8 @@ impl RustBuilder {
         for wc in where_clauses {
             match wc.data() {
                 WhereClauseData::IsImplemented(ty, _, _) => {
-                    if let TyData::Variable(var) = ty.data() {
-                        let name = self.core_variable_to_string(var)?;
+                    if let TyData::Variable(var) = ty {
+                        let name = self.core_variable_to_string(&var)?;
                         // If the `where` clause referes to a type
                         // variable from an outer binder, that
                         // variable is not yet included in `params`.

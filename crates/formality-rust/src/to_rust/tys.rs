@@ -17,7 +17,7 @@ impl RustBuilder {
     }
 
     pub fn lower_const(&mut self, konst: &Const) -> Fallible<syntax::ConstExpr> {
-        match konst.data() {
+        match konst {
             ConstData::RigidValue(_) => {
                 todo!("lowering rigid const values is not implemented yet")
             }
@@ -47,20 +47,20 @@ impl RustBuilder {
                 todo!("lowering const block expressions is not implemented yet")
             }
             ConstData::Variable(core_variable) => Ok(syntax::ConstExpr::Ident(
-                self.core_variable_to_string(core_variable)?,
+                self.core_variable_to_string(&core_variable)?,
             )),
         }
     }
 
     pub fn lower_ty(&mut self, ty: &Ty) -> Fallible<syntax::Type> {
-        match ty.data() {
-            TyData::RigidTy(rigid_ty) => self.lower_rigid_ty(rigid_ty),
+        match ty {
+            TyData::RigidTy(rigid_ty) => self.lower_rigid_ty(&rigid_ty),
             TyData::AliasTy(_) => todo!("lowering alias types is not implemented yet"),
             TyData::PredicateTy(_) => {
                 todo!("lowering predicate types is not implemented yet")
             }
             TyData::Variable(core_variable) => Ok(syntax::Type::Path {
-                name: self.core_variable_to_string(core_variable)?,
+                name: self.core_variable_to_string(&core_variable)?,
                 args: Vec::new(),
             }),
         }
@@ -155,9 +155,9 @@ impl RustBuilder {
     }
 
     pub fn lower_lt(&mut self, lt: &Lt) -> Fallible<String> {
-        match lt.data() {
+        match lt {
             LtData::Static => Ok("'static".to_owned()),
-            LtData::Variable(core_variable) => self.core_variable_to_string(core_variable),
+            LtData::Variable(core_variable) => self.core_variable_to_string(&core_variable),
         }
     }
 
@@ -312,10 +312,10 @@ mod test {
     #[test]
     fn pretty_print_adt() {
         let mut pp = RustBuilder::default();
-        let ty = Ty::new(TyData::RigidTy(RigidTy {
+        let ty = Ty::RigidTy(RigidTy {
             name: RigidName::AdtId(AdtId::new("Foo")),
             parameters: Vec::new(),
-        }));
+        });
         let t = pp.lower_ty(&ty).unwrap().to_string();
 
         assert_eq!("Foo", t);
@@ -324,10 +324,10 @@ mod test {
     #[test]
     fn pretty_print_scalar() {
         let mut pp = RustBuilder::default();
-        let ty = Ty::new(TyData::RigidTy(RigidTy {
+        let ty = Ty::RigidTy(RigidTy {
             name: RigidName::ScalarId(ScalarId::U8),
             parameters: Vec::new(),
-        }));
+        });
         let t = pp.lower_ty(&ty).unwrap().to_string();
 
         assert_eq!("u8", t);
@@ -338,42 +338,42 @@ mod test {
         let mut pp = RustBuilder::default();
         pp.ctx.push(&[ParameterKind::Lt]);
 
-        let ty = Ty::new(TyData::RigidTy(RigidTy {
+        let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Ref(RefKind::Shared),
             parameters: vec![
-                Parameter::Lt(Lt::new(create_lt())),
-                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                Parameter::Lt(Lt::Variable(create_lt()).into()),
+                Parameter::Ty(Ty::RigidTy(RigidTy {
                     name: RigidName::ScalarId(ScalarId::U8),
                     parameters: Vec::new(),
-                }))),
+                }).into()),
             ],
-        }));
+        });
         let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("&'a1 u8", t);
 
-        let ty = Ty::new(TyData::RigidTy(RigidTy {
+        let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Ref(RefKind::Mut),
             parameters: vec![
-                Parameter::Lt(Lt::new(create_lt())),
-                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                Parameter::Lt(Lt::Variable(create_lt()).into()),
+                Parameter::Ty(Ty::RigidTy(RigidTy {
                     name: RigidName::ScalarId(ScalarId::U8),
                     parameters: Vec::new(),
-                }))),
+                }).into()),
             ],
-        }));
+        });
         let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("&'a1 mut u8", t);
 
-        let ty = Ty::new(TyData::RigidTy(RigidTy {
+        let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Ref(RefKind::Mut),
             parameters: vec![
-                Parameter::Lt(Lt::new(LtData::Static)),
-                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                Parameter::Lt(Lt::Static.into()),
+                Parameter::Ty(Ty::RigidTy(RigidTy {
                     name: RigidName::ScalarId(ScalarId::U8),
                     parameters: Vec::new(),
-                }))),
+                }).into()),
             ],
-        }));
+        });
         let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("&'static mut u8", t);
     }
@@ -383,23 +383,23 @@ mod test {
         let mut pp = RustBuilder::default();
         pp.ctx.push(&[ParameterKind::Lt]);
 
-        let ty = Ty::new(TyData::RigidTy(RigidTy {
+        let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Raw(PtrKind::Const),
-            parameters: vec![Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+            parameters: vec![Parameter::Ty(Ty::RigidTy(RigidTy {
                 name: RigidName::ScalarId(ScalarId::U8),
                 parameters: Vec::new(),
-            })))],
-        }));
+            }).into())],
+        });
         let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("*const u8", t);
 
-        let ty = Ty::new(TyData::RigidTy(RigidTy {
+        let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Raw(PtrKind::Mut),
-            parameters: vec![Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+            parameters: vec![Parameter::Ty(Ty::RigidTy(RigidTy {
                 name: RigidName::ScalarId(ScalarId::U8),
                 parameters: Vec::new(),
-            })))],
-        }));
+            }).into())],
+        });
         let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("*mut u8", t);
     }
@@ -407,19 +407,19 @@ mod test {
     #[test]
     fn pretty_print_tuple() {
         let mut pp = RustBuilder::default();
-        let ty = Ty::new(TyData::RigidTy(RigidTy {
+        let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Tuple(2),
             parameters: vec![
-                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                Parameter::Ty(Ty::RigidTy(RigidTy {
                     name: RigidName::ScalarId(ScalarId::U8),
                     parameters: vec![],
-                }))),
-                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                }).into()),
+                Parameter::Ty(Ty::RigidTy(RigidTy {
                     name: RigidName::ScalarId(ScalarId::I64),
                     parameters: vec![],
-                }))),
+                }).into()),
             ],
-        }));
+        });
         let t = pp.lower_ty(&ty).unwrap().to_string();
 
         assert_eq!("(u8, i64)", t);
@@ -428,23 +428,23 @@ mod test {
     #[test]
     fn pretty_print_fn_ptr() {
         let mut pp = RustBuilder::default();
-        let ty = Ty::new(TyData::RigidTy(RigidTy {
+        let ty = Ty::RigidTy(RigidTy {
             name: RigidName::FnPtr(3),
             parameters: vec![
-                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                Parameter::Ty(Ty::RigidTy(RigidTy {
                     name: RigidName::ScalarId(ScalarId::U8),
                     parameters: vec![],
-                }))),
-                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                }).into()),
+                Parameter::Ty(Ty::RigidTy(RigidTy {
                     name: RigidName::ScalarId(ScalarId::I64),
                     parameters: vec![],
-                }))),
-                Parameter::Ty(Ty::new(TyData::RigidTy(RigidTy {
+                }).into()),
+                Parameter::Ty(Ty::RigidTy(RigidTy {
                     name: RigidName::ScalarId(ScalarId::Isize),
                     parameters: vec![],
-                }))),
+                }).into()),
             ],
-        }));
+        });
         let t = pp.lower_ty(&ty).unwrap().to_string();
 
         assert_eq!("fn(u8, i64) -> isize", t);
