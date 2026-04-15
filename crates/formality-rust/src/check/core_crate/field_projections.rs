@@ -4,74 +4,74 @@ use super::LangItems;
 
 pub fn lang_items() -> LangItems {
     parse_term! {
-        trait HasPlace {
+        trait Place {
             type Target: [];
         }
 
-        unsafe trait Projection {
+        unsafe trait Subplace {
             type Source: [];
             type Target: [];
 
+            // FIXME: add metadata.
             fn offset(self: Self) -> usize;
         }
 
-        unsafe trait PlaceRead<P>
+        unsafe trait PlaceRead<S>
         where
-            Self: HasPlace,
-            P: Projection,
-            <P as Projection>::Source => <Self as HasPlace>::Target,
+            Self: Place,
+            S: Subplace,
+            <S as Subplace>::Source => <Self as Place>::Target,
         {
             // FIXME: a-mir-formality doesn't support const trait items yet.
             // const SAFETY: bool;
 
-            unsafe fn read(this: *const Self, proj: P) -> <P as Projection>::Target;
+            unsafe fn read(this: *const Self, proj: S) -> <S as Subplace>::Target;
         }
 
-        unsafe trait PlaceWrite<P>
+        unsafe trait PlaceWrite<S>
         where
-            Self: HasPlace,
-            P: Projection,
-            <P as Projection>::Source => <Self as HasPlace>::Target,
+            Self: Place,
+            S: Subplace,
+            <S as Subplace>::Source => <Self as Place>::Target,
         {
             // const SAFETY: bool;
 
             unsafe fn write(
                 this: *const Self,
-                proj: P,
-                value: <P as Projection>::Target
+                sub: S,
+                value: <S as Subplace>::Target
             ) -> ();
         }
 
-        unsafe trait PlaceMove<P>
+        unsafe trait PlaceMove<S>
         where
-            // TODO: do we need this?
-            // Self: HasPlace,
-            Self: PlaceRead<P>,
-            P: Projection,
-            <P as Projection>:: Source => <Self as HasPlace>::Target,
+            Self: PlaceRead<S>,
+            S: Subplace,
+            <S as Subplace>:: Source => <Self as Place>::Target,
         {
         }
+
+        unsafe trait PlaceDrop<S>
+        where
+            Self: Place,
+            S: Subplace,
+            <S as Subplace>:: Source => <Self as Place>::Target,
+        {
+            unsafe fn drop(this: *const Self, sub: S) -> ();
+        }
+
         unsafe trait DropHusk
         where
-            Self: HasPlace,
+            Self: Place,
         {
             unsafe fn drop_husk(this: *const Self) -> ();
         }
 
-        unsafe trait PlaceDrop<P>
+        unsafe trait PlaceBorrow<S, X>
         where
-            Self: HasPlace,
-            P: Projection,
-            <P as Projection>:: Source => <Self as HasPlace>::Target,
-        {
-            unsafe fn drop(this: *const Self, proj: P) -> ();
-        }
-
-        unsafe trait PlaceBorrow<P, X>
-        where
-            Self: HasPlace,
-            P: Projection,
-            <P as Projection>::Source => <Self as HasPlace>::Target,
+            Self: Place,
+            S: Subplace,
+            <S as Subplace>::Source => <Self as Place>::Target,
         {
 
             // FIXME: a-mir-formality doesn't support const trait items yet.
@@ -81,12 +81,12 @@ pub fn lang_items() -> LangItems {
             // const BORROW_KIND: BorrowKind;
             type BorrowDuration: [BorrowDuration];
 
-            unsafe fn borrow(this: *const Self, proj: P) -> X;
+            unsafe fn borrow(this: *const Self, sub: S) -> X;
         }
 
         // The duration of the loan tracked by the borrow checker.
         //
-        // The borrow checker ensures that `this` has `ACCESS` rights to `P`.
+        // The borrow checker ensures that `this` has `ACCESS` rights to `S`.
         trait BorrowDuration {}
 
         // Types implementing `BorrowDuration`:
@@ -102,26 +102,27 @@ pub fn lang_items() -> LangItems {
         impl<'a> BorrowDuration for Lifetime<'a> {}
         impl BorrowDuration for Indefinite {}
 
-        unsafe trait PlaceWrapper<P>
+        unsafe trait PlaceDeref<S>
         where
-            Self: HasPlace,
-            P: Projection,
-            <P as Projection>::Source => <Self as HasPlace>::Target,
+            Self: Place,
+            S: Subplace,
+            <S as Subplace>::Source => <Self as Place>::Target,
+            <S as Subplace>::Target: Place,
         {
-            type WrappedProjection: [Projection]
-            where
-                <<Self as PlaceWrapper<P>>::WrappedProjection as Projection>::Source => Self;
-
-            fn wrap_projection(proj: P) -> <Self as PlaceWrapper<P>>::WrappedProjection;
+            unsafe fn deref(ptr: *mut Self, sub: S) -> *const <S as Subplace>::Target;
         }
-        unsafe trait PlaceDeref<P>
+
+        unsafe trait PlaceWrapper<S>
         where
-            Self: HasPlace,
-            P: Projection,
-            <P as Projection>::Source => <Self as HasPlace>::Target,
-            <P as Projection>::Target: HasPlace,
+            Self: Place,
+            S: Subplace,
+            <S as Subplace>::Source => <Self as Place>::Target,
         {
-            unsafe fn deref(ptr: *mut Self, proj: P) -> *const <P as Projection>::Target;
+            type Wrapped: [Subplace]
+            where
+                <<Self as PlaceWrapper<S>>::Wrapped as Subplace>::Source => Self;
+
+            fn wrap(sub: S) -> <Self as PlaceWrapper<S>>::Wrapped;
         }
     }
 }
