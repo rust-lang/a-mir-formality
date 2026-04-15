@@ -43,7 +43,7 @@ impl RustBuilder {
         let mut generics = self.lower_generics_for_binder(binder_kinds, where_clauses, false)?;
 
         for arg in input_args {
-            if let TyData::Variable(var) = arg.ty.data() {
+            if let TyData::Variable(var) = &arg.ty {
                 let name = self.core_variable_to_string(var)?;
                 Self::push_type_param_if_missing(&mut generics.params, name);
             }
