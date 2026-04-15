@@ -1900,13 +1900,11 @@ fn struct_with_mutable_reference_locks_local() {
     )
 }
 
+// Divergent return clears outlives, so the dead else-branch's
+// constraints don't poison the live path.
 #[test]
-// fn reborrow(a: &mut u8) -> &mut u8 {
-//     let b = &mut *a;
-//     if true { b } else { a } // ERROR: cannot borrow `*a` as mutable more than once at a time
-// }
-fn polonius_accepts_but_nll_not() {
-    crate::assert_err!(
+fn divergent_return_clears_outlives() {
+    crate::assert_ok!(
         [
             crate Foo {
                 fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
@@ -1923,24 +1921,6 @@ fn polonius_accepts_but_nll_not() {
                 }
             }
         ]
-
-        expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = *(a : &mut !lt_1 u8) : u8
-                &access.place = a : &mut !lt_1 u8
-
-            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
-              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
-              {
-                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
-                  {
-                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
-                      Lt::Variable(Variable::ExistentialVar(_)) => true,
-                      Lt::Variable(Variable::BoundVar(_)) =>
-                      panic!("cannot outlive a bound var"),
-                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
-              })`"#]]
     );
 }
 
@@ -1956,42 +1936,42 @@ fn loan_before_return_does_not_affect_merged_paths() {
                             let b: &mut 'r1 u8 = &mut 'r0 *a;
                             return b;
                         } else { }
-                
+
                         let c: &mut 'r3 u8 = &mut 'r2 *a;
                         return c;
                     }
                 }
             }
         ]
-
-        expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = *(a : &mut !lt_1 u8) : u8
-                &access.place = *(a : &mut !lt_1 u8) : u8
-
-            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
-              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
-              {
-                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
-                  {
-                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
-                      Lt::Variable(Variable::ExistentialVar(_)) => true,
-                      Lt::Variable(Variable::BoundVar(_)) =>
-                      panic!("cannot outlive a bound var"),
-                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
-              })`
-
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
-
-            the rule "write-indirect" at (nll.rs) failed because
-              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-                place_accessed = *(a : &mut !lt_1 u8) : u8
-                place_loaned_ref = a : &mut !lt_1 u8"#]]
     );
 }
 
+// Divergent paths (aka return) should not propagate outlives, liveness
+#[test]
+fn outlive_before_return_does_not_affect_merged_paths() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
+                    exists<'r0, 'r1, 'r2, 'r3> {
+                        // This creates an outlives constraint
+                        let b: &mut 'r1 u8 = &mut 'r0 *a;
+                        if true {
+                            return b;
+                        } else {
+                            // this means the loan remains live
+                        }
+
+                        // If the outlives constraint propagated here,
+                        // we would get an error.
+                        let c: &mut 'r3 u8 = &mut 'r2 *a;
+                        return c;
+                    }
+                }
+            }
+        ]
+    );
+}
 
 // Divergent paths (aka return) should not propagate outlives, liveness
 #[test]
@@ -2009,37 +1989,8 @@ fn loan_before_return_does_not_affect_dead_code_after() {
                 }
             }
         ]
-
-        expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = *(a : &mut !lt_1 u8) : u8
-                &access.place = *(a : &mut !lt_1 u8) : u8
-
-            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
-              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
-              {
-                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
-                  {
-                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
-                      Lt::Variable(Variable::ExistentialVar(_)) => true,
-                      Lt::Variable(Variable::BoundVar(_)) =>
-                      panic!("cannot outlive a bound var"),
-                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
-              })`
-
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
-
-            the rule "write-indirect" at (nll.rs) failed because
-              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-                place_accessed = *(a : &mut !lt_1 u8) : u8
-                place_loaned_ref = a : &mut !lt_1 u8"#]]
     );
 }
-
-
-
 
 // Divergent paths (aka return) should not propagate outlives, liveness
 #[test]
@@ -2052,7 +2003,7 @@ fn if_else_paths_independent() {
                         if true {
                             let b: &mut 'r1 u8 = &mut 'r0 *a;
                             return b;
-                        } else {            
+                        } else {
                             let c: &mut 'r3 u8 = &mut 'r2 *a;
                             return c;
                         }
