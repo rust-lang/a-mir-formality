@@ -1,6 +1,6 @@
 use formality_core::Upcast;
 
-use super::{BoundVar, Lt, LtData, ParameterKind, Ty, TyData};
+use super::{BoundVar, Lt, ParameterKind, Ty};
 
 /// Trait implemented by the various kinds of generic parameters.
 /// Used in some of the fluent APIs for creating binders to select
@@ -12,14 +12,14 @@ pub trait Kinded {
 impl Kinded for Ty {
     fn instantiate() -> (Vec<BoundVar>, Self) {
         let bvar = BoundVar::fresh(ParameterKind::Ty);
-        (vec![bvar], TyData::Variable(bvar.upcast()).upcast())
+        (vec![bvar], Ty::Variable(bvar.upcast()))
     }
 }
 
 impl Kinded for Lt {
     fn instantiate() -> (Vec<BoundVar>, Self) {
         let bvar = BoundVar::fresh(ParameterKind::Lt);
-        (vec![bvar], LtData::Variable(bvar.upcast()).upcast())
+        (vec![bvar], Lt::Variable(bvar.upcast()))
     }
 }
 

@@ -12,36 +12,27 @@ use super::{
 };
 
 #[term]
-#[cast]
-#[customize(constructors)] // FIXME(#219): figure out upcasts with arc or special-case
-pub struct Ty {
-    data: Arc<TyData>,
+pub enum Ty {
+    #[cast]
+    RigidTy(RigidTy),
+    #[cast]
+    AliasTy(AliasTy),
+    #[cast]
+    PredicateTy(PredicateTy),
+    #[variable(ParameterKind::Ty)]
+    Variable(Variable),
 }
 
+/// Temporary alias for migration -- allows `TyData::Variant` to still compile.
+pub type TyData = Ty;
+
 impl Ty {
-    pub fn new(data: impl Upcast<TyData>) -> Self {
-        Ty {
-            data: Arc::new(data.upcast()),
-        }
-    }
-
-    pub fn data(&self) -> &TyData {
-        &self.data
-    }
-
     pub fn never() -> Self {
         RigidTy::new(RigidName::Never, ()).upcast()
     }
 
     pub fn to_parameter(&self) -> Parameter {
-        Parameter::Ty(self.clone())
-    }
-
-    pub fn as_variable(&self) -> Option<Variable> {
-        match self.data() {
-            TyData::Variable(v) => Some(*v),
-            _ => None,
-        }
+        self.clone().upcast()
     }
 
     pub fn rigid(name: impl Upcast<RigidName>, parameters: impl Upcast<Vec<Parameter>>) -> Self {
@@ -90,7 +81,7 @@ impl Ty {
     }
 
     pub fn get_adt_id(&self) -> Option<AdtId> {
-        if let TyData::RigidTy(rigid_ty) = self.data() {
+        if let Ty::RigidTy(rigid_ty) = self {
             if let RigidName::AdtId(ref adt_id) = rigid_ty.name {
                 return Some(adt_id.clone());
             };
@@ -100,38 +91,6 @@ impl Ty {
 
     pub fn unit() -> Self {
         Ty::rigid(RigidName::Tuple(0), ())
-    }
-}
-
-impl UpcastFrom<TyData> for Ty {
-    fn upcast_from(v: TyData) -> Self {
-        Ty::new(v)
-    }
-}
-
-impl DowncastTo<TyData> for Ty {
-    fn downcast_to(&self) -> Option<TyData> {
-        Some(self.data().clone())
-    }
-}
-
-// NB: TyData doesn't implement Fold; you fold types, not TyData,
-// because variables might not map to the same variant.
-#[term]
-pub enum TyData {
-    #[cast]
-    RigidTy(RigidTy),
-    #[cast]
-    AliasTy(AliasTy),
-    #[cast]
-    PredicateTy(PredicateTy),
-    #[variable(ParameterKind::Ty)]
-    Variable(Variable),
-}
-
-impl UpcastFrom<Ty> for TyData {
-    fn upcast_from(term: Ty) -> Self {
-        term.data().clone()
     }
 }
 
@@ -295,17 +254,17 @@ pub struct AssociatedTyName {
 
 #[term]
 pub enum PredicateTy {
-    ForAll(Binder<Ty>),
+    ForAll(Binder<Arc<Ty>>),
 }
 
 #[term]
 pub enum Parameter {
     #[cast]
-    Ty(Ty),
+    Ty(Arc<Ty>),
     #[cast]
-    Lt(Lt),
+    Lt(Arc<Lt>),
     #[cast]
-    Const(Const),
+    Const(Arc<Const>),
 }
 
 impl Parameter {
@@ -323,9 +282,9 @@ impl Parameter {
 
     pub fn as_variable(&self) -> Option<Variable> {
         match self {
-            Parameter::Ty(v) => v.as_variable(),
-            Parameter::Lt(v) => v.as_variable(),
-            Parameter::Const(v) => v.as_variable(),
+            Parameter::Ty(v) => v.as_variable().copied(),
+            Parameter::Lt(v) => v.as_variable().copied(),
+            Parameter::Const(v) => v.as_variable().copied(),
         }
     }
 }
@@ -352,49 +311,7 @@ pub enum Variance {
 }
 
 #[term]
-#[cast]
-#[customize(constructors)] // FIXME(#219): figure out upcasts with arc or special-case
-pub struct Lt {
-    data: Arc<LtData>,
-}
-
-impl Lt {
-    pub fn new(data: impl Upcast<LtData>) -> Self {
-        Lt {
-            data: Arc::new(data.upcast()),
-        }
-    }
-
-    pub fn data(&self) -> &LtData {
-        &self.data
-    }
-
-    pub fn as_variable(&self) -> Option<Variable> {
-        match self.data() {
-            LtData::Variable(v) => Some(*v),
-            _ => None,
-        }
-    }
-
-    pub fn static_() -> Self {
-        LtData::Static.upcast()
-    }
-}
-
-impl UpcastFrom<LtData> for Lt {
-    fn upcast_from(v: LtData) -> Self {
-        Lt::new(v)
-    }
-}
-
-impl DowncastTo<LtData> for Lt {
-    fn downcast_to(&self) -> Option<LtData> {
-        Some(self.data().clone())
-    }
-}
-
-#[term]
-pub enum LtData {
+pub enum Lt {
     #[grammar('static)]
     Static,
 
@@ -402,12 +319,21 @@ pub enum LtData {
     Variable(Variable),
 }
 
+/// Temporary alias for migration.
+pub type LtData = Lt;
+
+impl Lt {
+    pub fn static_() -> Self {
+        Lt::Static
+    }
+}
+
 impl UpcastFrom<Variable> for Parameter {
     fn upcast_from(v: Variable) -> Parameter {
         match v.kind() {
-            ParameterKind::Lt => Lt::new(v).upcast(),
-            ParameterKind::Ty => Ty::new(v).upcast(),
-            ParameterKind::Const => Const::new(v).upcast(),
+            ParameterKind::Lt => Lt::Variable(v.upcast()).upcast(),
+            ParameterKind::Ty => Ty::Variable(v.upcast()).upcast(),
+            ParameterKind::Const => Const::Variable(v.upcast()).upcast(),
         }
     }
 }
@@ -418,30 +344,25 @@ impl DowncastTo<Variable> for Parameter {
     }
 }
 
-cast_impl!((RigidTy) <: (TyData) <: (Ty));
-cast_impl!((AliasTy) <: (TyData) <: (Ty));
-cast_impl!((ScalarId) <: (TyData) <: (Ty));
-cast_impl!((PredicateTy) <: (TyData) <: (Ty));
+// Ty/Lt/Const <-> Parameter casts via the Arc<T> <-> T impls provided by #[term]
+cast_impl!((Ty) <: (Arc<Ty>) <: (Parameter));
+cast_impl!((Lt) <: (Arc<Lt>) <: (Parameter));
+cast_impl!((Const) <: (Arc<Const>) <: (Parameter));
+
+// Transitive casts
 cast_impl!((RigidTy) <: (Ty) <: (Parameter));
 cast_impl!((AliasTy) <: (Ty) <: (Parameter));
 cast_impl!((ScalarId) <: (Ty) <: (Parameter));
 cast_impl!((PredicateTy) <: (Ty) <: (Parameter));
-cast_impl!((TyData) <: (Ty) <: (Parameter));
-cast_impl!((Variable) <: (TyData) <: (Ty));
-cast_impl!((UniversalVar) <: (Variable) <: (TyData));
-cast_impl!((ExistentialVar) <: (Variable) <: (TyData));
-cast_impl!((BoundVar) <: (Variable) <: (TyData));
-cast_impl!((ScalarId) <: (RigidTy) <: (TyData));
+cast_impl!((ScalarId) <: (RigidTy) <: (Ty));
+// Variable -> Ty/Lt transitive casts
 cast_impl!((UniversalVar) <: (Variable) <: (Ty));
 cast_impl!((ExistentialVar) <: (Variable) <: (Ty));
 cast_impl!((BoundVar) <: (Variable) <: (Ty));
+cast_impl!((UniversalVar) <: (Variable) <: (Lt));
+cast_impl!((ExistentialVar) <: (Variable) <: (Lt));
+cast_impl!((BoundVar) <: (Variable) <: (Lt));
+// Variable -> Parameter transitive casts
 cast_impl!((UniversalVar) <: (Variable) <: (Parameter));
 cast_impl!((ExistentialVar) <: (Variable) <: (Parameter));
 cast_impl!((BoundVar) <: (Variable) <: (Parameter));
-cast_impl!((ExistentialVar) <: (Variable) <: (LtData));
-cast_impl!((UniversalVar) <: (Variable) <: (LtData));
-cast_impl!((BoundVar) <: (Variable) <: (LtData));
-cast_impl!((UniversalVar) <: (LtData) <: (Lt));
-cast_impl!((ExistentialVar) <: (LtData) <: (Lt));
-cast_impl!((BoundVar) <: (LtData) <: (Lt));
-cast_impl!((LtData) <: (Lt) <: (Parameter));

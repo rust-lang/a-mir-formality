@@ -7,8 +7,8 @@ use crate::check::borrow_check::typed_place_expression::{
 
 use crate::grammar::expr::{Block, Expr, ExprData, Init, PlaceExpr, PlaceExprData, Stmt};
 use crate::grammar::{
-    AliasTy, FieldName, Fn, Lt, LtData, Parameter, RefKind, Relation, RigidName, RigidTy, ScalarId,
-    Struct, StructBoundData, Ty, TyData, ValueId, Variable, Wcs, WhereClause,
+    AliasTy, FieldName, Fn, Lt, Parameter, RefKind, Relation, RigidName, RigidTy, ScalarId, Struct,
+    StructBoundData, Ty, TyData, ValueId, Variable, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
 use crate::prove::prove::Safety;
@@ -759,13 +759,13 @@ judgment_fn! {
         debug(env, assumptions, state, place)
 
         (
-            (if let TyData::RigidTy(RigidTy { name: RigidName::ScalarId(_), .. }) = place.ty.data())
+            (if let Ty::RigidTy(RigidTy { name: RigidName::ScalarId(_), .. }) = &place.ty)
             ------------------------------------------------------------ ("scalar-copy")
             (access_kind_for_place_use(_env, _assumptions, state, _place) => (AccessKind::Read, state))
         )
 
         (
-            (if let TyData::RigidTy(RigidTy { name: RigidName::Ref(RefKind::Shared), .. }) = place.ty.data())
+            (if let Ty::RigidTy(RigidTy { name: RigidName::Ref(RefKind::Shared), .. }) = &place.ty)
             ------------------------------------------------------------ ("shared-ref-copy")
             (access_kind_for_place_use(_env, _assumptions, state, _place) => (AccessKind::Read, state))
         )
@@ -1020,17 +1020,17 @@ judgment_fn! {
                 // If `'0: T` then `'0` must hold for entire fn body...
                 Parameter::Ty(_) => false,
 
-                Parameter::Lt(lt) => match lt.data() {
+                Parameter::Lt(lt) => match lt.as_ref() {
                     // If `'0: 'static` then `'0` must hold for entire fn body...
-                    LtData::Static => false,
+                    Lt::Static => false,
 
                     // If `'0: 'a` for some lifetime parameter `'a`, then `'0` must hold for entire fn body...
-                    LtData::Variable(Variable::UniversalVar(_)) => false,
+                    Lt::Variable(Variable::UniversalVar(_)) => false,
 
                     // If `'0: '1`, that's fine.
-                    LtData::Variable(Variable::ExistentialVar(_)) => true,
+                    Lt::Variable(Variable::ExistentialVar(_)) => true,
 
-                    LtData::Variable(Variable::BoundVar(_)) => panic!("cannot outlive a bound var"),
+                    Lt::Variable(Variable::BoundVar(_)) => panic!("cannot outlive a bound var"),
                 },
 
                 // Not really clear what this would mean
