@@ -39,6 +39,7 @@ pub mod check;
 pub mod grammar;
 pub mod prove;
 mod test;
+pub mod to_rust;
 mod trait_binder;
 pub mod types;
 

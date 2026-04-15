@@ -48,6 +48,9 @@ pub fn main() -> anyhow::Result<()> {
 macro_rules! assert_ok {
     ($input:tt) => {{
         let _ = $crate::test_program_ok(stringify!($input)).expect("expected program to pass");
+        if $crate::run_rustc() {
+            formality_rust::assert_rustc_success!($input);
+        }
     }};
 }
 
@@ -73,4 +76,11 @@ pub fn test_where_clause(program: &str, assertion: &str) -> formality_core::Prov
         let decls = program.to_prove_decls();
         formality_rust::prove::prove::test_util::test_prove(decls, assertion)
     })
+}
+
+pub fn run_rustc() -> bool {
+    0 < std::env::var("FORMALITY_RUN_RUSTC")
+        .map(|s| s.parse::<i32>())
+        .unwrap_or(Ok(0))
+        .unwrap_or_default()
 }
