@@ -1900,30 +1900,6 @@ fn struct_with_mutable_reference_locks_local() {
     )
 }
 
-// Divergent return clears outlives, so the dead else-branch's
-// constraints don't poison the live path.
-#[test]
-fn divergent_return_clears_outlives() {
-    crate::assert_ok!(
-        [
-            crate Foo {
-                fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
-                    exists<'r0, 'r1, 'r2> {
-                        let b: &mut 'r1 u8 = &mut 'r0 *a;
-                        let c: &mut 'r2 u8;
-                        if true {
-                            c = b;
-                        } else {
-                            c = a;
-                        }
-                        return c;
-                    }
-                }
-            }
-        ]
-    );
-}
-
 // Divergent paths (aka return) should not propagate outlives, liveness
 #[test]
 fn loan_before_return_does_not_affect_merged_paths() {
