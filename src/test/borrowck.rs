@@ -1905,6 +1905,96 @@ fn struct_with_mutable_reference_locks_local() {
     )
 }
 
+// Divergent paths (aka return) should not propagate outlives, liveness
+#[test]
+fn loan_before_return_does_not_affect_merged_paths() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
+                    exists<'r0, 'r1, 'r2, 'r3> {
+                        if true {
+                            let b: &mut 'r1 u8 = &mut 'r0 *a;
+                            return b;
+                        } else { }
+
+                        let c: &mut 'r3 u8 = &mut 'r2 *a;
+                        return c;
+                    }
+                }
+            }
+        ]
+    );
+}
+
+// Divergent paths (aka return) should not propagate outlives, liveness
+#[test]
+fn outlive_before_return_does_not_affect_merged_paths() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
+                    exists<'r0, 'r1, 'r2, 'r3> {
+                        // This creates an outlives constraint
+                        let b: &mut 'r1 u8 = &mut 'r0 *a;
+                        if true {
+                            return b;
+                        } else {
+                            // this means the loan remains live
+                        }
+
+                        // If the outlives constraint propagated here,
+                        // we would get an error.
+                        let c: &mut 'r3 u8 = &mut 'r2 *a;
+                        return c;
+                    }
+                }
+            }
+        ]
+    );
+}
+
+// Divergent paths (aka return) should not propagate outlives, liveness
+#[test]
+fn loan_before_return_does_not_affect_dead_code_after() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
+                    exists<'r0, 'r1, 'r2, 'r3> {
+                        let b: &mut 'r1 u8 = &mut 'r0 *a;
+                        return b;
+                        let c: &mut 'r3 u8 = &mut 'r2 *a;
+                        return c;
+                    }
+                }
+            }
+        ]
+    );
+}
+
+// Divergent paths (aka return) should not propagate outlives, liveness
+#[test]
+fn if_else_paths_independent() {
+    crate::assert_ok!(
+        [
+            crate Foo {
+                fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
+                    exists<'r0, 'r1, 'r2, 'r3> {
+                        if true {
+                            let b: &mut 'r1 u8 = &mut 'r0 *a;
+                            return b;
+                        } else {
+                            let c: &mut 'r3 u8 = &mut 'r2 *a;
+                            return c;
+                        }
+                    }
+                }
+            }
+        ]
+    );
+}
+
 #[test]
 /// Fail test for loan_cannot_outlive's "lifetime" rule.
 /// This is equivalent to:

@@ -203,6 +203,17 @@ impl FlowState {
         }
     }
 
+    /// Returns a new flow state with `current` cleared to default.
+    /// Used after diverging statements (return, break, continue) since
+    /// code after them is dead and cannot observe any loans or
+    /// generate meaningful outlives constraints.
+    pub fn diverges(&self) -> Self {
+        Self {
+            current: PointFlowState::default(),
+            ..self.clone()
+        }
+    }
+
     pub fn with_break(&self, label: &LabelId) -> Self {
         let mut this = self.clone();
         this.breaks.insert(LabeledFlowState {
