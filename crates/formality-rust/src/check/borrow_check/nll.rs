@@ -7,8 +7,8 @@ use crate::check::borrow_check::typed_place_expression::{
 
 use crate::grammar::expr::{Block, Expr, ExprData, Init, PlaceExpr, PlaceExprData, Stmt};
 use crate::grammar::{
-    AliasTy, FieldName, Fn, Lt, Parameter, RefKind, Relation, RigidName, RigidTy, ScalarId, Struct,
-    StructBoundData, Ty, TyData, Variable, Wcs, WhereClause,
+    AliasTy, ExistentialVar, FieldName, Fn, Lt, Parameter, RefKind, Relation, RigidName, RigidTy,
+    ScalarId, Struct, StructBoundData, Ty, TyData, Variable, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
 use crate::prove::prove::Safety;
@@ -16,6 +16,14 @@ use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 
 use crate::check::borrow_check::liveness::{Assignment, Either, LiveBefore, LivePlaces};
+
+// Treats each name brought in by exists as OK to use when checking the code inside.
+fn wf_assumptions_for_existential_subst(subst: &[ExistentialVar]) -> Wcs {
+    subst
+        .iter()
+        .map(|v| Relation::well_formed(v.clone()))
+        .collect()
+}
 
 // Given this, the goal of the borrow checker (in some sense) is to find a minimal `LifetimeValue`
 // for each existential variable such that all the outlives constraints are satisfied.
@@ -281,7 +289,8 @@ judgment_fn! {
         (
             // Existential variables: open the binder and check the inner block
             (let (env, subst, block) = env.instantiate_existentially(binder))
-            (borrow_check_block(env, assumptions, state, block, places_live_on_exit) => state)
+            (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
+            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
             (let state = state.pop_subst(&env.env, subst))
             ------------------------------------------------------------ ("exists")
             (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))

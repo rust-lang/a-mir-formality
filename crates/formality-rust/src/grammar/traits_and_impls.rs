@@ -137,10 +137,7 @@ impl WhereClause {
     pub fn invert(&self) -> Option<Wc> {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => Some(
-                trait_id
-                    .with(self_ty, parameters)
-                    .not_implemented()
-                    .upcast(),
+                Upcast::<Wc>::upcast(trait_id.with(self_ty, parameters).not_implemented()),
             ),
             WhereClauseData::AliasEq(_, _) => None,
             WhereClauseData::Outlives(_, _) => None,
@@ -156,14 +153,14 @@ impl WhereClause {
     pub fn well_formed(&self) -> Wcs {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
-                trait_id.with(self_ty, parameters).well_formed().upcast()
+                Upcast::<Wcs>::upcast(trait_id.with(self_ty, parameters).well_formed())
             }
             WhereClauseData::AliasEq(alias_ty, ty) => {
                 let alias_param: Parameter = alias_ty.upcast();
                 let ty_param: Parameter = ty.upcast();
                 [
-                    alias_param.well_formed().upcast(),
-                    ty_param.well_formed().upcast(),
+                    Upcast::<Wc>::upcast(alias_param.well_formed()),
+                    Upcast::<Wc>::upcast(ty_param.well_formed()),
                 ]
                 .into_iter()
                 .collect()
@@ -172,8 +169,8 @@ impl WhereClause {
                 let a_param: Parameter = a.upcast();
                 let b_param: Parameter = b.upcast();
                 [
-                    a_param.well_formed().upcast(),
-                    b_param.well_formed().upcast(),
+                    Upcast::<Wc>::upcast(a_param.well_formed()),
+                    Upcast::<Wc>::upcast(b_param.well_formed()),
                 ]
                 .into_iter()
                 .collect()
@@ -189,8 +186,8 @@ impl WhereClause {
                 let ct_param: Parameter = ct.upcast();
                 let ty_param: Parameter = ty.upcast();
                 [
-                    ct_param.well_formed().upcast(),
-                    ty_param.well_formed().upcast(),
+                    Upcast::<Wc>::upcast(ct_param.well_formed()),
+                    Upcast::<Wc>::upcast(ty_param.well_formed()),
                 ]
                 .into_iter()
                 .collect()

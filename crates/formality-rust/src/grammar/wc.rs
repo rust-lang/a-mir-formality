@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use formality_core::{cast_impl, set, term, Cons, DowncastTo, Set, Upcast, UpcastFrom, Upcasted};
+use formality_core::{cast_impl, set, term, Cons, DowncastTo, Set, Upcast, UpcastFrom};
 
 use crate::{grammar::WhereClause, prove::ToWcs};
 
@@ -25,7 +25,7 @@ impl Wcs {
         a.into_iter()
             .zip(b)
             .map(|(a, b)| Relation::equals(a, b))
-            .upcasted()
+            .map(|r| Upcast::<Wc>::upcast(r))
             .collect()
     }
 
@@ -39,7 +39,7 @@ impl Wcs {
         a.into_iter()
             .zip(b)
             .map(|(a, b)| Relation::sub(a, b))
-            .upcasted()
+            .map(|r| Upcast::<Wc>::upcast(r))
             .collect()
     }
 
@@ -49,7 +49,7 @@ impl Wcs {
         let b: Parameter = b.upcast();
         a.into_iter()
             .map(|a| Relation::outlives(a, &b))
-            .upcasted()
+            .map(|r| Upcast::<Wc>::upcast(r))
             .collect()
     }
 
@@ -79,10 +79,13 @@ impl IntoIterator for Wcs {
     }
 }
 
-impl FromIterator<Wc> for Wcs {
-    fn from_iter<T: IntoIterator<Item = Wc>>(iter: T) -> Self {
+impl<I> FromIterator<I> for Wcs
+where
+    I: Upcast<Wc>,
+{
+    fn from_iter<T: IntoIterator<Item = I>>(iter: T) -> Self {
         Wcs {
-            set: iter.into_iter().collect(),
+            set: iter.into_iter().map(|x| Upcast::<Wc>::upcast(x)).collect(),
         }
     }
 }
