@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::grammar::Fallible;
-use crate::grammar::{Adt, AdtBoundData, Field, Variant};
+use crate::grammar::{Adt, AdtBoundData, Field, Relation, Variant};
 use crate::prove::prove::{Env, Program};
 use anyhow::bail;
 use formality_core::judgment::ProofTree;
@@ -47,7 +47,7 @@ pub(super) fn check_adt(program: &Program, adt: &Adt) -> Fallible<ProofTree> {
                 program,
                 &env,
                 &where_clauses,
-                ty.well_formed(),
+                Relation::well_formed(&ty),
             )?);
         }
     }

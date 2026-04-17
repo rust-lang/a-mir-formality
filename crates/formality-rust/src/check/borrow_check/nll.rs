@@ -957,7 +957,7 @@ fn prove_ty_is_wf(
     state: &FlowState,
     ty: &Ty,
 ) -> ProvenSet<FlowState> {
-    TypeckEnv::prove_goal(env, assumptions, state, ty.well_formed())
+    TypeckEnv::prove_goal(env, assumptions, state, Relation::well_formed(ty))
 }
 
 fn prove_normalize_ty(

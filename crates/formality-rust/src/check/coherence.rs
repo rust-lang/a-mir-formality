@@ -1,4 +1,4 @@
-use crate::grammar::{Crate, Fallible, NegTraitImpl, TraitImpl, Wc, Wcs};
+use crate::grammar::{Crate, Fallible, NegTraitImpl, Predicate, TraitImpl, Wc, Wcs};
 use crate::prove::prove::{Env, Program};
 use anyhow::bail;
 
@@ -36,7 +36,7 @@ judgment_fn! {
         (
             (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
             (let trait_ref = a.trait_ref())
-            (prove_goal(program, env, &a.where_clauses, trait_ref.is_local()) => ())
+            (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ())
             --- ("orphan_check")
             (orphan_check(program, impl_a) => ())
         )
@@ -56,7 +56,7 @@ judgment_fn! {
         (
             (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
             (let trait_ref = a.trait_ref())
-            (prove_goal(program, env, &a.where_clauses, trait_ref.is_local()) => ())
+            (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ())
             --- ("orphan_check_neg")
             (orphan_check_neg(program, impl_a) => ())
         )
