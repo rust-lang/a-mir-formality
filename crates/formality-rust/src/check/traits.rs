@@ -1,8 +1,8 @@
-use crate::grammar::{AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem};
-use crate::grammar::{CrateId, Fallible, Wcs};
+use crate::grammar::{AssociatedTy, AssociatedTyBoundData, Fn, Kinded, Trait, TraitBoundData, TraitItem, Ty, TyData, Wcs};
+use crate::grammar::{CrateId, Fallible};
 use crate::prove::prove::{Env, Program};
 use anyhow::bail;
-use formality_core::{judgment::ProofTree, judgment_fn, Set};
+use formality_core::{judgment::ProofTree, judgment_fn, Set, Upcast};
 
 judgment_fn! {
     pub(super) fn check_trait(
@@ -81,10 +81,13 @@ judgment_fn! {
         (
             (let AssociatedTy { id: _, binder } = associated_ty)
             (let (env, bound_data) = env.instantiate_universally(binder))
-            (let AssociatedTyBoundData { ensures: _, where_clauses } = bound_data)
+            (let AssociatedTyBoundData { ensures, where_clauses } = bound_data)
+            (let self_ty: Ty = crate::grammar::TyData::Variable(env.variables().last().unwrap().clone()).upcast())
+            (let ensures_wcs: Wcs = ensures.iter().map(|e| e.to_wc(&self_ty)).collect())
             (super::where_clauses::prove_where_clauses_well_formed(
                 program, env, (trait_where_clauses, where_clauses), where_clauses,
             ) => ())
+            (super::prove_goal(program, env, (trait_where_clauses, where_clauses), ensures_wcs) => ())
             ------------------------------------------------------------ ("check associated ty")
             (check_associated_ty(program, env, trait_where_clauses, associated_ty) => ())
         )
