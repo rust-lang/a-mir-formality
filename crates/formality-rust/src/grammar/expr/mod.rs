@@ -241,8 +241,13 @@ pub enum PlaceExprData {
     /// `* expr`
     ///
     /// Dereference. Like `Var`, place vs value depends on context.
+    // ==== Related to PR #331 - START ==
+    // Config A (Inverted): #[precedence(10)]
+    // Config B (Standard): #[precedence(1)]  <-- CURRENTLY ACTIVE
+    // Config C (Extreme):  #[precedence(1)]
+    #[precedence(1)]
+    /// == PR #331 -END =====
     #[grammar(* $prefix)]
-    #[precedence(1, left)]
     Deref { prefix: PlaceExpr },
 
     /// `( expr )`
@@ -254,8 +259,13 @@ pub enum PlaceExprData {
     /// `expr . field`
     ///
     /// Field projection. Like `Var`, place vs value depends on context.
+    // ==== Related to PR #331 - START ==
+    // Config A (Inverted): #[precedence(1)]
+    // Config B (Standard): #[precedence(2)]  <-- CURRENTLY ACTIVE
+    // Config C (Extreme):  #[precedence(10)]
+    #[precedence(10)]
+    // == PR #331 -END =====
     #[grammar($prefix . $field_name)]
-    #[precedence(2, left)]
     Field {
         prefix: PlaceExpr,
         field_name: FieldName,
