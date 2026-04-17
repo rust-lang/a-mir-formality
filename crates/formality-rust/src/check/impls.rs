@@ -24,7 +24,7 @@ judgment_fn! {
             (let TraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses, impl_items } = bound_data)
             (let trait_ref = trait_id.with(self_ty, trait_parameters))
 
-            (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, &where_clauses) => ())
+            (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
             (super::prove_goal(program, env, where_clauses, Predicate::is_implemented(trait_ref)) => ())
             (super::prove_not_goal(program, env, where_clauses, Predicate::not_implemented(trait_ref)) => ())
 
