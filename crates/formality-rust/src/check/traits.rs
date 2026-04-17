@@ -1,4 +1,7 @@
-use crate::grammar::{AssociatedTy, AssociatedTyBoundData, Fn, Kinded, Trait, TraitBoundData, TraitItem, Ty, TyData, Wcs};
+use crate::grammar::{
+    AssociatedTy, AssociatedTyBoundData, Fn, Kinded, Trait, TraitBoundData, TraitItem, Ty, TyData,
+    Wcs,
+};
 use crate::grammar::{CrateId, Fallible};
 use crate::prove::prove::{Env, Program};
 use anyhow::bail;
