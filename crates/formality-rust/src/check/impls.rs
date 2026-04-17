@@ -33,7 +33,7 @@ judgment_fn! {
             (check_safety_matches(&trait_decl, &trait_impl) => ())
 
             (for_all(impl_item in impl_items)
-                (check_trait_impl_item(program, env, where_clauses, &trait_items, impl_item, crate_id) => ()))
+                (check_trait_impl_item(program, env, where_clauses, trait_items, impl_item, crate_id) => ()))
 
             (check_all_required_items_present(trait_items, impl_items) => ())
 
@@ -245,7 +245,7 @@ judgment_fn! {
             (super::prove_goal(program, &env, (&impl_assumptions, &ti_where_clauses), &ii_where_clauses) => ())
 
             // Prove the impl type is well-formed
-            (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), Relation::well_formed(ii_ty)) => ())
+            (super::prove_goal(program, env, (impl_assumptions, ii_where_clauses), Relation::well_formed(ii_ty)) => ())
 
             // Prove the ensures clauses
             (let ensures: Wcs = ti_ensures.iter().map(|e| e.to_wc(&ii_ty)).collect())
