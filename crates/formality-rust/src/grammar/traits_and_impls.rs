@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use crate::grammar::Fn;
 use crate::grammar::{
-    AliasTy, AssociatedItemId, Binder, Const, Fallible, Lt, Parameter, TraitId, TraitRef, Ty, Wc,
-    Wcs,
+    AliasTy, AssociatedItemId, Binder, Const, Fallible, Lt, Parameter, Predicate, TraitId,
+    TraitRef, Ty, Wc, Wcs,
 };
+use crate::grammar::{Fn, Relation};
 use crate::prove::prove::Safety;
 use crate::rust::Term;
 use formality_core::{term, Upcast};
@@ -137,8 +137,9 @@ impl WhereClause {
     pub fn invert(&self) -> Option<Wc> {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => Some(
-                Upcast::<Wc>::upcast(trait_id.with(self_ty, parameters).not_implemented()),
-            ),
+                Predicate::not_implemented(trait_id.with(self_ty, parameters)),
+            )
+            .upcast(),
             WhereClauseData::AliasEq(_, _) => None,
             WhereClauseData::Outlives(_, _) => None,
             WhereClauseData::ForAll(binder) => {
@@ -153,28 +154,16 @@ impl WhereClause {
     pub fn well_formed(&self) -> Wcs {
         match self.data() {
             WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
-                Upcast::<Wcs>::upcast(trait_id.with(self_ty, parameters).well_formed())
+                Predicate::well_formed_trait_ref(trait_id.with(self_ty, parameters)).upcast()
             }
             WhereClauseData::AliasEq(alias_ty, ty) => {
-                let alias_param: Parameter = alias_ty.upcast();
-                let ty_param: Parameter = ty.upcast();
-                [
-                    Upcast::<Wc>::upcast(alias_param.well_formed()),
-                    Upcast::<Wc>::upcast(ty_param.well_formed()),
-                ]
-                .into_iter()
-                .collect()
+                [Relation::well_formed(alias_ty), Relation::well_formed(ty)]
+                    .into_iter()
+                    .collect()
             }
-            WhereClauseData::Outlives(a, b) => {
-                let a_param: Parameter = a.upcast();
-                let b_param: Parameter = b.upcast();
-                [
-                    Upcast::<Wc>::upcast(a_param.well_formed()),
-                    Upcast::<Wc>::upcast(b_param.well_formed()),
-                ]
+            WhereClauseData::Outlives(a, b) => [Relation::well_formed(a), Relation::well_formed(b)]
                 .into_iter()
-                .collect()
-            }
+                .collect(),
             WhereClauseData::ForAll(binder) => {
                 let (vars, body) = binder.open();
                 body.well_formed()
@@ -183,14 +172,9 @@ impl WhereClause {
                     .collect()
             }
             WhereClauseData::TypeOfConst(ct, ty) => {
-                let ct_param: Parameter = ct.upcast();
-                let ty_param: Parameter = ty.upcast();
-                [
-                    Upcast::<Wc>::upcast(ct_param.well_formed()),
-                    Upcast::<Wc>::upcast(ty_param.well_formed()),
-                ]
-                .into_iter()
-                .collect()
+                [Relation::well_formed(ct), Relation::well_formed(ty)]
+                    .into_iter()
+                    .collect()
             }
         }
     }

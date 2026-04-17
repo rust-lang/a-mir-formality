@@ -1,6 +1,5 @@
 use formality_core::term;
 
-use formality_core::To;
 use formality_core::Upcast;
 
 use super::AliasName;
@@ -59,29 +58,6 @@ impl std::ops::BitAnd for Coinductive {
             (Coinductive::Yes, Coinductive::Yes) => Coinductive::Yes,
             _ => Coinductive::No,
         }
-    }
-}
-
-impl TraitRef {
-    pub fn not_implemented(&self) -> Predicate {
-        Predicate::NotImplemented(self.clone())
-    }
-}
-
-impl Ty {
-    pub fn well_formed(&self) -> Relation {
-        Relation::WellFormed(self.upcast())
-    }
-}
-
-impl Parameter {
-    /// Well-formed goal for a parameter
-    pub fn well_formed(&self) -> Relation {
-        Relation::WellFormed(self.to())
-    }
-
-    pub fn outlives(&self, b: impl Upcast<Parameter>) -> Relation {
-        Relation::Outlives(self.clone(), b.upcast())
     }
 }
 
@@ -145,22 +121,6 @@ impl Predicate {
                 vec![ct.clone().upcast(), ty.clone().upcast()],
             ),
         }
-    }
-}
-
-impl TraitRef {
-    pub fn is_implemented(&self) -> Predicate {
-        Predicate::IsImplemented(self.clone())
-    }
-
-    pub fn well_formed(&self) -> Predicate {
-        Predicate::WellFormedTraitRef(self.clone())
-    }
-
-    /// A trait-ref **is local** if the local crate::types could legally implement it
-    /// (and not via a blanket impl).
-    pub fn is_local(&self) -> Predicate {
-        Predicate::IsLocal(self.clone())
     }
 }
 

@@ -3,7 +3,8 @@ use anyhow::bail;
 use crate::grammar::{
     AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Binder,
     CrateId, Fallible, Fn, FnBoundData, ImplItem, MaybeFnBody, NegTraitImpl, NegTraitImplBoundData,
-    Relation, Substitution, Trait, TraitBoundData, TraitImpl, TraitImplBoundData, TraitItem, Wcs,
+    Predicate, Relation, Substitution, Trait, TraitBoundData, TraitImpl, TraitImplBoundData,
+    TraitItem, Wcs,
 };
 use crate::prove::prove::{Env, Program, Safety};
 use crate::rust::Term;
@@ -23,16 +24,16 @@ judgment_fn! {
             (let TraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses, impl_items } = bound_data)
             (let trait_ref = trait_id.with(self_ty, trait_parameters))
 
-            (super::where_clauses::prove_where_clauses_well_formed(program, &env, &where_clauses, &where_clauses) => ())
-            (super::prove_goal(program, &env, &where_clauses, trait_ref.is_implemented()) => ())
-            (super::prove_not_goal(program, &env, &where_clauses, trait_ref.not_implemented()) => ())
+            (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, &where_clauses) => ())
+            (super::prove_goal(program, env, where_clauses, Predicate::is_implemented(trait_ref)) => ())
+            (super::prove_not_goal(program, env, where_clauses, Predicate::not_implemented(trait_ref)) => ())
 
             (let trait_decl = program.program().trait_named(&trait_ref.trait_id)?)
             (let TraitBoundData { where_clauses: _, trait_items } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?)
             (check_safety_matches(&trait_decl, &trait_impl) => ())
 
             (for_all(impl_item in impl_items)
-                (check_trait_impl_item(program, &env, &where_clauses, &trait_items, impl_item, crate_id) => ()))
+                (check_trait_impl_item(program, env, where_clauses, &trait_items, impl_item, crate_id) => ()))
 
             (check_all_required_items_present(trait_items, impl_items) => ())
 
@@ -82,7 +83,7 @@ pub(super) fn check_neg_trait_impl(
         program,
         &env,
         &where_clauses,
-        trait_ref.not_implemented(),
+        Predicate::not_implemented(&trait_ref),
     )?);
 
     Ok(proof_tree)
@@ -244,7 +245,7 @@ judgment_fn! {
             (super::prove_goal(program, &env, (&impl_assumptions, &ti_where_clauses), &ii_where_clauses) => ())
 
             // Prove the impl type is well-formed
-            (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), ii_ty.well_formed()) => ())
+            (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), Relation::well_formed(ii_ty)) => ())
 
             // Prove the ensures clauses
             (let ensures: Wcs = ti_ensures.iter().map(|e| e.to_wc(&ii_ty)).collect())
