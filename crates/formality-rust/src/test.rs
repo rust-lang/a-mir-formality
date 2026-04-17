@@ -3,8 +3,8 @@
 use crate::rust::term;
 use formality_macros::test;
 
-use crate::grammar::Crates;
 use crate::grammar::expr::PlaceExpr;
+use crate::grammar::Crates;
 
 #[test]
 fn test_parse_rust_like_trait_impl_syntax() {
@@ -224,7 +224,8 @@ fn test_place_expr_parens_override() {
                 ),
             },
         }
-    "#]].assert_debug_eq(&p);
+    "#]]
+    .assert_debug_eq(&p);
 }
 
 // 3. THE INFIX TEST (Proves associativity works for fields alone)
@@ -253,7 +254,8 @@ fn test_place_expr_field_left_associativity() {
                 ),
             },
         }
-    "#]].assert_debug_eq(&p);
+    "#]]
+    .assert_debug_eq(&p);
 }
 
 // 4. THE CHAIN TEST (Proves the bug cascades)
