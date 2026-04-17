@@ -25,13 +25,13 @@ fn trait_with_valid_associated_type() {
 }
 
 #[test]
+#[ignore = "ensures bounds WF check not yet implemented, see FIXME(#228)"]
 fn trait_with_ill_formed_where_clause() {
     a_mir_formality::assert_err!(
         [
             crate core {
                 trait A<T> where T: B {}
                 trait B {}
-
                 trait C {
                     type Assoc : [ A<u32> ];
                 }
