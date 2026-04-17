@@ -1,6 +1,6 @@
 use crate::grammar::{
     AliasTy, ExistentialVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar,
-    Variable, Wc, Wcs,
+    Variable, Wcs,
 };
 use crate::prove::prove::Constrained;
 use formality_core::judgment::FailureLocation;
@@ -220,7 +220,6 @@ fn equate_variable(
         .iter()
         .filter(|(v, _)| v.is_a::<UniversalVar>())
         .map(|(v, p)| eq(v, p))
-        .map(|r| Upcast::<Wc>::upcast(r))
         .collect();
 
     tracing::debug!("equated: constraints={:?}, goals={:?}", constraints, goals);

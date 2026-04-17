@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use formality_core::{cast_impl, set, term, Cons, DowncastTo, Set, Upcast, UpcastFrom};
+use formality_core::{
+    cast_impl, set, term, Cons, DowncastTo, Set, Upcast, UpcastFrom, Upcasted as _,
+};
 
 use crate::{grammar::WhereClause, prove::ToWcs};
 
@@ -25,7 +27,6 @@ impl Wcs {
         a.into_iter()
             .zip(b)
             .map(|(a, b)| Relation::equals(a, b))
-            .map(|r| Upcast::<Wc>::upcast(r))
             .collect()
     }
 
@@ -39,7 +40,6 @@ impl Wcs {
         a.into_iter()
             .zip(b)
             .map(|(a, b)| Relation::sub(a, b))
-            .map(|r| Upcast::<Wc>::upcast(r))
             .collect()
     }
 
@@ -47,10 +47,7 @@ impl Wcs {
     pub fn all_outlives(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Parameter>) -> Wcs {
         let a: Vec<Parameter> = a.upcast();
         let b: Parameter = b.upcast();
-        a.into_iter()
-            .map(|a| Relation::outlives(a, &b))
-            .map(|r| Upcast::<Wc>::upcast(r))
-            .collect()
+        a.into_iter().map(|a| Relation::outlives(a, &b)).collect()
     }
 
     /// Iterate over where-clauses
@@ -85,7 +82,7 @@ where
 {
     fn from_iter<T: IntoIterator<Item = I>>(iter: T) -> Self {
         Wcs {
-            set: iter.into_iter().map(|x| Upcast::<Wc>::upcast(x)).collect(),
+            set: iter.into_iter().upcasted().collect(),
         }
     }
 }
