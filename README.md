@@ -4,16 +4,15 @@ This repository is an early-stage experimental project that aims to be a complet
 Presuming these experiments bear fruit, the intention is to bring this model into Rust as an RFC
 and develop it as an official part of the language definition.
 
-## Docs
-
-Check out the [a-mir-formality Book](https://rust-lang.github.io/a-mir-formality/intro.html) for an overview and introduction to `a-mir-formality`.
-
 ## Quickstart guide
 
 Like any Rust project:
 
 * Clone
 * `cargo test --all`
+
+## Documentation
+Check out [a-mir-formality book](https://rust-lang.github.io/a-mir-formality/intro.html) for an overview and introduction to `a-mir-formality`.
 
 ## Layers of formality
 
