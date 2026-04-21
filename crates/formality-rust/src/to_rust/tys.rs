@@ -213,33 +213,31 @@ impl RustBuilder {
 
 #[cfg(test)]
 mod test {
-    use formality_core::variable::{CoreBoundVar, CoreVariable, DebruijnIndex, VarIndex};
-
     use crate::{
-        grammar::{AdtId, ParameterKind},
+        grammar::{AdtId, BoundVar, DebruijnIndex, ParameterKind, VarIndex, Variable},
         to_rust::NameContext,
     };
 
     use super::*;
 
-    fn create_ty() -> CoreVariable<crate::FormalityLang> {
-        CoreVariable::BoundVar(CoreBoundVar {
+    fn create_ty() -> Variable {
+        Variable::BoundVar(BoundVar {
             debruijn: Some(DebruijnIndex { index: 0 }),
             var_index: VarIndex { index: 0 },
             kind: crate::grammar::ParameterKind::Ty,
         })
     }
 
-    fn create_lt() -> CoreVariable<crate::FormalityLang> {
-        CoreVariable::BoundVar(CoreBoundVar {
+    fn create_lt() -> Variable {
+        Variable::BoundVar(BoundVar {
             debruijn: Some(DebruijnIndex { index: 0 }),
             var_index: VarIndex { index: 0 },
             kind: crate::grammar::ParameterKind::Lt,
         })
     }
 
-    fn create_const() -> CoreVariable<crate::FormalityLang> {
-        CoreVariable::BoundVar(CoreBoundVar {
+    fn create_const() -> Variable {
+        Variable::BoundVar(BoundVar {
             debruijn: Some(DebruijnIndex { index: 0 }),
             var_index: VarIndex { index: 0 },
             kind: crate::grammar::ParameterKind::Const,
