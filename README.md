@@ -11,6 +11,9 @@ Like any Rust project:
 * Clone
 * `cargo test --all`
 
+## Documentation
+Check out [a-mir-formality book](https://rust-lang.github.io/a-mir-formality/intro.html) for an overview and introduction to `a-mir-formality`.
+
 ## Layers of formality
 
 Formality is structured into several layers:
