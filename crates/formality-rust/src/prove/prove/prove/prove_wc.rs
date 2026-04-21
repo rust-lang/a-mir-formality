@@ -33,14 +33,13 @@ judgment_fn! {
 
         (
             (let (env, subst) = env.universal_substitution(binder))
-            (let p1 = (*binder.instantiate_with(&subst).unwrap()).clone())
+            (let p1 = binder.instantiate_with(&subst).unwrap())
             (prove_wc(decls, env, assumptions, p1) => c)
             --- ("forall")
             (prove_wc(decls, env, assumptions, WcData::ForAll(binder)) => c.pop_subst(&subst))
         )
 
         (
-            (let p2 = (*p2).clone())
             (prove_wc(decls, env, (assumptions, p1), p2) => c)
             --- ("implies")
             (prove_wc(decls, env, assumptions, WcData::Implies(p1, p2)) => c)

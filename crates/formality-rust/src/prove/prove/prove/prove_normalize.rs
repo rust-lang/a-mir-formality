@@ -112,7 +112,7 @@ judgment_fn! {
 
         (
             (let (env, subst) = env.existential_substitution(binder))
-            (let via1 = (*binder.instantiate_with(&subst).unwrap()).clone())
+            (let via1 = binder.instantiate_with(&subst).unwrap())
             (prove_normalize_via(decls, env, assumptions, via1, goal) => Constrained(p, c))
             (let c = c.pop_subst(&subst))
             (assert c.env().encloses(&p))
@@ -121,7 +121,6 @@ judgment_fn! {
         )
 
         (
-            (let wc_consequence = (*wc_consequence).clone())
             (prove_normalize_via(decls, env, assumptions, wc_consequence, goal) => Constrained(p, c))
             (prove_after(decls, c, assumptions, wc_condition) => c)
             (let p = c.substitution().apply(p))
