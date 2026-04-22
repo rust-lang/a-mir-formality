@@ -12,7 +12,7 @@ use crate::grammar::{
     Variable, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
-use crate::prove::prove::{prove, Safety};
+use crate::prove::prove::Safety;
 use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 
@@ -600,8 +600,7 @@ judgment_fn! {
 
         (
             (borrow_check_place_expr(env, assumptions, state, prefix) => (prefix_typed, state))
-            // FIXME: how do we propagate the changes from this prove-constraint up the chain?
-            (prove(&env.program, &env.env, assumptions, Predicate::IsImplemented(TraitId::new("Place").with_self(&prefix_typed.ty))) => c)
+            (prove_is_implemented(env, assumptions, state, TraitId::new("Place").with_self(&prefix_typed.ty)) => state)
             (let referent_ty = AliasTy::associated_ty(TraitId::new("Place"), AssociatedItemId::new("Target"), 0, vec![&prefix_typed.ty]))
             ------------------------------------------------------------ ("deref-ref")
             (borrow_check_place_expr(env, assumptions, state, PlaceExprData::Deref { prefix }) => (
@@ -968,6 +967,15 @@ fn prove_normalize_ty(
     ty: &Ty,
 ) -> ProvenSet<(Ty, FlowState)> {
     TypeckEnv::prove_normalize(env, assumptions, state, ty)
+}
+
+fn prove_is_implemented(
+    env: &TypeckEnv,
+    assumptions: &Wcs,
+    state: &FlowState,
+    trait_ref: TraitRef,
+) -> ProvenSet<FlowState> {
+    TypeckEnv::prove_goal(env, assumptions, state, Predicate::IsImplemented(trait_ref))
 }
 
 // EXAMPLE
