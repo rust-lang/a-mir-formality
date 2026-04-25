@@ -425,6 +425,7 @@ pub enum VariantFields {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FnParam {
+    pub mutable: bool,
     pub name: String,
     pub ty: Type,
 }
@@ -461,6 +462,9 @@ impl Pretty for FunctionItem {
         for (index, param) in self.params.iter().enumerate() {
             if index > 0 {
                 f.write_str(", ")?;
+            }
+            if param.mutable {
+                f.write_str("mut ")?;
             }
             write!(f, "{}: {}", param.name, param.ty)?;
         }
@@ -678,11 +682,16 @@ impl Pretty for NegImplItem {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Block {
+    pub label: Option<String>,
     pub stmts: Vec<Stmt>,
 }
 
 impl Pretty for Block {
     fn fmt_pretty(&self, f: &mut Formatter<'_>, indent: usize) -> fmt::Result {
+        if let Some(label) = &self.label {
+            f.write_str(label)?;
+            f.write_str(": ")?;
+        }
         f.write_char('{')?;
 
         if !self.stmts.is_empty() {

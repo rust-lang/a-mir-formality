@@ -9,12 +9,13 @@ use super::{syntax, RustBuilder};
 
 impl RustBuilder {
     pub fn lower_block(&mut self, block: &Block) -> Fallible<syntax::Block> {
+        let label = block.label.as_ref().map(|l| l.id.as_str().to_owned());
         let stmts = block
             .stmts
             .iter()
             .map(|stmt| self.lower_stmt(stmt))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(syntax::Block { stmts })
+        Ok(syntax::Block { label, stmts })
     }
 
     fn lower_stmt(&mut self, stmt: &Stmt) -> Fallible<syntax::Stmt> {

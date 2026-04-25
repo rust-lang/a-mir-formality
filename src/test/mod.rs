@@ -233,9 +233,9 @@ fn crate_with_duplicate_item_names() {
     crate::assert_err!(
         [
             crate core {
-                fn a() -> () trusted;
+                fn a() -> () { trusted }
 
-                fn a() -> () trusted;
+                fn a() -> () { trusted }
             }
         ]
 
@@ -250,7 +250,7 @@ fn crate_with_duplicate_item_names() {
             crate core {
                 trait a {}
 
-                fn a() -> () trusted;
+                fn a() -> () { trusted }
             }
         ]
     );

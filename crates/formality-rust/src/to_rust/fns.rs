@@ -54,6 +54,8 @@ impl RustBuilder {
 
     fn lower_fn_param(&mut self, arg: &InputArg) -> Fallible<syntax::FnParam> {
         Ok(syntax::FnParam {
+            // TODO: Is there a way to know if a variable must be mutable?
+            mutable: true,
             name: arg.id.deref().clone(),
             ty: self.lower_ty(&arg.ty)?,
         })
