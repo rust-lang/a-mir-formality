@@ -70,10 +70,29 @@ impl RustBuilder {
         })
     }
 
+    /// Lowers an `exists` statement. The newly introduced lifetimes
+    /// e.g. `'r0`, are all treated as anonymous lifetimes `'_`.
+    /// ```rust,ignore
+    /// exists<'r0> {
+    ///   let v2: &'r0 u32 = v1;
+    ///   return v2;
+    /// }
+    /// ```
+    /// becomes:
+    /// ```rust,ignore
+    /// {
+    ///   let v2: &'_ u32 = v1;
+    ///   return v2;
+    /// }
+    /// ```
     fn lower_exists_stmt(&mut self, binder: &Binder<Block>) -> Fallible<syntax::Stmt> {
-        self.with_binder(binder, |term, pp| {
-            Ok(syntax::Stmt::Block(pp.lower_block(term)?))
-        })
+        let term = binder.peek();
+        self.ctx.push_anonymous(binder.kinds());
+
+        let result = syntax::Stmt::Block(self.lower_block(term)?);
+
+        self.ctx.pop();
+        Ok(result)
     }
 
     pub fn lower_expr(&mut self, expr: &Expr) -> Fallible<syntax::Expr> {

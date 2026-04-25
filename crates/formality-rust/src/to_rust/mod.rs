@@ -29,7 +29,7 @@ pub fn check_workspace(
 
     let output = std::process::Command::new("cargo")
         .env("RUSTFLAGS", "-A warnings")
-        .args(["check", "--manifest-path", &root_toml])
+        .args(["check", "--workspace", "--manifest-path", &root_toml])
         .output()?;
     Ok(output)
 }
@@ -76,7 +76,7 @@ pub fn create_workspace(crates: &Crates, root_directory: &std::path::Path) -> Fa
         .ok_or_else(|| anyhow::anyhow!("Could not convert location to a &str"))?;
 
     std::process::Command::new("cargo")
-        .args(["fmt", "--manifest-path", location])
+        .args(["fmt", "--all", "--manifest-path", location])
         .spawn()?;
 
     Ok(location.to_string())
@@ -135,6 +135,19 @@ impl NameContext {
         self.variable_names.insert(0, Vec::new());
         for kind in kinds {
             let name = self.fresh_name(kind);
+            self.variable_names[0].push(name);
+        }
+    }
+
+    pub fn push_anonymous(&mut self, kinds: &[ParameterKind]) {
+        self.variable_names.insert(0, Vec::new());
+        for kind in kinds {
+            let name = if matches!(kind, ParameterKind::Lt) {
+                "'_".to_owned()
+            } else {
+                self.fresh_name(kind)
+            };
+            self.used.insert(name.clone());
             self.variable_names[0].push(name);
         }
     }
