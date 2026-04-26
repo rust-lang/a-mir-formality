@@ -1,8 +1,6 @@
 use std::ops::Deref;
 
-use crate::grammar::{
-    Fallible, Fn, FnBody, InputArg, MaybeFnBody, ParameterKind, TyData, WhereClause,
-};
+use crate::grammar::{Fallible, Fn, FnBody, InputArg, MaybeFnBody, ParameterKind, Ty, WhereClause};
 use crate::prove::prove::Safety;
 
 use super::{syntax, RustBuilder};
@@ -43,7 +41,7 @@ impl RustBuilder {
         let mut generics = self.lower_generics_for_binder(binder_kinds, where_clauses, false)?;
 
         for arg in input_args {
-            if let TyData::Variable(var) = &arg.ty {
+            if let Ty::Variable(var) = &arg.ty {
                 let name = self.core_variable_to_string(var)?;
                 Self::push_type_param_if_missing(&mut generics.params, name);
             }

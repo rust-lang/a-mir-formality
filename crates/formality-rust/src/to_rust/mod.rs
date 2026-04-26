@@ -1,7 +1,7 @@
 use crate::{
     grammar::{
         AdtItem, Binder, Crate, CrateItem, Crates, Fallible, FeatureGate, FeatureGateName,
-        ParameterKind, TyData, Variable, WhereClause, WhereClauseData,
+        ParameterKind, Ty, Variable, WhereClause, WhereClauseData,
     },
     rust::Fold,
 };
@@ -295,7 +295,7 @@ impl RustBuilder {
         for wc in where_clauses {
             match wc.data() {
                 WhereClauseData::IsImplemented(ty, _, _) => {
-                    if let TyData::Variable(var) = ty {
+                    if let Ty::Variable(var) = ty {
                         let name = self.core_variable_to_string(&var)?;
                         // If the `where` clause referes to a type
                         // variable from an outer binder, that

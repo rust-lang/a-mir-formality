@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use crate::grammar::{
     Const, ConstData, Fallible, Lt, LtData, Parameter, Parameters, PtrKind, RefKind, RigidName,
-    RigidTy, ScalarId, ScalarValue, Ty, TyData,
+    RigidTy, ScalarId, ScalarValue, Ty,
 };
 
 use super::{syntax, RustBuilder};
@@ -54,12 +54,12 @@ impl RustBuilder {
 
     pub fn lower_ty(&mut self, ty: &Ty) -> Fallible<syntax::Type> {
         match ty {
-            TyData::RigidTy(rigid_ty) => self.lower_rigid_ty(&rigid_ty),
-            TyData::AliasTy(_) => todo!("lowering alias types is not implemented yet"),
-            TyData::PredicateTy(_) => {
+            Ty::RigidTy(rigid_ty) => self.lower_rigid_ty(&rigid_ty),
+            Ty::AliasTy(_) => todo!("lowering alias types is not implemented yet"),
+            Ty::PredicateTy(_) => {
                 todo!("lowering predicate types is not implemented yet")
             }
-            TyData::Variable(core_variable) => Ok(syntax::Type::Path {
+            Ty::Variable(core_variable) => Ok(syntax::Type::Path {
                 name: self.core_variable_to_string(&core_variable)?,
                 args: Vec::new(),
             }),
