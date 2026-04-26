@@ -205,8 +205,28 @@ mod test {
 fn foo() -> u32 {
     let mut x: u32;
     return x;
-}
-"#
+}"#
+        );
+    }
+
+    #[test]
+    fn fn_with_named_block() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    fn foo() -> () {
+                        'a: {
+                            break 'a;
+                        }
+                    }
+                }
+            ],
+            r#"
+fn foo() -> () {
+    'a: {
+        break 'a;
+    }
+}"#
         );
     }
 }
