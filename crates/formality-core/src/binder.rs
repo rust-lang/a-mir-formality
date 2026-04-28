@@ -1,6 +1,7 @@
 //! Manages binders so that the main rules can be nice and simple.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use anyhow::bail;
 use lazy_static::lazy_static;
@@ -241,6 +242,17 @@ where
             kinds,
             term: term.upcast(),
         }
+    }
+}
+
+impl<L: Language, T, U> UpcastFrom<CoreBinder<L, T>> for Arc<CoreBinder<L, U>>
+where
+    T: Clone,
+    U: Clone,
+    T: Upcast<U>,
+{
+    fn upcast_from(term: CoreBinder<L, T>) -> Self {
+        Arc::new(term.upcast())
     }
 }
 
