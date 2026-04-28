@@ -1,9 +1,10 @@
-use crate::grammar::{
-    AdtItem, Binder, Crate, CrateItem, Crates, Fallible, FeatureGate, FeatureGateName,
-    ParameterKind, TyData, WhereClause, WhereClauseData,
+use crate::{
+    grammar::{
+        AdtItem, Binder, Crate, CrateItem, Crates, Fallible, FeatureGate, FeatureGateName,
+        ParameterKind, TyData, Variable, WhereClause, WhereClauseData,
+    },
+    rust::Fold,
 };
-use formality_core::{fold::CoreFold, variable::CoreVariable};
-
 use std::{
     collections::{HashMap, HashSet},
     ops::Deref,
@@ -90,12 +91,9 @@ pub struct NameContext {
 }
 
 impl NameContext {
-    pub fn core_variable_to_string(
-        &self,
-        variable: &CoreVariable<crate::FormalityLang>,
-    ) -> Fallible<String> {
+    pub fn core_variable_to_string(&self, variable: &Variable) -> Fallible<String> {
         match variable {
-            CoreVariable::BoundVar(core_bound_var) => {
+            Variable::BoundVar(core_bound_var) => {
                 let var_index = core_bound_var.var_index.index;
                 let binder_index = core_bound_var
                     .debruijn
@@ -108,10 +106,10 @@ impl NameContext {
                     .cloned()
                     .ok_or_else(|| anyhow::anyhow!("unbound variable {core_bound_var:?}"))
             }
-            CoreVariable::UniversalVar(v) => {
+            Variable::UniversalVar(v) => {
                 Ok(self.free_variable_name(true, v.kind, v.var_index.index))
             }
-            CoreVariable::ExistentialVar(v) => {
+            Variable::ExistentialVar(v) => {
                 Ok(self.free_variable_name(false, v.kind, v.var_index.index))
             }
         }
@@ -178,7 +176,7 @@ pub struct RustBuilder {
 }
 
 impl RustBuilder {
-    pub fn with_binder<T: CoreFold<crate::FormalityLang, Output = T>, R>(
+    pub fn with_binder<T: Fold, R>(
         &mut self,
         binder: &Binder<T>,
         mut op: impl FnMut(&T, &mut RustBuilder) -> Fallible<R>,
@@ -192,10 +190,7 @@ impl RustBuilder {
         result
     }
 
-    pub fn core_variable_to_string(
-        &self,
-        core_variable: &CoreVariable<crate::FormalityLang>,
-    ) -> Fallible<String> {
+    pub fn core_variable_to_string(&self, core_variable: &Variable) -> Fallible<String> {
         self.ctx.core_variable_to_string(core_variable)
     }
 
