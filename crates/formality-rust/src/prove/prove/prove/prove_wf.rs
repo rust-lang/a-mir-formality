@@ -2,11 +2,11 @@ use crate::grammar::{
     AliasName, AliasTy, ConstData, Lt, LtData, Parameter, Parameters, Relation, RigidName, RigidTy,
     Ty, UniversalVar, Wcs,
 };
-use formality_core::{judgment_fn, Downcast, ProvenSet};
+use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 
 use crate::prove::prove::{
     decls::Program,
-    prove::{combinators::for_all, prove_after::prove_after},
+    prove::{combinators::for_all, prove, prove_after::prove_after},
 };
 
 use super::{constraints::Constraints, env::Env};
@@ -34,7 +34,7 @@ judgment_fn! {
         (
             // `&'a T` is well-formed if `T: 'a`
             (let (lt, ty) = parameters.downcast_err::<(Lt, Ty)>()?)
-            (prove_wf(decls, env, assumptions, ty) => c)
+            (prove_wf_recursive(decls, env, assumptions, ty) => c)
             (prove_after(decls, c, assumptions, Relation::outlives(ty, lt)) => c)
             --- ("references")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Ref(_), parameters }) => c)
@@ -43,25 +43,25 @@ judgment_fn! {
         (
             // `*const T`/`*mut T` is well-formed if `T` is.
             (let (ty,) = parameters.downcast_err::<(Ty,)>()?)
-            (prove_wf(decls, env, assumptions, ty) => c)
+            (prove_wf_recursive(decls, env, assumptions, ty) => c)
             --- ("raw-pointers")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Raw(_), parameters }) => c)
         )
 
         (
-            (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
+            (for_all(decls, env, assumptions, parameters, &prove_wf_recursive) => c)
             --- ("tuples")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::Tuple(_), parameters }) => c)
         )
 
         (
-            (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
+            (for_all(decls, env, assumptions, parameters, &prove_wf_recursive) => c)
             --- ("integers and booleans")
             (prove_wf(decls, env, assumptions, RigidTy { name: RigidName::ScalarId(_), parameters }) => c)
         )
 
         (
-            (for_all(decls, env, assumptions, parameters, &prove_wf) => c)
+            (for_all(decls, env, assumptions, parameters, &prove_wf_recursive) => c)
             (let t = decls.program().adt_item_named(adt_id)?.to_adt())
             (let t = t.binder.instantiate_with(parameters).unwrap())
             (prove_after(decls, c, assumptions, &t.where_clauses) => c)
@@ -95,5 +95,14 @@ pub fn prove_alias_wf(
     parameters: &Parameters,
 ) -> ProvenSet<Constraints> {
     // FIXME(#217): verify self type implements trait
-    for_all(decls, env, assumptions, parameters, &prove_wf)
+    for_all(decls, env, assumptions, parameters, &prove_wf_recursive)
+}
+
+pub fn prove_wf_recursive(
+    program: impl Upcast<Program>,
+    env: impl Upcast<Env>,
+    assumptions: impl Upcast<Wcs>,
+    param: impl Upcast<Parameter>,
+) -> ProvenSet<Constraints> {
+    prove(program, env, assumptions, Relation::well_formed(param))
 }
