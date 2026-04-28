@@ -2,25 +2,17 @@
 
 e.g., closes #issue-number
 
-<details>
-<summary>Disclosure questions</summary>
+## How does it work, what questions do you have?
 
-**AI disclosure.**
+<!-- In your own words (**no LLM usage here**), explain the main idea of why it's correct. It's ok if you're not sure! Please include any questions you have. If you wish to use an LLM for translation, include the original as well as the translated version. Thanks! -->
 
-<!-- The use of AI tooling for a-mir-formality is permitted. We require disclosure to help calibrate our reviews. -->
+## AI disclosure
 
-<!-- Remove the items that do not apply. -->
+<!-- Remove the items that do not apply -->
 
+* I did not use any AI tools
 * I used an AI tool for research, autocomplete, or in other minimal ways
-* The AI tool authored small parts of the code (e.g., autocomplete, comments)
-* The AI tool authored large parts of the code
+* I used an AI tool for rote or minor changes (e.g., refactoring, autocomplete)
+* I used an AI to author the main logic of the code
 * The AI tool authored and opened this PR autonomously
 * Other: (explain)
-
-**Your understanding, questions for reviewers.**
-
-<!-- Please explain in your own words (no LLM usage, apart from translation) your theory as to why this PR is correct. It's ok if you're not sure!
-
-Include any questions or specific areas you want reviewers to look at. -->
-
-</details>
