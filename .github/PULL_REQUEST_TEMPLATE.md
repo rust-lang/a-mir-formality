@@ -17,17 +17,10 @@ e.g., closes #issue-number
 * The AI tool authored and opened this PR autonomously
 * Other: (explain)
 
-**Confidence level.**
+**Your understanding, questions for reviewers.**
 
-<!-- Remove the items that do not apply. -->
+<!-- Please explain in your own words (no LLM usage, apart from translation) your theory as to why this PR is correct. It's ok if you're not sure!
 
-* Early draft, want feedback
-* It seems reasonable to me, I'd like to know what others think
-* I am very happy with it
-* Other: (explain)
-
-**Questions for reviewers.**
-
-<!-- Any specific areas of uncertainty or things you'd like reviewers to look at? -->
+Include any questions or specific areas you want reviewers to look at. -->
 
 </details>
