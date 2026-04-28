@@ -8,9 +8,9 @@ use crate::check::borrow_check::typed_place_expression::{
 use crate::grammar::expr::{Block, Expr, ExprData, Init, PlaceExpr, PlaceExprData, Stmt};
 use crate::grammar::{
     AliasTy, ExistentialVar, FieldName, Fn, Lt, Parameter, RefKind, Relation, RigidName, RigidTy,
-    ScalarId, Struct, StructBoundData, Ty, TyData, Variable, Wcs, WhereClause,
+    ScalarId, Struct, StructBoundData, TraitId, Ty, TyData, Variable, Wcs, WhereClause,
 };
-use crate::grammar::{FnBoundData, PredicateTy};
+use crate::grammar::{FnBoundData, Predicate, PredicateTy};
 use crate::prove::prove::Safety;
 use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
@@ -760,7 +760,7 @@ judgment_fn! {
 
 judgment_fn! {
     /// Determine whether evaluating a place reads from it or moves from it.
-    /// Known Copy places behave like reads for loan checking everything else
+    /// Copy places behave like reads for loan checking everything else
     /// is treated as a move so overlapping live loans can reject it.
     fn access_kind_for_place_use(
         env: TypeckEnv,
@@ -771,14 +771,8 @@ judgment_fn! {
         debug(env, assumptions, state, place)
 
         (
-            (if let Ty::RigidTy(RigidTy { name: RigidName::ScalarId(_), .. }) = &place.ty)
-            ------------------------------------------------------------ ("scalar-copy")
-            (access_kind_for_place_use(_env, _assumptions, state, _place) => (AccessKind::Read, state))
-        )
-
-        (
-            (if let Ty::RigidTy(RigidTy { name: RigidName::Ref(RefKind::Shared), .. }) = &place.ty)
-            ------------------------------------------------------------ ("shared-ref-copy")
+            (prove_ty_is_copy(env, assumptions, state, &place.ty) => state)
+            ------------------------------------------------------------ ("copy")
             (access_kind_for_place_use(_env, _assumptions, state, _place) => (AccessKind::Read, state))
         )
 
@@ -790,10 +784,7 @@ judgment_fn! {
 }
 
 judgment_fn! {
-    /// Prove that a type is `Copy`. For now, scalar types and shared references
-    /// are considered `Copy`.
-    ///
-    /// FIXME: replace with a proper trait check once lang-items are available.
+    /// Prove that a type implements Copy.
     fn prove_ty_is_copy(
         env: TypeckEnv,
         assumptions: Wcs,
@@ -803,14 +794,9 @@ judgment_fn! {
         debug(env, assumptions, state, ty)
 
         (
-            (prove_ty_is_rigid(env, assumptions, state, ty) => (RigidTy { name: RigidName::ScalarId(_), .. }, state))
-            ------------------------------------------------------------ ("scalar")
-            (prove_ty_is_copy(env, assumptions, state, ty) => state)
-        )
-
-        (
-            (prove_ty_is_rigid(env, assumptions, state, ty) => (RigidTy { name: RigidName::Ref(RefKind::Shared), .. }, state))
-            ------------------------------------------------------------ ("shared-ref")
+            (let goal = Predicate::is_implemented(TraitId::new("Copy").with(ty, Vec::<Parameter>::new())))
+            (env.prove_goal(assumptions, &state, goal) => state)
+            ------------------------------------------------------------ ("trait")
             (prove_ty_is_copy(env, assumptions, state, ty) => state)
         )
     }
