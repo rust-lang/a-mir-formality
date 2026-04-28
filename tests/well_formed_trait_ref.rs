@@ -22,18 +22,19 @@ fn dependent_where_clause() {
 #[test]
 fn missing_dependent_where_clause() {
     FormalityTest::new(crates![crate foo {
-                trait Trait1 {}
+        trait Trait1 {}
 
-                trait Trait2 {}
+        trait Trait2 {}
 
-                struct S1<T> where T: Trait1 {
-                    dummy: T,
-                }
+        struct S1<T> where T: Trait1 {
+            dummy: T,
+        }
 
-                struct S2<T> where S1<T> : Trait2 {
-                    dummy: T,
-                }
-            }]).err(expect_test::expect![[r#"
+        struct S2<T> where S1<T> : Trait2 {
+            dummy: T,
+        }
+    }])
+    .err(expect_test::expect![[r#"
                 crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ WellFormedTraitRef(Trait2(S1<!ty_0>)), via: Trait2(S1<!ty_0>), assumptions: {Trait2(S1<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
                 crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Trait1(!ty_0), via: Trait2(S1<!ty_0>), assumptions: {Trait2(S1<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
