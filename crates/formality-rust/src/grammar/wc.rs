@@ -158,7 +158,7 @@ pub enum Wc {
     // Equivalent to `for<'a>` except that it can also express `for<T>` and so forth:
     // means `$v0` is true for any value of the bound variables (e.g., `'a` or `T`).
     #[grammar(for $v0)]
-    ForAll(Binder<Arc<Wc>>),
+    ForAll(Arc<Binder<Wc>>),
 
     #[grammar(if $v0 $v1)]
     Implies(Wcs, Arc<Wc>),

@@ -102,7 +102,7 @@ impl ToWcs for WhereClause {
                 let (vars, wc) = binder.open();
                 wc.to_wcs()
                     .into_iter()
-                    .map(|wc| Wc::ForAll(Binder::new(&vars, Arc::new(wc))))
+                    .map(|wc| Wc::for_all(Arc::new(Binder::new(&vars, wc))))
                     .collect()
             }
             WhereClauseData::TypeOfConst(ct, ty) => {
@@ -123,7 +123,7 @@ impl WhereBound {
             WhereBoundData::Outlives(lt) => Relation::outlives(self_ty, lt).upcast(),
             WhereBoundData::ForAll(binder) => {
                 let (vars, bound) = binder.open();
-                Wc::ForAll(Binder::new(&vars, Arc::new(bound.to_wc(self_ty))))
+                Wc::for_all(Arc::new(Binder::new(&vars, bound.to_wc(self_ty))))
             }
         }
     }
