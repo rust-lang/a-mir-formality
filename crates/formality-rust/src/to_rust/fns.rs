@@ -54,6 +54,8 @@ impl RustBuilder {
 
     fn lower_fn_param(&mut self, arg: &InputArg) -> Fallible<syntax::FnParam> {
         Ok(syntax::FnParam {
+            // TODO: Is there a way to know if a variable must be mutable?
+            mutable: true,
             name: arg.id.deref().clone(),
             ty: self.lower_ty(&arg.ty)?,
         })
@@ -98,7 +100,7 @@ fn run() -> i32 {
                 }
             ],
             r#"
-fn run(p1: i32, p2: i32) -> i32 {
+fn run(mut p1: i32, mut p2: i32) -> i32 {
     panic!("Trusted Fn Body")
 }
 "#
@@ -114,7 +116,7 @@ fn run(p1: i32, p2: i32) -> i32 {
                 }
             ],
             r#"
-fn run<T1>(p1: T1) -> T1 {
+fn run<T1>(mut p1: T1) -> T1 {
     panic!("Trusted Fn Body")
 }
 "#
@@ -133,7 +135,7 @@ fn run<T1>(p1: T1) -> T1 {
             r#"
 trait Bar { }
 
-fn run<T1>(p1: T1) -> T1 where T1: Bar {
+fn run<T1>(mut p1: T1) -> T1 where T1: Bar {
     panic!("Trusted Fn Body")
 }
 "#
