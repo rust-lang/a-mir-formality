@@ -194,7 +194,24 @@ fn test_place_expr_ambiguity_deref_vs_field() {
     // It should parse as Deref( Field(p, f) ) because field binds tighter.
     // Under Config A (Deref=10, Field=1), it parses but gives the wrong AST: Field(Deref(p, f)).
     let p: PlaceExpr = term("*p.f");
-    expect_test::expect![[r#""#]].assert_debug_eq(&p);
+    expect_test::expect![[r#"
+        PlaceExpr {
+            data: Deref {
+                prefix: PlaceExpr {
+                    data: Field {
+                        prefix: PlaceExpr {
+                            data: Var(
+                                p,
+                            ),
+                        },
+                        field_name: Id(
+                            f,
+                        ),
+                    },
+                },
+            },
+        }
+    "#]].assert_debug_eq(&p);
 }
 
 // 2. THE BASELINE TEST (Proves parens bypass the bug)
@@ -264,5 +281,29 @@ fn test_place_expr_deref_with_field_chain() {
     // This will also panic under Config B, as it inherits the *p.f ambiguity.
     // It should parse as Deref( Field( Field(p, f), g ) )
     let p: PlaceExpr = term("*p.f.g");
-    expect_test::expect![[r#""#]].assert_debug_eq(&p);
+    expect_test::expect![[r#"
+        PlaceExpr {
+            data: Deref {
+                prefix: PlaceExpr {
+                    data: Field {
+                        prefix: PlaceExpr {
+                            data: Field {
+                                prefix: PlaceExpr {
+                                    data: Var(
+                                        p,
+                                    ),
+                                },
+                                field_name: Id(
+                                    f,
+                                ),
+                            },
+                        },
+                        field_name: Id(
+                            g,
+                        ),
+                    },
+                },
+            },
+        }
+    "#]].assert_debug_eq(&p);
 }

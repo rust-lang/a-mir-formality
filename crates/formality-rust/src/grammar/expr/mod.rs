@@ -266,6 +266,7 @@ pub enum PlaceExprData {
     #[precedence(10)]
     // == PR #331 -END =====
     #[grammar($prefix . $field_name)]
+    #[reject(PlaceExprData::Deref { .. }, _)]
     Field {
         prefix: PlaceExpr,
         field_name: FieldName,
