@@ -3,6 +3,7 @@
 use crate::rust::term;
 use formality_macros::test;
 
+use crate::grammar::expr::PlaceExpr;
 use crate::grammar::Crates;
 
 #[test]
@@ -184,4 +185,114 @@ fn test_parse_trusted_fn() {
         }
     "#]]
     .assert_debug_eq(&r);
+}
+
+#[test]
+fn test_place_expr_ambiguity_deref_vs_field() {
+    let p: PlaceExpr = term("*p.f");
+    expect_test::expect![[r#"
+        PlaceExpr {
+            data: Deref {
+                prefix: PlaceExpr {
+                    data: Field {
+                        prefix: PlaceExpr {
+                            data: Var(
+                                p,
+                            ),
+                        },
+                        field_name: Id(
+                            f,
+                        ),
+                    },
+                },
+            },
+        }
+    "#]]
+    .assert_debug_eq(&p);
+}
+
+#[test]
+fn test_place_expr_parens_override() {
+    let p: PlaceExpr = term("(*p).f");
+    expect_test::expect![[r#"
+        PlaceExpr {
+            data: Field {
+                prefix: PlaceExpr {
+                    data: Parens(
+                        PlaceExpr {
+                            data: Deref {
+                                prefix: PlaceExpr {
+                                    data: Var(
+                                        p,
+                                    ),
+                                },
+                            },
+                        },
+                    ),
+                },
+                field_name: Id(
+                    f,
+                ),
+            },
+        }
+    "#]]
+    .assert_debug_eq(&p);
+}
+
+#[test]
+fn test_place_expr_field_left_associativity() {
+    let p: PlaceExpr = term("p.f.g");
+    expect_test::expect![[r#"
+        PlaceExpr {
+            data: Field {
+                prefix: PlaceExpr {
+                    data: Field {
+                        prefix: PlaceExpr {
+                            data: Var(
+                                p,
+                            ),
+                        },
+                        field_name: Id(
+                            f,
+                        ),
+                    },
+                },
+                field_name: Id(
+                    g,
+                ),
+            },
+        }
+    "#]]
+    .assert_debug_eq(&p);
+}
+
+#[test]
+fn test_place_expr_deref_with_field_chain() {
+    let p: PlaceExpr = term("*p.f.g");
+    expect_test::expect![[r#"
+        PlaceExpr {
+            data: Deref {
+                prefix: PlaceExpr {
+                    data: Field {
+                        prefix: PlaceExpr {
+                            data: Field {
+                                prefix: PlaceExpr {
+                                    data: Var(
+                                        p,
+                                    ),
+                                },
+                                field_name: Id(
+                                    f,
+                                ),
+                            },
+                        },
+                        field_name: Id(
+                            g,
+                        ),
+                    },
+                },
+            },
+        }
+    "#]]
+    .assert_debug_eq(&p);
 }

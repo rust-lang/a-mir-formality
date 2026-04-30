@@ -254,6 +254,7 @@ pub enum PlaceExprData {
     ///
     /// Field projection. Like `Var`, place vs value depends on context.
     #[grammar($prefix . $field_name)]
+    #[reject(PlaceExprData::Deref { .. }, _)]
     Field {
         prefix: PlaceExpr,
         field_name: FieldName,
