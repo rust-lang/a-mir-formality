@@ -38,7 +38,6 @@ pub use rust::FormalityLang;
 
 pub mod check;
 pub mod codegen;
-pub mod codegen_judgment;
 pub mod grammar;
 pub mod prove;
 mod test;

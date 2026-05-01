@@ -1,5 +1,3 @@
-mod codegen;
-
 use std::sync::Arc;
 
 use formality_core::{cast_impl, id, term, DowncastTo, UpcastFrom};

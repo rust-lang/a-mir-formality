@@ -3,7 +3,7 @@
 use crate::grammar::Crates;
 use crate::rust::term;
 
-/// Run a program through codegen and MiniRust execution, returning stdout.
+/// Run a program through the new judgment-based codegen and MiniRust execution.
 fn run_program(input: &str) -> String {
     let crates: Crates = term(input);
     let program = super::codegen_program(&crates).expect("codegen failed");
@@ -32,7 +32,6 @@ fn run_program(input: &str) -> String {
     String::from_utf8(bytes).expect("stdout was not valid UTF-8")
 }
 
-/// A shared writer for capturing stdout/stderr.
 #[derive(Clone)]
 struct SharedWriter(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
 
@@ -50,8 +49,10 @@ impl libspecr::hidden::GcCompat for SharedWriter {
     fn points_to(&self, _m: &mut std::collections::HashSet<usize>) {}
 }
 
+// All tests from the old codegen, targeting the new module
+
 #[test]
-fn milestone_1_hello_world() {
+fn hello_world() {
     let output = run_program(
         "[crate test {
             fn main() -> () {
@@ -63,7 +64,7 @@ fn milestone_1_hello_world() {
 }
 
 #[test]
-fn milestone_2_booleans_and_multiple_prints() {
+fn booleans_and_multiple_prints() {
     let output = run_program(
         "[crate test {
             fn main() -> () {
@@ -77,7 +78,7 @@ fn milestone_2_booleans_and_multiple_prints() {
 }
 
 #[test]
-fn milestone_3_let_bindings() {
+fn let_bindings() {
     let output = run_program(
         "[crate test {
             fn main() -> () {
@@ -90,7 +91,7 @@ fn milestone_3_let_bindings() {
 }
 
 #[test]
-fn milestone_4_assignment() {
+fn assignment() {
     let output = run_program(
         "[crate test {
             fn main() -> () {
@@ -104,7 +105,7 @@ fn milestone_4_assignment() {
 }
 
 #[test]
-fn milestone_5_function_calls() {
+fn function_calls() {
     let output = run_program(
         "[crate test {
             fn add_one(x: i32) -> i32 {
@@ -120,7 +121,7 @@ fn milestone_5_function_calls() {
 }
 
 #[test]
-fn milestone_6_generic_function_calls() {
+fn generic_function_calls() {
     let output = run_program(
         "[crate test {
             fn identity<T>(x: T) -> T {
@@ -136,7 +137,7 @@ fn milestone_6_generic_function_calls() {
 }
 
 #[test]
-fn milestone_7_if_statements() {
+fn if_statements() {
     let output = run_program(
         "[crate test {
             fn main() -> () {
@@ -153,7 +154,7 @@ fn milestone_7_if_statements() {
 }
 
 #[test]
-fn milestone_8_loops_break_continue() {
+fn loops_break_continue() {
     let output = run_program(
         "[crate test {
             fn main() -> () {
@@ -169,7 +170,7 @@ fn milestone_8_loops_break_continue() {
 }
 
 #[test]
-fn milestone_9_nested_blocks_and_exists() {
+fn nested_blocks_and_exists() {
     let output = run_program(
         "[crate test {
             fn main() -> () {
@@ -187,7 +188,7 @@ fn milestone_9_nested_blocks_and_exists() {
 }
 
 #[test]
-fn milestone_10_structs() {
+fn structs() {
     let output = run_program(
         "[crate test {
             struct Pair<> where { x: i32, y: i32 }
@@ -202,7 +203,7 @@ fn milestone_10_structs() {
 }
 
 #[test]
-fn milestone_11_references_and_deref() {
+fn references_and_deref() {
     let output = run_program(
         "[crate test {
             fn main() -> () {
@@ -216,7 +217,7 @@ fn milestone_11_references_and_deref() {
 }
 
 #[test]
-fn milestone_12_usize_isize() {
+fn usize_isize() {
     let output = run_program(
         "[crate test {
             fn main() -> () {
@@ -230,9 +231,7 @@ fn milestone_12_usize_isize() {
     assert_eq!(output, "100\n200\n");
 }
 
-// ---------------------------------------------------------------------------
-// Phase 2: Expanded test coverage — function calls
-// ---------------------------------------------------------------------------
+// Phase 2 tests
 
 #[test]
 fn multiple_calls_in_sequence() {
@@ -319,10 +318,6 @@ fn generic_function_multiple_type_params() {
     assert_eq!(output, "10\n");
 }
 
-// ---------------------------------------------------------------------------
-// Phase 2: Expanded test coverage — structs
-// ---------------------------------------------------------------------------
-
 #[test]
 fn generic_struct() {
     let output = run_program(
@@ -368,13 +363,8 @@ fn deref_through_ref_to_struct_field() {
     assert_eq!(output, "10\n20\n");
 }
 
-// ---------------------------------------------------------------------------
-// Phase 2: Expanded test coverage — control flow
-// ---------------------------------------------------------------------------
-
 #[test]
 fn continue_in_loop() {
-    // Loop 3 times, printing only on the first iteration via continue
     let output = run_program(
         "[crate test {
             fn main() -> () {
@@ -413,43 +403,6 @@ fn nested_loops_break_outer() {
 }
 
 #[test]
-fn return_from_inside_loop() {
-    // Return from a non-unit function inside a loop, using break to exit
-    let output = run_program(
-        "[crate test {
-            fn main() -> () {
-                let x: i32 = 0 _ i32;
-                'a: loop {
-                    x = 77 _ i32;
-                    break 'a;
-                }
-                print x;
-            }
-        }]",
-    );
-    assert_eq!(output, "77\n");
-}
-
-#[test]
-fn return_from_nested_block_inside_loop() {
-    let output = run_program(
-        "[crate test {
-            fn main() -> () {
-                let x: i32 = 0 _ i32;
-                'a: loop {
-                    {
-                        x = 88 _ i32;
-                        break 'a;
-                    }
-                }
-                print x;
-            }
-        }]",
-    );
-    assert_eq!(output, "88\n");
-}
-
-#[test]
 fn if_else_inside_loop_with_breaks() {
     let output = run_program(
         "[crate test {
@@ -472,7 +425,6 @@ fn if_else_inside_loop_with_breaks() {
 
 #[test]
 fn multiple_breaks_same_label() {
-    // Both branches of if/else break to the same label
     let output = run_program(
         "[crate test {
             fn main() -> () {
@@ -492,10 +444,6 @@ fn multiple_breaks_same_label() {
     );
     assert_eq!(output, "2\n");
 }
-
-// ---------------------------------------------------------------------------
-// Phase 2: Expanded test coverage — references and exists
-// ---------------------------------------------------------------------------
 
 #[test]
 fn mut_reference() {
@@ -541,4 +489,42 @@ fn exists_with_lifetime_parameterized_type() {
         }]",
     );
     assert_eq!(output, "55\n");
+}
+
+// Additional tests from old codegen
+
+#[test]
+fn return_from_inside_loop() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 0 _ i32;
+                'a: loop {
+                    x = 77 _ i32;
+                    break 'a;
+                }
+                print x;
+            }
+        }]",
+    );
+    assert_eq!(output, "77\n");
+}
+
+#[test]
+fn return_from_nested_block_inside_loop() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 0 _ i32;
+                'a: loop {
+                    {
+                        x = 88 _ i32;
+                        break 'a;
+                    }
+                }
+                print x;
+            }
+        }]",
+    );
+    assert_eq!(output, "88\n");
 }
