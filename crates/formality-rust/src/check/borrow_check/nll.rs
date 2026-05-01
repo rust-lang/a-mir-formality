@@ -560,7 +560,7 @@ judgment_fn! {
 
 judgment_fn! {
     /// Borrow-check a place expression, returning its type.
-    fn borrow_check_place_expr(
+    pub fn borrow_check_place_expr(
         env: TypeckEnv,
         assumptions: Wcs,
         state: FlowState,
@@ -884,7 +884,7 @@ judgment_fn! {
 
 judgment_fn! {
     /// Prove that any loans issued in thes value expressions (evaluated in this order) are respected.
-    fn prove_ty_is_rigid(
+    pub fn prove_ty_is_rigid(
         env: TypeckEnv,
         assumptions: Wcs,
         state: FlowState,
@@ -1042,6 +1042,9 @@ judgment_fn! {
                     Lt::Variable(Variable::ExistentialVar(_)) => true,
 
                     Lt::Variable(Variable::BoundVar(_)) => panic!("cannot outlive a bound var"),
+
+                    // Erased lifetimes are used in codegen; treat like existential.
+                    Lt::Erased => true,
                 },
 
                 // Not really clear what this would mean

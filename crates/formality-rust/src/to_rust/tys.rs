@@ -157,6 +157,7 @@ impl RustBuilder {
     pub fn lower_lt(&mut self, lt: &Lt) -> Fallible<String> {
         match lt {
             LtData::Static => Ok("'static".to_owned()),
+            LtData::Erased => Ok("'erased".to_owned()),
             LtData::Variable(core_variable) => self.core_variable_to_string(&core_variable),
         }
     }

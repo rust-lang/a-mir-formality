@@ -1,6 +1,7 @@
 use crate::grammar::{
     expr::{Block, Expr, ExprData, PlaceExpr, PlaceExprData, Stmt},
-    Crates, Fallible, FieldName, Parameter, RigidName, RigidTy, ScalarId, Ty, TyData, ValueId,
+    Crates, Fallible, Lt, Parameter, ParameterKind, RigidName, RigidTy, ScalarId, Ty, TyData,
+    ValueId,
 };
 use formality_core::Upcast;
 use libspecr::hidden::GcCow;
@@ -700,8 +701,21 @@ fn codegen_stmt(state: &mut CodegenState, stmt: &Stmt) -> Fallible<SemeRegion> {
         }
         Stmt::Block(block) => codegen_block(state, block),
         Stmt::Exists { binder } => {
-            // Open the binder, ignore lifetime vars, codegen inner block
-            let (_vars, block) = binder.open();
+            // Instantiate lifetime params with Lt::Erased; fail on type/const params
+            let params: Vec<Parameter> = binder
+                .kinds()
+                .iter()
+                .map(|kind| match kind {
+                    ParameterKind::Lt => Ok(Lt::Erased.upcast()),
+                    ParameterKind::Ty => {
+                        anyhow::bail!("exists block with type parameter in codegen")
+                    }
+                    ParameterKind::Const => {
+                        anyhow::bail!("exists block with const parameter in codegen")
+                    }
+                })
+                .collect::<Fallible<_>>()?;
+            let block = binder.instantiate_with(&params)?;
             codegen_block(state, &block)
         }
         _ => anyhow::bail!("codegen not yet implemented for this statement"),
