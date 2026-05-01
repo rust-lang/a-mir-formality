@@ -62,7 +62,7 @@ impl RustBuilder {
         init: Option<&Init>,
     ) -> Fallible<syntax::Stmt> {
         Ok(syntax::Stmt::Let {
-            // TODO: is there a way to knwo, if the variable must be mutable or not?
+            // TODO: is there a way to know, if the variable must be mutable or not?
             mutable: true,
             name: id.deref().clone(),
             ty: self.lower_ty(ty)?,
@@ -70,28 +70,13 @@ impl RustBuilder {
         })
     }
 
-    /// Lowers an `exists` statement. The newly introduced lifetimes
-    /// e.g. `'r0`, are all treated as anonymous lifetimes `'_`.
-    /// ```rust,ignore
-    /// exists<'r0> {
-    ///   let v2: &'r0 u32 = v1;
-    ///   return v2;
-    /// }
-    /// ```
-    /// becomes:
-    /// ```rust,ignore
-    /// {
-    ///   let v2: &'_ u32 = v1;
-    ///   return v2;
-    /// }
-    /// ```
     fn lower_exists_stmt(&mut self, binder: &Binder<Block>) -> Fallible<syntax::Stmt> {
-        let term = binder.peek();
-        self.ctx.push_anonymous(binder.kinds());
+        let subst = self.existential_substitution(binder);
+        let term = binder
+            .instantiate_with(&subst)
+            .expect("suitable substitution");
 
-        let result = syntax::Stmt::Block(self.lower_block(term)?);
-
-        self.ctx.pop();
+        let result = syntax::Stmt::Block(self.lower_block(&term)?);
         Ok(result)
     }
 
@@ -246,6 +231,32 @@ fn foo() -> () {
         break 'a;
     }
 }"#
+        );
+    }
+
+    #[test]
+    fn omited_existential_lifetimes() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    fn foo() -> u32 {
+                        exists<'r0, 'r1> {
+                            let v1: u32 = 0 _ u32;
+                            let v2: &mut 'r0 u32 = &mut 'r1 v1;
+                            return *v2;
+                        }
+                    }
+                }
+            ],
+            r#"
+fn foo() -> u32 {
+    {
+        let mut v1: u32 = 0_u32;
+        let mut v2: &mut u32 = &mut v1;
+        return *v2;
+    }
+}
+"#
         );
     }
 }

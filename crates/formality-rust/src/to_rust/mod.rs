@@ -1,14 +1,12 @@
 use crate::{
     grammar::{
-        AdtItem, Binder, Crate, CrateItem, Crates, Fallible, FeatureGate, FeatureGateName,
-        ParameterKind, Ty, Variable, WhereClause, WhereClauseData,
+        AdtItem, Binder, BoundVar, Crate, CrateItem, Crates, ExistentialVar, Fallible, FeatureGate,
+        FeatureGateName, ParameterKind, Ty, UniversalVar, VarIndex, Variable, WhereClause,
+        WhereClauseData,
     },
     rust::Fold,
 };
-use std::{
-    collections::{HashMap, HashSet},
-    ops::Deref,
-};
+use std::{collections::HashMap, ops::Deref};
 
 mod expr;
 mod fns;
@@ -82,129 +80,114 @@ pub fn create_workspace(crates: &Crates, root_directory: &std::path::Path) -> Fa
     Ok(location.to_string())
 }
 
-type Stack<T> = Vec<T>;
-
-#[derive(Debug, Default)]
-pub struct NameContext {
-    variable_names: Stack<Vec<String>>,
-    used: HashSet<String>,
-}
-
-impl NameContext {
-    pub fn core_variable_to_string(&self, variable: &Variable) -> Fallible<String> {
-        match variable {
-            Variable::BoundVar(core_bound_var) => {
-                let var_index = core_bound_var.var_index.index;
-                let binder_index = core_bound_var
-                    .debruijn
-                    .ok_or_else(|| anyhow::anyhow!("binder was opened"))?
-                    .index;
-
-                self.variable_names
-                    .get(binder_index)
-                    .and_then(|vars| vars.get(var_index))
-                    .cloned()
-                    .ok_or_else(|| anyhow::anyhow!("unbound variable {core_bound_var:?}"))
-            }
-            Variable::UniversalVar(v) => {
-                Ok(self.free_variable_name(true, v.kind, v.var_index.index))
-            }
-            Variable::ExistentialVar(v) => {
-                Ok(self.free_variable_name(false, v.kind, v.var_index.index))
-            }
-        }
-    }
-
-    pub fn current_names(&self) -> Fallible<&[String]> {
-        self.variable_names
-            .first()
-            .map(|v| v.as_slice())
-            .ok_or_else(|| anyhow::anyhow!("no active binder frame"))
-    }
-
-    pub fn pop(&mut self) {
-        if let Some(names) = self.variable_names.first().cloned() {
-            self.variable_names.remove(0);
-            for name in names {
-                self.used.remove(&name);
-            }
-        }
-    }
-
-    pub fn push(&mut self, kinds: &[ParameterKind]) {
-        self.variable_names.insert(0, Vec::new());
-        for kind in kinds {
-            let name = self.fresh_name(kind);
-            self.variable_names[0].push(name);
-        }
-    }
-
-    pub fn push_anonymous(&mut self, kinds: &[ParameterKind]) {
-        self.variable_names.insert(0, Vec::new());
-        for kind in kinds {
-            let name = if matches!(kind, ParameterKind::Lt) {
-                "'_".to_owned()
-            } else {
-                self.fresh_name(kind)
-            };
-            self.used.insert(name.clone());
-            self.variable_names[0].push(name);
-        }
-    }
-
-    fn fresh_name(&mut self, kind: &ParameterKind) -> String {
-        let prefix = match kind {
-            ParameterKind::Ty => "T",
-            ParameterKind::Lt => "'a",
-            ParameterKind::Const => "N",
-        };
-
-        for i in 1.. {
-            let name = format!("{prefix}{i}");
-            if self.used.insert(name.clone()) {
-                return name;
-            }
-        }
-
-        unreachable!("fresh name generation should always terminate")
-    }
-
-    fn free_variable_name(&self, universal: bool, kind: ParameterKind, var_index: usize) -> String {
-        let suffix = var_index + 1;
-        let prefix = match (universal, kind) {
-            (true, ParameterKind::Ty) => "U",
-            (true, ParameterKind::Lt) => "'u",
-            (true, ParameterKind::Const) => "CU",
-            (false, ParameterKind::Ty) => "E",
-            (false, ParameterKind::Lt) => "'e",
-            (false, ParameterKind::Const) => "CE",
-        };
-        format!("{prefix}{suffix}")
-    }
-}
-
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct RustBuilder {
-    ctx: NameContext,
+    counter: VarIndex,
+}
+
+impl Default for RustBuilder {
+    fn default() -> Self {
+        Self {
+            counter: VarIndex { index: 0 },
+        }
+    }
 }
 
 impl RustBuilder {
     pub fn with_binder<T: Fold, R>(
         &mut self,
-        binder: &Binder<T>,
-        mut op: impl FnMut(&T, &mut RustBuilder) -> Fallible<R>,
+        b: &Binder<T>,
+        is_trait: bool,
+        g: impl Fn(&T) -> &Vec<WhereClause>,
+        mut op: impl FnMut(T, syntax::Generics, &mut RustBuilder) -> Fallible<R>,
     ) -> Fallible<R> {
-        let term = binder.peek();
-        self.ctx.push(binder.kinds());
+        let subst = self.bounded_substitution(b);
+        let term = b.instantiate_with(&subst).expect("suitable substitution");
 
-        let result = op(term, self);
+        let names = subst
+            .into_iter()
+            .map(|var| format!("{}{}", self.kind_to_string(&var.kind), var.var_index.index))
+            .collect::<Vec<_>>();
+        let generics =
+            self.lower_generics_for_binder(b.kinds(), g(&term), names.as_slice(), is_trait)?;
 
-        self.ctx.pop();
+        let result = op(term, generics, self);
         result
     }
 
-    pub fn core_variable_to_string(&self, core_variable: &Variable) -> Fallible<String> {
-        self.ctx.core_variable_to_string(core_variable)
+    pub fn core_variable_to_string(&self, variable: &Variable) -> Fallible<String> {
+        let index = match variable {
+            Variable::UniversalVar(universal_var) => universal_var.var_index,
+            Variable::ExistentialVar(existential_var) => existential_var.var_index,
+            Variable::BoundVar(bound_var) => {
+                if bound_var.debruijn.is_some() {
+                    anyhow::bail!("binder is not open")
+                }
+                bound_var.var_index
+            }
+        }
+        .index;
+        let kind = self.kind_to_string(&variable.kind());
+        Ok(format!("{kind}{index}"))
+    }
+
+    fn kind_to_string(&self, kind: &ParameterKind) -> &'static str {
+        match kind {
+            ParameterKind::Ty => "T",
+            ParameterKind::Lt => "'a",
+            ParameterKind::Const => "N",
+        }
+    }
+
+    pub fn substitution<T, V>(
+        &mut self,
+        b: &Binder<T>,
+        v: impl Fn(ParameterKind, VarIndex) -> V,
+    ) -> Vec<V>
+    where
+        T: Fold,
+    {
+        let subst = self.fresh_substitution(b.kinds(), v);
+        subst
+    }
+
+    pub fn bounded_substitution<T>(&mut self, b: &Binder<T>) -> Vec<BoundVar>
+    where
+        T: Fold,
+    {
+        self.substitution(b, |kind, var_index| BoundVar {
+            debruijn: None,
+            kind,
+            var_index,
+        })
+    }
+
+    pub fn existential_substitution<T>(&mut self, b: &Binder<T>) -> Vec<ExistentialVar>
+    where
+        T: Fold,
+    {
+        self.substitution(b, |kind, var_index| ExistentialVar { kind, var_index })
+    }
+
+    pub fn universal_substitution<T>(&mut self, b: &Binder<T>) -> Vec<UniversalVar>
+    where
+        T: Fold,
+    {
+        self.substitution(b, |kind, var_index| UniversalVar { kind, var_index })
+    }
+
+    fn fresh_substitution<V>(
+        &mut self,
+        kinds: &[ParameterKind],
+        v: impl Fn(ParameterKind, VarIndex) -> V,
+    ) -> Vec<V> {
+        let fresh_index = self.counter;
+        self.counter = self.counter + kinds.len();
+        kinds
+            .iter()
+            .zip(0..)
+            .map(|(&kind, offset)| v(kind, fresh_index + offset))
+            .collect()
     }
 
     pub fn build_crates(&mut self, crates: &Crates) -> Fallible<HashMap<String, String>> {
@@ -271,10 +254,9 @@ impl RustBuilder {
         &mut self,
         binder_kinds: &[ParameterKind],
         where_clauses: &[WhereClause],
+        names: &[String],
         skip_first: bool,
     ) -> Fallible<syntax::Generics> {
-        let names = self.ctx.current_names()?;
-
         if names.len() != binder_kinds.len() {
             anyhow::bail!(
                 "binder metadata mismatch: {} names but {} kinds",
