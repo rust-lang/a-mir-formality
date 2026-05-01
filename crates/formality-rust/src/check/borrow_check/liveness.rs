@@ -301,6 +301,7 @@ impl LiveBefore for Stmt {
                 let (_vars, block) = binder.open();
                 block.live_before(env, scopes, places_live)
             }
+            Stmt::Print { expr } => expr.live_before(env, scopes, places_live),
         }
     }
 }

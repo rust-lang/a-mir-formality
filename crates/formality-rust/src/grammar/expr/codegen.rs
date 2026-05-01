@@ -79,6 +79,7 @@ impl ExprBuilder<'_> {
             Stmt::Return { expr } => todo!(),
             Stmt::Block(block) => todo!(),
             Stmt::Exists { binder } => todo!(),
+            Stmt::Print { expr } => todo!(),
         }
     }
 

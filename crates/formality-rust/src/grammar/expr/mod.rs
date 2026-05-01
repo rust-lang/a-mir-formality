@@ -99,6 +99,12 @@ pub enum Stmt {
     /// over a block of statements.
     #[grammar(exists $binder)]
     Exists { binder: Binder<Block> },
+
+    /// `print expr;`
+    ///
+    /// Print a value to stdout (for testing).
+    #[grammar(print $expr ;)]
+    Print { expr: Expr },
 }
 
 #[term($data)]

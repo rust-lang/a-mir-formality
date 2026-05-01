@@ -298,6 +298,19 @@ judgment_fn! {
             ------------------------------------------------------------ ("exists")
             (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
         )
+
+        (
+            // Print statement: type-check the expression (result discarded)
+            (borrow_check_expr(
+                env,
+                assumptions,
+                state,
+                expr,
+                places_live_on_exit
+            ) => (_expr_ty, state))
+            ------------------------------------------------------------ ("print")
+            (borrow_check_statement(env, assumptions, state, Stmt::Print { expr }, places_live_on_exit) => (env, state))
+        )
     }
 }
 
