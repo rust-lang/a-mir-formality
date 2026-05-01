@@ -167,3 +167,21 @@ fn milestone_8_loops_break_continue() {
     );
     assert_eq!(output, "0\n");
 }
+
+#[test]
+fn milestone_9_nested_blocks_and_exists() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                {
+                    let x: i32 = 99 _ i32;
+                    print x;
+                }
+                exists<'a> {
+                    print 1 _ i32;
+                }
+            }
+        }]",
+    );
+    assert_eq!(output, "99\n1\n");
+}

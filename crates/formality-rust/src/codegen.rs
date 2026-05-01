@@ -532,6 +532,12 @@ fn codegen_stmt(state: &mut CodegenState, stmt: &Stmt) -> Fallible<SemeRegion> {
             region.terminate(lang::Terminator::Goto(loop_start));
             Ok(region)
         }
+        Stmt::Block(block) => codegen_block(state, block),
+        Stmt::Exists { binder } => {
+            // Open the binder, ignore lifetime vars, codegen inner block
+            let (_vars, block) = binder.open();
+            codegen_block(state, &block)
+        }
         _ => anyhow::bail!("codegen not yet implemented for this statement"),
     }
 }
