@@ -84,9 +84,9 @@ pub struct Generics {
     /// by `impl` blocks.
     ///
     /// # Example
-    /// ```rust,ignore
-    /// struct<T> Foo {
-    ///     /* */
+    /// ```rust,no_run
+    /// struct Foo<T> {
+    ///     bar: T
     /// }
     /// ```
     pub params: Vec<GenericParam>,
@@ -128,9 +128,9 @@ impl Generics {
 /// Represents the generic parameters declared on an item.
 ///
 /// # Example
-/// ```rust,ignore
+/// ```rust,no_run
 /// struct Foo<T> {
-///     /* */
+///     bar: T
 /// }
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,8 +153,9 @@ impl Display for GenericParam {
 /// Represents a concrete argument supplied for a generic parameter.
 ///
 /// # Example
-/// ```rust,ignore
-/// let foo = Foo::<u32> { /* */ }
+/// ```rust,no_run
+/// # struct Foo<T> { bar: T }
+/// let foo = Foo::<u32> { bar: 0 };
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GenericArg {
