@@ -214,3 +214,18 @@ fn milestone_11_references_and_deref() {
     );
     assert_eq!(output, "42\n");
 }
+
+#[test]
+fn milestone_12_usize_isize() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let a: usize = 100 _ usize;
+                let b: isize = 200 _ isize;
+                print a;
+                print b;
+            }
+        }]",
+    );
+    assert_eq!(output, "100\n200\n");
+}

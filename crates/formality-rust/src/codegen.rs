@@ -168,9 +168,8 @@ fn minirust_ty(crates: &Crates, ty: &Ty) -> Fallible<lang::Type> {
                     ScalarId::I32 => (Signedness::Signed, 4),
                     ScalarId::I64 => (Signedness::Signed, 8),
                     ScalarId::Bool => return Ok(lang::Type::Bool),
-                    ScalarId::Usize | ScalarId::Isize => {
-                        unimplemented!("target dependent types")
-                    }
+                    ScalarId::Usize => (Signedness::Unsigned, 8),
+                    ScalarId::Isize => (Signedness::Signed, 8),
                 };
                 Ok(lang::Type::Int(lang::IntType {
                     signed,
