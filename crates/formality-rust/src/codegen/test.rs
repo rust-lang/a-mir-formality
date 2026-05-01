@@ -200,3 +200,17 @@ fn milestone_10_structs() {
     );
     assert_eq!(output, "10\n20\n");
 }
+
+#[test]
+fn milestone_11_references_and_deref() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 42 _ i32;
+                let r: & 'static i32 = & 'static x;
+                print *r;
+            }
+        }]",
+    );
+    assert_eq!(output, "42\n");
+}

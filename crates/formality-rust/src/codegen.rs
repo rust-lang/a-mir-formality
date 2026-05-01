@@ -184,7 +184,36 @@ fn minirust_ty(crates: &Crates, ty: &Ty) -> Fallible<lang::Type> {
                 struct_minirust_ty(crates, adt_id, parameters)
             }
             RigidName::Never => Ok(unit_ty()),
-            RigidName::Ref(_) | RigidName::Raw(_) => unimplemented!("refs and pointers"),
+            RigidName::Ref(ref_kind) => {
+                // Ref type: Type::Ptr with PtrType::Ref
+                // Parameters: [Lt, pointee_ty]
+                let pointee_ty = match rigid_ty.parameters.get(1) {
+                    Some(Parameter::Ty(ty)) => ty.as_ref(),
+                    _ => anyhow::bail!("ref type missing pointee parameter"),
+                };
+                let pointee_mr_ty = minirust_ty(crates, pointee_ty)?;
+                let (pointee_size, pointee_align) = type_size_align(&pointee_mr_ty);
+                let mutbl = match ref_kind {
+                    crate::grammar::RefKind::Shared => Mutability::Immutable,
+                    crate::grammar::RefKind::Mut => Mutability::Mutable,
+                };
+                Ok(lang::Type::Ptr(PtrType::Ref {
+                    mutbl,
+                    pointee: minirust_rs::mem::PointeeInfo {
+                        layout: minirust_rs::mem::LayoutStrategy::Sized(
+                            pointee_size,
+                            pointee_align,
+                        ),
+                        inhabited: true,
+                        freeze: true,
+                        unpin: true,
+                        unsafe_cells: minirust_rs::mem::UnsafeCellStrategy::Sized {
+                            cells: list![],
+                        },
+                    },
+                }))
+            }
+            RigidName::Raw(_) => unimplemented!("raw pointers"),
             RigidName::Tuple(arity) => {
                 if *arity == 0 {
                     Ok(unit_ty())
@@ -752,6 +781,37 @@ fn codegen_expr_into(
             region.add_empty_block(next_bb);
             Ok(region)
         }
+        ExprData::Ref { kind, lt: _, place } => {
+            let place_expr = codegen_place_expr(state, place)?;
+            let ref_kind = match kind {
+                crate::grammar::RefKind::Shared => Mutability::Immutable,
+                crate::grammar::RefKind::Mut => Mutability::Mutable,
+            };
+            // Get pointee type for PtrType
+            let pointee_ty = infer_place_ty(state, place)?;
+            let pointee_mr_ty = state.minirust_ty(&pointee_ty)?;
+            let (pointee_size, pointee_align) = type_size_align(&pointee_mr_ty);
+            let ptr_ty = PtrType::Ref {
+                mutbl: ref_kind,
+                pointee: minirust_rs::mem::PointeeInfo {
+                    layout: minirust_rs::mem::LayoutStrategy::Sized(pointee_size, pointee_align),
+                    inhabited: true,
+                    freeze: true,
+                    unpin: true,
+                    unsafe_cells: minirust_rs::mem::UnsafeCellStrategy::Sized { cells: list![] },
+                },
+            };
+            let source = lang::ValueExpr::AddrOf {
+                target: GcCow::new(place_expr),
+                ptr_ty,
+            };
+            let mut region = SemeRegion::empty(state);
+            region.push_stmt(lang::Statement::Assign {
+                destination: lang::PlaceExpr::Local(target),
+                source,
+            });
+            Ok(region)
+        }
         ExprData::Struct {
             field_exprs,
             adt_id,
@@ -841,6 +901,28 @@ fn codegen_place_expr(state: &CodegenState, place: &PlaceExpr) -> Fallible<lang:
             Ok(lang::PlaceExpr::Local(local))
         }
         PlaceExprData::Parens(inner) => codegen_place_expr(state, inner),
+        PlaceExprData::Deref { prefix } => {
+            let prefix_place = codegen_place_expr(state, prefix)?;
+            let prefix_ty = infer_place_ty(state, prefix)?;
+            // Get the pointee type
+            let pointee_ty = match &prefix_ty {
+                Ty::RigidTy(rigid_ty) => match &rigid_ty.name {
+                    RigidName::Ref(_) => match rigid_ty.parameters.get(1) {
+                        Some(Parameter::Ty(ty)) => ty.as_ref().clone(),
+                        _ => anyhow::bail!("ref type missing pointee parameter"),
+                    },
+                    _ => anyhow::bail!("deref on non-reference type"),
+                },
+                _ => anyhow::bail!("deref on non-reference type"),
+            };
+            let pointee_mr_ty = state.minirust_ty(&pointee_ty)?;
+            Ok(lang::PlaceExpr::Deref {
+                operand: GcCow::new(lang::ValueExpr::Load {
+                    source: GcCow::new(prefix_place),
+                }),
+                ty: pointee_mr_ty,
+            })
+        }
         PlaceExprData::Field { prefix, field_name } => {
             let prefix_place = codegen_place_expr(state, prefix)?;
             let prefix_ty = infer_place_ty(state, prefix)?;
@@ -878,6 +960,12 @@ fn infer_expr_ty(state: &CodegenState, expr: &Expr) -> Fallible<Ty> {
         ExprData::Literal { ty, .. } => Ok(scalar_ty(ty.clone())),
         ExprData::True | ExprData::False => Ok(Ty::bool()),
         ExprData::Place(place) => infer_place_ty(state, place),
+        ExprData::Ref {
+            kind, lt, place, ..
+        } => {
+            let pointee_ty = infer_place_ty(state, place)?;
+            Ok(pointee_ty.ref_ty_of_kind(kind, lt.clone()))
+        }
         ExprData::Assign { .. } => Ok(Ty::unit()),
         ExprData::Struct {
             adt_id, turbofish, ..
@@ -919,6 +1007,23 @@ fn infer_place_ty(state: &CodegenState, place: &PlaceExpr) -> Fallible<Ty> {
             Ok(ty)
         }
         PlaceExprData::Parens(inner) => infer_place_ty(state, inner),
+        PlaceExprData::Deref { prefix } => {
+            let prefix_ty = infer_place_ty(state, prefix)?;
+            // Extract pointee type from Ref type
+            match &prefix_ty {
+                Ty::RigidTy(rigid_ty) => match &rigid_ty.name {
+                    RigidName::Ref(_) => {
+                        // Parameters: [Lt, pointee_ty]
+                        match rigid_ty.parameters.get(1) {
+                            Some(Parameter::Ty(ty)) => Ok(ty.as_ref().clone()),
+                            _ => anyhow::bail!("ref type missing pointee parameter"),
+                        }
+                    }
+                    _ => anyhow::bail!("deref on non-reference type: {prefix_ty:?}"),
+                },
+                _ => anyhow::bail!("deref on non-reference type: {prefix_ty:?}"),
+            }
+        }
         PlaceExprData::Field { prefix, field_name } => {
             let prefix_ty = infer_place_ty(state, prefix)?;
             match &prefix_ty {
