@@ -433,6 +433,22 @@ fn codegen_stmt(state: &mut CodegenState, stmt: &Stmt) -> Fallible<SemeRegion> {
             region.add_empty_block(next_bb);
             Ok(region)
         }
+        Stmt::If {
+            condition,
+            then_block,
+            else_block,
+        } => {
+            // Evaluate condition into a bool temp
+            let cond_temp = state.alloc_local(lang::Type::Bool);
+            let cond_region = codegen_expr_into(state, cond_temp, condition)?;
+
+            // Codegen both branches
+            let then_region = codegen_block(state, then_block)?;
+            let else_region = codegen_block(state, else_block)?;
+
+            // Compose with branch
+            Ok(cond_region.branch_on_bool(state, cond_temp, then_region, else_region))
+        }
         Stmt::Expr { expr } => {
             let expr_ty = infer_expr_ty(state, expr)?;
             let mr_ty = minirust_ty(&expr_ty)?;

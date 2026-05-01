@@ -134,3 +134,20 @@ fn milestone_6_generic_function_calls() {
     );
     assert_eq!(output, "42\n");
 }
+
+#[test]
+fn milestone_7_if_statements() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 1 _ i32;
+                if true {
+                    print x;
+                } else {
+                    print 0 _ i32;
+                }
+            }
+        }]",
+    );
+    assert_eq!(output, "1\n");
+}

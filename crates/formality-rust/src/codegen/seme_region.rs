@@ -1,3 +1,4 @@
+use libspecr::hidden::GcCow;
 use libspecr::prelude::*;
 use minirust_rs::lang;
 
@@ -139,6 +140,91 @@ impl SemeRegion {
                 self
             }
         }
+    }
+
+    /// Branch with a boolean condition value.
+    pub fn branch_on_bool(
+        mut self,
+        state: &mut CodegenState,
+        condition_local: lang::LocalName,
+        then_region: SemeRegion,
+        else_region: SemeRegion,
+    ) -> SemeRegion {
+        if self.fallthrough.is_none() {
+            return self;
+        }
+
+        let then_entry = then_region.entry;
+        let else_entry = else_region.entry;
+        let join = state.fresh_bb();
+
+        // Terminate condition's fallthrough with Switch
+        let ft = self.fallthrough.take().unwrap();
+        let ft_stmts: List<lang::Statement> = self.fallthrough_stmts.drain(..).collect();
+
+        let mut cases = Map::new();
+        cases.insert(Int::from(1u8), then_entry); // true → then
+
+        // MiniRust Switch requires Int, so cast bool to u8
+        let bool_as_int_ty = lang::Type::Int(lang::IntType {
+            signed: Signedness::Unsigned,
+            size: Size::from_bytes_const(1),
+        });
+        let cast_expr = lang::ValueExpr::UnOp {
+            operator: lang::UnOp::Cast(lang::CastOp::Transmute(bool_as_int_ty)),
+            operand: GcCow::new(lang::ValueExpr::Load {
+                source: GcCow::new(lang::PlaceExpr::Local(condition_local)),
+            }),
+        };
+
+        self.blocks.push((
+            ft,
+            lang::BasicBlock {
+                statements: ft_stmts,
+                terminator: lang::Terminator::Switch {
+                    value: cast_expr,
+                    cases,
+                    fallback: else_entry, // false → else
+                },
+                kind: lang::BbKind::Regular,
+            },
+        ));
+
+        // Add then blocks
+        self.blocks.extend(then_region.blocks);
+        // Terminate then's fallthrough with Goto(join)
+        if let Some(ft) = then_region.fallthrough {
+            let stmts: List<lang::Statement> = then_region.fallthrough_stmts.into_iter().collect();
+            self.blocks.push((
+                ft,
+                lang::BasicBlock {
+                    statements: stmts,
+                    terminator: lang::Terminator::Goto(join),
+                    kind: lang::BbKind::Regular,
+                },
+            ));
+        }
+
+        // Add else blocks
+        self.blocks.extend(else_region.blocks);
+        // Terminate else's fallthrough with Goto(join)
+        if let Some(ft) = else_region.fallthrough {
+            let stmts: List<lang::Statement> = else_region.fallthrough_stmts.into_iter().collect();
+            self.blocks.push((
+                ft,
+                lang::BasicBlock {
+                    statements: stmts,
+                    terminator: lang::Terminator::Goto(join),
+                    kind: lang::BbKind::Regular,
+                },
+            ));
+        }
+
+        let has_join = then_region.fallthrough.is_some() || else_region.fallthrough.is_some();
+
+        self.fallthrough = if has_join { Some(join) } else { None };
+        self.fallthrough_stmts = Vec::new();
+        self
     }
 
     /// Convert to a list of completed basic blocks.
