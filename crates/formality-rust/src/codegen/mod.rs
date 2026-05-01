@@ -606,7 +606,7 @@ judgment_fn! {
 }
 
 judgment_fn! {
-    fn codegen_stmt_j(
+    fn codegen_stmt(
         global: CodegenGlobal,
         scope: CodegenScope,
         stmt: Stmt,
@@ -617,70 +617,70 @@ judgment_fn! {
             (if let Stmt::Let { label: _, id, ty, init } = &*stmt)
             (let r: CgResult = codegen_let(global.clone(), scope.clone(), id, ty, init.as_ref())?)
             ---- ("let")
-            (codegen_stmt_j(global, scope, stmt) => r.clone())
+            (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Return { expr } = &*stmt)
             (let r: CgResult = codegen_return(global.clone(), &scope, expr)?)
             ---- ("return")
-            (codegen_stmt_j(global, scope, stmt) => r.clone())
+            (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Print { expr } = &*stmt)
             (let r: CgResult = codegen_print(global.clone(), &scope, expr)?)
             ---- ("print")
-            (codegen_stmt_j(global, scope, stmt) => r.clone())
+            (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::If { condition, then_block, else_block } = &*stmt)
             (let r: CgResult = codegen_if(global.clone(), &scope, condition, then_block, else_block)?)
             ---- ("if")
-            (codegen_stmt_j(global, scope, stmt) => r.clone())
+            (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Expr { expr } = &*stmt)
             (let r: CgResult = codegen_expr_stmt(global.clone(), &scope, expr)?)
             ---- ("expr")
-            (codegen_stmt_j(global, scope, stmt) => r.clone())
+            (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Loop { label, body } = &*stmt)
             (let r: CgResult = codegen_loop(global.clone(), scope.clone(), label, body)?)
             ---- ("loop")
-            (codegen_stmt_j(global, scope, stmt) => r.clone())
+            (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Break { label } = &*stmt)
             (let r: CgResult = codegen_break(global.clone(), &scope, label)?)
             ---- ("break")
-            (codegen_stmt_j(global, scope, stmt) => r.clone())
+            (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Continue { label } = &*stmt)
             (let r: CgResult = codegen_continue(global.clone(), &scope, label)?)
             ---- ("continue")
-            (codegen_stmt_j(global, scope, stmt) => r.clone())
+            (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Block(block) = &*stmt)
             (let r: CgResult = codegen_block_inner(global.clone(), scope.clone(), block)?)
             ---- ("block")
-            (codegen_stmt_j(global, scope, stmt) => r.clone())
+            (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Exists { binder } = &*stmt)
             (let r: CgResult = codegen_exists(global.clone(), scope.clone(), binder)?)
             ---- ("exists")
-            (codegen_stmt_j(global, scope, stmt) => r.clone())
+            (codegen_stmt(global, scope, stmt) => r.clone())
         )
     }
 }
@@ -1179,7 +1179,7 @@ fn codegen_block_inner(
             let CgResult {
                 region: sr,
                 global: g2,
-            } = unwrap_proven(codegen_stmt_j(g, scope.clone(), stmt.clone()))?;
+            } = unwrap_proven(codegen_stmt(g, scope.clone(), stmt.clone()))?;
             g = g2;
             region = region.append(sr, || {
                 let (bb, _) = g.clone().fresh_bb();
