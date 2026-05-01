@@ -217,7 +217,42 @@ fn minirust_ty(crates: &Crates, ty: &Ty) -> Fallible<lang::Type> {
                 if *arity == 0 {
                     Ok(unit_ty())
                 } else {
-                    unimplemented!("non-unit tuples")
+                    // Non-unit tuple: lay out positional fields
+                    let mut offset = Size::ZERO;
+                    let mut max_align = Align::ONE;
+                    let mut sized_fields: Vec<(Size, lang::Type)> = Vec::new();
+
+                    for param in &rigid_ty.parameters {
+                        if let Parameter::Ty(ty) = param {
+                            let field_ty = minirust_ty(crates, ty)?;
+                            let (field_size, field_align) = type_size_align(&field_ty);
+                            let align_bytes = field_align.bytes();
+                            let offset_bytes = offset.bytes();
+                            let aligned =
+                                (offset_bytes + align_bytes - 1) / align_bytes * align_bytes;
+                            offset = Size::from_bytes(aligned).unwrap();
+                            sized_fields.push((offset, field_ty));
+                            offset = Size::from_bytes(aligned + field_size.bytes()).unwrap();
+                            if field_align.bytes() > max_align.bytes() {
+                                max_align = field_align;
+                            }
+                        }
+                    }
+
+                    let total_bytes = offset.bytes();
+                    let align_bytes = max_align.bytes();
+                    let padded = (total_bytes + align_bytes - 1) / align_bytes * align_bytes;
+                    let total_size = Size::from_bytes(padded).unwrap();
+
+                    Ok(lang::Type::Tuple {
+                        sized_fields: sized_fields.into_iter().collect(),
+                        sized_head_layout: TupleHeadLayout {
+                            end: total_size,
+                            align: max_align,
+                            packed_align: None,
+                        },
+                        unsized_field: GcCow::new(None),
+                    })
                 }
             }
             RigidName::FnPtr(_) => unimplemented!("fnptrs"),
