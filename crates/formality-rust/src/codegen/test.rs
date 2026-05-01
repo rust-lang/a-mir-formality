@@ -111,7 +111,7 @@ fn milestone_5_function_calls() {
                 return x;
             }
             fn main() -> () {
-                let y: i32 = add_one::<>(1 _ i32);
+                let y: i32 = add_one(1 _ i32);
                 print y;
             }
         }]",

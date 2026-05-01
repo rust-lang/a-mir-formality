@@ -908,7 +908,6 @@ fn resolve_call_from_expr(state: &mut CodegenState, callee: &Expr) -> Fallible<l
             Ok(state.builder.ensure_function(key))
         }
         ExprData::Place(place) => {
-            // Variable holding a FnDef — look up its Rust type
             let ty = infer_place_ty(state, place)?;
             match &ty {
                 Ty::RigidTy(rigid_ty) => match &rigid_ty.name {
@@ -1012,7 +1011,6 @@ fn infer_expr_ty(state: &CodegenState, expr: &Expr) -> Fallible<Ty> {
             Ok(Ty::rigid(RigidName::FnDef(id.clone()), ()))
         }
         ExprData::Call { callee, .. } => {
-            // The return type of a call is the return type of the callee function
             let callee_ty = infer_expr_ty(state, callee)?;
             infer_call_return_ty(state, &callee_ty)
         }
@@ -1036,10 +1034,13 @@ fn infer_call_return_ty(state: &CodegenState, callee_ty: &Ty) -> Fallible<Ty> {
 
 fn infer_place_ty(state: &CodegenState, place: &PlaceExpr) -> Fallible<Ty> {
     match place.data() {
-        PlaceExprData::Var(id) => {
-            let (_, ty) = state.lookup_var(id)?;
-            Ok(ty)
-        }
+        PlaceExprData::Var(id) => match state.lookup_var(id) {
+            Ok((_, ty)) => Ok(ty),
+            Err(_) if state.builder.crates.fn_named(id).is_ok() => {
+                Ok(Ty::rigid(RigidName::FnDef(id.clone()), ()))
+            }
+            Err(e) => Err(e),
+        },
         PlaceExprData::Parens(inner) => infer_place_ty(state, inner),
         PlaceExprData::Deref { prefix } => {
             let prefix_ty = infer_place_ty(state, prefix)?;
