@@ -229,3 +229,316 @@ fn milestone_12_usize_isize() {
     );
     assert_eq!(output, "100\n200\n");
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2: Expanded test coverage — function calls
+// ---------------------------------------------------------------------------
+
+#[test]
+fn multiple_calls_in_sequence() {
+    let output = run_program(
+        "[crate test {
+            fn f(x: i32) -> i32 { return x; }
+            fn main() -> () {
+                let a: i32 = f(1 _ i32);
+                let b: i32 = f(2 _ i32);
+                let c: i32 = f(3 _ i32);
+                print a;
+                print b;
+                print c;
+            }
+        }]",
+    );
+    assert_eq!(output, "1\n2\n3\n");
+}
+
+#[test]
+fn nested_calls() {
+    let output = run_program(
+        "[crate test {
+            fn f(x: i32) -> i32 { return x; }
+            fn main() -> () {
+                let y: i32 = f(f(42 _ i32));
+                print y;
+            }
+        }]",
+    );
+    assert_eq!(output, "42\n");
+}
+
+#[test]
+fn functions_calling_other_functions() {
+    let output = run_program(
+        "[crate test {
+            fn inner(x: i32) -> i32 { return x; }
+            fn outer(x: i32) -> i32 {
+                let y: i32 = inner(x);
+                return y;
+            }
+            fn main() -> () {
+                let r: i32 = outer(7 _ i32);
+                print r;
+            }
+        }]",
+    );
+    assert_eq!(output, "7\n");
+}
+
+#[test]
+fn transitive_monomorphization() {
+    let output = run_program(
+        "[crate test {
+            fn c<T>(x: T) -> T { return x; }
+            fn b<T>(x: T) -> T {
+                let y: T = c::<T>(x);
+                return y;
+            }
+            fn a() -> () {
+                let r: i32 = b::<i32>(99 _ i32);
+                print r;
+            }
+            fn main() -> () {
+                a();
+            }
+        }]",
+    );
+    assert_eq!(output, "99\n");
+}
+
+#[test]
+fn generic_function_multiple_type_params() {
+    let output = run_program(
+        "[crate test {
+            fn first<T, U>(x: T, y: U) -> T { return x; }
+            fn main() -> () {
+                let r: i32 = first::<i32, bool>(10 _ i32, true);
+                print r;
+            }
+        }]",
+    );
+    assert_eq!(output, "10\n");
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Expanded test coverage — structs
+// ---------------------------------------------------------------------------
+
+#[test]
+fn generic_struct() {
+    let output = run_program(
+        "[crate test {
+            struct Wrapper<T> where { val: T }
+            fn main() -> () {
+                let w: Wrapper<i32> = Wrapper::<i32> { val: 42 _ i32 };
+                print w.val;
+            }
+        }]",
+    );
+    assert_eq!(output, "42\n");
+}
+
+#[test]
+fn ref_to_struct_field() {
+    let output = run_program(
+        "[crate test {
+            struct Pair<> where { x: i32, y: i32 }
+            fn main() -> () {
+                let p: Pair = Pair { x: 10 _ i32, y: 20 _ i32 };
+                let r: & 'static i32 = & 'static p.x;
+                print *r;
+            }
+        }]",
+    );
+    assert_eq!(output, "10\n");
+}
+
+#[test]
+fn deref_through_ref_to_struct_field() {
+    let output = run_program(
+        "[crate test {
+            struct Pair<> where { x: i32, y: i32 }
+            fn main() -> () {
+                let p: Pair = Pair { x: 10 _ i32, y: 20 _ i32 };
+                let r: & 'static Pair = & 'static p;
+                print (*r).x;
+                print (*r).y;
+            }
+        }]",
+    );
+    assert_eq!(output, "10\n20\n");
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Expanded test coverage — control flow
+// ---------------------------------------------------------------------------
+
+#[test]
+fn continue_in_loop() {
+    // Loop 3 times, printing only on the first iteration via continue
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 0 _ i32;
+                'a: loop {
+                    if true {
+                        print x;
+                        break 'a;
+                    } else {
+                        continue 'a;
+                    }
+                }
+            }
+        }]",
+    );
+    assert_eq!(output, "0\n");
+}
+
+#[test]
+fn nested_loops_break_outer() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                'outer: loop {
+                    print 1 _ i32;
+                    'inner: loop {
+                        print 2 _ i32;
+                        break 'outer;
+                    }
+                }
+                print 3 _ i32;
+            }
+        }]",
+    );
+    assert_eq!(output, "1\n2\n3\n");
+}
+
+#[test]
+fn return_from_inside_loop() {
+    // Return from a non-unit function inside a loop, using break to exit
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 0 _ i32;
+                'a: loop {
+                    x = 77 _ i32;
+                    break 'a;
+                }
+                print x;
+            }
+        }]",
+    );
+    assert_eq!(output, "77\n");
+}
+
+#[test]
+fn return_from_nested_block_inside_loop() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 0 _ i32;
+                'a: loop {
+                    {
+                        x = 88 _ i32;
+                        break 'a;
+                    }
+                }
+                print x;
+            }
+        }]",
+    );
+    assert_eq!(output, "88\n");
+}
+
+#[test]
+fn if_else_inside_loop_with_breaks() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                'a: loop {
+                    if true {
+                        print 1 _ i32;
+                        break 'a;
+                    } else {
+                        print 2 _ i32;
+                        break 'a;
+                    }
+                }
+                print 3 _ i32;
+            }
+        }]",
+    );
+    assert_eq!(output, "1\n3\n");
+}
+
+#[test]
+fn multiple_breaks_same_label() {
+    // Both branches of if/else break to the same label
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 0 _ i32;
+                'a: loop {
+                    if false {
+                        x = 1 _ i32;
+                        break 'a;
+                    } else {
+                        x = 2 _ i32;
+                        break 'a;
+                    }
+                }
+                print x;
+            }
+        }]",
+    );
+    assert_eq!(output, "2\n");
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Expanded test coverage — references and exists
+// ---------------------------------------------------------------------------
+
+#[test]
+fn mut_reference() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 1 _ i32;
+                let r: &mut 'static i32 = &mut 'static x;
+                *r = 2 _ i32;
+                print *r;
+            }
+        }]",
+    );
+    assert_eq!(output, "2\n");
+}
+
+#[test]
+fn reborrow_shared() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 42 _ i32;
+                let r1: & 'static i32 = & 'static x;
+                let r2: & 'static i32 = & 'static *r1;
+                print *r2;
+            }
+        }]",
+    );
+    assert_eq!(output, "42\n");
+}
+
+#[test]
+fn exists_with_lifetime_parameterized_type() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 55 _ i32;
+                exists<'a> {
+                    let r: & 'a i32 = & 'a x;
+                    print *r;
+                }
+            }
+        }]",
+    );
+    assert_eq!(output, "55\n");
+}
