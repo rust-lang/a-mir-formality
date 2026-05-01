@@ -88,3 +88,17 @@ fn milestone_3_let_bindings() {
     );
     assert_eq!(output, "42\n");
 }
+
+#[test]
+fn milestone_4_assignment() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 1 _ i32;
+                x = 2 _ i32;
+                print x;
+            }
+        }]",
+    );
+    assert_eq!(output, "2\n");
+}

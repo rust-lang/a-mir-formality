@@ -345,6 +345,13 @@ fn codegen_stmt(state: &mut CodegenState, stmt: &Stmt) -> Fallible<SemeRegion> {
             region.add_empty_block(next_bb);
             Ok(region)
         }
+        Stmt::Expr { expr } => {
+            // Evaluate expression into a temp, discard result.
+            let expr_ty = infer_expr_ty(state, expr)?;
+            let mr_ty = minirust_ty(&expr_ty)?;
+            let temp = state.alloc_local(mr_ty);
+            codegen_expr_into(state, temp, expr)
+        }
         _ => anyhow::bail!("codegen not yet implemented for this statement"),
     }
 }
@@ -389,6 +396,26 @@ fn codegen_expr_into(
             });
             Ok(region)
         }
+        ExprData::Assign { place, expr } => {
+            // Evaluate the RHS into the place, then write unit to target.
+            let dest_place = codegen_place_expr(state, place)?;
+            let rhs_ty = infer_expr_ty(state, expr)?;
+            let mr_ty = minirust_ty(&rhs_ty)?;
+            let rhs_temp = state.alloc_local(mr_ty);
+            let mut region = codegen_expr_into(state, rhs_temp, expr)?;
+            region.push_stmt(lang::Statement::Assign {
+                destination: dest_place,
+                source: lang::ValueExpr::Load {
+                    source: GcCow::new(lang::PlaceExpr::Local(rhs_temp)),
+                },
+            });
+            // Assign produces unit
+            region.push_stmt(lang::Statement::Assign {
+                destination: lang::PlaceExpr::Local(target),
+                source: unit_value(),
+            });
+            Ok(region)
+        }
         _ => anyhow::bail!("codegen not yet implemented for this expression"),
     }
 }
@@ -411,6 +438,7 @@ fn infer_expr_ty(state: &CodegenState, expr: &Expr) -> Fallible<Ty> {
         ExprData::Literal { ty, .. } => Ok(scalar_ty(ty.clone())),
         ExprData::True | ExprData::False => Ok(Ty::bool()),
         ExprData::Place(place) => infer_place_ty(state, place),
+        ExprData::Assign { .. } => Ok(Ty::unit()),
         _ => anyhow::bail!("cannot infer type of expression for print"),
     }
 }
