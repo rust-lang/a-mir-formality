@@ -294,8 +294,12 @@ pub fn codegen_program(crates: &Crates) -> Fallible<lang::Program> {
 
 fn codegen_function(builder: &mut ProgramBuilder, key: &MonoKey) -> Fallible<lang::Function> {
     let fn_def = builder.crates.fn_named(&key.id)?;
-    let (_, fn_data) = fn_def.binder.open();
-    // TODO: instantiate with key.args for generics (milestone 6)
+    let fn_data = if key.args.is_empty() {
+        let (_, data) = fn_def.binder.open();
+        data
+    } else {
+        fn_def.binder.instantiate_with(&key.args)?
+    };
 
     let body_block = match &fn_data.body {
         crate::grammar::MaybeFnBody::FnBody(crate::grammar::FnBody::Expr(block)) => block,
@@ -513,11 +517,8 @@ fn codegen_expr_into(
             Ok(region)
         }
         ExprData::Call { callee, args } => {
-            // Evaluate callee to get its Rust type (for FnDef resolution)
-            let callee_rust_ty = infer_expr_ty(state, callee)?;
-
-            // Resolve the function to call based on the Rust type
-            let fn_name = resolve_call_target(state, &callee_rust_ty)?;
+            // Resolve the function to call from the callee expression
+            let fn_name = resolve_call_from_expr(state, callee)?;
 
             // Evaluate arguments into temps
             let mut region = SemeRegion::empty(state);
@@ -553,22 +554,34 @@ fn codegen_expr_into(
     }
 }
 
-/// Resolve a call target from the Rust type of the callee.
-fn resolve_call_target(state: &mut CodegenState, ty: &Ty) -> Fallible<lang::FnName> {
-    match ty {
-        Ty::RigidTy(rigid_ty) => match &rigid_ty.name {
-            RigidName::FnDef(id) => {
-                // FnDef carries the function identity. Look up the mono key.
-                // For now, no generic args (milestone 5 = non-generic).
-                let key = MonoKey {
-                    id: id.clone(),
-                    args: vec![],
-                };
-                Ok(state.builder.ensure_function(key))
+/// Resolve a call target from the callee expression.
+fn resolve_call_from_expr(state: &mut CodegenState, callee: &Expr) -> Fallible<lang::FnName> {
+    match callee.data() {
+        ExprData::Turbofish { id, args } => {
+            let key = MonoKey {
+                id: id.clone(),
+                args: args.clone(),
+            };
+            Ok(state.builder.ensure_function(key))
+        }
+        ExprData::Place(place) => {
+            // Variable holding a FnDef — look up its Rust type
+            let ty = infer_place_ty(state, place)?;
+            match &ty {
+                Ty::RigidTy(rigid_ty) => match &rigid_ty.name {
+                    RigidName::FnDef(id) => {
+                        let key = MonoKey {
+                            id: id.clone(),
+                            args: vec![],
+                        };
+                        Ok(state.builder.ensure_function(key))
+                    }
+                    _ => anyhow::bail!("cannot call non-function type: {ty:?}"),
+                },
+                _ => anyhow::bail!("cannot call non-function type: {ty:?}"),
             }
-            _ => anyhow::bail!("cannot call non-function type: {ty:?}"),
-        },
-        _ => anyhow::bail!("cannot call non-function type: {ty:?}"),
+        }
+        _ => anyhow::bail!("unsupported callee expression"),
     }
 }
 

@@ -118,3 +118,19 @@ fn milestone_5_function_calls() {
     );
     assert_eq!(output, "1\n");
 }
+
+#[test]
+fn milestone_6_generic_function_calls() {
+    let output = run_program(
+        "[crate test {
+            fn identity<T>(x: T) -> T {
+                return x;
+            }
+            fn main() -> () {
+                let y: i32 = identity::<i32>(42 _ i32);
+                print y;
+            }
+        }]",
+    );
+    assert_eq!(output, "42\n");
+}
