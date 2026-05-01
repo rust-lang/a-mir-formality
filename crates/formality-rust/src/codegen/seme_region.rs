@@ -126,9 +126,10 @@ impl SemeRegion {
                 } else {
                     // Entry was the fallthrough of other (not yet completed).
                     // Inline other's pending stmts into our fallthrough.
+                    // self.fallthrough stays the same (we inlined into it).
                     self.fallthrough_stmts.extend(other.fallthrough_stmts);
                     self.blocks.extend(other_blocks);
-                    self.fallthrough = other.fallthrough;
+                    // fallthrough stays as self.fallthrough
                 }
 
                 self

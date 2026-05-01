@@ -75,3 +75,16 @@ fn milestone_2_booleans_and_multiple_prints() {
     );
     assert_eq!(output, "1\ntrue\nfalse\n");
 }
+
+#[test]
+fn milestone_3_let_bindings() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 42 _ i32;
+                print x;
+            }
+        }]",
+    );
+    assert_eq!(output, "42\n");
+}

@@ -302,6 +302,21 @@ fn finalize_fn_body(mut region: SemeRegion, ret_local: lang::LocalName) -> SemeR
 /// Codegen a single statement.
 fn codegen_stmt(state: &mut CodegenState, stmt: &Stmt) -> Fallible<SemeRegion> {
     match stmt {
+        Stmt::Let {
+            label: _,
+            id,
+            ty,
+            init,
+        } => {
+            let mr_ty = minirust_ty(ty)?;
+            let local = state.alloc_local(mr_ty);
+            state.variables.push((id.clone(), local, ty.clone()));
+            if let Some(init) = init {
+                codegen_expr_into(state, local, &init.expr)
+            } else {
+                Ok(SemeRegion::empty(state))
+            }
+        }
         Stmt::Return { expr } => {
             // Evaluate the return expression into the return local.
             // The return local is always the first one allocated (index 0).
@@ -312,7 +327,7 @@ fn codegen_stmt(state: &mut CodegenState, stmt: &Stmt) -> Fallible<SemeRegion> {
         }
         Stmt::Print { expr } => {
             // Evaluate expr into a temp, then emit PrintStdout intrinsic.
-            let expr_ty = infer_expr_ty(expr)?;
+            let expr_ty = infer_expr_ty(state, expr)?;
             let mr_ty = minirust_ty(&expr_ty)?;
             let temp = state.alloc_local(mr_ty);
             let mut region = codegen_expr_into(state, temp, expr)?;
@@ -391,10 +406,23 @@ fn codegen_place_expr(state: &CodegenState, place: &PlaceExpr) -> Fallible<lang:
 }
 
 /// Infer the type of an expression (simple cases only).
-fn infer_expr_ty(expr: &Expr) -> Fallible<Ty> {
+fn infer_expr_ty(state: &CodegenState, expr: &Expr) -> Fallible<Ty> {
     match expr.data() {
         ExprData::Literal { ty, .. } => Ok(scalar_ty(ty.clone())),
         ExprData::True | ExprData::False => Ok(Ty::bool()),
+        ExprData::Place(place) => infer_place_ty(state, place),
         _ => anyhow::bail!("cannot infer type of expression for print"),
+    }
+}
+
+/// Infer the type of a place expression.
+fn infer_place_ty(state: &CodegenState, place: &PlaceExpr) -> Fallible<Ty> {
+    match place.data() {
+        PlaceExprData::Var(id) => {
+            let (_, ty) = state.lookup_var(id)?;
+            Ok(ty)
+        }
+        PlaceExprData::Parens(inner) => infer_place_ty(state, inner),
+        _ => anyhow::bail!("cannot infer type of place expression"),
     }
 }
