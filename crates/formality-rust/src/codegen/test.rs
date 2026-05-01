@@ -185,3 +185,18 @@ fn milestone_9_nested_blocks_and_exists() {
     );
     assert_eq!(output, "99\n1\n");
 }
+
+#[test]
+fn milestone_10_structs() {
+    let output = run_program(
+        "[crate test {
+            struct Pair<> where { x: i32, y: i32 }
+            fn main() -> () {
+                let p: Pair = Pair { x: 10 _ i32, y: 20 _ i32 };
+                print p.x;
+                print p.y;
+            }
+        }]",
+    );
+    assert_eq!(output, "10\n20\n");
+}
