@@ -151,3 +151,19 @@ fn milestone_7_if_statements() {
     );
     assert_eq!(output, "1\n");
 }
+
+#[test]
+fn milestone_8_loops_break_continue() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                let x: i32 = 0 _ i32;
+                'a: loop {
+                    print x;
+                    break 'a;
+                }
+            }
+        }]",
+    );
+    assert_eq!(output, "0\n");
+}

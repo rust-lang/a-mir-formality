@@ -106,6 +106,15 @@ struct CodegenState<'a, 'b> {
     variables: Vec<(ValueId, lang::LocalName, Ty)>,
     locals: Vec<(lang::LocalName, lang::Type)>,
     ret_local: lang::LocalName,
+    /// Scope stack for break/continue targets.
+    loop_scopes: Vec<LoopScope>,
+}
+
+/// A loop scope for break/continue resolution.
+struct LoopScope {
+    label: crate::grammar::expr::LabelId,
+    loop_start: lang::BbName,
+    exit_block: lang::BbName,
 }
 
 impl<'a, 'b> CodegenState<'a, 'b> {
@@ -124,6 +133,17 @@ impl<'a, 'b> CodegenState<'a, 'b> {
             .find(|(name, _, _)| name == id)
             .map(|(_, local, ty)| (*local, ty.clone()))
             .ok_or_else(|| anyhow::anyhow!("unbound variable `{id:?}`"))
+    }
+    fn lookup_loop(
+        &self,
+        label: &crate::grammar::expr::LabelId,
+    ) -> Fallible<(lang::BbName, lang::BbName)> {
+        self.loop_scopes
+            .iter()
+            .rev()
+            .find(|s| s.label == *label)
+            .map(|s| (s.loop_start, s.exit_block))
+            .ok_or_else(|| anyhow::anyhow!("no loop with label `{label:?}`"))
     }
 }
 
@@ -328,6 +348,7 @@ fn codegen_function(builder: &mut ProgramBuilder, key: &MonoKey) -> Fallible<lan
         variables,
         locals,
         ret_local,
+        loop_scopes: Vec::new(),
     };
 
     let region = codegen_block(&mut state, body_block)?;
@@ -454,6 +475,62 @@ fn codegen_stmt(state: &mut CodegenState, stmt: &Stmt) -> Fallible<SemeRegion> {
             let mr_ty = minirust_ty(&expr_ty)?;
             let temp = state.alloc_local(mr_ty);
             codegen_expr_into(state, temp, expr)
+        }
+        Stmt::Loop { label, body } => {
+            let label = label
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("loop must have a label for codegen"))?;
+
+            let loop_start = state.fresh_bb();
+            let exit_block = state.fresh_bb();
+
+            // Push loop scope
+            state.loop_scopes.push(LoopScope {
+                label: label.id.clone(),
+                loop_start,
+                exit_block,
+            });
+
+            // Codegen the body
+            let body_region = codegen_block(state, body)?;
+
+            // Pop loop scope
+            state.loop_scopes.pop();
+
+            // Build the loop structure:
+            // entry → Goto(loop_start) → body → Goto(loop_start)
+            //                                 → break → exit_block
+            let mut region = SemeRegion::empty(state);
+
+            // Terminate entry with Goto(loop_start)
+            region.terminate(lang::Terminator::Goto(loop_start));
+
+            // Add loop_start as a new block, inline body into it
+            region.add_empty_block(loop_start);
+
+            // Append body
+            region = region.append(state, body_region);
+
+            // If body has fallthrough, add back-edge to loop_start
+            if region.has_fallthrough() {
+                region.terminate(lang::Terminator::Goto(loop_start));
+            }
+
+            // The exit block is the new fallthrough
+            region.add_empty_block(exit_block);
+            Ok(region)
+        }
+        Stmt::Break { label } => {
+            let (_, exit_block) = state.lookup_loop(label)?;
+            let mut region = SemeRegion::empty(state);
+            region.terminate(lang::Terminator::Goto(exit_block));
+            Ok(region)
+        }
+        Stmt::Continue { label } => {
+            let (loop_start, _) = state.lookup_loop(label)?;
+            let mut region = SemeRegion::empty(state);
+            region.terminate(lang::Terminator::Goto(loop_start));
+            Ok(region)
         }
         _ => anyhow::bail!("codegen not yet implemented for this statement"),
     }
