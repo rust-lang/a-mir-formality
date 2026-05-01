@@ -364,6 +364,16 @@ fn codegen_expr_into(
             });
             Ok(region)
         }
+        ExprData::True | ExprData::False => {
+            let val = matches!(expr.data(), ExprData::True);
+            let source = lang::ValueExpr::Constant(lang::Constant::Bool(val), lang::Type::Bool);
+            let mut region = SemeRegion::empty(state);
+            region.push_stmt(lang::Statement::Assign {
+                destination: lang::PlaceExpr::Local(target),
+                source,
+            });
+            Ok(region)
+        }
         _ => anyhow::bail!("codegen not yet implemented for this expression"),
     }
 }

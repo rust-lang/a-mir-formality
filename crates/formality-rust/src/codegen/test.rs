@@ -61,3 +61,17 @@ fn milestone_1_hello_world() {
     );
     assert_eq!(output, "22\n");
 }
+
+#[test]
+fn milestone_2_booleans_and_multiple_prints() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                print 1 _ i32;
+                print true;
+                print false;
+            }
+        }]",
+    );
+    assert_eq!(output, "1\ntrue\nfalse\n");
+}
