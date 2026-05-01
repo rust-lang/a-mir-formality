@@ -102,3 +102,19 @@ fn milestone_4_assignment() {
     );
     assert_eq!(output, "2\n");
 }
+
+#[test]
+fn milestone_5_function_calls() {
+    let output = run_program(
+        "[crate test {
+            fn add_one(x: i32) -> i32 {
+                return x;
+            }
+            fn main() -> () {
+                let y: i32 = add_one::<>(1 _ i32);
+                print y;
+            }
+        }]",
+    );
+    assert_eq!(output, "1\n");
+}

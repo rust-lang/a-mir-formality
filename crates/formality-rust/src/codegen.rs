@@ -1,6 +1,6 @@
 use crate::grammar::{
     expr::{Block, Expr, ExprData, PlaceExpr, PlaceExprData, Stmt},
-    Crates, Fallible, RigidName, RigidTy, ScalarId, Ty, TyData, ValueId,
+    Crates, Fallible, Parameter, RigidName, RigidTy, ScalarId, Ty, TyData, ValueId,
 };
 use formality_core::Upcast;
 use libspecr::hidden::GcCow;
@@ -13,7 +13,10 @@ use seme_region::SemeRegion;
 
 mod test;
 
-/// Counter for deterministic fresh name allocation.
+// ---------------------------------------------------------------------------
+// Name allocation
+// ---------------------------------------------------------------------------
+
 #[derive(Clone)]
 struct NameCounter(u32);
 
@@ -21,56 +24,99 @@ impl NameCounter {
     fn new() -> Self {
         NameCounter(0)
     }
-
     fn fresh(&mut self) -> libspecr::Name {
         let n = self.0;
         self.0 += 1;
         libspecr::Name::from_internal(n)
     }
-
     fn fresh_bb(&mut self) -> lang::BbName {
         lang::BbName(self.fresh())
     }
-
     fn fresh_local(&mut self) -> lang::LocalName {
         lang::LocalName(self.fresh())
     }
 }
 
-/// Codegen state threaded through judgments.
-struct CodegenState<'a> {
-    crates: &'a Crates,
-    counter: NameCounter,
-    /// Map from source variable name to (local name, Rust type).
-    variables: Vec<(ValueId, lang::LocalName, Ty)>,
-    /// Accumulated locals: local name → minirust type.
-    locals: Vec<(lang::LocalName, lang::Type)>,
+// ---------------------------------------------------------------------------
+// Monomorphization
+// ---------------------------------------------------------------------------
+
+/// A monomorphization key: function id + type parameters.
+#[derive(Clone, PartialEq, Eq)]
+struct MonoKey {
+    id: ValueId,
+    args: Vec<Parameter>,
 }
 
-impl<'a> CodegenState<'a> {
+/// Global codegen context that accumulates functions across the worklist.
+struct ProgramBuilder<'a> {
+    crates: &'a Crates,
+    /// Global counter for FnName allocation.
+    fn_counter: NameCounter,
+    /// Worklist of functions to codegen.
+    worklist: Vec<(MonoKey, lang::FnName)>,
+    /// Already-processed mono keys → FnName.
+    processed: Vec<(MonoKey, lang::FnName)>,
+    /// Accumulated functions.
+    functions: Map<lang::FnName, lang::Function>,
+}
+
+impl<'a> ProgramBuilder<'a> {
     fn new(crates: &'a Crates) -> Self {
-        CodegenState {
+        ProgramBuilder {
             crates,
-            counter: NameCounter::new(),
-            variables: Vec::new(),
-            locals: Vec::new(),
+            fn_counter: NameCounter::new(),
+            worklist: Vec::new(),
+            processed: Vec::new(),
+            functions: Map::new(),
         }
     }
 
-    fn fresh_bb(&mut self) -> lang::BbName {
-        self.counter.fresh_bb()
-    }
-
-    fn fresh_local(&mut self) -> lang::LocalName {
-        self.counter.fresh_local()
-    }
-
-    fn alloc_local(&mut self, ty: lang::Type) -> lang::LocalName {
-        let name = self.fresh_local();
-        self.locals.push((name, ty));
+    /// Ensure a function is in the worklist or already processed. Returns its FnName.
+    fn ensure_function(&mut self, key: MonoKey) -> lang::FnName {
+        // Check if already processed or in worklist
+        for (k, name) in self.processed.iter().chain(self.worklist.iter()) {
+            if *k == key {
+                return *name;
+            }
+        }
+        let name = lang::FnName(self.fn_counter.fresh());
+        self.worklist.push((key, name));
         name
     }
 
+    /// Process the worklist until empty.
+    fn process_worklist(&mut self) -> Fallible<()> {
+        while let Some((key, fn_name)) = self.worklist.pop() {
+            self.processed.push((key.clone(), fn_name));
+            let function = codegen_function(self, &key)?;
+            self.functions.insert(fn_name, function);
+        }
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Per-function codegen state
+// ---------------------------------------------------------------------------
+
+struct CodegenState<'a, 'b> {
+    builder: &'a mut ProgramBuilder<'b>,
+    counter: NameCounter,
+    variables: Vec<(ValueId, lang::LocalName, Ty)>,
+    locals: Vec<(lang::LocalName, lang::Type)>,
+    ret_local: lang::LocalName,
+}
+
+impl<'a, 'b> CodegenState<'a, 'b> {
+    fn fresh_bb(&mut self) -> lang::BbName {
+        self.counter.fresh_bb()
+    }
+    fn alloc_local(&mut self, ty: lang::Type) -> lang::LocalName {
+        let name = self.counter.fresh_local();
+        self.locals.push((name, ty));
+        name
+    }
     fn lookup_var(&self, id: &ValueId) -> Fallible<(lang::LocalName, Ty)> {
         self.variables
             .iter()
@@ -81,7 +127,10 @@ impl<'a> CodegenState<'a> {
     }
 }
 
-/// Convert a Rust type to a MiniRust type.
+// ---------------------------------------------------------------------------
+// Type helpers
+// ---------------------------------------------------------------------------
+
 fn minirust_ty(ty: &Ty) -> Fallible<lang::Type> {
     match ty {
         Ty::RigidTy(rigid_ty) => match &rigid_ty.name {
@@ -116,7 +165,7 @@ fn minirust_ty(ty: &Ty) -> Fallible<lang::Type> {
                 }
             }
             RigidName::FnPtr(_) => unimplemented!("fnptrs"),
-            RigidName::FnDef(_) => unimplemented!("fndefs"),
+            RigidName::FnDef(_) => Ok(unit_ty()), // FnDef is a ZST
         },
         TyData::AliasTy(_) => unimplemented!("associated type normalization"),
         TyData::PredicateTy(_) => unimplemented!("predicate types"),
@@ -126,7 +175,6 @@ fn minirust_ty(ty: &Ty) -> Fallible<lang::Type> {
     }
 }
 
-/// The unit type: a zero-element tuple.
 fn unit_ty() -> lang::Type {
     lang::Type::Tuple {
         sized_fields: list![],
@@ -139,12 +187,10 @@ fn unit_ty() -> lang::Type {
     }
 }
 
-/// A unit value expression.
 fn unit_value() -> lang::ValueExpr {
     lang::ValueExpr::Tuple(list![], unit_ty())
 }
 
-/// Build a scalar Ty from a ScalarId.
 fn scalar_ty(s: ScalarId) -> Ty {
     RigidTy {
         name: RigidName::ScalarId(s),
@@ -153,66 +199,35 @@ fn scalar_ty(s: ScalarId) -> Ty {
     .upcast()
 }
 
-/// Top-level entry point: compile a `Crates` to a MiniRust `Program`.
+// ---------------------------------------------------------------------------
+// Top-level entry point
+// ---------------------------------------------------------------------------
+
 pub fn codegen_program(crates: &Crates) -> Fallible<lang::Program> {
-    let mut state = CodegenState::new(crates);
+    let mut builder = ProgramBuilder::new(crates);
 
-    // Find main function
-    let main_fn = crates.fn_named(&crate::rust::term("main"))?;
-    let (_, fn_data) = main_fn.binder.open();
-
-    // Codegen main's body
-    let body_block = match &fn_data.body {
-        crate::grammar::MaybeFnBody::FnBody(crate::grammar::FnBody::Expr(block)) => block,
-        _ => anyhow::bail!("main must have an expression body"),
+    // Enqueue main
+    let main_key = MonoKey {
+        id: crate::rust::term("main"),
+        args: vec![],
     };
+    let main_fn_name = builder.ensure_function(main_key);
 
-    let ret_ty = minirust_ty(&fn_data.output_ty)?;
-    let ret_local = state.alloc_local(ret_ty);
+    // Process all functions
+    builder.process_worklist()?;
 
-    let region = codegen_block(&mut state, body_block)?;
+    // Build synthetic _start
+    let mut sc = NameCounter::new();
+    let start_ret = lang::LocalName(sc.fresh());
+    let start_main_ret = lang::LocalName(sc.fresh());
+    let call_bb = lang::BbName(sc.fresh());
+    let exit_bb = lang::BbName(sc.fresh());
 
-    // If the block has a fallthrough (didn't end with return), add implicit unit return
-    let region = finalize_fn_body(region, ret_local);
-    let main_entry = region.entry();
-
-    let mut main_blocks = region.into_blocks();
-
-    // Prepend StorageLive for all locals to the entry block
-    let storage_lives: Vec<lang::Statement> = state
-        .locals
-        .iter()
-        .map(|(name, _)| lang::Statement::StorageLive(*name))
-        .collect();
-    if let Some((_, entry_bb)) = main_blocks.first_mut() {
-        let mut new_stmts: List<lang::Statement> = storage_lives.into_iter().collect();
-        for s in entry_bb.statements {
-            new_stmts.push(s);
-        }
-        entry_bb.statements = new_stmts;
-    }
-
-    let main_fn_name = lang::FnName(state.counter.fresh());
-    let main_locals: Map<lang::LocalName, lang::Type> =
-        state.locals.iter().map(|(k, v)| (*k, *v)).collect();
-    let main_bb_map: Map<lang::BbName, lang::BasicBlock> = main_blocks.into_iter().collect();
-
-    let main_function = lang::Function {
-        locals: main_locals,
-        args: list![],
-        ret: ret_local,
-        calling_convention: lang::CallingConvention::Rust,
-        blocks: main_bb_map,
-        start: main_entry,
-    };
-
-    // Build synthetic _start that calls main then exits
-    let mut start_counter = NameCounter::new();
-    let start_ret = lang::LocalName(start_counter.fresh());
-    let start_main_ret = lang::LocalName(start_counter.fresh());
-
-    let call_bb = lang::BbName(start_counter.fresh());
-    let exit_bb = lang::BbName(start_counter.fresh());
+    let main_ret_ty = builder
+        .functions
+        .get(main_fn_name)
+        .map(|f| f.locals.get(f.ret).unwrap())
+        .unwrap();
 
     let call_block = lang::BasicBlock {
         statements: list![
@@ -232,7 +247,6 @@ pub fn codegen_program(crates: &Crates) -> Fallible<lang::Program> {
         },
         kind: lang::BbKind::Regular,
     };
-
     let exit_block = lang::BasicBlock {
         statements: list![],
         terminator: lang::Terminator::Intrinsic {
@@ -244,11 +258,10 @@ pub fn codegen_program(crates: &Crates) -> Fallible<lang::Program> {
         kind: lang::BbKind::Regular,
     };
 
-    let start_fn_name = lang::FnName(start_counter.fresh());
-
+    let start_fn_name = lang::FnName(sc.fresh());
     let mut start_locals = Map::new();
     start_locals.insert(start_ret, unit_ty());
-    start_locals.insert(start_main_ret, ret_ty);
+    start_locals.insert(start_main_ret, main_ret_ty);
 
     let start_function = lang::Function {
         locals: start_locals,
@@ -264,12 +277,10 @@ pub fn codegen_program(crates: &Crates) -> Fallible<lang::Program> {
         start: call_bb,
     };
 
-    let mut functions = Map::new();
-    functions.insert(main_fn_name, main_function);
-    functions.insert(start_fn_name, start_function);
+    builder.functions.insert(start_fn_name, start_function);
 
     Ok(lang::Program {
-        functions,
+        functions: builder.functions,
         start: start_fn_name,
         globals: Map::new(),
         traits: Map::new(),
@@ -277,7 +288,86 @@ pub fn codegen_program(crates: &Crates) -> Fallible<lang::Program> {
     })
 }
 
-/// Codegen a block (sequence of statements).
+// ---------------------------------------------------------------------------
+// Function codegen
+// ---------------------------------------------------------------------------
+
+fn codegen_function(builder: &mut ProgramBuilder, key: &MonoKey) -> Fallible<lang::Function> {
+    let fn_def = builder.crates.fn_named(&key.id)?;
+    let (_, fn_data) = fn_def.binder.open();
+    // TODO: instantiate with key.args for generics (milestone 6)
+
+    let body_block = match &fn_data.body {
+        crate::grammar::MaybeFnBody::FnBody(crate::grammar::FnBody::Expr(block)) => block,
+        _ => anyhow::bail!("function {:?} must have an expression body", key.id),
+    };
+
+    let ret_ty = minirust_ty(&fn_data.output_ty)?;
+    let mut counter = NameCounter::new();
+    let ret_local = lang::LocalName(counter.fresh_local().0);
+    let mut locals = vec![(ret_local, ret_ty)];
+
+    // Allocate arg locals
+    let mut arg_locals = list![];
+    let mut variables = Vec::new();
+    for arg in &fn_data.input_args {
+        let mr_ty = minirust_ty(&arg.ty)?;
+        let local = lang::LocalName(counter.fresh_local().0);
+        locals.push((local, mr_ty));
+        arg_locals.push(local);
+        variables.push((arg.id.clone(), local, arg.ty.clone()));
+    }
+
+    let mut state = CodegenState {
+        builder,
+        counter,
+        variables,
+        locals,
+        ret_local,
+    };
+
+    let region = codegen_block(&mut state, body_block)?;
+    let region = finalize_fn_body(region, state.ret_local);
+    let entry = region.entry();
+    let mut blocks = region.into_blocks();
+
+    // Prepend StorageLive for non-arg, non-ret locals
+    let mut skip_locals = vec![state.ret_local];
+    for al in arg_locals {
+        skip_locals.push(al);
+    }
+    let storage_lives: Vec<lang::Statement> = state
+        .locals
+        .iter()
+        .filter(|(name, _)| !skip_locals.contains(name))
+        .map(|(name, _)| lang::Statement::StorageLive(*name))
+        .collect();
+    if let Some((_, entry_bb)) = blocks.first_mut() {
+        let mut new_stmts: List<lang::Statement> = storage_lives.into_iter().collect();
+        for s in entry_bb.statements {
+            new_stmts.push(s);
+        }
+        entry_bb.statements = new_stmts;
+    }
+
+    let locals_map: Map<lang::LocalName, lang::Type> =
+        state.locals.iter().map(|(k, v)| (*k, *v)).collect();
+    let blocks_map: Map<lang::BbName, lang::BasicBlock> = blocks.into_iter().collect();
+
+    Ok(lang::Function {
+        locals: locals_map,
+        args: arg_locals,
+        ret: state.ret_local,
+        calling_convention: lang::CallingConvention::Rust,
+        blocks: blocks_map,
+        start: entry,
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Block / statement / expression codegen
+// ---------------------------------------------------------------------------
+
 fn codegen_block(state: &mut CodegenState, block: &Block) -> Fallible<SemeRegion> {
     let mut region = SemeRegion::empty(state);
     for stmt in &block.stmts {
@@ -287,7 +377,6 @@ fn codegen_block(state: &mut CodegenState, block: &Block) -> Fallible<SemeRegion
     Ok(region)
 }
 
-/// If the region still has a fallthrough, write unit to ret_local and emit Return.
 fn finalize_fn_body(mut region: SemeRegion, ret_local: lang::LocalName) -> SemeRegion {
     if region.has_fallthrough() {
         region.push_stmt(lang::Statement::Assign {
@@ -299,7 +388,6 @@ fn finalize_fn_body(mut region: SemeRegion, ret_local: lang::LocalName) -> SemeR
     region
 }
 
-/// Codegen a single statement.
 fn codegen_stmt(state: &mut CodegenState, stmt: &Stmt) -> Fallible<SemeRegion> {
     match stmt {
         Stmt::Let {
@@ -318,20 +406,16 @@ fn codegen_stmt(state: &mut CodegenState, stmt: &Stmt) -> Fallible<SemeRegion> {
             }
         }
         Stmt::Return { expr } => {
-            // Evaluate the return expression into the return local.
-            // The return local is always the first one allocated (index 0).
-            let ret_local = lang::LocalName(libspecr::Name::from_internal(0));
+            let ret_local = state.ret_local;
             let mut region = codegen_expr_into(state, ret_local, expr)?;
             region.terminate(lang::Terminator::Return);
             Ok(region)
         }
         Stmt::Print { expr } => {
-            // Evaluate expr into a temp, then emit PrintStdout intrinsic.
             let expr_ty = infer_expr_ty(state, expr)?;
             let mr_ty = minirust_ty(&expr_ty)?;
             let temp = state.alloc_local(mr_ty);
             let mut region = codegen_expr_into(state, temp, expr)?;
-
             let next_bb = state.fresh_bb();
             let print_ret = state.alloc_local(unit_ty());
             region.terminate(lang::Terminator::Intrinsic {
@@ -346,7 +430,6 @@ fn codegen_stmt(state: &mut CodegenState, stmt: &Stmt) -> Fallible<SemeRegion> {
             Ok(region)
         }
         Stmt::Expr { expr } => {
-            // Evaluate expression into a temp, discard result.
             let expr_ty = infer_expr_ty(state, expr)?;
             let mr_ty = minirust_ty(&expr_ty)?;
             let temp = state.alloc_local(mr_ty);
@@ -356,7 +439,6 @@ fn codegen_stmt(state: &mut CodegenState, stmt: &Stmt) -> Fallible<SemeRegion> {
     }
 }
 
-/// Codegen an expression, writing the result into `target`.
 fn codegen_expr_into(
     state: &mut CodegenState,
     target: lang::LocalName,
@@ -365,8 +447,7 @@ fn codegen_expr_into(
     match expr.data() {
         ExprData::Literal { value, ty } => {
             let mr_ty = minirust_ty(&scalar_ty(ty.clone()))?;
-            let int_val = Int::from(*value);
-            let source = lang::ValueExpr::Constant(lang::Constant::Int(int_val), mr_ty);
+            let source = lang::ValueExpr::Constant(lang::Constant::Int(Int::from(*value)), mr_ty);
             let mut region = SemeRegion::empty(state);
             region.push_stmt(lang::Statement::Assign {
                 destination: lang::PlaceExpr::Local(target),
@@ -376,28 +457,25 @@ fn codegen_expr_into(
         }
         ExprData::Place(place_expr) => {
             let source_place = codegen_place_expr(state, place_expr)?;
-            let source = lang::ValueExpr::Load {
-                source: GcCow::new(source_place),
-            };
             let mut region = SemeRegion::empty(state);
             region.push_stmt(lang::Statement::Assign {
                 destination: lang::PlaceExpr::Local(target),
-                source,
+                source: lang::ValueExpr::Load {
+                    source: GcCow::new(source_place),
+                },
             });
             Ok(region)
         }
         ExprData::True | ExprData::False => {
             let val = matches!(expr.data(), ExprData::True);
-            let source = lang::ValueExpr::Constant(lang::Constant::Bool(val), lang::Type::Bool);
             let mut region = SemeRegion::empty(state);
             region.push_stmt(lang::Statement::Assign {
                 destination: lang::PlaceExpr::Local(target),
-                source,
+                source: lang::ValueExpr::Constant(lang::Constant::Bool(val), lang::Type::Bool),
             });
             Ok(region)
         }
         ExprData::Assign { place, expr } => {
-            // Evaluate the RHS into the place, then write unit to target.
             let dest_place = codegen_place_expr(state, place)?;
             let rhs_ty = infer_expr_ty(state, expr)?;
             let mr_ty = minirust_ty(&rhs_ty)?;
@@ -409,18 +487,91 @@ fn codegen_expr_into(
                     source: GcCow::new(lang::PlaceExpr::Local(rhs_temp)),
                 },
             });
-            // Assign produces unit
             region.push_stmt(lang::Statement::Assign {
                 destination: lang::PlaceExpr::Local(target),
                 source: unit_value(),
             });
             Ok(region)
         }
+        ExprData::Turbofish { id, args } => {
+            // Turbofish produces a ZST (FnDef type). The value is meaningless.
+            // Ensure the function is in the worklist.
+            let key = MonoKey {
+                id: id.clone(),
+                args: args.clone(),
+            };
+            let _fn_name = state.builder.ensure_function(key);
+            // Write unit to target (FnDef is a ZST)
+            let mut region = SemeRegion::empty(state);
+            region.push_stmt(lang::Statement::Assign {
+                destination: lang::PlaceExpr::Local(target),
+                source: unit_value(),
+            });
+            // Register the Rust type as FnDef for later call resolution
+            // We track this via the variable system — the Let that binds this
+            // will register the variable with its declared type.
+            Ok(region)
+        }
+        ExprData::Call { callee, args } => {
+            // Evaluate callee to get its Rust type (for FnDef resolution)
+            let callee_rust_ty = infer_expr_ty(state, callee)?;
+
+            // Resolve the function to call based on the Rust type
+            let fn_name = resolve_call_target(state, &callee_rust_ty)?;
+
+            // Evaluate arguments into temps
+            let mut region = SemeRegion::empty(state);
+            let mut arg_exprs = list![];
+            for arg in args {
+                let arg_ty = infer_expr_ty(state, arg)?;
+                let mr_ty = minirust_ty(&arg_ty)?;
+                let arg_temp = state.alloc_local(mr_ty);
+                let arg_region = codegen_expr_into(state, arg_temp, arg)?;
+                region = region.append(state, arg_region);
+                arg_exprs.push(lang::ArgumentExpr::ByValue(lang::ValueExpr::Load {
+                    source: GcCow::new(lang::PlaceExpr::Local(arg_temp)),
+                }));
+            }
+
+            // Emit Call terminator
+            let next_bb = state.fresh_bb();
+            region.terminate(lang::Terminator::Call {
+                callee: lang::ValueExpr::Constant(
+                    lang::Constant::FnPointer(fn_name),
+                    lang::Type::Ptr(PtrType::FnPtr),
+                ),
+                calling_convention: lang::CallingConvention::Rust,
+                arguments: arg_exprs,
+                ret: lang::PlaceExpr::Local(target),
+                next_block: Some(next_bb),
+                unwind_block: None,
+            });
+            region.add_empty_block(next_bb);
+            Ok(region)
+        }
         _ => anyhow::bail!("codegen not yet implemented for this expression"),
     }
 }
 
-/// Codegen a place expression.
+/// Resolve a call target from the Rust type of the callee.
+fn resolve_call_target(state: &mut CodegenState, ty: &Ty) -> Fallible<lang::FnName> {
+    match ty {
+        Ty::RigidTy(rigid_ty) => match &rigid_ty.name {
+            RigidName::FnDef(id) => {
+                // FnDef carries the function identity. Look up the mono key.
+                // For now, no generic args (milestone 5 = non-generic).
+                let key = MonoKey {
+                    id: id.clone(),
+                    args: vec![],
+                };
+                Ok(state.builder.ensure_function(key))
+            }
+            _ => anyhow::bail!("cannot call non-function type: {ty:?}"),
+        },
+        _ => anyhow::bail!("cannot call non-function type: {ty:?}"),
+    }
+}
+
 fn codegen_place_expr(state: &CodegenState, place: &PlaceExpr) -> Fallible<lang::PlaceExpr> {
     match place.data() {
         PlaceExprData::Var(id) => {
@@ -432,18 +583,43 @@ fn codegen_place_expr(state: &CodegenState, place: &PlaceExpr) -> Fallible<lang:
     }
 }
 
-/// Infer the type of an expression (simple cases only).
+// ---------------------------------------------------------------------------
+// Type inference (for codegen)
+// ---------------------------------------------------------------------------
+
 fn infer_expr_ty(state: &CodegenState, expr: &Expr) -> Fallible<Ty> {
     match expr.data() {
         ExprData::Literal { ty, .. } => Ok(scalar_ty(ty.clone())),
         ExprData::True | ExprData::False => Ok(Ty::bool()),
         ExprData::Place(place) => infer_place_ty(state, place),
         ExprData::Assign { .. } => Ok(Ty::unit()),
-        _ => anyhow::bail!("cannot infer type of expression for print"),
+        ExprData::Turbofish { id, args: _ } => {
+            // Turbofish produces a FnDef type
+            Ok(Ty::rigid(RigidName::FnDef(id.clone()), ()))
+        }
+        ExprData::Call { callee, .. } => {
+            // The return type of a call is the return type of the callee function
+            let callee_ty = infer_expr_ty(state, callee)?;
+            infer_call_return_ty(state, &callee_ty)
+        }
+        _ => anyhow::bail!("cannot infer type of expression"),
     }
 }
 
-/// Infer the type of a place expression.
+fn infer_call_return_ty(state: &CodegenState, callee_ty: &Ty) -> Fallible<Ty> {
+    match callee_ty {
+        Ty::RigidTy(rigid_ty) => match &rigid_ty.name {
+            RigidName::FnDef(id) => {
+                let fn_def = state.builder.crates.fn_named(id)?;
+                let (_, fn_data) = fn_def.binder.open();
+                Ok(fn_data.output_ty.clone())
+            }
+            _ => anyhow::bail!("cannot infer return type of non-function: {callee_ty:?}"),
+        },
+        _ => anyhow::bail!("cannot infer return type of non-function: {callee_ty:?}"),
+    }
+}
+
 fn infer_place_ty(state: &CodegenState, place: &PlaceExpr) -> Fallible<Ty> {
     match place.data() {
         PlaceExprData::Var(id) => {
