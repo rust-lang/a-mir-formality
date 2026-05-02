@@ -528,3 +528,25 @@ fn return_from_nested_block_inside_loop() {
     );
     assert_eq!(output, "88\n");
 }
+
+#[test]
+fn break_from_labeled_block() {
+    let output = run_program(
+        "[crate test {
+            fn main() -> () {
+                'a: {
+                    print 1 _ i32;
+                    break 'a;
+                    print 2 _ i32;
+                }
+                print 3 _ i32;
+            }
+        }]",
+    );
+    assert_eq!(output, "1\n3\n");
+}
+
+// NOTE: labeled blocks as nested statements don't parse currently
+// (parser limitation). They work at the function body level but not
+// inside other blocks. A test for break-from-labeled-block inside
+// a loop would require fixing the parser first.

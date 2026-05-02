@@ -231,20 +231,10 @@ impl DowncastTo<PlaceExprData> for PlaceExpr {
     }
 }
 
-// Transitive: PlaceExprData <: PlaceExpr <: ExprData
+// Transitive casts: PlaceExprData <: PlaceExpr <: ExprData
 cast_impl!((PlaceExprData) <: (PlaceExpr) <: (ExprData));
-
-// Transitive downcast: Expr → ExprData::Place → PlaceExpr → PlaceExprData
-// (manual impl needed because #[term($data)] wraps ExprData in Arc,
-// so cast_impl! can't chain through ExprData to Expr)
-impl DowncastTo<PlaceExprData> for Expr {
-    fn downcast_to(&self) -> Option<PlaceExprData> {
-        let ExprData::Place(place) = self.data() else {
-            return None;
-        };
-        place.downcast_to()
-    }
-}
+cast_impl!((PlaceExprData) <: (ExprData) <: (Arc<ExprData>));
+cast_impl!((PlaceExprData) <: (Arc<ExprData>) <: (Expr));
 
 // ANCHOR: PlaceExprData
 #[term]

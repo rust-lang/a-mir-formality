@@ -116,16 +116,16 @@ pub(crate) struct CodegenGlobal {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub(crate) struct CodegenScope {
     vars: Vec<(ValueId, MrLocal, Ty)>,
-    loop_scopes: Vec<LoopScope>,
+    label_scopes: Vec<LabelScope>,
     ret_local: MrLocal,
     flow_state: FlowState,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-struct LoopScope {
+struct LabelScope {
     label: LabelId,
-    loop_start: MrBb,
-    exit_block: MrBb,
+    continue_target: Option<MrBb>,
+    break_target: MrBb,
 }
 
 formality_core::cast_impl!(CodegenGlobal);
@@ -219,7 +219,7 @@ impl CodegenScope {
     fn new(ret_local: lang::LocalName, flow_state: FlowState) -> Self {
         CodegenScope {
             vars: Vec::new(),
-            loop_scopes: Vec::new(),
+            label_scopes: Vec::new(),
             ret_local: wrap_local(&ret_local),
             flow_state,
         }
@@ -232,13 +232,13 @@ impl CodegenScope {
             .map(|(_, l, t)| (l.0, t.clone()))
             .ok_or_else(|| anyhow::anyhow!("unbound variable `{id:?}`"))
     }
-    fn lookup_loop(&self, label: &LabelId) -> Fallible<(lang::BbName, lang::BbName)> {
-        self.loop_scopes
+    fn lookup_label(&self, label: &LabelId) -> Fallible<(Option<lang::BbName>, lang::BbName)> {
+        self.label_scopes
             .iter()
             .rev()
             .find(|s| s.label == *label)
-            .map(|s| (s.loop_start.0, s.exit_block.0))
-            .ok_or_else(|| anyhow::anyhow!("no loop with label `{label:?}`"))
+            .map(|s| (s.continue_target.as_ref().map(|b| b.0), s.break_target.0))
+            .ok_or_else(|| anyhow::anyhow!("no label `{label:?}` in scope"))
     }
     fn push_var(&self, id: ValueId, local: lang::LocalName, ty: Ty) -> Fallible<Self> {
         let mut s = self.clone();
@@ -254,14 +254,17 @@ impl CodegenScope {
         self.vars.push((id, wrap_local(&local), ty));
         self
     }
-    fn push_loop(&self, label: LabelId, start: impl Upcast<MrBb>, exit: impl Upcast<MrBb>) -> Self {
-        let start: MrBb = start.upcast();
-        let exit: MrBb = exit.upcast();
+    fn push_label(
+        &self,
+        label: LabelId,
+        continue_target: Option<impl Upcast<MrBb>>,
+        break_target: impl Upcast<MrBb>,
+    ) -> Self {
         let mut s = self.clone();
-        s.loop_scopes.push(LoopScope {
+        s.label_scopes.push(LabelScope {
             label,
-            loop_start: start,
-            exit_block: exit,
+            continue_target: continue_target.map(|b| b.upcast()),
+            break_target: break_target.upcast(),
         });
         s
     }
@@ -1116,7 +1119,7 @@ judgment_fn! {
             (let label = require_label(label)?)
             (let (loop_start, global) = global.fresh_bb())
             (let (exit_block, global) = global.fresh_bb())
-            (let scope = scope.push_loop(label.id.clone(), loop_start, exit_block))
+            (let scope = scope.push_label(label.id.clone(), Some(loop_start), exit_block))
             (codegen_block(global, scope, body) => (body_region, global))
             (let (region, global) = build_loop(&global, loop_start, exit_block, body_region)?)
             ---- ("loop")
@@ -1124,7 +1127,7 @@ judgment_fn! {
         )
 
         (
-            (let (_, exit) = scope.lookup_loop(label)?)
+            (let (_, exit) = scope.lookup_label(label)?)
             (let (region, global) = global.fresh_region())
             ---- ("break")
             (codegen_stmt(global, scope, Stmt::Break { label }) => (
@@ -1135,7 +1138,8 @@ judgment_fn! {
         )
 
         (
-            (let (start, _) = scope.lookup_loop(label)?)
+            (let (continue_target, _) = scope.lookup_label(label)?)
+            (let start = continue_target.ok_or_else(|| anyhow::anyhow!("cannot continue on block label `{label:?}`"))?)
             (let (region, global) = global.fresh_region())
             ---- ("continue")
             (codegen_stmt(global, scope, Stmt::Continue { label }) => (
@@ -1146,10 +1150,7 @@ judgment_fn! {
         )
 
         (
-            (let (region, global) = global.fresh_region())
-            (for_all(i in 0..block.stmts.len()) with(region, scope, global)
-                (codegen_stmt(global, scope, block.stmts[i].clone()) => (stmt_region, scope, global))
-                (let region = region.append_from(&global, stmt_region)))
+            (codegen_block(global, scope, block) => (region, global))
             ---- ("block")
             (codegen_stmt(global, scope, Stmt::Block(block)) => (region, scope, global))
         )
@@ -1172,11 +1173,25 @@ judgment_fn! {
         debug(global, scope, block)
 
         (
+            (if block.label.is_none())
             (let (region, global) = global.fresh_region())
             (for_all(i in 0..block.stmts.len()) with(region, scope, global)
                 (codegen_stmt(global, scope, block.stmts[i].clone()) => (stmt_region, scope, global))
                 (let region = region.append_from(&global, stmt_region)))
             ---- ("block")
+            (codegen_block(global, scope, block) => (region, global))
+        )
+
+        (
+            (if let Some(label) = &block.label)
+            (let (exit_block, global) = global.fresh_bb())
+            (let scope = scope.push_label(label.id.clone(), None::<lang::BbName>, exit_block))
+            (let (region, global) = global.fresh_region())
+            (for_all(i in 0..block.stmts.len()) with(region, scope, global)
+                (codegen_stmt(global, scope, block.stmts[i].clone()) => (stmt_region, scope, global))
+                (let region = region.append_from(&global, stmt_region)))
+            (let region = region.terminated(terminator_goto(exit_block)).add_empty_block(*exit_block))
+            ---- ("labeled-block")
             (codegen_block(global, scope, block) => (region, global))
         )
     }
