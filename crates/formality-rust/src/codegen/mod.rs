@@ -7,7 +7,7 @@ use crate::check::borrow_check::typed_place_expression::{
     TypedPlaceExpr, TypedPlaceExpressionData,
 };
 use crate::grammar::{
-    expr::{Block, Expr, ExprData, LabelId, PlaceExpr, Stmt},
+    expr::{Block, Expr, ExprData, LabelId, PlaceExpr, PlaceExprData, Stmt},
     Crates, Fallible, Lt, Parameter, ParameterKind, RigidName, RigidTy, ScalarId, Ty, TyData,
     ValueId, Wcs,
 };
@@ -876,32 +876,20 @@ judgment_fn! {
         )
 
         (
-            (if let ExprData::Place(place) = callee.data())
-            (let r: (MrFn, CodegenGlobal) = (|| -> Fallible<(MrFn, CodegenGlobal)> {
-                let ty = match place.data() {
-                    crate::grammar::expr::PlaceExprData::Var(id) => match scope.lookup_var(id) {
-                        Ok((_, ty)) => ty,
-                        Err(_) if global.crates.fn_named(id).is_ok() => {
-                            Ty::rigid(RigidName::FnDef(id.clone()), ())
-                        }
-                        Err(e) => return Err(e),
-                    },
-                    _ => resolve_place(&global, &scope, place)?.ty,
-                };
-                let rigid = resolve_rigid(&global, &scope, &ty)?;
-                match &rigid.name {
-                    RigidName::FnDef(id) => {
-                        let (n, g) = global.ensure_fn(MonoKey {
-                            id: id.clone(),
-                            args: vec![],
-                        });
-                        Ok((wrap_fn(&n), g))
-                    }
-                    _ => anyhow::bail!("call non-fn"),
-                }
-            })()?)
+            (if scope.lookup_var(id).is_err())
+            (if global.crates.fn_named(id).is_ok())
+            (let (n, global) = global.ensure_fn(MonoKey { id: id.clone(), args: vec![] }))
+            ---- ("var-fn")
+            (resolve_call(global, scope, PlaceExprData::Var(id)) => (wrap_fn(n), global))
+        )
+
+        (
+            (let typed = resolve_place(&global, &scope, place)?)
+            (let rigid = resolve_rigid(&global, &scope, &typed.ty)?)
+            (if let RigidName::FnDef(fn_id) = &rigid.name)
+            (let (n, global) = global.ensure_fn(MonoKey { id: fn_id.clone(), args: vec![] }))
             ---- ("place")
-            (resolve_call(global, scope, callee) => r.clone())
+            (resolve_call(global, scope, ExprData::Place(place)) => (wrap_fn(n), global))
         )
     }
 }
