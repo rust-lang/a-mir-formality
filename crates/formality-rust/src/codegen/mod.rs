@@ -131,6 +131,7 @@ struct LabelScope {
 formality_core::cast_impl!(CodegenGlobal);
 formality_core::cast_impl!(CodegenScope);
 formality_core::cast_impl!(SemeRegion);
+formality_core::cast_impl!(MonoKey);
 
 impl CodegenGlobal {
     fn new(crates: &Crates) -> Self {
@@ -204,14 +205,14 @@ impl CodegenGlobal {
         let (name, g) = self.alloc_local(mr_ty);
         Ok((wrap_local(&name), g))
     }
-    fn reset_for_function(mut self, output_ty: &Ty) -> Self {
-        self.locals.clear();
-        self.local_counter = 0;
-        self.bb_counter = 0;
-        self.typeck_env =
-            TypeckEnv::for_fn_body(Env::default(), &self.typeck_env.program, output_ty);
-        self.assumptions = Wcs::t();
-        self
+    fn reset_for_function(&self, output_ty: &Ty) -> Self {
+        let mut s = self.clone();
+        s.locals.clear();
+        s.local_counter = 0;
+        s.bb_counter = 0;
+        s.typeck_env = TypeckEnv::for_fn_body(Env::default(), &s.typeck_env.program, output_ty);
+        s.assumptions = Wcs::t();
+        s
     }
 }
 
@@ -1215,22 +1216,19 @@ fn unwrap_proven<T: std::fmt::Debug + Clone + Ord>(
 // Function and program codegen
 // ---------------------------------------------------------------------------
 
-fn codegen_function(
+/// Wrapper for `lang::Function` to satisfy judgment trait bounds.
+type MrFunction = OrdByDebug<lang::Function>;
+
+/// Set up function arguments: alloc locals, build scope.
+fn setup_fn_args(
     mut g: CodegenGlobal,
-    key: &MonoKey,
-) -> Fallible<(lang::Function, CodegenGlobal)> {
-    let fn_def = g.crates.fn_named(&key.id)?;
-    let fn_data = if key.args.is_empty() {
-        let (_, d) = fn_def.binder.open();
-        d
-    } else {
-        fn_def.binder.instantiate_with(&key.args)?
-    };
-    g = g.reset_for_function(&fn_data.output_ty);
-    let body = match &fn_data.body {
-        crate::grammar::MaybeFnBody::FnBody(crate::grammar::FnBody::Expr(b)) => b,
-        _ => anyhow::bail!("function {:?} must have expression body", key.id),
-    };
+    fn_data: &crate::grammar::FnBoundData,
+) -> Fallible<(
+    lang::LocalName,
+    List<lang::LocalName>,
+    CodegenScope,
+    CodegenGlobal,
+)> {
     let ret_ty = minirust_ty(&g.crates, &fn_data.output_ty)?;
     let (ret_local, g2) = g.alloc_local(ret_ty);
     g = g2;
@@ -1244,8 +1242,16 @@ fn codegen_function(
         arg_locals.push(local);
         scope = scope.push_var_no_flow(arg.id.clone(), local, arg.ty.clone());
     }
-    let (mut region, g2) = unwrap_proven(codegen_block(g, scope, body.clone()))?;
-    g = g2;
+    Ok((ret_local, arg_locals, scope, g))
+}
+
+/// Build a `lang::Function` from codegen results.
+fn build_function(
+    g: &CodegenGlobal,
+    mut region: SemeRegion,
+    ret_local: lang::LocalName,
+    arg_locals: &List<lang::LocalName>,
+) -> lang::Function {
     if region.has_fallthrough() {
         region = region
             .push_stmt(lang::Statement::Assign {
@@ -1256,9 +1262,9 @@ fn codegen_function(
     }
     let entry = region.entry();
     let mut blocks = region.into_blocks();
-    // Prepend StorageLive
+    // Prepend StorageLive for non-arg, non-ret locals
     let mut skip = vec![ret_local];
-    for al in arg_locals {
+    for al in arg_locals.clone() {
         skip.push(al);
     }
     let sl: Vec<lang::Statement> = g
@@ -1277,17 +1283,52 @@ fn codegen_function(
     let locals_map: Map<lang::LocalName, lang::Type> =
         g.locals.iter().map(|(k, v)| (k.0, v.0)).collect();
     let blocks_map: Map<lang::BbName, lang::BasicBlock> = blocks.into_iter().collect();
-    Ok((
-        lang::Function {
-            locals: locals_map,
-            args: arg_locals,
-            ret: ret_local,
-            calling_convention: lang::CallingConvention::Rust,
-            blocks: blocks_map,
-            start: entry,
-        },
-        g,
-    ))
+    lang::Function {
+        locals: locals_map,
+        args: arg_locals.clone(),
+        ret: ret_local,
+        calling_convention: lang::CallingConvention::Rust,
+        blocks: blocks_map,
+        start: entry,
+    }
+}
+
+/// Resolve a MonoKey to its FnData and body block.
+fn resolve_fn_body(
+    g: &CodegenGlobal,
+    key: &MonoKey,
+) -> Fallible<(crate::grammar::FnBoundData, Block)> {
+    let fn_def = g.crates.fn_named(&key.id)?;
+    let fn_data = if key.args.is_empty() {
+        let (_, d) = fn_def.binder.open();
+        d
+    } else {
+        fn_def.binder.instantiate_with(&key.args)?
+    };
+    let body = match &fn_data.body {
+        crate::grammar::MaybeFnBody::FnBody(crate::grammar::FnBody::Expr(b)) => b.clone(),
+        _ => anyhow::bail!("function {:?} must have expression body", key.id),
+    };
+    Ok((fn_data, body))
+}
+
+judgment_fn! {
+    fn codegen_function(
+        global: CodegenGlobal,
+        key: MonoKey,
+    ) => (MrFunction, CodegenGlobal) {
+        debug(global, key)
+
+        (
+            (let (fn_data, body) = resolve_fn_body(&global, &key)?)
+            (let global = global.reset_for_function(&fn_data.output_ty))
+            (let (ret_local, arg_locals, scope, global) = setup_fn_args(global.clone(), &fn_data)?)
+            (codegen_block(global, scope, body) => (region, global))
+            (let function = build_function(&global, region.clone(), *ret_local, &arg_locals))
+            ---- ("function")
+            (codegen_function(global, key) => (OrdByDebug(function.clone()), global))
+        )
+    }
 }
 
 pub fn codegen_program(crates: &Crates) -> Fallible<lang::Program> {
@@ -1300,9 +1341,9 @@ pub fn codegen_program(crates: &Crates) -> Fallible<lang::Program> {
     g = g2;
     let mut functions: Map<lang::FnName, lang::Function> = Map::new();
     while let Some((key, fn_name)) = g.next_pending(&functions) {
-        let (function, g2) = codegen_function(g, &key)?;
+        let (function, g2) = unwrap_proven(codegen_function(g, key))?;
         g = g2;
-        functions.insert(fn_name, function);
+        functions.insert(fn_name, function.0);
     }
     // Build _start
     let (sr, g2) = g.fresh_fn();
