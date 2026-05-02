@@ -595,32 +595,13 @@ fn infer_expr_ty(g: &CodegenGlobal, s: &CodegenScope, e: &Expr) -> Fallible<Ty> 
 // Judgments
 // ---------------------------------------------------------------------------
 
-/// Result type for codegen operations — wraps (SemeRegion, CodegenGlobal)
-/// so it can be used in `(let r: CgResult = ...)` inside judgment_fn!
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-struct CgResult {
-    region: SemeRegion,
-    global: CodegenGlobal,
-}
-
-impl CgResult {
-    fn new(region: impl Upcast<SemeRegion>, global: impl Upcast<CodegenGlobal>) -> Self {
-        CgResult {
-            region: region.upcast(),
-            global: global.upcast(),
-        }
-    }
-}
-
-formality_core::cast_impl!(CgResult);
-
 judgment_fn! {
     fn codegen_expr_into(
         global: CodegenGlobal,
         scope: CodegenScope,
         target: MrLocal,
         expr: Expr,
-    ) => CgResult {
+    ) => (SemeRegion, CodegenGlobal) {
         debug(global, scope, target, expr)
 
         (
@@ -635,7 +616,7 @@ judgment_fn! {
                     ),
                 }))
             ---- ("literal")
-            (codegen_expr_into(global, scope, target, ExprData::Literal { value, ty }) => CgResult::new(region, g))
+            (codegen_expr_into(global, scope, target, ExprData::Literal { value, ty }) => (region, g))
         )
 
         (
@@ -650,12 +631,12 @@ judgment_fn! {
                     },
                 }))
             ---- ("place")
-            (codegen_expr_into(global, scope, target, ExprData::Place(place_expr)) => CgResult::new(region, g))
+            (codegen_expr_into(global, scope, target, ExprData::Place(place_expr)) => (region, g))
         )
 
         (
             (if matches!(expr.data(), ExprData::True | ExprData::False))
-            (let r: CgResult = (|| -> Fallible<CgResult> {
+            (let r: (SemeRegion, CodegenGlobal) = (|| -> Fallible<(SemeRegion, CodegenGlobal)> {
                 let val = matches!(expr.data(), ExprData::True);
                 let (entry, g) = global.fresh_bb();
                 let region = SemeRegion::empty(&entry)
@@ -663,7 +644,7 @@ judgment_fn! {
                         destination: lang::PlaceExpr::Local(target.0),
                         source: lang::ValueExpr::Constant(lang::Constant::Bool(val), lang::Type::Bool),
                     });
-                Ok(CgResult::new(region, g))
+                Ok((region, g))
             })()?)
             ---- ("bool")
             (codegen_expr_into(global, scope, target, expr) => r.clone())
@@ -671,16 +652,13 @@ judgment_fn! {
 
         (
             (if let ExprData::Assign { place, expr: rhs } = expr.data())
-            (let r: CgResult = (|| -> Fallible<CgResult> {
+            (let r: (SemeRegion, CodegenGlobal) = (|| -> Fallible<(SemeRegion, CodegenGlobal)> {
                 let typed_dest = resolve_place(&global, &scope, place)?;
                 let dest = typed_place_to_minirust(&global, &scope, &typed_dest)?;
                 let rhs_ty = infer_expr_ty(&global, &scope, rhs)?;
                 let mr_ty = global.minirust_ty(&rhs_ty)?;
                 let (rhs_temp, mut g) = global.alloc_local(mr_ty);
-                let CgResult {
-                    region,
-                    global: g2,
-                } = unwrap_proven(codegen_expr_into(
+                let (region, g2) = unwrap_proven(codegen_expr_into(
                     g,
                     scope.clone(),
                     wrap_local(rhs_temp),
@@ -698,7 +676,7 @@ judgment_fn! {
                         destination: lang::PlaceExpr::Local(target.0),
                         source: unit_value(),
                     });
-                Ok(CgResult::new(region, g))
+                Ok((region, g))
             })()?)
             ---- ("assign")
             (codegen_expr_into(global, scope, target, expr) => r.clone())
@@ -706,7 +684,7 @@ judgment_fn! {
 
         (
             (if let ExprData::Turbofish { id, args } = expr.data())
-            (let r: CgResult = (|| -> Fallible<CgResult> {
+            (let r: (SemeRegion, CodegenGlobal) = (|| -> Fallible<(SemeRegion, CodegenGlobal)> {
                 let (_fn, mut g) = global.ensure_fn(MonoKey {
                     id: id.clone(),
                     args: args.to_vec(),
@@ -718,7 +696,7 @@ judgment_fn! {
                         destination: lang::PlaceExpr::Local(target.0),
                         source: unit_value(),
                     });
-                Ok(CgResult::new(region, g))
+                Ok((region, g))
             })()?)
             ---- ("turbofish")
             (codegen_expr_into(global, scope, target, expr) => r.clone())
@@ -726,14 +704,14 @@ judgment_fn! {
 
         (
             (if let ExprData::Call { callee, args } = expr.data())
-            (let r: CgResult = codegen_call(global.clone(), &scope, &target, callee, args)?)
+            (let r: (SemeRegion, CodegenGlobal) = codegen_call(global.clone(), &scope, &target, callee, args)?)
             ---- ("call")
             (codegen_expr_into(global, scope, target, expr) => r.clone())
         )
 
         (
             (if let ExprData::Ref { kind, lt: _, place } = expr.data())
-            (let r: CgResult = (|| -> Fallible<CgResult> {
+            (let r: (SemeRegion, CodegenGlobal) = (|| -> Fallible<(SemeRegion, CodegenGlobal)> {
                 let typed = resolve_place(&global, &scope, place)?;
                 let pe = typed_place_to_minirust(&global, &scope, &typed)?;
                 let pt = &typed.ty;
@@ -762,7 +740,7 @@ judgment_fn! {
                             ptr_ty,
                         },
                     });
-                Ok(CgResult::new(region, g))
+                Ok((region, g))
             })()?)
             ---- ("ref")
             (codegen_expr_into(global, scope, target, expr) => r.clone())
@@ -770,7 +748,7 @@ judgment_fn! {
 
         (
             (if let ExprData::Struct { field_exprs, adt_id, turbofish } = expr.data())
-            (let r: CgResult = codegen_struct(global.clone(), &scope, &target, adt_id, turbofish, field_exprs)?)
+            (let r: (SemeRegion, CodegenGlobal) = codegen_struct(global.clone(), &scope, &target, adt_id, turbofish, field_exprs)?)
             ---- ("struct")
             (codegen_expr_into(global, scope, target, expr) => r.clone())
         )
@@ -782,26 +760,23 @@ judgment_fn! {
         global: CodegenGlobal,
         scope: CodegenScope,
         stmt: Stmt,
-    ) => CgResult {
+    ) => (SemeRegion, CodegenGlobal) {
         debug(global, scope, stmt)
 
         (
             (if let Stmt::Let { label: _, id, ty, init } = &*stmt)
-            (let r: CgResult = codegen_let(global.clone(), scope.clone(), id, ty, init.as_ref())?)
+            (let r: (SemeRegion, CodegenGlobal) = codegen_let(global.clone(), scope.clone(), id, ty, init.as_ref())?)
             ---- ("let")
             (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Return { expr } = &*stmt)
-            (let r: CgResult = (|| -> Fallible<CgResult> {
+            (let r: (SemeRegion, CodegenGlobal) = (|| -> Fallible<(SemeRegion, CodegenGlobal)> {
                 let ret = scope.ret_local.clone();
-                let CgResult {
-                    region,
-                    global: g,
-                } = unwrap_proven(codegen_expr_into(global.clone(), scope.clone(), ret, expr.clone()))?;
+                let (region, g) = unwrap_proven(codegen_expr_into(global.clone(), scope.clone(), ret, expr.clone()))?;
                 let region = region.terminate(lang::Terminator::Return);
-                Ok(CgResult::new(region, g))
+                Ok((region, g))
             })()?)
             ---- ("return")
             (codegen_stmt(global, scope, stmt) => r.clone())
@@ -809,21 +784,21 @@ judgment_fn! {
 
         (
             (if let Stmt::Print { expr } = &*stmt)
-            (let r: CgResult = codegen_print(global.clone(), &scope, expr)?)
+            (let r: (SemeRegion, CodegenGlobal) = codegen_print(global.clone(), &scope, expr)?)
             ---- ("print")
             (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::If { condition, then_block, else_block } = &*stmt)
-            (let r: CgResult = codegen_if(global.clone(), &scope, condition, then_block, else_block)?)
+            (let r: (SemeRegion, CodegenGlobal) = codegen_if(global.clone(), &scope, condition, then_block, else_block)?)
             ---- ("if")
             (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Expr { expr } = &*stmt)
-            (let r: CgResult = (|| -> Fallible<CgResult> {
+            (let r: (SemeRegion, CodegenGlobal) = (|| -> Fallible<(SemeRegion, CodegenGlobal)> {
                 let et = infer_expr_ty(&global, &scope, expr)?;
                 let mr_ty = global.minirust_ty(&et)?;
                 let (temp, g) = global.alloc_local(mr_ty);
@@ -840,19 +815,19 @@ judgment_fn! {
 
         (
             (if let Stmt::Loop { label, body } = &*stmt)
-            (let r: CgResult = codegen_loop(global.clone(), scope.clone(), label, body)?)
+            (let r: (SemeRegion, CodegenGlobal) = codegen_loop(global.clone(), scope.clone(), label, body)?)
             ---- ("loop")
             (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Break { label } = &*stmt)
-            (let r: CgResult = (|| -> Fallible<CgResult> {
+            (let r: (SemeRegion, CodegenGlobal) = (|| -> Fallible<(SemeRegion, CodegenGlobal)> {
                 let (_, exit) = scope.lookup_loop(label)?;
                 let (entry, g) = global.fresh_bb();
                 let region = SemeRegion::empty(&entry)
                     .terminate(lang::Terminator::Goto(exit));
-                Ok(CgResult::new(region, g))
+                Ok((region, g))
             })()?)
             ---- ("break")
             (codegen_stmt(global, scope, stmt) => r.clone())
@@ -860,12 +835,12 @@ judgment_fn! {
 
         (
             (if let Stmt::Continue { label } = &*stmt)
-            (let r: CgResult = (|| -> Fallible<CgResult> {
+            (let r: (SemeRegion, CodegenGlobal) = (|| -> Fallible<(SemeRegion, CodegenGlobal)> {
                 let (start, _) = scope.lookup_loop(label)?;
                 let (entry, g) = global.fresh_bb();
                 let region = SemeRegion::empty(&entry)
                     .terminate(lang::Terminator::Goto(start));
-                Ok(CgResult::new(region, g))
+                Ok((region, g))
             })()?)
             ---- ("continue")
             (codegen_stmt(global, scope, stmt) => r.clone())
@@ -873,14 +848,14 @@ judgment_fn! {
 
         (
             (if let Stmt::Block(block) = &*stmt)
-            (let r: CgResult = codegen_block_inner(global.clone(), scope.clone(), block)?)
+            (let r: (SemeRegion, CodegenGlobal) = codegen_block_inner(global.clone(), scope.clone(), block)?)
             ---- ("block")
             (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Exists { binder } = &*stmt)
-            (let r: CgResult = codegen_exists(global.clone(), scope.clone(), binder)?)
+            (let r: (SemeRegion, CodegenGlobal) = codegen_exists(global.clone(), scope.clone(), binder)?)
             ---- ("exists")
             (codegen_stmt(global, scope, stmt) => r.clone())
         )
@@ -888,7 +863,7 @@ judgment_fn! {
 }
 
 // ---------------------------------------------------------------------------
-// Expression codegen helpers (regular functions returning CgResult)
+// Expression codegen helpers (regular functions returning tuples)
 // ---------------------------------------------------------------------------
 
 fn codegen_call(
@@ -897,7 +872,7 @@ fn codegen_call(
     target: &MrLocal,
     callee: &Expr,
     args: &[Expr],
-) -> Fallible<CgResult> {
+) -> Fallible<(SemeRegion, CodegenGlobal)> {
     let (fn_name, g2) = resolve_call(g, scope, callee)?;
     g = g2;
     let (entry, g2) = g.fresh_bb();
@@ -909,10 +884,7 @@ fn codegen_call(
         let mr_ty = g.minirust_ty(&arg_ty)?;
         let (temp, g2) = g.alloc_local(mr_ty);
         g = g2;
-        let CgResult {
-            region: ar,
-            global: g2,
-        } = unwrap_proven(codegen_expr_into(
+        let (ar, g2) = unwrap_proven(codegen_expr_into(
             g,
             scope.clone(),
             wrap_local(temp),
@@ -942,7 +914,7 @@ fn codegen_call(
             unwind_block: None,
         })
         .add_empty_block(next_bb);
-    Ok(CgResult::new(region, g))
+    Ok((region, g))
 }
 
 fn codegen_struct(
@@ -952,7 +924,7 @@ fn codegen_struct(
     adt_id: &crate::grammar::AdtId,
     turbofish: &crate::grammar::expr::Turbofish,
     field_exprs: &[crate::grammar::expr::FieldExpr],
-) -> Fallible<CgResult> {
+) -> Fallible<(SemeRegion, CodegenGlobal)> {
     let s = g.crates.struct_named(adt_id)?;
     let bd = if turbofish.parameters.is_empty() {
         let (_, d) = s.binder.open();
@@ -972,10 +944,7 @@ fn codegen_struct(
         let mr_ty = minirust_ty(&g.crates, &fd.ty)?;
         let (temp, g2) = g.alloc_local(mr_ty);
         g = g2;
-        let CgResult {
-            region: er,
-            global: g2,
-        } = unwrap_proven(codegen_expr_into(
+        let (er, g2) = unwrap_proven(codegen_expr_into(
             g,
             scope.clone(),
             wrap_local(temp),
@@ -1001,7 +970,7 @@ fn codegen_struct(
         destination: lang::PlaceExpr::Local(target.0),
         source: lang::ValueExpr::Tuple(fv.into_iter().collect(), st),
     });
-    Ok(CgResult::new(region, g))
+    Ok((region, g))
 }
 
 /// Extract the single result from a ProvenSet, or error.
@@ -1024,32 +993,36 @@ fn codegen_let(
     id: &ValueId,
     ty: &Ty,
     init: Option<&crate::grammar::expr::Init>,
-) -> Fallible<CgResult> {
+) -> Fallible<(SemeRegion, CodegenGlobal)> {
     let mr_ty = g.minirust_ty(ty)?;
     let (local, g2) = g.alloc_local(mr_ty);
     g = g2;
     scope = scope.push_var(id.clone(), local, ty.clone())?;
     if let Some(init) = init {
-        let CgResult { region, global } = unwrap_proven(codegen_expr_into(
+        let (region, global) = unwrap_proven(codegen_expr_into(
             g,
             scope,
             wrap_local(local),
             init.expr.clone(),
         ))?;
-        Ok(CgResult::new(region, global))
+        Ok((region, global))
     } else {
         let (entry, g2) = g.fresh_bb();
         g = g2;
-        Ok(CgResult::new(SemeRegion::empty(&entry), g))
+        Ok((SemeRegion::empty(&entry), g))
     }
 }
 
-fn codegen_print(mut g: CodegenGlobal, scope: &CodegenScope, expr: &Expr) -> Fallible<CgResult> {
+fn codegen_print(
+    mut g: CodegenGlobal,
+    scope: &CodegenScope,
+    expr: &Expr,
+) -> Fallible<(SemeRegion, CodegenGlobal)> {
     let et = infer_expr_ty(&g, scope, expr)?;
     let mr_ty = g.minirust_ty(&et)?;
     let (temp, g2) = g.alloc_local(mr_ty);
     g = g2;
-    let CgResult { region, global: g2 } = unwrap_proven(codegen_expr_into(
+    let (region, g2) = unwrap_proven(codegen_expr_into(
         g,
         scope.clone(),
         wrap_local(temp),
@@ -1070,7 +1043,7 @@ fn codegen_print(mut g: CodegenGlobal, scope: &CodegenScope, expr: &Expr) -> Fal
             next_block: Some(next_bb),
         })
         .add_empty_block(next_bb);
-    Ok(CgResult::new(region, g))
+    Ok((region, g))
 }
 
 fn codegen_if(
@@ -1079,32 +1052,23 @@ fn codegen_if(
     cond: &Expr,
     then_block: &Block,
     else_block: &Block,
-) -> Fallible<CgResult> {
+) -> Fallible<(SemeRegion, CodegenGlobal)> {
     let (ct, g2) = g.alloc_local(lang::Type::Bool);
     g = g2;
-    let CgResult {
-        region: cr,
-        global: g2,
-    } = unwrap_proven(codegen_expr_into(
+    let (cr, g2) = unwrap_proven(codegen_expr_into(
         g,
         scope.clone(),
         wrap_local(ct),
         cond.clone(),
     ))?;
     g = g2;
-    let CgResult {
-        region: tr,
-        global: g2,
-    } = codegen_block_inner(g, scope.clone(), then_block)?;
+    let (tr, g2) = codegen_block_inner(g, scope.clone(), then_block)?;
     g = g2;
-    let CgResult {
-        region: er,
-        global: g2,
-    } = codegen_block_inner(g, scope.clone(), else_block)?;
+    let (er, g2) = codegen_block_inner(g, scope.clone(), else_block)?;
     g = g2;
     let (join, g2) = g.fresh_bb();
     g = g2;
-    Ok(CgResult::new(cr.branch_on_bool(ct, tr, er, join), g))
+    Ok((cr.branch_on_bool(ct, tr, er, join), g))
 }
 
 fn codegen_loop(
@@ -1112,7 +1076,7 @@ fn codegen_loop(
     mut scope: CodegenScope,
     label: &Option<crate::grammar::expr::Label>,
     body: &Block,
-) -> Fallible<CgResult> {
+) -> Fallible<(SemeRegion, CodegenGlobal)> {
     let label = label
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("loop must have a label"))?;
@@ -1121,10 +1085,7 @@ fn codegen_loop(
     let (exit_block, g2) = g.fresh_bb();
     g = g2;
     scope = scope.push_loop(label.id.clone(), loop_start, exit_block);
-    let CgResult {
-        region: body_region,
-        global: g2,
-    } = codegen_block_inner(g, scope.clone(), body)?;
+    let (body_region, g2) = codegen_block_inner(g, scope.clone(), body)?;
     g = g2;
     let _scope = scope.pop_loop();
     let (entry, g2) = g.fresh_bb();
@@ -1140,14 +1101,14 @@ fn codegen_loop(
         region = region.terminate(lang::Terminator::Goto(loop_start));
     }
     region = region.add_empty_block(exit_block);
-    Ok(CgResult::new(region, g))
+    Ok((region, g))
 }
 
 fn codegen_block_inner(
     mut g: CodegenGlobal,
     scope: CodegenScope,
     block: &Block,
-) -> Fallible<CgResult> {
+) -> Fallible<(SemeRegion, CodegenGlobal)> {
     let (entry, g2) = g.fresh_bb();
     g = g2;
     let mut region = SemeRegion::empty(&entry);
@@ -1166,10 +1127,7 @@ fn codegen_block_inner(
             g = g2;
             scope = scope.push_var(id.clone(), local, ty.clone())?;
             if let Some(init) = init {
-                let CgResult {
-                    region: ir,
-                    global: g2,
-                } = unwrap_proven(codegen_expr_into(
+                let (ir, g2) = unwrap_proven(codegen_expr_into(
                     g,
                     scope.clone(),
                     wrap_local(local),
@@ -1182,10 +1140,7 @@ fn codegen_block_inner(
                 });
             }
         } else {
-            let CgResult {
-                region: sr,
-                global: g2,
-            } = unwrap_proven(codegen_stmt(g, scope.clone(), stmt.clone()))?;
+            let (sr, g2) = unwrap_proven(codegen_stmt(g, scope.clone(), stmt.clone()))?;
             g = g2;
             region = region.append(sr, || {
                 let (bb, _) = g.fresh_bb();
@@ -1193,14 +1148,14 @@ fn codegen_block_inner(
             });
         }
     }
-    Ok(CgResult::new(region, g))
+    Ok((region, g))
 }
 
 fn codegen_exists(
     g: CodegenGlobal,
     scope: CodegenScope,
     binder: &crate::grammar::Binder<Block>,
-) -> Fallible<CgResult> {
+) -> Fallible<(SemeRegion, CodegenGlobal)> {
     let params: Vec<Parameter> = binder
         .kinds()
         .iter()
@@ -1247,10 +1202,7 @@ fn codegen_function(
         arg_locals.push(local);
         scope = scope.push_var_no_flow(arg.id.clone(), local, arg.ty.clone());
     }
-    let CgResult {
-        mut region,
-        global: g2,
-    } = codegen_block_inner(g, scope, body)?;
+    let (mut region, g2) = codegen_block_inner(g, scope, body)?;
     g = g2;
     if region.has_fallthrough() {
         region = region
