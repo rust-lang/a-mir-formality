@@ -22,19 +22,20 @@ pub struct SemeRegion {
 }
 
 impl SemeRegion {
-    pub fn empty(entry: lang::BbName) -> Self {
+    pub fn empty(entry: &lang::BbName) -> Self {
         SemeRegion {
             blocks: Vec::new(),
-            entry: bb(entry),
+            entry: bb(*entry),
             fallthrough_stmts: Vec::new(),
-            fallthrough: Some(bb(entry)),
+            fallthrough: Some(bb(*entry)),
         }
     }
 
-    pub fn push_stmt(&mut self, stmt: lang::Statement) {
+    pub fn push_stmt(mut self, stmt: lang::Statement) -> Self {
         if self.fallthrough.is_some() {
             self.fallthrough_stmts.push(OrdByDebug(stmt));
         }
+        self
     }
 
     pub fn has_fallthrough(&self) -> bool {
@@ -45,7 +46,7 @@ impl SemeRegion {
         self.entry.0
     }
 
-    pub fn terminate(&mut self, terminator: lang::Terminator) {
+    pub fn terminate(mut self, terminator: lang::Terminator) -> Self {
         if let Some(bb_name) = self.fallthrough.take() {
             let stmts: List<lang::Statement> =
                 self.fallthrough_stmts.drain(..).map(|s| s.0).collect();
@@ -58,11 +59,13 @@ impl SemeRegion {
                 }),
             ));
         }
+        self
     }
 
-    pub fn add_empty_block(&mut self, new_bb: lang::BbName) {
+    pub fn add_empty_block(mut self, new_bb: lang::BbName) -> Self {
         self.fallthrough = Some(bb(new_bb));
         self.fallthrough_stmts.clear();
+        self
     }
 
     pub fn append(

@@ -1,16 +1,24 @@
 //! Judgment-based codegen: translates formality-rust programs to MiniRust.
 
-use crate::grammar::{
-    expr::{Block, Expr, ExprData, LabelId, PlaceExpr, PlaceExprData, Stmt},
-    Crates, Fallible, Lt, Parameter, ParameterKind, RigidName, RigidTy, ScalarId, Ty, TyData,
-    ValueId,
+use crate::check::borrow_check::env::TypeckEnv;
+use crate::check::borrow_check::flow_state::FlowState;
+use crate::check::borrow_check::nll::{borrow_check_place_expr, prove_ty_is_rigid};
+use crate::check::borrow_check::typed_place_expression::{
+    TypedPlaceExpr, TypedPlaceExpressionData,
 };
+use crate::grammar::{
+    expr::{Block, Expr, ExprData, LabelId, PlaceExpr, Stmt},
+    Crates, Fallible, Lt, Parameter, ParameterKind, RigidName, RigidTy, ScalarId, Ty, TyData,
+    ValueId, Wcs,
+};
+use crate::prove::prove::{Env, Program};
 use formality_core::{judgment_fn, Upcast};
 use libspecr::hidden::GcCow;
 use libspecr::list;
 use libspecr::prelude::{Align, Int, List, Map, Mutability, Signedness, Size};
 use minirust_rs::lang;
 use minirust_rs::mem::{PtrType, TupleHeadLayout};
+use std::sync::Arc;
 
 mod ord_by_debug;
 use ord_by_debug::OrdByDebug;
@@ -48,6 +56,8 @@ pub(crate) struct MonoKey {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub(crate) struct CodegenGlobal {
     crates: Crates,
+    typeck_env: TypeckEnv,
+    assumptions: Wcs,
     local_counter: u32,
     bb_counter: u32,
     fn_counter: u32,
@@ -60,6 +70,7 @@ pub(crate) struct CodegenScope {
     vars: Vec<(ValueId, MrLocal, Ty)>,
     loop_scopes: Vec<LoopScope>,
     ret_local: MrLocal,
+    flow_state: FlowState,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -75,8 +86,15 @@ formality_core::cast_impl!(SemeRegion);
 
 impl CodegenGlobal {
     fn new(crates: &Crates) -> Self {
+        let program = Program {
+            crates: Arc::new(crates.clone()),
+            max_size: Program::DEFAULT_MAX_SIZE,
+        };
+        let typeck_env = TypeckEnv::for_const(Env::default(), &program);
         CodegenGlobal {
             crates: crates.clone(),
+            typeck_env,
+            assumptions: Wcs::t(),
             local_counter: 0,
             bb_counter: 0,
             fn_counter: 0,
@@ -89,10 +107,11 @@ impl CodegenGlobal {
         self.local_counter += 1;
         (lang::LocalName(libspecr::Name::from_internal(n)), self)
     }
-    fn fresh_bb(mut self) -> (lang::BbName, Self) {
-        let n = self.bb_counter;
-        self.bb_counter += 1;
-        (lang::BbName(libspecr::Name::from_internal(n)), self)
+    fn fresh_bb(&self) -> (lang::BbName, Self) {
+        let mut this = self.clone();
+        let n = this.bb_counter;
+        this.bb_counter += 1;
+        (lang::BbName(libspecr::Name::from_internal(n)), this)
     }
     fn fresh_fn(mut self) -> (lang::FnName, Self) {
         let n = self.fn_counter;
@@ -127,20 +146,24 @@ impl CodegenGlobal {
     fn minirust_ty(&self, ty: &Ty) -> Fallible<lang::Type> {
         minirust_ty(&self.crates, ty)
     }
-    fn reset_for_function(mut self) -> Self {
+    fn reset_for_function(mut self, output_ty: &Ty) -> Self {
         self.locals.clear();
         self.local_counter = 0;
         self.bb_counter = 0;
+        self.typeck_env =
+            TypeckEnv::for_fn_body(Env::default(), &self.typeck_env.program, output_ty);
+        self.assumptions = Wcs::t();
         self
     }
 }
 
 impl CodegenScope {
-    fn new(ret_local: lang::LocalName) -> Self {
+    fn new(ret_local: lang::LocalName, flow_state: FlowState) -> Self {
         CodegenScope {
             vars: Vec::new(),
             loop_scopes: Vec::new(),
             ret_local: wrap_local(ret_local),
+            flow_state,
         }
     }
     fn lookup_var(&self, id: &ValueId) -> Fallible<(lang::LocalName, Ty)> {
@@ -159,7 +182,16 @@ impl CodegenScope {
             .map(|s| (s.loop_start.0, s.exit_block.0))
             .ok_or_else(|| anyhow::anyhow!("no loop with label `{label:?}`"))
     }
-    fn push_var(mut self, id: ValueId, local: lang::LocalName, ty: Ty) -> Self {
+    fn push_var(mut self, id: ValueId, local: lang::LocalName, ty: Ty) -> Fallible<Self> {
+        self.flow_state = self
+            .flow_state
+            .with_local_in_scope(&Env::default(), &None, &id, &ty)?;
+        self.vars.push((id, wrap_local(local), ty));
+        Ok(self)
+    }
+    /// Add a variable mapping without updating FlowState.
+    /// Used for input args that are already registered in FlowState via for_fn_body.
+    fn push_var_no_flow(mut self, id: ValueId, local: lang::LocalName, ty: Ty) -> Self {
         self.vars.push((id, wrap_local(local), ty));
         self
     }
@@ -174,6 +206,113 @@ impl CodegenScope {
     fn pop_loop(mut self) -> Self {
         self.loop_scopes.pop();
         self
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Shared judgment wrappers
+// ---------------------------------------------------------------------------
+
+/// Verify that a FlowState returned from a shared judgment has no meaningful
+/// side effects. With erased lifetimes, the shared judgments should never
+/// produce outlives, loans, breaks, or continues.
+fn assert_no_constraints(state: &FlowState) {
+    assert!(
+        state.current.outlives.is_empty(),
+        "codegen: unexpected outlives constraints: {:?}",
+        state.current.outlives
+    );
+    assert!(
+        state.current.loans_live.is_empty(),
+        "codegen: unexpected live loans: {:?}",
+        state.current.loans_live
+    );
+    assert!(
+        state.breaks.is_empty(),
+        "codegen: unexpected breaks: {:?}",
+        state.breaks
+    );
+    assert!(
+        state.continues.is_empty(),
+        "codegen: unexpected continues: {:?}",
+        state.continues
+    );
+}
+
+/// Call `borrow_check_place_expr` with erased lifetimes, assert no constraints,
+/// return the `TypedPlaceExpr`.
+fn resolve_place(
+    g: &CodegenGlobal,
+    s: &CodegenScope,
+    place: &PlaceExpr,
+) -> Fallible<TypedPlaceExpr> {
+    let result = borrow_check_place_expr(
+        g.typeck_env.clone(),
+        g.assumptions.clone(),
+        s.flow_state.clone(),
+        place.clone(),
+    );
+    let (typed_place, returned_state) = unwrap_proven(result)?;
+    assert_no_constraints(&returned_state);
+    Ok(typed_place)
+}
+
+/// Call `prove_ty_is_rigid` with erased lifetimes, assert no constraints,
+/// return the `RigidTy`.
+fn resolve_rigid(g: &CodegenGlobal, s: &CodegenScope, ty: &Ty) -> Fallible<RigidTy> {
+    let result = prove_ty_is_rigid(
+        g.typeck_env.clone(),
+        g.assumptions.clone(),
+        s.flow_state.clone(),
+        ty.clone(),
+    );
+    let (rigid_ty, returned_state) = unwrap_proven(result)?;
+    assert_no_constraints(&returned_state);
+    Ok(rigid_ty)
+}
+
+/// Translate a `TypedPlaceExpr` (from the borrow checker) into a MiniRust `lang::PlaceExpr`.
+fn typed_place_to_minirust(
+    g: &CodegenGlobal,
+    s: &CodegenScope,
+    typed: &TypedPlaceExpr,
+) -> Fallible<lang::PlaceExpr> {
+    match typed.data() {
+        TypedPlaceExpressionData::Local(id) => {
+            let (local, _) = s.lookup_var(id)?;
+            Ok(lang::PlaceExpr::Local(local))
+        }
+        TypedPlaceExpressionData::Deref(prefix) => {
+            let pp = typed_place_to_minirust(g, s, prefix)?;
+            let pointee_ty = &typed.ty;
+            Ok(lang::PlaceExpr::Deref {
+                operand: GcCow::new(lang::ValueExpr::Load {
+                    source: GcCow::new(pp),
+                }),
+                ty: minirust_ty(&g.crates, pointee_ty)?,
+            })
+        }
+        TypedPlaceExpressionData::Field(prefix, field_name) => {
+            let pp = typed_place_to_minirust(g, s, prefix)?;
+            let prefix_rigid = match &prefix.ty {
+                Ty::RigidTy(r) => r,
+                _ => anyhow::bail!("field on non-rigid type"),
+            };
+            let idx = match &prefix_rigid.name {
+                RigidName::AdtId(id) => {
+                    struct_field_index(&g.crates, id, &prefix_rigid.parameters, field_name)?.0
+                }
+                RigidName::Tuple(_) => match field_name {
+                    crate::grammar::FieldName::Index(i) => *i,
+                    _ => anyhow::bail!("non-index field on tuple"),
+                },
+                _ => anyhow::bail!("field on non-struct/tuple"),
+            };
+            Ok(lang::PlaceExpr::Field {
+                root: GcCow::new(pp),
+                field: Int::from(idx),
+            })
+        }
     }
 }
 
@@ -360,58 +499,8 @@ fn struct_field_index(
 }
 
 // ---------------------------------------------------------------------------
-// Place codegen + type inference (regular fns — specr output types)
+// Call resolution and expression type inference
 // ---------------------------------------------------------------------------
-
-fn codegen_place_expr(
-    g: &CodegenGlobal,
-    s: &CodegenScope,
-    p: &PlaceExpr,
-) -> Fallible<lang::PlaceExpr> {
-    match p.data() {
-        PlaceExprData::Var(id) => Ok(lang::PlaceExpr::Local(s.lookup_var(id)?.0)),
-        PlaceExprData::Parens(inner) => codegen_place_expr(g, s, inner),
-        PlaceExprData::Deref { prefix } => {
-            let pp = codegen_place_expr(g, s, prefix)?;
-            let pt = infer_place_ty(g, s, prefix)?;
-            let pointee = match &pt {
-                Ty::RigidTy(r) => match &r.name {
-                    RigidName::Ref(_) => match r.parameters.get(1) {
-                        Some(Parameter::Ty(t)) => t.as_ref().clone(),
-                        _ => anyhow::bail!("bad ref"),
-                    },
-                    _ => anyhow::bail!("deref non-ref"),
-                },
-                _ => anyhow::bail!("deref non-ref"),
-            };
-            Ok(lang::PlaceExpr::Deref {
-                operand: GcCow::new(lang::ValueExpr::Load {
-                    source: GcCow::new(pp),
-                }),
-                ty: minirust_ty(&g.crates, &pointee)?,
-            })
-        }
-        PlaceExprData::Field { prefix, field_name } => {
-            let pp = codegen_place_expr(g, s, prefix)?;
-            let pt = infer_place_ty(g, s, prefix)?;
-            match &pt {
-                Ty::RigidTy(r) => match &r.name {
-                    RigidName::AdtId(id) => {
-                        let (idx, _) =
-                            struct_field_index(&g.crates, id, &r.parameters, field_name)?;
-                        Ok(lang::PlaceExpr::Field {
-                            root: GcCow::new(pp),
-                            field: Int::from(idx),
-                        })
-                    }
-                    _ => anyhow::bail!("field on non-struct"),
-                },
-                _ => anyhow::bail!("field on non-struct"),
-            }
-        }
-        _ => anyhow::bail!("unsupported place expr"),
-    }
-}
 
 fn resolve_call(
     g: CodegenGlobal,
@@ -427,18 +516,25 @@ fn resolve_call(
             Ok((n, g))
         }
         ExprData::Place(place) => {
-            let ty = infer_place_ty(&g, s, place)?;
-            match &ty {
-                Ty::RigidTy(r) => match &r.name {
-                    RigidName::FnDef(id) => {
-                        let (n, g) = g.ensure_fn(MonoKey {
-                            id: id.clone(),
-                            args: vec![],
-                        });
-                        Ok((n, g))
+            let ty = match place.data() {
+                crate::grammar::expr::PlaceExprData::Var(id) => match s.lookup_var(id) {
+                    Ok((_, ty)) => ty,
+                    Err(_) if g.crates.fn_named(id).is_ok() => {
+                        Ty::rigid(RigidName::FnDef(id.clone()), ())
                     }
-                    _ => anyhow::bail!("call non-fn"),
+                    Err(e) => return Err(e),
                 },
+                _ => resolve_place(&g, s, place)?.ty,
+            };
+            let rigid = resolve_rigid(&g, s, &ty)?;
+            match &rigid.name {
+                RigidName::FnDef(id) => {
+                    let (n, g) = g.ensure_fn(MonoKey {
+                        id: id.clone(),
+                        args: vec![],
+                    });
+                    Ok((n, g))
+                }
                 _ => anyhow::bail!("call non-fn"),
             }
         }
@@ -450,10 +546,19 @@ fn infer_expr_ty(g: &CodegenGlobal, s: &CodegenScope, e: &Expr) -> Fallible<Ty> 
     match e.data() {
         ExprData::Literal { ty, .. } => Ok(scalar_ty(ty.clone())),
         ExprData::True | ExprData::False => Ok(Ty::bool()),
-        ExprData::Place(p) => infer_place_ty(g, s, p),
-        ExprData::Ref { kind, lt, place } => {
-            Ok(infer_place_ty(g, s, place)?.ref_ty_of_kind(kind, lt.clone()))
-        }
+        ExprData::Place(p) => Ok(match p.data() {
+            crate::grammar::expr::PlaceExprData::Var(id) => match s.lookup_var(id) {
+                Ok((_, ty)) => ty,
+                Err(_) if g.crates.fn_named(id).is_ok() => {
+                    Ty::rigid(RigidName::FnDef(id.clone()), ())
+                }
+                Err(e) => return Err(e),
+            },
+            _ => resolve_place(g, s, p)?.ty,
+        }),
+        ExprData::Ref { kind, lt, place } => Ok(resolve_place(g, s, place)?
+            .ty
+            .ref_ty_of_kind(kind, lt.clone())),
         ExprData::Assign { .. } => Ok(Ty::unit()),
         ExprData::Struct {
             adt_id, turbofish, ..
@@ -464,57 +569,15 @@ fn infer_expr_ty(g: &CodegenGlobal, s: &CodegenScope, e: &Expr) -> Fallible<Ty> 
         ExprData::Turbofish { id, .. } => Ok(Ty::rigid(RigidName::FnDef(id.clone()), ())),
         ExprData::Call { callee, .. } => {
             let ct = infer_expr_ty(g, s, callee)?;
-            match &ct {
-                Ty::RigidTy(r) => match &r.name {
-                    RigidName::FnDef(id) => {
-                        let (_, d) = g.crates.fn_named(id)?.binder.open();
-                        Ok(d.output_ty.clone())
-                    }
-                    _ => anyhow::bail!("ret ty of non-fn"),
-                },
+            let rigid = resolve_rigid(g, s, &ct)?;
+            match &rigid.name {
+                RigidName::FnDef(id) => {
+                    let (_, d) = g.crates.fn_named(id)?.binder.open();
+                    Ok(d.output_ty.clone())
+                }
                 _ => anyhow::bail!("ret ty of non-fn"),
             }
         }
-        _ => anyhow::bail!("cannot infer expr ty"),
-    }
-}
-
-fn infer_place_ty(g: &CodegenGlobal, s: &CodegenScope, p: &PlaceExpr) -> Fallible<Ty> {
-    match p.data() {
-        PlaceExprData::Var(id) => match s.lookup_var(id) {
-            Ok((_, ty)) => Ok(ty),
-            Err(_) if g.crates.fn_named(id).is_ok() => {
-                Ok(Ty::rigid(RigidName::FnDef(id.clone()), ()))
-            }
-            Err(e) => Err(e),
-        },
-        PlaceExprData::Parens(inner) => infer_place_ty(g, s, inner),
-        PlaceExprData::Deref { prefix } => {
-            let pt = infer_place_ty(g, s, prefix)?;
-            match &pt {
-                Ty::RigidTy(r) => match &r.name {
-                    RigidName::Ref(_) => match r.parameters.get(1) {
-                        Some(Parameter::Ty(t)) => Ok(t.as_ref().clone()),
-                        _ => anyhow::bail!("bad ref"),
-                    },
-                    _ => anyhow::bail!("deref non-ref"),
-                },
-                _ => anyhow::bail!("deref non-ref"),
-            }
-        }
-        PlaceExprData::Field { prefix, field_name } => {
-            let pt = infer_place_ty(g, s, prefix)?;
-            match &pt {
-                Ty::RigidTy(r) => match &r.name {
-                    RigidName::AdtId(id) => {
-                        Ok(struct_field_index(&g.crates, id, &r.parameters, field_name)?.1)
-                    }
-                    _ => anyhow::bail!("field on non-struct"),
-                },
-                _ => anyhow::bail!("field on non-struct"),
-            }
-        }
-        _ => anyhow::bail!("cannot infer place ty"),
     }
 }
 
@@ -531,8 +594,11 @@ struct CgResult {
 }
 
 impl CgResult {
-    fn new(region: SemeRegion, global: CodegenGlobal) -> Self {
-        CgResult { region, global }
+    fn new(region: impl Upcast<SemeRegion>, global: impl Upcast<CodegenGlobal>) -> Self {
+        CgResult {
+            region: region.upcast(),
+            global: global.upcast(),
+        }
     }
 }
 
@@ -548,36 +614,102 @@ judgment_fn! {
         debug(global, scope, target, expr)
 
         (
-            (if let ExprData::Literal { value, ty } = expr.data())
-            (let r: CgResult = codegen_literal(global.clone(), &target, *value, ty)?)
+            (let mr_ty = minirust_ty(&global.crates, &scalar_ty(ty.clone()))?)
+            (let (entry, g) = global.fresh_bb())
+            (let region = SemeRegion::empty(entry)
+                .push_stmt(lang::Statement::Assign {
+                    destination: lang::PlaceExpr::Local(target.0),
+                    source: lang::ValueExpr::Constant(
+                        lang::Constant::Int(Int::from(*value)),
+                        mr_ty.clone(),
+                    ),
+                }))
             ---- ("literal")
-            (codegen_expr_into(global, scope, target, expr) => r.clone())
+            (codegen_expr_into(global, scope, target, ExprData::Literal { value, ty }) => CgResult::new(region, g))
         )
 
         (
-            (if let ExprData::Place(place_expr) = expr.data())
-            (let r: CgResult = codegen_place(global.clone(), &scope, &target, place_expr)?)
+            (let typed = resolve_place(&global, &scope, place_expr)?)
+            (let source = typed_place_to_minirust(&global, &scope, &typed)?)
+            (let (entry, g) = global.fresh_bb())
+            (let region = SemeRegion::empty(entry)
+                .push_stmt(lang::Statement::Assign {
+                    destination: lang::PlaceExpr::Local(target.0),
+                    source: lang::ValueExpr::Load {
+                        source: GcCow::new(source.clone()),
+                    },
+                }))
             ---- ("place")
-            (codegen_expr_into(global, scope, target, expr) => r.clone())
+            (codegen_expr_into(global, scope, target, ExprData::Place(place_expr)) => CgResult::new(region, g))
         )
 
         (
             (if matches!(expr.data(), ExprData::True | ExprData::False))
-            (let r: CgResult = codegen_bool(global.clone(), &target, matches!(expr.data(), ExprData::True))?)
+            (let r: CgResult = (|| -> Fallible<CgResult> {
+                let val = matches!(expr.data(), ExprData::True);
+                let (entry, g) = global.clone().fresh_bb();
+                let region = SemeRegion::empty(&entry)
+                    .push_stmt(lang::Statement::Assign {
+                        destination: lang::PlaceExpr::Local(target.0),
+                        source: lang::ValueExpr::Constant(lang::Constant::Bool(val), lang::Type::Bool),
+                    });
+                Ok(CgResult::new(region, g))
+            })()?)
             ---- ("bool")
             (codegen_expr_into(global, scope, target, expr) => r.clone())
         )
 
         (
             (if let ExprData::Assign { place, expr: rhs } = expr.data())
-            (let r: CgResult = codegen_assign(global.clone(), &scope, &target, place, rhs)?)
+            (let r: CgResult = (|| -> Fallible<CgResult> {
+                let typed_dest = resolve_place(&global, &scope, place)?;
+                let dest = typed_place_to_minirust(&global, &scope, &typed_dest)?;
+                let rhs_ty = infer_expr_ty(&global, &scope, rhs)?;
+                let mr_ty = global.minirust_ty(&rhs_ty)?;
+                let (rhs_temp, mut g) = global.clone().alloc_local(mr_ty);
+                let CgResult {
+                    region,
+                    global: g2,
+                } = unwrap_proven(codegen_expr_into(
+                    g,
+                    scope.clone(),
+                    wrap_local(rhs_temp),
+                    rhs.clone(),
+                ))?;
+                g = g2;
+                let region = region
+                    .push_stmt(lang::Statement::Assign {
+                        destination: dest,
+                        source: lang::ValueExpr::Load {
+                            source: GcCow::new(lang::PlaceExpr::Local(rhs_temp)),
+                        },
+                    })
+                    .push_stmt(lang::Statement::Assign {
+                        destination: lang::PlaceExpr::Local(target.0),
+                        source: unit_value(),
+                    });
+                Ok(CgResult::new(region, g))
+            })()?)
             ---- ("assign")
             (codegen_expr_into(global, scope, target, expr) => r.clone())
         )
 
         (
             (if let ExprData::Turbofish { id, args } = expr.data())
-            (let r: CgResult = codegen_turbofish(global.clone(), &target, id, args)?)
+            (let r: CgResult = (|| -> Fallible<CgResult> {
+                let (_fn, mut g) = global.clone().ensure_fn(MonoKey {
+                    id: id.clone(),
+                    args: args.to_vec(),
+                });
+                let (entry, g2) = g.fresh_bb();
+                g = g2;
+                let region = SemeRegion::empty(&entry)
+                    .push_stmt(lang::Statement::Assign {
+                        destination: lang::PlaceExpr::Local(target.0),
+                        source: unit_value(),
+                    });
+                Ok(CgResult::new(region, g))
+            })()?)
             ---- ("turbofish")
             (codegen_expr_into(global, scope, target, expr) => r.clone())
         )
@@ -591,7 +723,37 @@ judgment_fn! {
 
         (
             (if let ExprData::Ref { kind, lt: _, place } = expr.data())
-            (let r: CgResult = codegen_ref(global.clone(), &scope, &target, kind, place)?)
+            (let r: CgResult = (|| -> Fallible<CgResult> {
+                let typed = resolve_place(&global, &scope, place)?;
+                let pe = typed_place_to_minirust(&global, &scope, &typed)?;
+                let pt = &typed.ty;
+                let mr = global.minirust_ty(pt)?;
+                let (ps, pa) = type_size_align(&mr);
+                let mutbl = match kind {
+                    crate::grammar::RefKind::Shared => Mutability::Immutable,
+                    crate::grammar::RefKind::Mut => Mutability::Mutable,
+                };
+                let ptr_ty = PtrType::Ref {
+                    mutbl,
+                    pointee: minirust_rs::mem::PointeeInfo {
+                        layout: minirust_rs::mem::LayoutStrategy::Sized(ps, pa),
+                        inhabited: true,
+                        freeze: true,
+                        unpin: true,
+                        unsafe_cells: minirust_rs::mem::UnsafeCellStrategy::Sized { cells: list![] },
+                    },
+                };
+                let (entry, g) = global.clone().fresh_bb();
+                let region = SemeRegion::empty(&entry)
+                    .push_stmt(lang::Statement::Assign {
+                        destination: lang::PlaceExpr::Local(target.0),
+                        source: lang::ValueExpr::AddrOf {
+                            target: GcCow::new(pe),
+                            ptr_ty,
+                        },
+                    });
+                Ok(CgResult::new(region, g))
+            })()?)
             ---- ("ref")
             (codegen_expr_into(global, scope, target, expr) => r.clone())
         )
@@ -622,7 +784,15 @@ judgment_fn! {
 
         (
             (if let Stmt::Return { expr } = &*stmt)
-            (let r: CgResult = codegen_return(global.clone(), &scope, expr)?)
+            (let r: CgResult = (|| -> Fallible<CgResult> {
+                let ret = scope.ret_local.clone();
+                let CgResult {
+                    region,
+                    global: g,
+                } = unwrap_proven(codegen_expr_into(global.clone(), scope.clone(), ret, expr.clone()))?;
+                let region = region.terminate(lang::Terminator::Return);
+                Ok(CgResult::new(region, g))
+            })()?)
             ---- ("return")
             (codegen_stmt(global, scope, stmt) => r.clone())
         )
@@ -643,7 +813,17 @@ judgment_fn! {
 
         (
             (if let Stmt::Expr { expr } = &*stmt)
-            (let r: CgResult = codegen_expr_stmt(global.clone(), &scope, expr)?)
+            (let r: CgResult = (|| -> Fallible<CgResult> {
+                let et = infer_expr_ty(&global, &scope, expr)?;
+                let mr_ty = global.minirust_ty(&et)?;
+                let (temp, g) = global.clone().alloc_local(mr_ty);
+                unwrap_proven(codegen_expr_into(
+                    g,
+                    scope.clone(),
+                    wrap_local(temp),
+                    expr.clone(),
+                ))
+            })()?)
             ---- ("expr")
             (codegen_stmt(global, scope, stmt) => r.clone())
         )
@@ -657,14 +837,26 @@ judgment_fn! {
 
         (
             (if let Stmt::Break { label } = &*stmt)
-            (let r: CgResult = codegen_break(global.clone(), &scope, label)?)
+            (let r: CgResult = (|| -> Fallible<CgResult> {
+                let (_, exit) = scope.lookup_loop(label)?;
+                let (entry, g) = global.clone().fresh_bb();
+                let region = SemeRegion::empty(&entry)
+                    .terminate(lang::Terminator::Goto(exit));
+                Ok(CgResult::new(region, g))
+            })()?)
             ---- ("break")
             (codegen_stmt(global, scope, stmt) => r.clone())
         )
 
         (
             (if let Stmt::Continue { label } = &*stmt)
-            (let r: CgResult = codegen_continue(global.clone(), &scope, label)?)
+            (let r: CgResult = (|| -> Fallible<CgResult> {
+                let (start, _) = scope.lookup_loop(label)?;
+                let (entry, g) = global.clone().fresh_bb();
+                let region = SemeRegion::empty(&entry)
+                    .terminate(lang::Terminator::Goto(start));
+                Ok(CgResult::new(region, g))
+            })()?)
             ---- ("continue")
             (codegen_stmt(global, scope, stmt) => r.clone())
         )
@@ -689,109 +881,6 @@ judgment_fn! {
 // Expression codegen helpers (regular functions returning CgResult)
 // ---------------------------------------------------------------------------
 
-fn codegen_literal(
-    mut g: CodegenGlobal,
-    target: &MrLocal,
-    value: usize,
-    ty: &ScalarId,
-) -> Fallible<CgResult> {
-    let mr_ty = g.minirust_ty(&scalar_ty(ty.clone()))?;
-    let (entry, g2) = g.fresh_bb();
-    g = g2;
-    let mut region = SemeRegion::empty(entry);
-    region.push_stmt(lang::Statement::Assign {
-        destination: lang::PlaceExpr::Local(target.0),
-        source: lang::ValueExpr::Constant(lang::Constant::Int(Int::from(value)), mr_ty),
-    });
-    Ok(CgResult::new(region, g))
-}
-
-fn codegen_place(
-    mut g: CodegenGlobal,
-    scope: &CodegenScope,
-    target: &MrLocal,
-    place: &PlaceExpr,
-) -> Fallible<CgResult> {
-    let source = codegen_place_expr(&g, scope, place)?;
-    let (entry, g2) = g.fresh_bb();
-    g = g2;
-    let mut region = SemeRegion::empty(entry);
-    region.push_stmt(lang::Statement::Assign {
-        destination: lang::PlaceExpr::Local(target.0),
-        source: lang::ValueExpr::Load {
-            source: GcCow::new(source),
-        },
-    });
-    Ok(CgResult::new(region, g))
-}
-
-fn codegen_bool(mut g: CodegenGlobal, target: &MrLocal, val: bool) -> Fallible<CgResult> {
-    let (entry, g2) = g.fresh_bb();
-    g = g2;
-    let mut region = SemeRegion::empty(entry);
-    region.push_stmt(lang::Statement::Assign {
-        destination: lang::PlaceExpr::Local(target.0),
-        source: lang::ValueExpr::Constant(lang::Constant::Bool(val), lang::Type::Bool),
-    });
-    Ok(CgResult::new(region, g))
-}
-
-fn codegen_assign(
-    mut g: CodegenGlobal,
-    scope: &CodegenScope,
-    target: &MrLocal,
-    place: &PlaceExpr,
-    rhs: &Expr,
-) -> Fallible<CgResult> {
-    let dest = codegen_place_expr(&g, scope, place)?;
-    let rhs_ty = infer_expr_ty(&g, scope, rhs)?;
-    let mr_ty = g.minirust_ty(&rhs_ty)?;
-    let (rhs_temp, g2) = g.alloc_local(mr_ty);
-    g = g2;
-    let CgResult {
-        mut region,
-        global: g2,
-    } = unwrap_proven(codegen_expr_into(
-        g,
-        scope.clone(),
-        wrap_local(rhs_temp),
-        rhs.clone(),
-    ))?;
-    g = g2;
-    region.push_stmt(lang::Statement::Assign {
-        destination: dest,
-        source: lang::ValueExpr::Load {
-            source: GcCow::new(lang::PlaceExpr::Local(rhs_temp)),
-        },
-    });
-    region.push_stmt(lang::Statement::Assign {
-        destination: lang::PlaceExpr::Local(target.0),
-        source: unit_value(),
-    });
-    Ok(CgResult::new(region, g))
-}
-
-fn codegen_turbofish(
-    mut g: CodegenGlobal,
-    target: &MrLocal,
-    id: &ValueId,
-    args: &[Parameter],
-) -> Fallible<CgResult> {
-    let (_fn, g2) = g.ensure_fn(MonoKey {
-        id: id.clone(),
-        args: args.to_vec(),
-    });
-    g = g2;
-    let (entry, g2) = g.fresh_bb();
-    g = g2;
-    let mut region = SemeRegion::empty(entry);
-    region.push_stmt(lang::Statement::Assign {
-        destination: lang::PlaceExpr::Local(target.0),
-        source: unit_value(),
-    });
-    Ok(CgResult::new(region, g))
-}
-
 fn codegen_call(
     mut g: CodegenGlobal,
     scope: &CodegenScope,
@@ -803,7 +892,7 @@ fn codegen_call(
     g = g2;
     let (entry, g2) = g.fresh_bb();
     g = g2;
-    let mut region = SemeRegion::empty(entry);
+    let mut region = SemeRegion::empty(&entry);
     let mut arg_exprs = list![];
     for arg in args {
         let arg_ty = infer_expr_ty(&g, scope, arg)?;
@@ -830,56 +919,19 @@ fn codegen_call(
     }
     let (next_bb, g2) = g.fresh_bb();
     g = g2;
-    region.terminate(lang::Terminator::Call {
-        callee: lang::ValueExpr::Constant(
-            lang::Constant::FnPointer(fn_name),
-            lang::Type::Ptr(PtrType::FnPtr),
-        ),
-        calling_convention: lang::CallingConvention::Rust,
-        arguments: arg_exprs,
-        ret: lang::PlaceExpr::Local(target.0),
-        next_block: Some(next_bb),
-        unwind_block: None,
-    });
-    region.add_empty_block(next_bb);
-    Ok(CgResult::new(region, g))
-}
-
-fn codegen_ref(
-    mut g: CodegenGlobal,
-    scope: &CodegenScope,
-    target: &MrLocal,
-    kind: &crate::grammar::RefKind,
-    place: &PlaceExpr,
-) -> Fallible<CgResult> {
-    let pe = codegen_place_expr(&g, scope, place)?;
-    let pt = infer_place_ty(&g, scope, place)?;
-    let mr = g.minirust_ty(&pt)?;
-    let (ps, pa) = type_size_align(&mr);
-    let mutbl = match kind {
-        crate::grammar::RefKind::Shared => Mutability::Immutable,
-        crate::grammar::RefKind::Mut => Mutability::Mutable,
-    };
-    let ptr_ty = PtrType::Ref {
-        mutbl,
-        pointee: minirust_rs::mem::PointeeInfo {
-            layout: minirust_rs::mem::LayoutStrategy::Sized(ps, pa),
-            inhabited: true,
-            freeze: true,
-            unpin: true,
-            unsafe_cells: minirust_rs::mem::UnsafeCellStrategy::Sized { cells: list![] },
-        },
-    };
-    let (entry, g2) = g.fresh_bb();
-    g = g2;
-    let mut region = SemeRegion::empty(entry);
-    region.push_stmt(lang::Statement::Assign {
-        destination: lang::PlaceExpr::Local(target.0),
-        source: lang::ValueExpr::AddrOf {
-            target: GcCow::new(pe),
-            ptr_ty,
-        },
-    });
+    region = region
+        .terminate(lang::Terminator::Call {
+            callee: lang::ValueExpr::Constant(
+                lang::Constant::FnPointer(fn_name),
+                lang::Type::Ptr(PtrType::FnPtr),
+            ),
+            calling_convention: lang::CallingConvention::Rust,
+            arguments: arg_exprs,
+            ret: lang::PlaceExpr::Local(target.0),
+            next_block: Some(next_bb),
+            unwind_block: None,
+        })
+        .add_empty_block(next_bb);
     Ok(CgResult::new(region, g))
 }
 
@@ -900,7 +952,7 @@ fn codegen_struct(
     };
     let (entry, g2) = g.fresh_bb();
     g = g2;
-    let mut region = SemeRegion::empty(entry);
+    let mut region = SemeRegion::empty(&entry);
     let mut fv = Vec::new();
     for fd in &bd.fields {
         let fe = field_exprs
@@ -935,7 +987,7 @@ fn codegen_struct(
             turbofish.parameters.clone(),
         ),
     )?;
-    region.push_stmt(lang::Statement::Assign {
+    let region = region.push_stmt(lang::Statement::Assign {
         destination: lang::PlaceExpr::Local(target.0),
         source: lang::ValueExpr::Tuple(fv.into_iter().collect(), st),
     });
@@ -966,7 +1018,7 @@ fn codegen_let(
     let mr_ty = g.minirust_ty(ty)?;
     let (local, g2) = g.alloc_local(mr_ty);
     g = g2;
-    scope = scope.push_var(id.clone(), local, ty.clone());
+    scope = scope.push_var(id.clone(), local, ty.clone())?;
     if let Some(init) = init {
         let CgResult { region, global } = unwrap_proven(codegen_expr_into(
             g,
@@ -978,19 +1030,8 @@ fn codegen_let(
     } else {
         let (entry, g2) = g.fresh_bb();
         g = g2;
-        Ok(CgResult::new(SemeRegion::empty(entry), g))
+        Ok(CgResult::new(SemeRegion::empty(&entry), g))
     }
-}
-
-fn codegen_return(mut g: CodegenGlobal, scope: &CodegenScope, expr: &Expr) -> Fallible<CgResult> {
-    let ret = scope.ret_local.clone();
-    let CgResult {
-        mut region,
-        global: g2,
-    } = unwrap_proven(codegen_expr_into(g, scope.clone(), ret, expr.clone()))?;
-    g = g2;
-    region.terminate(lang::Terminator::Return);
-    Ok(CgResult::new(region, g))
 }
 
 fn codegen_print(mut g: CodegenGlobal, scope: &CodegenScope, expr: &Expr) -> Fallible<CgResult> {
@@ -998,10 +1039,7 @@ fn codegen_print(mut g: CodegenGlobal, scope: &CodegenScope, expr: &Expr) -> Fal
     let mr_ty = g.minirust_ty(&et)?;
     let (temp, g2) = g.alloc_local(mr_ty);
     g = g2;
-    let CgResult {
-        mut region,
-        global: g2,
-    } = unwrap_proven(codegen_expr_into(
+    let CgResult { region, global: g2 } = unwrap_proven(codegen_expr_into(
         g,
         scope.clone(),
         wrap_local(temp),
@@ -1012,15 +1050,16 @@ fn codegen_print(mut g: CodegenGlobal, scope: &CodegenScope, expr: &Expr) -> Fal
     g = g2;
     let (print_ret, g2) = g.alloc_local(unit_ty());
     g = g2;
-    region.terminate(lang::Terminator::Intrinsic {
-        intrinsic: lang::IntrinsicOp::PrintStdout,
-        arguments: list![lang::ValueExpr::Load {
-            source: GcCow::new(lang::PlaceExpr::Local(temp))
-        }],
-        ret: lang::PlaceExpr::Local(print_ret),
-        next_block: Some(next_bb),
-    });
-    region.add_empty_block(next_bb);
+    let region = region
+        .terminate(lang::Terminator::Intrinsic {
+            intrinsic: lang::IntrinsicOp::PrintStdout,
+            arguments: list![lang::ValueExpr::Load {
+                source: GcCow::new(lang::PlaceExpr::Local(temp))
+            }],
+            ret: lang::PlaceExpr::Local(print_ret),
+            next_block: Some(next_bb),
+        })
+        .add_empty_block(next_bb);
     Ok(CgResult::new(region, g))
 }
 
@@ -1058,23 +1097,6 @@ fn codegen_if(
     Ok(CgResult::new(cr.branch_on_bool(ct, tr, er, join), g))
 }
 
-fn codegen_expr_stmt(
-    mut g: CodegenGlobal,
-    scope: &CodegenScope,
-    expr: &Expr,
-) -> Fallible<CgResult> {
-    let et = infer_expr_ty(&g, scope, expr)?;
-    let mr_ty = g.minirust_ty(&et)?;
-    let (temp, g2) = g.alloc_local(mr_ty);
-    g = g2;
-    unwrap_proven(codegen_expr_into(
-        g,
-        scope.clone(),
-        wrap_local(temp),
-        expr.clone(),
-    ))
-}
-
 fn codegen_loop(
     mut g: CodegenGlobal,
     mut scope: CodegenScope,
@@ -1097,43 +1119,17 @@ fn codegen_loop(
     let _scope = scope.pop_loop();
     let (entry, g2) = g.fresh_bb();
     g = g2;
-    let mut region = SemeRegion::empty(entry);
-    region.terminate(lang::Terminator::Goto(loop_start));
-    region.add_empty_block(loop_start);
+    let mut region = SemeRegion::empty(&entry)
+        .terminate(lang::Terminator::Goto(loop_start))
+        .add_empty_block(loop_start);
     region = region.append(body_region, || {
         let (bb, _) = g.clone().fresh_bb();
         bb
     });
     if region.has_fallthrough() {
-        region.terminate(lang::Terminator::Goto(loop_start));
+        region = region.terminate(lang::Terminator::Goto(loop_start));
     }
-    region.add_empty_block(exit_block);
-    Ok(CgResult::new(region, g))
-}
-
-fn codegen_break(
-    mut g: CodegenGlobal,
-    scope: &CodegenScope,
-    label: &LabelId,
-) -> Fallible<CgResult> {
-    let (_, exit) = scope.lookup_loop(label)?;
-    let (entry, g2) = g.fresh_bb();
-    g = g2;
-    let mut region = SemeRegion::empty(entry);
-    region.terminate(lang::Terminator::Goto(exit));
-    Ok(CgResult::new(region, g))
-}
-
-fn codegen_continue(
-    mut g: CodegenGlobal,
-    scope: &CodegenScope,
-    label: &LabelId,
-) -> Fallible<CgResult> {
-    let (start, _) = scope.lookup_loop(label)?;
-    let (entry, g2) = g.fresh_bb();
-    g = g2;
-    let mut region = SemeRegion::empty(entry);
-    region.terminate(lang::Terminator::Goto(start));
+    region = region.add_empty_block(exit_block);
     Ok(CgResult::new(region, g))
 }
 
@@ -1144,7 +1140,7 @@ fn codegen_block_inner(
 ) -> Fallible<CgResult> {
     let (entry, g2) = g.fresh_bb();
     g = g2;
-    let mut region = SemeRegion::empty(entry);
+    let mut region = SemeRegion::empty(&entry);
     let mut scope = scope;
     for stmt in &block.stmts {
         // Handle Let specially to thread scope
@@ -1158,7 +1154,7 @@ fn codegen_block_inner(
             let mr_ty = g.minirust_ty(ty)?;
             let (local, g2) = g.alloc_local(mr_ty);
             g = g2;
-            scope = scope.push_var(id.clone(), local, ty.clone());
+            scope = scope.push_var(id.clone(), local, ty.clone())?;
             if let Some(init) = init {
                 let CgResult {
                     region: ir,
@@ -1191,7 +1187,7 @@ fn codegen_block_inner(
 }
 
 fn codegen_exists(
-    mut g: CodegenGlobal,
+    g: CodegenGlobal,
     scope: CodegenScope,
     binder: &crate::grammar::Binder<Block>,
 ) -> Fallible<CgResult> {
@@ -1216,7 +1212,6 @@ fn codegen_function(
     mut g: CodegenGlobal,
     key: &MonoKey,
 ) -> Fallible<(lang::Function, CodegenGlobal)> {
-    g = g.reset_for_function();
     let fn_def = g.crates.fn_named(&key.id)?;
     let fn_data = if key.args.is_empty() {
         let (_, d) = fn_def.binder.open();
@@ -1224,6 +1219,7 @@ fn codegen_function(
     } else {
         fn_def.binder.instantiate_with(&key.args)?
     };
+    g = g.reset_for_function(&fn_data.output_ty);
     let body = match &fn_data.body {
         crate::grammar::MaybeFnBody::FnBody(crate::grammar::FnBody::Expr(b)) => b,
         _ => anyhow::bail!("function {:?} must have expression body", key.id),
@@ -1232,13 +1228,14 @@ fn codegen_function(
     let (ret_local, g2) = g.alloc_local(ret_ty);
     g = g2;
     let mut arg_locals = list![];
-    let mut scope = CodegenScope::new(ret_local);
+    let flow_state = FlowState::for_fn_body(&Env::default(), &fn_data.input_args)?;
+    let mut scope = CodegenScope::new(ret_local, flow_state);
     for arg in &fn_data.input_args {
         let mr_ty = minirust_ty(&g.crates, &arg.ty)?;
         let (local, g2) = g.alloc_local(mr_ty);
         g = g2;
         arg_locals.push(local);
-        scope = scope.push_var(arg.id.clone(), local, arg.ty.clone());
+        scope = scope.push_var_no_flow(arg.id.clone(), local, arg.ty.clone());
     }
     let CgResult {
         mut region,
@@ -1246,11 +1243,12 @@ fn codegen_function(
     } = codegen_block_inner(g, scope, body)?;
     g = g2;
     if region.has_fallthrough() {
-        region.push_stmt(lang::Statement::Assign {
-            destination: lang::PlaceExpr::Local(ret_local),
-            source: unit_value(),
-        });
-        region.terminate(lang::Terminator::Return);
+        region = region
+            .push_stmt(lang::Statement::Assign {
+                destination: lang::PlaceExpr::Local(ret_local),
+                source: unit_value(),
+            })
+            .terminate(lang::Terminator::Return);
     }
     let entry = region.entry();
     let mut blocks = region.into_blocks();
