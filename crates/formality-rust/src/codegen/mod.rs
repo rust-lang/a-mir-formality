@@ -91,8 +91,8 @@ fn wrap_local(l: &lang::LocalName) -> MrLocal {
 fn wrap_ty(t: lang::Type) -> MrType {
     OrdByDebug(t)
 }
-fn wrap_fn(f: lang::FnName) -> MrFn {
-    OrdByDebug(f)
+fn wrap_fn(f: &lang::FnName) -> MrFn {
+    OrdByDebug(*f)
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -180,7 +180,7 @@ impl CodegenGlobal {
             }
         }
         let (name, mut g) = self.fresh_fn();
-        g.fn_map.push((key, wrap_fn(name)));
+        g.fn_map.push((key, wrap_fn(&name)));
         (name, g)
     }
     fn next_pending(
@@ -861,43 +861,48 @@ fn build_loop(
 // Call resolution and expression type inference
 // ---------------------------------------------------------------------------
 
-fn resolve_call(
-    g: CodegenGlobal,
-    s: &CodegenScope,
-    callee: &Expr,
-) -> Fallible<(lang::FnName, CodegenGlobal)> {
-    match callee.data() {
-        ExprData::Turbofish { id, args } => {
-            let (n, g) = g.ensure_fn(MonoKey {
-                id: id.clone(),
-                args: args.clone(),
-            });
-            Ok((n, g))
-        }
-        ExprData::Place(place) => {
-            let ty = match place.data() {
-                crate::grammar::expr::PlaceExprData::Var(id) => match s.lookup_var(id) {
-                    Ok((_, ty)) => ty,
-                    Err(_) if g.crates.fn_named(id).is_ok() => {
-                        Ty::rigid(RigidName::FnDef(id.clone()), ())
+judgment_fn! {
+    fn resolve_call(
+        global: CodegenGlobal,
+        scope: CodegenScope,
+        callee: Expr,
+    ) => (MrFn, CodegenGlobal) {
+        debug(global, scope, callee)
+
+        (
+            (let (n, global) = global.ensure_fn(MonoKey { id: id.clone(), args: args.to_vec() }))
+            ---- ("turbofish")
+            (resolve_call(global, scope, ExprData::Turbofish { id, args }) => (wrap_fn(n), global))
+        )
+
+        (
+            (if let ExprData::Place(place) = callee.data())
+            (let r: (MrFn, CodegenGlobal) = (|| -> Fallible<(MrFn, CodegenGlobal)> {
+                let ty = match place.data() {
+                    crate::grammar::expr::PlaceExprData::Var(id) => match scope.lookup_var(id) {
+                        Ok((_, ty)) => ty,
+                        Err(_) if global.crates.fn_named(id).is_ok() => {
+                            Ty::rigid(RigidName::FnDef(id.clone()), ())
+                        }
+                        Err(e) => return Err(e),
+                    },
+                    _ => resolve_place(&global, &scope, place)?.ty,
+                };
+                let rigid = resolve_rigid(&global, &scope, &ty)?;
+                match &rigid.name {
+                    RigidName::FnDef(id) => {
+                        let (n, g) = global.ensure_fn(MonoKey {
+                            id: id.clone(),
+                            args: vec![],
+                        });
+                        Ok((wrap_fn(&n), g))
                     }
-                    Err(e) => return Err(e),
-                },
-                _ => resolve_place(&g, s, place)?.ty,
-            };
-            let rigid = resolve_rigid(&g, s, &ty)?;
-            match &rigid.name {
-                RigidName::FnDef(id) => {
-                    let (n, g) = g.ensure_fn(MonoKey {
-                        id: id.clone(),
-                        args: vec![],
-                    });
-                    Ok((n, g))
+                    _ => anyhow::bail!("call non-fn"),
                 }
-                _ => anyhow::bail!("call non-fn"),
-            }
-        }
-        _ => anyhow::bail!("bad callee"),
+            })()?)
+            ---- ("place")
+            (resolve_call(global, scope, callee) => r.clone())
+        )
     }
 }
 
@@ -1017,7 +1022,7 @@ judgment_fn! {
         )
 
         (
-            (let (fn_name, global) = resolve_call(global.clone(), &scope, callee)?)
+            (resolve_call(global, scope, callee) => (fn_name, global))
             (let (temps, global) = alloc_temps_for_args(&global, &scope, args)?)
             (let (region, global) = global.fresh_region())
             (for_all(i in 0..args.len()) with(region, global)
