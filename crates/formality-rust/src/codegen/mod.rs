@@ -94,9 +94,6 @@ fn wrap_ty(t: lang::Type) -> MrType {
 fn wrap_fn(f: lang::FnName) -> MrFn {
     OrdByDebug(f)
 }
-fn wrap_bb(b: lang::BbName) -> MrBb {
-    OrdByDebug(b)
-}
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub(crate) struct MonoKey {
@@ -267,10 +264,6 @@ impl CodegenScope {
             exit_block: exit,
         });
         s
-    }
-    fn pop_loop(mut self) -> Self {
-        self.loop_scopes.pop();
-        self
     }
 }
 
@@ -1197,115 +1190,8 @@ judgment_fn! {
 }
 
 // ---------------------------------------------------------------------------
-// Expression codegen helpers (regular functions returning tuples)
+// Helpers
 // ---------------------------------------------------------------------------
-
-fn codegen_call(
-    mut g: CodegenGlobal,
-    scope: &CodegenScope,
-    target: &MrLocal,
-    callee: &Expr,
-    args: &[Expr],
-) -> Fallible<(SemeRegion, CodegenGlobal)> {
-    let (fn_name, g2) = resolve_call(g, scope, callee)?;
-    g = g2;
-    let (entry, g2) = g.fresh_bb();
-    g = g2;
-    let mut region = SemeRegion::empty(&entry);
-    let mut arg_exprs = list![];
-    for arg in args {
-        let arg_ty = infer_expr_ty(&g, scope, arg)?;
-        let mr_ty = g.minirust_ty(&arg_ty)?;
-        let (temp, g2) = g.alloc_local(mr_ty);
-        g = g2;
-        let (ar, g2) = unwrap_proven(codegen_expr_into(
-            g,
-            scope.clone(),
-            wrap_local(&temp),
-            arg.clone(),
-        ))?;
-        g = g2;
-        region = region.append(ar, || {
-            let (bb, _) = g.fresh_bb();
-            bb
-        });
-        arg_exprs.push(lang::ArgumentExpr::ByValue(lang::ValueExpr::Load {
-            source: GcCow::new(lang::PlaceExpr::Local(temp)),
-        }));
-    }
-    let (next_bb, g2) = g.fresh_bb();
-    g = g2;
-    region = region
-        .terminate(lang::Terminator::Call {
-            callee: lang::ValueExpr::Constant(
-                lang::Constant::FnPointer(fn_name),
-                lang::Type::Ptr(PtrType::FnPtr),
-            ),
-            calling_convention: lang::CallingConvention::Rust,
-            arguments: arg_exprs,
-            ret: lang::PlaceExpr::Local(target.0),
-            next_block: Some(next_bb),
-            unwind_block: None,
-        })
-        .add_empty_block(next_bb);
-    Ok((region, g))
-}
-
-fn codegen_struct(
-    mut g: CodegenGlobal,
-    scope: &CodegenScope,
-    target: &MrLocal,
-    adt_id: &crate::grammar::AdtId,
-    turbofish: &crate::grammar::expr::Turbofish,
-    field_exprs: &[crate::grammar::expr::FieldExpr],
-) -> Fallible<(SemeRegion, CodegenGlobal)> {
-    let s = g.crates.struct_named(adt_id)?;
-    let bd = if turbofish.parameters.is_empty() {
-        let (_, d) = s.binder.open();
-        d
-    } else {
-        s.binder.instantiate_with(&turbofish.parameters)?
-    };
-    let (entry, g2) = g.fresh_bb();
-    g = g2;
-    let mut region = SemeRegion::empty(&entry);
-    let mut fv = Vec::new();
-    for fd in &bd.fields {
-        let fe = field_exprs
-            .iter()
-            .find(|fe| fe.name == fd.name)
-            .ok_or_else(|| anyhow::anyhow!("missing field {:?}", fd.name))?;
-        let mr_ty = minirust_ty(&g.crates, &fd.ty)?;
-        let (temp, g2) = g.alloc_local(mr_ty);
-        g = g2;
-        let (er, g2) = unwrap_proven(codegen_expr_into(
-            g,
-            scope.clone(),
-            wrap_local(&temp),
-            fe.value.clone(),
-        ))?;
-        g = g2;
-        region = region.append(er, || {
-            let (bb, _) = g.fresh_bb();
-            bb
-        });
-        fv.push(lang::ValueExpr::Load {
-            source: GcCow::new(lang::PlaceExpr::Local(temp)),
-        });
-    }
-    let st = minirust_ty(
-        &g.crates,
-        &Ty::rigid(
-            RigidName::AdtId(adt_id.clone()),
-            turbofish.parameters.clone(),
-        ),
-    )?;
-    let region = region.push_stmt(lang::Statement::Assign {
-        destination: lang::PlaceExpr::Local(target.0),
-        source: lang::ValueExpr::Tuple(fv.into_iter().collect(), st),
-    });
-    Ok((region, g))
-}
 
 /// Extract the single result from a ProvenSet, or error.
 fn unwrap_proven<T: std::fmt::Debug + Clone + Ord>(
@@ -1315,153 +1201,6 @@ fn unwrap_proven<T: std::fmt::Debug + Clone + Ord>(
         .into_singleton()
         .map_err(|e| anyhow::anyhow!("{}", e.format_leaves()))?;
     Ok(proven.0)
-}
-
-// ---------------------------------------------------------------------------
-// Statement codegen helpers
-// ---------------------------------------------------------------------------
-
-fn codegen_let(
-    mut g: CodegenGlobal,
-    mut scope: CodegenScope,
-    id: &ValueId,
-    ty: &Ty,
-    init: Option<&crate::grammar::expr::Init>,
-) -> Fallible<(SemeRegion, CodegenGlobal)> {
-    let mr_ty = g.minirust_ty(ty)?;
-    let (local, g2) = g.alloc_local(mr_ty);
-    g = g2;
-    scope = scope.push_var(id.clone(), local, ty.clone())?;
-    if let Some(init) = init {
-        let (region, global) = unwrap_proven(codegen_expr_into(
-            g,
-            scope,
-            wrap_local(&local),
-            init.expr.clone(),
-        ))?;
-        Ok((region, global))
-    } else {
-        let (entry, g2) = g.fresh_bb();
-        g = g2;
-        Ok((SemeRegion::empty(&entry), g))
-    }
-}
-
-fn codegen_print(
-    mut g: CodegenGlobal,
-    scope: &CodegenScope,
-    expr: &Expr,
-) -> Fallible<(SemeRegion, CodegenGlobal)> {
-    let et = infer_expr_ty(&g, scope, expr)?;
-    let mr_ty = g.minirust_ty(&et)?;
-    let (temp, g2) = g.alloc_local(mr_ty);
-    g = g2;
-    let (region, g2) = unwrap_proven(codegen_expr_into(
-        g,
-        scope.clone(),
-        wrap_local(&temp),
-        expr.clone(),
-    ))?;
-    g = g2;
-    let (next_bb, g2) = g.fresh_bb();
-    g = g2;
-    let (print_ret, g2) = g.alloc_local(unit_ty());
-    g = g2;
-    let region = region
-        .terminate(lang::Terminator::Intrinsic {
-            intrinsic: lang::IntrinsicOp::PrintStdout,
-            arguments: list![lang::ValueExpr::Load {
-                source: GcCow::new(lang::PlaceExpr::Local(temp))
-            }],
-            ret: lang::PlaceExpr::Local(print_ret),
-            next_block: Some(next_bb),
-        })
-        .add_empty_block(next_bb);
-    Ok((region, g))
-}
-
-fn codegen_if(
-    mut g: CodegenGlobal,
-    scope: &CodegenScope,
-    cond: &Expr,
-    then_block: &Block,
-    else_block: &Block,
-) -> Fallible<(SemeRegion, CodegenGlobal)> {
-    let (ct, g2) = g.alloc_local(lang::Type::Bool);
-    g = g2;
-    let (cr, g2) = unwrap_proven(codegen_expr_into(
-        g,
-        scope.clone(),
-        wrap_local(&ct),
-        cond.clone(),
-    ))?;
-    g = g2;
-    let (tr, g2) = codegen_block_inner(g, scope.clone(), then_block)?;
-    g = g2;
-    let (er, g2) = codegen_block_inner(g, scope.clone(), else_block)?;
-    g = g2;
-    let (join, g2) = g.fresh_bb();
-    g = g2;
-    Ok((cr.branch_on_bool(ct, tr, er, join), g))
-}
-
-fn codegen_loop(
-    mut g: CodegenGlobal,
-    mut scope: CodegenScope,
-    label: &Option<crate::grammar::expr::Label>,
-    body: &Block,
-) -> Fallible<(SemeRegion, CodegenGlobal)> {
-    let label = label
-        .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("loop must have a label"))?;
-    let (loop_start, g2) = g.fresh_bb();
-    g = g2;
-    let (exit_block, g2) = g.fresh_bb();
-    g = g2;
-    scope = scope.push_loop(label.id.clone(), loop_start, exit_block);
-    let (body_region, g2) = codegen_block_inner(g, scope.clone(), body)?;
-    g = g2;
-    let _scope = scope.pop_loop();
-    let (entry, g2) = g.fresh_bb();
-    g = g2;
-    let mut region = SemeRegion::empty(&entry)
-        .terminate(lang::Terminator::Goto(loop_start))
-        .add_empty_block(loop_start);
-    region = region.append(body_region, || {
-        let (bb, _) = g.fresh_bb();
-        bb
-    });
-    if region.has_fallthrough() {
-        region = region.terminate(lang::Terminator::Goto(loop_start));
-    }
-    region = region.add_empty_block(exit_block);
-    Ok((region, g))
-}
-
-fn codegen_block_inner(
-    g: CodegenGlobal,
-    scope: CodegenScope,
-    block: &Block,
-) -> Fallible<(SemeRegion, CodegenGlobal)> {
-    unwrap_proven(codegen_block(g, scope, block.clone()))
-}
-
-fn codegen_exists(
-    g: CodegenGlobal,
-    scope: CodegenScope,
-    binder: &crate::grammar::Binder<Block>,
-) -> Fallible<(SemeRegion, CodegenGlobal)> {
-    let params: Vec<Parameter> = binder
-        .kinds()
-        .iter()
-        .map(|k| match k {
-            ParameterKind::Lt => Ok(Lt::Erased.upcast()),
-            ParameterKind::Ty => anyhow::bail!("exists with type param"),
-            ParameterKind::Const => anyhow::bail!("exists with const param"),
-        })
-        .collect::<Fallible<_>>()?;
-    let block = binder.instantiate_with(&params)?;
-    codegen_block_inner(g, scope, &block)
 }
 
 // ---------------------------------------------------------------------------
@@ -1497,7 +1236,7 @@ fn codegen_function(
         arg_locals.push(local);
         scope = scope.push_var_no_flow(arg.id.clone(), local, arg.ty.clone());
     }
-    let (mut region, g2) = codegen_block_inner(g, scope, body)?;
+    let (mut region, g2) = unwrap_proven(codegen_block(g, scope, body.clone()))?;
     g = g2;
     if region.has_fallthrough() {
         region = region
