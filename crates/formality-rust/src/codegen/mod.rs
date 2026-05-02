@@ -102,10 +102,11 @@ impl CodegenGlobal {
             fn_map: Vec::new(),
         }
     }
-    fn fresh_local(mut self) -> (lang::LocalName, Self) {
-        let n = self.local_counter;
-        self.local_counter += 1;
-        (lang::LocalName(libspecr::Name::from_internal(n)), self)
+    fn fresh_local(&self) -> (lang::LocalName, Self) {
+        let mut this = self.clone();
+        let n = this.local_counter;
+        this.local_counter += 1;
+        (lang::LocalName(libspecr::Name::from_internal(n)), this)
     }
     fn fresh_bb(&self) -> (lang::BbName, Self) {
         let mut this = self.clone();
@@ -113,26 +114,26 @@ impl CodegenGlobal {
         this.bb_counter += 1;
         (lang::BbName(libspecr::Name::from_internal(n)), this)
     }
-    fn fresh_fn(mut self) -> (lang::FnName, Self) {
-        let n = self.fn_counter;
-        self.fn_counter += 1;
-        (lang::FnName(libspecr::Name::from_internal(n)), self)
+    fn fresh_fn(&self) -> (lang::FnName, Self) {
+        let mut this = self.clone();
+        let n = this.fn_counter;
+        this.fn_counter += 1;
+        (lang::FnName(libspecr::Name::from_internal(n)), this)
     }
-    fn alloc_local(self, ty: lang::Type) -> (lang::LocalName, Self) {
+    fn alloc_local(&self, ty: lang::Type) -> (lang::LocalName, Self) {
         let (name, mut g) = self.fresh_local();
         g.locals.push((wrap_local(name), wrap_ty(ty)));
         (name, g)
     }
-    fn ensure_fn(mut self, key: MonoKey) -> (lang::FnName, Self) {
+    fn ensure_fn(&self, key: MonoKey) -> (lang::FnName, Self) {
         for (k, name) in &self.fn_map {
             if *k == key {
-                return (name.0, self);
+                return (name.0, self.clone());
             }
         }
-        let (name, g) = self.fresh_fn();
-        self = g;
-        self.fn_map.push((key, wrap_fn(name)));
-        (name, self)
+        let (name, mut g) = self.fresh_fn();
+        g.fn_map.push((key, wrap_fn(name)));
+        (name, g)
     }
     fn next_pending(
         &self,
@@ -145,6 +146,15 @@ impl CodegenGlobal {
     }
     fn minirust_ty(&self, ty: &Ty) -> Fallible<lang::Type> {
         minirust_ty(&self.crates, ty)
+    }
+    fn fresh_region(&self) -> (SemeRegion, Self) {
+        let (bb, g) = self.fresh_bb();
+        (SemeRegion::empty(&bb), g)
+    }
+    fn alloc_temp(&self, ty: &Ty) -> Fallible<(MrLocal, Self)> {
+        let mr_ty = self.minirust_ty(ty)?;
+        let (name, g) = self.alloc_local(mr_ty);
+        Ok((wrap_local(name), g))
     }
     fn reset_for_function(mut self, output_ty: &Ty) -> Self {
         self.locals.clear();
@@ -647,7 +657,7 @@ judgment_fn! {
             (if matches!(expr.data(), ExprData::True | ExprData::False))
             (let r: CgResult = (|| -> Fallible<CgResult> {
                 let val = matches!(expr.data(), ExprData::True);
-                let (entry, g) = global.clone().fresh_bb();
+                let (entry, g) = global.fresh_bb();
                 let region = SemeRegion::empty(&entry)
                     .push_stmt(lang::Statement::Assign {
                         destination: lang::PlaceExpr::Local(target.0),
@@ -666,7 +676,7 @@ judgment_fn! {
                 let dest = typed_place_to_minirust(&global, &scope, &typed_dest)?;
                 let rhs_ty = infer_expr_ty(&global, &scope, rhs)?;
                 let mr_ty = global.minirust_ty(&rhs_ty)?;
-                let (rhs_temp, mut g) = global.clone().alloc_local(mr_ty);
+                let (rhs_temp, mut g) = global.alloc_local(mr_ty);
                 let CgResult {
                     region,
                     global: g2,
@@ -697,7 +707,7 @@ judgment_fn! {
         (
             (if let ExprData::Turbofish { id, args } = expr.data())
             (let r: CgResult = (|| -> Fallible<CgResult> {
-                let (_fn, mut g) = global.clone().ensure_fn(MonoKey {
+                let (_fn, mut g) = global.ensure_fn(MonoKey {
                     id: id.clone(),
                     args: args.to_vec(),
                 });
@@ -743,7 +753,7 @@ judgment_fn! {
                         unsafe_cells: minirust_rs::mem::UnsafeCellStrategy::Sized { cells: list![] },
                     },
                 };
-                let (entry, g) = global.clone().fresh_bb();
+                let (entry, g) = global.fresh_bb();
                 let region = SemeRegion::empty(&entry)
                     .push_stmt(lang::Statement::Assign {
                         destination: lang::PlaceExpr::Local(target.0),
@@ -816,7 +826,7 @@ judgment_fn! {
             (let r: CgResult = (|| -> Fallible<CgResult> {
                 let et = infer_expr_ty(&global, &scope, expr)?;
                 let mr_ty = global.minirust_ty(&et)?;
-                let (temp, g) = global.clone().alloc_local(mr_ty);
+                let (temp, g) = global.alloc_local(mr_ty);
                 unwrap_proven(codegen_expr_into(
                     g,
                     scope.clone(),
@@ -839,7 +849,7 @@ judgment_fn! {
             (if let Stmt::Break { label } = &*stmt)
             (let r: CgResult = (|| -> Fallible<CgResult> {
                 let (_, exit) = scope.lookup_loop(label)?;
-                let (entry, g) = global.clone().fresh_bb();
+                let (entry, g) = global.fresh_bb();
                 let region = SemeRegion::empty(&entry)
                     .terminate(lang::Terminator::Goto(exit));
                 Ok(CgResult::new(region, g))
@@ -852,7 +862,7 @@ judgment_fn! {
             (if let Stmt::Continue { label } = &*stmt)
             (let r: CgResult = (|| -> Fallible<CgResult> {
                 let (start, _) = scope.lookup_loop(label)?;
-                let (entry, g) = global.clone().fresh_bb();
+                let (entry, g) = global.fresh_bb();
                 let region = SemeRegion::empty(&entry)
                     .terminate(lang::Terminator::Goto(start));
                 Ok(CgResult::new(region, g))
@@ -910,7 +920,7 @@ fn codegen_call(
         ))?;
         g = g2;
         region = region.append(ar, || {
-            let (bb, _) = g.clone().fresh_bb();
+            let (bb, _) = g.fresh_bb();
             bb
         });
         arg_exprs.push(lang::ArgumentExpr::ByValue(lang::ValueExpr::Load {
@@ -973,7 +983,7 @@ fn codegen_struct(
         ))?;
         g = g2;
         region = region.append(er, || {
-            let (bb, _) = g.clone().fresh_bb();
+            let (bb, _) = g.fresh_bb();
             bb
         });
         fv.push(lang::ValueExpr::Load {
@@ -1123,7 +1133,7 @@ fn codegen_loop(
         .terminate(lang::Terminator::Goto(loop_start))
         .add_empty_block(loop_start);
     region = region.append(body_region, || {
-        let (bb, _) = g.clone().fresh_bb();
+        let (bb, _) = g.fresh_bb();
         bb
     });
     if region.has_fallthrough() {
@@ -1167,7 +1177,7 @@ fn codegen_block_inner(
                 ))?;
                 g = g2;
                 region = region.append(ir, || {
-                    let (bb, _) = g.clone().fresh_bb();
+                    let (bb, _) = g.fresh_bb();
                     bb
                 });
             }
@@ -1178,7 +1188,7 @@ fn codegen_block_inner(
             } = unwrap_proven(codegen_stmt(g, scope.clone(), stmt.clone()))?;
             g = g2;
             region = region.append(sr, || {
-                let (bb, _) = g.clone().fresh_bb();
+                let (bb, _) = g.fresh_bb();
                 bb
             });
         }
