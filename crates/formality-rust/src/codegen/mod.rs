@@ -34,6 +34,36 @@ type MrType = OrdByDebug<lang::Type>;
 type MrFn = OrdByDebug<lang::FnName>;
 type MrBb = OrdByDebug<lang::BbName>;
 
+/// Thin wrapper around `lang::PlaceExpr` for builder ergonomics.
+struct MrPlace(lang::PlaceExpr);
+
+impl From<MrLocal> for MrPlace {
+    fn from(l: MrLocal) -> Self {
+        MrPlace(lang::PlaceExpr::Local(l.0))
+    }
+}
+
+impl From<&MrLocal> for MrPlace {
+    fn from(l: &MrLocal) -> Self {
+        MrPlace(lang::PlaceExpr::Local(l.0))
+    }
+}
+
+impl From<lang::PlaceExpr> for MrPlace {
+    fn from(p: lang::PlaceExpr) -> Self {
+        MrPlace(p)
+    }
+}
+
+/// Thin wrapper around `lang::ValueExpr` for builder ergonomics.
+struct MrValue(lang::ValueExpr);
+
+impl From<lang::ValueExpr> for MrValue {
+    fn from(v: lang::ValueExpr) -> Self {
+        MrValue(v)
+    }
+}
+
 fn wrap_local(l: lang::LocalName) -> MrLocal {
     OrdByDebug(l)
 }
@@ -506,6 +536,284 @@ fn struct_field_index(
         }
     }
     anyhow::bail!("no field {:?} in {:?}", field, id)
+}
+
+// ---------------------------------------------------------------------------
+// Builder API: SemeRegion methods
+// ---------------------------------------------------------------------------
+
+impl SemeRegion {
+    /// Assign a value to a place. Wraps `push_stmt` with an `Assign` statement.
+    pub fn assign(self, dest: impl Into<MrPlace>, value: impl Into<MrValue>) -> Fallible<Self> {
+        Ok(self.push_stmt(lang::Statement::Assign {
+            destination: dest.into().0,
+            source: value.into().0,
+        }))
+    }
+
+    /// Append another region's blocks into this one, allocating a fresh bb from `global`.
+    pub fn append_from(self, global: &CodegenGlobal, other: SemeRegion) -> Self {
+        self.append(other, || {
+            let (bb, _) = global.fresh_bb();
+            bb
+        })
+    }
+
+    /// Build a Call terminator, allocate the next block, and return the updated region and global.
+    pub fn call(
+        self,
+        global: &CodegenGlobal,
+        fn_name: lang::FnName,
+        args: &[MrLocal],
+        ret: MrLocal,
+    ) -> Fallible<(Self, CodegenGlobal)> {
+        let arg_exprs: List<lang::ArgumentExpr> = args
+            .iter()
+            .map(|t| {
+                lang::ArgumentExpr::ByValue(lang::ValueExpr::Load {
+                    source: GcCow::new(lang::PlaceExpr::Local(t.0)),
+                })
+            })
+            .collect();
+        let (next_bb, g) = global.fresh_bb();
+        let region = self
+            .terminate(lang::Terminator::Call {
+                callee: lang::ValueExpr::Constant(
+                    lang::Constant::FnPointer(fn_name),
+                    lang::Type::Ptr(PtrType::FnPtr),
+                ),
+                calling_convention: lang::CallingConvention::Rust,
+                arguments: arg_exprs,
+                ret: lang::PlaceExpr::Local(ret.0),
+                next_block: Some(next_bb),
+                unwind_block: None,
+            })
+            .add_empty_block(next_bb);
+        Ok((region, g))
+    }
+
+    /// Build a branch-on-bool: switch on `cond`, then/else regions, join block.
+    pub fn branch_on_bool_from(
+        self,
+        global: &CodegenGlobal,
+        cond: MrLocal,
+        then_r: SemeRegion,
+        else_r: SemeRegion,
+    ) -> (Self, CodegenGlobal) {
+        let (join, g) = global.fresh_bb();
+        (self.branch_on_bool(cond.0, then_r, else_r, join), g)
+    }
+
+    /// Build a print intrinsic call.
+    pub fn print_intrinsic(
+        self,
+        global: &CodegenGlobal,
+        value: MrLocal,
+    ) -> Fallible<(Self, CodegenGlobal)> {
+        let (next_bb, mut g) = global.fresh_bb();
+        let (print_ret, g2) = g.alloc_local(unit_ty());
+        g = g2;
+        let region = self
+            .terminate(lang::Terminator::Intrinsic {
+                intrinsic: lang::IntrinsicOp::PrintStdout,
+                arguments: list![lang::ValueExpr::Load {
+                    source: GcCow::new(lang::PlaceExpr::Local(value.0))
+                }],
+                ret: lang::PlaceExpr::Local(print_ret),
+                next_block: Some(next_bb),
+            })
+            .add_empty_block(next_bb);
+        Ok((region, g))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Builder API: free functions for MiniRust value/terminator construction
+// ---------------------------------------------------------------------------
+
+fn constant(value: &usize, ty: &ScalarId) -> MrValue {
+    let mr_ty = scalar_minirust_ty(ty).expect("scalar type always valid");
+    MrValue(lang::ValueExpr::Constant(
+        lang::Constant::Int(Int::from(*value)),
+        mr_ty,
+    ))
+}
+
+fn bool_constant(val: bool) -> MrValue {
+    MrValue(lang::ValueExpr::Constant(
+        lang::Constant::Bool(val),
+        lang::Type::Bool,
+    ))
+}
+
+fn load(place: impl Into<MrPlace>) -> MrValue {
+    MrValue(lang::ValueExpr::Load {
+        source: GcCow::new(place.into().0),
+    })
+}
+
+fn addr_of(
+    global: &CodegenGlobal,
+    place: lang::PlaceExpr,
+    kind: &crate::grammar::RefKind,
+    pointee_ty: &Ty,
+) -> Fallible<MrValue> {
+    let mr = global.minirust_ty(pointee_ty)?;
+    let (ps, pa) = type_size_align(&mr);
+    let mutbl = match kind {
+        crate::grammar::RefKind::Shared => Mutability::Immutable,
+        crate::grammar::RefKind::Mut => Mutability::Mutable,
+    };
+    let ptr_ty = PtrType::Ref {
+        mutbl,
+        pointee: minirust_rs::mem::PointeeInfo {
+            layout: minirust_rs::mem::LayoutStrategy::Sized(ps, pa),
+            inhabited: true,
+            freeze: true,
+            unpin: true,
+            unsafe_cells: minirust_rs::mem::UnsafeCellStrategy::Sized { cells: list![] },
+        },
+    };
+    Ok(MrValue(lang::ValueExpr::AddrOf {
+        target: GcCow::new(place),
+        ptr_ty,
+    }))
+}
+
+fn tuple_value(
+    temps: &[MrLocal],
+    adt_id: &crate::grammar::AdtId,
+    turbofish: &crate::grammar::expr::Turbofish,
+    crates: &Crates,
+) -> Fallible<MrValue> {
+    let fv: List<lang::ValueExpr> = temps
+        .iter()
+        .map(|t| lang::ValueExpr::Load {
+            source: GcCow::new(lang::PlaceExpr::Local(t.0)),
+        })
+        .collect();
+    let st = minirust_ty(
+        crates,
+        &Ty::rigid(
+            RigidName::AdtId(adt_id.clone()),
+            turbofish.parameters.clone(),
+        ),
+    )?;
+    Ok(MrValue(lang::ValueExpr::Tuple(fv, st)))
+}
+
+fn terminator_return() -> lang::Terminator {
+    lang::Terminator::Return
+}
+
+fn terminator_goto(bb: lang::BbName) -> lang::Terminator {
+    lang::Terminator::Goto(bb)
+}
+
+fn bool_ty() -> lang::Type {
+    lang::Type::Bool
+}
+
+// ---------------------------------------------------------------------------
+// Builder API: helper functions for data construction
+// ---------------------------------------------------------------------------
+
+fn alloc_temps_for_args(
+    global: &CodegenGlobal,
+    scope: &CodegenScope,
+    args: &[Expr],
+) -> Fallible<(Vec<MrLocal>, CodegenGlobal)> {
+    let mut g = global.clone();
+    let mut temps = Vec::new();
+    for arg in args {
+        let arg_ty = infer_expr_ty(&g, scope, arg)?;
+        let (temp, g2) = g.alloc_temp(&arg_ty)?;
+        g = g2;
+        temps.push(temp);
+    }
+    Ok((temps, g))
+}
+
+fn alloc_temps_for_fields(
+    global: &CodegenGlobal,
+    fields: &[crate::grammar::Field],
+) -> Fallible<(Vec<MrLocal>, CodegenGlobal)> {
+    let mut g = global.clone();
+    let mut temps = Vec::new();
+    for f in fields {
+        let (temp, g2) = g.alloc_temp(&f.ty)?;
+        g = g2;
+        temps.push(temp);
+    }
+    Ok((temps, g))
+}
+
+fn resolve_struct_fields(
+    global: &CodegenGlobal,
+    adt_id: &crate::grammar::AdtId,
+    turbofish: &crate::grammar::expr::Turbofish,
+) -> Fallible<Vec<crate::grammar::Field>> {
+    let s = global.crates.struct_named(adt_id)?;
+    let bd = if turbofish.parameters.is_empty() {
+        let (_, d) = s.binder.open();
+        d
+    } else {
+        s.binder.instantiate_with(&turbofish.parameters)?
+    };
+    Ok(bd.fields.clone())
+}
+
+fn find_field_expr<'a>(
+    field_exprs: &'a [crate::grammar::expr::FieldExpr],
+    field: &crate::grammar::Field,
+) -> Fallible<&'a Expr> {
+    field_exprs
+        .iter()
+        .find(|fe| fe.name == field.name)
+        .map(|fe| &fe.value)
+        .ok_or_else(|| anyhow::anyhow!("missing field {:?}", field.name))
+}
+
+fn instantiate_erased(binder: &crate::grammar::Binder<Block>) -> Fallible<Block> {
+    let params: Vec<Parameter> = binder
+        .kinds()
+        .iter()
+        .map(|k| match k {
+            ParameterKind::Lt => Ok(Lt::Erased.upcast()),
+            ParameterKind::Ty => anyhow::bail!("exists with type param"),
+            ParameterKind::Const => anyhow::bail!("exists with const param"),
+        })
+        .collect::<Fallible<_>>()?;
+    binder.instantiate_with(&params)
+}
+
+fn require_label(
+    label: &Option<crate::grammar::expr::Label>,
+) -> Fallible<&crate::grammar::expr::Label> {
+    label
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("loop must have a label"))
+}
+
+fn build_loop(
+    global: &CodegenGlobal,
+    loop_start: lang::BbName,
+    exit: lang::BbName,
+    body: SemeRegion,
+) -> Fallible<(SemeRegion, CodegenGlobal)> {
+    let (entry, g) = global.fresh_bb();
+    let mut region = SemeRegion::empty(&entry)
+        .terminate(lang::Terminator::Goto(loop_start))
+        .add_empty_block(loop_start);
+    region = region.append(body, || {
+        let (bb, _) = g.fresh_bb();
+        bb
+    });
+    if region.has_fallthrough() {
+        region = region.terminate(lang::Terminator::Goto(loop_start));
+    }
+    region = region.add_empty_block(exit);
+    Ok((region, g))
 }
 
 // ---------------------------------------------------------------------------
