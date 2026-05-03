@@ -6,7 +6,7 @@ use formality_core::{
 
 use crate::{grammar::WhereClause, prove::ToWcs};
 
-use super::{Binder, BoundVar, Parameter, Predicate, Relation, TraitRef};
+use super::{Binder, Parameter, Predicate, Relation, TraitRef};
 
 #[term($set)]
 #[derive(Default)]
@@ -145,23 +145,8 @@ impl DowncastTo<()> for Wcs {
     }
 }
 
-#[term($data)]
-pub struct Wc {
-    data: Arc<WcData>,
-}
-
-impl Wc {
-    pub fn data(&self) -> &WcData {
-        &self.data
-    }
-
-    pub fn for_all(names: &[BoundVar], data: impl Upcast<Wc>) -> Self {
-        WcData::ForAll(Binder::new(names, data.upcast())).upcast()
-    }
-}
-
 #[term]
-pub enum WcData {
+pub enum Wc {
     /// Means the built-in relation holds.
     #[cast]
     Relation(Relation),
@@ -173,38 +158,18 @@ pub enum WcData {
     // Equivalent to `for<'a>` except that it can also express `for<T>` and so forth:
     // means `$v0` is true for any value of the bound variables (e.g., `'a` or `T`).
     #[grammar(for $v0)]
-    ForAll(Binder<Wc>),
+    ForAll(Arc<Binder<Wc>>),
 
     #[grammar(if $v0 $v1)]
-    Implies(Wcs, Wc),
+    Implies(Wcs, Arc<Wc>),
 }
+
+/// Temporary alias for migration -- allows `WcData::Variant` to still compile.
+pub type WcData = Wc;
 
 // ---
 
-impl UpcastFrom<WcData> for Wc {
-    fn upcast_from(v: WcData) -> Self {
-        Wc { data: Arc::new(v) }
-    }
-}
-
-impl UpcastFrom<Wc> for WcData {
-    fn upcast_from(v: Wc) -> Self {
-        v.data().clone()
-    }
-}
-
-impl DowncastTo<WcData> for Wc {
-    fn downcast_to(&self) -> Option<WcData> {
-        Some(self.data().clone())
-    }
-}
-
-// ---
-
-cast_impl!((TraitRef) <: (Predicate) <: (WcData));
-cast_impl!((Relation) <: (WcData) <: (Wc));
-cast_impl!((Predicate) <: (WcData) <: (Wc));
-cast_impl!((TraitRef) <: (WcData) <: (Wc));
+cast_impl!((TraitRef) <: (Predicate) <: (Wc));
 
 impl UpcastFrom<Wc> for Wcs {
     fn upcast_from(term: Wc) -> Self {
