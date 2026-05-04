@@ -10,6 +10,7 @@ mod functions;
 mod mir_typeck;
 mod references;
 mod return_validation;
+mod well_formed_struct;
 mod well_formed_trait_ref;
 
 #[test]

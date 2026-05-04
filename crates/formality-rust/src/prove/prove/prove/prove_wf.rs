@@ -1,6 +1,9 @@
-use crate::grammar::{
-    AliasName, AliasTy, ConstData, Lt, LtData, Parameter, Parameters, Relation, RigidName, RigidTy,
-    Ty, UniversalVar, Wcs,
+use crate::{
+    grammar::{
+        AliasName, AliasTy, ConstData, Lt, LtData, Parameter, Parameters, Relation, RigidName,
+        RigidTy, Ty, UniversalVar, Wcs,
+    },
+    prove::prove::prove::prove_via::prove_via,
 };
 use formality_core::{judgment_fn, Downcast, ProvenSet};
 
@@ -21,6 +24,13 @@ judgment_fn! {
         debug(goal, assumptions, env)
 
         assert(env.encloses((assumptions, goal)))
+
+        (
+            (a in assumptions)!
+            (prove_via(decls, env, assumptions, a, Relation::WellFormed(goal.clone())) => c)
+            --- ("by-assumption")
+            (prove_wf(decls, env, assumptions, goal) => c)
+        )
 
         (
             // Always assume that universal variables are WF. This is debatable, it implies
