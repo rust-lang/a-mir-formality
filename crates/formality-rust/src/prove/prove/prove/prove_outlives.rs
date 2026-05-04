@@ -52,6 +52,18 @@ judgment_fn! {
             (prove_outlives(_decls, _env, _assumptions, LtData::Static, _b) => Constraints::none(env))
         )
 
+        // Everything outlives 'erased
+        (
+            ----------------------------- ("anything outlives erased")
+            (prove_outlives(_decls, _env, _assumptions, _a, LtData::Erased) => Constraints::none(env))
+        )
+
+        // 'erased outlives 'static
+        (
+            ----------------------------- ("erased outlives static")
+            (prove_outlives(_decls, _env, _assumptions, LtData::Erased, LtData::Static) => Constraints::none(env))
+        )
+
         // A rigid type `r` outlives `b` if all of `r`'s parameters outlive `b`
         (
             (prove(decls, env, assumptions, Wcs::all_outlives(parameters, b)) => c)

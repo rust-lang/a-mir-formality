@@ -1,5 +1,3 @@
-mod codegen;
-
 use std::sync::Arc;
 
 use formality_core::{cast_impl, id, term, DowncastTo, UpcastFrom};
@@ -99,6 +97,12 @@ pub enum Stmt {
     /// over a block of statements.
     #[grammar(exists $binder)]
     Exists { binder: Binder<Block> },
+
+    /// `print expr;`
+    ///
+    /// Print a value to stdout (for testing).
+    #[grammar(print $expr ;)]
+    Print { expr: Expr },
 }
 
 #[term($data)]
@@ -226,6 +230,11 @@ impl DowncastTo<PlaceExprData> for PlaceExpr {
         Some(PlaceExprData::clone(&self.data))
     }
 }
+
+// Transitive casts: PlaceExprData <: PlaceExpr <: ExprData
+cast_impl!((PlaceExprData) <: (PlaceExpr) <: (ExprData));
+cast_impl!((PlaceExprData) <: (ExprData) <: (Arc<ExprData>));
+cast_impl!((PlaceExprData) <: (Arc<ExprData>) <: (Expr));
 
 // ANCHOR: PlaceExprData
 #[term]
