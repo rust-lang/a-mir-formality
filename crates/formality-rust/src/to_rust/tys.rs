@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use crate::grammar::{
     Const, ConstData, Fallible, Lt, LtData, Parameter, Parameters, PtrKind, RefKind, RigidName,
-    RigidTy, ScalarId, ScalarValue, Ty, TyData,
+    RigidTy, ScalarId, ScalarValue, Ty, Variable,
 };
 
 use super::{syntax, RustBuilder};
@@ -54,12 +54,12 @@ impl RustBuilder {
 
     pub fn lower_ty(&mut self, ty: &Ty) -> Fallible<syntax::Type> {
         match ty {
-            TyData::RigidTy(rigid_ty) => self.lower_rigid_ty(&rigid_ty),
-            TyData::AliasTy(_) => todo!("lowering alias types is not implemented yet"),
-            TyData::PredicateTy(_) => {
+            Ty::RigidTy(rigid_ty) => self.lower_rigid_ty(&rigid_ty),
+            Ty::AliasTy(_) => todo!("lowering alias types is not implemented yet"),
+            Ty::PredicateTy(_) => {
                 todo!("lowering predicate types is not implemented yet")
             }
-            TyData::Variable(core_variable) => Ok(syntax::Type::Path {
+            Ty::Variable(core_variable) => Ok(syntax::Type::Path {
                 name: self.core_variable_to_string(&core_variable)?,
                 args: Vec::new(),
             }),
@@ -116,7 +116,7 @@ impl RustBuilder {
         let lifetime = parameters
             .first()
             .and_then(|p| match p {
-                Parameter::Lt(lt) => Some(lt),
+                Parameter::Lt(lt) => Some(lt.deref().clone()),
                 _ => None,
             })
             .ok_or_else(|| anyhow::anyhow!("reference type is missing lifetime argument"))?;
@@ -129,11 +129,14 @@ impl RustBuilder {
             })
             .ok_or_else(|| anyhow::anyhow!("reference type is missing pointee type argument"))?;
 
-        let lifetime = self.lower_lt(lifetime)?;
+        let lifetime = match &lifetime {
+            Lt::Variable(Variable::ExistentialVar(_)) => None,
+            _ => Some(self.lower_lt(&lifetime)?),
+        };
         let pointee = self.lower_ty(pointee)?;
 
         Ok(syntax::Type::Ref {
-            lifetime: Some(lifetime),
+            lifetime,
             mutable: matches!(ref_kind, RefKind::Mut),
             ty: Box::new(pointee),
         })
@@ -213,98 +216,53 @@ impl RustBuilder {
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        grammar::{AdtId, BoundVar, DebruijnIndex, ParameterKind, VarIndex, Variable},
-        to_rust::NameContext,
-    };
+    use crate::grammar::{AdtId, BoundVar, ExistentialVar, VarIndex, Variable};
 
     use super::*;
 
-    fn create_ty() -> Variable {
+    fn create_ty(index: usize) -> Variable {
         Variable::BoundVar(BoundVar {
-            debruijn: Some(DebruijnIndex { index: 0 }),
-            var_index: VarIndex { index: 0 },
+            debruijn: None,
+            var_index: VarIndex { index },
             kind: crate::grammar::ParameterKind::Ty,
         })
     }
 
-    fn create_lt() -> Variable {
+    fn create_lt(index: usize) -> Variable {
         Variable::BoundVar(BoundVar {
-            debruijn: Some(DebruijnIndex { index: 0 }),
-            var_index: VarIndex { index: 0 },
+            debruijn: None,
+            var_index: VarIndex { index },
             kind: crate::grammar::ParameterKind::Lt,
         })
     }
 
-    fn create_const() -> Variable {
+    fn create_const(index: usize) -> Variable {
         Variable::BoundVar(BoundVar {
-            debruijn: Some(DebruijnIndex { index: 0 }),
-            var_index: VarIndex { index: 0 },
+            debruijn: None,
+            var_index: VarIndex { index },
             kind: crate::grammar::ParameterKind::Const,
         })
     }
 
     #[test]
     fn pretty_print_type_variables() {
-        let mut ctx = NameContext::default();
-
-        ctx.push(&[ParameterKind::Ty]);
-        let ty1 = create_ty();
-
-        assert_eq!("T1", ctx.core_variable_to_string(&ty1).unwrap());
-
-        {
-            ctx.push(&[ParameterKind::Ty]);
-            let ty1 = ty1.shift_in();
-            let ty2 = create_ty();
-            assert_eq!("T1", ctx.core_variable_to_string(&ty1).unwrap());
-            assert_eq!("T2", ctx.core_variable_to_string(&ty2).unwrap());
-            ctx.pop();
-        }
-
-        assert_eq!("T1", ctx.core_variable_to_string(&ty1).unwrap());
+        let b = RustBuilder::default();
+        let ty1 = create_ty(1);
+        assert_eq!("T1", b.core_variable_to_string(&ty1).unwrap());
     }
 
     #[test]
     fn pretty_print_life_time_variables() {
-        let mut ctx = NameContext::default();
-
-        ctx.push(&[ParameterKind::Lt]);
-        let lt1 = create_lt();
-
-        assert_eq!("'a1", ctx.core_variable_to_string(&lt1).unwrap());
-
-        {
-            ctx.push(&[ParameterKind::Lt]);
-            let lt1 = lt1.shift_in();
-            let lt2 = create_lt();
-            assert_eq!("'a1", ctx.core_variable_to_string(&lt1).unwrap());
-            assert_eq!("'a2", ctx.core_variable_to_string(&lt2).unwrap());
-            ctx.pop();
-        }
-
-        assert_eq!("'a1", ctx.core_variable_to_string(&lt1).unwrap());
+        let b = RustBuilder::default();
+        let lt1 = create_lt(1);
+        assert_eq!("'a1", b.core_variable_to_string(&lt1).unwrap());
     }
 
     #[test]
     fn pretty_print_const_variables() {
-        let mut ctx = NameContext::default();
-
-        ctx.push(&[ParameterKind::Const]);
-        let const1 = create_const();
-
-        assert_eq!("N1", ctx.core_variable_to_string(&const1).unwrap());
-
-        {
-            ctx.push(&[ParameterKind::Const]);
-            let const1 = const1.shift_in();
-            let const2 = create_const();
-            assert_eq!("N1", ctx.core_variable_to_string(&const1).unwrap());
-            assert_eq!("N2", ctx.core_variable_to_string(&const2).unwrap());
-            ctx.pop();
-        }
-
-        assert_eq!("N1", ctx.core_variable_to_string(&const1).unwrap());
+        let b = RustBuilder::default();
+        let const1 = create_const(1);
+        assert_eq!("N1", b.core_variable_to_string(&const1).unwrap());
     }
 
     #[test]
@@ -332,14 +290,12 @@ mod test {
     }
 
     #[test]
-    fn pretty_print_ref() {
+    fn pretty_print_shared_ref() {
         let mut pp = RustBuilder::default();
-        pp.ctx.push(&[ParameterKind::Lt]);
-
         let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Ref(RefKind::Shared),
             parameters: vec![
-                Parameter::Lt(Lt::Variable(create_lt()).into()),
+                Parameter::Lt(Lt::Variable(create_lt(1)).into()),
                 Parameter::Ty(
                     Ty::RigidTy(RigidTy {
                         name: RigidName::ScalarId(ScalarId::U8),
@@ -351,11 +307,15 @@ mod test {
         });
         let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("&'a1 u8", t);
+    }
 
+    #[test]
+    fn pretty_print_mutable_ref() {
+        let mut pp = RustBuilder::default();
         let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Ref(RefKind::Mut),
             parameters: vec![
-                Parameter::Lt(Lt::Variable(create_lt()).into()),
+                Parameter::Lt(Lt::Variable(create_lt(1)).into()),
                 Parameter::Ty(
                     Ty::RigidTy(RigidTy {
                         name: RigidName::ScalarId(ScalarId::U8),
@@ -367,7 +327,11 @@ mod test {
         });
         let t = pp.lower_ty(&ty).unwrap().to_string();
         assert_eq!("&'a1 mut u8", t);
+    }
 
+    #[test]
+    fn pretty_print_mutable_static_ref() {
+        let mut pp = RustBuilder::default();
         let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Ref(RefKind::Mut),
             parameters: vec![
@@ -386,10 +350,34 @@ mod test {
     }
 
     #[test]
+    fn pretty_print_existential_ref() {
+        let mut pp = RustBuilder::default();
+        let ty = Ty::RigidTy(RigidTy {
+            name: RigidName::Ref(RefKind::Mut),
+            parameters: vec![
+                Parameter::Lt(
+                    Lt::Variable(Variable::ExistentialVar(ExistentialVar {
+                        kind: crate::grammar::ParameterKind::Lt,
+                        var_index: VarIndex { index: 0 },
+                    }))
+                    .into(),
+                ),
+                Parameter::Ty(
+                    Ty::RigidTy(RigidTy {
+                        name: RigidName::ScalarId(ScalarId::U8),
+                        parameters: Vec::new(),
+                    })
+                    .into(),
+                ),
+            ],
+        });
+        let t = pp.lower_ty(&ty).unwrap().to_string();
+        assert_eq!("&mut u8", t);
+    }
+
+    #[test]
     fn pretty_print_raw_ptr() {
         let mut pp = RustBuilder::default();
-        pp.ctx.push(&[ParameterKind::Lt]);
-
         let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Raw(PtrKind::Const),
             parameters: vec![Parameter::Ty(

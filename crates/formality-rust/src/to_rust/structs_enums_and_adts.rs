@@ -6,38 +6,44 @@ use super::{syntax, RustBuilder};
 
 impl RustBuilder {
     pub fn lower_struct(&mut self, strukt: &Struct) -> Fallible<syntax::StructItem> {
-        self.with_binder(&strukt.binder, |term, pp| {
-            let generics =
-                pp.lower_generics_for_binder(strukt.binder.kinds(), &term.where_clauses, false)?;
-            let fields = term
-                .fields
-                .iter()
-                .map(|field| pp.lower_named_struct_field(field))
-                .collect::<Result<Vec<_>, _>>()?;
+        self.with_binder(
+            &strukt.binder,
+            false,
+            |term| &term.where_clauses,
+            |term, generics, pp| {
+                let fields = term
+                    .fields
+                    .iter()
+                    .map(|field| pp.lower_named_struct_field(field))
+                    .collect::<Result<Vec<_>, _>>()?;
 
-            Ok(syntax::StructItem {
-                name: strukt.id.deref().clone(),
-                generics,
-                fields,
-            })
-        })
+                Ok(syntax::StructItem {
+                    name: strukt.id.deref().clone(),
+                    generics,
+                    fields,
+                })
+            },
+        )
     }
 
     pub fn lower_enum(&mut self, e: &Enum) -> Fallible<syntax::EnumItem> {
-        self.with_binder(&e.binder, |term, pp| {
-            let generics =
-                pp.lower_generics_for_binder(e.binder.kinds(), &term.where_clauses, false)?;
-            let variants = term
-                .variants
-                .iter()
-                .map(|variant| pp.lower_variant(variant))
-                .collect::<Result<Vec<_>, _>>()?;
-            Ok(syntax::EnumItem {
-                name: e.id.deref().clone(),
-                generics,
-                variants,
-            })
-        })
+        self.with_binder(
+            &e.binder,
+            false,
+            |term| &term.where_clauses,
+            |term, generics, pp| {
+                let variants = term
+                    .variants
+                    .iter()
+                    .map(|variant| pp.lower_variant(variant))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok(syntax::EnumItem {
+                    name: e.id.deref().clone(),
+                    generics,
+                    variants,
+                })
+            },
+        )
     }
 
     fn lower_variant(&mut self, variant: &Variant) -> Fallible<syntax::EnumVariant> {

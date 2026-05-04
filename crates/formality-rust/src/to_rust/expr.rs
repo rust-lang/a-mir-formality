@@ -62,7 +62,7 @@ impl RustBuilder {
         init: Option<&Init>,
     ) -> Fallible<syntax::Stmt> {
         Ok(syntax::Stmt::Let {
-            // TODO: is there a way to knwo, if the variable must be mutable or not?
+            // TODO: is there a way to know, if the variable must be mutable or not?
             mutable: true,
             name: id.deref().clone(),
             ty: self.lower_ty(ty)?,
@@ -71,9 +71,14 @@ impl RustBuilder {
     }
 
     fn lower_exists_stmt(&mut self, binder: &Binder<Block>) -> Fallible<syntax::Stmt> {
-        self.with_binder(binder, |term, pp| {
-            Ok(syntax::Stmt::Block(pp.lower_block(term)?))
-        })
+        // TODO: Check again, after codegen is merged, if "erased" lifetimes could work here.
+        let subst = self.existential_substitution(binder);
+        let term = binder
+            .instantiate_with(&subst)
+            .expect("suitable substitution");
+
+        let result = syntax::Stmt::Block(self.lower_block(&term)?);
+        Ok(result)
     }
 
     pub fn lower_expr(&mut self, expr: &Expr) -> Fallible<syntax::Expr> {
@@ -227,6 +232,32 @@ fn foo() -> () {
         break 'a;
     }
 }"#
+        );
+    }
+
+    #[test]
+    fn omited_existential_lifetimes() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    fn foo() -> u32 {
+                        exists<'r0, 'r1> {
+                            let v1: u32 = 0 _ u32;
+                            let v2: &mut 'r0 u32 = &mut 'r1 v1;
+                            return *v2;
+                        }
+                    }
+                }
+            ],
+            r#"
+fn foo() -> u32 {
+    {
+        let mut v1: u32 = 0_u32;
+        let mut v2: &mut u32 = &mut v1;
+        return *v2;
+    }
+}
+"#
         );
     }
 }
