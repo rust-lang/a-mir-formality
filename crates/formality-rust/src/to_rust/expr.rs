@@ -71,6 +71,7 @@ impl RustBuilder {
     }
 
     fn lower_exists_stmt(&mut self, binder: &Binder<Block>) -> Fallible<syntax::Stmt> {
+        // TODO: Check again, after codegen is merged, if "erased" lifetimes could work here.
         let subst = self.existential_substitution(binder);
         let term = binder
             .instantiate_with(&subst)

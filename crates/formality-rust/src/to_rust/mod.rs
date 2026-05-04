@@ -94,11 +94,39 @@ impl Default for RustBuilder {
 }
 
 impl RustBuilder {
+    /// Applies the operation `op` to the term contained within the binder `b`.
+    ///
+    /// The binder is instantiated with a fresh set of bound variables. Since a
+    /// binder introduces new generic variables, those variables are lowered at
+    /// this point and provided to the caller via the `syntax::Generics` argument
+    /// passed to `op`.
+    ///
+    /// The function `g` is used to extract the relevant `&[WhereClause]` clauses from the
+    /// instantiated term.
+    ///
+    /// When lowering generics for a trait declaration, `is_trait` must be set to
+    /// `true`. In this case, the implicit first generic parameter represents
+    /// `Self` and is therefore not treated as a regular generic parameter.
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// # use formality_rust::grammar::{AdtId, Binder, Struct, StructBoundData, Fallible};
+    /// # use formality_rust::to_rust::{RustBuilder, syntax::StructItem};
+    /// fn lower_struct(term: Struct) -> Fallible<StructItem> {
+    ///     let mut pp = RustBuilder::default();
+    ///     pp.with_binder(
+    ///         &term.binder,
+    ///         true,
+    ///         |term| &term.where_clauses,
+    ///         |term, generics, pp| todo!(),
+    ///     )
+    /// }
+    /// ```
     pub fn with_binder<T: Fold, R>(
         &mut self,
         b: &Binder<T>,
         is_trait: bool,
-        g: impl Fn(&T) -> &Vec<WhereClause>,
+        g: impl Fn(&T) -> &[WhereClause],
         mut op: impl FnMut(T, syntax::Generics, &mut RustBuilder) -> Fallible<R>,
     ) -> Fallible<R> {
         let subst = self.bounded_substitution(b);
@@ -139,6 +167,12 @@ impl RustBuilder {
         }
     }
 
+    /// Creates a substitution for the binder `b` using freshly generated
+    /// variables.
+    ///
+    /// For each parameter introduced by the binder, a fresh variable is created
+    /// by invoking the generator function `v`. The resulting substitution can be
+    /// used to instantiate the binder.
     pub fn substitution<T, V>(
         &mut self,
         b: &Binder<T>,
@@ -151,6 +185,12 @@ impl RustBuilder {
         subst
     }
 
+    /// Creates a substitution that replaces the variables introduced by the
+    /// binder `b` with fresh bound variables.
+    ///
+    /// Each binder parameter is mapped to a new [`BoundVar`] with a fresh
+    /// variable index. The resulting substitution can be used to instantiate
+    /// the binder without capturing existing variables.
     pub fn bounded_substitution<T>(&mut self, b: &Binder<T>) -> Vec<BoundVar>
     where
         T: Fold,
@@ -162,6 +202,12 @@ impl RustBuilder {
         })
     }
 
+    /// Creates a substitution that replaces the variables introduced by the
+    /// binder `b` with fresh existential variables.
+    ///
+    /// Each binder parameter is mapped to a new [`ExistentialVar`] with a fresh
+    /// variable index. The resulting substitution can be used to instantiate
+    /// the binder without capturing existing variables.
     pub fn existential_substitution<T>(&mut self, b: &Binder<T>) -> Vec<ExistentialVar>
     where
         T: Fold,
@@ -169,6 +215,12 @@ impl RustBuilder {
         self.substitution(b, |kind, var_index| ExistentialVar { kind, var_index })
     }
 
+    /// Creates a substitution that replaces the variables introduced by the
+    /// binder `b` with fresh universal variables.
+    ///
+    /// Each binder parameter is mapped to a new [`UniversalVar`] with a fresh
+    /// variable index. The resulting substitution can be used to instantiate
+    /// the binder without capturing existing variables.
     pub fn universal_substitution<T>(&mut self, b: &Binder<T>) -> Vec<UniversalVar>
     where
         T: Fold,
@@ -176,6 +228,11 @@ impl RustBuilder {
         self.substitution(b, |kind, var_index| UniversalVar { kind, var_index })
     }
 
+    /// Creates a fresh substitution for the given parameter kinds.
+    ///
+    /// For each entry in `kinds`, this function generates a fresh variable index
+    /// and invokes the callback `v` with the corresponding `ParameterKind` and
+    /// index. The collected results form the substitution in binder order.
     fn fresh_substitution<V>(
         &mut self,
         kinds: &[ParameterKind],
