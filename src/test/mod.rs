@@ -25,9 +25,8 @@ fn parser() {
             × expected `:`
                ╭────
              1 │ [crate Foo { trait Baz where cake {} }]
-               · ▲▲▲          ▲▲        ▲▲    ▲▲   ▲
-               · │││          ││        ││    ││   ╰── expected `:`
-               · │││          ││        ││    │╰── while parsing WhereClauseData
+               · ▲▲▲          ▲▲        ▲▲    ▲    ▲
+               · │││          ││        ││    │    ╰── expected `:`
                · │││          ││        ││    ╰── while parsing WhereClause
                · │││          ││        │╰── while parsing TraitBoundData
                · │││          ││        ╰── while parsing TraitBinder

@@ -332,7 +332,7 @@ impl RustBuilder {
             .collect();
 
         for wc in where_clauses {
-            match wc.data() {
+            match wc {
                 WhereClauseData::IsImplemented(ty, _, _) => {
                     if let Ty::Variable(var) = ty {
                         let name = self.core_variable_to_string(&var)?;
@@ -392,7 +392,7 @@ impl RustBuilder {
         let mut preds = Vec::new();
 
         for wc in where_clauses {
-            match wc.data() {
+            match wc {
                 WhereClauseData::IsImplemented(ty, trait_id, params) => {
                     preds.push(syntax::WhereClause::Trait {
                         ty: self.lower_ty(ty)?,
