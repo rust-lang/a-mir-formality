@@ -1,4 +1,4 @@
-use crate::grammar::{Crates, WhereBound, WhereBoundData, WhereClause, WhereClauseData};
+use crate::grammar::{Crates, WhereBound, WhereClause};
 use formality_core::Upcast;
 pub mod prove;
 use crate::grammar::{Binder, Predicate, Relation, Ty, Wc, Wcs};
@@ -90,22 +90,22 @@ impl ToWcs for [WhereClause] {
 
 impl ToWcs for WhereClause {
     fn to_wcs(&self) -> Wcs {
-        match self.data() {
-            WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
+        match self {
+            WhereClause::IsImplemented(self_ty, trait_id, parameters) => {
                 trait_id.with(self_ty, parameters).upcast()
             }
-            WhereClauseData::AliasEq(alias_ty, ty) => {
+            WhereClause::AliasEq(alias_ty, ty) => {
                 Predicate::AliasEq(alias_ty.clone(), ty.clone()).upcast()
             }
-            WhereClauseData::Outlives(a, b) => Relation::outlives(a, b).upcast(),
-            WhereClauseData::ForAll(binder) => {
+            WhereClause::Outlives(a, b) => Relation::outlives(a, b).upcast(),
+            WhereClause::ForAll(binder) => {
                 let (vars, wc) = binder.open();
                 wc.to_wcs()
                     .into_iter()
                     .map(|wc| Wc::for_all(Binder::new(&vars, wc)))
                     .collect()
             }
-            WhereClauseData::TypeOfConst(ct, ty) => {
+            WhereClause::TypeOfConst(ct, ty) => {
                 Predicate::ConstHasType(ct.clone(), ty.clone()).upcast()
             }
         }
@@ -116,12 +116,12 @@ impl WhereBound {
     pub fn to_wc(&self, self_ty: impl Upcast<Ty>) -> Wc {
         let self_ty: Ty = self_ty.upcast();
 
-        match self.data() {
-            WhereBoundData::IsImplemented(trait_id, parameters) => {
+        match self {
+            WhereBound::IsImplemented(trait_id, parameters) => {
                 trait_id.with(self_ty, parameters).upcast()
             }
-            WhereBoundData::Outlives(lt) => Relation::outlives(self_ty, lt).upcast(),
-            WhereBoundData::ForAll(binder) => {
+            WhereBound::Outlives(lt) => Relation::outlives(self_ty, lt).upcast(),
+            WhereBound::ForAll(binder) => {
                 let (vars, bound) = binder.open();
                 Wc::for_all(Binder::new(&vars, bound.to_wc(self_ty)))
             }

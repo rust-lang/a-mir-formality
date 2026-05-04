@@ -114,7 +114,7 @@ impl RustBuilder {
             |term, generics, pp| {
                 let mut bounds = Vec::new();
                 for ensure in &term.ensures {
-                    match ensure.data() {
+                    match ensure {
                         WhereBoundData::IsImplemented(trait_id, parameters) => {
                             bounds.push(syntax::TypeBound::Trait {
                                 trait_name: trait_id.deref().clone(),

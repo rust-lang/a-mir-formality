@@ -124,64 +124,8 @@ pub struct AssociatedTyValueBoundData {
     pub ty: Ty,
 }
 
-#[term($data)]
-pub struct WhereClause {
-    pub data: Arc<WhereClauseData>,
-}
-
-impl WhereClause {
-    pub fn data(&self) -> &WhereClauseData {
-        &self.data
-    }
-
-    pub fn invert(&self) -> Option<Wc> {
-        match self.data() {
-            WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => Some(
-                Predicate::not_implemented(trait_id.with(self_ty, parameters)),
-            )
-            .upcast(),
-            WhereClauseData::AliasEq(_, _) => None,
-            WhereClauseData::Outlives(_, _) => None,
-            WhereClauseData::ForAll(binder) => {
-                let (vars, where_clause) = binder.open();
-                let wc = where_clause.invert()?;
-                Some(Wc::for_all(Binder::new(&vars, wc)))
-            }
-            WhereClauseData::TypeOfConst(_, _) => None,
-        }
-    }
-
-    pub fn well_formed(&self) -> Wcs {
-        match self.data() {
-            WhereClauseData::IsImplemented(self_ty, trait_id, parameters) => {
-                Predicate::well_formed_trait_ref(trait_id.with(self_ty, parameters)).upcast()
-            }
-            WhereClauseData::AliasEq(alias_ty, ty) => {
-                [Relation::well_formed(alias_ty), Relation::well_formed(ty)]
-                    .into_iter()
-                    .collect()
-            }
-            WhereClauseData::Outlives(a, b) => [Relation::well_formed(a), Relation::well_formed(b)]
-                .into_iter()
-                .collect(),
-            WhereClauseData::ForAll(binder) => {
-                let (vars, body) = binder.open();
-                body.well_formed()
-                    .into_iter()
-                    .map(|wc| Wc::for_all(Binder::new(&vars, wc)))
-                    .collect()
-            }
-            WhereClauseData::TypeOfConst(ct, ty) => {
-                [Relation::well_formed(ct), Relation::well_formed(ty)]
-                    .into_iter()
-                    .collect()
-            }
-        }
-    }
-}
-
 #[term]
-pub enum WhereClauseData {
+pub enum WhereClause {
     #[grammar($v0 : $v1 $<?v2>)]
     IsImplemented(Ty, TraitId, Vec<Parameter>),
 
@@ -192,25 +136,64 @@ pub enum WhereClauseData {
     Outlives(Parameter, Lt),
 
     #[grammar(for $v0)]
-    ForAll(Binder<WhereClause>),
+    ForAll(Arc<Binder<WhereClause>>),
 
     #[grammar(type_of_const $v0 is $v1)]
     TypeOfConst(Const, Ty),
 }
 
-#[term($data)]
-pub struct WhereBound {
-    pub data: Arc<WhereBoundData>,
-}
+/// Temporary alias for migration -- allows `WhereClauseData::Variant` to still compile.
+pub type WhereClauseData = WhereClause;
 
-impl WhereBound {
-    pub fn data(&self) -> &WhereBoundData {
-        &self.data
+impl WhereClause {
+    pub fn invert(&self) -> Option<Wc> {
+        match self {
+            WhereClause::IsImplemented(self_ty, trait_id, parameters) => Some(
+                Predicate::not_implemented(trait_id.with(self_ty, parameters)),
+            )
+            .upcast(),
+            WhereClause::AliasEq(_, _) => None,
+            WhereClause::Outlives(_, _) => None,
+            WhereClause::ForAll(binder) => {
+                let (vars, where_clause) = binder.open();
+                let wc = where_clause.invert()?;
+                Some(Wc::for_all(Binder::new(&vars, wc)))
+            }
+            WhereClause::TypeOfConst(_, _) => None,
+        }
+    }
+
+    pub fn well_formed(&self) -> Wcs {
+        match self {
+            WhereClause::IsImplemented(self_ty, trait_id, parameters) => {
+                Predicate::well_formed_trait_ref(trait_id.with(self_ty, parameters)).upcast()
+            }
+            WhereClause::AliasEq(alias_ty, ty) => {
+                [Relation::well_formed(alias_ty), Relation::well_formed(ty)]
+                    .into_iter()
+                    .collect()
+            }
+            WhereClause::Outlives(a, b) => [Relation::well_formed(a), Relation::well_formed(b)]
+                .into_iter()
+                .collect(),
+            WhereClause::ForAll(binder) => {
+                let (vars, body) = binder.open();
+                body.well_formed()
+                    .into_iter()
+                    .map(|wc| Wc::for_all(Binder::new(&vars, wc)))
+                    .collect()
+            }
+            WhereClause::TypeOfConst(ct, ty) => {
+                [Relation::well_formed(ct), Relation::well_formed(ty)]
+                    .into_iter()
+                    .collect()
+            }
+        }
     }
 }
 
 #[term]
-pub enum WhereBoundData {
+pub enum WhereBound {
     #[grammar($v0 $<?v1>)]
     IsImplemented(TraitId, Vec<Parameter>),
 
@@ -218,5 +201,8 @@ pub enum WhereBoundData {
     Outlives(Lt),
 
     #[grammar(for $v0)]
-    ForAll(Binder<WhereBound>),
+    ForAll(Arc<Binder<WhereBound>>),
 }
+
+/// Temporary alias for migration -- allows `WhereBoundData::Variant` to still compile.
+pub type WhereBoundData = WhereBound;
