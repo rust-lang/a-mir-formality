@@ -2,7 +2,7 @@ mod codegen;
 
 use std::sync::Arc;
 
-use formality_core::{cast_impl, id, term, DowncastTo, UpcastFrom};
+use formality_core::{id, term, DowncastTo};
 
 use crate::grammar::{
     AdtId, Binder, FieldName, Lt, Parameter, RefKind, ScalarId, TraitId, Ty, ValueId,
@@ -176,16 +176,44 @@ impl DowncastTo<ExprData> for Expr {
     }
 }
 
-#[term($data)]
-pub struct PlaceExpr {
-    pub data: Arc<PlaceExprData>,
+// ANCHOR: PlaceExpr
+#[term]
+pub enum PlaceExpr {
+    /// `x`
+    ///
+    /// A variable reference. Whether this is a place (lvalue) or
+    /// value (rvalue) depends on context: place on the left of `=`
+    /// or as operand of `&`, value everywhere else.
+    #[cast]
+    Var(ValueId),
+
+    /// `* expr`
+    ///
+    /// Dereference. Like `Var`, place vs value depends on context.
+    #[grammar(* $prefix)]
+    Deref { prefix: Arc<PlaceExpr> },
+
+    /// `( expr )`
+    ///
+    /// Parenthesized expression, needed so users can write `(*x).field`.
+    #[grammar(($v0))]
+    Parens(Arc<PlaceExpr>),
+
+    /// `expr . field`
+    ///
+    /// Field projection. Like `Var`, place vs value depends on context.
+    #[grammar($prefix . $field_name)]
+    #[reject(PlaceExpr::Deref { .. }, _)]
+    Field {
+        prefix: Arc<PlaceExpr>,
+        field_name: FieldName,
+    },
 }
+// ANCHOR_END: PlaceExpr
+
+pub type PlaceExprData = PlaceExpr;
 
 impl PlaceExpr {
-    pub fn data(&self) -> &PlaceExprData {
-        &self.data
-    }
-
     pub fn is_prefix_of(&self, other: &PlaceExpr) -> bool {
         other.all_prefixes().contains(&self)
     }
@@ -201,68 +229,17 @@ impl PlaceExpr {
     }
 
     pub fn prefix(&self) -> Option<&PlaceExpr> {
-        match self.data() {
-            PlaceExprData::Var(_) => None,
-            PlaceExprData::Deref { prefix } => Some(prefix),
-            PlaceExprData::Field {
+        match self {
+            PlaceExpr::Var(_) => None,
+            PlaceExpr::Deref { prefix } => Some(prefix),
+            PlaceExpr::Field {
                 prefix,
                 field_name: _,
             } => Some(prefix),
-            PlaceExprData::Parens(place_expr) => Some(place_expr),
+            PlaceExpr::Parens(place_expr) => Some(place_expr),
         }
     }
 }
-
-impl UpcastFrom<PlaceExprData> for PlaceExpr {
-    fn upcast_from(data: PlaceExprData) -> Self {
-        PlaceExpr {
-            data: Arc::new(data),
-        }
-    }
-}
-
-impl DowncastTo<PlaceExprData> for PlaceExpr {
-    fn downcast_to(&self) -> Option<PlaceExprData> {
-        Some(PlaceExprData::clone(&self.data))
-    }
-}
-
-// ANCHOR: PlaceExprData
-#[term]
-pub enum PlaceExprData {
-    /// `x`
-    ///
-    /// A variable reference. Whether this is a place (lvalue) or
-    /// value (rvalue) depends on context: place on the left of `=`
-    /// or as operand of `&`, value everywhere else.
-    #[cast]
-    Var(ValueId),
-
-    /// `* expr`
-    ///
-    /// Dereference. Like `Var`, place vs value depends on context.
-    #[grammar(* $prefix)]
-    Deref { prefix: PlaceExpr },
-
-    /// `( expr )`
-    ///
-    /// Parenthesized expression, needed so users can write `(*x).field`.
-    #[grammar(($v0))]
-    Parens(PlaceExpr),
-
-    /// `expr . field`
-    ///
-    /// Field projection. Like `Var`, place vs value depends on context.
-    #[grammar($prefix . $field_name)]
-    #[reject(PlaceExprData::Deref { .. }, _)]
-    Field {
-        prefix: PlaceExpr,
-        field_name: FieldName,
-    },
-}
-// ANCHOR_END: PlaceExprData
-
-cast_impl!((ValueId) <: (PlaceExprData) <: (PlaceExpr));
 
 /// A named reference to a function or associated function.
 #[term($name: $value)]
