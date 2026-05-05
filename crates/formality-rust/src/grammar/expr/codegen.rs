@@ -10,7 +10,7 @@ use crate::grammar::{
     Crates, Fallible, PredicateTy, RigidName, ScalarId, Ty, TyData,
 };
 
-use super::{ExprData, PlaceExprData};
+use super::ExprData;
 
 struct ExprBuilder<'b> {
     program: &'b Crates,
@@ -136,14 +136,14 @@ impl ExprBuilder<'_> {
     }
 
     pub fn codegen_place_expr(&mut self, expr: &PlaceExpr) -> Fallible<lang::PlaceExpr> {
-        match expr.data() {
-            PlaceExprData::Var(id) => Ok(lang::PlaceExpr::Local(self.lookup_variable(id)?)),
-            PlaceExprData::Parens(inner) => self.codegen_place_expr(inner),
-            PlaceExprData::Deref { prefix: _ } => {
+        match expr {
+            PlaceExpr::Var(id) => Ok(lang::PlaceExpr::Local(self.lookup_variable(id)?)),
+            PlaceExpr::Parens(inner) => self.codegen_place_expr(inner),
+            PlaceExpr::Deref { prefix: _ } => {
                 // Ok(lang::PlaceExpr::Deref { operand: (), ty: () }}
                 unimplemented!("deref expression")
             }
-            PlaceExprData::Field {
+            PlaceExpr::Field {
                 prefix: expr,
                 field_name: field,
             } => {

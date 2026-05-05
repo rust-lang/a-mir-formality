@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use crate::grammar::{
-    expr::{Block, Expr, ExprData, FieldExpr, Init, Label, PlaceExpr, PlaceExprData, Stmt},
+    expr::{Block, Expr, ExprData, FieldExpr, Init, Label, PlaceExpr, Stmt},
     Binder, Fallible, FieldName, RefKind, Ty, ValueId,
 };
 
@@ -156,15 +156,15 @@ impl RustBuilder {
     }
 
     pub fn lower_place_expr(&mut self, place_expr: &PlaceExpr) -> Fallible<syntax::PlaceExpr> {
-        match place_expr.data() {
-            PlaceExprData::Var(value_id) => Ok(syntax::PlaceExpr::Var(value_id.deref().clone())),
-            PlaceExprData::Deref { prefix } => Ok(syntax::PlaceExpr::Deref(Box::new(
+        match place_expr {
+            PlaceExpr::Var(value_id) => Ok(syntax::PlaceExpr::Var(value_id.deref().clone())),
+            PlaceExpr::Deref { prefix } => Ok(syntax::PlaceExpr::Deref(Box::new(
                 self.lower_place_expr(prefix)?,
             ))),
-            PlaceExprData::Parens(place_expr) => Ok(syntax::PlaceExpr::Paren(Box::new(
+            PlaceExpr::Parens(place_expr) => Ok(syntax::PlaceExpr::Paren(Box::new(
                 self.lower_place_expr(place_expr)?,
             ))),
-            PlaceExprData::Field { prefix, field_name } => Ok(syntax::PlaceExpr::Field {
+            PlaceExpr::Field { prefix, field_name } => Ok(syntax::PlaceExpr::Field {
                 prefix: Box::new(self.lower_place_expr(prefix)?),
                 field: match field_name {
                     FieldName::Id(id) => id.deref().clone(),
