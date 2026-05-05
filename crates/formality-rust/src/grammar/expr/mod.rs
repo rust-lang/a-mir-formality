@@ -132,6 +132,7 @@ pub enum ExprData {
     ///
     /// A scalar literal.
     #[grammar($value _ $ty)]
+    #[reject(_, ScalarId::Bool)]
     Literal { value: usize, ty: ScalarId },
 
     /// `true`
