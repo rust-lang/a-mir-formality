@@ -456,7 +456,7 @@ judgment_fn! {
         (
             // A bare function name used as a value (e.g., `foo` in `foo(args)`).
             // Only applies when `id` is NOT a local variable.
-            (if let PlaceExprData::Var(id) = place.data())
+            (if let PlaceExpr::Var(id) = place)
             (if !state.has_local(id))!
             (let fn_decl = env.crates().fn_named(id)?)
             (if fn_decl.binder.len() == 0)
