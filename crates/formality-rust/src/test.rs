@@ -1,10 +1,10 @@
 #![cfg(test)]
 
-use crate::rust::term;
+use crate::rust::{term, try_term};
 use formality_macros::test;
 
-use crate::grammar::expr::PlaceExpr;
-use crate::grammar::Crates;
+use crate::grammar::expr::{ExprData, PlaceExpr};
+use crate::grammar::{Crates, Fallible, ScalarId};
 
 #[test]
 fn test_parse_rust_like_trait_impl_syntax() {
@@ -295,4 +295,25 @@ fn test_place_expr_deref_with_field_chain() {
         }
     "#]]
     .assert_debug_eq(&p);
+}
+
+#[test]
+fn test_parse_literals() {
+    let expr_data: Fallible<ExprData> = try_term("0 _ bool");
+    assert!(expr_data.is_err());
+
+    let expr_data: ExprData = try_term("0 _ u8").unwrap();
+    assert!(matches!(
+        expr_data,
+        ExprData::Literal {
+            value: 0,
+            ty: ScalarId::U8
+        }
+    ));
+
+    let expr_data: ExprData = try_term("false").unwrap();
+    assert!(matches!(expr_data, ExprData::False));
+
+    let expr_data: ExprData = try_term("true").unwrap();
+    assert!(matches!(expr_data, ExprData::True));
 }
