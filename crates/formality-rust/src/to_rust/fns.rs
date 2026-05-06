@@ -3,52 +3,52 @@ use std::ops::Deref;
 use crate::grammar::{Fallible, Fn, FnBody, InputArg, MaybeFnBody};
 use crate::prove::prove::Safety;
 
-use super::{syntax, RustBuilder};
+use crate::to_rust::{syntax, tys, Context};
 
-impl RustBuilder {
-    pub fn lower_fn(&mut self, function: &Fn) -> Fallible<syntax::FunctionItem> {
-        self.with_binder(
-            &function.binder,
-            false,
-            |term| &term.where_clauses,
-            |term, generics, pp| {
-                let params = term
-                    .input_args
-                    .iter()
-                    .map(|arg| pp.lower_fn_param(arg))
-                    .collect::<Result<Vec<_>, _>>()?;
-                let return_ty = pp.lower_ty(&term.output_ty)?;
-                let body = pp.lower_fn_body(&term.body)?;
+pub fn lower_fn(ctx: &mut Context, function: &Fn) -> Fallible<syntax::FunctionItem> {
+    ctx.with_binder(
+        &function.binder,
+        false,
+        |term| &term.where_clauses,
+        |term, generics, ctx| {
+            let params = term
+                .input_args
+                .iter()
+                .map(|arg| lower_fn_param(ctx, arg))
+                .collect::<Result<Vec<_>, _>>()?;
+            let return_ty = tys::lower_ty(ctx, &term.output_ty)?;
+            let body = lower_fn_body(ctx, &term.body)?;
 
-                Ok(syntax::FunctionItem {
-                    is_unsafe: matches!(function.safety, Safety::Unsafe),
-                    name: function.id.deref().clone(),
-                    generics,
-                    params,
-                    return_ty,
-                    body,
-                })
-            },
-        )
-    }
+            Ok(syntax::FunctionItem {
+                is_unsafe: matches!(function.safety, Safety::Unsafe),
+                name: function.id.deref().clone(),
+                generics,
+                params,
+                return_ty,
+                body,
+            })
+        },
+    )
+}
 
-    fn lower_fn_param(&mut self, arg: &InputArg) -> Fallible<syntax::FnParam> {
-        Ok(syntax::FnParam {
-            // TODO: Is there a way to know if a variable must be mutable?
-            mutable: true,
-            name: arg.id.deref().clone(),
-            ty: self.lower_ty(&arg.ty)?,
-        })
-    }
+pub fn lower_fn_param(ctx: &mut Context, arg: &InputArg) -> Fallible<syntax::FnParam> {
+    Ok(syntax::FnParam {
+        // TODO: Is there a way to know if a variable must be mutable?
+        mutable: true,
+        name: arg.id.deref().clone(),
+        ty: tys::lower_ty(ctx, &arg.ty)?,
+    })
+}
 
-    fn lower_fn_body(&mut self, body: &MaybeFnBody) -> Fallible<syntax::FunctionBody> {
-        match body {
-            MaybeFnBody::NoFnBody => Ok(syntax::FunctionBody::Declaration),
-            MaybeFnBody::FnBody(fn_body) => match fn_body {
-                FnBody::TrustedFnBody => Ok(syntax::FunctionBody::Trusted),
-                FnBody::Expr(block) => Ok(syntax::FunctionBody::Block(self.lower_block(block)?)),
-            },
-        }
+pub fn lower_fn_body(ctx: &mut Context, body: &MaybeFnBody) -> Fallible<syntax::FunctionBody> {
+    match body {
+        MaybeFnBody::NoFnBody => Ok(syntax::FunctionBody::Declaration),
+        MaybeFnBody::FnBody(fn_body) => match fn_body {
+            FnBody::TrustedFnBody => Ok(syntax::FunctionBody::Trusted),
+            FnBody::Expr(block) => Ok(syntax::FunctionBody::Block(
+                crate::to_rust::expr::lower_block(ctx, block)?,
+            )),
+        },
     }
 }
 

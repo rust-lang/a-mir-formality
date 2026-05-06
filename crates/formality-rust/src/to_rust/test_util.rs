@@ -4,7 +4,7 @@
 use crate::{
     check::check_all_crates,
     rust::term,
-    to_rust::{check_workspace, RustBuilder},
+    to_rust::{build_crates, check_workspace, Context},
 };
 
 /// Asserts that the given Formality input is translated into the expected
@@ -22,8 +22,8 @@ macro_rules! assert_rust {
 #[track_caller]
 pub fn assert_rust(input: &str, expected: &str) {
     let program = term(input);
-    let rust = RustBuilder::default()
-        .build_crates(&program)
+    let mut ctx = Context::default();
+    let rust = build_crates(&mut ctx, &program)
         .unwrap()
         .into_iter()
         .next()
