@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use crate::grammar::{Enum, Fallible, Field, FieldName, Struct, Variant};
 
-use crate::to_rust::{syntax, tys, Context};
+use crate::to_rust::{context::Context, syntax, tys};
 
 pub fn lower_struct(ctx: &mut Context, strukt: &Struct) -> Fallible<syntax::StructItem> {
     ctx.with_binder(
@@ -53,7 +53,10 @@ pub fn lower_variant(ctx: &mut Context, variant: &Variant) -> Fallible<syntax::E
     })
 }
 
-fn lower_variant_fields(ctx: &mut Context, fields: &[Field]) -> Fallible<syntax::VariantFields> {
+pub fn lower_variant_fields(
+    ctx: &mut Context,
+    fields: &[Field],
+) -> Fallible<syntax::VariantFields> {
     if fields.is_empty() {
         return Ok(syntax::VariantFields::Unit);
     }
@@ -73,7 +76,7 @@ fn lower_variant_fields(ctx: &mut Context, fields: &[Field]) -> Fallible<syntax:
     Ok(syntax::VariantFields::Struct(named))
 }
 
-fn lower_named_struct_field(ctx: &mut Context, field: &Field) -> Fallible<syntax::StructField> {
+pub fn lower_named_struct_field(ctx: &mut Context, field: &Field) -> Fallible<syntax::StructField> {
     match &field.name {
         FieldName::Id(id) => Ok(syntax::StructField {
             name: id.deref().clone(),

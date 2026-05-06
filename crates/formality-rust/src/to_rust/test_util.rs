@@ -4,7 +4,7 @@
 use crate::{
     check::check_all_crates,
     rust::term,
-    to_rust::{build_crates, check_workspace, Context},
+    to_rust::{check_workspace, context::Context, crates::build_crates},
 };
 
 /// Asserts that the given Formality input is translated into the expected

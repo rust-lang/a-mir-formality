@@ -1,14 +1,10 @@
-use crate::{
-    grammar::{
-        AdtItem, Binder, BoundVar, Crate, CrateItem, Crates, ExistentialVar, Fallible, FeatureGate,
-        FeatureGateName, ParameterKind, Ty, UniversalVar, VarIndex, Variable, WhereClause,
-        WhereClauseData,
-    },
-    rust::Fold,
-};
-use std::{collections::HashMap, ops::Deref};
+use crate::grammar::{Crates, Fallible, ParameterKind, Ty, WhereClause, WhereClauseData};
+use std::ops::Deref;
 
+pub mod context;
+mod crates;
 mod expr;
+mod feature_gate;
 mod fns;
 mod structs_enums_and_adts;
 pub mod syntax;
@@ -38,8 +34,8 @@ pub fn check_workspace(
 pub fn create_workspace(crates: &Crates, root_directory: &std::path::Path) -> Fallible<String> {
     use std::io::Write;
 
-    let mut ctx = Context::default();
-    let crates = build_crates(&mut ctx, crates)?;
+    let mut ctx = context::Context::default();
+    let crates = crates::build_crates(&mut ctx, crates)?;
     let crates_path = root_directory.join("crates");
     let root_toml_path = root_directory.join("Cargo.toml");
 
@@ -81,234 +77,6 @@ pub fn create_workspace(crates: &Crates, root_directory: &std::path::Path) -> Fa
     Ok(location.to_string())
 }
 
-#[derive(Debug)]
-pub struct Context {
-    counter: VarIndex,
-}
-
-impl Default for Context {
-    fn default() -> Self {
-        Self {
-            counter: VarIndex { index: 0 },
-        }
-    }
-}
-
-impl Context {
-    /// Applies the operation `op` to the term contained within the binder `b`.
-    ///
-    /// The binder is instantiated with a fresh set of bound variables. Since a
-    /// binder introduces new generic variables, those variables are lowered at
-    /// this point and provided to the caller via the `syntax::Generics` argument
-    /// passed to `op`.
-    ///
-    /// The function `g` is used to extract the relevant `&[WhereClause]` clauses from the
-    /// instantiated term.
-    ///
-    /// When lowering generics for a trait declaration, `is_trait` must be set to
-    /// `true`. In this case, the implicit first generic parameter represents
-    /// `Self` and is therefore not treated as a regular generic parameter.
-    ///
-    /// # Example
-    /// ```rust,no_run
-    /// # use formality_rust::grammar::{AdtId, Binder, Struct, StructBoundData, Fallible};
-    /// # use formality_rust::to_rust::{Context, syntax::StructItem};
-    /// fn lower_struct(term: Struct) -> Fallible<StructItem> {
-    ///     let mut pp = Context::default();
-    ///     pp.with_binder(
-    ///         &term.binder,
-    ///         true,
-    ///         |term| &term.where_clauses,
-    ///         |term, generics, pp| todo!(),
-    ///     )
-    /// }
-    /// ```
-    pub fn with_binder<T: Fold, R>(
-        &mut self,
-        b: &Binder<T>,
-        is_trait: bool,
-        g: impl Fn(&T) -> &[WhereClause],
-        mut op: impl FnMut(T, syntax::Generics, &mut Context) -> Fallible<R>,
-    ) -> Fallible<R> {
-        let subst = self.bounded_substitution(b);
-        let term = b.instantiate_with(&subst).expect("suitable substitution");
-
-        let names = subst
-            .into_iter()
-            .map(|var| format!("{}{}", self.kind_to_string(&var.kind), var.var_index.index))
-            .collect::<Vec<_>>();
-        let generics =
-            lower_generics_for_binder(self, b.kinds(), g(&term), names.as_slice(), is_trait)?;
-
-        let result = op(term, generics, self);
-        result
-    }
-
-    pub fn core_variable_to_string(&self, variable: &Variable) -> Fallible<String> {
-        let index = match variable {
-            Variable::UniversalVar(universal_var) => universal_var.var_index,
-            Variable::ExistentialVar(existential_var) => existential_var.var_index,
-            Variable::BoundVar(bound_var) => {
-                if bound_var.debruijn.is_some() {
-                    anyhow::bail!("binder is not open")
-                }
-                bound_var.var_index
-            }
-        }
-        .index;
-        let kind = self.kind_to_string(&variable.kind());
-        Ok(format!("{kind}{index}"))
-    }
-
-    fn kind_to_string(&self, kind: &ParameterKind) -> &'static str {
-        match kind {
-            ParameterKind::Ty => "T",
-            ParameterKind::Lt => "'a",
-            ParameterKind::Const => "N",
-        }
-    }
-
-    /// Creates a substitution for the binder `b` using freshly generated
-    /// variables.
-    ///
-    /// For each parameter introduced by the binder, a fresh variable is created
-    /// by invoking the generator function `v`. The resulting substitution can be
-    /// used to instantiate the binder.
-    pub fn substitution<T, V>(
-        &mut self,
-        b: &Binder<T>,
-        v: impl Fn(ParameterKind, VarIndex) -> V,
-    ) -> Vec<V>
-    where
-        T: Fold,
-    {
-        let subst = self.fresh_substitution(b.kinds(), v);
-        subst
-    }
-
-    /// Creates a substitution that replaces the variables introduced by the
-    /// binder `b` with fresh bound variables.
-    ///
-    /// Each binder parameter is mapped to a new [`BoundVar`] with a fresh
-    /// variable index. The resulting substitution can be used to instantiate
-    /// the binder without capturing existing variables.
-    pub fn bounded_substitution<T>(&mut self, b: &Binder<T>) -> Vec<BoundVar>
-    where
-        T: Fold,
-    {
-        self.substitution(b, |kind, var_index| BoundVar {
-            debruijn: None,
-            kind,
-            var_index,
-        })
-    }
-
-    /// Creates a substitution that replaces the variables introduced by the
-    /// binder `b` with fresh existential variables.
-    ///
-    /// Each binder parameter is mapped to a new [`ExistentialVar`] with a fresh
-    /// variable index. The resulting substitution can be used to instantiate
-    /// the binder without capturing existing variables.
-    pub fn existential_substitution<T>(&mut self, b: &Binder<T>) -> Vec<ExistentialVar>
-    where
-        T: Fold,
-    {
-        self.substitution(b, |kind, var_index| ExistentialVar { kind, var_index })
-    }
-
-    /// Creates a substitution that replaces the variables introduced by the
-    /// binder `b` with fresh universal variables.
-    ///
-    /// Each binder parameter is mapped to a new [`UniversalVar`] with a fresh
-    /// variable index. The resulting substitution can be used to instantiate
-    /// the binder without capturing existing variables.
-    pub fn universal_substitution<T>(&mut self, b: &Binder<T>) -> Vec<UniversalVar>
-    where
-        T: Fold,
-    {
-        self.substitution(b, |kind, var_index| UniversalVar { kind, var_index })
-    }
-
-    /// Creates a fresh substitution for the given parameter kinds.
-    ///
-    /// For each entry in `kinds`, this function generates a fresh variable index
-    /// and invokes the callback `v` with the corresponding `ParameterKind` and
-    /// index. The collected results form the substitution in binder order.
-    fn fresh_substitution<V>(
-        &mut self,
-        kinds: &[ParameterKind],
-        v: impl Fn(ParameterKind, VarIndex) -> V,
-    ) -> Vec<V> {
-        let fresh_index = self.counter;
-        self.counter = self.counter + kinds.len();
-        kinds
-            .iter()
-            .zip(0..)
-            .map(|(&kind, offset)| v(kind, fresh_index + offset))
-            .collect()
-    }
-}
-
-pub fn build_crates(ctx: &mut Context, crates: &Crates) -> Fallible<HashMap<String, String>> {
-    crates
-        .crates
-        .iter()
-        .map(|krate| {
-            let lowered = lower_crate(ctx, krate)?;
-            Ok((krate.id.deref().clone(), lowered.to_string()))
-        })
-        .collect()
-}
-
-pub fn lower_crate(ctx: &mut Context, krate: &Crate) -> Fallible<syntax::RustCrate> {
-    let mut attrs = Vec::new();
-    let mut items = Vec::new();
-
-    for item in &krate.items {
-        match item {
-            CrateItem::FeatureGate(gate) => attrs.push(lower_feature_gate(ctx, gate)?),
-            CrateItem::AdtItem(AdtItem::Struct(strukt)) => {
-                items.push(syntax::Item::Struct(structs_enums_and_adts::lower_struct(
-                    ctx, strukt,
-                )?));
-            }
-            CrateItem::AdtItem(AdtItem::Enum(e)) => {
-                items.push(syntax::Item::Enum(structs_enums_and_adts::lower_enum(
-                    ctx, e,
-                )?));
-            }
-            CrateItem::Trait(t) => {
-                items.push(syntax::Item::Trait(traits_and_impls::lower_trait(ctx, t)?));
-            }
-            CrateItem::TraitImpl(trait_impl) => {
-                items.push(syntax::Item::Impl(traits_and_impls::lower_trait_impl(
-                    ctx, trait_impl,
-                )?));
-            }
-            CrateItem::NegTraitImpl(neg_trait_impl) => {
-                items.push(syntax::Item::NegImpl(
-                    traits_and_impls::lower_neg_trait_impl(ctx, neg_trait_impl)?,
-                ));
-            }
-            CrateItem::Fn(function) => {
-                items.push(syntax::Item::Function(fns::lower_fn(ctx, function)?));
-            }
-            CrateItem::Test(_) => {
-                todo!("lowering `test` crate items is not implemented yet")
-            }
-        }
-    }
-
-    Ok(syntax::RustCrate { attrs, items })
-}
-
-pub fn lower_feature_gate(ctx: &mut Context, gate: &FeatureGate) -> Fallible<syntax::Attr> {
-    let name = match gate.name {
-        FeatureGateName::PoloniusAlpha => "polonius_alpha",
-    };
-    Ok(syntax::Attr::Feature(name.to_owned()))
-}
-
 /// Lowers generic parameters and `where` clauses for a binder.
 ///
 /// Set `skip_first` when lowering generics for a trait
@@ -316,7 +84,7 @@ pub fn lower_feature_gate(ctx: &mut Context, gate: &FeatureGate) -> Fallible<syn
 /// represents `Self` and must not be treated as a regular generic
 /// parameter.
 pub fn lower_generics_for_binder(
-    ctx: &mut Context,
+    ctx: &mut context::Context,
     binder_kinds: &[ParameterKind],
     where_clauses: &[WhereClause],
     names: &[String],
@@ -394,7 +162,7 @@ pub fn lower_generics_for_binder(
 }
 
 pub fn lower_where_clauses(
-    ctx: &mut Context,
+    ctx: &mut context::Context,
     where_clauses: &[WhereClause],
 ) -> Fallible<Vec<syntax::WhereClause>> {
     let mut preds = Vec::new();

@@ -5,7 +5,7 @@ use crate::grammar::{
     RigidTy, ScalarId, ScalarValue, Ty, Variable,
 };
 
-use super::{syntax, Context};
+use super::{context::Context, syntax};
 
 pub fn lower_generic_arg(ctx: &mut Context, parameter: &Parameter) -> Fallible<syntax::GenericArg> {
     match parameter {
@@ -111,7 +111,7 @@ pub fn scalar_to_string(scalar_id: &ScalarId) -> String {
     .to_owned()
 }
 
-fn lower_ref(
+pub fn lower_ref(
     ctx: &mut Context,
     ref_kind: &RefKind,
     parameters: &Parameters,
@@ -145,7 +145,7 @@ fn lower_ref(
     })
 }
 
-fn lower_ptr(
+pub fn lower_ptr(
     ctx: &mut Context,
     ptr_kind: &PtrKind,
     parameters: &Parameters,
@@ -171,7 +171,11 @@ pub fn lower_lt(ctx: &mut Context, lt: &Lt) -> Fallible<String> {
     }
 }
 
-fn lower_tuple(ctx: &mut Context, size: usize, parameters: &Parameters) -> Fallible<syntax::Type> {
+pub fn lower_tuple(
+    ctx: &mut Context,
+    size: usize,
+    parameters: &Parameters,
+) -> Fallible<syntax::Type> {
     if size != parameters.len() {
         anyhow::bail!(
             "tuple arity mismatch: expected {size} arguments but found {}",
@@ -190,7 +194,11 @@ fn lower_tuple(ctx: &mut Context, size: usize, parameters: &Parameters) -> Falli
     Ok(syntax::Type::Tuple(types))
 }
 
-fn lower_fn_ptr(ctx: &mut Context, size: usize, parameters: &Parameters) -> Fallible<syntax::Type> {
+pub fn lower_fn_ptr(
+    ctx: &mut Context,
+    size: usize,
+    parameters: &Parameters,
+) -> Fallible<syntax::Type> {
     if size != parameters.len() {
         anyhow::bail!(
             "function pointer arity mismatch: expected {size} arguments but found {}",

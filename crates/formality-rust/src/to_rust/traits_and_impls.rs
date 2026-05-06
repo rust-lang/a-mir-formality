@@ -6,7 +6,7 @@ use crate::grammar::{
 };
 use crate::prove::prove::Safety;
 
-use crate::to_rust::{self, fns, syntax, tys, Context};
+use crate::to_rust::{self, context::Context, fns, syntax, tys};
 
 pub fn lower_trait(ctx: &mut Context, t: &Trait) -> Fallible<syntax::TraitItem> {
     // NOTE: Is this right with explicit binder?

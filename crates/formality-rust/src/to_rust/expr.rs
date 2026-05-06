@@ -5,7 +5,7 @@ use crate::grammar::{
     Binder, Fallible, FieldName, RefKind, Ty, ValueId,
 };
 
-use crate::to_rust::{syntax, tys, Context};
+use crate::to_rust::{context::Context, syntax, tys};
 
 pub fn lower_block(ctx: &mut Context, block: &Block) -> Fallible<syntax::Block> {
     let label = block.label.as_ref().map(|l| l.id.as_str().to_owned());

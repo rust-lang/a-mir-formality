@@ -3,7 +3,7 @@ use std::ops::Deref;
 use crate::grammar::{Fallible, Fn, FnBody, InputArg, MaybeFnBody};
 use crate::prove::prove::Safety;
 
-use crate::to_rust::{syntax, tys, Context};
+use crate::to_rust::{context::Context, syntax, tys};
 
 pub fn lower_fn(ctx: &mut Context, function: &Fn) -> Fallible<syntax::FunctionItem> {
     ctx.with_binder(
