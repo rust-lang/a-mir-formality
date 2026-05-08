@@ -6,165 +6,130 @@ use crate::grammar::{
 };
 use crate::prove::prove::Safety;
 
-use crate::to_rust::{self, context::Context, fns, syntax, tys};
+use crate::to_rust::{
+    self,
+    context::{open_bounded, Context},
+    fns, syntax, tys,
+};
 
 pub fn lower_trait(ctx: &mut Context, t: &Trait) -> Fallible<syntax::TraitItem> {
-    // NOTE: Is this right with explicit binder?
-    ctx.with_binder(
-        &t.binder.explicit_binder,
-        true,
-        |term| &term.where_clauses,
-        |term, generics, ctx| {
-            let mut items = Vec::new();
-            for item in &term.trait_items {
-                match item {
-                    TraitItem::Fn(f) => {
-                        items.push(syntax::TraitMember::Function(fns::lower_fn(ctx, f)?))
-                    }
-                    TraitItem::AssociatedTy(assoc_ty) => items.push(
-                        syntax::TraitMember::AssociatedType(lower_assoc_ty(ctx, assoc_ty)?),
-                    ),
-                }
-            }
+    let (term, generics) = open_bounded!(ctx, &t.binder.explicit_binder, true);
+    let mut items = Vec::new();
+    for item in &term.trait_items {
+        match item {
+            TraitItem::Fn(f) => items.push(syntax::TraitMember::Function(fns::lower_fn(ctx, f)?)),
+            TraitItem::AssociatedTy(assoc_ty) => items.push(syntax::TraitMember::AssociatedType(
+                lower_assoc_ty(ctx, assoc_ty)?,
+            )),
+        }
+    }
 
-            Ok(syntax::TraitItem {
-                is_unsafe: matches!(t.safety, Safety::Unsafe),
-                name: t.id.deref().clone(),
-                generics,
-                items,
-            })
-        },
-    )
+    Ok(syntax::TraitItem {
+        is_unsafe: matches!(t.safety, Safety::Unsafe),
+        name: t.id.deref().clone(),
+        generics,
+        items,
+    })
 }
 
 pub fn lower_trait_impl(ctx: &mut Context, trait_impl: &TraitImpl) -> Fallible<syntax::ImplItem> {
-    ctx.with_binder(
-        &trait_impl.binder,
-        false,
-        |term| &term.where_clauses,
-        |term, generics, ctx| {
-            let mut items = Vec::new();
-            for item in &term.impl_items {
-                match item {
-                    ImplItem::Fn(f) => {
-                        items.push(syntax::ImplMember::Function(fns::lower_fn(ctx, f)?))
-                    }
-                    ImplItem::AssociatedTyValue(v) => {
-                        items.push(syntax::ImplMember::AssociatedTypeValue(
-                            lower_assoc_ty_value(ctx, v)?,
-                        ));
-                    }
-                }
+    let (term, generics) = open_bounded!(ctx, &trait_impl.binder);
+    let mut items = Vec::new();
+    for item in &term.impl_items {
+        match item {
+            ImplItem::Fn(f) => items.push(syntax::ImplMember::Function(fns::lower_fn(ctx, f)?)),
+            ImplItem::AssociatedTyValue(v) => {
+                items.push(syntax::ImplMember::AssociatedTypeValue(
+                    lower_assoc_ty_value(ctx, v)?,
+                ));
             }
+        }
+    }
 
-            let trait_args = term
-                .trait_parameters
-                .iter()
-                .map(|arg| tys::lower_generic_arg(ctx, arg))
-                .collect::<Result<Vec<_>, _>>()?;
-            let self_ty = tys::lower_ty(ctx, &term.self_ty)?;
+    let trait_args = term
+        .trait_parameters
+        .iter()
+        .map(|arg| tys::lower_generic_arg(ctx, arg))
+        .collect::<Result<Vec<_>, _>>()?;
+    let self_ty = tys::lower_ty(ctx, &term.self_ty)?;
 
-            Ok(syntax::ImplItem {
-                is_unsafe: matches!(trait_impl.safety, Safety::Unsafe),
-                generics,
-                trait_name: term.trait_id.deref().clone(),
-                trait_args,
-                self_ty,
-                items,
-            })
-        },
-    )
+    Ok(syntax::ImplItem {
+        is_unsafe: matches!(trait_impl.safety, Safety::Unsafe),
+        generics,
+        trait_name: term.trait_id.deref().clone(),
+        trait_args,
+        self_ty,
+        items,
+    })
 }
 
 pub fn lower_neg_trait_impl(
     ctx: &mut Context,
     neg_trait_impl: &NegTraitImpl,
 ) -> Fallible<syntax::NegImplItem> {
-    ctx.with_binder(
-        &neg_trait_impl.binder,
-        false,
-        |term| &term.where_clauses,
-        |term, generics, ctx| {
-            let trait_args = term
-                .trait_parameters
-                .iter()
-                .map(|arg| tys::lower_generic_arg(ctx, arg))
-                .collect::<Result<Vec<_>, _>>()?;
-            let self_ty = tys::lower_ty(ctx, &term.self_ty)?;
-            let where_clauses = to_rust::lower_where_clauses(ctx, &term.where_clauses)?;
+    let (term, generics) = open_bounded!(ctx, &neg_trait_impl.binder);
+    let trait_args = term
+        .trait_parameters
+        .iter()
+        .map(|arg| tys::lower_generic_arg(ctx, arg))
+        .collect::<Result<Vec<_>, _>>()?;
+    let self_ty = tys::lower_ty(ctx, &term.self_ty)?;
+    let where_clauses = to_rust::lower_where_clauses(ctx, &term.where_clauses)?;
 
-            Ok(syntax::NegImplItem {
-                is_unsafe: matches!(neg_trait_impl.safety, Safety::Unsafe),
-                generics,
-                trait_name: term.trait_id.deref().clone(),
-                trait_args,
-                self_ty,
-                where_clauses,
-            })
-        },
-    )
+    Ok(syntax::NegImplItem {
+        is_unsafe: matches!(neg_trait_impl.safety, Safety::Unsafe),
+        generics,
+        trait_name: term.trait_id.deref().clone(),
+        trait_args,
+        self_ty,
+        where_clauses,
+    })
 }
 
 pub fn lower_assoc_ty(
     ctx: &mut Context,
     assoc_ty: &AssociatedTy,
 ) -> Fallible<syntax::AssociatedTypeItem> {
-    ctx.with_binder(
-        &assoc_ty.binder,
-        false,
-        |term| &term.where_clauses,
-        |term, generics, ctx| {
-            let mut bounds = Vec::new();
-            for ensure in &term.ensures {
-                match ensure {
-                    WhereBoundData::IsImplemented(trait_id, parameters) => {
-                        bounds.push(syntax::TypeBound::Trait {
-                            trait_name: trait_id.deref().clone(),
-                            args: parameters
-                                .iter()
-                                .map(|arg| tys::lower_generic_arg(ctx, arg))
-                                .collect::<Result<Vec<_>, _>>()?,
-                        });
-                    }
-                    WhereBoundData::Outlives(_) => {
-                        anyhow::bail!(
-                            "lowering associated type outlives bounds is not implemented yet"
-                        )
-                    }
-                    WhereBoundData::ForAll(_) => {
-                        anyhow::bail!(
-                            "lowering associated type `for` bounds is not implemented yet"
-                        )
-                    }
-                }
+    let (term, generics) = open_bounded!(ctx, &assoc_ty.binder);
+    let mut bounds = Vec::new();
+    for ensure in &term.ensures {
+        match ensure {
+            WhereBoundData::IsImplemented(trait_id, parameters) => {
+                bounds.push(syntax::TypeBound::Trait {
+                    trait_name: trait_id.deref().clone(),
+                    args: parameters
+                        .iter()
+                        .map(|arg| tys::lower_generic_arg(ctx, arg))
+                        .collect::<Result<Vec<_>, _>>()?,
+                });
             }
+            WhereBoundData::Outlives(_) => {
+                anyhow::bail!("lowering associated type outlives bounds is not implemented yet")
+            }
+            WhereBoundData::ForAll(_) => {
+                anyhow::bail!("lowering associated type `for` bounds is not implemented yet")
+            }
+        }
+    }
 
-            Ok(syntax::AssociatedTypeItem {
-                name: assoc_ty.id.deref().clone(),
-                generics,
-                bounds,
-            })
-        },
-    )
+    Ok(syntax::AssociatedTypeItem {
+        name: assoc_ty.id.deref().clone(),
+        generics,
+        bounds,
+    })
 }
 
 pub fn lower_assoc_ty_value(
     ctx: &mut Context,
     assoc_ty: &AssociatedTyValue,
 ) -> Fallible<syntax::AssociatedTypeValueItem> {
-    ctx.with_binder(
-        &assoc_ty.binder,
-        false,
-        |term| &term.where_clauses,
-        |term, generics, ctx| {
-            let ty = tys::lower_ty(ctx, &term.ty)?;
-            Ok(syntax::AssociatedTypeValueItem {
-                name: assoc_ty.id.deref().clone(),
-                generics,
-                ty,
-            })
-        },
-    )
+    let (term, generics) = open_bounded!(ctx, &assoc_ty.binder);
+    let ty = tys::lower_ty(ctx, &term.ty)?;
+    Ok(syntax::AssociatedTypeValueItem {
+        name: assoc_ty.id.deref().clone(),
+        generics,
+        ty,
+    })
 }
 
 #[cfg(test)]

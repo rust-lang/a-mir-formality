@@ -71,11 +71,7 @@ pub fn lower_let(
 
 pub fn lower_exists_stmt(ctx: &mut Context, binder: &Binder<Block>) -> Fallible<syntax::Stmt> {
     // TODO: Check again, after codegen is merged, if "erased" lifetimes could work here.
-    let subst = ctx.existential_substitution(binder);
-    let term = binder
-        .instantiate_with(&subst)
-        .expect("suitable substitution");
-
+    let (term, _) = ctx.open_exists(binder);
     let result = syntax::Stmt::Block(lower_block(ctx, &term)?);
     Ok(result)
 }

@@ -1,10 +1,8 @@
 use crate::{
     grammar::{
-        Binder, BoundVar, ExistentialVar, Fallible, ParameterKind, UniversalVar, VarIndex,
-        Variable, WhereClause,
+        Binder, BoundVar, ExistentialVar, Fallible, ParameterKind, UniversalVar, VarIndex, Variable,
     },
     rust::Fold,
-    to_rust::{lower_generics_for_binder, syntax},
 };
 
 #[derive(Debug)]
@@ -27,53 +25,40 @@ impl Default for Context {
 }
 
 impl Context {
-    /// Applies the operation `op` to the term contained within the binder `b`.
-    ///
-    /// The binder is instantiated with a fresh set of bound variables. Since a
-    /// binder introduces new generic variables, those variables are lowered at
-    /// this point and provided to the caller via the `syntax::Generics` argument
-    /// passed to `op`.
-    ///
-    /// The function `g` is used to extract the relevant `&[WhereClause]` clauses from the
-    /// instantiated term.
-    ///
-    /// When lowering generics for a trait declaration, `is_trait` must be set to
-    /// `true`. In this case, the implicit first generic parameter represents
-    /// `Self` and is therefore not treated as a regular generic parameter.
-    ///
-    /// # Example
-    /// ```rust,no_run
-    /// # use formality_rust::grammar::{AdtId, Binder, Struct, StructBoundData, Fallible};
-    /// # use formality_rust::to_rust::{context::Context, syntax::StructItem};
-    /// fn lower_struct(term: Struct) -> Fallible<StructItem> {
-    ///     let mut ctx = Context::empty();
-    ///     ctx.with_binder(
-    ///         &term.binder,
-    ///         true,
-    ///         |term| &term.where_clauses,
-    ///         |term, generics, ctx| todo!(),
-    ///     )
-    /// }
-    /// ```
-    pub fn with_binder<T: Fold, R>(
-        &mut self,
-        b: &Binder<T>,
-        is_trait: bool,
-        g: impl Fn(&T) -> &[WhereClause],
-        mut op: impl FnMut(T, syntax::Generics, &mut Context) -> Fallible<R>,
-    ) -> Fallible<R> {
+    /// Opens the binder `b` and instatiates ith with a fresh set of
+    /// bounded variables and returns the term and the names
+    pub fn open_bounded<T: Fold>(&mut self, b: &Binder<T>) -> (T, Vec<String>) {
         let subst = self.bounded_substitution(b);
         let term = b.instantiate_with(&subst).expect("suitable substitution");
-
         let names = subst
             .into_iter()
             .map(|var| format!("{}{}", self.kind_to_string(&var.kind), var.var_index.index))
             .collect::<Vec<_>>();
-        let generics =
-            lower_generics_for_binder(self, b.kinds(), g(&term), names.as_slice(), is_trait)?;
+        (term, names)
+    }
 
-        let result = op(term, generics, self);
-        result
+    /// Opens the binder `b` and instatiates ith with a fresh set of
+    /// existential variables and returns the term and the names
+    pub fn open_exists<T: Fold>(&mut self, b: &Binder<T>) -> (T, Vec<String>) {
+        let subst = self.existential_substitution(b);
+        let term = b.instantiate_with(&subst).expect("suitable substitution");
+        let names = subst
+            .into_iter()
+            .map(|var| format!("{}{}", self.kind_to_string(&var.kind), var.var_index.index))
+            .collect::<Vec<_>>();
+        (term, names)
+    }
+
+    /// Opens the binder `b` and instatiates ith with a fresh set of
+    /// universal variables and returns the term and the names
+    pub fn open_universal<T: Fold>(&mut self, b: &Binder<T>) -> (T, Vec<String>) {
+        let subst = self.universal_substitution(b);
+        let term = b.instantiate_with(&subst).expect("suitable substitution");
+        let names = subst
+            .into_iter()
+            .map(|var| format!("{}{}", self.kind_to_string(&var.kind), var.var_index.index))
+            .collect::<Vec<_>>();
+        (term, names)
     }
 
     pub fn core_variable_to_string(&self, variable: &Variable) -> Fallible<String> {
@@ -180,3 +165,30 @@ impl Context {
             .collect()
     }
 }
+
+#[macro_export]
+macro_rules! open_bounded {
+    ($ctx:expr, $binder:expr) => {{
+        let (term, names) = $ctx.open_bounded($binder);
+        let generics = $crate::to_rust::lower_generics_for_binder(
+            $ctx,
+            $binder.kinds(),
+            &term.where_clauses,
+            &names,
+            false,
+        )?;
+        (term, generics)
+    }};
+    ($ctx:expr, $binder:expr, $is_trait:literal) => {{
+        let (term, names) = $ctx.open_bounded($binder);
+        let generics = $crate::to_rust::lower_generics_for_binder(
+            $ctx,
+            $binder.kinds(),
+            &term.where_clauses,
+            &names,
+            $is_trait,
+        )?;
+        (term, generics)
+    }};
+}
+pub(crate) use open_bounded; // <-- the trick

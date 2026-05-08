@@ -3,32 +3,29 @@ use std::ops::Deref;
 use crate::grammar::{Fallible, Fn, FnBody, InputArg, MaybeFnBody};
 use crate::prove::prove::Safety;
 
-use crate::to_rust::{context::Context, syntax, tys};
+use crate::to_rust::{
+    context::{open_bounded, Context},
+    syntax, tys,
+};
 
 pub fn lower_fn(ctx: &mut Context, function: &Fn) -> Fallible<syntax::FunctionItem> {
-    ctx.with_binder(
-        &function.binder,
-        false,
-        |term| &term.where_clauses,
-        |term, generics, ctx| {
-            let params = term
-                .input_args
-                .iter()
-                .map(|arg| lower_fn_param(ctx, arg))
-                .collect::<Result<Vec<_>, _>>()?;
-            let return_ty = tys::lower_ty(ctx, &term.output_ty)?;
-            let body = lower_fn_body(ctx, &term.body)?;
+    let (term, generics) = open_bounded!(ctx, &function.binder);
+    let params = term
+        .input_args
+        .iter()
+        .map(|arg| lower_fn_param(ctx, arg))
+        .collect::<Result<Vec<_>, _>>()?;
+    let return_ty = tys::lower_ty(ctx, &term.output_ty)?;
+    let body = lower_fn_body(ctx, &term.body)?;
 
-            Ok(syntax::FunctionItem {
-                is_unsafe: matches!(function.safety, Safety::Unsafe),
-                name: function.id.deref().clone(),
-                generics,
-                params,
-                return_ty,
-                body,
-            })
-        },
-    )
+    Ok(syntax::FunctionItem {
+        is_unsafe: matches!(function.safety, Safety::Unsafe),
+        name: function.id.deref().clone(),
+        generics,
+        params,
+        return_ty,
+        body,
+    })
 }
 
 pub fn lower_fn_param(ctx: &mut Context, arg: &InputArg) -> Fallible<syntax::FnParam> {

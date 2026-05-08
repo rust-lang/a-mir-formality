@@ -2,47 +2,38 @@ use std::ops::Deref;
 
 use crate::grammar::{Enum, Fallible, Field, FieldName, Struct, Variant};
 
-use crate::to_rust::{context::Context, syntax, tys};
+use crate::to_rust::{
+    context::{open_bounded, Context},
+    syntax, tys,
+};
 
 pub fn lower_struct(ctx: &mut Context, strukt: &Struct) -> Fallible<syntax::StructItem> {
-    ctx.with_binder(
-        &strukt.binder,
-        false,
-        |term| &term.where_clauses,
-        |term, generics, ctx| {
-            let fields = term
-                .fields
-                .iter()
-                .map(|field| lower_named_struct_field(ctx, field))
-                .collect::<Result<Vec<_>, _>>()?;
+    let (term, generics) = open_bounded!(ctx, &strukt.binder);
+    let fields = term
+        .fields
+        .iter()
+        .map(|field| lower_named_struct_field(ctx, field))
+        .collect::<Result<Vec<_>, _>>()?;
 
-            Ok(syntax::StructItem {
-                name: strukt.id.deref().clone(),
-                generics,
-                fields,
-            })
-        },
-    )
+    Ok(syntax::StructItem {
+        name: strukt.id.deref().clone(),
+        generics,
+        fields,
+    })
 }
 
 pub fn lower_enum(ctx: &mut Context, e: &Enum) -> Fallible<syntax::EnumItem> {
-    ctx.with_binder(
-        &e.binder,
-        false,
-        |term| &term.where_clauses,
-        |term, generics, ctx| {
-            let variants = term
-                .variants
-                .iter()
-                .map(|variant| lower_variant(ctx, variant))
-                .collect::<Result<Vec<_>, _>>()?;
-            Ok(syntax::EnumItem {
-                name: e.id.deref().clone(),
-                generics,
-                variants,
-            })
-        },
-    )
+    let (term, generics) = open_bounded!(ctx, &e.binder);
+    let variants = term
+        .variants
+        .iter()
+        .map(|variant| lower_variant(ctx, variant))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(syntax::EnumItem {
+        name: e.id.deref().clone(),
+        generics,
+        variants,
+    })
 }
 
 pub fn lower_variant(ctx: &mut Context, variant: &Variant) -> Fallible<syntax::EnumVariant> {
