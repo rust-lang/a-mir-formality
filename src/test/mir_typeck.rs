@@ -30,7 +30,7 @@ fn test_assign_constant() {
                     let v7: i32 = 5 _ i32;
                     let v8: i64 = 5 _ i64;
                     let v9: isize = 5 _ isize;
-                    let v10: bool = 0 _ bool;
+                    let v10: bool = false;
                     return 5 _ u8;
                 }
             }
@@ -156,7 +156,7 @@ fn if_else_different_return_types() {
                     if b {
                         return 1 _ u32;
                     } else {
-                        return 0 _ bool;
+                        return false;
                     }
                 }
             }
@@ -247,7 +247,7 @@ fn test_struct() {
                 }
 
                 fn foo (v1: u32) -> u32 {
-                    let v2: Dummy = Dummy { value: 1 _ u32, is_true: 0 _ bool };
+                    let v2: Dummy = Dummy { value: 1 _ u32, is_true: false };
                     v2.value = 2 _ u32;
                     return v1;
                 }
@@ -704,7 +704,7 @@ fn test_struct_wrong_type_in_initialisation() {
                 }
 
                 fn foo (v1: u32) -> u32 {
-                    let v2: Dummy = Dummy { value: 0 _ bool };
+                    let v2: Dummy = Dummy { value: false };
                     return v1;
                 }
             }
@@ -726,7 +726,7 @@ fn test_non_adt_ty_for_struct() {
         [
             crate Foo {
                 fn foo (v1: u32) -> u32 {
-                    let v2: u32 = Nonexistent { value: 0 _ bool };
+                    let v2: u32 = Nonexistent { value: false };
                     return v1;
                 }
             }
