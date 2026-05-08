@@ -212,8 +212,6 @@ pub enum PlaceExpr {
 }
 // ANCHOR_END: PlaceExpr
 
-pub type PlaceExprData = PlaceExpr;
-
 impl PlaceExpr {
     pub fn is_prefix_of(&self, other: &PlaceExpr) -> bool {
         other.all_prefixes().contains(&self)
