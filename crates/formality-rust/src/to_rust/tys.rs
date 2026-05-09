@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
 use crate::grammar::{
-    Const, ConstData, Fallible, Lt, LtData, Parameter, Parameters, PtrKind, RefKind, RigidName,
-    RigidTy, ScalarId, ScalarValue, Ty, Variable,
+    AliasTy, Const, ConstData, Fallible, Lt, LtData, Parameter, Parameters, PtrKind, RefKind,
+    RigidName, RigidTy, ScalarId, ScalarValue, Ty, Variable,
 };
 
 use super::{context::Context, syntax};
@@ -53,13 +53,13 @@ pub fn lower_const(ctx: &mut Context, konst: &Const) -> Fallible<syntax::ConstEx
 
 pub fn lower_ty(ctx: &mut Context, ty: &Ty) -> Fallible<syntax::Type> {
     match ty {
-        Ty::RigidTy(rigid_ty) => lower_rigid_ty(ctx, &rigid_ty),
-        Ty::AliasTy(_) => todo!("lowering alias types is not implemented yet"),
+        Ty::RigidTy(rigid_ty) => lower_rigid_ty(ctx, rigid_ty),
+        Ty::AliasTy(alias) => lower_alias_ty(ctx, alias),
         Ty::PredicateTy(_) => {
             todo!("lowering predicate types is not implemented yet")
         }
         Ty::Variable(core_variable) => Ok(syntax::Type::Path {
-            name: ctx.core_variable_to_string(&core_variable)?,
+            name: ctx.core_variable_to_string(core_variable)?,
             args: Vec::new(),
         }),
     }
@@ -92,6 +92,26 @@ pub fn lower_rigid_ty(ctx: &mut Context, rigid_ty: &RigidTy) -> Fallible<syntax:
         }
         RigidName::Never => Ok(syntax::Type::Never),
     }
+}
+
+pub fn lower_alias_ty(ctx: &mut Context, alias_ty: &AliasTy) -> Fallible<syntax::Type> {
+    let ty = alias_ty
+        .parameters
+        .get(0)
+        .and_then(|p| match p {
+            Parameter::Ty(ty) => lower_ty(ctx, ty).ok(),
+            Parameter::Lt(_lt) => todo!(),
+            Parameter::Const(_) => todo!(),
+        })
+        .ok_or_else(|| anyhow::anyhow!("alias type is missing type argument"))?;
+
+    Ok(match &alias_ty.name {
+        crate::grammar::AliasName::AssociatedTyId(associated_ty_name) => syntax::Type::Alias {
+            ty: Box::new(ty),
+            trait_name: associated_ty_name.trait_id.deref().clone(),
+            assoc_name: associated_ty_name.item_id.deref().clone(),
+        },
+    })
 }
 
 pub fn scalar_to_string(scalar_id: &ScalarId) -> String {
@@ -478,5 +498,31 @@ mod test {
         let t = lower_ty(&mut ctx, &ty).unwrap().to_string();
 
         assert_eq!("fn(u8, i64) -> isize", t);
+    }
+
+    #[test]
+    fn alias_ty() {
+        crate::assert_rust!(
+            [
+                crate Blub {
+                    trait Foo {
+                        type Assoc: [];
+                    }
+                    trait Bar<U> {}
+                    impl<T, U> Bar<U> for T
+                    where
+                        <T as Foo>::Assoc: Bar<U> {}
+                }
+            ],
+            r#"
+trait Foo {
+    type Assoc;
+}
+
+trait Bar<T2> { }
+
+impl<T3, T4> Bar<T4> for T3 where <T3 as Foo>::Assoc: Bar<T4> {}
+"#
+        );
     }
 }

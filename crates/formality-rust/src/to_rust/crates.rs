@@ -5,6 +5,10 @@ use crate::to_rust::{
 use std::{collections::HashMap, ops::Deref};
 
 pub fn build_crates(ctx: &mut Context, crates: &Crates) -> Fallible<HashMap<String, String>> {
+    // TODO: If core crate:
+    // 1. rename it to something like amirformality-core
+    // 2. add it as a dependencie to the other crates
+    // 3. add import statements in other crates.
     crates
         .crates
         .iter()

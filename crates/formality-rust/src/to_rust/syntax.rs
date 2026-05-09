@@ -211,6 +211,11 @@ pub enum Type {
         inputs: Vec<Type>,
         output: Box<Type>,
     },
+    Alias {
+        ty: Box<Type>,
+        trait_name: String,
+        assoc_name: String,
+    },
     Never,
 }
 
@@ -264,6 +269,13 @@ impl Display for Type {
                     write!(f, "{ty}")?;
                 }
                 write!(f, ") -> {output}")
+            }
+            Type::Alias {
+                ty,
+                trait_name,
+                assoc_name,
+            } => {
+                write!(f, "<{} as {}>::{}", ty, trait_name, assoc_name)
             }
             Type::Never => f.write_char('!'),
         }
