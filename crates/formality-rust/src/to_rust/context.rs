@@ -191,4 +191,4 @@ macro_rules! open_bounded {
         (term, generics)
     }};
 }
-pub(crate) use open_bounded; // <-- the trick
+pub(crate) use open_bounded;
