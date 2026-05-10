@@ -1,6 +1,8 @@
+use a_mir_formality::{assert_err, assert_ok, test_program_ok};
+
 #[test]
 fn dependent_where_clause() {
-    crate::assert_ok!(
+    assert_ok!(
 
         [
             crate foo {
@@ -22,7 +24,7 @@ fn dependent_where_clause() {
 
 #[test]
 fn missing_dependent_where_clause() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate foo {
                 trait Trait1 {}
@@ -56,7 +58,7 @@ fn missing_dependent_where_clause() {
 
 #[test]
 fn lifetime_param() {
-    crate::assert_ok!(
+    assert_ok!(
 
         [
             crate foo {
@@ -72,7 +74,7 @@ fn lifetime_param() {
 
 #[test]
 fn static_lifetime_param() {
-    crate::assert_ok!(
+    assert_ok!(
 
         [
             crate foo {
@@ -90,7 +92,7 @@ fn static_lifetime_param() {
 
 #[test]
 fn const_param() {
-    crate::assert_ok!(
+    assert_ok!(
 
         [
             crate foo {
@@ -109,7 +111,7 @@ fn const_param() {
 #[test]
 #[should_panic(expected = "wrong number of parameters")]
 fn type_with_wrong_number_of_parameters() {
-    let _ = crate::test_program_ok(
+    let _ = test_program_ok(
         " [
             crate foo {
                 trait Trait1 {}
@@ -128,7 +130,7 @@ fn type_with_wrong_number_of_parameters() {
 #[test]
 #[should_panic(expected = "no ADT named `Nonex`")]
 fn where_clause_with_nonexistent_type() {
-    let _ = crate::test_program_ok(
+    let _ = test_program_ok(
         " [
             crate foo {
                 trait Trait1 {}

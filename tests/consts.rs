@@ -1,8 +1,9 @@
 #![allow(non_snake_case)]
+use a_mir_formality::{assert_err, assert_ok};
 
 #[test]
 fn nonsense_rigid_const_bound() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 // This where-clause is not *provable*, but it is well-formed.
@@ -14,7 +15,7 @@ fn nonsense_rigid_const_bound() {
 
 #[test]
 fn ok() {
-    crate::assert_ok!(
+    assert_ok!(
 
         [
             crate Foo {
@@ -29,7 +30,7 @@ fn ok() {
 
 #[test]
 fn mismatch() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 trait Foo<const C> where type_of_const C is bool {}
@@ -55,7 +56,7 @@ fn mismatch() {
 
 #[test]
 fn holds() {
-    crate::assert_ok!(
+    assert_ok!(
 
         [
             crate Foo {
@@ -69,7 +70,7 @@ fn holds() {
 
 #[test]
 fn rigid_const_bound() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 trait Foo where type_of_const true is bool {}
@@ -80,7 +81,7 @@ fn rigid_const_bound() {
 
 #[test]
 fn generic_mismatch() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 trait Foo<const C> where type_of_const C is bool {}
@@ -113,7 +114,7 @@ fn generic_mismatch() {
 
 #[test]
 fn generic_match() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 trait Foo<const C> where type_of_const C is bool {}
@@ -127,7 +128,7 @@ fn generic_match() {
 
 #[test]
 fn multiple_type_of_const() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 trait Foo<const C> where type_of_const C is bool, type_of_const C is u32 {}

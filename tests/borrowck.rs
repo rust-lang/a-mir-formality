@@ -1,3 +1,4 @@
+use a_mir_formality::{assert_err, assert_ok};
 use formality_core::test;
 
 // ===================================================================
@@ -20,7 +21,7 @@ use formality_core::test;
 #[test]
 #[ignore = "needs initialization tracking (#296)"]
 fn use_of_uninitialized_variable() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -48,7 +49,7 @@ fn use_of_uninitialized_variable() {
 #[test]
 #[ignore = "needs move tracking (#296)"]
 fn use_of_moved_variable() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Datum {
@@ -82,7 +83,7 @@ fn use_of_moved_variable() {
 /// ```
 #[test]
 fn reinit_after_move() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 struct Datum {
@@ -115,7 +116,7 @@ fn reinit_after_move() {
 #[test]
 #[ignore = "needs initialization tracking (#296)"]
 fn conditional_init_one_branch() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -148,7 +149,7 @@ fn conditional_init_one_branch() {
 /// ```
 #[test]
 fn conditional_init_both_branches() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -177,7 +178,7 @@ fn conditional_init_both_branches() {
 #[test]
 #[ignore = "needs initialization tracking (#296)"]
 fn assign_field_of_uninitialized() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Pair {
@@ -211,7 +212,7 @@ fn assign_field_of_uninitialized() {
 /// ```
 #[test]
 fn partial_move_use_sibling() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 struct Datum {
@@ -249,7 +250,7 @@ fn partial_move_use_sibling() {
 #[test]
 #[ignore = "needs move tracking (#296)"]
 fn partial_move_use_whole() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Datum {
@@ -289,7 +290,7 @@ fn partial_move_use_whole() {
 #[test]
 #[ignore = "needs move tracking (#296)"]
 fn move_same_field_twice() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Datum {
@@ -329,7 +330,7 @@ fn move_same_field_twice() {
 #[test]
 #[ignore = "needs move tracking (#296)"]
 fn move_whole_then_access_field() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Datum {
@@ -367,7 +368,7 @@ fn move_whole_then_access_field() {
 #[test]
 #[ignore = "needs move tracking (#296)"]
 fn move_parent_then_access_child() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Inner {
@@ -404,7 +405,7 @@ fn move_parent_then_access_child() {
 /// ```
 #[test]
 fn move_out_of_shared_ref() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Datum {
@@ -666,7 +667,7 @@ fn move_out_of_shared_ref() {
 /// ```
 #[test]
 fn move_out_of_mut_ref() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Datum {
@@ -928,7 +929,7 @@ fn move_out_of_mut_ref() {
 /// ```
 #[test]
 fn move_out_of_borrowed_place() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Datum {
@@ -975,7 +976,7 @@ fn move_out_of_borrowed_place() {
 #[test]
 #[ignore = "needs move tracking (#296)"]
 fn move_in_loop() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Datum {
@@ -1008,7 +1009,7 @@ fn move_in_loop() {
 #[test]
 #[ignore = "needs initialization tracking (#296, #209)"]
 fn uninitialized_return() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -1035,7 +1036,7 @@ fn uninitialized_return() {
 /// ```
 #[test]
 fn mutable_ref_prevents_mutation() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> i32 {
@@ -1080,7 +1081,7 @@ fn mutable_ref_prevents_mutation() {
 /// ```
 #[test]
 fn shared_ref_prevents_mutation() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> i32 {
@@ -1128,7 +1129,7 @@ fn shared_ref_prevents_mutation() {
 #[test]
 fn min_problem_case_3() {
     // This doesn't pass in Rust, but it does in our formulation.
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 struct Map { }
@@ -1164,7 +1165,7 @@ fn min_problem_case_3() {
 /// ```
 #[test]
 fn drop_while_borrowed() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> i32 {
@@ -1211,7 +1212,7 @@ fn drop_while_borrowed() {
 /// ```
 #[test]
 fn drop_after_borrow_dead() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> i32 {
@@ -1244,7 +1245,7 @@ fn drop_after_borrow_dead() {
 /// ```
 #[test]
 fn drop_while_mutably_borrowed() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> i32 {
@@ -1291,7 +1292,7 @@ fn drop_while_mutably_borrowed() {
 /// ```
 #[test]
 fn drop_on_break_while_borrowed() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> i32 {
@@ -1339,7 +1340,7 @@ fn drop_on_break_while_borrowed() {
 /// ```
 #[test]
 fn too_min_problem_case_3() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 struct Map { }
@@ -1363,7 +1364,7 @@ fn too_min_problem_case_3() {
 /// there is no declared relationship.
 #[formality_core::test]
 fn undeclared_universal_region_relationship() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo<'a, 'b>(v1: &'a u32) -> &'b u32 {
@@ -1387,7 +1388,7 @@ fn undeclared_universal_region_relationship() {
 /// outlives check fires even when there is no return terminator.
 #[formality_core::test]
 fn undeclared_universal_region_relationship_no_return() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo<'a, 'b>(v1: &'a u32, v2: &'b u32) -> () {
@@ -1410,7 +1411,7 @@ fn undeclared_universal_region_relationship_no_return() {
 /// there is a declared relationship.
 #[formality_core::test]
 fn declared_universal_region_relationship() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo<'a, 'b>(v1: &'a u32) -> &'b u32
@@ -1431,7 +1432,7 @@ fn declared_universal_region_relationship() {
 /// the transitive relationship.
 #[formality_core::test]
 fn declared_transitive_universal_region_relationship() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo<'a, 'b, 'c>(v1: &'a u32) -> &'c u32
@@ -1450,7 +1451,7 @@ fn declared_transitive_universal_region_relationship() {
 /// declared relationship to complete the transitive chain.
 #[formality_core::test]
 fn undeclared_transitive_universal_region_relationship() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo<'a, 'b, 'c>(v1: &'a u32) -> &'c u32
@@ -1472,7 +1473,7 @@ fn undeclared_transitive_universal_region_relationship() {
 // For `list: &mut Map`, borrow `&mut (*list).value` then assign to `list`.
 #[test]
 fn problem_case_4() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 struct Map {
@@ -1506,7 +1507,7 @@ fn problem_case_4() {
 #[test]
 #[ignore = "needs block scoping for storage dead semantics"]
 fn storage_dead_while_borrowed() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> i32 = minirust {
@@ -1605,7 +1606,7 @@ fn cfg_union_approx_cause_false_error() {
         true
     }
      */
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo () -> u32 {
@@ -1637,7 +1638,7 @@ fn cfg_union_approx_cause_false_error() {
 /// borrow escapes to a variable outside the loop.
 #[test]
 fn continue_drops_borrowed_local_false_edge() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> i32 {
@@ -1688,7 +1689,7 @@ fn continue_drops_borrowed_local_false_edge() {
 /// borrow escapes to a variable outside the loop.
 #[test]
 fn continue_drops_borrowed_local_loop_carried() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> i32 {
@@ -1752,7 +1753,7 @@ fn continue_drops_borrowed_local_loop_carried() {
 /// ```
 #[test]
 fn break_drops_borrowed_local() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> i32 {
@@ -1813,7 +1814,7 @@ fn break_drops_borrowed_local() {
 /// ```
 #[test]
 fn continue_drops_local_borrow_dead() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -1846,7 +1847,7 @@ fn continue_drops_local_borrow_dead() {
 /// ```
 #[test]
 fn integer_in_outer_scope() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -1885,7 +1886,7 @@ fn integer_in_outer_scope() {
 /// ```
 #[test]
 fn write_to_borrowed_before_continue() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -1953,7 +1954,7 @@ fn write_to_borrowed_before_continue() {
 /// ```
 #[test]
 fn if_false_borrowck() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 struct Map { }
@@ -1989,7 +1990,7 @@ fn if_false_borrowck() {
 /// ```
 #[test]
 fn write_to_borrowed_before_zero_iteration_loop() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -2037,7 +2038,7 @@ fn write_to_borrowed_before_zero_iteration_loop() {
 /// ```
 #[test]
 fn call_generic_fn_with_turbofish() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn identity<T>(v1: T) -> T {
@@ -2058,7 +2059,7 @@ fn call_generic_fn_with_turbofish() {
 /// pass &T to generic foo.
 #[test]
 fn call_pass_ref() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo<'a>(x: &'a u32) -> u32 {
@@ -2092,7 +2093,7 @@ fn call_pass_ref() {
 /// ```
 #[test]
 fn call_generic_fn_with_turbofish_upcast() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn identity<T>(v1: T) -> T {
@@ -2122,7 +2123,7 @@ fn call_generic_fn_with_turbofish_upcast() {
 /// ```
 #[test]
 fn call_generic_fn_with_turbofish_missing_relation_upcast() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn identity<T>(v1: T) -> T {
@@ -2143,7 +2144,7 @@ fn call_generic_fn_with_turbofish_missing_relation_upcast() {
 /// Test call to a generic function using turbofish syntax with lifetime and type.
 #[test]
 fn call_generic_fn_with_turbofish_lifetime_type() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn bar<'a, T>(v1: T) -> T where T : 'a{
@@ -2162,7 +2163,7 @@ fn call_generic_fn_with_turbofish_lifetime_type() {
 /// Call foo while p, &v is live then use p.
 #[test]
 fn call_while_borrow_live() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo(x: u32) -> u32 {
@@ -2185,7 +2186,7 @@ fn call_while_borrow_live() {
 /// shared &v passing &mut v into foo in the same scope is a borrow error.
 #[test]
 fn call_mut_under_shared_borrow() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo<'a>(x: &mut 'a u32) -> u32 {
@@ -2226,7 +2227,7 @@ fn call_mut_under_shared_borrow() {
 // mutably borrowing two distinct fields of a struct -> assert_ok!
 #[test]
 fn struct_disjoint_field_borrows() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 struct Point { x: u32, y: u32 }
@@ -2248,7 +2249,7 @@ fn struct_disjoint_field_borrows() {
 /// accessing a field while it is already mutably borrowed -> borrow error
 #[test]
 fn struct_conflicting_field_borrows() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Point { x: u32, y: u32 }
@@ -2284,7 +2285,7 @@ fn struct_conflicting_field_borrows() {
 // constructing a struct reading a local variable that is mutably borrowed -> borrow error
 #[test]
 fn struct_construction_with_borrowed_local() {
-    crate::assert_err!(
+    assert_err!(
     [
         crate Foo {
             struct Wrapper {
@@ -2326,7 +2327,7 @@ fn struct_construction_with_borrowed_local() {
 /// placing a mutable reference inside a struct -> locks the underlying local variable
 #[test]
 fn struct_with_mutable_reference_locks_local() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Wrapper<'a> {
@@ -2352,7 +2353,7 @@ fn struct_with_mutable_reference_locks_local() {
 // Divergent paths (aka return) should not propagate outlives, liveness
 #[test]
 fn loan_before_return_does_not_affect_merged_paths() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
@@ -2374,7 +2375,7 @@ fn loan_before_return_does_not_affect_merged_paths() {
 // Divergent paths (aka return) should not propagate outlives, liveness
 #[test]
 fn outlive_before_return_does_not_affect_merged_paths() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
@@ -2401,7 +2402,7 @@ fn outlive_before_return_does_not_affect_merged_paths() {
 // Divergent paths (aka return) should not propagate outlives, liveness
 #[test]
 fn loan_before_return_does_not_affect_dead_code_after() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
@@ -2420,7 +2421,7 @@ fn loan_before_return_does_not_affect_dead_code_after() {
 // Divergent paths (aka return) should not propagate outlives, liveness
 #[test]
 fn if_else_paths_independent() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
@@ -2453,7 +2454,7 @@ fn if_else_paths_independent() {
 /// }
 /// ```
 fn loan_cannot_outlive_lifetime_fail() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -2498,7 +2499,7 @@ fn loan_cannot_outlive_lifetime_fail() {
 /// ```
 #[formality_core::test]
 fn loan_cannot_outlive_lifetime_pass() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> u32 {

@@ -1,3 +1,5 @@
+use a_mir_formality::{assert_err, assert_ok};
+
 /// Tests for issue #209: ensuring functions return a value on all paths.
 ///
 /// These tests verify that a-mir-formality matches rustc's behavior
@@ -10,7 +12,7 @@
 #[test]
 #[ignore = "needs return validation (#209)"]
 fn empty_body_non_unit_return() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -25,7 +27,7 @@ fn empty_body_non_unit_return() {
 /// rustc: compiles with no error
 #[test]
 fn empty_body_unit_return() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> () {
@@ -39,7 +41,7 @@ fn empty_body_unit_return() {
 /// rustc: compiles with no error
 #[test]
 fn if_else_both_branches_return() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo(b: bool) -> u32 {
@@ -60,7 +62,7 @@ fn if_else_both_branches_return() {
 #[test]
 #[ignore = "needs return validation (#209)"]
 fn if_else_one_branch_returns() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo(b: bool) -> u32 {
@@ -79,7 +81,7 @@ fn if_else_one_branch_returns() {
 /// rustc: compiles with no error (loop {} has type !)
 #[test]
 fn infinite_loop_no_return_needed() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -97,7 +99,7 @@ fn infinite_loop_no_return_needed() {
 #[test]
 #[ignore = "needs return validation (#209)"]
 fn loop_with_break_no_return() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -115,7 +117,7 @@ fn loop_with_break_no_return() {
 /// rustc: compiles with no error
 #[test]
 fn loop_with_break_then_return() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -133,7 +135,7 @@ fn loop_with_break_then_return() {
 /// rustc: compiles with no error
 #[test]
 fn simple_return() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> u32 {

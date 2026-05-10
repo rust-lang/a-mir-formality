@@ -1,16 +1,5 @@
 #![allow(non_snake_case)]
-
-mod borrowck;
-mod coherence_orphan;
-mod coherence_overlap;
-mod const_generics_rv_tsv_parse;
-mod consts;
-mod decl_safety;
-mod functions;
-mod mir_typeck;
-mod references;
-mod return_validation;
-mod well_formed_trait_ref;
+use a_mir_formality::{assert_err, assert_ok};
 
 #[test]
 fn parser() {
