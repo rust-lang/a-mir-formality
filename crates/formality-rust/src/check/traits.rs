@@ -1,11 +1,10 @@
 use crate::grammar::{
-    AssociatedTy, AssociatedTyBoundData, Fn, Kinded, Trait, TraitBoundData, TraitItem, Ty, TyData,
-    Wcs,
+    AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, Wcs,
 };
 use crate::grammar::{CrateId, Fallible};
 use crate::prove::prove::{Env, Program};
 use anyhow::bail;
-use formality_core::{judgment::ProofTree, judgment_fn, Set, Upcast};
+use formality_core::{judgment::ProofTree, judgment_fn, Set};
 
 judgment_fn! {
     pub(super) fn check_trait(
