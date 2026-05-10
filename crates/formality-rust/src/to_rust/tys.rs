@@ -515,11 +515,11 @@ mod test {
                 }
             ],
             r#"
-trait Foo {
+pub trait Foo {
     type Assoc;
 }
 
-trait Bar<T2> { }
+pub trait Bar<T2> { }
 
 impl<T3, T4> Bar<T4> for T3 where <T3 as Foo>::Assoc: Bar<T4> {}
 "#

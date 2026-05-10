@@ -16,6 +16,7 @@ pub fn lower_struct(ctx: &mut Context, strukt: &Struct) -> Fallible<syntax::Stru
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(syntax::StructItem {
+        visibility: syntax::Visibility::Public,
         name: strukt.id.deref().clone(),
         generics,
         fields,
@@ -30,6 +31,7 @@ pub fn lower_enum(ctx: &mut Context, e: &Enum) -> Fallible<syntax::EnumItem> {
         .map(|variant| lower_variant(ctx, variant))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(syntax::EnumItem {
+        visibility: syntax::Visibility::Public,
         name: e.id.deref().clone(),
         generics,
         variants,
@@ -70,6 +72,7 @@ pub fn lower_variant_fields(
 pub fn lower_named_struct_field(ctx: &mut Context, field: &Field) -> Fallible<syntax::StructField> {
     match &field.name {
         FieldName::Id(id) => Ok(syntax::StructField {
+            visibility: syntax::Visibility::Public,
             name: id.deref().clone(),
             ty: tys::lower_ty(ctx, &field.ty)?,
         }),
@@ -93,9 +96,9 @@ mod test {
                 }
             ],
             r#"
-struct Bar {
-    a: i32,
-    b: i32,
+pub struct Bar {
+    pub a: i32,
+    pub b: i32,
 }
 "#
         );
@@ -116,10 +119,10 @@ struct Bar {
                 }
             ],
             r#"
-trait Baz { }
+pub trait Baz { }
 
-struct Bar<T1> where T1: Baz {
-    a: T1,
+pub struct Bar<T1> where T1: Baz {
+    pub a: T1,
 }
 "#
         );
@@ -137,7 +140,7 @@ struct Bar<T1> where T1: Baz {
                 }
             ],
             r#"
-enum Bar {
+pub enum Bar {
     A,
     B,
 }
@@ -161,9 +164,9 @@ enum Bar {
                 }
             ],
             r#"
-trait Baz { }
+pub trait Baz { }
 
-enum Bar<T1> where T1: Baz {
+pub enum Bar<T1> where T1: Baz {
     A { t: T1 },
     B(T1),
 }

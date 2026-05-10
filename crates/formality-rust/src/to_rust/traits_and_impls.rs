@@ -17,7 +17,11 @@ pub fn lower_trait(ctx: &mut Context, t: &Trait) -> Fallible<syntax::TraitItem> 
     let mut items = Vec::new();
     for item in &term.trait_items {
         match item {
-            TraitItem::Fn(f) => items.push(syntax::TraitMember::Function(fns::lower_fn(ctx, f)?)),
+            TraitItem::Fn(f) => items.push(syntax::TraitMember::Function(fns::lower_fn(
+                ctx,
+                f,
+                syntax::Visibility::Private,
+            )?)),
             TraitItem::AssociatedTy(assoc_ty) => items.push(syntax::TraitMember::AssociatedType(
                 lower_assoc_ty(ctx, assoc_ty)?,
             )),
@@ -25,6 +29,7 @@ pub fn lower_trait(ctx: &mut Context, t: &Trait) -> Fallible<syntax::TraitItem> 
     }
 
     Ok(syntax::TraitItem {
+        visibility: syntax::Visibility::Public,
         is_unsafe: matches!(t.safety, Safety::Unsafe),
         name: t.id.deref().clone(),
         generics,
@@ -37,7 +42,11 @@ pub fn lower_trait_impl(ctx: &mut Context, trait_impl: &TraitImpl) -> Fallible<s
     let mut items = Vec::new();
     for item in &term.impl_items {
         match item {
-            ImplItem::Fn(f) => items.push(syntax::ImplMember::Function(fns::lower_fn(ctx, f)?)),
+            ImplItem::Fn(f) => items.push(syntax::ImplMember::Function(fns::lower_fn(
+                ctx,
+                f,
+                syntax::Visibility::Private,
+            )?)),
             ImplItem::AssociatedTyValue(v) => {
                 items.push(syntax::ImplMember::AssociatedTypeValue(
                     lower_assoc_ty_value(ctx, v)?,
@@ -146,7 +155,7 @@ mod test {
                 }
             ],
             r#"
-trait Write {
+pub trait Write {
     fn test() -> i32;
 }
 "#
@@ -165,7 +174,7 @@ trait Write {
                 }
             ],
             r#"
-trait Write {
+pub trait Write {
     type Error;
     fn test() -> i32;
 }
@@ -185,7 +194,7 @@ trait Write {
                 }
             ],
             r#"
-trait Write {
+pub trait Write {
     type Error<T1, T2>: Sized + Bar where T1: Read, T2: Write;
     fn test() -> i32;
 }
@@ -203,9 +212,9 @@ trait Write {
                 }
             ],
             "
-trait Baz { }
+pub trait Baz { }
 
-trait Bar<T2> where T2: Baz { }
+pub trait Bar<T2> where T2: Baz { }
 "
         );
     }
@@ -220,9 +229,9 @@ trait Bar<T2> where T2: Baz { }
                 }
             ],
             "
-trait Baz<T1, T2> { }
+pub trait Baz<T1, T2> { }
 
-trait Bar<T4> where T4: Baz<i32, u8> { }
+pub trait Bar<T4> where T4: Baz<i32, u8> { }
 "
         );
     }
@@ -240,9 +249,9 @@ trait Bar<T4> where T4: Baz<i32, u8> { }
                 }
             ],
             r#"
-trait Baz { }
+pub trait Baz { }
 
-trait Bar<T2> where T2: Baz {
+pub trait Bar<T2> where T2: Baz {
     type Error;
     fn test() -> T2;
 }
@@ -258,7 +267,7 @@ trait Bar<T2> where T2: Baz {
                     trait Bar<const C> where type_of_const C is bool {}
                 }
             ],
-            "trait Bar<const N1: bool> { }"
+            "pub trait Bar<const N1: bool> { }"
         );
     }
 
@@ -278,13 +287,13 @@ trait Bar<T2> where T2: Baz {
                 }
             ],
             r#"
-trait Bar<T1> {
+pub trait Bar<T1> {
     fn run() -> T1;
 }
 
-trait Bur { }
+pub trait Bur { }
 
-struct Baz {}
+pub struct Baz {}
 
 impl<T3> Bar<T3> for Baz where T3: Bur {
     fn run() -> T3 {
@@ -307,11 +316,11 @@ impl<T3> Bar<T3> for Baz where T3: Bur {
                 }
             ],
             r#"
-trait Bar {
+pub trait Bar {
     fn run() -> i32;
 }
 
-struct Baz {}
+pub struct Baz {}
 
 impl Bar for Baz {
     fn run() -> i32 {
@@ -333,9 +342,9 @@ impl Bar for Baz {
                 }
             ],
             r#"
-trait Bar { }
+pub trait Bar { }
 
-struct Baz {}
+pub struct Baz {}
 
 impl !Bar for Baz {}
 "#

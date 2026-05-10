@@ -199,7 +199,7 @@ mod test {
                 }
             ],
             r#"
-fn foo() -> u32 {
+pub fn foo() -> u32 {
     let mut x: u32;
     return x;
 }"#
@@ -219,7 +219,7 @@ fn foo() -> u32 {
                 }
             ],
             r#"
-fn foo() -> () {
+pub fn foo() -> () {
     'a: {
         break 'a;
     }
@@ -242,7 +242,7 @@ fn foo() -> () {
                 }
             ],
             r#"
-fn foo() -> u32 {
+pub fn foo() -> u32 {
     {
         let mut v1: u32 = 0_u32;
         let mut v2: &mut u32 = &mut v1;

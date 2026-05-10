@@ -54,6 +54,7 @@ impl Display for Attr {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Item {
+    Import(ImportItem),
     Struct(StructItem),
     Enum(EnumItem),
     Trait(TraitItem),
@@ -65,6 +66,7 @@ pub enum Item {
 impl Pretty for Item {
     fn fmt_pretty(&self, f: &mut Formatter<'_>, indent: usize) -> fmt::Result {
         match self {
+            Item::Import(item) => item.fmt_pretty(f, indent),
             Item::Struct(item) => item.fmt_pretty(f, indent),
             Item::Enum(item) => item.fmt_pretty(f, indent),
             Item::Trait(item) => item.fmt_pretty(f, indent),
@@ -332,13 +334,54 @@ impl Display for TypeBound {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Visibility {
+    Public,
+    PublicCrate,
+    /// Represents private visibility.
+    ///
+    /// This variant is also used for functions declared inside trait
+    /// definitions.
+    Private,
+}
+
+impl Visibility {
+    pub fn is_private(&self) -> bool {
+        matches!(self, Visibility::Private)
+    }
+}
+
+impl Display for Visibility {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Visibility::Public => f.write_str("pub"),
+            Visibility::PublicCrate => f.write_str("pub(crate)"),
+            Visibility::Private => Ok(()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructField {
+    pub visibility: Visibility,
     pub name: String,
     pub ty: Type,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportItem {
+    pub crate_name: String,
+}
+
+impl Pretty for ImportItem {
+    fn fmt_pretty(&self, f: &mut Formatter<'_>, indent: usize) -> fmt::Result {
+        write_indent(f, indent)?;
+        write!(f, "use {}::*;", self.crate_name)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructItem {
+    pub visibility: Visibility,
     pub name: String,
     pub generics: Generics,
     pub fields: Vec<StructField>,
@@ -347,6 +390,9 @@ pub struct StructItem {
 impl Pretty for StructItem {
     fn fmt_pretty(&self, f: &mut Formatter<'_>, indent: usize) -> fmt::Result {
         write_indent(f, indent)?;
+        if !self.visibility.is_private() {
+            write!(f, "{} ", self.visibility)?;
+        }
         write!(f, "struct {}", self.name)?;
         self.generics.fmt_params(f)?;
         self.generics.fmt_where_clauses(f)?;
@@ -356,6 +402,9 @@ impl Pretty for StructItem {
             writeln!(f)?;
             for field in &self.fields {
                 write_indent(f, indent + 1)?;
+                if !field.visibility.is_private() {
+                    write!(f, "{} ", field.visibility)?;
+                }
                 writeln!(f, "{}: {},", field.name, field.ty)?;
             }
             write_indent(f, indent)?;
@@ -367,6 +416,7 @@ impl Pretty for StructItem {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnumItem {
+    pub visibility: Visibility,
     pub name: String,
     pub generics: Generics,
     pub variants: Vec<EnumVariant>,
@@ -375,6 +425,9 @@ pub struct EnumItem {
 impl Pretty for EnumItem {
     fn fmt_pretty(&self, f: &mut Formatter<'_>, indent: usize) -> fmt::Result {
         write_indent(f, indent)?;
+        if !self.visibility.is_private() {
+            write!(f, "{} ", self.visibility)?;
+        }
         write!(f, "enum {}", self.name)?;
         self.generics.fmt_params(f)?;
         self.generics.fmt_where_clauses(f)?;
@@ -453,6 +506,7 @@ pub enum FunctionBody {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionItem {
+    pub visibility: Visibility,
     pub is_unsafe: bool,
     pub name: String,
     pub generics: Generics,
@@ -464,6 +518,9 @@ pub struct FunctionItem {
 impl Pretty for FunctionItem {
     fn fmt_pretty(&self, f: &mut Formatter<'_>, indent: usize) -> fmt::Result {
         write_indent(f, indent)?;
+        if !self.visibility.is_private() {
+            write!(f, "{} ", self.visibility)?;
+        }
         if self.is_unsafe {
             f.write_str("unsafe ")?;
         }
@@ -504,6 +561,7 @@ impl Pretty for FunctionItem {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TraitItem {
+    pub visibility: Visibility,
     pub is_unsafe: bool,
     pub name: String,
     pub generics: Generics,
@@ -513,6 +571,9 @@ pub struct TraitItem {
 impl Pretty for TraitItem {
     fn fmt_pretty(&self, f: &mut Formatter<'_>, indent: usize) -> fmt::Result {
         write_indent(f, indent)?;
+        if !self.visibility.is_private() {
+            write!(f, "{} ", self.visibility)?;
+        }
         if self.is_unsafe {
             f.write_str("unsafe ")?;
         }
