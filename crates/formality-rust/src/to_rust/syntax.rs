@@ -285,11 +285,30 @@ impl Display for Type {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Parameter {
+    Type(Type),
+    Lifetime(String),
+}
+
+impl Display for Parameter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Parameter::Type(ty) => ty.fmt(f),
+            Parameter::Lifetime(lt) => f.write_str(lt),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WhereClause {
     Trait {
         ty: Type,
         trait_name: String,
         args: Vec<GenericArg>,
+    },
+    Lifetime {
+        parameter: Parameter,
+        lifetime: String,
     },
 }
 
@@ -303,6 +322,12 @@ impl Display for WhereClause {
             } => {
                 write!(f, "{ty}: {trait_name}")?;
                 fmt_generic_args(f, args, false)
+            }
+            WhereClause::Lifetime {
+                parameter,
+                lifetime,
+            } => {
+                write!(f, "{parameter}: {lifetime}")
             }
         }
     }

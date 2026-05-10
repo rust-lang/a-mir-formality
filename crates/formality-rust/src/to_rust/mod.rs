@@ -1,4 +1,6 @@
-use crate::grammar::{Crates, Fallible, ParameterKind, Ty, WhereClause, WhereClauseData};
+use crate::grammar::{
+    Crates, Fallible, Parameter, ParameterKind, Ty, WhereClause, WhereClauseData,
+};
 use std::cell::LazyCell;
 use std::ops::Deref;
 
@@ -156,10 +158,10 @@ pub fn lower_generics_for_binder(
                 }
             }
             WhereClauseData::AliasEq(_, _) => {
-                todo!("lowering `AliasEq` where-clauses is not implemented yet")
+                continue;
             }
             WhereClauseData::Outlives(_, _) => {
-                todo!("lowering `Outlives` where-clauses is not implemented yet")
+                continue;
             }
             WhereClauseData::ForAll(_) => {
                 todo!("lowering `ForAll` where-clauses is not implemented yet")
@@ -197,8 +199,17 @@ pub fn lower_where_clauses(
             WhereClauseData::AliasEq(_, _) => {
                 anyhow::bail!("lowering `AliasEq` where-clauses is not implemented yet")
             }
-            WhereClauseData::Outlives(_, _) => {
-                anyhow::bail!("lowering `Outlives` where-clauses is not implemented yet")
+            WhereClauseData::Outlives(parameter, lifetime) => {
+                let lifetime = tys::lower_lt(ctx, lifetime)?;
+                let parameter = match parameter {
+                    Parameter::Ty(ty) => syntax::Parameter::Type(tys::lower_ty(ctx, ty)?),
+                    Parameter::Lt(lt) => syntax::Parameter::Lifetime(tys::lower_lt(ctx, lt)?),
+                    Parameter::Const(_) => anyhow::bail!("constant in an outlives constraint"),
+                };
+                preds.push(syntax::WhereClause::Lifetime {
+                    parameter,
+                    lifetime,
+                });
             }
             WhereClauseData::ForAll(_) => {
                 anyhow::bail!("lowering `ForAll` where-clauses is not implemented yet")
@@ -264,5 +275,50 @@ mod test {
             ],
             "#![feature(polonius_alpha)]"
         );
+    }
+
+    #[test]
+    fn outlives_type() {
+        crate::assert_rust!(
+            [
+                crate core {
+                    trait Trait {}
+                    struct A<X> where X: Trait {}
+                    fn valid<'a, X>(x: &'a A<X>) -> ()
+                    where
+                        X: 'a,
+                        X: Trait,
+                    {}
+                }
+            ],
+            r#"
+pub trait Trait { }
+
+pub struct A<T1> where T1: Trait {}
+
+pub fn valid<'a2, T3>(mut x: &'a2 A<T3>) -> () where T3: 'a2, T3: Trait {}
+"#
+        )
+    }
+
+    #[test]
+    fn outlives_lifetime() {
+        crate::assert_rust!(
+            [
+                crate core {
+                    fn foo<'a, 'b>(a: &'a u32) -> &'b u32
+                    where 'a: 'b {
+                        let r: &'b u32 = identity::<&'b u32>(a);
+                        return r;
+                    }
+                }
+            ],
+            r#"
+pub fn foo<'a0, 'a1>(mut a: &'a0 u32) -> &'a1 u32 where 'a0: 'a1 {
+    let mut r: &'a1 u32 = identity::<&'a1 u32>(a);
+    return r;
+}
+"#
+        )
     }
 }
