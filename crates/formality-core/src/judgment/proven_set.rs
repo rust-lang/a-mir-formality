@@ -679,6 +679,10 @@ pub enum RuleFailureCause {
 
     /// The rule attempted to prove something that was already in the process of being proven
     Cycle { judgment: String },
+
+    /// The rule explicitly failed with a user-provided message via `(fail "...", ...)`.
+    /// Used to document intentionally unsupported cases and produce clear error messages.
+    ExplicitFailure { message: String },
 }
 
 impl RuleFailureCause {
@@ -780,6 +784,9 @@ impl std::fmt::Display for RuleFailureCause {
             }
             RuleFailureCause::Cycle { judgment } => {
                 write!(f, "cyclic proof attempt: `{judgment}`")
+            }
+            RuleFailureCause::ExplicitFailure { message } => {
+                write!(f, "{message}")
             }
         }
     }

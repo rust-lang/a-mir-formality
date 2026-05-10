@@ -11,6 +11,7 @@ pub use proven_set::{
     FailureLocation, ProofTree, Proven, ProvenSet, RuleFailureCause,
 };
 
+mod test_explicit_fail;
 mod test_fallible;
 mod test_filtered;
 mod test_for_all;
@@ -602,6 +603,25 @@ macro_rules! push_rules {
                 $child_proof_trees.push(for_all_tree);
                 $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
             }
+        }
+    };
+
+    // `(fail "message")` or `(fail "format {}", arg)` -- explicitly fail the rule with
+    // a descriptive message. Used to document intentionally unsupported cases (e.g., moving
+    // out of a reference is not permitted) and to produce clear error messages.
+    // Unlike other conditions, this always terminates the rule -- it never continues.
+    (
+        @body $args:tt; ($failed_rules:expr, $match_var:ident, $input_info:tt, $rule_name:literal); $child_proof_trees:ident;
+        (fail $fmt:literal $(, $arg:expr)*) $($m:tt)*
+    ) => {
+        {
+            #[allow(unused_variables)]
+            let _ = &$child_proof_trees;
+            let message = format!($fmt $(, $arg)*);
+            #[allow(unused_assignments)]
+            { $match_var = true; }
+            $crate::push_rules!(@record_failure ($failed_rules, $match_var, $input_info, $rule_name); $fmt;
+                $crate::judgment::RuleFailureCause::ExplicitFailure { message });
         }
     };
 
