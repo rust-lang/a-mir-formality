@@ -5,7 +5,10 @@
 //! analysis. They exist soley to translate formality code into Rust
 //! code, which can then be compiled and analyzed using `rustc`.
 
+use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter, Write};
+
+use itertools::Itertools;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RustCrate {
@@ -91,7 +94,7 @@ pub struct Generics {
     ///     bar: T
     /// }
     /// ```
-    pub params: Vec<GenericParam>,
+    pub params: HashMap<String, GenericParam>,
     pub where_clauses: Vec<WhereClause>,
 }
 
@@ -102,7 +105,7 @@ impl Generics {
         }
 
         f.write_char('<')?;
-        for (index, param) in self.params.iter().enumerate() {
+        for (index, (_, param)) in self.params.iter().sorted().enumerate() {
             if index > 0 {
                 f.write_str(", ")?;
             }
@@ -121,7 +124,17 @@ impl Generics {
             if index > 0 {
                 f.write_str(", ")?;
             }
-            write!(f, "{wc}")?;
+            wc.fmt(f)?;
+        }
+        Ok(())
+    }
+
+    fn fmt_without_where(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for (index, wc) in self.where_clauses.iter().enumerate() {
+            if index > 0 {
+                f.write_str(", ")?;
+            }
+            wc.fmt(f)?;
         }
         Ok(())
     }
@@ -140,6 +153,37 @@ pub enum GenericParam {
     Type(String),
     Lifetime(String),
     Const { name: String, ty: Type },
+}
+
+impl PartialOrd for GenericParam {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        use std::cmp::Ordering;
+        match (self, other) {
+            (GenericParam::Type(lhs), GenericParam::Type(rhs)) => lhs.partial_cmp(rhs),
+            (GenericParam::Type(_), _) => Some(Ordering::Less),
+            (GenericParam::Lifetime(_), GenericParam::Type(_)) => Some(Ordering::Greater),
+            (GenericParam::Lifetime(lhs), GenericParam::Lifetime(rhs)) => lhs.partial_cmp(rhs),
+            (GenericParam::Lifetime(_), GenericParam::Const { name: _, ty: _ }) => {
+                Some(std::cmp::Ordering::Less)
+            }
+            (GenericParam::Const { name: _, ty: _ }, GenericParam::Type(_)) => {
+                Some(Ordering::Greater)
+            }
+            (GenericParam::Const { name: _, ty: _ }, GenericParam::Lifetime(_)) => {
+                Some(Ordering::Greater)
+            }
+            (
+                GenericParam::Const { name: lhs, ty: _ },
+                GenericParam::Const { name: rhs, ty: _ },
+            ) => lhs.partial_cmp(rhs),
+        }
+    }
+}
+
+impl Ord for GenericParam {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
 }
 
 impl Display for GenericParam {
@@ -310,6 +354,7 @@ pub enum WhereClause {
         parameter: Parameter,
         lifetime: String,
     },
+    ForAll(Generics),
 }
 
 impl Display for WhereClause {
@@ -328,6 +373,12 @@ impl Display for WhereClause {
                 lifetime,
             } => {
                 write!(f, "{parameter}: {lifetime}")
+            }
+            WhereClause::ForAll(generics) => {
+                write!(f, "for")?;
+                generics.fmt_params(f)?;
+                write!(f, " ")?;
+                generics.fmt_without_where(f)
             }
         }
     }
