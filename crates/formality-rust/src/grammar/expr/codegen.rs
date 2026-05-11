@@ -10,8 +10,6 @@ use crate::grammar::{
     Crates, Fallible, PredicateTy, RigidName, ScalarId, Ty, TyData,
 };
 
-use super::ExprData;
-
 struct ExprBuilder<'b> {
     program: &'b Crates,
 
@@ -89,13 +87,13 @@ impl ExprBuilder<'_> {
         expr: &Expr,
     ) -> Fallible<Cursor> {
         let target: PlaceExpr = target.upcast();
-        match expr.data() {
-            ExprData::Assign { place, expr } => {
+        match expr {
+            Expr::Assign { place, expr } => {
                 cursor = self.codegen_expr_writing_to(cursor, place, expr)?;
                 cursor = self.write_unit(cursor, target)?;
                 Ok(cursor)
             }
-            ExprData::Place(place_expr) => {
+            Expr::Place(place_expr) => {
                 let target = self.codegen_place_expr(&target)?;
                 let source = self.codegen_place_expr(place_expr)?;
                 let source = lang::ValueExpr::Load {
@@ -104,20 +102,20 @@ impl ExprBuilder<'_> {
                 cursor = self.write_assign(cursor, target, source)?;
                 Ok(cursor)
             }
-            ExprData::Call { callee, args } => todo!(),
-            ExprData::Literal { value, ty } => todo!(),
-            ExprData::True | ExprData::False => todo!(),
-            ExprData::Ref {
+            Expr::Call { callee, args } => todo!(),
+            Expr::Literal { value, ty } => todo!(),
+            Expr::True | Expr::False => todo!(),
+            Expr::Ref {
                 kind,
                 lt,
                 place: expr,
             } => todo!(),
-            ExprData::Struct {
+            Expr::Struct {
                 field_exprs,
                 adt_id,
                 turbofish,
             } => todo!(),
-            ExprData::Turbofish { id, args } => todo!(),
+            Expr::Turbofish { id, args } => todo!(),
         }
     }
 

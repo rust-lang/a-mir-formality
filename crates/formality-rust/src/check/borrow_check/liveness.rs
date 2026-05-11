@@ -1,7 +1,7 @@
 use crate::{
     check::borrow_check::env::TypeckEnv,
     check::borrow_check::flow_state::FlowState,
-    grammar::expr::{Block, Expr, ExprData, FieldExpr, Init, Label, LabelId, PlaceExpr, Stmt},
+    grammar::expr::{Block, Expr, FieldExpr, Init, Label, LabelId, PlaceExpr, Stmt},
 };
 use formality_core::{Set, Upcast};
 
@@ -313,32 +313,32 @@ impl LiveBefore for Expr {
         places_live: impl Upcast<LivePlaces>,
     ) -> LivePlaces {
         let places_live: LivePlaces = places_live.upcast();
-        match self.data() {
+        match self {
             // place = expr: the assignment kills `place`, then we need liveness of `expr`.
-            ExprData::Assign { place, expr } => {
-                Seq(expr, Assignment(place)).live_before(env, scopes, places_live)
+            Expr::Assign { place, expr } => {
+                Seq(&**expr, Assignment(place)).live_before(env, scopes, places_live)
             }
 
             // call callee(args): callee and args are all evaluated (callee first, then args left-to-right).
-            ExprData::Call { callee, args } => {
-                Seq(callee, args).live_before(env, scopes, places_live)
+            Expr::Call { callee, args } => {
+                Seq(&**callee, args).live_before(env, scopes, places_live)
             }
 
             // Literals don't access any places.
-            ExprData::Literal { .. } | ExprData::True | ExprData::False => places_live,
+            Expr::Literal { .. } | Expr::True | Expr::False => places_live,
 
             // &expr or &mut expr: the operand place is accessed.
-            ExprData::Ref {
+            Expr::Ref {
                 kind: _,
                 lt: _,
                 place: expr,
             } => expr.live_before(env, scopes, places_live),
 
             // A place expression used as a value: the place is live.
-            ExprData::Place(place_expr) => place_expr.live_before(env, scopes, places_live),
+            Expr::Place(place_expr) => place_expr.live_before(env, scopes, places_live),
 
             // Struct { field_exprs }: each field expression is evaluated.
-            ExprData::Struct {
+            Expr::Struct {
                 field_exprs,
                 adt_id: _,
                 turbofish: _,
@@ -346,7 +346,7 @@ impl LiveBefore for Expr {
 
             // Turbofish is just a variable reference with explicit type args —
             // the variable itself is live.
-            ExprData::Turbofish { id, args: _ } => {
+            Expr::Turbofish { id, args: _ } => {
                 let place_expr: PlaceExpr = id.upcast();
                 place_expr.live_before(env, scopes, places_live)
             }

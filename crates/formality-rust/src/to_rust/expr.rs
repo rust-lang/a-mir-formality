@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use crate::grammar::{
-    expr::{Block, Expr, ExprData, FieldExpr, Init, Label, PlaceExpr, Stmt},
+    expr::{Block, Expr, FieldExpr, Init, Label, PlaceExpr, Stmt},
     Binder, Fallible, FieldName, RefKind, Ty, ValueId,
 };
 
@@ -82,39 +82,37 @@ impl RustBuilder {
     }
 
     pub fn lower_expr(&mut self, expr: &Expr) -> Fallible<syntax::Expr> {
-        match expr.data() {
-            ExprData::Assign { place, expr } => Ok(syntax::Expr::Assign {
+        match expr {
+            Expr::Assign { place, expr } => Ok(syntax::Expr::Assign {
                 place: self.lower_place_expr(place)?,
                 value: Box::new(self.lower_expr(expr)?),
             }),
-            ExprData::Call { callee, args } => Ok(syntax::Expr::Call {
+            Expr::Call { callee, args } => Ok(syntax::Expr::Call {
                 callee: Box::new(self.lower_expr(callee)?),
                 args: args
                     .iter()
                     .map(|arg| self.lower_expr(arg))
                     .collect::<Result<Vec<_>, _>>()?,
             }),
-            ExprData::Literal { value, ty } => Ok(syntax::Expr::Literal {
+            Expr::Literal { value, ty } => Ok(syntax::Expr::Literal {
                 value: value.to_string(),
                 suffix: self.scalar_to_string(ty),
             }),
-            ExprData::True => Ok(syntax::Expr::Bool(true)),
-            ExprData::False => Ok(syntax::Expr::Bool(false)),
-            ExprData::Ref { kind, lt: _, place } => Ok(syntax::Expr::Ref {
+            Expr::True => Ok(syntax::Expr::Bool(true)),
+            Expr::False => Ok(syntax::Expr::Bool(false)),
+            Expr::Ref { kind, lt: _, place } => Ok(syntax::Expr::Ref {
                 mutable: matches!(kind, RefKind::Mut),
                 place: self.lower_place_expr(place)?,
             }),
-            ExprData::Place(place_expr) => {
-                Ok(syntax::Expr::Place(self.lower_place_expr(place_expr)?))
-            }
-            ExprData::Turbofish { id, args } => Ok(syntax::Expr::Path {
+            Expr::Place(place_expr) => Ok(syntax::Expr::Place(self.lower_place_expr(place_expr)?)),
+            Expr::Turbofish { id, args } => Ok(syntax::Expr::Path {
                 name: id.deref().clone(),
                 args: args
                     .iter()
                     .map(|arg| self.lower_generic_arg(arg))
                     .collect::<Result<Vec<_>, _>>()?,
             }),
-            ExprData::Struct {
+            Expr::Struct {
                 field_exprs,
                 adt_id,
                 turbofish,
