@@ -239,10 +239,10 @@ The default associativity is left, which can be written explicitly as `#[precede
 One thing precedence doesn't give you is user-controlled grouping. In a real expression grammar you'd want to write `(a + b) * c` to override the default precedence. Formality doesn't currently handle this automatically. You have to add an explicit `Parens` variant to your grammar:
 
 ```rust
-{{#include ../../../crates/formality-rust/src/grammar/expr/mod.rs:PlaceExprData}}
+{{#include ../../../crates/formality-rust/src/grammar/expr/mod.rs:PlaceExpr}}
 ```
 
-Here `PlaceExprData` has a prefix operator (`* expr`) and a postfix operator (`expr . field`). Without the `Parens` variant, there's no way to distinguish `*(x.field)` from `(*x).field`. Adding `#[grammar(($v0))] Parens(PlaceExpr)` lets the user write `(*x).field` to make the grouping explicit.
+Here `PlaceExpr` has a prefix operator (`* expr`) and a postfix operator (`expr . field`). Without the `Parens` variant, there's no way to distinguish `*(x.field)` from `(*x).field`. Adding `#[grammar(($v0))] Parens(PlaceExpr)` lets the user write `(*x).field` to make the grouping explicit.
 
 This is admittedly a bit awkward. Formality's design goal is that the type structure matches what you'd find in a paper, and `Parens` nodes are parser machinery, not semantics. We may improve this in the future.
 

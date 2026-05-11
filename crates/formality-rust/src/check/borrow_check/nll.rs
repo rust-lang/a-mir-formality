@@ -5,7 +5,7 @@ use crate::check::borrow_check::typed_place_expression::{
     TypedPlaceExpr, TypedPlaceExpressionData,
 };
 
-use crate::grammar::expr::{Block, Expr, ExprData, Init, PlaceExpr, PlaceExprData, Stmt};
+use crate::grammar::expr::{Block, Expr, ExprData, Init, PlaceExpr, Stmt};
 use crate::grammar::{
     AliasTy, ExistentialVar, FieldName, Fn, Lt, Parameter, RefKind, Relation, RigidName, RigidTy,
     ScalarId, Struct, StructBoundData, TraitId, Ty, TyData, Variable, Wcs, WhereClause,
@@ -456,7 +456,7 @@ judgment_fn! {
         (
             // A bare function name used as a value (e.g., `foo` in `foo(args)`).
             // Only applies when `id` is NOT a local variable.
-            (if let PlaceExprData::Var(id) = place.data())
+            (if let PlaceExpr::Var(id) = place)
             (if !state.has_local(id))!
             (let fn_decl = env.crates().fn_named(id)?)
             (if fn_decl.binder.len() == 0)
@@ -558,7 +558,7 @@ judgment_fn! {
         (
             (let ty = state.local_variable(&local_id)?)
             ------------------------------------------------------------ ("local")
-            (borrow_check_place_expr(_env, _assumptions, state, PlaceExprData::Var(local_id)) => (
+            (borrow_check_place_expr(_env, _assumptions, state, PlaceExpr::Var(local_id)) => (
                 TypedPlaceExpr::new(ty, TypedPlaceExpressionData::local(local_id)),
                 state,
             ))
@@ -573,7 +573,7 @@ judgment_fn! {
             (field in fields)
             (if field.name == *field_name)
             ------------------------------------------------------------ ("struct field")
-            (borrow_check_place_expr(env, assumptions, state, PlaceExprData::Field { prefix, field_name }) => (
+            (borrow_check_place_expr(env, assumptions, state, PlaceExpr::Field { prefix, field_name }) => (
                 TypedPlaceExpr::new(&field.ty, TypedPlaceExpressionData::field(prefix_typed, field_name)),
                 state,
             ))
@@ -585,7 +585,7 @@ judgment_fn! {
             (if field_index < arity)
             (if let Parameter::Ty(field_ty) = &parameters[*field_index])
             ------------------------------------------------------------ ("tuple field")
-            (borrow_check_place_expr(env, assumptions, state, PlaceExprData::Field { prefix, field_name: FieldName::Index(field_index) }) => (
+            (borrow_check_place_expr(env, assumptions, state, PlaceExpr::Field { prefix, field_name: FieldName::Index(field_index) }) => (
                 TypedPlaceExpr::new(field_ty, TypedPlaceExpressionData::field(prefix_typed, field_index)),
                 state,
             ))
@@ -594,7 +594,7 @@ judgment_fn! {
         (
             (borrow_check_place_expr(env, assumptions, state, place) => (place_typed, state))
             ------------------------------------------------------------ ("parens")
-            (borrow_check_place_expr(env, assumptions, state, PlaceExprData::Parens(place)) => (place_typed, state))
+            (borrow_check_place_expr(env, assumptions, state, PlaceExpr::Parens(place)) => (place_typed, state))
         )
 
         (
@@ -603,7 +603,7 @@ judgment_fn! {
             (prove_ty_is_rigid(env, assumptions, state, &prefix_typed.ty) => (RigidTy { name: RigidName::Ref(_ref_kind), parameters }, state))
             (if let Parameter::Ty(referent_ty) = &parameters[1])
             ------------------------------------------------------------ ("deref-ref")
-            (borrow_check_place_expr(env, assumptions, state, PlaceExprData::Deref { prefix }) => (
+            (borrow_check_place_expr(env, assumptions, state, PlaceExpr::Deref { prefix }) => (
                 TypedPlaceExpr::new(referent_ty, TypedPlaceExpressionData::deref(prefix_typed)),
                 state,
             ))

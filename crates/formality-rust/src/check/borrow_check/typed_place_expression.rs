@@ -1,8 +1,5 @@
-use crate::grammar::{
-    expr::{PlaceExpr, PlaceExprData},
-    FieldName, Ty, ValueId,
-};
-use formality_core::{cast_impl, term, DowncastTo, Upcast};
+use crate::grammar::{expr::PlaceExpr, FieldName, Ty, ValueId};
+use formality_core::{cast_impl, term, DowncastTo};
 use std::sync::Arc;
 
 #[term($data: $ty)]
@@ -42,12 +39,10 @@ impl TypedPlaceExpr {
     /// Convert to an untyped PlaceExpression
     pub fn to_place_expression(&self) -> PlaceExpr {
         match self.data() {
-            TypedPlaceExpressionData::Local(id) => PlaceExprData::var(id).upcast(),
-            TypedPlaceExpressionData::Deref(inner) => {
-                PlaceExprData::deref(inner.to_place_expression()).upcast()
-            }
+            TypedPlaceExpressionData::Local(id) => PlaceExpr::var(id),
+            TypedPlaceExpressionData::Deref(inner) => PlaceExpr::deref(inner.to_place_expression()),
             TypedPlaceExpressionData::Field(root, field) => {
-                PlaceExprData::field(root.to_place_expression(), field).upcast()
+                PlaceExpr::field(root.to_place_expression(), field)
             }
         }
     }
