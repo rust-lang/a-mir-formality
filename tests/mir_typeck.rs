@@ -1,9 +1,10 @@
+use a_mir_formality::{assert_err, assert_ok};
 use formality_core::test;
 
 /// Test assign statement with locals at rhs.
 #[test]
 fn test_assign_statement_local_only() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo (v1: u32) -> u32 {
@@ -17,7 +18,7 @@ fn test_assign_statement_local_only() {
 // Test assign statement with constant at rhs.
 #[test]
 fn test_assign_constant() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo () -> u8 {
@@ -42,7 +43,7 @@ fn test_assign_constant() {
 #[test]
 #[ignore = "needs switch/branching constructs in expr grammar"]
 fn test_switch_statment() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo () -> u32 = minirust {
@@ -85,7 +86,7 @@ fn test_switch_statment() {
 /// Test returning a parameter (previously tested goto terminator in MIR).
 #[test]
 fn test_goto_terminator() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo (v1: u32) -> u32 {
@@ -100,7 +101,7 @@ fn test_goto_terminator() {
 /// A silly but valid infinite loop that reads and writes a variable.
 #[test]
 fn test_cyclic_goto() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -117,7 +118,7 @@ fn test_cyclic_goto() {
 /// Returns true (ExprData::True) type-checking coverage
 #[test]
 fn test_ret_true() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo () -> bool {
@@ -131,7 +132,7 @@ fn test_ret_true() {
 // if / else (Stmt::If) bool condition, each arm returns a u32.
 #[test]
 fn if_else() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo (b: bool) -> u32 {
@@ -149,7 +150,7 @@ fn if_else() {
 // if / else (Stmt::If) with different return types.
 #[test]
 fn if_else_different_return_types() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo (b: bool) -> u32 {
@@ -171,7 +172,7 @@ fn if_else_different_return_types() {
 /// Test valid call: bar calls foo.
 #[test]
 fn test_call_terminator() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo(v1: u32) -> u32 {
@@ -198,7 +199,7 @@ fn test_call_terminator() {
 /// ```
 #[test]
 fn test_place_mention_statement() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo (v1: u32) -> u32 {
@@ -213,7 +214,7 @@ fn test_place_mention_statement() {
 #[test]
 #[ignore = "needs StorageLive/StorageDead in expr grammar"]
 fn test_storage_live_dead() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo (v1: u32) -> u32 = minirust {
@@ -238,7 +239,7 @@ fn test_storage_live_dead() {
 /// Test valid program that uses struct.
 #[test]
 fn test_struct() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 struct Dummy {
@@ -259,7 +260,7 @@ fn test_struct() {
 /// Test let statement with well-formed type
 #[test]
 fn test_let_with_well_formed_type() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 trait Trait1 {}
@@ -277,7 +278,7 @@ fn test_let_with_well_formed_type() {
 /// Test let statement with ill-formed type
 #[test]
 fn test_let_with_ill_formed_type() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 trait Trait1 {}
@@ -304,7 +305,7 @@ fn test_let_with_ill_formed_type() {
 // Test calling a function that does not exist.
 #[test]
 fn test_call_invalid_fn() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn bar() -> u32 {
@@ -325,7 +326,7 @@ fn test_call_invalid_fn() {
 #[test]
 // Test what will happen if the type of arguments passed in is not subtype of what is expected.
 fn test_pass_non_subtype_arg() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo(v1: u32) -> u32 {
@@ -348,7 +349,7 @@ fn test_pass_non_subtype_arg() {
 /// Test calling a generic function without turbofish (wrong number of type args: 0 vs 1).
 #[test]
 fn test_call_generic_fn_without_turbofish() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn identity<T>(v1: T) -> T {
@@ -373,7 +374,7 @@ fn test_call_generic_fn_without_turbofish() {
 /// Test calling a generic function with correct turbofish.
 #[test]
 fn test_call_generic_fn_with_turbofish() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn identity<T>(v1: T) -> T {
@@ -392,7 +393,7 @@ fn test_call_generic_fn_with_turbofish() {
 /// Test calling a generic function with incorrect turbofish type.
 #[test]
 fn test_call_generic_fn_wrong_type_with_turbofish() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn identity<T>(v1: T) -> T {
@@ -415,7 +416,7 @@ fn test_call_generic_fn_wrong_type_with_turbofish() {
 /// Test calling a generic function using turbofish syntax with an incorrect number of parameters.
 #[test]
 fn test_call_generic_fn_wrong_parameters_number_with_turbofish() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn identity<T>(v1: T) -> T {
@@ -437,7 +438,7 @@ fn test_call_generic_fn_wrong_parameters_number_with_turbofish() {
 /// Test calling a generic function with wrong number of type args via turbofish.
 #[test]
 fn test_call_generic_fn_wrong_arity() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn identity<T>(v1: T) -> T {
@@ -467,7 +468,7 @@ fn test_call_generic_fn_wrong_arity() {
 /// ```
 #[test]
 fn test_incompatible_return_type() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo (v1: ()) -> u32 {
@@ -488,7 +489,7 @@ fn test_incompatible_return_type() {
 #[test]
 #[ignore = "needs uninitialized return detection in expr grammar"]
 fn test_uninitialised_return_type() {
-    crate::assert_ok!( // Changed from assert_err! - should be reverted when #209 is fixed
+    assert_ok!( // Changed from assert_err! - should be reverted when #209 is fixed
         [
             crate Foo {
                 fn foo () -> u32 = minirust {
@@ -509,7 +510,7 @@ fn test_uninitialised_return_type() {
 #[test]
 #[ignore = "needs switch/branching constructs in expr grammar"]
 fn test_invalid_value_in_switch_terminator() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo () -> bool = minirust {
@@ -583,7 +584,7 @@ fn test_invalid_value_in_switch_terminator() {
 #[test]
 #[ignore = "needs StorageDead in expr grammar"]
 fn test_ret_place_storage_dead() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo (v1: u32) -> u32 = minirust {
@@ -617,7 +618,7 @@ fn test_ret_place_storage_dead() {
 #[test]
 #[ignore = "needs StorageDead in expr grammar"]
 fn test_fn_arg_storage_dead() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo (v1: u32) -> u32 = minirust {
@@ -650,7 +651,7 @@ fn test_fn_arg_storage_dead() {
 /// Test the behaviour of using invalid field name for the struct field.
 #[test]
 fn test_invalid_struct_field() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Dummy {
@@ -673,7 +674,7 @@ fn test_invalid_struct_field() {
 /// Test the behaviour of using non-adt local for field projection.
 #[test]
 fn test_field_projection_root_non_adt() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Dummy {
@@ -696,7 +697,7 @@ fn test_field_projection_root_non_adt() {
 /// Test the behaviour of initialising the struct with wrong type.
 #[test]
 fn test_struct_wrong_type_in_initialisation() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 struct Dummy {
@@ -722,7 +723,7 @@ fn test_struct_wrong_type_in_initialisation() {
 /// We keep the intent of the test by using a made-up ADT name that doesn't exist.
 #[test]
 fn test_non_adt_ty_for_struct() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo (v1: u32) -> u32 {
@@ -747,7 +748,7 @@ fn test_non_adt_ty_for_struct() {
 /// ```
 #[test]
 fn test_false_literal() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> bool {
@@ -770,7 +771,7 @@ fn test_false_literal() {
 /// ```
 #[test]
 fn test_ref_identity() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo<'a>(v1: &'a u32) -> &'a u32 {
@@ -787,7 +788,7 @@ fn test_ref_identity() {
 /// Test ref and deref
 #[test]
 fn test_ref_deref() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo () -> u32 {
@@ -806,7 +807,7 @@ fn test_ref_deref() {
 /// Test generic deref should be permitted when the pointee type is known Copy.
 #[test]
 fn test_ref_deref_generic_copy_bound() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo<'a, T>(v1: &'a T) -> T
@@ -838,7 +839,7 @@ fn test_ref_deref_generic_copy_bound() {
 /// ```
 #[test]
 fn test_break_valid_loop_label() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -863,7 +864,7 @@ fn test_break_valid_loop_label() {
 /// ```
 #[test]
 fn test_break_nonexistent_label() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -895,7 +896,7 @@ fn test_break_nonexistent_label() {
 /// ```
 #[test]
 fn test_continue_valid_loop_label() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -921,7 +922,7 @@ fn test_continue_valid_loop_label() {
 /// ```
 #[test]
 fn test_continue_block_label() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate Foo {
                 fn foo() -> u32 {
@@ -953,7 +954,7 @@ fn test_continue_block_label() {
 /// ```
 #[test]
 fn test_parens_place_expr() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 struct Pair {
@@ -984,7 +985,7 @@ fn test_parens_place_expr() {
 /// ```
 #[test]
 fn test_break_block_label() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 fn foo() -> u32 {

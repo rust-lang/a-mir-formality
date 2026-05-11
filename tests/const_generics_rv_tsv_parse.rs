@@ -1,8 +1,9 @@
+use a_mir_formality::assert_ok;
 use formality_core::test;
 
 #[test]
 fn parse_minirust_22() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate Foo {
                 trait Trait<const N> where type_of_const N is usize {}

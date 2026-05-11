@@ -1,8 +1,10 @@
 #![allow(non_snake_case)]
 
+use a_mir_formality::{assert_err, assert_ok};
+
 #[test]
 fn unsafe_trait() {
-    crate::assert_ok!(
+    assert_ok!(
 
         [
             crate baguette {
@@ -15,7 +17,7 @@ fn unsafe_trait() {
 
 #[test]
 fn safe_trait() {
-    crate::assert_ok!(
+    assert_ok!(
 
         [
             crate baguette {
@@ -28,7 +30,7 @@ fn safe_trait() {
 
 #[test]
 fn unsafe_trait_negative_impl() {
-    crate::assert_ok!(
+    assert_ok!(
 
         [
             crate baguette {
@@ -41,7 +43,7 @@ fn unsafe_trait_negative_impl() {
 
 #[test]
 fn unsafe_trait_negative_impl_mismatch() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate baguette {
                 unsafe trait Foo {}
@@ -60,7 +62,7 @@ fn unsafe_trait_negative_impl_mismatch() {
 
 #[test]
 fn safe_trait_negative_impl_mismatch() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate baguette {
                 trait Foo {}
@@ -79,7 +81,7 @@ fn safe_trait_negative_impl_mismatch() {
 
 #[test]
 fn unsafe_trait_mismatch() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate baguette {
                 unsafe trait Foo {}
@@ -95,7 +97,7 @@ fn unsafe_trait_mismatch() {
 
 #[test]
 fn safe_trait_mismatch() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate baguette {
                 trait Foo {}

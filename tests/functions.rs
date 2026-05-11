@@ -1,8 +1,10 @@
 #![allow(non_snake_case)]
 
+use a_mir_formality::assert_ok;
+
 #[test]
 fn ok() {
-    crate::assert_ok!(
+    assert_ok!(
 
 
         [
@@ -28,7 +30,7 @@ fn ok() {
 
 #[test]
 fn lifetime() {
-    crate::assert_ok!(
+    assert_ok!(
 
         [
             crate Foo {

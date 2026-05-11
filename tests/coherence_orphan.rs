@@ -1,8 +1,9 @@
 #![allow(non_snake_case)]
+use a_mir_formality::{assert_err, assert_ok};
 
 #[test]
 fn neg_CoreTrait_for_CoreStruct_in_Foo() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate core {
                 trait CoreTrait {}
@@ -35,7 +36,7 @@ fn neg_CoreTrait_for_CoreStruct_in_Foo() {
 
 #[test]
 fn mirror_CoreStruct() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate core {
                 trait CoreTrait {}
@@ -76,7 +77,7 @@ fn mirror_CoreStruct() {
 
 #[test]
 fn mirror_FooStruct() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate core {
                 trait CoreTrait {}
@@ -99,7 +100,7 @@ fn mirror_FooStruct() {
 
 #[test]
 fn covered_VecT() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate core {
                 trait CoreTrait<T> {}
@@ -115,7 +116,7 @@ fn covered_VecT() {
 
 #[test]
 fn uncovered_T() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate core {
                 trait CoreTrait<T> {}
@@ -140,7 +141,7 @@ fn uncovered_T() {
 
 #[test]
 fn alias_to_unit() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate core {
                 trait CoreTrait {}
@@ -176,7 +177,7 @@ fn alias_to_unit() {
 
 #[test]
 fn CoreTrait_for_CoreStruct_in_Foo() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate core {
                 trait CoreTrait {}
@@ -210,7 +211,7 @@ fn CoreTrait_for_CoreStruct_in_Foo() {
 #[test]
 fn CoreTraitLocal_for_AliasToKnown_in_Foo() {
     // TODO: see comment in `orphan_check` from prev commit
-    crate::assert_ok!(
+    assert_ok!(
     [
         crate core {
             trait CoreTrait<T> {}

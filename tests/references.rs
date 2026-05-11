@@ -1,7 +1,9 @@
+use a_mir_formality::{assert_err, assert_ok};
+
 /// See <https://github.com/rust-lang/a-mir-formality/issues/312> for more information.
 #[test]
 fn recursive_reference_validity() {
-    crate::assert_err!(
+    assert_err!(
         [
             crate core {
                 trait Trait {}
@@ -25,7 +27,7 @@ fn recursive_reference_validity() {
 
 #[test]
 fn reference_validity() {
-    crate::assert_ok!(
+    assert_ok!(
         [
             crate core {
                 trait Trait {}

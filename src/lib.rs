@@ -7,9 +7,6 @@ use formality_rust::grammar::Crates;
 use formality_rust::prove::prove::{test_util::TestAssertion, Constraints};
 use formality_rust::rust::try_term;
 
-#[cfg(test)]
-mod test;
-
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
