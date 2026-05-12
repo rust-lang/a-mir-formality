@@ -19,7 +19,7 @@ use formality_core::test;
 /// }
 /// ```
 #[test]
-#[ignore = "needs initialization tracking (#296)"]
+// #[ignore = "needs initialization tracking (#296)"]
 fn use_of_uninitialized_variable() {
     assert_err!(
         [
@@ -31,7 +31,28 @@ fn use_of_uninitialized_variable() {
             }
         ]
 
-        expect_test::expect![[""]]
+        expect_test::expect![[r#"
+            the rule "place" at (nll.rs) failed because
+              condition evaluated to false: `state.is_initialized(&place.to_place_expression())`
+                state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, u32)], [x : u32])], point_flow_state({}, {}, {}), {}, {})
+                &place.to_place_expression() = x"#]]
+    )
+}
+
+//validating the changes with passing test of uninit var
+#[test]
+#[ignore = "#296"]
+fn use_of_initialized_variable_pass() {
+    assert_ok!(
+        [
+            crate Foo {
+                fn foo() -> u32 {
+                    let x: u32;
+                    x = 22 _ u32; // turns the switch On
+                    return x;     // cheks the switch its ON so this PASSES
+                }
+            }
+        ]
     )
 }
 
@@ -424,233 +445,10 @@ fn move_out_of_shared_ref() {
         ]
 
         expect_test::expect![[r#"
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: Place(?ty_2), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1, ?ty_2, ?ty_3, ?ty_4], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: Place(?ty_2), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1, ?ty_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: Place(?ty_2), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: PlaceRead(?ty_2, ?ty_3), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1, ?ty_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
+            the rule "place" at (nll.rs) failed because
+              condition evaluated to false: `state.is_initialized(&place.to_place_expression())`
+                state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, Datum), (r, &?lt_1 Datum)], [x : Datum, r : &?lt_1 Datum])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, x : Datum, shared)}, {}), {}, {})
+                &place.to_place_expression() = * r"#]]
     )
 }
 
@@ -686,233 +484,10 @@ fn move_out_of_mut_ref() {
         ]
 
         expect_test::expect![[r#"
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = &?lt_2 ?ty_3, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: &?lt_2 ?ty_3, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1, ?lt_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = bool, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: bool, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i16, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i16, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i32, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i32, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i64, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i64, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = i8, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: i8, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = isize, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: isize, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u16, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u16, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u32, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u32, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u64, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u64, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = u8, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: u8, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Datum = usize, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Datum, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: usize, via: Copy(Datum), assumptions: {@ wf(?lt_0), @ wf(?lt_1), Copy(Datum)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: Place(?ty_2), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1, ?ty_2, ?ty_3, ?ty_4], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: Place(?ty_2), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1, ?ty_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: Place(?ty_2), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Copy(Datum), via: PlaceRead(?ty_2, ?ty_3), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1, ?ty_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
+            the rule "place" at (nll.rs) failed because
+              condition evaluated to false: `state.is_initialized(&place.to_place_expression())`
+                state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, Datum), (r, &mut ?lt_1 Datum)], [x : Datum, r : &mut ?lt_1 Datum])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, x : Datum, mut)}, {}), {}, {})
+                &place.to_place_expression() = * r"#]]
     )
 }
 
@@ -948,15 +523,10 @@ fn move_out_of_borrowed_place() {
         ]
 
         expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = x : Datum
-                &access.place = x : Datum
-
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {?lt_1, ?lt_2}
-                &lifetime.upcast() = ?lt_1"#]]
+            the rule "place" at (nll.rs) failed because
+              condition evaluated to false: `state.is_initialized(&place.to_place_expression())`
+                state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, Datum), (r, &?lt_1 Datum)], [x : Datum, r : &?lt_1 Datum])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, x : Datum, shared)}, {}), {}, {})
+                &place.to_place_expression() = x"#]]
     )
 }
 
@@ -1377,9 +947,10 @@ fn undeclared_universal_region_relationship() {
         ]
 
         expect_test::expect![[r#"
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-            crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]
+            the rule "place" at (nll.rs) failed because
+              condition evaluated to false: `state.is_initialized(&place.to_place_expression())`
+                state = flow_state([scope(some(U(2)), None, {}, None, [(v1, &!lt_1 u32)], [v1 : &!lt_1 u32]), scope(some(U(2)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [(v2, &?lt_3 u32)], [v2 : &?lt_3 u32])], point_flow_state({pending_outlives(!lt_1, ?lt_3)}, {}, {v1}), {}, {})
+                &place.to_place_expression() = v2"#]]
     )
 }
 
@@ -1708,31 +1279,15 @@ fn continue_drops_borrowed_local_loop_carried() {
         ]
 
         expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = y : i32
-                &access.place = y : i32
+            the rule "place" at (nll.rs) failed because
+              condition evaluated to false: `state.is_initialized(&place.to_place_expression())`
+                state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, i32), (r, &?lt_1 i32)], [x : i32, r : &?lt_1 i32]), scope(some(U(2)), Some('a), {}, Some({r}), [], []), scope(some(U(2)), None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {})
+                &place.to_place_expression() = r
 
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {?lt_1, ?lt_2}
-                &lifetime.upcast() = ?lt_1
-
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `y`
-
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = y : i32
-                &access.place = y : i32
-
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {?lt_1, ?lt_2}
-                &lifetime.upcast() = ?lt_1
-
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `y`"#]]
+            the rule "place" at (nll.rs) failed because
+              condition evaluated to false: `state.is_initialized(&place.to_place_expression())`
+                state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, i32), (r, &?lt_1 i32)], [x : i32, r : &?lt_1 i32]), scope(some(U(2)), Some('a), {}, Some({r}), [], []), scope(some(U(2)), None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {})
+                &place.to_place_expression() = r"#]]
     )
 }
 
@@ -2302,25 +1857,10 @@ fn struct_construction_with_borrowed_local() {
         }
     ]
     expect_test::expect![[r#"
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = v1 : u32
-            &access.place = v1 : u32
-
-        the rule "loan_cannot_outlive" at (nll.rs) failed because
-          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-            outlived_by_loan = {?lt_1, ?lt_2}
-            &lifetime.upcast() = ?lt_1
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = v1 : u32
-            &access.place = v1 : u32
-
-        the rule "loan_cannot_outlive" at (nll.rs) failed because
-          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-            outlived_by_loan = {?lt_1, ?lt_2}
-            &lifetime.upcast() = ?lt_1"#]]
+        the rule "place" at (nll.rs) failed because
+          condition evaluated to false: `state.is_initialized(&place.to_place_expression())`
+            state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(v1, u32), (v2, &mut ?lt_1 u32)], [v1 : u32, v2 : &mut ?lt_1 u32])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, v1 : u32, mut)}, {}), {}, {})
+            &place.to_place_expression() = v1"#]]
     )
 }
 
@@ -2471,18 +2011,10 @@ fn loan_cannot_outlive_lifetime_fail() {
         ]
 
         expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = x : u32
-                &access.place = x : u32
-
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
-                &lifetime.upcast() = ?lt_3
-
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]]
+            the rule "place" at (nll.rs) failed because
+              condition evaluated to false: `state.is_initialized(&place.to_place_expression())`
+                state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(3)), None, {}, None, [(x, u32), (p, &?lt_2 u32)], [x : u32, p : &?lt_2 u32])], point_flow_state({pending_outlives(?lt_1, ?lt_2)}, {loan(?lt_1, x : u32, shared)}, {}), {}, {})
+                &place.to_place_expression() = p"#]]
     )
 }
 
