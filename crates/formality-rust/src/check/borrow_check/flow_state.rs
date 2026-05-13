@@ -66,6 +66,10 @@ pub struct PointFlowState {
 
     /// The set of loans that are live (issued, not killed)
     pub loans_live: Set<Loan>,
+
+    /// The set of places that are live at the entry to this program point due to `let` bindings.
+    /// Used for liveness tracking and for checking that borrows only borrow live places.
+    pub init_places: Set<PlaceExpr>,
 }
 
 impl PointFlowState {
@@ -79,6 +83,7 @@ impl PointFlowState {
         PointFlowState {
             outlives: Union((&self.outlives, outlives)).upcast(),
             loans_live: self.loans_live.clone(),
+            init_places: self.init_places.clone(),
         }
     }
 
@@ -98,6 +103,7 @@ impl UpcastFrom<Union<(PointFlowState, PointFlowState)>> for PointFlowState {
         Self {
             outlives: Union((a.outlives, b.outlives)).upcast(),
             loans_live: Union((a.loans_live, b.loans_live)).upcast(),
+            init_places: Union((a.init_places, b.init_places)).upcast(),
         }
     }
 }
@@ -180,9 +186,23 @@ impl FlowState {
 
         for input_arg in input_args {
             this = this.with_local_in_scope(env, &None, &input_arg.id, &input_arg.ty)?;
+            this = this.with_initialized(input_arg.id.clone().upcast());
         }
 
         Ok(this)
+    }
+
+    pub fn is_initialized(&self, place: &PlaceExpr) -> bool {
+        place
+            .all_prefixes()
+            .iter()
+            .any(|p| self.current.init_places.contains(p))
+    }
+
+    pub fn with_initialized(&self, place: PlaceExpr) -> Self {
+        let mut result = self.clone();
+        result.current.init_places.insert(place);
+        result
     }
 
     pub fn with_loan(&self, loan: Loan) -> Self {
