@@ -5,7 +5,7 @@ use crate::check::borrow_check::typed_place_expression::{
     TypedPlaceExpr, TypedPlaceExpressionData,
 };
 
-use crate::grammar::expr::{Block, Expr, ExprData, Init, PlaceExpr, Stmt};
+use crate::grammar::expr::{Block, Expr, Init, PlaceExpr, Stmt};
 use crate::grammar::{
     AliasTy, ExistentialVar, FieldName, Fn, Lt, Parameter, RefKind, Relation, RigidName, RigidTy,
     ScalarId, Struct, StructBoundData, TraitId, Ty, TyData, Variable, Wcs, WhereClause,
@@ -365,7 +365,7 @@ judgment_fn! {
 
             (let state = kill_loans(place, state))
             ------------------------------------------------------------ ("assign")
-            (borrow_check_expr(env, assumptions, state, ExprData::Assign { place, expr }, places_live_on_exit) => (Ty::unit(), state))
+            (borrow_check_expr(env, assumptions, state, Expr::Assign { place, expr }, places_live_on_exit) => (Ty::unit(), state))
         )
 
         (
@@ -397,22 +397,22 @@ judgment_fn! {
 
             (prove_where_clauses(env, assumptions, state, where_clauses) => state)
             ------------------------------------------------------------ ("call")
-            (borrow_check_expr(env, assumptions, state, ExprData::Call { callee, args }, places_live) => (output_ty, state))
+            (borrow_check_expr(env, assumptions, state, Expr::Call { callee, args }, places_live) => (output_ty, state))
         )
 
         (
             ------------------------------------------------------------ ("literal")
-            (borrow_check_expr(_env, _assumptions, state, ExprData::Literal { value: _, ty }, _places_live_on_exit) => (ty, state))
+            (borrow_check_expr(_env, _assumptions, state, Expr::Literal { value: _, ty }, _places_live_on_exit) => (ty, state))
         )
 
         (
             ------------------------------------------------------------ ("true")
-            (borrow_check_expr(_env, _assumptions, state, ExprData::True, _places_live_on_exit) => (ScalarId::Bool, state))
+            (borrow_check_expr(_env, _assumptions, state, Expr::True, _places_live_on_exit) => (ScalarId::Bool, state))
         )
 
         (
             ------------------------------------------------------------ ("false")
-            (borrow_check_expr(_env, _assumptions, state, ExprData::False, _places_live_on_exit) => (ScalarId::Bool, state))
+            (borrow_check_expr(_env, _assumptions, state, Expr::False, _places_live_on_exit) => (ScalarId::Bool, state))
         )
 
         (
@@ -440,7 +440,7 @@ judgment_fn! {
             (let state = state.with_loan(Loan::new(lt, place, kind)))
             (let ty = place.ty.ref_ty_of_kind(kind, lt))
             ------------------------------------------------------------ ("ref")
-            (borrow_check_expr(env, assumptions, state, ExprData::Ref { kind, lt, place }, places_live_on_exit) => (ty, state))
+            (borrow_check_expr(env, assumptions, state, Expr::Ref { kind, lt, place }, places_live_on_exit) => (ty, state))
         )
 
         (
@@ -450,7 +450,7 @@ judgment_fn! {
             // FIXME(#296): also need to track that the place has been moved from
             (prove_place_is_movable(env, assumptions, state, place) => state)
             ------------------------------------------------------------ ("place")
-            (borrow_check_expr(env, assumptions, state, ExprData::Place(place), places_live_on_exit) => (&place.ty, state))
+            (borrow_check_expr(env, assumptions, state, Expr::Place(place), places_live_on_exit) => (&place.ty, state))
         )
 
         (
@@ -463,7 +463,7 @@ judgment_fn! {
             (let ty = Ty::rigid(RigidName::fn_def(id), ()))
             // FIXME: check where clauses from fn
             ------------------------------------------------------------ ("fn-name")
-            (borrow_check_expr(env, _assumptions, state, ExprData::Place(place), _places_live_on_exit) => (ty, state))
+            (borrow_check_expr(env, _assumptions, state, Expr::Place(place), _places_live_on_exit) => (ty, state))
         )
 
         (
@@ -473,7 +473,7 @@ judgment_fn! {
             (let ty = Ty::rigid(RigidName::fn_def(id), args))
             // FIXME: check where clauses from fn
             ------------------------------------------------------------ ("turbofish")
-            (borrow_check_expr(env, _assumptions, state, ExprData::Turbofish { id, args }, _places_live_on_exit) => (ty, state))
+            (borrow_check_expr(env, _assumptions, state, Expr::Turbofish { id, args }, _places_live_on_exit) => (ty, state))
         )
 
         // fn foo<'a, T>() where T: 'a { }
@@ -512,7 +512,7 @@ judgment_fn! {
 
             (let ty = RigidTy::new(adt_id, &turbofish.parameters))
             ------------------------------------------------------------ ("struct")
-            (borrow_check_expr(env, assumptions, state, ExprData::Struct { adt_id, turbofish, field_exprs }, places_live_on_exit) => (ty, state))
+            (borrow_check_expr(env, assumptions, state, Expr::Struct { adt_id, turbofish, field_exprs }, places_live_on_exit) => (ty, state))
         )
     }
 }

@@ -2,7 +2,7 @@ mod codegen;
 
 use std::sync::Arc;
 
-use formality_core::{id, term, DowncastTo};
+use formality_core::{id, term};
 
 use crate::grammar::{
     AdtId, Binder, FieldName, Lt, Parameter, RefKind, ScalarId, TraitId, Ty, ValueId,
@@ -101,32 +101,21 @@ pub enum Stmt {
     Exists { binder: Binder<Block> },
 }
 
-#[term($data)]
-pub struct Expr {
-    pub data: Arc<ExprData>,
-}
-
-impl Expr {
-    pub fn data(&self) -> &ExprData {
-        &self.data
-    }
-}
-
 #[term]
-pub enum ExprData {
+pub enum Expr {
     /// `place = expr`
     ///
     /// Assign a value to a place expression. Evaluates to `()`.
     /// The left-hand side must be a place expression (variable, deref, field).
     #[grammar($place = $expr)]
-    Assign { place: PlaceExpr, expr: Expr },
+    Assign { place: PlaceExpr, expr: Arc<Expr> },
 
     /// `call callee<tys>(args)`
     ///
     /// Call a function. The callee is a named function reference.
     /// Returns the call's result as a value.
     #[grammar($callee ($,args))]
-    Call { callee: Expr, args: Vec<Expr> },
+    Call { callee: Arc<Expr>, args: Vec<Expr> },
 
     /// `42_u32`
     ///
@@ -169,12 +158,6 @@ pub enum ExprData {
         adt_id: AdtId,
         turbofish: Turbofish,
     },
-}
-
-impl DowncastTo<ExprData> for Expr {
-    fn downcast_to(&self) -> Option<ExprData> {
-        Some(ExprData::clone(&self.data))
-    }
 }
 
 // ANCHOR: PlaceExpr

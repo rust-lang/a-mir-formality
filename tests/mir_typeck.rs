@@ -115,7 +115,7 @@ fn test_cyclic_goto() {
     )
 }
 
-/// Returns true (ExprData::True) type-checking coverage
+/// Returns true (Expr::True) type-checking coverage
 #[test]
 fn test_ret_true() {
     assert_ok!(
