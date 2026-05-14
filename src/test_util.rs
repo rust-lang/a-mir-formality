@@ -50,7 +50,8 @@ impl FormalityTest {
             rustc_override,
         } = self;
 
-        let _ = test_program_ok(&input).expect("expected program to pass");
+        let proof_tree = test_program_ok(&input).expect("expected program to pass");
+        formality_core::judgment::coverage::record_coverage(std::iter::once(&proof_tree));
         if let Some(expect) = rustc_override {
             run_rustc_backend(&input, expect);
         } else if run_rustc() {

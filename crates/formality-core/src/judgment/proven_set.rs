@@ -179,6 +179,8 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
         match &self.data {
             ProvenSetData::Failure(e) => panic!("expected a successful proof, got {e}"),
             ProvenSetData::Success(map) => {
+                crate::judgment::coverage::record_coverage(map.values());
+
                 // Check values only (not proof trees)
                 let values: Set<_> = map.keys().cloned().collect();
                 expect_values.assert_eq(&format!("{values:?}"));

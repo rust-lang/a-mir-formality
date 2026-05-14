@@ -5,6 +5,8 @@ use crate::{fixed_point::FixedPointStack, Fallible, Map};
 mod assertion;
 pub use assertion::JudgmentAssertion;
 
+pub mod coverage;
+
 mod proven_set;
 pub use proven_set::{
     insert_smallest_proof, member_of, CheckProven, EachProof, FailedJudgment, FailedRule,
