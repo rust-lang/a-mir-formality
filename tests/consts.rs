@@ -1,45 +1,33 @@
 #![allow(non_snake_case)]
-use a_mir_formality::{assert_err, assert_ok};
+use a_mir_formality::{crates, FormalityTest};
 
 #[test]
 fn nonsense_rigid_const_bound() {
-    assert_ok!(
-        [
-            crate Foo {
-                // This where-clause is not *provable*, but it is well-formed.
-                trait Foo where type_of_const true is u32 {}
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        // This where-clause is not *provable*, but it is well-formed.
+        trait Foo where type_of_const true is u32 {}
+    }])
+    .ok()
 }
 
 #[test]
 fn ok() {
-    assert_ok!(
+    FormalityTest::new(crates![crate Foo {
+        trait Foo<const C> where type_of_const C is bool {}
+        trait Bar<const C> where type_of_const C is u32 {}
 
-        [
-            crate Foo {
-                trait Foo<const C> where type_of_const C is bool {}
-                trait Bar<const C> where type_of_const C is u32 {}
-
-                impl<const C> Foo<C> for u32 where type_of_const C is bool {}
-            }
-        ]
-    )
+        impl<const C> Foo<C> for u32 where type_of_const C is bool {}
+    }])
+    .ok()
 }
 
 #[test]
 fn mismatch() {
-    assert_err!(
-        [
-            crate Foo {
+    FormalityTest::new(crates![crate Foo {
                 trait Foo<const C> where type_of_const C is bool {}
 
                 impl Foo<u32(42)> for u32 {}
-            }
-        ]
-
-        expect_test::expect![[r#"
+            }]).err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
@@ -50,48 +38,35 @@ fn mismatch() {
 
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Foo(u32, u32(42)), via: Place(?ty_1), assumptions: {}, env: Env { variables: [?ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Foo(u32, u32(42)), via: PlaceRead(?ty_1, ?ty_2), assumptions: {}, env: Env { variables: [?ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]
-    )
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Foo(u32, u32(42)), via: PlaceRead(?ty_1, ?ty_2), assumptions: {}, env: Env { variables: [?ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 #[test]
 fn holds() {
-    assert_ok!(
+    FormalityTest::new(crates![crate Foo {
+        trait Foo<const C> where type_of_const C is bool {}
 
-        [
-            crate Foo {
-                trait Foo<const C> where type_of_const C is bool {}
-
-                impl Foo<true> for u32 {}
-            }
-        ]
-    )
+        impl Foo<true> for u32 {}
+    }])
+    .ok()
 }
 
 #[test]
 fn rigid_const_bound() {
-    assert_ok!(
-        [
-            crate Foo {
-                trait Foo where type_of_const true is bool {}
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        trait Foo where type_of_const true is bool {}
+    }])
+    .ok()
 }
 
 #[test]
 fn generic_mismatch() {
-    assert_err!(
-        [
-            crate Foo {
+    FormalityTest::new(crates![crate Foo {
                 trait Foo<const C> where type_of_const C is bool {}
 
                 // Here, the impl is assuming C is u32, which mismatches the trait bound.
                 impl<const C> Foo<C> for u32 where type_of_const C is u32 {}
-            }
-        ]
-
-        expect_test::expect![[r#"
+            }]).err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Foo(u32, !const_0), via: @ ConstHasType(!const_0 , u32), assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: u32 = bool, via: @ ConstHasType(!const_0 , u32), assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
@@ -108,31 +83,24 @@ fn generic_mismatch() {
 
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Foo(u32, !const_0), via: Place(?ty_1), assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Foo(u32, !const_0), via: PlaceRead(?ty_1, ?ty_2), assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0, ?ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]
-    )
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Foo(u32, !const_0), via: PlaceRead(?ty_1, ?ty_2), assumptions: {@ ConstHasType(!const_0 , u32)}, env: Env { variables: [!const_0, ?ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 #[test]
 fn generic_match() {
-    assert_ok!(
-        [
-            crate Foo {
-                trait Foo<const C> where type_of_const C is bool {}
+    FormalityTest::new(crates![crate Foo {
+        trait Foo<const C> where type_of_const C is bool {}
 
-                // Here, the impl matches the trait bound.
-                impl<const C> Foo<C> for u32 where type_of_const C is bool {}
-            }
-        ]
-    )
+        // Here, the impl matches the trait bound.
+        impl<const C> Foo<C> for u32 where type_of_const C is bool {}
+    }])
+    .ok()
 }
 
 #[test]
 fn multiple_type_of_const() {
-    assert_ok!(
-        [
-            crate Foo {
-                trait Foo<const C> where type_of_const C is bool, type_of_const C is u32 {}
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        trait Foo<const C> where type_of_const C is bool, type_of_const C is u32 {}
+    }])
+    .ok()
 }

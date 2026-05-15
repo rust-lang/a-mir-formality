@@ -7,6 +7,9 @@ use formality_rust::grammar::Crates;
 use formality_rust::prove::prove::{test_util::TestAssertion, Constraints};
 use formality_rust::rust::try_term;
 
+pub mod test_util;
+pub use test_util::FormalityTest;
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -39,24 +42,6 @@ pub fn main() -> anyhow::Result<()> {
 
     let _proof_tree = check_all_crates(&program).check_proven()?;
     Ok(())
-}
-
-#[macro_export]
-macro_rules! assert_ok {
-    ($input:tt) => {{
-        let _ = $crate::test_program_ok(stringify!($input)).expect("expected program to pass");
-        if $crate::run_rustc() {
-            formality_rust::assert_rustc_success!($input);
-        }
-    }};
-}
-
-#[macro_export]
-macro_rules! assert_err {
-    ($input:tt $expect:expr) => {{
-        use formality_core::test_util::AnyhowResultTestExt;
-        $crate::test_program_ok(stringify!($input)).assert_err_leaves($expect);
-    }};
 }
 
 pub fn test_program_ok(input: &str) -> anyhow::Result<ProofTree> {

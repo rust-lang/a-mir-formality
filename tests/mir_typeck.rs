@@ -1,158 +1,135 @@
-use a_mir_formality::{assert_err, assert_ok};
+use a_mir_formality::{crates, FormalityTest};
 use formality_core::test;
 
 /// Test assign statement with locals at rhs.
 #[test]
 fn test_assign_statement_local_only() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo (v1: u32) -> u32 {
-                    return v1;
-                }
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        fn foo (v1: u32) -> u32 {
+            return v1;
+        }
+    }])
+    .ok()
 }
 
 // Test assign statement with constant at rhs.
 #[test]
 fn test_assign_constant() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo () -> u8 {
-                    let v1: u16 = 5 _ u16;
-                    let v2: u32 = 5 _ u32;
-                    let v3: u64 = 5 _ u64;
-                    let v4: usize = 5 _ usize;
-                    let v5: i8 = 5 _ i8;
-                    let v6: i16 = 5 _ i16;
-                    let v7: i32 = 5 _ i32;
-                    let v8: i64 = 5 _ i64;
-                    let v9: isize = 5 _ isize;
-                    let v10: bool = false;
-                    return 5 _ u8;
-                }
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        fn foo () -> u8 {
+            let v1: u16 = 5 _ u16;
+            let v2: u32 = 5 _ u32;
+            let v3: u64 = 5 _ u64;
+            let v4: usize = 5 _ usize;
+            let v5: i8 = 5 _ i8;
+            let v6: i16 = 5 _ i16;
+            let v7: i32 = 5 _ i32;
+            let v8: i64 = 5 _ i64;
+            let v9: isize = 5 _ isize;
+            let v10: bool = false;
+            return 5 _ u8;
+        }
+    }])
+    .ok()
 }
 
 // Test valid program with Terminator::Switch.
 #[test]
 #[ignore = "needs switch/branching constructs in expr grammar"]
 fn test_switch_statment() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo () -> u32 = minirust {
-                    exists {
-                        let v1: u32;
+    FormalityTest::new(crates![crate Foo {
+        fn foo () -> u32 = minirust {
+            exists {
+                let v1: u32;
 
-                        bb0: {
-                            statements {
-                                local(v1) = constant(0: u32);
-                            }
-                            switch(load(local(v1))) -> [(0: bb1), (1: bb2)] otherwise: bb3;
-                        }
-
-                        bb1: {
-                            statements {
-                                local(_return) = constant(1: u32);
-                            }
-                            return;
-                        }
-
-                        bb2: {
-                            statements {
-                                local(_return) = constant(2: u32);
-                            }
-                            return;
-                        }
-
-                        bb3: {
-                            statements {
-                            }
-                            return;
-                        }
+                bb0: {
+                    statements {
+                        local(v1) = constant(0: u32);
                     }
-                };
+                    switch(load(local(v1))) -> [(0: bb1), (1: bb2)] otherwise: bb3;
+                }
+
+                bb1: {
+                    statements {
+                        local(_return) = constant(1: u32);
+                    }
+                    return;
+                }
+
+                bb2: {
+                    statements {
+                        local(_return) = constant(2: u32);
+                    }
+                    return;
+                }
+
+                bb3: {
+                    statements {
+                    }
+                    return;
+                }
             }
-        ]
-    )
+        };
+    }])
+    .ok()
 }
 
 /// Test returning a parameter (previously tested goto terminator in MIR).
 #[test]
 fn test_goto_terminator() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo (v1: u32) -> u32 {
-                    return v1;
-                }
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        fn foo (v1: u32) -> u32 {
+            return v1;
+        }
+    }])
+    .ok()
 }
 
 /// Test cyclic control flow (a loop).
 /// A silly but valid infinite loop that reads and writes a variable.
 #[test]
 fn test_cyclic_goto() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo() -> u32 {
-                    let v0: u32 = 0 _ u32;
-                    loop {
-                        v0 = v0;
-                    }
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            let v0: u32 = 0 _ u32;
+            loop {
+                v0 = v0;
             }
-        ]
-    )
+        }
+    }])
+    .ok()
 }
 
 /// Returns true (Expr::True) type-checking coverage
 #[test]
 fn test_ret_true() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo () -> bool {
-                    return true;
-                }
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        fn foo () -> bool {
+            return true;
+        }
+    }])
+    .ok()
 }
 
 // if / else (Stmt::If) bool condition, each arm returns a u32.
 #[test]
 fn if_else() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo (b: bool) -> u32 {
-                    if b {
-                        return 1 _ u32;
-                    } else {
-                        return 2 _ u32;
-                    }
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo (b: bool) -> u32 {
+            if b {
+                return 1 _ u32;
+            } else {
+                return 2 _ u32;
             }
-        ]
-    )
+        }
+    }])
+    .ok()
 }
 
 // if / else (Stmt::If) with different return types.
 #[test]
 fn if_else_different_return_types() {
-    assert_err!(
-        [
-            crate Foo {
+    FormalityTest::new(crates![crate Foo {
                 fn foo (b: bool) -> u32 {
                     if b {
                         return 1 _ u32;
@@ -160,32 +137,26 @@ fn if_else_different_return_types() {
                         return false;
                     }
                 }
-            }
-        ]
-        expect_test::expect![[r#"
+            }]).err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
-    )
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test valid call: bar calls foo.
 #[test]
 fn test_call_terminator() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo(v1: u32) -> u32 {
-                    return v1;
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo(v1: u32) -> u32 {
+            return v1;
+        }
 
-                fn bar(v1: u32) -> u32 {
-                    let v0: u32 = foo(v1);
-                    return v0;
-                }
-            }
-        ]
-    )
+        fn bar(v1: u32) -> u32 {
+            let v0: u32 = foo(v1);
+            return v0;
+        }
+    }])
+    .ok()
 }
 
 /// Test valid place mention statement.
@@ -199,88 +170,74 @@ fn test_call_terminator() {
 /// ```
 #[test]
 fn test_place_mention_statement() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo (v1: u32) -> u32 {
-                    return v1;
-                }
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        fn foo (v1: u32) -> u32 {
+            return v1;
+        }
+    }])
+    .ok()
 }
 
 /// Test valid StorageLive and StorageDead statements.
 #[test]
 #[ignore = "needs StorageLive/StorageDead in expr grammar"]
 fn test_storage_live_dead() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo (v1: u32) -> u32 = minirust {
-                    exists {
-                        let v2: u32;
+    FormalityTest::new(crates![crate Foo {
+        fn foo (v1: u32) -> u32 = minirust {
+            exists {
+                let v2: u32;
 
-                        bb0: {
-                            statements {
-                                local(_return) = load(local(v1));
-                                StorageLive(v2);
-                                StorageDead(v2);
-                            }
-                            return;
-                        }
+                bb0: {
+                    statements {
+                        local(_return) = load(local(v1));
+                        StorageLive(v2);
+                        StorageDead(v2);
                     }
-                };
+                    return;
+                }
             }
-        ]
-    )
+        };
+    }])
+    .ok()
 }
 
 /// Test valid program that uses struct.
 #[test]
 fn test_struct() {
-    assert_ok!(
-        [
-            crate Foo {
-                struct Dummy {
-                    value: u32,
-                    is_true: bool,
-                }
+    FormalityTest::new(crates![crate Foo {
+        struct Dummy {
+            value: u32,
+            is_true: bool,
+        }
 
-                fn foo (v1: u32) -> u32 {
-                    let v2: Dummy = Dummy { value: 1 _ u32, is_true: false };
-                    v2.value = 2 _ u32;
-                    return v1;
-                }
-            }
-        ]
-    )
+        fn foo (v1: u32) -> u32 {
+            let v2: Dummy = Dummy { value: 1 _ u32, is_true: false };
+            v2.value = 2 _ u32;
+            return v1;
+        }
+    }])
+    .ok()
 }
 
 /// Test let statement with well-formed type
 #[test]
 fn test_let_with_well_formed_type() {
-    assert_ok!(
-        [
-            crate Foo {
-                trait Trait1 {}
-                struct S1<T> {
-                    t: T,
-                }
-                fn foo() -> () {
-                    let s1: S1<u8>;
-                }
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        trait Trait1 {}
+        struct S1<T> {
+            t: T,
+        }
+        fn foo() -> () {
+            let s1: S1<u8>;
+        }
+    }])
+    .ok()
 }
 
 /// Test let statement with ill-formed type
 #[test]
 fn test_let_with_ill_formed_type() {
-    assert_err!(
-        [
-            crate Foo {
+    FormalityTest::new(crates![crate Foo {
                 trait Trait1 {}
                 struct S1 {}
                 struct S2<T> where T: Trait1 {
@@ -289,46 +246,37 @@ fn test_let_with_ill_formed_type() {
                 fn foo() -> () {
                     let s2: S2<S1>;
                 }
-            }
-        ]
-        expect_test::expect![[r#"
+            }]).err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Trait1(S1), via: Place(?ty_1), assumptions: {}, env: Env { variables: [?ty_1, ?ty_2, ?ty_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Trait1(S1), via: Place(?ty_1), assumptions: {}, env: Env { variables: [?ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Trait1(S1), via: Place(?ty_1), assumptions: {}, env: Env { variables: [?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Trait1(S1), via: PlaceRead(?ty_1, ?ty_2), assumptions: {}, env: Env { variables: [?ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
-    )
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Trait1(S1), via: PlaceRead(?ty_1, ?ty_2), assumptions: {}, env: Env { variables: [?ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 // Test calling a function that does not exist.
 #[test]
 fn test_call_invalid_fn() {
-    assert_err!(
-        [
-            crate Foo {
-                fn bar() -> u32 {
-                    let v1: u32 = foo(0 _ u32);
-                    return v1;
-                }
-            }
-        ]
-        expect_test::expect![[r#"
+    FormalityTest::new(crates![crate Foo {
+        fn bar() -> u32 {
+            let v1: u32 = foo(0 _ u32);
+            return v1;
+        }
+    }])
+    .err(expect_test::expect![[r#"
             the rule "fn-name" at (nll.rs) failed because
               no fn named `foo`
 
             the rule "local" at (nll.rs) failed because
-              unknown local variable `foo`"#]]
-    )
+              unknown local variable `foo`"#]])
 }
 
 #[test]
 // Test what will happen if the type of arguments passed in is not subtype of what is expected.
 fn test_pass_non_subtype_arg() {
-    assert_err!(
-        [
-            crate Foo {
+    FormalityTest::new(crates![crate Foo {
                 fn foo(v1: u32) -> u32 {
                     return v1;
                 }
@@ -337,65 +285,53 @@ fn test_pass_non_subtype_arg() {
                     let v0: () = foo(v1);
                     return v0;
                 }
-            }
-        ]
-        expect_test::expect![[r#"
+            }]).err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
-    )
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test calling a generic function without turbofish (wrong number of type args: 0 vs 1).
 #[test]
 fn test_call_generic_fn_without_turbofish() {
-    assert_err!(
-        [
-            crate Foo {
-                fn identity<T>(v1: T) -> T {
-                    return v1;
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn identity<T>(v1: T) -> T {
+            return v1;
+        }
 
-                fn bar(v1: u32) -> u32 {
-                    let v0: u32 = identity(v1);
-                    return v0;
-                }
-            }
-        ]
-        expect_test::expect![[r#"
+        fn bar(v1: u32) -> u32 {
+            let v0: u32 = identity(v1);
+            return v0;
+        }
+    }])
+    .err(expect_test::expect![[r#"
             the rule "fn-name" at (nll.rs) failed because
               condition evaluated to false: `fn_decl.binder.len() == 0`
 
             the rule "local" at (nll.rs) failed because
-              unknown local variable `identity`"#]]
-    )
+              unknown local variable `identity`"#]])
 }
 
 /// Test calling a generic function with correct turbofish.
 #[test]
 fn test_call_generic_fn_with_turbofish() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn identity<T>(v1: T) -> T {
-                    return v1;
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn identity<T>(v1: T) -> T {
+            return v1;
+        }
 
-                fn bar(v1: u32) -> u32 {
-                    let v0: u32 = identity::<u32>(v1);
-                    return v0;
-                }
-            }
-        ]
-    )
+        fn bar(v1: u32) -> u32 {
+            let v0: u32 = identity::<u32>(v1);
+            return v0;
+        }
+    }])
+    .ok()
 }
 
 /// Test calling a generic function with incorrect turbofish type.
 #[test]
 fn test_call_generic_fn_wrong_type_with_turbofish() {
-    assert_err!(
-        [
-            crate Foo {
+    FormalityTest::new(crates![crate Foo {
                 fn identity<T>(v1: T) -> T {
                     return v1;
                 }
@@ -404,57 +340,46 @@ fn test_call_generic_fn_wrong_type_with_turbofish() {
                     let v0: u32 = identity::<bool>(v1);
                     return v0;
                 }
-            }
-        ]
-        expect_test::expect![[r#"
+            }]).err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
-    )
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test calling a generic function using turbofish syntax with an incorrect number of parameters.
 #[test]
 fn test_call_generic_fn_wrong_parameters_number_with_turbofish() {
-    assert_err!(
-        [
-            crate Foo {
-                fn identity<T>(v1: T) -> T {
-                    return v1;
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn identity<T>(v1: T) -> T {
+            return v1;
+        }
 
-                fn bar(v1: u32) -> u32 {
-                    let v0: u32 = identity::<u32>(v1, v1);
-                    return v0;
-                }
-            }
-        ]
-        expect_test::expect![[r#"
+        fn bar(v1: u32) -> u32 {
+            let v0: u32 = identity::<u32>(v1, v1);
+            return v0;
+        }
+    }])
+    .err(expect_test::expect![[r#"
             the rule "call" at (nll.rs) failed because
-              condition evaluated to false: `input_tys.len() == args.len()`"#]]
-    )
+              condition evaluated to false: `input_tys.len() == args.len()`"#]])
 }
 
 /// Test calling a generic function with wrong number of type args via turbofish.
 #[test]
 fn test_call_generic_fn_wrong_arity() {
-    assert_err!(
-        [
-            crate Foo {
-                fn identity<T>(v1: T) -> T {
-                    return v1;
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn identity<T>(v1: T) -> T {
+            return v1;
+        }
 
-                fn bar(v1: u32) -> u32 {
-                    let v0: u32 = identity::<u32, u32>(v1);
-                    return v0;
-                }
-            }
-        ]
-        expect_test::expect![[r#"
+        fn bar(v1: u32) -> u32 {
+            let v0: u32 = identity::<u32, u32>(v1);
+            return v0;
+        }
+    }])
+    .err(expect_test::expect![[r#"
             the rule "turbofish" at (nll.rs) failed because
-              condition evaluated to false: `fn_decl.binder.len() == args.len()`"#]]
-    )
+              condition evaluated to false: `fn_decl.binder.len() == args.len()`"#]])
 }
 
 /// Test what will happen if the declared and actual return type are not compatible.
@@ -468,20 +393,14 @@ fn test_call_generic_fn_wrong_arity() {
 /// ```
 #[test]
 fn test_incompatible_return_type() {
-    assert_err!(
-        [
-            crate Foo {
+    FormalityTest::new(crates![crate Foo {
                 fn foo (v1: ()) -> u32 {
                     return v1;
                 }
-            }
-        ]
-
-        expect_test::expect![[r#"
+            }]).err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
-    )
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 // Test the behaviour of having unitialised return local variable.
@@ -489,61 +408,55 @@ fn test_incompatible_return_type() {
 #[test]
 #[ignore = "needs uninitialized return detection in expr grammar"]
 fn test_uninitialised_return_type() {
-    assert_ok!( // Changed from assert_err! - should be reverted when #209 is fixed
-        [
-            crate Foo {
-                fn foo () -> u32 = minirust {
-                    exists {
-                        bb0: {
-                            statements {
-                            }
-                            return;
-                        }
+    FormalityTest::new(crates![crate Foo {
+        fn foo () -> u32 = minirust {
+            exists {
+                bb0: {
+                    statements {
                     }
-                };
+                    return;
+                }
             }
-        ]
-    )
+        };
+    }])
+    .ok()
 }
 
 /// Test switch terminator with invalid type in Terminator::Switch.
 #[test]
 #[ignore = "needs switch/branching constructs in expr grammar"]
 fn test_invalid_value_in_switch_terminator() {
-    assert_err!(
-        [
-            crate Foo {
-                fn foo () -> bool = minirust {
-                    exists {
-                        bb0: {
-                            statements {
-                                local(_return) = constant(false);
-                            }
-                            switch(load(local(_return))) -> [(0: bb1), (1: bb2)] otherwise: bb3;
-                        }
-
-                        bb1: {
-                            statements {
-                            }
-                            return;
-                        }
-
-                        bb2: {
-                            statements {
-                            }
-                            return;
-                        }
-
-                        bb3: {
-                            statements {
-                            }
-                            return;
-                        }
+    FormalityTest::new(crates![crate Foo {
+        fn foo () -> bool = minirust {
+            exists {
+                bb0: {
+                    statements {
+                        local(_return) = constant(false);
                     }
-                };
+                    switch(load(local(_return))) -> [(0: bb1), (1: bb2)] otherwise: bb3;
+                }
+
+                bb1: {
+                    statements {
+                    }
+                    return;
+                }
+
+                bb2: {
+                    statements {
+                    }
+                    return;
+                }
+
+                bb3: {
+                    statements {
+                    }
+                    return;
+                }
             }
-        ]
-        expect_test::expect![[r#"
+        };
+    }])
+    .err(expect_test::expect![[r#"
             MaybeFnBody expected
 
             Caused by:
@@ -576,30 +489,26 @@ fn test_invalid_value_in_switch_terminator() {
                                bb3: { statements {} return; }
                            }
                        };
-                   }]"#]]
-    )
+                   }]"#]])
 }
 
 /// Test the behaviour of having return place in StorageDead.
 #[test]
 #[ignore = "needs StorageDead in expr grammar"]
 fn test_ret_place_storage_dead() {
-    assert_err!(
-        [
-            crate Foo {
-                fn foo (v1: u32) -> u32 = minirust {
-                    exists {
-                        bb0: {
-                            statements {
-                                StorageDead(v1);
-                            }
-                            return;
-                        }
+    FormalityTest::new(crates![crate Foo {
+        fn foo (v1: u32) -> u32 = minirust {
+            exists {
+                bb0: {
+                    statements {
+                        StorageDead(v1);
                     }
-                };
+                    return;
+                }
             }
-        ]
-        expect_test::expect![[r#"
+        };
+    }])
+    .err(expect_test::expect![[r#"
             MaybeFnBody expected
 
             Caused by:
@@ -610,30 +519,26 @@ fn test_ret_place_storage_dead() {
                    {
                        fn foo(v1: u32) -> u32 = minirust
                        { exists { bb0: { statements { StorageDead(v1); } return; } } };
-                   }]"#]]
-    )
+                   }]"#]])
 }
 
 /// Test the behaviour of having function argument in StorageDead.
 #[test]
 #[ignore = "needs StorageDead in expr grammar"]
 fn test_fn_arg_storage_dead() {
-    assert_err!(
-        [
-            crate Foo {
-                fn foo (v1: u32) -> u32 = minirust {
-                    exists {
-                        bb0: {
-                            statements {
-                                StorageDead(_return);
-                            }
-                            return;
-                        }
+    FormalityTest::new(crates![crate Foo {
+        fn foo (v1: u32) -> u32 = minirust {
+            exists {
+                bb0: {
+                    statements {
+                        StorageDead(_return);
                     }
-                };
+                    return;
+                }
             }
-        ]
-        expect_test::expect![[r#"
+        };
+    }])
+    .err(expect_test::expect![[r#"
             MaybeFnBody expected
 
             Caused by:
@@ -644,39 +549,32 @@ fn test_fn_arg_storage_dead() {
                    {
                        fn foo(v1: u32) -> u32 = minirust
                        { exists { bb0: { statements { StorageDead(_return); } return; } } };
-                   }]"#]]
-    )
+                   }]"#]])
 }
 
 /// Test the behaviour of using invalid field name for the struct field.
 #[test]
 fn test_invalid_struct_field() {
-    assert_err!(
-        [
-            crate Foo {
-                struct Dummy {
-                    value: u32,
-                }
+    FormalityTest::new(crates![crate Foo {
+        struct Dummy {
+            value: u32,
+        }
 
-                fn foo (v1: u32) -> u32 {
-                    let v2: Dummy = Dummy { value: 1 _ u32 };
-                    v2.nonexistent = 2 _ u32;
-                    return v1;
-                }
-            }
-        ]
-        expect_test::expect![[r#"
+        fn foo (v1: u32) -> u32 {
+            let v2: Dummy = Dummy { value: 1 _ u32 };
+            v2.nonexistent = 2 _ u32;
+            return v1;
+        }
+    }])
+    .err(expect_test::expect![[r#"
             the rule "struct field" at (nll.rs) failed because
-              condition evaluated to false: `field.name == *field_name`"#]]
-    )
+              condition evaluated to false: `field.name == *field_name`"#]])
 }
 
 /// Test the behaviour of using non-adt local for field projection.
 #[test]
 fn test_field_projection_root_non_adt() {
-    assert_err!(
-        [
-            crate Foo {
+    FormalityTest::new(crates![crate Foo {
                 struct Dummy {
                     value: u32,
                 }
@@ -686,20 +584,15 @@ fn test_field_projection_root_non_adt() {
                     v1.value = 2 _ u32;
                     return v1;
                 }
-            }
-        ]
-        expect_test::expect![[r#"
+            }]).err(expect_test::expect![[r#"
             the rule "struct field" at (nll.rs) failed because
-              pattern `(RigidTy { name: RigidName::AdtId(adt_id), parameters }, state)` did not match value `(u32, flow_state([scope(none, None, {}, None, [(v1, u32)], [v1 : u32]), scope(none, None, {}, None, [(v2, Dummy)], [v2 : Dummy])], point_flow_state({}, {}), {}, {}))`"#]]
-    )
+              pattern `(RigidTy { name: RigidName::AdtId(adt_id), parameters }, state)` did not match value `(u32, flow_state([scope(none, None, {}, None, [(v1, u32)], [v1 : u32]), scope(none, None, {}, None, [(v2, Dummy)], [v2 : Dummy])], point_flow_state({}, {}), {}, {}))`"#]])
 }
 
 /// Test the behaviour of initialising the struct with wrong type.
 #[test]
 fn test_struct_wrong_type_in_initialisation() {
-    assert_err!(
-        [
-            crate Foo {
+    FormalityTest::new(crates![crate Foo {
                 struct Dummy {
                     value: u32,
                 }
@@ -708,13 +601,10 @@ fn test_struct_wrong_type_in_initialisation() {
                     let v2: Dummy = Dummy { value: false };
                     return v1;
                 }
-            }
-        ]
-        expect_test::expect![[r#"
+            }]).err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]]
-    )
+            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test the behaviour of having non-adt as the type for struct construction.
@@ -723,19 +613,15 @@ fn test_struct_wrong_type_in_initialisation() {
 /// We keep the intent of the test by using a made-up ADT name that doesn't exist.
 #[test]
 fn test_non_adt_ty_for_struct() {
-    assert_err!(
-        [
-            crate Foo {
-                fn foo (v1: u32) -> u32 {
-                    let v2: u32 = Nonexistent { value: false };
-                    return v1;
-                }
-            }
-        ]
-        expect_test::expect![[r#"
+    FormalityTest::new(crates![crate Foo {
+        fn foo (v1: u32) -> u32 {
+            let v2: u32 = Nonexistent { value: false };
+            return v1;
+        }
+    }])
+    .err(expect_test::expect![[r#"
             the rule "struct" at (nll.rs) failed because
-              no ADT named `Nonexistent`"#]]
-    )
+              no ADT named `Nonexistent`"#]])
 }
 
 /// Test that the `false` literal type-checks as `bool`.
@@ -748,16 +634,13 @@ fn test_non_adt_ty_for_struct() {
 /// ```
 #[test]
 fn test_false_literal() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo() -> bool {
-                    let v1: bool = false;
-                    return v1;
-                }
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> bool {
+            let v1: bool = false;
+            return v1;
+        }
+    }])
+    .ok()
 }
 
 /// Basic pass test for lifetime.
@@ -771,58 +654,49 @@ fn test_false_literal() {
 /// ```
 #[test]
 fn test_ref_identity() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo<'a>(v1: &'a u32) -> &'a u32 {
-                    exists<'r0> {
-                        let v2: &'r0 u32 = v1;
-                        return v2;
-                    }
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo<'a>(v1: &'a u32) -> &'a u32 {
+            exists<'r0> {
+                let v2: &'r0 u32 = v1;
+                return v2;
             }
-        ]
-    )
+        }
+    }])
+    .ok()
 }
 
 /// Test ref and deref
 #[test]
 fn test_ref_deref() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo () -> u32 {
-                    exists<'a> {
-                        let v0: u32 = 0 _ u32;
-                        let v1: &'a u32 = &'a v0;
-                        let v2: u32 = *v1;
-                        return v2;
-                    }
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo () -> u32 {
+            exists<'a> {
+                let v0: u32 = 0 _ u32;
+                let v1: &'a u32 = &'a v0;
+                let v2: u32 = *v1;
+                return v2;
             }
-        ]
-    )
+        }
+    }])
+    .ok()
 }
 
 /// Test generic deref should be permitted when the pointee type is known Copy.
 #[test]
 fn test_ref_deref_generic_copy_bound() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo<'a, T>(v1: &'a T) -> T
-                where
-                    T: Copy,
-                    T: 'a,
-                {
-                    exists<'r0> {
-                        let v2: T = *v1;
-                        return v2;
-                    }
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo<'a, T>(v1: &'a T) -> T
+        where
+            T: Copy,
+            T: 'a,
+        {
+            exists<'r0> {
+                let v2: T = *v1;
+                return v2;
             }
-        ]
-    )
+        }
+    }])
+    .ok()
 }
 
 // ---- Scoping tests ----
@@ -839,18 +713,15 @@ fn test_ref_deref_generic_copy_bound() {
 /// ```
 #[test]
 fn test_break_valid_loop_label() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo() -> u32 {
-                    'a: loop {
-                        break 'a;
-                    }
-                    return 0 _ u32;
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            'a: loop {
+                break 'a;
             }
-        ]
-    )
+            return 0 _ u32;
+        }
+    }])
+    .ok()
 }
 
 /// `break` targeting a non-existent label should fail.
@@ -864,25 +735,17 @@ fn test_break_valid_loop_label() {
 /// ```
 #[test]
 fn test_break_nonexistent_label() {
-    assert_err!(
-        [
-            crate Foo {
+    FormalityTest::new(crates![crate Foo {
                 fn foo() -> u32 {
                     loop {
                         break 'nonexistent;
                     }
                     return 0 _ u32;
                 }
-            }
-        ]
-
-        expect_test::expect![[r#"
+            }]).err(expect_test::expect![[r#"
             crates/formality-rust/src/check/borrow_check/nll.rs:175:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Place <ty> { type Target : [] ; } unsafe trait Subplace <ty> { type Source : [] ; type Target : [] ; fn offset (self : ^ty1_0) -> usize ; } unsafe trait PlaceRead <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { unsafe fn read (this : *const ^ty1_0, proj : ^ty1_1) -> <^ty1_1 as Subplace>::Target ; } unsafe trait PlaceWrite <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { unsafe fn write (this : *const ^ty1_0, sub : ^ty1_1, value : <^ty1_1 as Subplace>::Target) -> () ; } unsafe trait PlaceMove <ty, ty> where ^ty0_0 : PlaceRead <^ty0_1>, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { } unsafe trait PlaceDrop <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { unsafe fn drop (this : *const ^ty1_0, sub : ^ty1_1) -> () ; } unsafe trait DropHusk <ty> where ^ty0_0 : Place { unsafe fn drop_husk (this : *const ^ty1_0) -> () ; } unsafe trait PlaceBorrow <ty, ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { type BorrowDuration : [BorrowDuration] ; unsafe fn borrow (this : *const ^ty1_0, sub : ^ty1_1) -> ^ty1_2 ; } trait BorrowDuration <ty> { } struct Instant { } struct Lifetime <lt> { } struct Indefinite { } impl BorrowDuration for Instant { } impl <lt> BorrowDuration for Lifetime<^lt0_0> { } impl BorrowDuration for Indefinite { } unsafe trait PlaceDeref <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target, <^ty0_1 as Subplace>::Target : Place { unsafe fn deref (ptr : *mut ^ty1_0, sub : ^ty1_1) -> *const <^ty1_1 as Subplace>::Target ; } unsafe trait PlaceWrapper <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { type Wrapped : [Subplace] where <<^ty1_0 as PlaceWrapper<^ty1_1>>::Wrapped as Subplace>::Source => ^ty1_0 ; fn wrap (sub : ^ty1_1) -> <^ty1_0 as PlaceWrapper<^ty1_1>>::Wrapped ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }
 
-            crates/formality-rust/src/check/borrow_check/nll.rs:175:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Place <ty> { type Target : [] ; } unsafe trait Subplace <ty> { type Source : [] ; type Target : [] ; fn offset (self : ^ty1_0) -> usize ; } unsafe trait PlaceRead <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { unsafe fn read (this : *const ^ty1_0, proj : ^ty1_1) -> <^ty1_1 as Subplace>::Target ; } unsafe trait PlaceWrite <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { unsafe fn write (this : *const ^ty1_0, sub : ^ty1_1, value : <^ty1_1 as Subplace>::Target) -> () ; } unsafe trait PlaceMove <ty, ty> where ^ty0_0 : PlaceRead <^ty0_1>, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { } unsafe trait PlaceDrop <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { unsafe fn drop (this : *const ^ty1_0, sub : ^ty1_1) -> () ; } unsafe trait DropHusk <ty> where ^ty0_0 : Place { unsafe fn drop_husk (this : *const ^ty1_0) -> () ; } unsafe trait PlaceBorrow <ty, ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { type BorrowDuration : [BorrowDuration] ; unsafe fn borrow (this : *const ^ty1_0, sub : ^ty1_1) -> ^ty1_2 ; } trait BorrowDuration <ty> { } struct Instant { } struct Lifetime <lt> { } struct Indefinite { } impl BorrowDuration for Instant { } impl <lt> BorrowDuration for Lifetime<^lt0_0> { } impl BorrowDuration for Indefinite { } unsafe trait PlaceDeref <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target, <^ty0_1 as Subplace>::Target : Place { unsafe fn deref (ptr : *mut ^ty1_0, sub : ^ty1_1) -> *const <^ty1_1 as Subplace>::Target ; } unsafe trait PlaceWrapper <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { type Wrapped : [Subplace] where <<^ty1_0 as PlaceWrapper<^ty1_1>>::Wrapped as Subplace>::Source => ^ty1_0 ; fn wrap (sub : ^ty1_1) -> <^ty1_0 as PlaceWrapper<^ty1_1>>::Wrapped ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }"#]]
-
-
-    )
+            crates/formality-rust/src/check/borrow_check/nll.rs:175:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Place <ty> { type Target : [] ; } unsafe trait Subplace <ty> { type Source : [] ; type Target : [] ; fn offset (self : ^ty1_0) -> usize ; } unsafe trait PlaceRead <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { unsafe fn read (this : *const ^ty1_0, proj : ^ty1_1) -> <^ty1_1 as Subplace>::Target ; } unsafe trait PlaceWrite <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { unsafe fn write (this : *const ^ty1_0, sub : ^ty1_1, value : <^ty1_1 as Subplace>::Target) -> () ; } unsafe trait PlaceMove <ty, ty> where ^ty0_0 : PlaceRead <^ty0_1>, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { } unsafe trait PlaceDrop <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { unsafe fn drop (this : *const ^ty1_0, sub : ^ty1_1) -> () ; } unsafe trait DropHusk <ty> where ^ty0_0 : Place { unsafe fn drop_husk (this : *const ^ty1_0) -> () ; } unsafe trait PlaceBorrow <ty, ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { type BorrowDuration : [BorrowDuration] ; unsafe fn borrow (this : *const ^ty1_0, sub : ^ty1_1) -> ^ty1_2 ; } trait BorrowDuration <ty> { } struct Instant { } struct Lifetime <lt> { } struct Indefinite { } impl BorrowDuration for Instant { } impl <lt> BorrowDuration for Lifetime<^lt0_0> { } impl BorrowDuration for Indefinite { } unsafe trait PlaceDeref <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target, <^ty0_1 as Subplace>::Target : Place { unsafe fn deref (ptr : *mut ^ty1_0, sub : ^ty1_1) -> *const <^ty1_1 as Subplace>::Target ; } unsafe trait PlaceWrapper <ty, ty> where ^ty0_0 : Place, ^ty0_1 : Subplace, <^ty0_1 as Subplace>::Source => <^ty0_0 as Place>::Target { type Wrapped : [Subplace] where <<^ty1_0 as PlaceWrapper<^ty1_1>>::Wrapped as Subplace>::Source => ^ty1_0 ; fn wrap (sub : ^ty1_1) -> <^ty1_0 as PlaceWrapper<^ty1_1>>::Wrapped ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }"#]])
 }
 
 /// `continue` targeting a valid loop label should pass.
@@ -896,18 +759,15 @@ fn test_break_nonexistent_label() {
 /// ```
 #[test]
 fn test_continue_valid_loop_label() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo() -> u32 {
-                    'a: loop {
-                        continue 'a;
-                    }
-                    return 0 _ u32;
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            'a: loop {
+                continue 'a;
             }
-        ]
-    )
+            return 0 _ u32;
+        }
+    }])
+    .ok()
 }
 
 /// `continue` targeting a block (not a loop) should fail.
@@ -922,22 +782,17 @@ fn test_continue_valid_loop_label() {
 /// ```
 #[test]
 fn test_continue_block_label() {
-    assert_err!(
-        [
-            crate Foo {
-                fn foo() -> u32 {
-                    'a: {
-                        continue 'a;
-                    }
-                    return 0 _ u32;
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            'a: {
+                continue 'a;
             }
-        ]
-
-        expect_test::expect![[r#"
+            return 0 _ u32;
+        }
+    }])
+    .err(expect_test::expect![[r#"
             the rule "continue" at (nll.rs) failed because
-              pattern `Some(places_live_on_continue)` did not match value `None`"#]]
-    )
+              pattern `Some(places_live_on_continue)` did not match value `None`"#]])
 }
 
 /// Test parenthesized place expression: `(*v).field`.
@@ -954,22 +809,19 @@ fn test_continue_block_label() {
 /// ```
 #[test]
 fn test_parens_place_expr() {
-    assert_ok!(
-        [
-            crate Foo {
-                struct Pair {
-                    value: u32,
-                }
+    FormalityTest::new(crates![crate Foo {
+        struct Pair {
+            value: u32,
+        }
 
-                fn foo<'a>(v1: &'a Pair) -> u32 {
-                    exists<'r0> {
-                        let v2: u32 = (*v1).value;
-                        return v2;
-                    }
-                }
+        fn foo<'a>(v1: &'a Pair) -> u32 {
+            exists<'r0> {
+                let v2: u32 = (*v1).value;
+                return v2;
             }
-        ]
-    )
+        }
+    }])
+    .ok()
 }
 
 /// `break` targeting a block label (not a loop) should pass.
@@ -985,16 +837,13 @@ fn test_parens_place_expr() {
 /// ```
 #[test]
 fn test_break_block_label() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo() -> u32 {
-                    'a: {
-                        break 'a;
-                    }
-                    return 0 _ u32;
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            'a: {
+                break 'a;
             }
-        ]
-    )
+            return 0 _ u32;
+        }
+    }])
+    .ok()
 }

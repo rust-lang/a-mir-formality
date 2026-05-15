@@ -1,4 +1,4 @@
-use a_mir_formality::{assert_err, assert_ok};
+use a_mir_formality::{crates, FormalityTest};
 
 /// Tests for issue #209: ensuring functions return a value on all paths.
 ///
@@ -12,48 +12,38 @@ use a_mir_formality::{assert_err, assert_ok};
 #[test]
 #[ignore = "needs return validation (#209)"]
 fn empty_body_non_unit_return() {
-    assert_err!(
-        [
-            crate Foo {
-                fn foo() -> u32 {
-                }
-            }
-        ]
-        expect_test::expect![[r#"function may not return a value"#]]
-    )
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+        }
+    }])
+    .err(expect_test::expect![[r#"function may not return a value"#]])
 }
 
 /// A function returning () with an empty body is fine — unit is implicit.
 /// rustc: compiles with no error
 #[test]
 fn empty_body_unit_return() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo() -> () {
-                }
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+        }
+    }])
+    .ok()
 }
 
 /// If/else where both branches return — all paths return, so this is fine.
 /// rustc: compiles with no error
 #[test]
 fn if_else_both_branches_return() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo(b: bool) -> u32 {
-                    if b {
-                        return 1 _ u32;
-                    } else {
-                        return 2 _ u32;
-                    }
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo(b: bool) -> u32 {
+            if b {
+                return 1 _ u32;
+            } else {
+                return 2 _ u32;
             }
-        ]
-    )
+        }
+    }])
+    .ok()
 }
 
 /// If/else where only one branch returns — the other path falls through
@@ -62,35 +52,28 @@ fn if_else_both_branches_return() {
 #[test]
 #[ignore = "needs return validation (#209)"]
 fn if_else_one_branch_returns() {
-    assert_err!(
-        [
-            crate Foo {
-                fn foo(b: bool) -> u32 {
-                    if b {
-                        return 1 _ u32;
-                    } else {
-                    }
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo(b: bool) -> u32 {
+            if b {
+                return 1 _ u32;
+            } else {
             }
-        ]
-        expect_test::expect![[r#"function may not return a value"#]]
-    )
+        }
+    }])
+    .err(expect_test::expect![[r#"function may not return a value"#]])
 }
 
 /// An infinite loop never terminates, so it never needs to return.
 /// rustc: compiles with no error (loop {} has type !)
 #[test]
 fn infinite_loop_no_return_needed() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo() -> u32 {
-                    loop {
-                    }
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            loop {
             }
-        ]
-    )
+        }
+    }])
+    .ok()
 }
 
 /// A loop with break exits the loop, but then there's no return after it.
@@ -99,49 +82,39 @@ fn infinite_loop_no_return_needed() {
 #[test]
 #[ignore = "needs return validation (#209)"]
 fn loop_with_break_no_return() {
-    assert_err!(
-        [
-            crate Foo {
-                fn foo() -> u32 {
-                    'a: loop {
-                        break 'a;
-                    }
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            'a: loop {
+                break 'a;
             }
-        ]
-        expect_test::expect![[r#"function may not return a value"#]]
-    )
+        }
+    }])
+    .err(expect_test::expect![[r#"function may not return a value"#]])
 }
 
 /// A loop with break followed by a return is fine — all paths return.
 /// rustc: compiles with no error
 #[test]
 fn loop_with_break_then_return() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo() -> u32 {
-                    'a: loop {
-                        break 'a;
-                    }
-                    return 0 _ u32;
-                }
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            'a: loop {
+                break 'a;
             }
-        ]
-    )
+            return 0 _ u32;
+        }
+    }])
+    .ok()
 }
 
 /// A simple function that returns a value on all paths.
 /// rustc: compiles with no error
 #[test]
 fn simple_return() {
-    assert_ok!(
-        [
-            crate Foo {
-                fn foo() -> u32 {
-                    return 42 _ u32;
-                }
-            }
-        ]
-    )
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            return 42 _ u32;
+        }
+    }])
+    .ok()
 }
