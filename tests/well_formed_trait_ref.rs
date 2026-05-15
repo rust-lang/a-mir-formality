@@ -1,32 +1,26 @@
-use a_mir_formality::{assert_err, assert_ok, test_program_ok};
+use a_mir_formality::{crates, test_program_ok, FormalityTest};
 
 #[test]
 fn dependent_where_clause() {
-    assert_ok!(
+    FormalityTest::new(crates![crate foo {
+        trait Trait1 {}
 
-        [
-            crate foo {
-                trait Trait1 {}
+        trait Trait2 {}
 
-                trait Trait2 {}
+        struct S1<T> where T: Trait1 {
+            dummy: T,
+        }
 
-                struct S1<T> where T: Trait1 {
-                    dummy: T,
-                }
-
-                struct S2<T> where T: Trait1, S1<T> : Trait2 {
-                    dummy: T,
-                }
-            }
-        ]
-    )
+        struct S2<T> where T: Trait1, S1<T> : Trait2 {
+            dummy: T,
+        }
+    }])
+    .ok()
 }
 
 #[test]
 fn missing_dependent_where_clause() {
-    assert_err!(
-        [
-            crate foo {
+    FormalityTest::new(crates![crate foo {
                 trait Trait1 {}
 
                 trait Trait2 {}
@@ -38,10 +32,7 @@ fn missing_dependent_where_clause() {
                 struct S2<T> where S1<T> : Trait2 {
                     dummy: T,
                 }
-            }
-        ]
-
-        expect_test::expect![[r#"
+            }]).err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ WellFormedTraitRef(Trait2(S1<!ty_0>)), via: Trait2(S1<!ty_0>), assumptions: {Trait2(S1<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Trait1(!ty_0), via: Trait2(S1<!ty_0>), assumptions: {Trait2(S1<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
@@ -52,60 +43,47 @@ fn missing_dependent_where_clause() {
 
             crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Trait1(!ty_0), via: Place(?ty_1), assumptions: {Trait2(S1<!ty_0>)}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Trait1(!ty_0), via: PlaceRead(?ty_1, ?ty_2), assumptions: {Trait2(S1<!ty_0>)}, env: Env { variables: [!ty_0, ?ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]
-    )
+            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Trait1(!ty_0), via: PlaceRead(?ty_1, ?ty_2), assumptions: {Trait2(S1<!ty_0>)}, env: Env { variables: [!ty_0, ?ty_1, ?ty_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 #[test]
 fn lifetime_param() {
-    assert_ok!(
+    FormalityTest::new(crates![crate foo {
+        trait Trait1<'a> {}
 
-        [
-            crate foo {
-                trait Trait1<'a> {}
+        struct S1 {}
 
-                struct S1 {}
-
-                struct S2<'a> where S1: Trait1<'a> {}
-            }
-        ]
-    )
+        struct S2<'a> where S1: Trait1<'a> {}
+    }])
+    .ok()
 }
 
 #[test]
 fn static_lifetime_param() {
-    assert_ok!(
+    FormalityTest::new(crates![crate foo {
+        trait Trait1<'a> {}
 
-        [
-            crate foo {
-                trait Trait1<'a> {}
+        struct S1 {}
 
-                struct S1 {}
+        impl Trait1<'static> for S1 {}
 
-                impl Trait1<'static> for S1 {}
-
-                struct S2 where S1: Trait1<'static> {}
-            }
-        ]
-    )
+        struct S2 where S1: Trait1<'static> {}
+    }])
+    .ok()
 }
 
 #[test]
 fn const_param() {
-    assert_ok!(
+    FormalityTest::new(crates![crate foo {
+        trait Trait1<const C> where type_of_const C is u32 {}
 
-        [
-            crate foo {
-                trait Trait1<const C> where type_of_const C is u32 {}
+        struct S1 {}
 
-                struct S1 {}
+        impl Trait1<u32(3)> for S1 {}
 
-                impl Trait1<u32(3)> for S1 {}
-
-                struct S2 where S1: Trait1<u32(3)> {}
-            }
-        ]
-    )
+        struct S2 where S1: Trait1<u32(3)> {}
+    }])
+    .ok()
 }
 
 #[test]
