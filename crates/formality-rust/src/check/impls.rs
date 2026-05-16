@@ -8,7 +8,6 @@ use crate::grammar::{
 };
 use crate::prove::prove::{Env, Program, Safety};
 use crate::rust::Term;
-use fn_error_context::context;
 use formality_core::{judgment::ProofTree, judgment_fn, Downcasted};
 
 judgment_fn! {
@@ -43,50 +42,33 @@ judgment_fn! {
     }
 }
 
-#[context("check_neg_trait_impl({trait_impl:?})")]
-pub(super) fn check_neg_trait_impl(
-    program: &Program,
-    trait_impl: &NegTraitImpl,
-) -> Fallible<ProofTree> {
-    let NegTraitImpl { binder, safety } = trait_impl;
+judgment_fn! {
+    pub(super) fn check_neg_trait_impl(
+        program: Program,
+        trait_impl: NegTraitImpl,
+    ) => () {
+        debug(program, trait_impl)
 
-    let (
-        env,
-        NegTraitImplBoundData {
-            trait_id,
-            self_ty,
-            trait_parameters,
-            where_clauses,
-        },
-    ) = Env::default().instantiate_universally(binder);
+        (
+            (let NegTraitImpl { binder, safety } = &trait_impl)
+            (if safety == &Safety::Unsafe)!
+            (fail "negative impls cannot be unsafe")
+            ---- ("check_neg_trait_impl")
+            (check_neg_trait_impl(program, trait_impl) => ())
+        )
 
-    let trait_ref = trait_id.with(self_ty, trait_parameters);
-
-    // Negative impls are always safe (rustc E0198) regardless of the trait's safety.
-    if *safety == Safety::Unsafe {
-        bail!("negative impls cannot be unsafe");
+        (
+            (let NegTraitImpl { binder, safety } = &trait_impl)
+            (let (env, bound_data) = Env::default().instantiate_universally(binder))
+            (let NegTraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses } = bound_data)
+            (let trait_ref = trait_id.with(self_ty, trait_parameters))
+            (if safety == &Safety::Safe)!
+            (super::where_clauses::prove_where_clauses_well_formed(program, &env, &where_clauses, &where_clauses) => ())
+            (super::prove_goal(program, &env, &where_clauses, Predicate::not_implemented(&trait_ref)) => ())
+            ---- ("check_neg_trait_impl")
+            (check_neg_trait_impl(program, trait_impl) => ())
+        )
     }
-
-    let mut proof_tree =
-        ProofTree::new(format!("check_neg_trait_impl({trait_ref:?})"), None, vec![]);
-
-    proof_tree
-        .children
-        .push(super::where_clauses::prove_where_clauses_well_formed(
-            program,
-            &env,
-            &where_clauses,
-            &where_clauses,
-        )?);
-
-    proof_tree.children.push(super::prove_goal(
-        program,
-        &env,
-        &where_clauses,
-        Predicate::not_implemented(&trait_ref),
-    )?);
-
-    Ok(proof_tree)
 }
 
 judgment_fn! {
