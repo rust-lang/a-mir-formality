@@ -36,11 +36,8 @@ fn unsafe_trait_negative_impl_mismatch() {
         unsafe impl !Foo for u32 {}
     }])
     .err(expect_test::expect![[r#"
-            the rule "neg trait impl" at (mod.rs) failed because
-              check_neg_trait_impl(unsafe impl ! Foo for u32 {})
-
-              Caused by:
-                  negative impls cannot be unsafe"#]])
+        the rule "check_neg_trait_impl" at (impls.rs) failed because
+          negative impls cannot be unsafe"#]])
 }
 
 #[test]
@@ -50,11 +47,8 @@ fn safe_trait_negative_impl_mismatch() {
         unsafe impl !Foo for u32 {}
     }])
     .err(expect_test::expect![[r#"
-            the rule "neg trait impl" at (mod.rs) failed because
-              check_neg_trait_impl(unsafe impl ! Foo for u32 {})
-
-              Caused by:
-                  negative impls cannot be unsafe"#]])
+        the rule "check_neg_trait_impl" at (impls.rs) failed because
+          negative impls cannot be unsafe"#]])
 }
 
 #[test]
