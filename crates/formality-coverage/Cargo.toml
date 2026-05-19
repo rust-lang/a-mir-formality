@@ -1,0 +1,22 @@
+[package]
+name = "formality-coverage"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Coverage report generator for a-mir-formality judgment rules"
+homepage = "https://rust-lang.github.io/a-mir-formality/"
+repository = "https://github.com/rust-lang/a-mir-formality/"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4.0.9", features = ["derive"] }
+regex = "1.10.2"
+serde_json = "1"
+walkdir = "2"
+
+[dev-dependencies]
+expect-test = "1.4.1"
+
+[[bin]]
+name = "formality-coverage"
+path = "src/bin/formality-coverage.rs"
