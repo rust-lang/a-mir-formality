@@ -1,8 +1,6 @@
-mod codegen;
-
 use std::sync::Arc;
 
-use formality_core::{id, term, DowncastTo};
+use formality_core::{cast_impl, id, term, DowncastTo};
 
 use crate::grammar::{
     AdtId, Binder, FieldName, Lt, Parameter, RefKind, ScalarId, TraitId, Ty, ValueId,
@@ -99,6 +97,12 @@ pub enum Stmt {
     /// over a block of statements.
     #[grammar(exists $binder)]
     Exists { binder: Binder<Block> },
+
+    /// `print expr;`
+    ///
+    /// Print a value to stdout (for testing).
+    #[grammar(print $expr ;)]
+    Print { expr: Expr },
 }
 
 #[term($data)]
@@ -239,6 +243,11 @@ impl PlaceExpr {
         }
     }
 }
+
+// Cast implementations for PlaceExpr
+cast_impl!((ValueId) <: (PlaceExpr) <: (ExprData));
+cast_impl!((PlaceExpr) <: (ExprData) <: (Arc<ExprData>));
+cast_impl!((PlaceExpr) <: (Arc<ExprData>) <: (Expr));
 
 /// A named reference to a function or associated function.
 #[term($name: $value)]

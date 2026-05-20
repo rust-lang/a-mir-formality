@@ -51,6 +51,7 @@ impl RustBuilder {
             }),
             Stmt::Block(block) => Ok(syntax::Stmt::Block(self.lower_block(block)?)),
             Stmt::Exists { binder } => self.lower_exists_stmt(binder),
+            Stmt::Print { expr } => Ok(syntax::Stmt::Expr(self.lower_expr(expr)?)),
         }
     }
 

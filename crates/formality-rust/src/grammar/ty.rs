@@ -315,6 +315,9 @@ pub enum Lt {
     #[grammar('static)]
     Static,
 
+    #[grammar('erased)]
+    Erased,
+
     #[variable(ParameterKind::Lt)]
     Variable(Variable),
 }

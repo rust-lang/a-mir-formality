@@ -18,6 +18,10 @@ pub fn lang_items() -> LangItems {
         impl Copy for isize {}
         impl<'a, T> Copy for &'a T {}
 
+        trait Drop {
+            fn drop(self: Self) -> ();
+        }
+
         trait Place {
             type Target: [];
         }

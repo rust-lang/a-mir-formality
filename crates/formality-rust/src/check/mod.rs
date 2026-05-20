@@ -14,7 +14,7 @@ use formality_core::{judgment::ProofTree, judgment_fn, ProvenSet, Set};
 use adts::check_adt;
 use coherence::check_coherence;
 use fns::check_free_fn;
-use impls::{check_neg_trait_impl, check_trait_impl};
+use impls::{check_drop_impl_always_applicable, check_neg_trait_impl, check_trait_impl};
 use traits::check_trait;
 
 pub mod borrow_check;
@@ -123,6 +123,7 @@ judgment_fn! {
 
         (
             (check_trait_impl(program, v, crate_id) => ())
+            (check_drop_impl_always_applicable(program, v) => ())
             ------------------------------------------------------------ ("trait impl")
             (check_crate_item(program, CrateItem::TraitImpl(v), crate_id) => ())
         )

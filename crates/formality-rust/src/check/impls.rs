@@ -3,10 +3,11 @@ use anyhow::bail;
 use crate::grammar::{
     AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Binder,
     CrateId, Fallible, Fn, FnBoundData, ImplItem, MaybeFnBody, NegTraitImpl, NegTraitImplBoundData,
-    Predicate, Relation, Substitution, Trait, TraitBoundData, TraitImpl, TraitImplBoundData,
-    TraitItem, Wcs,
+    Predicate, Relation, RigidName, Substitution, Trait, TraitBoundData, TraitImpl,
+    TraitImplBoundData, TraitItem, Ty, Wcs,
 };
 use crate::prove::prove::{Env, Program, Safety};
+use crate::prove::ToWcs;
 use crate::rust::Term;
 use fn_error_context::context;
 use formality_core::{judgment::ProofTree, judgment_fn, Downcasted};
@@ -283,4 +284,70 @@ fn merge_binders<I: Term, T: Term>(
         &impl_names,
         (impl_value, trait_to_impl_subst.apply(&trait_value)),
     ))
+}
+
+/// Check that a `Drop` impl is "always applicable": its generic parameters and
+/// where-clauses must match the ADT definition exactly, so that any constructed
+/// value of the type can always be dropped.
+pub(super) fn check_drop_impl_always_applicable(
+    program: &Program,
+    trait_impl: &TraitImpl,
+) -> Fallible<ProofTree> {
+    // Only applies to Drop impls.
+    if **trait_impl.trait_id() != *"Drop" {
+        return Ok(ProofTree::leaf("not a Drop impl"));
+    }
+
+    // Open the impl binder universally.
+    let (env, impl_bound) = Env::default().instantiate_universally(&trait_impl.binder);
+    let TraitImplBoundData {
+        trait_id: _,
+        self_ty,
+        trait_parameters: _,
+        where_clauses: impl_where_clauses,
+        impl_items: _,
+    } = &impl_bound;
+
+    // The self type must be a rigid ADT type.
+    let Ty::RigidTy(rigid) = self_ty else {
+        bail!("Drop impl self type must be a struct or enum, got `{self_ty:?}`");
+    };
+    let RigidName::AdtId(adt_id) = &rigid.name else {
+        bail!("Drop impl self type must be a struct or enum, got `{self_ty:?}`");
+    };
+
+    // Look up the ADT definition.
+    let adt = program.program().adt_item_named(adt_id)?.to_adt();
+
+    // The impl must have the same generic parameter kinds as the ADT.
+    if trait_impl.binder.kinds() != adt.binder.kinds() {
+        bail!(
+            "Drop impl for `{adt_id:?}` has different generic parameters than the type definition"
+        );
+    }
+
+    // The self type's parameters must be distinct variables from the impl's binder.
+    // This ensures the impl covers all instantiations of the ADT.
+    let mut seen_vars = Vec::new();
+    for (i, param) in rigid.parameters.iter().enumerate() {
+        let Some(var) = param.as_variable() else {
+            bail!(
+                "Drop impl for `{adt_id:?}`: parameter {i} is `{param:?}`, \
+                 expected a generic parameter from the impl"
+            );
+        };
+        if seen_vars.contains(&var) {
+            bail!("Drop impl for `{adt_id:?}`: parameter {i} reuses variable `{var:?}`");
+        }
+        seen_vars.push(var);
+    }
+
+    // Instantiate the ADT binder with the same parameters from the self type.
+    let adt_bound = adt.binder.instantiate_with(&rigid.parameters)?;
+
+    // The impl's where-clauses must be implied by the ADT's where-clauses.
+    let impl_wcs = impl_where_clauses.to_wcs();
+    let _ = super::prove_goal(program, &env, &adt_bound.where_clauses, impl_wcs)?;
+
+    Ok(ProofTree::leaf("Drop impl is always applicable"))
 }
