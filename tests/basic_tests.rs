@@ -182,6 +182,19 @@ fn crate_with_duplicate_item_names() {
 }
 
 #[test]
+fn basic_impl_dup() {
+    FormalityTest::new(crates![crate core {
+        trait MyTrait {}
+        struct MyStruct {}
+        impl MyTrait for MyStruct {}
+        impl MyTrait for MyStruct {}
+    }])
+    .err(expect_test::expect![[r#"
+        the rule "check crate" at (mod.rs) failed because
+          `impl MyTrait for MyStruct { }` is defined multiple times"#]]);
+}
+
+#[test]
 fn impl_missing_required_fn() {
     FormalityTest::new(crates![crate core {
         trait Foo {
