@@ -3,3 +3,10 @@ authors = ["Niko Matsakis"]
 language = "en"
 src = "src"
 title = "A MIR Formality"
+
+[output.html]
+git-repository-url = "https://github.com/rust-lang/a-mir-formality"
+
+[preprocessor.judgment]
+command = "cargo run -p formality-mdbook --"
+source-dir = "../crates"

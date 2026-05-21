@@ -30,5 +30,6 @@ members = [
     "crates/formality-macros",
     "crates/formality-core",
     "crates/formality-rust",
+    "crates/formality-mdbook",
     "crates/minirust-rs",
 ]

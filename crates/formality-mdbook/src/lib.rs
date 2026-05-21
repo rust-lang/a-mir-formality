@@ -37,7 +37,13 @@ impl Preprocessor for JudgmentPreprocessor {
             .map(|s: String| s.trim_end_matches('/').to_string());
 
         let src_dir = root.join(&source_dir);
-        let index = scan_source_files(&src_dir, &root)?;
+        let link_root = src_dir
+            .canonicalize()
+            .unwrap_or_else(|_| src_dir.clone())
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| root.clone());
+        let index = scan_source_files(&src_dir, &link_root)?;
 
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
@@ -94,9 +100,10 @@ pub fn scan_source_files(src_dir: &Path, root: &Path) -> anyhow::Result<SourceIn
 
     for entry in walk_rs_files(src_dir)? {
         let content = std::fs::read_to_string(&entry)?;
-        let rel_path = entry
+        let canonical_entry = entry.canonicalize().unwrap_or_else(|_| entry.clone());
+        let rel_path = canonical_entry
             .strip_prefix(root)
-            .unwrap_or(&entry)
+            .unwrap_or(&canonical_entry)
             .to_string_lossy()
             .to_string();
         for judgment in parse_judgment_fns(&content, &rel_path) {

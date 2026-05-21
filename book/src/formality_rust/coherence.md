@@ -2,6 +2,10 @@
 
 Coherence checking lives in `check/coherence.rs` and runs as part of crate checking.
 
+## `check_coherence`
+
+{judgment}`check_coherence`
+
 At a high level, `check_coherence`:
 
 * rejects duplicate impls in the current crate
@@ -11,18 +15,28 @@ At a high level, `check_coherence`:
 
 ## Orphan checking
 
-`orphan_check` and `orphan_check_neg` instantiate the impl binder universally and prove that the trait reference is local under the impl's where-clauses.
+{judgment}`orphan_check`
 
-## Duplicate impls
+`orphan_check` instantiates the impl binder universally and proves that the trait reference is local under the impl's where-clauses.
 
-`ensure_no_duplicate_impls` rejects duplicate positive impls in the current crate before overlap checking runs.
+Negative impls have the same structure:
+
+{judgment}`orphan_check_neg`
 
 ## Overlap checking
 
-`overlap_check_impl` compares two impls of the same trait.
+`overlap_check_impl` compares two impls of the same trait. It first skips identical impls and impls for different traits. For matching trait ids, it tries to prove that the impls cannot both apply. If that fails, it reports the impls as overlapping.
 
-It first skips identical impls and impls for different traits. For matching trait ids, it tries to prove that the impls cannot both apply. If that fails, it reports the impls as overlapping.
+## Proving locality
 
-## Negative impls
+The `is_local` module determines whether a trait reference could have been defined locally, which is the key predicate for orphan checking:
 
-Negative impls participate in coherence through orphan checking.
+{judgment}`is_local_trait_ref`
+
+A parameter is considered local if it is a local type or a fundamental rigid type wrapping a local parameter:
+
+{judgment}`is_local_parameter`
+
+The complement — determining whether a trait reference *may* come from a remote crate — is used in coherence mode:
+
+{judgment}`may_be_remote`

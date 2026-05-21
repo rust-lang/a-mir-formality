@@ -12,8 +12,6 @@ conclusion
 
 i.e., the conclusion is judged to be true if all the premises are true.
 
-[`prove_wc`]: https://github.com/rust-lang/a-mir-formality/blob/bca36ecd069d6bdff77bffbb628ae3b2ef4f8ef7/crates/formality-prove/src/prove/prove_wc.rs#L21-L125
-
 Judgments in type system papers can look all kinds of ways. For example, a common type system judgment would be the following:
 
 ```
@@ -180,9 +178,9 @@ if let Some(Expr::Add(left, right)) = arg1.downcast() {
 }
 ```
 
-If you want to see a real judgement, take a look at the one for [proving where clauses][`prove_wc`].
+If you want to see a real judgement, take a look at the one for proving where clauses:
 
-[`prove_wc`]: https://github.com/rust-lang/a-mir-formality/blob/bca36ecd069d6bdff77bffbb628ae3b2ef4f8ef7/crates/formality-prove/src/prove/prove_wc.rs#L21-L125
+{judgment}`prove_wc`
 
 ### Handling cycles
 
