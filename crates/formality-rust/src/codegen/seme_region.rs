@@ -2,38 +2,28 @@ use libspecr::hidden::GcCow;
 use libspecr::prelude::*;
 use minirust_rs::lang;
 
-use super::ord_by_debug::OrdByDebug;
-
-type Bb = OrdByDebug<lang::BbName>;
-type Block = OrdByDebug<lang::BasicBlock>;
-type Stmt = OrdByDebug<lang::Statement>;
-
-fn bb(b: lang::BbName) -> Bb {
-    OrdByDebug(b)
-}
-
 /// A single-entry, multi-exit control flow region.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct SemeRegion {
-    blocks: Vec<(Bb, Block)>,
-    entry: Bb,
-    fallthrough_stmts: Vec<Stmt>,
-    fallthrough: Option<Bb>,
+    blocks: Vec<(lang::BbName, lang::BasicBlock)>,
+    entry: lang::BbName,
+    fallthrough_stmts: Vec<lang::Statement>,
+    fallthrough: Option<lang::BbName>,
 }
 
 impl SemeRegion {
     pub fn empty(entry: &lang::BbName) -> Self {
         SemeRegion {
             blocks: Vec::new(),
-            entry: bb(*entry),
+            entry: *entry,
             fallthrough_stmts: Vec::new(),
-            fallthrough: Some(bb(*entry)),
+            fallthrough: Some(*entry),
         }
     }
 
     pub fn push_stmt(mut self, stmt: lang::Statement) -> Self {
         if self.fallthrough.is_some() {
-            self.fallthrough_stmts.push(OrdByDebug(stmt));
+            self.fallthrough_stmts.push(stmt);
         }
         self
     }
@@ -43,27 +33,27 @@ impl SemeRegion {
     }
 
     pub fn entry(&self) -> lang::BbName {
-        self.entry.0
+        self.entry
     }
 
     pub fn terminate(mut self, terminator: lang::Terminator) -> Self {
         if let Some(bb_name) = self.fallthrough.take() {
             let stmts: List<lang::Statement> =
-                self.fallthrough_stmts.drain(..).map(|s| s.0).collect();
+                self.fallthrough_stmts.drain(..).collect();
             self.blocks.push((
                 bb_name,
-                OrdByDebug(lang::BasicBlock {
+                lang::BasicBlock {
                     statements: stmts,
                     terminator,
                     kind: lang::BbKind::Regular,
-                }),
+                },
             ));
         }
         self
     }
 
     pub fn add_empty_block(mut self, new_bb: lang::BbName) -> Self {
-        self.fallthrough = Some(bb(new_bb));
+        self.fallthrough = Some(new_bb);
         self.fallthrough_stmts.clear();
         self
     }
@@ -75,7 +65,7 @@ impl SemeRegion {
     ) -> SemeRegion {
         match self.fallthrough {
             Some(_) => {
-                let entry_name = other.entry.clone();
+                let entry_name = other.entry;
                 let mut other_blocks = other.blocks;
                 let mut entry_block = None;
 
@@ -89,31 +79,29 @@ impl SemeRegion {
                 });
 
                 if let Some(blk) = entry_block {
-                    // Entry was a completed block — inline its stmts and terminator
-                    for s in blk.0.statements {
-                        self.fallthrough_stmts.push(OrdByDebug(s));
+                    for s in blk.statements {
+                        self.fallthrough_stmts.push(s);
                     }
                     let ft = self.fallthrough.take().unwrap();
                     let all_stmts: List<lang::Statement> =
-                        self.fallthrough_stmts.drain(..).map(|s| s.0).collect();
+                        self.fallthrough_stmts.drain(..).collect();
                     self.blocks.push((
                         ft,
-                        OrdByDebug(lang::BasicBlock {
+                        lang::BasicBlock {
                             statements: all_stmts,
-                            terminator: blk.0.terminator,
+                            terminator: blk.terminator,
                             kind: lang::BbKind::Regular,
-                        }),
+                        },
                     ));
                     self.blocks.extend(other_blocks);
-                    self.fallthrough = other.fallthrough.clone();
+                    self.fallthrough = other.fallthrough;
                     if let Some(ref ft) = self.fallthrough {
                         if *ft == entry_name {
-                            self.fallthrough = Some(bb(fresh_bb()));
+                            self.fallthrough = Some(fresh_bb());
                         }
                     }
                     self.fallthrough_stmts = other.fallthrough_stmts;
                 } else {
-                    // Entry was the fallthrough of other (not yet completed)
                     self.fallthrough_stmts.extend(other.fallthrough_stmts);
                     self.blocks.extend(other_blocks);
                 }
@@ -135,12 +123,12 @@ impl SemeRegion {
             return self;
         }
 
-        let then_entry = then_region.entry.0;
-        let else_entry = else_region.entry.0;
+        let then_entry = then_region.entry;
+        let else_entry = else_region.entry;
 
         let ft = self.fallthrough.take().unwrap();
         let ft_stmts: List<lang::Statement> =
-            self.fallthrough_stmts.drain(..).map(|s| s.0).collect();
+            self.fallthrough_stmts.drain(..).collect();
 
         let mut cases = Map::new();
         cases.insert(Int::from(1u8), then_entry);
@@ -158,7 +146,7 @@ impl SemeRegion {
 
         self.blocks.push((
             ft,
-            OrdByDebug(lang::BasicBlock {
+            lang::BasicBlock {
                 statements: ft_stmts,
                 terminator: lang::Terminator::Switch {
                     value: cast_expr,
@@ -166,47 +154,45 @@ impl SemeRegion {
                     fallback: else_entry,
                 },
                 kind: lang::BbKind::Regular,
-            }),
+            },
         ));
 
         // Add then blocks
         self.blocks.extend(then_region.blocks);
-        if let Some(ft) = then_region.fallthrough.clone() {
+        if let Some(ft) = then_region.fallthrough {
             let stmts: List<lang::Statement> = then_region
                 .fallthrough_stmts
                 .into_iter()
-                .map(|s| s.0)
                 .collect();
             self.blocks.push((
                 ft,
-                OrdByDebug(lang::BasicBlock {
+                lang::BasicBlock {
                     statements: stmts,
                     terminator: lang::Terminator::Goto(join_bb),
                     kind: lang::BbKind::Regular,
-                }),
+                },
             ));
         }
 
         // Add else blocks
         self.blocks.extend(else_region.blocks);
-        if let Some(ft) = else_region.fallthrough.clone() {
+        if let Some(ft) = else_region.fallthrough {
             let stmts: List<lang::Statement> = else_region
                 .fallthrough_stmts
                 .into_iter()
-                .map(|s| s.0)
                 .collect();
             self.blocks.push((
                 ft,
-                OrdByDebug(lang::BasicBlock {
+                lang::BasicBlock {
                     statements: stmts,
                     terminator: lang::Terminator::Goto(join_bb),
                     kind: lang::BbKind::Regular,
-                }),
+                },
             ));
         }
 
         let has_join = then_region.fallthrough.is_some() || else_region.fallthrough.is_some();
-        self.fallthrough = if has_join { Some(bb(join_bb)) } else { None };
+        self.fallthrough = if has_join { Some(join_bb) } else { None };
         self.fallthrough_stmts = Vec::new();
         self
     }
@@ -214,19 +200,16 @@ impl SemeRegion {
     pub fn into_blocks(mut self) -> Vec<(lang::BbName, lang::BasicBlock)> {
         if let Some(ft) = self.fallthrough.take() {
             let stmts: List<lang::Statement> =
-                self.fallthrough_stmts.drain(..).map(|s| s.0).collect();
+                self.fallthrough_stmts.drain(..).collect();
             self.blocks.push((
                 ft,
-                OrdByDebug(lang::BasicBlock {
+                lang::BasicBlock {
                     statements: stmts,
                     terminator: lang::Terminator::Unreachable,
                     kind: lang::BbKind::Regular,
-                }),
+                },
             ));
         }
         self.blocks
-            .into_iter()
-            .map(|(b, blk)| (b.0, blk.0))
-            .collect()
     }
 }

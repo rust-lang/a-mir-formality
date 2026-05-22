@@ -20,80 +20,61 @@ use minirust_rs::lang;
 use minirust_rs::mem::{PtrType, TupleHeadLayout};
 use std::sync::Arc;
 
-mod ord_by_debug;
-use ord_by_debug::OrdByDebug;
-
 mod seme_region;
 use seme_region::SemeRegion;
 
 mod test;
 
-// Wrapped specr types for use in judgment signatures
-type MrLocal = OrdByDebug<lang::LocalName>;
-type MrType = OrdByDebug<lang::Type>;
-type MrFn = OrdByDebug<lang::FnName>;
-type MrBb = OrdByDebug<lang::BbName>;
+macro_rules! minirust_newtype {
+    (copy $name:ident wraps $inner:ty) => {
+        #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+        struct $name($inner);
+        minirust_newtype!(@impls $name, $inner);
+    };
+    ($name:ident wraps $inner:ty) => {
+        #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+        struct $name($inner);
+        minirust_newtype!(@impls $name, $inner);
+    };
+    (@impls $name:ident, $inner:ty) => {
+        formality_core::cast_impl!($name);
 
-/// Thin wrapper around `lang::PlaceExpr` for builder ergonomics.
-#[derive(Clone, Debug)]
-struct MrPlace(lang::PlaceExpr);
+        impl formality_core::UpcastFrom<$inner> for $name {
+            fn upcast_from(v: $inner) -> Self {
+                $name(v)
+            }
+        }
 
-formality_core::cast_impl!(MrPlace);
+        impl From<$name> for $inner {
+            fn from(v: $name) -> Self {
+                v.0
+            }
+        }
 
-impl formality_core::UpcastFrom<MrLocal> for MrPlace {
-    fn upcast_from(l: MrLocal) -> Self {
-        MrPlace(lang::PlaceExpr::Local(l.0))
+        impl std::ops::Deref for $name {
+            type Target = $inner;
+            fn deref(&self) -> &$inner {
+                &self.0
+            }
+        }
+    };
+}
+
+minirust_newtype!(copy MiniRustLocal wraps lang::LocalName);
+minirust_newtype!(copy MiniRustType wraps lang::Type);
+minirust_newtype!(copy MiniRustFn wraps lang::FnName);
+minirust_newtype!(copy MiniRustBb wraps lang::BbName);
+minirust_newtype!(MiniRustFunction wraps lang::Function);
+
+minirust_newtype!(copy MiniRustPlace wraps lang::PlaceExpr);
+minirust_newtype!(copy MiniRustValue wraps lang::ValueExpr);
+
+impl formality_core::UpcastFrom<MiniRustLocal> for MiniRustPlace {
+    fn upcast_from(l: MiniRustLocal) -> Self {
+        MiniRustPlace(lang::PlaceExpr::Local(l.into()))
     }
 }
 
-impl formality_core::UpcastFrom<lang::PlaceExpr> for MrPlace {
-    fn upcast_from(p: lang::PlaceExpr) -> Self {
-        MrPlace(p)
-    }
-}
-
-/// Thin wrapper around `lang::ValueExpr` for builder ergonomics.
-#[derive(Clone, Debug)]
-struct MrValue(lang::ValueExpr);
-
-formality_core::cast_impl!(MrValue);
-
-impl formality_core::UpcastFrom<lang::ValueExpr> for MrValue {
-    fn upcast_from(v: lang::ValueExpr) -> Self {
-        MrValue(v)
-    }
-}
-
-// Upcast from &lang::LocalName to MrLocal (for judgment macro bindings)
-impl formality_core::UpcastFrom<lang::LocalName> for MrLocal {
-    fn upcast_from(l: lang::LocalName) -> Self {
-        OrdByDebug(l)
-    }
-}
-
-// Upcast from &lang::BbName to MrBb
-impl formality_core::UpcastFrom<lang::BbName> for MrBb {
-    fn upcast_from(b: lang::BbName) -> Self {
-        OrdByDebug(b)
-    }
-}
-
-// Upcast from lang::FnName to MrFn
-impl formality_core::UpcastFrom<lang::FnName> for MrFn {
-    fn upcast_from(f: lang::FnName) -> Self {
-        OrdByDebug(f)
-    }
-}
-
-fn wrap_local(l: &lang::LocalName) -> MrLocal {
-    OrdByDebug(*l)
-}
-fn wrap_ty(t: lang::Type) -> MrType {
-    OrdByDebug(t)
-}
-fn wrap_fn(f: &lang::FnName) -> MrFn {
-    OrdByDebug(*f)
-}
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub(crate) struct MonoKey {
@@ -109,23 +90,23 @@ pub(crate) struct CodegenGlobal {
     local_counter: u32,
     bb_counter: u32,
     fn_counter: u32,
-    locals: Vec<(MrLocal, MrType)>,
-    fn_map: Vec<(MonoKey, MrFn)>,
+    locals: Vec<(MiniRustLocal, MiniRustType)>,
+    fn_map: Vec<(MonoKey, MiniRustFn)>,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub(crate) struct CodegenScope {
-    vars: Vec<(ValueId, MrLocal, Ty)>,
+    vars: Vec<(ValueId, MiniRustLocal, Ty)>,
     label_scopes: Vec<LabelScope>,
-    ret_local: MrLocal,
+    ret_local: MiniRustLocal,
     flow_state: FlowState,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 struct LabelScope {
     label: LabelId,
-    continue_target: Option<MrBb>,
-    break_target: MrBb,
+    continue_target: Option<MiniRustBb>,
+    break_target: MiniRustBb,
 }
 
 formality_core::cast_impl!(CodegenGlobal);
@@ -171,7 +152,7 @@ impl CodegenGlobal {
     }
     fn alloc_local(&self, ty: lang::Type) -> (lang::LocalName, Self) {
         let (name, mut g) = self.fresh_local();
-        g.locals.push((wrap_local(&name), wrap_ty(ty)));
+        g.locals.push((MiniRustLocal(name), MiniRustType(ty)));
         (name, g)
     }
     fn ensure_fn(&self, key: MonoKey) -> (lang::FnName, Self) {
@@ -181,7 +162,7 @@ impl CodegenGlobal {
             }
         }
         let (name, mut g) = self.fresh_fn();
-        g.fn_map.push((key, wrap_fn(&name)));
+        g.fn_map.push((key, MiniRustFn(name)));
         (name, g)
     }
     fn next_pending(
@@ -200,10 +181,10 @@ impl CodegenGlobal {
         let (bb, g) = self.fresh_bb();
         (SemeRegion::empty(&bb), g)
     }
-    fn alloc_temp(&self, ty: &Ty) -> Fallible<(MrLocal, Self)> {
+    fn alloc_temp(&self, ty: &Ty) -> Fallible<(MiniRustLocal, Self)> {
         let mr_ty = self.minirust_ty(ty)?;
         let (name, g) = self.alloc_local(mr_ty);
-        Ok((wrap_local(&name), g))
+        Ok((MiniRustLocal(name), g))
     }
     fn reset_for_function(&self, output_ty: &Ty) -> Self {
         let mut s = self.clone();
@@ -221,7 +202,7 @@ impl CodegenScope {
         CodegenScope {
             vars: Vec::new(),
             label_scopes: Vec::new(),
-            ret_local: wrap_local(&ret_local),
+            ret_local: MiniRustLocal(ret_local),
             flow_state,
         }
     }
@@ -238,7 +219,7 @@ impl CodegenScope {
             .iter()
             .rev()
             .find(|s| s.label == *label)
-            .map(|s| (s.continue_target.as_ref().map(|b| b.0), s.break_target.0))
+            .map(|s| (s.continue_target.map(|b| b.into()), s.break_target.into()))
             .ok_or_else(|| anyhow::anyhow!("no label `{label:?}` in scope"))
     }
     fn push_var(&self, id: ValueId, local: lang::LocalName, ty: Ty) -> Fallible<Self> {
@@ -246,26 +227,26 @@ impl CodegenScope {
         s.flow_state = s
             .flow_state
             .with_local_in_scope(&Env::default(), &None, &id, &ty)?;
-        s.vars.push((id, wrap_local(&local), ty));
+        s.vars.push((id, MiniRustLocal(local), ty));
         Ok(s)
     }
     /// Add a variable mapping without updating FlowState.
     /// Used for input args that are already registered in FlowState via for_fn_body.
     fn push_var_no_flow(mut self, id: ValueId, local: lang::LocalName, ty: Ty) -> Self {
-        self.vars.push((id, wrap_local(&local), ty));
+        self.vars.push((id, MiniRustLocal(local), ty));
         self
     }
     fn push_label(
         &self,
         label: LabelId,
-        continue_target: Option<impl Upcast<MrBb>>,
-        break_target: impl Upcast<MrBb>,
+        continue_target: Option<lang::BbName>,
+        break_target: lang::BbName,
     ) -> Self {
         let mut s = self.clone();
         s.label_scopes.push(LabelScope {
             label,
-            continue_target: continue_target.map(|b| b.upcast()),
-            break_target: break_target.upcast(),
+            continue_target: continue_target.map(MiniRustBb),
+            break_target: MiniRustBb(break_target),
         });
         s
     }
@@ -566,12 +547,12 @@ fn struct_field_index(
 
 impl SemeRegion {
     /// Assign a value to a place. Wraps `push_stmt` with an `Assign` statement.
-    pub fn assign(&self, dest: impl Upcast<MrPlace>, value: impl Upcast<MrValue>) -> Self {
-        let dest: MrPlace = dest.upcast();
-        let value: MrValue = value.upcast();
+    pub fn assign(&self, dest: impl Upcast<MiniRustPlace>, value: impl Upcast<MiniRustValue>) -> Self {
+        let dest: MiniRustPlace = dest.upcast();
+        let value: MiniRustValue = value.upcast();
         self.clone().push_stmt(lang::Statement::Assign {
-            destination: dest.0,
-            source: value.0,
+            destination: dest.into(),
+            source: value.into(),
         })
     }
 
@@ -592,12 +573,12 @@ impl SemeRegion {
     pub fn call(
         &self,
         global: &CodegenGlobal,
-        fn_name: impl Upcast<MrFn>,
-        args: &[MrLocal],
-        ret: impl Upcast<MrLocal>,
+        fn_name: impl Upcast<MiniRustFn>,
+        args: &[MiniRustLocal],
+        ret: impl Upcast<MiniRustLocal>,
     ) -> Fallible<(Self, CodegenGlobal)> {
-        let fn_name: MrFn = fn_name.upcast();
-        let ret: MrLocal = ret.upcast();
+        let fn_name: MiniRustFn = fn_name.upcast();
+        let ret: MiniRustLocal = ret.upcast();
         let arg_exprs: List<lang::ArgumentExpr> = args
             .iter()
             .map(|t| {
@@ -611,12 +592,12 @@ impl SemeRegion {
             .clone()
             .terminate(lang::Terminator::Call {
                 callee: lang::ValueExpr::Constant(
-                    lang::Constant::FnPointer(fn_name.0),
+                    lang::Constant::FnPointer(fn_name.into()),
                     lang::Type::Ptr(PtrType::FnPtr),
                 ),
                 calling_convention: lang::CallingConvention::Rust,
                 arguments: arg_exprs,
-                ret: lang::PlaceExpr::Local(ret.0),
+                ret: lang::PlaceExpr::Local(ret.into()),
                 next_block: Some(next_bb),
                 unwind_block: None,
             })
@@ -628,15 +609,15 @@ impl SemeRegion {
     pub fn branch_on_bool_from(
         &self,
         global: &CodegenGlobal,
-        cond: impl Upcast<MrLocal>,
+        cond: impl Upcast<MiniRustLocal>,
         then_r: impl Upcast<SemeRegion>,
         else_r: impl Upcast<SemeRegion>,
     ) -> (Self, CodegenGlobal) {
-        let cond: MrLocal = cond.upcast();
+        let cond: MiniRustLocal = cond.upcast();
         let (join, g) = global.fresh_bb();
         (
             self.clone()
-                .branch_on_bool(cond.0, then_r.upcast(), else_r.upcast(), join),
+                .branch_on_bool(cond.into(), then_r.upcast(), else_r.upcast(), join),
             g,
         )
     }
@@ -645,9 +626,9 @@ impl SemeRegion {
     pub fn print_intrinsic(
         &self,
         global: &CodegenGlobal,
-        value: impl Upcast<MrLocal>,
+        value: impl Upcast<MiniRustLocal>,
     ) -> Fallible<(Self, CodegenGlobal)> {
-        let value: MrLocal = value.upcast();
+        let value: MiniRustLocal = value.upcast();
         let (next_bb, mut g) = global.fresh_bb();
         let (print_ret, g2) = g.alloc_local(unit_ty());
         g = g2;
@@ -656,7 +637,7 @@ impl SemeRegion {
             .terminate(lang::Terminator::Intrinsic {
                 intrinsic: lang::IntrinsicOp::PrintStdout,
                 arguments: list![lang::ValueExpr::Load {
-                    source: GcCow::new(lang::PlaceExpr::Local(value.0))
+                    source: GcCow::new(lang::PlaceExpr::Local(value.into()))
                 }],
                 ret: lang::PlaceExpr::Local(print_ret),
                 next_block: Some(next_bb),
@@ -670,35 +651,35 @@ impl SemeRegion {
 // Builder API: free functions for MiniRust value/terminator construction
 // ---------------------------------------------------------------------------
 
-fn constant(value: &usize, ty: &ScalarId) -> MrValue {
+fn constant(value: &usize, ty: &ScalarId) -> MiniRustValue {
     let mr_ty = scalar_minirust_ty(ty).expect("scalar type always valid");
-    MrValue(lang::ValueExpr::Constant(
+    MiniRustValue(lang::ValueExpr::Constant(
         lang::Constant::Int(Int::from(*value)),
         mr_ty,
     ))
 }
 
-fn bool_constant(val: bool) -> MrValue {
-    MrValue(lang::ValueExpr::Constant(
+fn bool_constant(val: bool) -> MiniRustValue {
+    MiniRustValue(lang::ValueExpr::Constant(
         lang::Constant::Bool(val),
         lang::Type::Bool,
     ))
 }
 
-fn load(place: impl Upcast<MrPlace>) -> MrValue {
-    let place: MrPlace = place.upcast();
-    MrValue(lang::ValueExpr::Load {
-        source: GcCow::new(place.0),
+fn load(place: impl Upcast<MiniRustPlace>) -> MiniRustValue {
+    let place: MiniRustPlace = place.upcast();
+    MiniRustValue(lang::ValueExpr::Load {
+        source: GcCow::new(place.into()),
     })
 }
 
 fn addr_of(
     global: &CodegenGlobal,
-    place: impl Upcast<MrPlace>,
+    place: impl Upcast<MiniRustPlace>,
     kind: &crate::grammar::RefKind,
     pointee_ty: &Ty,
-) -> Fallible<MrValue> {
-    let place: MrPlace = place.upcast();
+) -> Fallible<MiniRustValue> {
+    let place: MiniRustPlace = place.upcast();
     let mr = global.minirust_ty(pointee_ty)?;
     let (ps, pa) = type_size_align(&mr);
     let mutbl = match kind {
@@ -715,18 +696,18 @@ fn addr_of(
             unsafe_cells: minirust_rs::mem::UnsafeCellStrategy::Sized { cells: list![] },
         },
     };
-    Ok(MrValue(lang::ValueExpr::AddrOf {
-        target: GcCow::new(place.0),
+    Ok(MiniRustValue(lang::ValueExpr::AddrOf {
+        target: GcCow::new(place.into()),
         ptr_ty,
     }))
 }
 
 fn tuple_value(
-    temps: &[MrLocal],
+    temps: &[MiniRustLocal],
     adt_id: &crate::grammar::AdtId,
     turbofish: &crate::grammar::expr::Turbofish,
     crates: &Crates,
-) -> Fallible<MrValue> {
+) -> Fallible<MiniRustValue> {
     let fv: List<lang::ValueExpr> = temps
         .iter()
         .map(|t| lang::ValueExpr::Load {
@@ -740,16 +721,16 @@ fn tuple_value(
             turbofish.parameters.clone(),
         ),
     )?;
-    Ok(MrValue(lang::ValueExpr::Tuple(fv, st)))
+    Ok(MiniRustValue(lang::ValueExpr::Tuple(fv, st)))
 }
 
 fn terminator_return() -> lang::Terminator {
     lang::Terminator::Return
 }
 
-fn terminator_goto(bb: impl Upcast<MrBb>) -> lang::Terminator {
-    let bb: MrBb = bb.upcast();
-    lang::Terminator::Goto(bb.0)
+fn terminator_goto(bb: impl Upcast<MiniRustBb>) -> lang::Terminator {
+    let bb: MiniRustBb = bb.upcast();
+    lang::Terminator::Goto(bb.into())
 }
 
 fn bool_ty() -> lang::Type {
@@ -764,7 +745,7 @@ fn alloc_temps_for_args(
     global: &CodegenGlobal,
     scope: &CodegenScope,
     args: &[Expr],
-) -> Fallible<(Vec<MrLocal>, CodegenGlobal)> {
+) -> Fallible<(Vec<MiniRustLocal>, CodegenGlobal)> {
     let mut g = global.clone();
     let mut temps = Vec::new();
     for arg in args {
@@ -779,7 +760,7 @@ fn alloc_temps_for_args(
 fn alloc_temps_for_fields(
     global: &CodegenGlobal,
     fields: &[crate::grammar::Field],
-) -> Fallible<(Vec<MrLocal>, CodegenGlobal)> {
+) -> Fallible<(Vec<MiniRustLocal>, CodegenGlobal)> {
     let mut g = global.clone();
     let mut temps = Vec::new();
     for f in fields {
@@ -839,25 +820,25 @@ fn require_label(
 
 fn build_loop(
     global: &CodegenGlobal,
-    loop_start: impl Upcast<MrBb>,
-    exit: impl Upcast<MrBb>,
+    loop_start: impl Upcast<MiniRustBb>,
+    exit: impl Upcast<MiniRustBb>,
     body: impl Upcast<SemeRegion>,
 ) -> Fallible<(SemeRegion, CodegenGlobal)> {
-    let loop_start: MrBb = loop_start.upcast();
-    let exit: MrBb = exit.upcast();
+    let loop_start: MiniRustBb = loop_start.upcast();
+    let exit: MiniRustBb = exit.upcast();
     let body: SemeRegion = body.upcast();
     let (entry, g) = global.fresh_bb();
     let mut region = SemeRegion::empty(&entry)
-        .terminate(lang::Terminator::Goto(loop_start.0))
-        .add_empty_block(loop_start.0);
+        .terminate(lang::Terminator::Goto(loop_start.into()))
+        .add_empty_block(loop_start.into());
     region = region.append(body, || {
         let (bb, _) = g.fresh_bb();
         bb
     });
     if region.has_fallthrough() {
-        region = region.terminate(lang::Terminator::Goto(loop_start.0));
+        region = region.terminate(lang::Terminator::Goto(loop_start.into()));
     }
-    region = region.add_empty_block(exit.0);
+    region = region.add_empty_block(exit.into());
     Ok((region, g))
 }
 
@@ -870,13 +851,13 @@ judgment_fn! {
         global: CodegenGlobal,
         scope: CodegenScope,
         callee: Expr,
-    ) => (MrFn, CodegenGlobal) {
+    ) => (MiniRustFn, CodegenGlobal) {
         debug(global, scope, callee)
 
         (
             (let (n, global) = global.ensure_fn(MonoKey { id: id.clone(), args: args.to_vec() }))
             ---- ("turbofish")
-            (resolve_call(global, scope, ExprData::Turbofish { id, args }) => (wrap_fn(n), global))
+            (resolve_call(global, scope, ExprData::Turbofish { id, args }) => (MiniRustFn(*n), global))
         )
 
         (
@@ -884,7 +865,7 @@ judgment_fn! {
             (if global.crates.fn_named(id).is_ok())
             (let (n, global) = global.ensure_fn(MonoKey { id: id.clone(), args: vec![] }))
             ---- ("var-fn")
-            (resolve_call(global, scope, PlaceExpr::Var(id)) => (wrap_fn(n), global))
+            (resolve_call(global, scope, PlaceExpr::Var(id)) => (MiniRustFn(*n), global))
         )
 
         (
@@ -893,7 +874,7 @@ judgment_fn! {
             (if let RigidName::FnDef(fn_id) = &rigid.name)
             (let (n, global) = global.ensure_fn(MonoKey { id: fn_id.clone(), args: vec![] }))
             ---- ("place")
-            (resolve_call(global, scope, ExprData::Place(place)) => (wrap_fn(n), global))
+            (resolve_call(global, scope, ExprData::Place(place)) => (MiniRustFn(*n), global))
         )
     }
 }
@@ -945,7 +926,7 @@ judgment_fn! {
     fn codegen_expr_into(
         global: CodegenGlobal,
         scope: CodegenScope,
-        target: MrLocal,
+        target: MiniRustLocal,
         expr: Expr,
     ) => (SemeRegion, CodegenGlobal) {
         debug(global, scope, target, expr)
@@ -1120,7 +1101,7 @@ judgment_fn! {
             (let label = require_label(label)?)
             (let (loop_start, global) = global.fresh_bb())
             (let (exit_block, global) = global.fresh_bb())
-            (let scope = scope.push_label(label.id.clone(), Some(loop_start), exit_block))
+            (let scope = scope.push_label(label.id.clone(), Some(*loop_start), *exit_block))
             (codegen_block(global, scope, body) => (body_region, global))
             (let (region, global) = build_loop(&global, loop_start, exit_block, body_region)?)
             ---- ("loop")
@@ -1186,7 +1167,7 @@ judgment_fn! {
         (
             (if let Some(label) = &block.label)
             (let (exit_block, global) = global.fresh_bb())
-            (let scope = scope.push_label(label.id.clone(), None::<lang::BbName>, exit_block))
+            (let scope = scope.push_label(label.id.clone(), None::<lang::BbName>, *exit_block))
             (let (region, global) = global.fresh_region())
             (for_all(i in 0..block.stmts.len()) with(region, scope, global)
                 (codegen_stmt(global, scope, block.stmts[i].clone()) => (stmt_region, scope, global))
@@ -1215,9 +1196,6 @@ fn unwrap_proven<T: std::fmt::Debug + Clone + Ord>(
 // ---------------------------------------------------------------------------
 // Function and program codegen
 // ---------------------------------------------------------------------------
-
-/// Wrapper for `lang::Function` to satisfy judgment trait bounds.
-type MrFunction = OrdByDebug<lang::Function>;
 
 /// Set up function arguments: alloc locals, build scope.
 fn setup_fn_args(
@@ -1316,7 +1294,7 @@ judgment_fn! {
     fn codegen_function(
         global: CodegenGlobal,
         key: MonoKey,
-    ) => (MrFunction, CodegenGlobal) {
+    ) => (MiniRustFunction, CodegenGlobal) {
         debug(global, key)
 
         (
@@ -1326,7 +1304,7 @@ judgment_fn! {
             (codegen_block(global, scope, body) => (region, global))
             (let function = build_function(&global, region.clone(), *ret_local, &arg_locals))
             ---- ("function")
-            (codegen_function(global, key) => (OrdByDebug(function.clone()), global))
+            (codegen_function(global, key) => (MiniRustFunction(function.clone()), global))
         )
     }
 }
@@ -1343,7 +1321,7 @@ pub fn codegen_program(crates: &Crates) -> Fallible<lang::Program> {
     while let Some((key, fn_name)) = g.next_pending(&functions) {
         let (function, g2) = unwrap_proven(codegen_function(g, key))?;
         g = g2;
-        functions.insert(fn_name, function.0);
+        functions.insert(fn_name, function.into());
     }
     // Build _start
     let (sr, g2) = g.fresh_fn();
