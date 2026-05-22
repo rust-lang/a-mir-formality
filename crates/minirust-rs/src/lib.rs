@@ -1,8 +1,6 @@
 #![recursion_limit = "256"]
 #![feature(yeet_expr)]
 #![feature(never_type)]
-#![feature(iterator_try_collect)]
-#![feature(try_blocks)]
 #[allow(unused_imports)]
 #[macro_use]
 pub extern crate libspecr;
@@ -11,7 +9,7 @@ pub extern crate libspecr;
 pub mod prelude;
 #[allow(unused_imports)]
 #[macro_use]
-pub mod lang;
+pub mod mem;
 #[allow(unused_imports)]
 #[macro_use]
-pub mod mem;
+pub mod lang;

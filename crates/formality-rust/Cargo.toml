@@ -17,7 +17,7 @@ itertools = "0.10.5"
 stacker = "0.1.15"
 extension-trait = "1.0.1"
 minirust-rs = { path = "../minirust-rs" }
-libspecr = "=0.1.36"
+libspecr = "=0.1.40"
 regex = "1.12.3"
 tempfile = "3.27.0"
 

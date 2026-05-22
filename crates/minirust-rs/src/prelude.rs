@@ -13,7 +13,17 @@ pub trait Target: libspecr::hidden::Obj {
     fn valid_size(size: Size) -> bool;
 }
 #[allow(non_camel_case_types)]
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(GcCompat)]
+#[derive(Debug)]
+#[derive(Clone)]
+#[derive(Copy)]
+#[derive(PartialEq)]
+#[derive(Eq)]
+#[derive(Hash)]
+#[derive(PartialOrd)]
+#[derive(Ord)]
+#[derive(serde::Serialize)]
+#[derive(serde::Deserialize)]
 pub struct x86_64;
 impl Target for x86_64 {
     const PTR_SIZE: Size = Size::from_bits_const(64).unwrap();
@@ -25,10 +35,10 @@ impl Target for x86_64 {
         size.bytes().in_bounds(Signed, Self::PTR_SIZE)
     }
 }
-/// Make the two main modules available.
-pub use crate::{lang, mem};
 /// Documentation for libspecr can be found here: https://docs.rs/libspecr
 pub use libspecr::prelude::*;
+/// Make the two main modules available.
+pub use crate::{lang, mem};
 /// When a non-negative integer is used as an offset into an allocation or type
 /// rather than to describe the size of an object or type, use this type instead
 /// of `Size` for extra clarity.
@@ -36,7 +46,17 @@ pub type Offset = Size;
 /// All operations are fallible, so they return `Result`.  If they fail, that
 /// means the program caused UB or put the machine to a halt.
 pub type Result<T = ()> = std::result::Result<T, TerminationInfo>;
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(GcCompat)]
+#[derive(Debug)]
+#[derive(Clone)]
+#[derive(Copy)]
+#[derive(PartialEq)]
+#[derive(Eq)]
+#[derive(Hash)]
+#[derive(PartialOrd)]
+#[derive(Ord)]
+#[derive(serde::Serialize)]
+#[derive(serde::Deserialize)]
 pub enum TerminationInfo {
     /// The execution encountered undefined behaviour.
     Ub(String),
@@ -55,7 +75,7 @@ pub enum TerminationInfo {
 /// `Option`/`Result`-returning function.
 macro_rules! throw {
     ($($tt:tt)*) => {
-        do yeet ()
+        do yeet()
     };
 }
 macro_rules! throw_ub {
