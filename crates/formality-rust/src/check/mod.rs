@@ -79,6 +79,8 @@ fn check_for_duplicate_items(program: &Program) -> Fallible<ProofTree> {
         let mut items = Set::new();
         let mut traits = Set::new();
         let mut functions = Set::new();
+        let mut impl_decls = Set::new();
+        let mut neg_impl_decls = Set::new();
         for item in c.items.iter() {
             match item {
                 CrateItem::AdtItem(s) => {
@@ -96,8 +98,17 @@ fn check_for_duplicate_items(program: &Program) -> Fallible<ProofTree> {
                         bail!("the function name `{:?}` is defined multiple times", f.id);
                     }
                 }
-                CrateItem::TraitImpl(_) | CrateItem::NegTraitImpl(_) | CrateItem::Test(_) => {}
-                CrateItem::FeatureGate(_) => {}
+                CrateItem::TraitImpl(impl_decl) => {
+                    if !impl_decls.insert(impl_decl) {
+                        bail!("`{:?}` is defined multiple times", impl_decl);
+                    }
+                }
+                CrateItem::NegTraitImpl(neg_impl_decl) => {
+                    if !neg_impl_decls.insert(neg_impl_decl) {
+                        bail!("`{:?}` is defined multiple times", neg_impl_decl);
+                    }
+                }
+                CrateItem::Test(_) | CrateItem::FeatureGate(_) => {}
             }
         }
     }

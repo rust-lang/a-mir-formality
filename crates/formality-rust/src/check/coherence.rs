@@ -13,7 +13,6 @@ judgment_fn! {
 
         (
             (let current_crate_impls = program.trait_impls_in_crate(&current_crate))
-            (ensure_no_duplicate_impls(current_crate_impls) => ())
             (let all_crate_impls = program.trait_impls())
             (for_all(impl_a in current_crate_impls)
                 (for_all(impl_b in all_crate_impls)
@@ -61,16 +60,6 @@ judgment_fn! {
             (orphan_check_neg(program, impl_a) => ())
         )
     }
-}
-
-/// Reject duplicate trait impls in the current crate so overlap pairing cannot match an impl with itself.
-fn ensure_no_duplicate_impls(impls: &[TraitImpl]) -> Fallible<ProofTree> {
-    for (i, impl_a) in impls.iter().enumerate() {
-        if impls[i + 1..].contains(impl_a) {
-            bail!("duplicate impl in current crate: {:?}", impl_a);
-        }
-    }
-    Ok(ProofTree::leaf("no duplicate impls"))
 }
 
 /// Two impls of the same trait prove they do not overlap or report impls may overlap.

@@ -212,8 +212,8 @@ fn u32_u32_impls() {
         impl Foo for u32 {}
     }])
     .err(expect_test::expect![[r#"
-            the rule "check_coherence" at (coherence.rs) failed because
-              duplicate impl in current crate: impl Foo for u32 { }"#]])
+        the rule "check crate" at (mod.rs) failed because
+          `impl Foo for u32 { }` is defined multiple times"#]])
 }
 
 #[test]
