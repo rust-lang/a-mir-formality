@@ -1,4 +1,5 @@
 use crate::grammar::{Crates, Fallible, ParameterKind, Ty, WhereClause, WhereClauseData};
+use std::cell::LazyCell;
 use std::ops::Deref;
 
 pub mod context;
@@ -11,6 +12,13 @@ pub mod syntax;
 pub mod test_util;
 mod traits_and_impls;
 mod tys;
+
+pub(crate) const CORE_CRATE_NAME: &'static str = "core";
+pub(crate) const MY_CORE_CRATE_NAME: &'static str = "mycore";
+pub(crate) const MY_CORE_IMPORT: LazyCell<syntax::ImportItem> =
+    LazyCell::new(|| syntax::ImportItem {
+        crate_name: MY_CORE_CRATE_NAME.to_string(),
+    });
 
 /// Produces a Cargo workspaces on the file system in the
 /// `root_direcotry`. After sucesfully creating all the files,
@@ -36,6 +44,7 @@ pub fn create_workspace(crates: &Crates, root_directory: &std::path::Path) -> Fa
 
     let mut ctx = context::Context::default();
     let crates = crates::build_crates(&mut ctx, crates)?;
+    let contains_core = crates.get(MY_CORE_CRATE_NAME).is_some();
     let crates_path = root_directory.join("crates");
     let root_toml_path = root_directory.join("Cargo.toml");
 
@@ -61,6 +70,11 @@ pub fn create_workspace(crates: &Crates, root_directory: &std::path::Path) -> Fa
         writeln!(&file, "name = \"{name}\"")?;
         writeln!(&file, "version = \"0.1.0\"")?;
         writeln!(&file, "edition = \"2021\"")?;
+
+        if contains_core && name != MY_CORE_CRATE_NAME {
+            writeln!(&file, "[dependencies]")?;
+            writeln!(&file, "mycore = {{ path = \"../mycore\"}}")?;
+        }
 
         writeln!(&root_toml_file, "    \"crates/{name}\",")?;
     }

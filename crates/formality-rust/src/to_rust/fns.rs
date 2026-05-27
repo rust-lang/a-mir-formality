@@ -8,7 +8,11 @@ use crate::to_rust::{
     syntax, tys,
 };
 
-pub fn lower_fn(ctx: &mut Context, function: &Fn) -> Fallible<syntax::FunctionItem> {
+pub fn lower_fn(
+    ctx: &mut Context,
+    function: &Fn,
+    visibility: syntax::Visibility,
+) -> Fallible<syntax::FunctionItem> {
     let (term, generics) = open_bounded!(ctx, &function.binder);
     let params = term
         .input_args
@@ -19,6 +23,7 @@ pub fn lower_fn(ctx: &mut Context, function: &Fn) -> Fallible<syntax::FunctionIt
     let body = lower_fn_body(ctx, &term.body)?;
 
     Ok(syntax::FunctionItem {
+        visibility,
         is_unsafe: matches!(function.safety, Safety::Unsafe),
         name: function.id.deref().clone(),
         generics,
@@ -61,7 +66,7 @@ mod test {
                 }
             ],
             r#"
-fn run() -> i32 {
+pub fn run() -> i32 {
     panic!("Trusted Fn Body")
 }
 "#
@@ -77,7 +82,7 @@ fn run() -> i32 {
                 }
             ],
             r#"
-fn run(mut p1: i32, mut p2: i32) -> i32 {
+pub fn run(mut p1: i32, mut p2: i32) -> i32 {
     panic!("Trusted Fn Body")
 }
 "#
@@ -93,7 +98,7 @@ fn run(mut p1: i32, mut p2: i32) -> i32 {
                 }
             ],
             r#"
-fn run<T0>(mut p1: T0) -> T0 {
+pub fn run<T0>(mut p1: T0) -> T0 {
     panic!("Trusted Fn Body")
 }
 "#
@@ -110,9 +115,9 @@ fn run<T0>(mut p1: T0) -> T0 {
                 }
             ],
             r#"
-trait Bar { }
+pub trait Bar { }
 
-fn run<T1>(mut p1: T1) -> T1 where T1: Bar {
+pub fn run<T1>(mut p1: T1) -> T1 where T1: Bar {
     panic!("Trusted Fn Body")
 }
 "#
@@ -129,7 +134,7 @@ fn run<T1>(mut p1: T1) -> T1 where T1: Bar {
                 }
             ],
             r#"
-fn run<const N0: i32>() -> i32 {
+pub fn run<const N0: i32>() -> i32 {
     panic!("Trusted Fn Body")
 }
 "#
