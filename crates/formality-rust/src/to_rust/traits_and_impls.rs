@@ -350,4 +350,18 @@ impl !Bar for Baz {}
 "#
         );
     }
+
+    #[test]
+    fn self_type_is_emityed_self() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait Foo<T> where T: Bar<Self> {}
+                }
+            ],
+            r#"
+pub trait Foo<T1> where T1: Bar<Self> { }
+"#
+        );
+    }
 }
