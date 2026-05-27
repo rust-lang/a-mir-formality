@@ -4,50 +4,50 @@ Borrow checking lives under `check/borrow_check/`. Its top-level judgment is `bo
 
 ## `borrow_check`
 
-At the top level, borrow checking works over:
+{judgment}`borrow_check`
 
-* a `TypeckEnv`
-* a set of assumptions
-* a `FlowState`
-* a `Block`
+At the top level, borrow checking works over a `TypeckEnv`, a set of assumptions, a `FlowState`, and a `Block`. It delegates to `borrow_check_block`, which walks the block and updates the flow state statement by statement:
 
-`borrow_check` delegates to `borrow_check_block`, which walks the block and updates the flow state statement by statement.
+{judgment}`borrow_check_block`
 
-## `FlowState`
+## Statements
 
-`FlowState` is the flow-sensitive state threaded through borrow checking. It contains:
+`borrow_check_statement` handles each kind of statement. Here are some representative rules:
 
-* `scopes`
-* `current`
-* `breaks`
-* `continues`
+### `let` bindings
 
-Its `current` field is a `PointFlowState`, which tracks:
+{judgment-rule}`borrow_check_statement, let`
 
-* `loans_live`
-* `outlives`
+### `if` expressions
 
-## Loans
+{judgment-rule}`borrow_check_statement, if`
 
-A `Loan` represents a borrow produced by an expression like `&'a place`. It records:
+### `loop`
 
-* the lifetime of the borrow
-* the borrowed place
-* the borrow kind
+{judgment-rule}`borrow_check_statement, loop`
 
-Borrow checking adds loans to the current flow state and checks later accesses against the live loans.
+### `break` and `continue`
 
-## Liveness
+{judgment-rule}`borrow_check_statement, break`
 
-The borrow checker computes liveness with `LivePlaces` and the `LiveBefore` trait.
+{judgment-rule}`borrow_check_statement, continue`
 
-This is used to determine which places must be valid before a statement or expression, including at `break` and `continue` targets.
+### `return`
+
+{judgment-rule}`borrow_check_statement, return`
+
+## Expressions
+
+Borrow checking of value expressions is handled by `borrow_check_expr`:
+
+{judgment}`borrow_check_expr`
 
 ## Outlives
 
-Borrow checking also accumulates pending outlives constraints, represented as `PendingOutlives { a, b }`.
+Borrow checking also accumulates pending outlives constraints. The `outlives.rs` code verifies these constraints:
 
-The `outlives.rs` code verifies these constraints:
+{judgment}`verify_universal_outlives`
 
-* existential variables succeed trivially
-* universal variables must be justified by the assumptions
+Existential variables succeed trivially; universal variables must be justified by the assumptions:
+
+{judgment}`only_assumed_outlives`
