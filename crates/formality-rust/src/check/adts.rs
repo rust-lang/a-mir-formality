@@ -30,7 +30,7 @@ judgment_fn! {
     }
 }
 
-fn check_adt_names_unique(adt: &Adt) -> Fallible<ProofTree> {
+fn check_adt_variant_names_unique(adt: &Adt) -> Fallible<ProofTree> {
     // names is used to check that there are no name conflicts
     let mut names = HashSet::new();
     for Variant { name, fields } in &adt.binder.peek().variants {
