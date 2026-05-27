@@ -1,15 +1,36 @@
 use std::collections::HashSet;
 
+use crate::check::{prove_goal, where_clauses::prove_where_clauses_well_formed};
 use crate::grammar::Fallible;
 use crate::grammar::{Adt, AdtBoundData, Field, Relation, Variant};
 use crate::prove::prove::{Env, Program};
 use anyhow::bail;
 use formality_core::judgment::ProofTree;
+use formality_core::judgment_fn;
 
-pub(super) fn check_adt(program: &Program, adt: &Adt) -> Fallible<ProofTree> {
-    let Adt { id, binder } = adt;
-    let mut proof_tree = ProofTree::leaf(format!("check_adt({id:?})"));
+judgment_fn! {
+    pub(super) fn check_adt(
+        program: Program,
+        adt: Adt,
+    ) => () {
+        debug(adt)
+        (
+            (check_adt_variant_names_unique(adt) => ())
+            (let (env, bound_data) = Env::default().instantiate_universally(&adt.binder))
+            (let AdtBoundData { where_clauses, variants } = bound_data)
+            (prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
+            (for_all(variant in variants)
+                (let Variant { fields, .. } = variant)
+                (for_all(field in fields)
+                    (let Field { ty, .. } = field)
+                    (prove_goal(program, env, where_clauses, Relation::well_formed(ty)) => ())))
+            ------------------------------------------------------------ ("check adt")
+            (check_adt(program, adt) => ())
+        )
+    }
+}
 
+fn check_adt_variant_names_unique(adt: &Adt) -> Fallible<ProofTree> {
     // names is used to check that there are no name conflicts
     let mut names = HashSet::new();
     for Variant { name, fields } in &adt.binder.peek().variants {
@@ -24,33 +45,7 @@ pub(super) fn check_adt(program: &Program, adt: &Adt) -> Fallible<ProofTree> {
         }
     }
 
-    let (
-        env,
-        AdtBoundData {
-            where_clauses,
-            variants,
-        },
-    ) = Env::default().instantiate_universally(binder);
-
-    proof_tree
-        .children
-        .push(super::where_clauses::prove_where_clauses_well_formed(
-            program,
-            &env,
-            &where_clauses,
-            &where_clauses,
-        )?);
-
-    for Variant { name: _, fields } in &variants {
-        for Field { name: _, ty } in fields {
-            proof_tree.children.push(super::prove_goal(
-                program,
-                &env,
-                &where_clauses,
-                Relation::well_formed(&ty),
-            )?);
-        }
-    }
-
-    Ok(proof_tree)
+    Ok(ProofTree::leaf(
+        "check_adt_names_unique: all variant and field names unique",
+    ))
 }

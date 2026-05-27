@@ -101,8 +101,8 @@ fn basic_adt_variant_dup() {
         }
     }])
     .err(expect_test::expect![[r#"
-            the rule "adt" at (mod.rs) failed because
-              variant "Baz" defined multiple times"#]])
+        the rule "check adt" at (adts.rs) failed because
+          variant "Baz" defined multiple times"#]])
 }
 
 #[test]
@@ -114,8 +114,8 @@ fn basic_adt_field_dup() {
         }
     }])
     .err(expect_test::expect![[r#"
-            the rule "adt" at (mod.rs) failed because
-              field "baz" of variant "struct" defined multiple times"#]])
+        the rule "check adt" at (adts.rs) failed because
+          field "baz" of variant "struct" defined multiple times"#]])
 }
 
 #[test]
