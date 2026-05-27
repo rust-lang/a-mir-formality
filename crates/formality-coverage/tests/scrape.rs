@@ -113,10 +113,10 @@ fn markdown_index_snapshot() {
         | Judgment/Rule | Positive coverage |
         | --- | --- |
         | **[prove_thing](./prove_thing.md)** | - |
-        | ↳ [positive](./prove_thing.md#positive) | :check: |
-        | ↳ [zero](./prove_thing.md#zero) | :x: |
+        | ↳ [positive](./prove_thing.md#positive) | ✓ |
+        | ↳ [zero](./prove_thing.md#zero) | ✗ |
         | **[only_one](./only_one.md)** | - |
-        | ↳ [one](./only_one.md#one) | :x: |
+        | ↳ [one](./only_one.md#one) | ✗ |
     "#]]
     .assert_eq(&md);
 }
@@ -150,8 +150,8 @@ fn markdown_subpage_snapshot() {
 
         | Rule | Line | Positive coverage |
         | --- | --- | --- |
-        | <a id="positive"></a>`positive` | 10 | :check: |
-        | <a id="zero"></a>`zero` | 16 | :x: |
+        | <a id="positive"></a>`positive` | 10 | ✓ |
+        | <a id="zero"></a>`zero` | 16 | ✗ |
     "#]]
     .assert_eq(&md);
 }

@@ -1,8 +1,4 @@
 //! Render scraped judgments + positive-coverage data into markdown.
-//!
-//! Coverage marks are emitted as mdbook emoji shortcodes (`:check:` / `:x:`)
-//! so they render correctly through the mdbook preprocessor that wires this
-//! report into the formality book.
 
 use crate::jsonl::CoveredRule;
 use crate::scrape::Judgment;
@@ -69,9 +65,9 @@ fn covered_mark(covered: &BTreeSet<CoveredRule>, judgment: &str, rule: &str) -> 
         rule: rule.to_string(),
     });
     if hit {
-        ":check:"
+        "✓"
     } else {
-        ":x:"
+        "✗"
     }
 }
 
