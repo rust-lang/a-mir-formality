@@ -14,7 +14,7 @@ regex = "1.12.3"
 tracing = "0.1"
 fn-error-context = "0.2.0"
 minirust-rs = { path = "../minirust-rs" }
-libspecr = "=0.1.36"
+libspecr = "=0.1.40"
 tempfile = "3.27.0"
 
 [dev-dependencies]

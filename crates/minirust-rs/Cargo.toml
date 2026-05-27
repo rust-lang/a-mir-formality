@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-libspecr = "=0.1.36"
+libspecr = "=0.1.40"
+serde = {version = "1.0", features = ["derive"]}

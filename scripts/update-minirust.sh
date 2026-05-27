@@ -3,11 +3,11 @@
 #
 # This script:
 # 1. Clones https://github.com/minirust/minirust into a temp directory
-# 2. Runs specr-transpile to generate the minirust-rs crate
-# 3. Copies the generated sources into crates/minirust-rs/
-#
-# Prerequisites: cargo install specr-transpile@0.1.36
-#   (the script will attempt to install it if missing)
+# 2. Detects the specr-transpile version from upstream's Cargo.lock
+# 3. Installs the matching specr-transpile if needed
+# 4. Runs specr-transpile to generate the minirust-rs crate
+# 5. Copies the generated sources into crates/minirust-rs/
+# 6. Updates libspecr version in crates/formality-rust/Cargo.toml
 
 set -euo pipefail
 
@@ -15,20 +15,27 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DEST="$REPO_ROOT/crates/minirust-rs"
 
-SPECR_VERSION="0.1.36"
-
-# Ensure specr-transpile is installed
-if ! command -v specr-transpile &>/dev/null; then
-    echo "Installing specr-transpile@${SPECR_VERSION}..."
-    cargo install "specr-transpile@${SPECR_VERSION}"
-fi
-
 # Create a temp directory and ensure cleanup
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 
 echo "Cloning minirust into $TMPDIR..."
 git clone --depth 1 https://github.com/minirust/minirust "$TMPDIR/minirust"
+
+# Detect specr/libspecr version from upstream's Cargo.lock
+SPECR_VERSION=$(grep -A 1 'name = "libspecr"' "$TMPDIR/minirust/tooling/Cargo.lock" | grep 'version' | sed 's/.*"\(.*\)".*/\1/')
+if [ -z "$SPECR_VERSION" ]; then
+    echo "Error: could not detect libspecr version from upstream Cargo.lock"
+    exit 1
+fi
+echo "Detected specr version: $SPECR_VERSION"
+
+# Ensure the matching specr-transpile is installed
+INSTALLED_VERSION=$(cargo install --list 2>/dev/null | grep "^specr-transpile " | sed 's/.*v\(.*\):/\1/' || echo "")
+if [ "$INSTALLED_VERSION" != "$SPECR_VERSION" ]; then
+    echo "Installing specr-transpile@${SPECR_VERSION}..."
+    cargo install "specr-transpile@${SPECR_VERSION}"
+fi
 
 echo "Running specr-transpile..."
 cd "$TMPDIR/minirust"
@@ -46,6 +53,13 @@ echo "Updating $DEST..."
 rm -rf "$DEST/src"
 cp -r "$GENERATED/src" "$DEST/src"
 cp "$GENERATED/Cargo.toml" "$DEST/Cargo.toml"
+
+# Sync libspecr version in formality-rust
+FORMALITY_CARGO="$REPO_ROOT/crates/formality-rust/Cargo.toml"
+if [ -f "$FORMALITY_CARGO" ]; then
+    sed -i "s/libspecr = \"=[^\"]*\"/libspecr = \"=${SPECR_VERSION}\"/" "$FORMALITY_CARGO"
+    echo "Updated libspecr in formality-rust/Cargo.toml to =${SPECR_VERSION}"
+fi
 
 # Sync rust-toolchain.toml (minirust pins a specific nightly for compatibility)
 MINIRUST_TOOLCHAIN="$TMPDIR/minirust/rust-toolchain.toml"
