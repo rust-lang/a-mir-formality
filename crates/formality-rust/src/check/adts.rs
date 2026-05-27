@@ -15,7 +15,7 @@ judgment_fn! {
     ) => () {
         debug(adt)
         (
-            (check_adt_names_unique(adt) => ())
+            (check_adt_variant_names_unique(adt) => ())
             (let (env, bound_data) = Env::default().instantiate_universally(&adt.binder))
             (let AdtBoundData { where_clauses, variants } = bound_data)
             (prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
