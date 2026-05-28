@@ -1,6 +1,6 @@
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, TokenStream};
-use quote::quote_spanned;
+use quote::{quote, quote_spanned};
 use synstructure::VariantInfo;
 
 const RUST_KEYWORDS: &[&str] = &[
@@ -66,7 +66,7 @@ fn derive_new_for_variant(
         )
     });
 
-    quote_spanned! { v.ast().ident.span() =>
+    quote! {
         #[allow(dead_code)]
         impl #impl_generics #type_name #type_generics
         where #where_clauses

@@ -1,6 +1,6 @@
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, TokenStream};
-use quote::{quote, quote_spanned};
+use quote::quote;
 use syn::Type;
 use synstructure::VariantInfo;
 
@@ -35,7 +35,7 @@ fn arc_cast(s: &synstructure::Structure) -> TokenStream {
     let type_name = &s.ast().ident;
     let (impl_generics, type_generics, where_clauses) = s.ast().generics.split_for_impl();
 
-    quote_spanned! { type_name.span() =>
+    quote! {
         const _: () = {
             use formality_core::Upcast;
             use formality_core::UpcastFrom;
@@ -154,7 +154,7 @@ fn downcast_to_variant(s: &synstructure::Structure, v: &VariantInfo) -> TokenStr
             }
         });
 
-        let as_impl = quote_spanned! { v.ast().ident.span() =>
+        let as_impl = quote! {
             #[allow(dead_code)]
             impl #impl_generics #type_name #type_generics
             where #where_clauses
