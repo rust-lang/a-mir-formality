@@ -1,13 +1,18 @@
+use std::collections::HashMap;
+
 use crate::{
     grammar::{
-        Binder, BoundVar, ExistentialVar, Fallible, ParameterKind, UniversalVar, VarIndex, Variable,
+        Binder, DebruijnIndex, ExistentialVar, Fallible, ParameterKind, TraitBinder, UniversalVar,
+        VarIndex, Variable,
     },
-    rust::Fold,
+    rust::{Fold, Term},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Context {
     counter: VarIndex,
+    bounded: Vec<Vec<String>>,
+    free: HashMap<VarIndex, String>,
 }
 
 impl Context {
@@ -20,61 +25,96 @@ impl Default for Context {
     fn default() -> Self {
         Self {
             counter: VarIndex { index: 0 },
+            bounded: Vec::new(),
+            free: HashMap::new(),
         }
     }
 }
 
 impl Context {
-    /// Opens the binder `b` and instatiates ith with a fresh set of
-    /// bounded variables and returns the term and the names
-    pub fn open_bounded<T: Fold>(&mut self, b: &Binder<T>) -> (T, Vec<String>) {
-        let subst = self.bounded_substitution(b);
-        let term = b.instantiate_with(&subst).expect("suitable substitution");
-        let names = subst
+    pub fn first(&self) -> Option<&Vec<String>> {
+        self.bounded.first()
+    }
+
+    pub fn open_bounded<T: Term>(&mut self, b: Binder<T>) -> Wrapped<'_, T> {
+        let term = b.peek();
+        let names = b
+            .kinds()
             .into_iter()
-            .map(|var| format!("{}{}", self.kind_to_string(&var.kind), var.var_index.index))
+            .enumerate()
+            .map(|(index, kind)| format!("{}{}", self.kind_to_string(kind), index))
             .collect::<Vec<_>>();
-        (term, names)
+        self.bounded.insert(0, names);
+        Wrapped::new(self, term.clone())
+    }
+
+    pub fn open_trait<T: Term>(&mut self, b: TraitBinder<T>) -> Wrapped<'_, T> {
+        let wrapped = self.open_bounded(b.explicit_binder);
+        wrapped.ctx.bounded[0][0] = "Self".to_string();
+        wrapped
     }
 
     /// Opens the binder `b` and instatiates ith with a fresh set of
-    /// existential variables and returns the term and the names
-    pub fn open_exists<T: Fold>(&mut self, b: &Binder<T>) -> (T, Vec<String>) {
-        let subst = self.existential_substitution(b);
+    /// existential variables and returns the term
+    pub fn open_exists<T: Term>(&mut self, b: Binder<T>) -> T {
+        let subst = self.existential_substitution(&b);
         let term = b.instantiate_with(&subst).expect("suitable substitution");
-        let names = subst
+        // TODO: How can I prevent the collect()?
+        let names: Vec<_> = subst
             .into_iter()
-            .map(|var| format!("{}{}", self.kind_to_string(&var.kind), var.var_index.index))
-            .collect::<Vec<_>>();
-        (term, names)
+            .map(|var| {
+                (
+                    var.var_index,
+                    format!("{}E{}", self.kind_to_string(&var.kind), var.var_index.index),
+                )
+            })
+            .collect();
+        self.free.extend(names.into_iter());
+        term
     }
 
     /// Opens the binder `b` and instatiates ith with a fresh set of
-    /// universal variables and returns the term and the names
-    pub fn open_universal<T: Fold>(&mut self, b: &Binder<T>) -> (T, Vec<String>) {
-        let subst = self.universal_substitution(b);
-        let term = b.instantiate_with(&subst).expect("suitable substitution");
-        let names = subst
-            .into_iter()
-            .map(|var| format!("{}{}", self.kind_to_string(&var.kind), var.var_index.index))
-            .collect::<Vec<_>>();
-        (term, names)
+    /// universal variables and returns the term
+    pub fn open_universal<T: Term>(&mut self, b: Binder<T>) -> Wrapped<'_, T> {
+        self.open_bounded(b)
     }
 
     pub fn core_variable_to_string(&self, variable: &Variable) -> Fallible<String> {
-        let index = match variable {
-            Variable::UniversalVar(universal_var) => universal_var.var_index,
-            Variable::ExistentialVar(existential_var) => existential_var.var_index,
+        let kind = self.kind_to_string(&variable.kind());
+        match variable {
             Variable::BoundVar(bound_var) => {
-                if bound_var.debruijn.is_some() {
-                    anyhow::bail!("binder is not open")
+                if let Some(index) = bound_var.debruijn {
+                    self.lookup_bounded_var(&index, &bound_var.var_index)
+                } else {
+                    anyhow::bail!("binder was opened")
                 }
-                bound_var.var_index
+            }
+            Variable::UniversalVar(universal_var) => {
+                Ok(format!("{kind}{}", universal_var.var_index.index))
+            }
+            Variable::ExistentialVar(existential_var) => {
+                Ok(format!("{kind}{}", existential_var.var_index.index))
             }
         }
-        .index;
-        let kind = self.kind_to_string(&variable.kind());
-        Ok(format!("{kind}{index}"))
+    }
+
+    fn lookup_bounded_var(
+        &self,
+        debruijn: &DebruijnIndex,
+        var_index: &VarIndex,
+    ) -> Fallible<String> {
+        Ok(self
+            .bounded
+            .get(debruijn.index)
+            .and_then(|v| v.get(var_index.index))
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "variable with {}.{} is not bound",
+                    debruijn.index,
+                    var_index.index
+                )
+            })?
+            .clone())
     }
 
     fn kind_to_string(&self, kind: &ParameterKind) -> &'static str {
@@ -83,23 +123,6 @@ impl Context {
             ParameterKind::Lt => "'a",
             ParameterKind::Const => "N",
         }
-    }
-
-    /// Creates a substitution that replaces the variables introduced by the
-    /// binder `b` with fresh bound variables.
-    ///
-    /// Each binder parameter is mapped to a new [`BoundVar`] with a fresh
-    /// variable index. The resulting substitution can be used to instantiate
-    /// the binder without capturing existing variables.
-    pub fn bounded_substitution<T>(&mut self, b: &Binder<T>) -> Vec<BoundVar>
-    where
-        T: Fold,
-    {
-        self.substitution(b, |kind, var_index| BoundVar {
-            debruijn: None,
-            kind,
-            var_index,
-        })
     }
 
     /// Creates a substitution that replaces the variables introduced by the
@@ -166,29 +189,113 @@ impl Context {
     }
 }
 
+#[derive(Debug)]
+pub struct Wrapped<'ctx, T> {
+    pub ctx: &'ctx mut Context,
+    pub term: T,
+}
+
+impl<'ctx, T> Wrapped<'ctx, T> {
+    pub fn new(ctx: &'ctx mut Context, term: T) -> Wrapped<'ctx, T> {
+        Wrapped { ctx, term }
+    }
+}
+
+impl<'ctx, T> Drop for Wrapped<'ctx, T> {
+    fn drop(&mut self) {
+        self.ctx.bounded.remove(0);
+    }
+}
+
 #[macro_export]
 macro_rules! open_bounded {
     ($ctx:expr, $binder:expr) => {{
-        let (term, names) = $ctx.open_bounded($binder);
+        let mut wrapper = $ctx.open_bounded($binder);
+        let ctx = &mut wrapper.ctx;
+        let term = &wrapper.term;
         let generics = $crate::to_rust::lower_generics_for_binder(
-            $ctx,
+            ctx,
             $binder.kinds(),
             &term.where_clauses,
-            &names,
             false,
         )?;
-        (term, generics)
+        (wrapper, generics)
     }};
-    ($ctx:expr, $binder:expr, $is_trait:literal) => {{
-        let (term, names) = $ctx.open_bounded($binder);
+}
+#[macro_export]
+macro_rules! open_trait {
+    ($ctx:expr, $binder:expr) => {{
+        let mut wrapper = $ctx.open_trait($binder);
+        let ctx = &mut wrapper.ctx;
+        let term = &wrapper.term;
         let generics = $crate::to_rust::lower_generics_for_binder(
-            $ctx,
-            $binder.kinds(),
+            ctx,
+            $binder.explicit_binder.kinds(),
             &term.where_clauses,
-            &names,
-            $is_trait,
+            true,
         )?;
-        (term, generics)
+        (wrapper, generics)
     }};
 }
 pub(crate) use open_bounded;
+pub(crate) use open_trait;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::grammar::{BoundVar, DebruijnIndex, VarIndex, Variable};
+    impl Context {
+        pub fn with(bounded: Vec<Vec<String>>) -> Context {
+            Context {
+                counter: VarIndex { index: 0 },
+                bounded,
+                free: HashMap::new(),
+            }
+        }
+    }
+
+    fn create_ty(index: usize) -> Variable {
+        Variable::BoundVar(BoundVar {
+            debruijn: Some(DebruijnIndex { index: 0 }),
+            var_index: VarIndex { index },
+            kind: crate::grammar::ParameterKind::Ty,
+        })
+    }
+
+    fn create_lt(index: usize) -> Variable {
+        Variable::BoundVar(BoundVar {
+            debruijn: Some(DebruijnIndex { index: 0 }),
+            var_index: VarIndex { index },
+            kind: crate::grammar::ParameterKind::Lt,
+        })
+    }
+
+    fn create_const(index: usize) -> Variable {
+        Variable::BoundVar(BoundVar {
+            debruijn: Some(DebruijnIndex { index: 0 }),
+            var_index: VarIndex { index },
+            kind: crate::grammar::ParameterKind::Const,
+        })
+    }
+
+    #[test]
+    fn pretty_print_type_variables() {
+        let b = Context::with(vec![vec!["T0".into()]]);
+        let ty1 = create_ty(0);
+        assert_eq!("T0", b.core_variable_to_string(&ty1).unwrap());
+    }
+
+    #[test]
+    fn pretty_print_life_time_variables() {
+        let b = Context::with(vec![vec!["'a0".into()]]);
+        let lt1 = create_lt(0);
+        assert_eq!("'a0", b.core_variable_to_string(&lt1).unwrap());
+    }
+
+    #[test]
+    fn pretty_print_const_variables() {
+        let b = Context::with(vec![vec!["N0".into()]]);
+        let const1 = create_const(0);
+        assert_eq!("N0", b.core_variable_to_string(&const1).unwrap());
+    }
+}

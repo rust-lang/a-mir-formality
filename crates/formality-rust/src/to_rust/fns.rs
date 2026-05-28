@@ -4,7 +4,7 @@ use crate::grammar::{Fallible, Fn, FnBody, InputArg, MaybeFnBody};
 use crate::prove::prove::Safety;
 
 use crate::to_rust::{
-    context::{open_bounded, Context},
+    context::{open_bounded, Context, Wrapped},
     syntax, tys,
 };
 
@@ -13,7 +13,13 @@ pub fn lower_fn(
     function: &Fn,
     visibility: syntax::Visibility,
 ) -> Fallible<syntax::FunctionItem> {
-    let (term, generics) = open_bounded!(ctx, &function.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, function.binder.clone());
     let params = term
         .input_args
         .iter()

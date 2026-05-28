@@ -6,14 +6,21 @@ use crate::grammar::{
 };
 use crate::prove::prove::Safety;
 
+use crate::to_rust::context::Wrapped;
 use crate::to_rust::{
     self,
-    context::{open_bounded, Context},
+    context::{open_bounded, open_trait, Context},
     fns, syntax, tys,
 };
 
 pub fn lower_trait(ctx: &mut Context, t: &Trait) -> Fallible<syntax::TraitItem> {
-    let (term, generics) = open_bounded!(ctx, &t.binder.explicit_binder, true);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_trait!(ctx, t.binder.clone());
     let mut items = Vec::new();
     for item in &term.trait_items {
         match item {
@@ -38,7 +45,13 @@ pub fn lower_trait(ctx: &mut Context, t: &Trait) -> Fallible<syntax::TraitItem> 
 }
 
 pub fn lower_trait_impl(ctx: &mut Context, trait_impl: &TraitImpl) -> Fallible<syntax::ImplItem> {
-    let (term, generics) = open_bounded!(ctx, &trait_impl.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, trait_impl.binder.clone());
     let mut items = Vec::new();
     for item in &term.impl_items {
         match item {
@@ -76,7 +89,13 @@ pub fn lower_neg_trait_impl(
     ctx: &mut Context,
     neg_trait_impl: &NegTraitImpl,
 ) -> Fallible<syntax::NegImplItem> {
-    let (term, generics) = open_bounded!(ctx, &neg_trait_impl.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, neg_trait_impl.binder.clone());
     let trait_args = term
         .trait_parameters
         .iter()
@@ -99,7 +118,13 @@ pub fn lower_assoc_ty(
     ctx: &mut Context,
     assoc_ty: &AssociatedTy,
 ) -> Fallible<syntax::AssociatedTypeItem> {
-    let (term, generics) = open_bounded!(ctx, &assoc_ty.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, assoc_ty.binder.clone());
     let mut bounds = Vec::new();
     for ensure in &term.ensures {
         match ensure {
@@ -132,7 +157,13 @@ pub fn lower_assoc_ty_value(
     ctx: &mut Context,
     assoc_ty: &AssociatedTyValue,
 ) -> Fallible<syntax::AssociatedTypeValueItem> {
-    let (term, generics) = open_bounded!(ctx, &assoc_ty.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, assoc_ty.binder.clone());
     let ty = tys::lower_ty(ctx, &term.ty)?;
     Ok(syntax::AssociatedTypeValueItem {
         name: assoc_ty.id.deref().clone(),

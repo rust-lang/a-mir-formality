@@ -1,4 +1,5 @@
 use crate::grammar::{Crates, Fallible, Parameter, ParameterKind, WhereClause, WhereClauseData};
+use crate::to_rust::context::Wrapped;
 use std::cell::LazyCell;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -102,9 +103,11 @@ pub fn lower_generics_for_binder(
     ctx: &mut context::Context,
     binder_kinds: &[ParameterKind],
     where_clauses: &[WhereClause],
-    names: &[String],
     skip_first: bool,
 ) -> Fallible<syntax::Generics> {
+    let names = ctx
+        .first()
+        .ok_or_else(|| anyhow::anyhow!("context has no data"))?;
     if names.len() != binder_kinds.len() {
         anyhow::bail!(
             "binder metadata mismatch: {} names but {} kinds",
@@ -216,9 +219,12 @@ fn lower_where_clause(
             }))
         }
         WhereClauseData::ForAll(binder) => {
-            let (term, names) = ctx.open_universal(binder);
+            let Wrapped {
+                ref mut ctx,
+                ref term,
+            } = ctx.open_universal(binder.as_ref().clone());
             Ok(Some(syntax::WhereClause::ForAll(
-                lower_generics_for_binder(ctx, binder.kinds(), &[term], &names, false)?,
+                lower_generics_for_binder(ctx, binder.kinds(), &[term.clone()], false)?,
             )))
         }
     }

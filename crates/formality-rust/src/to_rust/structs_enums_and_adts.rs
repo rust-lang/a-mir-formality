@@ -2,13 +2,20 @@ use std::ops::Deref;
 
 use crate::grammar::{Enum, Fallible, Field, FieldName, Struct, Variant};
 
+use crate::to_rust::context::Wrapped;
 use crate::to_rust::{
     context::{open_bounded, Context},
     syntax, tys,
 };
 
 pub fn lower_struct(ctx: &mut Context, strukt: &Struct) -> Fallible<syntax::StructItem> {
-    let (term, generics) = open_bounded!(ctx, &strukt.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, strukt.binder.clone());
     let fields = term
         .fields
         .iter()
@@ -24,7 +31,13 @@ pub fn lower_struct(ctx: &mut Context, strukt: &Struct) -> Fallible<syntax::Stru
 }
 
 pub fn lower_enum(ctx: &mut Context, e: &Enum) -> Fallible<syntax::EnumItem> {
-    let (term, generics) = open_bounded!(ctx, &e.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, e.binder.clone());
     let variants = term
         .variants
         .iter()
