@@ -86,8 +86,7 @@ pub(crate) fn derive_parse_with_spec(
         let precedence = precedence(variant.ast().attrs)?.expr();
         let is_variable = has_variable_attr(variant.ast().attrs);
         has_variable_variant |= is_variable;
-        let variant_code = quote_spanned!(
-            variant.ast().ident.span() =>
+        let variant_code = quote!(
             __parser.parse_variant(#variant_name, #precedence, |__p| { #v });
         );
         parse_variants.extend(variant_code);
@@ -172,8 +171,7 @@ fn parse_variant(
         // No bindings (e.g., `Foo`) -- just parse a keyword `foo`
         let literal = Literal::string(&to_parse_ident(ast.ident));
         let construct = variant.construct(|_, _| quote! {});
-        stream.extend(quote_spanned! {
-            ast.ident.span() =>
+        stream.extend(quote! {
             __p.expect_keyword(#literal)?;
             __p.ok(#construct)
         });
@@ -189,8 +187,7 @@ fn parse_variant(
         let v0_binding = &variant.bindings()[0];
         let v0 = field_ident(v0_binding.ast(), 0);
         let construct = variant.construct(field_ident);
-        stream.extend(quote_spanned! {
-            ast.ident.span() =>
+        stream.extend(quote! {
             let #v0 = __p.variable_of_kind(#kind)?;
             __p.ok(#construct)
         });
@@ -198,13 +195,11 @@ fn parse_variant(
         // Has the `#[cast]` attribute -- just parse the bindings (comma separated, if needed)
         let construct = variant.construct(field_ident_cloned);
         let ok_expr = wrap_with_reject(quote!(#construct), variant, rejects)?;
-        let tail = quote_spanned! {
-            ast.ident.span() =>
+        let tail = quote! {
             #ok_expr
         };
         let body = wrap_bindings(variant.bindings(), tail, 0);
-        stream.extend(quote_spanned! {
-            ast.ident.span() =>
+        stream.extend(quote! {
             #body
         });
     } else {
@@ -212,15 +207,13 @@ fn parse_variant(
         let literal = Literal::string(&to_parse_ident(ast.ident));
         let construct = variant.construct(field_ident_cloned);
         let ok_expr = wrap_with_reject(quote!(#construct), variant, rejects)?;
-        let tail = quote_spanned! {
-            ast.ident.span() =>
+        let tail = quote! {
             __p.skip_trailing_comma();
             __p.expect_char(')')?;
             #ok_expr
         };
         let body = wrap_bindings(variant.bindings(), tail, 0);
-        stream.extend(quote_spanned! {
-            ast.ident.span() =>
+        stream.extend(quote! {
             __p.expect_keyword(#literal)?;
             __p.expect_char('(')?;
             #body
