@@ -93,7 +93,7 @@ judgment_fn! {
         debug(global, cfn, scope, block)
 
         (
-            (if let None = &block.label)
+            (if let None = &block.label)!
             (let region = cfn.fresh_region())
             (for_all(i in 0..block.stmts.len()) with(region, scope, global, cfn)
                 (codegen_stmt(global, cfn, scope, &block.stmts[i]) => (stmt_region, scope, global, cfn))
@@ -103,7 +103,7 @@ judgment_fn! {
         )
 
         (
-            (if let Some(label) = &block.label)
+            (if let Some(label) = &block.label)!
             (let (exit_block, cfn) = cfn.fresh_bb())
             (let scope = scope.with_label(&label.id, (), exit_block))
             (let region = cfn.fresh_region())
@@ -240,6 +240,19 @@ judgment_fn! {
         )
 
         (
+            // A function name used as a value — FnDef is zero-sized.
+            (if scope.lookup_var(id).is_err())
+            (if cfn.crates.fn_named(id).is_ok())
+            (let region = cfn.fresh_region())
+            ---- ("fn-as-value")
+            (codegen_expr_into(global, cfn, scope, target, Expr::Place(PlaceExpr::Var(id))) => (
+                region.assign(target, unit_value()),
+                global,
+                cfn,
+            ))
+        )
+
+        (
             (resolve_place(cfn, scope, place_expr) => typed)
             (let source = typed_place_to_minirust(cfn, scope, &typed)?)
             (let region = cfn.fresh_region())
@@ -300,9 +313,14 @@ judgment_fn! {
         )
 
         (
-            (resolve_call(global, cfn, scope, callee) => (fn_name, global))
+            (type_expr(cfn, scope, callee) => callee_ty)
+            (resolve_rigid(cfn, scope, callee_ty) => RigidTy { name: RigidName::FnDef(fn_id), parameters })
+            (let (fn_name, global) = global.ensure_fn(MonoKey::new(fn_id, parameters)))
+            // Evaluate callee for side effects (value is zero-sized for FnDef).
+            (let (callee_temp, cfn) = cfn.alloc_temp(&callee_ty)?)
+            (codegen_expr_into(global, cfn, scope, callee_temp, callee) => (region, global, cfn))
+            // Evaluate arguments.
             (let (temps, cfn) = alloc_temps_for_args(cfn, scope, args)?)
-            (let region = cfn.fresh_region())
             (for_all(i in 0..args.len()) with(region, global, cfn)
                 (codegen_expr_into(global, cfn, scope, &temps[i], &args[i]) => (arg_region, global, cfn))
                 (let (region, cfn) = cfn.append_from(region, arg_region)))
@@ -339,44 +357,6 @@ judgment_fn! {
                 global,
                 cfn,
             ))
-        )
-    }
-}
-
-// ===========================================================================
-// Call resolution
-// ===========================================================================
-
-judgment_fn! {
-    fn resolve_call(
-        global: CodegenGlobal,
-        cfn: CodegenFn,
-        scope: CodegenScope,
-        callee: Expr,
-    ) => (MiniRustFn, CodegenGlobal) {
-        debug(global, cfn, scope, callee)
-
-        (
-            (let (n, global) = global.ensure_fn(MonoKey::new(id, args)))
-            ---- ("turbofish")
-            (resolve_call(global, cfn, scope, Expr::Turbofish { id, args }) => (MiniRustFn(*n), global))
-        )
-
-        (
-            (if scope.lookup_var(id).is_err())
-            (if cfn.crates.fn_named(id).is_ok())
-            (let (n, global) = global.ensure_fn(MonoKey::new(id, ())))
-            ---- ("var-fn")
-            (resolve_call(global, cfn, scope, PlaceExpr::Var(id)) => (MiniRustFn(*n), global))
-        )
-
-        (
-            (resolve_place(cfn, scope, place) => typed)
-            (resolve_rigid(cfn, scope, &typed.ty) => rigid)
-            (if let RigidName::FnDef(fn_id) = &rigid.name)
-            (let (n, global) = global.ensure_fn(MonoKey::new(fn_id, ())))
-            ---- ("place")
-            (resolve_call(global, cfn, scope, Expr::Place(place)) => (MiniRustFn(*n), global))
         )
     }
 }

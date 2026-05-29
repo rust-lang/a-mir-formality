@@ -106,12 +106,7 @@ pub(super) fn resolve_fn_body(
     key: &MonoKey,
 ) -> Fallible<(crate::grammar::FnBoundData, Block)> {
     let fn_def = g.crates.fn_named(&key.id)?;
-    let fn_data = if key.args.is_empty() {
-        let (_, d) = fn_def.binder.open();
-        d
-    } else {
-        fn_def.binder.instantiate_with(&key.args)?
-    };
+    let fn_data = fn_def.binder.instantiate_with(&key.args)?;
     let body = match &fn_data.body {
         crate::grammar::MaybeFnBody::FnBody(crate::grammar::FnBody::Expr(b)) => b.clone(),
         _ => anyhow::bail!("function {:?} must have expression body", key.id),
