@@ -170,7 +170,7 @@ judgment_fn! {
 
         // ForAll predicates: open existentially and check
         (
-            (let (env, ty) = { let mut e = Clone::clone(env); let ty = e.instantiate_existentially(binder); (e, ty) })
+            (let (env, ty) = env.instantiate_existentially(binder))
             (may_contain_downstream_type(decls, env, assumptions, ty) => ())
             --- ("forall")
             (may_contain_downstream_type(decls, env, assumptions,

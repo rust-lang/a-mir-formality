@@ -50,6 +50,7 @@ pub fn lower_stmt(ctx: &mut Context, stmt: &Stmt) -> Fallible<syntax::Stmt> {
         }),
         Stmt::Block(block) => Ok(syntax::Stmt::Block(lower_block(ctx, block)?)),
         Stmt::Exists { binder } => lower_exists_stmt(ctx, binder),
+        Stmt::Print { expr } => Ok(syntax::Stmt::Expr(lower_expr(ctx, expr)?)),
     }
 }
 

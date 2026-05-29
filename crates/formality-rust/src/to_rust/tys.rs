@@ -187,6 +187,7 @@ pub fn lower_ptr(
 pub fn lower_lt(ctx: &mut Context, lt: &Lt) -> Fallible<String> {
     match lt {
         LtData::Static => Ok("'static".to_owned()),
+        LtData::Erased => Ok("'erased".to_owned()),
         LtData::Variable(core_variable) => ctx.core_variable_to_string(&core_variable),
     }
 }
