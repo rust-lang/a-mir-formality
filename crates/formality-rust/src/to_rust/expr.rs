@@ -1,8 +1,11 @@
 use std::ops::Deref;
 
-use crate::grammar::{
-    expr::{Block, Expr, FieldExpr, Init, Label, PlaceExpr, Stmt},
-    Binder, Fallible, FieldName, RefKind, Ty, ValueId,
+use crate::{
+    grammar::{
+        expr::{Block, Expr, FieldExpr, Init, Label, PlaceExpr, Stmt},
+        Binder, Fallible, FieldName, RefKind, Ty, ValueId,
+    },
+    to_rust::context::Wrapped,
 };
 
 use crate::to_rust::{context::Context, syntax, tys};
@@ -72,7 +75,10 @@ pub fn lower_let(
 
 pub fn lower_exists_stmt(ctx: &mut Context, binder: &Binder<Block>) -> Fallible<syntax::Stmt> {
     // TODO: Check again, after codegen is merged, if "erased" lifetimes could work here.
-    let term = ctx.open_exists(binder.clone());
+    let Wrapped {
+        ref mut ctx,
+        ref term,
+    } = ctx.open_exists(binder.clone());
     let result = syntax::Stmt::Block(lower_block(ctx, &term)?);
     Ok(result)
 }

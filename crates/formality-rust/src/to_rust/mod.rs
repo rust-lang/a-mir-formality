@@ -136,7 +136,9 @@ pub fn lower_generics_for_binder(
                 };
                 let ty = tys::lower_ty(ctx, ty)?;
 
-                let param = params.get_mut(&name).unwrap();
+                let param = params
+                    .get_mut(&name)
+                    .ok_or_else(|| anyhow::anyhow!("no generic parameter named '{name}'"))?;
                 match param {
                     syntax::GenericParam::Type(_) => todo!(),
                     syntax::GenericParam::Lifetime(_) => todo!(),

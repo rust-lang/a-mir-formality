@@ -69,7 +69,7 @@ impl Context {
 
     /// Opens the binder `b` and instatiates ith with a fresh set of
     /// existential variables and returns the term.
-    pub fn open_exists<T: Term>(&mut self, b: Binder<T>) -> T {
+    pub fn open_exists<T: Term>(&mut self, b: Binder<T>) -> Wrapped<'_, T> {
         let subst = self.existential_substitution(&b);
         let term = b.instantiate_with(&subst).expect("suitable substitution");
         // TODO: How can I prevent the collect()?
@@ -82,8 +82,10 @@ impl Context {
                 )
             })
             .collect();
+        self.bounded
+            .insert(0, names.iter().cloned().map(|(_, name)| name).collect());
         self.free.extend(names.into_iter());
-        term
+        Wrapped::new(self, term.clone())
     }
 
     /// Allocates a new set of fresh names and returns a wrapped `T`.
