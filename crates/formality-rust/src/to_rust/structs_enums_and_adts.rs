@@ -108,12 +108,11 @@ mod test {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub struct Bar {
     pub a: i32,
     pub b: i32,
-}
-"#
+}"#]]
         );
     }
 
@@ -124,20 +123,19 @@ pub struct Bar {
                 crate Foo {
                     trait Baz { }
                     struct Bar<T>
-                        where
+                    where
                         T: Baz
                     {
                         a: T,
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub trait Baz { }
 
-pub struct Bar<T1> where T1: Baz {
-    pub a: T1,
-}
-"#
+pub struct Bar<T0> where T0: Baz {
+    pub a: T0,
+}"#]]
         );
     }
 
@@ -152,12 +150,12 @@ pub struct Bar<T1> where T1: Baz {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub enum Bar {
     A,
     B,
-}
-"#
+}"#]]
+
         );
     }
 
@@ -168,7 +166,7 @@ pub enum Bar {
                 crate Foo {
                     trait Baz { }
                     enum Bar<T>
-                        where
+                    where
                         T : Baz
                     {
                         A { t: T },
@@ -176,14 +174,13 @@ pub enum Bar {
                     }
                 }
             ],
-            r#"
-pub trait Baz { }
+            expect_test::expect![[r#"
+                pub trait Baz { }
 
-pub enum Bar<T1> where T1: Baz {
-    A { t: T1 },
-    B(T1),
-}
-"#
+                pub enum Bar<T0> where T0: Baz {
+                    A { t: T0 },
+                    B(T0),
+                }"#]]
         );
     }
 }

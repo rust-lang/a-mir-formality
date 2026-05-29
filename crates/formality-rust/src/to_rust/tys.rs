@@ -483,15 +483,14 @@ mod test {
                         <T as Foo>::Assoc: Bar<U> {}
                 }
             ],
-            r#"
-pub trait Foo {
-    type Assoc;
-}
+            expect_test::expect![[r#"
+                pub trait Foo {
+                    type Assoc;
+                }
 
-pub trait Bar<T2> { }
+                pub trait Bar<T1> { }
 
-impl<T3, T4> Bar<T4> for T3 where <T3 as Foo>::Assoc: Bar<T4> {}
-"#
+                impl<T0, T1> Bar<T1> for T0 where <T0 as Foo>::Assoc: Bar<T1> {}"#]]
         );
     }
 }

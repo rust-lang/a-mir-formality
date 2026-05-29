@@ -185,11 +185,11 @@ mod test {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub trait Write {
     fn test() -> i32;
-}
-"#
+}"#]]
+
         );
     }
 
@@ -204,12 +204,12 @@ pub trait Write {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub trait Write {
     type Error;
     fn test() -> i32;
-}
-"#
+}"#]]
+
         );
     }
 
@@ -224,12 +224,12 @@ pub trait Write {
                     }
                 }
             ],
-            r#"
-pub trait Write {
-    type Error<T1, T2>: Sized + Bar where T1: Read, T2: Write;
-    fn test() -> i32;
-}
-"#
+            expect_test::expect![[r#"
+                pub trait Write {
+                    type Error<T0, T1>: Sized + Bar where T0: Read, T1: Write;
+                    fn test() -> i32;
+                }"#]]
+
         );
     }
 
@@ -242,11 +242,11 @@ pub trait Write {
                     trait Bar<T> where T: Baz {}
                 }
             ],
-            "
-pub trait Baz { }
+            expect_test::expect![[r#"
+                pub trait Baz { }
 
-pub trait Bar<T2> where T2: Baz { }
-"
+                pub trait Bar<T1> where T1: Baz { }"#]]
+
         );
     }
 
@@ -259,11 +259,11 @@ pub trait Bar<T2> where T2: Baz { }
                     trait Bar<V> where V: Baz<i32, u8> {}
                 }
             ],
-            "
-pub trait Baz<T1, T2> { }
+            expect_test::expect![[r#"
+                pub trait Baz<T1, T2> { }
 
-pub trait Bar<T4> where T4: Baz<i32, u8> { }
-"
+                pub trait Bar<T1> where T1: Baz<i32, u8> { }"#]]
+
         );
     }
 
@@ -279,14 +279,14 @@ pub trait Bar<T4> where T4: Baz<i32, u8> { }
                     }
                 }
             ],
-            r#"
-pub trait Baz { }
+            expect_test::expect![[r#"
+                pub trait Baz { }
 
-pub trait Bar<T2> where T2: Baz {
-    type Error;
-    fn test() -> T2;
-}
-"#
+                pub trait Bar<T1> where T1: Baz {
+                    type Error;
+                    fn test() -> T1;
+                }"#]]
+
         );
     }
 
@@ -298,7 +298,7 @@ pub trait Bar<T2> where T2: Baz {
                     trait Bar<const C> where type_of_const C is bool {}
                 }
             ],
-            "pub trait Bar<const N1: bool> { }"
+            expect_test::expect![[r#"pub trait Bar<const N1: bool> { }"#]]
         );
     }
 
@@ -317,20 +317,20 @@ pub trait Bar<T2> where T2: Baz {
                     }
                 }
             ],
-            r#"
-pub trait Bar<T1> {
-    fn run() -> T1;
-}
+            expect_test::expect![[r#"
+                pub trait Bar<T1> {
+                    fn run() -> T1;
+                }
 
-pub trait Bur { }
+                pub trait Bur { }
 
-pub struct Baz {}
+                pub struct Baz {}
 
-impl<T3> Bar<T3> for Baz where T3: Bur {
-    fn run() -> T3 {
-        panic!("Trusted Fn Body")
-    }
-}"#
+                impl<T0> Bar<T0> for Baz where T0: Bur {
+                    fn run() -> T0 {
+                        panic!("Trusted Fn Body")
+                    }
+                }"#]]
         );
     }
 
@@ -346,7 +346,7 @@ impl<T3> Bar<T3> for Baz where T3: Bur {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub trait Bar {
     fn run() -> i32;
 }
@@ -357,8 +357,8 @@ impl Bar for Baz {
     fn run() -> i32 {
         panic!("Trusted Fn Body")
     }
-}
-"#
+}"#]]
+
         );
     }
 
@@ -372,13 +372,13 @@ impl Bar for Baz {
                     impl !Bar for Baz { }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub trait Bar { }
 
 pub struct Baz {}
 
-impl !Bar for Baz {}
-"#
+impl !Bar for Baz {}"#]]
+
         );
     }
 
@@ -390,9 +390,9 @@ impl !Bar for Baz {}
                     trait Foo<T> where T: Bar<Self> {}
                 }
             ],
-            r#"
-pub trait Foo<T1> where T1: Bar<Self> { }
-"#
+            expect_test::expect![[r#"
+        pub trait Foo<T1> where T1: Bar<Self> { }"#]]
+
         );
     }
 }

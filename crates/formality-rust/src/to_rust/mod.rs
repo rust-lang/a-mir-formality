@@ -258,7 +258,7 @@ mod test {
             [
                 crate Foo {}
             ],
-            ""
+            expect_test::expect![[""]]
         );
     }
 
@@ -270,7 +270,7 @@ mod test {
                     #![feature(polonius_alpha)]
                 }
             ],
-            "#![feature(polonius_alpha)]"
+            expect_test::expect![["#![feature(polonius_alpha)]"]]
         );
     }
 
@@ -288,13 +288,12 @@ mod test {
                     {}
                 }
             ],
-            r#"
-pub trait Trait { }
+            expect_test::expect![[r#"
+                pub trait Trait { }
 
-pub struct A<T1> where T1: Trait {}
+                pub struct A<T0> where T0: Trait {}
 
-pub fn valid<'a2, T3>(mut x: &'a2 A<T3>) -> () where T3: 'a2, T3: Trait {}
-"#
+                pub fn valid<'a0, T1>(mut x: &'a0 A<T1>) -> () where T1: 'a0, T1: Trait {}"#]]
         )
     }
 
@@ -310,12 +309,11 @@ pub fn valid<'a2, T3>(mut x: &'a2 A<T3>) -> () where T3: 'a2, T3: Trait {}
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub fn foo<'a0, 'a1>(mut a: &'a0 u32) -> &'a1 u32 where 'a0: 'a1 {
     let mut r: &'a1 u32 = identity::<&'a1 u32>(a);
     return r;
-}
-"#
+}"#]]
         )
     }
 
@@ -329,11 +327,10 @@ pub fn foo<'a0, 'a1>(mut a: &'a0 u32) -> &'a1 u32 where 'a0: 'a1 {
                     trait B where for<'a> &'a u32: A { }
                 }
             ],
-            r#"
-pub trait A { }
+            expect_test::expect![[r#"
+                pub trait A { }
 
-pub trait B where for<'a2> &'a2 u32: A { }
-        "#
+                pub trait B where for<'a0> &'a0 u32: A { }"#]]
         )
     }
 }

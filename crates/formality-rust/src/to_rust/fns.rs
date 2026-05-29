@@ -71,11 +71,10 @@ mod test {
                     fn run() -> i32 {trusted}
                 }
             ],
-            r#"
-pub fn run() -> i32 {
-    panic!("Trusted Fn Body")
-}
-"#
+            expect_test::expect![[r#"
+                pub fn run() -> i32 {
+                    panic!("Trusted Fn Body")
+                }"#]]
         );
     }
 
@@ -87,11 +86,10 @@ pub fn run() -> i32 {
                     fn run(p1: i32, p2: i32) -> i32 {trusted}
                 }
             ],
-            r#"
-pub fn run(mut p1: i32, mut p2: i32) -> i32 {
-    panic!("Trusted Fn Body")
-}
-"#
+            expect_test::expect![[r#"
+                pub fn run(mut p1: i32, mut p2: i32) -> i32 {
+                    panic!("Trusted Fn Body")
+                }"#]]
         );
     }
 
@@ -103,11 +101,10 @@ pub fn run(mut p1: i32, mut p2: i32) -> i32 {
                     fn run<T>(p1: T) -> T {trusted}
                 }
             ],
-            r#"
-pub fn run<T0>(mut p1: T0) -> T0 {
-    panic!("Trusted Fn Body")
-}
-"#
+            expect_test::expect![[r#"
+                pub fn run<T0>(mut p1: T0) -> T0 {
+                    panic!("Trusted Fn Body")
+                }"#]]
         );
     }
 
@@ -120,13 +117,12 @@ pub fn run<T0>(mut p1: T0) -> T0 {
                     fn run<T>(p1: T) -> T where T: Bar {trusted}
                 }
             ],
-            r#"
-pub trait Bar { }
+            expect_test::expect![[r#"
+                pub trait Bar { }
 
-pub fn run<T1>(mut p1: T1) -> T1 where T1: Bar {
-    panic!("Trusted Fn Body")
-}
-"#
+                pub fn run<T0>(mut p1: T0) -> T0 where T0: Bar {
+                    panic!("Trusted Fn Body")
+                }"#]]
         );
     }
 
@@ -139,11 +135,10 @@ pub fn run<T1>(mut p1: T1) -> T1 where T1: Bar {
 
                 }
             ],
-            r#"
-pub fn run<const N0: i32>() -> i32 {
-    panic!("Trusted Fn Body")
-}
-"#
+            expect_test::expect![[r#"
+                pub fn run<const N0: i32>() -> i32 {
+                    panic!("Trusted Fn Body")
+                }"#]]
         );
     }
 }
