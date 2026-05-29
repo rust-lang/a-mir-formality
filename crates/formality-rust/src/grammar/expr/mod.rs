@@ -1,5 +1,3 @@
-mod codegen;
-
 use std::sync::Arc;
 
 use formality_core::{id, term};
@@ -99,6 +97,12 @@ pub enum Stmt {
     /// over a block of statements.
     #[grammar(exists $binder)]
     Exists { binder: Binder<Block> },
+
+    /// `println!(expr);`
+    ///
+    /// Print a value to stdout (for testing).
+    #[grammar(println ! ( $expr ) ;)]
+    Print { expr: Expr },
 }
 
 #[term]

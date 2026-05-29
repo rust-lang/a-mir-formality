@@ -4,6 +4,10 @@ use super::LangItems;
 
 pub fn lang_items() -> LangItems {
     parse_term! {
+        trait Drop {
+            // FIXME: model the drop method
+        }
+
         // Marks a type as dereferencable.
         //
         // When computing the type of a place expression `*x`, the type of `x` must implement this
