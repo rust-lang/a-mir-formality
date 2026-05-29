@@ -3,7 +3,7 @@ use std::ops::Deref;
 use crate::{
     grammar::{
         expr::{Block, Expr, FieldExpr, Init, Label, PlaceExpr, Stmt},
-        Binder, Fallible, FieldName, RefKind, Ty, ValueId,
+        Binder, Fallible, FieldName, Lt, Parameter, RefKind, Ty, ValueId, Variable,
     },
     to_rust::context::Wrapped,
 };
@@ -111,6 +111,12 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
             name: id.deref().clone(),
             args: args
                 .iter()
+                .filter(|arg| match arg {
+                    Parameter::Ty(_) | Parameter::Const(_) => true,
+                    Parameter::Lt(lt) => {
+                        matches!(**lt, Lt::Static | Lt::Variable(Variable::BoundVar(_)))
+                    }
+                })
                 .map(|arg| tys::lower_generic_arg(ctx, arg))
                 .collect::<Result<Vec<_>, _>>()?,
         }),
