@@ -36,6 +36,13 @@ impl Context {
         self.bounded.first()
     }
 
+    /// Introduces a fresh set of bound variable names for the binder `b` and
+    /// returns the contained term wrapped in a [`Wrapped`] guard.
+    ///
+    /// For each binder parameter, a fresh name is generated and pushed onto the
+    /// context. The returned [`Wrapped`] value provides access to the term while
+    /// these names are in scope. When the `Wrapped` value is dropped, the names
+    /// are removed from the contex
     pub fn open_bounded<T: Term>(&mut self, b: Binder<T>) -> Wrapped<'_, T> {
         let term = b.peek();
         let names = b
@@ -48,6 +55,12 @@ impl Context {
         Wrapped::new(self, term.clone())
     }
 
+    /// Introduces a fresh set of bound variable names for the binder `b` and
+    /// returns the contained term wrapped in a [`Wrapped`] guard.
+    ///
+    /// Fresh names are generated as in [`open_bounded`], but the first bound
+    /// variable is always renamed to `Self` to reflect Rust’s implicit `Self`
+    /// parameter in trait declarations
     pub fn open_trait<T: Term>(&mut self, b: TraitBinder<T>) -> Wrapped<'_, T> {
         let wrapped = self.open_bounded(b.explicit_binder);
         wrapped.ctx.bounded[0][0] = "Self".to_string();
@@ -55,7 +68,7 @@ impl Context {
     }
 
     /// Opens the binder `b` and instatiates ith with a fresh set of
-    /// existential variables and returns the term
+    /// existential variables and returns the term.
     pub fn open_exists<T: Term>(&mut self, b: Binder<T>) -> T {
         let subst = self.existential_substitution(&b);
         let term = b.instantiate_with(&subst).expect("suitable substitution");
@@ -73,8 +86,7 @@ impl Context {
         term
     }
 
-    /// Opens the binder `b` and instatiates ith with a fresh set of
-    /// universal variables and returns the term
+    /// Allocates a new set of fresh names and returns a wrapped `T`.
     pub fn open_universal<T: Term>(&mut self, b: Binder<T>) -> Wrapped<'_, T> {
         self.open_bounded(b)
     }
@@ -189,6 +201,11 @@ impl Context {
     }
 }
 
+/// A RAII guard that provides access to a term `T` while a set of bound
+/// variable names is active in the associated [`Context`].
+///
+/// When this guard is dropped, the bound variable names introduced for the
+/// scope are removed from the context.
 #[derive(Debug)]
 pub struct Wrapped<'ctx, T> {
     pub ctx: &'ctx mut Context,
