@@ -25,6 +25,7 @@ formality_core::declare_language! {
             "fn_id",
             "exists",
             "call",
+            "print",
         ];
     }
 }
@@ -36,6 +37,7 @@ pub use rust::FormalityLang;
 // ANCHOR_END: use_rust_language
 
 pub mod check;
+pub mod codegen;
 pub mod grammar;
 pub mod prove;
 mod test;
