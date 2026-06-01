@@ -906,7 +906,8 @@ impl Pretty for Stmt {
                 init,
             } => {
                 f.write_str("let ")?;
-                if *mutable {
+                if *mutable && name != "_" {
+                    // let mut _ = <expr> is invalid
                     f.write_str("mut ")?;
                 }
                 write!(f, "{name}: {ty}")?;
