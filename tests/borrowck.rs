@@ -27,23 +27,10 @@ fn use_of_uninitialized_variable() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`
-
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]])
+        the rule "place" at (nll.rs) failed because
+          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, u32)], [x : u32])], point_flow_state({}, {}, {x}), {}, {})
+            &place.to_place_expression() = x"#]])
 }
 
 /// Use of a moved variable should be an error.
@@ -72,14 +59,10 @@ fn use_of_moved_variable() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]])
+        the rule "place" at (nll.rs) failed because
+          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Datum), (y, Datum)], [x : Datum, y : Datum])], point_flow_state({}, {}, {x}), {}, {})
+            &place.to_place_expression() = x"#]])
 }
 
 /// Re-initialization after move should be OK.
@@ -137,23 +120,10 @@ fn conditional_init_one_branch() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`
-
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]])
+        the rule "place" at (nll.rs) failed because
+          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, u32)], [x : u32])], point_flow_state({}, {}, {x}), {}, {})
+            &place.to_place_expression() = x"#]])
 }
 
 /// Conditional initialization in both branches should be OK.
@@ -210,14 +180,10 @@ fn assign_field_of_uninitialized() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]])
+        the rule "assign" at (nll.rs) failed because
+          condition evaluated to false: `check_place_writable(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair)], [x : Pair])], point_flow_state({}, {}, {x}), {}, {})
+            &place.to_place_expression() = x . first"#]])
 }
 
 /// After a partial move, sibling fields should still be usable.
@@ -284,14 +250,10 @@ fn partial_move_use_whole() {
                     return 0 _ u32;
                 }
             }]).err(expect_test::expect![[r#"
-                the rule "access_permitted" at (nll.rs) failed because
-                  condition evaluated to false: `match access.kind
-                  {
-                      AccessKind::Write =>
-                      check_place_writable(&state, &access.place.to_place_expression()),
-                      AccessKind::Read | AccessKind::Move =>
-                      check_place_initialized(&state, &access.place.to_place_expression()),
-                  }`"#]])
+                the rule "place" at (nll.rs) failed because
+                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair), (a, Datum)], [x : Pair, a : Datum])], point_flow_state({}, {}, {x . first}), {}, {})
+                    &place.to_place_expression() = x"#]])
 }
 
 /// Moving the same field twice should be an error.
@@ -325,14 +287,10 @@ fn move_same_field_twice() {
                     return b;
                 }
             }]).err(expect_test::expect![[r#"
-                the rule "access_permitted" at (nll.rs) failed because
-                  condition evaluated to false: `match access.kind
-                  {
-                      AccessKind::Write =>
-                      check_place_writable(&state, &access.place.to_place_expression()),
-                      AccessKind::Read | AccessKind::Move =>
-                      check_place_initialized(&state, &access.place.to_place_expression()),
-                  }`"#]])
+                the rule "place" at (nll.rs) failed because
+                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair), (a, Datum)], [x : Pair, a : Datum])], point_flow_state({}, {}, {x . first}), {}, {})
+                    &place.to_place_expression() = x . first"#]])
 }
 
 /// Moving the whole variable should make fields inaccessible.
@@ -366,14 +324,10 @@ fn move_whole_then_access_field() {
                     return b;
                 }
             }]).err(expect_test::expect![[r#"
-                the rule "access_permitted" at (nll.rs) failed because
-                  condition evaluated to false: `match access.kind
-                  {
-                      AccessKind::Write =>
-                      check_place_writable(&state, &access.place.to_place_expression()),
-                      AccessKind::Read | AccessKind::Move =>
-                      check_place_initialized(&state, &access.place.to_place_expression()),
-                  }`"#]])
+                the rule "place" at (nll.rs) failed because
+                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair), (a, Pair)], [x : Pair, a : Pair])], point_flow_state({}, {}, {x}), {}, {})
+                    &place.to_place_expression() = x . first"#]])
 }
 
 /// Moving a parent field should make child fields inaccessible.
@@ -405,23 +359,10 @@ fn move_parent_then_access_child() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`
-
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]])
+        the rule "place" at (nll.rs) failed because
+          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Outer), (a, Inner)], [x : Outer, a : Inner])], point_flow_state({}, {}, {x . foo}), {}, {})
+            &place.to_place_expression() = x . foo . bar"#]])
 }
 
 /// Cannot move out of a shared reference.
@@ -1836,23 +1777,10 @@ fn uninitialized_return() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`
-
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]])
+        the rule "place" at (nll.rs) failed because
+          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, u32)], [x : u32])], point_flow_state({}, {}, {x}), {}, {})
+            &place.to_place_expression() = x"#]])
 }
 /// Test the holding a shared reference to a local
 /// integer variable prevents it from being incremented.
@@ -2174,6 +2102,14 @@ fn undeclared_universal_region_relationship() {
 
                 crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: @ wf(?lt_2), assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
                 crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 //HERE
@@ -2200,8 +2136,21 @@ fn undeclared_universal_region_relationship_no_return() {
 
                 crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
                 crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
+
 
 /// Upcasting from `'a` to `'b` is allowed because
 /// there is a declared relationship.
@@ -2240,7 +2189,6 @@ fn declared_transitive_universal_region_relationship() {
 }
 
 
-//HERE
 /// Upcasting from `'a` to `'c` errors because of a missing
 /// declared relationship to complete the transitive chain.
 #[formality_core::test]
@@ -2259,8 +2207,17 @@ fn undeclared_transitive_universal_region_relationship() {
 
                 crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: !lt_0 : !lt_2, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
+
 
 // For `list: &mut Map`, borrow `&mut (*list).value` then assign to `list`.
 #[test]
@@ -2477,45 +2434,16 @@ fn continue_drops_borrowed_local_loop_carried() {
                     r = &'r1 y;
                     continue 'a;
                 }
-            }
-        }
-    }])
-    .err(expect_test::expect![[r#"
-                the rule "access_permitted" at (nll.rs) failed because
-                  condition evaluated to false: `match access.kind
-                  {
-                      AccessKind::Write =>
-                      check_place_writable(&state, &access.place.to_place_expression()),
-                      AccessKind::Read | AccessKind::Move =>
-                      check_place_initialized(&state, &access.place.to_place_expression()),
-                  }`
+            }]).err(expect_test::expect![[r#"
+                the rule "place" at (nll.rs) failed because
+                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, i32), (r, &?lt_1 i32)], [x : i32, r : &?lt_1 i32]), scope(some(U(2)), Some('a), {}, Some({r}), [], []), scope(some(U(2)), None, {}, None, [], [])], point_flow_state({}, {}, {r}), {}, {})
+                    &place.to_place_expression() = r
 
-                the rule "access_permitted" at (nll.rs) failed because
-                  condition evaluated to false: `match access.kind
-                  {
-                      AccessKind::Write =>
-                      check_place_writable(&state, &access.place.to_place_expression()),
-                      AccessKind::Read | AccessKind::Move =>
-                      check_place_initialized(&state, &access.place.to_place_expression()),
-                  }`
-
-                the rule "access_permitted" at (nll.rs) failed because
-                  condition evaluated to false: `match access.kind
-                  {
-                      AccessKind::Write =>
-                      check_place_writable(&state, &access.place.to_place_expression()),
-                      AccessKind::Read | AccessKind::Move =>
-                      check_place_initialized(&state, &access.place.to_place_expression()),
-                  }`
-
-                the rule "access_permitted" at (nll.rs) failed because
-                  condition evaluated to false: `match access.kind
-                  {
-                      AccessKind::Write =>
-                      check_place_writable(&state, &access.place.to_place_expression()),
-                      AccessKind::Read | AccessKind::Move =>
-                      check_place_initialized(&state, &access.place.to_place_expression()),
-                  }`"#]])
+                the rule "place" at (nll.rs) failed because
+                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, i32), (r, &?lt_1 i32)], [x : i32, r : &?lt_1 i32]), scope(some(U(2)), Some('a), {}, Some({r}), [], []), scope(some(U(2)), None, {}, None, [], [])], point_flow_state({}, {}, {r}), {}, {})
+                    &place.to_place_expression() = r"#]])
 }
 
 /// `break` drops locals declared inside the loop body.
@@ -2885,6 +2813,12 @@ fn call_generic_fn_with_turbofish_missing_relation_upcast() {
                     return r;
                 }
             }]).err(expect_test::expect![[r#"
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
                 crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
                 crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }

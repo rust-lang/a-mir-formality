@@ -199,7 +199,7 @@ judgment_fn! {
                 ) => state))
 
             (let state = state.with_local_in_scope(&env.env, label, id, ty)?)
-            (let state = if init.is_none() { state.with_uninit(&PlaceExpr::Var(id.clone())) } else { state.with_initialized(&PlaceExpr::Var(id.clone())) })
+            (let state = if init.is_none() { state.with_uninit(&PlaceExpr::Var(id.clone())) } else { state.clone() })
             ------------------------------------------------------------ ("let")
             (borrow_check_statement(env, assumptions, state, Stmt::Let { label, id, ty, init }, places_live_on_exit) => (env, state))
         )
@@ -369,6 +369,8 @@ judgment_fn! {
             // Prove subtyping: value_ty <: place_ty
             (prove_assignable(env, assumptions, state, value_ty, &place.ty) => state)
 
+            // Check write access is permitted
+            (if check_place_writable(&state, &place.to_place_expression()))
             (access_permitted(
                 env,
                 assumptions,
@@ -438,6 +440,8 @@ judgment_fn! {
                 place,
             ) => (place, state))
 
+            // Check that the accessed place is initialized
+            (if check_place_initialized(&state, &place.to_place_expression()))
             // Check that the access required by the borrow is permitted
             (let access_kind = match kind {
                 RefKind::Shared => AccessKind::Read,
@@ -460,6 +464,7 @@ judgment_fn! {
 
         (
             (borrow_check_place_expr(env, assumptions, state, place) => (place, state))
+            (if check_place_initialized(&state, &place.to_place_expression()))
             (access_kind_for_place_use(env, assumptions, state, place) => (access_kind, state))
             (access_permitted(env, assumptions, state, Access::new(access_kind, place), places_live_on_exit) => state)
             (let state = if matches!(access_kind, AccessKind::Move) { state.with_uninit(&place.to_place_expression()) } else { state.clone() })

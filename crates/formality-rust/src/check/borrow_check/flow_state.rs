@@ -68,7 +68,7 @@ pub struct PointFlowState {
     pub loans_live: Set<Loan>,
 
     /// Places that are uninitialized or have been moved from
-    /// Read or write or move from any place whose prefix is in this set is an error
+    /// Moving from any place whose prefix is in this set is an error
     pub uninit: Set<PlaceExpr>,
 }
 
@@ -89,24 +89,14 @@ impl PointFlowState {
 
     /// Mark a place as initialized: remove it and all sub-paths from uninit
     pub fn mark_initialized(&mut self, place: &PlaceExpr) {
-        self.uninit = self
-            .uninit
-            .iter()
-            .filter(|u| !place.is_prefix_of(u))
-            .cloned()
-            .collect();
+        self.uninit.retain(|u| !place.is_prefix_of(u));
     }
 
     /// Mark a place as moved/uninitialized: add it to uninit and
     /// remove any proper sub-paths (covered by the more general path).
     pub fn mark_uninit(&mut self, place: &PlaceExpr) {
         // Remove any sub-paths that are covered by this more general path
-        self.uninit = self
-            .uninit
-            .iter()
-            .filter(|u| !place.is_prefix_of(u))
-            .cloned()
-            .collect();
+        self.uninit.retain(|u| !place.is_prefix_of(u));
         // Don't add if a prefix is already uninit (already covered)
         if !self.uninit.iter().any(|u| u.is_prefix_of(place)) {
             self.uninit.insert(place.clone());
