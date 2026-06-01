@@ -19,7 +19,6 @@ use formality_core::test;
 /// }
 /// ```
 #[test]
-#[ignore = "needs initialization tracking (#296)"]
 fn use_of_uninitialized_variable() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
@@ -27,7 +26,11 @@ fn use_of_uninitialized_variable() {
             return x;
         }
     }])
-    .err(expect_test::expect![[""]])
+    .err(expect_test::expect![[r#"
+        the rule "place" at (nll.rs) failed because
+          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, u32)], [x : u32])], point_flow_state({}, {}, {x}), {}, {})
+            &place.to_place_expression() = x"#]])
 }
 
 /// Use of a moved variable should be an error.
@@ -42,7 +45,6 @@ fn use_of_uninitialized_variable() {
 /// }
 /// ```
 #[test]
-#[ignore = "needs move tracking (#296)"]
 fn use_of_moved_variable() {
     FormalityTest::new(crates![crate Foo {
         struct Datum {
@@ -56,7 +58,11 @@ fn use_of_moved_variable() {
             return z;
         }
     }])
-    .err(expect_test::expect![[""]])
+    .err(expect_test::expect![[r#"
+        the rule "place" at (nll.rs) failed because
+          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Datum), (y, Datum)], [x : Datum, y : Datum])], point_flow_state({}, {}, {x}), {}, {})
+            &place.to_place_expression() = x"#]])
 }
 
 /// Re-initialization after move should be OK.
@@ -102,7 +108,6 @@ fn reinit_after_move() {
 /// }
 /// ```
 #[test]
-#[ignore = "needs initialization tracking (#296)"]
 fn conditional_init_one_branch() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
@@ -114,7 +119,11 @@ fn conditional_init_one_branch() {
             return x;
         }
     }])
-    .err(expect_test::expect![[""]])
+    .err(expect_test::expect![[r#"
+        the rule "place" at (nll.rs) failed because
+          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, u32)], [x : u32])], point_flow_state({}, {}, {x}), {}, {})
+            &place.to_place_expression() = x"#]])
 }
 
 /// Conditional initialization in both branches should be OK.
@@ -157,7 +166,6 @@ fn conditional_init_both_branches() {
 /// }
 /// ```
 #[test]
-#[ignore = "needs initialization tracking (#296)"]
 fn assign_field_of_uninitialized() {
     FormalityTest::new(crates![crate Foo {
         struct Pair {
@@ -171,7 +179,11 @@ fn assign_field_of_uninitialized() {
             return 0 _ u32;
         }
     }])
-    .err(expect_test::expect![[""]])
+    .err(expect_test::expect![[r#"
+        the rule "assign" at (nll.rs) failed because
+          condition evaluated to false: `check_place_writable(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair)], [x : Pair])], point_flow_state({}, {}, {x}), {}, {})
+            &place.to_place_expression() = x . first"#]])
 }
 
 /// After a partial move, sibling fields should still be usable.
@@ -220,7 +232,6 @@ fn partial_move_use_sibling() {
 /// }
 /// ```
 #[test]
-#[ignore = "needs move tracking (#296)"]
 fn partial_move_use_whole() {
     FormalityTest::new(crates![crate Foo {
                 struct Datum {
@@ -238,7 +249,11 @@ fn partial_move_use_whole() {
                     let b: Pair = x;
                     return 0 _ u32;
                 }
-            }]).err(expect_test::expect![[""]])
+            }]).err(expect_test::expect![[r#"
+                the rule "place" at (nll.rs) failed because
+                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair), (a, Datum)], [x : Pair, a : Datum])], point_flow_state({}, {}, {x . first}), {}, {})
+                    &place.to_place_expression() = x"#]])
 }
 
 /// Moving the same field twice should be an error.
@@ -254,7 +269,6 @@ fn partial_move_use_whole() {
 /// }
 /// ```
 #[test]
-#[ignore = "needs move tracking (#296)"]
 fn move_same_field_twice() {
     FormalityTest::new(crates![crate Foo {
                 struct Datum {
@@ -272,7 +286,11 @@ fn move_same_field_twice() {
                     let b: Datum = x.first;
                     return b;
                 }
-            }]).err(expect_test::expect![[""]])
+            }]).err(expect_test::expect![[r#"
+                the rule "place" at (nll.rs) failed because
+                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair), (a, Datum)], [x : Pair, a : Datum])], point_flow_state({}, {}, {x . first}), {}, {})
+                    &place.to_place_expression() = x . first"#]])
 }
 
 /// Moving the whole variable should make fields inaccessible.
@@ -288,7 +306,6 @@ fn move_same_field_twice() {
 /// }
 /// ```
 #[test]
-#[ignore = "needs move tracking (#296)"]
 fn move_whole_then_access_field() {
     FormalityTest::new(crates![crate Foo {
                 struct Datum {
@@ -306,7 +323,11 @@ fn move_whole_then_access_field() {
                     let b: Datum = x.first;
                     return b;
                 }
-            }]).err(expect_test::expect![[""]])
+            }]).err(expect_test::expect![[r#"
+                the rule "place" at (nll.rs) failed because
+                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair), (a, Pair)], [x : Pair, a : Pair])], point_flow_state({}, {}, {x}), {}, {})
+                    &place.to_place_expression() = x . first"#]])
 }
 
 /// Moving a parent field should make child fields inaccessible.
@@ -320,7 +341,6 @@ fn move_whole_then_access_field() {
 /// }
 /// ```
 #[test]
-#[ignore = "needs move tracking (#296)"]
 fn move_parent_then_access_child() {
     FormalityTest::new(crates![crate Foo {
         struct Inner {
@@ -338,7 +358,11 @@ fn move_parent_then_access_child() {
             return b;
         }
     }])
-    .err(expect_test::expect![[""]])
+    .err(expect_test::expect![[r#"
+        the rule "place" at (nll.rs) failed because
+          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Outer), (a, Inner)], [x : Outer, a : Inner])], point_flow_state({}, {}, {x . foo}), {}, {})
+            &place.to_place_expression() = x . foo . bar"#]])
 }
 
 /// Cannot move out of a shared reference.
@@ -1703,7 +1727,7 @@ fn move_out_of_borrowed_place() {
 /// ```rust,ignore
 /// struct Datum { value: u32 }
 /// fn foo() -> u32 {
-///     let x: Datum = Datum { value: 1 };
+///     let x: Datum = Datum { value: 0 };
 ///     loop {
 ///         let _y: Datum = x;  // ERROR: moved in previous iteration
 ///         break;
@@ -1711,8 +1735,13 @@ fn move_out_of_borrowed_place() {
 ///     return 0;
 /// }
 /// ```
+///
+/// FIXME: the uninit-set approach still can't catch this because `break`
+/// causes the state to diverge (clearing `current` to default), so the
+/// fixed-point iteration passes an empty uninit set to the next round.
+/// Would need to merge break states into the loop entry state.
 #[test]
-#[ignore = "needs move tracking (#296)"]
+#[ignore = "uninit-set: break diverges state, losing uninit set for fixed-point (#296)"]
 fn move_in_loop() {
     FormalityTest::new(crates![crate Foo {
         struct Datum {
@@ -1740,7 +1769,6 @@ fn move_in_loop() {
 /// }
 /// ```
 #[test]
-#[ignore = "needs initialization tracking (#296, #209)"]
 fn uninitialized_return() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
@@ -1748,7 +1776,11 @@ fn uninitialized_return() {
             return x;
         }
     }])
-    .err(expect_test::expect![[""]])
+    .err(expect_test::expect![[r#"
+        the rule "place" at (nll.rs) failed because
+          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, u32)], [x : u32])], point_flow_state({}, {}, {x}), {}, {})
+            &place.to_place_expression() = x"#]])
 }
 /// Test the holding a shared reference to a local
 /// integer variable prevents it from being incremented.
@@ -2064,9 +2096,13 @@ fn undeclared_universal_region_relationship() {
                     }
                 }
             }]).err(expect_test::expect![[r#"
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 /// Same as `undeclared_universal_region_relationship`, but the function
@@ -2082,9 +2118,13 @@ fn undeclared_universal_region_relationship_no_return() {
                     }
                 }
             }]).err(expect_test::expect![[r#"
-            crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 /// Upcasting from `'a` to `'b` is allowed because
@@ -2135,9 +2175,13 @@ fn undeclared_transitive_universal_region_relationship() {
                     return v1;
                 }
             }]).err(expect_test::expect![[r#"
-            crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-            crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 // For `list: &mut Map`, borrow `&mut (*list).value` then assign to `list`.
@@ -2358,31 +2402,15 @@ fn continue_drops_borrowed_local_loop_carried() {
                     }
                 }
             }]).err(expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = y : i32
-                &access.place = y : i32
+                the rule "place" at (nll.rs) failed because
+                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, i32), (r, &?lt_1 i32)], [x : i32, r : &?lt_1 i32]), scope(some(U(2)), Some('a), {}, Some({r}), [], []), scope(some(U(2)), None, {}, None, [], [])], point_flow_state({}, {}, {r}), {}, {})
+                    &place.to_place_expression() = r
 
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {?lt_1, ?lt_2}
-                &lifetime.upcast() = ?lt_1
-
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `y`
-
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = y : i32
-                &access.place = y : i32
-
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {?lt_1, ?lt_2}
-                &lifetime.upcast() = ?lt_1
-
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `y`"#]])
+                the rule "place" at (nll.rs) failed because
+                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
+                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, i32), (r, &?lt_1 i32)], [x : i32, r : &?lt_1 i32]), scope(some(U(2)), Some('a), {}, Some({r}), [], []), scope(some(U(2)), None, {}, None, [], [])], point_flow_state({}, {}, {r}), {}, {})
+                    &place.to_place_expression() = r"#]])
 }
 
 /// `break` drops locals declared inside the loop body.
@@ -2751,7 +2779,10 @@ fn call_generic_fn_with_turbofish_missing_relation_upcast() {
                     let r: &'b u32 = identity::<&'b u32>(a);
                     return r;
                 }
-            }]).err(expect_test::expect!["crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"])
+            }]).err(expect_test::expect![[r#"
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 /// Test call to a generic function using turbofish syntax with lifetime and type.

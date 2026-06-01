@@ -66,6 +66,10 @@ pub struct PointFlowState {
 
     /// The set of loans that are live (issued, not killed)
     pub loans_live: Set<Loan>,
+
+    /// Places that are uninitialized or have been moved from
+    /// Moving from any place whose prefix is in this set is an error
+    pub uninit: Set<PlaceExpr>,
 }
 
 impl PointFlowState {
@@ -79,6 +83,23 @@ impl PointFlowState {
         PointFlowState {
             outlives: Union((&self.outlives, outlives)).upcast(),
             loans_live: self.loans_live.clone(),
+            uninit: self.uninit.clone(),
+        }
+    }
+
+    /// Mark a place as initialized: remove it and all sub-paths from uninit
+    pub fn mark_initialized(&mut self, place: &PlaceExpr) {
+        self.uninit.retain(|u| !place.is_prefix_of(u));
+    }
+
+    /// Mark a place as moved/uninitialized: add it to uninit and
+    /// remove any proper sub-paths (covered by the more general path).
+    pub fn mark_uninit(&mut self, place: &PlaceExpr) {
+        // Remove any sub-paths that are covered by this more general path
+        self.uninit.retain(|u| !place.is_prefix_of(u));
+        // Don't add if a prefix is already uninit (already covered)
+        if !self.uninit.iter().any(|u| u.is_prefix_of(place)) {
+            self.uninit.insert(place.clone());
         }
     }
 
@@ -87,6 +108,8 @@ impl PointFlowState {
         self.outlives
             .retain(|v| !v.free_variables().iter().any(|v| variables.contains(v)));
         self.loans_live
+            .retain(|v| !v.free_variables().iter().any(|v| variables.contains(v)));
+        self.uninit
             .retain(|v| !v.free_variables().iter().any(|v| variables.contains(v)));
     }
 }
@@ -98,6 +121,7 @@ impl UpcastFrom<Union<(PointFlowState, PointFlowState)>> for PointFlowState {
         Self {
             outlives: Union((a.outlives, b.outlives)).upcast(),
             loans_live: Union((a.loans_live, b.loans_live)).upcast(),
+            uninit: Union((a.uninit, b.uninit)).upcast(),
         }
     }
 }
@@ -201,6 +225,18 @@ impl FlowState {
             continues: self.continues.clone(),
             scopes: self.scopes.clone(),
         }
+    }
+
+    pub fn with_initialized(&self, place: &PlaceExpr) -> Self {
+        let mut this = self.clone();
+        this.current.mark_initialized(place);
+        this
+    }
+
+    pub fn with_uninit(&self, place: &PlaceExpr) -> Self {
+        let mut this = self.clone();
+        this.current.mark_uninit(place);
+        this
     }
 
     /// Returns a new flow state with `current` cleared to default.
