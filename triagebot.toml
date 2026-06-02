@@ -1,4 +1,26 @@
+# Gives us the commands 'ready', 'author', 'blocked'.
+[shortcut]
+
+# Allow any user to assign themselves to a Github issue.
 [assign]
 
-# Gives us the commands 'ready', 'author', 'blocked'
-[shortcut]
+[assign.custom_messages]
+auto-assign-someone = "" # This is not needed as we don't do auto assign in formality.
+auto-assign-no-one = """
+Thanks for contributing to formality! :)
+A reviewer will take a look at your PR within a week or two. If not, come talk to us on https://rust-lang.zulipchat.com/#narrow/channel/402470-t-types.2Fformality
+"""
+
+# Automatically add `S-waiting-on-review` label when the PR is opened.
+[autolabel."S-waiting-on-review"]
+new_pr = true
+
+# Automatically add `S-waiting-on-author` label when the PR is marked as draft.
+[autolabel."S-waiting-on-author"]
+new_draft = true
+
+# Show changes that happened since the review.
+[review-changes-since]
+
+# Show range diff when force-pushed.
+[range-diff]
