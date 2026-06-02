@@ -5,6 +5,7 @@ use super::LangItems;
 pub fn lang_items() -> LangItems {
     parse_term! {
         trait Copy {}
+        impl Copy for () {}
         impl Copy for u8 {}
         impl Copy for u16 {}
         impl Copy for u32 {}
