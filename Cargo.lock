@@ -387,6 +387,7 @@ name = "formality-mdbook"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "formality-coverage",
  "mdbook-preprocessor",
  "regex",
  "serde_json",
