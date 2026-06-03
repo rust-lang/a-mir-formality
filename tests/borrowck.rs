@@ -27,10 +27,23 @@ fn use_of_uninitialized_variable() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "place" at (nll.rs) failed because
-          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
-            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, u32)], [x : u32])], point_flow_state({}, {}, {x}), {}, {})
-            &place.to_place_expression() = x"#]])
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]])
 }
 
 /// Use of a moved variable should be an error.
@@ -59,10 +72,14 @@ fn use_of_moved_variable() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "place" at (nll.rs) failed because
-          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
-            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Datum), (y, Datum)], [x : Datum, y : Datum])], point_flow_state({}, {}, {x}), {}, {})
-            &place.to_place_expression() = x"#]])
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]])
 }
 
 /// Re-initialization after move should be OK.
@@ -120,10 +137,23 @@ fn conditional_init_one_branch() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "place" at (nll.rs) failed because
-          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
-            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, u32)], [x : u32])], point_flow_state({}, {}, {x}), {}, {})
-            &place.to_place_expression() = x"#]])
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]])
 }
 
 /// Conditional initialization in both branches should be OK.
@@ -180,10 +210,14 @@ fn assign_field_of_uninitialized() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "assign" at (nll.rs) failed because
-          condition evaluated to false: `check_place_writable(&state, &place.to_place_expression())`
-            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair)], [x : Pair])], point_flow_state({}, {}, {x}), {}, {})
-            &place.to_place_expression() = x . first"#]])
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]])
 }
 
 /// After a partial move, sibling fields should still be usable.
@@ -250,10 +284,14 @@ fn partial_move_use_whole() {
                     return 0 _ u32;
                 }
             }]).err(expect_test::expect![[r#"
-                the rule "place" at (nll.rs) failed because
-                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
-                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair), (a, Datum)], [x : Pair, a : Datum])], point_flow_state({}, {}, {x . first}), {}, {})
-                    &place.to_place_expression() = x"#]])
+                the rule "access_permitted" at (nll.rs) failed because
+                  condition evaluated to false: `match access.kind
+                  {
+                      AccessKind::Write =>
+                      check_place_writable(&state, &access.place.to_place_expression()),
+                      AccessKind::Read | AccessKind::Move =>
+                      check_place_initialized(&state, &access.place.to_place_expression()),
+                  }`"#]])
 }
 
 /// Moving the same field twice should be an error.
@@ -287,10 +325,14 @@ fn move_same_field_twice() {
                     return b;
                 }
             }]).err(expect_test::expect![[r#"
-                the rule "place" at (nll.rs) failed because
-                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
-                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair), (a, Datum)], [x : Pair, a : Datum])], point_flow_state({}, {}, {x . first}), {}, {})
-                    &place.to_place_expression() = x . first"#]])
+                the rule "access_permitted" at (nll.rs) failed because
+                  condition evaluated to false: `match access.kind
+                  {
+                      AccessKind::Write =>
+                      check_place_writable(&state, &access.place.to_place_expression()),
+                      AccessKind::Read | AccessKind::Move =>
+                      check_place_initialized(&state, &access.place.to_place_expression()),
+                  }`"#]])
 }
 
 /// Moving the whole variable should make fields inaccessible.
@@ -324,10 +366,14 @@ fn move_whole_then_access_field() {
                     return b;
                 }
             }]).err(expect_test::expect![[r#"
-                the rule "place" at (nll.rs) failed because
-                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
-                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Pair), (a, Pair)], [x : Pair, a : Pair])], point_flow_state({}, {}, {x}), {}, {})
-                    &place.to_place_expression() = x . first"#]])
+                the rule "access_permitted" at (nll.rs) failed because
+                  condition evaluated to false: `match access.kind
+                  {
+                      AccessKind::Write =>
+                      check_place_writable(&state, &access.place.to_place_expression()),
+                      AccessKind::Read | AccessKind::Move =>
+                      check_place_initialized(&state, &access.place.to_place_expression()),
+                  }`"#]])
 }
 
 /// Moving a parent field should make child fields inaccessible.
@@ -359,10 +405,23 @@ fn move_parent_then_access_child() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "place" at (nll.rs) failed because
-          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
-            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, Outer), (a, Inner)], [x : Outer, a : Inner])], point_flow_state({}, {}, {x . foo}), {}, {})
-            &place.to_place_expression() = x . foo . bar"#]])
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]])
 }
 
 /// Cannot move out of a shared reference.
@@ -1777,10 +1836,23 @@ fn uninitialized_return() {
         }
     }])
     .err(expect_test::expect![[r#"
-        the rule "place" at (nll.rs) failed because
-          condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
-            &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [(x, u32)], [x : u32])], point_flow_state({}, {}, {x}), {}, {})
-            &place.to_place_expression() = x"#]])
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]])
 }
 /// Test the holding a shared reference to a local
 /// integer variable prevents it from being incremented.
@@ -2389,28 +2461,55 @@ fn continue_drops_borrowed_local_false_edge() {
 #[test]
 fn continue_drops_borrowed_local_loop_carried() {
     FormalityTest::new(crates![crate Foo {
-                fn foo() -> i32 {
-                    exists<'r0, 'r1> {
-                        let x: i32 = 0 _ i32;
-                        let r: &'r0 i32;
-                        'a: loop {
-                            r; // this *may* read from `y` in a previous iteration
-                            let y: i32 = 0 _ i32;
-                            r = &'r1 y;
-                            continue 'a;
-                        }
-                    }
+        fn foo() -> i32 {
+            exists<'r0, 'r1> {
+                let x: i32 = 0 _ i32;
+                let r: &'r0 i32;
+                'a: loop {
+                    r; // this *may* read from `y` in a previous iteration
+                    let y: i32 = 0 _ i32;
+                    r = &'r1 y;
+                    continue 'a;
                 }
-            }]).err(expect_test::expect![[r#"
-                the rule "place" at (nll.rs) failed because
-                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
-                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, i32), (r, &?lt_1 i32)], [x : i32, r : &?lt_1 i32]), scope(some(U(2)), Some('a), {}, Some({r}), [], []), scope(some(U(2)), None, {}, None, [], [])], point_flow_state({}, {}, {r}), {}, {})
-                    &place.to_place_expression() = r
+            }
+        }
+    }])
+    .err(expect_test::expect![[r#"
+                the rule "access_permitted" at (nll.rs) failed because
+                  condition evaluated to false: `match access.kind
+                  {
+                      AccessKind::Write =>
+                      check_place_writable(&state, &access.place.to_place_expression()),
+                      AccessKind::Read | AccessKind::Move =>
+                      check_place_initialized(&state, &access.place.to_place_expression()),
+                  }`
 
-                the rule "place" at (nll.rs) failed because
-                  condition evaluated to false: `check_place_initialized(&state, &place.to_place_expression())`
-                    &state = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(2)), None, {}, None, [(x, i32), (r, &?lt_1 i32)], [x : i32, r : &?lt_1 i32]), scope(some(U(2)), Some('a), {}, Some({r}), [], []), scope(some(U(2)), None, {}, None, [], [])], point_flow_state({}, {}, {r}), {}, {})
-                    &place.to_place_expression() = r"#]])
+                the rule "access_permitted" at (nll.rs) failed because
+                  condition evaluated to false: `match access.kind
+                  {
+                      AccessKind::Write =>
+                      check_place_writable(&state, &access.place.to_place_expression()),
+                      AccessKind::Read | AccessKind::Move =>
+                      check_place_initialized(&state, &access.place.to_place_expression()),
+                  }`
+
+                the rule "access_permitted" at (nll.rs) failed because
+                  condition evaluated to false: `match access.kind
+                  {
+                      AccessKind::Write =>
+                      check_place_writable(&state, &access.place.to_place_expression()),
+                      AccessKind::Read | AccessKind::Move =>
+                      check_place_initialized(&state, &access.place.to_place_expression()),
+                  }`
+
+                the rule "access_permitted" at (nll.rs) failed because
+                  condition evaluated to false: `match access.kind
+                  {
+                      AccessKind::Write =>
+                      check_place_writable(&state, &access.place.to_place_expression()),
+                      AccessKind::Read | AccessKind::Move =>
+                      check_place_initialized(&state, &access.place.to_place_expression()),
+                  }`"#]])
 }
 
 /// `break` drops locals declared inside the loop body.
