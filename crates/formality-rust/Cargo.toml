@@ -10,15 +10,11 @@ formality-macros = { path = "../formality-macros" }
 formality-core = { path = "../formality-core" }
 anyhow = "1.0.66"
 lazy_static = "1.4.0"
-contracts = "0.6.3"
+regex = "1.12.3"
 tracing = "0.1"
 fn-error-context = "0.2.0"
-itertools = "0.10.5"
-stacker = "0.1.15"
-extension-trait = "1.0.1"
 minirust-rs = { path = "../minirust-rs" }
 libspecr = "=0.1.36"
-regex = "1.12.3"
 tempfile = "3.27.0"
 
 [dev-dependencies]
