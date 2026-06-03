@@ -86,7 +86,7 @@ fn reinit_after_move() {
             return z;
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Conditional initialization in only one branch should be an error.
@@ -142,7 +142,7 @@ fn conditional_init_both_branches() {
             return x;
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Assigning to a field of an uninitialized variable should be an error.
@@ -202,7 +202,7 @@ fn partial_move_use_sibling() {
                     let b: Datum = x.second;
                     return b;
                 }
-            }]).ok()
+            }]).skip_execute().ok()
 }
 
 /// After a partial move, using the whole struct should be an error.
@@ -1858,7 +1858,7 @@ fn min_problem_case_3() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Test that dropping a borrowed variable is an error.
@@ -1930,7 +1930,7 @@ fn drop_after_borrow_dead() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Test that dropping a mutably borrowed variable is an error.
@@ -2044,7 +2044,7 @@ fn too_min_problem_case_3() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Upcasting from `'a` to `'b` errors because
@@ -2097,7 +2097,7 @@ fn declared_universal_region_relationship() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Upcasting from `'a` to `'c` should be allowed because of
@@ -2113,7 +2113,7 @@ fn declared_transitive_universal_region_relationship() {
             return v1;
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Upcasting from `'a` to `'c` errors because of a missing
@@ -2150,7 +2150,7 @@ fn problem_case_4() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Test that StorageDead on a borrowed variable is an error.
@@ -2282,7 +2282,7 @@ fn cfg_union_approx_cause_false_error() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// `continue` drops locals declared inside the loop body.
@@ -2460,7 +2460,7 @@ fn continue_drops_local_borrow_dead() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Locals declared inside a loop are properly scoped:
@@ -2487,7 +2487,7 @@ fn integer_in_outer_scope() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Writing to a borrowed variable inside a loop before `continue`
@@ -2591,7 +2591,7 @@ fn if_false_borrowck() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Writing to a borrowed variable before a loop that might not execute
@@ -2663,7 +2663,7 @@ fn call_generic_fn_with_turbofish() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// pass &T to generic foo.
@@ -2684,7 +2684,7 @@ fn call_pass_ref() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Test call to a generic function using turbofish syntax and upcasting.
@@ -2711,7 +2711,7 @@ fn call_generic_fn_with_turbofish_upcast() {
             return r;
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Test call to a generic function using turbofish syntax and wrong lifetime.
@@ -2752,7 +2752,7 @@ fn call_generic_fn_with_turbofish_lifetime_type() {
             return r;
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Call foo while p, &v is live then use p.
@@ -2772,7 +2772,7 @@ fn call_while_borrow_live() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// shared &v passing &mut v into foo in the same scope is a borrow error.
@@ -2825,7 +2825,7 @@ fn struct_disjoint_field_borrows() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// accessing a field while it is already mutably borrowed -> borrow error
@@ -2934,7 +2934,7 @@ fn loan_before_return_does_not_affect_merged_paths() {
             }
         }
     }])
-    .ok();
+    .skip_execute().ok();
 }
 
 // Divergent paths (aka return) should not propagate outlives, liveness
@@ -2958,7 +2958,7 @@ fn outlive_before_return_does_not_affect_merged_paths() {
             }
         }
     }])
-    .ok();
+    .skip_execute().ok();
 }
 
 // Divergent paths (aka return) should not propagate outlives, liveness
@@ -2974,7 +2974,7 @@ fn loan_before_return_does_not_affect_dead_code_after() {
             }
         }
     }])
-    .ok();
+    .skip_execute().ok();
 }
 
 // Divergent paths (aka return) should not propagate outlives, liveness
@@ -2993,7 +2993,7 @@ fn if_else_paths_independent() {
             }
         }
     }])
-    .ok();
+    .skip_execute().ok();
 }
 
 #[test]
@@ -3060,5 +3060,5 @@ fn loan_cannot_outlive_lifetime_pass() {
             }
         }
     }])
-    .ok()
+    .skip_execute().ok()
 }

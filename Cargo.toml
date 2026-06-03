@@ -22,6 +22,8 @@ anyhow = "1"
 clap = { version = "4.0.9", features = ["derive"] }
 formality-rust = { version = "0.1.0", path = "crates/formality-rust" }
 formality-core = { version = "0.1.0", path = "crates/formality-core" }
+minirust-rs = { version = "0.1.0", path = "crates/minirust-rs" }
+libspecr = "=0.1.40"
 expect-test = "1.4.0"
 
 [workspace]

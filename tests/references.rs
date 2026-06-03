@@ -30,5 +30,5 @@ fn reference_validity() {
             X: Trait,
         {}
     }])
-    .ok();
+    .skip_execute().ok();
 }

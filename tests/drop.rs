@@ -16,7 +16,7 @@ fn drop_impl_simple_struct() {
             impl Drop for MyStruct {}
         }
     ])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Drop impl for a generic struct with matching parameters.
@@ -33,7 +33,7 @@ fn drop_impl_generic_struct() {
             impl<T> Drop for MyStruct<T> where T: Clone {}
         }
     ])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Drop impl for a generic struct with no where-clauses.
@@ -48,7 +48,7 @@ fn drop_impl_generic_no_where_clauses() {
             impl<T> Drop for Wrapper<T> {}
         }
     ])
-    .ok()
+    .skip_execute().ok()
 }
 
 /// Drop impl with fewer where-clauses than the struct.
@@ -71,7 +71,7 @@ fn drop_impl_subset_where_clauses() {
             impl<T> Drop for MyStruct<T> {}
         }
     ])
-    .ok()
+    .skip_execute().ok()
 }
 
 // ===================================================================
