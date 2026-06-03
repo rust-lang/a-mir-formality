@@ -10,7 +10,7 @@ use minirust_rs::lang;
 use std::sync::Arc;
 
 use super::minirust::*;
-use super::seme_region::SemeRegion;
+use super::code_block::CodeBlock;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub(crate) struct MonoKey {
@@ -190,9 +190,9 @@ impl CodegenFn {
         minirust_ty(&self.crates, ty)
     }
 
-    /// Create a new empty anonymous `SemeRegion`.
-    pub(super) fn fresh_region(&self) -> SemeRegion {
-        SemeRegion::new()
+    /// Create a new empty anonymous `CodeBlock`.
+    pub(super) fn fresh_code_block(&self) -> CodeBlock {
+        CodeBlock::new()
     }
 
     /// Allocate a temporary local for the given Rust type.

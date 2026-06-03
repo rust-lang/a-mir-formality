@@ -9,10 +9,10 @@ use minirust_rs::mem::PtrType;
 use super::minirust::*;
 use super::scope::CodegenFn;
 
-// ANCHOR: SemeRegion
-/// A single-entry, multi-exit control flow region.
+// ANCHOR: CodeBlock
+/// A single-entry, multi-exit control flow code.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum SemeRegion {
+pub enum CodeBlock {
     /// Anonymous open block being constructed. Has no name yet — a name is
     /// allocated lazily when the block is terminated or needs to be referenced.
     /// 
@@ -91,7 +91,7 @@ pub enum SemeRegion {
         entry: lang::BbName,
     },
 }
-// ANCHOR_END: SemeRegion
+// ANCHOR_END: CodeBlock
 
 fn merge_blocks(
     target: &mut Map<lang::BbName, lang::BasicBlock>,
@@ -102,15 +102,15 @@ fn merge_blocks(
     }
 }
 
-impl SemeRegion {
+impl CodeBlock {
     pub fn new() -> Self {
-        SemeRegion::Block { stmts: Vec::new() }
+        CodeBlock::Block { stmts: Vec::new() }
     }
 
-    /// Create a named region — already in Open state with the given bb as
+    /// Create a named code — already in Open state with the given bb as
     /// both entry and fallthrough.
     pub fn named(bb: lang::BbName) -> Self {
-        SemeRegion::Open {
+        CodeBlock::Open {
             blocks: Map::new(),
             entry: bb,
             fallthrough: bb,
@@ -120,47 +120,47 @@ impl SemeRegion {
 
     pub fn with_stmt(self, stmt: lang::Statement) -> Self {
         match self {
-            SemeRegion::Block { mut stmts } => {
+            CodeBlock::Block { mut stmts } => {
                 stmts.push(stmt);
-                SemeRegion::Block { stmts }
+                CodeBlock::Block { stmts }
             }
-            SemeRegion::Open {
+            CodeBlock::Open {
                 blocks,
                 entry,
                 fallthrough,
                 mut fallthrough_stmts,
             } => {
                 fallthrough_stmts.push(stmt);
-                SemeRegion::Open {
+                CodeBlock::Open {
                     blocks,
                     entry,
                     fallthrough,
                     fallthrough_stmts,
                 }
             }
-            closed @ SemeRegion::Closed { .. } => closed,
+            closed @ CodeBlock::Closed { .. } => closed,
         }
     }
 
     pub fn has_fallthrough(&self) -> bool {
-        matches!(self, SemeRegion::Block { .. } | SemeRegion::Open { .. })
+        matches!(self, CodeBlock::Block { .. } | CodeBlock::Open { .. })
     }
 
     pub fn entry(&self) -> lang::BbName {
         match self {
-            SemeRegion::Block { .. } => panic!("entry() called on anonymous Block"),
-            SemeRegion::Open { entry, .. } => *entry,
-            SemeRegion::Closed { entry, .. } => *entry,
+            CodeBlock::Block { .. } => panic!("entry() called on anonymous Block"),
+            CodeBlock::Open { entry, .. } => *entry,
+            CodeBlock::Closed { entry, .. } => *entry,
         }
     }
 
     /// Finalize into basic blocks. Panics if called on an anonymous Block.
     pub fn into_blocks(self) -> Map<lang::BbName, lang::BasicBlock> {
         match self {
-            SemeRegion::Block { .. } => {
+            CodeBlock::Block { .. } => {
                 panic!("into_blocks on anonymous Block — should be Closed or Open")
             }
-            SemeRegion::Open {
+            CodeBlock::Open {
                 mut blocks,
                 entry: _,
                 fallthrough,
@@ -176,7 +176,7 @@ impl SemeRegion {
                 );
                 blocks
             }
-            SemeRegion::Closed { blocks, entry: _ } => blocks,
+            CodeBlock::Closed { blocks, entry: _ } => blocks,
         }
     }
 
@@ -199,25 +199,25 @@ impl SemeRegion {
 }
 
 // ===========================================================================
-// CodegenFn methods that operate on SemeRegion (these thread state properly)
+// CodegenFn methods that operate on CodeBlock (these thread state properly)
 // ===========================================================================
 
 impl CodegenFn {
-    /// Terminate a region's current fallthrough block. Allocates a bb name if
-    /// the region is an anonymous Block. If `next_bb` is `Some`, transitions to
+    /// Terminate a code's current fallthrough block. Allocates a bb name if
+    /// the code is an anonymous Block. If `next_bb` is `Some`, transitions to
     /// Open with that as the new fallthrough; otherwise stays Closed.
     pub(super) fn terminate(
         &self,
-        region: impl Upcast<SemeRegion>,
+        code: impl Upcast<CodeBlock>,
         terminator: impl Upcast<MiniRustTerminator>,
         next_bb: impl Upcast<Option<MiniRustBb>>,
-    ) -> (SemeRegion, Self) {
-        let region: SemeRegion = region.upcast();
+    ) -> (CodeBlock, Self) {
+        let code: CodeBlock = code.upcast();
         let terminator: MiniRustTerminator = terminator.upcast();
         let next_bb: Option<MiniRustBb> = next_bb.upcast();
 
-        match region {
-            SemeRegion::Block { stmts } => {
+        match code {
+            CodeBlock::Block { stmts } => {
                 let (name, cfn) = self.fresh_bb();
                 let bb = lang::BasicBlock {
                     statements: stmts.into_iter().collect(),
@@ -228,7 +228,7 @@ impl CodegenFn {
                 blocks.insert(name, bb);
                 match next_bb {
                     Some(next) => (
-                        SemeRegion::Open {
+                        CodeBlock::Open {
                             blocks,
                             entry: name,
                             fallthrough: next.upcast(),
@@ -237,7 +237,7 @@ impl CodegenFn {
                         cfn,
                     ),
                     None => (
-                        SemeRegion::Closed {
+                        CodeBlock::Closed {
                             blocks,
                             entry: name,
                         },
@@ -245,7 +245,7 @@ impl CodegenFn {
                     ),
                 }
             }
-            SemeRegion::Open {
+            CodeBlock::Open {
                 mut blocks,
                 entry,
                 fallthrough,
@@ -259,7 +259,7 @@ impl CodegenFn {
                 blocks.insert(fallthrough, bb);
                 match next_bb {
                     Some(next) => (
-                        SemeRegion::Open {
+                        CodeBlock::Open {
                             blocks,
                             entry,
                             fallthrough: next.upcast(),
@@ -267,12 +267,12 @@ impl CodegenFn {
                         },
                         self.clone(),
                     ),
-                    None => (SemeRegion::Closed { blocks, entry }, self.clone()),
+                    None => (CodeBlock::Closed { blocks, entry }, self.clone()),
                 }
             }
-            SemeRegion::Closed { blocks, entry } => match next_bb {
+            CodeBlock::Closed { blocks, entry } => match next_bb {
                 Some(next) => (
-                    SemeRegion::Open {
+                    CodeBlock::Open {
                         blocks,
                         entry,
                         fallthrough: next.upcast(),
@@ -280,32 +280,32 @@ impl CodegenFn {
                     },
                     self.clone(),
                 ),
-                None => (SemeRegion::Closed { blocks, entry }, self.clone()),
+                None => (CodeBlock::Closed { blocks, entry }, self.clone()),
             },
         }
     }
 
-    /// Append `other` onto `region`.
+    /// Append `other` onto `code`.
     ///
     /// - Block + Block: concatenate statements (both anonymous).
     /// - anything + Open/Closed: terminate self's fallthrough with Goto to
     ///   other's entry, then merge all of other's blocks intact.
-    pub(super) fn append(&self, region: SemeRegion, other: SemeRegion) -> (SemeRegion, Self) {
-        if !region.has_fallthrough() {
-            return (region, self.clone());
+    pub(super) fn append(&self, code: CodeBlock, other: CodeBlock) -> (CodeBlock, Self) {
+        if !code.has_fallthrough() {
+            return (code, self.clone());
         }
 
-        match (region, other) {
+        match (code, other) {
             // Block + Block: just concatenate statements, stay anonymous.
-            (SemeRegion::Block { mut stmts }, SemeRegion::Block { stmts: other_stmts }) => {
+            (CodeBlock::Block { mut stmts }, CodeBlock::Block { stmts: other_stmts }) => {
                 stmts.extend(other_stmts);
-                (SemeRegion::Block { stmts }, self.clone())
+                (CodeBlock::Block { stmts }, self.clone())
             }
 
             // Block + Open/Closed: name self first, then emit Goto.
-            (SemeRegion::Block { stmts }, other) => {
+            (CodeBlock::Block { stmts }, other) => {
                 let (name, cfn) = self.fresh_bb();
-                let open = SemeRegion::Open {
+                let open = CodeBlock::Open {
                     blocks: Map::new(),
                     entry: name,
                     fallthrough: name,
@@ -316,17 +316,17 @@ impl CodegenFn {
 
             // Open + Block: extend fallthrough statements.
             (
-                SemeRegion::Open {
+                CodeBlock::Open {
                     blocks,
                     entry,
                     fallthrough,
                     mut fallthrough_stmts,
                 },
-                SemeRegion::Block { stmts: other_stmts },
+                CodeBlock::Block { stmts: other_stmts },
             ) => {
                 fallthrough_stmts.extend(other_stmts);
                 (
-                    SemeRegion::Open {
+                    CodeBlock::Open {
                         blocks,
                         entry,
                         fallthrough,
@@ -337,18 +337,18 @@ impl CodegenFn {
             }
 
             // Open + Open/Closed: emit Goto to other's entry.
-            (region @ SemeRegion::Open { .. }, other) => self.append_named(region, other),
+            (code @ CodeBlock::Open { .. }, other) => self.append_named(code, other),
 
-            (SemeRegion::Closed { .. }, _) => unreachable!("append called on Closed"),
+            (CodeBlock::Closed { .. }, _) => unreachable!("append called on Closed"),
         }
     }
 
-    /// Append a named region (`other` is Open or Closed) onto `region` (which is Open).
+    /// Append a named code (`other` is Open or Closed) onto `code` (which is Open).
     /// Terminates self's fallthrough with a Goto to other's entry, preserving all
     /// of other's blocks intact.
-    fn append_named(&self, region: SemeRegion, other: SemeRegion) -> (SemeRegion, Self) {
-        let (mut blocks, entry, ft_name, ft_stmts) = match region {
-            SemeRegion::Open {
+    fn append_named(&self, code: CodeBlock, other: CodeBlock) -> (CodeBlock, Self) {
+        let (mut blocks, entry, ft_name, ft_stmts) = match code {
+            CodeBlock::Open {
                 blocks,
                 entry,
                 fallthrough,
@@ -370,7 +370,7 @@ impl CodegenFn {
         );
 
         match other {
-            SemeRegion::Open {
+            CodeBlock::Open {
                 blocks: other_blocks,
                 entry: _,
                 fallthrough: other_ft,
@@ -378,7 +378,7 @@ impl CodegenFn {
             } => {
                 merge_blocks(&mut blocks, other_blocks);
                 (
-                    SemeRegion::Open {
+                    CodeBlock::Open {
                         blocks,
                         entry,
                         fallthrough: other_ft,
@@ -388,12 +388,12 @@ impl CodegenFn {
                 )
             }
 
-            SemeRegion::Closed {
+            CodeBlock::Closed {
                 blocks: other_blocks,
                 entry: _,
             } => {
                 merge_blocks(&mut blocks, other_blocks);
-                (SemeRegion::Closed { blocks, entry }, self.clone())
+                (CodeBlock::Closed { blocks, entry }, self.clone())
             }
 
             _ => unreachable!(),
@@ -403,27 +403,27 @@ impl CodegenFn {
     /// Branch on a bool condition: switch, absorb then/else regions, open a join block.
     pub(super) fn branch_on_bool(
         &self,
-        region: SemeRegion,
+        code: CodeBlock,
         condition_local: lang::LocalName,
-        then_region: SemeRegion,
-        else_region: SemeRegion,
-    ) -> (SemeRegion, Self) {
-        if !region.has_fallthrough() {
-            return (region, self.clone());
+        then_region: CodeBlock,
+        else_region: CodeBlock,
+    ) -> (CodeBlock, Self) {
+        if !code.has_fallthrough() {
+            return (code, self.clone());
         }
 
-        let (mut blocks, entry, ft_name, ft_stmts, mut cfn) = match region {
-            SemeRegion::Block { stmts } => {
+        let (mut blocks, entry, ft_name, ft_stmts, mut cfn) = match code {
+            CodeBlock::Block { stmts } => {
                 let (name, cfn) = self.fresh_bb();
                 (Map::new(), name, name, stmts, cfn)
             }
-            SemeRegion::Open {
+            CodeBlock::Open {
                 blocks,
                 entry,
                 fallthrough,
                 fallthrough_stmts,
             } => (blocks, entry, fallthrough, fallthrough_stmts, self.clone()),
-            SemeRegion::Closed { .. } => unreachable!(),
+            CodeBlock::Closed { .. } => unreachable!(),
         };
 
         let (then_entry, cfn2) = Self::region_entry_or_alloc(&cfn, &then_region);
@@ -468,7 +468,7 @@ impl CodegenFn {
 
         if then_has_ft || else_has_ft {
             (
-                SemeRegion::Open {
+                CodeBlock::Open {
                     blocks,
                     entry,
                     fallthrough: join,
@@ -477,26 +477,26 @@ impl CodegenFn {
                 cfn,
             )
         } else {
-            (SemeRegion::Closed { blocks, entry }, cfn)
+            (CodeBlock::Closed { blocks, entry }, cfn)
         }
     }
 
-    fn region_entry_or_alloc(cfn: &CodegenFn, region: &SemeRegion) -> (lang::BbName, CodegenFn) {
-        match region {
-            SemeRegion::Block { .. } => cfn.fresh_bb(),
-            SemeRegion::Open { entry, .. } => (*entry, cfn.clone()),
-            SemeRegion::Closed { entry, .. } => (*entry, cfn.clone()),
+    fn region_entry_or_alloc(cfn: &CodegenFn, code: &CodeBlock) -> (lang::BbName, CodegenFn) {
+        match code {
+            CodeBlock::Block { .. } => cfn.fresh_bb(),
+            CodeBlock::Open { entry, .. } => (*entry, cfn.clone()),
+            CodeBlock::Closed { entry, .. } => (*entry, cfn.clone()),
         }
     }
 
     fn drain_region_into(
         blocks: &mut Map<lang::BbName, lang::BasicBlock>,
-        region: SemeRegion,
+        code: CodeBlock,
         name: lang::BbName,
         goto: lang::BbName,
     ) {
-        match region {
-            SemeRegion::Block { stmts } => {
+        match code {
+            CodeBlock::Block { stmts } => {
                 blocks.insert(
                     name,
                     lang::BasicBlock {
@@ -506,7 +506,7 @@ impl CodegenFn {
                     },
                 );
             }
-            SemeRegion::Open {
+            CodeBlock::Open {
                 blocks: region_blocks,
                 entry: _,
                 fallthrough,
@@ -522,7 +522,7 @@ impl CodegenFn {
                     },
                 );
             }
-            SemeRegion::Closed {
+            CodeBlock::Closed {
                 blocks: region_blocks,
                 entry: _,
             } => {
@@ -535,32 +535,32 @@ impl CodegenFn {
     // Compound builders (codegen-specific)
     // -----------------------------------------------------------------------
 
-    /// Append `other` onto `region`, threading state.
+    /// Append `other` onto `code`, threading state.
     pub(super) fn append_from(
         &self,
-        region: &SemeRegion,
-        other: impl Upcast<SemeRegion>,
-    ) -> (SemeRegion, Self) {
-        self.append(region.clone(), other.upcast())
+        code: &CodeBlock,
+        other: impl Upcast<CodeBlock>,
+    ) -> (CodeBlock, Self) {
+        self.append(code.clone(), other.upcast())
     }
 
     /// Terminate and return the result (closed — no next block).
     pub(super) fn terminated(
         &self,
-        region: &SemeRegion,
+        code: &CodeBlock,
         terminator: impl Upcast<MiniRustTerminator>,
-    ) -> (SemeRegion, Self) {
-        self.terminate(region.clone(), terminator, ())
+    ) -> (CodeBlock, Self) {
+        self.terminate(code.clone(), terminator, ())
     }
 
     /// Build a Call terminator, allocate the next block.
     pub(super) fn call(
         &self,
-        region: &SemeRegion,
+        code: &CodeBlock,
         fn_name: impl Upcast<MiniRustFn>,
         args: &[MiniRustLocal],
         ret: impl Upcast<MiniRustLocal>,
-    ) -> Fallible<(SemeRegion, Self)> {
+    ) -> Fallible<(CodeBlock, Self)> {
         let fn_name: MiniRustFn = fn_name.upcast();
         let ret: MiniRustLocal = ret.upcast();
         let arg_exprs: List<lang::ArgumentExpr> = args
@@ -572,8 +572,8 @@ impl CodegenFn {
             })
             .collect();
         let (next_bb, cfn) = self.fresh_bb();
-        let (region, cfn) = cfn.terminate(
-            region.clone(),
+        let (code, cfn) = cfn.terminate(
+            code.clone(),
             lang::Terminator::Call {
                 callee: lang::ValueExpr::Constant(
                     lang::Constant::FnPointer(fn_name.into()),
@@ -587,20 +587,20 @@ impl CodegenFn {
             },
             Some(next_bb),
         );
-        Ok((region, cfn))
+        Ok((code, cfn))
     }
 
-    /// Build a branch-on-bool from a region.
+    /// Build a branch-on-bool from a code.
     pub(super) fn branch_on_bool_from(
         &self,
-        region: &SemeRegion,
+        code: &CodeBlock,
         cond: impl Upcast<MiniRustLocal>,
-        then_r: impl Upcast<SemeRegion>,
-        else_r: impl Upcast<SemeRegion>,
-    ) -> (SemeRegion, Self) {
+        then_r: impl Upcast<CodeBlock>,
+        else_r: impl Upcast<CodeBlock>,
+    ) -> (CodeBlock, Self) {
         let cond: MiniRustLocal = cond.upcast();
         self.branch_on_bool(
-            region.clone(),
+            code.clone(),
             cond.into(),
             then_r.upcast(),
             else_r.upcast(),
@@ -610,14 +610,14 @@ impl CodegenFn {
     /// Build a print intrinsic call.
     pub(super) fn print_intrinsic(
         &self,
-        region: &SemeRegion,
+        code: &CodeBlock,
         value: impl Upcast<MiniRustLocal>,
-    ) -> Fallible<(SemeRegion, Self)> {
+    ) -> Fallible<(CodeBlock, Self)> {
         let value: MiniRustLocal = value.upcast();
         let (next_bb, cfn) = self.fresh_bb();
         let (print_ret, cfn) = cfn.alloc_local(unit_ty());
-        let (region, cfn) = cfn.terminate(
-            region.clone(),
+        let (code, cfn) = cfn.terminate(
+            code.clone(),
             lang::Terminator::Intrinsic {
                 intrinsic: lang::IntrinsicOp::PrintStdout,
                 arguments: list![lang::ValueExpr::Load {
@@ -628,6 +628,6 @@ impl CodegenFn {
             },
             Some(next_bb),
         );
-        Ok((region, cfn))
+        Ok((code, cfn))
     }
 }

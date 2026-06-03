@@ -16,15 +16,15 @@ use minirust_rs::lang;
 mod helpers;
 mod minirust;
 mod scope;
-mod seme_region;
+mod code_block;
 mod test;
 
 use helpers::*;
 use minirust::*;
 use scope::*;
-use seme_region::SemeRegion;
+use code_block::CodeBlock;
 
-formality_core::cast_impl!(SemeRegion);
+formality_core::cast_impl!(CodeBlock);
 
 // ===========================================================================
 // Top-level entry point
@@ -75,8 +75,8 @@ judgment_fn! {
             (let (fn_data, body) = resolve_fn_body(global, key)?)
             (let cfn = CodegenFn::new(&global.crates, &fn_data.output_ty))
             (let (ret_local, arg_locals, scope, cfn) = setup_fn_args(cfn, fn_data)?)
-            (codegen_block(global, cfn, scope, body) => (region, global, cfn))
-            (let function = build_function(cfn, region, ret_local, arg_locals))
+            (codegen_block(global, cfn, scope, body) => (code, global, cfn))
+            (let function = build_function(cfn, code, ret_local, arg_locals))
             ---- ("function")
             (codegen_function(global, key) => (function, global))
         )
@@ -89,30 +89,30 @@ judgment_fn! {
         cfn: CodegenFn,
         scope: CodegenScope,
         block: Block,
-    ) => (SemeRegion, CodegenGlobal, CodegenFn) {
+    ) => (CodeBlock, CodegenGlobal, CodegenFn) {
         debug(global, cfn, scope, block)
 
         (
             (if let None = &block.label)!
-            (let region = cfn.fresh_region())
-            (for_all(i in 0..block.stmts.len()) with(region, scope, global, cfn)
-                (codegen_stmt(global, cfn, scope, &block.stmts[i]) => (stmt_region, scope, global, cfn))
-                (let (region, cfn) = cfn.append_from(region, stmt_region)))
+            (let code = cfn.fresh_code_block())
+            (for_all(i in 0..block.stmts.len()) with(code, scope, global, cfn)
+                (codegen_stmt(global, cfn, scope, &block.stmts[i]) => (stmt_code, scope, global, cfn))
+                (let (code, cfn) = cfn.append_from(code, stmt_code)))
             ---- ("block")
-            (codegen_block(global, cfn, scope, block) => (region, global, cfn))
+            (codegen_block(global, cfn, scope, block) => (code, global, cfn))
         )
 
         (
             (if let Some(label) = &block.label)!
             (let (exit_block, cfn) = cfn.fresh_bb())
             (let scope = scope.with_label(&label.id, (), exit_block))
-            (let region = cfn.fresh_region())
-            (for_all(i in 0..block.stmts.len()) with(region, scope, global, cfn)
-                (codegen_stmt(global, cfn, scope, &block.stmts[i]) => (stmt_region, scope, global, cfn))
-                (let (region, cfn) = cfn.append_from(region, stmt_region)))
-            (let (region, cfn) = cfn.terminate(region, terminator_goto(exit_block), Some(exit_block)))
+            (let code = cfn.fresh_code_block())
+            (for_all(i in 0..block.stmts.len()) with(code, scope, global, cfn)
+                (codegen_stmt(global, cfn, scope, &block.stmts[i]) => (stmt_code, scope, global, cfn))
+                (let (code, cfn) = cfn.append_from(code, stmt_code)))
+            (let (code, cfn) = cfn.terminate(code, terminator_goto(exit_block), Some(exit_block)))
             ---- ("labeled-block")
-            (codegen_block(global, cfn, scope, block) => (region, global, cfn))
+            (codegen_block(global, cfn, scope, block) => (code, global, cfn))
         )
     }
 }
@@ -123,57 +123,57 @@ judgment_fn! {
         cfn: CodegenFn,
         scope: CodegenScope,
         stmt: Stmt,
-    ) => (SemeRegion, CodegenScope, CodegenGlobal, CodegenFn) {
+    ) => (CodeBlock, CodegenScope, CodegenGlobal, CodegenFn) {
         debug(global, cfn, scope, stmt)
 
         (
             (let (local, cfn) = cfn.alloc_temp(ty)?)
             (let scope = scope.push_var(id, local, ty)?)
-            (codegen_expr_into(global, cfn, scope, local, &init.expr) => (region, global, cfn))
+            (codegen_expr_into(global, cfn, scope, local, &init.expr) => (code, global, cfn))
             ---- ("let-init")
-            (codegen_stmt(global, cfn, scope, Stmt::Let { label: _, id, ty, init: Some(init) }) => (region, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Let { label: _, id, ty, init: Some(init) }) => (code, scope, global, cfn))
         )
 
         (
             (let (local, cfn) = cfn.alloc_temp(ty)?)
             (let scope = scope.push_var(id, local, ty)?)
-            (let region = cfn.fresh_region())
+            (let code = cfn.fresh_code_block())
             ---- ("let-no-init")
-            (codegen_stmt(global, cfn, scope, Stmt::Let { label: _, id, ty, init: None }) => (region, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Let { label: _, id, ty, init: None }) => (code, scope, global, cfn))
         )
 
         (
-            (codegen_expr_into(global, cfn, scope, scope.ret_local, expr) => (region, global, cfn))
-            (let (region, cfn) = cfn.terminated(region, terminator_return()))
+            (codegen_expr_into(global, cfn, scope, scope.ret_local, expr) => (code, global, cfn))
+            (let (code, cfn) = cfn.terminated(code, terminator_return()))
             ---- ("return")
-            (codegen_stmt(global, cfn, scope, Stmt::Return { expr }) => (region, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Return { expr }) => (code, scope, global, cfn))
         )
 
         (
             (type_expr(cfn, scope, expr) => expr_ty)
             (let (temp, cfn) = cfn.alloc_temp(&expr_ty)?)
-            (codegen_expr_into(global, cfn, scope, temp, expr) => (region, global, cfn))
-            (let (region, cfn) = cfn.print_intrinsic(region, temp)?)
+            (codegen_expr_into(global, cfn, scope, temp, expr) => (code, global, cfn))
+            (let (code, cfn) = cfn.print_intrinsic(code, temp)?)
             ---- ("print")
-            (codegen_stmt(global, cfn, scope, Stmt::Print { expr }) => (region, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Print { expr }) => (code, scope, global, cfn))
         )
 
         (
             (let (ct, cfn) = cfn.alloc_local(bool_ty()))
-            (codegen_expr_into(global, cfn, scope, ct, condition) => (cond_region, global, cfn))
-            (codegen_block(global, cfn, scope, then_block) => (then_region, global, cfn))
-            (codegen_block(global, cfn, scope, else_block) => (else_region, global, cfn))
-            (let (region, cfn) = cfn.branch_on_bool_from(cond_region, ct, then_region, else_region))
+            (codegen_expr_into(global, cfn, scope, ct, condition) => (cond_code, global, cfn))
+            (codegen_block(global, cfn, scope, then_block) => (then_code, global, cfn))
+            (codegen_block(global, cfn, scope, else_block) => (else_code, global, cfn))
+            (let (code, cfn) = cfn.branch_on_bool_from(cond_code, ct, then_code, else_code))
             ---- ("if")
-            (codegen_stmt(global, cfn, scope, Stmt::If { condition, then_block, else_block }) => (region, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::If { condition, then_block, else_block }) => (code, scope, global, cfn))
         )
 
         (
             (type_expr(cfn, scope, expr) => expr_ty)
             (let (temp, cfn) = cfn.alloc_temp(&expr_ty)?)
-            (codegen_expr_into(global, cfn, scope, temp, expr) => (region, global, cfn))
+            (codegen_expr_into(global, cfn, scope, temp, expr) => (code, global, cfn))
             ---- ("expr")
-            (codegen_stmt(global, cfn, scope, Stmt::Expr { expr }) => (region, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Expr { expr }) => (code, scope, global, cfn))
         )
 
         (
@@ -181,40 +181,40 @@ judgment_fn! {
             (let (loop_start, cfn) = cfn.fresh_bb())
             (let (exit_block, cfn) = cfn.fresh_bb())
             (let scope = scope.with_label(&label.id, Some(loop_start), exit_block))
-            (codegen_block(global, cfn, scope, body) => (body_region, global, cfn))
-            (let (region, cfn) = build_loop(cfn, loop_start, exit_block, body_region)?)
+            (codegen_block(global, cfn, scope, body) => (body_code, global, cfn))
+            (let (code, cfn) = build_loop(cfn, loop_start, exit_block, body_code)?)
             ---- ("loop")
-            (codegen_stmt(global, cfn, scope, Stmt::Loop { label, body }) => (region, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Loop { label, body }) => (code, scope, global, cfn))
         )
 
         (
             (let (_, exit) = scope.lookup_label(label)?)
-            (let region = cfn.fresh_region())
-            (let (region, cfn) = cfn.terminated(region, terminator_goto(exit)))
+            (let code = cfn.fresh_code_block())
+            (let (code, cfn) = cfn.terminated(code, terminator_goto(exit)))
             ---- ("break")
-            (codegen_stmt(global, cfn, scope, Stmt::Break { label }) => (region, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Break { label }) => (code, scope, global, cfn))
         )
 
         (
             (let (continue_target, _) = scope.lookup_label(label)?)
             (if let Some(start) = continue_target)
-            (let region = cfn.fresh_region())
-            (let (region, cfn) = cfn.terminated(region, terminator_goto(start)))
+            (let code = cfn.fresh_code_block())
+            (let (code, cfn) = cfn.terminated(code, terminator_goto(start)))
             ---- ("continue")
-            (codegen_stmt(global, cfn, scope, Stmt::Continue { label }) => (region, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Continue { label }) => (code, scope, global, cfn))
         )
 
         (
-            (codegen_block(global, cfn, scope, block) => (region, global, cfn))
+            (codegen_block(global, cfn, scope, block) => (code, global, cfn))
             ---- ("block")
-            (codegen_stmt(global, cfn, scope, Stmt::Block(block)) => (region, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Block(block)) => (code, scope, global, cfn))
         )
 
         (
             (let block = instantiate_erased(binder)?)
-            (codegen_block(global, cfn, scope, block) => (region, global, cfn))
+            (codegen_block(global, cfn, scope, block) => (code, global, cfn))
             ---- ("exists")
-            (codegen_stmt(global, cfn, scope, Stmt::Exists { binder }) => (region, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Exists { binder }) => (code, scope, global, cfn))
         )
     }
 }
@@ -226,14 +226,14 @@ judgment_fn! {
         scope: CodegenScope,
         target: MiniRustLocal,
         expr: Expr,
-    ) => (SemeRegion, CodegenGlobal, CodegenFn) {
+    ) => (CodeBlock, CodegenGlobal, CodegenFn) {
         debug(global, cfn, scope, target, expr)
 
         (
-            (let region = cfn.fresh_region())
+            (let code = cfn.fresh_code_block())
             ---- ("literal")
             (codegen_expr_into(global, cfn, scope, target, Expr::Literal { value, ty }) => (
-                region.assign(target, constant(value, ty)),
+                code.assign(target, constant(value, ty)),
                 global,
                 cfn,
             ))
@@ -243,10 +243,10 @@ judgment_fn! {
             // A function name used as a value — FnDef is zero-sized.
             (if scope.lookup_var(id).is_err())
             (if cfn.crates.fn_named(id).is_ok())
-            (let region = cfn.fresh_region())
+            (let code = cfn.fresh_code_block())
             ---- ("fn-as-value")
             (codegen_expr_into(global, cfn, scope, target, Expr::Place(PlaceExpr::Var(id))) => (
-                region.assign(target, unit_value()),
+                code.assign(target, unit_value()),
                 global,
                 cfn,
             ))
@@ -255,30 +255,30 @@ judgment_fn! {
         (
             (resolve_place(cfn, scope, place_expr) => typed)
             (let source = typed_place_to_minirust(cfn, scope, &typed)?)
-            (let region = cfn.fresh_region())
+            (let code = cfn.fresh_code_block())
             ---- ("place")
             (codegen_expr_into(global, cfn, scope, target, Expr::Place(place_expr)) => (
-                region.assign(target, load(source)),
+                code.assign(target, load(source)),
                 global,
                 cfn,
             ))
         )
 
         (
-            (let region = cfn.fresh_region())
+            (let code = cfn.fresh_code_block())
             ---- ("true")
             (codegen_expr_into(global, cfn, scope, target, Expr::True) => (
-                region.assign(target, bool_constant(true)),
+                code.assign(target, bool_constant(true)),
                 global,
                 cfn,
             ))
         )
 
         (
-            (let region = cfn.fresh_region())
+            (let code = cfn.fresh_code_block())
             ---- ("false")
             (codegen_expr_into(global, cfn, scope, target, Expr::False) => (
-                region.assign(target, bool_constant(false)),
+                code.assign(target, bool_constant(false)),
                 global,
                 cfn,
             ))
@@ -289,10 +289,10 @@ judgment_fn! {
             (let dest = typed_place_to_minirust(cfn, scope, &typed_dest)?)
             (type_expr(cfn, scope, rhs) => rhs_ty)
             (let (rhs_temp, cfn) = cfn.alloc_temp(rhs_ty)?)
-            (codegen_expr_into(global, cfn, scope, rhs_temp, rhs) => (region, global, cfn))
+            (codegen_expr_into(global, cfn, scope, rhs_temp, rhs) => (code, global, cfn))
             ---- ("assign")
             (codegen_expr_into(global, cfn, scope, target, Expr::Assign { place, expr: rhs }) => (
-                region
+                code
                     .assign(dest, load(rhs_temp))
                     .assign(target, unit_value()),
                 global,
@@ -303,10 +303,10 @@ judgment_fn! {
         (
             // Turbofish always generates a zero-sized value.
             // The important bits (function name, arguments, etc) show up in the *type*.
-            (let region = cfn.fresh_region())
+            (let code = cfn.fresh_code_block())
             ---- ("turbofish")
             (codegen_expr_into(global, cfn, scope, target, Expr::Turbofish { .. }) => (
-                region.assign(target, unit_value()),
+                code.assign(target, unit_value()),
                 global,
                 cfn,
             ))
@@ -321,26 +321,26 @@ judgment_fn! {
             (let (fn_name, global) = global.ensure_fn(MonoKey::new(fn_id, parameters)))
             // Evaluate callee for side effects (value is zero-sized for FnDef).
             (let (callee_temp, cfn) = cfn.alloc_temp(&callee_ty)?)
-            (codegen_expr_into(global, cfn, scope, callee_temp, callee) => (region, global, cfn))
+            (codegen_expr_into(global, cfn, scope, callee_temp, callee) => (code, global, cfn))
             // Evaluate arguments into temporaries.
             (let (temps, cfn) = alloc_temps_for_args(cfn, scope, args)?)
-            (for_all(i in 0..args.len()) with(region, global, cfn)
-                (codegen_expr_into(global, cfn, scope, &temps[i], &args[i]) => (arg_region, global, cfn))
-                (let (region, cfn) = cfn.append_from(region, arg_region)))
+            (for_all(i in 0..args.len()) with(code, global, cfn)
+                (codegen_expr_into(global, cfn, scope, &temps[i], &args[i]) => (arg_code, global, cfn))
+                (let (code, cfn) = cfn.append_from(code, arg_code)))
             // Construct the minirust function call.
-            (let (region, cfn) = cfn.call(region, fn_name, temps, target)?)
+            (let (code, cfn) = cfn.call(code, fn_name, temps, target)?)
             ---- ("call")
-            (codegen_expr_into(global, cfn, scope, target, Expr::Call { callee, args }) => (region, global, cfn))
+            (codegen_expr_into(global, cfn, scope, target, Expr::Call { callee, args }) => (code, global, cfn))
         )
 
         (
             (resolve_place(cfn, scope, place) => typed)
             (let mr_place = typed_place_to_minirust(cfn, scope, typed)?)
             (let ref_value = addr_of(cfn, mr_place, kind, &typed.ty)?)
-            (let region = cfn.fresh_region())
+            (let code = cfn.fresh_code_block())
             ---- ("ref")
             (codegen_expr_into(global, cfn, scope, target, Expr::Ref { kind, lt: _, place }) => (
-                region.assign(target, ref_value),
+                code.assign(target, ref_value),
                 global,
                 cfn,
             ))
@@ -349,15 +349,15 @@ judgment_fn! {
         (
             (let fields = resolve_struct_fields(cfn, adt_id, turbofish)?)
             (let (temps, cfn) = alloc_temps_for_fields(cfn, fields)?)
-            (let region = cfn.fresh_region())
-            (for_all(i in 0..fields.len()) with(region, global, cfn)
+            (let code = cfn.fresh_code_block())
+            (for_all(i in 0..fields.len()) with(code, global, cfn)
                 (let field_expr = find_field_expr(field_exprs, &fields[i])?)
-                (codegen_expr_into(global, cfn, scope, &temps[i], field_expr) => (field_region, global, cfn))
-                (let (region, cfn) = cfn.append_from(region, field_region)))
+                (codegen_expr_into(global, cfn, scope, &temps[i], field_expr) => (field_code, global, cfn))
+                (let (code, cfn) = cfn.append_from(code, field_code)))
             (let struct_value = tuple_value(&temps, adt_id, turbofish, &cfn.crates)?)
             ---- ("struct")
             (codegen_expr_into(global, cfn, scope, target, Expr::Struct { field_exprs, adt_id, turbofish }) => (
-                region.assign(target, struct_value),
+                code.assign(target, struct_value),
                 global,
                 cfn,
             ))

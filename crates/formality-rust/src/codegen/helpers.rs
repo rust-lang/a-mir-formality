@@ -19,7 +19,7 @@ use minirust_rs::mem::PtrType;
 
 use super::minirust::*;
 use super::scope::{CodegenFn, CodegenGlobal, CodegenScope, MonoKey};
-use super::seme_region::SemeRegion;
+use super::code_block::CodeBlock;
 
 // ===========================================================================
 // Function setup and build
@@ -55,22 +55,22 @@ pub(super) fn setup_fn_args(
 /// Build a `lang::Function` from codegen results.
 pub(super) fn build_function(
     cfn: &CodegenFn,
-    region: impl Upcast<SemeRegion>,
+    code: impl Upcast<CodeBlock>,
     ret_local: &lang::LocalName,
     arg_locals: &List<lang::LocalName>,
 ) -> lang::Function {
-    let mut region: SemeRegion = region.upcast();
+    let mut code: CodeBlock = code.upcast();
     let ret_local = *ret_local;
     let mut cfn = cfn.clone();
-    if region.has_fallthrough() {
-        region = region.with_stmt(lang::Statement::Assign {
+    if code.has_fallthrough() {
+        code = code.with_stmt(lang::Statement::Assign {
             destination: lang::PlaceExpr::Local(ret_local),
             source: unit_value(),
         });
-        (region, cfn) = cfn.terminate(region, lang::Terminator::Return, ());
+        (code, cfn) = cfn.terminate(code, lang::Terminator::Return, ());
     }
-    let entry = region.entry();
-    let mut blocks = region.into_blocks();
+    let entry = code.entry();
+    let mut blocks = code.into_blocks();
     let mut skip = vec![ret_local];
     for al in arg_locals.clone() {
         skip.push(al);
@@ -276,19 +276,19 @@ pub(super) fn build_loop(
     cfn: &CodegenFn,
     loop_start: impl Upcast<MiniRustBb>,
     exit: impl Upcast<MiniRustBb>,
-    body: impl Upcast<SemeRegion>,
-) -> Fallible<(SemeRegion, CodegenFn)> {
+    body: impl Upcast<CodeBlock>,
+) -> Fallible<(CodeBlock, CodegenFn)> {
     let loop_start: MiniRustBb = loop_start.upcast();
     let exit: MiniRustBb = exit.upcast();
-    let body: SemeRegion = body.upcast();
-    let region = SemeRegion::named(loop_start.into());
-    let (mut region, mut cfn) = cfn.append(region, body);
-    if region.has_fallthrough() {
-        (region, cfn) = cfn.terminate(region, terminator_goto(loop_start), Some(exit));
+    let body: CodeBlock = body.upcast();
+    let code = CodeBlock::named(loop_start.into());
+    let (mut code, mut cfn) = cfn.append(code, body);
+    if code.has_fallthrough() {
+        (code, cfn) = cfn.terminate(code, terminator_goto(loop_start), Some(exit));
     } else {
-        (region, cfn) = cfn.terminate(region, lang::Terminator::Unreachable, Some(exit));
+        (code, cfn) = cfn.terminate(code, lang::Terminator::Unreachable, Some(exit));
     }
-    Ok((region, cfn))
+    Ok((code, cfn))
 }
 
 /// Build the MiniRust `_start` function that serves as the program entry point.
