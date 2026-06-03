@@ -68,7 +68,7 @@ pub struct PointFlowState {
     pub loans_live: Set<Loan>,
 
     /// Places that are uninitialized or have been moved from
-    /// Moving from any place whose prefix is in this set is an error
+    /// Read or write or move from any place whose prefix is in this set is an error
     pub uninit: Set<PlaceExpr>,
 }
 
@@ -89,14 +89,24 @@ impl PointFlowState {
 
     /// Mark a place as initialized: remove it and all sub-paths from uninit
     pub fn mark_initialized(&mut self, place: &PlaceExpr) {
-        self.uninit.retain(|u| !place.is_prefix_of(u));
+        self.uninit = self
+            .uninit
+            .iter()
+            .filter(|u| !place.is_prefix_of(u))
+            .cloned()
+            .collect();
     }
 
     /// Mark a place as moved/uninitialized: add it to uninit and
     /// remove any proper sub-paths (covered by the more general path).
     pub fn mark_uninit(&mut self, place: &PlaceExpr) {
         // Remove any sub-paths that are covered by this more general path
-        self.uninit.retain(|u| !place.is_prefix_of(u));
+        self.uninit = self
+            .uninit
+            .iter()
+            .filter(|u| !place.is_prefix_of(u))
+            .cloned()
+            .collect();
         // Don't add if a prefix is already uninit (already covered)
         if !self.uninit.iter().any(|u| u.is_prefix_of(place)) {
             self.uninit.insert(place.clone());
@@ -467,7 +477,7 @@ impl FlowState {
             label: scope_label,
             break_live_places: _,
             continue_live_places: _,
-            locals: _,
+            locals,
             drop_places: _,
             max_universe: _,
         } = scope;
@@ -487,6 +497,11 @@ impl FlowState {
         let mut successor = current;
         for lfs in this_label {
             successor = Union((successor, lfs.state)).upcast();
+        }
+
+        // Remove locals going out of scope from the uninit set
+        for (id, _) in &locals {
+            successor.uninit.remove(&PlaceExpr::Var(id.clone()));
         }
 
         FlowState {
