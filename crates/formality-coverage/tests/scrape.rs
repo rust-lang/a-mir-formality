@@ -76,25 +76,32 @@ fn markdown_index_snapshot() {
     let judgments = vec![
         Judgment {
             name: "prove_thing".into(),
+            doc_comment: String::new(),
+            signature: String::new(),
             file: "fixture.rs".into(),
             line: 4,
             rules: vec![
                 Rule {
                     name: "positive".into(),
+                    raw_text: String::new(),
                     line: 10,
                 },
                 Rule {
                     name: "zero".into(),
+                    raw_text: String::new(),
                     line: 16,
                 },
             ],
         },
         Judgment {
             name: "only_one".into(),
+            doc_comment: String::new(),
+            signature: String::new(),
             file: "fixture.rs".into(),
             line: 22,
             rules: vec![Rule {
                 name: "one".into(),
+                raw_text: String::new(),
                 line: 28,
             }],
         },
@@ -125,15 +132,19 @@ fn markdown_index_snapshot() {
 fn markdown_subpage_snapshot() {
     let j = Judgment {
         name: "prove_thing".into(),
+        doc_comment: String::new(),
+        signature: String::new(),
         file: "fixture.rs".into(),
         line: 4,
         rules: vec![
             Rule {
                 name: "positive".into(),
+                raw_text: String::new(),
                 line: 10,
             },
             Rule {
                 name: "zero".into(),
+                raw_text: String::new(),
                 line: 16,
             },
         ],
@@ -160,6 +171,8 @@ fn markdown_subpage_snapshot() {
 fn empty_rules_renders_no_rules_message() {
     let j = Judgment {
         name: "lonely".into(),
+        doc_comment: String::new(),
+        signature: String::new(),
         file: "fixture.rs".into(),
         line: 1,
         rules: vec![],

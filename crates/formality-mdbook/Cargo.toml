@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1"
+formality-coverage = { version = "0.1.0", path = "../formality-coverage" }
 mdbook-preprocessor = "0.5"
 regex = "1"
 serde_json = "1"
