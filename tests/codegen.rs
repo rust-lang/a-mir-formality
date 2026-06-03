@@ -53,7 +53,7 @@ fn assignment() {
 fn function_calls() {
     FormalityTest::new(crates![crate test {
         fn add_one(x: i32) -> i32 {
-            return x;
+            return x; // FIXME: this should probably be `x + 1`
         }
         fn main() -> () {
             let y: i32 = add_one(1 _ i32);

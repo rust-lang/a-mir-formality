@@ -4,6 +4,7 @@ use crate::check::borrow_check::flow_state::FlowState;
 use crate::check::borrow_check::typed_place_expression::{
     TypedPlaceExpr, TypedPlaceExpressionData,
 };
+use crate::grammar;
 use crate::grammar::{
     expr::{Block, Expr},
     Fallible, Lt, Parameter, ParameterKind, RigidName, Ty,
@@ -27,7 +28,7 @@ use super::seme_region::SemeRegion;
 /// Set up function arguments: alloc locals, build scope.
 pub(super) fn setup_fn_args(
     cfn: impl Upcast<CodegenFn>,
-    fn_data: &crate::grammar::FnBoundData,
+    fn_data: &grammar::FnBoundData,
 ) -> Fallible<(
     lang::LocalName,
     List<lang::LocalName>,
@@ -104,11 +105,11 @@ pub(super) fn build_function(
 pub(super) fn resolve_fn_body(
     g: &CodegenGlobal,
     key: &MonoKey,
-) -> Fallible<(crate::grammar::FnBoundData, Block)> {
+) -> Fallible<(grammar::FnBoundData, Block)> {
     let fn_def = g.crates.fn_named(&key.id)?;
     let fn_data = fn_def.binder.instantiate_with(&key.args)?;
     let body = match &fn_data.body {
-        crate::grammar::MaybeFnBody::FnBody(crate::grammar::FnBody::Expr(b)) => b.clone(),
+        grammar::MaybeFnBody::FnBody(grammar::FnBody::Expr(b)) => b.clone(),
         _ => anyhow::bail!("function {:?} must have expression body", key.id),
     };
     Ok((fn_data, body))
@@ -182,7 +183,7 @@ pub(super) fn typed_place_to_minirust(
                     struct_field_index(&cfn.crates, id, &prefix_rigid.parameters, field_name)?.0
                 }
                 RigidName::Tuple(_) => match field_name {
-                    crate::grammar::FieldName::Index(i) => *i,
+                    grammar::FieldName::Index(i) => *i,
                     _ => anyhow::bail!("non-index field on tuple"),
                 },
                 _ => anyhow::bail!("field on non-struct/tuple"),
@@ -217,7 +218,7 @@ pub(super) fn alloc_temps_for_args(
 
 pub(super) fn alloc_temps_for_fields(
     cfn: &CodegenFn,
-    fields: &[crate::grammar::Field],
+    fields: &[grammar::Field],
 ) -> Fallible<(Vec<MiniRustLocal>, CodegenFn)> {
     let mut f = cfn.clone();
     let mut temps = Vec::new();
@@ -231,22 +232,17 @@ pub(super) fn alloc_temps_for_fields(
 
 pub(super) fn resolve_struct_fields(
     cfn: &CodegenFn,
-    adt_id: &crate::grammar::AdtId,
-    turbofish: &crate::grammar::expr::Turbofish,
-) -> Fallible<Vec<crate::grammar::Field>> {
+    adt_id: &grammar::AdtId,
+    turbofish: &grammar::expr::Turbofish,
+) -> Fallible<Vec<grammar::Field>> {
     let s = cfn.crates.struct_named(adt_id)?;
-    let bd = if turbofish.parameters.is_empty() {
-        let (_, d) = s.binder.open();
-        d
-    } else {
-        s.binder.instantiate_with(&turbofish.parameters)?
-    };
-    Ok(bd.fields.clone())
+    let bd = s.binder.instantiate_with(&turbofish.parameters)?;
+    Ok(bd.fields)
 }
 
 pub(super) fn find_field_expr<'a>(
-    field_exprs: &'a [crate::grammar::expr::FieldExpr],
-    field: &crate::grammar::Field,
+    field_exprs: &'a [grammar::expr::FieldExpr],
+    field: &grammar::Field,
 ) -> Fallible<&'a Expr> {
     field_exprs
         .iter()
@@ -255,7 +251,7 @@ pub(super) fn find_field_expr<'a>(
         .ok_or_else(|| anyhow::anyhow!("missing field {:?}", field.name))
 }
 
-pub(super) fn instantiate_erased(binder: &crate::grammar::Binder<Block>) -> Fallible<Block> {
+pub(super) fn instantiate_erased(binder: &grammar::Binder<Block>) -> Fallible<Block> {
     let params: Vec<Parameter> = binder
         .kinds()
         .iter()
@@ -269,8 +265,8 @@ pub(super) fn instantiate_erased(binder: &crate::grammar::Binder<Block>) -> Fall
 }
 
 pub(super) fn require_label(
-    label: &Option<crate::grammar::expr::Label>,
-) -> Fallible<&crate::grammar::expr::Label> {
+    label: &Option<grammar::expr::Label>,
+) -> Fallible<&grammar::expr::Label> {
     label
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("loop must have a label"))

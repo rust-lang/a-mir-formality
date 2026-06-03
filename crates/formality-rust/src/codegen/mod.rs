@@ -41,8 +41,8 @@ pub fn codegen_program(crates: &Crates) -> Fallible<lang::Program> {
     g = g2;
     let mut functions: Map<lang::FnName, lang::Function> = Map::new();
     while let Some((key, fn_name)) = g.next_pending(&functions) {
-        let (function, g2) = unwrap_proven(codegen_function(g, key))?;
-        g = g2;
+        let function;
+        (function, g) = unwrap_proven(codegen_function(g, key))?;
         functions.insert(fn_name, function.into());
     }
     let main_ret_ty = functions
@@ -301,11 +301,11 @@ judgment_fn! {
         )
 
         (
-            // Turbofish only impacts the type.
-            (let (_, global) = global.ensure_fn(MonoKey::new(id, args.to_vec())))
+            // Turbofish always generates a zero-sized value.
+            // The important bits (function name, arguments, etc) show up in the *type*.
             (let region = cfn.fresh_region())
             ---- ("turbofish")
-            (codegen_expr_into(global, cfn, scope, target, Expr::Turbofish { id, args }) => (
+            (codegen_expr_into(global, cfn, scope, target, Expr::Turbofish { .. }) => (
                 region.assign(target, unit_value()),
                 global,
                 cfn,
@@ -313,17 +313,21 @@ judgment_fn! {
         )
 
         (
+            // Get the type of the calleee. This rule expects static dispatch,
+            // so we require that the callee has a zero-sized `FnDef` type that
+            // uniquely identifies a callee.
             (type_expr(cfn, scope, callee) => callee_ty)
             (resolve_rigid(cfn, scope, callee_ty) => RigidTy { name: RigidName::FnDef(fn_id), parameters })
             (let (fn_name, global) = global.ensure_fn(MonoKey::new(fn_id, parameters)))
             // Evaluate callee for side effects (value is zero-sized for FnDef).
             (let (callee_temp, cfn) = cfn.alloc_temp(&callee_ty)?)
             (codegen_expr_into(global, cfn, scope, callee_temp, callee) => (region, global, cfn))
-            // Evaluate arguments.
+            // Evaluate arguments into temporaries.
             (let (temps, cfn) = alloc_temps_for_args(cfn, scope, args)?)
             (for_all(i in 0..args.len()) with(region, global, cfn)
                 (codegen_expr_into(global, cfn, scope, &temps[i], &args[i]) => (arg_region, global, cfn))
                 (let (region, cfn) = cfn.append_from(region, arg_region)))
+            // Construct the minirust function call.
             (let (region, cfn) = cfn.call(region, fn_name, temps, target)?)
             ---- ("call")
             (codegen_expr_into(global, cfn, scope, target, Expr::Call { callee, args }) => (region, global, cfn))
