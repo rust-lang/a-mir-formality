@@ -1,5 +1,6 @@
 use crate::{judgment::IfThen, set, Fallible, Map, Set};
 use std::{
+    collections::BTreeSet,
     fmt::Debug,
     hash::{Hash, Hasher},
     panic::Location,
@@ -203,6 +204,7 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
     pub fn assert_err(&self, expect: expect_test::Expect) {
         match &self.data {
             ProvenSetData::Failure(e) => {
+                crate::judgment::coverage::record_negative_coverage(std::iter::once(e.as_ref()));
                 expect.assert_eq(&crate::test_util::normalize_paths(e.format_leaves()));
             }
             ProvenSetData::Success(_) => {
@@ -590,6 +592,44 @@ impl FailedJudgment {
                 .join("\n\n")
         }
     }
+
+    /// Collect every named rule that was "blamed" for this judgment failing,
+    /// walking through nested failed sub-judgments. Used by negative
+    /// coverage tracking: a rule shows up here exactly when it survived
+    /// cycle-stripping and `!`-clause filtering, matched the conclusion
+    /// patterns, and then had some premise fail. Rules without a name
+    /// (single-rule judgments) are skipped because there's nothing to
+    /// blame distinctly.
+    pub fn collect_blamed_rules(&self) -> BTreeSet<BlamedRule> {
+        let mut acc = BTreeSet::new();
+        for leaf in self.leaf_failures() {
+            if let LeafFailure::Rule(rule) = leaf {
+                let Some(rule_name) = rule.rule_name else {
+                    continue;
+                };
+                acc.insert(BlamedRule {
+                    rule: rule_name,
+                    file: rule.file.replace('\\', "/"),
+                    line: rule.line,
+                    cause: rule.cause.discriminant_tag(),
+                });
+            }
+        }
+        acc
+    }
+}
+
+/// A single named rule that was blamed for a judgment failure. Identified
+/// by `(file, line)` of the rule definition, paired with a coarse tag
+/// describing which clause of the rule failed.
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+pub struct BlamedRule {
+    pub rule: String,
+    pub file: String,
+    pub line: u32,
+    /// Discriminant tag from [`RuleFailureCause`]; see
+    /// [`RuleFailureCause::discriminant_tag`].
+    pub cause: &'static str,
 }
 
 impl FailedRule {
@@ -688,6 +728,21 @@ pub enum RuleFailureCause {
 }
 
 impl RuleFailureCause {
+    /// Snake-case tag identifying the variant. Used by negative coverage
+    /// to record *why* a blamed rule failed without leaking the inner
+    /// payload (which could differ from one test run to another).
+    pub fn discriminant_tag(&self) -> &'static str {
+        match self {
+            RuleFailureCause::IfFalse(_) => "if_false",
+            RuleFailureCause::IfLetDidNotMatch { .. } => "if_let",
+            RuleFailureCause::EmptyCollection { .. } => "empty_collection",
+            RuleFailureCause::FailedJudgment(_) => "failed_judgment",
+            RuleFailureCause::Inapplicable { .. } => "inapplicable",
+            RuleFailureCause::Cycle { .. } => "cycle",
+            RuleFailureCause::ExplicitFailure { .. } => "explicit_failure",
+        }
+    }
+
     pub fn from_anyhow(e: anyhow::Error) -> Self {
         if let Some(failed) = e.downcast_ref::<Box<FailedJudgment>>() {
             RuleFailureCause::FailedJudgment(Box::new((**failed).clone()))
