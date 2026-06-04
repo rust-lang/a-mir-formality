@@ -1,6 +1,12 @@
 # Gives us the commands 'ready', 'author', 'blocked'.
 [shortcut]
 
+# Allow any user to add labels.
+[relabel]
+allow-unauthenticated = [
+    "*",
+]
+
 # Allow any user to assign themselves to a Github issue.
 [assign]
 
