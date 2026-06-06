@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use crate::prove::prove::{is_definitely_not_proveable, Constraints, Env, Program};
 use crate::rust::Visit;
 use crate::{
-    grammar::{Crate, CrateId, CrateItem, Crates, Fallible, Test, TestBoundData, Wcs},
+    grammar::{Crate, CrateId, CrateItem, Crates, Fallible, FeatureGate, Test, TestBoundData, Wcs},
     prove::ToWcs,
 };
 use anyhow::{anyhow, bail};
@@ -65,7 +65,7 @@ judgment_fn! {
         (
             (check_for_duplicate_items(program) => ())
             (for_all(item in &c.items)
-                (check_crate_item(program, item, &c.id) => ()))
+                (check_crate_item(program, item, &c.id, &c.items) => ()))
             (check_coherence(program, c) => ())
             ------------------------------------------------------------ ("check crate")
             (check_crate(program, Crate { id: _id, items: _items }) => ())
@@ -123,49 +123,69 @@ judgment_fn! {
         program: Program,
         c: CrateItem,
         crate_id: CrateId,
+        crate_items: Vec<CrateItem>,
     ) => () {
         debug(program, c, crate_id)
 
         (
             (check_trait(program, Env::default(), v, crate_id) => ())
             ------------------------------------------------------------ ("trait")
-            (check_crate_item(program, CrateItem::Trait(v), crate_id) => ())
+            (check_crate_item(program, CrateItem::Trait(v), crate_id, crate_items) => ())
         )
 
         (
             (check_trait_impl(program, v, crate_id) => ())
             ------------------------------------------------------------ ("trait impl")
-            (check_crate_item(program, CrateItem::TraitImpl(v), crate_id) => ())
+            (check_crate_item(program, CrateItem::TraitImpl(v), crate_id, crate_items) => ())
         )
 
         (
             (check_adt(program, &s.to_adt()) => ())
             ------------------------------------------------------------ ("adt")
-            (check_crate_item(program, CrateItem::AdtItem(s), crate_id) => ())
+            (check_crate_item(program, CrateItem::AdtItem(s), crate_id, crate_items) => ())
         )
 
         (
             (check_free_fn(program, f, crate_id) => ())
             ------------------------------------------------------------ ("free fn")
-            (check_crate_item(program, CrateItem::Fn(f), crate_id) => ())
+            (check_crate_item(program, CrateItem::Fn(f), crate_id, crate_items) => ())
         )
 
         (
             (check_neg_trait_impl(program, i) => ())
             ------------------------------------------------------------ ("neg trait impl")
-            (check_crate_item(program, CrateItem::NegTraitImpl(i), crate_id) => ())
+            (check_crate_item(program, CrateItem::NegTraitImpl(i), crate_id, crate_items) => ())
         )
 
         (
             (check_test(program, t) => ())
             ------------------------------------------------------------ ("test")
-            (check_crate_item(program, CrateItem::Test(t), crate_id) => ())
+            (check_crate_item(program, CrateItem::Test(t), crate_id, crate_items) => ())
         )
 
         (
-            // FIXME(#212): reject duplicate feature gates within a crate
+            (check_feature_gate(program, feature_gate, crate_items) => ())
             ------------------------------------------------------------ ("feature gate")
-            (check_crate_item(program, CrateItem::FeatureGate(_feature_gate), crate_id) => ())
+            (check_crate_item(program, CrateItem::FeatureGate(feature_gate), crate_id, crate_items) => ())
+        )
+    }
+}
+
+judgment_fn! {
+    fn check_feature_gate(
+        program : Program,
+        feature_gate : FeatureGate,
+        crate_items: Vec<CrateItem>
+    ) => () {
+        debug(program, feature_gate, crate_items)
+
+        (
+            (if crate_items.iter()
+                .filter(|i| matches!(i, CrateItem::FeatureGate(fg) if fg == feature_gate))
+                .count() <= 1
+            )
+            ------------------------------------------------------------ ("check feature gate")
+            (check_feature_gate(program, feature_gate, crate_items) => ())
         )
     }
 }
