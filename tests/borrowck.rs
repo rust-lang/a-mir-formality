@@ -1673,7 +1673,7 @@ fn continue_drops_local_borrow_dead() {
 #[test]
 fn integer_in_outer_scope() {
     FormalityTest::new(crates![crate Foo {
-        fn foo() -> u32 {
+        fn foo() -> () {
             'a: {
                 {
                     let 'a: v: i32 = 0 _ i32;
