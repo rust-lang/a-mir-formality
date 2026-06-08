@@ -15,7 +15,7 @@ use std::io::Write;
 use std::panic::Location;
 use std::path::PathBuf;
 
-use super::{BlamedRule, FailedJudgment, ProofTree};
+use super::{BlamedRule, FailedJudgment, ImplicitNoMatch, ProofTree};
 
 /// A single (judgment, rule) pair as identified in the coverage output.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
@@ -81,11 +81,15 @@ pub fn record_coverage<'a>(trees: impl IntoIterator<Item = &'a ProofTree>) {
 
 /// Record negative coverage for the currently-running test from one or more
 /// failed judgments. For each failure, every named rule that was "blamed"
-/// (see [`FailedJudgment::collect_blamed_rules`]) is appended.
+/// (see [`FailedJudgment::collect_blamed_rules`]) is appended, alongside
+/// every judgment that failed with no blamed rule at all (see
+/// [`FailedJudgment::collect_implicit_no_match`]).
 ///
 /// JSONL records produced here carry `"kind":"negative"` and a per-rule
-/// `"cause"` tag. Positive records (written by [`record_coverage`]) omit the
-/// `kind` field so existing data remains valid.
+/// `"cause"` tag. Implicit no-match judgments appear in a separate
+/// `"implicit_no_match"` array on the same record. Positive records
+/// (written by [`record_coverage`]) omit the `kind` field so existing data
+/// remains valid.
 #[track_caller]
 pub fn record_negative_coverage<'a>(failures: impl IntoIterator<Item = &'a FailedJudgment>) {
     if !coverage_enabled() {
@@ -99,11 +103,13 @@ pub fn record_negative_coverage<'a>(failures: impl IntoIterator<Item = &'a Faile
     let caller = Location::caller();
 
     let mut rules: BTreeSet<BlamedRule> = BTreeSet::new();
+    let mut implicit: BTreeSet<ImplicitNoMatch> = BTreeSet::new();
     for failure in failures {
         rules.extend(failure.collect_blamed_rules());
+        implicit.extend(failure.collect_implicit_no_match());
     }
 
-    let line = format_negative_jsonl(caller, &rules);
+    let line = format_negative_jsonl(caller, &rules, &implicit);
     let _ = append_line(&path, &line);
 }
 
@@ -176,7 +182,11 @@ fn format_jsonl(caller: &Location<'_>, rules: &BTreeSet<RuleId>) -> String {
     s
 }
 
-fn format_negative_jsonl(caller: &Location<'_>, rules: &BTreeSet<BlamedRule>) -> String {
+fn format_negative_jsonl(
+    caller: &Location<'_>,
+    rules: &BTreeSet<BlamedRule>,
+    implicit: &BTreeSet<ImplicitNoMatch>,
+) -> String {
     let mut s = String::new();
     s.push('{');
     s.push_str("\"test_file\":");
@@ -199,6 +209,20 @@ fn format_negative_jsonl(caller: &Location<'_>, rules: &BTreeSet<BlamedRule>) ->
         s.push_str(&r.line.to_string());
         s.push_str(",\"cause\":");
         push_json_str(&mut s, r.cause);
+        s.push('}');
+    }
+    s.push_str("],\"implicit_no_match\":[");
+    for (i, j) in implicit.iter().enumerate() {
+        if i > 0 {
+            s.push(',');
+        }
+        s.push('{');
+        s.push_str("\"judgment\":");
+        push_json_str(&mut s, &j.judgment);
+        s.push_str(",\"file\":");
+        push_json_str(&mut s, &j.file);
+        s.push_str(",\"line\":");
+        s.push_str(&j.line.to_string());
         s.push('}');
     }
     s.push_str("]}");

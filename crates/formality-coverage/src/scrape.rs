@@ -29,6 +29,33 @@ pub struct Rule {
     pub name: String,
     pub raw_text: String,
     pub line: u32,
+    /// Premises listed above the `---` separator, in source order.
+    pub premises: Vec<Premise>,
+}
+
+/// One premise within a rule's body. Used by the report to decide whether
+/// a rule can ever be "blamed" in negative coverage: a rule whose premises
+/// are all infallible cannot fail once its conclusion matches, so an
+/// uncovered cell renders as N/A rather than a gap.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Premise {
+    pub raw_text: String,
+    pub kind: PremiseKind,
+    pub fallible: bool,
+}
+
+/// Coarse classification of premise syntax. Drives the fallibility heuristic
+/// Niko outlined: `let` is infallible unless its body contains `?`; `if`,
+/// `if let`, and judgment-call `(expr => binding)` premises are fallible.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PremiseKind {
+    Let,
+    If,
+    IfLet,
+    Judgment,
+    /// Did not match any known premise shape — treated as fallible so we
+    /// never mistakenly mark a rule as unblameable.
+    Other,
 }
 
 /// Walk `root` recursively and scrape every `.rs` file for `judgment_fn!`
@@ -218,10 +245,13 @@ fn extract_rules(block: &str, block_start_line: u32) -> Vec<Rule> {
                 + rule_start_lines
                 + separator_line_offset;
 
+            let premises = extract_premises(rule_text);
+
             rules.push(Rule {
                 name: rule_name,
                 raw_text: clean_rule_text(rule_text),
                 line: abs_line,
+                premises,
             });
         }
 
@@ -229,6 +259,74 @@ fn extract_rules(block: &str, block_start_line: u32) -> Vec<Rule> {
     }
 
     rules
+}
+
+/// Walk the section of `rule_text` above the `---` separator and collect
+/// each parenthesized premise in source order. A trailing `!` (match-commit
+/// marker) is tolerated and dropped from the recorded text.
+fn extract_premises(rule_text: &str) -> Vec<Premise> {
+    static SEPARATOR_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"-{3,}"#).unwrap());
+
+    let body_end = SEPARATOR_RE
+        .find(rule_text)
+        .map(|m| m.start())
+        .unwrap_or(rule_text.len());
+    let body = &rule_text[..body_end];
+
+    let mut premises = Vec::new();
+    let mut pos = 0;
+    while pos < body.len() {
+        let Some(trimmed) = body[pos..].find(|c: char| !c.is_whitespace()) else {
+            break;
+        };
+        pos += trimmed;
+        if !body[pos..].starts_with('(') {
+            // Skip past any stray characters to the next line.
+            if let Some(nl) = body[pos..].find('\n') {
+                pos += nl + 1;
+                continue;
+            }
+            break;
+        }
+        let Some(close) = find_matching_paren(body, pos) else {
+            pos += 1;
+            continue;
+        };
+        let inner = &body[pos + 1..close];
+        let (kind, fallible) = classify_premise(inner);
+        premises.push(Premise {
+            raw_text: inner.trim().to_string(),
+            kind,
+            fallible,
+        });
+        pos = close + 1;
+        // Skip an optional `!` match-commit marker after the closing paren.
+        if body[pos..].starts_with('!') {
+            pos += 1;
+        }
+    }
+    premises
+}
+
+/// Classify a premise by its leading tokens and apply Niko's fallibility
+/// heuristic: `let` is infallible *unless* its body contains a `?`; every
+/// other recognized shape is fallible.
+fn classify_premise(inner: &str) -> (PremiseKind, bool) {
+    let trimmed = inner.trim_start();
+    if let Some(rest) = trimmed.strip_prefix("let ") {
+        let fallible = rest.contains('?');
+        return (PremiseKind::Let, fallible);
+    }
+    if let Some(rest) = trimmed.strip_prefix("if ") {
+        if rest.trim_start().starts_with("let ") {
+            return (PremiseKind::IfLet, true);
+        }
+        return (PremiseKind::If, true);
+    }
+    if trimmed.contains("=>") {
+        return (PremiseKind::Judgment, true);
+    }
+    (PremiseKind::Other, true)
 }
 
 fn extract_rule_name(rule_text: &str) -> Option<String> {

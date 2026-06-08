@@ -617,6 +617,49 @@ impl FailedJudgment {
         }
         acc
     }
+
+    /// Collect every judgment in the failure tree that failed with *no*
+    /// blamed rule, walking from this judgment down through every nested
+    /// `FailedJudgment` cause. This is the "implicit no-match" signal: the
+    /// judgment was exercised but either no rule's conclusion patterns
+    /// matched the input, or every rule that did match got stripped before
+    /// reaching its `!`-clause.
+    ///
+    /// Recorded by negative coverage so the report can mark a judgment as
+    /// "exercised but unmatched" even when there's no specific rule to
+    /// blame.
+    pub fn collect_implicit_no_match(&self) -> BTreeSet<ImplicitNoMatch> {
+        let mut acc = BTreeSet::new();
+        self.collect_implicit_no_match_into(&mut acc);
+        acc
+    }
+
+    fn collect_implicit_no_match_into(&self, acc: &mut BTreeSet<ImplicitNoMatch>) {
+        if self.failed_rules.is_empty() {
+            acc.insert(ImplicitNoMatch {
+                judgment: judgment_name_prefix(&self.judgment),
+                file: self.location.file.clone(),
+                line: self.location.line,
+            });
+            return;
+        }
+        for rule in &self.failed_rules {
+            if let RuleFailureCause::FailedJudgment(inner) = &rule.cause {
+                inner.collect_implicit_no_match_into(acc);
+            }
+        }
+    }
+}
+
+/// Extract the leading identifier from `FailedJudgment.judgment`. The
+/// macro's `__JudgmentStruct` Debug impl is `debug_struct(stringify!(name))`,
+/// so the formatted string always starts with the judgment name followed
+/// by ` { ... }`. We grab characters up to the first non-identifier char.
+fn judgment_name_prefix(formatted: &str) -> String {
+    formatted
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+        .collect()
 }
 
 impl FailedRule {
@@ -650,6 +693,16 @@ pub struct BlamedRule {
     /// Discriminant tag from [`RuleFailureCause`]; see
     /// [`RuleFailureCause::discriminant_tag`].
     pub cause: &'static str,
+}
+
+/// A judgment that failed with no blamed rule. Either no rule's conclusion
+/// patterns matched the input, or every matching rule was stripped before
+/// reaching its `!`-clause. See [`FailedJudgment::collect_implicit_no_match`].
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+pub struct ImplicitNoMatch {
+    pub judgment: String,
+    pub file: String,
+    pub line: u32,
 }
 
 impl FailedRule {

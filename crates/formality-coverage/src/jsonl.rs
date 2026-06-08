@@ -26,6 +26,15 @@ pub struct BlamedRuleLoc {
     pub line: u32,
 }
 
+/// A judgment that was exercised but failed with no blamed rule. Mirrors
+/// the record produced by `FailedJudgment::collect_implicit_no_match`.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct ImplicitNoMatchLoc {
+    pub judgment: String,
+    pub file: String,
+    pub line: u32,
+}
+
 /// Aggregated coverage data from a JSONL file.
 #[derive(Default, Debug)]
 pub struct Coverage {
@@ -33,6 +42,8 @@ pub struct Coverage {
     pub positive: BTreeSet<CoveredRule>,
     /// Each blamed rule location with the set of clause-cause tags observed.
     pub negative: BTreeMap<BlamedRuleLoc, BTreeSet<String>>,
+    /// Judgments observed to fail with no matching rule.
+    pub implicit_no_match: BTreeSet<ImplicitNoMatchLoc>,
 }
 
 impl Coverage {
@@ -51,6 +62,14 @@ impl Coverage {
             }
         }
         out
+    }
+
+    /// True if `judgment_name` (in a file overlapping `judgment_file`) was
+    /// observed to fail with no rule blamed.
+    pub fn implicit_no_match_observed(&self, judgment_file: &str, judgment_name: &str) -> bool {
+        self.implicit_no_match
+            .iter()
+            .any(|loc| loc.judgment == judgment_name && paths_overlap(&loc.file, judgment_file))
     }
 }
 
@@ -90,7 +109,12 @@ pub fn read(path: &Path) -> Result<Coverage> {
             .and_then(|v| v.as_str())
             .unwrap_or("positive");
         match kind {
-            "negative" => ingest_negative(rules, &mut cov.negative),
+            "negative" => {
+                ingest_negative(rules, &mut cov.negative);
+                if let Some(arr) = value.get("implicit_no_match").and_then(|v| v.as_array()) {
+                    ingest_implicit(arr, &mut cov.implicit_no_match);
+                }
+            }
             _ => ingest_positive(rules, &mut cov.positive),
         }
     }
@@ -113,6 +137,23 @@ fn ingest_positive(rules: &[Value], out: &mut BTreeSet<CoveredRule>) {
         out.insert(CoveredRule {
             judgment: j.to_string(),
             rule: r.to_string(),
+        });
+    }
+}
+
+fn ingest_implicit(arr: &[Value], out: &mut BTreeSet<ImplicitNoMatchLoc>) {
+    for entry in arr {
+        let (Some(j), Some(file), Some(line)) = (
+            entry.get("judgment").and_then(|v| v.as_str()),
+            entry.get("file").and_then(|v| v.as_str()),
+            entry.get("line").and_then(|v| v.as_u64()),
+        ) else {
+            continue;
+        };
+        out.insert(ImplicitNoMatchLoc {
+            judgment: j.to_string(),
+            file: file.to_string(),
+            line: line as u32,
         });
     }
 }
