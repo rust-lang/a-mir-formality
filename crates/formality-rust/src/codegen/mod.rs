@@ -17,7 +17,6 @@ mod helpers;
 mod minirust;
 mod scope;
 mod code_block;
-mod test;
 
 use helpers::*;
 use minirust::*;

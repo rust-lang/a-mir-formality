@@ -426,9 +426,9 @@ impl CodegenFn {
             CodeBlock::Closed { .. } => unreachable!(),
         };
 
-        let (then_entry, cfn2) = Self::region_entry_or_alloc(&cfn, &then_region);
+        let (then_entry, cfn2) = Self::block_entry_or_alloc(&cfn, &then_region);
         cfn = cfn2;
-        let (else_entry, cfn2) = Self::region_entry_or_alloc(&cfn, &else_region);
+        let (else_entry, cfn2) = Self::block_entry_or_alloc(&cfn, &else_region);
         cfn = cfn2;
         let (join, cfn2) = cfn.fresh_bb();
         cfn = cfn2;
@@ -463,8 +463,8 @@ impl CodegenFn {
         let then_has_ft = then_region.has_fallthrough();
         let else_has_ft = else_region.has_fallthrough();
 
-        Self::drain_region_into(&mut blocks, then_region, then_entry, join);
-        Self::drain_region_into(&mut blocks, else_region, else_entry, join);
+        Self::drain_block_into(&mut blocks, then_region, then_entry, join);
+        Self::drain_block_into(&mut blocks, else_region, else_entry, join);
 
         if then_has_ft || else_has_ft {
             (
@@ -481,7 +481,7 @@ impl CodegenFn {
         }
     }
 
-    fn region_entry_or_alloc(cfn: &CodegenFn, code: &CodeBlock) -> (lang::BbName, CodegenFn) {
+    fn block_entry_or_alloc(cfn: &CodegenFn, code: &CodeBlock) -> (lang::BbName, CodegenFn) {
         match code {
             CodeBlock::Block { .. } => cfn.fresh_bb(),
             CodeBlock::Open { entry, .. } => (*entry, cfn.clone()),
@@ -489,7 +489,7 @@ impl CodegenFn {
         }
     }
 
-    fn drain_region_into(
+    fn drain_block_into(
         blocks: &mut Map<lang::BbName, lang::BasicBlock>,
         code: CodeBlock,
         name: lang::BbName,
