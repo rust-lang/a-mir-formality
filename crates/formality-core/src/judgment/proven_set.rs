@@ -594,28 +594,48 @@ impl FailedJudgment {
     }
 
     /// Collect every named rule that was "blamed" for this judgment failing,
-    /// walking through nested failed sub-judgments. Used by negative
-    /// coverage tracking: a rule shows up here exactly when it survived
-    /// cycle-stripping and `!`-clause filtering, matched the conclusion
-    /// patterns, and then had some premise fail. Rules without a name
-    /// (single-rule judgments) are skipped because there's nothing to
-    /// blame distinctly.
+    /// walking every level of the failure tree — not just the terminal
+    /// leaves. Used by negative coverage tracking.
+    ///
+    /// Two kinds of rule end up here:
+    ///
+    /// * *Intermediate* rules — rules whose conclusion patterns matched and
+    ///   whose `!`-clauses survived, but which then ran a premise that was
+    ///   itself a sub-judgment that failed. These get cause
+    ///   `"failed_judgment"`, telling us "this branch was reached and the
+    ///   sub-judgment is what broke".
+    /// * *Leaf* rules — rules whose own premise produced a terminal failure
+    ///   (`if_false`, `if_let`, `inapplicable`, …). These give us coverage
+    ///   over the individual ways a sub-judgment can fail to prove.
+    ///
+    /// Rules without a name (single-rule judgments) are skipped because
+    /// there's nothing to blame distinctly.
     pub fn collect_blamed_rules(&self) -> BTreeSet<BlamedRule> {
         let mut acc = BTreeSet::new();
-        for leaf in self.leaf_failures() {
-            if let LeafFailure::Rule(rule) = leaf {
-                let Some(rule_name) = rule.rule_name else {
-                    continue;
-                };
-                acc.insert(BlamedRule {
-                    rule: rule_name,
-                    file: rule.file.replace('\\', "/"),
-                    line: rule.line,
-                    cause: rule.cause.discriminant_tag(),
-                });
-            }
+        for rule in &self.failed_rules {
+            rule.collect_blamed_into(&mut acc);
         }
         acc
+    }
+}
+
+impl FailedRule {
+    /// Insert `self` into `acc` if named, then recurse into nested
+    /// `FailedJudgment` causes. See [`FailedJudgment::collect_blamed_rules`].
+    fn collect_blamed_into(&self, acc: &mut BTreeSet<BlamedRule>) {
+        if let Some(rule_name) = &self.rule_name {
+            acc.insert(BlamedRule {
+                rule: rule_name.clone(),
+                file: self.file.replace('\\', "/"),
+                line: self.line,
+                cause: self.cause.discriminant_tag(),
+            });
+        }
+        if let RuleFailureCause::FailedJudgment(inner) = &self.cause {
+            for r in &inner.failed_rules {
+                r.collect_blamed_into(acc);
+            }
+        }
     }
 }
 
