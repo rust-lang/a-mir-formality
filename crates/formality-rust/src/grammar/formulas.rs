@@ -168,6 +168,10 @@ impl TraitId {
         let parameters: Vec<Parameter> = parameters.upcast();
         TraitRef::new(self, (Some(self_ty), parameters))
     }
+
+    pub fn with_self(&self, self_ty: impl Upcast<Ty>) -> TraitRef {
+        self.with(self_ty, Vec::<Parameter>::new())
+    }
 }
 
 pub trait Debone {
