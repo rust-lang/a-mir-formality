@@ -34,13 +34,16 @@ fn main() -> Result<()> {
             args.jsonl.display(),
         );
     }
-    let covered = jsonl::read_positive(&args.jsonl)?;
+    let cov = jsonl::read(&args.jsonl)?;
 
-    report::write_all(&args.out_dir, &judgments, &covered)?;
+    let positive_count = cov.positive.len();
+    let negative_count = cov.negative.len();
+    report::write_all(&args.out_dir, &judgments, &cov)?;
     eprintln!(
-        "wrote {} judgments ({} rules covered) to {}",
+        "wrote {} judgments ({} positive, {} negative) to {}",
         judgments.len(),
-        covered.len(),
+        positive_count,
+        negative_count,
         args.out_dir.display(),
     );
     Ok(())

@@ -9,8 +9,8 @@ pub mod coverage;
 
 mod proven_set;
 pub use proven_set::{
-    insert_smallest_proof, member_of, CheckProven, EachProof, FailedJudgment, FailedRule,
-    FailureLocation, ProofTree, Proven, ProvenSet, RuleFailureCause,
+    insert_smallest_proof, member_of, BlamedRule, CheckProven, EachProof, FailedJudgment,
+    FailedRule, FailureLocation, LeafFailure, ProofTree, Proven, ProvenSet, RuleFailureCause,
 };
 
 mod test_explicit_fail;

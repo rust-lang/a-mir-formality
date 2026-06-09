@@ -1,5 +1,6 @@
 use crate::{judgment::IfThen, set, Fallible, Map, Set};
 use std::{
+    collections::BTreeSet,
     fmt::Debug,
     hash::{Hash, Hasher},
     panic::Location,
@@ -203,6 +204,7 @@ impl<J: Ord + Debug + Clone> ProvenSet<J> {
     pub fn assert_err(&self, expect: expect_test::Expect) {
         match &self.data {
             ProvenSetData::Failure(e) => {
+                crate::judgment::coverage::record_negative_coverage(std::iter::once(e.as_ref()));
                 expect.assert_eq(&crate::test_util::normalize_paths(e.format_leaves()));
             }
             ProvenSetData::Success(_) => {
@@ -590,6 +592,64 @@ impl FailedJudgment {
                 .join("\n\n")
         }
     }
+
+    /// Collect every named rule that was "blamed" for this judgment failing,
+    /// walking every level of the failure tree — not just the terminal
+    /// leaves. Used by negative coverage tracking.
+    ///
+    /// Two kinds of rule end up here:
+    ///
+    /// * *Intermediate* rules — rules whose conclusion patterns matched and
+    ///   whose `!`-clauses survived, but which then ran a premise that was
+    ///   itself a sub-judgment that failed. These get cause
+    ///   `"failed_judgment"`, telling us "this branch was reached and the
+    ///   sub-judgment is what broke".
+    /// * *Leaf* rules — rules whose own premise produced a terminal failure
+    ///   (`if_false`, `if_let`, `inapplicable`, …). These give us coverage
+    ///   over the individual ways a sub-judgment can fail to prove.
+    ///
+    /// Rules without a name (single-rule judgments) are skipped because
+    /// there's nothing to blame distinctly.
+    pub fn collect_blamed_rules(&self) -> BTreeSet<BlamedRule> {
+        let mut acc = BTreeSet::new();
+        for rule in &self.failed_rules {
+            rule.collect_blamed_into(&mut acc);
+        }
+        acc
+    }
+}
+
+impl FailedRule {
+    /// Insert `self` into `acc` if named, then recurse into nested
+    /// `FailedJudgment` causes. See [`FailedJudgment::collect_blamed_rules`].
+    fn collect_blamed_into(&self, acc: &mut BTreeSet<BlamedRule>) {
+        if let Some(rule_name) = &self.rule_name {
+            acc.insert(BlamedRule {
+                rule: rule_name.clone(),
+                file: self.file.replace('\\', "/"),
+                line: self.line,
+                cause: self.cause.discriminant_tag(),
+            });
+        }
+        if let RuleFailureCause::FailedJudgment(inner) = &self.cause {
+            for r in &inner.failed_rules {
+                r.collect_blamed_into(acc);
+            }
+        }
+    }
+}
+
+/// A single named rule that was blamed for a judgment failure. Identified
+/// by `(file, line)` of the rule definition, paired with a coarse tag
+/// describing which clause of the rule failed.
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+pub struct BlamedRule {
+    pub rule: String,
+    pub file: String,
+    pub line: u32,
+    /// Discriminant tag from [`RuleFailureCause`]; see
+    /// [`RuleFailureCause::discriminant_tag`].
+    pub cause: &'static str,
 }
 
 impl FailedRule {
@@ -688,6 +748,21 @@ pub enum RuleFailureCause {
 }
 
 impl RuleFailureCause {
+    /// Snake-case tag identifying the variant. Used by negative coverage
+    /// to record *why* a blamed rule failed without leaking the inner
+    /// payload (which could differ from one test run to another).
+    pub fn discriminant_tag(&self) -> &'static str {
+        match self {
+            RuleFailureCause::IfFalse(_) => "if_false",
+            RuleFailureCause::IfLetDidNotMatch { .. } => "if_let",
+            RuleFailureCause::EmptyCollection { .. } => "empty_collection",
+            RuleFailureCause::FailedJudgment(_) => "failed_judgment",
+            RuleFailureCause::Inapplicable { .. } => "inapplicable",
+            RuleFailureCause::Cycle { .. } => "cycle",
+            RuleFailureCause::ExplicitFailure { .. } => "explicit_failure",
+        }
+    }
+
     pub fn from_anyhow(e: anyhow::Error) -> Self {
         if let Some(failed) = e.downcast_ref::<Box<FailedJudgment>>() {
             RuleFailureCause::FailedJudgment(Box::new((**failed).clone()))

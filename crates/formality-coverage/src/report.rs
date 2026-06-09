@@ -1,32 +1,34 @@
-//! Render scraped judgments + positive-coverage data into markdown.
+//! Render scraped judgments + coverage data into markdown.
 
-use crate::jsonl::CoveredRule;
+use crate::jsonl::{Coverage, CoveredRule};
 use crate::scrape::Judgment;
 use anyhow::{Context, Result};
 use std::collections::{BTreeSet, HashSet};
 use std::path::Path;
 
 /// Render the top-level coverage table.
-pub fn render_index(judgments: &[Judgment], covered: &BTreeSet<CoveredRule>) -> String {
+pub fn render_index(judgments: &[Judgment], cov: &Coverage) -> String {
     let mut s = String::new();
     s.push_str("# Coverage report\n\n");
-    s.push_str("| Judgment/Rule | Positive coverage |\n");
-    s.push_str("| --- | --- |\n");
+    s.push_str("| Judgment/Rule | Positive coverage | Negative coverage |\n");
+    s.push_str("| --- | --- | --- |\n");
     for j in judgments {
         let slug = slug(&j.name);
         s.push_str(&format!(
-            "| **[{name}](./{slug}.md)** | - |\n",
+            "| **[{name}](./{slug}.md)** | - | - |\n",
             name = j.name,
             slug = slug,
         ));
         for r in &j.rules {
-            let mark = covered_mark(covered, &j.name, &r.name);
+            let pos = positive_mark(&cov.positive, &j.name, &r.name);
+            let neg = negative_mark(cov, &j.file, &r.name);
             s.push_str(&format!(
-                "| ↳ [{rname}](./{slug}.md#{anchor}) | {mark} |\n",
+                "| ↳ [{rname}](./{slug}.md#{anchor}) | {pos} | {neg} |\n",
                 rname = r.name,
                 slug = slug,
                 anchor = anchor(&r.name),
-                mark = mark,
+                pos = pos,
+                neg = neg,
             ));
         }
     }
@@ -34,7 +36,7 @@ pub fn render_index(judgments: &[Judgment], covered: &BTreeSet<CoveredRule>) -> 
 }
 
 /// Render one subpage per judgment.
-pub fn render_subpage(j: &Judgment, covered: &BTreeSet<CoveredRule>) -> String {
+pub fn render_subpage(j: &Judgment, cov: &Coverage) -> String {
     let mut s = String::new();
     s.push_str(&format!(
         "# Judgment `{}` at {}:{}\n\n",
@@ -44,22 +46,24 @@ pub fn render_subpage(j: &Judgment, covered: &BTreeSet<CoveredRule>) -> String {
         s.push_str("_No rules discovered._\n");
         return s;
     }
-    s.push_str("| Rule | Line | Positive coverage |\n");
-    s.push_str("| --- | --- | --- |\n");
+    s.push_str("| Rule | Line | Positive coverage | Negative coverage |\n");
+    s.push_str("| --- | --- | --- | --- |\n");
     for r in &j.rules {
-        let mark = covered_mark(covered, &j.name, &r.name);
+        let pos = positive_mark(&cov.positive, &j.name, &r.name);
+        let neg = negative_cell(cov, &j.file, &r.name);
         s.push_str(&format!(
-            "| <a id=\"{anchor}\"></a>`{rname}` | {line} | {mark} |\n",
+            "| <a id=\"{anchor}\"></a>`{rname}` | {line} | {pos} | {neg} |\n",
             anchor = anchor(&r.name),
             rname = r.name,
             line = r.line,
-            mark = mark,
+            pos = pos,
+            neg = neg,
         ));
     }
     s
 }
 
-fn covered_mark(covered: &BTreeSet<CoveredRule>, judgment: &str, rule: &str) -> &'static str {
+fn positive_mark(covered: &BTreeSet<CoveredRule>, judgment: &str, rule: &str) -> &'static str {
     let hit = covered.contains(&CoveredRule {
         judgment: judgment.to_string(),
         rule: rule.to_string(),
@@ -71,14 +75,30 @@ fn covered_mark(covered: &BTreeSet<CoveredRule>, judgment: &str, rule: &str) -> 
     }
 }
 
+fn negative_mark(cov: &Coverage, judgment_file: &str, rule_name: &str) -> &'static str {
+    if cov.negative_causes_for(judgment_file, rule_name).is_empty() {
+        "✗"
+    } else {
+        "✓"
+    }
+}
+
+/// Per-judgment-subpage cell: shows `✓` plus the observed clause-cause tags,
+/// e.g. `✓ (if_false, failed_judgment)`, or `✗` if the rule was never blamed.
+fn negative_cell(cov: &Coverage, judgment_file: &str, rule_name: &str) -> String {
+    let causes = cov.negative_causes_for(judgment_file, rule_name);
+    if causes.is_empty() {
+        "✗".to_string()
+    } else {
+        let joined = causes.into_iter().collect::<Vec<_>>().join(", ");
+        format!("✓ ({joined})")
+    }
+}
+
 /// Write the index and per-judgment subpages into `out_dir`.
-pub fn write_all(
-    out_dir: &Path,
-    judgments: &[Judgment],
-    covered: &BTreeSet<CoveredRule>,
-) -> Result<()> {
+pub fn write_all(out_dir: &Path, judgments: &[Judgment], cov: &Coverage) -> Result<()> {
     std::fs::create_dir_all(out_dir).with_context(|| format!("creating {}", out_dir.display()))?;
-    let index = render_index(judgments, covered);
+    let index = render_index(judgments, cov);
     std::fs::write(out_dir.join("coverage.md"), index)?;
 
     // Two judgments with the same name (or names that differ only by characters
@@ -93,7 +113,7 @@ pub fn write_all(
                 j.name, j.file, j.line,
             );
         }
-        let body = render_subpage(j, covered);
+        let body = render_subpage(j, cov);
         std::fs::write(out_dir.join(format!("{}.md", slug)), body)?;
     }
     Ok(())

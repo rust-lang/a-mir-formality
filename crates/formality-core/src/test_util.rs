@@ -130,11 +130,21 @@ impl<T: Debug> AnyhowResultTestExt<T> for anyhow::Result<T> {
         match self {
             Ok(v) => panic!("expected `Err`, got `Ok`:\n{v:?}"),
             Err(e) => {
+                record_negative_coverage_from_anyhow(&e);
                 // Extract just the leaf failures for a concise view
                 let output = normalize_paths(format_error_leaves(&e));
 
                 expect.assert_eq(&output);
             }
         }
+    }
+}
+
+#[track_caller]
+fn record_negative_coverage_from_anyhow(e: &anyhow::Error) {
+    if let Some(failed) = e.downcast_ref::<Box<FailedJudgment>>() {
+        crate::judgment::coverage::record_negative_coverage(std::iter::once(failed.as_ref()));
+    } else if let Some(failed) = e.downcast_ref::<FailedJudgment>() {
+        crate::judgment::coverage::record_negative_coverage(std::iter::once(failed));
     }
 }

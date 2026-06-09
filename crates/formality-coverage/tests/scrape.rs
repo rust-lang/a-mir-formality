@@ -2,12 +2,26 @@
 //! fixtures (a fake `judgment_fn!` source snippet) so the tests don't depend
 //! on the live `formality-rust` source layout.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use expect_test::expect;
-use formality_coverage::jsonl::{self, CoveredRule};
+use formality_coverage::jsonl::{self, BlamedRuleLoc, Coverage, CoveredRule};
 use formality_coverage::report;
 use formality_coverage::scrape::{scrape_text, Judgment, Rule};
+
+fn cov_with_positive(rules: &[(&str, &str)]) -> Coverage {
+    let mut positive = BTreeSet::new();
+    for (j, r) in rules {
+        positive.insert(CoveredRule {
+            judgment: (*j).into(),
+            rule: (*r).into(),
+        });
+    }
+    Coverage {
+        positive,
+        negative: BTreeMap::new(),
+    }
+}
 
 const FIXTURE: &str = r#"
 use formality_core::judgment_fn;
@@ -107,23 +121,19 @@ fn markdown_index_snapshot() {
         },
     ];
 
-    let mut covered = BTreeSet::new();
-    covered.insert(CoveredRule {
-        judgment: "prove_thing".into(),
-        rule: "positive".into(),
-    });
+    let cov = cov_with_positive(&[("prove_thing", "positive")]);
 
-    let md = report::render_index(&judgments, &covered);
+    let md = report::render_index(&judgments, &cov);
     expect![[r#"
         # Coverage report
 
-        | Judgment/Rule | Positive coverage |
-        | --- | --- |
-        | **[prove_thing](./prove_thing.md)** | - |
-        | ↳ [positive](./prove_thing.md#positive) | ✓ |
-        | ↳ [zero](./prove_thing.md#zero) | ✗ |
-        | **[only_one](./only_one.md)** | - |
-        | ↳ [one](./only_one.md#one) | ✗ |
+        | Judgment/Rule | Positive coverage | Negative coverage |
+        | --- | --- | --- |
+        | **[prove_thing](./prove_thing.md)** | - | - |
+        | ↳ [positive](./prove_thing.md#positive) | ✓ | ✗ |
+        | ↳ [zero](./prove_thing.md#zero) | ✗ | ✗ |
+        | **[only_one](./only_one.md)** | - | - |
+        | ↳ [one](./only_one.md#one) | ✗ | ✗ |
     "#]]
     .assert_eq(&md);
 }
@@ -149,20 +159,16 @@ fn markdown_subpage_snapshot() {
             },
         ],
     };
-    let mut covered = BTreeSet::new();
-    covered.insert(CoveredRule {
-        judgment: "prove_thing".into(),
-        rule: "positive".into(),
-    });
+    let cov = cov_with_positive(&[("prove_thing", "positive")]);
 
-    let md = report::render_subpage(&j, &covered);
+    let md = report::render_subpage(&j, &cov);
     expect![[r#"
         # Judgment `prove_thing` at fixture.rs:4
 
-        | Rule | Line | Positive coverage |
-        | --- | --- | --- |
-        | <a id="positive"></a>`positive` | 10 | ✓ |
-        | <a id="zero"></a>`zero` | 16 | ✗ |
+        | Rule | Line | Positive coverage | Negative coverage |
+        | --- | --- | --- | --- |
+        | <a id="positive"></a>`positive` | 10 | ✓ | ✗ |
+        | <a id="zero"></a>`zero` | 16 | ✗ | ✗ |
     "#]]
     .assert_eq(&md);
 }
@@ -177,8 +183,8 @@ fn empty_rules_renders_no_rules_message() {
         line: 1,
         rules: vec![],
     };
-    let covered = BTreeSet::new();
-    let md = report::render_subpage(&j, &covered);
+    let cov = Coverage::default();
+    let md = report::render_subpage(&j, &cov);
     expect![[r#"
         # Judgment `lonely` at fixture.rs:1
 
@@ -217,4 +223,98 @@ fn jsonl_reader_tolerates_malformed_lines() {
     assert_eq!(names, vec![("j1", "r1"), ("j3", "r3")]);
 
     let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn jsonl_reads_negative_records_with_causes() {
+    let tmp = std::env::temp_dir().join(format!("formality-coverage-neg-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp).unwrap();
+    let path = tmp.join("test-coverage.jsonl");
+
+    // Mix of a positive record (no `kind` — back-compat) and two negative
+    // records that blame the same rule but with different causes.
+    let body = concat!(
+        r#"{"test_file":"a.rs","test_line":1,"test_column":1,"rules":[{"judgment":"j1","rule":"r1","file":"f.rs","line":10}]}"#,
+        "\n",
+        r#"{"test_file":"b.rs","test_line":2,"test_column":1,"kind":"negative","rules":[{"rule":"r1","file":"f.rs","line":10,"cause":"if_false"}]}"#,
+        "\n",
+        r#"{"test_file":"c.rs","test_line":3,"test_column":1,"kind":"negative","rules":[{"rule":"r1","file":"f.rs","line":10,"cause":"if_let"}]}"#,
+        "\n",
+    );
+    std::fs::write(&path, body).unwrap();
+
+    let cov = jsonl::read(&path).unwrap();
+    assert_eq!(cov.positive.len(), 1);
+    let causes = cov
+        .negative
+        .get(&BlamedRuleLoc {
+            rule: "r1".into(),
+            file: "f.rs".into(),
+            line: 10,
+        })
+        .expect("negative record should be present");
+    let causes: Vec<&str> = causes.iter().map(String::as_str).collect();
+    assert_eq!(causes, vec!["if_false", "if_let"]);
+
+    // The lookup matches by rule name + file suffix.
+    let causes = cov.negative_causes_for("f.rs", "r1");
+    let causes: Vec<&str> = causes.iter().map(String::as_str).collect();
+    assert_eq!(causes, vec!["if_false", "if_let"]);
+    // Different file should not match.
+    assert!(cov.negative_causes_for("other.rs", "r1").is_empty());
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn negative_coverage_renders_in_subpage_with_causes() {
+    let j = Judgment {
+        name: "prove_thing".into(),
+        doc_comment: String::new(),
+        signature: String::new(),
+        file: "fixture.rs".into(),
+        line: 4,
+        rules: vec![
+            Rule {
+                name: "positive".into(),
+                raw_text: String::new(),
+                line: 10,
+            },
+            Rule {
+                name: "zero".into(),
+                raw_text: String::new(),
+                line: 16,
+            },
+        ],
+    };
+    let mut negative = BTreeMap::new();
+    let mut causes = BTreeSet::new();
+    causes.insert("if_false".to_string());
+    causes.insert("failed_judgment".to_string());
+    // `file` here is whatever the macro recorded — a path including the
+    // file basename. The matcher resolves it against the scraped
+    // judgment file via suffix overlap.
+    negative.insert(
+        BlamedRuleLoc {
+            rule: "positive".into(),
+            file: "crates/sub/fixture.rs".into(),
+            line: 11,
+        },
+        causes,
+    );
+    let cov = Coverage {
+        positive: BTreeSet::new(),
+        negative,
+    };
+
+    let md = report::render_subpage(&j, &cov);
+    expect![[r#"
+        # Judgment `prove_thing` at fixture.rs:4
+
+        | Rule | Line | Positive coverage | Negative coverage |
+        | --- | --- | --- | --- |
+        | <a id="positive"></a>`positive` | 10 | ✗ | ✓ (failed_judgment, if_false) |
+        | <a id="zero"></a>`zero` | 16 | ✗ | ✗ |
+    "#]]
+    .assert_eq(&md);
 }
