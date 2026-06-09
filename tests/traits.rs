@@ -9,7 +9,8 @@ fn trait_with_valid_fn() {
             }
         }
     ])
-    .skip_execute().ok();
+    .skip_execute()
+    .ok();
 }
 
 #[test]
@@ -21,7 +22,8 @@ fn trait_with_valid_associated_type() {
             }
         }
     ])
-    .skip_execute().ok();
+    .skip_execute()
+    .ok();
 }
 
 #[test]

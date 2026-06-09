@@ -27,7 +27,8 @@ fn empty_body_unit_return() {
         fn foo() -> () {
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// If/else where both branches return — all paths return, so this is fine.
@@ -43,7 +44,8 @@ fn if_else_both_branches_return() {
             }
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// If/else where only one branch returns — the other path falls through
@@ -73,7 +75,8 @@ fn infinite_loop_no_return_needed() {
             }
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// A loop with break exits the loop, but then there's no return after it.
@@ -104,7 +107,8 @@ fn loop_with_break_then_return() {
             return 0 _ u32;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// A simple function that returns a value on all paths.
@@ -116,5 +120,6 @@ fn simple_return() {
             return 42 _ u32;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }

@@ -20,7 +20,8 @@ fn ok() {
         // fn multi_arg_ret<T, Y, U, I>(_: T, _: Y) -> (U, I) {}
         fn multi_arg_ret<T, Y, U, I>(v0: T, v1: Y) -> (U, I) { trusted }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -32,5 +33,6 @@ fn lifetime() {
             T: 'a, // FIXME(#202): Implied bounds should not have to be explicit
         { trusted }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }

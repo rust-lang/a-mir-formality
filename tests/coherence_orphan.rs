@@ -80,7 +80,8 @@ fn mirror_FooStruct() {
         struct FooStruct {}
         impl CoreTrait for <FooStruct as Mirror>::Assoc {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -93,7 +94,8 @@ fn covered_VecT() {
         struct FooStruct {}
         impl<T> CoreTrait<FooStruct> for Vec<T> {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -190,5 +192,6 @@ fn CoreTraitLocal_for_AliasToKnown_in_Foo() {
         struct FooStruct {}
         impl CoreTrait<FooStruct> for <() as Unit>::Assoc {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }

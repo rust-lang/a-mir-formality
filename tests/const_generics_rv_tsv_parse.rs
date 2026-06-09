@@ -7,5 +7,6 @@ fn parse_minirust_22() {
         trait Trait<const N> where type_of_const N is usize {}
         impl Trait<usize(22)> for u32 {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }

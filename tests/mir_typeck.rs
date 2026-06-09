@@ -9,7 +9,8 @@ fn test_assign_statement_local_only() {
             return v1;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 // Test assign statement with constant at rhs.
@@ -30,7 +31,8 @@ fn test_assign_constant() {
             return 5 _ u8;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 // Test valid program with Terminator::Switch.
@@ -71,7 +73,8 @@ fn test_switch_statment() {
             }
         };
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Test returning a parameter (previously tested goto terminator in MIR).
@@ -82,7 +85,8 @@ fn test_goto_terminator() {
             return v1;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Test cyclic control flow (a loop).
@@ -97,7 +101,8 @@ fn test_cyclic_goto() {
             }
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Returns true (Expr::True) type-checking coverage
@@ -108,7 +113,8 @@ fn test_ret_true() {
             return true;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 // if / else (Stmt::If) bool condition, each arm returns a u32.
@@ -123,7 +129,8 @@ fn if_else() {
             }
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 // if / else (Stmt::If) with different return types.
@@ -156,7 +163,8 @@ fn test_call_terminator() {
             return v0;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Test valid place mention statement.
@@ -175,7 +183,8 @@ fn test_place_mention_statement() {
             return v1;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Test valid StorageLive and StorageDead statements.
@@ -198,7 +207,8 @@ fn test_storage_live_dead() {
             }
         };
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Test valid program that uses struct.
@@ -216,7 +226,8 @@ fn test_struct() {
             return v1;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Test let statement with well-formed type
@@ -231,7 +242,8 @@ fn test_let_with_well_formed_type() {
             let s1: S1<u8>;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Test let statement with ill-formed type
@@ -321,7 +333,8 @@ fn test_call_generic_fn_with_turbofish() {
             return v0;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Test calling a generic function with incorrect turbofish type.
@@ -415,7 +428,8 @@ fn test_uninitialised_return_type() {
             }
         };
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Test switch terminator with invalid type in Terminator::Switch.
@@ -636,7 +650,8 @@ fn test_false_literal() {
             return v1;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Basic pass test for lifetime.
@@ -658,7 +673,8 @@ fn test_ref_identity() {
             }
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Test ref and deref
@@ -674,7 +690,8 @@ fn test_ref_deref() {
             }
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// Test generic deref should be permitted when the pointee type is known Copy.
@@ -692,7 +709,8 @@ fn test_ref_deref_generic_copy_bound() {
             }
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 // ---- Scoping tests ----
@@ -717,7 +735,8 @@ fn test_break_valid_loop_label() {
             return 0 _ u32;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// `break` targeting a non-existent label should fail.
@@ -763,7 +782,8 @@ fn test_continue_valid_loop_label() {
             return 0 _ u32;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// `continue` targeting a block (not a loop) should fail.
@@ -817,7 +837,8 @@ fn test_parens_place_expr() {
             }
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 /// `break` targeting a block label (not a loop) should pass.
@@ -841,5 +862,6 @@ fn test_break_block_label() {
             return 0 _ u32;
         }
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }

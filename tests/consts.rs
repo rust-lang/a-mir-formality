@@ -7,7 +7,8 @@ fn nonsense_rigid_const_bound() {
         // This where-clause is not *provable*, but it is well-formed.
         trait Foo where type_of_const true is u32 {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -18,7 +19,8 @@ fn ok() {
 
         impl<const C> Foo<C> for u32 where type_of_const C is bool {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -43,7 +45,8 @@ fn holds() {
 
         impl Foo<true> for u32 {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -51,7 +54,8 @@ fn rigid_const_bound() {
     FormalityTest::new(crates![crate Foo {
         trait Foo where type_of_const true is bool {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -84,7 +88,8 @@ fn generic_match() {
         // Here, the impl matches the trait bound.
         impl<const C> Foo<C> for u32 where type_of_const C is bool {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -92,5 +97,6 @@ fn multiple_type_of_const() {
     FormalityTest::new(crates![crate Foo {
         trait Foo<const C> where type_of_const C is bool, type_of_const C is u32 {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }

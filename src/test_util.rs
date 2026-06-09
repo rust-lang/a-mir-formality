@@ -112,19 +112,16 @@ fn execute_program(input: &str) -> String {
         formality_rust::rust::try_term(input).expect("failed to parse program");
 
     let has_main = crates.crates.iter().any(|c| {
-        c.items.iter().any(|item| {
-            matches!(item, formality_rust::grammar::CrateItem::Fn(f) if &**f.id == "main")
-        })
+        c.items.iter().any(
+            |item| matches!(item, formality_rust::grammar::CrateItem::Fn(f) if &**f.id == "main"),
+        )
     });
 
     if !has_main {
-        panic!(
-            "program has no `main` function — add one, or call `.skip_execute()` on the test"
-        );
+        panic!("program has no `main` function — add one, or call `.skip_execute()` on the test");
     }
 
-    let program =
-        formality_rust::codegen::codegen_program(&crates).expect("codegen failed");
+    let program = formality_rust::codegen::codegen_program(&crates).expect("codegen failed");
 
     let stdout_buf = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u8>::new()));
     let stderr_buf = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u8>::new()));

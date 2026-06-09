@@ -15,9 +15,9 @@ use super::scope::CodegenFn;
 pub enum CodeBlock {
     /// Anonymous open block being constructed. Has no name yet — a name is
     /// allocated lazily when the block is terminated or needs to be referenced.
-    /// 
+    ///
     /// Suppose you have `let x = 22;` this would create a set of statements like
-    /// 
+    ///
     /// ```
     /// stmts: [
     ///   let tmp1;
@@ -26,9 +26,9 @@ pub enum CodeBlock {
     ///   x = tmp;
     /// ]
     /// ```
-    /// 
-    /// and then you have `let y = 33;` 
-    /// 
+    ///
+    /// and then you have `let y = 33;`
+    ///
     /// ```
     /// stmts: [
     ///   let tmp2;
@@ -37,18 +37,18 @@ pub enum CodeBlock {
     ///   y = tmp2;
     /// ]
     /// ```
-    /// 
+    ///
     /// and then you append those two so you get
-    /// 
+    ///
     /// ```
     /// stmts = [... /* as above, concatenated */]
     /// ```
     Block { stmts: Vec<lang::Statement> },
 
     /// Finalized blocks plus one open fallthrough block.
-    /// 
+    ///
     /// For something like this `if foo { 22 } else { 33 }; ...``
-    /// 
+    ///
     /// ```text
     /// blocks:
     ///   a {
@@ -58,7 +58,7 @@ pub enum CodeBlock {
     ///      tmp = 22
     ///      goto d
     ///   }
-    ///   c { 
+    ///   c {
     ///     tmp = 33
     ///     goto d
     ///   }
@@ -78,7 +78,7 @@ pub enum CodeBlock {
         /// The name of the not-yet-compelted fallthrough block, which may be referenced above.
         fallthrough: lang::BbName,
 
-        /// The statements in the fallthrough block so far. 
+        /// The statements in the fallthrough block so far.
         fallthrough_stmts: Vec<lang::Statement>,
     },
 
@@ -86,7 +86,7 @@ pub enum CodeBlock {
     Closed {
         /// Blocks that have a terminator and thus are "done".
         blocks: Map<lang::BbName, lang::BasicBlock>,
-        
+
         /// The entry block in the list above or the fallthrough.
         entry: lang::BbName,
     },
@@ -599,12 +599,7 @@ impl CodegenFn {
         else_r: impl Upcast<CodeBlock>,
     ) -> (CodeBlock, Self) {
         let cond: MiniRustLocal = cond.upcast();
-        self.branch_on_bool(
-            code.clone(),
-            cond.into(),
-            then_r.upcast(),
-            else_r.upcast(),
-        )
+        self.branch_on_bool(code.clone(), cond.into(), then_r.upcast(), else_r.upcast())
     }
 
     /// Build a print intrinsic call.

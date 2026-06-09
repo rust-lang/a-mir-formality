@@ -13,15 +13,15 @@ use formality_core::judgment_fn;
 use libspecr::prelude::Map;
 use minirust_rs::lang;
 
+mod code_block;
 mod helpers;
 mod minirust;
 mod scope;
-mod code_block;
 
+use code_block::CodeBlock;
 use helpers::*;
 use minirust::*;
 use scope::*;
-use code_block::CodeBlock;
 
 formality_core::cast_impl!(CodeBlock);
 

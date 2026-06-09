@@ -54,7 +54,8 @@ fn hello_world() {
         impl Bar<u32> for u32 {}
         impl<T> Bar<T> for () where T: Baz {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -68,7 +69,8 @@ fn basic_where_clauses_pass() {
 
         impl <T> B for T {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 #[test]
 fn basic_where_clauses_fail() {
@@ -173,7 +175,8 @@ fn crate_with_duplicate_item_names() {
 
         fn a() -> () { trusted }
     }])
-    .skip_execute().ok();
+    .skip_execute()
+    .ok();
 }
 
 #[test]
@@ -242,5 +245,6 @@ fn impl_with_default_fn_body_ok() {
         struct MyStruct {}
         impl Foo for MyStruct {}
     }])
-    .skip_execute().ok();
+    .skip_execute()
+    .ok();
 }

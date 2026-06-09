@@ -9,8 +9,8 @@ use libspecr::prelude::Map;
 use minirust_rs::lang;
 use std::sync::Arc;
 
-use super::minirust::*;
 use super::code_block::CodeBlock;
+use super::minirust::*;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub(crate) struct MonoKey {

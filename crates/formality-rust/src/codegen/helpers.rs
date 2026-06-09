@@ -17,9 +17,9 @@ use libspecr::prelude::{Int, List, Map};
 use minirust_rs::lang;
 use minirust_rs::mem::PtrType;
 
+use super::code_block::CodeBlock;
 use super::minirust::*;
 use super::scope::{CodegenFn, CodegenGlobal, CodegenScope, MonoKey};
-use super::code_block::CodeBlock;
 
 // ===========================================================================
 // Function setup and build

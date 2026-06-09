@@ -143,7 +143,8 @@ fn neg_CoreTrait_for_CoreStruct_implies_no_overlap() {
         impl<T> FooTrait for T where T: CoreTrait {}
         impl FooTrait for CoreStruct {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -201,7 +202,8 @@ fn u32_T_where_T_Not_impls() {
 
         trait Not {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -223,7 +225,8 @@ fn u32_i32_impls() {
         impl Foo for u32 {}
         impl Foo for i32 {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
@@ -300,7 +303,8 @@ fn is_local_unknowable_trait_ref() {
             <T as Project>::Assoc: Foo<U> {}
         impl<T> Overlap<LocalType> for () {}
     }])
-    .skip_execute().ok()
+    .skip_execute()
+    .ok()
 }
 
 #[test]
