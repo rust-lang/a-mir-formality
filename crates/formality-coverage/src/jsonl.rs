@@ -1,9 +1,13 @@
 //! Read the `test-coverage.jsonl` file produced by tests and collapse it to
-//! the deduplicated set of rules that fired (positive) and rules that were
-//! blamed for a failure (negative).
+//! the deduplicated set of rules that fired (positive) and the per-premise
+//! failure data (negative).
+//!
+//! Records are deserialized with [`CoverageRecord`], the same type the writer
+//! in `formality-core` serializes, so the schema lives in exactly one place.
 
 use anyhow::{Context, Result};
-use serde_json::Value;
+use formality_core::judgment::coverage::CoverageRecord;
+use formality_core::judgment::FailureReason;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
@@ -14,22 +18,18 @@ pub struct CoveredRule {
     pub rule: String,
 }
 
-/// A rule blamed for a negative-test failure. The recorded `file` is the
-/// path the `file!()` macro produced (workspace-relative) and `line` is
-/// the failing-premise line, not the rule's `--- ("name")` line — that's
-/// where the macro respans the failure. Both fields are kept for
-/// diagnostics; matching against the scraper uses `rule` + file suffix.
+/// The source location of a premise that failed in some negative test. The
+/// `file`/`line` come from the macro respanning the failure onto the failing
+/// premise, so they match the premise's position in the judgment source.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct BlamedRuleLoc {
-    pub rule: String,
+pub struct PremiseLoc {
     pub file: String,
     pub line: u32,
 }
 
-/// A judgment that was exercised but failed with no blamed rule. Mirrors
-/// the record produced by `FailedJudgment::collect_implicit_no_match`.
+/// A judgment that was exercised but failed with no applicable rule.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct ImplicitNoMatchLoc {
+pub struct NoApplicableRuleLoc {
     pub judgment: String,
     pub file: String,
     pub line: u32,
@@ -40,24 +40,21 @@ pub struct ImplicitNoMatchLoc {
 pub struct Coverage {
     /// `(judgment, rule)` pairs that fired in at least one positive test.
     pub positive: BTreeSet<CoveredRule>,
-    /// Each blamed rule location with the set of clause-cause tags observed.
-    pub negative: BTreeMap<BlamedRuleLoc, BTreeSet<String>>,
-    /// Judgments observed to fail with no matching rule.
-    pub implicit_no_match: BTreeSet<ImplicitNoMatchLoc>,
+    /// Each failing-premise location with the set of clause-cause tags observed.
+    pub negative_premises: BTreeMap<PremiseLoc, BTreeSet<String>>,
+    /// Judgments observed to fail with no applicable rule.
+    pub no_applicable_rule: BTreeSet<NoApplicableRuleLoc>,
 }
 
 impl Coverage {
-    /// Look up causes for a scraped rule. Matches by rule name and file
-    /// suffix (either side being a suffix of the other), tolerating the
-    /// path-root difference between `file!()` and the scraper's
+    /// Causes observed for a premise at `premise_line` in a file overlapping
+    /// `judgment_file`. Matching is by line plus file-suffix overlap, which
+    /// tolerates the path-root difference between `file!()` and the scraper's
     /// `--src-root`.
-    pub fn negative_causes_for(&self, judgment_file: &str, rule_name: &str) -> BTreeSet<String> {
+    pub fn premise_causes_for(&self, judgment_file: &str, premise_line: u32) -> BTreeSet<String> {
         let mut out = BTreeSet::new();
-        for (loc, causes) in &self.negative {
-            if loc.rule != rule_name {
-                continue;
-            }
-            if paths_overlap(&loc.file, judgment_file) {
+        for (loc, causes) in &self.negative_premises {
+            if loc.line == premise_line && paths_overlap(&loc.file, judgment_file) {
                 out.extend(causes.iter().cloned());
             }
         }
@@ -65,9 +62,9 @@ impl Coverage {
     }
 
     /// True if `judgment_name` (in a file overlapping `judgment_file`) was
-    /// observed to fail with no rule blamed.
-    pub fn implicit_no_match_observed(&self, judgment_file: &str, judgment_name: &str) -> bool {
-        self.implicit_no_match
+    /// observed to fail with no applicable rule.
+    pub fn no_applicable_rule_observed(&self, judgment_file: &str, judgment_name: &str) -> bool {
+        self.no_applicable_rule
             .iter()
             .any(|loc| loc.judgment == judgment_name && paths_overlap(&loc.file, judgment_file))
     }
@@ -93,7 +90,7 @@ pub fn read(path: &Path) -> Result<Coverage> {
         // Tolerate corrupted lines: parallel `cargo test` processes append
         // to this file concurrently, and on rare occasions two writes can
         // interleave. A bad line should never abort the report.
-        let Ok(value) = serde_json::from_str::<Value>(line) else {
+        let Ok(record) = serde_json::from_str::<CoverageRecord>(line) else {
             eprintln!(
                 "warning: skipping malformed JSONL line {} in {}",
                 i + 1,
@@ -101,22 +98,7 @@ pub fn read(path: &Path) -> Result<Coverage> {
             );
             continue;
         };
-        let Some(rules) = value.get("rules").and_then(|v| v.as_array()) else {
-            continue;
-        };
-        let kind = value
-            .get("kind")
-            .and_then(|v| v.as_str())
-            .unwrap_or("positive");
-        match kind {
-            "negative" => {
-                ingest_negative(rules, &mut cov.negative);
-                if let Some(arr) = value.get("implicit_no_match").and_then(|v| v.as_array()) {
-                    ingest_implicit(arr, &mut cov.implicit_no_match);
-                }
-            }
-            _ => ingest_positive(rules, &mut cov.positive),
-        }
+        ingest(record, &mut cov);
     }
     Ok(cov)
 }
@@ -126,55 +108,40 @@ pub fn read_positive(path: &Path) -> Result<BTreeSet<CoveredRule>> {
     Ok(read(path)?.positive)
 }
 
-fn ingest_positive(rules: &[Value], out: &mut BTreeSet<CoveredRule>) {
-    for rule in rules {
-        let (Some(j), Some(r)) = (
-            rule.get("judgment").and_then(|v| v.as_str()),
-            rule.get("rule").and_then(|v| v.as_str()),
-        ) else {
-            continue;
-        };
-        out.insert(CoveredRule {
-            judgment: j.to_string(),
-            rule: r.to_string(),
-        });
-    }
-}
-
-fn ingest_implicit(arr: &[Value], out: &mut BTreeSet<ImplicitNoMatchLoc>) {
-    for entry in arr {
-        let (Some(j), Some(file), Some(line)) = (
-            entry.get("judgment").and_then(|v| v.as_str()),
-            entry.get("file").and_then(|v| v.as_str()),
-            entry.get("line").and_then(|v| v.as_u64()),
-        ) else {
-            continue;
-        };
-        out.insert(ImplicitNoMatchLoc {
-            judgment: j.to_string(),
-            file: file.to_string(),
-            line: line as u32,
-        });
-    }
-}
-
-fn ingest_negative(rules: &[Value], out: &mut BTreeMap<BlamedRuleLoc, BTreeSet<String>>) {
-    for rule in rules {
-        let (Some(rname), Some(file), Some(line)) = (
-            rule.get("rule").and_then(|v| v.as_str()),
-            rule.get("file").and_then(|v| v.as_str()),
-            rule.get("line").and_then(|v| v.as_u64()),
-        ) else {
-            continue;
-        };
-        let loc = BlamedRuleLoc {
-            rule: rname.to_string(),
-            file: file.to_string(),
-            line: line as u32,
-        };
-        let causes = out.entry(loc).or_default();
-        if let Some(cause) = rule.get("cause").and_then(|v| v.as_str()) {
-            causes.insert(cause.to_string());
+fn ingest(record: CoverageRecord, cov: &mut Coverage) {
+    match record {
+        CoverageRecord::Positive { rules, .. } => {
+            for r in rules {
+                cov.positive.insert(CoveredRule {
+                    judgment: r.judgment,
+                    rule: r.rule,
+                });
+            }
+        }
+        CoverageRecord::Negative { reasons, .. } => {
+            for reason in reasons {
+                match reason {
+                    FailureReason::Premise {
+                        file, line, cause, ..
+                    } => {
+                        cov.negative_premises
+                            .entry(PremiseLoc { file, line })
+                            .or_default()
+                            .insert(cause);
+                    }
+                    FailureReason::NoApplicableRule {
+                        judgment,
+                        file,
+                        line,
+                    } => {
+                        cov.no_applicable_rule.insert(NoApplicableRuleLoc {
+                            judgment,
+                            file,
+                            line,
+                        });
+                    }
+                }
+            }
         }
     }
 }

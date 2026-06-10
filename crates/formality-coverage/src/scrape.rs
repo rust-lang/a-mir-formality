@@ -33,27 +33,29 @@ pub struct Rule {
     pub premises: Vec<Premise>,
 }
 
-/// One premise within a rule's body. Used by the report to decide whether
-/// a rule can ever be "blamed" in negative coverage: a rule whose premises
-/// are all infallible cannot fail once its conclusion matches, so an
-/// uncovered cell renders as N/A rather than a gap.
+/// One premise within a rule's body. `line` is the premise's source line,
+/// used to match it against negative-coverage records (which carry the
+/// failing premise's location). Infallible premises cannot fail once the
+/// rule's conclusion matches, so the report renders them as N/A rather than
+/// a coverage gap.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Premise {
     pub raw_text: String,
     pub kind: PremiseKind,
     pub fallible: bool,
+    pub line: u32,
 }
 
-/// Coarse classification of premise syntax. Drives the fallibility heuristic
-/// Niko outlined: `let` is infallible unless its body contains `?`; `if`,
-/// `if let`, and judgment-call `(expr => binding)` premises are fallible.
+/// Coarse classification of premise syntax. A `let` premise is infallible
+/// unless its body contains `?`; `if`, `if let`, and judgment-call
+/// `(expr => binding)` premises are fallible.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PremiseKind {
     Let,
     If,
     IfLet,
     Judgment,
-    /// Did not match any known premise shape — treated as fallible so we
+    /// Did not match any known premise shape, treated as fallible so we
     /// never mistakenly mark a rule as unblameable.
     Other,
 }
@@ -240,12 +242,12 @@ fn extract_rules(block: &str, block_start_line: u32) -> Vec<Rule> {
             };
 
             let rule_start_lines = after_debug[..pos + 1].matches('\n').count() as u32;
-            let abs_line = block_start_line
-                + after_debug_line_offset
-                + rule_start_lines
-                + separator_line_offset;
+            // Absolute line of `rule_text`'s first character, used as the base
+            // for each premise's line within the rule body.
+            let rule_text_base_line = block_start_line + after_debug_line_offset + rule_start_lines;
+            let abs_line = rule_text_base_line + separator_line_offset;
 
-            let premises = extract_premises(rule_text);
+            let premises = extract_premises(rule_text, rule_text_base_line);
 
             rules.push(Rule {
                 name: rule_name,
@@ -262,9 +264,11 @@ fn extract_rules(block: &str, block_start_line: u32) -> Vec<Rule> {
 }
 
 /// Walk the section of `rule_text` above the `---` separator and collect
-/// each parenthesized premise in source order. A trailing `!` (match-commit
-/// marker) is tolerated and dropped from the recorded text.
-fn extract_premises(rule_text: &str) -> Vec<Premise> {
+/// each parenthesized premise in source order. `base_line` is the absolute
+/// source line of `rule_text`'s first character, so each premise's `line`
+/// can be made absolute. A trailing `!` (match-commit marker) is tolerated
+/// and dropped from the recorded text.
+fn extract_premises(rule_text: &str, base_line: u32) -> Vec<Premise> {
     static SEPARATOR_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"-{3,}"#).unwrap());
 
     let body_end = SEPARATOR_RE
@@ -294,10 +298,12 @@ fn extract_premises(rule_text: &str) -> Vec<Premise> {
         };
         let inner = &body[pos + 1..close];
         let (kind, fallible) = classify_premise(inner);
+        let line = base_line + body[..pos].matches('\n').count() as u32;
         premises.push(Premise {
             raw_text: inner.trim().to_string(),
             kind,
             fallible,
+            line,
         });
         pos = close + 1;
         // Skip an optional `!` match-commit marker after the closing paren.
@@ -308,9 +314,9 @@ fn extract_premises(rule_text: &str) -> Vec<Premise> {
     premises
 }
 
-/// Classify a premise by its leading tokens and apply Niko's fallibility
-/// heuristic: `let` is infallible *unless* its body contains a `?`; every
-/// other recognized shape is fallible.
+/// Classify a premise by its leading tokens and decide whether it can fail:
+/// `let` is infallible unless its body contains a `?`; every other recognized
+/// shape is fallible.
 fn classify_premise(inner: &str) -> (PremiseKind, bool) {
     let trimmed = inner.trim_start();
     if let Some(rest) = trimmed.strip_prefix("let ") {

@@ -593,60 +593,36 @@ impl FailedJudgment {
         }
     }
 
-    /// Collect every named rule that was "blamed" for this judgment failing,
-    /// walking every level of the failure tree — not just the terminal
-    /// leaves. Used by negative coverage tracking.
+    /// Collect the set of reasons this judgment failed, walking every level
+    /// of the failure tree. Used by negative coverage tracking. Each reason
+    /// is one of:
     ///
-    /// Two kinds of rule end up here:
-    ///
-    /// * *Intermediate* rules — rules whose conclusion patterns matched and
-    ///   whose `!`-clauses survived, but which then ran a premise that was
-    ///   itself a sub-judgment that failed. These get cause
-    ///   `"failed_judgment"`, telling us "this branch was reached and the
-    ///   sub-judgment is what broke".
-    /// * *Leaf* rules — rules whose own premise produced a terminal failure
-    ///   (`if_false`, `if_let`, `inapplicable`, …). These give us coverage
-    ///   over the individual ways a sub-judgment can fail to prove.
-    ///
-    /// Rules without a name (single-rule judgments) are skipped because
-    /// there's nothing to blame distinctly.
-    pub fn collect_blamed_rules(&self) -> BTreeSet<BlamedRule> {
+    /// * [`FailureReason::Premise`] — a named rule was tried (its conclusion
+    ///   patterns matched and its `!`-clauses survived) and a specific
+    ///   premise failed. The `file`/`line` identify that premise's source
+    ///   location (the macro respans failures onto the failing premise), so
+    ///   we can tell *which* premise of the rule broke.
+    /// * [`FailureReason::NoApplicableRule`] — the judgment was exercised but
+    ///   no rule matched (or every matching rule was stripped before its
+    ///   `!`-clause). This is the leaf case where there is no rule to blame.
+    pub fn collect_failure_reasons(&self) -> BTreeSet<FailureReason> {
         let mut acc = BTreeSet::new();
-        for rule in &self.failed_rules {
-            rule.collect_blamed_into(&mut acc);
-        }
+        self.collect_failure_reasons_into(&mut acc);
         acc
     }
 
-    /// Collect every judgment in the failure tree that failed with *no*
-    /// blamed rule, walking from this judgment down through every nested
-    /// `FailedJudgment` cause. This is the "implicit no-match" signal: the
-    /// judgment was exercised but either no rule's conclusion patterns
-    /// matched the input, or every rule that did match got stripped before
-    /// reaching its `!`-clause.
-    ///
-    /// Recorded by negative coverage so the report can mark a judgment as
-    /// "exercised but unmatched" even when there's no specific rule to
-    /// blame.
-    pub fn collect_implicit_no_match(&self) -> BTreeSet<ImplicitNoMatch> {
-        let mut acc = BTreeSet::new();
-        self.collect_implicit_no_match_into(&mut acc);
-        acc
-    }
-
-    fn collect_implicit_no_match_into(&self, acc: &mut BTreeSet<ImplicitNoMatch>) {
+    fn collect_failure_reasons_into(&self, acc: &mut BTreeSet<FailureReason>) {
+        let judgment = judgment_name_prefix(&self.judgment);
         if self.failed_rules.is_empty() {
-            acc.insert(ImplicitNoMatch {
-                judgment: judgment_name_prefix(&self.judgment),
+            acc.insert(FailureReason::NoApplicableRule {
+                judgment,
                 file: self.location.file.clone(),
                 line: self.location.line,
             });
             return;
         }
         for rule in &self.failed_rules {
-            if let RuleFailureCause::FailedJudgment(inner) = &rule.cause {
-                inner.collect_implicit_no_match_into(acc);
-            }
+            rule.collect_failure_reasons_into(&judgment, acc);
         }
     }
 }
@@ -663,46 +639,48 @@ fn judgment_name_prefix(formatted: &str) -> String {
 }
 
 impl FailedRule {
-    /// Insert `self` into `acc` if named, then recurse into nested
-    /// `FailedJudgment` causes. See [`FailedJudgment::collect_blamed_rules`].
-    fn collect_blamed_into(&self, acc: &mut BTreeSet<BlamedRule>) {
+    /// Record a [`FailureReason::Premise`] for this rule's failing premise
+    /// (if named), then recurse into a nested `FailedJudgment` cause so that
+    /// premises deeper in the tree are recorded against their own judgment.
+    fn collect_failure_reasons_into(&self, judgment: &str, acc: &mut BTreeSet<FailureReason>) {
         if let Some(rule_name) = &self.rule_name {
-            acc.insert(BlamedRule {
+            acc.insert(FailureReason::Premise {
+                judgment: judgment.to_string(),
                 rule: rule_name.clone(),
                 file: self.file.replace('\\', "/"),
                 line: self.line,
-                cause: self.cause.discriminant_tag(),
+                cause: self.cause.discriminant_tag().to_string(),
             });
         }
         if let RuleFailureCause::FailedJudgment(inner) = &self.cause {
-            for r in &inner.failed_rules {
-                r.collect_blamed_into(acc);
-            }
+            inner.collect_failure_reasons_into(acc);
         }
     }
 }
 
-/// A single named rule that was blamed for a judgment failure. Identified
-/// by `(file, line)` of the rule definition, paired with a coarse tag
-/// describing which clause of the rule failed.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
-pub struct BlamedRule {
-    pub rule: String,
-    pub file: String,
-    pub line: u32,
-    /// Discriminant tag from [`RuleFailureCause`]; see
-    /// [`RuleFailureCause::discriminant_tag`].
-    pub cause: &'static str,
-}
+/// A single reason a judgment failed, as collected by
+/// [`FailedJudgment::collect_failure_reasons`]. This is also the wire format
+/// for negative coverage records (see the `coverage` module).
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "reason", rename_all = "snake_case")]
+pub enum FailureReason {
+    /// A named rule was tried and a specific premise failed. `file`/`line`
+    /// locate that premise; `cause` is the [`RuleFailureCause`] discriminant
+    /// tag describing how it failed.
+    Premise {
+        judgment: String,
+        rule: String,
+        file: String,
+        line: u32,
+        cause: String,
+    },
 
-/// A judgment that failed with no blamed rule. Either no rule's conclusion
-/// patterns matched the input, or every matching rule was stripped before
-/// reaching its `!`-clause. See [`FailedJudgment::collect_implicit_no_match`].
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
-pub struct ImplicitNoMatch {
-    pub judgment: String,
-    pub file: String,
-    pub line: u32,
+    /// The judgment was exercised but no rule applied (the leaf case).
+    NoApplicableRule {
+        judgment: String,
+        file: String,
+        line: u32,
+    },
 }
 
 impl FailedRule {

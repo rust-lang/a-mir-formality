@@ -37,13 +37,13 @@ fn main() -> Result<()> {
     let cov = jsonl::read(&args.jsonl)?;
 
     let positive_count = cov.positive.len();
-    let negative_count = cov.negative.len();
+    let negative_premise_count = cov.negative_premises.len();
     report::write_all(&args.out_dir, &judgments, &cov)?;
     eprintln!(
-        "wrote {} judgments ({} positive, {} negative) to {}",
+        "wrote {} judgments ({} positive rules, {} negatively-tested premises) to {}",
         judgments.len(),
         positive_count,
-        negative_count,
+        negative_premise_count,
         args.out_dir.display(),
     );
     Ok(())
