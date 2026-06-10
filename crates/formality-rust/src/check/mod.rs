@@ -109,9 +109,9 @@ fn check_for_duplicate_items(program: &Program) -> Fallible<ProofTree> {
                         bail!("`{:?}` is defined multiple times", neg_impl_decl);
                     }
                 }
-                CrateItem::FeatureGate(feature_gate) => {
-                    if !feature_gates.insert(feature_gate) {
-                        bail!("the feature `{:?}` is declared multiple times", feature_gate)
+                CrateItem::FeatureGate(fg) => {
+                    if !feature_gates.insert(fg) {
+                        bail!("the feature `{:?}` is declared multiple times", fg)
                     }
                 }
                 CrateItem::Test(_) => {}
