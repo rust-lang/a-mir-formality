@@ -226,7 +226,7 @@ pub trait Write {
             ],
             expect_test::expect![[r#"
                 pub trait Write {
-                    type Error<T0, T1>: Sized + Bar where T0: Read, T1: Write;
+                    type Error<T10, T11>: Sized + Bar where T10: Read, T11: Write;
                     fn test() -> i32;
                 }"#]]
 
@@ -245,7 +245,7 @@ pub trait Write {
             expect_test::expect![[r#"
                 pub trait Baz { }
 
-                pub trait Bar<T1> where T1: Baz { }"#]]
+                pub trait Bar<T01> where T01: Baz { }"#]]
 
         );
     }
@@ -260,9 +260,9 @@ pub trait Write {
                 }
             ],
             expect_test::expect![[r#"
-                pub trait Baz<T1, T2> { }
+                pub trait Baz<T01, T02> { }
 
-                pub trait Bar<T1> where T1: Baz<i32, u8> { }"#]]
+                pub trait Bar<T01> where T01: Baz<i32, u8> { }"#]]
 
         );
     }
@@ -282,9 +282,9 @@ pub trait Write {
             expect_test::expect![[r#"
                 pub trait Baz { }
 
-                pub trait Bar<T1> where T1: Baz {
+                pub trait Bar<T01> where T01: Baz {
                     type Error;
-                    fn test() -> T1;
+                    fn test() -> T01;
                 }"#]]
 
         );
@@ -298,7 +298,7 @@ pub trait Write {
                     trait Bar<const C> where type_of_const C is bool {}
                 }
             ],
-            expect_test::expect![[r#"pub trait Bar<const N1: bool> { }"#]]
+            expect_test::expect!["pub trait Bar<const N01: bool> { }"]
         );
     }
 
@@ -318,16 +318,16 @@ pub trait Write {
                 }
             ],
             expect_test::expect![[r#"
-                pub trait Bar<T1> {
-                    fn run() -> T1;
+                pub trait Bar<T01> {
+                    fn run() -> T01;
                 }
 
                 pub trait Bur { }
 
                 pub struct Baz {}
 
-                impl<T0> Bar<T0> for Baz where T0: Bur {
-                    fn run() -> T0 {
+                impl<T00> Bar<T00> for Baz where T00: Bur {
+                    fn run() -> T00 {
                         panic!("Trusted Fn Body")
                     }
                 }"#]]
@@ -390,8 +390,7 @@ impl !Bar for Baz {}"#]]
                     trait Foo<T> where T: Bar<Self> {}
                 }
             ],
-            expect_test::expect![[r#"
-        pub trait Foo<T1> where T1: Bar<Self> { }"#]]
+            expect_test::expect!["pub trait Foo<T01> where T01: Bar<Self> { }"]
 
         );
     }

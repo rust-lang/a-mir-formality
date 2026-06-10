@@ -102,7 +102,7 @@ mod test {
                 }
             ],
             expect_test::expect![[r#"
-                pub fn run<T0>(mut p1: T0) -> T0 {
+                pub fn run<T00>(mut p1: T00) -> T00 {
                     panic!("Trusted Fn Body")
                 }"#]]
         );
@@ -120,7 +120,7 @@ mod test {
             expect_test::expect![[r#"
                 pub trait Bar { }
 
-                pub fn run<T0>(mut p1: T0) -> T0 where T0: Bar {
+                pub fn run<T00>(mut p1: T00) -> T00 where T00: Bar {
                     panic!("Trusted Fn Body")
                 }"#]]
         );
@@ -136,7 +136,7 @@ mod test {
                 }
             ],
             expect_test::expect![[r#"
-                pub fn run<const N0: i32>() -> i32 {
+                pub fn run<const N00: i32>() -> i32 {
                     panic!("Trusted Fn Body")
                 }"#]]
         );

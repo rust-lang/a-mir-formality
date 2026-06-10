@@ -13,6 +13,7 @@ pub struct Context {
     counter: VarIndex,
     bounded: Vec<Vec<String>>,
     free: HashMap<VarIndex, String>,
+    nesting_level: usize,
 }
 
 impl Context {
@@ -27,6 +28,7 @@ impl Default for Context {
             counter: VarIndex { index: 0 },
             bounded: Vec::new(),
             free: HashMap::new(),
+            nesting_level: 0,
         }
     }
 }
@@ -42,17 +44,23 @@ impl Context {
     /// For each binder parameter, a fresh name is generated and pushed onto the
     /// context. The returned [`Wrapped`] value provides access to the term while
     /// these names are in scope. When the `Wrapped` value is dropped, the names
-    /// are removed from the contex
+    /// are removed from the contex.
     pub fn open_bounded<T: Term>(&mut self, b: Binder<T>) -> Wrapped<'_, T> {
         let term = b.peek();
         let names = b
             .kinds()
             .into_iter()
             .enumerate()
-            .map(|(index, kind)| format!("{}{}", self.kind_to_string(kind), index))
+            .map(|(index, kind)| {
+                format!(
+                    "{}{}{}",
+                    self.kind_to_string(kind),
+                    self.nesting_level,
+                    index
+                )
+            })
             .collect::<Vec<_>>();
-        self.bounded.insert(0, names);
-        Wrapped::new(self, term.clone())
+        Wrapped::bound(self, term.clone(), names)
     }
 
     /// Introduces a fresh set of bound variable names for the binder `b` and
@@ -60,7 +68,7 @@ impl Context {
     ///
     /// Fresh names are generated as in [`open_bounded`], but the first bound
     /// variable is always renamed to `Self` to reflect Rust’s implicit `Self`
-    /// parameter in trait declarations
+    /// parameter in trait declarations.
     pub fn open_trait<T: Term>(&mut self, b: TraitBinder<T>) -> Wrapped<'_, T> {
         let wrapped = self.open_bounded(b.explicit_binder);
         wrapped.ctx.bounded[0][0] = "Self".to_string();
@@ -73,7 +81,6 @@ impl Context {
         // TODO: Replace Existential Lifetimes with an Erased after codegen (#369) is merged
         let subst = self.existential_substitution(&b);
         let term = b.instantiate_with(&subst).expect("suitable substitution");
-        // TODO: How can I prevent the collect()?
         let names: Vec<_> = subst
             .into_iter()
             .map(|var| {
@@ -83,10 +90,7 @@ impl Context {
                 )
             })
             .collect();
-        self.bounded
-            .insert(0, names.iter().cloned().map(|(_, name)| name).collect());
-        self.free.extend(names.into_iter());
-        Wrapped::new(self, term.clone())
+        Wrapped::free(self, term.clone(), names)
     }
 
     /// Allocates a new set of fresh names and returns a wrapped `T`.
@@ -216,13 +220,27 @@ pub struct Wrapped<'ctx, T> {
 }
 
 impl<'ctx, T> Wrapped<'ctx, T> {
-    pub fn new(ctx: &'ctx mut Context, term: T) -> Wrapped<'ctx, T> {
+    /// Adds `names` as bounded variables in `ctx` and returns [Wrapped].
+    pub fn bound(ctx: &'ctx mut Context, term: T, names: Vec<String>) -> Wrapped<'ctx, T> {
+        ctx.nesting_level += 1;
+        ctx.bounded.insert(0, names);
         Wrapped { ctx, term }
+    }
+
+    /// Adds `names` as free variables in `ctx` and returns [Wrapped].
+    pub fn free(
+        ctx: &'ctx mut Context,
+        term: T,
+        names: Vec<(VarIndex, String)>,
+    ) -> Wrapped<'ctx, T> {
+        ctx.free.extend(names.clone().into_iter());
+        Wrapped::bound(ctx, term, names.into_iter().map(|(_, name)| name).collect())
     }
 }
 
 impl<'ctx, T> Drop for Wrapped<'ctx, T> {
     fn drop(&mut self) {
+        self.ctx.nesting_level -= 1;
         self.ctx.bounded.remove(0);
     }
 }
@@ -270,6 +288,7 @@ mod tests {
                 counter: VarIndex { index: 0 },
                 bounded,
                 free: HashMap::new(),
+                nesting_level: 0,
             }
         }
     }
@@ -317,5 +336,24 @@ mod tests {
         let b = Context::with(vec![vec!["N0".into()]]);
         let const1 = create_const(0);
         assert_eq!("N0", b.core_variable_to_string(&const1).unwrap());
+    }
+
+    #[test]
+    fn nesting_causes_no_shadowing() {
+        crate::assert_rust!(
+            [
+                crate Blub {
+                    trait Foo<T> {
+                        fn blub<K, V>(k: K, v:V) -> T;
+                        fn bar<K, V>(k: K, v:V) -> T;
+                    }
+                }
+            ],
+            expect_test::expect![[r#"
+                pub trait Foo<T01> {
+                    fn blub<T10, T11>(mut k: T10, mut v: T11) -> T01;
+                    fn bar<T10, T11>(mut k: T10, mut v: T11) -> T01;
+                }"#]]
+        );
     }
 }
