@@ -305,7 +305,7 @@ pub fn replace_refs(content: &str, index: &SourceIndex, github_base: Option<&str
         .to_string();
 
     let anchor_re = Regex::new(r#"\{anchor\}`(\w+)`"#).unwrap();
-    anchor_re
+    let content = anchor_re
         .replace_all(&content, |caps: &regex::Captures| {
             let anchor_name = &caps[1];
 
@@ -317,7 +317,32 @@ pub fn replace_refs(content: &str, index: &SourceIndex, github_base: Option<&str
                 }
             }
         })
-        .to_string()
+        .to_string();
+
+    replace_mermaid_blocks(&content)
+}
+
+fn replace_mermaid_blocks(content: &str) -> String {
+    let mermaid_re = Regex::new(r"(?s)```mermaid\s*\n(.*?)```").unwrap();
+    if !mermaid_re.is_match(content) {
+        return content.to_string();
+    }
+
+    let content = mermaid_re
+        .replace_all(content, |caps: &regex::Captures| {
+            let diagram = caps[1].trim();
+            format!("<pre class=\"mermaid\">\n{diagram}\n</pre>")
+        })
+        .to_string();
+
+    const MERMAID_SCRIPT: &str = concat!(
+        "<script type=\"module\">\n",
+        "import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';\n",
+        "mermaid.initialize({ startOnLoad: true });\n",
+        "</script>\n",
+    );
+
+    format!("{content}\n{MERMAID_SCRIPT}")
 }
 
 #[cfg(test)]

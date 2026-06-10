@@ -278,6 +278,12 @@ impl UpcastFrom<()> for () {
     fn upcast_from((): ()) -> Self {}
 }
 
+impl<T> UpcastFrom<()> for Option<T> {
+    fn upcast_from((): ()) -> Self {
+        None
+    }
+}
+
 impl<T: Clone, U> UpcastFrom<Arc<T>> for Arc<U>
 where
     T: Upcast<U>,

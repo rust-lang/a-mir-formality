@@ -1,10 +1,10 @@
 use anyhow::bail;
 
 use crate::grammar::{
-    AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData, Binder,
-    CrateId, Fallible, Fn, FnBoundData, ImplItem, MaybeFnBody, NegTraitImpl, NegTraitImplBoundData,
-    Predicate, Relation, Substitution, Trait, TraitBoundData, TraitImpl, TraitImplBoundData,
-    TraitItem, Wcs,
+    AdtId, AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData,
+    Binder, CrateId, Fallible, Fn, FnBoundData, ImplItem, MaybeFnBody, NegTraitImpl,
+    NegTraitImplBoundData, Predicate, Relation, RigidName, Substitution, Trait, TraitBoundData,
+    TraitImpl, TraitImplBoundData, TraitItem, Ty, Wcs,
 };
 use crate::prove::prove::{Env, Program, Safety};
 use crate::rust::Term;
@@ -283,4 +283,57 @@ fn merge_binders<I: Term, T: Term>(
         &impl_names,
         (impl_value, trait_to_impl_subst.apply(&trait_value)),
     ))
+}
+
+/// Extract the ADT id from a Drop impl's self type (peeking through the binder).
+fn drop_impl_adt_id(trait_impl: &TraitImpl) -> Fallible<AdtId> {
+    let bound = trait_impl.binder.peek();
+    let Ty::RigidTy(rigid) = &bound.self_ty else {
+        bail!(
+            "Drop impl self type must be a struct or enum, got `{:?}`",
+            bound.self_ty
+        );
+    };
+    let RigidName::AdtId(adt_id) = &rigid.name else {
+        bail!(
+            "Drop impl self type must be a struct or enum, got `{:?}`",
+            bound.self_ty
+        );
+    };
+    Ok(adt_id.clone())
+}
+
+judgment_fn! {
+    /// Check that a `Drop` impl is "always applicable": for any instance of the ADT
+    /// (with its where-clauses satisfied), the Drop impl must apply.
+    pub(super) fn check_drop_impl_always_applicable(
+        program: Program,
+        trait_impl: TraitImpl,
+    ) => () {
+        debug(program, trait_impl)
+
+        (
+            (if **trait_impl.trait_id() != *"Drop")!
+            ---- ("not a Drop impl")
+            (check_drop_impl_always_applicable(program, trait_impl) => ())
+        )
+
+        (
+            (if **trait_impl.trait_id() == *"Drop")!
+            // Extract the ADT id and look up its definition.
+            (let adt_id = drop_impl_adt_id(&trait_impl)?)
+            (let adt = program.program().adt_item_named(adt_id)?.to_adt())
+            // Universally instantiate the ADT: forall<T...> { (T: Bounds) => ... }
+            (let (env, adt_vars) = Env::default().universal_substitution(&adt.binder))
+            (let adt_bound = adt.binder.instantiate_with(adt_vars)?)
+            (let adt_self_ty = Ty::rigid(adt_id, adt_vars))
+            // Prove: under the ADT's where-clauses, Drop is implemented for the ADT.
+            // This will find the impl, unify its self type, and verify its where-clauses.
+            (let drop_trait_ref = crate::grammar::TraitId::new("Drop").with(adt_self_ty, ()))
+            (super::prove_goal(&program, &env, &adt_bound.where_clauses,
+                Predicate::IsImplemented(drop_trait_ref.clone())) => ())
+            ---- ("Drop impl is always applicable")
+            (check_drop_impl_always_applicable(program, trait_impl) => ())
+        )
+    }
 }

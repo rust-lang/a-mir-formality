@@ -9,6 +9,7 @@ fn test_assign_statement_local_only() {
             return v1;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -30,6 +31,7 @@ fn test_assign_constant() {
             return 5 _ u8;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -71,6 +73,7 @@ fn test_switch_statment() {
             }
         };
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -82,6 +85,7 @@ fn test_goto_terminator() {
             return v1;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -97,6 +101,7 @@ fn test_cyclic_goto() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -108,6 +113,7 @@ fn test_ret_true() {
             return true;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -123,6 +129,7 @@ fn if_else() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -156,6 +163,7 @@ fn test_call_terminator() {
             return v0;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -175,6 +183,7 @@ fn test_place_mention_statement() {
             return v1;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -198,6 +207,7 @@ fn test_storage_live_dead() {
             }
         };
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -216,6 +226,7 @@ fn test_struct() {
             return v1;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -231,6 +242,7 @@ fn test_let_with_well_formed_type() {
             let s1: S1<u8>;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -321,6 +333,7 @@ fn test_call_generic_fn_with_turbofish() {
             return v0;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -415,6 +428,7 @@ fn test_uninitialised_return_type() {
             }
         };
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -636,6 +650,7 @@ fn test_false_literal() {
             return v1;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -658,6 +673,7 @@ fn test_ref_identity() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -674,6 +690,7 @@ fn test_ref_deref() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -692,6 +709,7 @@ fn test_ref_deref_generic_copy_bound() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -717,6 +735,7 @@ fn test_break_valid_loop_label() {
             return 0 _ u32;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -739,9 +758,9 @@ fn test_break_nonexistent_label() {
                     return 0 _ u32;
                 }
             }]).err(expect_test::expect![[r#"
-                crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &mut ^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }
+                crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &mut ^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }
 
-                crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &mut ^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }"#]])
+                crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &mut ^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }"#]])
 }
 
 /// `continue` targeting a valid loop label should pass.
@@ -763,6 +782,7 @@ fn test_continue_valid_loop_label() {
             return 0 _ u32;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -817,6 +837,7 @@ fn test_parens_place_expr() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -841,5 +862,6 @@ fn test_break_block_label() {
             return 0 _ u32;
         }
     }])
+    .skip_execute()
     .ok()
 }

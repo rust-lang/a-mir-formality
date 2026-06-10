@@ -8,6 +8,7 @@ fn unsafe_trait() {
         unsafe trait Foo {}
         unsafe impl Foo for u32 {}
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -17,6 +18,7 @@ fn safe_trait() {
         safe trait Foo {}
         safe impl Foo for u32 {}
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -26,6 +28,7 @@ fn unsafe_trait_negative_impl() {
         unsafe trait Foo {}
         impl !Foo for u32 {}
     }])
+    .skip_execute()
     .ok()
 }
 

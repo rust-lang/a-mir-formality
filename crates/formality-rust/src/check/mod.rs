@@ -14,7 +14,7 @@ use formality_core::{judgment::ProofTree, judgment_fn, ProvenSet, Set};
 use adts::check_adt;
 use coherence::check_coherence;
 use fns::check_free_fn;
-use impls::{check_neg_trait_impl, check_trait_impl};
+use impls::{check_drop_impl_always_applicable, check_neg_trait_impl, check_trait_impl};
 use traits::check_trait;
 
 pub mod borrow_check;
@@ -27,6 +27,15 @@ mod impls;
 mod traits;
 mod where_clauses;
 
+/// Prepend the core crate if the first crate isn't already named `core`.
+pub fn with_core_crate(crates: &Crates) -> Crates {
+    let Crates { mut crates } = crates.clone();
+    if Some("core") != crates.first().map(|first| &**first.id) {
+        crates.insert(0, core_crate::krate());
+    }
+    Crates { crates }
+}
+
 judgment_fn! {
     pub fn check_all_crates(
         crates: Crates,
@@ -34,14 +43,7 @@ judgment_fn! {
         debug(crates)
 
         (
-            // Add the core crate if the first crate isn't called `core`.
-            (let crates = {
-                let Crates { mut crates } = crates.clone();
-                if Some("core") != crates.first().map(|first| &**first.id) {
-                    crates.insert(0, core_crate::krate());
-                }
-                Crates { crates }
-            })
+            (let crates = with_core_crate(&crates))
             // Check that all crates up to and including crate #i are valid.
             // Crate #i will be considered the "current crate".
             (for_all(i in 0..crates.len())
@@ -134,6 +136,7 @@ judgment_fn! {
 
         (
             (check_trait_impl(program, v, crate_id) => ())
+            (check_drop_impl_always_applicable(program, v) => ())
             ------------------------------------------------------------ ("trait impl")
             (check_crate_item(program, CrateItem::TraitImpl(v), crate_id) => ())
         )

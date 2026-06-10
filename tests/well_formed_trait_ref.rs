@@ -15,6 +15,7 @@ fn dependent_where_clause() {
             dummy: T,
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -50,6 +51,7 @@ fn lifetime_param() {
 
         struct S2<'a> where S1: Trait1<'a> {}
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -64,6 +66,7 @@ fn static_lifetime_param() {
 
         struct S2 where S1: Trait1<'static> {}
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -78,6 +81,7 @@ fn const_param() {
 
         struct S2 where S1: Trait1<u32(3)> {}
     }])
+    .skip_execute()
     .ok()
 }
 

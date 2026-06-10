@@ -12,6 +12,8 @@ dependencies = [
  "formality-core",
  "formality-macros",
  "formality-rust",
+ "libspecr",
+ "minirust-rs",
  "tracing",
 ]
 
@@ -446,6 +448,7 @@ dependencies = [
  "bitmaps",
  "rand_core",
  "rand_xoshiro",
+ "serde",
  "sized-chunks",
  "typenum",
  "version_check",
@@ -501,9 +504,9 @@ checksum = "b5b646652bf6661599e1da8901b3b9522896f01e736bad5f723fe7a3a27f899d"
 
 [[package]]
 name = "libspecr"
-version = "0.1.36"
+version = "0.1.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7154e085a50560af422fbad056f60941a99b799473c139e025b1f11661eb2f0"
+checksum = "9dbcdd154754d8773b3711e76364ff46b61c672ec6f25a758eb7da47d9ba04c0"
 dependencies = [
  "gccompat-derive",
  "im",
@@ -511,6 +514,8 @@ dependencies = [
  "num-integer",
  "num-traits",
  "rand",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -601,6 +606,7 @@ name = "minirust-rs"
 version = "0.1.0"
 dependencies = [
  "libspecr",
+ "serde",
 ]
 
 [[package]]
@@ -1302,7 +1308,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

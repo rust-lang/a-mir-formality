@@ -109,13 +109,13 @@ impl<L: Language, T: CoreFold<L, Output = T>> CoreBinder<L, T> {
 
     /// Instantiate the binder with the given parameters, returning an err if the parameters
     /// are the wrong number or ill-kinded.
-    pub fn instantiate_with(&self, parameters: &[impl Upcast<CoreParameter<L>>]) -> Fallible<T> {
+    pub fn instantiate_with(&self, parameters: impl Upcast<Vec<CoreParameter<L>>>) -> Fallible<T> {
+        let parameters: Vec<CoreParameter<L>> = parameters.upcast();
         if parameters.len() != self.kinds.len() {
             bail!("wrong number of parameters");
         }
 
         for ((p, k), i) in parameters.iter().zip(&self.kinds).zip(0..) {
-            let p: CoreParameter<L> = p.upcast();
             if p.kind() != *k {
                 bail!(
                     "parameter {i} has kind {:?} but should have kind {:?}",

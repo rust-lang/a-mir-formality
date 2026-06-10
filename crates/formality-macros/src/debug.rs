@@ -181,6 +181,18 @@ fn debug_variant_with_attr(
                 spec::FormalitySpecSymbol::Delimeter { .. },
             ) => true,
 
+            // `println!` looks better than `println !`
+            (
+                Some(spec::FormalitySpecSymbol::Keyword { .. }),
+                spec::FormalitySpecSymbol::Char { .. },
+            ) => true,
+
+            // `!(` looks better than `! (`
+            (
+                Some(spec::FormalitySpecSymbol::Char { .. }),
+                spec::FormalitySpecSymbol::Delimeter { .. },
+            ) => true,
+
             // consecutive delimeters don't need spaces
             (
                 Some(spec::FormalitySpecSymbol::Delimeter { .. }),

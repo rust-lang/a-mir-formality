@@ -1,4 +1,291 @@
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+use crate::prelude::*;
+/// An "address" is a location in memory. This corresponds to the actual
+/// location in the real program.
+/// We make it a mathematical integer, but of course it is bounded by the size
+/// of the address space.
+pub type Address = Int;
+/// A "thin pointer" is an address together with its Provenance.
+/// Provenance can be absent; those pointers are
+/// invalid for all non-zero-sized accesses.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct ThinPointer<Provenance: libspecr::hidden::Obj> {
+    pub addr: Address,
+    pub provenance: Option<Provenance>,
+}
+/// The runtime metadata that can be stored in a wide pointer.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum PointerMeta<Provenance: libspecr::hidden::Obj> {
+    /// The metadata counts the number of elements in the slice.
+    ElementCount(Int),
+    /// The metadata points to a vtable referred at this location.
+    /// This must point to a valid vtable and it is a spec bug if it doesn't.
+    VTablePointer(ThinPointer<Provenance>),
+}
+/// A "pointer" is the thin pointer with optionally some metadata, making it a wide pointer.
+/// This corresponds to the Rust raw pointer types, as well as references and boxes.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct Pointer<Provenance: libspecr::hidden::Obj> {
+    pub thin_pointer: ThinPointer<Provenance>,
+    pub metadata: Option<PointerMeta<Provenance>>,
+}
+impl<Provenance: libspecr::hidden::Obj> ThinPointer<Provenance> {
+    /// Offsets a pointer in bytes using wrapping arithmetic.
+    /// This does not check whether the pointer is still in-bounds of its allocation.
+    pub fn wrapping_offset<T: Target + libspecr::hidden::Obj>(self, offset: Int) -> Self {
+        let addr = self.addr + offset;
+        let addr = addr.bring_in_bounds(Unsigned, T::PTR_SIZE);
+        ThinPointer { addr, ..self }
+    }
+    pub fn widen(self, metadata: Option<PointerMeta<Provenance>>) -> Pointer<Provenance> {
+        Pointer {
+            thin_pointer: self,
+            metadata,
+        }
+    }
+}
+/// Describes what is needed to define the layout of the sized head of a tuple `(head.., tail)`.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct TupleHeadLayout {
+    /// The offset where the head ends and tail starts.
+    /// This is the end of the last sized field; it is *not* necessarily aligned to `align`.
+    pub end: Offset,
+    /// The alignment of the head. This is the maximal alignment of any sized field and capped to the packed alignment.
+    pub align: Align,
+    /// If this is `Some(a)` the alignment of the tail will be capped at this value.
+    /// Must be `None` for sized tuples.
+    pub packed_align: Option<Align>,
+}
+/// Describes how the size and align of the value can be determined.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum LayoutStrategy {
+    /// The type is statically `Sized` with the given size and align.
+    Sized(Size, Align),
+    /// The type contains zero or more elements of the inner layout.
+    /// The total size is a multiple of the element size and the align is exactly the element align.
+    Slice(Size, Align),
+    /// The size of the type must be looked up in the VTable of a wide pointer.
+    /// Additionally, the vtable must be for the given trait.
+    TraitObject(TraitName),
+    /// The type consists of a sized head an unsized tail.
+    Tuple {
+        head: TupleHeadLayout,
+        tail: libspecr::hidden::GcCow<LayoutStrategy>,
+    },
+}
+/// Describes where in a potentially unsized type the UnsafeCell are.
+/// Separate from `LayoutStrategy` since we must be able to compute `LayoutStrategy` from a
+/// MiniRust `Type`, but that does not have enough information for an `UnsafeCellStrategy`.
+/// FIXME: maybe it should?
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum UnsafeCellStrategy {
+    /// List of offsets and sizes of `UnsafeCell`s.
+    Sized { cells: List<(Offset, Size)> },
+    /// Since the elements of a slice have the same type, we only keep track of the
+    /// UnsafeCell's of one element, we can then "repeat" this for the rest of the slice.
+    Slice { element_cells: List<(Offset, Size)> },
+    /// The bytes for UnsafeCell's must be looked up in the VTable.
+    TraitObject,
+    /// A Tuple consists of a sized head an unsized tail.
+    Tuple {
+        head_cells: List<(Offset, Size)>,
+        tail_cells: libspecr::hidden::GcCow<UnsafeCellStrategy>,
+    },
+}
+/// Describes what we know about data behind a pointer.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct PointeeInfo {
+    pub layout: LayoutStrategy,
+    pub inhabited: bool,
+    /// Indicates where the `UnsafeCell` in this type are, which permit interior mutability.
+    pub unsafe_cells: UnsafeCellStrategy,
+    /// Whether the pointee implements the `Freeze` trait. This is used to determine
+    /// whether the bytes "outside" the pointee have interior mutability.
+    pub freeze: bool,
+    pub unpin: bool,
+}
+/// A "trait name" is an identifier for the trait a vtable is for.
+/// This depends on the defined methods and the marker traits.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct TraitName(pub libspecr::Name);
+/// The statically known kind of metadata stored in a pointer.
+/// This determines the type of the metadata, while `Option<PointerMeta>` determines its value.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum PointerMetaKind {
+    None,
+    ElementCount,
+    VTablePointer(TraitName),
+}
+/// Stores all the information that we need to know about a pointer.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum PtrType {
+    Ref {
+        /// Indicates a shared vs mutable reference.
+        mutbl: Mutability,
+        /// Describes what we know about the pointee.
+        pointee: PointeeInfo,
+    },
+    Box {
+        pointee: PointeeInfo,
+    },
+    Raw {
+        /// Indicates what kind of metadata this pointer carries.
+        meta_kind: PointerMetaKind,
+    },
+    FnPtr,
+    /// This is a "stand-alone" vtable pointer, something that does not exist in surface Rust.
+    VTablePtr(TraitName),
+}
+impl PtrType {
+    /// If this is a safe pointer, return the pointee information.
+    pub fn safe_pointee(self) -> Option<PointeeInfo> {
+        match self {
+            PtrType::Ref { pointee, .. } | PtrType::Box { pointee, .. } => Some(pointee),
+            PtrType::Raw { .. } | PtrType::FnPtr | PtrType::VTablePtr(_) => None,
+        }
+    }
+    pub fn meta_kind(self) -> PointerMetaKind {
+        match self {
+            PtrType::Ref { pointee, .. } | PtrType::Box { pointee, .. } => {
+                pointee.layout.meta_kind()
+            }
+            PtrType::Raw { meta_kind, .. } => meta_kind,
+            PtrType::FnPtr | PtrType::VTablePtr(_) => PointerMetaKind::None,
+        }
+    }
+}
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct IntPtrCast<Provenance: libspecr::hidden::Obj> {
     /// The set of exposed provenance.
     exposed: Set<Provenance>,
@@ -20,11 +307,412 @@ impl<Provenance: libspecr::hidden::Obj> IntPtrCast<Provenance> {
         ret(ThinPointer { addr, provenance })
     }
 }
-use crate::prelude::*;
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// A one-byte provenance fragment stores the provenance and which position
+/// in the pointer this fragment had.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct ProvenanceFrag<Provenance: libspecr::hidden::Obj> {
+    pub provenance: Provenance,
+    pub position: Int,
+}
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum AbstractByte<Provenance: libspecr::hidden::Obj> {
+    /// An uninitialized byte.
+    Uninit,
+    /// An initialized byte, optionally with some provenance (if it is encoding a pointer).
+    Init(u8, Option<ProvenanceFrag<Provenance>>),
+}
+impl<Provenance: libspecr::hidden::Obj> AbstractByte<Provenance> {
+    pub fn data(self) -> Option<u8> {
+        match self {
+            AbstractByte::Uninit => None,
+            AbstractByte::Init(data, _) => Some(data),
+        }
+    }
+    pub fn provenance_frag(self) -> Option<ProvenanceFrag<Provenance>> {
+        match self {
+            AbstractByte::Uninit => None,
+            AbstractByte::Init(_, frag) => frag,
+        }
+    }
+}
+/// The "kind" of an allocation is used to distinguish, for instance, stack from heap memory.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum AllocationKind {
+    /// Memory for a stack variable.
+    Stack,
+    /// Memory allocated with the AM heap intrinsics.
+    Heap,
+    /// Memory for a global variable.
+    Global,
+    /// Memory for a function.
+    Function,
+    /// Memory for a vtable.
+    VTable,
+}
+/// *Note*: All memory operations can be non-deterministic, which means that
+/// executing the same operation on the same memory can have different results.
+/// We also let read operations potentially mutate memory (they actually can
+/// change the current state in concurrent memory models and in Stacked Borrows).
+pub trait Memory: libspecr::hidden::Obj {
+    /// The target information.
+    /// This doesn't really belong to the memory, but avoids having to quantify over both
+    /// memory and target everywhere.
+    type T: Target + libspecr::hidden::Obj + for<'de> serde::Deserialize<'de> + serde::Serialize;
+    /// The type of pointer provenance.
+    type Provenance: libspecr::hidden::Obj + for<'de> serde::Deserialize<'de> + serde::Serialize;
+    /// Extra information for each stack frame.
+    type FrameExtra: libspecr::hidden::Obj + for<'de> serde::Deserialize<'de> + serde::Serialize;
+    fn new() -> Self;
+    /// Create a new allocation.
+    /// The initial contents of the allocation are `AbstractByte::Uninit`.
+    ///
+    /// This is the only non-deterministic operation in the memory interface.
+    fn allocate(
+        &mut self,
+        kind: AllocationKind,
+        size: Size,
+        align: Align,
+    ) -> NdResult<ThinPointer<Self::Provenance>>;
+    /// Remove an allocation.
+    fn deallocate(
+        &mut self,
+        ptr: ThinPointer<Self::Provenance>,
+        kind: AllocationKind,
+        size: Size,
+        align: Align,
+    ) -> Result;
+    /// Write some bytes to memory.
+    fn store(
+        &mut self,
+        ptr: ThinPointer<Self::Provenance>,
+        bytes: List<AbstractByte<Self::Provenance>>,
+        align: Align,
+    ) -> Result;
+    /// Read some bytes from memory.
+    ///
+    /// Needs `&mut self` because in the aliasing model, reading changes the machine state.
+    fn load(
+        &mut self,
+        ptr: ThinPointer<Self::Provenance>,
+        len: Size,
+        align: Align,
+    ) -> Result<List<AbstractByte<Self::Provenance>>>;
+    /// Test whether the given pointer is dereferenceable for the given size.
+    fn dereferenceable(&self, ptr: ThinPointer<Self::Provenance>, len: Size) -> Result;
+    /// A derived form of `dereferenceable` that works with a signed notion of "length".
+    fn signed_dereferenceable(&self, ptr: ThinPointer<Self::Provenance>, len: Int) -> Result {
+        if len > 0 {
+            self.dereferenceable(ptr, Size::from_bytes(len).unwrap())
+        } else {
+            let begin_ptr = ThinPointer {
+                addr: ptr.addr + len,
+                ..ptr
+            };
+            self.dereferenceable(begin_ptr, Size::from_bytes(-len).unwrap())
+        }
+    }
+    /// Retag the given pointer, which has the given type.
+    /// `fn_entry` indicates whether this is one of the special retags that happen
+    /// right at the top of each function.
+    ///
+    /// This can assume the pointer satisfies the language invariant,
+    /// in particular, it must be `dereferenceable` for its size.
+    /// Violating this or breaking this for the return value is a spec bug.
+    ///
+    /// The `vtable_lookup` is given, since computing the size and UnsafeCell positions
+    /// requires information about vtables.
+    ///
+    /// Return the retagged pointer.
+    fn retag_ptr(
+        &mut self,
+        _frame_extra: &mut Self::FrameExtra,
+        ptr: Pointer<Self::Provenance>,
+        _ptr_type: PtrType,
+        _fn_entry: bool,
+        _vtable_lookup: impl Fn(ThinPointer<Self::Provenance>) -> crate::lang::VTable + 'static,
+    ) -> Result<Pointer<Self::Provenance>> {
+        ret(ptr)
+    }
+    /// Create the extra information for a stack frame.
+    fn new_call() -> Self::FrameExtra;
+    /// Memory model hook invoked at the end of each function call.
+    fn end_call(&mut self, _extra: Self::FrameExtra) -> Result {
+        ret(())
+    }
+    /// Check if there are any memory leaks.
+    fn leak_check(&self) -> Result;
+}
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct ConcurrentMemory<M: Memory + libspecr::hidden::Obj> {
+    memory: M,
+    /// List of all memory access done by the active thread in the current step.
+    accesses: List<Access>,
+}
+/// The different kinds of atomicity.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub enum Atomicity {
+    /// A sequentially consistent atomic access.
+    Atomic,
+    /// A non-atomic memory access.
+    None,
+}
+/// Internal type used to track the type of a memory access.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+enum AccessType {
+    Store,
+    Load,
+}
+/// Access contains all information the data race detection needs about a single access.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+pub struct Access {
+    ty: AccessType,
+    atomicity: Atomicity,
+    addr: Address,
+    len: Size,
+}
+impl<M: Memory + libspecr::hidden::Obj> ConcurrentMemory<M> {
+    pub fn new() -> Self {
+        Self {
+            memory: M::new(),
+            accesses: list![],
+        }
+    }
+    /// Create a new allocation.
+    /// The initial contents of the allocation are `AbstractByte::Uninit`.
+    pub fn allocate(
+        &mut self,
+        kind: AllocationKind,
+        size: Size,
+        align: Align,
+    ) -> NdResult<ThinPointer<M::Provenance>> {
+        self.memory.allocate(kind, size, align)
+    }
+    /// Remove an allocation.
+    pub fn deallocate(
+        &mut self,
+        ptr: ThinPointer<M::Provenance>,
+        kind: AllocationKind,
+        size: Size,
+        align: Align,
+    ) -> Result {
+        self.memory.deallocate(ptr, kind, size, align)
+    }
+    /// Write some bytes to memory and check for data races.
+    pub fn store(
+        &mut self,
+        ptr: ThinPointer<M::Provenance>,
+        bytes: List<AbstractByte<M::Provenance>>,
+        align: Align,
+        atomicity: Atomicity,
+    ) -> Result {
+        let access = Access {
+            ty: AccessType::Store,
+            atomicity,
+            addr: ptr.addr,
+            len: Size::from_bytes(bytes.len()).unwrap(),
+        };
+        self.accesses.push(access);
+        self.memory.store(ptr, bytes, align)
+    }
+    /// Read some bytes from memory and check for data races.
+    pub fn load(
+        &mut self,
+        ptr: ThinPointer<M::Provenance>,
+        len: Size,
+        align: Align,
+        atomicity: Atomicity,
+    ) -> Result<List<AbstractByte<M::Provenance>>> {
+        let access = Access {
+            ty: AccessType::Load,
+            atomicity,
+            addr: ptr.addr,
+            len,
+        };
+        self.accesses.push(access);
+        self.memory.load(ptr, len, align)
+    }
+    /// Test whether the given pointer is dereferenceable for the given size.
+    /// Raises UB if that is not the case.
+    pub fn dereferenceable(&self, ptr: ThinPointer<M::Provenance>, len: Size) -> Result {
+        self.memory.dereferenceable(ptr, len)
+    }
+    /// A derived form of `dereferenceable` that works with a signed notion on "length".
+    pub fn signed_dereferenceable(&self, ptr: ThinPointer<M::Provenance>, len: Int) -> Result {
+        self.memory.signed_dereferenceable(ptr, len)
+    }
+    /// Return the retagged pointer.
+    pub fn retag_ptr(
+        &mut self,
+        frame_extra: &mut M::FrameExtra,
+        ptr: Pointer<M::Provenance>,
+        ptr_type: PtrType,
+        fn_entry: bool,
+        vtable_lookup: impl Fn(ThinPointer<M::Provenance>) -> crate::lang::VTable + 'static,
+    ) -> Result<Pointer<M::Provenance>> {
+        self.memory
+            .retag_ptr(frame_extra, ptr, ptr_type, fn_entry, vtable_lookup)
+    }
+    /// Memory model hook invoked at the end of each function call.
+    pub fn end_call(&mut self, extra: M::FrameExtra) -> Result {
+        self.memory.end_call(extra)
+    }
+    /// Check if there are any memory leaks.
+    pub fn leak_check(&self) -> Result {
+        self.memory.leak_check()
+    }
+    /// Given a list of previous accesses, checks if any of the current accesses is in a data race with any of those.
+    pub fn check_data_races(
+        &self,
+        current_thread: ThreadId,
+        (prev_sync_threads, prev_accesses): (Set<ThreadId>, List<Access>),
+    ) -> Result {
+        if prev_sync_threads.contains(current_thread) {
+            return Ok(());
+        }
+        for access in self.accesses {
+            if prev_accesses.any(|prev_access| access.races(prev_access)) {
+                throw_ub!("Data race");
+            }
+        }
+        Ok(())
+    }
+    /// Prepare memory to track accesses of next step: reset the internal access list to
+    /// be empty, and return the list of previously collected accesses.
+    pub fn reset_accesses(&mut self) -> List<Access> {
+        let prev_accesses = self.accesses;
+        self.accesses = list![];
+        prev_accesses
+    }
+}
+/// The ID of a thread is an index into the machine's `threads` list.
+pub type ThreadId = Int;
+impl Access {
+    /// Indicates if a races happend between the two given accesses.
+    /// We assume they happen on different threads.
+    fn races(self, other: Self) -> bool {
+        if self.ty == AccessType::Load && other.ty == AccessType::Load {
+            return false;
+        }
+        if self.atomicity == Atomicity::Atomic && other.atomicity == Atomicity::Atomic {
+            return false;
+        }
+        let end_addr = self.addr + self.len.bytes();
+        let other_end_addr = other.addr + other.len.bytes();
+        end_addr > other.addr && other_end_addr > self.addr
+    }
+}
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct AllocId(Int);
 type Provenance<Extra> = (AllocId, Extra);
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 struct Allocation<ProvExtra: libspecr::hidden::Obj = (), AllocExtra: libspecr::hidden::Obj = ()> {
     /// The data stored in this allocation.
     data: List<AbstractByte<Provenance<ProvExtra>>>,
@@ -41,7 +729,19 @@ struct Allocation<ProvExtra: libspecr::hidden::Obj = (), AllocExtra: libspecr::h
     /// Additional information needed for the memory model
     extra: AllocExtra,
 }
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct BasicMemory<
     T: Target + libspecr::hidden::Obj,
     ProvExtra: libspecr::hidden::Obj = (),
@@ -243,7 +943,9 @@ impl<ProvExtra: libspecr::hidden::Obj, AllocExtra: libspecr::hidden::Obj>
         }
     }
 }
-impl<T: Target + libspecr::hidden::Obj> Memory for BasicMemory<T> {
+impl<T: Target + libspecr::hidden::Obj + for<'de> serde::Deserialize<'de> + serde::Serialize> Memory
+    for BasicMemory<T>
+{
     type Provenance = Provenance<()>;
     /// The target is given by the generic parameter.
     type T = T;
@@ -297,612 +999,326 @@ impl<T: Target + libspecr::hidden::Obj> Memory for BasicMemory<T> {
         self.leak_check()
     }
 }
-/// An "address" is a location in memory. This corresponds to the actual
-/// location in the real program.
-/// We make it a mathematical integer, but of course it is bounded by the size
-/// of the address space.
-pub type Address = Int;
-/// A "thin pointer" is an address together with its Provenance.
-/// Provenance can be absent; those pointers are
-/// invalid for all non-zero-sized accesses.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ThinPointer<Provenance: libspecr::hidden::Obj> {
-    pub addr: Address,
-    pub provenance: Option<Provenance>,
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+enum Protected {
+    Strong,
+    Weak,
+    No,
 }
-/// The runtime metadata that can be stored in a wide pointer.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PointerMeta<Provenance: libspecr::hidden::Obj> {
-    /// The metadata counts the number of elements in the slice.
-    ElementCount(Int),
-    /// The metadata points to a vtable referred at this location.
-    /// This must point to a valid vtable and it is a spec bug if it doesn't.
-    VTablePointer(ThinPointer<Provenance>),
-}
-/// A "pointer" is the thin pointer with optionally some metadata, making it a wide pointer.
-/// This corresponds to the Rust raw pointer types, as well as references and boxes.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Pointer<Provenance: libspecr::hidden::Obj> {
-    pub thin_pointer: ThinPointer<Provenance>,
-    pub metadata: Option<PointerMeta<Provenance>>,
-}
-impl<Provenance: libspecr::hidden::Obj> ThinPointer<Provenance> {
-    /// Offsets a pointer in bytes using wrapping arithmetic.
-    /// This does not check whether the pointer is still in-bounds of its allocation.
-    pub fn wrapping_offset<T: Target + libspecr::hidden::Obj>(self, offset: Int) -> Self {
-        let addr = self.addr + offset;
-        let addr = addr.bring_in_bounds(Unsigned, T::PTR_SIZE);
-        ThinPointer { addr, ..self }
-    }
-    pub fn widen(self, metadata: Option<PointerMeta<Provenance>>) -> Pointer<Provenance> {
-        Pointer {
-            thin_pointer: self,
-            metadata,
-        }
+impl Protected {
+    /// Check whether the node is either strongly or weakly protected.
+    fn yes(self) -> bool {
+        self != Protected::No
     }
 }
-/// Describes what is needed to define the layout of the sized head of a tuple `(head.., tail)`.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TupleHeadLayout {
-    /// The offset where the head ends and tail starts.
-    /// This is the end of the last sized field; it is *not* necessarily aligned to `align`.
-    pub end: Offset,
-    /// The alignment of the head. This is the maximal alignment of any sized field and capped to the packed alignment.
-    pub align: Align,
-    /// If this is `Some(a)` the alignment of the tail will be capped at this value.
-    /// Must be `None` for sized tuples.
-    pub packed_align: Option<Align>,
-}
-/// Describes how the size and align of the value can be determined.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LayoutStrategy {
-    /// The type is statically `Sized` with the given size and align.
-    Sized(Size, Align),
-    /// The type contains zero or more elements of the inner layout.
-    /// The total size is a multiple of the element size and the align is exactly the element align.
-    Slice(Size, Align),
-    /// The size of the type must be looked up in the VTable of a wide pointer.
-    /// Additionally, the vtable must be for the given trait.
-    TraitObject(TraitName),
-    /// The type consists of a sized head an unsized tail.
-    Tuple {
-        head: TupleHeadLayout,
-        tail: libspecr::hidden::GcCow<LayoutStrategy>,
-    },
-}
-/// Describes where in a potentially unsized type the UnsafeCell are.
-/// Separate from `LayoutStrategy` since we must be able to compute `LayoutStrategy` from a
-/// MiniRust `Type`, but that does not have enough information for an `UnsafeCellStrategy`.
-/// FIXME: maybe it should?
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum UnsafeCellStrategy {
-    /// List of offsets and sizes of `UnsafeCell`s.
-    Sized { cells: List<(Offset, Size)> },
-    /// Since the elements of a slice have the same type, we only keep track of the
-    /// UnsafeCell's of one element, we can then "repeat" this for the rest of the slice.
-    Slice { element_cells: List<(Offset, Size)> },
-    /// The bytes for UnsafeCell's must be looked up in the VTable.
-    TraitObject,
-    /// A Tuple consists of a sized head an unsized tail.
-    Tuple {
-        head_cells: List<(Offset, Size)>,
-        tail_cells: libspecr::hidden::GcCow<UnsafeCellStrategy>,
-    },
-}
-/// Describes what we know about data behind a pointer.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct PointeeInfo {
-    pub layout: LayoutStrategy,
-    pub inhabited: bool,
-    /// Indicates where the `UnsafeCell` in this type are, which permit interior mutability.
-    pub unsafe_cells: UnsafeCellStrategy,
-    /// Whether the pointee implements the `Freeze` trait. This is used to determine
-    /// whether the bytes "outside" the pointee have interior mutability.
-    pub freeze: bool,
-    pub unpin: bool,
-}
-/// A "trait name" is an identifier for the trait a vtable is for.
-/// This depends on the defined methods and the marker traits.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TraitName(pub libspecr::Name);
-/// The statically known kind of metadata stored in a pointer.
-/// This determines the type of the metadata, while `Option<PointerMeta>` determines its value.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PointerMetaKind {
-    None,
-    ElementCount,
-    VTablePointer(TraitName),
-}
-/// Stores all the information that we need to know about a pointer.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PtrType {
-    Ref {
-        /// Indicates a shared vs mutable reference.
-        mutbl: Mutability,
-        /// Describes what we know about the pointee.
-        pointee: PointeeInfo,
-    },
-    Box {
-        pointee: PointeeInfo,
-    },
-    Raw {
-        /// Indicates what kind of metadata this pointer carries.
-        meta_kind: PointerMetaKind,
-    },
-    FnPtr,
-    /// This is a "stand-alone" vtable pointer, something that does not exist in surface Rust.
-    VTablePtr(TraitName),
-}
-impl PtrType {
-    /// If this is a safe pointer, return the pointee information.
-    pub fn safe_pointee(self) -> Option<PointeeInfo> {
-        match self {
-            PtrType::Ref { pointee, .. } | PtrType::Box { pointee, .. } => Some(pointee),
-            PtrType::Raw { .. } | PtrType::FnPtr | PtrType::VTablePtr(_) => None,
-        }
-    }
-    pub fn meta_kind(self) -> PointerMetaKind {
-        match self {
-            PtrType::Ref { pointee, .. } | PtrType::Box { pointee, .. } => {
-                pointee.layout.meta_kind()
-            }
-            PtrType::Raw { meta_kind, .. } => meta_kind,
-            PtrType::FnPtr | PtrType::VTablePtr(_) => PointerMetaKind::None,
-        }
-    }
-}
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ConcurrentMemory<M: Memory + libspecr::hidden::Obj> {
-    memory: M,
-    /// List of all memory access done by the active thread in the current step.
-    accesses: List<Access>,
-}
-/// The different kinds of atomicity.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Atomicity {
-    /// A sequentially consistent atomic access.
-    Atomic,
-    /// A non-atomic memory access.
-    None,
-}
-/// Internal type used to track the type of a memory access.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum AccessType {
-    Store,
-    Load,
-}
-/// Access contains all information the data race detection needs about a single access.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Access {
-    ty: AccessType,
-    atomicity: Atomicity,
-    addr: Address,
-    len: Size,
-}
-impl<M: Memory + libspecr::hidden::Obj> ConcurrentMemory<M> {
-    pub fn new() -> Self {
-        Self {
-            memory: M::new(),
-            accesses: list![],
-        }
-    }
-    /// Create a new allocation.
-    /// The initial contents of the allocation are `AbstractByte::Uninit`.
-    pub fn allocate(
-        &mut self,
-        kind: AllocationKind,
-        size: Size,
-        align: Align,
-    ) -> NdResult<ThinPointer<M::Provenance>> {
-        self.memory.allocate(kind, size, align)
-    }
-    /// Remove an allocation.
-    pub fn deallocate(
-        &mut self,
-        ptr: ThinPointer<M::Provenance>,
-        kind: AllocationKind,
-        size: Size,
-        align: Align,
-    ) -> Result {
-        self.memory.deallocate(ptr, kind, size, align)
-    }
-    /// Write some bytes to memory and check for data races.
-    pub fn store(
-        &mut self,
-        ptr: ThinPointer<M::Provenance>,
-        bytes: List<AbstractByte<M::Provenance>>,
-        align: Align,
-        atomicity: Atomicity,
-    ) -> Result {
-        let access = Access {
-            ty: AccessType::Store,
-            atomicity,
-            addr: ptr.addr,
-            len: Size::from_bytes(bytes.len()).unwrap(),
-        };
-        self.accesses.push(access);
-        self.memory.store(ptr, bytes, align)
-    }
-    /// Read some bytes from memory and check for data races.
-    pub fn load(
-        &mut self,
-        ptr: ThinPointer<M::Provenance>,
-        len: Size,
-        align: Align,
-        atomicity: Atomicity,
-    ) -> Result<List<AbstractByte<M::Provenance>>> {
-        let access = Access {
-            ty: AccessType::Load,
-            atomicity,
-            addr: ptr.addr,
-            len,
-        };
-        self.accesses.push(access);
-        self.memory.load(ptr, len, align)
-    }
-    /// Test whether the given pointer is dereferenceable for the given size.
-    /// Raises UB if that is not the case.
-    pub fn dereferenceable(&self, ptr: ThinPointer<M::Provenance>, len: Size) -> Result {
-        self.memory.dereferenceable(ptr, len)
-    }
-    /// A derived form of `dereferenceable` that works with a signed notion on "length".
-    pub fn signed_dereferenceable(&self, ptr: ThinPointer<M::Provenance>, len: Int) -> Result {
-        self.memory.signed_dereferenceable(ptr, len)
-    }
-    /// Return the retagged pointer.
-    pub fn retag_ptr(
-        &mut self,
-        frame_extra: &mut M::FrameExtra,
-        ptr: Pointer<M::Provenance>,
-        ptr_type: PtrType,
-        fn_entry: bool,
-        vtable_lookup: impl Fn(ThinPointer<M::Provenance>) -> crate::lang::VTable + 'static,
-    ) -> Result<Pointer<M::Provenance>> {
-        self.memory
-            .retag_ptr(frame_extra, ptr, ptr_type, fn_entry, vtable_lookup)
-    }
-    /// Memory model hook invoked at the end of each function call.
-    pub fn end_call(&mut self, extra: M::FrameExtra) -> Result {
-        self.memory.end_call(extra)
-    }
-    /// Check if there are any memory leaks.
-    pub fn leak_check(&self) -> Result {
-        self.memory.leak_check()
-    }
-    /// Given a list of previous accesses, checks if any of the current accesses is in a data race with any of those.
-    pub fn check_data_races(
-        &self,
-        current_thread: ThreadId,
-        (prev_sync_threads, prev_accesses): (Set<ThreadId>, List<Access>),
-    ) -> Result {
-        if prev_sync_threads.contains(current_thread) {
-            return Ok(());
-        }
-        for access in self.accesses {
-            if prev_accesses.any(|prev_access| access.races(prev_access)) {
-                throw_ub!("Data race");
-            }
-        }
-        Ok(())
-    }
-    /// Prepare memory to track accesses of next step: reset the internal access list to
-    /// be empty, and return the list of previously collected accesses.
-    pub fn reset_accesses(&mut self) -> List<Access> {
-        let prev_accesses = self.accesses;
-        self.accesses = list![];
-        prev_accesses
-    }
-}
-/// The ID of a thread is an index into the machine's `threads` list.
-pub type ThreadId = Int;
-impl Access {
-    /// Indicates if a races happend between the two given accesses.
-    /// We assume they happen on different threads.
-    fn races(self, other: Self) -> bool {
-        if self.ty == AccessType::Load && other.ty == AccessType::Load {
-            return false;
-        }
-        if self.atomicity == Atomicity::Atomic && other.atomicity == Atomicity::Atomic {
-            return false;
-        }
-        let end_addr = self.addr + self.len.bytes();
-        let other_end_addr = other.addr + other.len.bytes();
-        end_addr > other.addr && other_end_addr > self.addr
-    }
-}
-/// A one-byte provenance fragment stores the provenance and which position
-/// in the pointer this fragment had.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ProvenanceFrag<Provenance: libspecr::hidden::Obj> {
-    pub provenance: Provenance,
-    pub position: Int,
-}
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AbstractByte<Provenance: libspecr::hidden::Obj> {
-    /// An uninitialized byte.
-    Uninit,
-    /// An initialized byte, optionally with some provenance (if it is encoding a pointer).
-    Init(u8, Option<ProvenanceFrag<Provenance>>),
-}
-impl<Provenance: libspecr::hidden::Obj> AbstractByte<Provenance> {
-    pub fn data(self) -> Option<u8> {
-        match self {
-            AbstractByte::Uninit => None,
-            AbstractByte::Init(data, _) => Some(data),
-        }
-    }
-    pub fn provenance_frag(self) -> Option<ProvenanceFrag<Provenance>> {
-        match self {
-            AbstractByte::Uninit => None,
-            AbstractByte::Init(_, frag) => frag,
-        }
-    }
-}
-/// The "kind" of an allocation is used to distinguish, for instance, stack from heap memory.
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AllocationKind {
-    /// Memory for a stack variable.
-    Stack,
-    /// Memory allocated with the AM heap intrinsics.
-    Heap,
-    /// Memory for a global variable.
-    Global,
-    /// Memory for a function.
-    Function,
-    /// Memory for a vtable.
-    VTable,
-}
-/// *Note*: All memory operations can be non-deterministic, which means that
-/// executing the same operation on the same memory can have different results.
-/// We also let read operations potentially mutate memory (they actually can
-/// change the current state in concurrent memory models and in Stacked Borrows).
-pub trait Memory: libspecr::hidden::Obj {
-    /// The target information.
-    /// This doesn't really belong to the memory, but avoids having to quantify over both
-    /// memory and target everywhere.
-    type T: Target + libspecr::hidden::Obj;
-    /// The type of pointer provenance.
-    type Provenance: libspecr::hidden::Obj;
-    /// Extra information for each stack frame.
-    type FrameExtra: libspecr::hidden::Obj;
-    fn new() -> Self;
-    /// Create a new allocation.
-    /// The initial contents of the allocation are `AbstractByte::Uninit`.
-    ///
-    /// This is the only non-deterministic operation in the memory interface.
-    fn allocate(
-        &mut self,
-        kind: AllocationKind,
-        size: Size,
-        align: Align,
-    ) -> NdResult<ThinPointer<Self::Provenance>>;
-    /// Remove an allocation.
-    fn deallocate(
-        &mut self,
-        ptr: ThinPointer<Self::Provenance>,
-        kind: AllocationKind,
-        size: Size,
-        align: Align,
-    ) -> Result;
-    /// Write some bytes to memory.
-    fn store(
-        &mut self,
-        ptr: ThinPointer<Self::Provenance>,
-        bytes: List<AbstractByte<Self::Provenance>>,
-        align: Align,
-    ) -> Result;
-    /// Read some bytes from memory.
-    ///
-    /// Needs `&mut self` because in the aliasing model, reading changes the machine state.
-    fn load(
-        &mut self,
-        ptr: ThinPointer<Self::Provenance>,
-        len: Size,
-        align: Align,
-    ) -> Result<List<AbstractByte<Self::Provenance>>>;
-    /// Test whether the given pointer is dereferenceable for the given size.
-    fn dereferenceable(&self, ptr: ThinPointer<Self::Provenance>, len: Size) -> Result;
-    /// A derived form of `dereferenceable` that works with a signed notion of "length".
-    fn signed_dereferenceable(&self, ptr: ThinPointer<Self::Provenance>, len: Int) -> Result {
-        if len > 0 {
-            self.dereferenceable(ptr, Size::from_bytes(len).unwrap())
-        } else {
-            let begin_ptr = ThinPointer {
-                addr: ptr.addr + len,
-                ..ptr
-            };
-            self.dereferenceable(begin_ptr, Size::from_bytes(-len).unwrap())
-        }
-    }
-    /// Retag the given pointer, which has the given type.
-    /// `fn_entry` indicates whether this is one of the special retags that happen
-    /// right at the top of each function.
-    ///
-    /// This can assume the pointer satisfies the language invariant,
-    /// in particular, it must be `dereferenceable` for its size.
-    /// Violating this or breaking this for the return value is a spec bug.
-    ///
-    /// The `vtable_lookup` is given, since computing the size and UnsafeCell positions
-    /// requires information about vtables.
-    ///
-    /// Return the retagged pointer.
-    fn retag_ptr(
-        &mut self,
-        _frame_extra: &mut Self::FrameExtra,
-        ptr: Pointer<Self::Provenance>,
-        _ptr_type: PtrType,
-        _fn_entry: bool,
-        _vtable_lookup: impl Fn(ThinPointer<Self::Provenance>) -> crate::lang::VTable + 'static,
-    ) -> Result<Pointer<Self::Provenance>> {
-        ret(ptr)
-    }
-    /// Create the extra information for a stack frame.
-    fn new_call() -> Self::FrameExtra;
-    /// Memory model hook invoked at the end of each function call.
-    fn end_call(&mut self, _extra: Self::FrameExtra) -> Result {
-        ret(())
-    }
-    /// Check if there are any memory leaks.
-    fn leak_check(&self) -> Result;
-}
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct ReborrowSettings {
-    /// The permissions to set "inside" the data the reference points to (indexed
-    /// related to the reference).
-    inside: List<Permission>,
-    /// The permission to set for the "outside" part.
-    outside: Permission,
-    /// Whether and which protector to set.
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+struct Node {
+    children: List<Node>,
+    /// State for each location.
+    permissions: List<Permission>,
+    /// Indicates whether the node is protected by a function call,
+    /// i.e., whether the original reference passed as an argument of a function call.
+    /// This will be some kind of protection (weak or strong) if and only if this node is in
+    /// some frame's `extra.protectors` list.
+    /// There is an invariant between this field and the `permissions`:
+    /// If `protected.yes()`, then all states in `permissions` must be `Permission::Prot()`.
+    /// If `!protected.yes()`, they must all be `Permission::Unprot()`.
     protected: Protected,
 }
-/// Converts a list of cell locations into a "freeze mask",
-/// where each `bool` indicates whether the byte is frozen (i.e., *outside* all cells).
-fn cells_to_freeze_mask(cells: List<(Offset, Size)>, size: Size) -> List<bool> {
-    let padded_front = std::iter::once((Offset::ZERO, Size::ZERO)).chain(cells.iter());
-    let padded_back = cells.iter().chain(std::iter::once((size, Size::ZERO)));
-    let mut mask = List::new();
-    for (current, next) in padded_front.zip(padded_back) {
-        mask.append(list![false; current.1.bytes()]);
-        let no_cell_size = next.0.bytes() - (current.0 + current.1).bytes();
-        mask.append(list![true; no_cell_size]);
-    }
-    assert!(mask.len() == size.bytes());
-    mask
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+enum NodeRelation {
+    Local,
+    Foreign,
 }
-impl UnsafeCellStrategy {
-    /// Converts a list of cell locations into a cell "mask",
-    /// where each `bool` indicates whether the byte is inside a cell.
-    fn freeze_mask(
-        self,
-        layout: LayoutStrategy,
-        ptr_metadata: Option<PointerMeta<TreeBorrowsProvenance>>,
-        vtable_lookup: impl Fn(ThinPointer<TreeBorrowsProvenance>) -> crate::lang::VTable + 'static,
-    ) -> List<bool> {
-        match (self, layout, ptr_metadata) {
-            (UnsafeCellStrategy::Sized { cells }, LayoutStrategy::Sized(size, _align), ..) => {
-                cells_to_freeze_mask(cells, size)
-            }
-            (
-                UnsafeCellStrategy::Slice { element_cells },
-                LayoutStrategy::Slice(size, _align),
-                Some(PointerMeta::ElementCount(count)),
-            ) => {
-                let element_mask = cells_to_freeze_mask(element_cells, size);
-                let mut mask = List::new();
-                for _ in Int::ZERO..count {
-                    mask.append(element_mask);
-                }
-                mask
-            }
-            (
-                UnsafeCellStrategy::TraitObject,
-                LayoutStrategy::TraitObject(_trait_name),
-                Some(PointerMeta::VTablePointer(ptr)),
-            ) => {
-                let vtable = vtable_lookup(ptr);
-                cells_to_freeze_mask(vtable.cells, vtable.size)
-            }
-            (
-                UnsafeCellStrategy::Tuple {
-                    head_cells,
-                    tail_cells,
-                },
-                LayoutStrategy::Tuple { head, tail },
-                _,
-            ) => {
-                let tail_cells = tail_cells.extract();
-                let tail = tail.extract();
-                {
-                    let mut mask = cells_to_freeze_mask(head_cells, head.end);
-                    mask.append(tail_cells.freeze_mask(tail, ptr_metadata, vtable_lookup));
-                    mask
-                }
-            }
-            _ => panic!("Invalid LayoutStrategy and PointerMeta combination"),
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+enum AccessKind {
+    Read,
+    Write,
+}
+impl Node {
+    /// Perform state transition on all locations of `self`.
+    /// The `node_relation` indicates whether the accessed node is a local or foreign
+    /// *from the perspective of `self`*.
+    fn transition(
+        &mut self,
+        node_relation: NodeRelation,
+        access_kind: AccessKind,
+        offset_in_alloc: Offset,
+        size: Size,
+    ) -> Result {
+        let offset_start = offset_in_alloc.bytes();
+        for offset in offset_start..offset_start + size.bytes() {
+            self.permissions.mutate_at(offset, |permission| {
+                permission.transition(access_kind, node_relation)
+            })?;
         }
+        ret(())
+    }
+    /// Recusively do state transition on `self` node and all its descendants.
+    /// `path` is the path from `self` to the accessed node.
+    /// `path` is None when the accessed node is not a descendant of `self`.
+    ///
+    /// This method will throw UBs, representing the undefined behavior captured by Tree Borrows.
+    fn access(
+        &mut self,
+        path: Option<Path>,
+        access_kind: AccessKind,
+        offset_in_alloc: Offset,
+        size: Size,
+    ) -> Result {
+        let node_relation = if path.is_some() {
+            NodeRelation::Local
+        } else {
+            NodeRelation::Foreign
+        };
+        self.transition(node_relation, access_kind, offset_in_alloc, size)?;
+        for child_id in Int::ZERO..self.children.len() {
+            let sub_path = match path.and_then(|p| p.split_first()) {
+                Some((head, tail)) if head == child_id => Some(tail),
+                _ => None,
+            };
+            self.children.mutate_at(child_id, |child| {
+                child.access(sub_path, access_kind, offset_in_alloc, size)
+            })?;
+        }
+        ret(())
+    }
+    /// Apply `f` to a child node of `self`
+    /// `path` is the path from `self` to the target child node.
+    fn access_node<O: libspecr::hidden::Obj>(
+        &mut self,
+        path: Path,
+        f: impl FnOnce(&mut Self) -> O,
+    ) -> O {
+        let Some((sub_root_id, sub_path)) = path.split_first() else {
+            return f(self);
+        };
+        if self.is_leaf() {
+            panic!("Node::access_node: invalid node path");
+        }
+        self.children
+            .mutate_at(sub_root_id, |child| child.access_node(sub_path, f))
+    }
+    /// Add a new child node to the tree whose root is self
+    /// `path` is the path from `self` to the parent of the `node`.
+    ///
+    /// Return the path from `self` to the `node`
+    fn add_node(&mut self, parent_path: Path, child: Node) -> Path {
+        let child_idx = self.access_node(parent_path, |node| {
+            let child_idx = node.children.len();
+            node.children.push(child);
+            child_idx
+        });
+        let mut child_path = parent_path;
+        child_path.push(child_idx);
+        child_path
+    }
+    /// Check whether `self` is a leaf.
+    fn is_leaf(&self) -> bool {
+        self.children.len() == Int::ZERO
+    }
+    /// Release the protector, and perform a special access for the protector end semantics.
+    /// Recusively do state transition on all foreigns of the protected node.
+    /// `path` is the path from `self` to the proctected node.
+    /// `path` is None when the protected node is not a descendant of `self`.
+    /// `accesses` describes which access happens at which offset.
+    fn release_protector(
+        &mut self,
+        path: Option<Path>,
+        accesses: &List<Option<AccessKind>>,
+    ) -> Result {
+        let node_relation = if path.is_some() {
+            NodeRelation::Local
+        } else {
+            NodeRelation::Foreign
+        };
+        if path.is_some_and(|p| p.is_empty()) {
+            self.protected = Protected::No;
+            return ret(());
+        }
+        for (offset, access) in accesses.iter().enumerate() {
+            let Some(access) = access else { continue };
+            self.permissions
+                .mutate_at(Int::from(offset), |permission| {
+                    permission.transition(access, node_relation)
+                })?;
+        }
+        for child_id in Int::ZERO..self.children.len() {
+            let sub_path = match path.and_then(|p| p.split_first()) {
+                Some((head, tail)) if head == child_id => Some(tail),
+                _ => None,
+            };
+            self.children.mutate_at(child_id, |child| {
+                child.release_protector(sub_path, accesses)
+            })?;
+        }
+        ret(())
+    }
+    /// Recusively check whether there is a strongly protected node in `self` and all its descendants.
+    /// This is used to reject deallocation as long as there's a strong protector anywhere.
+    /// Note that not all strongly protected nodes prevent deallocation. Specifically, if all offsets in
+    /// the allocation fulfill the following property, the strong protector is not considered:
+    /// * the offset has `Cell` permission, i.e. is interior mutable, or
+    /// * the offset was not accessed yet, i.e. the protector is not active at this offset.
+    /// See `prevents_deallocation` which implements by actually looking at the permission.
+    ///
+    /// Return true if there is a strongly protected node preventing deallocation.
+    fn contains_strong_protector_preventing_deallocation(&self) -> bool {
+        (self.protected == Protected::Strong
+            && self.permissions.any(|st| st.prevents_deallocation()))
+            || self
+                .children
+                .any(|child| child.contains_strong_protector_preventing_deallocation())
     }
 }
-impl ReborrowSettings {
-    /// Compute the permissions to be assigned when retagging the given pointer.
-    /// `None` indicates that no retagging should happen.
-    fn new(
-        ptr: Pointer<TreeBorrowsProvenance>,
-        ptr_type: PtrType,
-        fn_entry: bool,
-        vtable_lookup: impl Fn(ThinPointer<TreeBorrowsProvenance>) -> crate::lang::VTable + 'static,
-    ) -> Option<Self> {
-        let Some(pointee_info) = ptr_type.safe_pointee() else {
-            return None;
-        };
-        if matches!(
-            ptr_type, PtrType::Ref { mutbl : Mutability::Mutable, pointee } if ! pointee
-            .unpin
-        ) {
-            return None;
-        }
-        let protected = if fn_entry {
-            match ptr_type {
-                PtrType::Box { .. } => Protected::Weak,
-                _ => Protected::Strong,
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+enum PermissionUnprot {
+    /// Represents a shared reference to interior mutable data.
+    Cell,
+    /// Represents a two-phase borrow during its reservation phase
+    Reserved,
+    /// Represents a interior mutable two-phase borrow during its reservation phase
+    ReservedIm,
+    /// Represents an activated (written to) mutable reference, i.e. it must actually be unique right now
+    Unique,
+    /// Represents a shared (immutable) reference
+    Frozen,
+    /// Represents a dead reference
+    Disabled,
+}
+impl PermissionUnprot {
+    fn local_read(self) -> Result<PermissionUnprot> {
+        ret(match self {
+            PermissionUnprot::Disabled => {
+                throw_ub!("Tree Borrows: local read of Disabled reference")
             }
-        } else {
-            Protected::No
-        };
-        let mk_perm = |unprot, prot| {
-            if protected.yes() {
-                Permission::Prot(prot)
-            } else {
-                Permission::Unprot(unprot)
-            }
-        };
-        let no_cell_perm = match ptr_type {
-            PtrType::Ref {
-                mutbl: Mutability::Immutable,
-                ..
-            } => mk_perm(
-                PermissionUnprot::Frozen,
-                PermissionProt::Frozen {
-                    had_local_read: false,
-                },
-            ),
-            _ => mk_perm(
-                PermissionUnprot::Reserved,
-                PermissionProt::Reserved {
-                    had_local_read: false,
-                    had_foreign_read: false,
-                },
-            ),
-        };
-        let cell_perm = match ptr_type {
-            PtrType::Ref {
-                mutbl: Mutability::Immutable,
-                ..
-            } => mk_perm(PermissionUnprot::Cell, PermissionProt::Cell),
-            _ => mk_perm(
-                PermissionUnprot::ReservedIm,
-                PermissionProt::Reserved {
-                    had_local_read: false,
-                    had_foreign_read: false,
-                },
-            ),
-        };
-        let inside = pointee_info
-            .unsafe_cells
-            .freeze_mask(pointee_info.layout, ptr.metadata, vtable_lookup)
-            .map(|freeze| if freeze { no_cell_perm } else { cell_perm });
-        let outside = if pointee_info.freeze {
-            no_cell_perm
-        } else {
-            cell_perm
-        };
-        Some(ReborrowSettings {
-            protected,
-            inside,
-            outside,
+            perm => perm,
         })
     }
+    fn local_write(self) -> Result<PermissionUnprot> {
+        match self {
+            PermissionUnprot::Frozen => {
+                throw_ub!("Tree Borrows: local write of Frozen reference")
+            }
+            PermissionUnprot::Disabled => {
+                throw_ub!("Tree Borrows: local write of Disabled reference")
+            }
+            PermissionUnprot::Cell => ret(PermissionUnprot::Cell),
+            _ => ret(PermissionUnprot::Unique),
+        }
+    }
+    fn foreign_read(self) -> Result<PermissionUnprot> {
+        match self {
+            PermissionUnprot::Reserved => ret(PermissionUnprot::Reserved),
+            PermissionUnprot::Unique => ret(PermissionUnprot::Frozen),
+            perm => ret(perm),
+        }
+    }
+    fn foreign_write(self) -> Result<PermissionUnprot> {
+        match self {
+            PermissionUnprot::Cell => ret(PermissionUnprot::Cell),
+            PermissionUnprot::ReservedIm => ret(PermissionUnprot::ReservedIm),
+            _ => ret(PermissionUnprot::Disabled),
+        }
+    }
+    fn transition(
+        self,
+        access_kind: AccessKind,
+        node_relation: NodeRelation,
+    ) -> Result<PermissionUnprot> {
+        match (node_relation, access_kind) {
+            (NodeRelation::Local, AccessKind::Read) => self.local_read(),
+            (NodeRelation::Local, AccessKind::Write) => self.local_write(),
+            (NodeRelation::Foreign, AccessKind::Read) => self.foreign_read(),
+            (NodeRelation::Foreign, AccessKind::Write) => self.foreign_write(),
+        }
+    }
+    /// Strongly protected nodes can block deallocation, based on their permission.
+    /// This method is never called because we first check whether there is a strong protector,
+    /// but it is here anyways for consistency.
+    fn prevents_deallocation(&self) -> bool {
+        false
+    }
+    fn init_access(self) -> Option<AccessKind> {
+        match self {
+            PermissionUnprot::Cell => None,
+            _ => Some(AccessKind::Read),
+        }
+    }
 }
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 enum PermissionProt {
     /// Represents a shared reference to interior mutable data.
     Cell,
@@ -1065,82 +1481,254 @@ impl PermissionProt {
         }
     }
 }
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum PermissionUnprot {
-    /// Represents a shared reference to interior mutable data.
-    Cell,
-    /// Represents a two-phase borrow during its reservation phase
-    Reserved,
-    /// Represents a interior mutable two-phase borrow during its reservation phase
-    ReservedIm,
-    /// Represents an activated (written to) mutable reference, i.e. it must actually be unique right now
-    Unique,
-    /// Represents a shared (immutable) reference
-    Frozen,
-    /// Represents a dead reference
-    Disabled,
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+enum Permission {
+    Unprot(PermissionUnprot),
+    Prot(PermissionProt),
 }
-impl PermissionUnprot {
-    fn local_read(self) -> Result<PermissionUnprot> {
-        ret(match self {
-            PermissionUnprot::Disabled => {
-                throw_ub!("Tree Borrows: local read of Disabled reference")
-            }
-            perm => perm,
-        })
-    }
-    fn local_write(self) -> Result<PermissionUnprot> {
+impl Permission {
+    fn transition(&mut self, access_kind: AccessKind, node_relation: NodeRelation) -> Result {
         match self {
-            PermissionUnprot::Frozen => {
-                throw_ub!("Tree Borrows: local write of Frozen reference")
-            }
-            PermissionUnprot::Disabled => {
-                throw_ub!("Tree Borrows: local write of Disabled reference")
-            }
-            PermissionUnprot::Cell => ret(PermissionUnprot::Cell),
-            _ => ret(PermissionUnprot::Unique),
-        }
-    }
-    fn foreign_read(self) -> Result<PermissionUnprot> {
-        match self {
-            PermissionUnprot::Reserved => ret(PermissionUnprot::Reserved),
-            PermissionUnprot::Unique => ret(PermissionUnprot::Frozen),
-            perm => ret(perm),
-        }
-    }
-    fn foreign_write(self) -> Result<PermissionUnprot> {
-        match self {
-            PermissionUnprot::Cell => ret(PermissionUnprot::Cell),
-            PermissionUnprot::ReservedIm => ret(PermissionUnprot::ReservedIm),
-            _ => ret(PermissionUnprot::Disabled),
-        }
-    }
-    fn transition(
-        self,
-        access_kind: AccessKind,
-        node_relation: NodeRelation,
-    ) -> Result<PermissionUnprot> {
-        match (node_relation, access_kind) {
-            (NodeRelation::Local, AccessKind::Read) => self.local_read(),
-            (NodeRelation::Local, AccessKind::Write) => self.local_write(),
-            (NodeRelation::Foreign, AccessKind::Read) => self.foreign_read(),
-            (NodeRelation::Foreign, AccessKind::Write) => self.foreign_write(),
-        }
-    }
-    /// Strongly protected nodes can block deallocation, based on their permission.
-    /// This method is never called because we first check whether there is a strong protector,
-    /// but it is here anyways for consistency.
-    fn prevents_deallocation(&self) -> bool {
-        false
+            Permission::Unprot(p) => *p = p.transition(access_kind, node_relation)?,
+            Permission::Prot(p) => *p = p.transition(access_kind, node_relation)?,
+        };
+        Ok(())
     }
     fn init_access(self) -> Option<AccessKind> {
         match self {
-            PermissionUnprot::Cell => None,
-            _ => Some(AccessKind::Read),
+            Permission::Unprot(p) => p.init_access(),
+            Permission::Prot(p) => p.init_access(),
+        }
+    }
+    /// When a protector is released, we transition to the unprotected state machine.
+    /// Additionally, we might emit a _protector end access_, depending on our current state.
+    /// The second state indicates that access, or is `None` when no access should happen.
+    ///
+    /// This method may only be called when a protector is present.
+    fn unprotect(self) -> (Permission, Option<AccessKind>) {
+        match self {
+            Permission::Unprot(_) => unreachable!(),
+            Permission::Prot(p) => {
+                let (new_perm, access) = p.unprotect();
+                (Permission::Unprot(new_perm), access)
+            }
+        }
+    }
+    /// Strongly protected nodes can block deallocation, based on their permission.
+    /// Specifically, they block allocation iff they would cause UB on a foreign write,
+    /// that is, if they have been locally accessed ("used"), with an exception for `Cell`.
+    /// The check for whether the protector is actually strong happens elsewhere, before
+    /// this method is called.
+    fn prevents_deallocation(&self) -> bool {
+        match self {
+            Permission::Unprot(p) => p.prevents_deallocation(),
+            Permission::Prot(p) => p.prevents_deallocation(),
+        }
+    }
+    /// This function checking this node's internal invariant.
+    /// It is only used in debug asserts.
+    fn matches_protector(&self, protected: Protected) -> bool {
+        if protected.yes() {
+            matches!(self, Permission::Prot(_))
+        } else {
+            matches!(self, Permission::Unprot(_))
         }
     }
 }
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+struct ReborrowSettings {
+    /// The permissions to set "inside" the data the reference points to (indexed
+    /// related to the reference).
+    inside: List<Permission>,
+    /// The permission to set for the "outside" part.
+    outside: Permission,
+    /// Whether and which protector to set.
+    protected: Protected,
+}
+/// Converts a list of cell locations into a "freeze mask",
+/// where each `bool` indicates whether the byte is frozen (i.e., *outside* all cells).
+fn cells_to_freeze_mask(cells: List<(Offset, Size)>, size: Size) -> List<bool> {
+    let padded_front = std::iter::once((Offset::ZERO, Size::ZERO)).chain(cells.iter());
+    let padded_back = cells.iter().chain(std::iter::once((size, Size::ZERO)));
+    let mut mask = List::new();
+    for (current, next) in padded_front.zip(padded_back) {
+        mask.append(list![false; current.1.bytes()]);
+        let no_cell_size = next.0.bytes() - (current.0 + current.1).bytes();
+        mask.append(list![true; no_cell_size]);
+    }
+    assert!(mask.len() == size.bytes());
+    mask
+}
+impl UnsafeCellStrategy {
+    /// Converts a list of cell locations into a cell "mask",
+    /// where each `bool` indicates whether the byte is inside a cell.
+    fn freeze_mask(
+        self,
+        layout: LayoutStrategy,
+        ptr_metadata: Option<PointerMeta<TreeBorrowsProvenance>>,
+        vtable_lookup: impl Fn(ThinPointer<TreeBorrowsProvenance>) -> crate::lang::VTable + 'static,
+    ) -> List<bool> {
+        match (self, layout, ptr_metadata) {
+            (UnsafeCellStrategy::Sized { cells }, LayoutStrategy::Sized(size, _align), ..) => {
+                cells_to_freeze_mask(cells, size)
+            }
+            (
+                UnsafeCellStrategy::Slice { element_cells },
+                LayoutStrategy::Slice(size, _align),
+                Some(PointerMeta::ElementCount(count)),
+            ) => {
+                let element_mask = cells_to_freeze_mask(element_cells, size);
+                let mut mask = List::new();
+                for _ in Int::ZERO..count {
+                    mask.append(element_mask);
+                }
+                mask
+            }
+            (
+                UnsafeCellStrategy::TraitObject,
+                LayoutStrategy::TraitObject(_trait_name),
+                Some(PointerMeta::VTablePointer(ptr)),
+            ) => {
+                let vtable = vtable_lookup(ptr);
+                cells_to_freeze_mask(vtable.cells, vtable.size)
+            }
+            (
+                UnsafeCellStrategy::Tuple {
+                    head_cells,
+                    tail_cells,
+                },
+                LayoutStrategy::Tuple { head, tail },
+                _,
+            ) => {
+                let tail_cells = tail_cells.extract();
+                let tail = tail.extract();
+                {
+                    let mut mask = cells_to_freeze_mask(head_cells, head.end);
+                    mask.append(tail_cells.freeze_mask(tail, ptr_metadata, vtable_lookup));
+                    mask
+                }
+            }
+            _ => panic!("Invalid LayoutStrategy and PointerMeta combination"),
+        }
+    }
+}
+impl ReborrowSettings {
+    /// Compute the permissions to be assigned when retagging the given pointer.
+    /// `None` indicates that no retagging should happen.
+    fn new(
+        ptr: Pointer<TreeBorrowsProvenance>,
+        ptr_type: PtrType,
+        fn_entry: bool,
+        vtable_lookup: impl Fn(ThinPointer<TreeBorrowsProvenance>) -> crate::lang::VTable + 'static,
+    ) -> Option<Self> {
+        let Some(pointee_info) = ptr_type.safe_pointee() else {
+            return None;
+        };
+        if matches!(
+            ptr_type, PtrType::Ref { mutbl : Mutability::Mutable, pointee } if ! pointee
+            .unpin
+        ) {
+            return None;
+        }
+        let protected = if fn_entry {
+            match ptr_type {
+                PtrType::Box { .. } => Protected::Weak,
+                _ => Protected::Strong,
+            }
+        } else {
+            Protected::No
+        };
+        let mk_perm = |unprot, prot| {
+            if protected.yes() {
+                Permission::Prot(prot)
+            } else {
+                Permission::Unprot(unprot)
+            }
+        };
+        let no_cell_perm = match ptr_type {
+            PtrType::Ref {
+                mutbl: Mutability::Immutable,
+                ..
+            } => mk_perm(
+                PermissionUnprot::Frozen,
+                PermissionProt::Frozen {
+                    had_local_read: false,
+                },
+            ),
+            _ => mk_perm(
+                PermissionUnprot::Reserved,
+                PermissionProt::Reserved {
+                    had_local_read: false,
+                    had_foreign_read: false,
+                },
+            ),
+        };
+        let cell_perm = match ptr_type {
+            PtrType::Ref {
+                mutbl: Mutability::Immutable,
+                ..
+            } => mk_perm(PermissionUnprot::Cell, PermissionProt::Cell),
+            _ => mk_perm(
+                PermissionUnprot::ReservedIm,
+                PermissionProt::Reserved {
+                    had_local_read: false,
+                    had_foreign_read: false,
+                },
+            ),
+        };
+        let inside = pointee_info
+            .unsafe_cells
+            .freeze_mask(pointee_info.layout, ptr.metadata, vtable_lookup)
+            .map(|freeze| if freeze { no_cell_perm } else { cell_perm });
+        let outside = if pointee_info.freeze {
+            no_cell_perm
+        } else {
+            cell_perm
+        };
+        Some(ReborrowSettings {
+            protected,
+            inside,
+            outside,
+        })
+    }
+}
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 struct TreeBorrowsAllocationExtra {
     root: Node,
 }
@@ -1149,11 +1737,35 @@ type ChildId = Int;
 /// A path from the root of a tree to some node inside the tree.
 type Path = List<ChildId>;
 type TreeBorrowsProvenance = (AllocId, Path);
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct TreeBorrowsMemory<T: Target + libspecr::hidden::Obj> {
     mem: BasicMemory<T, Path, TreeBorrowsAllocationExtra>,
 }
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct TreeBorrowsFrameExtra {
     /// Our per-frame state is the list of nodes that are protected by this call.
     protectors: List<TreeBorrowsProvenance>,
@@ -1241,7 +1853,9 @@ impl<T: Target + libspecr::hidden::Obj> TreeBorrowsMemory<T> {
         })
     }
 }
-impl<T: Target + libspecr::hidden::Obj> Memory for TreeBorrowsMemory<T> {
+impl<T: Target + libspecr::hidden::Obj + for<'de> serde::Deserialize<'de> + serde::Serialize> Memory
+    for TreeBorrowsMemory<T>
+{
     type Provenance = TreeBorrowsProvenance;
     type FrameExtra = TreeBorrowsFrameExtra;
     type T = T;
@@ -1342,231 +1956,5 @@ impl<T: Target + libspecr::hidden::Obj> Memory for TreeBorrowsMemory<T> {
     }
     fn leak_check(&self) -> Result {
         self.mem.leak_check()
-    }
-}
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Protected {
-    Strong,
-    Weak,
-    No,
-}
-impl Protected {
-    /// Check whether the node is either strongly or weakly protected.
-    fn yes(self) -> bool {
-        self != Protected::No
-    }
-}
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct Node {
-    children: List<Node>,
-    /// State for each location.
-    permissions: List<Permission>,
-    /// Indicates whether the node is protected by a function call,
-    /// i.e., whether the original reference passed as an argument of a function call.
-    /// This will be some kind of protection (weak or strong) if and only if this node is in
-    /// some frame's `extra.protectors` list.
-    /// There is an invariant between this field and the `permissions`:
-    /// If `protected.yes()`, then all states in `permissions` must be `Permission::Prot()`.
-    /// If `!protected.yes()`, they must all be `Permission::Unprot()`.
-    protected: Protected,
-}
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum NodeRelation {
-    Local,
-    Foreign,
-}
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum AccessKind {
-    Read,
-    Write,
-}
-impl Node {
-    /// Perform state transition on all locations of `self`.
-    /// The `node_relation` indicates whether the accessed node is a local or foreign
-    /// *from the perspective of `self`*.
-    fn transition(
-        &mut self,
-        node_relation: NodeRelation,
-        access_kind: AccessKind,
-        offset_in_alloc: Offset,
-        size: Size,
-    ) -> Result {
-        let offset_start = offset_in_alloc.bytes();
-        for offset in offset_start..offset_start + size.bytes() {
-            self.permissions.mutate_at(offset, |permission| {
-                permission.transition(access_kind, node_relation)
-            })?;
-        }
-        ret(())
-    }
-    /// Recusively do state transition on `self` node and all its descendants.
-    /// `path` is the path from `self` to the accessed node.
-    /// `path` is None when the accessed node is not a descendant of `self`.
-    ///
-    /// This method will throw UBs, representing the undefined behavior captured by Tree Borrows.
-    fn access(
-        &mut self,
-        path: Option<Path>,
-        access_kind: AccessKind,
-        offset_in_alloc: Offset,
-        size: Size,
-    ) -> Result {
-        let node_relation = if path.is_some() {
-            NodeRelation::Local
-        } else {
-            NodeRelation::Foreign
-        };
-        self.transition(node_relation, access_kind, offset_in_alloc, size)?;
-        for child_id in Int::ZERO..self.children.len() {
-            let sub_path = match path.and_then(|p| p.split_first()) {
-                Some((head, tail)) if head == child_id => Some(tail),
-                _ => None,
-            };
-            self.children.mutate_at(child_id, |child| {
-                child.access(sub_path, access_kind, offset_in_alloc, size)
-            })?;
-        }
-        ret(())
-    }
-    /// Apply `f` to a child node of `self`
-    /// `path` is the path from `self` to the target child node.
-    fn access_node<O: libspecr::hidden::Obj>(
-        &mut self,
-        path: Path,
-        f: impl FnOnce(&mut Self) -> O,
-    ) -> O {
-        let Some((sub_root_id, sub_path)) = path.split_first() else {
-            return f(self);
-        };
-        if self.is_leaf() {
-            panic!("Node::access_node: invalid node path");
-        }
-        self.children
-            .mutate_at(sub_root_id, |child| child.access_node(sub_path, f))
-    }
-    /// Add a new child node to the tree whose root is self
-    /// `path` is the path from `self` to the parent of the `node`.
-    ///
-    /// Return the path from `self` to the `node`
-    fn add_node(&mut self, parent_path: Path, child: Node) -> Path {
-        let child_idx = self.access_node(parent_path, |node| {
-            let child_idx = node.children.len();
-            node.children.push(child);
-            child_idx
-        });
-        let mut child_path = parent_path;
-        child_path.push(child_idx);
-        child_path
-    }
-    /// Check whether `self` is a leaf.
-    fn is_leaf(&self) -> bool {
-        self.children.len() == Int::ZERO
-    }
-    /// Release the protector, and perform a special access for the protector end semantics.
-    /// Recusively do state transition on all foreigns of the protected node.
-    /// `path` is the path from `self` to the proctected node.
-    /// `path` is None when the protected node is not a descendant of `self`.
-    /// `accesses` describes which access happens at which offset.
-    fn release_protector(
-        &mut self,
-        path: Option<Path>,
-        accesses: &List<Option<AccessKind>>,
-    ) -> Result {
-        let node_relation = if path.is_some() {
-            NodeRelation::Local
-        } else {
-            NodeRelation::Foreign
-        };
-        if path.is_some_and(|p| p.is_empty()) {
-            self.protected = Protected::No;
-            return ret(());
-        }
-        for (offset, access) in accesses.iter().enumerate() {
-            let Some(access) = access else { continue };
-            self.permissions
-                .mutate_at(Int::from(offset), |permission| {
-                    permission.transition(access, node_relation)
-                })?;
-        }
-        for child_id in Int::ZERO..self.children.len() {
-            let sub_path = match path.and_then(|p| p.split_first()) {
-                Some((head, tail)) if head == child_id => Some(tail),
-                _ => None,
-            };
-            self.children.mutate_at(child_id, |child| {
-                child.release_protector(sub_path, accesses)
-            })?;
-        }
-        ret(())
-    }
-    /// Recusively check whether there is a strongly protected node in `self` and all its descendants.
-    /// This is used to reject deallocation as long as there's a strong protector anywhere.
-    /// Note that not all strongly protected nodes prevent deallocation. Specifically, if all offsets in
-    /// the allocation fulfill the following property, the strong protector is not considered:
-    /// * the offset has `Cell` permission, i.e. is interior mutable, or
-    /// * the offset was not accessed yet, i.e. the protector is not active at this offset.
-    /// See `prevents_deallocation` which implements by actually looking at the permission.
-    ///
-    /// Return true if there is a strongly protected node preventing deallocation.
-    fn contains_strong_protector_preventing_deallocation(&self) -> bool {
-        (self.protected == Protected::Strong
-            && self.permissions.any(|st| st.prevents_deallocation()))
-            || self
-                .children
-                .any(|child| child.contains_strong_protector_preventing_deallocation())
-    }
-}
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Permission {
-    Unprot(PermissionUnprot),
-    Prot(PermissionProt),
-}
-impl Permission {
-    fn transition(&mut self, access_kind: AccessKind, node_relation: NodeRelation) -> Result {
-        match self {
-            Permission::Unprot(p) => *p = p.transition(access_kind, node_relation)?,
-            Permission::Prot(p) => *p = p.transition(access_kind, node_relation)?,
-        };
-        Ok(())
-    }
-    fn init_access(self) -> Option<AccessKind> {
-        match self {
-            Permission::Unprot(p) => p.init_access(),
-            Permission::Prot(p) => p.init_access(),
-        }
-    }
-    /// When a protector is released, we transition to the unprotected state machine.
-    /// Additionally, we might emit a _protector end access_, depending on our current state.
-    /// The second state indicates that access, or is `None` when no access should happen.
-    ///
-    /// This method may only be called when a protector is present.
-    fn unprotect(self) -> (Permission, Option<AccessKind>) {
-        match self {
-            Permission::Unprot(_) => unreachable!(),
-            Permission::Prot(p) => {
-                let (new_perm, access) = p.unprotect();
-                (Permission::Unprot(new_perm), access)
-            }
-        }
-    }
-    /// Strongly protected nodes can block deallocation, based on their permission.
-    /// Specifically, they block allocation iff they would cause UB on a foreign write,
-    /// that is, if they have been locally accessed ("used"), with an exception for `Cell`.
-    /// The check for whether the protector is actually strong happens elsewhere, before
-    /// this method is called.
-    fn prevents_deallocation(&self) -> bool {
-        match self {
-            Permission::Unprot(p) => p.prevents_deallocation(),
-            Permission::Prot(p) => p.prevents_deallocation(),
-        }
-    }
-    /// This function checking this node's internal invariant.
-    /// It is only used in debug asserts.
-    fn matches_protector(&self, protected: Protected) -> bool {
-        if protected.yes() {
-            matches!(self, Permission::Prot(_))
-        } else {
-            matches!(self, Permission::Unprot(_))
-        }
     }
 }

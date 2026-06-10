@@ -27,6 +27,7 @@ fn empty_body_unit_return() {
         fn foo() -> () {
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -43,6 +44,7 @@ fn if_else_both_branches_return() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -73,6 +75,7 @@ fn infinite_loop_no_return_needed() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -104,6 +107,7 @@ fn loop_with_break_then_return() {
             return 0 _ u32;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -116,5 +120,6 @@ fn simple_return() {
             return 42 _ u32;
         }
     }])
+    .skip_execute()
     .ok()
 }

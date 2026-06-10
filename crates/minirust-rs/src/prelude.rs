@@ -13,7 +13,19 @@ pub trait Target: libspecr::hidden::Obj {
     fn valid_size(size: Size) -> bool;
 }
 #[allow(non_camel_case_types)]
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub struct x86_64;
 impl Target for x86_64 {
     const PTR_SIZE: Size = Size::from_bits_const(64).unwrap();
@@ -36,7 +48,19 @@ pub type Offset = Size;
 /// All operations are fallible, so they return `Result`.  If they fail, that
 /// means the program caused UB or put the machine to a halt.
 pub type Result<T = ()> = std::result::Result<T, TerminationInfo>;
-#[derive(GcCompat, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    GcCompat,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum TerminationInfo {
     /// The execution encountered undefined behaviour.
     Ub(String),

@@ -86,6 +86,7 @@ fn reinit_after_move() {
             return z;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -142,6 +143,7 @@ fn conditional_init_both_branches() {
             return x;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -202,7 +204,7 @@ fn partial_move_use_sibling() {
                     let b: Datum = x.second;
                     return b;
                 }
-            }]).ok()
+            }]).skip_execute().ok()
 }
 
 /// After a partial move, using the whole struct should be an error.
@@ -1858,6 +1860,7 @@ fn min_problem_case_3() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -1930,6 +1933,7 @@ fn drop_after_borrow_dead() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2044,6 +2048,7 @@ fn too_min_problem_case_3() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2097,6 +2102,7 @@ fn declared_universal_region_relationship() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2113,6 +2119,7 @@ fn declared_transitive_universal_region_relationship() {
             return v1;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2150,6 +2157,7 @@ fn problem_case_4() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2282,6 +2290,7 @@ fn cfg_union_approx_cause_false_error() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2460,6 +2469,7 @@ fn continue_drops_local_borrow_dead() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2487,6 +2497,7 @@ fn integer_in_outer_scope() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2591,6 +2602,7 @@ fn if_false_borrowck() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2663,6 +2675,7 @@ fn call_generic_fn_with_turbofish() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2684,6 +2697,7 @@ fn call_pass_ref() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2711,6 +2725,7 @@ fn call_generic_fn_with_turbofish_upcast() {
             return r;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2752,6 +2767,7 @@ fn call_generic_fn_with_turbofish_lifetime_type() {
             return r;
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2772,6 +2788,7 @@ fn call_while_borrow_live() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2825,6 +2842,7 @@ fn struct_disjoint_field_borrows() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
 
@@ -2934,6 +2952,7 @@ fn loan_before_return_does_not_affect_merged_paths() {
             }
         }
     }])
+    .skip_execute()
     .ok();
 }
 
@@ -2958,6 +2977,7 @@ fn outlive_before_return_does_not_affect_merged_paths() {
             }
         }
     }])
+    .skip_execute()
     .ok();
 }
 
@@ -2974,6 +2994,7 @@ fn loan_before_return_does_not_affect_dead_code_after() {
             }
         }
     }])
+    .skip_execute()
     .ok();
 }
 
@@ -2993,6 +3014,7 @@ fn if_else_paths_independent() {
             }
         }
     }])
+    .skip_execute()
     .ok();
 }
 
@@ -3060,5 +3082,6 @@ fn loan_cannot_outlive_lifetime_pass() {
             }
         }
     }])
+    .skip_execute()
     .ok()
 }
