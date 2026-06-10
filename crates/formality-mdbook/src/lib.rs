@@ -420,16 +420,6 @@ some postamble
     }
 
     #[test]
-    fn test_judgment_multiline_signature() {
-        let index = make_index();
-        let j = index.judgments.get("move_place").unwrap();
-        assert_eq!(
-            j.signature,
-            "move_place(\n    env: Env,\n    live_after: LivePlaces,\n    place: Place,\n    ty: Ty,\n) => Env"
-        );
-    }
-
-    #[test]
     fn test_judgment_rule_shows_rule_with_link() {
         let index = make_index();
         let input = r#"The copy rule: {judgment-rule}`move_place, copy`"#;

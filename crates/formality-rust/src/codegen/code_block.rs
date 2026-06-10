@@ -18,7 +18,7 @@ pub enum CodeBlock {
     ///
     /// Suppose you have `let x = 22;` this would create a set of statements like
     ///
-    /// ```
+    /// ```text
     /// stmts: [
     ///   let tmp1;
     ///   tmp1 = 22;
@@ -29,7 +29,7 @@ pub enum CodeBlock {
     ///
     /// and then you have `let y = 33;`
     ///
-    /// ```
+    /// ```text
     /// stmts: [
     ///   let tmp2;
     ///   tmp2 = 33;
@@ -40,7 +40,7 @@ pub enum CodeBlock {
     ///
     /// and then you append those two so you get
     ///
-    /// ```
+    /// ```text
     /// stmts = [... /* as above, concatenated */]
     /// ```
     Block { stmts: Vec<lang::Statement> },
