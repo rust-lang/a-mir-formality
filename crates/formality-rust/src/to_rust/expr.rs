@@ -260,7 +260,7 @@ pub fn foo() -> () {
                 pub fn foo() -> u32 {
                     {
                         let mut v1: u32 = 0_u32;
-                        let mut v2: &mut u32 = &mut v1;
+                        let mut v2: &'_ mut u32 = &mut v1;
                         return *v2;
                     }
                 }"#]]

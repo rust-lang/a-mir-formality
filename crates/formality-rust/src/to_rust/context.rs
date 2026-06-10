@@ -70,6 +70,7 @@ impl Context {
     /// Opens the binder `b` and instatiates ith with a fresh set of
     /// existential variables and returns the term.
     pub fn open_exists<T: Term>(&mut self, b: Binder<T>) -> Wrapped<'_, T> {
+        // TODO: Replace Existential Lifetimes with an Erased after codegen (#369) is merged
         let subst = self.existential_substitution(&b);
         let term = b.instantiate_with(&subst).expect("suitable substitution");
         // TODO: How can I prevent the collect()?

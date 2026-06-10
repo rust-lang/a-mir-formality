@@ -152,8 +152,9 @@ pub fn lower_ref(
         })
         .ok_or_else(|| anyhow::anyhow!("reference type is missing pointee type argument"))?;
 
+    // TODO: Match on Lt::Erased after codegen (#369) is merged
     let lifetime = match &lifetime {
-        Lt::Variable(Variable::ExistentialVar(_)) => None,
+        Lt::Variable(Variable::ExistentialVar(_)) => Some("'_".to_string()),
         _ => Some(lower_lt(ctx, &lifetime)?),
     };
     let pointee = lower_ty(ctx, pointee)?;
@@ -375,7 +376,7 @@ mod test {
             ],
         });
         let t = lower_ty(&mut ctx, &ty).unwrap().to_string();
-        assert_eq!("&mut u8", t);
+        assert_eq!("&'_ mut u8", t);
     }
 
     #[test]
