@@ -10,6 +10,4 @@ pub struct FeatureGate {
 pub enum FeatureGateName {
     #[grammar(polonius_alpha)]
     PoloniusAlpha,
-    #[grammar(generic_atomic)]
-    GenericAtomic,
 }
