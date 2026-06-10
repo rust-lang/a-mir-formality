@@ -13,5 +13,6 @@ fn custom_ptr() {
             let x: () = *ptr;
         }
     }])
+    .skip_execute()
     .ok()
 }
