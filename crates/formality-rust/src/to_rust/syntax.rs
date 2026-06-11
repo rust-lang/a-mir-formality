@@ -260,7 +260,9 @@ pub enum Type {
     Alias {
         ty: Box<Type>,
         trait_name: String,
+        trait_args: Vec<GenericArg>,
         assoc_name: String,
+        assoc_args: Vec<GenericArg>,
     },
     Never,
 }
@@ -319,9 +321,14 @@ impl Display for Type {
             Type::Alias {
                 ty,
                 trait_name,
+                trait_args,
                 assoc_name,
+                assoc_args,
             } => {
-                write!(f, "<{} as {}>::{}", ty, trait_name, assoc_name)
+                write!(f, "<{} as {}", ty, trait_name)?;
+                fmt_generic_args(f, trait_args, false)?;
+                write!(f, ">::{}", assoc_name)?;
+                fmt_generic_args(f, assoc_args, false)
             }
             Type::Never => f.write_char('!'),
         }
