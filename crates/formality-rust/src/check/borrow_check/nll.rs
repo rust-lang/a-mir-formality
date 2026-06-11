@@ -388,6 +388,8 @@ judgment_fn! {
             (let FnBoundData { input_args, output_ty, where_clauses, body: _ } =
                 binder.instantiate_with(parameters)?)
 
+            (let output_ty : crate::grammar::Ty = output_ty.into())
+
             // Check argument count matches
             (let input_tys: Vec<Ty> = input_args.iter().map(|a| a.ty.clone()).collect())
             (if input_tys.len() == args.len())

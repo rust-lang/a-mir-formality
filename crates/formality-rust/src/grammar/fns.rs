@@ -10,10 +10,10 @@ pub struct Fn {
     pub binder: Binder<FnBoundData>,
 }
 
-#[term($(input_args) -> $output_ty $:where $,where_clauses $body)]
+#[term($(input_args) $output_ty $:where $,where_clauses $body)]
 pub struct FnBoundData {
     pub input_args: Vec<InputArg>,
-    pub output_ty: Ty,
+    pub output_ty: MaybeReturnType,
     pub where_clauses: Vec<WhereClause>,
     pub body: MaybeFnBody,
 }
@@ -40,4 +40,31 @@ pub enum FnBody {
 
     #[cast]
     Expr(Block),
+}
+
+#[term]
+pub enum MaybeReturnType {
+    #[grammar()]
+    Empty,
+
+    #[grammar(-> $v0)]
+    Specified(Ty)
+}
+
+impl From<MaybeReturnType> for Ty {
+    fn from(value: MaybeReturnType) -> Self {
+        match value {
+            MaybeReturnType::Specified(ty) => ty,
+            MaybeReturnType::Empty => Ty::unit(),
+        }
+    }
+}
+
+impl From<&MaybeReturnType> for Ty {
+    fn from(value: &MaybeReturnType) -> Self {
+        match value {
+            MaybeReturnType::Specified(ty) => ty.clone(),
+            MaybeReturnType::Empty => Ty::unit(),
+        }
+    }
 }

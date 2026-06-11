@@ -195,6 +195,9 @@ judgment_fn! {
             (let FnBoundData { input_args: ii_input_args, output_ty: ii_output_ty, where_clauses: ii_where_clauses, body: _ } = ii_bound)
             (let FnBoundData { input_args: ti_input_args, output_ty: ti_output_ty, where_clauses: ti_where_clauses, body: _ } = ti_bound)
 
+            (let ii_output_ty : crate::grammar::Ty = ii_output_ty.into())
+            (let ti_output_ty : crate::grammar::Ty = ti_output_ty.into())
+
             // Prove impl where-clauses follow from trait where-clauses
             (super::prove_goal(program, &env, (&impl_assumptions, &ti_where_clauses), &ii_where_clauses) => ())
 

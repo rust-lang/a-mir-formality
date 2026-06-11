@@ -19,7 +19,7 @@ pub fn lower_fn(
         .iter()
         .map(|arg| lower_fn_param(ctx, arg))
         .collect::<Result<Vec<_>, _>>()?;
-    let return_ty = tys::lower_ty(ctx, &term.output_ty)?;
+    let return_ty = tys::lower_ty(ctx, &term.output_ty.into())?;
     let body = lower_fn_body(ctx, &term.body)?;
 
     Ok(syntax::FunctionItem {

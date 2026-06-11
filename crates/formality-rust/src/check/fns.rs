@@ -47,6 +47,7 @@ judgment_fn! {
         (
             (let (env, bound_data) = env.instantiate_universally(&f.binder))
             (let FnBoundData { input_args, output_ty, where_clauses, body } = bound_data)
+            (let output_ty : crate::grammar::Ty = output_ty.into())
             (let assumptions: Wcs = (assumptions, where_clauses).to_wcs())
             (prove_where_clauses_well_formed(program, env, assumptions, where_clauses) => ())
             (for_all(input_arg in input_args)
