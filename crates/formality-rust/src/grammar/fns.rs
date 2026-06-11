@@ -48,7 +48,7 @@ pub enum MaybeReturnType {
     Empty,
 
     #[grammar(-> $v0)]
-    Specified(Ty)
+    Specified(Ty),
 }
 
 impl From<MaybeReturnType> for Ty {
