@@ -94,12 +94,13 @@ fn basic_where_clauses_fail() {
 #[test]
 fn basic_where_clauses_fail_without_lifetime_binders_feature_flag() {
     FormalityTest::new(crates![crate core {
-                trait A<T> where T: B { }
+        trait A<T> where T: B { }
 
-                trait B { }
+        trait B { }
 
-                trait WellFormed where for<T> u32: A<T> { }
-            }]).err(expect_test::expect![[r#"
+        trait WellFormed where for<T> u32: A<T> { }
+    }])
+    .err(expect_test::expect![[r#"
                 the rule "check crate" at (mod.rs) failed because
                   non-lifetime binders require #![feature(non_lifetime_binders)"#]])
 }

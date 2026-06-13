@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::grammar::{AliasTy, AssociatedItemId, Binder, Const, Fallible, Lt, Parameter, ParameterKind, Predicate, TraitId, TraitRef, Ty, Wc, Wcs};
+use crate::grammar::{
+    AliasTy, AssociatedItemId, Binder, Const, Fallible, Lt, Parameter, ParameterKind, Predicate,
+    TraitId, TraitRef, Ty, Wc, Wcs,
+};
 use crate::grammar::{Fn, Relation};
 use crate::prove::prove::Safety;
 use crate::rust::Term;
@@ -191,10 +194,13 @@ impl WhereClause {
     pub fn has_non_lifetime_binder(&self) -> bool {
         match self {
             WhereClause::ForAll(binder) => {
-                binder.kinds().iter().any(|kind| !matches!(kind, ParameterKind::Lt))
+                binder
+                    .kinds()
+                    .iter()
+                    .any(|kind| !matches!(kind, ParameterKind::Lt))
                     || binder.peek().has_non_lifetime_binder()
             }
-            _ => false
+            _ => false,
         }
     }
 }

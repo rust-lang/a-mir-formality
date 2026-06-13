@@ -5,7 +5,9 @@ use std::fmt::Debug;
 use crate::prove::prove::{is_definitely_not_proveable, Constraints, Env, Program};
 use crate::rust::Visit;
 use crate::{
-    grammar::{Crate, CrateId, CrateItem, Crates, Fallible, FeatureGateName, Test, TestBoundData, Wcs},
+    grammar::{
+        Crate, CrateId, CrateItem, Crates, Fallible, FeatureGateName, Test, TestBoundData, Wcs,
+    },
     prove::ToWcs,
 };
 use anyhow::{anyhow, bail};
@@ -135,10 +137,16 @@ fn check_for_non_lifetime_binders(c: &Crate) -> Fallible<ProofTree> {
     for item in c.items.iter() {
         match item {
             CrateItem::Trait(t) => {
-                let has_non_lifetime_binder = t.binder.explicit_binder.peek().where_clauses.iter().any(|wc| wc.has_non_lifetime_binder());
+                let has_non_lifetime_binder = t
+                    .binder
+                    .explicit_binder
+                    .peek()
+                    .where_clauses
+                    .iter()
+                    .any(|wc| wc.has_non_lifetime_binder());
 
                 if !is_non_lifetime_binder_enabled && has_non_lifetime_binder {
-                    bail!("non-lifetime binders require #![feature(non_lifetime_binders)");
+                    bail!("non lifetime binders require #![feature(non_lifetime_binders)]");
                 }
             }
             // TODO: impl, fn, adt, ..
