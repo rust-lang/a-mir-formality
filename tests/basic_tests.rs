@@ -101,8 +101,8 @@ fn basic_where_clauses_fail_without_lifetime_binders_feature_flag() {
         trait WellFormed where for<T> u32: A<T> { }
     }])
     .err(expect_test::expect![[r#"
-                the rule "check crate" at (mod.rs) failed because
-                  non-lifetime binders require #![feature(non_lifetime_binders)"#]])
+        the rule "check crate" at (mod.rs) failed because
+          non lifetime binders require #![feature(non_lifetime_binders)]"#]])
 }
 
 #[test]

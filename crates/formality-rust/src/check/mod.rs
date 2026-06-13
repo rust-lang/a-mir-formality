@@ -143,7 +143,6 @@ fn check_for_non_lifetime_binders(c: &Crate) -> Fallible<ProofTree> {
                     bail!("non lifetime binders require #![feature(non_lifetime_binders)]");
                 }
             }
-            // TODO: impl, fn, adt, ..
             _ => {}
         }
     }
