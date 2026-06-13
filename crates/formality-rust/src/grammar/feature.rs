@@ -11,5 +11,5 @@ pub enum FeatureGateName {
     #[grammar(polonius_alpha)]
     PoloniusAlpha,
     #[grammar(non_lifetime_binders)]
-    NonLifetimeBinders
+    NonLifetimeBinders,
 }
