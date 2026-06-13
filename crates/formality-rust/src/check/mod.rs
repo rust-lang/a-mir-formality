@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use crate::prove::prove::{is_definitely_not_proveable, Constraints, Env, Program};
 use crate::rust::Visit;
 use crate::{
-    grammar::{Crate, CrateId, CrateItem, Crates, Fallible, Test, TestBoundData, Wcs},
+    grammar::{Crate, CrateId, CrateItem, Crates, Fallible, FeatureGateName, Test, TestBoundData, Wcs},
     prove::ToWcs,
 };
 use anyhow::{anyhow, bail};
@@ -66,6 +66,7 @@ judgment_fn! {
 
         (
             (check_for_duplicate_items(program) => ())
+            (check_for_non_lifetime_binders(c) => ())
             (for_all(item in &c.items)
                 (check_crate_item(program, item, &c.id) => ()))
             (check_coherence(program, c) => ())
@@ -118,6 +119,28 @@ fn check_for_duplicate_items(program: &Program) -> Fallible<ProofTree> {
     Ok(ProofTree::leaf(
         "check_for_duplicate_items: no duplicates found",
     ))
+}
+
+fn check_for_non_lifetime_binders(c: &Crate) -> Fallible<ProofTree> {
+    let is_non_lifetime_binder_enabled = c.items.iter().any(|item|
+        matches!(item, CrateItem::FeatureGate(fg) if fg.name == FeatureGateName::NonLifetimeBinders)
+    );
+
+    for item in c.items.iter() {
+        match item {
+            CrateItem::Trait(t) => {
+                let has_non_lifetime_binder = t.binder.explicit_binder.peek().where_clauses.iter().any(|wc| wc.has_non_lifetime_binder());
+
+                if !is_non_lifetime_binder_enabled && has_non_lifetime_binder {
+                    bail!("non-lifetime binders require #![feature(non_lifetime_binders)");
+                }
+            }
+            // TODO: impl, fn, adt, ..
+            _ => {}
+        }
+    }
+
+    Ok(ProofTree::leaf("check_for_non_lifetime_binders: ok"))
 }
 
 judgment_fn! {
