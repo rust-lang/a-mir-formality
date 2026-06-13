@@ -61,6 +61,7 @@ fn hello_world() {
 #[test]
 fn basic_where_clauses_pass() {
     FormalityTest::new(crates![crate core {
+        #![feature(non_lifetime_binders)]
         trait A<T> where T: B { }
 
         trait B { }
@@ -75,6 +76,7 @@ fn basic_where_clauses_pass() {
 #[test]
 fn basic_where_clauses_fail() {
     FormalityTest::new(crates![crate core {
+                #![feature(non_lifetime_binders)]
                 trait A<T> where T: B { }
 
                 trait B { }
@@ -87,6 +89,19 @@ fn basic_where_clauses_fail() {
 
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
+}
+
+#[test]
+fn basic_where_clauses_fail_without_lifetime_binders_feature_flag() {
+    FormalityTest::new(crates![crate core {
+                trait A<T> where T: B { }
+
+                trait B { }
+
+                trait WellFormed where for<T> u32: A<T> { }
+            }]).err(expect_test::expect![[r#"
+                the rule "check crate" at (mod.rs) failed because
+                  non-lifetime binders require #![feature(non_lifetime_binders)"#]])
 }
 
 #[test]
