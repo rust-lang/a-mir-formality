@@ -135,7 +135,9 @@ fn check_for_non_lifetime_binders(c: &Crate) -> Fallible<ProofTree> {
     );
 
     if is_non_lifetime_binder_enabled {
-        return Ok(ProofTree::leaf("check_for_non_lifetime_binders: feature enabled"));
+        return Ok(ProofTree::leaf(
+            "check_for_non_lifetime_binders: feature enabled",
+        ));
     }
 
     if c.items.iter().any(item_has_non_lifetime_binder) {
