@@ -92,7 +92,7 @@ fn basic_where_clauses_fail() {
 }
 
 #[test]
-fn basic_where_clauses_fail_without_lifetime_binders_feature_flag() {
+fn basic_where_clauses_without_lifetime_binders_feature_flag_fail() {
     FormalityTest::new(crates![crate core {
         trait A<T> where T: B { }
 
@@ -103,6 +103,154 @@ fn basic_where_clauses_fail_without_lifetime_binders_feature_flag() {
     .err(expect_test::expect![[r#"
         the rule "check crate" at (mod.rs) failed because
           non lifetime binders require #![feature(non_lifetime_binders)]"#]])
+}
+
+#[test]
+fn non_lifetime_binder_in_fn_where_clause_pass() {
+    FormalityTest::new(crates![crate core {
+        #![feature(non_lifetime_binders)]
+        trait A<T> where T: B { }
+
+        trait B { }
+
+        fn foo() -> () where for<T> u32: A<T> { trusted }
+
+        impl <T> B for T {}
+    }])
+    .skip_execute()
+    .ok()
+}
+
+#[test]
+fn non_lifetime_binder_in_fn_where_clause_fail() {
+    FormalityTest::new(crates![crate core {
+        trait A<T> where T: B { }
+
+        trait B { }
+
+        fn foo() -> () where for<T> u32: A<T> { trusted }
+    }])
+    .err(expect_test::expect![[r#"
+        the rule "check crate" at (mod.rs) failed because
+          non lifetime binders require #![feature(non_lifetime_binders)]"#]])
+}
+
+#[test]
+fn non_lifetime_binder_in_trait_impl_where_clause_pass() {
+    FormalityTest::new(crates![crate core {
+        #![feature(non_lifetime_binders)]
+        trait A<T> where T: B { }
+
+        trait B { }
+
+        impl<T> B for T where for<U> u32: A<U> { }
+    }])
+        .skip_execute()
+        .ok()
+}
+
+#[test]
+fn non_lifetime_binder_in_trait_impl_where_clause_fail() {
+    FormalityTest::new(crates![crate core {
+        trait A<T> where T: B { }
+
+        trait B { }
+
+        impl<T> B for T where for<U> u32: A<U> { }
+    }])
+        .err(expect_test::expect![[r#"
+            the rule "check crate" at (mod.rs) failed because
+              non lifetime binders require #![feature(non_lifetime_binder)]"#]])
+}
+
+#[test]
+fn non_lifetime_binder_in_neg_trait_impl_where_clause_pass() {
+    FormalityTest::new(crates![crate core {
+        #![feature(non_lifetime_binders)]
+        trait A<T> where T: B { }
+
+        trait B { }
+
+        impl<T> !A<T> for u32 where for<U> u32: A<U> { }
+
+        impl <T> B for T {}
+    }])
+        .skip_execute()
+        .ok()
+}
+
+#[test]
+fn non_lifetime_binder_in_neg_trait_impl_where_clause_fail() {
+    FormalityTest::new(crates![crate core {
+        trait A<T> where T: B { }
+
+        trait B { }
+
+        impl<T> !A<T> for u32 where for<U> u32: A<U> { }
+    }])
+        .err(expect_test::expect![[r#"
+            the rule "check crate" at (mod.rs) failed because
+              non lifetime binders require #![feature(non_lifetime_binder)]"#]])
+}
+
+#[test]
+fn non_lifetime_binder_in_enum_where_clause_pass() {
+    FormalityTest::new(crates![crate core {
+        #![feature(non_lifetime_binders)]
+        trait A<T> where T: B { }
+
+        trait B { }
+
+        enum E where for<U> u32: A<U> { }
+
+        impl <T> B for T {}
+    }])
+        .skip_execute()
+        .ok()
+}
+
+#[test]
+fn non_lifetime_binder_in_enum_where_clause_fail() {
+    FormalityTest::new(crates![crate core {
+        trait A<T> where T: B { }
+
+        trait B { }
+
+        enum E where for<U> u32: A<U> { }
+    }])
+        .err(expect_test::expect![[r#"
+            the rule "check crate" at (mod.rs) failed because
+              non lifetime binders require #![feature(non_lifetime_binder)]"#]])
+}
+
+#[test]
+fn non_lifetime_binder_in_struct_where_clause_pass() {
+    FormalityTest::new(crates![crate core {
+        #![feature(non_lifetime_binders)]
+        trait A<T> where T: B { }
+
+        trait B { }
+
+        struct S<T> where for<U> u32: A<U> { }
+
+        impl <T> B for T {}
+    }])
+        .skip_execute()
+        .ok()
+}
+
+#[test]
+fn non_lifetime_binder_in_struct_where_clause_fail() {
+    FormalityTest::new(crates![crate core {
+        trait A<T> where T: B { }
+
+        trait B { }
+
+        struct S<T> where for<U> u32: A<U> { }
+    }])
+        .err(expect_test::expect![[r#"
+            the rule "check crate" at (mod.rs) failed because
+              non lifetime binders require #![feature(non_lifetime_binder)]"#]])
 }
 
 #[test]
