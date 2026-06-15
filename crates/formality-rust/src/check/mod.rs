@@ -138,14 +138,14 @@ fn check_for_non_lifetime_binders(c: &Crate) -> Fallible<ProofTree> {
         return Ok(ProofTree::leaf("check_for_non_lifetime_binders: feature enabled"));
     }
 
-    if c.items.iter().any(item_has_non_lifetime_bind) {
+    if c.items.iter().any(item_has_non_lifetime_binder) {
         bail!("non lifetime binders require #![feature(non_lifetime_binders)]");
     }
 
     Ok(ProofTree::leaf("check_for_non_lifetime_binders: ok"))
 }
 
-fn item_has_non_lifetime_bind(item: &CrateItem) -> bool {
+fn item_has_non_lifetime_binder(item: &CrateItem) -> bool {
     let where_clauses = match item {
         CrateItem::Trait(t) => &t.binder.explicit_binder.peek().where_clauses,
         CrateItem::AdtItem(adt) => &adt.where_clauses(),
