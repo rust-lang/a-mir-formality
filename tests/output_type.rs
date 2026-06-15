@@ -1,7 +1,7 @@
 use a_mir_formality::{crates, FormalityTest};
 
 #[test]
-fn explicit_void() {
+fn explicit_return_type() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> () {
         }
@@ -10,7 +10,7 @@ fn explicit_void() {
 }
 
 #[test]
-fn implicit_void() {
+fn implicit_return_type() {
     FormalityTest::new(crates![crate Foo {
         fn foo() {
         }
