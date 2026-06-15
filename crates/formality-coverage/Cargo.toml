@@ -10,6 +10,7 @@ repository = "https://github.com/rust-lang/a-mir-formality/"
 [dependencies]
 anyhow = "1"
 clap = { version = "4.0.9", features = ["derive"] }
+formality-core = { version = "0.1.1", path = "../formality-core" }
 regex = "1.10.2"
 serde_json = "1"
 walkdir = "2"

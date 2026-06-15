@@ -1,29 +1,60 @@
-//! Coverage tracking for positive judgment tests.
+//! Coverage tracking for judgment tests.
 //!
 //! When a test successfully proves a judgment, we walk its [`ProofTree`] and
-//! record every `(judgment, rule)` pair that fired. Records are appended,
-//! one JSONL line per test, to `target/test-coverage.jsonl`. The eventual goal
-//! is to identify judgment rules that are not exercised by any positive test.
+//! record every `(judgment, rule)` pair that fired (positive coverage). When a
+//! test asserts a judgment *fails*, we record the set of reasons it failed
+//! (negative coverage) so we can tell which fallible premises are exercised.
+//!
+//! Records are appended one JSONL line per test to `target/test-coverage.jsonl`
+//! and serialized via the [`CoverageRecord`] types below, which the
+//! `formality-coverage` reader deserializes with the same definitions.
 //!
 //! Recording is best-effort: I/O errors are swallowed so coverage never fails
 //! a test. Disable entirely with `FORMALITY_COVERAGE=0`. Redirect the output
 //! directory with `FORMALITY_COVERAGE_DIR` (used by the integration tests).
 
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::panic::Location;
 use std::path::PathBuf;
 
-use super::{BlamedRule, FailedJudgment, ProofTree};
+use super::{FailedJudgment, FailureReason, ProofTree};
 
-/// A single (judgment, rule) pair as identified in the coverage output.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
+/// A single (judgment, rule) pair as identified in positive coverage output.
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize)]
 pub struct RuleId {
     pub judgment: String,
     pub rule: String,
     pub file: String,
     pub line: u32,
+}
+
+/// One JSONL line of coverage data. Shared between the writer (here) and the
+/// `formality-coverage` reader so the schema can only ever change in one place.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum CoverageRecord {
+    /// A test proved one or more judgments. We track only the rules that
+    /// fired: a successful proof means every premise of those rules held, so
+    /// premise-level detail adds nothing here.
+    Positive {
+        test_file: String,
+        test_line: u32,
+        test_column: u32,
+        rules: BTreeSet<RuleId>,
+    },
+
+    /// A test asserted a judgment fails. We track the set of failure reasons
+    /// (see [`FailureReason`]) so we can check that every fallible premise is
+    /// exercised by some negative test.
+    Negative {
+        test_file: String,
+        test_line: u32,
+        test_column: u32,
+        reasons: BTreeSet<FailureReason>,
+    },
 }
 
 impl ProofTree {
@@ -53,7 +84,8 @@ impl ProofTree {
     }
 }
 
-/// Record coverage for the currently-running test from one or more proof trees.
+/// Record positive coverage for the currently-running test from one or more
+/// proof trees.
 ///
 /// The test is identified by `Location::caller()`, which (because this function
 /// is `#[track_caller]` and the assertion helpers that call it are too) resolves
@@ -75,17 +107,18 @@ pub fn record_coverage<'a>(trees: impl IntoIterator<Item = &'a ProofTree>) {
         tree.collect_rules_into(&mut rules);
     }
 
-    let line = format_jsonl(caller, &rules);
-    let _ = append_line(&path, &line);
+    let record = CoverageRecord::Positive {
+        test_file: caller.file().replace('\\', "/"),
+        test_line: caller.line(),
+        test_column: caller.column(),
+        rules,
+    };
+    write_record(&path, &record);
 }
 
 /// Record negative coverage for the currently-running test from one or more
-/// failed judgments. For each failure, every named rule that was "blamed"
-/// (see [`FailedJudgment::collect_blamed_rules`]) is appended.
-///
-/// JSONL records produced here carry `"kind":"negative"` and a per-rule
-/// `"cause"` tag. Positive records (written by [`record_coverage`]) omit the
-/// `kind` field so existing data remains valid.
+/// failed judgments. For each failure, the set of reasons it failed (see
+/// [`FailedJudgment::collect_failure_reasons`]) is recorded.
 #[track_caller]
 pub fn record_negative_coverage<'a>(failures: impl IntoIterator<Item = &'a FailedJudgment>) {
     if !coverage_enabled() {
@@ -98,13 +131,24 @@ pub fn record_negative_coverage<'a>(failures: impl IntoIterator<Item = &'a Faile
 
     let caller = Location::caller();
 
-    let mut rules: BTreeSet<BlamedRule> = BTreeSet::new();
+    let mut reasons: BTreeSet<FailureReason> = BTreeSet::new();
     for failure in failures {
-        rules.extend(failure.collect_blamed_rules());
+        reasons.extend(failure.collect_failure_reasons());
     }
 
-    let line = format_negative_jsonl(caller, &rules);
-    let _ = append_line(&path, &line);
+    let record = CoverageRecord::Negative {
+        test_file: caller.file().replace('\\', "/"),
+        test_line: caller.line(),
+        test_column: caller.column(),
+        reasons,
+    };
+    write_record(&path, &record);
+}
+
+fn write_record(path: &PathBuf, record: &CoverageRecord) {
+    if let Ok(line) = serde_json::to_string(record) {
+        let _ = append_line(path, &line);
+    }
 }
 
 fn coverage_enabled() -> bool {
@@ -145,80 +189,4 @@ fn coverage_dir() -> Option<PathBuf> {
 fn append_line(path: &PathBuf, line: &str) -> std::io::Result<()> {
     let mut f = OpenOptions::new().create(true).append(true).open(path)?;
     writeln!(f, "{line}")
-}
-
-fn format_jsonl(caller: &Location<'_>, rules: &BTreeSet<RuleId>) -> String {
-    let mut s = String::new();
-    s.push('{');
-    s.push_str("\"test_file\":");
-    push_json_str(&mut s, &caller.file().replace('\\', "/"));
-    s.push_str(",\"test_line\":");
-    s.push_str(&caller.line().to_string());
-    s.push_str(",\"test_column\":");
-    s.push_str(&caller.column().to_string());
-    s.push_str(",\"rules\":[");
-    for (i, r) in rules.iter().enumerate() {
-        if i > 0 {
-            s.push(',');
-        }
-        s.push('{');
-        s.push_str("\"judgment\":");
-        push_json_str(&mut s, &r.judgment);
-        s.push_str(",\"rule\":");
-        push_json_str(&mut s, &r.rule);
-        s.push_str(",\"file\":");
-        push_json_str(&mut s, &r.file);
-        s.push_str(",\"line\":");
-        s.push_str(&r.line.to_string());
-        s.push('}');
-    }
-    s.push_str("]}");
-    s
-}
-
-fn format_negative_jsonl(caller: &Location<'_>, rules: &BTreeSet<BlamedRule>) -> String {
-    let mut s = String::new();
-    s.push('{');
-    s.push_str("\"test_file\":");
-    push_json_str(&mut s, &caller.file().replace('\\', "/"));
-    s.push_str(",\"test_line\":");
-    s.push_str(&caller.line().to_string());
-    s.push_str(",\"test_column\":");
-    s.push_str(&caller.column().to_string());
-    s.push_str(",\"kind\":\"negative\",\"rules\":[");
-    for (i, r) in rules.iter().enumerate() {
-        if i > 0 {
-            s.push(',');
-        }
-        s.push('{');
-        s.push_str("\"rule\":");
-        push_json_str(&mut s, &r.rule);
-        s.push_str(",\"file\":");
-        push_json_str(&mut s, &r.file);
-        s.push_str(",\"line\":");
-        s.push_str(&r.line.to_string());
-        s.push_str(",\"cause\":");
-        push_json_str(&mut s, r.cause);
-        s.push('}');
-    }
-    s.push_str("]}");
-    s
-}
-
-fn push_json_str(out: &mut String, s: &str) {
-    out.push('"');
-    for c in s.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if (c as u32) < 0x20 => {
-                out.push_str(&format!("\\u{:04x}", c as u32));
-            }
-            c => out.push(c),
-        }
-    }
-    out.push('"');
 }
