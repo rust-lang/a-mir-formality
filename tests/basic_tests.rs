@@ -254,6 +254,19 @@ fn non_lifetime_binder_in_struct_where_clause_fail() {
 }
 
 #[test]
+fn lifetime_binder_in_where_clause_without_feature_pass() {
+    FormalityTest::new(crates![crate core {
+        trait A<'b> { }
+
+        impl<'b> A<'b> for u32 { }
+
+        trait WellFormed where for<'b> u32: A<'b> { }
+    }])
+    .skip_execute()
+    .ok()
+}
+
+#[test]
 fn basic_adt_variant_dup() {
     FormalityTest::new(crates![crate Foo {
         enum Bar {
