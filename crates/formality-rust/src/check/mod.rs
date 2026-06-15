@@ -83,6 +83,7 @@ fn check_for_duplicate_items(program: &Program) -> Fallible<ProofTree> {
         let mut functions = Set::new();
         let mut impl_decls = Set::new();
         let mut neg_impl_decls = Set::new();
+        let mut feature_gates = Set::new();
         for item in c.items.iter() {
             match item {
                 CrateItem::AdtItem(s) => {
@@ -110,7 +111,12 @@ fn check_for_duplicate_items(program: &Program) -> Fallible<ProofTree> {
                         bail!("`{:?}` is defined multiple times", neg_impl_decl);
                     }
                 }
-                CrateItem::Test(_) | CrateItem::FeatureGate(_) => {}
+                CrateItem::FeatureGate(fg) => {
+                    if !feature_gates.insert(fg) {
+                        bail!("the feature `{:?}` is declared multiple times", fg)
+                    }
+                }
+                CrateItem::Test(_) => {}
             }
         }
     }
@@ -166,7 +172,6 @@ judgment_fn! {
         )
 
         (
-            // FIXME(#212): reject duplicate feature gates within a crate
             ------------------------------------------------------------ ("feature gate")
             (check_crate_item(program, CrateItem::FeatureGate(_feature_gate), crate_id) => ())
         )
