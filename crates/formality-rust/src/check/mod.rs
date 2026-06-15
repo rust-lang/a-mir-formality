@@ -6,7 +6,8 @@ use crate::prove::prove::{is_definitely_not_proveable, Constraints, Env, Program
 use crate::rust::Visit;
 use crate::{
     grammar::{
-        AdtItem, Crate, CrateId, CrateItem, Crates, Fallible, FeatureGateName, Test, TestBoundData, Wcs,
+        Crate, CrateId, CrateItem, Crates, Fallible, FeatureGateName, Test, TestBoundData,
+        Wcs,
     },
     prove::ToWcs,
 };
@@ -134,76 +135,36 @@ fn check_for_non_lifetime_binders(c: &Crate) -> Fallible<ProofTree> {
         matches!(item, CrateItem::FeatureGate(fg) if fg.name == FeatureGateName::NonLifetimeBinders)
     );
 
-    for item in c.items.iter() {
-        match item {
-            CrateItem::Trait(t) => {
-                let has_non_lifetime_binder = t
-                    .binder
-                    .explicit_binder
-                    .peek()
-                    .where_clauses
-                    .iter()
-                    .any(|wc| wc.has_non_lifetime_binder());
+    if is_non_lifetime_binder_enabled {
+        return Ok(ProofTree::leaf("check_for_non_lifetime_binders: ok"));
+    }
 
-                if !is_non_lifetime_binder_enabled && has_non_lifetime_binder {
-                    bail!("non lifetime binders require #![feature(non_lifetime_binders)]");
-                }
-            }
-            CrateItem::AdtItem(adt) => {
-                let has_non_lifetime_binder = adt
-                    .to_adt()
-                    .binder
-                    .peek()
-                    .where_clauses
-                    .iter()
-                    .any(|wc| wc.has_non_lifetime_binder());
-
-                if !is_non_lifetime_binder_enabled && has_non_lifetime_binder {
-                    bail!("non lifetime binders require #![feature(non_lifetime_binder)]");
-                }
-            }
-            CrateItem::FeatureGate(_) => {}
-            CrateItem::TraitImpl(t) => {
-                let has_non_lifetime_binder = t
-                    .binder
-                    .peek()
-                    .where_clauses
-                    .iter()
-                    .any(|wc| wc.has_non_lifetime_binder());
-
-                if !is_non_lifetime_binder_enabled && has_non_lifetime_binder {
-                    bail!("non lifetime binders require #![feature(non_lifetime_binder)]");
-                }
-            }
-            CrateItem::NegTraitImpl(nt) => {
-                let has_non_lifetime_binder = nt
-                    .binder
-                    .peek()
-                    .where_clauses
-                    .iter()
-                    .any(|wc| wc.has_non_lifetime_binder());
-
-                if !is_non_lifetime_binder_enabled && has_non_lifetime_binder {
-                    bail!("non lifetime binders require #![feature(non_lifetime_binder)]");
-                }
-            }
-            CrateItem::Fn(f) => {
-                let has_non_lifetime_binder = f
-                    .binder
-                    .peek()
-                    .where_clauses
-                    .iter()
-                    .any(|wc| wc.has_non_lifetime_binder());
-
-                if !is_non_lifetime_binder_enabled && has_non_lifetime_binder {
-                    bail!("non lifetime binders require #![feature(non_lifetime_binders)]");
-                }
-            }
-            CrateItem::Test(_) => {}
-        }
+    if c.items.iter().any(item_has_non_lifetime_bind) {
+        bail!("non lifetime binders require #![feature(non_lifetime_binders)]");
     }
 
     Ok(ProofTree::leaf("check_for_non_lifetime_binders: ok"))
+}
+
+fn item_has_non_lifetime_bind(item: &CrateItem) -> bool {
+    let where_clauses = match item {
+        CrateItem::Trait(t) => &t.binder.explicit_binder.peek().where_clauses,
+        CrateItem::AdtItem(adt) => {
+            return adt
+                .to_adt()
+                .binder
+                .peek()
+                .where_clauses
+                .iter()
+                .any(|wc| wc.has_non_lifetime_binder());
+        }
+        CrateItem::TraitImpl(t) => &t.binder.peek().where_clauses,
+        CrateItem::NegTraitImpl(nt) => &nt.binder.peek().where_clauses,
+        CrateItem::Fn(f) => &f.binder.peek().where_clauses,
+        CrateItem::FeatureGate(_) | CrateItem::Test(_) => return false,
+    };
+
+    where_clauses.iter().any(|wc| wc.has_non_lifetime_binder())
 }
 
 judgment_fn! {
