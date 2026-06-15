@@ -152,8 +152,9 @@ pub fn lower_ref(
         })
         .ok_or_else(|| anyhow::anyhow!("reference type is missing pointee type argument"))?;
 
+    // TODO: Match on Lt::Erased after codegen (#369) is merged
     let lifetime = match &lifetime {
-        Lt::Variable(Variable::ExistentialVar(_)) => None,
+        Lt::Variable(Variable::ExistentialVar(_)) => Some("'_".to_string()),
         _ => Some(lower_lt(ctx, &lifetime)?),
     };
     let pointee = lower_ty(ctx, pointee)?;
@@ -251,54 +252,8 @@ pub fn lower_fn_ptr(
 
 #[cfg(test)]
 mod test {
-    use crate::grammar::{AdtId, BoundVar, ExistentialVar, VarIndex, Variable};
-
     use super::*;
-
-    fn create_ty(index: usize) -> Variable {
-        Variable::BoundVar(BoundVar {
-            debruijn: None,
-            var_index: VarIndex { index },
-            kind: crate::grammar::ParameterKind::Ty,
-        })
-    }
-
-    fn create_lt(index: usize) -> Variable {
-        Variable::BoundVar(BoundVar {
-            debruijn: None,
-            var_index: VarIndex { index },
-            kind: crate::grammar::ParameterKind::Lt,
-        })
-    }
-
-    fn create_const(index: usize) -> Variable {
-        Variable::BoundVar(BoundVar {
-            debruijn: None,
-            var_index: VarIndex { index },
-            kind: crate::grammar::ParameterKind::Const,
-        })
-    }
-
-    #[test]
-    fn pretty_print_type_variables() {
-        let b = Context::default();
-        let ty1 = create_ty(1);
-        assert_eq!("T1", b.core_variable_to_string(&ty1).unwrap());
-    }
-
-    #[test]
-    fn pretty_print_life_time_variables() {
-        let b = Context::default();
-        let lt1 = create_lt(1);
-        assert_eq!("'a1", b.core_variable_to_string(&lt1).unwrap());
-    }
-
-    #[test]
-    fn pretty_print_const_variables() {
-        let b = Context::default();
-        let const1 = create_const(1);
-        assert_eq!("N1", b.core_variable_to_string(&const1).unwrap());
-    }
+    use crate::grammar::{AdtId, BoundVar, DebruijnIndex, ExistentialVar, VarIndex, Variable};
 
     #[test]
     fn pretty_print_adt() {
@@ -326,11 +281,18 @@ mod test {
 
     #[test]
     fn pretty_print_shared_ref() {
-        let mut ctx = Context::default();
+        let mut ctx = Context::with(vec![vec!["'a0".into()]]);
         let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Ref(RefKind::Shared),
             parameters: vec![
-                Parameter::Lt(Lt::Variable(create_lt(1)).into()),
+                Parameter::Lt(
+                    Lt::Variable(Variable::BoundVar(BoundVar {
+                        debruijn: Some(DebruijnIndex { index: 0 }),
+                        var_index: VarIndex { index: 0 },
+                        kind: crate::grammar::ParameterKind::Lt,
+                    }))
+                    .into(),
+                ),
                 Parameter::Ty(
                     Ty::RigidTy(RigidTy {
                         name: RigidName::ScalarId(ScalarId::U8),
@@ -341,16 +303,23 @@ mod test {
             ],
         });
         let t = lower_ty(&mut ctx, &ty).unwrap().to_string();
-        assert_eq!("&'a1 u8", t);
+        assert_eq!("&'a0 u8", t);
     }
 
     #[test]
     fn pretty_print_mutable_ref() {
-        let mut ctx = Context::default();
+        let mut ctx = Context::with(vec![vec!["'a0".into()]]);
         let ty = Ty::RigidTy(RigidTy {
             name: RigidName::Ref(RefKind::Mut),
             parameters: vec![
-                Parameter::Lt(Lt::Variable(create_lt(1)).into()),
+                Parameter::Lt(
+                    Lt::Variable(Variable::BoundVar(BoundVar {
+                        debruijn: Some(DebruijnIndex { index: 0 }),
+                        var_index: VarIndex { index: 0 },
+                        kind: crate::grammar::ParameterKind::Lt,
+                    }))
+                    .into(),
+                ),
                 Parameter::Ty(
                     Ty::RigidTy(RigidTy {
                         name: RigidName::ScalarId(ScalarId::U8),
@@ -361,7 +330,7 @@ mod test {
             ],
         });
         let t = lower_ty(&mut ctx, &ty).unwrap().to_string();
-        assert_eq!("&'a1 mut u8", t);
+        assert_eq!("&'a0 mut u8", t);
     }
 
     #[test]
@@ -407,7 +376,7 @@ mod test {
             ],
         });
         let t = lower_ty(&mut ctx, &ty).unwrap().to_string();
-        assert_eq!("&mut u8", t);
+        assert_eq!("&'_ mut u8", t);
     }
 
     #[test]
@@ -515,15 +484,14 @@ mod test {
                         <T as Foo>::Assoc: Bar<U> {}
                 }
             ],
-            r#"
-pub trait Foo {
-    type Assoc;
-}
+            expect_test::expect![[r#"
+                pub trait Foo {
+                    type Assoc;
+                }
 
-pub trait Bar<T2> { }
+                pub trait Bar<T01> { }
 
-impl<T3, T4> Bar<T4> for T3 where <T3 as Foo>::Assoc: Bar<T4> {}
-"#
+                impl<T00, T01> Bar<T01> for T00 where <T00 as Foo>::Assoc: Bar<T01> {}"#]]
         );
     }
 }

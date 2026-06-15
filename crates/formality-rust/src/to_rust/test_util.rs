@@ -10,13 +10,13 @@ use crate::{
 /// Rust code. Only a single crate is supported.
 #[macro_export]
 macro_rules! assert_rust {
-    ($input:tt, $expected:literal) => {{
+    ($input:tt, $expected:expr) => {{
         $crate::to_rust::test_util::assert_rust(stringify!($input), $expected);
     }};
 }
 
 #[track_caller]
-pub fn assert_rust(input: &str, expected: &str) {
+pub fn assert_rust(input: &str, expected: expect_test::Expect) {
     let program = term(input);
     let mut ctx = Context::default();
     let rust = build_crates(&mut ctx, &program)
@@ -25,8 +25,7 @@ pub fn assert_rust(input: &str, expected: &str) {
         .next()
         .unwrap()
         .1;
-    let expected = expected.trim();
-    assert_eq!(rust, expected);
+    expected.assert_eq(&rust);
 }
 
 /// Runs rustc on the given Formality program and returns the captured

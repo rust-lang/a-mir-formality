@@ -1,8 +1,11 @@
 use std::ops::Deref;
 
-use crate::grammar::{
-    expr::{Block, Expr, FieldExpr, Init, Label, PlaceExpr, Stmt},
-    Binder, Fallible, FieldName, RefKind, Ty, ValueId,
+use crate::{
+    grammar::{
+        expr::{Block, Expr, FieldExpr, Init, Label, PlaceExpr, Stmt},
+        Binder, Fallible, FieldName, Lt, Parameter, RefKind, Ty, ValueId, Variable,
+    },
+    to_rust::context::Wrapped,
 };
 
 use crate::to_rust::{context::Context, syntax, tys};
@@ -72,7 +75,10 @@ pub fn lower_let(
 
 pub fn lower_exists_stmt(ctx: &mut Context, binder: &Binder<Block>) -> Fallible<syntax::Stmt> {
     // TODO: Check again, after codegen is merged, if "erased" lifetimes could work here.
-    let (term, _) = ctx.open_exists(binder);
+    let Wrapped {
+        ref mut ctx,
+        ref term,
+    } = ctx.open_exists(binder.clone());
     let result = syntax::Stmt::Block(lower_block(ctx, &term)?);
     Ok(result)
 }
@@ -105,6 +111,12 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
             name: id.deref().clone(),
             args: args
                 .iter()
+                .filter(|arg| match arg {
+                    Parameter::Ty(_) | Parameter::Const(_) => true,
+                    Parameter::Lt(lt) => {
+                        matches!(**lt, Lt::Static | Lt::Variable(Variable::BoundVar(_)))
+                    }
+                })
                 .map(|arg| tys::lower_generic_arg(ctx, arg))
                 .collect::<Result<Vec<_>, _>>()?,
         }),
@@ -199,11 +211,12 @@ mod test {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub fn foo() -> u32 {
     let mut x: u32;
     return x;
 }"#
+                                  ]]
         );
     }
 
@@ -219,12 +232,13 @@ pub fn foo() -> u32 {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub fn foo() -> () {
     'a: {
         break 'a;
     }
 }"#
+                                   ]]
         );
     }
 
@@ -242,15 +256,14 @@ pub fn foo() -> () {
                     }
                 }
             ],
-            r#"
-pub fn foo() -> u32 {
-    {
-        let mut v1: u32 = 0_u32;
-        let mut v2: &mut u32 = &mut v1;
-        return *v2;
-    }
-}
-"#
+            expect_test::expect![[r#"
+                pub fn foo() -> u32 {
+                    {
+                        let mut v1: u32 = 0_u32;
+                        let mut v2: &'_ mut u32 = &mut v1;
+                        return *v2;
+                    }
+                }"#]]
         );
     }
 }

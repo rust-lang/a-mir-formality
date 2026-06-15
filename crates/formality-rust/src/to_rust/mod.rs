@@ -1,5 +1,7 @@
-use crate::grammar::{Crates, Fallible, ParameterKind, Ty, WhereClause, WhereClauseData};
+use crate::grammar::{Crates, Fallible, Parameter, ParameterKind, WhereClause, WhereClauseData};
+use crate::to_rust::context::Wrapped;
 use std::cell::LazyCell;
+use std::collections::HashMap;
 use std::ops::Deref;
 
 pub mod context;
@@ -101,9 +103,11 @@ pub fn lower_generics_for_binder(
     ctx: &mut context::Context,
     binder_kinds: &[ParameterKind],
     where_clauses: &[WhereClause],
-    names: &[String],
     skip_first: bool,
 ) -> Fallible<syntax::Generics> {
+    let names = ctx
+        .first()
+        .ok_or_else(|| anyhow::anyhow!("context has no data"))?;
     if names.len() != binder_kinds.len() {
         anyhow::bail!(
             "binder metadata mismatch: {} names but {} kinds",
@@ -113,25 +117,16 @@ pub fn lower_generics_for_binder(
     }
 
     let start = usize::from(skip_first);
-    let mut params: Vec<syntax::GenericParam> = names
+    let mut params: HashMap<String, syntax::GenericParam> = names
         .iter()
         .skip(start)
         .cloned()
         .zip(binder_kinds.iter().copied().skip(start))
-        .map(|(name, kind)| generic_param_from_kind(name, kind))
+        .map(|(name, kind)| (name.clone(), generic_param_from_kind(name, kind)))
         .collect();
 
     for wc in where_clauses {
         match wc {
-            WhereClauseData::IsImplemented(ty, _, _) => {
-                if let Ty::Variable(var) = ty {
-                    let name = ctx.core_variable_to_string(&var)?;
-                    // If the `where` clause referes to a type
-                    // variable from an outer binder, that
-                    // variable is not yet included in `params`.
-                    push_type_param_if_missing(&mut params, name);
-                }
-            }
             WhereClauseData::TypeOfConst(konst, ty) => {
                 let name = match tys::lower_const(ctx, konst)? {
                     syntax::ConstExpr::Ident(id) => id,
@@ -141,28 +136,31 @@ pub fn lower_generics_for_binder(
                 };
                 let ty = tys::lower_ty(ctx, ty)?;
 
-                if let Some(existing_ty) = params.iter_mut().find_map(|param| match param {
-                    syntax::GenericParam::Const { name: existing, ty } if existing == &name => {
-                        Some(ty)
+                let param = params
+                    .get_mut(&name)
+                    .ok_or_else(|| anyhow::anyhow!("no generic parameter named '{name}'"))?;
+                match param {
+                    syntax::GenericParam::Type(_) => todo!(),
+                    syntax::GenericParam::Lifetime(_) => todo!(),
+                    syntax::GenericParam::Const {
+                        name: _name,
+                        ty: existing_ty,
+                    } => {
+                        *existing_ty = ty;
                     }
-                    _ => None,
-                }) {
-                    *existing_ty = ty;
-                } else {
-                    // If the `where` clause referes to a type
-                    // variable from an outer binder, that
-                    // variable is not yet included in `params`.
-                    params.push(syntax::GenericParam::Const { name, ty });
                 }
             }
+            WhereClauseData::IsImplemented(_, _, _) => {
+                continue;
+            }
             WhereClauseData::AliasEq(_, _) => {
-                todo!("lowering `AliasEq` where-clauses is not implemented yet")
+                continue;
             }
             WhereClauseData::Outlives(_, _) => {
-                todo!("lowering `Outlives` where-clauses is not implemented yet")
+                continue;
             }
             WhereClauseData::ForAll(_) => {
-                todo!("lowering `ForAll` where-clauses is not implemented yet")
+                continue;
             }
         }
     }
@@ -182,43 +180,55 @@ pub fn lower_where_clauses(
     let mut preds = Vec::new();
 
     for wc in where_clauses {
-        match wc {
-            WhereClauseData::IsImplemented(ty, trait_id, params) => {
-                preds.push(syntax::WhereClause::Trait {
-                    ty: tys::lower_ty(ctx, ty)?,
-                    trait_name: trait_id.deref().clone(),
-                    args: params
-                        .iter()
-                        .map(|param| tys::lower_generic_arg(ctx, param))
-                        .collect::<Result<Vec<_>, _>>()?,
-                });
-            }
-            WhereClauseData::TypeOfConst(_, _) => {}
-            WhereClauseData::AliasEq(_, _) => {
-                anyhow::bail!("lowering `AliasEq` where-clauses is not implemented yet")
-            }
-            WhereClauseData::Outlives(_, _) => {
-                anyhow::bail!("lowering `Outlives` where-clauses is not implemented yet")
-            }
-            WhereClauseData::ForAll(_) => {
-                anyhow::bail!("lowering `ForAll` where-clauses is not implemented yet")
-            }
+        let wc = lower_where_clause(ctx, wc)?;
+        if let Some(wc) = wc {
+            preds.push(wc);
         }
     }
 
     Ok(preds)
 }
 
-fn push_type_param_if_missing(params: &mut Vec<syntax::GenericParam>, name: String) {
-    if name == "Self" {
-        return;
-    }
-
-    if !params
-        .iter()
-        .any(|param| matches!(param, syntax::GenericParam::Type(existing) if existing == &name))
-    {
-        params.push(syntax::GenericParam::Type(name));
+fn lower_where_clause(
+    ctx: &mut context::Context,
+    where_clause: &WhereClause,
+) -> Fallible<Option<syntax::WhereClause>> {
+    match where_clause {
+        WhereClauseData::IsImplemented(ty, trait_id, params) => {
+            Ok(Some(syntax::WhereClause::Trait {
+                ty: tys::lower_ty(ctx, ty)?,
+                trait_name: trait_id.deref().clone(),
+                args: params
+                    .iter()
+                    .map(|param| tys::lower_generic_arg(ctx, param))
+                    .collect::<Result<Vec<_>, _>>()?,
+            }))
+        }
+        WhereClauseData::TypeOfConst(_, _) => Ok(None),
+        WhereClauseData::AliasEq(_, _) => {
+            anyhow::bail!("lowering `AliasEq` where-clauses is not implemented yet")
+        }
+        WhereClauseData::Outlives(parameter, lifetime) => {
+            let lifetime = tys::lower_lt(ctx, lifetime)?;
+            let parameter = match parameter {
+                Parameter::Ty(ty) => syntax::Parameter::Type(tys::lower_ty(ctx, ty)?),
+                Parameter::Lt(lt) => syntax::Parameter::Lifetime(tys::lower_lt(ctx, lt)?),
+                Parameter::Const(_) => anyhow::bail!("constant in an outlives constraint"),
+            };
+            Ok(Some(syntax::WhereClause::Lifetime {
+                parameter,
+                lifetime,
+            }))
+        }
+        WhereClauseData::ForAll(binder) => {
+            let Wrapped {
+                ref mut ctx,
+                ref term,
+            } = ctx.open_universal(binder.as_ref().clone());
+            Ok(Some(syntax::WhereClause::ForAll(
+                lower_generics_for_binder(ctx, binder.kinds(), &[term.clone()], false)?,
+            )))
+        }
     }
 }
 
@@ -235,7 +245,7 @@ fn generic_param_from_kind(name: String, kind: ParameterKind) -> syntax::Generic
         ParameterKind::Const => syntax::GenericParam::Const {
             name,
             ty: syntax::Type::Path {
-                name: "usize".to_owned(),
+                name: "###not a type###".to_owned(),
                 args: Vec::new(),
             },
         },
@@ -250,7 +260,7 @@ mod test {
             [
                 crate Foo {}
             ],
-            ""
+            expect_test::expect![[""]]
         );
     }
 
@@ -262,7 +272,67 @@ mod test {
                     #![feature(polonius_alpha)]
                 }
             ],
-            "#![feature(polonius_alpha)]"
+            expect_test::expect![["#![feature(polonius_alpha)]"]]
         );
+    }
+
+    #[test]
+    fn outlives_type() {
+        crate::assert_rust!(
+            [
+                crate core {
+                    trait Trait {}
+                    struct A<X> where X: Trait {}
+                    fn valid<'a, X>(x: &'a A<X>) -> ()
+                    where
+                        X: 'a,
+                        X: Trait,
+                    {}
+                }
+            ],
+            expect_test::expect![[r#"
+                pub trait Trait { }
+
+                pub struct A<T00> where T00: Trait {}
+
+                pub fn valid<'a00, T01>(mut x: &'a00 A<T01>) -> () where T01: 'a00, T01: Trait {}"#]]
+        )
+    }
+
+    #[test]
+    fn outlives_lifetime() {
+        crate::assert_rust!(
+            [
+                crate core {
+                    fn foo<'a, 'b>(a: &'a u32) -> &'b u32
+                    where 'a: 'b {
+                        let r: &'b u32 = identity::<&'b u32>(a);
+                        return r;
+                    }
+                }
+            ],
+            expect_test::expect![[r#"
+                pub fn foo<'a00, 'a01>(mut a: &'a00 u32) -> &'a01 u32 where 'a00: 'a01 {
+                    let mut r: &'a01 u32 = identity::<&'a01 u32>(a);
+                    return r;
+                }"#]]
+        )
+    }
+
+    #[test]
+    fn forall() {
+        crate::assert_rust!(
+            [
+                crate core {
+                    trait A { }
+
+                    trait B where for<'a> &'a u32: A { }
+                }
+            ],
+            expect_test::expect![[r#"
+                pub trait A { }
+
+                pub trait B where for<'a10> &'a10 u32: A { }"#]]
+        )
     }
 }

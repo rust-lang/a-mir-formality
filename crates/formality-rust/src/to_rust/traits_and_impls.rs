@@ -6,14 +6,21 @@ use crate::grammar::{
 };
 use crate::prove::prove::Safety;
 
+use crate::to_rust::context::Wrapped;
 use crate::to_rust::{
     self,
-    context::{open_bounded, Context},
+    context::{open_bounded, open_trait, Context},
     fns, syntax, tys,
 };
 
 pub fn lower_trait(ctx: &mut Context, t: &Trait) -> Fallible<syntax::TraitItem> {
-    let (term, generics) = open_bounded!(ctx, &t.binder.explicit_binder, true);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_trait!(ctx, t.binder.clone());
     let mut items = Vec::new();
     for item in &term.trait_items {
         match item {
@@ -38,7 +45,13 @@ pub fn lower_trait(ctx: &mut Context, t: &Trait) -> Fallible<syntax::TraitItem> 
 }
 
 pub fn lower_trait_impl(ctx: &mut Context, trait_impl: &TraitImpl) -> Fallible<syntax::ImplItem> {
-    let (term, generics) = open_bounded!(ctx, &trait_impl.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, trait_impl.binder.clone());
     let mut items = Vec::new();
     for item in &term.impl_items {
         match item {
@@ -76,7 +89,13 @@ pub fn lower_neg_trait_impl(
     ctx: &mut Context,
     neg_trait_impl: &NegTraitImpl,
 ) -> Fallible<syntax::NegImplItem> {
-    let (term, generics) = open_bounded!(ctx, &neg_trait_impl.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, neg_trait_impl.binder.clone());
     let trait_args = term
         .trait_parameters
         .iter()
@@ -99,7 +118,13 @@ pub fn lower_assoc_ty(
     ctx: &mut Context,
     assoc_ty: &AssociatedTy,
 ) -> Fallible<syntax::AssociatedTypeItem> {
-    let (term, generics) = open_bounded!(ctx, &assoc_ty.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, assoc_ty.binder.clone());
     let mut bounds = Vec::new();
     for ensure in &term.ensures {
         match ensure {
@@ -132,7 +157,13 @@ pub fn lower_assoc_ty_value(
     ctx: &mut Context,
     assoc_ty: &AssociatedTyValue,
 ) -> Fallible<syntax::AssociatedTypeValueItem> {
-    let (term, generics) = open_bounded!(ctx, &assoc_ty.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, assoc_ty.binder.clone());
     let ty = tys::lower_ty(ctx, &term.ty)?;
     Ok(syntax::AssociatedTypeValueItem {
         name: assoc_ty.id.deref().clone(),
@@ -154,11 +185,11 @@ mod test {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub trait Write {
     fn test() -> i32;
-}
-"#
+}"#]]
+
         );
     }
 
@@ -173,12 +204,12 @@ pub trait Write {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub trait Write {
     type Error;
     fn test() -> i32;
-}
-"#
+}"#]]
+
         );
     }
 
@@ -193,12 +224,12 @@ pub trait Write {
                     }
                 }
             ],
-            r#"
-pub trait Write {
-    type Error<T1, T2>: Sized + Bar where T1: Read, T2: Write;
-    fn test() -> i32;
-}
-"#
+            expect_test::expect![[r#"
+                pub trait Write {
+                    type Error<T10, T11>: Sized + Bar where T10: Read, T11: Write;
+                    fn test() -> i32;
+                }"#]]
+
         );
     }
 
@@ -211,11 +242,11 @@ pub trait Write {
                     trait Bar<T> where T: Baz {}
                 }
             ],
-            "
-pub trait Baz { }
+            expect_test::expect![[r#"
+                pub trait Baz { }
 
-pub trait Bar<T2> where T2: Baz { }
-"
+                pub trait Bar<T01> where T01: Baz { }"#]]
+
         );
     }
 
@@ -228,11 +259,11 @@ pub trait Bar<T2> where T2: Baz { }
                     trait Bar<V> where V: Baz<i32, u8> {}
                 }
             ],
-            "
-pub trait Baz<T1, T2> { }
+            expect_test::expect![[r#"
+                pub trait Baz<T01, T02> { }
 
-pub trait Bar<T4> where T4: Baz<i32, u8> { }
-"
+                pub trait Bar<T01> where T01: Baz<i32, u8> { }"#]]
+
         );
     }
 
@@ -248,14 +279,14 @@ pub trait Bar<T4> where T4: Baz<i32, u8> { }
                     }
                 }
             ],
-            r#"
-pub trait Baz { }
+            expect_test::expect![[r#"
+                pub trait Baz { }
 
-pub trait Bar<T2> where T2: Baz {
-    type Error;
-    fn test() -> T2;
-}
-"#
+                pub trait Bar<T01> where T01: Baz {
+                    type Error;
+                    fn test() -> T01;
+                }"#]]
+
         );
     }
 
@@ -267,7 +298,7 @@ pub trait Bar<T2> where T2: Baz {
                     trait Bar<const C> where type_of_const C is bool {}
                 }
             ],
-            "pub trait Bar<const N1: bool> { }"
+            expect_test::expect!["pub trait Bar<const N01: bool> { }"]
         );
     }
 
@@ -286,20 +317,20 @@ pub trait Bar<T2> where T2: Baz {
                     }
                 }
             ],
-            r#"
-pub trait Bar<T1> {
-    fn run() -> T1;
-}
+            expect_test::expect![[r#"
+                pub trait Bar<T01> {
+                    fn run() -> T01;
+                }
 
-pub trait Bur { }
+                pub trait Bur { }
 
-pub struct Baz {}
+                pub struct Baz {}
 
-impl<T3> Bar<T3> for Baz where T3: Bur {
-    fn run() -> T3 {
-        panic!("Trusted Fn Body")
-    }
-}"#
+                impl<T00> Bar<T00> for Baz where T00: Bur {
+                    fn run() -> T00 {
+                        panic!("Trusted Fn Body")
+                    }
+                }"#]]
         );
     }
 
@@ -315,7 +346,7 @@ impl<T3> Bar<T3> for Baz where T3: Bur {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub trait Bar {
     fn run() -> i32;
 }
@@ -326,8 +357,8 @@ impl Bar for Baz {
     fn run() -> i32 {
         panic!("Trusted Fn Body")
     }
-}
-"#
+}"#]]
+
         );
     }
 
@@ -341,13 +372,26 @@ impl Bar for Baz {
                     impl !Bar for Baz { }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub trait Bar { }
 
 pub struct Baz {}
 
-impl !Bar for Baz {}
-"#
+impl !Bar for Baz {}"#]]
+
+        );
+    }
+
+    #[test]
+    fn self_type_is_emityed_self() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    trait Foo<T> where T: Bar<Self> {}
+                }
+            ],
+            expect_test::expect!["pub trait Foo<T01> where T01: Bar<Self> { }"]
+
         );
     }
 }

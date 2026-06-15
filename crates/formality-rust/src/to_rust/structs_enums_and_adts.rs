@@ -2,13 +2,20 @@ use std::ops::Deref;
 
 use crate::grammar::{Enum, Fallible, Field, FieldName, Struct, Variant};
 
+use crate::to_rust::context::Wrapped;
 use crate::to_rust::{
     context::{open_bounded, Context},
     syntax, tys,
 };
 
 pub fn lower_struct(ctx: &mut Context, strukt: &Struct) -> Fallible<syntax::StructItem> {
-    let (term, generics) = open_bounded!(ctx, &strukt.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, strukt.binder.clone());
     let fields = term
         .fields
         .iter()
@@ -24,7 +31,13 @@ pub fn lower_struct(ctx: &mut Context, strukt: &Struct) -> Fallible<syntax::Stru
 }
 
 pub fn lower_enum(ctx: &mut Context, e: &Enum) -> Fallible<syntax::EnumItem> {
-    let (term, generics) = open_bounded!(ctx, &e.binder);
+    let (
+        Wrapped {
+            ref mut ctx,
+            ref term,
+        },
+        generics,
+    ) = open_bounded!(ctx, e.binder.clone());
     let variants = term
         .variants
         .iter()
@@ -95,12 +108,11 @@ mod test {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub struct Bar {
     pub a: i32,
     pub b: i32,
-}
-"#
+}"#]]
         );
     }
 
@@ -111,20 +123,19 @@ pub struct Bar {
                 crate Foo {
                     trait Baz { }
                     struct Bar<T>
-                        where
+                    where
                         T: Baz
                     {
                         a: T,
                     }
                 }
             ],
-            r#"
-pub trait Baz { }
+            expect_test::expect![[r#"
+                pub trait Baz { }
 
-pub struct Bar<T1> where T1: Baz {
-    pub a: T1,
-}
-"#
+                pub struct Bar<T00> where T00: Baz {
+                    pub a: T00,
+                }"#]]
         );
     }
 
@@ -139,12 +150,12 @@ pub struct Bar<T1> where T1: Baz {
                     }
                 }
             ],
-            r#"
+            expect_test::expect![[r#"
 pub enum Bar {
     A,
     B,
-}
-"#
+}"#]]
+
         );
     }
 
@@ -155,7 +166,7 @@ pub enum Bar {
                 crate Foo {
                     trait Baz { }
                     enum Bar<T>
-                        where
+                    where
                         T : Baz
                     {
                         A { t: T },
@@ -163,14 +174,13 @@ pub enum Bar {
                     }
                 }
             ],
-            r#"
-pub trait Baz { }
+            expect_test::expect![[r#"
+                pub trait Baz { }
 
-pub enum Bar<T1> where T1: Baz {
-    A { t: T1 },
-    B(T1),
-}
-"#
+                pub enum Bar<T00> where T00: Baz {
+                    A { t: T00 },
+                    B(T00),
+                }"#]]
         );
     }
 }
