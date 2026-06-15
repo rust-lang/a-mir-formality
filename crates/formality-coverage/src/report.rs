@@ -175,7 +175,7 @@ pub fn write_all(out_dir: &Path, judgments: &[Judgment], cov: &Coverage) -> Resu
     Ok(())
 }
 
-fn slug(name: &str) -> String {
+pub fn slug(name: &str) -> String {
     name.chars()
         .map(|c| {
             if c.is_ascii_alphanumeric() || c == '_' {
