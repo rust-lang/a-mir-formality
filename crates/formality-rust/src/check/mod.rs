@@ -6,8 +6,7 @@ use crate::prove::prove::{is_definitely_not_proveable, Constraints, Env, Program
 use crate::rust::Visit;
 use crate::{
     grammar::{
-        Crate, CrateId, CrateItem, Crates, Fallible, FeatureGateName, Test, TestBoundData,
-        Wcs,
+        Crate, CrateId, CrateItem, Crates, Fallible, FeatureGateName, Test, TestBoundData, Wcs,
     },
     prove::ToWcs,
 };
@@ -136,7 +135,7 @@ fn check_for_non_lifetime_binders(c: &Crate) -> Fallible<ProofTree> {
     );
 
     if is_non_lifetime_binder_enabled {
-        return Ok(ProofTree::leaf("check_for_non_lifetime_binders: ok"));
+        return Ok(ProofTree::leaf("check_for_non_lifetime_binders: feature enabled"));
     }
 
     if c.items.iter().any(item_has_non_lifetime_bind) {
@@ -149,15 +148,7 @@ fn check_for_non_lifetime_binders(c: &Crate) -> Fallible<ProofTree> {
 fn item_has_non_lifetime_bind(item: &CrateItem) -> bool {
     let where_clauses = match item {
         CrateItem::Trait(t) => &t.binder.explicit_binder.peek().where_clauses,
-        CrateItem::AdtItem(adt) => {
-            return adt
-                .to_adt()
-                .binder
-                .peek()
-                .where_clauses
-                .iter()
-                .any(|wc| wc.has_non_lifetime_binder());
-        }
+        CrateItem::AdtItem(adt) => &adt.where_clauses(),
         CrateItem::TraitImpl(t) => &t.binder.peek().where_clauses,
         CrateItem::NegTraitImpl(nt) => &nt.binder.peek().where_clauses,
         CrateItem::Fn(f) => &f.binder.peek().where_clauses,

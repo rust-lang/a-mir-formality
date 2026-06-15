@@ -53,6 +53,13 @@ impl AdtItem {
             AdtItem::Enum(e) => e.to_adt(),
         }
     }
+
+    pub fn where_clauses(&self) -> &Vec<WhereClause> {
+        match self {
+            AdtItem::Struct(s) => &s.binder.peek().where_clauses,
+            AdtItem::Enum(e) => &e.binder.peek().where_clauses,
+        }
+    }
 }
 
 #[term(test $binder)]
