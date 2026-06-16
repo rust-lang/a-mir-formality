@@ -1,8 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use formality_coverage::scrape::{Judgment, Rule, parse_judgment_fns};
-use mdbook_preprocessor::book::{Book, BookItem};
+use formality_coverage::{jsonl, report};
+use mdbook_preprocessor::book::{Book, BookItem, Chapter, SectionNumber};
 use mdbook_preprocessor::{Preprocessor, PreprocessorContext};
 use regex::Regex;
 
@@ -52,12 +53,94 @@ impl Preprocessor for JudgmentPreprocessor {
             }
         });
 
+        append_coverage_chapters(ctx, &root, &index, &mut book)?;
+
         Ok(book)
     }
 
     fn supports_renderer(&self, _renderer: &str) -> anyhow::Result<bool> {
         Ok(true)
     }
+}
+
+/// Build a "Coverage report" chapter plus one subpage per judgment from the
+/// scraped judgments and the recorded coverage JSONL, and append them to the
+/// book. The JSONL is optional: when it is missing (e.g. CI builds the book
+/// without running tests) `jsonl::read` yields empty coverage and every row
+/// renders as uncovered rather than failing the build.
+fn append_coverage_chapters(
+    ctx: &PreprocessorContext,
+    root: &Path,
+    index: &SourceIndex,
+    book: &mut Book,
+) -> anyhow::Result<()> {
+    let jsonl_path: PathBuf = ctx
+        .config
+        .get("preprocessor.judgment.coverage-jsonl")
+        .ok()
+        .flatten()
+        .map(|s: String| root.join(s))
+        .unwrap_or_else(|| {
+            root.parent()
+                .unwrap_or(root)
+                .join("target")
+                .join("test-coverage.jsonl")
+        });
+    let cov = jsonl::read(&jsonl_path).unwrap_or_default();
+
+    // Render in the same deterministic order `scrape_dir` uses, so the index
+    // table is stable across builds.
+    let mut judgments: Vec<Judgment> = index.judgments.values().cloned().collect();
+    judgments.sort_by(|a, b| (a.file.as_str(), a.line).cmp(&(b.file.as_str(), b.line)));
+
+    // mdbook derives sidebar nesting from each chapter's section-number depth,
+    // not from `sub_items` (see the HTML renderer's TOC helper). So the index
+    // gets the next top-level number and each subpage a two-component child
+    // number, which renders them folded under the index.
+    let next_top = book
+        .iter()
+        .filter_map(|item| match item {
+            BookItem::Chapter(c) => c.number.as_ref().and_then(|n| n.first().copied()),
+            _ => None,
+        })
+        .max()
+        .unwrap_or(0)
+        + 1;
+
+    // Subpage filenames come from `report::slug` so they match the `./{slug}.md`
+    // links `render_index` emits. Two judgments collapsing to one slug would
+    // clobber each other's page; warn, mirroring `report::write_all`.
+    let mut seen_slugs: HashSet<String> = HashSet::new();
+    let mut subpages: Vec<BookItem> = Vec::new();
+    for (i, j) in judgments.iter().enumerate() {
+        let slug = report::slug(&j.name);
+        if !seen_slugs.insert(slug.clone()) {
+            eprintln!(
+                "warning: slug collision for judgment `{}` at {}:{}, coverage subpage will overwrite a sibling",
+                j.name, j.file, j.line,
+            );
+        }
+        let mut chapter = Chapter::new(
+            &j.name,
+            report::render_subpage(j, &cov),
+            PathBuf::from(format!("{slug}.md")),
+            vec!["Coverage report".to_string()],
+        );
+        chapter.number = Some(SectionNumber::new(vec![next_top, (i + 1) as u32]));
+        subpages.push(BookItem::Chapter(chapter));
+    }
+
+    let mut index_chapter = Chapter::new(
+        "Coverage report",
+        report::render_index(&judgments, &cov),
+        PathBuf::from("coverage.md"),
+        vec![],
+    );
+    index_chapter.number = Some(SectionNumber::new(vec![next_top]));
+    index_chapter.sub_items = subpages;
+    book.push_item(index_chapter);
+
+    Ok(())
 }
 
 // --- Data structures ---

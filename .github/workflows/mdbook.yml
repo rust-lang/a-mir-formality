@@ -40,6 +40,8 @@ jobs:
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
+      - name: Generate coverage data
+        run: cargo test --all
       - name: Build with mdBook
         run: cd book; mdbook build
       - name: Upload artifact
