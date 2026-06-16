@@ -95,23 +95,39 @@ pub fn lower_rigid_ty(ctx: &mut Context, rigid_ty: &RigidTy) -> Fallible<syntax:
 }
 
 pub fn lower_alias_ty(ctx: &mut Context, alias_ty: &AliasTy) -> Fallible<syntax::Type> {
-    let ty = alias_ty
-        .parameters
-        .get(0)
-        .and_then(|p| match p {
-            Parameter::Ty(ty) => lower_ty(ctx, ty).ok(),
-            Parameter::Lt(_lt) => todo!(),
-            Parameter::Const(_) => todo!(),
-        })
-        .ok_or_else(|| anyhow::anyhow!("alias type is missing type argument"))?;
+    match &alias_ty.name {
+        crate::grammar::AliasName::AssociatedTyId(associated_ty_name) => {
+            let trait_arg_count = alias_ty.parameters.len() - associated_ty_name.item_arity;
+            let (trait_parameters, assoc_parameters) =
+                alias_ty.parameters.split_at(trait_arg_count);
+            let (self_parameter, trait_args) = trait_parameters
+                .split_first()
+                .ok_or_else(|| anyhow::anyhow!("alias type is mising self type argument"))?;
 
-    Ok(match &alias_ty.name {
-        crate::grammar::AliasName::AssociatedTyId(associated_ty_name) => syntax::Type::Alias {
-            ty: Box::new(ty),
-            trait_name: associated_ty_name.trait_id.deref().clone(),
-            assoc_name: associated_ty_name.item_id.deref().clone(),
-        },
-    })
+            let ty = match self_parameter {
+                Parameter::Ty(ty) => lower_ty(ctx, ty)?,
+                Parameter::Lt(_) => todo!(),
+                Parameter::Const(_) => todo!(),
+            };
+
+            let trait_args = trait_args
+                .iter()
+                .map(|arg| lower_generic_arg(ctx, arg))
+                .collect::<Result<Vec<_>, _>>()?;
+            let assoc_args = assoc_parameters
+                .iter()
+                .map(|arg| lower_generic_arg(ctx, arg))
+                .collect::<Result<Vec<_>, _>>()?;
+
+            Ok(syntax::Type::Alias {
+                ty: Box::new(ty),
+                trait_name: associated_ty_name.trait_id.deref().clone(),
+                trait_args,
+                assoc_name: associated_ty_name.item_id.deref().clone(),
+                assoc_args,
+            })
+        }
+    }
 }
 
 pub fn scalar_to_string(scalar_id: &ScalarId) -> String {
@@ -492,6 +508,20 @@ mod test {
                 pub trait Bar<T01> { }
 
                 impl<T00, T01> Bar<T01> for T00 where <T00 as Foo>::Assoc: Bar<T01> {}"#]]
+        );
+    }
+
+    #[test]
+    fn alias_ty_with_trait_and_assoc_args() {
+        crate::assert_rust!(
+            [
+                crate Blub {
+                    impl<T, U, V> A for T
+                    where
+                        <T as B<U>>::C<V>: A {}
+                }
+            ],
+            expect_test::expect!["impl<T00, T01, T02> A for T00 where <T00 as B<T01>>::C<T02>: A {}"]
         );
     }
 }

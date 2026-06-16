@@ -52,7 +52,7 @@ judgment_fn! {
         (
             (fail "negative impls cannot be unsafe")
             ---- ("check_neg_trait_impl")
-            (check_neg_trait_impl(program, NegTraitImpl { binder, safety: Safety::Unsafe }) => ())
+            (check_neg_trait_impl(program, NegTraitImpl { binder: _, safety: Safety::Unsafe }) => ())
         )
 
         (
