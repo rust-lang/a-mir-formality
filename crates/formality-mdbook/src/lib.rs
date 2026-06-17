@@ -53,7 +53,7 @@ impl Preprocessor for JudgmentPreprocessor {
             }
         });
 
-        append_coverage_chapters(ctx, &root, &index, &mut book)?;
+        append_coverage_chapters(ctx, &root, &index, github_base.as_deref(), &mut book)?;
 
         Ok(book)
     }
@@ -72,6 +72,7 @@ fn append_coverage_chapters(
     ctx: &PreprocessorContext,
     root: &Path,
     index: &SourceIndex,
+    github_base: Option<&str>,
     book: &mut Book,
 ) -> anyhow::Result<()> {
     let jsonl_path: PathBuf = ctx
@@ -122,7 +123,7 @@ fn append_coverage_chapters(
         }
         let mut chapter = Chapter::new(
             &j.name,
-            report::render_subpage(j, &cov),
+            report::render_subpage(j, &cov, github_base),
             PathBuf::from(format!("{slug}.md")),
             vec!["Coverage report".to_string()],
         );
@@ -132,7 +133,7 @@ fn append_coverage_chapters(
 
     let mut index_chapter = Chapter::new(
         "Coverage report",
-        report::render_index(&judgments, &cov),
+        report::render_index(&judgments, &cov, github_base),
         PathBuf::from("coverage.md"),
         vec![],
     );

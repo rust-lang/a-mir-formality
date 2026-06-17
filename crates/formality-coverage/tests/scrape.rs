@@ -5,7 +5,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use expect_test::expect;
-use formality_coverage::jsonl::{self, Coverage, CoveredRule, NoApplicableRuleLoc, PremiseLoc};
+use formality_coverage::jsonl::{
+    self, Coverage, CoveredRule, NoApplicableRuleLoc, PremiseLoc, TestLoc,
+};
 use formality_coverage::report;
 use formality_coverage::scrape::{scrape_text, Judgment, Premise, PremiseKind, Rule};
 
@@ -198,27 +200,36 @@ fn prove_thing_coverage() -> Coverage {
         BTreeSet::from(["if_false".to_string()]),
     );
     Coverage {
-        positive: BTreeSet::from([CoveredRule {
-            judgment: "prove_thing".into(),
-            rule: "positive".into(),
-        }]),
+        positive: BTreeMap::from([(
+            CoveredRule {
+                judgment: "prove_thing".into(),
+                rule: "positive".into(),
+            },
+            BTreeSet::from([TestLoc {
+                file: "tests/prove_thing.rs".into(),
+                line: 42,
+            }]),
+        )]),
         negative_premises,
         no_applicable_rule: BTreeSet::new(),
     }
 }
 
+/// Base URL used in report snapshots to exercise the test-link rendering.
+const GITHUB_BASE: &str = "https://github.com/example/repo/blob/main";
+
 #[test]
 fn markdown_index_snapshot() {
     let judgments = vec![prove_thing_judgment()];
     let cov = prove_thing_coverage();
-    let md = report::render_index(&judgments, &cov);
+    let md = report::render_index(&judgments, &cov, Some(GITHUB_BASE));
     expect![[r#"
         # Coverage report
 
         | Judgment/Rule | Positive coverage | Negative coverage |
         | --- | --- | --- |
         | **[prove_thing](./prove_thing.md)** | - | - |
-        | ↳ [positive](./prove_thing.md#positive) | ✓ | 1/1 |
+        | ↳ [positive](./prove_thing.md#positive) | [✓](https://github.com/example/repo/blob/main/tests/prove_thing.rs#L42) | 1/1 |
         | ↳ [zero](./prove_thing.md#zero) | ✗ | 0/1 |
     "#]]
     .assert_eq(&md);
@@ -228,7 +239,7 @@ fn markdown_index_snapshot() {
 fn markdown_subpage_snapshot() {
     let j = prove_thing_judgment();
     let cov = prove_thing_coverage();
-    let md = report::render_subpage(&j, &cov);
+    let md = report::render_subpage(&j, &cov, Some(GITHUB_BASE));
     expect![[r#"
         # Judgment `prove_thing` at fixture.rs:4
 
@@ -236,7 +247,7 @@ fn markdown_subpage_snapshot() {
 
         | Rule | Line | Positive coverage |
         | --- | --- | --- |
-        | <a id="positive"></a>`positive` | 10 | ✓ |
+        | <a id="positive"></a>`positive` | 10 | [✓](https://github.com/example/repo/blob/main/tests/prove_thing.rs#L42) |
         | <a id="zero"></a>`zero` | 16 | ✗ |
 
         ## Premises (negative coverage)
@@ -266,7 +277,7 @@ fn infallible_premise_renders_as_na() {
     };
     let cov = Coverage::default();
 
-    let index = report::render_index(&[j.clone()], &cov);
+    let index = report::render_index(&[j.clone()], &cov, None);
     expect![[r#"
         # Coverage report
 
@@ -277,7 +288,7 @@ fn infallible_premise_renders_as_na() {
     "#]]
     .assert_eq(&index);
 
-    let subpage = report::render_subpage(&j, &cov);
+    let subpage = report::render_subpage(&j, &cov, None);
     expect![[r#"
         # Judgment `easy` at fixture.rs:1
 
@@ -306,7 +317,7 @@ fn no_applicable_rule_renders_in_index_and_subpage() {
         line: 4,
     });
 
-    let index = report::render_index(&[j.clone()], &cov);
+    let index = report::render_index(&[j.clone()], &cov, None);
     expect![[r#"
         # Coverage report
 
@@ -318,7 +329,7 @@ fn no_applicable_rule_renders_in_index_and_subpage() {
     "#]]
     .assert_eq(&index);
 
-    let subpage = report::render_subpage(&j, &cov);
+    let subpage = report::render_subpage(&j, &cov, None);
     assert!(subpage.contains("_No applicable rule observed:"));
 }
 
@@ -333,7 +344,7 @@ fn empty_rules_renders_no_rules_message() {
         rules: vec![],
     };
     let cov = Coverage::default();
-    let md = report::render_subpage(&j, &cov);
+    let md = report::render_subpage(&j, &cov, None);
     expect![[r#"
         # Judgment `lonely` at fixture.rs:1
 
@@ -360,6 +371,16 @@ fn jsonl_reads_positive_and_negative_records() {
 
     let cov = jsonl::read(&path).unwrap();
     assert_eq!(cov.positive.len(), 1);
+
+    // The test location of the positive record is retained so the report can
+    // link the ✓ back to the test on GitHub.
+    let tests = cov
+        .positive_tests("j1", "r1")
+        .expect("rule r1 should be covered");
+    assert!(tests.contains(&TestLoc {
+        file: "a.rs".into(),
+        line: 1,
+    }));
 
     let causes = cov.premise_causes_for("f.rs", 11);
     let causes: Vec<&str> = causes.iter().map(String::as_str).collect();
