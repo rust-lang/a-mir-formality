@@ -4,14 +4,16 @@
 //! Negative coverage is premise-level: for each fallible premise we report
 //! whether some test failed trying to prove it.
 
-use crate::jsonl::{Coverage, CoveredRule};
+use crate::jsonl::{Coverage, TestLoc};
 use crate::scrape::{Judgment, Premise, Rule};
 use anyhow::{Context, Result};
-use std::collections::{BTreeSet, HashSet};
+use std::collections::HashSet;
 use std::path::Path;
 
-/// Render the top-level coverage table.
-pub fn render_index(judgments: &[Judgment], cov: &Coverage) -> String {
+/// Render the top-level coverage table. When `github_base` is set (e.g.
+/// `https://github.com/rust-lang/a-mir-formality/blob/main`), each ✓ links to
+/// a test that exercised the rule.
+pub fn render_index(judgments: &[Judgment], cov: &Coverage, github_base: Option<&str>) -> String {
     let mut s = String::new();
     s.push_str("# Coverage report\n\n");
     s.push_str("| Judgment/Rule | Positive coverage | Negative coverage |\n");
@@ -29,7 +31,7 @@ pub fn render_index(judgments: &[Judgment], cov: &Coverage) -> String {
             slug = slug,
         ));
         for r in &j.rules {
-            let pos = positive_mark(&cov.positive, &j.name, &r.name);
+            let pos = positive_cell(cov, &j.name, &r.name, github_base);
             let neg = negative_index_cell(cov, &j.file, r);
             s.push_str(&format!(
                 "| ↳ [{rname}](./{slug}.md#{anchor}) | {pos} | {neg} |\n",
@@ -45,7 +47,7 @@ pub fn render_index(judgments: &[Judgment], cov: &Coverage) -> String {
 }
 
 /// Render one subpage per judgment.
-pub fn render_subpage(j: &Judgment, cov: &Coverage) -> String {
+pub fn render_subpage(j: &Judgment, cov: &Coverage, github_base: Option<&str>) -> String {
     let mut s = String::new();
     s.push_str(&format!(
         "# Judgment `{}` at {}:{}\n\n",
@@ -64,7 +66,7 @@ pub fn render_subpage(j: &Judgment, cov: &Coverage) -> String {
     s.push_str("| Rule | Line | Positive coverage |\n");
     s.push_str("| --- | --- | --- |\n");
     for r in &j.rules {
-        let pos = positive_mark(&cov.positive, &j.name, &r.name);
+        let pos = positive_cell(cov, &j.name, &r.name, github_base);
         s.push_str(&format!(
             "| <a id=\"{anchor}\"></a>`{rname}` | {line} | {pos} |\n",
             anchor = anchor(&r.name),
@@ -100,15 +102,28 @@ pub fn render_subpage(j: &Judgment, cov: &Coverage) -> String {
     s
 }
 
-fn positive_mark(covered: &BTreeSet<CoveredRule>, judgment: &str, rule: &str) -> &'static str {
-    let hit = covered.contains(&CoveredRule {
-        judgment: judgment.to_string(),
-        rule: rule.to_string(),
-    });
-    if hit {
-        "✓"
-    } else {
-        "✗"
+/// Positive-coverage cell for a rule: `✗` if no test exercised it, otherwise a
+/// `✓` linking to one such test (the first, deterministically) when a
+/// `github_base` is configured, or a plain `✓` when it is not.
+fn positive_cell(cov: &Coverage, judgment: &str, rule: &str, github_base: Option<&str>) -> String {
+    match cov
+        .positive_tests(judgment, rule)
+        .and_then(|locs| locs.iter().next())
+    {
+        Some(loc) => test_link(github_base, loc),
+        None => "✗".to_string(),
+    }
+}
+
+/// A `✓` linking to `loc` on GitHub, or a plain `✓` when no base URL is set.
+fn test_link(github_base: Option<&str>, loc: &TestLoc) -> String {
+    match github_base {
+        Some(base) => format!(
+            "[✓]({base}/{file}#L{line})",
+            file = loc.file,
+            line = loc.line
+        ),
+        None => "✓".to_string(),
     }
 }
 
@@ -152,9 +167,14 @@ fn premise_label(raw: &str) -> String {
 }
 
 /// Write the index and per-judgment subpages into `out_dir`.
-pub fn write_all(out_dir: &Path, judgments: &[Judgment], cov: &Coverage) -> Result<()> {
+pub fn write_all(
+    out_dir: &Path,
+    judgments: &[Judgment],
+    cov: &Coverage,
+    github_base: Option<&str>,
+) -> Result<()> {
     std::fs::create_dir_all(out_dir).with_context(|| format!("creating {}", out_dir.display()))?;
-    let index = render_index(judgments, cov);
+    let index = render_index(judgments, cov, github_base);
     std::fs::write(out_dir.join("coverage.md"), index)?;
 
     // Two judgments with the same name (or names that differ only by characters
@@ -169,7 +189,7 @@ pub fn write_all(out_dir: &Path, judgments: &[Judgment], cov: &Coverage) -> Resu
                 j.name, j.file, j.line,
             );
         }
-        let body = render_subpage(j, cov);
+        let body = render_subpage(j, cov, github_base);
         std::fs::write(out_dir.join(format!("{}.md", slug)), body)?;
     }
     Ok(())
