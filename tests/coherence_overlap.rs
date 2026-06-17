@@ -301,9 +301,24 @@ fn is_local_unknowable_trait_ref() {
         impl<T, U> Overlap<U> for T
         where
             <T as Project>::Assoc: Foo<U> {}
-        impl<T> Overlap<LocalType> for () {}
+        impl Overlap<LocalType> for () {}
     }])
     .skip_execute()
+    .rustc_err(expect_test::expect![[r#"
+            Checking mycore v0.1.0 (/tmp/formality-NXqOxy/crates/mycore)
+            Checking foo v0.1.0 (/tmp/formality-NXqOxy/crates/foo)
+        error[E0119]: conflicting implementations of trait `Overlap<LocalType>` for type `()`
+         --> crates/foo/src/lib.rs:9:1
+          |
+        7 | impl<T00, T01> Overlap<T01> for T00 where <T00 as Project>::Assoc: Foo<T01> {}
+          | --------------------------------------------------------------------------- first implementation here
+        8 |
+        9 | impl Overlap<LocalType> for () {}
+          | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ conflicting implementation for `()`
+
+        For more information about this error, try `rustc --explain E0119`.
+        error: could not compile `foo` (lib) due to 1 previous error
+    "#]])
     .ok()
 }
 
