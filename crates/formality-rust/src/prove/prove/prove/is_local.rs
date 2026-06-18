@@ -1,6 +1,7 @@
 use crate::{
     grammar::{
-        AliasTy, Lt, Parameter, PredicateTy, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
+        AliasName, AliasTy, Lt, Parameter, PredicateTy, RigidName, RigidTy, TraitRef, TyData,
+        Variable, Wcs,
     },
     prove::prove::Constrained,
 };
@@ -58,7 +59,6 @@ judgment_fn! {
     ) => Constraints {
         debug(assumptions, goal, env)
         assert(env.bias() == Bias::Completeness)
-
         (
             (may_be_downstream_trait_ref(decls, env, assumptions, goal) => c)
             --- ("may be defined downstream")
@@ -104,6 +104,13 @@ judgment_fn! {
     ) => Constraints {
         debug(parameter, assumptions, env)
         assert(env.bias() == Bias::Completeness)
+        (
+            // Projections from remote traits are not safe to rule out during
+            // coherence, so we treat them as maybe downstream.
+            (if !decls.is_local_trait_id(&name.as_associated_ty_id().unwrap().trait_id))
+            --- ("projection from remote trait")
+            (may_be_downstream_parameter(decls, env, assumptions, AliasTy { name, parameters: _ }) => Constraints::none(env))
+        )
         (
             // existential variables *could* be inferred to downstream types; depends on the substitution
             // we ultimately have.
