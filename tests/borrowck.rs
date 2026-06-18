@@ -3094,3 +3094,34 @@ fn loan_cannot_outlive_lifetime_pass() {
     .skip_execute()
     .ok()
 }
+
+
+/// Use of an uninitialized variable should be an error.
+///
+/// ```rust,ignore
+/// fn foo() -> u32 {
+///     let x: u32;
+///     x  // ERROR: x isn't initialized
+/// }
+/// ```
+#[formality_core::test]
+fn future_outlives() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            exists<'aa, 'ab, 'y> {
+                let a: u32 = 22 _ u32;
+                let b: u32 = 22 _ u32;
+                let a_a: &'aa u32 = &'aa a;
+                let a_b: &'ab u32 = &'ab b;
+                let y: &'y u32 = a_a;
+
+                b = 23 _ u32;
+
+                y = a_b;
+                *y;
+            }
+        }
+    }])
+    .skip_execute()
+    .err(expect_test::expect![[""]])
+}

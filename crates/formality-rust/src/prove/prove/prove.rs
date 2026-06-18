@@ -4,7 +4,6 @@ mod env;
 mod is_local;
 mod minimize;
 mod negation;
-mod prove_after;
 mod prove_const_has_type;
 mod prove_eq;
 pub mod prove_normalize;
@@ -35,11 +34,14 @@ pub fn prove(
     env: impl Upcast<Env>,
     assumptions: impl Upcast<Wcs>,
     goal: impl Upcast<Wcs>,
-) -> ProvenSet<Constraints> {
+) -> ProvenSet<Env> {
     let decls: Program = decls.upcast();
     let env: Env = env.upcast();
     let assumptions: Wcs = assumptions.upcast();
     let goal: Wcs = goal.upcast();
+
+    // Apply the current substitution.
+    let (assumptions, goals) = env.substitution().apply((assumptions, goal));
 
     // "Minimize" the env/assumptions/goals so that we better detect cycles.
     let (env, (assumptions, goal), min) = minimize::minimize(env, (assumptions, goal));

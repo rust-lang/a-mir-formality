@@ -15,7 +15,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goals: Wcs,
-    ) => Constraints {
+    ) => Env {
         debug(goals, assumptions, env)
 
         assert(env.encloses((assumptions, goals)))

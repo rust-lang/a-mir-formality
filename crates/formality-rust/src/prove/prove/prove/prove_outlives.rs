@@ -39,7 +39,7 @@ judgment_fn! {
         assumptions: Wcs,
         a: Parameter,
         b: Parameter,
-    ) => Constraints {
+    ) => Env {
         debug(a, b, assumptions, env)
 
         trivial(a == b => {

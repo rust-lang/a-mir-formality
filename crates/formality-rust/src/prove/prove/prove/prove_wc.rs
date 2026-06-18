@@ -28,7 +28,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: Wc,
-    ) => Constraints {
+    ) => Env {
         debug(goal, assumptions, env)
 
         (

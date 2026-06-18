@@ -1,5 +1,5 @@
 use crate::grammar::{
-    Binder, ExistentialVar, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable, Wc,
+    Binder, ExistentialVar, ParameterKind, Substitution, UniversalVar, VarIndex, VarSubstitution, Variable, Wc
 };
 use crate::rust::{Fold, Visit};
 use formality_core::set;
@@ -42,8 +42,17 @@ pub struct Env {
     /// All terms should only reference free variables found in this set.
     variables: Vec<Variable>,
 
+    /// Maps an existential variable to the value which it must be equal to.
+    /// For example `Vec<?A> = Vec<u32>` would result in a substitution `[?A => u32]`.`
+    substitution: Substitution,
+
     /// XXX this needs to be explained
     bias: Bias,
+
+    /// If this is false, it indicates that the result is actually *ambiguous* and not known to be true.
+    /// This occurs when e.g. we hit overflow or some other condition in which we can neither prove the
+    /// result true nor false.
+    known_true: bool,
 
     /// Pending goals that have not yet been proven.
     /// When we prove a conjunction `(A && B)`, proving `A` may result in
@@ -66,8 +75,10 @@ pub struct Env {
 impl Env {
     pub fn new_with_bias(bias: Bias) -> Self {
         Env {
+            known_true: true,
             variables: Default::default(),
             bias,
+            substitution: Default::default(),
             pending: vec![],
             allow_pending_outlives: false,
         }
@@ -79,6 +90,14 @@ impl Env {
 
     pub fn bias(&self) -> Bias {
         self.bias
+    }
+
+    pub fn known_true(&self) -> bool {
+        self.known_true
+    }
+
+    pub fn substitution(&self) -> &Substitution {
+        &self.substitution
     }
 
     pub fn allow_pending_outlives(&self) -> bool {
@@ -98,6 +117,7 @@ impl Env {
         env.pending.push(w.upcast());
         env
     }
+
 }
 
 cast_impl!(Env);

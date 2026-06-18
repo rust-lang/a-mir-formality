@@ -55,7 +55,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
-    ) => Constraints {
+    ) => Env {
         debug(assumptions, goal, env)
         assert(env.bias() == Bias::Completeness)
 
@@ -82,7 +82,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
-    ) => Constraints {
+    ) => Env {
         debug(goal, assumptions, env)
         assert(env.bias() == Bias::Completeness)
         (
@@ -101,7 +101,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
-    ) => Constraints {
+    ) => Env {
         debug(parameter, assumptions, env)
         assert(env.bias() == Bias::Completeness)
         (
@@ -185,7 +185,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
-    ) => Constraints {
+    ) => Env {
         debug(parameter, assumptions, env)
 
         (
@@ -204,7 +204,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
-    ) => Constraints {
+    ) => Env {
         debug(goal, assumptions, env)
         assert(env.bias() == Bias::Soundness)
         (
@@ -241,7 +241,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
-    ) => Constraints {
+    ) => Env {
         debug(parameter, assumptions, env)
         assert(env.bias() == Bias::Soundness)
 
@@ -282,7 +282,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: Parameter,
-    ) => Constraints {
+    ) => Env {
         debug(goal, assumptions, env)
         assert(env.bias() == Bias::Soundness)
 

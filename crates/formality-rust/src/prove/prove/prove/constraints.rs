@@ -7,7 +7,7 @@ use formality_core::{cast_impl, visit::CoreVisit, Downcast, Upcast, UpcastFrom};
 ///
 /// We sometimes use `Constrained<()>` as a "upcast-able synonym" for `Constraints`.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Constrained<T, C = Constraints>(pub T, pub C);
+pub struct Constrained<T>(pub T, pub Env);
 
 impl<T> Constrained<T> {
     pub fn none(env: impl Upcast<Env>, value: T) -> Self {
@@ -48,42 +48,6 @@ where
     }
 }
 
-/// Captures the conditions under which something is true.
-///
-/// Examples:
-///
-/// * The `substitution` indicates equality constraints for existential (inference) variables.
-///   E.g. if you try to prove `Vec<?A> = Vec<u32>`, the result will be "True; [?A => u32]".
-///   This substitution is then to be applied to any future goals/terms that may reference `?A`.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Constraints {
-    /// The environment in which future goals should be proven.
-    /// This is an extension of the original environment; it may contain
-    /// new variables and new pending proof obligations.
-    pub env: Env,
-
-    /// If this is false, it indicates that the result is actually *ambiguous* and not known to be true.
-    /// This occurs when e.g. we hit overflow or some other condition in which we can neither prove the
-    /// result true nor false.
-    pub known_true: bool,
-
-    /// Maps an existential variable to the value which it must be equal to.
-    /// For example `Vec<?A> = Vec<u32>` would result in a substitution `[?A => u32]`.`
-    pub substitution: Substitution,
-}
-
-cast_impl!(Constraints);
-
-impl<E, A, B> UpcastFrom<(E, (A, B))> for Constraints
-where
-    E: Upcast<Env>,
-    A: Upcast<Variable>,
-    B: Upcast<Parameter>,
-{
-    fn upcast_from((env, pair): (E, (A, B))) -> Self {
-        Constraints::from(env, std::iter::once(pair))
-    }
-}
 
 impl Constraints {
     pub fn none(env: impl Upcast<Env>) -> Self {
@@ -161,6 +125,10 @@ impl Constraints {
         // Apply c2's substitution to our substitution (since it may have bound
         // existential variables that we reference)
         let c1_substitution = c2.substitution.apply(&self.substitution);
+        //
+        // imagine A required ?X = Vec[?Y]
+        // B required ?Y = u32
+        // then the combined constraints should be [?X = Vec[u32], ?Y = u32]
 
         Constraints {
             env: c2.env,

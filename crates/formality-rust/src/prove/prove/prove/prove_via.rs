@@ -19,7 +19,7 @@ judgment_fn! {
         assumptions: Wcs,
         via: WcData,
         goal: WcData,
-    ) => Constraints {
+    ) => Env {
         debug(goal, via, assumptions, env)
 
         (

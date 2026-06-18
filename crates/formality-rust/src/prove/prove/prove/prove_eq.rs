@@ -11,11 +11,11 @@ use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 use crate::prove::prove::{
     decls::Program,
     prove::{
-        constraints::occurs_in, prove, prove_after::prove_after, prove_normalize::prove_normalize,
+        constraints::occurs_in, prove, prove_normalize::prove_normalize,
     },
 };
 
-use super::{constraints::Constraints, env::Env};
+use super::{env::Env};
 
 /// Goal(s) to prove `a` and `b` are equal
 pub fn eq(a: impl Upcast<Parameter>, b: impl Upcast<Parameter>) -> Relation {
@@ -29,12 +29,12 @@ judgment_fn! {
         assumptions: Wcs,
         a: Parameter,
         b: Parameter,
-    ) => Constraints {
+    ) => Env {
         debug(a, b, assumptions, env)
 
         assert(a.kind() == b.kind())
 
-        trivial(a == b => Constraints::none(env))
+        trivial(a == b => env)
 
         (
             (prove_eq(decls, env, assumptions, r, l) => env_c)
@@ -61,16 +61,18 @@ judgment_fn! {
         )
 
         (
+            // We expect that all existential variables have been substituted away.
+            (assert !env.substitution().maps(v))
             (prove_existential_var_eq(decls, env, assumptions, v, r) => c)
             ----------------------------- ("existential")
             (prove_eq(decls, env, assumptions, Variable::ExistentialVar(v), r) => c)
         )
 
         (
-            (prove_normalize(decls, env, assumptions, x) => Constrained(y, c))
-            (prove_after(decls, c, assumptions, eq(y, z)) => c)
+            (prove_normalize(decls, env, assumptions, x) => Constrained(y, env))
+            (prove(decls, env, assumptions, eq(y, z)) => env)
             ----------------------------- ("normalize-l")
-            (prove_eq(decls, env, assumptions, x, z) => c)
+            (prove_eq(decls, env, assumptions, x, z) => env)
         )
     }
 }
@@ -82,7 +84,7 @@ judgment_fn! {
         assumptions: Wcs,
         v: ExistentialVar,
         b: Parameter,
-    ) => Constraints {
+    ) => Env {
         debug(v, b, assumptions, env)
 
         // If the RHS is *not* a variable, e.g., we are trying to prove something like this
@@ -94,9 +96,9 @@ judgment_fn! {
         // `equate_variable` judgment manages that case.
         (
             (if let None = t.downcast::<Variable>())
-            (equate_variable(decls, env, assumptions, v, t) => c)
+            (equate_variable(decls, env, assumptions, v, t) => env)
             ----------------------------- ("existential-nonvar")
-            (prove_existential_var_eq(decls, env, assumptions, v, t) => c)
+            (prove_existential_var_eq(decls, env, assumptions, v, t) => env)
         )
 
         // If the RHS IS an existential variable, e.g., we are trying to prove something like this
@@ -153,7 +155,7 @@ fn equate_variable(
     assumptions: impl Upcast<Wcs>,
     x: impl Upcast<ExistentialVar>,
     p: impl Upcast<Parameter>,
-) -> ProvenSet<Constraints> {
+) -> ProvenSet<Env> {
     let decls: Program = decls.upcast();
     let mut env: Env = env.upcast();
     let assumptions: Wcs = assumptions.upcast();
@@ -181,6 +183,30 @@ fn equate_variable(
         );
     }
 
+    // forall<A> {
+    //   exists<B> {
+    //     A = B // provable
+    //   }
+    // }
+
+    // exists<A> {
+    //   forall<B> {
+    //     A = B // not provable
+    //   }
+    // }
+
+    // exists<A> { // U0
+    //   forall<B> { // U1
+    //     exists<C> { // U2
+    //       A = Vec<C>
+    //       C = B // not provable
+    //       // Together: A = Vec<B> // and an existential variable in U0 cannot name a name in U1
+    //     }
+    //   }
+    // }
+    //
+    // substitution for a variable in Ux can only mention variables in Ux or below
+
     // Map each free variable `fv` in `p` that is of higher universe than `x`
     // to a fresh variable `y` of lower universe than `x`.
     //
@@ -199,6 +225,13 @@ fn equate_variable(
             }
         })
         .collect();
+
+    // [A, B, C] |- A = Vec<C>
+    // [Z, A, B, C] |- (A = Vec<Z>) && (Z = C)
+    // [Z, A, B, C] |- (A = <A as Trait<C>>::Foo) // where forall<C> <A as Trait<C>>::Foo = A
+    // [Z, A, B, C] |- (A = <A as Trait<Z>>::Foo) && (Z = C)
+    // [Z, A, B, C] |- (A = A) && (Z = C)
+    // we should explore this
 
     // Introduce the following constraints:
     //
