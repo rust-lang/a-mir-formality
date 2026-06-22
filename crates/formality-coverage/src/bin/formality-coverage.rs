@@ -21,6 +21,12 @@ struct Args {
     /// Directory where the markdown report will be written.
     #[arg(long, default_value = "target/coverage-report")]
     out_dir: PathBuf,
+
+    /// Base URL for test links, e.g.
+    /// `https://github.com/rust-lang/a-mir-formality/blob/main`. When omitted,
+    /// ✓ marks render as plain text instead of links.
+    #[arg(long)]
+    github_base: Option<String>,
 }
 
 fn main() -> Result<()> {
@@ -38,7 +44,8 @@ fn main() -> Result<()> {
 
     let positive_count = cov.positive.len();
     let negative_premise_count = cov.negative_premises.len();
-    report::write_all(&args.out_dir, &judgments, &cov)?;
+    let github_base = args.github_base.as_deref().map(|s| s.trim_end_matches('/'));
+    report::write_all(&args.out_dir, &judgments, &cov, github_base)?;
     eprintln!(
         "wrote {} judgments ({} positive rules, {} negatively-tested premises) to {}",
         judgments.len(),

@@ -18,6 +18,14 @@ pub struct CoveredRule {
     pub rule: String,
 }
 
+/// The source location of a `#[test]` that exercised some rule. Lets the report
+/// turn a ✓ into a link to the test on GitHub.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct TestLoc {
+    pub file: String,
+    pub line: u32,
+}
+
 /// The source location of a premise that failed in some negative test. The
 /// `file`/`line` come from the macro respanning the failure onto the failing
 /// premise, so they match the premise's position in the judgment source.
@@ -38,8 +46,9 @@ pub struct NoApplicableRuleLoc {
 /// Aggregated coverage data from a JSONL file.
 #[derive(Default, Debug)]
 pub struct Coverage {
-    /// `(judgment, rule)` pairs that fired in at least one positive test.
-    pub positive: BTreeSet<CoveredRule>,
+    /// `(judgment, rule)` pairs that fired in at least one positive test, each
+    /// mapped to the test locations that exercised them.
+    pub positive: BTreeMap<CoveredRule, BTreeSet<TestLoc>>,
     /// Each failing-premise location with the set of clause-cause tags observed.
     pub negative_premises: BTreeMap<PremiseLoc, BTreeSet<String>>,
     /// Judgments observed to fail with no applicable rule.
@@ -59,6 +68,14 @@ impl Coverage {
             }
         }
         out
+    }
+
+    /// Test locations that exercised rule `rule` of `judgment`, if any fired.
+    pub fn positive_tests(&self, judgment: &str, rule: &str) -> Option<&BTreeSet<TestLoc>> {
+        self.positive.get(&CoveredRule {
+            judgment: judgment.to_string(),
+            rule: rule.to_string(),
+        })
     }
 
     /// True if `judgment_name` (in a file overlapping `judgment_file`) was
@@ -103,19 +120,32 @@ pub fn read(path: &Path) -> Result<Coverage> {
     Ok(cov)
 }
 
-/// Back-compat wrapper for tools that only want the positive set.
+/// Back-compat wrapper for tools that only want the set of covered rules,
+/// without their test locations.
 pub fn read_positive(path: &Path) -> Result<BTreeSet<CoveredRule>> {
-    Ok(read(path)?.positive)
+    Ok(read(path)?.positive.into_keys().collect())
 }
 
 fn ingest(record: CoverageRecord, cov: &mut Coverage) {
     match record {
-        CoverageRecord::Positive { rules, .. } => {
+        CoverageRecord::Positive {
+            test_file,
+            test_line,
+            rules,
+            ..
+        } => {
+            let loc = TestLoc {
+                file: test_file,
+                line: test_line,
+            };
             for r in rules {
-                cov.positive.insert(CoveredRule {
-                    judgment: r.judgment,
-                    rule: r.rule,
-                });
+                cov.positive
+                    .entry(CoveredRule {
+                        judgment: r.judgment,
+                        rule: r.rule,
+                    })
+                    .or_default()
+                    .insert(loc.clone());
             }
         }
         CoverageRecord::Negative { reasons, .. } => {
