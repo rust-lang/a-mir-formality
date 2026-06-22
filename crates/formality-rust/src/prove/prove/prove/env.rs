@@ -1,6 +1,8 @@
 use crate::grammar::{
-    Binder, ExistentialVar, ParameterKind, Substitution, UniversalVar, VarIndex, VarSubstitution, Variable, Wc
+    Binder, ExistentialVar, ParameterKind, Substitution, UniversalVar, VarIndex, VarSubstitution,
+    Variable, Wc,
 };
+use crate::prove::prove::prove::constraints::occurs_in;
 use crate::rust::{Fold, Visit};
 use formality_core::set;
 use formality_core::{cast_impl, visit::CoreVisit, Set, To, Upcast, UpcastFrom};
@@ -40,19 +42,19 @@ pub enum Bias {
 pub struct Env {
     /// The set of variables that are in scope (universal and existential).
     /// All terms should only reference free variables found in this set.
-    variables: Vec<Variable>,
+    pub variables: Vec<Variable>,
 
     /// Maps an existential variable to the value which it must be equal to.
     /// For example `Vec<?A> = Vec<u32>` would result in a substitution `[?A => u32]`.`
-    substitution: Substitution,
+    pub substitution: Substitution,
 
     /// XXX this needs to be explained
-    bias: Bias,
+    pub bias: Bias,
 
     /// If this is false, it indicates that the result is actually *ambiguous* and not known to be true.
     /// This occurs when e.g. we hit overflow or some other condition in which we can neither prove the
     /// result true nor false.
-    known_true: bool,
+    pub known_true: bool,
 
     /// Pending goals that have not yet been proven.
     /// When we prove a conjunction `(A && B)`, proving `A` may result in
@@ -63,13 +65,13 @@ pub struct Env {
     /// the pending constraints that are now unlocked.
     ///
     /// Whenever a "successful" proof results, the pending obligations
-    pending: Vec<Wc>,
+    pub pending: Vec<Wc>,
 
     /// When true, outlives constraints like `'a: 'b` can be deferred as pending
     /// obligations rather than being proven immediately. This is used during
     /// type checking to accumulate constraints that will be verified by the
     /// borrow checker. When false, outlives must be proven from assumptions.
-    allow_pending_outlives: bool,
+    pub allow_pending_outlives: bool,
 }
 
 impl Env {
@@ -82,6 +84,11 @@ impl Env {
             pending: vec![],
             allow_pending_outlives: false,
         }
+    }
+
+    pub fn update_substitution(&mut self, subst: Substitution) -> Self {
+        self.substitution = subst;
+        self.clone()
     }
 
     pub fn only_universal_variables(&self) -> bool {
@@ -118,6 +125,78 @@ impl Env {
         env
     }
 
+    /// Given a set of variables `v` created via [`Env::instantiate_universally`][]
+    /// or [`Env::instantiate_existentially`][], removes `v` and all variables created *since* `v`
+    /// from the environment and from the substitution.
+    pub fn pop_subst<V>(&mut self, v: &[V]) -> Self
+    where
+        V: Upcast<Variable> + Copy,
+    {
+        if v.is_empty() {
+            return self.clone();
+        }
+
+        let vars = self.pop_vars(v);
+        self.substitution -= vars;
+
+        self.clone()
+    }
+
+    pub fn unconditionally_true(&self) -> bool {
+        self.known_true && self.substitution.is_empty() && self.pending.is_empty()
+    }
+
+    /// Given constraints from solving the subparts of `(A /\ B)`, yield combined constraints.
+    ///
+    /// # Parameters
+    ///
+    /// * `self` -- the constraints from solving `A`
+    /// * `c2` -- the constraints from solving `B` (after applying substitution from `self` to `B`)
+    pub fn seq(&self, c2: &Env) -> Self {
+        tracing::debug!("Constraints::seq({self:?}, {c2:?}");
+
+        self.assert_valid();
+        c2.assert_valid();
+        assert!(c2.is_valid_extension_of(&self));
+
+        // This substitution should have already been applied to produce
+        // `c2`, therefore we don't expect any bindings for *our* variables.
+        assert!(self
+            .substitution()
+            .domain()
+            .is_disjoint(&c2.substitution().domain()));
+
+        // Similarly, we don't expect any references to variables that we have
+        // defined.
+        assert!(self
+            .substitution()
+            .domain()
+            .iter()
+            .all(|v| !occurs_in(v, &c2.substitution())));
+
+        // Apply c2's substitution to our substitution (since it may have bound
+        // existential variables that we reference)
+        let c1_substitution = c2.substitution().apply(&self.substitution());
+
+        let new_subst = c1_substitution
+            .into_iter()
+            .chain(c2.substitution().clone().into_iter())
+            .collect();
+        let new_known_true = self.known_true && c2.known_true;
+
+        Env {
+            known_true: new_known_true,
+            substitution: new_subst,
+            ..c2.clone()
+        }
+    }
+
+    pub fn ambiguous(&self) -> Self {
+        Env {
+            known_true: false,
+            ..self.clone()
+        }
+    }
 }
 
 cast_impl!(Env);
@@ -365,6 +444,7 @@ impl Env {
         &self.variables
     }
 
+    // TODO: revisit this again, might need to update substitution.
     pub fn substitute(&self, vs: &VarSubstitution) -> Self {
         Self {
             variables: self
@@ -375,6 +455,8 @@ impl Env {
             bias: self.bias,
             pending: vs.apply(&self.pending),
             allow_pending_outlives: self.allow_pending_outlives,
+            known_true: self.known_true,
+            substitution: self.substitution.clone(),
         }
     }
 

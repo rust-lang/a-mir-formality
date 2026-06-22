@@ -15,7 +15,7 @@ mod prove_wc_list;
 mod prove_wf;
 
 use crate::grammar::Wcs;
-pub use constraints::{Constrained, Constraints};
+pub use constraints::Constrained;
 use formality_core::judgment::{EachProof, FailedRule, FailureLocation, ProofTree};
 use formality_core::visit::CoreVisit;
 use formality_core::{map, set, ProvenSet, Upcast};
@@ -41,7 +41,7 @@ pub fn prove(
     let goal: Wcs = goal.upcast();
 
     // Apply the current substitution.
-    let (assumptions, goals) = env.substitution().apply((assumptions, goal));
+    let (assumptions, goal) = env.substitution().apply((assumptions, goal.clone()));
 
     // "Minimize" the env/assumptions/goals so that we better detect cycles.
     let (env, (assumptions, goal), min) = minimize::minimize(env, (assumptions, goal));
@@ -64,10 +64,7 @@ pub fn prove(
             term_in.size(),
             decls.max_size
         );
-        return ProvenSet::singleton((
-            Constraints::none(env).ambiguous(),
-            ProofTree::leaf("max term size exceeded"),
-        ));
+        return ProvenSet::singleton((env.ambiguous(), ProofTree::leaf("max term size exceeded")));
     }
 
     // Assert the term we are trying to prove should not have any variables that are not in the environment.

@@ -1,10 +1,7 @@
 use crate::grammar::{WcData, Wcs};
 use formality_core::judgment_fn;
 
-use crate::prove::prove::{
-    decls::Program,
-    prove::{constraints::Constraints, env::Env, prove, prove_after::prove_after},
-};
+use crate::prove::prove::{decls::Program, prove, prove::env::Env};
 
 judgment_fn! {
     /// Check whether the where-clause `via` (which is one of the `assumptions` that are in in scope)
@@ -28,9 +25,9 @@ judgment_fn! {
             // `g` = "goal, the name for something that we are trying to prove.
             (let (skel_g, parameters_g) = pred_2.debone())
             (if skel_c == skel_g)!
-            (prove(decls, env, assumptions, Wcs::all_eq(parameters_c, parameters_g)) => c)
+            (prove(decls, env, assumptions, Wcs::all_eq(parameters_c, parameters_g)) => env)
             ----------------------------- ("predicate-congruence-axiom")
-            (prove_via(decls, env, assumptions, WcData::Predicate(pred_1), WcData::Predicate(pred_2)) => c)
+            (prove_via(decls, env, assumptions, WcData::Predicate(pred_1), WcData::Predicate(pred_2)) => env)
         )
 
         (
@@ -39,7 +36,7 @@ judgment_fn! {
             (if skel_c == skel_g)
             (if parameters_c == parameters_g)! // for relations, we require 100% match
             ----------------------------- ("relation-axiom")
-            (prove_via(_decls, env, _assumptions, WcData::Relation(rel_1), WcData::Relation(rel_2)) => Constraints::none(env))
+            (prove_via(_decls, env, _assumptions, WcData::Relation(rel_1), WcData::Relation(rel_2)) => env)
         )
 
         // If you have `where for<'a> T: Trait<'a>` then you can prove `T: Trait<'b>` for any `'b`.
@@ -47,19 +44,19 @@ judgment_fn! {
             (let (env, subst) = env.existential_substitution(binder))
             (let via1 = binder.instantiate_with(&subst).unwrap())
             // Try to prove `T: Trait<?a> == goal`.
-            (prove_via(decls, env, assumptions, via1, goal) => c)
+            (prove_via(decls, env, assumptions, via1, goal) => env)
             ----------------------------- ("forall")
-            (prove_via(decls, env, assumptions, WcData::ForAll(binder), goal) => c.pop_subst(&subst))
+            (prove_via(decls, env, assumptions, WcData::ForAll(binder), goal) => env.clone().pop_subst(&subst))
         )
 
         // If you have `where if (T: Debug) T: Foo` (not in Rust but it should be...)...
         (
             // if the goal is `T: Foo`...
-            (prove_via(decls, env, assumptions, wc_consequence, goal) => c)
+            (prove_via(decls, env, assumptions, wc_consequence, goal) => env)
             // ...and we can prove `T: Debug`... then it holds.
-            (prove_after(decls, c, assumptions, wc_condition) => c)
+            (prove(decls, env, assumptions, wc_condition) => env)
             ----------------------------- ("implies")
-            (prove_via(decls, env, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => c)
+            (prove_via(decls, env, assumptions, WcData::Implies(wc_condition, wc_consequence), goal) => env)
         )
     }
 }

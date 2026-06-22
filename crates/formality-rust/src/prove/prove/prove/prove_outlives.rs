@@ -1,9 +1,8 @@
 use crate::grammar::Wc;
 use crate::grammar::{LtData, Parameter, Relation, RigidTy, Wcs};
+use crate::prove::prove::Env;
 use crate::prove::prove::{decls::Program, prove};
 use formality_core::{judgment_fn, Set, Upcast};
-
-use super::{constraints::Constraints, env::Env};
 
 judgment_fn! {
     /// A *outlives* B if --
@@ -43,25 +42,25 @@ judgment_fn! {
         debug(a, b, assumptions, env)
 
         trivial(a == b => {
-            Constraints::none(env)
+            env
         })
 
         // 'static outlives us all
         (
             ----------------------------- ("static outlives everything")
-            (prove_outlives(_decls, _env, _assumptions, LtData::Static, _b) => Constraints::none(env))
+            (prove_outlives(_decls, _env, _assumptions, LtData::Static, _b) => env)
         )
 
         // Everything outlives 'erased
         (
             ----------------------------- ("anything outlives erased")
-            (prove_outlives(_decls, _env, _assumptions, _a, LtData::Erased) => Constraints::none(env))
+            (prove_outlives(_decls, _env, _assumptions, _a, LtData::Erased) => env)
         )
 
         // 'erased outlives 'static
         (
             ----------------------------- ("erased outlives static")
-            (prove_outlives(_decls, _env, _assumptions, LtData::Erased, LtData::Static) => Constraints::none(env))
+            (prove_outlives(_decls, _env, _assumptions, LtData::Erased, LtData::Static) => env)
         )
 
         // A rigid type `r` outlives `b` if all of `r`'s parameters outlive `b`
@@ -77,7 +76,7 @@ judgment_fn! {
             (let all_outlives = transitively_outlived_by(assumptions, a))
             (if all_outlives.contains(&*b))!
             ----------------------------- ("outlive through assumption")
-            (prove_outlives(_decls, env, assumptions, a, b) => Constraints::none(env))
+            (prove_outlives(_decls, env, assumptions, a, b) => env)
         )
 
         // Rather than proving `'a: 'b` locally, we can add it to the environment
@@ -86,8 +85,7 @@ judgment_fn! {
         (
             (if env.allow_pending_outlives())!
             ----------------------------- ("anything can be pending")
-            (prove_outlives(_decls, env, _assumptions, a, b) => Constraints::none(
-                env.with_pending(Relation::outlives(a, b))
+            (prove_outlives(_decls, env, _assumptions, a, b) => env.with_pending(Relation::outlives(a, b)
             ))
         )
     }

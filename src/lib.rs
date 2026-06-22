@@ -4,7 +4,8 @@ use clap::Parser;
 use formality_core::judgment::ProofTree;
 use formality_rust::check::check_all_crates;
 use formality_rust::grammar::Crates;
-use formality_rust::prove::prove::{test_util::TestAssertion, Constraints};
+use formality_rust::prove::prove::test_util::TestAssertion;
+use formality_rust::prove::prove::Env;
 use formality_rust::rust::try_term;
 
 pub mod test_util;
@@ -50,7 +51,7 @@ pub fn test_program_ok(input: &str) -> anyhow::Result<ProofTree> {
     Ok(proof_tree)
 }
 
-pub fn test_where_clause(program: &str, assertion: &str) -> formality_core::ProvenSet<Constraints> {
+pub fn test_where_clause(program: &str, assertion: &str) -> formality_core::ProvenSet<Env> {
     formality_core::with_tracing_logs(|| {
         let program: Crates = try_term(program).unwrap();
         let _proof_tree = check_all_crates(&program).check_proven().unwrap();

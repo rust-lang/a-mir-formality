@@ -1,12 +1,10 @@
 use crate::grammar::Wcs;
 use formality_core::{judgment_fn, Cons};
 
-use crate::prove::prove::{
-    decls::Program,
-    prove::{constraints::Constraints, prove_after::prove_after},
-};
+use crate::prove::prove::decls::Program;
 
 use super::{env::Env, prove_wc::prove_wc};
+use crate::prove::prove::prove;
 
 judgment_fn! {
     /// Prove that all elements in `goals`, a list of where-clauses, are true, one after the other.
@@ -22,14 +20,14 @@ judgment_fn! {
 
         (
             --- ("none")
-            (prove_wc_list(_decls, env, _assumptions, ()) => Constraints::none(env))
+            (prove_wc_list(_decls, env, _assumptions, ()) => env)
         )
 
         (
-            (prove_wc(decls, env, assumptions, wc0) => c)
-            (prove_after(decls, c, assumptions, wcs1) => c)
+            (prove_wc(decls, env, assumptions, wc0) => env)
+            (prove(decls, env, assumptions, wcs1) => env)
             --- ("some")
-            (prove_wc_list(decls, env, assumptions, Cons(wc0, wcs1)) => c)
+            (prove_wc_list(decls, env, assumptions, Cons(wc0, wcs1)) => env)
         )
     }
 }

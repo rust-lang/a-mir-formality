@@ -3095,7 +3095,6 @@ fn loan_cannot_outlive_lifetime_pass() {
     .ok()
 }
 
-
 /// Use of an uninitialized variable should be an error.
 ///
 /// ```rust,ignore
