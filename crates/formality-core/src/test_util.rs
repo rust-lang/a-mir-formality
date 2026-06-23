@@ -46,8 +46,14 @@ pub fn normalize_paths(s: impl Display) -> String {
     let s = s.to_string();
     // Capture the filename (without path) and strip line:column
     // Handle both forward slashes (Unix) and backslashes (Windows) as path separators
+
+    // Matches paths in the formality output
     let re = regex::Regex::new(r"\((?:[^()]+[/\\])?([^()/\\]+\.rs):\d+:\d+\)").unwrap();
-    re.replace_all(&s, "($1)").to_string()
+    let s = re.replace_all(&s, "($1)").to_string();
+
+    // Matches paths in the rustc output
+    let re = regex::Regex::new(r"--> (?:[^\r\n()]+[/\\])?([^()/\\]+\.rs):\d+:\d+").unwrap();
+    re.replace_all(&s, "--> $1").to_string()
 }
 
 /// Format an error, extracting just the leaf failures if it contains a FailedJudgment.

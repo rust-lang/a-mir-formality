@@ -10,6 +10,7 @@ fn trait_with_valid_fn() {
         }
     ])
     .skip_execute()
+    .rustc_ok()
     .ok();
 }
 
@@ -23,6 +24,7 @@ fn trait_with_valid_associated_type() {
         }
     ])
     .skip_execute()
+    .rustc_ok()
     .ok();
 }
 
@@ -38,6 +40,7 @@ fn trait_with_ill_formed_where_clause() {
             }
         }
     ])
+    .rustc_err(expect_test::expect![[r#""#]])
     .err(expect_test::expect![[r#"
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
