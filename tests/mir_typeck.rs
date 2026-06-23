@@ -10,6 +10,7 @@ fn test_assign_statement_local_only() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -32,6 +33,7 @@ fn test_assign_constant() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -74,6 +76,7 @@ fn test_switch_statment() {
         };
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -86,6 +89,7 @@ fn test_goto_terminator() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -102,6 +106,7 @@ fn test_cyclic_goto() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -114,6 +119,7 @@ fn test_ret_true() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -130,6 +136,7 @@ fn if_else() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -144,7 +151,21 @@ fn if_else_different_return_types() {
                         return false;
                     }
                 }
-            }]).err(expect_test::expect![[r#"
+            }])
+        .rustc_err(expect_test::expect![[r#"
+            error[E0308]: mismatched types
+             --> crates/Foo/src/lib.rs:5:16
+              |
+            1 | pub fn foo(mut b: bool) -> u32 {
+              |                            --- expected `u32` because of return type
+            ...
+            5 |         return false;
+              |                ^^^^^ expected `u32`, found `bool`
+
+            For more information about this error, try `rustc --explain E0308`.
+            error: could not compile `Foo` (lib) due to 1 previous error
+        "#]])
+        .err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
@@ -164,6 +185,7 @@ fn test_call_terminator() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -184,6 +206,7 @@ fn test_place_mention_statement() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -208,6 +231,7 @@ fn test_storage_live_dead() {
         };
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -227,6 +251,7 @@ fn test_struct() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -243,6 +268,7 @@ fn test_let_with_well_formed_type() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -259,6 +285,35 @@ fn test_let_with_ill_formed_type() {
             let s2: S2<S1>;
         }
     }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0277]: the trait bound `S1: Trait1` is not satisfied
+          --> crates/Foo/src/lib.rs:13:17
+           |
+        13 |     let mut s2: S2<S1>;
+           |                 ^^^^^^ unsatisfied trait bound
+           |
+        help: the trait `Trait1` is not implemented for `S1`
+          --> crates/Foo/src/lib.rs:3:1
+           |
+         3 | pub struct S1 {}
+           | ^^^^^^^^^^^^^
+        help: this trait has no implementations, consider adding one
+          --> crates/Foo/src/lib.rs:1:1
+           |
+         1 | pub trait Trait1 {}
+           | ^^^^^^^^^^^^^^^^
+        note: required by a bound in `S2`
+          --> crates/Foo/src/lib.rs:7:10
+           |
+         5 | pub struct S2<T00>
+           |            -- required by a bound in this struct
+         6 | where
+         7 |     T00: Trait1,
+           |          ^^^^^^ required by this bound in `S2`
+
+        For more information about this error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
     .err(expect_test::expect![[r#"
                 the rule "trait implied bound" at (prove_wc.rs) failed because
                   expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
@@ -273,6 +328,16 @@ fn test_call_invalid_fn() {
             return v1;
         }
     }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0425]: cannot find function `foo` in this scope
+         --> crates/Foo/src/lib.rs:2:23
+          |
+        2 |     let mut v1: u32 = foo(0_u32);
+          |                       ^^^ not found in this scope
+
+        For more information about this error, try `rustc --explain E0425`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
     .err(expect_test::expect![[r#"
             the rule "fn-name" at (nll.rs) failed because
               no fn named `foo`
@@ -293,7 +358,34 @@ fn test_pass_non_subtype_arg() {
                     let v0: () = foo(v1);
                     return v0;
                 }
-            }]).err(expect_test::expect![[r#"
+            }])
+        .rustc_err(expect_test::expect![[r#"
+            error[E0308]: mismatched types
+             --> crates/Foo/src/lib.rs:6:26
+              |
+            6 |     let mut v0: () = foo(v1);
+              |                      --- ^^ expected `u32`, found `()`
+              |                      |
+              |                      arguments to this function are incorrect
+              |
+            note: function defined here
+             --> crates/Foo/src/lib.rs:1:8
+              |
+            1 | pub fn foo(mut v1: u32) -> u32 {
+              |        ^^^ -----------
+
+            error[E0308]: mismatched types
+             --> crates/Foo/src/lib.rs:6:22
+              |
+            6 |     let mut v0: () = foo(v1);
+              |                 --   ^^^^^^^ expected `()`, found `u32`
+              |                 |
+              |                 expected due to this
+
+            For more information about this error, try `rustc --explain E0308`.
+            error: could not compile `Foo` (lib) due to 2 previous errors
+        "#]])
+        .err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
@@ -312,6 +404,7 @@ fn test_call_generic_fn_without_turbofish() {
             return v0;
         }
     }])
+    .rustc_ok() // rustc can deduce the generic type
     .err(expect_test::expect![[r#"
             the rule "fn-name" at (nll.rs) failed because
               condition evaluated to false: `fn_decl.binder.len() == 0`
@@ -334,6 +427,7 @@ fn test_call_generic_fn_with_turbofish() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -349,7 +443,41 @@ fn test_call_generic_fn_wrong_type_with_turbofish() {
                     let v0: u32 = identity::<bool>(v1);
                     return v0;
                 }
-            }]).err(expect_test::expect![[r#"
+            }])
+        .rustc_err(expect_test::expect![[r#"
+            error[E0308]: mismatched types
+             --> crates/Foo/src/lib.rs:6:40
+              |
+            6 |     let mut v0: u32 = identity::<bool>(v1);
+              |                       ---------------- ^^ expected `bool`, found `u32`
+              |                       |
+              |                       arguments to this function are incorrect
+              |
+            help: the return type of this call is `u32` due to the type of the argument passed
+             --> crates/Foo/src/lib.rs:6:23
+              |
+            6 |     let mut v0: u32 = identity::<bool>(v1);
+              |                       ^^^^^^^^^^^^^^^^^--^
+              |                                        |
+              |                                        this argument influences the return type of `identity`
+            note: function defined here
+             --> crates/Foo/src/lib.rs:1:8
+              |
+            1 | pub fn identity<T00>(mut v1: T00) -> T00 {
+              |        ^^^^^^^^      -----------
+
+            error[E0308]: mismatched types
+             --> crates/Foo/src/lib.rs:6:23
+              |
+            6 |     let mut v0: u32 = identity::<bool>(v1);
+              |                 ---   ^^^^^^^^^^^^^^^^^^^^ expected `u32`, found `bool`
+              |                 |
+              |                 expected due to this
+
+            For more information about this error, try `rustc --explain E0308`.
+            error: could not compile `Foo` (lib) due to 2 previous errors
+        "#]])
+        .err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
@@ -368,6 +496,27 @@ fn test_call_generic_fn_wrong_parameters_number_with_turbofish() {
             return v0;
         }
     }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0061]: this function takes 1 argument but 2 arguments were supplied
+         --> crates/Foo/src/lib.rs:6:23
+          |
+        6 |     let mut v0: u32 = identity::<u32>(v1, v1);
+          |                       ^^^^^^^^^^^^^^^     -- unexpected argument #2 of type `u32`
+          |
+        note: function defined here
+         --> crates/Foo/src/lib.rs:1:8
+          |
+        1 | pub fn identity<T00>(mut v1: T00) -> T00 {
+          |        ^^^^^^^^
+        help: remove the extra argument
+          |
+        6 -     let mut v0: u32 = identity::<u32>(v1, v1);
+        6 +     let mut v0: u32 = identity::<u32>(v1);
+          |
+
+        For more information about this error, try `rustc --explain E0061`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
     .err(expect_test::expect![[r#"
             the rule "call" at (nll.rs) failed because
               condition evaluated to false: `input_tys.len() == args.len()`"#]])
@@ -386,6 +535,24 @@ fn test_call_generic_fn_wrong_arity() {
             return v0;
         }
     }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0107]: function takes 1 generic argument but 2 generic arguments were supplied
+         --> crates/Foo/src/lib.rs:6:23
+          |
+        6 |     let mut v0: u32 = identity::<u32, u32>(v1);
+          |                       ^^^^^^^^      ----- help: remove the unnecessary generic argument
+          |                       |
+          |                       expected 1 generic argument
+          |
+        note: function defined here, with 1 generic parameter: `T00`
+         --> crates/Foo/src/lib.rs:1:8
+          |
+        1 | pub fn identity<T00>(mut v1: T00) -> T00 {
+          |        ^^^^^^^^ ---
+
+        For more information about this error, try `rustc --explain E0107`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
     .err(expect_test::expect![[r#"
             the rule "turbofish" at (nll.rs) failed because
               condition evaluated to false: `fn_decl.binder.len() == args.len()`"#]])
@@ -406,7 +573,20 @@ fn test_incompatible_return_type() {
                 fn foo (v1: ()) -> u32 {
                     return v1;
                 }
-            }]).err(expect_test::expect![[r#"
+            }])
+        .rustc_err(expect_test::expect![[r#"
+            error[E0308]: mismatched types
+             --> crates/Foo/src/lib.rs:2:12
+              |
+            1 | pub fn foo(mut v1: ()) -> u32 {
+              |                           --- expected `u32` because of return type
+            2 |     return v1;
+              |            ^^ expected `u32`, found `()`
+
+            For more information about this error, try `rustc --explain E0308`.
+            error: could not compile `Foo` (lib) due to 1 previous error
+        "#]])
+        .err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
@@ -429,6 +609,7 @@ fn test_uninitialised_return_type() {
         };
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -466,6 +647,7 @@ fn test_invalid_value_in_switch_terminator() {
             }
         };
     }])
+    .rustc_err(expect_test::expect![[r#""#]])
     .err(expect_test::expect![[r#"
             MaybeFnBody expected
 
@@ -518,6 +700,7 @@ fn test_ret_place_storage_dead() {
             }
         };
     }])
+    .rustc_err(expect_test::expect![[r#""#]])
     .err(expect_test::expect![[r#"
             MaybeFnBody expected
 
@@ -548,6 +731,7 @@ fn test_fn_arg_storage_dead() {
             }
         };
     }])
+    .rustc_err(expect_test::expect![[r#""#]])
     .err(expect_test::expect![[r#"
             MaybeFnBody expected
 
@@ -576,6 +760,18 @@ fn test_invalid_struct_field() {
             return v1;
         }
     }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0609]: no field `nonexistent` on type `Dummy`
+         --> crates/Foo/src/lib.rs:7:8
+          |
+        7 |     v2.nonexistent = 2_u32;
+          |        ^^^^^^^^^^^ unknown field
+          |
+          = note: available field is: `value`
+
+        For more information about this error, try `rustc --explain E0609`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
     .err(expect_test::expect![[r#"
             the rule "struct field" at (nll.rs) failed because
               condition evaluated to false: `field.name == *field_name`"#]])
@@ -594,7 +790,18 @@ fn test_field_projection_root_non_adt() {
                     v1.value = 2 _ u32;
                     return v1;
                 }
-            }]).err(expect_test::expect![[r#"
+            }])
+        .rustc_err(expect_test::expect![[r#"
+            error[E0610]: `u32` is a primitive type and therefore doesn't have fields
+             --> crates/Foo/src/lib.rs:7:8
+              |
+            7 |     v1.value = 2_u32;
+              |        ^^^^^
+
+            For more information about this error, try `rustc --explain E0610`.
+            error: could not compile `Foo` (lib) due to 1 previous error
+        "#]])
+        .err(expect_test::expect![[r#"
             the rule "struct field" at (nll.rs) failed because
               pattern `(RigidTy { name: RigidName::AdtId(adt_id), parameters }, state)` did not match value `(u32, flow_state([scope(none, None, {}, None, [(v1, u32)], [v1 : u32]), scope(none, None, {}, None, [(v2, Dummy)], [v2 : Dummy])], point_flow_state({}, {}), {}, {}))`"#]])
 }
@@ -611,7 +818,18 @@ fn test_struct_wrong_type_in_initialisation() {
                     let v2: Dummy = Dummy { value: false };
                     return v1;
                 }
-            }]).err(expect_test::expect![[r#"
+            }])
+        .rustc_err(expect_test::expect![[r#"
+            error[E0308]: mismatched types
+             --> crates/Foo/src/lib.rs:6:40
+              |
+            6 |     let mut v2: Dummy = Dummy { value: false };
+              |                                        ^^^^^ expected `u32`, found `bool`
+
+            For more information about this error, try `rustc --explain E0308`.
+            error: could not compile `Foo` (lib) due to 1 previous error
+        "#]])
+        .err(expect_test::expect![[r#"
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
@@ -629,6 +847,16 @@ fn test_non_adt_ty_for_struct() {
             return v1;
         }
     }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0422]: cannot find struct, variant or union type `Nonexistent` in this scope
+         --> crates/Foo/src/lib.rs:2:23
+          |
+        2 |     let mut v2: u32 = Nonexistent { value: false };
+          |                       ^^^^^^^^^^^ not found in this scope
+
+        For more information about this error, try `rustc --explain E0422`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
     .err(expect_test::expect![[r#"
             the rule "struct" at (nll.rs) failed because
               no ADT named `Nonexistent`"#]])
@@ -651,6 +879,7 @@ fn test_false_literal() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -674,6 +903,7 @@ fn test_ref_identity() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -691,6 +921,7 @@ fn test_ref_deref() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -710,6 +941,7 @@ fn test_ref_deref_generic_copy_bound() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -736,6 +968,7 @@ fn test_break_valid_loop_label() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -757,7 +990,18 @@ fn test_break_nonexistent_label() {
                     }
                     return 0 _ u32;
                 }
-            }]).err(expect_test::expect![[r#"
+            }])
+        .rustc_err(expect_test::expect![[r#"
+            error[E0426]: use of undeclared label `'nonexistent`
+             --> crates/Foo/src/lib.rs:3:15
+              |
+            3 |         break 'nonexistent;
+              |               ^^^^^^^^^^^^ undeclared label `'nonexistent`
+
+            For more information about this error, try `rustc --explain E0426`.
+            error: could not compile `Foo` (lib) due to 1 previous error
+        "#]])
+        .err(expect_test::expect![[r#"
                 crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &mut ^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }
 
                 crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &mut ^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }"#]])
@@ -783,6 +1027,7 @@ fn test_continue_valid_loop_label() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -806,6 +1051,19 @@ fn test_continue_block_label() {
             return 0 _ u32;
         }
     }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0696]: `continue` pointing to a labeled block
+         --> crates/Foo/src/lib.rs:3:9
+          |
+        2 | /     'a: {
+        3 | |         continue 'a;
+          | |         ^^^^^^^^^^^ labeled blocks cannot be `continue`'d
+        4 | |     }
+          | |_____- labeled block the `continue` points to
+
+        For more information about this error, try `rustc --explain E0696`.
+        error: could not compile `Foo` (lib) due to 1 previous error
+    "#]])
     .err(expect_test::expect![[r#"
             the rule "continue" at (nll.rs) failed because
               pattern `Some(places_live_on_continue)` did not match value `None`"#]])
@@ -838,6 +1096,7 @@ fn test_parens_place_expr() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -863,5 +1122,6 @@ fn test_break_block_label() {
         }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
