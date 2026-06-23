@@ -191,13 +191,22 @@ fn prove_thing_judgment() -> Judgment {
 /// Coverage where `prove_thing`'s `positive` premise (line 9) failed in a
 /// negative test with cause `if_false`, but `zero`'s premise (line 15) never did.
 fn prove_thing_coverage() -> Coverage {
+    let positive_premise = PremiseLoc {
+        file: "crates/sub/fixture.rs".into(),
+        line: 9,
+    };
     let mut negative_premises = BTreeMap::new();
     negative_premises.insert(
-        PremiseLoc {
-            file: "crates/sub/fixture.rs".into(),
-            line: 9,
-        },
+        positive_premise.clone(),
         BTreeSet::from(["if_false".to_string()]),
+    );
+    let mut negative_premise_tests = BTreeMap::new();
+    negative_premise_tests.insert(
+        positive_premise,
+        BTreeSet::from([TestLoc {
+            file: "tests/prove_thing.rs".into(),
+            line: 99,
+        }]),
     );
     Coverage {
         positive: BTreeMap::from([(
@@ -211,6 +220,7 @@ fn prove_thing_coverage() -> Coverage {
             }]),
         )]),
         negative_premises,
+        negative_premise_tests,
         no_applicable_rule: BTreeSet::new(),
     }
 }
@@ -222,14 +232,14 @@ const GITHUB_BASE: &str = "https://github.com/example/repo/blob/main";
 fn markdown_index_snapshot() {
     let judgments = vec![prove_thing_judgment()];
     let cov = prove_thing_coverage();
-    let md = report::render_index(&judgments, &cov, Some(GITHUB_BASE));
+    let md = report::render_index(&judgments, &cov);
     expect![[r#"
         # Coverage report
 
         | Judgment/Rule | Positive coverage | Negative coverage |
         | --- | --- | --- |
         | **[prove_thing](./prove_thing.md)** | - | - |
-        | ↳ [positive](./prove_thing.md#positive) | [✓](https://github.com/example/repo/blob/main/tests/prove_thing.rs#L42) | 1/1 |
+        | ↳ [positive](./prove_thing.md#positive) | [1 test](./prove_thing__positive__pos.md) | 1/1 |
         | ↳ [zero](./prove_thing.md#zero) | ✗ | 0/1 |
     "#]]
     .assert_eq(&md);
@@ -239,7 +249,7 @@ fn markdown_index_snapshot() {
 fn markdown_subpage_snapshot() {
     let j = prove_thing_judgment();
     let cov = prove_thing_coverage();
-    let md = report::render_subpage(&j, &cov, Some(GITHUB_BASE));
+    let md = report::render_subpage(&j, &cov);
     expect![[r#"
         # Judgment `prove_thing` at fixture.rs:4
 
@@ -247,17 +257,77 @@ fn markdown_subpage_snapshot() {
 
         | Rule | Line | Positive coverage |
         | --- | --- | --- |
-        | <a id="positive"></a>`positive` | 10 | [✓](https://github.com/example/repo/blob/main/tests/prove_thing.rs#L42) |
+        | <a id="positive"></a>`positive` | 10 | [1 test](./prove_thing__positive__pos.md) |
         | <a id="zero"></a>`zero` | 16 | ✗ |
 
         ## Premises (negative coverage)
 
         | Rule | Premise | Line | Negatively tested |
         | --- | --- | --- | --- |
-        | `positive` | `if true` | 9 | ✓ (if_false) |
+        | `positive` | `if true` | 9 | [1 test](./prove_thing__positive__p9__neg.md) (if_false) |
         | `zero` | `if true` | 15 | ✗ |
     "#]]
     .assert_eq(&md);
+}
+
+#[test]
+fn detail_pages_list_tests() {
+    let j = prove_thing_judgment();
+    let cov = prove_thing_coverage();
+    let pages = report::render_detail_pages_for(&j, &cov, Some(GITHUB_BASE));
+
+    // One positive page for the covered `positive` rule, one negative page for
+    // its negatively-tested premise. `zero` is uncovered, so it gets no page.
+    let slugs: Vec<&str> = pages.iter().map(|p| p.slug.as_str()).collect();
+    assert_eq!(
+        slugs,
+        vec![
+            "prove_thing__positive__pos",
+            "prove_thing__positive__p9__neg",
+        ]
+    );
+
+    let pos = &pages[0];
+    assert!(
+        pos.content
+            .contains("# Positive coverage: `prove_thing` / `positive`"),
+        "{}",
+        pos.content
+    );
+    assert!(pos.content.contains("1 test exercised this rule"));
+    assert!(
+        pos.content.contains(
+            "- [tests/prove_thing.rs:42](https://github.com/example/repo/blob/main/tests/prove_thing.rs#L42)"
+        ),
+        "{}",
+        pos.content
+    );
+
+    let neg = &pages[1];
+    assert!(neg.content.contains("premise `if true`"), "{}", neg.content);
+    assert!(
+        neg.content
+            .contains("Premise at line 9. Observed failure causes: if_false."),
+        "{}",
+        neg.content
+    );
+    assert!(
+        neg.content.contains(
+            "- [tests/prove_thing.rs:99](https://github.com/example/repo/blob/main/tests/prove_thing.rs#L99)"
+        ),
+        "{}",
+        neg.content
+    );
+}
+
+#[test]
+fn detail_pages_without_github_base_use_plain_locations() {
+    let j = prove_thing_judgment();
+    let cov = prove_thing_coverage();
+    let pages = report::render_detail_pages_for(&j, &cov, None);
+    let pos = &pages[0];
+    assert!(pos.content.contains("- tests/prove_thing.rs:42"));
+    assert!(!pos.content.contains("https://"), "{}", pos.content);
 }
 
 #[test]
@@ -277,7 +347,7 @@ fn infallible_premise_renders_as_na() {
     };
     let cov = Coverage::default();
 
-    let index = report::render_index(&[j.clone()], &cov, None);
+    let index = report::render_index(&[j.clone()], &cov);
     expect![[r#"
         # Coverage report
 
@@ -288,7 +358,7 @@ fn infallible_premise_renders_as_na() {
     "#]]
     .assert_eq(&index);
 
-    let subpage = report::render_subpage(&j, &cov, None);
+    let subpage = report::render_subpage(&j, &cov);
     expect![[r#"
         # Judgment `easy` at fixture.rs:1
 
@@ -317,7 +387,7 @@ fn no_applicable_rule_renders_in_index_and_subpage() {
         line: 4,
     });
 
-    let index = report::render_index(&[j.clone()], &cov, None);
+    let index = report::render_index(&[j.clone()], &cov);
     expect![[r#"
         # Coverage report
 
@@ -329,7 +399,7 @@ fn no_applicable_rule_renders_in_index_and_subpage() {
     "#]]
     .assert_eq(&index);
 
-    let subpage = report::render_subpage(&j, &cov, None);
+    let subpage = report::render_subpage(&j, &cov);
     assert!(subpage.contains("_No applicable rule observed:"));
 }
 
@@ -344,7 +414,7 @@ fn empty_rules_renders_no_rules_message() {
         rules: vec![],
     };
     let cov = Coverage::default();
-    let md = report::render_subpage(&j, &cov, None);
+    let md = report::render_subpage(&j, &cov);
     expect![[r#"
         # Judgment `lonely` at fixture.rs:1
 
@@ -385,6 +455,14 @@ fn jsonl_reads_positive_and_negative_records() {
     let causes = cov.premise_causes_for("f.rs", 11);
     let causes: Vec<&str> = causes.iter().map(String::as_str).collect();
     assert_eq!(causes, vec!["if_false", "if_let"]);
+
+    // The negative record's test location is retained so the report can link
+    // the failing premise back to the test that exercised it.
+    let neg_tests = cov.negative_premise_tests("f.rs", 11);
+    assert!(neg_tests.contains(&TestLoc {
+        file: "b.rs".into(),
+        line: 2,
+    }));
     // Different file should not match.
     assert!(cov.premise_causes_for("other.rs", 11).is_empty());
     // Different line should not match.
