@@ -25,6 +25,7 @@ fn safe_trait() {
 #[test]
 fn unsafe_trait_negative_impl() {
     FormalityTest::new(crates![crate baguette {
+        #![feature(negative_impls)]
         unsafe trait Foo {}
         impl !Foo for u32 {}
     }])
