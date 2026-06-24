@@ -123,7 +123,7 @@ fn append_coverage_chapters(
         }
         let mut chapter = Chapter::new(
             &j.name,
-            report::render_subpage(j, &cov),
+            report::render_subpage(j, &cov, "html"),
             PathBuf::from(format!("{slug}.md")),
             vec!["Coverage report".to_string()],
         );
