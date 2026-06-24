@@ -133,7 +133,9 @@ fn append_coverage_chapters(
         // hang off this judgment's subpage with a third section-number
         // component, so they fold under it in the sidebar.
         let mut detail_items: Vec<BookItem> = Vec::new();
-        for (k, page) in report::render_detail_pages_for(j, &cov, github_base)
+        // Recorded test locations are relative to the repo root, which is the
+        // book directory's parent.
+        for (k, page) in report::render_detail_pages_for(j, &cov, github_base, root.parent())
             .into_iter()
             .enumerate()
         {

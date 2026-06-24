@@ -178,7 +178,7 @@ fn prove_thing_judgment() -> Judgment {
     Judgment {
         name: "prove_thing".into(),
         doc_comment: String::new(),
-        signature: String::new(),
+        signature: "prove_thing(x: u32) => ()".into(),
         file: "fixture.rs".into(),
         line: 4,
         rules: vec![
@@ -253,6 +253,12 @@ fn markdown_subpage_snapshot() {
     expect![[r##"
         # Judgment `prove_thing` at fixture.rs:4
 
+        **Signature:**
+
+        ```rust,ignore
+        prove_thing(x: u32) => ()
+        ```
+
         The number on each rule's conclusion is **positive** coverage; the number on each premise is **negative** coverage. Click a number to browse the tests.
 
         <style>
@@ -270,9 +276,6 @@ fn markdown_subpage_snapshot() {
         .cov-src-line{white-space:pre-wrap}
         tr.cov-sep td{color:#999}
         tr.cov-concl{background:rgba(127,127,127,.08)}
-        details.cov-tests{margin:1rem 0}
-        details.cov-test{margin:.3rem 0 .3rem 1rem}
-        summary{cursor:pointer}
         </style>
 
         <div class="cov-rule" id="positive">
@@ -302,7 +305,7 @@ fn markdown_subpage_snapshot() {
 fn detail_pages_list_tests() {
     let j = prove_thing_judgment();
     let cov = prove_thing_coverage();
-    let pages = report::render_detail_pages_for(&j, &cov, Some(GITHUB_BASE));
+    let pages = report::render_detail_pages_for(&j, &cov, Some(GITHUB_BASE), None);
 
     // One positive page for the covered `positive` rule, one negative page for
     // its negatively-tested premise. `zero` is uncovered, so it gets no page.
@@ -323,12 +326,10 @@ fn detail_pages_list_tests() {
         pos.content
     );
     assert!(pos.content.contains("1 test exercised this rule"));
-    // The test is revealed behind a disclosure triangle, with its source as a
-    // GitHub link.
-    assert!(pos.content.contains("<details"), "{}", pos.content);
+    // Each test is listed flat with its source location linked to GitHub.
     assert!(
         pos.content.contains(
-            "<a href=\"https://github.com/example/repo/blob/main/tests/prove_thing.rs#L42\" target=\"_blank\">tests/prove_thing.rs:42</a>"
+            "**Source location:** [tests/prove_thing.rs:42](https://github.com/example/repo/blob/main/tests/prove_thing.rs#L42)"
         ),
         "{}",
         pos.content
@@ -344,7 +345,7 @@ fn detail_pages_list_tests() {
     );
     assert!(
         neg.content.contains(
-            "<a href=\"https://github.com/example/repo/blob/main/tests/prove_thing.rs#L99\" target=\"_blank\">tests/prove_thing.rs:99</a>"
+            "**Source location:** [tests/prove_thing.rs:99](https://github.com/example/repo/blob/main/tests/prove_thing.rs#L99)"
         ),
         "{}",
         neg.content
@@ -355,14 +356,58 @@ fn detail_pages_list_tests() {
 fn detail_pages_without_github_base_use_plain_locations() {
     let j = prove_thing_judgment();
     let cov = prove_thing_coverage();
-    let pages = report::render_detail_pages_for(&j, &cov, None);
+    let pages = report::render_detail_pages_for(&j, &cov, None, None);
     let pos = &pages[0];
     assert!(
-        pos.content.contains("tests/prove_thing.rs:42"),
+        pos.content
+            .contains("**Source location:** tests/prove_thing.rs:42"),
         "{}",
         pos.content
     );
     assert!(!pos.content.contains("https://"), "{}", pos.content);
+}
+
+#[test]
+fn detail_pages_embed_test_source_when_root_given() {
+    // A judgment with one rule, covered by one test that lives in a real file
+    // on disk so the detail page can embed its source.
+    let tmp = std::env::temp_dir().join(format!("formality-coverage-src-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp).unwrap();
+    let test_file = "my_module.rs";
+    let body = "// preamble\n#[test]\nfn my_test() {\n    let x = 1;\n    assert_eq!(x, 1);\n}\n";
+    std::fs::write(tmp.join(test_file), body).unwrap();
+
+    let j = Judgment {
+        name: "j".into(),
+        doc_comment: String::new(),
+        signature: String::new(),
+        file: "fixture.rs".into(),
+        line: 1,
+        rules: vec![rule_with_premise("r", 3, 2)],
+    };
+    let mut cov = Coverage::default();
+    cov.positive.insert(
+        CoveredRule {
+            judgment: "j".into(),
+            rule: "r".into(),
+        },
+        // The `assert_eq!` line (5) is inside `my_test`.
+        BTreeSet::from([TestLoc {
+            file: test_file.into(),
+            line: 5,
+        }]),
+    );
+
+    let pages = report::render_detail_pages_for(&j, &cov, None, Some(&tmp));
+    let pos = &pages[0];
+    // The whole enclosing test function (including the `#[test]` attribute) is
+    // embedded in a fenced code block.
+    assert!(pos.content.contains("```rust,ignore"), "{}", pos.content);
+    assert!(pos.content.contains("#[test]"), "{}", pos.content);
+    assert!(pos.content.contains("fn my_test() {"), "{}", pos.content);
+    assert!(pos.content.contains("assert_eq!(x, 1);"), "{}", pos.content);
+
+    let _ = std::fs::remove_dir_all(&tmp);
 }
 
 #[test]
@@ -414,9 +459,6 @@ fn infallible_premise_renders_as_na() {
         .cov-src-line{white-space:pre-wrap}
         tr.cov-sep td{color:#999}
         tr.cov-concl{background:rgba(127,127,127,.08)}
-        details.cov-tests{margin:1rem 0}
-        details.cov-test{margin:.3rem 0 .3rem 1rem}
-        summary{cursor:pointer}
         </style>
 
         <div class="cov-rule" id="trivial">
