@@ -45,7 +45,15 @@ fn main() -> Result<()> {
     let positive_count = cov.positive.len();
     let negative_premise_count = cov.negative_premises.len();
     let github_base = args.github_base.as_deref().map(|s| s.trim_end_matches('/'));
-    report::write_all(&args.out_dir, &judgments, &cov, github_base)?;
+    // Test source locations recorded in the JSONL are relative to the repo
+    // root, which is the directory the CLI is run from.
+    report::write_all(
+        &args.out_dir,
+        &judgments,
+        &cov,
+        github_base,
+        Some(std::path::Path::new(".")),
+    )?;
     eprintln!(
         "wrote {} judgments ({} positive rules, {} negatively-tested premises) to {}",
         judgments.len(),

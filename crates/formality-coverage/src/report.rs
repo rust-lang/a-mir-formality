@@ -9,7 +9,7 @@
 //! with three columns (line number, coverage count, source line). The number on
 //! a rule's conclusion is positive coverage; the number on a premise is negative
 //! coverage. Both link to a per-cell detail page ([`render_detail_pages_for`])
-//! that lists the individual tests behind nested disclosure triangles.
+//! that lists each individual test with its source location and source.
 
 use crate::jsonl::{Coverage, TestLoc};
 use crate::scrape::{Judgment, Premise, Rule};
@@ -17,11 +17,11 @@ use anyhow::{Context, Result};
 use std::collections::HashSet;
 use std::path::Path;
 
-/// Inlined stylesheet for the code-view subpages and the disclosure-triangle
-/// detail pages. Emitted once per generated page so the CLI report
-/// ([`write_all`]) and the mdbook preprocessor render identically without any
-/// extra book configuration. Colors fall back gracefully when the mdbook theme
-/// variables are absent (e.g. the standalone CLI output viewed as raw HTML).
+/// Inlined stylesheet for the code-view subpages. Emitted once per subpage so
+/// the CLI report ([`write_all`]) and the mdbook preprocessor render
+/// identically without any extra book configuration. Colors fall back
+/// gracefully when the mdbook theme variables are absent (e.g. the standalone
+/// CLI output viewed as raw HTML).
 ///
 /// Kept as a single line-broken HTML block with no blank lines: a blank line
 /// would terminate the surrounding HTML block under CommonMark and leak the
@@ -41,9 +41,6 @@ table.cov-code th{padding:.15rem .6rem;border:0;border-bottom:1px solid var(--qu
 .cov-src-line{white-space:pre-wrap}\n\
 tr.cov-sep td{color:#999}\n\
 tr.cov-concl{background:rgba(127,127,127,.08)}\n\
-details.cov-tests{margin:1rem 0}\n\
-details.cov-test{margin:.3rem 0 .3rem 1rem}\n\
-summary{cursor:pointer}\n\
 </style>\n";
 
 /// Render the top-level coverage table. Each covered cell links to a per-cell
@@ -92,6 +89,11 @@ pub fn render_subpage(j: &Judgment, cov: &Coverage, link_ext: &str) -> String {
         "# Judgment `{}` at {}:{}\n\n",
         j.name, j.file, j.line,
     ));
+    if !j.signature.is_empty() {
+        s.push_str("**Signature:**\n\n```rust,ignore\n");
+        s.push_str(&j.signature);
+        s.push_str("\n```\n\n");
+    }
     if cov.no_applicable_rule_observed(&j.file, &j.name) {
         s.push_str("_No applicable rule observed: at least one test exercised this judgment with no matching rule._\n\n");
     }
@@ -233,27 +235,27 @@ pub struct DetailPage {
 
 /// Build the detail pages for one judgment: one per covered rule (positive) and
 /// one per fallible premise that was negatively tested. Cells produced by
-/// `positive_num` / `negative_num` link to exactly these pages. The tests are
-/// listed behind nested disclosure triangles: an outer triangle reveals the
-/// tests, and each test is itself a triangle revealing its source.
+/// `positive_num` / `negative_num` link to exactly these pages. Each page lists
+/// the tests with, for each, its source location and (when `source_root` is set
+/// and the file is readable) the test function's source inline.
 pub fn render_detail_pages_for(
     j: &Judgment,
     cov: &Coverage,
     github_base: Option<&str>,
+    source_root: Option<&Path>,
 ) -> Vec<DetailPage> {
     let mut pages = Vec::new();
     for r in &j.rules {
         // Positive: every test that exercised this rule.
         if let Some(locs) = cov.positive_tests(&j.name, &r.name) {
             if !locs.is_empty() {
-                let mut content = format!("# Positive coverage: `{}` / `{}`\n\n", j.name, r.name,);
-                content.push_str(STYLE);
-                content.push('\n');
-                content.push_str(&test_disclosure(
-                    github_base,
-                    &format!("{} {} exercised this rule", locs.len(), plural(locs.len())),
-                    locs,
+                let mut content = format!("# Positive coverage: `{}` / `{}`\n\n", j.name, r.name);
+                content.push_str(&format!(
+                    "{} {} exercised this rule:\n\n",
+                    locs.len(),
+                    plural(locs.len()),
                 ));
+                content.push_str(&test_list(github_base, source_root, locs));
                 pages.push(DetailPage {
                     slug: pos_detail_slug(&j.name, &r.name),
                     title: format!("{} / {} (positive)", j.name, r.name),
@@ -283,18 +285,12 @@ pub fn render_detail_pages_for(
                 let joined = causes.into_iter().collect::<Vec<_>>().join(", ");
                 content.push_str(&format!(" Observed failure causes: {joined}."));
             }
-            content.push_str("\n\n");
-            content.push_str(STYLE);
-            content.push('\n');
-            content.push_str(&test_disclosure(
-                github_base,
-                &format!(
-                    "{} {} failed proving this premise",
-                    tests.len(),
-                    plural(tests.len()),
-                ),
-                &tests,
+            content.push_str(&format!(
+                "\n\n{} {} failed proving this premise:\n\n",
+                tests.len(),
+                plural(tests.len()),
             ));
+            content.push_str(&test_list(github_base, source_root, &tests));
             pages.push(DetailPage {
                 slug: neg_detail_slug(&j.name, &r.name, p.line),
                 title: format!("{} / {} premise@{} (negative)", j.name, r.name, p.line),
@@ -305,38 +301,91 @@ pub fn render_detail_pages_for(
     pages
 }
 
-/// An outer disclosure triangle (summary = `summary`) revealing one inner
-/// triangle per test; each inner triangle reveals that test's source. Emitted
-/// as a single blank-line-free HTML block (see [`STYLE`]).
-fn test_disclosure<'a>(
+/// A flat list of tests: for each, its source location (linked to GitHub when
+/// `github_base` is set) followed by the test function's source in a code block
+/// (when `source_root` is set and the file is readable). Plain markdown, so the
+/// location links rewrite to `.html` under mdbook like any other markdown link.
+fn test_list<'a>(
     github_base: Option<&str>,
-    summary: &str,
+    source_root: Option<&Path>,
     tests: impl IntoIterator<Item = &'a TestLoc>,
 ) -> String {
-    let mut s = format!(
-        "<details class=\"cov-tests\" open>\n<summary>{}</summary>\n",
-        html_escape(summary),
-    );
+    let mut s = String::new();
     for loc in tests {
         let label = format!("{}:{}", loc.file, loc.line);
-        let source = match github_base {
-            Some(base) => format!(
-                "<a href=\"{base}/{file}#L{line}\" target=\"_blank\">{label}</a>",
+        s.push_str("---\n\n");
+        match github_base {
+            Some(base) => s.push_str(&format!(
+                "**Source location:** [{label}]({base}/{file}#L{line})\n\n",
+                label = label,
                 base = base,
                 file = loc.file,
                 line = loc.line,
-                label = html_escape(&label),
-            ),
-            None => html_escape(&label),
-        };
-        s.push_str(&format!(
-            "<details class=\"cov-test\"><summary>{label}</summary>\n<div>Source: {source}</div>\n</details>\n",
-            label = html_escape(&label),
-            source = source,
-        ));
+            )),
+            None => s.push_str(&format!("**Source location:** {label}\n\n")),
+        }
+        if let Some(root) = source_root {
+            if let Some(src) = extract_test_source(root, &loc.file, loc.line) {
+                s.push_str("```rust,ignore\n");
+                s.push_str(&src);
+                s.push_str("\n```\n\n");
+            }
+        }
     }
-    s.push_str("</details>\n");
     s
+}
+
+/// Extract the source of the test function enclosing `file:line`, dedented.
+/// `None` if the file can't be read or no enclosing `fn` is found.
+///
+/// Heuristic: scan up from `line` for the nearest `fn` header (with any leading
+/// `#[..]` attributes), then down for the closing brace at the same
+/// indentation. This relies on the rustfmt convention that a function's closing
+/// brace sits at the function's own indentation, which holds for the test
+/// functions we record.
+fn extract_test_source(root: &Path, file: &str, line: u32) -> Option<String> {
+    let text = std::fs::read_to_string(root.join(file)).ok()?;
+    let lines: Vec<&str> = text.lines().collect();
+    if line == 0 || line as usize > lines.len() {
+        return None;
+    }
+    let target = line as usize - 1;
+
+    let is_fn = |l: &str| {
+        let t = l.trim_start();
+        [
+            "fn ",
+            "pub fn ",
+            "pub(crate) fn ",
+            "async fn ",
+            "pub async fn ",
+        ]
+        .iter()
+        .any(|p| t.starts_with(p))
+    };
+    let fn_idx = (0..=target).rev().find(|&i| is_fn(lines[i]))?;
+    let indent = lines[fn_idx].len() - lines[fn_idx].trim_start().len();
+
+    // Include any attribute lines (e.g. `#[test]`) directly above the `fn`.
+    let mut start = fn_idx;
+    while start > 0 && lines[start - 1].trim_start().starts_with("#[") {
+        start -= 1;
+    }
+
+    let close = format!("{}}}", " ".repeat(indent));
+    let end = (fn_idx + 1..lines.len()).find(|&i| lines[i] == close)?;
+
+    let block: Vec<String> = lines[start..=end]
+        .iter()
+        .map(|l| {
+            if l.len() >= indent {
+                l[indent..].to_string()
+            } else {
+                l.trim_start().to_string()
+            }
+        })
+        .collect();
+    Some(block.join("\n"))
 }
 
 /// Positive-coverage cell for a rule in the index table: `✗` if no test
@@ -403,6 +452,7 @@ pub fn write_all(
     judgments: &[Judgment],
     cov: &Coverage,
     github_base: Option<&str>,
+    source_root: Option<&Path>,
 ) -> Result<()> {
     std::fs::create_dir_all(out_dir).with_context(|| format!("creating {}", out_dir.display()))?;
     let index = render_index(judgments, cov);
@@ -423,7 +473,7 @@ pub fn write_all(
         let body = render_subpage(j, cov, "md");
         std::fs::write(out_dir.join(format!("{}.md", slug)), body)?;
 
-        for page in render_detail_pages_for(j, cov, github_base) {
+        for page in render_detail_pages_for(j, cov, github_base, source_root) {
             if !seen_slugs.insert(page.slug.clone()) {
                 eprintln!(
                     "warning: slug collision for coverage detail page `{}`, it will overwrite a sibling",
