@@ -2156,6 +2156,8 @@ fn too_min_problem_case_3() {
     .ok()
 }
 
+
+
 /// Upcasting from `'a` to `'b` errors because
 /// there is no declared relationship.
 #[formality_core::test]
@@ -2926,6 +2928,7 @@ fn call_generic_fn_with_turbofish_missing_relation_upcast() {
 
                 crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
+
 
 /// Test call to a generic function using turbofish syntax with lifetime and type.
 #[test]
