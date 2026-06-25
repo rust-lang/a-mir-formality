@@ -2083,7 +2083,9 @@ fn too_min_problem_case_3() {
     .skip_execute()
     .ok()
 }
-//HERE
+
+
+
 /// Upcasting from `'a` to `'b` errors because
 /// there is no declared relationship.
 #[formality_core::test]
@@ -2112,7 +2114,7 @@ fn undeclared_universal_region_relationship() {
 
                 crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
-//HERE
+
 /// Same as `undeclared_universal_region_relationship`, but the function
 /// loops forever and never returns. This tests whether the universal
 /// outlives check fires even when there is no return terminator.
@@ -2789,7 +2791,7 @@ fn call_generic_fn_with_turbofish_upcast() {
     .skip_execute()
     .ok()
 }
-//HERE
+
 /// Test call to a generic function using turbofish syntax and wrong lifetime.
 ///
 /// ```rust
@@ -2825,6 +2827,7 @@ fn call_generic_fn_with_turbofish_missing_relation_upcast() {
 
                 crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
+
 
 /// Test call to a generic function using turbofish syntax with lifetime and type.
 #[test]
