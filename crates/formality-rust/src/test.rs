@@ -188,6 +188,52 @@ fn test_parse_trusted_fn() {
 }
 
 #[test]
+fn test_parse_fn_without_return_type() {
+    // Same as `test_parse_trusted_fn`, but the return type is omitted. The
+    // parsed structure is identical `output_ty` defaults to the unit type
+    // `()`, exactly as if `-> ()` had been written.
+    let r: Crates = term(
+        "[
+            crate core {
+              fn run() {trusted}
+            }
+        ]",
+    );
+
+    expect_test::expect![[r#"
+        Crates {
+            crates: [
+                Crate {
+                    id: core,
+                    items: [
+                        Fn(
+                            Fn {
+                                id: run,
+                                safety: Safe,
+                                binder: Binder {
+                                    kinds: [],
+                                    term: FnBoundData {
+                                        input_args: [],
+                                        output_ty: RigidTy(
+                                            (),
+                                        ),
+                                        where_clauses: [],
+                                        body: FnBody(
+                                            TrustedFnBody,
+                                        ),
+                                    },
+                                },
+                            },
+                        ),
+                    ],
+                },
+            ],
+        }
+    "#]]
+    .assert_debug_eq(&r);
+}
+
+#[test]
 fn test_place_expr_ambiguity_deref_vs_field() {
     let p: PlaceExpr = term("*p.f");
     expect_test::expect![[r#"
