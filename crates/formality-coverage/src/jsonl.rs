@@ -51,6 +51,9 @@ pub struct Coverage {
     pub positive: BTreeMap<CoveredRule, BTreeSet<TestLoc>>,
     /// Each failing-premise location with the set of clause-cause tags observed.
     pub negative_premises: BTreeMap<PremiseLoc, BTreeSet<String>>,
+    /// Each failing-premise location with the test locations that failed there,
+    /// so a negative cell can link to the tests that exercise it.
+    pub negative_premise_tests: BTreeMap<PremiseLoc, BTreeSet<TestLoc>>,
     /// Judgments observed to fail with no applicable rule.
     pub no_applicable_rule: BTreeSet<NoApplicableRuleLoc>,
 }
@@ -65,6 +68,22 @@ impl Coverage {
         for (loc, causes) in &self.negative_premises {
             if loc.line == premise_line && paths_overlap(&loc.file, judgment_file) {
                 out.extend(causes.iter().cloned());
+            }
+        }
+        out
+    }
+
+    /// Test locations that failed proving the premise at `premise_line` in a
+    /// file overlapping `judgment_file`. Matching mirrors `premise_causes_for`.
+    pub fn negative_premise_tests(
+        &self,
+        judgment_file: &str,
+        premise_line: u32,
+    ) -> BTreeSet<TestLoc> {
+        let mut out = BTreeSet::new();
+        for (loc, tests) in &self.negative_premise_tests {
+            if loc.line == premise_line && paths_overlap(&loc.file, judgment_file) {
+                out.extend(tests.iter().cloned());
             }
         }
         out
@@ -148,16 +167,30 @@ fn ingest(record: CoverageRecord, cov: &mut Coverage) {
                     .insert(loc.clone());
             }
         }
-        CoverageRecord::Negative { reasons, .. } => {
+        CoverageRecord::Negative {
+            test_file,
+            test_line,
+            reasons,
+            ..
+        } => {
+            let test = TestLoc {
+                file: test_file,
+                line: test_line,
+            };
             for reason in reasons {
                 match reason {
                     FailureReason::Premise {
                         file, line, cause, ..
                     } => {
+                        let ploc = PremiseLoc { file, line };
                         cov.negative_premises
-                            .entry(PremiseLoc { file, line })
+                            .entry(ploc.clone())
                             .or_default()
                             .insert(cause);
+                        cov.negative_premise_tests
+                            .entry(ploc)
+                            .or_default()
+                            .insert(test.clone());
                     }
                     FailureReason::NoApplicableRule {
                         judgment,

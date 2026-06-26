@@ -3,6 +3,13 @@
 //! Positive coverage is rule-level (a proof means every premise held).
 //! Negative coverage is premise-level: for each fallible premise we report
 //! whether some test failed trying to prove it.
+//!
+//! The index ([`render_index`]) is a plain markdown table. Each per-judgment
+//! subpage ([`render_subpage`]) is a "code view": the rule's source rendered
+//! with three columns (line number, coverage count, source line). The number on
+//! a rule's conclusion is positive coverage; the number on a premise is negative
+//! coverage. Both link to a per-cell detail page ([`render_detail_pages_for`])
+//! that lists each individual test with its source location and source.
 
 use crate::jsonl::{Coverage, TestLoc};
 use crate::scrape::{Judgment, Premise, Rule};
@@ -10,10 +17,35 @@ use anyhow::{Context, Result};
 use std::collections::HashSet;
 use std::path::Path;
 
-/// Render the top-level coverage table. When `github_base` is set (e.g.
-/// `https://github.com/rust-lang/a-mir-formality/blob/main`), each ✓ links to
-/// a test that exercised the rule.
-pub fn render_index(judgments: &[Judgment], cov: &Coverage, github_base: Option<&str>) -> String {
+/// Inlined stylesheet for the code-view subpages. Emitted once per subpage so
+/// the CLI report ([`write_all`]) and the mdbook preprocessor render
+/// identically without any extra book configuration. Colors fall back
+/// gracefully when the mdbook theme variables are absent (e.g. the standalone
+/// CLI output viewed as raw HTML).
+///
+/// Kept as a single line-broken HTML block with no blank lines: a blank line
+/// would terminate the surrounding HTML block under CommonMark and leak the
+/// rest as literal markdown.
+const STYLE: &str = "<style>\n\
+.cov-rule{border:1px solid var(--quote-border,#d0d0d0);border-radius:6px;margin:1rem 0;overflow:hidden}\n\
+.cov-rule-head{padding:.4rem .8rem;background:var(--quote-bg,#f6f7f9);font-weight:600}\n\
+table.cov-code{width:100%;border-collapse:collapse;font-family:var(--mono-font,monospace);font-size:.85em;margin:0}\n\
+table.cov-code td{padding:.15rem .6rem;border:0}\n\
+table.cov-code th{padding:.15rem .6rem;border:0;border-bottom:1px solid var(--quote-border,#d0d0d0);color:#888;font-weight:600;font-size:.9em}\n\
+.cov-ln{text-align:right;color:#999;user-select:none;width:3em;white-space:nowrap}\n\
+.cov-num{text-align:right;width:3.5em;white-space:nowrap;font-weight:600}\n\
+.cov-num.pos a{color:#1a7f37}\n\
+.cov-num.neg a{color:#b35900}\n\
+.cov-none{color:#bbb}\n\
+.cov-na{color:#bbb;font-weight:400}\n\
+.cov-src-line{white-space:pre-wrap}\n\
+tr.cov-sep td{color:#999}\n\
+tr.cov-concl{background:rgba(127,127,127,.08)}\n\
+</style>\n";
+
+/// Render the top-level coverage table. Each covered cell links to a per-cell
+/// detail page (see [`render_detail_pages_for`]) listing the tests involved.
+pub fn render_index(judgments: &[Judgment], cov: &Coverage) -> String {
     let mut s = String::new();
     s.push_str("# Coverage report\n\n");
     s.push_str("| Judgment/Rule | Positive coverage | Negative coverage |\n");
@@ -31,7 +63,7 @@ pub fn render_index(judgments: &[Judgment], cov: &Coverage, github_base: Option<
             slug = slug,
         ));
         for r in &j.rules {
-            let pos = positive_cell(cov, &j.name, &r.name, github_base);
+            let pos = positive_cell(cov, &j.name, &r.name);
             let neg = negative_index_cell(cov, &j.file, r);
             s.push_str(&format!(
                 "| ↳ [{rname}](./{slug}.md#{anchor}) | {pos} | {neg} |\n",
@@ -46,13 +78,22 @@ pub fn render_index(judgments: &[Judgment], cov: &Coverage, github_base: Option<
     s
 }
 
-/// Render one subpage per judgment.
-pub fn render_subpage(j: &Judgment, cov: &Coverage, github_base: Option<&str>) -> String {
+/// Render one subpage per judgment as a code view. `link_ext` is the extension
+/// used for the links from coverage numbers to detail pages: `"md"` for the
+/// standalone CLI report (viewed as markdown) and `"html"` for the mdbook
+/// preprocessor (mdbook only rewrites `.md`→`.html` for markdown-syntax links,
+/// not for the raw-HTML `<a>` we emit here).
+pub fn render_subpage(j: &Judgment, cov: &Coverage, link_ext: &str) -> String {
     let mut s = String::new();
     s.push_str(&format!(
         "# Judgment `{}` at {}:{}\n\n",
         j.name, j.file, j.line,
     ));
+    if !j.signature.is_empty() {
+        s.push_str("**Signature:**\n\n```rust,ignore\n");
+        s.push_str(&j.signature);
+        s.push_str("\n```\n\n");
+    }
     if cov.no_applicable_rule_observed(&j.file, &j.name) {
         s.push_str("_No applicable rule observed: at least one test exercised this judgment with no matching rule._\n\n");
     }
@@ -61,69 +102,314 @@ pub fn render_subpage(j: &Judgment, cov: &Coverage, github_base: Option<&str>) -
         return s;
     }
 
-    // Rule-level positive coverage.
-    s.push_str("## Rules\n\n");
-    s.push_str("| Rule | Line | Positive coverage |\n");
-    s.push_str("| --- | --- | --- |\n");
+    s.push_str(
+        "The number on each rule's conclusion is **positive** coverage; the number on each \
+         premise is **negative** coverage. Click a number to browse the tests.\n\n",
+    );
+    s.push_str(STYLE);
+    s.push('\n');
     for r in &j.rules {
-        let pos = positive_cell(cov, &j.name, &r.name, github_base);
+        s.push_str(&render_rule_block(j, r, cov, link_ext));
+        s.push('\n');
+    }
+    s
+}
+
+/// Render one rule as a three-column code view: line number, coverage count,
+/// source line. Premises (above the separator) carry their negative coverage;
+/// the conclusion (below it) carries the rule's positive coverage. Emitted as a
+/// single blank-line-free HTML block (see [`STYLE`]).
+fn render_rule_block(j: &Judgment, r: &Rule, cov: &Coverage, link_ext: &str) -> String {
+    let mut s = String::new();
+    s.push_str(&format!(
+        "<div class=\"cov-rule\" id=\"{}\">\n",
+        anchor(&r.name)
+    ));
+    s.push_str(&format!(
+        "<div class=\"cov-rule-head\"><code>{}</code></div>\n",
+        html_escape(&r.name),
+    ));
+    s.push_str("<table class=\"cov-code\">\n");
+    s.push_str(
+        "<thead><tr><th class=\"cov-ln\">Line</th><th class=\"cov-num\">Coverage</th>\
+         <th class=\"cov-src-line\">Source</th></tr></thead>\n",
+    );
+
+    // Premises: negative coverage.
+    for p in &r.premises {
         s.push_str(&format!(
-            "| <a id=\"{anchor}\"></a>`{rname}` | {line} | {pos} |\n",
-            anchor = anchor(&r.name),
-            rname = r.name,
-            line = r.line,
-            pos = pos,
+            "<tr><td class=\"cov-ln\">{ln}</td><td class=\"cov-num neg\">{num}</td>\
+             <td class=\"cov-src-line\">{code}</td></tr>\n",
+            ln = p.line,
+            num = negative_num(cov, j, r, p, link_ext),
+            code = html_escape(&format!("({})", p.raw_text)),
         ));
     }
 
-    // Premise-level negative coverage.
-    s.push_str("\n## Premises (negative coverage)\n\n");
-    s.push_str("| Rule | Premise | Line | Negatively tested |\n");
-    s.push_str("| --- | --- | --- | --- |\n");
+    // Separator carrying the rule name, mirroring the source syntax.
+    s.push_str(&format!(
+        "<tr class=\"cov-sep\"><td class=\"cov-ln\"></td><td class=\"cov-num\"></td>\
+         <td class=\"cov-src-line\">{}</td></tr>\n",
+        html_escape(&format!("──────── (\"{}\")", r.name)),
+    ));
+
+    // Conclusion: positive coverage. The conclusion sits just below the
+    // separator, so its source line is `r.line + 1` (`r.line` is the separator).
+    let concl = conclusion_of(&r.raw_text).unwrap_or_else(|| format!("({} => …)", j.name));
+    s.push_str(&format!(
+        "<tr class=\"cov-concl\"><td class=\"cov-ln\">{ln}</td><td class=\"cov-num pos\">{num}</td>\
+         <td class=\"cov-src-line\">{code}</td></tr>\n",
+        ln = r.line + 1,
+        num = positive_num(cov, j, r, link_ext),
+        code = html_escape(&concl),
+    ));
+
+    s.push_str("</table>\n</div>\n");
+    s
+}
+
+/// The conclusion (everything below the `---` separator) of a rule's source
+/// text, with surrounding whitespace trimmed. `None` when `raw_text` has no
+/// separator (e.g. synthetic fixtures with empty source).
+fn conclusion_of(raw_text: &str) -> Option<String> {
+    let lines: Vec<&str> = raw_text.lines().collect();
+    let sep = lines
+        .iter()
+        .position(|l| l.trim_start().starts_with("---"))?;
+    let concl = lines[sep + 1..].join("\n");
+    let concl = concl.trim();
+    (!concl.is_empty()).then(|| concl.to_string())
+}
+
+/// The positive-coverage number cell for a rule's conclusion: a link to the
+/// rule's detail page, or `✗` if no test exercised it.
+fn positive_num(cov: &Coverage, j: &Judgment, r: &Rule, link_ext: &str) -> String {
+    match cov.positive_tests(&j.name, &r.name) {
+        Some(locs) if !locs.is_empty() => format!(
+            "<a href=\"./{slug}.{ext}\">{n}</a>",
+            slug = pos_detail_slug(&j.name, &r.name),
+            ext = link_ext,
+            n = locs.len(),
+        ),
+        _ => "<span class=\"cov-none\">✗</span>".to_string(),
+    }
+}
+
+/// The negative-coverage number cell for a premise: `N/A` if the premise is
+/// infallible, a link to the premise's detail page if some test failed proving
+/// it (with the observed failure causes in the link title), else `✗`.
+fn negative_num(cov: &Coverage, j: &Judgment, r: &Rule, p: &Premise, link_ext: &str) -> String {
+    if !p.fallible {
+        return "<span class=\"cov-na\">N/A</span>".to_string();
+    }
+    let tests = cov.negative_premise_tests(&j.file, p.line);
+    if tests.is_empty() {
+        return "<span class=\"cov-none\">✗</span>".to_string();
+    }
+    let causes = cov.premise_causes_for(&j.file, p.line);
+    let title = if causes.is_empty() {
+        String::new()
+    } else {
+        format!(
+            " title=\"failure causes: {}\"",
+            html_escape(&causes.into_iter().collect::<Vec<_>>().join(", ")),
+        )
+    };
+    format!(
+        "<a href=\"./{slug}.{ext}\"{title}>{n}</a>",
+        slug = neg_detail_slug(&j.name, &r.name, p.line),
+        ext = link_ext,
+        title = title,
+        n = tests.len(),
+    )
+}
+
+/// A generated per-cell detail page. `slug` is the filename stem (cells link to
+/// `./{slug}.md`); `title` is a short heading for the mdbook sidebar; `content`
+/// is the markdown body.
+pub struct DetailPage {
+    pub slug: String,
+    pub title: String,
+    pub content: String,
+}
+
+/// Build the detail pages for one judgment: one per covered rule (positive) and
+/// one per fallible premise that was negatively tested. Cells produced by
+/// `positive_num` / `negative_num` link to exactly these pages. Each page lists
+/// the tests with, for each, its source location and (when `source_root` is set
+/// and the file is readable) the test function's source inline.
+pub fn render_detail_pages_for(
+    j: &Judgment,
+    cov: &Coverage,
+    github_base: Option<&str>,
+    source_root: Option<&Path>,
+) -> Vec<DetailPage> {
+    let mut pages = Vec::new();
     for r in &j.rules {
-        if r.premises.is_empty() {
-            s.push_str(&format!(
-                "| `{rname}` | _(no premises)_ | {line} | N/A |\n",
-                rname = r.name,
-                line = r.line,
-            ));
-            continue;
+        // Positive: every test that exercised this rule.
+        if let Some(locs) = cov.positive_tests(&j.name, &r.name) {
+            if !locs.is_empty() {
+                let mut content = format!("# Positive coverage: `{}` / `{}`\n\n", j.name, r.name);
+                content.push_str(&format!(
+                    "{} {} exercised this rule:\n\n",
+                    locs.len(),
+                    plural(locs.len()),
+                ));
+                content.push_str(&test_list(github_base, source_root, locs));
+                pages.push(DetailPage {
+                    slug: pos_detail_slug(&j.name, &r.name),
+                    title: format!("{} / {} (positive)", j.name, r.name),
+                    content,
+                });
+            }
         }
+
+        // Negative: every test that failed proving a given fallible premise.
         for p in &r.premises {
-            s.push_str(&format!(
-                "| `{rname}` | `{premise}` | {line} | {neg} |\n",
-                rname = r.name,
-                premise = premise_label(&p.raw_text),
-                line = p.line,
-                neg = premise_negative_cell(cov, &j.file, p),
+            if !p.fallible {
+                continue;
+            }
+            let tests = cov.negative_premise_tests(&j.file, p.line);
+            if tests.is_empty() {
+                continue;
+            }
+            let mut content = format!(
+                "# Negative coverage: `{}` / `{}` / premise `{}`\n\nPremise at line {}.",
+                j.name,
+                r.name,
+                premise_label(&p.raw_text),
+                p.line,
+            );
+            let causes = cov.premise_causes_for(&j.file, p.line);
+            if !causes.is_empty() {
+                let joined = causes.into_iter().collect::<Vec<_>>().join(", ");
+                content.push_str(&format!(" Observed failure causes: {joined}."));
+            }
+            content.push_str(&format!(
+                "\n\n{} {} failed proving this premise:\n\n",
+                tests.len(),
+                plural(tests.len()),
             ));
+            content.push_str(&test_list(github_base, source_root, &tests));
+            pages.push(DetailPage {
+                slug: neg_detail_slug(&j.name, &r.name, p.line),
+                title: format!("{} / {} premise@{} (negative)", j.name, r.name, p.line),
+                content,
+            });
+        }
+    }
+    pages
+}
+
+/// A flat list of tests: for each, its source location (linked to GitHub when
+/// `github_base` is set) followed by the test function's source in a code block
+/// (when `source_root` is set and the file is readable). Plain markdown, so the
+/// location links rewrite to `.html` under mdbook like any other markdown link.
+fn test_list<'a>(
+    github_base: Option<&str>,
+    source_root: Option<&Path>,
+    tests: impl IntoIterator<Item = &'a TestLoc>,
+) -> String {
+    let mut s = String::new();
+    for loc in tests {
+        let label = format!("{}:{}", loc.file, loc.line);
+        s.push_str("---\n\n");
+        match github_base {
+            Some(base) => s.push_str(&format!(
+                "**Source location:** [{label}]({base}/{file}#L{line})\n\n",
+                label = label,
+                base = base,
+                file = loc.file,
+                line = loc.line,
+            )),
+            None => s.push_str(&format!("**Source location:** {label}\n\n")),
+        }
+        if let Some(root) = source_root {
+            if let Some(src) = extract_test_source(root, &loc.file, loc.line) {
+                s.push_str("```rust,ignore\n");
+                s.push_str(&src);
+                s.push_str("\n```\n\n");
+            }
         }
     }
     s
 }
 
-/// Positive-coverage cell for a rule: `✗` if no test exercised it, otherwise a
-/// `✓` linking to one such test (the first, deterministically) when a
-/// `github_base` is configured, or a plain `✓` when it is not.
-fn positive_cell(cov: &Coverage, judgment: &str, rule: &str, github_base: Option<&str>) -> String {
-    match cov
-        .positive_tests(judgment, rule)
-        .and_then(|locs| locs.iter().next())
-    {
-        Some(loc) => test_link(github_base, loc),
-        None => "✗".to_string(),
+/// Extract the source of the test function enclosing `file:line`, dedented.
+/// `None` if the file can't be read or no enclosing `fn` is found.
+///
+/// Heuristic: scan up from `line` for the nearest `fn` header (with any leading
+/// `#[..]` attributes), then down for the closing brace at the same
+/// indentation. This relies on the rustfmt convention that a function's closing
+/// brace sits at the function's own indentation, which holds for the test
+/// functions we record.
+fn extract_test_source(root: &Path, file: &str, line: u32) -> Option<String> {
+    let text = std::fs::read_to_string(root.join(file)).ok()?;
+    let lines: Vec<&str> = text.lines().collect();
+    if line == 0 || line as usize > lines.len() {
+        return None;
+    }
+    let target = line as usize - 1;
+
+    let is_fn = |l: &str| {
+        let t = l.trim_start();
+        [
+            "fn ",
+            "pub fn ",
+            "pub(crate) fn ",
+            "async fn ",
+            "pub async fn ",
+        ]
+        .iter()
+        .any(|p| t.starts_with(p))
+    };
+    let fn_idx = (0..=target).rev().find(|&i| is_fn(lines[i]))?;
+    let indent = lines[fn_idx].len() - lines[fn_idx].trim_start().len();
+
+    // Include any attribute lines (e.g. `#[test]`) directly above the `fn`.
+    let mut start = fn_idx;
+    while start > 0 && lines[start - 1].trim_start().starts_with("#[") {
+        start -= 1;
+    }
+
+    let close = format!("{}}}", " ".repeat(indent));
+    let end = (fn_idx + 1..lines.len()).find(|&i| lines[i] == close)?;
+
+    let block: Vec<String> = lines[start..=end]
+        .iter()
+        .map(|l| {
+            if l.len() >= indent {
+                l[indent..].to_string()
+            } else {
+                l.trim_start().to_string()
+            }
+        })
+        .collect();
+    Some(block.join("\n"))
+}
+
+/// Positive-coverage cell for a rule in the index table: `✗` if no test
+/// exercised it, otherwise a `[N tests]` markdown link to a detail page.
+fn positive_cell(cov: &Coverage, judgment: &str, rule: &str) -> String {
+    match cov.positive_tests(judgment, rule) {
+        Some(locs) if !locs.is_empty() => {
+            let n = locs.len();
+            format!(
+                "[{n} {tests}](./{slug}.md)",
+                tests = plural(n),
+                slug = pos_detail_slug(judgment, rule),
+            )
+        }
+        _ => "✗".to_string(),
     }
 }
 
-/// A `✓` linking to `loc` on GitHub, or a plain `✓` when no base URL is set.
-fn test_link(github_base: Option<&str>, loc: &TestLoc) -> String {
-    match github_base {
-        Some(base) => format!(
-            "[✓]({base}/{file}#L{line})",
-            file = loc.file,
-            line = loc.line
-        ),
-        None => "✓".to_string(),
+/// `"test"` for one, `"tests"` otherwise.
+fn plural(n: usize) -> &'static str {
+    if n == 1 {
+        "test"
+    } else {
+        "tests"
     }
 }
 
@@ -142,21 +428,6 @@ fn negative_index_cell(cov: &Coverage, judgment_file: &str, rule: &Rule) -> Stri
     format!("{covered}/{}", fallible.len())
 }
 
-/// Subpage cell for a single premise: `N/A` if infallible, `✓` plus the
-/// observed clause-cause tags if some test failed proving it, else `✗`.
-fn premise_negative_cell(cov: &Coverage, judgment_file: &str, premise: &Premise) -> String {
-    if !premise.fallible {
-        return "N/A".to_string();
-    }
-    let causes = cov.premise_causes_for(judgment_file, premise.line);
-    if causes.is_empty() {
-        "✗".to_string()
-    } else {
-        let joined = causes.into_iter().collect::<Vec<_>>().join(", ");
-        format!("✓ ({joined})")
-    }
-}
-
 /// Collapse a premise's source text to a single line and escape `|` so it
 /// can sit in a markdown table cell.
 fn premise_label(raw: &str) -> String {
@@ -166,15 +437,25 @@ fn premise_label(raw: &str) -> String {
         .replace('|', "\\|")
 }
 
-/// Write the index and per-judgment subpages into `out_dir`.
+/// Escape the HTML metacharacters in `s` so source text can sit inside the
+/// raw-HTML elements the code view emits.
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+/// Write the index and per-judgment subpages into `out_dir`. Standalone output
+/// is viewed as markdown, so detail-page links use the `.md` extension.
 pub fn write_all(
     out_dir: &Path,
     judgments: &[Judgment],
     cov: &Coverage,
     github_base: Option<&str>,
+    source_root: Option<&Path>,
 ) -> Result<()> {
     std::fs::create_dir_all(out_dir).with_context(|| format!("creating {}", out_dir.display()))?;
-    let index = render_index(judgments, cov, github_base);
+    let index = render_index(judgments, cov);
     std::fs::write(out_dir.join("coverage.md"), index)?;
 
     // Two judgments with the same name (or names that differ only by characters
@@ -189,8 +470,18 @@ pub fn write_all(
                 j.name, j.file, j.line,
             );
         }
-        let body = render_subpage(j, cov, github_base);
+        let body = render_subpage(j, cov, "md");
         std::fs::write(out_dir.join(format!("{}.md", slug)), body)?;
+
+        for page in render_detail_pages_for(j, cov, github_base, source_root) {
+            if !seen_slugs.insert(page.slug.clone()) {
+                eprintln!(
+                    "warning: slug collision for coverage detail page `{}`, it will overwrite a sibling",
+                    page.slug,
+                );
+            }
+            std::fs::write(out_dir.join(format!("{}.md", page.slug)), page.content)?;
+        }
     }
     Ok(())
 }
@@ -215,4 +506,16 @@ fn anchor(name: &str) -> String {
             _ => '-',
         })
         .collect()
+}
+
+/// Filename stem for a rule's positive detail page. Must match the link emitted
+/// by `positive_num` / `positive_cell`.
+fn pos_detail_slug(judgment: &str, rule: &str) -> String {
+    format!("{}__{}__pos", slug(judgment), anchor(rule))
+}
+
+/// Filename stem for a premise's negative detail page. Must match the link
+/// emitted by `negative_num`.
+fn neg_detail_slug(judgment: &str, rule: &str, premise_line: u32) -> String {
+    format!("{}__{}__p{premise_line}__neg", slug(judgment), anchor(rule))
 }

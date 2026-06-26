@@ -123,17 +123,48 @@ fn append_coverage_chapters(
         }
         let mut chapter = Chapter::new(
             &j.name,
-            report::render_subpage(j, &cov, github_base),
+            report::render_subpage(j, &cov, "html"),
             PathBuf::from(format!("{slug}.md")),
             vec!["Coverage report".to_string()],
         );
         chapter.number = Some(SectionNumber::new(vec![next_top, (i + 1) as u32]));
+
+        // Per-cell detail pages (the test lists each coverage cell links to)
+        // hang off this judgment's subpage with a third section-number
+        // component, so they fold under it in the sidebar.
+        let mut detail_items: Vec<BookItem> = Vec::new();
+        // Recorded test locations are relative to the repo root, which is the
+        // book directory's parent.
+        for (k, page) in report::render_detail_pages_for(j, &cov, github_base, root.parent())
+            .into_iter()
+            .enumerate()
+        {
+            if !seen_slugs.insert(page.slug.clone()) {
+                eprintln!(
+                    "warning: slug collision for coverage detail page `{}`, it will overwrite a sibling",
+                    page.slug,
+                );
+            }
+            let mut detail = Chapter::new(
+                &page.title,
+                page.content,
+                PathBuf::from(format!("{}.md", page.slug)),
+                vec!["Coverage report".to_string(), j.name.clone()],
+            );
+            detail.number = Some(SectionNumber::new(vec![
+                next_top,
+                (i + 1) as u32,
+                (k + 1) as u32,
+            ]));
+            detail_items.push(BookItem::Chapter(detail));
+        }
+        chapter.sub_items = detail_items;
         subpages.push(BookItem::Chapter(chapter));
     }
 
     let mut index_chapter = Chapter::new(
         "Coverage report",
-        report::render_index(&judgments, &cov, github_base),
+        report::render_index(&judgments, &cov),
         PathBuf::from("coverage.md"),
         vec![],
     );
