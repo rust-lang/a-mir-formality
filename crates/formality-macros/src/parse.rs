@@ -500,132 +500,60 @@ fn wrap_field_mode(
         }
 
         FieldMode::Guarded { guard, mode } => {
-            let guard_keyword = as_literal(guard);
-            match mode.as_ref() {
+            // A guard is present when its leading token matches. `cond` is a
+            // `bool` expression that consumes the leading token on success (and
+            // nothing on failure) `after` consumes any remaining guard tokens
+            // once we have committed to the guard.
+            let (cond, after) = match guard {
+                spec::Guard::Keyword(ident) => {
+                    let keyword = as_literal(ident);
+                    (quote!(__p.expect_keyword(#keyword).is_ok()), quote!())
+                }
+                spec::Guard::Operator(operator) => {
+                    let mut chars = operator.chars();
+                    let first = chars
+                        .next()
+                        .expect("operator guard must have at least one character");
+                    let rest: Vec<TokenStream> =
+                        chars.map(|c| quote!(__p.expect_char(#c)?;)).collect();
+                    (quote!(__p.expect_char(#first).is_ok()), quote!(#(#rest)*))
+                }
+            };
+
+            // How to parse the field once the guard has matched.
+            let parse_present = match mode.as_ref() {
                 FieldMode::Single => {
                     if let Some(ty) = field_ty {
-                        quote_spanned!(name.span() =>
-                            match __p.expect_keyword(#guard_keyword) {
-                                Ok(()) => {
-                                    __p.each_nonterminal(|#name: #ty, __p| {
-                                        #inner
-                                    })
-                                }
-                                Err(_) => {
-                                    let #name: #ty = Default::default();
-                                    #inner
-                                }
-                            }
-                        )
+                        quote!(__p.each_nonterminal(|#name: #ty, __p| { #inner }))
                     } else {
-                        quote_spanned!(name.span() =>
-                            match __p.expect_keyword(#guard_keyword) {
-                                Ok(()) => {
-                                    __p.each_nonterminal(|#name, __p| {
-                                        #inner
-                                    })
-                                }
-                                Err(_) => {
-                                    let #name = Default::default();
-                                    #inner
-                                }
-                            }
-                        )
+                        quote!(__p.each_nonterminal(|#name, __p| { #inner }))
                     }
                 }
                 FieldMode::Optional => {
                     if let Some(ty) = field_ty {
-                        quote_spanned!(name.span() =>
-                            match __p.expect_keyword(#guard_keyword) {
-                                Ok(()) => {
-                                    __p.each_opt_nonterminal(|#name: Option<#ty>, __p| {
-                                        let #name: #ty = #name.unwrap_or_default();
-                                        #inner
-                                    })
-                                }
-                                Err(_) => {
-                                    let #name: #ty = Default::default();
-                                    #inner
-                                }
-                            }
-                        )
+                        quote!(__p.each_opt_nonterminal(|#name: Option<#ty>, __p| {
+                            let #name: #ty = #name.unwrap_or_default();
+                            #inner
+                        }))
                     } else {
-                        quote_spanned!(name.span() =>
-                            match __p.expect_keyword(#guard_keyword) {
-                                Ok(()) => {
-                                    __p.each_opt_nonterminal(|#name, __p| {
-                                        let #name = #name.unwrap_or_default();
-                                        #inner
-                                    })
-                                }
-                                Err(_) => {
-                                    let #name = Default::default();
-                                    #inner
-                                }
-                            }
-                        )
+                        quote!(__p.each_opt_nonterminal(|#name, __p| {
+                            let #name = #name.unwrap_or_default();
+                            #inner
+                        }))
                     }
                 }
                 FieldMode::Many => {
                     if let Some(ty) = field_ty {
-                        quote_spanned!(name.span() =>
-                            match __p.expect_keyword(#guard_keyword) {
-                                Ok(()) => {
-                                    __p.each_many_nonterminal(|#name: #ty, __p| {
-                                        #inner
-                                    })
-                                }
-                                Err(_) => {
-                                    let #name: #ty = Default::default();
-                                    #inner
-                                }
-                            }
-                        )
+                        quote!(__p.each_many_nonterminal(|#name: #ty, __p| { #inner }))
                     } else {
-                        quote_spanned!(name.span() =>
-                            match __p.expect_keyword(#guard_keyword) {
-                                Ok(()) => {
-                                    __p.each_many_nonterminal(|#name, __p| {
-                                        #inner
-                                    })
-                                }
-                                Err(_) => {
-                                    let #name = Default::default();
-                                    #inner
-                                }
-                            }
-                        )
+                        quote!(__p.each_many_nonterminal(|#name, __p| { #inner }))
                     }
                 }
                 FieldMode::Comma => {
                     if let Some(ty) = field_ty {
-                        quote_spanned!(name.span() =>
-                            match __p.expect_keyword(#guard_keyword) {
-                                Ok(()) => {
-                                    __p.each_comma_nonterminal(|#name: #ty, __p| {
-                                        #inner
-                                    })
-                                }
-                                Err(_) => {
-                                    let #name: #ty = Default::default();
-                                    #inner
-                                }
-                            }
-                        )
+                        quote!(__p.each_comma_nonterminal(|#name: #ty, __p| { #inner }))
                     } else {
-                        quote_spanned!(name.span() =>
-                            match __p.expect_keyword(#guard_keyword) {
-                                Ok(()) => {
-                                    __p.each_comma_nonterminal(|#name, __p| {
-                                        #inner
-                                    })
-                                }
-                                Err(_) => {
-                                    let #name = Default::default();
-                                    #inner
-                                }
-                            }
-                        )
+                        quote!(__p.each_comma_nonterminal(|#name, __p| { #inner }))
                     }
                 }
                 FieldMode::DelimitedVec {
@@ -636,40 +564,32 @@ fn wrap_field_mode(
                     let open = Literal::character(*open);
                     let close = Literal::character(*close);
                     if let Some(ty) = field_ty {
-                        quote_spanned!(name.span() =>
-                            match __p.expect_keyword(#guard_keyword) {
-                                Ok(()) => {
-                                    __p.each_delimited_nonterminal(#open, #optional, #close, |#name: #ty, __p| {
-                                        #inner
-                                    })
-                                }
-                                Err(_) => {
-                                    let #name: #ty = Default::default();
-                                    #inner
-                                }
-                            }
-                        )
+                        quote!(__p.each_delimited_nonterminal(#open, #optional, #close, |#name: #ty, __p| { #inner }))
                     } else {
-                        quote_spanned!(name.span() =>
-                            match __p.expect_keyword(#guard_keyword) {
-                                Ok(()) => {
-                                    __p.each_delimited_nonterminal(#open, #optional, #close, |#name, __p| {
-                                        #inner
-                                    })
-                                }
-                                Err(_) => {
-                                    let #name = Default::default();
-                                    #inner
-                                }
-                            }
-                        )
+                        quote!(__p.each_delimited_nonterminal(#open, #optional, #close, |#name, __p| { #inner }))
                     }
                 }
                 FieldMode::Guarded { .. } => {
                     // Nested guarded — unlikely but handle by falling back
                     panic!("nested Guarded modes are not supported");
                 }
-            }
+            };
+
+            // How to fill the field in when the guard is absent.
+            let parse_absent = if let Some(ty) = field_ty {
+                quote!(let #name: #ty = Default::default(); #inner)
+            } else {
+                quote!(let #name = Default::default(); #inner)
+            };
+
+            quote_spanned!(name.span() =>
+                if #cond {
+                    #after
+                    #parse_present
+                } else {
+                    #parse_absent
+                }
+            )
         }
     }
 }
