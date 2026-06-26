@@ -21,6 +21,7 @@ fn ok() {
         fn multi_arg_ret<T, Y, U, I>(v0: T, v1: Y) -> (U, I) { trusted }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
 
@@ -34,5 +35,6 @@ fn lifetime() {
         { trusted }
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }

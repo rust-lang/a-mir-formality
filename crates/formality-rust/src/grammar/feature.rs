@@ -12,4 +12,7 @@ pub enum FeatureGateName {
     PoloniusAlpha,
     #[grammar(non_lifetime_binders)]
     NonLifetimeBinders,
+    // #![feature(negative_impls)]
+    #[grammar(negative_impls)]
+    NegativeImpls,
 }
