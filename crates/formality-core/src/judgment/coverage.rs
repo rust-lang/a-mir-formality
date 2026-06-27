@@ -20,7 +20,8 @@ use std::io::Write;
 use std::panic::Location;
 use std::path::PathBuf;
 
-use super::{FailedJudgment, FailureReason, ProofTree};
+use super::proven_set::judgment_name_prefix;
+use super::{FailedJudgment, FailedRule, FailureReason, ProofTree, RuleFailureCause};
 
 /// A single (judgment, rule) pair as identified in positive coverage output.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize)]
@@ -36,25 +37,137 @@ pub struct RuleId {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum CoverageRecord {
-    /// A test proved one or more judgments. We track only the rules that
-    /// fired: a successful proof means every premise of those rules held, so
-    /// premise-level detail adds nothing here.
+    /// A test proved one or more judgments. We track the rules that fired (a
+    /// successful proof means every premise of those rules held, so
+    /// premise-level detail adds nothing here) and, so the report can render
+    /// each test's proof, the success proof tree(s) themselves.
     Positive {
         test_file: String,
         test_line: u32,
         test_column: u32,
         rules: BTreeSet<RuleId>,
+        /// The success proof tree(s) this test produced, as a structural
+        /// snapshot (see [`ProofTreeNode`]). Defaulted so coverage files
+        /// written before trees were recorded still deserialize.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        trees: Vec<ProofTreeNode>,
     },
 
     /// A test asserted a judgment fails. We track the set of failure reasons
     /// (see [`FailureReason`]) so we can check that every fallible premise is
-    /// exercised by some negative test.
+    /// exercised by some negative test, and the failed proof tree(s) so the
+    /// report can render where each test's proof broke.
     Negative {
         test_file: String,
         test_line: u32,
         test_column: u32,
         reasons: BTreeSet<FailureReason>,
+        /// The failed proof tree(s) this test produced (see
+        /// [`FailedTreeNode`]). Defaulted for forward compatibility, as above.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        trees: Vec<FailedTreeNode>,
     },
+}
+
+/// A structural snapshot of a [`ProofTree`] node for embedding in positive
+/// coverage records. We keep the proof *shape* (judgment name, the rule that
+/// fired, the source location, and children) and drop the per-node attributes
+/// (argument/result `Debug` dumps), which are large and vary run-to-run.
+///
+/// We also drop "leaf" premise nodes that fired no rule and have no children:
+/// these are the macro's `if` / `let` / trivial side-conditions, whose names are
+/// large `Debug` dumps of bound values and which carry no inference structure.
+/// Every node we keep is therefore a rule application or a `for_all`, all of
+/// which have small, stable names. This keeps the snapshot both lean and a
+/// faithful tree of the rules that actually fired.
+///
+/// `rule` is owned because the live `ProofTree.rule_name` is `&'static str`,
+/// which serde can serialize but cannot deserialize into; a mirror type lets
+/// the report read trees back without changing the proving engine's hot type.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ProofTreeNode {
+    pub judgment: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rule: Option<String>,
+    pub file: String,
+    pub line: u32,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub children: Vec<ProofTreeNode>,
+}
+
+impl From<&ProofTree> for ProofTreeNode {
+    fn from(t: &ProofTree) -> Self {
+        let children = t
+            .children
+            .iter()
+            .map(ProofTreeNode::from)
+            .filter(|c| c.rule.is_some() || !c.children.is_empty())
+            .collect();
+        ProofTreeNode {
+            judgment: t.judgment_name.clone(),
+            rule: t.rule_name.map(str::to_string),
+            file: t.file.replace('\\', "/"),
+            line: t.line,
+            children,
+        }
+    }
+}
+
+/// A structural snapshot of a [`FailedJudgment`] for embedding in negative
+/// coverage records: the judgment that failed and the rules that were tried.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct FailedTreeNode {
+    pub judgment: String,
+    pub file: String,
+    pub line: u32,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rules: Vec<FailedRuleNode>,
+}
+
+/// One tried-and-failed rule under a [`FailedTreeNode`]. `file`/`line` locate
+/// the rule's blamed premise (the macro respans failures onto it, so they match
+/// the premise position negative coverage is keyed by). A `failed_judgment`
+/// cause is represented structurally via `child`; every other cause is terminal
+/// and summarized by its `cause` discriminant tag, matching the deliberately
+/// payload-free, run-to-run-stable design of [`FailureReason`].
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct FailedRuleNode {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rule: Option<String>,
+    pub file: String,
+    pub line: u32,
+    pub cause: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub child: Option<Box<FailedTreeNode>>,
+}
+
+impl From<&FailedJudgment> for FailedTreeNode {
+    fn from(j: &FailedJudgment) -> Self {
+        FailedTreeNode {
+            judgment: judgment_name_prefix(&j.judgment),
+            file: j.location.file.replace('\\', "/"),
+            line: j.location.line,
+            rules: j.failed_rules.iter().map(FailedRuleNode::from).collect(),
+        }
+    }
+}
+
+impl From<&FailedRule> for FailedRuleNode {
+    fn from(r: &FailedRule) -> Self {
+        let child = match &r.cause {
+            RuleFailureCause::FailedJudgment(inner) => {
+                Some(Box::new(FailedTreeNode::from(&**inner)))
+            }
+            _ => None,
+        };
+        FailedRuleNode {
+            rule: r.rule_name.clone(),
+            file: r.file.replace('\\', "/"),
+            line: r.line,
+            cause: r.cause.discriminant_tag().to_string(),
+            child,
+        }
+    }
 }
 
 impl ProofTree {
@@ -103,8 +216,10 @@ pub fn record_coverage<'a>(trees: impl IntoIterator<Item = &'a ProofTree>) {
     let caller = Location::caller();
 
     let mut rules: BTreeSet<RuleId> = BTreeSet::new();
+    let mut snapshots: Vec<ProofTreeNode> = Vec::new();
     for tree in trees {
         tree.collect_rules_into(&mut rules);
+        snapshots.push(ProofTreeNode::from(tree));
     }
 
     let record = CoverageRecord::Positive {
@@ -112,6 +227,7 @@ pub fn record_coverage<'a>(trees: impl IntoIterator<Item = &'a ProofTree>) {
         test_line: caller.line(),
         test_column: caller.column(),
         rules,
+        trees: snapshots,
     };
     write_record(&path, &record);
 }
@@ -132,8 +248,10 @@ pub fn record_negative_coverage<'a>(failures: impl IntoIterator<Item = &'a Faile
     let caller = Location::caller();
 
     let mut reasons: BTreeSet<FailureReason> = BTreeSet::new();
+    let mut snapshots: Vec<FailedTreeNode> = Vec::new();
     for failure in failures {
         reasons.extend(failure.collect_failure_reasons());
+        snapshots.push(FailedTreeNode::from(failure));
     }
 
     let record = CoverageRecord::Negative {
@@ -141,6 +259,7 @@ pub fn record_negative_coverage<'a>(failures: impl IntoIterator<Item = &'a Faile
         test_line: caller.line(),
         test_column: caller.column(),
         reasons,
+        trees: snapshots,
     };
     write_record(&path, &record);
 }
@@ -182,11 +301,14 @@ fn coverage_dir() -> Option<PathBuf> {
     }
 }
 
-// Append-mode writes of small payloads are atomic under PIPE_BUF on POSIX and
-// have similar guarantees on Windows for ordinary files, so parallel `cargo test`
-// processes can safely append to the same file without locking, provided each
-// line stays small.
+// Parallel `cargo test` processes append to this file concurrently without
+// locking. Appends of a single payload are atomic for ordinary files, so we
+// build the record plus its trailing newline up front and emit it with one
+// `write_all` (rather than `writeln!`, which can issue separate writes for the
+// line and the newline and interleave under concurrency). The reader still
+// tolerates the occasional torn line, since embedding proof trees makes
+// individual lines larger and no atomicity guarantee is unconditional.
 fn append_line(path: &PathBuf, line: &str) -> std::io::Result<()> {
     let mut f = OpenOptions::new().create(true).append(true).open(path)?;
-    writeln!(f, "{line}")
+    f.write_all(format!("{line}\n").as_bytes())
 }

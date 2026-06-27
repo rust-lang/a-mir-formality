@@ -11,9 +11,10 @@
 //! coverage. Both link to a per-cell detail page ([`render_detail_pages_for`])
 //! that lists each individual test with its source location and source.
 
-use crate::jsonl::{Coverage, TestLoc};
+use crate::jsonl::{paths_overlap, Coverage, TestLoc};
 use crate::scrape::{Judgment, Premise, Rule};
 use anyhow::{Context, Result};
+use formality_core::judgment::coverage::{FailedRuleNode, FailedTreeNode, ProofTreeNode};
 use std::collections::HashSet;
 use std::path::Path;
 
@@ -255,7 +256,12 @@ pub fn render_detail_pages_for(
                     locs.len(),
                     plural(locs.len()),
                 ));
-                content.push_str(&test_list(github_base, source_root, locs));
+                content.push_str(&test_list(
+                    github_base,
+                    source_root,
+                    locs,
+                    TreeSection::Positive(cov),
+                ));
                 pages.push(DetailPage {
                     slug: pos_detail_slug(&j.name, &r.name),
                     title: format!("{} / {} (positive)", j.name, r.name),
@@ -290,7 +296,16 @@ pub fn render_detail_pages_for(
                 tests.len(),
                 plural(tests.len()),
             ));
-            content.push_str(&test_list(github_base, source_root, &tests));
+            content.push_str(&test_list(
+                github_base,
+                source_root,
+                &tests,
+                TreeSection::Negative {
+                    cov,
+                    judgment_file: &j.file,
+                    premise_line: p.line,
+                },
+            ));
             pages.push(DetailPage {
                 slug: neg_detail_slug(&j.name, &r.name, p.line),
                 title: format!("{} / {} premise@{} (negative)", j.name, r.name, p.line),
@@ -301,14 +316,30 @@ pub fn render_detail_pages_for(
     pages
 }
 
+/// Which proof tree to render under each test in a detail page.
+enum TreeSection<'a> {
+    /// Positive page: render each test's success proof tree (the rules it fired).
+    Positive(&'a Coverage),
+    /// Negative page for one premise: render each test's failed proof tree,
+    /// pruned to the stacks that blame the premise at `judgment_file`/
+    /// `premise_line` (we show only the stacks that involve this premise).
+    Negative {
+        cov: &'a Coverage,
+        judgment_file: &'a str,
+        premise_line: u32,
+    },
+}
+
 /// A flat list of tests: for each, its source location (linked to GitHub when
-/// `github_base` is set) followed by the test function's source in a code block
-/// (when `source_root` is set and the file is readable). Plain markdown, so the
-/// location links rewrite to `.html` under mdbook like any other markdown link.
+/// `github_base` is set), the test function's source in a code block (when
+/// `source_root` is set and the file is readable), and the test's proof tree in
+/// a collapsed disclosure. Plain markdown, so the location links rewrite to
+/// `.html` under mdbook like any other markdown link.
 fn test_list<'a>(
     github_base: Option<&str>,
     source_root: Option<&Path>,
     tests: impl IntoIterator<Item = &'a TestLoc>,
+    trees: TreeSection<'_>,
 ) -> String {
     let mut s = String::new();
     for loc in tests {
@@ -331,8 +362,176 @@ fn test_list<'a>(
                 s.push_str("\n```\n\n");
             }
         }
+        s.push_str(&tree_details(&trees, loc));
     }
     s
+}
+
+/// The collapsed proof-tree disclosure for one test, or an empty string when no
+/// tree was recorded (or, on a negative page, none of the test's failed stacks
+/// involve the premise this page is about).
+fn tree_details(trees: &TreeSection<'_>, loc: &TestLoc) -> String {
+    match trees {
+        TreeSection::Positive(cov) => proof_tree_details(cov.positive_trees_for(loc)),
+        TreeSection::Negative {
+            cov,
+            judgment_file,
+            premise_line,
+        } => {
+            let pruned: Vec<FailedTreeNode> = cov
+                .negative_trees_for(loc)
+                .iter()
+                .filter_map(|t| prune_failed(t, judgment_file, *premise_line))
+                .collect();
+            failed_tree_details(&pruned)
+        }
+    }
+}
+
+/// Wrap pre-rendered tree text in a collapsed `<details>` disclosure. Emitted as
+/// one raw-HTML block with no internal blank lines: a blank line would close the
+/// HTML block under CommonMark and leak the rest as literal markdown.
+fn tree_disclosure(summary: &str, tree_text: &str) -> String {
+    format!(
+        "<details>\n<summary>{summary}</summary>\n<pre class=\"cov-tree\">\n{body}</pre>\n</details>\n\n",
+        summary = summary,
+        body = html_escape(tree_text),
+    )
+}
+
+/// The success proof tree(s) for one test, or `""` if none were recorded.
+fn proof_tree_details(nodes: &[ProofTreeNode]) -> String {
+    if nodes.is_empty() {
+        return String::new();
+    }
+    let mut text = String::new();
+    for n in nodes {
+        render_proof_node(n, "", &mut text);
+    }
+    tree_disclosure("Proof tree", &text)
+}
+
+fn render_proof_node(n: &ProofTreeNode, prefix: &str, out: &mut String) {
+    let rule = n
+        .rule
+        .as_deref()
+        .map(|r| format!(" ({r})"))
+        .unwrap_or_default();
+    out.push_str(&format!(
+        "{prefix}└─ {judgment}{rule} at {file}:{line}\n",
+        judgment = n.judgment,
+        rule = rule,
+        file = short_file(&n.file),
+        line = n.line,
+    ));
+    let child_prefix = format!("{prefix}   ");
+    for c in &n.children {
+        render_proof_node(c, &child_prefix, out);
+    }
+}
+
+/// The failed proof tree(s) for one test, already pruned to the relevant
+/// premise, or `""` if nothing survived the pruning.
+fn failed_tree_details(nodes: &[FailedTreeNode]) -> String {
+    if nodes.is_empty() {
+        return String::new();
+    }
+    let mut text = String::new();
+    for n in nodes {
+        render_failed_node(n, "", &mut text);
+    }
+    tree_disclosure("Failed proof tree", &text)
+}
+
+fn render_failed_node(j: &FailedTreeNode, prefix: &str, out: &mut String) {
+    out.push_str(&format!(
+        "{prefix}└─ {judgment} failed at {file}:{line}\n",
+        judgment = j.judgment,
+        file = short_file(&j.file),
+        line = j.line,
+    ));
+    let child_prefix = format!("{prefix}   ");
+    for r in &j.rules {
+        render_failed_rule(r, &child_prefix, out);
+    }
+}
+
+fn render_failed_rule(r: &FailedRuleNode, prefix: &str, out: &mut String) {
+    let label = match &r.rule {
+        Some(name) => format!("rule \"{name}\""),
+        None => "rule".to_string(),
+    };
+    match &r.child {
+        // A nested judgment failure: recurse to show where it broke.
+        Some(child) => {
+            out.push_str(&format!(
+                "{prefix}└─ {label} at {file}:{line}\n",
+                label = label,
+                file = short_file(&r.file),
+                line = r.line,
+            ));
+            let child_prefix = format!("{prefix}   ");
+            render_failed_node(child, &child_prefix, out);
+        }
+        // A terminal failure: show the cause tag.
+        None => out.push_str(&format!(
+            "{prefix}└─ {label} at {file}:{line} (failed: {cause})\n",
+            label = label,
+            file = short_file(&r.file),
+            line = r.line,
+            cause = r.cause,
+        )),
+    }
+}
+
+/// Prune a failed judgment tree to only the stacks that blame the premise at
+/// `judgment_file`/`premise_line`. The blamed premise is a failed rule at that
+/// location; we keep it (with its full subtree) plus every ancestor on the path
+/// to it, and drop sibling stacks that never reach it.
+fn prune_failed(
+    j: &FailedTreeNode,
+    judgment_file: &str,
+    premise_line: u32,
+) -> Option<FailedTreeNode> {
+    let rules: Vec<FailedRuleNode> = j
+        .rules
+        .iter()
+        .filter_map(|r| prune_failed_rule(r, judgment_file, premise_line))
+        .collect();
+    (!rules.is_empty()).then(|| FailedTreeNode {
+        judgment: j.judgment.clone(),
+        file: j.file.clone(),
+        line: j.line,
+        rules,
+    })
+}
+
+fn prune_failed_rule(
+    r: &FailedRuleNode,
+    judgment_file: &str,
+    premise_line: u32,
+) -> Option<FailedRuleNode> {
+    // The blamed premise itself: keep it and its full subtree.
+    if r.line == premise_line && paths_overlap(&r.file, judgment_file) {
+        return Some(r.clone());
+    }
+    // Otherwise keep this rule only if its sub-judgment reaches the premise.
+    let child = r
+        .child
+        .as_ref()
+        .and_then(|c| prune_failed(c, judgment_file, premise_line))?;
+    Some(FailedRuleNode {
+        rule: r.rule.clone(),
+        file: r.file.clone(),
+        line: r.line,
+        cause: r.cause.clone(),
+        child: Some(Box::new(child)),
+    })
+}
+
+/// The file name (final path component) of `path`, for compact tree labels.
+fn short_file(path: &str) -> &str {
+    path.rsplit('/').next().unwrap_or(path)
 }
 
 /// Extract the source of the test function enclosing `file:line`, dedented.

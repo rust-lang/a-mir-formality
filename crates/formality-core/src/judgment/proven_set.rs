@@ -631,7 +631,7 @@ impl FailedJudgment {
 /// macro's `__JudgmentStruct` Debug impl is `debug_struct(stringify!(name))`,
 /// so the formatted string always starts with the judgment name followed
 /// by ` { ... }`. We grab characters up to the first non-identifier char.
-fn judgment_name_prefix(formatted: &str) -> String {
+pub(crate) fn judgment_name_prefix(formatted: &str) -> String {
     formatted
         .chars()
         .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
