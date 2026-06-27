@@ -75,7 +75,7 @@ judgment_fn! {
     }
 }
 
-// TODO: change this to using Constrained
+// TODO(step0): to resolve the error here, complete the two steps in crates/formality-rust/src/prove/prove/prove/env.rs
 judgment_fn! {
     pub fn prove_existential_var_eq(
         _decls: Program,
@@ -122,7 +122,7 @@ judgment_fn! {
             // Map the higher rank variable to the lower rank one.
             (let (a, b) = env.order_by_universe(l, r))
             ----------------------------- ("existential-existential")
-            (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::ExistentialVar(r)) => env)
+            (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::ExistentialVar(r)) => ((b, a), env))
         )
 
         // If the RHS IS a universal variable, e.g., we are trying to prove something like this
@@ -142,7 +142,7 @@ judgment_fn! {
         (
             (if env.universe(p) < env.universe(v))
             ----------------------------- ("existential-universal")
-            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) => env)
+            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) =>  ((v, p), env))
         )
     }
 }
