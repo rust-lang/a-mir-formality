@@ -6,7 +6,7 @@
 //! in `formality-core` serializes, so the schema lives in exactly one place.
 
 use anyhow::{Context, Result};
-use formality_core::judgment::coverage::CoverageRecord;
+use formality_core::judgment::coverage::{CoverageRecord, FailedTreeNode, ProofTreeNode};
 use formality_core::judgment::FailureReason;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -56,6 +56,12 @@ pub struct Coverage {
     pub negative_premise_tests: BTreeMap<PremiseLoc, BTreeSet<TestLoc>>,
     /// Judgments observed to fail with no applicable rule.
     pub no_applicable_rule: BTreeSet<NoApplicableRuleLoc>,
+    /// Each positive test's success proof tree(s), so a positive detail page can
+    /// render the proof every listed test produced.
+    pub positive_trees: BTreeMap<TestLoc, Vec<ProofTreeNode>>,
+    /// Each negative test's failed proof tree(s), so a negative detail page can
+    /// render where each listed test's proof broke.
+    pub negative_trees: BTreeMap<TestLoc, Vec<FailedTreeNode>>,
 }
 
 impl Coverage {
@@ -97,6 +103,16 @@ impl Coverage {
         })
     }
 
+    /// The success proof tree(s) recorded for `test`, or an empty slice if none.
+    pub fn positive_trees_for(&self, test: &TestLoc) -> &[ProofTreeNode] {
+        self.positive_trees.get(test).map_or(&[], Vec::as_slice)
+    }
+
+    /// The failed proof tree(s) recorded for `test`, or an empty slice if none.
+    pub fn negative_trees_for(&self, test: &TestLoc) -> &[FailedTreeNode] {
+        self.negative_trees.get(test).map_or(&[], Vec::as_slice)
+    }
+
     /// True if `judgment_name` (in a file overlapping `judgment_file`) was
     /// observed to fail with no applicable rule.
     pub fn no_applicable_rule_observed(&self, judgment_file: &str, judgment_name: &str) -> bool {
@@ -106,7 +122,7 @@ impl Coverage {
     }
 }
 
-fn paths_overlap(a: &str, b: &str) -> bool {
+pub(crate) fn paths_overlap(a: &str, b: &str) -> bool {
     a.ends_with(b) || b.ends_with(a)
 }
 
@@ -151,6 +167,7 @@ fn ingest(record: CoverageRecord, cov: &mut Coverage) {
             test_file,
             test_line,
             rules,
+            trees,
             ..
         } => {
             let loc = TestLoc {
@@ -166,17 +183,27 @@ fn ingest(record: CoverageRecord, cov: &mut Coverage) {
                     .or_default()
                     .insert(loc.clone());
             }
+            if !trees.is_empty() {
+                cov.positive_trees.entry(loc).or_default().extend(trees);
+            }
         }
         CoverageRecord::Negative {
             test_file,
             test_line,
             reasons,
+            trees,
             ..
         } => {
             let test = TestLoc {
                 file: test_file,
                 line: test_line,
             };
+            if !trees.is_empty() {
+                cov.negative_trees
+                    .entry(test.clone())
+                    .or_default()
+                    .extend(trees);
+            }
             for reason in reasons {
                 match reason {
                     FailureReason::Premise {
