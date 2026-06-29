@@ -152,6 +152,7 @@ impl Env {
     ///
     /// * `self` -- the constraints from solving `A`
     /// * `c2` -- the constraints from solving `B` (after applying substitution from `self` to `B`)
+    /// TODO: revisit this again
     pub fn seq(&self, c2: &Env) -> Self {
         tracing::debug!("Constraints::seq({self:?}, {c2:?}");
 

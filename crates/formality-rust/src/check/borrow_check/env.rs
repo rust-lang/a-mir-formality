@@ -100,8 +100,6 @@ impl TypeckEnv {
     /// that this version can accept existential variable, which is needed for handling lifetime.
     /// In the compiler, we insert existential variables for all
     /// lifetimes that appear in the MIR body, and I expect we will do the same here.
-    /// C is Env from prove::prove::prove
-    /// Env : Upcast<Constrained<>>
     #[track_caller]
     fn prove_judgment<G, C, T>(
         &self,

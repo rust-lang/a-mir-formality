@@ -98,6 +98,8 @@ judgment_fn! {
             (let (env, subst) = env.existential_substitution(&i.binder))
             (let i = i.binder.instantiate_with(&subst).unwrap())
             (prove(decls, env, assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => env)
+            // TODO: previously when we use prove_after, there will be another prove getting executed, should we do it here?
+            // it seems weird to have two prove call.
             ----------------------------- ("negative impl")
             (prove_wc(decls, env, assumptions, Predicate::NotImplemented(trait_ref)) => env.clone().pop_subst(&subst))
         )
