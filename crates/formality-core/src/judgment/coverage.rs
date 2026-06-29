@@ -12,6 +12,48 @@
 //! Recording is best-effort: I/O errors are swallowed so coverage never fails
 //! a test. Disable entirely with `FORMALITY_COVERAGE=0`. Redirect the output
 //! directory with `FORMALITY_COVERAGE_DIR` (used by the integration tests).
+//!
+//! # A worked example
+//!
+//! The snapshot types below ([`ProofTreeNode`], [`FailedTreeNode`]) are easiest
+//! to read against a concrete judgment. Take a one-rule judgment:
+//!
+//! ```text
+//! judgment_fn! {
+//!     pub fn is_positive(x: i32) => () {
+//!         debug(x)
+//!
+//!         (
+//!             (if x > 0)
+//!             ----------------------- ("positive")
+//!             (is_positive(x) => ())
+//!         )
+//!     }
+//! }
+//! ```
+//!
+//! and two tests: a positive one that proves `is_positive(1)`, and a negative
+//! one that asserts `is_positive(-1)` cannot be proven.
+//!
+//! The positive test fires the `"positive"` rule (its `if x > 0` premise
+//! holds), so [`record_coverage`] stores one [`ProofTreeNode`]:
+//!
+//! ```text
+//! ProofTreeNode { judgment: "is_positive", rule: Some("positive"), children: [] }
+//! ```
+//!
+//! The `if x > 0` premise is a leaf that fired no rule of its own, so it is
+//! dropped (see [`ProofTreeNode`]); only the rule application survives.
+//!
+//! The negative test fails because that rule's `if x > 0` premise is false, so
+//! [`record_negative_coverage`] stores one [`FailedTreeNode`]:
+//!
+//! ```text
+//! FailedTreeNode {
+//!     judgment: "is_positive",
+//!     rules: [FailedRuleNode { rule: Some("positive"), cause: "if_false", child: None }],
+//! }
+//! ```
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -72,7 +114,8 @@ pub enum CoverageRecord {
 /// A structural snapshot of a [`ProofTree`] node for embedding in positive
 /// coverage records. We keep the proof *shape* (judgment name, the rule that
 /// fired, the source location, and children) and drop the per-node attributes
-/// (argument/result `Debug` dumps), which are large and vary run-to-run.
+/// (the argument/result `Debug` dumps), which are large and which the report
+/// does not render.
 ///
 /// We also drop "leaf" premise nodes that fired no rule and have no children:
 /// these are the macro's `if` / `let` / trivial side-conditions, whose names are
@@ -86,7 +129,13 @@ pub enum CoverageRecord {
 /// the report read trees back without changing the proving engine's hot type.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProofTreeNode {
+    /// The name of the judgment this node proves, e.g. `"is_positive"` in the
+    /// module example (the identifier after `fn` in the `judgment_fn!`).
     pub judgment: String,
+    /// The rule that fired, e.g. `Some("positive")` (the name in quotes after
+    /// the rule's line). `None` marks a node that fired no named rule but is
+    /// kept because it groups children of its own, e.g. a `for_all` premise;
+    /// `None` leaves with no children are dropped (see the type doc).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rule: Option<String>,
     pub file: String,
@@ -301,14 +350,21 @@ fn coverage_dir() -> Option<PathBuf> {
     }
 }
 
-// Parallel `cargo test` processes append to this file concurrently without
-// locking. Appends of a single payload are atomic for ordinary files, so we
-// build the record plus its trailing newline up front and emit it with one
-// `write_all` (rather than `writeln!`, which can issue separate writes for the
-// line and the newline and interleave under concurrency). The reader still
-// tolerates the occasional torn line, since embedding proof trees makes
-// individual lines larger and no atomicity guarantee is unconditional.
+// Parallel `cargo test` processes append to this file concurrently. A bare
+// append is only atomic up to `PIPE_BUF` on POSIX, and an embedded proof tree
+// easily exceeds that, so without coordination two appends could interleave and
+// tear a line. We therefore hold an exclusive OS-level lock (`File::lock`,
+// released when `f` is dropped) for the duration of the write, which serializes
+// writers across processes. The record and its trailing newline are written in
+// a single `write_all` so the locked region is one call. We open with `read`
+// as well as `append` because Windows requires read access on the handle to
+// take the lock.
 fn append_line(path: &PathBuf, line: &str) -> std::io::Result<()> {
-    let mut f = OpenOptions::new().create(true).append(true).open(path)?;
+    let mut f = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .read(true)
+        .open(path)?;
+    f.lock()?;
     f.write_all(format!("{line}\n").as_bytes())
 }

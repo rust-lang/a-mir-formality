@@ -470,6 +470,83 @@ fn detail_pages_render_proof_trees() {
 }
 
 #[test]
+fn huge_proof_tree_is_capped() {
+    // A degenerate 500-node chain: where-clause solving really does produce
+    // trees this deep, so the renderer must cap them.
+    let mut node = ProofTreeNode {
+        judgment: "leaf".into(),
+        rule: Some("r".into()),
+        file: "f.rs".into(),
+        line: 1,
+        children: vec![],
+    };
+    for _ in 0..499 {
+        node = ProofTreeNode {
+            judgment: "j".into(),
+            rule: Some("r".into()),
+            file: "f.rs".into(),
+            line: 1,
+            children: vec![node],
+        };
+    }
+
+    let j = prove_thing_judgment();
+    let mut cov = prove_thing_coverage();
+    cov.positive_trees.insert(
+        TestLoc {
+            file: "tests/prove_thing.rs".into(),
+            line: 42,
+        },
+        vec![node],
+    );
+
+    let pages = report::render_detail_pages_for(&j, &cov, None, None);
+    let pos = &pages[0];
+    assert!(
+        pos.content.contains("of 500 nodes shown"),
+        "tree should be capped with a note"
+    );
+}
+
+#[test]
+fn proof_trees_are_capped_per_cell() {
+    // 12 tests exercise the `positive` rule; only the first 10 get a tree.
+    let j = prove_thing_judgment();
+    let mut cov = prove_thing_coverage();
+    let rule = CoveredRule {
+        judgment: "prove_thing".into(),
+        rule: "positive".into(),
+    };
+    for n in 0..12u32 {
+        let loc = TestLoc {
+            file: "tests/many.rs".into(),
+            line: 100 + n,
+        };
+        cov.positive.get_mut(&rule).unwrap().insert(loc.clone());
+        cov.positive_trees.insert(
+            loc,
+            vec![ProofTreeNode {
+                judgment: "prove_thing".into(),
+                rule: Some("positive".into()),
+                file: "f.rs".into(),
+                line: 1,
+                children: vec![],
+            }],
+        );
+    }
+
+    let pages = report::render_detail_pages_for(&j, &cov, None, None);
+    let pos = &pages[0];
+    let trees_shown = pos.content.matches("<summary>Proof tree</summary>").count();
+    assert_eq!(trees_shown, 10, "should cap inline trees at 10");
+    assert!(
+        pos.content
+            .contains("Proof trees omitted for the remaining 3 tests"),
+        "should note the omission (13 total: 1 original + 12 added)"
+    );
+}
+
+#[test]
 fn detail_pages_embed_test_source_when_root_given() {
     // A judgment with one rule, covered by one test that lives in a real file
     // on disk so the detail page can embed its source.
