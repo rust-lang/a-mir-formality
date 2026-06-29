@@ -330,19 +330,27 @@ enum TreeSection<'a> {
     },
 }
 
+/// How many of a cell's tests get their proof tree rendered inline. A hot rule
+/// fires in hundreds of tests; rendering every tree would make the page (and the
+/// mdbook search index) enormous, so we show trees for the first few only. The
+/// source location and source are still listed for every test (they are cheap).
+const MAX_TREES_PER_CELL: usize = 10;
+
 /// A flat list of tests: for each, its source location (linked to GitHub when
 /// `github_base` is set), the test function's source in a code block (when
-/// `source_root` is set and the file is readable), and the test's proof tree in
-/// a collapsed disclosure. Plain markdown, so the location links rewrite to
-/// `.html` under mdbook like any other markdown link.
+/// `source_root` is set and the file is readable), and (for the first
+/// [`MAX_TREES_PER_CELL`]) the test's proof tree in a collapsed disclosure.
+/// Plain markdown, so the location links rewrite to `.html` under mdbook like
+/// any other markdown link.
 fn test_list<'a>(
     github_base: Option<&str>,
     source_root: Option<&Path>,
     tests: impl IntoIterator<Item = &'a TestLoc>,
     trees: TreeSection<'_>,
 ) -> String {
+    let tests: Vec<&TestLoc> = tests.into_iter().collect();
     let mut s = String::new();
-    for loc in tests {
+    for (i, loc) in tests.iter().enumerate() {
         let label = format!("{}:{}", loc.file, loc.line);
         s.push_str("---\n\n");
         match github_base {
@@ -362,7 +370,14 @@ fn test_list<'a>(
                 s.push_str("\n```\n\n");
             }
         }
-        s.push_str(&tree_details(&trees, loc));
+        if i < MAX_TREES_PER_CELL {
+            s.push_str(&tree_details(&trees, loc));
+        } else if i == MAX_TREES_PER_CELL {
+            s.push_str(&format!(
+                "_Proof trees omitted for the remaining {} tests._\n\n",
+                tests.len() - MAX_TREES_PER_CELL,
+            ));
+        }
     }
     s
 }
@@ -399,19 +414,36 @@ fn tree_disclosure(summary: &str, tree_text: &str) -> String {
     )
 }
 
+/// Largest proof tree we render inline. Where-clause solving recurses deeply,
+/// so a single success tree can reach thousands of nodes, which is neither
+/// readable nor cheap to ship in the search index. We render the first
+/// [`MAX_TREE_NODES`] (depth-first) and note how many were elided.
+const MAX_TREE_NODES: usize = 200;
+
 /// The success proof tree(s) for one test, or `""` if none were recorded.
 fn proof_tree_details(nodes: &[ProofTreeNode]) -> String {
     if nodes.is_empty() {
         return String::new();
     }
+    let total: usize = nodes.iter().map(count_proof_nodes).sum();
     let mut text = String::new();
+    let mut budget = MAX_TREE_NODES;
     for n in nodes {
-        render_proof_node(n, "", &mut text);
+        render_proof_node(n, "", &mut text, &mut budget);
     }
+    append_truncation_note(&mut text, total);
     tree_disclosure("Proof tree", &text)
 }
 
-fn render_proof_node(n: &ProofTreeNode, prefix: &str, out: &mut String) {
+fn count_proof_nodes(n: &ProofTreeNode) -> usize {
+    1 + n.children.iter().map(count_proof_nodes).sum::<usize>()
+}
+
+fn render_proof_node(n: &ProofTreeNode, prefix: &str, out: &mut String, budget: &mut usize) {
+    if *budget == 0 {
+        return;
+    }
+    *budget -= 1;
     let rule = n
         .rule
         .as_deref()
@@ -426,7 +458,7 @@ fn render_proof_node(n: &ProofTreeNode, prefix: &str, out: &mut String) {
     ));
     let child_prefix = format!("{prefix}   ");
     for c in &n.children {
-        render_proof_node(c, &child_prefix, out);
+        render_proof_node(c, &child_prefix, out, budget);
     }
 }
 
@@ -436,14 +468,29 @@ fn failed_tree_details(nodes: &[FailedTreeNode]) -> String {
     if nodes.is_empty() {
         return String::new();
     }
+    let total: usize = nodes.iter().map(count_failed_nodes).sum();
     let mut text = String::new();
+    let mut budget = MAX_TREE_NODES;
     for n in nodes {
-        render_failed_node(n, "", &mut text);
+        render_failed_node(n, "", &mut text, &mut budget);
     }
+    append_truncation_note(&mut text, total);
     tree_disclosure("Failed proof tree", &text)
 }
 
-fn render_failed_node(j: &FailedTreeNode, prefix: &str, out: &mut String) {
+fn count_failed_nodes(j: &FailedTreeNode) -> usize {
+    1 + j.rules.iter().map(count_failed_rule_nodes).sum::<usize>()
+}
+
+fn count_failed_rule_nodes(r: &FailedRuleNode) -> usize {
+    1 + r.child.as_deref().map_or(0, count_failed_nodes)
+}
+
+fn render_failed_node(j: &FailedTreeNode, prefix: &str, out: &mut String, budget: &mut usize) {
+    if *budget == 0 {
+        return;
+    }
+    *budget -= 1;
     out.push_str(&format!(
         "{prefix}└─ {judgment} failed at {file}:{line}\n",
         judgment = j.judgment,
@@ -452,11 +499,15 @@ fn render_failed_node(j: &FailedTreeNode, prefix: &str, out: &mut String) {
     ));
     let child_prefix = format!("{prefix}   ");
     for r in &j.rules {
-        render_failed_rule(r, &child_prefix, out);
+        render_failed_rule(r, &child_prefix, out, budget);
     }
 }
 
-fn render_failed_rule(r: &FailedRuleNode, prefix: &str, out: &mut String) {
+fn render_failed_rule(r: &FailedRuleNode, prefix: &str, out: &mut String, budget: &mut usize) {
+    if *budget == 0 {
+        return;
+    }
+    *budget -= 1;
     let label = match &r.rule {
         Some(name) => format!("rule \"{name}\""),
         None => "rule".to_string(),
@@ -471,7 +522,7 @@ fn render_failed_rule(r: &FailedRuleNode, prefix: &str, out: &mut String) {
                 line = r.line,
             ));
             let child_prefix = format!("{prefix}   ");
-            render_failed_node(child, &child_prefix, out);
+            render_failed_node(child, &child_prefix, out, budget);
         }
         // A terminal failure: show the cause tag.
         None => out.push_str(&format!(
@@ -481,6 +532,14 @@ fn render_failed_rule(r: &FailedRuleNode, prefix: &str, out: &mut String) {
             line = r.line,
             cause = r.cause,
         )),
+    }
+}
+
+/// Append a "N of M nodes shown" note when a tree was capped at
+/// [`MAX_TREE_NODES`].
+fn append_truncation_note(text: &mut String, total: usize) {
+    if total > MAX_TREE_NODES {
+        text.push_str(&format!("… ({MAX_TREE_NODES} of {total} nodes shown)\n"));
     }
 }
 

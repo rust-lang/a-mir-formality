@@ -123,7 +123,12 @@ impl Coverage {
 }
 
 pub(crate) fn paths_overlap(a: &str, b: &str) -> bool {
-    a.ends_with(b) || b.ends_with(a)
+    // Coverage records normalize paths to forward slashes, but the scraped
+    // judgment paths use the host separator (backslashes on Windows), so
+    // normalize before comparing or every overlap check fails on Windows.
+    let a = a.replace('\\', "/");
+    let b = b.replace('\\', "/");
+    a.ends_with(&b) || b.ends_with(&a)
 }
 
 /// Parse the JSONL file at `path`. If the file does not exist, returns an
@@ -183,8 +188,11 @@ fn ingest(record: CoverageRecord, cov: &mut Coverage) {
                     .or_default()
                     .insert(loc.clone());
             }
+            // Keep one tree per test. The JSONL is append-only and accumulates
+            // across runs, so the same test can be recorded many times; its
+            // (deterministic) tree should be stored once, not duplicated.
             if !trees.is_empty() {
-                cov.positive_trees.entry(loc).or_default().extend(trees);
+                cov.positive_trees.entry(loc).or_insert(trees);
             }
         }
         CoverageRecord::Negative {
@@ -199,10 +207,7 @@ fn ingest(record: CoverageRecord, cov: &mut Coverage) {
                 line: test_line,
             };
             if !trees.is_empty() {
-                cov.negative_trees
-                    .entry(test.clone())
-                    .or_default()
-                    .extend(trees);
+                cov.negative_trees.entry(test.clone()).or_insert(trees);
             }
             for reason in reasons {
                 match reason {
