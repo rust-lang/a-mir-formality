@@ -36,3 +36,19 @@ fn lifetime() {
     .skip_execute()
     .ok()
 }
+
+#[test]
+fn omitted_return_type() {
+    FormalityTest::new(crates![
+        crate Foo {
+            fn simple_fn() { trusted }
+            fn one_arg<T>(v0: T) { trusted }
+            fn with_where<'a, T>(v0: &'a T)
+            where
+                T: 'a,
+            { trusted }
+        }
+    ])
+    .skip_execute()
+    .ok()
+}
