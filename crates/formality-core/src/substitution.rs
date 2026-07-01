@@ -24,7 +24,8 @@ impl<L: Language> CoreSubstitution<L> {
     }
 
     /// True if `v` is in this substitution's domain
-    pub fn maps(&self, v: CoreVariable<L>) -> bool {
+    pub fn maps(&self, v: impl Upcast<CoreVariable<L>>) -> bool {
+        let v: CoreVariable<L> = v.upcast();
         self.map.contains_key(&v)
     }
 

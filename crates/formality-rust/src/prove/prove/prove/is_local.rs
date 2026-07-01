@@ -10,7 +10,7 @@ use crate::prove::prove::{
     decls::Program,
     prove::{
         combinators::for_all, env::Bias, negation::may_not_be_provable,
-        prove_normalize::prove_normalize, Constraints,
+        prove_normalize::prove_normalize,
     },
     Env,
 };
@@ -55,7 +55,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
-    ) => Constraints {
+    ) => Env {
         debug(assumptions, goal, env)
         assert(env.bias() == Bias::Completeness)
 
@@ -82,7 +82,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
-    ) => Constraints {
+    ) => Env {
         debug(goal, assumptions, env)
         assert(env.bias() == Bias::Completeness)
         (
@@ -101,7 +101,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
-    ) => Constraints {
+    ) => Env {
         debug(parameter, assumptions, env)
         assert(env.bias() == Bias::Completeness)
         (
@@ -109,7 +109,7 @@ judgment_fn! {
             // we ultimately have.
             --- ("type variable")
             (may_be_downstream_parameter(_decls, env, _assumptions, TyData::Variable(Variable::ExistentialVar(_)))
-                => Constraints::none(env))
+                => env)
         )
 
         // If `parameter` is an alias which refers a type which may be
@@ -185,7 +185,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
-    ) => Constraints {
+    ) => Env {
         debug(parameter, assumptions, env)
 
         (
@@ -204,13 +204,13 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: TraitRef,
-    ) => Constraints {
+    ) => Env {
         debug(goal, assumptions, env)
         assert(env.bias() == Bias::Soundness)
         (
             (if decls.is_local_trait_id(&goal.trait_id))
             --- ("local trait")
-            (is_local_trait_ref(decls, env, _assumptions, goal) => Constraints::none(env))
+            (is_local_trait_ref(decls, env, _assumptions, goal) => env)
         )
 
         (
@@ -241,27 +241,27 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         parameter: Parameter,
-    ) => Constraints {
+    ) => Env {
         debug(parameter, assumptions, env)
         assert(env.bias() == Bias::Soundness)
 
         (
             // Lifetimes are not relevant.
             --- ("lifetime")
-            (is_not_downstream(_decls, env, _assumptions, _l: Lt) => Constraints::none(env))
+            (is_not_downstream(_decls, env, _assumptions, _l: Lt) => env)
         )
 
         (
             // Since https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html,
             // any rigid type is adequate.
             --- ("rigid")
-            (is_not_downstream(_decls, env, _assumptions, RigidTy { .. }) => Constraints::none(env))
+            (is_not_downstream(_decls, env, _assumptions, RigidTy { .. }) => env)
         )
 
         (
             (prove_normalize(decls, env, assumptions, parameter) => Constrained(p, c1))
             (let assumptions = c1.substitution().apply(assumptions))
-            (is_not_downstream(decls, c1.env(), assumptions, p) => c2)
+            (is_not_downstream(decls, c1, assumptions, p) => c2)
             --- ("via normalize")
             (is_not_downstream(decls, env, assumptions, parameter) => c1.seq(c2))
         )
@@ -271,7 +271,7 @@ judgment_fn! {
             // we ultimately have.
             --- ("type variable")
             (is_not_downstream(_decls, env, _assumptions, TyData::Variable(Variable::ExistentialVar(_)))
-                => Constraints::none(env).ambiguous())
+                => env.ambiguous())
         )
     }
 }
@@ -282,7 +282,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         goal: Parameter,
-    ) => Constraints {
+    ) => Env {
         debug(goal, assumptions, env)
         assert(env.bias() == Bias::Soundness)
 
@@ -290,7 +290,7 @@ judgment_fn! {
         (
             (prove_normalize(decls, env, assumptions, goal) => Constrained(p, c1))
             (let assumptions = c1.substitution().apply(assumptions))
-            (is_local_parameter(decls, c1.env(), assumptions, p) => c2)
+            (is_local_parameter(decls, c1, assumptions, p) => c2)
             --- ("local parameter")
             (is_local_parameter(decls, env, assumptions, goal) => c1.seq(c2))
         )
@@ -307,13 +307,13 @@ judgment_fn! {
         (
             (if decls.is_local_adt_id(a))
             --- ("local rigid type")
-            (is_local_parameter(decls, env, _assumptions, RigidTy { name: RigidName::AdtId(a), parameters: _ }) => Constraints::none(env))
+            (is_local_parameter(decls, env, _assumptions, RigidTy { name: RigidName::AdtId(a), parameters: _ }) => env)
         )
 
         // existential variables might or might not be local, depending on how they are instantiated.
         (
             --- ("existential variable")
-            (is_local_parameter(_decls, env, _assumptions, TyData::Variable(Variable::ExistentialVar(_))) => Constraints::none(env).ambiguous())
+            (is_local_parameter(_decls, env, _assumptions, TyData::Variable(Variable::ExistentialVar(_))) => env.ambiguous())
         )
     }
 }

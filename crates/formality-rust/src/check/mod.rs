@@ -2,7 +2,7 @@
 
 use std::fmt::Debug;
 
-use crate::prove::prove::{is_definitely_not_proveable, Constraints, Env, Program};
+use crate::prove::prove::{is_definitely_not_proveable, Env, Program};
 use crate::rust::Visit;
 use crate::{
     grammar::{
@@ -239,7 +239,7 @@ fn prove_judgment<G>(
     env: &Env,
     assumptions: impl ToWcs,
     goal: G,
-    judgment_fn: impl FnOnce(Program, Env, Wcs, G) -> ProvenSet<Constraints>,
+    judgment_fn: impl FnOnce(Program, Env, Wcs, G) -> ProvenSet<Env>,
 ) -> Fallible<ProofTree>
 where
     G: Debug + Visit + Clone,

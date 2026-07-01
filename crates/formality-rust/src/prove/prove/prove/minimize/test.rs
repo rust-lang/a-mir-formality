@@ -4,7 +4,7 @@ use expect_test::expect;
 use formality_core::To;
 use formality_macros::test;
 
-use crate::prove::prove::prove::{Constraints, Env};
+use crate::prove::prove::prove::Env;
 
 use super::minimize;
 

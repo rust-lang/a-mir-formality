@@ -6,8 +6,6 @@ use formality_core::judgment_fn;
 
 use crate::prove::prove::{decls::Program, prove::env::Env};
 
-use super::constraints::Constraints;
-
 judgment_fn! {
     /// The "heart" of the trait system -- prove that a where-clause holds given a set of declarations, variable environment, and set of assumptions.
     /// If successful, returns the constraints under which the where-clause holds.
@@ -16,7 +14,7 @@ judgment_fn! {
         env: Env,
         assumptions: Wcs,
         constant: Const,
-    ) => (Ty, Constraints) {
+    ) => (Ty, Env) {
         debug(constant, assumptions, env, decls)
 
         // (
@@ -26,14 +24,14 @@ judgment_fn! {
 
         (
             --- ("rigid constant")
-            (prove_const_has_type(_decls, env, _assumptions, ConstData::Scalar(scalar)) => (scalar.ty(), Constraints::none(env)))
+            (prove_const_has_type(_decls, env, _assumptions, ConstData::Scalar(scalar)) => (scalar.ty(), env))
         )
 
 
         (
             (borrow_check(TypeckEnv::for_const(env, decls), assumptions, FlowState::default(), block) => ())
             --- ("block")
-            (prove_const_has_type(decls, env, assumptions, ConstData::Block(block)) => (Ty::unit(), Constraints::none(env)))
+            (prove_const_has_type(decls, env, assumptions, ConstData::Block(block)) => (Ty::unit(), env))
         )
     }
 }
