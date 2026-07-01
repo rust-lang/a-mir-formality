@@ -134,6 +134,7 @@ fn u32_not_u32_impls() {
 #[test]
 fn neg_CoreTrait_for_CoreStruct_implies_no_overlap() {
     FormalityTest::new(crates![crate core {
+        #![feature(negative_impls)]
         trait CoreTrait {}
         struct CoreStruct {}
         impl !CoreTrait for CoreStruct {}

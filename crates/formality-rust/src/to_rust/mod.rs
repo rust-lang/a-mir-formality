@@ -33,7 +33,13 @@ pub fn check_workspace(
 
     let output = std::process::Command::new("cargo")
         .env("RUSTFLAGS", "-A warnings")
-        .args(["check", "--workspace", "--manifest-path", &root_toml])
+        .args([
+            "check",
+            "--workspace",
+            "--quiet",
+            "--manifest-path",
+            &root_toml,
+        ])
         .output()?;
     Ok(output)
 }

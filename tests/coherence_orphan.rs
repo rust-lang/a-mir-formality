@@ -8,24 +8,25 @@ fn neg_CoreTrait_for_CoreStruct_in_Foo() {
                 struct CoreStruct {}
             },
             crate foo {
+                #![feature(negative_impls)]
                 impl !CoreTrait for CoreStruct {}
             }]).err(expect_test::expect![[r#"
-            the rule "fundamental rigid type" at (is_local.rs) failed because
-              condition evaluated to false: `is_fundamental(decls, name)`
-                decls = program([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl ! CoreTrait for CoreStruct {} }], 222)
-                name = (adt CoreStruct)
+                the rule "fundamental rigid type" at (is_local.rs) failed because
+                  condition evaluated to false: `is_fundamental(decls, name)`
+                    decls = program([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { #![feature(negative_impls)] impl ! CoreTrait for CoreStruct {} }], 222)
+                    name = (adt CoreStruct)
 
-            crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: CoreStruct, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
+                crates/formality-rust/src/prove/prove/prove/prove_normalize.rs:19:1: no applicable rules for prove_normalize { p: CoreStruct, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-            the rule "local rigid type" at (is_local.rs) failed because
-              condition evaluated to false: `decls.is_local_adt_id(a)`
-                decls = program([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl ! CoreTrait for CoreStruct {} }], 222)
-                a = CoreStruct
+                the rule "local rigid type" at (is_local.rs) failed because
+                  condition evaluated to false: `decls.is_local_adt_id(a)`
+                    decls = program([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { #![feature(negative_impls)] impl ! CoreTrait for CoreStruct {} }], 222)
+                    a = CoreStruct
 
-            the rule "local trait" at (is_local.rs) failed because
-              condition evaluated to false: `decls.is_local_trait_id(&goal.trait_id)`
-                decls = program([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl ! CoreTrait for CoreStruct {} }], 222)
-                &goal.trait_id = CoreTrait"#]])
+                the rule "local trait" at (is_local.rs) failed because
+                  condition evaluated to false: `decls.is_local_trait_id(&goal.trait_id)`
+                    decls = program([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { #![feature(negative_impls)] impl ! CoreTrait for CoreStruct {} }], 222)
+                    &goal.trait_id = CoreTrait"#]])
 }
 
 #[test]
