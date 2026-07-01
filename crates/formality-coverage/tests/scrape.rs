@@ -5,6 +5,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use expect_test::expect;
+use formality_core::judgment::coverage::{FailedRuleNode, FailedTreeNode, ProofTreeNode};
 use formality_coverage::jsonl::{
     self, Coverage, CoveredRule, NoApplicableRuleLoc, PremiseLoc, TestLoc,
 };
@@ -222,6 +223,7 @@ fn prove_thing_coverage() -> Coverage {
         negative_premises,
         negative_premise_tests,
         no_applicable_rule: BTreeSet::new(),
+        ..Default::default()
     }
 }
 
@@ -365,6 +367,183 @@ fn detail_pages_without_github_base_use_plain_locations() {
         pos.content
     );
     assert!(!pos.content.contains("https://"), "{}", pos.content);
+}
+
+#[test]
+fn detail_pages_render_proof_trees() {
+    let j = prove_thing_judgment();
+    let mut cov = prove_thing_coverage();
+
+    // The positive test (tests/prove_thing.rs:42) proved `prove_thing` via the
+    // `positive` rule, which in turn proved a sub-judgment.
+    cov.positive_trees.insert(
+        TestLoc {
+            file: "tests/prove_thing.rs".into(),
+            line: 42,
+        },
+        vec![ProofTreeNode {
+            judgment: "prove_thing".into(),
+            rule: Some("positive".into()),
+            file: "crates/sub/fixture.rs".into(),
+            line: 11,
+            children: vec![ProofTreeNode {
+                judgment: "prove_sub".into(),
+                rule: Some("sub".into()),
+                file: "crates/sub/other.rs".into(),
+                line: 3,
+                children: vec![],
+            }],
+        }],
+    );
+
+    // The negative test (tests/prove_thing.rs:99) failed two stacks: one blaming
+    // the `positive` premise on line 9 (which this page is about) and one blaming
+    // the `zero` premise on line 15 (which it is not).
+    cov.negative_trees.insert(
+        TestLoc {
+            file: "tests/prove_thing.rs".into(),
+            line: 99,
+        },
+        vec![FailedTreeNode {
+            judgment: "prove_thing".into(),
+            file: "crates/sub/fixture.rs".into(),
+            line: 4,
+            rules: vec![
+                FailedRuleNode {
+                    rule: Some("positive".into()),
+                    file: "crates/sub/fixture.rs".into(),
+                    line: 9,
+                    cause: "if_false".into(),
+                    child: None,
+                },
+                FailedRuleNode {
+                    rule: Some("zero".into()),
+                    file: "crates/sub/fixture.rs".into(),
+                    line: 15,
+                    cause: "if_false".into(),
+                    child: None,
+                },
+            ],
+        }],
+    );
+
+    let pages = report::render_detail_pages_for(&j, &cov, Some(GITHUB_BASE), None);
+    let pos = &pages[0];
+    let neg = &pages[1];
+
+    // The positive page shows the success tree behind a collapsed disclosure.
+    assert!(
+        pos.content.contains("<summary>Proof tree</summary>"),
+        "{}",
+        pos.content
+    );
+    assert!(
+        pos.content
+            .contains("└─ prove_thing (positive) at fixture.rs:11"),
+        "{}",
+        pos.content
+    );
+    assert!(
+        pos.content.contains("   └─ prove_sub (sub) at other.rs:3"),
+        "{}",
+        pos.content
+    );
+
+    // The negative page shows the failed tree pruned to the stack that blames
+    // premise line 9; the unrelated `zero` stack (line 15) is dropped.
+    assert!(
+        neg.content.contains("<summary>Failed proof tree</summary>"),
+        "{}",
+        neg.content
+    );
+    assert!(
+        neg.content
+            .contains(r#"└─ rule "positive" at fixture.rs:9 (failed: if_false)"#),
+        "{}",
+        neg.content
+    );
+    assert!(
+        !neg.content.contains("zero"),
+        "unrelated stack should be pruned: {}",
+        neg.content
+    );
+}
+
+#[test]
+fn huge_proof_tree_is_capped() {
+    // A degenerate 500-node chain: where-clause solving really does produce
+    // trees this deep, so the renderer must cap them.
+    let mut node = ProofTreeNode {
+        judgment: "leaf".into(),
+        rule: Some("r".into()),
+        file: "f.rs".into(),
+        line: 1,
+        children: vec![],
+    };
+    for _ in 0..499 {
+        node = ProofTreeNode {
+            judgment: "j".into(),
+            rule: Some("r".into()),
+            file: "f.rs".into(),
+            line: 1,
+            children: vec![node],
+        };
+    }
+
+    let j = prove_thing_judgment();
+    let mut cov = prove_thing_coverage();
+    cov.positive_trees.insert(
+        TestLoc {
+            file: "tests/prove_thing.rs".into(),
+            line: 42,
+        },
+        vec![node],
+    );
+
+    let pages = report::render_detail_pages_for(&j, &cov, None, None);
+    let pos = &pages[0];
+    assert!(
+        pos.content.contains("of 500 nodes shown"),
+        "tree should be capped with a note"
+    );
+}
+
+#[test]
+fn proof_trees_are_capped_per_cell() {
+    // 12 tests exercise the `positive` rule; only the first 10 get a tree.
+    let j = prove_thing_judgment();
+    let mut cov = prove_thing_coverage();
+    let rule = CoveredRule {
+        judgment: "prove_thing".into(),
+        rule: "positive".into(),
+    };
+    for n in 0..12u32 {
+        let loc = TestLoc {
+            file: "tests/many.rs".into(),
+            line: 100 + n,
+        };
+        cov.positive.get_mut(&rule).unwrap().insert(loc.clone());
+        cov.positive_trees.insert(
+            loc,
+            vec![ProofTreeNode {
+                judgment: "prove_thing".into(),
+                rule: Some("positive".into()),
+                file: "f.rs".into(),
+                line: 1,
+                children: vec![],
+            }],
+        );
+    }
+
+    let pages = report::render_detail_pages_for(&j, &cov, None, None);
+    let pos = &pages[0];
+    let trees_shown = pos.content.matches("<summary>Proof tree</summary>").count();
+    assert_eq!(trees_shown, 10, "should cap inline trees at 10");
+    assert!(
+        pos.content
+            .contains("Proof trees omitted for the remaining 3 tests"),
+        "should note the omission (13 total: 1 original + 12 added)"
+    );
 }
 
 #[test]
@@ -567,6 +746,42 @@ fn jsonl_reads_positive_and_negative_records() {
 
     assert!(cov.no_applicable_rule_observed("g.rs", "j2"));
     assert!(!cov.no_applicable_rule_observed("g.rs", "jX"));
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn jsonl_reads_embedded_proof_trees() {
+    let tmp = std::env::temp_dir().join(format!("formality-coverage-trees-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp).unwrap();
+    let path = tmp.join("test-coverage.jsonl");
+
+    let body = concat!(
+        r#"{"kind":"positive","test_file":"a.rs","test_line":1,"test_column":1,"rules":[{"judgment":"j1","rule":"r1","file":"f.rs","line":10}],"trees":[{"judgment":"j1","rule":"r1","file":"f.rs","line":10,"children":[{"judgment":"j2","rule":"r2","file":"g.rs","line":20}]}]}"#,
+        "\n",
+        r#"{"kind":"negative","test_file":"b.rs","test_line":2,"test_column":1,"reasons":[{"reason":"premise","judgment":"j1","rule":"r1","file":"f.rs","line":11,"cause":"if_false"}],"trees":[{"judgment":"j1","file":"f.rs","line":1,"rules":[{"rule":"r1","file":"f.rs","line":11,"cause":"if_false"}]}]}"#,
+        "\n",
+    );
+    std::fs::write(&path, body).unwrap();
+
+    let cov = jsonl::read(&path).unwrap();
+
+    let pos = cov.positive_trees_for(&TestLoc {
+        file: "a.rs".into(),
+        line: 1,
+    });
+    assert_eq!(pos.len(), 1);
+    assert_eq!(pos[0].judgment, "j1");
+    assert_eq!(pos[0].rule.as_deref(), Some("r1"));
+    assert_eq!(pos[0].children[0].judgment, "j2");
+
+    let neg = cov.negative_trees_for(&TestLoc {
+        file: "b.rs".into(),
+        line: 2,
+    });
+    assert_eq!(neg.len(), 1);
+    assert_eq!(neg[0].rules[0].rule.as_deref(), Some("r1"));
+    assert_eq!(neg[0].rules[0].cause, "if_false");
 
     let _ = std::fs::remove_dir_all(&tmp);
 }
