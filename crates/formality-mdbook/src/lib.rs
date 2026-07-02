@@ -135,9 +135,10 @@ fn append_coverage_chapters(
         let mut detail_items: Vec<BookItem> = Vec::new();
         // Recorded test locations are relative to the repo root, which is the
         // book directory's parent.
-        for (k, page) in report::render_detail_pages_for(j, &cov, github_base, root.parent())
-            .into_iter()
-            .enumerate()
+        for (k, page) in
+            report::render_detail_pages_for(j, &cov, github_base, root.parent(), "html")
+                .into_iter()
+                .enumerate()
         {
             if !seen_slugs.insert(page.slug.clone()) {
                 eprintln!(
