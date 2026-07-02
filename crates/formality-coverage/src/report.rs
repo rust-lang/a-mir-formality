@@ -50,6 +50,8 @@ ul.cov-tree code{font-size:inherit}\n\
 ul.cov-tree summary{cursor:pointer}\n\
 .cov-tree-loc{color:#888}\n\
 .cov-tree-fail{color:#b35900}\n\
+.cov-tree-scroll{overflow-x:auto}\n\
+ul.cov-tree li,ul.cov-tree summary{white-space:nowrap}\n\
 </style>\n";
 
 /// Render the top-level coverage table. Each covered cell links to a per-cell
@@ -488,17 +490,38 @@ fn tree_details(
     }
 }
 
-/// Wrap a pre-rendered HTML tree body in a collapsed `<details>` disclosure.
-/// Emitted as one raw-HTML block with no internal blank lines: a blank line
-/// would close the HTML block under CommonMark and leak the rest as literal
-/// markdown. `body_html` is already HTML (its text content escaped by the node
-/// renderers), so it is embedded verbatim.
+/// Wrap a pre-rendered HTML tree body in a collapsed `<details>` disclosure. The
+/// body sits in a horizontally scrollable box (`cov-tree-scroll`) because nodes
+/// render on a single line each (no wrapping) and a deep proof stack's growing
+/// indentation would otherwise overflow the page; scrolling keeps every line
+/// readable at any depth. Emitted as one raw-HTML block with no internal blank
+/// lines: a blank line would close the HTML block under CommonMark and leak the
+/// rest as literal markdown. `body_html` is already HTML (its text content
+/// escaped by the node renderers), so it is embedded verbatim.
 fn tree_disclosure(summary: &str, body_html: &str) -> String {
     format!(
-        "<details>\n<summary>{summary}</summary>\n{body}</details>\n\n",
+        "<details>\n<summary>{summary}</summary>\n<div class=\"cov-tree-scroll\">\n{body}</div>\n</details>\n\n",
         summary = summary,
         body = body_html,
     )
+}
+
+/// Nesting depth at which tree nodes start collapsed. The top `TREE_OPEN_DEPTH`
+/// levels render expanded so the high-level proof path is visible at a glance;
+/// nodes exactly at this depth start collapsed, since proof stacks routinely run
+/// dozens of levels deep and would otherwise make the default view unwieldy.
+/// Everything below the fold is emitted `open`, so expanding one collapsed node
+/// reveals its whole subtree in a single click.
+const TREE_OPEN_DEPTH: usize = 4;
+
+/// The opening `<details>` tag for a node at `depth`: expanded except at the
+/// fold depth itself (see [`TREE_OPEN_DEPTH`]).
+fn details_tag(depth: usize) -> &'static str {
+    if depth == TREE_OPEN_DEPTH {
+        "<details>"
+    } else {
+        "<details open>"
+    }
 }
 
 /// Largest proof tree we render inline. Where-clause solving recurses deeply,
@@ -521,7 +544,7 @@ fn proof_tree_details(
     let mut body = String::from("<ul class=\"cov-tree\">\n");
     let mut budget = MAX_TREE_NODES;
     for n in nodes {
-        render_proof_node(n, github_base, source_root, &mut body, &mut budget);
+        render_proof_node(n, github_base, source_root, 0, &mut body, &mut budget);
     }
     body.push_str("</ul>\n");
     append_truncation_note(&mut body, total);
@@ -539,6 +562,7 @@ fn render_proof_node(
     n: &ProofTreeNode,
     github_base: Option<&str>,
     source_root: Option<&Path>,
+    depth: usize,
     out: &mut String,
     budget: &mut usize,
 ) {
@@ -562,10 +586,11 @@ fn render_proof_node(
         return;
     }
     out.push_str(&format!(
-        "<li><details open><summary>{label}</summary>\n<ul class=\"cov-tree\">\n"
+        "<li>{details}<summary>{label}</summary>\n<ul class=\"cov-tree\">\n",
+        details = details_tag(depth),
     ));
     for c in &n.children {
-        render_proof_node(c, github_base, source_root, out, budget);
+        render_proof_node(c, github_base, source_root, depth + 1, out, budget);
     }
     out.push_str("</ul>\n</details></li>\n");
 }
@@ -584,7 +609,7 @@ fn failed_tree_details(
     let mut body = String::from("<ul class=\"cov-tree\">\n");
     let mut budget = MAX_TREE_NODES;
     for n in nodes {
-        render_failed_node(n, github_base, source_root, &mut body, &mut budget);
+        render_failed_node(n, github_base, source_root, 0, &mut body, &mut budget);
     }
     body.push_str("</ul>\n");
     append_truncation_note(&mut body, total);
@@ -603,6 +628,7 @@ fn render_failed_node(
     j: &FailedTreeNode,
     github_base: Option<&str>,
     source_root: Option<&Path>,
+    depth: usize,
     out: &mut String,
     budget: &mut usize,
 ) {
@@ -620,10 +646,11 @@ fn render_failed_node(
         return;
     }
     out.push_str(&format!(
-        "<li><details open><summary>{label}</summary>\n<ul class=\"cov-tree\">\n"
+        "<li>{details}<summary>{label}</summary>\n<ul class=\"cov-tree\">\n",
+        details = details_tag(depth),
     ));
     for r in &j.rules {
-        render_failed_rule(r, github_base, source_root, out, budget);
+        render_failed_rule(r, github_base, source_root, depth + 1, out, budget);
     }
     out.push_str("</ul>\n</details></li>\n");
 }
@@ -632,6 +659,7 @@ fn render_failed_rule(
     r: &FailedRuleNode,
     github_base: Option<&str>,
     source_root: Option<&Path>,
+    depth: usize,
     out: &mut String,
     budget: &mut usize,
 ) {
@@ -648,9 +676,10 @@ fn render_failed_rule(
         // A nested judgment failure: recurse to show where it broke.
         Some(child) => {
             out.push_str(&format!(
-                "<li><details open><summary><code>{name}</code> {loc}</summary>\n<ul class=\"cov-tree\">\n"
+                "<li>{details}<summary><code>{name}</code> {loc}</summary>\n<ul class=\"cov-tree\">\n",
+                details = details_tag(depth),
             ));
-            render_failed_node(child, github_base, source_root, out, budget);
+            render_failed_node(child, github_base, source_root, depth + 1, out, budget);
             out.push_str("</ul>\n</details></li>\n");
         }
         // A terminal failure: show the cause tag.

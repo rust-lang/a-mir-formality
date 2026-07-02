@@ -286,6 +286,8 @@ fn markdown_subpage_snapshot() {
         ul.cov-tree summary{cursor:pointer}
         .cov-tree-loc{color:#888}
         .cov-tree-fail{color:#b35900}
+        .cov-tree-scroll{overflow-x:auto}
+        ul.cov-tree li,ul.cov-tree summary{white-space:nowrap}
         </style>
 
         <div class="cov-rule" id="positive">
@@ -757,6 +759,8 @@ fn infallible_premise_renders_as_na() {
         ul.cov-tree summary{cursor:pointer}
         .cov-tree-loc{color:#888}
         .cov-tree-fail{color:#b35900}
+        .cov-tree-scroll{overflow-x:auto}
+        ul.cov-tree li,ul.cov-tree summary{white-space:nowrap}
         </style>
 
         <div class="cov-rule" id="trivial">
