@@ -42,8 +42,11 @@ table.cov-code th{padding:.15rem .6rem;border:0;border-bottom:1px solid var(--qu
 .cov-src-line{white-space:pre-wrap}\n\
 tr.cov-sep td{color:#999}\n\
 tr.cov-concl{background:rgba(127,127,127,.08)}\n\
-tr.cov-current{background:rgba(31,120,255,.15)}\n\
-ul.cov-tree,ul.cov-tree ul{list-style:none;margin:0;padding-left:1.2em;font-family:var(--mono-font,monospace);font-size:.9em}\n\
+table.cov-code tr.cov-current td{background:rgba(31,120,255,.28)}\n\
+ul.cov-tree,ul.cov-tree ul{list-style:none;margin:0;padding-left:1.2em;font-family:var(--mono-font,monospace)}\n\
+ul.cov-tree{font-size:.85em}\n\
+ul.cov-tree ul{font-size:1em}\n\
+ul.cov-tree code{font-size:inherit}\n\
 ul.cov-tree summary{cursor:pointer}\n\
 .cov-tree-loc{color:#888}\n\
 .cov-tree-fail{color:#b35900}\n\

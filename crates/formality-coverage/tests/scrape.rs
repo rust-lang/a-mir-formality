@@ -278,8 +278,11 @@ fn markdown_subpage_snapshot() {
         .cov-src-line{white-space:pre-wrap}
         tr.cov-sep td{color:#999}
         tr.cov-concl{background:rgba(127,127,127,.08)}
-        tr.cov-current{background:rgba(31,120,255,.15)}
-        ul.cov-tree,ul.cov-tree ul{list-style:none;margin:0;padding-left:1.2em;font-family:var(--mono-font,monospace);font-size:.9em}
+        table.cov-code tr.cov-current td{background:rgba(31,120,255,.28)}
+        ul.cov-tree,ul.cov-tree ul{list-style:none;margin:0;padding-left:1.2em;font-family:var(--mono-font,monospace)}
+        ul.cov-tree{font-size:.85em}
+        ul.cov-tree ul{font-size:1em}
+        ul.cov-tree code{font-size:inherit}
         ul.cov-tree summary{cursor:pointer}
         .cov-tree-loc{color:#888}
         .cov-tree-fail{color:#b35900}
@@ -746,8 +749,11 @@ fn infallible_premise_renders_as_na() {
         .cov-src-line{white-space:pre-wrap}
         tr.cov-sep td{color:#999}
         tr.cov-concl{background:rgba(127,127,127,.08)}
-        tr.cov-current{background:rgba(31,120,255,.15)}
-        ul.cov-tree,ul.cov-tree ul{list-style:none;margin:0;padding-left:1.2em;font-family:var(--mono-font,monospace);font-size:.9em}
+        table.cov-code tr.cov-current td{background:rgba(31,120,255,.28)}
+        ul.cov-tree,ul.cov-tree ul{list-style:none;margin:0;padding-left:1.2em;font-family:var(--mono-font,monospace)}
+        ul.cov-tree{font-size:.85em}
+        ul.cov-tree ul{font-size:1em}
+        ul.cov-tree code{font-size:inherit}
         ul.cov-tree summary{cursor:pointer}
         .cov-tree-loc{color:#888}
         .cov-tree-fail{color:#b35900}
