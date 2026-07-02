@@ -556,8 +556,8 @@ fn count_proof_nodes(n: &ProofTreeNode) -> usize {
 }
 
 /// Render one success-tree node as an `<li>`. Nodes with children become a
-/// collapsible `<details open>` so any subtree can be folded away; leaves are
-/// plain list items.
+/// collapsible `<details>` (open or collapsed per [`details_tag`]) so any
+/// subtree can be folded away; leaves are plain list items.
 fn render_proof_node(
     n: &ProofTreeNode,
     github_base: Option<&str>,
