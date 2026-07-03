@@ -37,6 +37,13 @@ impl<L: Language> CoreSubstitution<L> {
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
     }
+
+    pub fn insert(&mut self, v: impl Upcast<CoreVariable<L>>, p: impl Upcast<CoreParameter<L>>) {
+        let v: CoreVariable<L> = v.upcast();
+        let p: CoreParameter<L> = p.upcast();
+        assert!(!self.maps(v), "already have a substitition for {v:?}");
+        self.map.insert(v, p);
+    }
 }
 
 impl<L: Language> std::fmt::Debug for CoreSubstitution<L> {

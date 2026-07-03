@@ -155,8 +155,6 @@ impl Minimization {
             env_out = env_out.with_pending(env2out_subst.apply(pending_in));
         }
 
-        env_out.update_substitution(substitution.clone());
-
         Env {
             known_true: env.known_true,
             substitution: substitution,

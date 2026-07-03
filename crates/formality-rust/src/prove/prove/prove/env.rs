@@ -86,9 +86,18 @@ impl Env {
         }
     }
 
-    pub fn update_substitution(&mut self, subst: Substitution) -> Self {
-        self.substitution = subst;
-        self.clone()
+    pub fn add_substitution(&self, var: impl Upcast<Variable>, ty: impl Upcast<Parameter>) -> Self {
+        let mut this = self.clone();
+        this.substitution.insert(var, ty);
+        this
+    }
+
+    pub fn add_all_substitutions(&self, subst: Substitution) -> Self {
+        let mut this = self.clone();
+        for (var, ty) in subst {
+            this.add_substitution(var, ty);
+        }
+        this
     }
 
     pub fn only_universal_variables(&self) -> bool {
