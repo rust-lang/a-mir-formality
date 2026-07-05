@@ -12,7 +12,7 @@ use formality_core::{cast_impl, Downcast, DowncastTo, Set, Upcast};
 
 use crate::check::{Debug, ProvenSet, ToWcs, Visit};
 
-#[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone, Hash)]
+#[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Hash)]
 pub struct TypeckEnv {
     /// The environment (set of universal, existential variables)
     pub env: Env,
@@ -21,6 +21,16 @@ pub struct TypeckEnv {
     pub output_ty: Option<Ty>,
 
     pub program: Program,
+}
+
+// We want to skip print the program in the debug output because it is often large and doesn't change.
+impl std::fmt::Debug for TypeckEnv {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TypeckEnv")
+            .field("env", &self.env)
+            .field("output_ty", &self.output_ty)
+            .finish()
+    }
 }
 
 cast_impl!(TypeckEnv);

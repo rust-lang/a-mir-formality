@@ -8,6 +8,8 @@ pub struct FeatureGate {
 #[term]
 #[derive(Copy)]
 pub enum FeatureGateName {
+    #[grammar(polonius_unlocked)]
+    PoloniusUnlocked,
     #[grammar(polonius_alpha)]
     PoloniusAlpha,
     #[grammar(non_lifetime_binders)]

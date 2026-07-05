@@ -160,6 +160,16 @@ fn item_has_non_lifetime_binder(item: &CrateItem) -> bool {
     where_clauses.iter().any(|wc| wc.has_non_lifetime_binder())
 }
 
+/// Checks if *any* crate in the program has the given feature gate enabled.
+// FIXME: ideally, these "global" feature gates should either be on the Program itself,
+// or we should thread through the *active* crate for things like borrowck and allow
+// different crates within a program to have different semantics.
+pub(crate) fn feature_gate_enabled_in_program(program: &Program, feature_gate_name: &FeatureGateName) -> bool {
+    program.crates.crates.iter().any(|c| c.items.iter().any(|item| {
+        matches!(item, CrateItem::FeatureGate(fg) if fg.name == *feature_gate_name)
+    }))
+}
+
 judgment_fn! {
     fn check_crate_item(
         program: Program,

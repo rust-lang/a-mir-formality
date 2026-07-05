@@ -1,3 +1,4 @@
+use crate::check::feature_gate_enabled_in_program;
 use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::{FlowState, Loan, PendingOutlives};
 use crate::check::borrow_check::outlives::transitively_outlived_by;
@@ -7,7 +8,7 @@ use crate::check::borrow_check::typed_place_expression::{
 
 use crate::grammar::expr::{Block, Expr, Init, PlaceExpr, Stmt};
 use crate::grammar::{
-    AliasTy, AssociatedItemId, ExistentialVar, FieldName, Fn, Lt, Parameter, Predicate, RefKind,
+    AliasTy, AssociatedItemId, ExistentialVar, FeatureGateName, FieldName, Fn, Lt, Parameter, Predicate, RefKind,
     Relation, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId, TraitRef, Ty, TyData,
     Variable, Wcs, WhereClause,
 };
@@ -292,9 +293,24 @@ judgment_fn! {
         )
 
         (
+            (if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked))!
             // Existential variables: open the binder and check the inner block
             (let (env, subst, block) = env.instantiate_existentially(binder))
             (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
+            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+            (let state = state.pop_subst(&env.env, subst))
+            ------------------------------------------------------------ ("exists")
+            (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
+        )
+
+
+        (
+            (if !feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked) && !feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusAlpha))!
+            // Existential variables: open the binder and check the inner block
+            (let (env, subst, block) = env.instantiate_existentially(binder))
+            (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
+            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+            (let state = state.from_global_state_for_nll())
             (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
             (let state = state.pop_subst(&env.env, subst))
             ------------------------------------------------------------ ("exists")
@@ -663,6 +679,7 @@ fn kill_loans(overwritten_place: &TypedPlaceExpr, state: &FlowState) -> FlowStat
         current,
         breaks: state.breaks.clone(),
         continues: state.continues.clone(),
+        all_outlives: state.all_outlives.clone(),
     }
 }
 

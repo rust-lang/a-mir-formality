@@ -162,6 +162,7 @@ where
             current: Union((a.current, b.current)).upcast(),
             breaks: Union((a.breaks, b.breaks)).upcast(),
             continues: Union((a.continues, b.continues)).upcast(),
+            all_outlives: Union((a.all_outlives, b.all_outlives)).upcast(),
             scopes,
         }
     }
@@ -193,6 +194,8 @@ pub struct FlowState {
 
     /// State to be incorporated at a continue targeting the labeled block/loop/etc
     pub continues: Set<LabeledFlowState>,
+
+    pub all_outlives: Set<PendingOutlives>,
 }
 
 impl FlowState {
@@ -225,6 +228,7 @@ impl FlowState {
             breaks: self.breaks.clone(),
             continues: self.continues.clone(),
             scopes: self.scopes.clone(),
+            all_outlives: self.all_outlives.clone(),
         }
     }
 
@@ -234,6 +238,7 @@ impl FlowState {
             breaks: self.breaks.clone(),
             continues: self.continues.clone(),
             scopes: self.scopes.clone(),
+            all_outlives: Union((&self.all_outlives, outlives)).upcast(),
         }
     }
 
@@ -467,6 +472,7 @@ impl FlowState {
             current,
             breaks,
             continues,
+            all_outlives,
         } = self.clone();
 
         // Pop and destructure the top scope.
@@ -509,6 +515,7 @@ impl FlowState {
             current: successor,
             breaks: other_labels,
             continues,
+            all_outlives,
         }
     }
 
@@ -522,6 +529,7 @@ impl FlowState {
             current: mut successor,
             breaks,
             continues,
+            all_outlives,
         } = self.clone();
 
         let (this_label, other_labels): (Set<LabeledFlowState>, Set<LabeledFlowState>) =
@@ -536,6 +544,7 @@ impl FlowState {
             current: successor,
             breaks,
             continues: other_labels,
+            all_outlives,
         }
     }
 
@@ -567,6 +576,8 @@ impl FlowState {
                 lfs
             })
             .collect();
+        this.all_outlives
+            .retain(|v| !v.free_variables().iter().any(|v| removed.contains(v)));
 
         this
     }
@@ -600,6 +611,22 @@ impl FlowState {
         }
 
         true
+    }
+
+    pub(crate) fn from_global_state_for_nll(&self) -> Self {
+        let all_outlives = self.all_outlives.clone();
+        let current = PointFlowState {
+            outlives: all_outlives.clone(),
+            loans_live: self.current.loans_live.clone(),
+            uninit: self.current.uninit.clone(),
+        };
+        FlowState {
+            scopes: self.scopes.clone(),
+            current: current,
+            breaks: self.breaks.clone(),
+            continues: self.continues.clone(),
+            all_outlives: all_outlives,
+        }
     }
 }
 

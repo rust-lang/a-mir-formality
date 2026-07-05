@@ -1948,7 +1948,6 @@ fn shared_ref_prevents_mutation() {
 /// ```
 #[test]
 fn min_problem_case_3() {
-    // This doesn't pass in Rust, but it does in our formulation.
     FormalityTest::new(crates![crate Foo {
         struct Map { }
 
@@ -1965,7 +1964,50 @@ fn min_problem_case_3() {
         }
     }])
     .skip_execute()
-    .ok()
+    .err(expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+            &access.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+
+        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+          {
+              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+              {
+                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                  Lt::Variable(Variable::ExistentialVar(_)) => true,
+                  Lt::Variable(Variable::BoundVar(_)) =>
+                  panic!("cannot outlive a bound var"), Lt::Erased => true,
+              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+          })`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `m`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+            place_accessed = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+            place_loaned_ref = m : &mut !lt_1 Map"#]]);
+
+    FormalityTest::new(crates![crate Foo {
+        #![feature(polonius_unlocked)]
+        struct Map { }
+
+        fn min_problem_case_3<'a>(m: &mut 'a Map) -> &mut 'a Map {
+            exists<'r0, 'r1> {
+                let n: &mut 'r0 Map = &mut 'r0 *m;
+                if true {
+                    return n;
+                } else {
+                    let o: &mut 'r1 Map = &mut 'r1 *m;
+                    return o;
+                }
+            }
+        }
+    }])
+    .skip_execute()
+    .ok();
 }
 
 /// Test that dropping a borrowed variable is an error.
@@ -2701,9 +2743,8 @@ fn write_to_borrowed_before_continue() {
 /// statically-known condition value.
 ///
 /// ```rust,ignore
-/// fn foo() -> &'a Map {
-///     let m: Map = Map {};
-///     let n: &mut Map = &mut m;
+/// fn foo<'a>(m: &'a mut Map) -> &'a Map {
+///     let mut n: &mut Map = &mut *m;
 ///     if false {
 ///         return n;
 ///     } else {
@@ -2730,7 +2771,50 @@ fn if_false_borrowck() {
         }
     }])
     .skip_execute()
-    .ok()
+    .err(expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+            &access.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+
+        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+          {
+              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+              {
+                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                  Lt::Variable(Variable::ExistentialVar(_)) => true,
+                  Lt::Variable(Variable::BoundVar(_)) =>
+                  panic!("cannot outlive a bound var"), Lt::Erased => true,
+              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+          })`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `m`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+            place_accessed = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+            place_loaned_ref = m : &mut !lt_1 Map"#]]);
+
+    FormalityTest::new(crates![crate Foo {
+        #![feature(polonius_unlocked)]
+        struct Map { }
+
+        fn foo<'a>(m: &mut 'a Map) -> &mut 'a Map {
+            exists<'r0, 'r1> {
+                let n: &mut 'r0 Map = &mut 'r0 *m;
+                if false {
+                    return n;
+                } else {
+                    let o: &mut 'r1 Map = &mut 'r1 *m;
+                    return o;
+                }
+            }
+        }
+    }])
+    .skip_execute()
+    .ok();
 }
 
 /// Writing to a borrowed variable before a loop that might not execute
@@ -3117,6 +3201,52 @@ fn outlive_before_return_does_not_affect_merged_paths() {
         }
     }])
     .skip_execute()
+    .err(expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = *(a : &mut !lt_1 u8) : <&mut !lt_1 u8 as Derefable>::Target
+            &access.place = *(a : &mut !lt_1 u8) : <&mut !lt_1 u8 as Derefable>::Target
+
+        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+          {
+              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+              {
+                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                  Lt::Variable(Variable::ExistentialVar(_)) => true,
+                  Lt::Variable(Variable::BoundVar(_)) =>
+                  panic!("cannot outlive a bound var"), Lt::Erased => true,
+              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+          })`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+            place_accessed = *(a : &mut !lt_1 u8) : <&mut !lt_1 u8 as Derefable>::Target
+            place_loaned_ref = a : &mut !lt_1 u8"#]]);
+
+    FormalityTest::new(crates![crate Foo {
+        #![feature(polonius_unlocked)]
+        fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
+            exists<'r0, 'r1, 'r2, 'r3> {
+                // This creates an outlives constraint
+                let b: &mut 'r1 u8 = &mut 'r0 *a;
+                if true {
+                    return b;
+                } else {
+                    // this means the loan remains live
+                }
+
+                // If the outlives constraint propagated here,
+                // we would get an error.
+                let c: &mut 'r3 u8 = &mut 'r2 *a;
+                return c;
+            }
+        }
+    }])
+    .skip_execute()
     .ok();
 }
 
@@ -3223,4 +3353,77 @@ fn loan_cannot_outlive_lifetime_pass() {
     }])
     .skip_execute()
     .ok()
+}
+
+#[test]
+fn live_loans() {
+    FormalityTest::new(crates![crate Foo {
+        trait Outlives<'a, 'b> where 'a: 'b {
+            type Assoc : [];
+        }
+        struct S { }
+        impl<'a, 'b> Outlives<'a, 'b> for S where 'a: 'b {
+            type Assoc = u32;
+        }
+        fn foo() -> u32 {
+            exists<'r0, 'r1> {
+                let v0: u32 = 0 _ u32;
+                let v1: u32 = 0 _ u32;
+                let a: &mut 'r0 u32 = &mut 'r0 v0;
+                let b: &mut 'r1 u32 = &mut 'r1 v1;
+                let x: <S as Outlives<'r0, 'r1>>::Assoc = 0 _ u32;
+                *a = 1 _ u32;
+                *b;
+                x;
+                return 0 _ u32;
+            }
+        }
+
+    }])
+    .skip_execute()
+    .ok()
+}
+
+#[test]
+fn live_places() {
+    FormalityTest::new(crates![crate Foo {
+        trait Outlives<'a, 'b> where 'a: 'b {
+            type Assoc : [];
+        }
+        struct S { }
+        impl<'a, 'b> Outlives<'a, 'b> for S where 'a: 'b {
+            type Assoc = u32;
+        }
+        fn foo() -> u32 {
+            exists<'r0, 'r1> {
+                let v0: u32 = 0 _ u32;
+                let v1: u32 = 0 _ u32;
+                let a: &mut 'r0 u32 = &mut 'r0 v0;
+                let b: &mut 'r1 u32 = &mut 'r1 *a;
+                *a = 1 _ u32;
+                *b;
+                return 0 _ u32;
+            }
+        }
+
+    }])
+    .skip_execute()
+    .err(expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = *(a : &mut ?lt_1 u32) : <&mut ?lt_1 u32 as Derefable>::Target
+            &access.place = *(a : &mut ?lt_1 u32) : <&mut ?lt_1 u32 as Derefable>::Target
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_2}
+            &lifetime.upcast() = ?lt_2
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+            place_accessed = *(a : &mut ?lt_1 u32) : <&mut ?lt_1 u32 as Derefable>::Target
+            place_loaned_ref = a : &mut ?lt_1 u32"#]])
 }

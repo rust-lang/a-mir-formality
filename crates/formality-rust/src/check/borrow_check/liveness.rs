@@ -7,6 +7,8 @@ use formality_core::{Set, Upcast};
 
 pub type LivePlaces = Set<PlaceExpr>;
 
+pub type LiveRegions = Set<LabelId>;
+
 /// Liveness context for control-flow targets (break/continue).
 /// Each entry corresponds to a labeled scope (block or loop).
 #[derive(Clone, Debug)]
