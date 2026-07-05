@@ -7,7 +7,7 @@ use crate::check::borrow_check::typed_place_expression::{
 use crate::grammar;
 use crate::grammar::{
     expr::{Block, Expr},
-    Fallible, Lt, Parameter, ParameterKind, RigidName, Ty,
+    Fallible, Lt, Parameter, ParameterKind, Ty,
 };
 use crate::prove::Env;
 use formality_core::Upcast;

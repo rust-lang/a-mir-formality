@@ -1,13 +1,14 @@
 use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::{FlowState, Loan, PendingOutlives};
-use crate::check::borrow_check::outlives::transitively_outlived_by;
+use crate::check::borrow_check::outlives::{transitively_outlived_by, verify_universal_outlives};
 use crate::check::borrow_check::typed_place_expression::{
     TypedPlaceExpr, TypedPlaceExpressionData,
 };
+use crate::check::feature_gate_enabled_in_program;
 
 use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
-    AliasTy, AssociatedItemId, ExistentialVar, FieldName, Fn, Lt, Parameter, Predicate, RefKind,
+    AliasTy, AssociatedItemId, ExistentialVar, FeatureGateName, FieldName, Fn, Lt, Parameter, Predicate, RefKind,
     Relation, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId, TraitRef, Ty, TyData,
     Variable, VariantId, Wcs, WhereClause,
 };
@@ -165,7 +166,7 @@ judgment_fn! {
                 ) => (env, state)))
             // Drop locals declared in this scope (reverse declaration order)
             (let locals_to_drop = state.locals_dropped_in_innermost_scope())
-            (drop_places(env, assumptions, state, locals_to_drop, places_live_on_exit) => state)
+            (drop_places(env, assumptions, state, &locals_to_drop, places_live_on_exit) => state)
             (let state = state.pop_scope(label))
             ------------------------------------------------------------ ("basic block")
             (borrow_check_block(env, assumptions, state, Block { label, stmts }, places_live_on_exit) => state)
@@ -292,9 +293,40 @@ judgment_fn! {
         )
 
         (
+            (if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked))!
             // Existential variables: open the binder and check the inner block
             (let (env, subst, block) = env.instantiate_existentially(binder))
             (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
+            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+            (let state = state.pop_subst(&env.env, subst))
+            ------------------------------------------------------------ ("exists")
+            (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
+        )
+
+        (
+            (if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusAlpha))!
+            // Existential variables: open the binder and check the inner block
+            (let (env, subst, block) = env.instantiate_existentially(binder))
+            (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
+            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+            // Although we do not rerun borrowck with all outlives, Polonius Alpha
+            // does not change universal region constraints being checked on the
+            // full outlives set.
+            (verify_universal_outlives(env, assumptions_body, &state.all_outlives) => ())
+            (let state = state.pop_subst(&env.env, subst))
+            ------------------------------------------------------------ ("exists")
+            (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
+        )
+
+        (
+            (if !feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked) && !feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusAlpha))!
+            // Existential variables: open the binder and check the inner block
+            (let (env, subst, block) = env.instantiate_existentially(binder))
+            (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
+            (let entry_state = state.clone())
+            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+            // Rerun borrowck again, with the *entry* state combined with the entire outlives set.
+            (let state = entry_state.with_global_outlives_from(&state))
             (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
             (let state = state.pop_subst(&env.env, subst))
             ------------------------------------------------------------ ("exists")
@@ -453,6 +485,7 @@ judgment_fn! {
 
             // Introduce the loan
             (let state = state.with_loan(Loan::new(lt, place, kind)))
+            (let state = state.with_outlives(&reborrow_constraints(place, lt)))
             (let ty = place.ty.ref_ty_of_kind(kind, lt))
             ------------------------------------------------------------ ("ref")
             (borrow_check_expr(env, assumptions, state, Expr::Ref { kind, lt, place }, places_live_on_exit) => (ty, state))
@@ -650,6 +683,38 @@ fn check_place_writable(state: &FlowState, place: &PlaceExpr) -> bool {
         .any(|u| u.is_prefix_of(place) && u != place)
 }
 
+/// The equivalent of rustc's `add_reborrow_constraint`: if we are
+/// reborrowing the referent of another reference (e.g. `&'a mut *p`
+/// where `p: &'b mut T`), the loan is only valid while the reference it
+/// goes through is, so each such reference's lifetime must outlive the
+/// loan's lifetime (`'b : 'a`). Like rustc, we stop walking at a shared
+/// reference: its referent cannot be mutated through anything deeper.
+fn reborrow_constraints(place: &TypedPlaceExpr, loan_lt: &Lt) -> Set<PendingOutlives> {
+    let mut constraints: Set<PendingOutlives> = Set::default();
+    let mut cursor = Some(place);
+    while let Some(p) = cursor {
+        if let TypedPlaceExpressionData::Deref(inner) = p.data() {
+            if let Ty::RigidTy(RigidTy {
+                name: RigidName::Ref(kind),
+                parameters,
+            }) = &inner.ty
+            {
+                if let Some(ref_lt @ Parameter::Lt(_)) = parameters.first() {
+                    constraints.insert(PendingOutlives {
+                        a: ref_lt.clone(),
+                        b: loan_lt.upcast(),
+                    });
+                }
+                if let RefKind::Shared = kind {
+                    break;
+                }
+            }
+        }
+        cursor = p.prefix();
+    }
+    constraints
+}
+
 /// Prove that any loans issued in thes value expressions (evaluated in this order) are respected.
 fn kill_loans(overwritten_place: &TypedPlaceExpr, state: &FlowState) -> FlowState {
     let mut current = state.current.clone();
@@ -663,6 +728,7 @@ fn kill_loans(overwritten_place: &TypedPlaceExpr, state: &FlowState) -> FlowStat
         current,
         breaks: state.breaks.clone(),
         continues: state.continues.clone(),
+        all_outlives: state.all_outlives.clone(),
     }
 }
 
@@ -680,7 +746,8 @@ judgment_fn! {
 
         (
             (for_all(place in places) with(state)
-                (access_permitted_by_loans(env, assumptions, state, Access::new(AccessKind::Write, place), places_live_after_drop) => state))
+                (access_permitted_by_loans(env, assumptions, state, Access::new(AccessKind::Write, place), places_live_after_drop) => state)
+                (let state = kill_loans(place, &state)))
             ------------------------------------------------------------ ("drop_places")
             (drop_places(env, assumptions, state, places, places_live_after_drop) => state)
         )
@@ -791,11 +858,32 @@ judgment_fn! {
             // any live lifetime. Live lifetimes include lifetimes that appear in live places and universal lifetimes.
 
             (if !place_disjoint_from_place(&loan.place, &access.place))! // just for convenience
-            (loan_not_required_by_live_places(env, assumptions, state, loan, places_live_after_access) => state)
+            (let places_live = places_live_for_loan(env, access, places_live_after_access))
+            (loan_not_required_by_live_places(env, assumptions, state, loan, places_live) => state)
             (loan_cannot_outlive_universal_regions(env, assumptions, &state.current.outlives, &loan) => ())
             ------------------------------------------------------------ ("loan is dead")
             (access_permitted_by_loan(env, assumptions, state, loan, access, places_live_after_access) => state)
         )
+    }
+}
+
+/// Under NLL and Polonius Alpha, rustc treats a write through a pointer as a
+/// *use* of the base path at the access point.
+fn places_live_for_loan(
+    env: &TypeckEnv,
+    access: &Access,
+    places_live_after_access: &LivePlaces,
+) -> LivePlaces {
+    if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked) {
+        places_live_after_access.clone()
+    } else {
+        let mut p = places_live_after_access.clone();
+        let mut cur = access.place.prefix();
+        while let Some(pre) = cur {
+            p.insert(pre.to_place_expression());
+            cur = pre.prefix();
+        }
+        p
     }
 }
 

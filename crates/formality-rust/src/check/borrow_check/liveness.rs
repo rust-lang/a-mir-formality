@@ -392,11 +392,24 @@ impl LiveBefore for Block {
 impl LiveBefore for PlaceExpr {
     fn live_before(
         &self,
-        _env: &TypeckEnv,
+        env: &TypeckEnv,
         _scopes: &impl IntoLivenessContext,
         places_live: impl Upcast<LivePlaces>,
     ) -> LivePlaces {
         let mut places_live = places_live.upcast();
+        // Function names appear as bar `Var` place expressions. Recording them
+        // as live makes `borrow_check_place_expr` call in
+        // `loan_not_required_by_live_places` fail with "unknown local variable".
+        // Unlike in `borrow_check_expr`, we don't have the turbofish args to
+        // build a `Ty` from, and it feels *more* correct to just never mark
+        // these as live instead of creating a `Ty` with invalid args.
+        // This hints that there is *some* refactoring to be done here, but
+        // for now we'll just avoid it by checking here.
+        if let PlaceExpr::Var(id) = self {
+            if env.crates().fn_named(id).is_ok() {
+                return places_live;
+            }
+        }
         places_live.insert(self.clone());
         places_live
     }
