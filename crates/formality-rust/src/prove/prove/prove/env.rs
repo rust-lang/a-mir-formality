@@ -66,6 +66,7 @@ pub struct Env {
     /// the pending constraints that are now unlocked.
     ///
     /// Whenever a "successful" proof results, the pending obligations
+    /// TODO: do we still need pending since we always apply substitution in fn prove?
     pub pending: Vec<Wc>,
 
     /// When true, outlives constraints like `'a: 'b` can be deferred as pending
@@ -87,12 +88,14 @@ impl Env {
         }
     }
 
+    // TODO: do we need to update the variable field?
     pub fn add_substitution(&self, var: impl Upcast<Variable>, ty: impl Upcast<Parameter>) -> Self {
         let mut this = self.clone();
         this.substitution.insert(var, ty);
         this
     }
 
+    // TODO: do we need to update the variable field?
     pub fn add_all_substitutions(&self, subst: Substitution) -> Self {
         let this = self.clone();
         for (var, ty) in subst {
@@ -156,15 +159,17 @@ impl Env {
         self.known_true && self.substitution.is_empty() && self.pending.is_empty()
     }
 
-    /// Given constraints from solving the subparts of `(A /\ B)`, yield combined constraints.
-    ///
-    /// # Parameters
-    ///
-    /// * `self` -- the constraints from solving `A`
-    /// * `c2` -- the constraints from solving `B` (after applying substitution from `self` to `B`)
-    /// TODO: revisit this again
+    pub fn ambiguous(&self) -> Self {
+        Env {
+            known_true: false,
+            ..self.clone()
+        }
+    }
+
+    // TODO: There are a few places that is still using seq, and the logic might not be replaceable by fn prove,
+    // does it make sense to keep this? if yes, how do we resolve the pending below?
     pub fn seq(&self, c2: &Env) -> Self {
-        tracing::debug!("Constraints::seq({self:?}, {c2:?}");
+        tracing::debug!(" Env::seq({self:?}, {c2:?}");
 
         self.assert_valid();
         c2.assert_valid();
@@ -193,19 +198,21 @@ impl Env {
             .into_iter()
             .chain(c2.substitution().clone().into_iter())
             .collect();
+
         let new_known_true = self.known_true && c2.known_true;
+
+        // TODO: not sure in what case we will have different allow_pending_outlives and different bias
+        // so just leaving the assert here for now.
+        assert!(self.allow_pending_outlives == c2.allow_pending_outlives);
+        assert!(self.bias == c2.bias);
 
         Env {
             known_true: new_known_true,
             substitution: new_subst,
-            ..c2.clone()
-        }
-    }
-
-    pub fn ambiguous(&self) -> Self {
-        Env {
-            known_true: false,
-            ..self.clone()
+            variables: todo!(),
+            bias: self.bias,
+            pending: todo!(),
+            allow_pending_outlives: self.allow_pending_outlives,
         }
     }
 }
@@ -474,7 +481,6 @@ impl Env {
     pub fn defines(&self, v: Variable) -> bool {
         self.variables.contains(&v)
     }
-
 }
 
 impl CoreVisit<crate::prove::prove::FormalityLang> for Env {
