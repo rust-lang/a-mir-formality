@@ -42,6 +42,16 @@ table.cov-code th{padding:.15rem .6rem;border:0;border-bottom:1px solid var(--qu
 .cov-src-line{white-space:pre-wrap}\n\
 tr.cov-sep td{color:#999}\n\
 tr.cov-concl{background:rgba(127,127,127,.08)}\n\
+table.cov-code tr.cov-current td{background:rgba(31,120,255,.28)}\n\
+ul.cov-tree,ul.cov-tree ul{list-style:none;margin:0;padding-left:1.2em;font-family:var(--mono-font,monospace)}\n\
+ul.cov-tree{font-size:.85em}\n\
+ul.cov-tree ul{font-size:1em}\n\
+ul.cov-tree code{font-size:inherit}\n\
+ul.cov-tree summary{cursor:pointer}\n\
+.cov-tree-loc{color:#888}\n\
+.cov-tree-fail{color:#b35900}\n\
+.cov-tree-scroll{overflow-x:auto}\n\
+ul.cov-tree li,ul.cov-tree summary{white-space:nowrap}\n\
 </style>\n";
 
 /// Render the top-level coverage table. Each covered cell links to a per-cell
@@ -110,17 +120,35 @@ pub fn render_subpage(j: &Judgment, cov: &Coverage, link_ext: &str) -> String {
     s.push_str(STYLE);
     s.push('\n');
     for r in &j.rules {
-        s.push_str(&render_rule_block(j, r, cov, link_ext));
+        s.push_str(&render_rule_block(j, r, cov, link_ext, Highlight::None));
         s.push('\n');
     }
     s
+}
+
+/// Which row of a rule's coverage chart to highlight as the "current" cell when
+/// the chart is embedded at the top of a detail page (see [`chart_section`]).
+#[derive(Clone, Copy)]
+enum Highlight {
+    /// No row highlighted (the chart as rendered on a judgment subpage).
+    None,
+    /// Highlight the premise on this source line (a negative detail page).
+    Premise(u32),
+    /// Highlight the conclusion (a positive detail page).
+    Conclusion,
 }
 
 /// Render one rule as a three-column code view: line number, coverage count,
 /// source line. Premises (above the separator) carry their negative coverage;
 /// the conclusion (below it) carries the rule's positive coverage. Emitted as a
 /// single blank-line-free HTML block (see [`STYLE`]).
-fn render_rule_block(j: &Judgment, r: &Rule, cov: &Coverage, link_ext: &str) -> String {
+fn render_rule_block(
+    j: &Judgment,
+    r: &Rule,
+    cov: &Coverage,
+    link_ext: &str,
+    highlight: Highlight,
+) -> String {
     let mut s = String::new();
     s.push_str(&format!(
         "<div class=\"cov-rule\" id=\"{}\">\n",
@@ -138,12 +166,14 @@ fn render_rule_block(j: &Judgment, r: &Rule, cov: &Coverage, link_ext: &str) -> 
 
     // Premises: negative coverage.
     for p in &r.premises {
+        let cur = matches!(highlight, Highlight::Premise(l) if l == p.line);
         s.push_str(&format!(
-            "<tr><td class=\"cov-ln\">{ln}</td><td class=\"cov-num neg\">{num}</td>\
+            "<tr{cls}><td class=\"cov-ln\">{ln}</td><td class=\"cov-num neg\">{num}</td>\
              <td class=\"cov-src-line\">{code}</td></tr>\n",
+            cls = if cur { " class=\"cov-current\"" } else { "" },
             ln = p.line,
             num = negative_num(cov, j, r, p, link_ext),
-            code = html_escape(&format!("({})", p.raw_text)),
+            code = src_cell(&format!("({})", p.raw_text)),
         ));
     }
 
@@ -157,15 +187,49 @@ fn render_rule_block(j: &Judgment, r: &Rule, cov: &Coverage, link_ext: &str) -> 
     // Conclusion: positive coverage. The conclusion sits just below the
     // separator, so its source line is `r.line + 1` (`r.line` is the separator).
     let concl = conclusion_of(&r.raw_text).unwrap_or_else(|| format!("({} => …)", j.name));
+    let concl_cls = if matches!(highlight, Highlight::Conclusion) {
+        "cov-concl cov-current"
+    } else {
+        "cov-concl"
+    };
     s.push_str(&format!(
-        "<tr class=\"cov-concl\"><td class=\"cov-ln\">{ln}</td><td class=\"cov-num pos\">{num}</td>\
+        "<tr class=\"{cls}\"><td class=\"cov-ln\">{ln}</td><td class=\"cov-num pos\">{num}</td>\
          <td class=\"cov-src-line\">{code}</td></tr>\n",
+        cls = concl_cls,
         ln = r.line + 1,
         num = positive_num(cov, j, r, link_ext),
-        code = html_escape(&concl),
+        code = src_cell(&concl),
     ));
 
     s.push_str("</table>\n</div>\n");
+    s
+}
+
+/// Escape source text for a `.cov-src-line` cell: HTML-escape, then turn
+/// newlines into `<br>`. A multi-line premise or conclusion (e.g. an inline
+/// `match`) otherwise puts a blank line inside the raw-HTML block, which
+/// terminates it under CommonMark and leaks the rest of the table as literal
+/// markdown. `<br>` (with the cell's `white-space:pre-wrap`) keeps the line
+/// breaks and indentation without any physical newline in the emitted HTML.
+fn src_cell(s: &str) -> String {
+    html_escape(s).replace('\n', "<br>")
+}
+
+/// The rule's coverage chart (see [`render_rule_block`]) wrapped with the shared
+/// stylesheet, for embedding at the top of a detail page. `highlight` marks the
+/// cell this page is about; the other cells stay clickable so the reader can
+/// hop to a sibling cell's coverage.
+fn chart_section(
+    j: &Judgment,
+    r: &Rule,
+    cov: &Coverage,
+    link_ext: &str,
+    highlight: Highlight,
+) -> String {
+    let mut s = STYLE.to_string();
+    s.push('\n');
+    s.push_str(&render_rule_block(j, r, cov, link_ext, highlight));
+    s.push('\n');
     s
 }
 
@@ -236,14 +300,19 @@ pub struct DetailPage {
 
 /// Build the detail pages for one judgment: one per covered rule (positive) and
 /// one per fallible premise that was negatively tested. Cells produced by
-/// `positive_num` / `negative_num` link to exactly these pages. Each page lists
-/// the tests with, for each, its source location and (when `source_root` is set
-/// and the file is readable) the test function's source inline.
+/// `positive_num` / `negative_num` link to exactly these pages. Each page opens
+/// with the rule's coverage chart (the current cell highlighted, so the reader
+/// can jump to sibling cells) and then lists the tests with, for each, its
+/// source location and (when `source_root` is set and the file is readable) the
+/// test function's source inline. `link_ext` is the extension the embedded
+/// chart's cell links use (`"md"` for the CLI report, `"html"` for mdbook), as
+/// for [`render_subpage`].
 pub fn render_detail_pages_for(
     j: &Judgment,
     cov: &Coverage,
     github_base: Option<&str>,
     source_root: Option<&Path>,
+    link_ext: &str,
 ) -> Vec<DetailPage> {
     let mut pages = Vec::new();
     for r in &j.rules {
@@ -251,6 +320,7 @@ pub fn render_detail_pages_for(
         if let Some(locs) = cov.positive_tests(&j.name, &r.name) {
             if !locs.is_empty() {
                 let mut content = format!("# Positive coverage: `{}` / `{}`\n\n", j.name, r.name);
+                content.push_str(&chart_section(j, r, cov, link_ext, Highlight::Conclusion));
                 content.push_str(&format!(
                     "{} {} exercised this rule:\n\n",
                     locs.len(),
@@ -291,8 +361,16 @@ pub fn render_detail_pages_for(
                 let joined = causes.into_iter().collect::<Vec<_>>().join(", ");
                 content.push_str(&format!(" Observed failure causes: {joined}."));
             }
+            content.push_str("\n\n");
+            content.push_str(&chart_section(
+                j,
+                r,
+                cov,
+                link_ext,
+                Highlight::Premise(p.line),
+            ));
             content.push_str(&format!(
-                "\n\n{} {} failed proving this premise:\n\n",
+                "{} {} failed proving this premise:\n\n",
                 tests.len(),
                 plural(tests.len()),
             ));
@@ -371,7 +449,7 @@ fn test_list<'a>(
             }
         }
         if i < MAX_TREES_PER_CELL {
-            s.push_str(&tree_details(&trees, loc));
+            s.push_str(&tree_details(&trees, loc, github_base, source_root));
         } else if i == MAX_TREES_PER_CELL {
             s.push_str(&format!(
                 "_Proof trees omitted for the remaining {} tests._\n\n",
@@ -382,12 +460,21 @@ fn test_list<'a>(
     s
 }
 
-/// The collapsed proof-tree disclosure for one test, or an empty string when no
-/// tree was recorded (or, on a negative page, none of the test's failed stacks
-/// involve the premise this page is about).
-fn tree_details(trees: &TreeSection<'_>, loc: &TestLoc) -> String {
+/// The collapsible proof-tree disclosure for one test, or an empty string when
+/// no tree was recorded (or, on a negative page, none of the test's failed
+/// stacks involve the premise this page is about). `github_base`/`source_root`
+/// turn each node's `file:line` into a GitHub link carrying a hover preview of
+/// the surrounding source.
+fn tree_details(
+    trees: &TreeSection<'_>,
+    loc: &TestLoc,
+    github_base: Option<&str>,
+    source_root: Option<&Path>,
+) -> String {
     match trees {
-        TreeSection::Positive(cov) => proof_tree_details(cov.positive_trees_for(loc)),
+        TreeSection::Positive(cov) => {
+            proof_tree_details(cov.positive_trees_for(loc), github_base, source_root)
+        }
         TreeSection::Negative {
             cov,
             judgment_file,
@@ -398,20 +485,43 @@ fn tree_details(trees: &TreeSection<'_>, loc: &TestLoc) -> String {
                 .iter()
                 .filter_map(|t| prune_failed(t, judgment_file, *premise_line))
                 .collect();
-            failed_tree_details(&pruned)
+            failed_tree_details(&pruned, github_base, source_root)
         }
     }
 }
 
-/// Wrap pre-rendered tree text in a collapsed `<details>` disclosure. Emitted as
-/// one raw-HTML block with no internal blank lines: a blank line would close the
-/// HTML block under CommonMark and leak the rest as literal markdown.
-fn tree_disclosure(summary: &str, tree_text: &str) -> String {
+/// Wrap a pre-rendered HTML tree body in a collapsed `<details>` disclosure. The
+/// body sits in a horizontally scrollable box (`cov-tree-scroll`) because nodes
+/// render on a single line each (no wrapping) and a deep proof stack's growing
+/// indentation would otherwise overflow the page; scrolling keeps every line
+/// readable at any depth. Emitted as one raw-HTML block with no internal blank
+/// lines: a blank line would close the HTML block under CommonMark and leak the
+/// rest as literal markdown. `body_html` is already HTML (its text content
+/// escaped by the node renderers), so it is embedded verbatim.
+fn tree_disclosure(summary: &str, body_html: &str) -> String {
     format!(
-        "<details>\n<summary>{summary}</summary>\n<pre class=\"cov-tree\">\n{body}</pre>\n</details>\n\n",
+        "<details>\n<summary>{summary}</summary>\n<div class=\"cov-tree-scroll\">\n{body}</div>\n</details>\n\n",
         summary = summary,
-        body = html_escape(tree_text),
+        body = body_html,
     )
+}
+
+/// Nesting depth at which tree nodes start collapsed. The top `TREE_OPEN_DEPTH`
+/// levels render expanded so the high-level proof path is visible at a glance;
+/// nodes exactly at this depth start collapsed, since proof stacks routinely run
+/// dozens of levels deep and would otherwise make the default view unwieldy.
+/// Everything below the fold is emitted `open`, so expanding one collapsed node
+/// reveals its whole subtree in a single click.
+const TREE_OPEN_DEPTH: usize = 4;
+
+/// The opening `<details>` tag for a node at `depth`: expanded except at the
+/// fold depth itself (see [`TREE_OPEN_DEPTH`]).
+fn details_tag(depth: usize) -> &'static str {
+    if depth == TREE_OPEN_DEPTH {
+        "<details>"
+    } else {
+        "<details open>"
+    }
 }
 
 /// Largest proof tree we render inline. Where-clause solving recurses deeply,
@@ -420,26 +530,42 @@ fn tree_disclosure(summary: &str, tree_text: &str) -> String {
 /// [`MAX_TREE_NODES`] (depth-first) and note how many were elided.
 const MAX_TREE_NODES: usize = 200;
 
-/// The success proof tree(s) for one test, or `""` if none were recorded.
-fn proof_tree_details(nodes: &[ProofTreeNode]) -> String {
+/// The success proof tree(s) for one test as a nested collapsible list, or `""`
+/// if none were recorded.
+fn proof_tree_details(
+    nodes: &[ProofTreeNode],
+    github_base: Option<&str>,
+    source_root: Option<&Path>,
+) -> String {
     if nodes.is_empty() {
         return String::new();
     }
     let total: usize = nodes.iter().map(count_proof_nodes).sum();
-    let mut text = String::new();
+    let mut body = String::from("<ul class=\"cov-tree\">\n");
     let mut budget = MAX_TREE_NODES;
     for n in nodes {
-        render_proof_node(n, "", &mut text, &mut budget);
+        render_proof_node(n, github_base, source_root, 0, &mut body, &mut budget);
     }
-    append_truncation_note(&mut text, total);
-    tree_disclosure("Proof tree", &text)
+    body.push_str("</ul>\n");
+    append_truncation_note(&mut body, total);
+    tree_disclosure("Proof tree", &body)
 }
 
 fn count_proof_nodes(n: &ProofTreeNode) -> usize {
     1 + n.children.iter().map(count_proof_nodes).sum::<usize>()
 }
 
-fn render_proof_node(n: &ProofTreeNode, prefix: &str, out: &mut String, budget: &mut usize) {
+/// Render one success-tree node as an `<li>`. Nodes with children become a
+/// collapsible `<details>` (open or collapsed per [`details_tag`]) so any
+/// subtree can be folded away; leaves are plain list items.
+fn render_proof_node(
+    n: &ProofTreeNode,
+    github_base: Option<&str>,
+    source_root: Option<&Path>,
+    depth: usize,
+    out: &mut String,
+    budget: &mut usize,
+) {
     if *budget == 0 {
         return;
     }
@@ -447,35 +573,47 @@ fn render_proof_node(n: &ProofTreeNode, prefix: &str, out: &mut String, budget: 
     let rule = n
         .rule
         .as_deref()
-        .map(|r| format!(" ({r})"))
+        .map(|r| format!(" ({})", html_escape(r)))
         .unwrap_or_default();
-    out.push_str(&format!(
-        "{prefix}└─ {judgment}{rule} at {file}:{line}\n",
-        judgment = n.judgment,
+    let label = format!(
+        "<code>{judgment}{rule}</code> {loc}",
+        judgment = html_escape(&n.judgment),
         rule = rule,
-        file = short_file(&n.file),
-        line = n.line,
-    ));
-    let child_prefix = format!("{prefix}   ");
-    for c in &n.children {
-        render_proof_node(c, &child_prefix, out, budget);
+        loc = loc_link(&n.file, n.line, github_base, source_root),
+    );
+    if n.children.is_empty() {
+        out.push_str(&format!("<li>{label}</li>\n"));
+        return;
     }
+    out.push_str(&format!(
+        "<li>{details}<summary>{label}</summary>\n<ul class=\"cov-tree\">\n",
+        details = details_tag(depth),
+    ));
+    for c in &n.children {
+        render_proof_node(c, github_base, source_root, depth + 1, out, budget);
+    }
+    out.push_str("</ul>\n</details></li>\n");
 }
 
 /// The failed proof tree(s) for one test, already pruned to the relevant
-/// premise, or `""` if nothing survived the pruning.
-fn failed_tree_details(nodes: &[FailedTreeNode]) -> String {
+/// premise, as a nested collapsible list, or `""` if nothing survived pruning.
+fn failed_tree_details(
+    nodes: &[FailedTreeNode],
+    github_base: Option<&str>,
+    source_root: Option<&Path>,
+) -> String {
     if nodes.is_empty() {
         return String::new();
     }
     let total: usize = nodes.iter().map(count_failed_nodes).sum();
-    let mut text = String::new();
+    let mut body = String::from("<ul class=\"cov-tree\">\n");
     let mut budget = MAX_TREE_NODES;
     for n in nodes {
-        render_failed_node(n, "", &mut text, &mut budget);
+        render_failed_node(n, github_base, source_root, 0, &mut body, &mut budget);
     }
-    append_truncation_note(&mut text, total);
-    tree_disclosure("Failed proof tree", &text)
+    body.push_str("</ul>\n");
+    append_truncation_note(&mut body, total);
+    tree_disclosure("Failed proof tree", &body)
 }
 
 fn count_failed_nodes(j: &FailedTreeNode) -> usize {
@@ -486,51 +624,68 @@ fn count_failed_rule_nodes(r: &FailedRuleNode) -> usize {
     1 + r.child.as_deref().map_or(0, count_failed_nodes)
 }
 
-fn render_failed_node(j: &FailedTreeNode, prefix: &str, out: &mut String, budget: &mut usize) {
+fn render_failed_node(
+    j: &FailedTreeNode,
+    github_base: Option<&str>,
+    source_root: Option<&Path>,
+    depth: usize,
+    out: &mut String,
+    budget: &mut usize,
+) {
     if *budget == 0 {
         return;
     }
     *budget -= 1;
-    out.push_str(&format!(
-        "{prefix}└─ {judgment} failed at {file}:{line}\n",
-        judgment = j.judgment,
-        file = short_file(&j.file),
-        line = j.line,
-    ));
-    let child_prefix = format!("{prefix}   ");
-    for r in &j.rules {
-        render_failed_rule(r, &child_prefix, out, budget);
+    let label = format!(
+        "<code>{judgment} failed</code> {loc}",
+        judgment = html_escape(&j.judgment),
+        loc = loc_link(&j.file, j.line, github_base, source_root),
+    );
+    if j.rules.is_empty() {
+        out.push_str(&format!("<li>{label}</li>\n"));
+        return;
     }
+    out.push_str(&format!(
+        "<li>{details}<summary>{label}</summary>\n<ul class=\"cov-tree\">\n",
+        details = details_tag(depth),
+    ));
+    for r in &j.rules {
+        render_failed_rule(r, github_base, source_root, depth + 1, out, budget);
+    }
+    out.push_str("</ul>\n</details></li>\n");
 }
 
-fn render_failed_rule(r: &FailedRuleNode, prefix: &str, out: &mut String, budget: &mut usize) {
+fn render_failed_rule(
+    r: &FailedRuleNode,
+    github_base: Option<&str>,
+    source_root: Option<&Path>,
+    depth: usize,
+    out: &mut String,
+    budget: &mut usize,
+) {
     if *budget == 0 {
         return;
     }
     *budget -= 1;
-    let label = match &r.rule {
-        Some(name) => format!("rule \"{name}\""),
+    let name = match &r.rule {
+        Some(name) => format!("rule \"{}\"", html_escape(name)),
         None => "rule".to_string(),
     };
+    let loc = loc_link(&r.file, r.line, github_base, source_root);
     match &r.child {
         // A nested judgment failure: recurse to show where it broke.
         Some(child) => {
             out.push_str(&format!(
-                "{prefix}└─ {label} at {file}:{line}\n",
-                label = label,
-                file = short_file(&r.file),
-                line = r.line,
+                "<li>{details}<summary><code>{name}</code> {loc}</summary>\n<ul class=\"cov-tree\">\n",
+                details = details_tag(depth),
             ));
-            let child_prefix = format!("{prefix}   ");
-            render_failed_node(child, &child_prefix, out, budget);
+            render_failed_node(child, github_base, source_root, depth + 1, out, budget);
+            out.push_str("</ul>\n</details></li>\n");
         }
         // A terminal failure: show the cause tag.
         None => out.push_str(&format!(
-            "{prefix}└─ {label} at {file}:{line} (failed: {cause})\n",
-            label = label,
-            file = short_file(&r.file),
-            line = r.line,
-            cause = r.cause,
+            "<li><code>{name}</code> {loc} <span class=\"cov-tree-fail\">(failed: {cause})</span></li>\n",
+            cause = html_escape(&r.cause),
         )),
     }
 }
@@ -541,6 +696,62 @@ fn append_truncation_note(text: &mut String, total: usize) {
     if total > MAX_TREE_NODES {
         text.push_str(&format!("… ({MAX_TREE_NODES} of {total} nodes shown)\n"));
     }
+}
+
+/// Lines of source context (each side) shown in a proof-tree node's hover tooltip.
+const SNIPPET_CONTEXT: usize = 3;
+
+/// A source-location reference for a proof-tree node: the file's basename and
+/// line, linked to GitHub when `github_base` is set and carrying a `title`
+/// tooltip of the surrounding source when `source_root` is set and the file is
+/// readable. Falls back to a plain `<span>` (still with the tooltip) when there
+/// is no GitHub base.
+fn loc_link(
+    file: &str,
+    line: u32,
+    github_base: Option<&str>,
+    source_root: Option<&Path>,
+) -> String {
+    let short = html_escape(short_file(file));
+    let title = match source_snippet(source_root, file, line) {
+        Some(s) => format!(" title=\"{}\"", attr_escape(&s)),
+        None => String::new(),
+    };
+    match github_base {
+        Some(base) => format!(
+            "<a class=\"cov-tree-loc\" href=\"{base}/{href}#L{line}\"{title} target=\"_blank\" rel=\"noopener noreferrer\">{short}:{line}</a>",
+            href = attr_escape(file),
+        ),
+        None => format!("<span class=\"cov-tree-loc\"{title}>{short}:{line}</span>"),
+    }
+}
+
+/// The source lines around `file:line` (1-based), each prefixed with its line
+/// number and the target line marked with `>`, for a hover tooltip. `None` when
+/// `root` is unset, the file can't be read, or `line` is out of range.
+fn source_snippet(root: Option<&Path>, file: &str, line: u32) -> Option<String> {
+    let root = root?;
+    let text = std::fs::read_to_string(root.join(file)).ok()?;
+    let lines: Vec<&str> = text.lines().collect();
+    if line == 0 || line as usize > lines.len() {
+        return None;
+    }
+    let target = line as usize - 1;
+    let start = target.saturating_sub(SNIPPET_CONTEXT);
+    let end = (target + SNIPPET_CONTEXT + 1).min(lines.len());
+    let snippet: Vec<String> = (start..end)
+        .map(|i| {
+            let marker = if i == target { ">" } else { " " };
+            format!("{marker}{ln:>4}  {src}", ln = i + 1, src = lines[i])
+        })
+        .collect();
+    Some(snippet.join("\n"))
+}
+
+/// Escape `s` for use inside a double-quoted HTML attribute value: the HTML
+/// metacharacters plus the `"` that would close the attribute.
+fn attr_escape(s: &str) -> String {
+    html_escape(s).replace('"', "&quot;")
 }
 
 /// Prune a failed judgment tree to only the stacks that blame the premise at
@@ -731,7 +942,7 @@ pub fn write_all(
         let body = render_subpage(j, cov, "md");
         std::fs::write(out_dir.join(format!("{}.md", slug)), body)?;
 
-        for page in render_detail_pages_for(j, cov, github_base, source_root) {
+        for page in render_detail_pages_for(j, cov, github_base, source_root, "md") {
             if !seen_slugs.insert(page.slug.clone()) {
                 eprintln!(
                     "warning: slug collision for coverage detail page `{}`, it will overwrite a sibling",

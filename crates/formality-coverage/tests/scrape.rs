@@ -278,6 +278,16 @@ fn markdown_subpage_snapshot() {
         .cov-src-line{white-space:pre-wrap}
         tr.cov-sep td{color:#999}
         tr.cov-concl{background:rgba(127,127,127,.08)}
+        table.cov-code tr.cov-current td{background:rgba(31,120,255,.28)}
+        ul.cov-tree,ul.cov-tree ul{list-style:none;margin:0;padding-left:1.2em;font-family:var(--mono-font,monospace)}
+        ul.cov-tree{font-size:.85em}
+        ul.cov-tree ul{font-size:1em}
+        ul.cov-tree code{font-size:inherit}
+        ul.cov-tree summary{cursor:pointer}
+        .cov-tree-loc{color:#888}
+        .cov-tree-fail{color:#b35900}
+        .cov-tree-scroll{overflow-x:auto}
+        ul.cov-tree li,ul.cov-tree summary{white-space:nowrap}
         </style>
 
         <div class="cov-rule" id="positive">
@@ -307,7 +317,7 @@ fn markdown_subpage_snapshot() {
 fn detail_pages_list_tests() {
     let j = prove_thing_judgment();
     let cov = prove_thing_coverage();
-    let pages = report::render_detail_pages_for(&j, &cov, Some(GITHUB_BASE), None);
+    let pages = report::render_detail_pages_for(&j, &cov, Some(GITHUB_BASE), None, "md");
 
     // One positive page for the covered `positive` rule, one negative page for
     // its negatively-tested premise. `zero` is uncovered, so it gets no page.
@@ -358,7 +368,7 @@ fn detail_pages_list_tests() {
 fn detail_pages_without_github_base_use_plain_locations() {
     let j = prove_thing_judgment();
     let cov = prove_thing_coverage();
-    let pages = report::render_detail_pages_for(&j, &cov, None, None);
+    let pages = report::render_detail_pages_for(&j, &cov, None, None, "md");
     let pos = &pages[0];
     assert!(
         pos.content
@@ -427,24 +437,30 @@ fn detail_pages_render_proof_trees() {
         }],
     );
 
-    let pages = report::render_detail_pages_for(&j, &cov, Some(GITHUB_BASE), None);
+    let pages = report::render_detail_pages_for(&j, &cov, Some(GITHUB_BASE), None, "md");
     let pos = &pages[0];
     let neg = &pages[1];
 
-    // The positive page shows the success tree behind a collapsed disclosure.
+    // The positive page shows the success tree behind a collapsed disclosure,
+    // rendered as a nested list. The parent node (with children) is a
+    // collapsible `<details>`; the leaf is a plain `<li>`. Each node's location
+    // links to GitHub.
     assert!(
         pos.content.contains("<summary>Proof tree</summary>"),
         "{}",
         pos.content
     );
     assert!(
-        pos.content
-            .contains("└─ prove_thing (positive) at fixture.rs:11"),
+        pos.content.contains(
+            "<summary><code>prove_thing (positive)</code> <a class=\"cov-tree-loc\" href=\"https://github.com/example/repo/blob/main/crates/sub/fixture.rs#L11\" target=\"_blank\" rel=\"noopener noreferrer\">fixture.rs:11</a></summary>"
+        ),
         "{}",
         pos.content
     );
     assert!(
-        pos.content.contains("   └─ prove_sub (sub) at other.rs:3"),
+        pos.content.contains(
+            "<li><code>prove_sub (sub)</code> <a class=\"cov-tree-loc\" href=\"https://github.com/example/repo/blob/main/crates/sub/other.rs#L3\" target=\"_blank\" rel=\"noopener noreferrer\">other.rs:3</a></li>"
+        ),
         "{}",
         pos.content
     );
@@ -457,16 +473,113 @@ fn detail_pages_render_proof_trees() {
         neg.content
     );
     assert!(
-        neg.content
-            .contains(r#"└─ rule "positive" at fixture.rs:9 (failed: if_false)"#),
+        neg.content.contains(
+            "<li><code>rule \"positive\"</code> <a class=\"cov-tree-loc\" href=\"https://github.com/example/repo/blob/main/crates/sub/fixture.rs#L9\" target=\"_blank\" rel=\"noopener noreferrer\">fixture.rs:9</a> <span class=\"cov-tree-fail\">(failed: if_false)</span></li>"
+        ),
         "{}",
         neg.content
     );
+    // The unrelated `zero` stack (line 15) is pruned from the tree; look for its
+    // rule label specifically (the page's chart renders only the `positive`
+    // rule, so `zero` should appear nowhere).
     assert!(
-        !neg.content.contains("zero"),
+        !neg.content.contains(r#"rule "zero""#),
         "unrelated stack should be pruned: {}",
         neg.content
     );
+}
+
+#[test]
+fn detail_pages_embed_chart_with_current_cell_highlighted() {
+    let j = prove_thing_judgment();
+    let cov = prove_thing_coverage();
+    let pages = report::render_detail_pages_for(&j, &cov, None, None, "md");
+    let pos = &pages[0];
+    let neg = &pages[1];
+
+    // Both pages open with the `positive` rule's coverage chart.
+    assert!(pos
+        .content
+        .contains("<div class=\"cov-rule\" id=\"positive\">"));
+    assert!(neg
+        .content
+        .contains("<div class=\"cov-rule\" id=\"positive\">"));
+
+    // The positive page highlights the conclusion row (its cell); the negative
+    // page highlights the premise row on line 9 (its cell).
+    assert!(
+        pos.content.contains("<tr class=\"cov-concl cov-current\">"),
+        "positive page should highlight the conclusion: {}",
+        pos.content
+    );
+    assert!(
+        neg.content
+            .contains("<tr class=\"cov-current\"><td class=\"cov-ln\">9</td>"),
+        "negative page should highlight the premise on line 9: {}",
+        neg.content
+    );
+
+    // The other cells stay clickable so the reader can hop between them: the
+    // negative page's chart links to the positive cell's page and vice versa.
+    assert!(
+        neg.content
+            .contains("href=\"./prove_thing__positive__pos.md\""),
+        "negative page chart should link to the positive cell: {}",
+        neg.content
+    );
+    assert!(
+        pos.content
+            .contains("href=\"./prove_thing__positive__p9__neg.md\""),
+        "positive page chart should link to the negative cell: {}",
+        pos.content
+    );
+}
+
+#[test]
+fn proof_tree_node_shows_source_hover_from_root() {
+    // A judgment source file on disk so tree nodes can carry a source preview.
+    let tmp = std::env::temp_dir().join(format!("formality-coverage-hover-{}", std::process::id()));
+    std::fs::create_dir_all(&tmp).unwrap();
+    let judgment_file = "prove.rs";
+    std::fs::write(
+        tmp.join(judgment_file),
+        "line one\nline two\nfn target_here() {}\nline four\nline five\n",
+    )
+    .unwrap();
+
+    let j = prove_thing_judgment();
+    let mut cov = prove_thing_coverage();
+    cov.positive_trees.insert(
+        TestLoc {
+            file: "tests/prove_thing.rs".into(),
+            line: 42,
+        },
+        vec![ProofTreeNode {
+            judgment: "prove_thing".into(),
+            rule: Some("positive".into()),
+            file: judgment_file.into(),
+            line: 3,
+            children: vec![],
+        }],
+    );
+
+    // No GitHub base, so the location is a plain span; with a source root it
+    // still carries a `title` tooltip of the surrounding source.
+    let pages = report::render_detail_pages_for(&j, &cov, None, Some(&tmp), "md");
+    let pos = &pages[0];
+    assert!(
+        pos.content
+            .contains("<span class=\"cov-tree-loc\" title=\""),
+        "tree node should carry a source-preview tooltip: {}",
+        pos.content
+    );
+    assert!(
+        pos.content.contains("fn target_here() {}"),
+        "tooltip should include the target line: {}",
+        pos.content
+    );
+
+    let _ = std::fs::remove_dir_all(&tmp);
 }
 
 #[test]
@@ -500,7 +613,7 @@ fn huge_proof_tree_is_capped() {
         vec![node],
     );
 
-    let pages = report::render_detail_pages_for(&j, &cov, None, None);
+    let pages = report::render_detail_pages_for(&j, &cov, None, None, "md");
     let pos = &pages[0];
     assert!(
         pos.content.contains("of 500 nodes shown"),
@@ -535,7 +648,7 @@ fn proof_trees_are_capped_per_cell() {
         );
     }
 
-    let pages = report::render_detail_pages_for(&j, &cov, None, None);
+    let pages = report::render_detail_pages_for(&j, &cov, None, None, "md");
     let pos = &pages[0];
     let trees_shown = pos.content.matches("<summary>Proof tree</summary>").count();
     assert_eq!(trees_shown, 10, "should cap inline trees at 10");
@@ -577,7 +690,7 @@ fn detail_pages_embed_test_source_when_root_given() {
         }]),
     );
 
-    let pages = report::render_detail_pages_for(&j, &cov, None, Some(&tmp));
+    let pages = report::render_detail_pages_for(&j, &cov, None, Some(&tmp), "md");
     let pos = &pages[0];
     // The whole enclosing test function (including the `#[test]` attribute) is
     // embedded in a fenced code block.
@@ -638,6 +751,16 @@ fn infallible_premise_renders_as_na() {
         .cov-src-line{white-space:pre-wrap}
         tr.cov-sep td{color:#999}
         tr.cov-concl{background:rgba(127,127,127,.08)}
+        table.cov-code tr.cov-current td{background:rgba(31,120,255,.28)}
+        ul.cov-tree,ul.cov-tree ul{list-style:none;margin:0;padding-left:1.2em;font-family:var(--mono-font,monospace)}
+        ul.cov-tree{font-size:.85em}
+        ul.cov-tree ul{font-size:1em}
+        ul.cov-tree code{font-size:inherit}
+        ul.cov-tree summary{cursor:pointer}
+        .cov-tree-loc{color:#888}
+        .cov-tree-fail{color:#b35900}
+        .cov-tree-scroll{overflow-x:auto}
+        ul.cov-tree li,ul.cov-tree summary{white-space:nowrap}
         </style>
 
         <div class="cov-rule" id="trivial">
