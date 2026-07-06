@@ -66,7 +66,6 @@ pub struct Env {
     /// the pending constraints that are now unlocked.
     ///
     /// Whenever a "successful" proof results, the pending obligations
-    /// TODO: do we still need pending since we always apply substitution in fn prove?
     pub pending: Vec<Wc>,
 
     /// When true, outlives constraints like `'a: 'b` can be deferred as pending
