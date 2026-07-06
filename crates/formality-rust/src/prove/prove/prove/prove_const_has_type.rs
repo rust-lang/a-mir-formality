@@ -8,7 +8,7 @@ use crate::prove::prove::{decls::Program, prove::env::Env};
 
 judgment_fn! {
     /// The "heart" of the trait system -- prove that a where-clause holds given a set of declarations, variable environment, and set of assumptions.
-    /// If successful, returns the constraints under which the where-clause holds.
+    /// If successful, returns the Env under which the where-clause holds.
     pub fn prove_const_has_type(
         decls: Program,
         env: Env,
