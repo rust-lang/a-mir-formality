@@ -199,6 +199,7 @@ judgment_fn! {
                 ) => state))
 
             (let state = state.with_local_in_scope(&env.env, label, id, ty)?)
+            (let state = if init.is_none() { state.with_uninit(&PlaceExpr::Var(id.clone())) } else { state.with_initialized(&PlaceExpr::Var(id.clone())) })
             ------------------------------------------------------------ ("let")
             (borrow_check_statement(env, assumptions, state, Stmt::Let { label, id, ty, init }, places_live_on_exit) => (env, state))
         )
@@ -368,7 +369,6 @@ judgment_fn! {
             // Prove subtyping: value_ty <: place_ty
             (prove_assignable(env, assumptions, state, value_ty, &place.ty) => state)
 
-            // Check write access is permitted
             (access_permitted(
                 env,
                 assumptions,
@@ -378,6 +378,7 @@ judgment_fn! {
             ) => state)
 
             (let state = kill_loans(place, state))
+            (let state = state.with_initialized(&place.to_place_expression()))
             ------------------------------------------------------------ ("assign")
             (borrow_check_expr(env, assumptions, state, Expr::Assign { place, expr }, places_live_on_exit) => (Ty::unit(), state))
         )
@@ -461,7 +462,7 @@ judgment_fn! {
             (borrow_check_place_expr(env, assumptions, state, place) => (place, state))
             (access_kind_for_place_use(env, assumptions, state, place) => (access_kind, state))
             (access_permitted(env, assumptions, state, Access::new(access_kind, place), places_live_on_exit) => state)
-            // FIXME(#296): also need to track that the place has been moved from
+            (let state = if matches!(access_kind, AccessKind::Move) { state.with_uninit(&place.to_place_expression()) } else { state.clone() })
             (prove_place_is_movable(env, assumptions, state, place) => state)
             ------------------------------------------------------------ ("place")
             (borrow_check_expr(env, assumptions, state, Expr::Place(place), places_live_on_exit) => (&place.ty, state))
@@ -629,6 +630,26 @@ judgment_fn! {
     }
 }
 
+/// Check that `place` is initialized: none of its prefixes and none of its
+/// sub-paths are in the uninit set
+fn check_place_initialized(state: &FlowState, place: &PlaceExpr) -> bool {
+    !state
+        .current
+        .uninit
+        .iter()
+        .any(|u| place.is_prefix_of(u) || u.is_prefix_of(place))
+}
+
+/// Check that `place` is writable: no strict prefix of `place` is in the uninit set
+/// Writing to `place` itself is allowed even if `place` is uninit
+fn check_place_writable(state: &FlowState, place: &PlaceExpr) -> bool {
+    !state
+        .current
+        .uninit
+        .iter()
+        .any(|u| u.is_prefix_of(place) && u != place)
+}
+
 /// Prove that any loans issued in thes value expressions (evaluated in this order) are respected.
 fn kill_loans(overwritten_place: &TypedPlaceExpr, state: &FlowState) -> FlowState {
     let mut current = state.current.clone();
@@ -667,9 +688,7 @@ judgment_fn! {
 }
 
 judgment_fn! {
-    /// Check that the given access is permitted. Currently this just checks
-    /// that no live loans conflict with the access; in the future, this will
-    /// also check initialization, moves, etc. (#296, #298)
+    /// Check that the given access is permitted.
     fn access_permitted(
         env: TypeckEnv,
         assumptions: Wcs,
@@ -680,6 +699,10 @@ judgment_fn! {
         debug(state, access, places_live_after_access, assumptions, env)
 
         (
+            (if match access.kind {
+                AccessKind::Write => check_place_writable(&state, &access.place.to_place_expression()),
+                AccessKind::Read | AccessKind::Move => check_place_initialized(&state, &access.place.to_place_expression()),
+            })
             (access_permitted_by_loans(env, assumptions, state, access, places_live_after_access) => state)
             ------------------------------------------------------------ ("access_permitted")
             (access_permitted(env, assumptions, state, access, places_live_after_access) => state)
