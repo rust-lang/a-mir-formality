@@ -462,7 +462,6 @@ impl Env {
         &self.variables
     }
 
-    // TODO: revisit this again, might need to update substitution.
     pub fn substitute(&self, vs: &VarSubstitution) -> Self {
         Self {
             variables: self
@@ -474,7 +473,8 @@ impl Env {
             pending: vs.apply(&self.pending),
             allow_pending_outlives: self.allow_pending_outlives,
             known_true: self.known_true,
-            substitution: self.substitution.clone(),
+            // TODO: tiif thinks we need to update the substitution here, but tiif might be wrong
+            substitution: vs.apply(&self.substitution()),
         }
     }
 
