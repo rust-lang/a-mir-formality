@@ -1,3 +1,4 @@
+use crate::grammar::Parameter;
 use crate::grammar::{
     Binder, ExistentialVar, ParameterKind, Substitution, UniversalVar, VarIndex, VarSubstitution,
     Variable, Wc,
@@ -93,7 +94,7 @@ impl Env {
     }
 
     pub fn add_all_substitutions(&self, subst: Substitution) -> Self {
-        let mut this = self.clone();
+        let this = self.clone();
         for (var, ty) in subst {
             this.add_substitution(var, ty);
         }

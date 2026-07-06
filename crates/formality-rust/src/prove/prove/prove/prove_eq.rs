@@ -75,7 +75,6 @@ judgment_fn! {
     }
 }
 
-// TODO(step0): to resolve the error here, complete the two steps in crates/formality-rust/src/prove/prove/prove/env.rs
 judgment_fn! {
     pub fn prove_existential_var_eq(
         _decls: Program,
@@ -117,14 +116,14 @@ judgment_fn! {
         // universe 0
         //
         // B is not in scope everywhere that A is in scope, so we can't replace
-        // A with B universally. But we CAN replace B with a universally.
+        // A with B universally. But we CAN replace B with A universally.
         (
             // Map the higher rank variable to the lower rank one.
             (let (a, b) = env.order_by_universe(l, r))
             (let env = env.add_substitution(b, a))
             ----------------------------- ("existential-existential")
-            (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::ExistentialVar(r)) =>  a)
-        )      
+            (prove_existential_var_eq(_decls, env, _assumptions, l, Variable::ExistentialVar(r)) =>  env)
+        )
 
         // If the RHS IS a univesal variable, e.g., we are trying to prove something like this
         //
@@ -139,17 +138,18 @@ judgment_fn! {
         // universe 1
         //
         // B is not in scope everywhere that A is in scope, so we can't replace
-        // A with B universally. But we CAN replace B with a universally.
+        // A with B universally. But we CAN replace B with A universally.
         (
             (if env.universe(p) < env.universe(v))
+            (let env = env.add_substitution(v, p))
             ----------------------------- ("existential-universal")
-            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) =>  ((v, p), env))
+            (prove_existential_var_eq(_decls, env, _assumptions, v, Variable::UniversalVar(p)) => env)
         )
-    
+    }
+}
+
 /// Returns an environment whose substitution maps the existential variable `x` to the parameter `p`.
-/// 
-/// Examples:
-/// `p}
+///
 
 #[track_caller]
 fn equate_variable(
@@ -209,7 +209,7 @@ fn equate_variable(
     //   }
     // }
     //
-    // substitution for a variable in Ux can only mention variables in Ux or below
+    // Substitution for a variable in Ux can only mention variables in Ux or below.
 
     // Map each free variable `fv` in `p` that is of higher universe than `x`
     // to a fresh variable `y` of lower universe than `x`.
@@ -247,7 +247,7 @@ fn equate_variable(
         .chain(Some((x, universe_subst.apply(&p)).upcast()))
         .collect();
 
-    let env = avd_.lldate_substitustion(new_subst);
+    let env = env.add_all_substitutions(new_subst);
 
     // For each universal variable that we replaced with an existential variable
     // above, we now have to prove that goal. e.g., if we had `X = Vec<!Y>`, we would replace `!Y` with `?Z`
@@ -259,7 +259,11 @@ fn equate_variable(
         .map(|(v, p)| eq(v, p))
         .collect();
 
-    tracing::debug!("equated: env={:?}, goals={:?}", env, goals);
+    tracing::debug!(
+        "equated: substitution={:?}, goals={:?}",
+        env.substitution(),
+        goals
+    );
 
     prove(decls, env, assumptions, goals)
 }
