@@ -475,24 +475,6 @@ impl Env {
         self.variables.contains(&v)
     }
 
-    // TODO(step 1): implement this for the upcast below
-    // Construct a set of constraints from a set of substitutions and the previous environment.
-    //pub fn from(
-    //    env: impl Upcast<Env>,
-    //    iter: impl IntoIterator<Item = (impl Upcast<Variable>, impl Upcast<Parameter>)>,
-    //) -> Self {
-    //    let env = env.upcast();
-    //    let substitution: Substitution = iter.into_iter().collect();
-    //    assert!(env.encloses(substitution.range()));
-    //    assert!(env.encloses(substitution.domain()));
-    //    let c2 = Constraints {
-    //        env,
-    //        substitution,
-    //        known_true: true,
-    //    };
-    //    c2.assert_valid();
-    //    c2
-    //}
 }
 
 impl CoreVisit<crate::prove::prove::FormalityLang> for Env {
@@ -516,17 +498,3 @@ impl UpcastFrom<()> for Env {
         Env::default()
     }
 }
-
-// TODO(step 0): complete this, this is following what we previously do for prove_existential_var_eq
-// maybe there is a better way
-
-//impl<E, A, B> UpcastFrom<(E, (A, B))> for Env
-//where
-//    E: Upcast<Env>,
-//    A: Upcast<Variable>,
-//    B: Upcast<Parameter>,
-//{
-//    fn upcast_from((env, pair): (E, (A, B))) -> Self {
-//        Env::from(env, std::iter::once(pair))
-//    }
-//}

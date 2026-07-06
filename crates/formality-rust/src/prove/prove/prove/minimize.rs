@@ -85,7 +85,6 @@ pub fn minimize<T: Term>(env_max: Env, term: T) -> (Env, T, Minimization) {
 }
 
 impl Minimization {
-    // TODO: take a closer look on this function
     pub fn reconstitute(&self, env: Env) -> Env {
         // Our task:
         //
