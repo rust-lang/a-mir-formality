@@ -396,11 +396,13 @@ fn detail_pages_render_proof_trees() {
             rule: Some("positive".into()),
             file: "crates/sub/fixture.rs".into(),
             line: 11,
+            attributes: vec![("x".into(), "1".into()), ("result".into(), "()".into())],
             children: vec![ProofTreeNode {
                 judgment: "prove_sub".into(),
                 rule: Some("sub".into()),
                 file: "crates/sub/other.rs".into(),
                 line: 3,
+                attributes: vec![],
                 children: vec![],
             }],
         }],
@@ -416,6 +418,7 @@ fn detail_pages_render_proof_trees() {
         },
         vec![FailedTreeNode {
             judgment: "prove_thing".into(),
+            args: "(-1)".into(),
             file: "crates/sub/fixture.rs".into(),
             line: 4,
             rules: vec![
@@ -464,6 +467,19 @@ fn detail_pages_render_proof_trees() {
         "{}",
         pos.content
     );
+    // The `positive` node's arguments and result render behind a collapsed
+    // `args` disclosure.
+    assert!(
+        pos.content.contains("<summary><em>args</em></summary>"),
+        "positive tree should show an args disclosure: {}",
+        pos.content
+    );
+    assert!(
+        pos.content.contains("<li><code>x = 1</code></li>")
+            && pos.content.contains("<li><code>result = ()</code></li>"),
+        "args disclosure should list each argument and the result: {}",
+        pos.content
+    );
 
     // The negative page shows the failed tree pruned to the stack that blames
     // premise line 9; the unrelated `zero` stack (line 15) is dropped.
@@ -485,6 +501,14 @@ fn detail_pages_render_proof_trees() {
     assert!(
         !neg.content.contains(r#"rule "zero""#),
         "unrelated stack should be pruned: {}",
+        neg.content
+    );
+    // The failing judgment's arguments render behind a collapsed `args`
+    // disclosure on the negative page too.
+    assert!(
+        neg.content.contains("<summary><em>args</em></summary>")
+            && neg.content.contains("<li><code>(-1)</code></li>"),
+        "negative tree should show the failing judgment's args: {}",
         neg.content
     );
 }
@@ -559,6 +583,7 @@ fn proof_tree_node_shows_source_hover_from_root() {
             rule: Some("positive".into()),
             file: judgment_file.into(),
             line: 3,
+            attributes: vec![],
             children: vec![],
         }],
     );
@@ -591,6 +616,7 @@ fn huge_proof_tree_is_capped() {
         rule: Some("r".into()),
         file: "f.rs".into(),
         line: 1,
+        attributes: vec![],
         children: vec![],
     };
     for _ in 0..499 {
@@ -599,6 +625,7 @@ fn huge_proof_tree_is_capped() {
             rule: Some("r".into()),
             file: "f.rs".into(),
             line: 1,
+            attributes: vec![],
             children: vec![node],
         };
     }
@@ -643,6 +670,7 @@ fn proof_trees_are_capped_per_cell() {
                 rule: Some("positive".into()),
                 file: "f.rs".into(),
                 line: 1,
+                attributes: vec![],
                 children: vec![],
             }],
         );

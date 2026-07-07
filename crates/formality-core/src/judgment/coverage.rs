@@ -36,21 +36,29 @@
 //! one that asserts `is_positive(-1)` cannot be proven.
 //!
 //! The positive test fires the `"positive"` rule (its `if x > 0` premise
-//! holds), so [`record_coverage`] stores one [`ProofTreeNode`]:
+//! holds), so [`record_coverage`] stores one [`ProofTreeNode`] carrying the
+//! judgment's `debug` argument and the rule's result as `attributes`:
 //!
 //! ```text
-//! ProofTreeNode { judgment: "is_positive", rule: Some("positive"), children: [] }
+//! ProofTreeNode {
+//!     judgment: "is_positive",
+//!     rule: Some("positive"),
+//!     attributes: [("x", "1"), ("result", "()")],
+//!     children: [],
+//! }
 //! ```
 //!
 //! The `if x > 0` premise is a leaf that fired no rule of its own, so it is
 //! dropped (see [`ProofTreeNode`]); only the rule application survives.
 //!
 //! The negative test fails because that rule's `if x > 0` premise is false, so
-//! [`record_negative_coverage`] stores one [`FailedTreeNode`]:
+//! [`record_negative_coverage`] stores one [`FailedTreeNode`], whose `args` hold
+//! the arguments the failing judgment was applied to:
 //!
 //! ```text
 //! FailedTreeNode {
 //!     judgment: "is_positive",
+//!     args: "(-1)",
 //!     rules: [FailedRuleNode { rule: Some("positive"), cause: "if_false", child: None }],
 //! }
 //! ```
@@ -64,6 +72,23 @@ use std::path::PathBuf;
 
 use super::proven_set::judgment_name_prefix;
 use super::{FailedJudgment, FailedRule, FailureReason, ProofTree, RuleFailureCause};
+
+/// Maximum length (in `char`s) of a stored attribute/argument value. The
+/// `Debug` form of a judgment argument (e.g. a whole `Env`) can be enormous;
+/// truncating here keeps both the JSONL and the rendered book bounded while
+/// still showing enough of each value to be useful when browsing.
+pub const MAX_ATTR_VALUE_LEN: usize = 512;
+
+/// Truncate an attribute/argument value to [`MAX_ATTR_VALUE_LEN`] chars,
+/// appending `…` when it was clipped.
+fn cap_attr_value(value: &str) -> String {
+    if value.chars().count() <= MAX_ATTR_VALUE_LEN {
+        value.to_string()
+    } else {
+        let head: String = value.chars().take(MAX_ATTR_VALUE_LEN).collect();
+        format!("{head}…")
+    }
+}
 
 /// A single (judgment, rule) pair as identified in positive coverage output.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Serialize, Deserialize)]
@@ -113,16 +138,16 @@ pub enum CoverageRecord {
 
 /// A structural snapshot of a [`ProofTree`] node for embedding in positive
 /// coverage records. We keep the proof *shape* (judgment name, the rule that
-/// fired, the source location, and children) and drop the per-node attributes
-/// (the argument/result `Debug` dumps), which are large and which the report
-/// does not render.
+/// fired, the source location, and children) plus each node's `attributes` —
+/// the judgment's argument values and the rule's result, as `Debug` dumps — so
+/// the report can show what a rule was actually applied to. Attribute values
+/// are truncated to [`MAX_ATTR_VALUE_LEN`] to keep the snapshot bounded.
 ///
-/// We also drop "leaf" premise nodes that fired no rule and have no children:
+/// We drop "leaf" premise nodes that fired no rule and have no children:
 /// these are the macro's `if` / `let` / trivial side-conditions, whose names are
 /// large `Debug` dumps of bound values and which carry no inference structure.
 /// Every node we keep is therefore a rule application or a `for_all`, all of
-/// which have small, stable names. This keeps the snapshot both lean and a
-/// faithful tree of the rules that actually fired.
+/// which have small, stable names.
 ///
 /// `rule` is owned because the live `ProofTree.rule_name` is `&'static str`,
 /// which serde can serialize but cannot deserialize into; a mirror type lets
@@ -140,6 +165,12 @@ pub struct ProofTreeNode {
     pub rule: Option<String>,
     pub file: String,
     pub line: u32,
+    /// The judgment's arguments and the rule's result as `(name, value)` pairs,
+    /// e.g. `[("x", "1"), ("result", "()")]` for the module example — the
+    /// `debug(..)` inputs of the judgment plus a trailing `("result", ..)`.
+    /// Values are truncated to [`MAX_ATTR_VALUE_LEN`].
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub attributes: Vec<(String, String)>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub children: Vec<ProofTreeNode>,
 }
@@ -157,16 +188,27 @@ impl From<&ProofTree> for ProofTreeNode {
             rule: t.rule_name.map(str::to_string),
             file: t.file.replace('\\', "/"),
             line: t.line,
+            attributes: t
+                .attributes
+                .iter()
+                .map(|(k, v)| (k.clone(), cap_attr_value(v)))
+                .collect(),
             children,
         }
     }
 }
 
 /// A structural snapshot of a [`FailedJudgment`] for embedding in negative
-/// coverage records: the judgment that failed and the rules that were tried.
+/// coverage records: the judgment that failed, its arguments, and the rules
+/// that were tried.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FailedTreeNode {
     pub judgment: String,
+    /// The arguments the failing judgment was applied to: everything after the
+    /// judgment name in its `Debug` form (e.g. `"(env, [T: Debug])"`), truncated
+    /// to [`MAX_ATTR_VALUE_LEN`]. Empty when the `Debug` form is a bare name.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub args: String,
     pub file: String,
     pub line: u32,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -192,8 +234,12 @@ pub struct FailedRuleNode {
 
 impl From<&FailedJudgment> for FailedTreeNode {
     fn from(j: &FailedJudgment) -> Self {
+        let name = judgment_name_prefix(&j.judgment);
+        // Everything after the name in the `Debug` form is the argument list.
+        let args = cap_attr_value(j.judgment[name.len()..].trim());
         FailedTreeNode {
-            judgment: judgment_name_prefix(&j.judgment),
+            judgment: name,
+            args,
             file: j.location.file.replace('\\', "/"),
             line: j.location.line,
             rules: j.failed_rules.iter().map(FailedRuleNode::from).collect(),

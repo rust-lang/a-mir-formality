@@ -544,7 +544,7 @@ fn proof_tree_details(
     let mut body = String::from("<ul class=\"cov-tree\">\n");
     let mut budget = MAX_TREE_NODES;
     for n in nodes {
-        render_proof_node(n, github_base, source_root, 0, &mut body, &mut budget);
+        render_proof_node(n, github_base, source_root, 0, &[], &mut body, &mut budget);
     }
     body.push_str("</ul>\n");
     append_truncation_note(&mut body, total);
@@ -563,6 +563,7 @@ fn render_proof_node(
     github_base: Option<&str>,
     source_root: Option<&Path>,
     depth: usize,
+    parent_attrs: &[(String, String)],
     out: &mut String,
     budget: &mut usize,
 ) {
@@ -581,7 +582,22 @@ fn render_proof_node(
         rule = rule,
         loc = loc_link(&n.file, n.line, github_base, source_root),
     );
-    if n.children.is_empty() {
+    // Only show arguments that differ from the parent node's: the ambient ones
+    // (e.g. the whole program) are constant down a path, so showing them once at
+    // the top and only where they change keeps the tree readable and the book
+    // small. `result` always differs and always shows.
+    let fresh: Vec<(String, String)> = n
+        .attributes
+        .iter()
+        .filter(|(k, v)| !parent_attrs.iter().any(|(pk, pv)| pk == k && pv == v))
+        .cloned()
+        .collect();
+    let attrs = if depth <= MAX_ATTR_DEPTH {
+        render_attrs(&fresh)
+    } else {
+        String::new()
+    };
+    if n.children.is_empty() && attrs.is_empty() {
         out.push_str(&format!("<li>{label}</li>\n"));
         return;
     }
@@ -589,10 +605,79 @@ fn render_proof_node(
         "<li>{details}<summary>{label}</summary>\n<ul class=\"cov-tree\">\n",
         details = details_tag(depth),
     ));
+    out.push_str(&attrs);
     for c in &n.children {
-        render_proof_node(c, github_base, source_root, depth + 1, out, budget);
+        render_proof_node(
+            c,
+            github_base,
+            source_root,
+            depth + 1,
+            &n.attributes,
+            out,
+            budget,
+        );
     }
     out.push_str("</ul>\n</details></li>\n");
+}
+
+/// Maximum length (in `char`s) of an argument value as *displayed* in a proof
+/// tree. Argument `Debug` dumps (e.g. a whole program's declarations) repeat on
+/// every node and dominate the rendered book and its search index, so we clip
+/// them here — tighter than the storage cap (`coverage::MAX_ATTR_VALUE_LEN`) and
+/// tunable with a book rebuild alone. Small distinguishing arguments fit whole.
+const MAX_ATTR_DISPLAY_LEN: usize = 160;
+
+/// Deepest tree level (0 = the judgment under test) at which a node's arguments
+/// are shown. Recursive judgments produce trees hundreds of nodes deep and
+/// nearly every node has distinct arguments, so rendering them all would bloat
+/// the book far past what it can ship. Arguments are most informative near the
+/// top — the tested judgment and its immediate premises — so we show them there
+/// and elide them deeper. Tunable with a book rebuild alone.
+const MAX_ATTR_DEPTH: usize = 2;
+
+/// Clip an argument value to [`MAX_ATTR_DISPLAY_LEN`] chars for display,
+/// appending `…` when it was clipped.
+fn clip_attr(value: &str) -> String {
+    if value.chars().count() <= MAX_ATTR_DISPLAY_LEN {
+        value.to_string()
+    } else {
+        let head: String = value.chars().take(MAX_ATTR_DISPLAY_LEN).collect();
+        format!("{head}…")
+    }
+}
+
+/// A collapsed `args` disclosure listing a node's `(name, value)` attributes as
+/// `name = value` rows, or `""` when there are none. Rendered as the first child
+/// of a proof-tree node so the arguments a rule was applied to are one click away
+/// without lengthening the node's summary line.
+fn render_attrs(attributes: &[(String, String)]) -> String {
+    if attributes.is_empty() {
+        return String::new();
+    }
+    let mut s =
+        String::from("<li><details><summary><em>args</em></summary>\n<ul class=\"cov-tree\">\n");
+    for (name, value) in attributes {
+        s.push_str(&format!(
+            "<li><code>{name} = {value}</code></li>\n",
+            name = html_escape(name),
+            value = html_escape(&clip_attr(value)),
+        ));
+    }
+    s.push_str("</ul>\n</details></li>\n");
+    s
+}
+
+/// A collapsed `args` disclosure for a failed judgment node, showing the single
+/// argument-list string the judgment was applied to, or `""` when it is empty.
+fn render_failed_args(args: &str) -> String {
+    if args.is_empty() {
+        return String::new();
+    }
+    format!(
+        "<li><details><summary><em>args</em></summary>\n<ul class=\"cov-tree\">\n\
+         <li><code>{args}</code></li>\n</ul>\n</details></li>\n",
+        args = html_escape(&clip_attr(args)),
+    )
 }
 
 /// The failed proof tree(s) for one test, already pruned to the relevant
@@ -609,7 +694,7 @@ fn failed_tree_details(
     let mut body = String::from("<ul class=\"cov-tree\">\n");
     let mut budget = MAX_TREE_NODES;
     for n in nodes {
-        render_failed_node(n, github_base, source_root, 0, &mut body, &mut budget);
+        render_failed_node(n, github_base, source_root, 0, "", &mut body, &mut budget);
     }
     body.push_str("</ul>\n");
     append_truncation_note(&mut body, total);
@@ -629,6 +714,7 @@ fn render_failed_node(
     github_base: Option<&str>,
     source_root: Option<&Path>,
     depth: usize,
+    parent_args: &str,
     out: &mut String,
     budget: &mut usize,
 ) {
@@ -641,7 +727,15 @@ fn render_failed_node(
         judgment = html_escape(&j.judgment),
         loc = loc_link(&j.file, j.line, github_base, source_root),
     );
-    if j.rules.is_empty() {
+    // Suppress args identical to the parent judgment's (see `render_proof_node`).
+    // Failed trees nest a judgment every two levels (judgment → rule → judgment),
+    // so the depth gate is doubled here to cover the same number of judgments.
+    let attrs = if depth <= 2 * MAX_ATTR_DEPTH && j.args != parent_args {
+        render_failed_args(&j.args)
+    } else {
+        String::new()
+    };
+    if j.rules.is_empty() && attrs.is_empty() {
         out.push_str(&format!("<li>{label}</li>\n"));
         return;
     }
@@ -649,8 +743,9 @@ fn render_failed_node(
         "<li>{details}<summary>{label}</summary>\n<ul class=\"cov-tree\">\n",
         details = details_tag(depth),
     ));
+    out.push_str(&attrs);
     for r in &j.rules {
-        render_failed_rule(r, github_base, source_root, depth + 1, out, budget);
+        render_failed_rule(r, github_base, source_root, depth + 1, &j.args, out, budget);
     }
     out.push_str("</ul>\n</details></li>\n");
 }
@@ -660,6 +755,7 @@ fn render_failed_rule(
     github_base: Option<&str>,
     source_root: Option<&Path>,
     depth: usize,
+    parent_args: &str,
     out: &mut String,
     budget: &mut usize,
 ) {
@@ -679,7 +775,15 @@ fn render_failed_rule(
                 "<li>{details}<summary><code>{name}</code> {loc}</summary>\n<ul class=\"cov-tree\">\n",
                 details = details_tag(depth),
             ));
-            render_failed_node(child, github_base, source_root, depth + 1, out, budget);
+            render_failed_node(
+                child,
+                github_base,
+                source_root,
+                depth + 1,
+                parent_args,
+                out,
+                budget,
+            );
             out.push_str("</ul>\n</details></li>\n");
         }
         // A terminal failure: show the cause tag.
@@ -770,6 +874,7 @@ fn prune_failed(
         .collect();
     (!rules.is_empty()).then(|| FailedTreeNode {
         judgment: j.judgment.clone(),
+        args: j.args.clone(),
         file: j.file.clone(),
         line: j.line,
         rules,
