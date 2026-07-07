@@ -582,10 +582,9 @@ fn render_proof_node(
         rule = rule,
         loc = loc_link(&n.file, n.line, github_base, source_root),
     );
-    // Only show arguments that differ from the parent node's: the ambient ones
-    // (e.g. the whole program) are constant down a path, so showing them once at
-    // the top and only where they change keeps the tree readable and the book
-    // small. `result` always differs and always shows.
+    // Show only arguments that differ from the parent: ambient ones (e.g. the
+    // whole program) are constant down a path, so this shows them once near the
+    // top instead of on every node.
     let fresh: Vec<(String, String)> = n
         .attributes
         .iter()
@@ -620,19 +619,15 @@ fn render_proof_node(
     out.push_str("</ul>\n</details></li>\n");
 }
 
-/// Maximum length (in `char`s) of an argument value as *displayed* in a proof
-/// tree. Argument `Debug` dumps (e.g. a whole program's declarations) repeat on
-/// every node and dominate the rendered book and its search index, so we clip
-/// them here — tighter than the storage cap (`coverage::MAX_ATTR_VALUE_LEN`) and
-/// tunable with a book rebuild alone. Small distinguishing arguments fit whole.
+/// Display cap (in `char`s) for an argument value, tighter than the storage cap
+/// [`coverage::MAX_ATTR_VALUE_LEN`]. Clipping at render time bounds the book and
+/// is tunable with a book rebuild alone.
 const MAX_ATTR_DISPLAY_LEN: usize = 160;
 
 /// Deepest tree level (0 = the judgment under test) at which a node's arguments
-/// are shown. Recursive judgments produce trees hundreds of nodes deep and
-/// nearly every node has distinct arguments, so rendering them all would bloat
-/// the book far past what it can ship. Arguments are most informative near the
-/// top — the tested judgment and its immediate premises — so we show them there
-/// and elide them deeper. Tunable with a book rebuild alone.
+/// are shown. Recursive judgments make trees hundreds of nodes deep with
+/// distinct args per node; showing them all would bloat the book. Args are most
+/// useful near the top, so deeper ones are elided. Tunable with a book rebuild.
 const MAX_ATTR_DEPTH: usize = 2;
 
 /// Clip an argument value to [`MAX_ATTR_DISPLAY_LEN`] chars for display,
@@ -647,9 +642,7 @@ fn clip_attr(value: &str) -> String {
 }
 
 /// A collapsed `args` disclosure listing a node's `(name, value)` attributes as
-/// `name = value` rows, or `""` when there are none. Rendered as the first child
-/// of a proof-tree node so the arguments a rule was applied to are one click away
-/// without lengthening the node's summary line.
+/// `name = value` rows, or `""` when there are none.
 fn render_attrs(attributes: &[(String, String)]) -> String {
     if attributes.is_empty() {
         return String::new();
@@ -728,8 +721,8 @@ fn render_failed_node(
         loc = loc_link(&j.file, j.line, github_base, source_root),
     );
     // Suppress args identical to the parent judgment's (see `render_proof_node`).
-    // Failed trees nest a judgment every two levels (judgment → rule → judgment),
-    // so the depth gate is doubled here to cover the same number of judgments.
+    // Failed trees nest a judgment every two levels (judgment, rule, judgment),
+    // so the depth gate is doubled here.
     let attrs = if depth <= 2 * MAX_ATTR_DEPTH && j.args != parent_args {
         render_failed_args(&j.args)
     } else {

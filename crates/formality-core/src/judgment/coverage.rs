@@ -73,10 +73,8 @@ use std::path::PathBuf;
 use super::proven_set::judgment_name_prefix;
 use super::{FailedJudgment, FailedRule, FailureReason, ProofTree, RuleFailureCause};
 
-/// Maximum length (in `char`s) of a stored attribute/argument value. The
-/// `Debug` form of a judgment argument (e.g. a whole `Env`) can be enormous;
-/// truncating here keeps both the JSONL and the rendered book bounded while
-/// still showing enough of each value to be useful when browsing.
+/// Storage cap (in `char`s) for an attribute/argument value; a judgment
+/// argument's `Debug` form (e.g. a whole `Env`) can otherwise be enormous.
 pub const MAX_ATTR_VALUE_LEN: usize = 512;
 
 /// Truncate an attribute/argument value to [`MAX_ATTR_VALUE_LEN`] chars,
@@ -138,10 +136,9 @@ pub enum CoverageRecord {
 
 /// A structural snapshot of a [`ProofTree`] node for embedding in positive
 /// coverage records. We keep the proof *shape* (judgment name, the rule that
-/// fired, the source location, and children) plus each node's `attributes` —
-/// the judgment's argument values and the rule's result, as `Debug` dumps — so
-/// the report can show what a rule was actually applied to. Attribute values
-/// are truncated to [`MAX_ATTR_VALUE_LEN`] to keep the snapshot bounded.
+/// fired, the source location, and children) plus each node's `attributes`:
+/// the judgment's argument values and the rule's result, as `Debug` dumps.
+/// Values are truncated to [`MAX_ATTR_VALUE_LEN`].
 ///
 /// We drop "leaf" premise nodes that fired no rule and have no children:
 /// these are the macro's `if` / `let` / trivial side-conditions, whose names are
@@ -165,10 +162,9 @@ pub struct ProofTreeNode {
     pub rule: Option<String>,
     pub file: String,
     pub line: u32,
-    /// The judgment's arguments and the rule's result as `(name, value)` pairs,
-    /// e.g. `[("x", "1"), ("result", "()")]` for the module example — the
-    /// `debug(..)` inputs of the judgment plus a trailing `("result", ..)`.
-    /// Values are truncated to [`MAX_ATTR_VALUE_LEN`].
+    /// The judgment's `debug(..)` inputs and the rule's result as `(name, value)`
+    /// pairs, e.g. `[("x", "1"), ("result", "()")]`. Values are truncated to
+    /// [`MAX_ATTR_VALUE_LEN`].
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub attributes: Vec<(String, String)>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -204,9 +200,9 @@ impl From<&ProofTree> for ProofTreeNode {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FailedTreeNode {
     pub judgment: String,
-    /// The arguments the failing judgment was applied to: everything after the
-    /// judgment name in its `Debug` form (e.g. `"(env, [T: Debug])"`), truncated
-    /// to [`MAX_ATTR_VALUE_LEN`]. Empty when the `Debug` form is a bare name.
+    /// The arguments the failing judgment was applied to: the tail of its `Debug`
+    /// form after the name (e.g. `"{ n: Num(1) }"`), truncated to
+    /// [`MAX_ATTR_VALUE_LEN`]. Empty when the `Debug` form is a bare name.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub args: String,
     pub file: String,
