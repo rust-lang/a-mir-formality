@@ -467,19 +467,28 @@ fn detail_pages_render_proof_trees() {
         "{}",
         pos.content
     );
-    // The `positive` node's arguments and result render behind a collapsed
-    // `args` disclosure.
+    // The `positive` node's arguments render behind a collapsed `args`
+    // disclosure that is filled in lazily: the HTML carries only an empty
+    // placeholder keyed by `data-arg-id`, the values live in the page's sidecar
+    // JSON, and an inline script fetches that JSON on demand.
     assert!(
-        pos.content.contains("<summary><em>args</em></summary>"),
-        "positive tree should show an args disclosure: {}",
+        pos.content
+            .contains("<details class=\"cov-args\" data-arg-id=\"n0\">"),
+        "positive tree should show an args placeholder: {}",
         pos.content
     );
     assert!(
-        pos.content.contains("<li><code>x = 1</code></li>")
-            && pos.content.contains("<li><code>result = ()</code></li>"),
-        "args disclosure should list each argument and the result: {}",
+        !pos.content.contains("x = 1") && !pos.content.contains("result = ()"),
+        "argument values must not be inlined into the page HTML: {}",
         pos.content
     );
+    assert!(
+        pos.content
+            .contains("./coverage-args/prove_thing__positive__pos.args.json"),
+        "positive page should inject the lazy-load script: {}",
+        pos.content
+    );
+    assert_eq!(pos.args_json, r#"{"n0":[["x","1"],["result","()"]]}"#);
 
     // The negative page shows the failed tree pruned to the stack that blames
     // premise line 9; the unrelated `zero` stack (line 15) is dropped.
@@ -503,14 +512,21 @@ fn detail_pages_render_proof_trees() {
         "unrelated stack should be pruned: {}",
         neg.content
     );
-    // The failing judgment's arguments render behind a collapsed `args`
-    // disclosure on the negative page too.
+    // The failing judgment's arguments render behind a lazily-filled `args`
+    // placeholder on the negative page too, with the value carried in the
+    // sidecar JSON (an empty name so it renders alone).
     assert!(
-        neg.content.contains("<summary><em>args</em></summary>")
-            && neg.content.contains("<li><code>(-1)</code></li>"),
-        "negative tree should show the failing judgment's args: {}",
+        neg.content
+            .contains("<details class=\"cov-args\" data-arg-id=\"n0\">"),
+        "negative tree should show an args placeholder: {}",
         neg.content
     );
+    assert!(
+        !neg.content.contains("<code>(-1)</code>"),
+        "the failing args value must not be inlined into the page HTML: {}",
+        neg.content
+    );
+    assert_eq!(neg.args_json, r#"{"n0":[["","(-1)"]]}"#);
 }
 
 #[test]
