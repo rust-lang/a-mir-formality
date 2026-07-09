@@ -596,28 +596,37 @@ where
     }
 
     /// Consume next identifier-like string, requiring that it be equal to `expected`.
+    /// On failure, consumes nothing, so callers (e.g. `$:guard` fields) can treat
+    /// the keyword as absent and continue parsing from the same position.
     #[tracing::instrument(level = "trace", ret)]
     pub fn expect_keyword(&mut self, expected: &str) -> Result<(), Set<ParseError<'t>>> {
         let text0 = self.current_text;
         match self.identifier_like_string() {
             Ok(ident) if &*ident == expected => Ok(()),
-            _ => Err(ParseError::at(
-                skip_whitespace(text0),
-                format!("expected `{}`", expected),
-            )),
+            _ => {
+                self.current_text = text0;
+                Err(ParseError::at(
+                    skip_whitespace(text0),
+                    format!("expected `{}`", expected),
+                ))
+            }
         }
     }
 
     /// Accepts any of the given keywords.
+    /// On failure, consumes nothing (see `expect_keyword`).
     #[tracing::instrument(level = "trace", skip(self), ret)]
     pub fn expect_keyword_in(&mut self, expected: &[&str]) -> Result<String, Set<ParseError<'t>>> {
         let text0 = self.current_text;
         match self.identifier_like_string() {
             Ok(ident) if expected.iter().any(|&kw| ident == kw) => Ok(ident),
-            _ => Err(ParseError::at(
-                skip_whitespace(text0),
-                format!("expected any of `{:?}`", expected),
-            )),
+            _ => {
+                self.current_text = text0;
+                Err(ParseError::at(
+                    skip_whitespace(text0),
+                    format!("expected any of `{:?}`", expected),
+                ))
+            }
         }
     }
 
