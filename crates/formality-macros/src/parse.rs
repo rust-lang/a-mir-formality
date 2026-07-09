@@ -319,6 +319,26 @@ fn field_type_by_name<'a>(
     None
 }
 
+/// If `ty` is syntactically `Option<T>`, returns `T`.
+/// Detection is textual: an aliased or renamed `Option` is not recognized.
+fn option_inner_type(ty: &syn::Type) -> Option<&syn::Type> {
+    use syn::{GenericArgument, PathArguments, Type};
+
+    let Type::Path(ty_path) = ty else { return None };
+    let segment = ty_path
+        .path
+        .segments
+        .last()
+        .filter(|s| s.ident == "Option")?;
+    let PathArguments::AngleBracketed(generics) = &segment.arguments else {
+        return None;
+    };
+    match generics.args.first()? {
+        GenericArgument::Type(inner) => Some(inner),
+        _ => None,
+    }
+}
+
 /// Recursively converts a list of grammar symbols into nested code.
 ///
 /// Field symbols become `each_*` continuation-passing calls (one closure layer per field).
@@ -504,19 +524,36 @@ fn wrap_field_mode(
             match mode.as_ref() {
                 FieldMode::Single => {
                     if let Some(ty) = field_ty {
-                        quote_spanned!(name.span() =>
-                            match __p.expect_keyword(#guard_keyword) {
-                                Ok(()) => {
-                                    __p.each_nonterminal(|#name: #ty, __p| {
+                        if let Some(inner_ty) = option_inner_type(ty) {
+                            quote_spanned!(name.span() =>
+                                match __p.expect_keyword(#guard_keyword) {
+                                    Ok(()) => {
+                                        __p.each_nonterminal(|#name: #inner_ty, __p| {
+                                            let #name: #ty = Some(#name);
+                                            #inner
+                                        })
+                                    }
+                                    Err(_) => {
+                                        let #name: #ty = None;
                                         #inner
-                                    })
+                                    }
                                 }
-                                Err(_) => {
-                                    let #name: #ty = Default::default();
-                                    #inner
+                            )
+                        } else {
+                            quote_spanned!(name.span() =>
+                                match __p.expect_keyword(#guard_keyword) {
+                                    Ok(()) => {
+                                        __p.each_nonterminal(|#name: #ty, __p| {
+                                            #inner
+                                        })
+                                    }
+                                    Err(_) => {
+                                        let #name: #ty = Default::default();
+                                        #inner
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     } else {
                         quote_spanned!(name.span() =>
                             match __p.expect_keyword(#guard_keyword) {
