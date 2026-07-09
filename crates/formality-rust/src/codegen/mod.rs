@@ -159,6 +159,7 @@ judgment_fn! {
 
         (
             (let (ct, cfn) = cfn.alloc_local(bool_ty()))
+            (let else_block = else_block.clone().unwrap_or_else(Block::empty))
             (codegen_expr_into(global, cfn, scope, ct, condition) => (cond_code, global, cfn))
             (codegen_block(global, cfn, scope, then_block) => (then_code, global, cfn))
             (codegen_block(global, cfn, scope, else_block) => (else_code, global, cfn))

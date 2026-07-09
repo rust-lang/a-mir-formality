@@ -35,6 +35,23 @@ fn test_assign_constant() {
     .ok()
 }
 
+/// Test that an `if` without an `else` branch typechecks: the missing
+/// else desugars to an empty block, so both paths join with type `()`.
+#[test]
+fn test_if_without_else() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo(v1: bool) -> u32 {
+            let v2: u32 = 0 _ u32;
+            if v1 {
+                v2 = 1 _ u32;
+            }
+            return v2;
+        }
+    }])
+    .skip_execute()
+    .ok()
+}
+
 // Test valid program with Terminator::Switch.
 #[test]
 #[ignore = "needs switch/branching constructs in expr grammar"]

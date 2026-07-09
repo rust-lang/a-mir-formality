@@ -205,6 +205,7 @@ judgment_fn! {
         )
 
         (
+          (let else_block = else_block.clone().unwrap_or_else(Block::empty))
             // Check the condition has type bool
             (borrow_check_expr_has_ty(
                 env,

@@ -186,6 +186,136 @@ fn conditional_init_both_branches() {
     .ok()
 }
 
+/// An `if` without `else` behaves like one with an empty else branch.
+///
+/// ```rust,ignore
+/// fn foo() -> u32 {
+///     let x: u32 = 1;
+///     if true {
+///         x = 2;
+///     }
+///     return x;  // OK: x initialized on both paths
+/// }
+/// ```
+#[test]
+fn if_without_else_ok() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            let x: u32 = 1 _ u32;
+            if true {
+                x = 2 _ u32;
+            }
+            return x;
+        }
+    }])
+    .skip_execute()
+    .ok()
+}
+
+/// Initialization only in the then-branch of an `if` without `else`
+/// should be an error: the implicit else path leaves `x` uninitialized.
+///
+/// ```rust,ignore
+/// fn foo() -> u32 {
+///     let x: u32;
+///     if true {
+///         x = 1;
+///     }
+///     return x;  // ERROR: possibly uninitialized
+/// }
+/// ```
+#[test]
+fn conditional_init_no_else() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            let x: u32;
+            if true {
+                x = 1 _ u32;
+            }
+            return x;
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`
+
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]])
+}
+
+/// A move inside the then-branch of an `if` without `else` should make
+/// the value unusable after the `if`: the join must merge the moved
+/// state with the untouched implicit-else state.
+///
+/// ```rust,ignore
+/// struct Datum { value: u32 }
+/// fn foo() -> Datum {
+///     let x: Datum = Datum { value: 0 };
+///     if true {
+///         let y: Datum = x;  // x moved here (on this path)
+///     }
+///     let z: Datum = x;  // ERROR: possibly moved
+///     return z;
+/// }
+/// ```
+#[test]
+fn move_in_then_branch_no_else() {
+    FormalityTest::new(crates![crate Foo {
+        struct Datum {
+            value: u32,
+        }
+
+        fn foo() -> Datum {
+            let x: Datum = Datum { value: 0 _ u32 };
+            if true {
+                let y: Datum = x;
+            }
+            let z: Datum = x;
+            return z;
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]])
+}
+
+/// Returning a reborrow from the then-branch of an `if` without `else`,
+/// with the fall-through path returning the original reference.
+#[test]
+fn if_without_else_return_in_then() {
+    FormalityTest::new(crates![crate Foo {
+        fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
+            exists<'r0, 'r1> {
+                if true {
+                    let b: &mut 'r1 u8 = &mut 'r0 *a;
+                    return b;
+                }
+                return a;
+            }
+        }
+    }])
+    .skip_execute()
+    .ok();
+}
+
 /// Assigning to a field of an uninitialized variable should be an error.
 ///
 /// ```rust,ignore
