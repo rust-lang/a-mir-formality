@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use crate::grammar::{Fallible, Fn, FnBody, InputArg, MaybeFnBody};
-use crate::prove::prove::Safety;
+use crate::prove::Safety;
 
 use crate::to_rust::{
     context::{open_bounded, Context, Wrapped},

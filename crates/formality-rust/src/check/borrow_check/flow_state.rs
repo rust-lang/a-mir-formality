@@ -3,7 +3,7 @@ use crate::check::borrow_check::typed_place_expression::TypedPlaceExpr;
 use crate::grammar::expr::{Label, LabelId, PlaceExpr};
 use crate::grammar::{InputArg, Lt, Parameter, Ty, ValueId};
 use crate::grammar::{RefKind, Variable};
-use crate::prove::prove::{Env, MaxUniverse};
+use crate::prove::{Env, MaxUniverse};
 use formality_core::visit::CoreVisit;
 use formality_core::{term, Fallible, Set, Union, Upcast, UpcastFrom};
 

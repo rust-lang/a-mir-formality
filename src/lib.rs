@@ -4,7 +4,7 @@ use clap::Parser;
 use formality_core::judgment::ProofTree;
 use formality_rust::check::check_all_crates;
 use formality_rust::grammar::Crates;
-use formality_rust::prove::prove::{test_util::TestAssertion, Constraints};
+use formality_rust::prove::{test_util::TestAssertion, Constraints};
 use formality_rust::rust::try_term;
 
 pub mod test_util;
@@ -56,7 +56,7 @@ pub fn test_where_clause(program: &str, assertion: &str) -> formality_core::Prov
         let _proof_tree = check_all_crates(&program).check_proven().unwrap();
         let assertion: Arc<TestAssertion> = try_term(assertion).unwrap();
         let decls = program.to_prove_decls();
-        formality_rust::prove::prove::test_util::test_prove(decls, assertion)
+        formality_rust::prove::test_util::test_prove(decls, assertion)
     })
 }
 

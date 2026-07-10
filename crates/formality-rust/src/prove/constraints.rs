@@ -193,7 +193,7 @@ impl Constraints {
     }
 }
 
-impl CoreVisit<crate::prove::prove::FormalityLang> for Constraints {
+impl CoreVisit<crate::prove::FormalityLang> for Constraints {
     fn free_variables(&self) -> Vec<Variable> {
         let Constraints {
             env,

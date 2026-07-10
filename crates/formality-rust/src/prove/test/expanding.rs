@@ -3,7 +3,7 @@ use expect_test::expect;
 use formality_macros::test;
 use std::sync::Arc;
 
-use crate::prove::prove::{test_util::test_prove, Program};
+use crate::prove::{test_util::test_prove, Program};
 
 /// Simple example decls consisting only of two trait declarations.
 fn decls() -> Program {

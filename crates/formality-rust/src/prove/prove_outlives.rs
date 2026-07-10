@@ -1,6 +1,6 @@
 use crate::grammar::Wc;
 use crate::grammar::{LtData, Parameter, Relation, RigidTy, Wcs};
-use crate::prove::prove::{decls::Program, prove};
+use crate::prove::{decls::Program, prove};
 use formality_core::{judgment_fn, Set, Upcast};
 
 use super::{constraints::Constraints, env::Env};

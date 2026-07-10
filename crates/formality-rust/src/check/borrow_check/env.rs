@@ -5,7 +5,7 @@ use crate::check::borrow_check::flow_state::{FlowState, PendingOutlives};
 use crate::check::borrow_check::outlives::verify_universal_outlives;
 use crate::grammar::{Binder, ExistentialVar, Relation, Ty, UniversalVar, Wcs};
 use crate::grammar::{Crates, Parameter};
-use crate::prove::prove::{prove_normalize, Constrained, Constraints, Env, Program};
+use crate::prove::{prove_normalize, Constrained, Constraints, Env, Program};
 use crate::rust::Fold;
 use formality_core::judgment::{FailureLocation, ProofTree, Proven};
 use formality_core::{cast_impl, Downcast, DowncastTo, Set, Upcast};
@@ -56,13 +56,8 @@ impl TypeckEnv {
         goal: impl ToWcs + Debug,
     ) -> ProvenSet<FlowState> {
         let goal: Wcs = goal.to_wcs();
-        self.prove_judgment(
-            state,
-            assumptions,
-            goal.to_wcs(),
-            crate::prove::prove::prove,
-        )
-        .map(|(((), state), proof_tree)| (state, proof_tree))
+        self.prove_judgment(state, assumptions, goal.to_wcs(), crate::prove::prove)
+            .map(|(((), state), proof_tree)| (state, proof_tree))
     }
 
     #[track_caller]

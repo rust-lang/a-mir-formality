@@ -6,7 +6,7 @@ use crate::grammar::{
     NegTraitImplBoundData, Predicate, Relation, RigidName, Substitution, Trait, TraitBoundData,
     TraitImpl, TraitImplBoundData, TraitItem, Ty, Wcs,
 };
-use crate::prove::prove::{Env, Program, Safety};
+use crate::prove::{Env, Program, Safety};
 use crate::rust::Term;
 use formality_core::{judgment::ProofTree, judgment_fn, Downcasted};
 

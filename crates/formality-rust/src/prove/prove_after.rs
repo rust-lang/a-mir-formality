@@ -1,7 +1,7 @@
 use crate::grammar::Wcs;
 use formality_core::judgment_fn;
 
-use crate::prove::prove::{decls::Program, prove::prove};
+use crate::prove::{decls::Program, prove};
 
 use super::constraints::Constraints;
 

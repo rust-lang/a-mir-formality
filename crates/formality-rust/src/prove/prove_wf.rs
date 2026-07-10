@@ -4,10 +4,7 @@ use crate::grammar::{
 };
 use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 
-use crate::prove::prove::{
-    decls::Program,
-    prove::{combinators::for_all, prove, prove_after::prove_after},
-};
+use crate::prove::{combinators::for_all, decls::Program, prove, prove_after::prove_after};
 
 use super::{constraints::Constraints, env::Env};
 

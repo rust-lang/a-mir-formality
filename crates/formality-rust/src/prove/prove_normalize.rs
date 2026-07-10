@@ -2,16 +2,17 @@ use crate::{
     grammar::{
         AliasTy, ExistentialVar, Parameter, Relation, RigidTy, TyData, Variable, Wc, WcData, Wcs,
     },
-    prove::prove::Constrained,
+    prove::Constrained,
 };
 use formality_core::{judgment_fn, Downcast};
 
-use crate::prove::prove::{
+use crate::prove::{
+    combinators::zip,
     decls::{AliasEqDeclBoundData, Program},
-    prove::{
-        combinators::zip, env::Env, prove, prove_after::prove_after,
-        prove_eq::prove_existential_var_eq,
-    },
+    env::Env,
+    prove,
+    prove_after::prove_after,
+    prove_eq::prove_existential_var_eq,
 };
 
 use super::constraints::Constraints;

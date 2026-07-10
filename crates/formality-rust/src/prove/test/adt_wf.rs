@@ -4,7 +4,7 @@ use expect_test::expect;
 use formality_core::test;
 use std::sync::Arc;
 
-use crate::prove::prove::{decls::Program, prove::prove, Env};
+use crate::prove::{decls::Program, prove, Env};
 
 fn decls() -> Program {
     Program {

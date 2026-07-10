@@ -4,7 +4,7 @@ use crate::check::borrow_check::nll::borrow_check;
 use crate::check::prove_goal;
 use crate::check::where_clauses::prove_where_clauses_well_formed;
 use crate::grammar::{CrateId, FnBody, MaybeFnBody, Relation, Wcs};
-use crate::prove::prove::{Env, Program};
+use crate::prove::{Env, Program};
 use crate::{
     grammar::{Fn, FnBoundData},
     prove::ToWcs,

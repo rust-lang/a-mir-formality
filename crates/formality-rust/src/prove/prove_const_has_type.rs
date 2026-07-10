@@ -4,7 +4,7 @@ use crate::{
 };
 use formality_core::judgment_fn;
 
-use crate::prove::prove::{decls::Program, prove::env::Env};
+use crate::prove::{decls::Program, env::Env};
 
 use super::constraints::Constraints;
 

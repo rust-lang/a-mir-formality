@@ -2,7 +2,7 @@ use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::PendingOutlives;
 
 use crate::grammar::{Parameter, Relation, Variable, Wcs};
-use crate::prove::prove::prove;
+use crate::prove::prove;
 use formality_core::{judgment_fn, Set, Upcast};
 
 judgment_fn! {

@@ -1,21 +1,19 @@
 use crate::grammar::{Predicate, Relation, Wc, WcData, Wcs};
 use formality_core::judgment_fn;
 
-use crate::prove::prove::{
+use crate::prove::{
+    combinators::for_all,
     decls::Program,
-    prove::{
-        combinators::for_all,
-        env::{Bias, Env},
-        is_local::{is_local_trait_ref, may_be_remote},
-        prove,
-        prove_after::prove_after,
-        prove_const_has_type::prove_const_has_type,
-        prove_eq::prove_eq,
-        prove_outlives::prove_outlives,
-        prove_sub::prove_sub,
-        prove_via::prove_via,
-        prove_wf::prove_wf,
-    },
+    env::{Bias, Env},
+    is_local::{is_local_trait_ref, may_be_remote},
+    prove,
+    prove_after::prove_after,
+    prove_const_has_type::prove_const_has_type,
+    prove_eq::prove_eq,
+    prove_outlives::prove_outlives,
+    prove_sub::prove_sub,
+    prove_via::prove_via,
+    prove_wf::prove_wf,
 };
 
 use super::constraints::Constraints;

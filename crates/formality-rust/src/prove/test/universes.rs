@@ -3,9 +3,9 @@ use expect_test::expect;
 use formality_macros::test;
 use std::sync::Arc;
 
-use crate::prove::prove::decls::Program;
+use crate::prove::decls::Program;
 
-use crate::prove::prove::test_util::test_prove;
+use crate::prove::test_util::test_prove;
 
 /// There is no U that is equal to all T.
 #[test]

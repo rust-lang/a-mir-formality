@@ -2,9 +2,9 @@ use crate::rust::term;
 use expect_test::expect;
 use formality_macros::test;
 
-use crate::prove::prove::decls::Program;
+use crate::prove::decls::Program;
 
-use crate::prove::prove::test_util::test_prove;
+use crate::prove::test_util::test_prove;
 
 #[test]
 fn test_forall_not_local() {

@@ -4,7 +4,7 @@ use crate::grammar::{
     AssociatedTy, AssociatedTyValue, Fallible, ImplItem, NegTraitImpl, Trait, TraitImpl, TraitItem,
     WhereBoundData,
 };
-use crate::prove::prove::Safety;
+use crate::prove::Safety;
 
 use crate::to_rust::context::Wrapped;
 use crate::to_rust::{
