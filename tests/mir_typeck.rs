@@ -145,13 +145,13 @@ fn if_else_different_return_types() {
                     }
                 }
             }]).err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test valid call: bar calls foo.
@@ -298,13 +298,13 @@ fn test_pass_non_subtype_arg() {
                     return v0;
                 }
             }]).err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test calling a generic function without turbofish (wrong number of type args: 0 vs 1).
@@ -358,13 +358,13 @@ fn test_call_generic_fn_wrong_type_with_turbofish() {
                     return v0;
                 }
             }]).err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test calling a generic function using turbofish syntax with an incorrect number of parameters.
@@ -419,13 +419,13 @@ fn test_incompatible_return_type() {
                     return v1;
                 }
             }]).err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: (), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 // Test the behaviour of having unitialised return local variable.
@@ -628,9 +628,9 @@ fn test_struct_wrong_type_in_initialisation() {
                     return v1;
                 }
             }]).err(expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: bool, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-                crates/formality-rust/src/prove/prove_normalize.rs:17:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+                crates/formality-rust/src/prove/prove_normalize.rs:20:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
 }
 
 /// Test the behaviour of having non-adt as the type for struct construction.
