@@ -12,6 +12,7 @@ anyhow = "1"
 clap = { version = "4.0.9", features = ["derive"] }
 formality-core = { version = "0.1.1", path = "../formality-core" }
 regex = "1.10.2"
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 walkdir = "2"
 
@@ -21,3 +22,7 @@ expect-test = "1.4.1"
 [[bin]]
 name = "formality-coverage"
 path = "src/bin/formality-coverage.rs"
+
+[[bin]]
+name = "coverage-diff"
+path = "src/bin/coverage-diff.rs"

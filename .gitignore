@@ -3,3 +3,6 @@ target
 .sparkle-space
 .claude
 killme.*
+
+# Generated coverage baseline summary (mdbook preprocessor output)
+book/src/coverage-summary.json
