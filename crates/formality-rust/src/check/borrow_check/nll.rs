@@ -303,6 +303,18 @@ judgment_fn! {
             (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
         )
 
+        (
+            (if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusAlpha))!
+            // Existential variables: open the binder and check the inner block
+            (let (env, subst, block) = env.instantiate_existentially(binder))
+            (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
+            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+            (let state = state.from_global_state_for_nll())
+            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+            (let state = state.pop_subst(&env.env, subst))
+            ------------------------------------------------------------ ("exists")
+            (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
+        )
 
         (
             (if !feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked) && !feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusAlpha))!
@@ -808,7 +820,20 @@ judgment_fn! {
             // any live lifetime. Live lifetimes include lifetimes that appear in live places and universal lifetimes.
 
             (if !place_disjoint_from_place(&loan.place, &access.place))! // just for convenience
-            (loan_not_required_by_live_places(env, assumptions, state, loan, places_live_after_access) => state)
+            // rustc's NLL/alpha treat a write through a pointer as a *use* of the
+            // base path at the access point (live-before); datalog does not need to.
+            (let places_live = if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked) {
+                places_live_after_access.clone()
+            } else {
+                let mut p = places_live_after_access.clone();
+                let mut cur = access.place.prefix();
+                while let Some(pre) = cur {
+                    p.insert(pre.to_place_expression());
+                    cur = pre.prefix();
+                }
+                p
+            })
+            (loan_not_required_by_live_places(env, assumptions, state, loan, places_live) => state)
             (loan_cannot_outlive_universal_regions(env, assumptions, &state.current.outlives, &loan) => ())
             ------------------------------------------------------------ ("loan is dead")
             (access_permitted_by_loan(env, assumptions, state, loan, access, places_live_after_access) => state)
