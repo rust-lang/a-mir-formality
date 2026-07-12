@@ -1,7 +1,7 @@
 use crate::check::feature_gate_enabled_in_program;
 use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::{FlowState, Loan, PendingOutlives};
-use crate::check::borrow_check::outlives::transitively_outlived_by;
+use crate::check::borrow_check::outlives::{transitively_outlived_by, verify_universal_outlives};
 use crate::check::borrow_check::typed_place_expression::{
     TypedPlaceExpr, TypedPlaceExpressionData,
 };
@@ -314,6 +314,14 @@ judgment_fn! {
             (let (env, subst, block) = env.instantiate_existentially(binder))
             (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
             (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+            // Like rustc's alpha, universal-region errors stay
+            // location-insensitive (`check_universal_regions` runs on the
+            // propagated values regardless of `-Z polonius=next`): verify
+            // the union of all pending outlives collected on any path.
+            // Must run before `pop_subst`, which discards entries that
+            // mention the popped existentials. Constraint-only -- loans
+            // are not re-checked.
+            (verify_universal_outlives(env, assumptions_body, &state.all_outlives) => ())
             (let state = state.pop_subst(&env.env, subst))
             ------------------------------------------------------------ ("exists")
             (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))

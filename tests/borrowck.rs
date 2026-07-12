@@ -4514,21 +4514,23 @@ fn flow_sensitive_invariance_use_it() {
 
         crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 
-    // [polonius]: rustc errors here.
-    //
-    // Deviation: formality's polonius_alpha mode currently accepts this
-    // program. rustc's alpha analysis keeps NLL's location-insensitive
-    // outlives constraints (only loan liveness is computed via localized
-    // reachability), so the `'r0 == 'a` / `'r0 == 'b` equalities from the
-    // two branches still combine and conflict there; formality's alpha,
-    // without the global-outlives rerun, keeps the constraints per-path
-    // and each branch is satisfiable on its own.
+    // [polonius]: rustc errors here: alpha keeps NLL's
+    // location-insensitive region inference (`check_universal_regions`
+    // runs regardless of `-Z polonius=next`; only loan liveness is
+    // localized), so the `'r0 == 'a` / `'r0 == 'b` equalities from the
+    // two branches still combine and force undeclared `'a == 'b`.
+    // Formality's alpha exists rule reproduces this by running
+    // `verify_universal_outlives` over the collected `all_outlives`
+    // union at exists exit.
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
         FLOW_SENSITIVE_INVARIANCE_USE_IT,
     ))
     .skip_execute()
-    .ok();
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 
     // [legacy]: rustc passes.
     FormalityTest::new(feature_gate_program(
