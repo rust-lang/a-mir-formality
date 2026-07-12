@@ -166,7 +166,12 @@ judgment_fn! {
                 ) => (env, state)))
             // Drop locals declared in this scope (reverse declaration order)
             (let locals_to_drop = state.locals_dropped_in_innermost_scope())
-            (drop_places(env, assumptions, state, locals_to_drop, places_live_on_exit) => state)
+            (drop_places(env, assumptions, state, &locals_to_drop, places_live_on_exit) => state)
+            // The dropped locals no longer exist, so loans whose paths are
+            // rooted at them can no longer be named: kill them (the kill
+            // is sound because reborrow constraints extend any ancestor
+            // loan's lifetime to cover references that escaped).
+            (let state = locals_to_drop.iter().fold(state.clone(), |s, place| kill_loans(place, &s)))
             (let state = state.pop_scope(label))
             ------------------------------------------------------------ ("basic block")
             (borrow_check_block(env, assumptions, state, Block { label, stmts }, places_live_on_exit) => state)
@@ -479,6 +484,10 @@ judgment_fn! {
 
             // Introduce the loan
             (let state = state.with_loan(Loan::new(lt, place, kind)))
+            // Reborrow constraints (rustc's `add_reborrow_constraint`):
+            // each reference the borrowed place derefs through must
+            // outlive the loan.
+            (let state = state.with_outlives(&reborrow_constraints(place, lt)))
             (let ty = place.ty.ref_ty_of_kind(kind, lt))
             ------------------------------------------------------------ ("ref")
             (borrow_check_expr(env, assumptions, state, Expr::Ref { kind, lt, place }, places_live_on_exit) => (ty, state))
@@ -674,6 +683,38 @@ fn check_place_writable(state: &FlowState, place: &PlaceExpr) -> bool {
         .uninit
         .iter()
         .any(|u| u.is_prefix_of(place) && u != place)
+}
+
+/// The equivalent of rustc's `add_reborrow_constraint`: if we are
+/// reborrowing the referent of another reference -- e.g. `&'a mut *p`
+/// where `p: &'b mut T` -- the loan is only valid while the reference it
+/// goes through is, so each such reference's lifetime must outlive the
+/// loan's lifetime (`'b : 'a`). Like rustc, we stop walking at a shared
+/// reference: its referent cannot be mutated through anything deeper.
+fn reborrow_constraints(place: &TypedPlaceExpr, loan_lt: &Lt) -> Set<PendingOutlives> {
+    let mut constraints: Set<PendingOutlives> = Set::default();
+    let mut cursor = Some(place);
+    while let Some(p) = cursor {
+        if let TypedPlaceExpressionData::Deref(inner) = p.data() {
+            if let Ty::RigidTy(RigidTy {
+                name: RigidName::Ref(kind),
+                parameters,
+            }) = &inner.ty
+            {
+                if let Some(ref_lt @ Parameter::Lt(_)) = parameters.first() {
+                    constraints.insert(PendingOutlives {
+                        a: ref_lt.clone(),
+                        b: loan_lt.upcast(),
+                    });
+                }
+                if let RefKind::Shared = kind {
+                    break;
+                }
+            }
+        }
+        cursor = p.prefix();
+    }
+    constraints
 }
 
 /// Prove that any loans issued in thes value expressions (evaluated in this order) are respected.

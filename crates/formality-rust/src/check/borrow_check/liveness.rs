@@ -394,11 +394,21 @@ impl LiveBefore for Block {
 impl LiveBefore for PlaceExpr {
     fn live_before(
         &self,
-        _env: &TypeckEnv,
+        env: &TypeckEnv,
         _scopes: &impl IntoLivenessContext,
         places_live: impl Upcast<LivePlaces>,
     ) -> LivePlaces {
         let mut places_live = places_live.upcast();
+        // Function names appear as bare `Var` place expressions (call
+        // callees, turbofish). They are not loan-bearing places, and
+        // recording them as live makes `loan_not_required_by_live_places`
+        // fail with "unknown local variable" when a dead-loan proof
+        // inspects the live set. (Assumes locals never shadow fn names.)
+        if let PlaceExpr::Var(id) = self {
+            if env.crates().fn_named(id).is_ok() {
+                return places_live;
+            }
+        }
         places_live.insert(self.clone());
         places_live
     }

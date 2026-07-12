@@ -1982,35 +1982,35 @@ fn min_problem_case_3() {
     FormalityTest::new(feature_gate_program(NLL_GATE, MIN_PROBLEM_CASE_3))
         .skip_execute()
         .err(expect_test::expect![[r#"
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
-            &access.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+                &access.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
 
-        the rule "loan_cannot_outlive" at (nll.rs) failed because
-          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-            outlived_by_loan = {!lt_1, ?lt_2}
-            &lifetime.upcast() = !lt_1
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
 
-        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
-          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
-          {
-              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
               {
-                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
-                  Lt::Variable(Variable::ExistentialVar(_)) => true,
-                  Lt::Variable(Variable::BoundVar(_)) =>
-                  panic!("cannot outlive a bound var"), Lt::Erased => true,
-              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
-          })`
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
 
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `m`
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `m`
 
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
-            place_loaned_ref = m : &mut !lt_1 Map"#]]);
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+                place_loaned_ref = m : &mut !lt_1 Map"#]]);
 
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
@@ -2791,35 +2791,35 @@ fn if_false_borrowck() {
     FormalityTest::new(feature_gate_program(NLL_GATE, IF_FALSE_BORROWCK))
         .skip_execute()
         .err(expect_test::expect![[r#"
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
-            &access.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+                &access.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
 
-        the rule "loan_cannot_outlive" at (nll.rs) failed because
-          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-            outlived_by_loan = {!lt_1, ?lt_2}
-            &lifetime.upcast() = !lt_1
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
 
-        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
-          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
-          {
-              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
               {
-                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
-                  Lt::Variable(Variable::ExistentialVar(_)) => true,
-                  Lt::Variable(Variable::BoundVar(_)) =>
-                  panic!("cannot outlive a bound var"), Lt::Erased => true,
-              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
-          })`
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
 
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `m`
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `m`
 
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
-            place_loaned_ref = m : &mut !lt_1 Map"#]]);
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
+                place_loaned_ref = m : &mut !lt_1 Map"#]]);
 
     FormalityTest::new(feature_gate_program(POLONIUS_ALPHA_GATE, IF_FALSE_BORROWCK))
         .skip_execute()
@@ -3230,7 +3230,7 @@ fn outlive_before_return_does_not_affect_merged_paths() {
 
         the rule "loan_cannot_outlive" at (nll.rs) failed because
           condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-            outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+            outlived_by_loan = {!lt_1, ?lt_2, ?lt_3, ?lt_4, ?lt_5}
             &lifetime.upcast() = !lt_1
 
         the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
@@ -3834,22 +3834,28 @@ const ISSUE_57165_CONDITIONAL: &str = "
 
 #[test]
 fn issue_57165_conditional() {
-    // [nll]: rustc errors (known-bug #57165).
+    // [nll]: rustc errors here (known-bug #57165, E0499/E0503): the
+    // while-let pattern borrow of `p.0` is kept live around the back edge
+    // by the `p = &mut now.next` reborrow chain, and is not killed on the
+    // skip path. Formality reproduces this via the deref-reborrow
+    // constraints emitted by the "ref" rule.
     FormalityTest::new(feature_gate_program(NLL_GATE, ISSUE_57165_CONDITIONAL))
         .skip_execute()
         .err(expect_test::expect![[r#"
             the rule "fixed-point" at (nll.rs) failed because
               condition evaluated to false: `state0 == state1`
-                state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
-                state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut), loan(?lt_4, *(now : &mut ?lt_3 X) : <&mut ?lt_3 X as Derefable>::Target, mut)}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}))}, {}, {pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)})
+                state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}, {}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
+                state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}, {}))}, {}, {pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)})
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
                 &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `next_of`
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_3, ?lt_4}
+                &lifetime.upcast() = ?lt_1
 
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
@@ -3864,8 +3870,10 @@ fn issue_57165_conditional() {
                 &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
                 &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `next_of`
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_3, ?lt_4}
+                &lifetime.upcast() = ?lt_1
 
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
@@ -3875,7 +3883,8 @@ fn issue_57165_conditional() {
                 place_accessed = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
                 place_loaned_ref = p : &mut ?lt_1 X"#]]);
 
-    // [polonius]: rustc errors (known-bug #57165).
+    // [polonius]: rustc errors here (known-bug #57165), same mechanism
+    // as [nll].
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
         ISSUE_57165_CONDITIONAL,
@@ -3884,16 +3893,18 @@ fn issue_57165_conditional() {
     .err(expect_test::expect![[r#"
         the rule "fixed-point" at (nll.rs) failed because
           condition evaluated to false: `state0 == state1`
-            state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
-            state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut), loan(?lt_4, *(now : &mut ?lt_3 X) : <&mut ?lt_3 X as Derefable>::Target, mut)}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}))}, {}, {pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)})
+            state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}, {}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
+            state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}, {}))}, {}, {pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)})
 
         the rule "borrow of disjoint places" at (nll.rs) failed because
           condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
             &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
             &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
 
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `next_of`
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3, ?lt_4}
+            &lifetime.upcast() = ?lt_1
 
         the rule "write-indirect" at (nll.rs) failed because
           pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
@@ -3908,8 +3919,10 @@ fn issue_57165_conditional() {
             &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
             &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
 
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `next_of`
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_3, ?lt_4}
+            &lifetime.upcast() = ?lt_1
 
         the rule "write-indirect" at (nll.rs) failed because
           pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
@@ -3919,52 +3932,14 @@ fn issue_57165_conditional() {
             place_accessed = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
             place_loaned_ref = p : &mut ?lt_1 X"#]]);
 
-    // [legacy]: rustc passes here.
-    //
-    // Deviation: formality's polonius_unlocked mode currently rejects this
-    // program, unlike rustc's datalog implementation.
+    // [legacy]: rustc passes, and formality now agrees (the previous
+    // rejection was the callee-liveness bug).
     FormalityTest::new(feature_gate_program(
         POLONIUS_UNLOCKED_GATE,
         ISSUE_57165_CONDITIONAL,
     ))
     .skip_execute()
-    .err(expect_test::expect![[r#"
-        the rule "fixed-point" at (nll.rs) failed because
-          condition evaluated to false: `state0 == state1`
-            state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
-            state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut), loan(?lt_4, *(now : &mut ?lt_3 X) : <&mut ?lt_3 X as Derefable>::Target, mut)}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}))}, {}, {pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)})
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `next_of`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            place_loaned_ref = p : &mut ?lt_1 X
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `next_of`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            place_loaned_ref = p : &mut ?lt_1 X"#]]);
+    .ok();
 }
 
 /// Port of `tests/ui/nll/polonius/iterating-updating-cursor-issue-57165.rs`
@@ -3982,8 +3957,13 @@ fn issue_57165_conditional() {
 /// Like `conditional`, but the advance reborrows `*p` directly rather than
 /// going through `now`.
 ///
-/// rustc: [nll] error (known-bug #57165), [polonius] error (known-bug),
-/// [legacy] pass.
+/// rustc: [nll] pass, [polonius] pass, [legacy] pass. (The file's
+/// `known-bug #57165` annotation comes from `conditional` alone: both the
+/// `.nll.stderr` and `.polonius.stderr` contain errors only at
+/// `conditional`'s while-let. Here the advance reborrows `*p`, not
+/// `*now`, so `now`'s pattern-borrow region never joins the constraint
+/// cycle and each `*p` loan is killed by the `p = next` assignment on the
+/// only advancing path.)
 const ISSUE_57165_CONDITIONAL_WITH_INDIRECTION: &str = "
     struct X { value: u32 }
 
@@ -4014,140 +3994,30 @@ const ISSUE_57165_CONDITIONAL_WITH_INDIRECTION: &str = "
 
 #[test]
 fn issue_57165_conditional_with_indirection() {
-    // [nll]: rustc errors (known-bug #57165).
+    // [nll]: rustc passes here.
     FormalityTest::new(feature_gate_program(
         NLL_GATE,
         ISSUE_57165_CONDITIONAL_WITH_INDIRECTION,
     ))
     .skip_execute()
-    .err(expect_test::expect![[r#"
-        the rule "fixed-point" at (nll.rs) failed because
-          condition evaluated to false: `state0 == state1`
-            state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
-            state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}))}, {}, {pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)})
+    .ok();
 
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `next_of`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            place_loaned_ref = p : &mut ?lt_1 X
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `next_of`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            place_loaned_ref = p : &mut ?lt_1 X"#]]);
-
-    // [polonius]: rustc errors (known-bug #57165).
+    // [polonius]: rustc passes here.
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
         ISSUE_57165_CONDITIONAL_WITH_INDIRECTION,
     ))
     .skip_execute()
-    .err(expect_test::expect![[r#"
-        the rule "fixed-point" at (nll.rs) failed because
-          condition evaluated to false: `state0 == state1`
-            state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
-            state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}))}, {}, {pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)})
+    .ok();
 
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `next_of`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            place_loaned_ref = p : &mut ?lt_1 X
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `next_of`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            place_loaned_ref = p : &mut ?lt_1 X"#]]);
-
-    // [legacy]: rustc passes here.
-    //
-    // Deviation: formality's polonius_unlocked mode currently rejects this
-    // program, unlike rustc's datalog implementation.
+    // [legacy]: rustc passes, and formality now agrees (the previous
+    // rejection was the callee-liveness bug).
     FormalityTest::new(feature_gate_program(
         POLONIUS_UNLOCKED_GATE,
         ISSUE_57165_CONDITIONAL_WITH_INDIRECTION,
     ))
     .skip_execute()
-    .err(expect_test::expect![[r#"
-        the rule "fixed-point" at (nll.rs) failed because
-          condition evaluated to false: `state0 == state1`
-            state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
-            state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &mut ?lt_1 X)], [b : X, p : &mut ?lt_1 X]), scope(some(U(4)), Some('l), {}, Some({next_of, * p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target, mut)}))}, {}, {pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_4, ?lt_1)})
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `next_of`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            place_loaned_ref = p : &mut ?lt_1 X
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            &access.place = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `next_of`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(p : &mut ?lt_1 X) : <&mut ?lt_1 X as Derefable>::Target
-            place_loaned_ref = p : &mut ?lt_1 X"#]]);
+    .ok();
 }
 
 /// Port of `tests/ui/nll/polonius/iterating-updating-mutref.rs` (`to_refs`,
@@ -4220,7 +4090,7 @@ fn issue_46859_to_refs() {
 
             the rule "loan_cannot_outlive" at (nll.rs) failed because
               condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {!lt_1}
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
                 &lifetime.upcast() = !lt_1
 
             the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
@@ -4358,18 +4228,27 @@ fn issue_46859_decoder_next() {
     FormalityTest::new(feature_gate_program(NLL_GATE, ISSUE_46859_DECODER_NEXT))
         .skip_execute()
         .err(expect_test::expect![[r#"
-            the rule "fixed-point" at (nll.rs) failed because
-              condition evaluated to false: `state0 == state1`
-                state0 = flow_state([scope(some(U(1)), None, {}, None, [(d, &mut !lt_1 Decoder)], [d : &mut !lt_1 Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({decode, fill_buf, (* d) . buf_read}), [], [])], point_flow_state({}, {}), {}, {}, {})
-                state1 = flow_state([scope(some(U(1)), None, {}, None, [(d, &mut !lt_1 Decoder)], [d : &mut !lt_1 Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({decode, fill_buf, (* d) . buf_read}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_3)}, {loan(?lt_2, *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32, mut)}), {}, {}, {pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
-
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
                 &access.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `decode`
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
 
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read`
@@ -4387,8 +4266,22 @@ fn issue_46859_decoder_next() {
                 &loan.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
                 &access.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `decode`
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
 
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read`
@@ -4401,114 +4294,26 @@ fn issue_46859_decoder_next() {
                 place_accessed = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
                 place_loaned_ref = d : &mut !lt_1 Decoder"#]]);
 
-    // [polonius]: rustc passes here.
-    //
-    // Deviation: formality's polonius_alpha mode currently rejects this
-    // program, unlike rustc's -Z polonius=next. Note the failure now
-    // starts with the "fixed-point" rule: the loop's flow state does not
-    // converge (each iteration's loan of `(*d).buf_read`, tied to the
-    // universal `'a` via the return path, keeps accumulating).
+    // [polonius]: rustc passes, and formality now agrees: with callee
+    // names no longer polluting the live-place set (see
+    // `PlaceExpr::live_before`), the dead-loan proof at the loop head
+    // succeeds -- the previous iteration's loan is only tied to the
+    // universal `'a` on the diverging return path.
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
         ISSUE_46859_DECODER_NEXT,
     ))
     .skip_execute()
-    .err(expect_test::expect![[r#"
-        the rule "fixed-point" at (nll.rs) failed because
-          condition evaluated to false: `state0 == state1`
-            state0 = flow_state([scope(some(U(1)), None, {}, None, [(d, &mut !lt_1 Decoder)], [d : &mut !lt_1 Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({decode, fill_buf, (* d) . buf_read}), [], [])], point_flow_state({}, {}), {}, {}, {})
-            state1 = flow_state([scope(some(U(1)), None, {}, None, [(d, &mut !lt_1 Decoder)], [d : &mut !lt_1 Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({decode, fill_buf, (* d) . buf_read}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_3)}, {loan(?lt_2, *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32, mut)}), {}, {}, {pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+    .ok();
 
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-            &access.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `decode`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `d`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-            place_loaned_ref = d : &mut !lt_1 Decoder
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-            &access.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `decode`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `d`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-            place_loaned_ref = d : &mut !lt_1 Decoder"#]]);
-
-    // [legacy]: rustc passes here.
-    //
-    // Deviation: formality's polonius_unlocked mode currently rejects this
-    // program, unlike rustc's datalog implementation.
+    // [legacy]: rustc passes, and formality now agrees (the previous
+    // rejection was the callee-liveness bug).
     FormalityTest::new(feature_gate_program(
         POLONIUS_UNLOCKED_GATE,
         ISSUE_46859_DECODER_NEXT,
     ))
     .skip_execute()
-    .err(expect_test::expect![[r#"
-        the rule "fixed-point" at (nll.rs) failed because
-          condition evaluated to false: `state0 == state1`
-            state0 = flow_state([scope(some(U(1)), None, {}, None, [(d, &mut !lt_1 Decoder)], [d : &mut !lt_1 Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({decode, fill_buf, (* d) . buf_read}), [], [])], point_flow_state({}, {}), {}, {}, {})
-            state1 = flow_state([scope(some(U(1)), None, {}, None, [(d, &mut !lt_1 Decoder)], [d : &mut !lt_1 Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({decode, fill_buf, (* d) . buf_read}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_3)}, {loan(?lt_2, *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32, mut)}), {}, {}, {pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-            &access.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `decode`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `d`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-            place_loaned_ref = d : &mut !lt_1 Decoder
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-            &access.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `decode`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `d`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32
-            place_loaned_ref = d : &mut !lt_1 Decoder"#]]);
+    .ok();
 }
 
 /// Port of `tests/ui/nll/polonius/filtering-lending-iterator-issue-92985.rs`
@@ -4567,16 +4372,30 @@ fn issue_92985_filtering_lending_iterator() {
         .err(expect_test::expect![[r#"
             the rule "fixed-point" at (nll.rs) failed because
               condition evaluated to false: `state0 == state1`
-                state0 = flow_state([scope(some(U(1)), None, {}, None, [(f, &mut !lt_1 Filter)], [f : &mut !lt_1 Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {no_item}, Some({call_predicate, iter_next, no_item, (* f) . iter, (* f) . predicate}), [], [])], point_flow_state({}, {}), {}, {}, {})
-                state1 = flow_state([scope(some(U(1)), None, {}, None, [(f, &mut !lt_1 Filter)], [f : &mut !lt_1 Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {no_item}, Some({call_predicate, iter_next, no_item, (* f) . iter, (* f) . predicate}), [], [])], point_flow_state({}, {loan(?lt_2, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32, mut), loan(?lt_3, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . predicate : u32, mut), loan(?lt_4, *(item : &mut ?lt_2 u32) : <&mut ?lt_2 u32 as Derefable>::Target, shared)}), {labeled_flow_state('l, point_flow_state({}, {loan(?lt_2, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32, mut)}))}, {}, {pending_outlives(?lt_2, !lt_1)})
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [(f, &mut !lt_1 Filter)], [f : &mut !lt_1 Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [(f, &mut !lt_1 Filter)], [f : &mut !lt_1 Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32, mut), loan(?lt_3, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . predicate : u32, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32, mut)}, {}))}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
                 &access.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `call_predicate`
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3, ?lt_4}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
 
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter`
@@ -4594,8 +4413,22 @@ fn issue_92985_filtering_lending_iterator() {
                 &loan.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
                 &access.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
 
-            the rule "local" at (nll.rs) failed because
-              unknown local variable `call_predicate`
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3, ?lt_4}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
 
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter`
@@ -4608,113 +4441,23 @@ fn issue_92985_filtering_lending_iterator() {
                 place_accessed = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
                 place_loaned_ref = f : &mut !lt_1 Filter"#]]);
 
-    // [polonius]: rustc passes here.
-    //
-    // Deviation: formality's polonius_alpha mode currently rejects this
-    // program, unlike rustc's -Z polonius=next. As with
-    // `issue_46859_decoder_next`, the failure now starts with the
-    // "fixed-point" rule: the loop's flow state does not converge.
+    // [polonius]: rustc passes, and formality now agrees (see
+    // `issue_46859_decoder_next`).
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
         ISSUE_92985_FILTER_NEXT,
     ))
     .skip_execute()
-    .err(expect_test::expect![[r#"
-        the rule "fixed-point" at (nll.rs) failed because
-          condition evaluated to false: `state0 == state1`
-            state0 = flow_state([scope(some(U(1)), None, {}, None, [(f, &mut !lt_1 Filter)], [f : &mut !lt_1 Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {no_item}, Some({call_predicate, iter_next, no_item, (* f) . iter, (* f) . predicate}), [], [])], point_flow_state({}, {}), {}, {}, {})
-            state1 = flow_state([scope(some(U(1)), None, {}, None, [(f, &mut !lt_1 Filter)], [f : &mut !lt_1 Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {no_item}, Some({call_predicate, iter_next, no_item, (* f) . iter, (* f) . predicate}), [], [])], point_flow_state({}, {loan(?lt_2, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32, mut), loan(?lt_3, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . predicate : u32, mut), loan(?lt_4, *(item : &mut ?lt_2 u32) : <&mut ?lt_2 u32 as Derefable>::Target, shared)}), {labeled_flow_state('l, point_flow_state({}, {loan(?lt_2, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32, mut)}))}, {}, {pending_outlives(?lt_2, !lt_1)})
+    .ok();
 
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-            &access.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `call_predicate`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `f`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-            place_loaned_ref = f : &mut !lt_1 Filter
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-            &access.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `call_predicate`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `f`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-            place_loaned_ref = f : &mut !lt_1 Filter"#]]);
-
-    // [legacy]: rustc passes here.
-    //
-    // Deviation: formality's polonius_unlocked mode currently rejects this
-    // program, unlike rustc's datalog implementation.
+    // [legacy]: rustc passes, and formality now agrees (the previous
+    // rejection was the callee-liveness bug).
     FormalityTest::new(feature_gate_program(
         POLONIUS_UNLOCKED_GATE,
         ISSUE_92985_FILTER_NEXT,
     ))
     .skip_execute()
-    .err(expect_test::expect![[r#"
-        the rule "fixed-point" at (nll.rs) failed because
-          condition evaluated to false: `state0 == state1`
-            state0 = flow_state([scope(some(U(1)), None, {}, None, [(f, &mut !lt_1 Filter)], [f : &mut !lt_1 Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {no_item}, Some({call_predicate, iter_next, no_item, (* f) . iter, (* f) . predicate}), [], [])], point_flow_state({}, {}), {}, {}, {})
-            state1 = flow_state([scope(some(U(1)), None, {}, None, [(f, &mut !lt_1 Filter)], [f : &mut !lt_1 Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {no_item}, Some({call_predicate, iter_next, no_item, (* f) . iter, (* f) . predicate}), [], [])], point_flow_state({}, {loan(?lt_2, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32, mut), loan(?lt_3, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . predicate : u32, mut), loan(?lt_4, *(item : &mut ?lt_2 u32) : <&mut ?lt_2 u32 as Derefable>::Target, shared)}), {labeled_flow_state('l, point_flow_state({}, {loan(?lt_2, *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32, mut)}))}, {}, {pending_outlives(?lt_2, !lt_1)})
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-            &access.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `call_predicate`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `f`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-            place_loaned_ref = f : &mut !lt_1 Filter
-
-        the rule "borrow of disjoint places" at (nll.rs) failed because
-          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-            &loan.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-            &access.place = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-
-        the rule "local" at (nll.rs) failed because
-          unknown local variable `call_predicate`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `f`
-
-        the rule "write-indirect" at (nll.rs) failed because
-          condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-            place_accessed = *(f : &mut !lt_1 Filter) : <&mut !lt_1 Filter as Derefable>::Target . iter : u32
-            place_loaned_ref = f : &mut !lt_1 Filter"#]]);
+    .ok();
 }
 
 /// Port of `tests/ui/nll/polonius/flow-sensitive-invariance.rs` (`use_it`).
@@ -4826,9 +4569,14 @@ fn flow_sensitive_invariance_use_both() {
     ))
     .skip_execute()
     .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]]);
 
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
@@ -4836,9 +4584,14 @@ fn flow_sensitive_invariance_use_both() {
     ))
     .skip_execute()
     .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]]);
 
     FormalityTest::new(feature_gate_program(
         POLONIUS_UNLOCKED_GATE,
@@ -4846,9 +4599,14 @@ fn flow_sensitive_invariance_use_both() {
     ))
     .skip_execute()
     .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
+        the rule "access_permitted" at (nll.rs) failed because
+          condition evaluated to false: `match access.kind
+          {
+              AccessKind::Write =>
+              check_place_writable(&state, &access.place.to_place_expression()),
+              AccessKind::Read | AccessKind::Move =>
+              check_place_initialized(&state, &access.place.to_place_expression()),
+          }`"#]]);
 }
 
 /// Port of `tests/ui/nll/polonius/flow-sensitive-invariance.rs`
