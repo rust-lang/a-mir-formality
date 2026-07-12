@@ -1961,25 +1961,27 @@ fn shared_ref_prevents_mutation() {
 ///     }
 /// }
 /// ```
-#[test]
-fn min_problem_case_3() {
-    FormalityTest::new(crates![crate Foo {
-        struct Map { }
+const MIN_PROBLEM_CASE_3: &str = "
+    struct Map { }
 
-        fn min_problem_case_3<'a>(m: &mut 'a Map) -> &mut 'a Map {
-            exists<'r0, 'r1> {
-                let n: &mut 'r0 Map = &mut 'r0 *m;
-                if true {
-                    return n;
-                } else {
-                    let o: &mut 'r1 Map = &mut 'r1 *m;
-                    return o;
-                }
+    fn min_problem_case_3<'a>(m: &mut 'a Map) -> &mut 'a Map {
+        exists<'r0, 'r1> {
+            let n: &mut 'r0 Map = &mut 'r0 *m;
+            if true {
+                return n;
+            } else {
+                let o: &mut 'r1 Map = &mut 'r1 *m;
+                return o;
             }
         }
-    }])
-    .skip_execute()
-    .err(expect_test::expect![[r#"
+    }
+";
+
+#[test]
+fn min_problem_case_3() {
+    FormalityTest::new(feature_gate_program(NLL_GATE, MIN_PROBLEM_CASE_3))
+        .skip_execute()
+        .err(expect_test::expect![[r#"
         the rule "borrow of disjoint places" at (nll.rs) failed because
           condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
             &loan.place = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
@@ -2010,22 +2012,17 @@ fn min_problem_case_3() {
             place_accessed = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
             place_loaned_ref = m : &mut !lt_1 Map"#]]);
 
-    FormalityTest::new(crates![crate Foo {
-        #![feature(polonius_unlocked)]
-        struct Map { }
+    FormalityTest::new(feature_gate_program(
+        POLONIUS_ALPHA_GATE,
+        MIN_PROBLEM_CASE_3,
+    ))
+    .skip_execute()
+    .ok();
 
-        fn min_problem_case_3<'a>(m: &mut 'a Map) -> &mut 'a Map {
-            exists<'r0, 'r1> {
-                let n: &mut 'r0 Map = &mut 'r0 *m;
-                if true {
-                    return n;
-                } else {
-                    let o: &mut 'r1 Map = &mut 'r1 *m;
-                    return o;
-                }
-            }
-        }
-    }])
+    FormalityTest::new(feature_gate_program(
+        POLONIUS_UNLOCKED_GATE,
+        MIN_PROBLEM_CASE_3,
+    ))
     .skip_execute()
     .ok();
 }
@@ -2824,6 +2821,10 @@ fn if_false_borrowck() {
             place_accessed = *(m : &mut !lt_1 Map) : <&mut !lt_1 Map as Derefable>::Target
             place_loaned_ref = m : &mut !lt_1 Map"#]]);
 
+    FormalityTest::new(feature_gate_program(POLONIUS_ALPHA_GATE, IF_FALSE_BORROWCK))
+        .skip_execute()
+        .ok();
+
     FormalityTest::new(feature_gate_program(
         POLONIUS_UNLOCKED_GATE,
         IF_FALSE_BORROWCK,
@@ -3251,6 +3252,13 @@ fn outlive_before_return_does_not_affect_merged_paths() {
           condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
             place_accessed = *(a : &mut !lt_1 u8) : <&mut !lt_1 u8 as Derefable>::Target
             place_loaned_ref = a : &mut !lt_1 u8"#]]);
+
+    FormalityTest::new(feature_gate_program(
+        POLONIUS_ALPHA_GATE,
+        OUTLIVE_BEFORE_RETURN_DOES_NOT_AFFECT_MERGED_PATHS,
+    ))
+    .skip_execute()
+    .ok();
 
     FormalityTest::new(feature_gate_program(
         POLONIUS_UNLOCKED_GATE,
@@ -4165,7 +4173,10 @@ fn issue_57165_conditional_with_indirection() {
 /// a separate field so the `value` and `next` loans are disjoint, and
 /// `next_from_field` (trusted) models `list.next.as_mut().unwrap()`.
 ///
-/// rustc: [nll] error (known-bug #46859), [polonius] pass, [legacy] pass.
+/// rustc: [nll] pass, [polonius] pass, [legacy] pass. (The file's
+/// `known-bug #46859` annotation comes from `Decoder::next` alone; the
+/// `.nll.stderr` contains no error for `to_refs`, because the `list = n`
+/// kill sits on the only back edge.)
 const ISSUE_46859_TO_REFS: &str = "
     struct List { value: u32, next: u32 }
 
@@ -4190,7 +4201,15 @@ const ISSUE_46859_TO_REFS: &str = "
 
 #[test]
 fn issue_46859_to_refs() {
-    // [nll]: rustc errors (known-bug #46859).
+    // [nll]: rustc passes here (only `Decoder::next` errors in this file).
+    //
+    // Deviation: formality rejects this program. The `exists` redo pass
+    // re-checks the block against the globalized `all_outlives` and the
+    // still-live pass-1 loans, so the `&mut 'a *list` cursor-init borrow
+    // conflicts with its own pass-1 loan (note loan.place == access.place
+    // below), and `loan_cannot_outlive_universal_regions` condemns any
+    // loan whose lifetime reaches `'a` regardless of where that constraint
+    // arose.
     FormalityTest::new(feature_gate_program(NLL_GATE, ISSUE_46859_TO_REFS))
         .skip_execute()
         .err(expect_test::expect![[r#"
@@ -4225,44 +4244,12 @@ fn issue_46859_to_refs() {
                 place_loaned_ref = list : &mut !lt_1 List"#]]);
 
     // [polonius]: rustc passes here.
-    //
-    // Deviation: formality's polonius_alpha mode currently rejects this
-    // program, unlike rustc's -Z polonius=next.
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
         ISSUE_46859_TO_REFS,
     ))
     .skip_execute()
-    .err(expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = *(list : &mut !lt_1 List) : <&mut !lt_1 List as Derefable>::Target
-                &access.place = *(list : &mut !lt_1 List) : <&mut !lt_1 List as Derefable>::Target
-
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {!lt_1}
-                &lifetime.upcast() = !lt_1
-
-            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
-              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
-              {
-                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
-                  {
-                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
-                      Lt::Variable(Variable::ExistentialVar(_)) => true,
-                      Lt::Variable(Variable::BoundVar(_)) =>
-                      panic!("cannot outlive a bound var"), Lt::Erased => true,
-                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
-              })`
-
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `list`
-
-            the rule "write-indirect" at (nll.rs) failed because
-              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-                place_accessed = *(list : &mut !lt_1 List) : <&mut !lt_1 List as Derefable>::Target
-                place_loaned_ref = list : &mut !lt_1 List"#]]);
+    .ok();
 
     // [legacy]: rustc passes.
     FormalityTest::new(feature_gate_program(
@@ -4417,7 +4404,10 @@ fn issue_46859_decoder_next() {
     // [polonius]: rustc passes here.
     //
     // Deviation: formality's polonius_alpha mode currently rejects this
-    // program, unlike rustc's -Z polonius=next.
+    // program, unlike rustc's -Z polonius=next. Note the failure now
+    // starts with the "fixed-point" rule: the loop's flow state does not
+    // converge (each iteration's loan of `(*d).buf_read`, tied to the
+    // universal `'a` via the return path, keeps accumulating).
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
         ISSUE_46859_DECODER_NEXT,
@@ -4621,7 +4611,9 @@ fn issue_92985_filtering_lending_iterator() {
     // [polonius]: rustc passes here.
     //
     // Deviation: formality's polonius_alpha mode currently rejects this
-    // program, unlike rustc's -Z polonius=next.
+    // program, unlike rustc's -Z polonius=next. As with
+    // `issue_46859_decoder_next`, the failure now starts with the
+    // "fixed-point" rule: the loop's flow state does not converge.
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
         ISSUE_92985_FILTER_NEXT,
@@ -4779,16 +4771,21 @@ fn flow_sensitive_invariance_use_it() {
 
         crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 
-    // [polonius]: rustc errors.
+    // [polonius]: rustc errors here.
+    //
+    // Deviation: formality's polonius_alpha mode currently accepts this
+    // program. rustc's alpha analysis keeps NLL's location-insensitive
+    // outlives constraints (only loan liveness is computed via localized
+    // reachability), so the `'r0 == 'a` / `'r0 == 'b` equalities from the
+    // two branches still combine and conflict there; formality's alpha,
+    // without the global-outlives rerun, keeps the constraints per-path
+    // and each branch is satisfiable on its own.
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
         FLOW_SENSITIVE_INVARIANCE_USE_IT,
     ))
     .skip_execute()
-    .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
+    .ok();
 
     // [legacy]: rustc passes.
     FormalityTest::new(feature_gate_program(

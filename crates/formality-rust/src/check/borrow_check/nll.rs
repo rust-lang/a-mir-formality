@@ -309,8 +309,6 @@ judgment_fn! {
             (let (env, subst, block) = env.instantiate_existentially(binder))
             (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
             (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
-            (let state = state.from_global_state_for_nll())
-            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
             (let state = state.pop_subst(&env.env, subst))
             ------------------------------------------------------------ ("exists")
             (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
