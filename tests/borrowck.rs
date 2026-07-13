@@ -65,7 +65,7 @@ fn use_of_moved_variable() {
         }
 
         fn foo() -> Datum {
-            let x: Datum = Datum { value: 0 _ u32 };
+            let x: Datum = Datum { value: 0_u32 };
             let y: Datum = x;
             let z: Datum = x;
             return z;
@@ -102,9 +102,9 @@ fn reinit_after_move() {
         }
 
         fn foo() -> Datum {
-            let x: Datum = Datum { value: 0 _ u32 };
+            let x: Datum = Datum { value: 0_u32 };
             let y: Datum = x;
-            x = Datum { value: 1 _ u32 };
+            x = Datum { value: 1_u32 };
             let z: Datum = x;
             return z;
         }
@@ -130,7 +130,7 @@ fn conditional_init_one_branch() {
         fn foo() -> u32 {
             let x: u32;
             if true {
-                x = 1 _ u32;
+                x = 1_u32;
             } else {
             }
             return x;
@@ -175,9 +175,9 @@ fn conditional_init_both_branches() {
         fn foo() -> u32 {
             let x: u32;
             if true {
-                x = 1 _ u32;
+                x = 1_u32;
             } else {
-                x = 2 _ u32;
+                x = 2_u32;
             }
             return x;
         }
@@ -205,8 +205,8 @@ fn assign_field_of_uninitialized() {
 
         fn foo() -> u32 {
             let x: Pair;
-            x.first = 1 _ u32;
-            return 0 _ u32;
+            x.first = 1_u32;
+            return 0_u32;
         }
     }])
     .err(expect_test::expect![[r#"
@@ -235,22 +235,24 @@ fn assign_field_of_uninitialized() {
 #[test]
 fn partial_move_use_sibling() {
     FormalityTest::new(crates![crate Foo {
-                struct Datum {
-                    value: u32,
-                }
+        struct Datum {
+            value: u32,
+        }
 
-                struct Pair {
-                    first: Datum,
-                    second: Datum,
-                }
+        struct Pair {
+            first: Datum,
+            second: Datum,
+        }
 
-                fn foo() -> Datum {
-                    let x: Pair = Pair { first: Datum { value: 1 _ u32 }, second: Datum { value: 2 _ u32 } };
-                    let a: Datum = x.first;
-                    let b: Datum = x.second;
-                    return b;
-                }
-            }]).skip_execute().ok()
+        fn foo() -> Datum {
+            let x: Pair = Pair { first: Datum { value: 1_u32 }, second: Datum { value: 2_u32 } };
+            let a: Datum = x.first;
+            let b: Datum = x.second;
+            return b;
+        }
+    }])
+    .skip_execute()
+    .ok()
 }
 
 /// After a partial move, using the whole struct should be an error.
@@ -268,22 +270,23 @@ fn partial_move_use_sibling() {
 #[test]
 fn partial_move_use_whole() {
     FormalityTest::new(crates![crate Foo {
-                struct Datum {
-                    value: u32,
-                }
+        struct Datum {
+            value: u32,
+        }
 
-                struct Pair {
-                    first: Datum,
-                    second: Datum,
-                }
+        struct Pair {
+            first: Datum,
+            second: Datum,
+        }
 
-                fn foo() -> u32 {
-                    let x: Pair = Pair { first: Datum { value: 1 _ u32 }, second: Datum { value: 2 _ u32 } };
-                    let a: Datum = x.first;
-                    let b: Pair = x;
-                    return 0 _ u32;
-                }
-            }]).err(expect_test::expect![[r#"
+        fn foo() -> u32 {
+            let x: Pair = Pair { first: Datum { value: 1_u32 }, second: Datum { value: 2_u32 } };
+            let a: Datum = x.first;
+            let b: Pair = x;
+            return 0_u32;
+        }
+    }])
+    .err(expect_test::expect![[r#"
                 the rule "access_permitted" at (nll.rs) failed because
                   condition evaluated to false: `match access.kind
                   {
@@ -309,22 +312,23 @@ fn partial_move_use_whole() {
 #[test]
 fn move_same_field_twice() {
     FormalityTest::new(crates![crate Foo {
-                struct Datum {
-                    value: u32,
-                }
+        struct Datum {
+            value: u32,
+        }
 
-                struct Pair {
-                    first: Datum,
-                    second: Datum,
-                }
+        struct Pair {
+            first: Datum,
+            second: Datum,
+        }
 
-                fn foo() -> Datum {
-                    let x: Pair = Pair { first: Datum { value: 1 _ u32 }, second: Datum { value: 2 _ u32 } };
-                    let a: Datum = x.first;
-                    let b: Datum = x.first;
-                    return b;
-                }
-            }]).err(expect_test::expect![[r#"
+        fn foo() -> Datum {
+            let x: Pair = Pair { first: Datum { value: 1_u32 }, second: Datum { value: 2_u32 } };
+            let a: Datum = x.first;
+            let b: Datum = x.first;
+            return b;
+        }
+    }])
+    .err(expect_test::expect![[r#"
                 the rule "access_permitted" at (nll.rs) failed because
                   condition evaluated to false: `match access.kind
                   {
@@ -350,22 +354,23 @@ fn move_same_field_twice() {
 #[test]
 fn move_whole_then_access_field() {
     FormalityTest::new(crates![crate Foo {
-                struct Datum {
-                    value: u32,
-                }
+        struct Datum {
+            value: u32,
+        }
 
-                struct Pair {
-                    first: Datum,
-                    second: Datum,
-                }
+        struct Pair {
+            first: Datum,
+            second: Datum,
+        }
 
-                fn foo() -> Datum {
-                    let x: Pair = Pair { first: Datum { value: 1 _ u32 }, second: Datum { value: 2 _ u32 } };
-                    let a: Pair = x;
-                    let b: Datum = x.first;
-                    return b;
-                }
-            }]).err(expect_test::expect![[r#"
+        fn foo() -> Datum {
+            let x: Pair = Pair { first: Datum { value: 1_u32 }, second: Datum { value: 2_u32 } };
+            let a: Pair = x;
+            let b: Datum = x.first;
+            return b;
+        }
+    }])
+    .err(expect_test::expect![[r#"
                 the rule "access_permitted" at (nll.rs) failed because
                   condition evaluated to false: `match access.kind
                   {
@@ -398,7 +403,7 @@ fn move_parent_then_access_child() {
         }
 
         fn foo() -> u32 {
-            let x: Outer = Outer { foo: Inner { bar: 1 _ u32 } };
+            let x: Outer = Outer { foo: Inner { bar: 1_u32 } };
             let a: Inner = x.foo;
             let b: u32 = x.foo.bar;
             return b;
@@ -444,7 +449,7 @@ fn move_out_of_shared_ref() {
 
                 fn foo() -> Datum {
                     exists<'r0, 'r1> {
-                        let x: Datum = Datum { value: 0 _ u32 };
+                        let x: Datum = Datum { value: 0_u32 };
                         let r: &'r0 Datum = &'r1 x;
                         let y: Datum = *r;
                         return y;
@@ -1762,7 +1767,7 @@ fn move_out_of_borrowed_place() {
 
         fn foo() -> Datum {
             exists<'r0, 'r1> {
-                let x: Datum = Datum { value: 0 _ u32 };
+                let x: Datum = Datum { value: 0_u32 };
                 let r: &'r0 Datum = &'r1 x;
                 let y: Datum = x;
                 return *r;
@@ -1808,12 +1813,12 @@ fn move_in_loop() {
         }
 
         fn foo() -> u32 {
-            let x: Datum = Datum { value: 0 _ u32 };
+            let x: Datum = Datum { value: 0_u32 };
             'l: loop {
                 let y: Datum = x;
                 break 'l;
             }
-            return 0 _ u32;
+            return 0_u32;
         }
     }])
     .err(expect_test::expect![[""]])
@@ -1871,10 +1876,10 @@ fn mutable_ref_prevents_mutation() {
     FormalityTest::new(crates![crate Foo {
                 fn foo() -> i32 {
                     exists<'r0, 'r1> {
-                        let v1: i32 = 0 _ i32;
+                        let v1: i32 = 0_i32;
                         let v2: &'r0 mut i32 = &mut 'r1 v1;
                         // This should result in an error
-                        v1 = 1 _ i32;
+                        v1 = 1_i32;
                         return *v2;
                     }
                 }
@@ -1910,9 +1915,9 @@ fn shared_ref_prevents_mutation() {
     FormalityTest::new(crates![crate Foo {
                 fn foo() -> i32 {
                     exists<'r0, 'r1> {
-                        let v1: i32 = 0 _ i32;
+                        let v1: i32 = 0_i32;
                         let v2: &'r0 i32 = &'r1 v1;
-                        v1 = 1 _ i32;
+                        v1 = 1_i32;
                         return *v2;
                     }
                 }
@@ -1988,7 +1993,7 @@ fn drop_while_borrowed() {
                     exists<'r0, 'r1> {
                         let v2: &'r0 i32;
                         {
-                            let v1: i32 = 0 _ i32;
+                            let v1: i32 = 0_i32;
                             v2 = &'r1 v1;
                         }
                         return *v2;
@@ -2029,7 +2034,7 @@ fn drop_after_borrow_dead() {
             exists<'r0, 'r1> {
                 let result: i32;
                 {
-                    let v1: i32 = 22 _ i32;
+                    let v1: i32 = 22_i32;
                     let v2: &'r0 i32 = &'r1 v1;
                     result = *v2;
                 }
@@ -2060,7 +2065,7 @@ fn drop_while_mutably_borrowed() {
                     exists<'r0, 'r1> {
                         let v2: &'r0 mut i32;
                         {
-                            let v1: i32 = 0 _ i32;
+                            let v1: i32 = 0_i32;
                             v2 = &mut 'r1 v1;
                         }
                         return *v2;
@@ -2101,7 +2106,7 @@ fn drop_on_break_while_borrowed() {
                     exists<'r0, 'r1> {
                         let v2: &'r0 i32;
                         'a: {
-                            let v1: i32 = 0 _ i32;
+                            let v1: i32 = 0_i32;
                             v2 = &'r1 v1;
                             break 'a;
                         }
@@ -2269,7 +2274,7 @@ fn problem_case_4() {
                 let num: &'r0 mut u32 = &mut 'r0 (*list).value;
                 list = &mut 'a *list2;
                 num;
-                return 0 _ u32;
+                return 0_u32;
             }
         }
     }])
@@ -2388,8 +2393,8 @@ fn cfg_union_approx_cause_false_error() {
     FormalityTest::new(crates![crate Foo {
         fn foo () -> u32 {
             exists<'l_p, 'l_q, 'loan_0, 'loan_1, 'loan_2, 'loan_3> {
-                let a: u32 = 0 _ u32;
-                let b: u32 = 0 _ u32;
+                let a: u32 = 0_u32;
+                let b: u32 = 0_u32;
                 // In Rustc, the 1-tuple is needed for some reason
                 // Niko does not 100% understand, else rustc is able to
                 // see that this program is safe.
@@ -2401,7 +2406,7 @@ fn cfg_union_approx_cause_false_error() {
                 } else {
                     p = &mut 'loan_3 b;
                 }
-                *q = 1 _ u32;
+                *q = 1_u32;
                 return *p;
             }
         }
@@ -2420,7 +2425,7 @@ fn continue_drops_borrowed_local_false_edge() {
                     exists<'r0, 'r1> {
                         let r: &'r0 i32;
                         'a: loop {
-                            let y: i32 = 0 _ i32;
+                            let y: i32 = 0_i32;
                             r = &'r1 y;
                             continue 'a;
                         }
@@ -2463,11 +2468,11 @@ fn continue_drops_borrowed_local_loop_carried() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> i32 {
             exists<'r0, 'r1> {
-                let x: i32 = 0 _ i32;
+                let x: i32 = 0_i32;
                 let r: &'r0 i32;
                 'a: loop {
                     r; // this *may* read from `y` in a previous iteration
-                    let y: i32 = 0 _ i32;
+                    let y: i32 = 0_i32;
                     r = &'r1 y;
                     continue 'a;
                 }
@@ -2534,7 +2539,7 @@ fn break_drops_borrowed_local() {
                     exists<'r0, 'r1> {
                         let r: &'r0 i32;
                         'a: loop {
-                            let x: i32 = 0 _ i32;
+                            let x: i32 = 0_i32;
                             r = &'r1 x;
                             break 'a;
                         }
@@ -2588,7 +2593,7 @@ fn continue_drops_local_borrow_dead() {
         fn foo() -> u32 {
             exists<'r0, 'r1> {
                 'a: loop {
-                    let x: i32 = 0 _ i32;
+                    let x: i32 = 0_i32;
                     let r: &'r0 i32 = &'r1 x;
                     let _y: i32 = *r;
                     continue 'a;
@@ -2619,7 +2624,7 @@ fn integer_in_outer_scope() {
         fn foo() -> () {
             'a: {
                 {
-                    let 'a: v: i32 = 0 _ i32;
+                    let 'a: v: i32 = 0_i32;
                 }
             }
         }
@@ -2655,11 +2660,11 @@ fn write_to_borrowed_before_continue() {
     FormalityTest::new(crates![crate Foo {
                 fn foo() -> u32 {
                     exists<'r0, 'r1> {
-                        let a: u32 = 22 _ u32;
+                        let a: u32 = 22_u32;
                         let p: &'r0 u32 = &'r1 a;
                         'l: loop {
                             if true {
-                                a = 23 _ u32;
+                                a = 23_u32;
                                 continue 'l;
                             } else {
                                 break 'l;
@@ -2751,8 +2756,8 @@ fn write_to_borrowed_before_zero_iteration_loop() {
     FormalityTest::new(crates![crate Foo {
                 fn foo() -> u32 {
                     exists<'r0, 'r1, 'r2> {
-                        let a: u32 = 22 _ u32;
-                        let b: u32 = 22 _ u32;
+                        let a: u32 = 22_u32;
+                        let b: u32 = 22_u32;
                         let p: &'r0 u32 = &'r1 a;
                         a = 23 _ u32;
                         'l: loop {
@@ -2818,7 +2823,7 @@ fn call_pass_ref() {
 
         fn bar() -> u32 {
             exists<'r1> {
-                let v: u32 = 7 _ u32;
+                let v: u32 = 7_u32;
                 let r: u32 = foo::<'r1>(&'r1 v);
                 return r;
             }
@@ -2911,9 +2916,9 @@ fn call_while_borrow_live() {
 
         fn bar() -> u32 {
             exists<'r0, 'r1> {
-                let v: u32 = 1 _ u32;
+                let v: u32 = 1_u32;
                 let p: &'r0 u32 = &'r1 v;
-                foo(0 _ u32);
+                foo(0_u32);
                 return *p;
             }
         }
@@ -2928,14 +2933,14 @@ fn call_mut_under_shared_borrow() {
     FormalityTest::new(crates![crate Foo {
                 fn foo<'a>(x: &'a mut u32) -> u32 {
                     exists {
-                        *x = 1 _ u32;
-                        return 1 _ u32;
+                        *x = 1_u32;
+                        return 1_u32;
                     }
                 }
 
                 fn bar() -> u32 {
                     exists<'r0, 'r1, 'r2> {
-                        let v: u32 = 0 _ u32;
+                        let v: u32 = 0_u32;
                         let p: &'r0 u32 = &'r1 v;
                         let _: u32 = foo::<'r2>(&mut 'r2 v);
                         return *p;
@@ -2963,12 +2968,12 @@ fn struct_disjoint_field_borrows() {
         struct Point { x: u32, y: u32 }
         fn foo() -> u32 {
             exists<'r0, 'r1, 'r2, 'r3> {
-                let p: Point = Point { x: 0 _ u32, y: 0 _ u32 };
+                let p: Point = Point { x: 0_u32, y: 0_u32 };
                 let b1: &'r0 mut u32 = &mut 'r1 p.x;
                 let b2: &'r2 mut u32 = &mut 'r3 p.y;
-                *b1 = 1 _ u32;
-                *b2 = 2 _ u32;
-                return 0 _ u32;
+                *b1 = 1_u32;
+                *b2 = 2_u32;
+                return 0_u32;
             }
         }
     }])
@@ -2983,9 +2988,9 @@ fn struct_conflicting_field_borrows() {
                 struct Point { x: u32, y: u32 }
                 fn foo() -> u32 {
                     exists<'r0, 'r1> {
-                        let p: Point = Point { x: 0 _ u32, y: 0 _ u32 };
+                        let p: Point = Point { x: 0_u32, y: 0_u32 };
                         let b1: &'r0 mut u32 = &mut 'r1 p.x;
-                        p.x = 1 _ u32;
+                        p.x = 1_u32;
                         return *b1;
                     }
                 }
@@ -3016,7 +3021,7 @@ fn struct_construction_with_borrowed_local() {
         }
         fn foo() -> u32 {
             exists<'r0, 'r1> {
-                let v1: u32 = 22 _ u32;
+                let v1: u32 = 22_u32;
                 let v2: &'r0 mut u32 = &mut 'r1 v1;
                 let w: Wrapper = Wrapper { value: v1 };
                 return *v2;
@@ -3054,9 +3059,9 @@ fn struct_with_mutable_reference_locks_local() {
                 }
                 fn foo() -> u32 {
                     exists<'r0> {
-                        let v1: u32 = 0 _ u32;
+                        let v1: u32 = 0_u32;
                         let w: Wrapper<'r0> = Wrapper::<'r0> { value: &mut 'r0 v1 };
-                        v1 = 1 _ u32;
+                        v1 = 1_u32;
                         return *(w.value);
                     }
                 }
@@ -3174,12 +3179,12 @@ fn loan_cannot_outlive_lifetime_fail() {
     FormalityTest::new(crates![crate Foo {
                 fn foo() -> u32 {
                     exists<'r0, 'r1, 'r2> {
-                        let x: u32 = 22 _ u32;
+                        let x: u32 = 22_u32;
                         let p: &'r1 u32 = &'r0 x;
                         let q: &'r2 u32 = p;
-                        x = 1 _ u32;
+                        x = 1_u32;
                         q;
-                        return 0 _ u32;
+                        return 0_u32;
                     }
                 }
             }]).err(expect_test::expect![[r#"
@@ -3213,11 +3218,11 @@ fn loan_cannot_outlive_lifetime_pass() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
             exists<'r0, 'r1, 'r2> {
-                let x: u32 = 22 _ u32;
+                let x: u32 = 22_u32;
                 let p: &'r1 u32 = &'r0 x;
                 let q: &'r2 u32 = p;
-                x = 1 _ u32;
-                return 0 _ u32;
+                x = 1_u32;
+                return 0_u32;
             }
         }
     }])
