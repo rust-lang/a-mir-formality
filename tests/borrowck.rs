@@ -3481,6 +3481,79 @@ fn cannot_move_from_drop_struct() {
           pattern `None` did not match value `Some(impl Drop for Pair { })`"#]])
 }
 
+#[test]
+fn local_shadowing_fn_name_stays_live() {
+    FormalityTest::new(crates![crate Foo {
+        fn helper() -> u32 {
+            return 0_u32;
+        }
+
+        fn foo() -> u32 {
+            exists<'r0, 'r1> {
+                let x: u32 = 22_u32;
+                let helper: &'r1 u32 = &'r0 x;
+                x = 1_u32;
+                helper;
+                return 0_u32;
+            }
+        }
+    }])
+    .skip_execute()
+    .err(expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = x : u32
+            &access.place = x : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_2
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `x`"#]]);
+}
+
+#[test]
+fn reborrow_requires_ref_outlives_loan() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo<'a, 'b>(p: &'a mut u32) -> u32 {
+            let q: &'b mut u32 = &mut 'b *p;
+            q;
+            return 0_u32;
+        }
+    }])
+    .skip_execute()
+    .err(expect_test::expect!["crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"]);
+}
+
+#[test]
+fn reborrow_ref_outlives_loan_ok() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo<'a, 'b>(p: &'a mut u32) -> u32 where 'a: 'b {
+            let q: &'b mut u32 = &mut 'b *p;
+            q;
+            return 0 _ u32;
+        }
+    }])
+    .skip_execute()
+    .ok();
+}
+
+#[test]
+#[ignore = "passes, but nested-reference types make proof search pathologically slow (~5 min)"]
+fn reborrow_nested_derefs_ok() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo<'a, 'b, 'c>(pp: &mut 'a &mut 'b u32) -> u32 where 'a: 'c, 'b: 'c, 'b: 'a {
+            let q: &mut 'c u32 = &mut 'c **pp;
+            q;
+            return 0_u32;
+        }
+    }])
+    .skip_execute()
+    .ok();
+}
+
 /// Port of `tests/ui/nll/issue-46589.rs` (`Foo::trigger_bug`).
 ///
 /// ```rust,ignore
@@ -4082,9 +4155,10 @@ fn issue_46859_to_refs() {
 
 /// Port of `tests/ui/nll/polonius/iterating-updating-mutref.rs` (`to_refs2`).
 ///
-/// Same as `to_refs` but the loop exits via `break` and returns after the
-/// loop; the constraint-graph paths clearly terminate, so even NLL accepts
-/// it.
+/// Same as `to_refs` (the `mut list` parameter itself is the cursor and is
+/// reassigned directly) but the loop exits via `break` and returns after
+/// the loop; the constraint-graph paths clearly terminate, so even NLL
+/// accepts it.
 ///
 /// rustc: [nll] pass, [polonius] pass, [legacy] pass.
 const ISSUE_46859_TO_REFS2: &str = "
@@ -4095,12 +4169,11 @@ const ISSUE_46859_TO_REFS2: &str = "
     fn to_refs2<'a>(list: &'a mut List) -> &'a mut u32 {
         exists<'r0, 'r1> {
             let result: &'a mut u32;
-            let cursor: &'a mut List = &mut 'a *list;
             'l: loop {
-                result = &mut 'r0 (*cursor).value;
+                result = &mut 'r0 (*list).value;
                 if true {
-                    let n: &'r1 mut List = next_from_field::<'r1>(&mut 'r1 (*cursor).next);
-                    cursor = n;
+                    let n: &'r1 mut List = next_from_field::<'r1>(&mut 'r1 (*list).next);
+                    list = n;
                 } else {
                     break 'l;
                 }
@@ -4159,7 +4232,7 @@ const ISSUE_46859_TO_REFS3: &str = "
 
     fn next_from_field<'x>(n: &'x mut u32) -> &'x mut List { trusted }
 
-    fn to_refs<'a>(list: &'a mut List) -> &'a mut u32 {
+    fn to_refs3<'a>(list: &'a mut List) -> &'a mut u32 {
         exists<'r0, 'r1> {
             let result: &'a mut u32;
             let cursor: &'a mut List = &mut 'a *list;
@@ -4560,8 +4633,9 @@ const FLOW_SENSITIVE_INVARIANCE_USE_BOTH: &str = "
     fn use_both<'a, 'b>() -> u32 {
         exists<'r0> {
             let v: Invariant<'r0> = create_invariant::<'r0>();
+            let w: Invariant<'r0> = create_invariant::<'r0>();
             sink::<'a, 'r0>(v);
-            sink::<'b, 'r0>(v);
+            sink::<'b, 'r0>(w);
             return 0_u32;
         }
     }
@@ -4575,14 +4649,9 @@ fn flow_sensitive_invariance_use_both() {
     ))
     .skip_execute()
     .err(expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]]);
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 
     FormalityTest::new(feature_gate_program(
         POLONIUS_ALPHA_GATE,
@@ -4590,14 +4659,9 @@ fn flow_sensitive_invariance_use_both() {
     ))
     .skip_execute()
     .err(expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]]);
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 
     FormalityTest::new(feature_gate_program(
         POLONIUS_UNLOCKED_GATE,
@@ -4605,14 +4669,9 @@ fn flow_sensitive_invariance_use_both() {
     ))
     .skip_execute()
     .err(expect_test::expect![[r#"
-        the rule "access_permitted" at (nll.rs) failed because
-          condition evaluated to false: `match access.kind
-          {
-              AccessKind::Write =>
-              check_place_writable(&state, &access.place.to_place_expression()),
-              AccessKind::Read | AccessKind::Move =>
-              check_place_initialized(&state, &access.place.to_place_expression()),
-          }`"#]]);
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 }
 
 /// Port of `tests/ui/nll/polonius/flow-sensitive-invariance.rs`

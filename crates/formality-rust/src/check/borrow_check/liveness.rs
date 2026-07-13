@@ -2,6 +2,7 @@ use crate::{
     check::borrow_check::env::TypeckEnv,
     check::borrow_check::flow_state::FlowState,
     grammar::expr::{Block, Expr, FieldExpr, Init, Label, LabelId, PlaceExpr, Stmt},
+    grammar::ValueId,
 };
 use formality_core::{Set, Upcast};
 
@@ -9,9 +10,12 @@ pub type LivePlaces = Set<PlaceExpr>;
 
 /// Liveness context for control-flow targets (break/continue).
 /// Each entry corresponds to a labeled scope (block or loop).
+/// Also tracks the names of local variables in scope, so that a bare
+/// `Var` can be told apart from a function name (locals shadow fn names).
 #[derive(Clone, Debug)]
 pub struct LivenessContext {
     scopes: Vec<LivenessScope>,
+    locals: Set<ValueId>,
 }
 
 #[derive(Clone, Debug)]
@@ -25,7 +29,15 @@ struct LivenessScope {
 
 impl LivenessContext {
     pub fn empty() -> Self {
-        LivenessContext { scopes: Vec::new() }
+        LivenessContext {
+            scopes: Vec::new(),
+            locals: Set::default(),
+        }
+    }
+
+    /// Whether a local variable with this name is (or may be) in scope.
+    fn has_local(&self, id: &ValueId) -> bool {
+        self.locals.contains(id)
     }
 
     /// Look up the break target liveness for the given label.
@@ -101,6 +113,11 @@ impl IntoLivenessContext for FlowState {
                     continue_live: s.continue_live_places.clone(),
                 })
                 .collect(),
+            locals: self
+                .scopes
+                .iter()
+                .flat_map(|s| s.locals.iter().map(|(id, _)| id.clone()))
+                .collect(),
         }
     }
 }
@@ -129,6 +146,13 @@ pub trait LiveBefore {
         scopes: &impl IntoLivenessContext,
         places_live: impl Upcast<LivePlaces>,
     ) -> LivePlaces;
+
+    /// If this term declares a local variable (a `let` statement), its name.
+    /// Used to prescan statement lists so that locals shadow fn names during
+    /// liveness (see `PlaceExpr::live_before`).
+    fn declares_local(&self) -> Option<&ValueId> {
+        None
+    }
 }
 
 /// Sequential execution: `a` runs before `b`.
@@ -186,9 +210,19 @@ impl<T: LiveBefore> LiveBefore for [T] {
         scopes: &impl IntoLivenessContext,
         places_live: impl Upcast<LivePlaces>,
     ) -> LivePlaces {
+        // Prescan for locals declared in this list so that later uses of
+        // those names are treated as locals, not fn names. (This slightly
+        // over-approximates scope — a name is treated as local even before
+        // its `let` — which errs toward marking places live.)
+        let mut ctx = scopes.into_liveness_context();
+        for element in self.iter() {
+            if let Some(id) = element.declares_local() {
+                ctx.locals.insert(id.clone());
+            }
+        }
         let mut places_live: LivePlaces = places_live.upcast();
         for element in self.iter().rev() {
-            places_live = T::live_before(element, env, scopes, places_live);
+            places_live = T::live_before(element, env, &ctx, places_live);
         }
         places_live
     }
@@ -304,6 +338,13 @@ impl LiveBefore for Stmt {
             Stmt::Print { expr } => expr.live_before(env, scopes, places_live),
         }
     }
+
+    fn declares_local(&self) -> Option<&ValueId> {
+        match self {
+            Stmt::Let { id, .. } => Some(id),
+            _ => None,
+        }
+    }
 }
 
 impl LiveBefore for Expr {
@@ -393,11 +434,11 @@ impl LiveBefore for PlaceExpr {
     fn live_before(
         &self,
         env: &TypeckEnv,
-        _scopes: &impl IntoLivenessContext,
+        scopes: &impl IntoLivenessContext,
         places_live: impl Upcast<LivePlaces>,
     ) -> LivePlaces {
         let mut places_live = places_live.upcast();
-        // Function names appear as bar `Var` place expressions. Recording them
+        // Function names appear as bare `Var` place expressions. Recording them
         // as live makes `borrow_check_place_expr` call in
         // `loan_not_required_by_live_places` fail with "unknown local variable".
         // Unlike in `borrow_check_expr`, we don't have the turbofish args to
@@ -405,8 +446,13 @@ impl LiveBefore for PlaceExpr {
         // these as live instead of creating a `Ty` with invalid args.
         // This hints that there is *some* refactoring to be done here, but
         // for now we'll just avoid it by checking here.
+        //
+        // Locals shadow fn names (the `"fn-name"` expr rule only applies when
+        // no local of that name is in scope), so only skip the place if no
+        // local shadows the fn — otherwise a borrow-holding local named like
+        // a fn would silently vanish from the live set.
         if let PlaceExpr::Var(id) = self {
-            if env.crates().fn_named(id).is_ok() {
+            if env.crates().fn_named(id).is_ok() && !scopes.into_liveness_context().has_local(id) {
                 return places_live;
             }
         }

@@ -8,9 +8,9 @@ use crate::check::feature_gate_enabled_in_program;
 
 use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
-    AliasTy, AssociatedItemId, ExistentialVar, FeatureGateName, FieldName, Fn, Lt, Parameter, Predicate, RefKind,
-    Relation, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId, TraitRef, Ty, TyData,
-    Variable, VariantId, Wcs, WhereClause,
+    AliasName, AliasTy, AssociatedItemId, ExistentialVar, FeatureGateName, FieldName, Fn, Lt,
+    Parameter, Predicate, RefKind, Relation, RigidName, RigidTy, ScalarId, Struct, StructBoundData,
+    TraitId, TraitRef, Ty, TyData, Variable, VariantId, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
 use crate::prove::Safety;
@@ -486,6 +486,13 @@ judgment_fn! {
             // Introduce the loan
             (let state = state.with_loan(Loan::new(lt, place, kind)))
             (let state = state.with_outlives(&reborrow_constraints(place, lt)))
+            // Reborrow constraints change the outlives set without going
+            // through `TypeckEnv::prove_judgment`, so run the universal
+            // outlives check here as well; otherwise a constraint between
+            // universal regions (e.g. `&mut 'b *p` with `p: &mut 'a T`)
+            // could escape verification entirely when no later goal defers
+            // constraints.
+            (verify_universal_outlives(env, assumptions, &state.current.outlives) => ())
             (let ty = place.ty.ref_ty_of_kind(kind, lt))
             ------------------------------------------------------------ ("ref")
             (borrow_check_expr(env, assumptions, state, Expr::Ref { kind, lt, place }, places_live_on_exit) => (ty, state))
@@ -683,6 +690,39 @@ fn check_place_writable(state: &FlowState, place: &PlaceExpr) -> bool {
         .any(|u| u.is_prefix_of(place) && u != place)
 }
 
+/// The `"deref-ref"` place rule types a deref's result as the unnormalized
+/// alias `<T as Derefable>::Target`, so for consecutive derefs (`**pp`)
+/// the inner deref's type is an alias, not a rigid `Ref`. Resolve such an
+/// alias to the reference's referent when `T` is (or recursively resolves
+/// to) a reference type, so `reborrow_constraints` can see the reference
+/// being reborrowed through. Aliases from other `Derefable` impls
+/// (box-like types) are returned unchanged: they contribute no reborrow
+/// constraint, like rustc's treatment of non-reference derefs.
+fn resolve_deref_target(ty: &Ty) -> Ty {
+    let Ty::AliasTy(AliasTy { name, parameters }) = ty else {
+        return ty.clone();
+    };
+    let AliasName::AssociatedTyId(assoc) = name;
+    if assoc.trait_id != TraitId::new("Derefable")
+        || assoc.item_id != AssociatedItemId::new("Target")
+    {
+        return ty.clone();
+    }
+    let Some(Parameter::Ty(self_ty)) = parameters.first() else {
+        return ty.clone();
+    };
+    if let Ty::RigidTy(RigidTy {
+        name: RigidName::Ref(_),
+        parameters: ref_parameters,
+    }) = &resolve_deref_target(self_ty)
+    {
+        if let Some(Parameter::Ty(referent)) = ref_parameters.get(1) {
+            return referent.as_ref().clone();
+        }
+    }
+    ty.clone()
+}
+
 /// The equivalent of rustc's `add_reborrow_constraint`: if we are
 /// reborrowing the referent of another reference (e.g. `&'a mut *p`
 /// where `p: &'b mut T`), the loan is only valid while the reference it
@@ -697,7 +737,7 @@ fn reborrow_constraints(place: &TypedPlaceExpr, loan_lt: &Lt) -> Set<PendingOutl
             if let Ty::RigidTy(RigidTy {
                 name: RigidName::Ref(kind),
                 parameters,
-            }) = &inner.ty
+            }) = &resolve_deref_target(&inner.ty)
             {
                 if let Some(ref_lt @ Parameter::Lt(_)) = parameters.first() {
                     constraints.insert(PendingOutlives {
@@ -867,13 +907,14 @@ judgment_fn! {
     }
 }
 
-/// Under NLL and Polonius Alpha, rustc treats a write through a pointer as a
-/// *use* of the base path at the access point.
+/// rustc's MIR liveness counts a write through a pointer as a use of the base path
 fn places_live_for_loan(
     env: &TypeckEnv,
     access: &Access,
     places_live_after_access: &LivePlaces,
 ) -> LivePlaces {
+    // `-Z polonius=legacy` accepts some programs because its datalog error derivation keeps subsets per-point
+    // This allows formality to match legacy polonius' *outcome*.
     if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked) {
         places_live_after_access.clone()
     } else {
