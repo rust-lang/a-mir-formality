@@ -613,8 +613,20 @@ impl FlowState {
         true
     }
 
-    pub(crate) fn from_global_state_for_nll(&self) -> Self {
-        let all_outlives = self.all_outlives.clone();
+    /// Build the entry state for the NLL rerun of an `exists` block:
+    /// keep `self`'s (the exists-entry state's) loans, scopes, and
+    /// break/continue states, but install the full outlives set collected
+    /// during the first pass (`exit_state.all_outlives`) as the current
+    /// constraints, modeling NLL's location-insensitive constraint
+    /// solving. Unlike carrying `exit_state`'s `loans_live`, this cannot
+    /// make a statement conflict with the loan it itself issued: NLL's
+    /// loan scope is per-point gen/kill dataflow even though its
+    /// constraints are not location-sensitive. The rerun re-issues every
+    /// in-block loan at its own statement, so in-block conflicts under
+    /// the global constraints are still caught.
+    pub(crate) fn with_global_outlives(&self, exit_state: &FlowState) -> Self {
+        let all_outlives: Set<PendingOutlives> =
+            Union((&self.all_outlives, &exit_state.all_outlives)).upcast();
         let current = PointFlowState {
             outlives: all_outlives.clone(),
             loans_live: self.current.loans_live.clone(),
@@ -622,10 +634,10 @@ impl FlowState {
         };
         FlowState {
             scopes: self.scopes.clone(),
-            current: current,
+            current,
             breaks: self.breaks.clone(),
             continues: self.continues.clone(),
-            all_outlives: all_outlives,
+            all_outlives,
         }
     }
 }

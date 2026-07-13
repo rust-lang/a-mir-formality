@@ -4042,6 +4042,8 @@ fn issue_57165_conditional_with_indirection() {
 /// outlive the universal region `'a`, like a pushed element must. `next` is
 /// a separate field so the `value` and `next` loans are disjoint, and
 /// `next_from_field` (trusted) models `list.next.as_mut().unwrap()`.
+/// Like rustc's `mut list` parameter, the parameter itself is the cursor
+/// and is reassigned directly.
 ///
 /// rustc: [nll] pass, [polonius] pass, [legacy] pass. (The file's
 /// `known-bug #46859` annotation comes from `Decoder::next` alone; the
@@ -4055,12 +4057,11 @@ const ISSUE_46859_TO_REFS: &str = "
     fn to_refs<'a>(list: &mut 'a List) -> &mut 'a u32 {
         exists<'r0, 'r1> {
             let result: &mut 'a u32;
-            let cursor: &mut 'a List = &mut 'a *list;
             'l: loop {
-                result = &mut 'r0 (*cursor).value;
+                result = &mut 'r0 (*list).value;
                 if true {
-                    let n: &mut 'r1 List = next_from_field::<'r1>(&mut 'r1 (*cursor).next);
-                    cursor = n;
+                    let n: &mut 'r1 List = next_from_field::<'r1>(&mut 'r1 (*list).next);
+                    list = n;
                 } else {
                     return result;
                 }
@@ -4072,46 +4073,9 @@ const ISSUE_46859_TO_REFS: &str = "
 #[test]
 fn issue_46859_to_refs() {
     // [nll]: rustc passes here (only `Decoder::next` errors in this file).
-    //
-    // Deviation: formality rejects this program. The `exists` redo pass
-    // re-checks the block against the globalized `all_outlives` and the
-    // still-live pass-1 loans, so the `&mut 'a *list` cursor-init borrow
-    // conflicts with its own pass-1 loan (note loan.place == access.place
-    // below), and `loan_cannot_outlive_universal_regions` condemns any
-    // loan whose lifetime reaches `'a` regardless of where that constraint
-    // arose.
     FormalityTest::new(feature_gate_program(NLL_GATE, ISSUE_46859_TO_REFS))
         .skip_execute()
-        .err(expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = *(list : &mut !lt_1 List) : <&mut !lt_1 List as Derefable>::Target
-                &access.place = *(list : &mut !lt_1 List) : <&mut !lt_1 List as Derefable>::Target
-
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
-                &lifetime.upcast() = !lt_1
-
-            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
-              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
-              {
-                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
-                  {
-                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
-                      Lt::Variable(Variable::ExistentialVar(_)) => true,
-                      Lt::Variable(Variable::BoundVar(_)) =>
-                      panic!("cannot outlive a bound var"), Lt::Erased => true,
-                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
-              })`
-
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `list`
-
-            the rule "write-indirect" at (nll.rs) failed because
-              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
-                place_accessed = *(list : &mut !lt_1 List) : <&mut !lt_1 List as Derefable>::Target
-                place_loaned_ref = list : &mut !lt_1 List"#]]);
+        .ok();
 
     // [polonius]: rustc passes here.
     FormalityTest::new(feature_gate_program(
@@ -4185,6 +4149,79 @@ fn issue_46859_to_refs2() {
 }
 
 /// Port of `tests/ui/nll/polonius/iterating-updating-mutref.rs`
+/// (`to_refs3`). Variant of `to_refs`: the cursor is a *local*
+/// initialized with a reborrow at the universal lifetime
+/// (`&mut 'a *list`) instead of the parameter itself. Check-pass on all
+/// three rustc revisions:
+///
+/// ```rust,ignore
+/// pub fn to_refs3<'a, T>(list: &'a mut List<T>) -> &'a mut T {
+///     let mut result: &'a mut T;
+///     let mut cursor: &'a mut List<T> = &mut *list;
+///     loop {
+///         result = &mut cursor.value;
+///         if let Some(n) = cursor.next.as_mut() {
+///             cursor = n;
+///         } else {
+///             return result;
+///         }
+///     }
+/// }
+/// ```
+///
+/// Regression guard for the NLL-rerun fidelity fix: the rerun used to
+/// carry pass-1's exit `loans_live` into pass 2, so the `&mut 'a *list`
+/// borrow was re-checked against its own pass-1 loan -- which, being at
+/// the universal `'a` (or reaching it via reborrow constraints), could
+/// never be proven dead. NLL's loan scope is per-point gen/kill dataflow
+/// even though its constraints are location-insensitive; the rerun now
+/// starts pass 2 from the exists-entry loans plus the globalized
+/// outlives (`FlowState::with_global_outlives`), matching rustc.
+const ISSUE_46859_TO_REFS3: &str = "
+    struct List { value: u32, next: u32 }
+
+    fn next_from_field<'x>(n: &mut 'x u32) -> &mut 'x List { trusted }
+
+    fn to_refs<'a>(list: &mut 'a List) -> &mut 'a u32 {
+        exists<'r0, 'r1> {
+            let result: &mut 'a u32;
+            let cursor: &mut 'a List = &mut 'a *list;
+            'l: loop {
+                result = &mut 'r0 (*cursor).value;
+                if true {
+                    let n: &mut 'r1 List = next_from_field::<'r1>(&mut 'r1 (*cursor).next);
+                    cursor = n;
+                } else {
+                    return result;
+                }
+            }
+        }
+    }
+";
+
+#[test]
+fn issue_46859_to_refs3() {
+    // rustc (all revisions): passes, and formality now agrees.
+    FormalityTest::new(feature_gate_program(NLL_GATE, ISSUE_46859_TO_REFS3))
+        .skip_execute()
+        .ok();
+
+    FormalityTest::new(feature_gate_program(
+        POLONIUS_ALPHA_GATE,
+        ISSUE_46859_TO_REFS3,
+    ))
+    .skip_execute()
+    .ok();
+
+    FormalityTest::new(feature_gate_program(
+        POLONIUS_UNLOCKED_GATE,
+        ISSUE_46859_TO_REFS3,
+    ))
+    .skip_execute()
+    .ok();
+}
+
+/// Port of `tests/ui/nll/polonius/iterating-updating-mutref.rs`
 /// (`Decoder::next`).
 ///
 /// ```rust,ignore
@@ -4228,6 +4265,11 @@ fn issue_46859_decoder_next() {
     FormalityTest::new(feature_gate_program(NLL_GATE, ISSUE_46859_DECODER_NEXT))
         .skip_execute()
         .err(expect_test::expect![[r#"
+            the rule "fixed-point" at (nll.rs) failed because
+              condition evaluated to false: `state0 == state1`
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [(d, &mut !lt_1 Decoder)], [d : &mut !lt_1 Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [(d, &mut !lt_1 Decoder)], [d : &mut !lt_1 Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {loan(?lt_2, *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32, mut)}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = *(d : &mut !lt_1 Decoder) : <&mut !lt_1 Decoder as Derefable>::Target . buf_read : u32

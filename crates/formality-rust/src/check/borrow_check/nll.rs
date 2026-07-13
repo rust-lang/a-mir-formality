@@ -332,8 +332,14 @@ judgment_fn! {
             // Existential variables: open the binder and check the inner block
             (let (env, subst, block) = env.instantiate_existentially(binder))
             (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
+            (let entry_state = state.clone())
             (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
-            (let state = state.from_global_state_for_nll())
+            // Rerun with NLL's location-insensitive constraints: the
+            // second pass starts from the *entry* state (not the first
+            // pass's exit loans -- a statement must never conflict with
+            // the loan it itself issues) plus the union of all outlives
+            // collected on any path of the first pass.
+            (let state = entry_state.with_global_outlives(&state))
             (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
             (let state = state.pop_subst(&env.env, subst))
             ------------------------------------------------------------ ("exists")
