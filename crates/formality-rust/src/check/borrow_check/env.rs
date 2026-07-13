@@ -23,7 +23,7 @@ pub struct TypeckEnv {
     pub program: Program,
 }
 
-// We want to skip print the program in the debug output because it is often large and doesn't change.
+// We want to skip printing the program in the debug output because it is often large and doesn't change.
 impl std::fmt::Debug for TypeckEnv {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TypeckEnv")

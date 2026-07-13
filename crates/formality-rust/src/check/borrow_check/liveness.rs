@@ -7,8 +7,6 @@ use formality_core::{Set, Upcast};
 
 pub type LivePlaces = Set<PlaceExpr>;
 
-pub type LiveRegions = Set<LabelId>;
-
 /// Liveness context for control-flow targets (break/continue).
 /// Each entry corresponds to a labeled scope (block or loop).
 #[derive(Clone, Debug)]
@@ -399,11 +397,14 @@ impl LiveBefore for PlaceExpr {
         places_live: impl Upcast<LivePlaces>,
     ) -> LivePlaces {
         let mut places_live = places_live.upcast();
-        // Function names appear as bare `Var` place expressions (call
-        // callees, turbofish). They are not loan-bearing places, and
-        // recording them as live makes `loan_not_required_by_live_places`
-        // fail with "unknown local variable" when a dead-loan proof
-        // inspects the live set. (Assumes locals never shadow fn names.)
+        // Function names appear as bar `Var` place expressions. Recording them
+        // as live makes `borrow_check_place_expr` call in
+        // `loan_not_required_by_live_places` fail with "unknown local variable".
+        // Unlike in `borrow_check_expr`, we don't have the turbofish args to
+        // build a `Ty` from, and it feels *more* correct to just never mark
+        // these as live instead of creating a `Ty` with invalid args.
+        // This hints that there is *some* refactoring to be done here, but
+        // for now we'll just avoid it by checking here.
         if let PlaceExpr::Var(id) = self {
             if env.crates().fn_named(id).is_ok() {
                 return places_live;
