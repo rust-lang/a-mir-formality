@@ -3230,7 +3230,7 @@ fn loan_cannot_outlive_lifetime_pass() {
     .ok()
 }
 
-// Fail test for prove_place_is_movable's drop rule
+// Fail test for the drop condition in prove_place_is_movable's field rule
 #[formality_core::test]
 fn cannot_move_from_drop_struct() {
     FormalityTest::new(crates![crate Foo {
