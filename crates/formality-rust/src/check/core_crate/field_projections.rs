@@ -23,7 +23,7 @@ pub fn lang_items() -> LangItems {
             type Target = T;
         }
 
-        impl<'a, T> Derefable for &mut 'a T
+        impl<'a, T> Derefable for &'a mut T
         where
             T: 'a,
         {

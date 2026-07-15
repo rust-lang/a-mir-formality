@@ -384,7 +384,7 @@ fn mut_reference() {
         fn main() -> () {
             let x: i32 = 1 _ i32;
             exists<'a> {
-                let r: &mut 'a i32 = &mut 'a x;
+                let r: &'a mut i32 = &mut 'a x;
                 *r = 2 _ i32;
                 println!(*r);
             }
