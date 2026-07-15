@@ -844,6 +844,25 @@ judgment_fn! {
 }
 
 judgment_fn! {
+    /// Prove that a type implements Copy.
+    fn prove_type_is_drop(
+        env: TypeckEnv,
+        assumptions: Wcs,
+        state: FlowState,
+        ty: Ty,
+    ) => FlowState {
+        debug(env, assumptions, state, ty)
+
+        (
+            (let goal = Predicate::is_implemented(TraitId::new("Drop").with(ty, Vec::<Parameter>::new())))
+            (env.prove_goal(assumptions, &state, goal) => state)
+            ------------------------------------------------------------ ("trait")
+            (prove_type_is_drop(env, assumptions, state, ty) => state)
+        )
+    }
+}
+
+judgment_fn! {
     /// Prove that a place can be moved from.
     ///
     /// A place is movable if it is not behind a reference. When a `Deref` is
@@ -869,6 +888,7 @@ judgment_fn! {
         )
 
         (
+            (if !prove_type_is_drop(env, assumptions, state, &prefix.ty).is_proven())
             (prove_place_is_movable(env, assumptions, state, prefix) => state)
             ------------------------------------------------------------ ("field")
             (prove_place_is_movable(
