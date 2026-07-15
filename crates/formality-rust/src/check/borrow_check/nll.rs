@@ -844,7 +844,6 @@ judgment_fn! {
 }
 
 judgment_fn! {
-    /// Prove that a type implements Copy.
     fn prove_type_is_drop(
         env: TypeckEnv,
         assumptions: Wcs,
