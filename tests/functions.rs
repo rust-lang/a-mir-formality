@@ -23,3 +23,16 @@ fn ok() {
     .skip_execute()
     .ok()
 }
+
+#[test]
+fn lifetime() {
+    FormalityTest::new(crates![crate Foo {
+        // fn one_lt_arg<'a, T>(_: &'a T) -> () {}
+        fn one_lt_arg<'a, T>(v0: &'a T) -> ()
+        where
+            T: 'a, // FIXME(#202): Implied bounds should not have to be explicit
+        { trusted }
+    }])
+    .skip_execute()
+    .ok()
+}
