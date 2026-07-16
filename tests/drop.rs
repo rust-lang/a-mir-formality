@@ -78,6 +78,39 @@ fn drop_impl_subset_where_clauses() {
     .ok()
 }
 
+/// Basic Drop impl for an enum.
+#[test]
+fn drop_impl_enum() {
+    FormalityTest::new(crates![
+        crate Foo {
+            enum MyEnum {
+                Variant{},
+            }
+
+            impl Drop for MyEnum {}
+        }
+    ])
+    .skip_execute()
+    .ok()
+}
+
+/// Drop impl in the same crate as the struct, with a downstream crate present.
+#[test]
+fn drop_impl_cross_crate_local() {
+    FormalityTest::new(crates![
+        crate a {
+            struct MyStruct {
+                value: u32,
+            }
+
+            impl Drop for MyStruct {}
+        },
+        crate b {}
+    ])
+    .skip_execute()
+    .ok()
+}
+
 // ===================================================================
 // Drop trait: invalid impls
 // ===================================================================
@@ -139,6 +172,48 @@ fn drop_impl_concrete_type_param() {
 
         the rule "trait implied bound" at (prove_wc.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
+}
+
+/// Drop impl for an enum with an extra where-clause not on the enum.
+#[test]
+fn drop_impl_enum_extra_where_clause() {
+    FormalityTest::new(crates![
+        crate Foo {
+            trait Clone {}
+
+            enum MyEnum<T> {
+                Value{value: T},
+            }
+
+            impl<T> Drop for MyEnum<T> where T: Clone {}
+        }
+    ])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Clone(!ty_0), via: Drop(MyEnum<!ty_0>), assumptions: {Drop(MyEnum<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "trait implied bound" at (prove_wc.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`
+
+        the rule "trait implied bound" at (prove_wc.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
+}
+
+/// Drop impl for an ADT defined in another crate.
+#[test]
+fn drop_impl_foreign_adt() {
+    FormalityTest::new(crates![
+        crate a {
+            struct MyStruct {
+                value: u32,
+            }
+        },
+        crate b {
+            impl Drop for MyStruct {}
+        }
+    ])
+    .err(expect_test::expect![[r#"
+        the rule "Drop impl is always applicable" at (impls.rs) failed because
+          `Drop` may only be implemented for types defined in the current crate: `MyStruct` is defined in crate `a` but the impl is in crate `b`"#]])
 }
 
 /// Drop impl for a non-ADT type (e.g., u32).

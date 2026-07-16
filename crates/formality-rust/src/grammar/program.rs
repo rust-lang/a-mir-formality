@@ -1,4 +1,4 @@
-use crate::grammar::{AdtId, AdtItem, Crate, CrateItem, Fn, Struct, Trait, ValueId};
+use crate::grammar::{AdtId, AdtItem, Crate, CrateId, CrateItem, Fn, Struct, Trait, ValueId};
 use crate::grammar::{Fallible, TraitId};
 use formality_core::term;
 
@@ -87,6 +87,20 @@ impl Crates {
         } else {
             Ok(structs.pop().unwrap())
         }
+    }
+
+    /// Returns the id of the crate that defines the ADT `adt_id`.
+    pub fn crate_defining_adt(&self, adt_id: &AdtId) -> Fallible<&CrateId> {
+        for krate in &self.crates {
+            if krate
+                .items
+                .iter()
+                .any(|item| matches!(item, CrateItem::AdtItem(a) if a.name() == adt_id))
+            {
+                return Ok(&krate.id);
+            }
+        }
+        anyhow::bail!("no ADT named `{adt_id:?}`")
     }
 
     pub fn adt_item_named(&self, adt_id: &AdtId) -> Fallible<&AdtItem> {
