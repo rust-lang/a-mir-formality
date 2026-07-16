@@ -9,7 +9,7 @@ use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
     AliasTy, AssociatedItemId, ExistentialVar, FieldName, Fn, Lt, Parameter, Predicate, RefKind,
     Relation, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId, TraitRef, Ty, TyData,
-    Variable, Wcs, WhereClause,
+    Variable, VariantId, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
 use crate::prove::Safety;
@@ -589,7 +589,7 @@ judgment_fn! {
             (if field.name == *field_name)
             ------------------------------------------------------------ ("struct field")
             (borrow_check_place_expr(env, assumptions, state, PlaceExpr::Field { prefix, field_name }) => (
-                TypedPlaceExpr::new(&field.ty, TypedPlaceExpressionData::field(prefix_typed, field_name)),
+                TypedPlaceExpr::new(&field.ty, TypedPlaceExpressionData::field(prefix_typed, field_name, adt_id, VariantId::for_struct())),
                 state,
             ))
         )
@@ -601,7 +601,7 @@ judgment_fn! {
             (if let Parameter::Ty(field_ty) = &parameters[*field_index])
             ------------------------------------------------------------ ("tuple field")
             (borrow_check_place_expr(env, assumptions, state, PlaceExpr::Field { prefix, field_name: FieldName::Index(field_index) }) => (
-                TypedPlaceExpr::new(field_ty, TypedPlaceExpressionData::field(prefix_typed, field_index)),
+                TypedPlaceExpr::new(field_ty, TypedPlaceExpressionData::tuple_field(prefix_typed, field_index)),
                 state,
             ))
         )
@@ -844,24 +844,6 @@ judgment_fn! {
 }
 
 judgment_fn! {
-    fn prove_type_is_drop(
-        env: TypeckEnv,
-        assumptions: Wcs,
-        state: FlowState,
-        ty: Ty,
-    ) => FlowState {
-        debug(env, assumptions, state, ty)
-
-        (
-            (let goal = Predicate::is_implemented(TraitId::new("Drop").with(ty, Vec::<Parameter>::new())))
-            (env.prove_goal(assumptions, &state, goal) => state)
-            ------------------------------------------------------------ ("trait")
-            (prove_type_is_drop(env, assumptions, state, ty) => state)
-        )
-    }
-}
-
-judgment_fn! {
     /// Prove that a place can be moved from.
     ///
     /// A place is movable if it is not behind a reference. When a `Deref` is
@@ -887,14 +869,14 @@ judgment_fn! {
         )
 
         (
-            (if !prove_type_is_drop(env, assumptions, state, &prefix.ty).is_proven())
+            (if let None = env.program.find_drop_impl(adt_id))
             (prove_place_is_movable(env, assumptions, state, prefix) => state)
             ------------------------------------------------------------ ("field")
             (prove_place_is_movable(
                 env,
                 assumptions,
                 state,
-                TypedPlaceExpressionData::Field(prefix, _),
+                TypedPlaceExpressionData::Field(prefix, _, adt_id, _),
             ) => state)
         )
 
