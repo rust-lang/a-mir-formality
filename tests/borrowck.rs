@@ -3035,21 +3035,21 @@ fn struct_conflicting_field_borrows() {
                     }
                 }
             }]).err(expect_test::expect![[r#"
-            the rule "borrow of disjoint places" at (nll.rs) failed because
-              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
-                &loan.place = p : Point . x : u32
-                &access.place = p : Point . x : u32
+                the rule "borrow of disjoint places" at (nll.rs) failed because
+                  condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                    &loan.place = p : Point . x[Point , struct] : u32
+                    &access.place = p : Point . x[Point , struct] : u32
 
-            the rule "loan_cannot_outlive" at (nll.rs) failed because
-              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-                outlived_by_loan = {?lt_1, ?lt_2}
-                &lifetime.upcast() = ?lt_1
+                the rule "loan_cannot_outlive" at (nll.rs) failed because
+                  condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                    outlived_by_loan = {?lt_1, ?lt_2}
+                    &lifetime.upcast() = ?lt_1
 
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
+                the rule "write-indirect" at (nll.rs) failed because
+                  pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p`
 
-            the rule "write-indirect" at (nll.rs) failed because
-              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p : Point . x`"#]])
+                the rule "write-indirect" at (nll.rs) failed because
+                  pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `p : Point . x[Point , struct]`"#]])
 }
 
 // constructing a struct reading a local variable that is mutably borrowed -> borrow error
@@ -3370,5 +3370,5 @@ fn cannot_move_from_drop_struct() {
           expression evaluated to an empty collection: `decls.trait_invariants()`
 
         the rule "field" at (nll.rs) failed because
-          condition evaluated to false: `!prove_type_is_drop(env, assumptions, state, &prefix.ty).is_proven()`"#]])
+          pattern `None` did not match value `Some(impl Drop for Pair { })`"#]])
 }
