@@ -127,7 +127,7 @@ judgment_fn! {
             (assert alias.name == *name)
 
             (prove(program, &env, Wcs::t(), Wcs::all_eq(&alias.parameters, &parameters)) => c)
-            
+
             (let ty = c.substitution().apply(ty))
 
             (implied_bounds_from_ty(program, c.env(), &ty) => ty_wcs)
