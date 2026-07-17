@@ -58,7 +58,6 @@ fn lifetime() {
 }
 
 #[test]
-#[ignore = "to be resolved by (#437)"]
 fn implied_bound_for_normalized_ty() {
     FormalityTest::new(crates![
         crate core {
