@@ -56,3 +56,26 @@ fn lifetime() {
     .skip_execute()
     .ok()
 }
+
+#[test]
+#[ignore = "to be resolved by (#437)"]
+fn implied_bound_for_normalized_ty() {
+    FormalityTest::new(crates![
+        crate core {
+            trait A<'a> {
+                type Assoc : [];
+            }
+            impl<'a, T> A<'a> for T  where T: 'a {
+                type Assoc = &'a T;
+            }
+
+            fn outlives<'a, T>() -> () where T : 'a {}
+
+            fn test<'a, T>(_: <T as A<'a>>::Assoc) -> () {
+                outlives::<'a, T>();
+            }
+        }
+    ])
+    .skip_execute()
+    .ok();
+}
