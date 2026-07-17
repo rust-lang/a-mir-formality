@@ -1,54 +1,95 @@
-use crate::{
-    grammar::{InputArg, Parameter, RigidName, RigidTy, Ty, Wcs, WhereClause},
-    prove::ToWcs,
-};
+use crate::grammar::{InputArg, Parameter, RigidName, RigidTy, Ty, Wcs, WhereClause};
+use formality_core::{judgment_fn, Cons};
 
-pub fn implied_outlives_for_fn(input_args: &Vec<InputArg>, output_ty: &Ty) -> Wcs {
-    let mut implied_outlives: Vec<WhereClause> = input_args
-        .iter()
-        .flat_map(|arg| implied_outlives_from_ty(&arg.ty))
-        .collect();
-    implied_outlives.extend(implied_outlives_from_ty(output_ty));
+judgment_fn! {
+    pub fn implied_bounds_from_fn(
+        args: Vec<InputArg>,
+        output: Ty,
+    ) => Wcs {
+        debug(args, output)
 
-    implied_outlives.to_wcs()
+        (
+            (implied_bounds_from_args(args) => args_wcs)
+            (implied_bounds_from_ty(output) => output_wcs)
+            ------------------------------------------------------------ ("bounds")
+            (implied_bounds_from_fn(args, output) => (args_wcs, output_wcs))
+        )
+    }
+
 }
 
-fn implied_outlives_from_ty(ty: &Ty) -> Vec<WhereClause> {
-    let Ty::RigidTy(rigid_ty) = ty else {
-        return vec![];
-    };
+judgment_fn! {
+    fn implied_bounds_from_args(
+        tys: Vec<InputArg>
+    ) => Wcs {
+        debug(tys)
 
-    match rigid_ty {
-        RigidTy {
-            name: RigidName::Ref(_),
-            parameters,
-        } => {
-            let Parameter::Lt(lt) = parameters[0].clone() else {
-                return vec![];
-            };
-            let inner = &parameters[1];
+        (
+            (implied_bounds_from_ty(arg.ty.clone()) => head_wcs)
+            (implied_bounds_from_args(tail) => tail_wcs)
+            ------------------------------------------------------------ ("recurse args")
+            (implied_bounds_from_args(Cons(arg, tail)) => (head_wcs, tail_wcs))
+        )
 
-            let mut wcs = vec![WhereClause::Outlives(inner.clone(), (*lt).clone())];
+        (
+            ------------------------------------------------------------ ("nil")
+            (implied_bounds_from_args(()) => ())
+        )
+    }
 
-            if let Parameter::Ty(inner_ty) = inner {
-                wcs.extend(implied_outlives_from_ty(inner_ty))
-            }
+}
 
-            wcs
-        }
-        RigidTy {
-            name: _,
-            parameters,
-        } => parameters
-            .iter()
-            .filter_map(|p| {
-                if let Parameter::Ty(t) = p {
-                    Some(implied_outlives_from_ty(t))
-                } else {
-                    None
-                }
-            })
-            .flatten()
-            .collect(),
+judgment_fn! {
+    fn implied_bounds_from_ty(
+        ty: Ty,
+    ) => Wcs {
+        debug(ty)
+
+        (
+            (if let Some(Parameter::Lt(lt)) = parameters.get(0))
+            (if let Some(inner) = parameters.get(1))
+            (let wc = vec![WhereClause::Outlives((*inner).clone(), (**lt).clone())])
+            (implied_bounds_from_params(vec![inner]) => inner_wcs)
+            ------------------------------------------------------------ ("inner ref")
+            (implied_bounds_from_ty(RigidTy { name: RigidName::Ref(_), parameters }, ) => (inner_wcs, wc))
+        )
+
+        (
+            (implied_bounds_from_params(parameters) => wcs)
+            ------------------------------------------------------------ ("inner T")
+            (implied_bounds_from_ty(RigidTy { name: _, parameters }) => wcs)
+        )
+
+        (
+            ------------------------------------------------------------ ("no bounds")
+            (implied_bounds_from_ty(ty) => ())
+        )
+    }
+
+}
+
+judgment_fn! {
+    fn implied_bounds_from_params(
+        param: Vec<Parameter>
+    ) => Wcs {
+        debug(param)
+
+        (
+            (implied_bounds_from_ty(ty) => head_wcs)
+            (implied_bounds_from_params(tail) => tail_wcs)
+            ------------------------------------------------------------ ("recurse ty param")
+            (implied_bounds_from_params(Cons(Parameter::Ty(ty), tail)) => (head_wcs, tail_wcs))
+        )
+
+        (
+            (implied_bounds_from_params(tail) => tail_wcs)
+            ------------------------------------------------------------ ("param not ty")
+            (implied_bounds_from_params(Cons(_, tail)) => tail_wcs)
+        )
+
+        (
+            ------------------------------------------------------------ ("nil")
+            (implied_bounds_from_params(_x) => ())
+        )
     }
 }
