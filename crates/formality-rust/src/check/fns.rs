@@ -48,7 +48,7 @@ judgment_fn! {
         (
             (let (env, bound_data) = env.instantiate_universally(&f.binder))
             (let FnBoundData { input_args, output_ty, where_clauses, body } = bound_data)
-            (implied_bounds_from_fn(input_args, output_ty) => implied_bounds)
+            (implied_bounds_from_fn(program, env, input_args, output_ty) => implied_bounds)
             (let assumptions: Wcs = (assumptions, where_clauses, implied_bounds).to_wcs())
             (prove_where_clauses_well_formed(program, env, assumptions, where_clauses) => ())
             (for_all(input_arg in input_args)
