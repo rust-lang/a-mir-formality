@@ -417,7 +417,7 @@ judgment_fn! {
 
         (
             ------------------------------------------------------------ ("literal")
-            (borrow_check_expr(_env, _assumptions, state, Expr::Literal(Literal { value: _, ty }), _places_live_on_exit) => (ty, state))
+            (borrow_check_expr(_env, _assumptions, state, Literal { value: _, ty }, _places_live_on_exit) => (ty, state))
         )
 
         (
