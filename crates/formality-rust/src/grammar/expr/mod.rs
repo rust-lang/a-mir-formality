@@ -39,6 +39,7 @@ impl Block {
             stmts: vec![],
         }
     }
+}
 
 /// An optional initializer expression, parsed as `= $expr`.
 #[term(= $expr)]

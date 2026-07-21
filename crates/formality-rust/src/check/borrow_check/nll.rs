@@ -205,7 +205,6 @@ judgment_fn! {
         )
 
         (
-          (let else_block = else_block.clone().unwrap_or_else(Block::empty))
             // Check the condition has type bool
             (borrow_check_expr_has_ty(
                 env,
@@ -223,7 +222,13 @@ judgment_fn! {
             // Join the flow states from both branches
             (let state: FlowState = Union((then_state, else_state)).upcast())
             ------------------------------------------------------------ ("if")
-            (borrow_check_statement(env, assumptions, state, Stmt::If { condition, then_block, else_block }, places_live_on_exit) => (env, state))
+            (borrow_check_statement(env, assumptions, state, Stmt::If { condition, then_block, else_block: Some(else_block) }, places_live_on_exit) => (env, state))
+        )
+
+        (
+          (borrow_check_statement(env, assumptions, state, Stmt::if_(condition, then_block, Some(Block::empty())), places_live_on_exit) => (env, state))
+          --------------------------------------------------------------- ("if-no-else")
+            (borrow_check_statement(env, assumptions, state, Stmt::If { condition, then_block, else_block: None}, places_live_on_exit) => (env, state))
         )
 
         (

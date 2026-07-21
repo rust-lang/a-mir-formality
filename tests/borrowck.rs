@@ -201,9 +201,9 @@ fn conditional_init_both_branches() {
 fn if_without_else_ok() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
-            let x: u32 = 1 _ u32;
+            let x: u32 = 1_u32;
             if true {
-                x = 2 _ u32;
+                x = 2_u32;
             }
             return x;
         }
@@ -230,7 +230,7 @@ fn conditional_init_no_else() {
         fn foo() -> u32 {
             let x: u32;
             if true {
-                x = 1 _ u32;
+                x = 1_u32;
             }
             return x;
         }
@@ -278,7 +278,7 @@ fn move_in_then_branch_no_else() {
         }
 
         fn foo() -> Datum {
-            let x: Datum = Datum { value: 0 _ u32 };
+            let x: Datum = Datum { value: 0_u32 };
             if true {
                 let y: Datum = x;
             }
@@ -302,10 +302,10 @@ fn move_in_then_branch_no_else() {
 #[test]
 fn if_without_else_return_in_then() {
     FormalityTest::new(crates![crate Foo {
-        fn reborrow<'a>(a: &mut 'a u8) -> &mut 'a u8 {
+        fn reborrow<'a>(a: &'a mut u8) -> &'a mut u8 {
             exists<'r0, 'r1> {
                 if true {
-                    let b: &mut 'r1 u8 = &mut 'r0 *a;
+                    let b: &'r1 mut u8 = &mut 'r0 *a;
                     return b;
                 }
                 return a;
