@@ -24,7 +24,8 @@ impl<L: Language> CoreSubstitution<L> {
     }
 
     /// True if `v` is in this substitution's domain
-    pub fn maps(&self, v: CoreVariable<L>) -> bool {
+    pub fn maps(&self, v: impl Upcast<CoreVariable<L>>) -> bool {
+        let v: CoreVariable<L> = v.upcast();
         self.map.contains_key(&v)
     }
 
@@ -35,6 +36,13 @@ impl<L: Language> CoreSubstitution<L> {
     /// An empty substitution is just the identity function.
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
+    }
+
+    pub fn insert(&mut self, v: impl Upcast<CoreVariable<L>>, p: impl Upcast<CoreParameter<L>>) {
+        let v: CoreVariable<L> = v.upcast();
+        let p: CoreParameter<L> = p.upcast();
+        assert!(!self.maps(v), "already have a substitition for {v:?}");
+        self.map.insert(v, p);
     }
 }
 

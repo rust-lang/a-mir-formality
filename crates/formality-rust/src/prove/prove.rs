@@ -18,9 +18,9 @@ pub use decls::*;
 pub use prove::combinators;
 pub use prove::prove;
 pub use prove::prove_normalize::prove_normalize;
+pub use prove::Constrained;
 pub use prove::{is_definitely_not_proveable, may_not_be_provable, negation_via_failure};
 pub use prove::{Bias, Env, MaxUniverse, Universe};
-pub use prove::{Constrained, Constraints};
 
 #[cfg(test)]
 mod test;

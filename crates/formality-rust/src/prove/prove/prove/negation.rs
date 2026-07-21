@@ -1,5 +1,5 @@
 use crate::grammar::{Substitution, Variable, Wcs};
-use crate::prove::prove::{Bias, Constraints, Env};
+use crate::prove::prove::{Bias, Env};
 use crate::rust::FormalityLang;
 use formality_core::judgment::FailureLocation;
 use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
@@ -19,8 +19,8 @@ pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang, Output = T>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
     data: &T,
-    f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
-) -> ProvenSet<Constraints> {
+    f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Env>,
+) -> ProvenSet<Env> {
     assert!(env.bias() == Bias::Soundness);
 
     // Require only universal variables, so e.g. `forall<T> not (T: Foo)`.
@@ -49,8 +49,8 @@ pub fn may_not_be_provable<T: CoreFold<FormalityLang, Output = T>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
     data: &T,
-    f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
-) -> ProvenSet<Constraints> {
+    f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Env>,
+) -> ProvenSet<Env> {
     assert!(env.bias() == Bias::Completeness);
     negation_via_failure(env, assumptions, data, f)
 }
@@ -60,8 +60,8 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang, Output = T>>(
     env: &Env,
     assumptions: impl Upcast<Wcs>,
     data: &T,
-    f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
-) -> ProvenSet<Constraints> {
+    f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Env>,
+) -> ProvenSet<Env> {
     let assumptions: Wcs = assumptions.upcast();
     tracing::debug!(?assumptions, ?data);
 
@@ -105,10 +105,10 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang, Output = T>>(
                 tracing::debug!("ambiguous `negation_via_failure`, solutions: {s:?}");
                 // Ambiguous - grab a tree from one of the results
                 let (_, sample_tree) = s.iter().next().unwrap();
-                let result = Constraints::none(env).ambiguous();
+                let result = env.ambiguous();
                 let label = format!("{:?}", result);
                 ProvenSet::singleton((
-                    result,
+                    result.clone(),
                     ProofTree::new(label, Some("ambiguous_negation"), vec![sample_tree.clone()]),
                 ))
             }
@@ -117,9 +117,9 @@ pub fn negation_via_failure<T: CoreFold<FormalityLang, Output = T>>(
         Err(err) => {
             tracing::debug!("Proved `negation_via_failure`, error = {err}");
             // Negation succeeded because f failed
-            let result = Constraints::none(env);
+            let result = env;
             let leaf = ProofTree::leaf(format!("negation succeeded: {}", err));
-            ProvenSet::singleton((result, leaf))
+            ProvenSet::singleton((result.clone(), leaf))
         }
     }
 }

@@ -1,6 +1,9 @@
+use crate::grammar::Parameter;
 use crate::grammar::{
-    Binder, ExistentialVar, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable, Wc,
+    Binder, ExistentialVar, ParameterKind, Substitution, UniversalVar, VarIndex, VarSubstitution,
+    Variable, Wc,
 };
+use crate::prove::prove::prove::constraints::occurs_in;
 use crate::rust::{Fold, Visit};
 use formality_core::set;
 use formality_core::{cast_impl, visit::CoreVisit, Set, To, Upcast, UpcastFrom};
@@ -40,10 +43,19 @@ pub enum Bias {
 pub struct Env {
     /// The set of variables that are in scope (universal and existential).
     /// All terms should only reference free variables found in this set.
-    variables: Vec<Variable>,
+    pub variables: Vec<Variable>,
+
+    /// Maps an existential variable to the value which it must be equal to.
+    /// For example `Vec<?A> = Vec<u32>` would result in a substitution `[?A => u32]`.`
+    pub substitution: Substitution,
 
     /// XXX this needs to be explained
-    bias: Bias,
+    pub bias: Bias,
+
+    /// If this is false, it indicates that the result is actually *ambiguous* and not known to be true.
+    /// This occurs when e.g. we hit overflow or some other condition in which we can neither prove the
+    /// result true nor false.
+    pub known_true: bool,
 
     /// Pending goals that have not yet been proven.
     /// When we prove a conjunction `(A && B)`, proving `A` may result in
@@ -54,23 +66,41 @@ pub struct Env {
     /// the pending constraints that are now unlocked.
     ///
     /// Whenever a "successful" proof results, the pending obligations
-    pending: Vec<Wc>,
+    pub pending: Vec<Wc>,
 
     /// When true, outlives constraints like `'a: 'b` can be deferred as pending
     /// obligations rather than being proven immediately. This is used during
     /// type checking to accumulate constraints that will be verified by the
     /// borrow checker. When false, outlives must be proven from assumptions.
-    allow_pending_outlives: bool,
+    pub allow_pending_outlives: bool,
 }
 
 impl Env {
     pub fn new_with_bias(bias: Bias) -> Self {
         Env {
+            known_true: true,
             variables: Default::default(),
             bias,
+            substitution: Default::default(),
             pending: vec![],
             allow_pending_outlives: false,
         }
+    }
+
+    // TODO: do we need to update the variable field?
+    pub fn add_substitution(&self, var: impl Upcast<Variable>, ty: impl Upcast<Parameter>) -> Self {
+        let mut this = self.clone();
+        this.substitution.insert(var, ty);
+        this
+    }
+
+    // TODO: do we need to update the variable field?
+    pub fn add_all_substitutions(&self, subst: Substitution) -> Self {
+        let this = self.clone();
+        for (var, ty) in subst {
+            this.add_substitution(var, ty);
+        }
+        this
     }
 
     pub fn only_universal_variables(&self) -> bool {
@@ -79,6 +109,14 @@ impl Env {
 
     pub fn bias(&self) -> Bias {
         self.bias
+    }
+
+    pub fn known_true(&self) -> bool {
+        self.known_true
+    }
+
+    pub fn substitution(&self) -> &Substitution {
+        &self.substitution
     }
 
     pub fn allow_pending_outlives(&self) -> bool {
@@ -97,6 +135,84 @@ impl Env {
         let mut env = self.clone();
         env.pending.push(w.upcast());
         env
+    }
+
+    /// Given a set of variables `v` created via [`Env::instantiate_universally`][]
+    /// or [`Env::instantiate_existentially`][], removes `v` and all variables created *since* `v`
+    /// from the environment and from the substitution.
+    pub fn pop_subst<V>(&mut self, v: &[V]) -> Self
+    where
+        V: Upcast<Variable> + Copy,
+    {
+        if v.is_empty() {
+            return self.clone();
+        }
+
+        let vars = self.pop_vars(v);
+        self.substitution -= vars;
+
+        self.clone()
+    }
+
+    pub fn unconditionally_true(&self) -> bool {
+        self.known_true && self.substitution.is_empty() && self.pending.is_empty()
+    }
+
+    pub fn ambiguous(&self) -> Self {
+        Env {
+            known_true: false,
+            ..self.clone()
+        }
+    }
+
+    // TODO: There are a few places that is still using seq, and the logic might not be replaceable by fn prove,
+    // does it make sense to keep this? if yes, how do we resolve the pending below?
+    pub fn seq(&self, c2: &Env) -> Self {
+        tracing::debug!(" Env::seq({self:?}, {c2:?}");
+
+        self.assert_valid();
+        c2.assert_valid();
+        assert!(c2.is_valid_extension_of(&self));
+
+        // This substitution should have already been applied to produce
+        // `c2`, therefore we don't expect any bindings for *our* variables.
+        assert!(self
+            .substitution()
+            .domain()
+            .is_disjoint(&c2.substitution().domain()));
+
+        // Similarly, we don't expect any references to variables that we have
+        // defined.
+        assert!(self
+            .substitution()
+            .domain()
+            .iter()
+            .all(|v| !occurs_in(v, &c2.substitution())));
+
+        // Apply c2's substitution to our substitution (since it may have bound
+        // existential variables that we reference)
+        let c1_substitution = c2.substitution().apply(&self.substitution());
+
+        let new_subst = c1_substitution
+            .into_iter()
+            .chain(c2.substitution().clone().into_iter())
+            .collect();
+
+        let new_known_true = self.known_true && c2.known_true;
+
+        // TODO: not sure in what case we will have different allow_pending_outlives and different bias
+        // so just leaving the assert here for now.
+        assert!(self.allow_pending_outlives == c2.allow_pending_outlives);
+        assert!(self.bias == c2.bias);
+
+        Env {
+            known_true: new_known_true,
+            substitution: new_subst,
+            variables: todo!(),
+            bias: self.bias,
+            pending: todo!(),
+            allow_pending_outlives: self.allow_pending_outlives,
+        }
     }
 }
 
@@ -355,6 +471,9 @@ impl Env {
             bias: self.bias,
             pending: vs.apply(&self.pending),
             allow_pending_outlives: self.allow_pending_outlives,
+            known_true: self.known_true,
+            // TODO: tiif thinks we need to update the substitution here, but tiif might be wrong
+            substitution: vs.apply(&self.substitution()),
         }
     }
 

@@ -4,7 +4,7 @@ use crate::grammar::{
 use crate::rust::Term;
 use formality_core::{Deduplicate, Downcast, Upcast};
 
-use super::{Constraints, Env};
+use super::Env;
 
 #[cfg(test)]
 mod test;
@@ -85,7 +85,7 @@ pub fn minimize<T: Term>(env_max: Env, term: T) -> (Env, T, Minimization) {
 }
 
 impl Minimization {
-    pub fn reconstitute(&self, constraints: Constraints) -> Constraints {
+    pub fn reconstitute(&self, env: Env) -> Env {
         // Our task:
         //
         // For `env_min`, we had a set of variables like `A, B, C`
@@ -113,7 +113,7 @@ impl Minimization {
 
         let mut fresh_vars: Vec<ExistentialVar> = vec![];
         let mut env2out_subst = self.min2max_subst.clone();
-        for &var in constraints.env().variables() {
+        for &var in env.variables() {
             if let Some(var_out) = env2out_subst.map_var(var) {
                 // e.g., here next variable might be Y in the list above...
                 for fresh_var in fresh_vars.drain(..) {
@@ -133,7 +133,7 @@ impl Minimization {
 
         // Assert that we for each two consecutive variables A < B in env,
         // the same relative ordering exists in env_out.
-        let env_variables = constraints.env().variables();
+        let env_variables = env.variables();
         for i in 1..env_variables.len() {
             let a = env_variables[i - 1];
             let b = env_variables[i];
@@ -142,26 +142,22 @@ impl Minimization {
             assert!(env_out.universe(a_out) < env_out.universe(b_out));
         }
 
-        let Constraints {
-            env: env_in,
-            known_true,
-            substitution,
-        } = constraints;
-        let substitution: Substitution = substitution
+        let substitution: Substitution = env
+            .substitution()
             .iter()
             .map(|(x, p)| -> (Variable, Parameter) {
                 (env2out_subst.map_var(x).unwrap(), env2out_subst.apply(&p))
             })
             .collect();
 
-        for pending_in in env_in.pending() {
+        for pending_in in env.pending() {
             env_out = env_out.with_pending(env2out_subst.apply(pending_in));
         }
 
-        Constraints {
-            env: env_out,
-            known_true,
-            substitution,
+        Env {
+            known_true: env.known_true,
+            substitution: substitution,
+            ..env_out
         }
     }
 }

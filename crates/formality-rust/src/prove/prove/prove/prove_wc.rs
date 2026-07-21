@@ -8,7 +8,6 @@ use crate::prove::prove::{
         env::{Bias, Env},
         is_local::{is_local_trait_ref, may_be_remote},
         prove,
-        prove_after::prove_after,
         prove_const_has_type::prove_const_has_type,
         prove_eq::prove_eq,
         prove_outlives::prove_outlives,
@@ -18,44 +17,42 @@ use crate::prove::prove::{
     },
 };
 
-use super::constraints::Constraints;
-
 judgment_fn! {
     /// The "heart" of the trait system -- prove that a where-clause holds given a set of declarations, variable environment, and set of assumptions.
-    /// If successful, returns the constraints under which the where-clause holds.
+    /// If successful, returns the Env under which the where-clause holds.
     pub fn prove_wc(
         _decls: Program,
         env: Env,
         assumptions: Wcs,
         goal: Wc,
-    ) => Constraints {
+    ) => Env {
         debug(goal, assumptions, env)
 
         (
             (let (env, subst) = env.universal_substitution(binder))
             (let p1 = binder.instantiate_with(&subst).unwrap())
-            (prove_wc(decls, env, assumptions, p1) => c)
+            (prove_wc(decls, env, assumptions, p1) => env)
             --- ("forall")
-            (prove_wc(decls, env, assumptions, WcData::ForAll(binder)) => c.pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, WcData::ForAll(binder)) => env.clone().pop_subst(&subst))
         )
 
         (
-            (prove_wc(decls, env, (assumptions, p1), p2) => c)
+            (prove_wc(decls, env, (assumptions, p1), p2) => env)
             --- ("implies")
-            (prove_wc(decls, env, assumptions, WcData::Implies(p1, p2)) => c)
+            (prove_wc(decls, env, assumptions, WcData::Implies(p1, p2)) => env)
         )
 
         (
             (a in assumptions)!
-            (prove_via(decls, env, assumptions, a, goal) => c)
+            (prove_via(decls, env, assumptions, a, goal) => env)
             ----------------------------- ("assumption - predicate")
-            (prove_wc(decls, env, assumptions, WcData::Predicate(goal)) => c)
+            (prove_wc(decls, env, assumptions, WcData::Predicate(goal)) => env)
         )
         (
             (a in assumptions)!
-            (prove_via(decls, env, assumptions, a, goal) => c)
+            (prove_via(decls, env, assumptions, a, goal) => env)
             ----------------------------- ("assumption - relation")
-            (prove_wc(decls, env, assumptions, WcData::Relation(goal)) => c)
+            (prove_wc(decls, env, assumptions, WcData::Relation(goal)) => env)
         )
 
 
@@ -78,96 +75,96 @@ judgment_fn! {
             //
             // NB: This is actually not what Rust currently does, but it is what "we" (types team) want it to do.
             (let co_assumptions = (assumptions, trait_ref))
-            (prove(decls, env, co_assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
-            (prove_after(decls, c, co_assumptions, &i.where_clause) => c)
+            (prove(decls, env, co_assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => env)
 
             // Prove that the well-formedness requirements of the *trait* hold -- for this proof, we cannot
             // assume that the trait is implemented, because that would allow specious implied bounds
             // (i.e., we could assume that `B: Debug` based on the trait definition + the existence of an impl,
             // but actually the impl is responsible for proving that `B: Debug`).
-            (prove_after(decls, c, assumptions, &t.where_clause) => c)
+            (prove(decls, env, assumptions, &t.where_clause) => env)
             ----------------------------- ("positive impl")
-            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => env.clone().pop_subst(&subst))
         )
 
         (
             (if env.bias() == Bias::Completeness)!
-            (may_be_remote(decls, env, assumptions, trait_ref) => c)
+            (may_be_remote(decls, env, assumptions, trait_ref) => env)
             ----------------------------- ("coherence / remote impl")
-            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c)
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => env)
         )
 
         (
             (i in decls.neg_impl_decls(&trait_ref.trait_id))
             (let (env, subst) = env.existential_substitution(&i.binder))
             (let i = i.binder.instantiate_with(&subst).unwrap())
-            (prove(decls, env, assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
-            (prove_after(decls, c, assumptions, &i.where_clause) => c)
+            (prove(decls, env, assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => env)
+            // TODO: check the correctness of this?
+            (prove(decls, env, assumptions,  &i.where_clause) => env)
             ----------------------------- ("negative impl")
-            (prove_wc(decls, env, assumptions, Predicate::NotImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Predicate::NotImplemented(trait_ref)) => env.clone().pop_subst(&subst))
         )
 
         (
-            (prove_eq(decls, env, assumptions, alias_ty, ty) => c)
+            (prove_eq(decls, env, assumptions, alias_ty, ty) => env)
             ----------------------------- ("alias eq")
-            (prove_wc(decls, env, assumptions, Predicate::AliasEq(alias_ty, ty)) => c)
+            (prove_wc(decls, env, assumptions, Predicate::AliasEq(alias_ty, ty)) => env)
         )
 
         (
             (ti in decls.trait_invariants())
             (let (env, subst) = env.existential_substitution(&ti.binder))
             (let ti = ti.binder.instantiate_with(&subst).unwrap())
-            (prove_via(decls, env, assumptions, &ti.where_clause, trait_ref) => c)
-            (prove_after(decls, c, assumptions, &ti.trait_ref) => c)
+            (prove_via(decls, env, assumptions, &ti.where_clause, trait_ref) => env)
+            (prove(decls, env, assumptions, &ti.trait_ref) => env)
             ----------------------------- ("trait implied bound")
-            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => env.clone().pop_subst(&subst))
         )
 
         (
-            (prove_eq(decls, env, assumptions, a, b) => c)
+            (prove_eq(decls, env, assumptions, a, b) => env)
             ----------------------------- ("eq")
-            (prove_wc(decls, env, assumptions, Relation::Equals(a, b)) => c)
+            (prove_wc(decls, env, assumptions, Relation::Equals(a, b)) => env)
         )
 
         (
-            (prove_sub(decls, env, assumptions, a, b) => c)
+            (prove_sub(decls, env, assumptions, a, b) => env)
             ----------------------------- ("subtype")
-            (prove_wc(decls, env, assumptions, WcData::Relation(Relation::Sub(a, b))) => c)
+            (prove_wc(decls, env, assumptions, WcData::Relation(Relation::Sub(a, b))) => env)
         )
 
         (
-            (for_all(decls, env, assumptions, &trait_ref.parameters, &prove_wf) => c)
+            (for_all(decls, env, assumptions, &trait_ref.parameters, &prove_wf) => env)
             (let t = decls.trait_decl(&trait_ref.trait_id))
             (let t = t.binder.instantiate_with(&trait_ref.parameters).unwrap())
-            (prove_after(decls, c, assumptions, &t.where_clause) => c)
+            (prove(decls, env, assumptions, &t.where_clause) => env)
             ----------------------------- ("trait well formed")
-            (prove_wc(decls, env, assumptions, Predicate::WellFormedTraitRef(trait_ref)) => c)
+            (prove_wc(decls, env, assumptions, Predicate::WellFormedTraitRef(trait_ref)) => env)
         )
 
         (
-            (is_local_trait_ref(decls, env, assumptions, trait_ref) => c)
+            (is_local_trait_ref(decls, env, assumptions, trait_ref) => env)
             ----------------------------- ("trait ref is local")
-            (prove_wc(decls, env, assumptions, Predicate::IsLocal(trait_ref)) => c)
+            (prove_wc(decls, env, assumptions, Predicate::IsLocal(trait_ref)) => env)
         )
 
         (
-            (prove_outlives(decls, env, assumptions, a, b) => c)
+            (prove_outlives(decls, env, assumptions, a, b) => env)
             ----------------------------- ("outlives")
-            (prove_wc(decls, env, assumptions, Relation::Outlives(a, b)) => c)
+            (prove_wc(decls, env, assumptions, Relation::Outlives(a, b)) => env)
         )
 
 
         (
-            (prove_wf(decls, env, assumptions, p) => c)
+            (prove_wf(decls, env, assumptions, p) => env)
             ----------------------------- ("parameter well formed")
-            (prove_wc(decls, env, assumptions, Relation::WellFormed(p)) => c)
+            (prove_wc(decls, env, assumptions, Relation::WellFormed(p)) => env)
         )
 
         (
-            (prove_const_has_type(decls, env, assumptions, constant) => (ty_constant, c))
-            (prove_after(decls, c, assumptions, Relation::equals(ty_constant, ty)) => c)
+            (prove_const_has_type(decls, env, assumptions, constant) => (ty_constant, env))
+            (prove(decls, env, assumptions, Relation::equals(ty_constant, ty)) => env)
             ----------------------------- ("const has ty")
-            (prove_wc(decls, env, assumptions, Predicate::ConstHasType(constant, ty)) => c)
+            (prove_wc(decls, env, assumptions, Predicate::ConstHasType(constant, ty)) => env)
         )
     }
 }

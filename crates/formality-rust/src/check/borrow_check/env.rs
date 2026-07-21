@@ -5,7 +5,7 @@ use crate::check::borrow_check::flow_state::{FlowState, PendingOutlives};
 use crate::check::borrow_check::outlives::verify_universal_outlives;
 use crate::grammar::{Binder, ExistentialVar, Relation, Ty, UniversalVar, Wcs};
 use crate::grammar::{Crates, Parameter};
-use crate::prove::prove::{prove_normalize, Constrained, Constraints, Env, Program};
+use crate::prove::prove::{prove_normalize, Constrained, Env, Program};
 use crate::rust::Fold;
 use formality_core::judgment::{FailureLocation, ProofTree, Proven};
 use formality_core::{cast_impl, Downcast, DowncastTo, Set, Upcast};
@@ -141,9 +141,8 @@ impl TypeckEnv {
         assert!(!cs.is_empty());
 
         // If there is anything *unconditionally true*, that's great
-        if let Some((Constrained(v, _), proof_tree)) = cs
-            .iter()
-            .find(|(Constrained(_, c), _)| c.unconditionally_true())
+        if let Some((Constrained(v, _), proof_tree)) =
+            cs.iter().find(|(c, _)| c.unconditionally_true())
         {
             return ProvenSet::singleton(((v.clone(), state.clone()), proof_tree.clone()));
         }
@@ -180,12 +179,12 @@ impl TypeckEnv {
         let mut pending_outlives_sets: Vec<(Set<PendingOutlives>, &T, &ProofTree)> = vec![];
         for (Constrained(v, c), proof_tree) in &cs {
             // Ignore constraints that only prove the goal "might" be true, irrelevant here
-            if !c.known_true {
+            if !c.known_true() {
                 continue;
             }
 
             // We already filtered this above
-            assert!(c.known_true);
+            assert!(c.known_true());
 
             // We don't have any existential variables, so there can't be a substitution
             assert!(c.substitution().is_empty());
@@ -256,10 +255,10 @@ impl TypeckEnv {
     // pending outlives requests. This function checks that this is true,
     // converting to a set of `PendingOutlives`, and returns `None` if
     // any other sort of where-clause is found.
-    fn convert_to_pending_outlives(&self, c: &Constraints) -> Option<BTreeSet<PendingOutlives>> {
+    fn convert_to_pending_outlives(&self, env: &Env) -> Option<BTreeSet<PendingOutlives>> {
         let mut c_outlives = BTreeSet::default();
 
-        for pending in c.env.pending() {
+        for pending in env.pending() {
             match pending.downcast::<Relation>() {
                 Some(Relation::Outlives(a, b)) => {
                     c_outlives.insert(PendingOutlives { a, b });
