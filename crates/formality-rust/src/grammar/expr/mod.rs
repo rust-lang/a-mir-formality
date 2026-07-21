@@ -6,6 +6,8 @@ use crate::grammar::{
     AdtId, Binder, FieldName, Lt, Parameter, RefKind, ScalarId, TraitId, Ty, ValueId,
 };
 
+mod parse_expr;
+
 id!(LabelId, regex = "'[a-zA-Z_][a-zA-Z0-9_]*");
 
 #[term($id :)]
@@ -17,6 +19,16 @@ pub struct Label {
 pub struct Block {
     pub label: Option<Label>,
     pub stmts: Vec<Stmt>,
+}
+
+/// `42_u32`
+///
+/// A scalar literal.
+#[term($value _ $ty)]
+#[customize(parse, debug)]
+pub struct Literal {
+    pub value: usize,
+    pub ty: ScalarId,
 }
 
 /// An optional initializer expression, parsed as `= $expr`.
@@ -121,12 +133,8 @@ pub enum Expr {
     #[grammar($callee ($,args))]
     Call { callee: Arc<Expr>, args: Vec<Expr> },
 
-    /// `42_u32`
-    ///
-    /// A scalar literal.
-    #[grammar($value _ $ty)]
-    #[reject(_, ScalarId::Bool)]
-    Literal { value: usize, ty: ScalarId },
+    #[cast]
+    Literal(Literal),
 
     /// `true`
     #[grammar(true)]

@@ -9,7 +9,7 @@ fn struct_with_lifetime() {
 
         fn main() -> () {
             exists<'y> {
-                let a: u32 = 22 _ u32;
+                let a: u32 = 22_u32;
                 let f: Foo<'y> = Foo::<'y> { y: &'y a };
             }
         }

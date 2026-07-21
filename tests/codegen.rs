@@ -4,7 +4,7 @@ use a_mir_formality::{crates, FormalityTest};
 fn hello_world() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            println!(22 _ i32);
+            println!(22_i32);
         }
     }])
     .expect_output("22\n")
@@ -15,7 +15,7 @@ fn hello_world() {
 fn booleans_and_multiple_prints() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            println!(1 _ i32);
+            println!(1_i32);
             println!(true);
             println!(false);
         }
@@ -28,7 +28,7 @@ fn booleans_and_multiple_prints() {
 fn let_bindings() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 42 _ i32;
+            let x: i32 = 42_i32;
             println!(x);
         }
     }])
@@ -40,7 +40,7 @@ fn let_bindings() {
 fn assignment() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 1 _ i32;
+            let x: i32 = 1_i32;
             x = 2 _ i32;
             println!(x);
         }
@@ -56,7 +56,7 @@ fn function_calls() {
             return x; // FIXME: this should probably be `x + 1`
         }
         fn main() -> () {
-            let y: i32 = add_one(1 _ i32);
+            let y: i32 = add_one(1_i32);
             println!(y);
         }
     }])
@@ -71,7 +71,7 @@ fn generic_function_calls() {
             return x;
         }
         fn main() -> () {
-            let y: i32 = identity::<i32>(42 _ i32);
+            let y: i32 = identity::<i32>(42_i32);
             println!(y);
         }
     }])
@@ -83,11 +83,11 @@ fn generic_function_calls() {
 fn if_statements() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 1 _ i32;
+            let x: i32 = 1_i32;
             if true {
                 println!(x);
             } else {
-                println!(0 _ i32);
+                println!(0_i32);
             }
         }
     }])
@@ -99,7 +99,7 @@ fn if_statements() {
 fn loops_break_continue() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 0 _ i32;
+            let x: i32 = 0_i32;
             'a: loop {
                 println!(x);
                 break 'a;
@@ -115,11 +115,11 @@ fn nested_blocks_and_exists() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
             {
-                let x: i32 = 99 _ i32;
+                let x: i32 = 99_i32;
                 println!(x);
             }
             exists<'a> {
-                println!(1 _ i32);
+                println!(1_i32);
             }
         }
     }])
@@ -132,7 +132,7 @@ fn structs() {
     FormalityTest::new(crates![crate test {
         struct Pair<> where { x: i32, y: i32 }
         fn main() -> () {
-            let p: Pair = Pair { x: 10 _ i32, y: 20 _ i32 };
+            let p: Pair = Pair { x: 10_i32, y: 20_i32 };
             println!(p.x);
             println!(p.y);
         }
@@ -146,7 +146,7 @@ fn structs() {
 fn references_and_deref() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 42 _ i32;
+            let x: i32 = 42_i32;
             exists<'a> {
                 let r: & 'a i32 = & 'a x;
                 println!(*r);
@@ -161,8 +161,8 @@ fn references_and_deref() {
 fn usize_isize() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let a: usize = 100 _ usize;
-            let b: isize = 200 _ isize;
+            let a: usize = 100_usize;
+            let b: isize = 200_isize;
             println!(a);
             println!(b);
         }
@@ -176,9 +176,9 @@ fn multiple_calls_in_sequence() {
     FormalityTest::new(crates![crate test {
         fn f(x: i32) -> i32 { return x; }
         fn main() -> () {
-            let a: i32 = f(1 _ i32);
-            let b: i32 = f(2 _ i32);
-            let c: i32 = f(3 _ i32);
+            let a: i32 = f(1_i32);
+            let b: i32 = f(2_i32);
+            let c: i32 = f(3_i32);
             println!(a);
             println!(b);
             println!(c);
@@ -193,7 +193,7 @@ fn nested_calls() {
     FormalityTest::new(crates![crate test {
         fn f(x: i32) -> i32 { return x; }
         fn main() -> () {
-            let y: i32 = f(f(42 _ i32));
+            let y: i32 = f(f(42_i32));
             println!(y);
         }
     }])
@@ -210,7 +210,7 @@ fn functions_calling_other_functions() {
             return y;
         }
         fn main() -> () {
-            let r: i32 = outer(7 _ i32);
+            let r: i32 = outer(7_i32);
             println!(r);
         }
     }])
@@ -227,7 +227,7 @@ fn transitive_monomorphization() {
             return y;
         }
         fn a() -> () {
-            let r: i32 = b::<i32>(99 _ i32);
+            let r: i32 = b::<i32>(99_i32);
             println!(r);
         }
         fn main() -> () {
@@ -243,7 +243,7 @@ fn generic_function_multiple_type_params() {
     FormalityTest::new(crates![crate test {
         fn first<T, U>(x: T, y: U) -> T { return x; }
         fn main() -> () {
-            let r: i32 = first::<i32, bool>(10 _ i32, true);
+            let r: i32 = first::<i32, bool>(10_i32, true);
             println!(r);
         }
     }])
@@ -256,7 +256,7 @@ fn generic_struct() {
     FormalityTest::new(crates![crate test {
         struct Wrapper<T> where { val: T }
         fn main() -> () {
-            let w: Wrapper<i32> = Wrapper::<i32> { val: 42 _ i32 };
+            let w: Wrapper<i32> = Wrapper::<i32> { val: 42_i32 };
             println!(w.val);
         }
     }])
@@ -270,7 +270,7 @@ fn ref_to_struct_field() {
     FormalityTest::new(crates![crate test {
         struct Pair<> where { x: i32, y: i32 }
         fn main() -> () {
-            let p: Pair = Pair { x: 10 _ i32, y: 20 _ i32 };
+            let p: Pair = Pair { x: 10_i32, y: 20_i32 };
             exists<'a> {
                 let r: & 'a i32 = & 'a p.x;
                 println!(*r);
@@ -287,7 +287,7 @@ fn deref_through_ref_to_struct_field() {
     FormalityTest::new(crates![crate test {
         struct Pair<> where { x: i32, y: i32 }
         fn main() -> () {
-            let p: Pair = Pair { x: 10 _ i32, y: 20 _ i32 };
+            let p: Pair = Pair { x: 10_i32, y: 20_i32 };
             exists<'a> {
                 let r: & 'a Pair = & 'a p;
                 println!((*r).x);
@@ -303,7 +303,7 @@ fn deref_through_ref_to_struct_field() {
 fn continue_in_loop() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 0 _ i32;
+            let x: i32 = 0_i32;
             'a: loop {
                 if true {
                     println!(x);
@@ -323,13 +323,13 @@ fn nested_loops_break_outer() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
             'outer: loop {
-                println!(1 _ i32);
+                println!(1_i32);
                 'inner: loop {
-                    println!(2 _ i32);
+                    println!(2_i32);
                     break 'outer;
                 }
             }
-            println!(3 _ i32);
+            println!(3_i32);
         }
     }])
     .expect_output("1\n2\n3\n")
@@ -342,14 +342,14 @@ fn if_else_inside_loop_with_breaks() {
         fn main() -> () {
             'a: loop {
                 if true {
-                    println!(1 _ i32);
+                    println!(1_i32);
                     break 'a;
                 } else {
-                    println!(2 _ i32);
+                    println!(2_i32);
                     break 'a;
                 }
             }
-            println!(3 _ i32);
+            println!(3_i32);
         }
     }])
     .expect_output("1\n3\n")
@@ -360,13 +360,13 @@ fn if_else_inside_loop_with_breaks() {
 fn multiple_breaks_same_label() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 0 _ i32;
+            let x: i32 = 0_i32;
             'a: loop {
                 if false {
-                    x = 1 _ i32;
+                    x = 1_i32;
                     break 'a;
                 } else {
-                    x = 2 _ i32;
+                    x = 2_i32;
                     break 'a;
                 }
             }
@@ -382,10 +382,10 @@ fn multiple_breaks_same_label() {
 fn mut_reference() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 1 _ i32;
+            let x: i32 = 1_i32;
             exists<'a> {
-                let r: &mut 'a i32 = &mut 'a x;
-                *r = 2 _ i32;
+                let r: &'a mut i32 = &mut 'a x;
+                *r = 2_i32;
                 println!(*r);
             }
         }
@@ -399,7 +399,7 @@ fn mut_reference() {
 fn reborrow_shared() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 42 _ i32;
+            let x: i32 = 42_i32;
             exists<'a> {
                 let r1: & 'a i32 = & 'a x;
                 let r2: & 'a i32 = & 'a *r1;
@@ -416,7 +416,7 @@ fn reborrow_shared() {
 fn exists_with_lifetime_parameterized_type() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 55 _ i32;
+            let x: i32 = 55_i32;
             exists<'a> {
                 let r: & 'a i32 = & 'a x;
                 println!(*r);
@@ -431,9 +431,9 @@ fn exists_with_lifetime_parameterized_type() {
 fn return_from_inside_loop() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 0 _ i32;
+            let x: i32 = 0_i32;
             'a: loop {
-                x = 77 _ i32;
+                x = 77_i32;
                 break 'a;
             }
             println!(x);
@@ -447,10 +447,10 @@ fn return_from_inside_loop() {
 fn return_from_nested_block_inside_loop() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
-            let x: i32 = 0 _ i32;
+            let x: i32 = 0_i32;
             'a: loop {
                 {
-                    x = 88 _ i32;
+                    x = 88_i32;
                     break 'a;
                 }
             }
@@ -466,11 +466,11 @@ fn break_from_labeled_block() {
     FormalityTest::new(crates![crate test {
         fn main() -> () {
             'a: {
-                println!(1 _ i32);
+                println!(1_i32);
                 break 'a;
-                println!(2 _ i32);
+                println!(2_i32);
             }
-            println!(3 _ i32);
+            println!(3_i32);
         }
     }])
     .expect_output("1\n3\n")
