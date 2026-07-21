@@ -7,6 +7,9 @@
 //!   approximation grows.
 //! * `root_scope` tests that returning from the top-level judgment discards
 //!   both its own table and all completed descendant entries.
+//! * `soundness` compares memoized execution with uncached execution across
+//!   cyclic graphs, different root orders, and every three-node monotone
+//!   Boolean system.
 //!
 //! This module contains the small judgments shared by the focused suites. Each
 //! one isolates a particular cache-identity or invalidation case.
@@ -17,8 +20,11 @@ use std::cell::Cell;
 
 use crate::{judgment_fn, ProvenSet, Set};
 
+use super::memo;
+
 mod iteration;
 mod root_scope;
+mod soundness;
 
 // These counters are observability probes. A memo hit has the same semantic
 // result as ordinary execution, so the tests count judgment-body executions to
