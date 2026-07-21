@@ -12,7 +12,7 @@ use crate::grammar::{
     Variable, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
-use crate::prove::prove::Safety;
+use crate::prove::Safety;
 use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 

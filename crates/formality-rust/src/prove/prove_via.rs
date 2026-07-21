@@ -1,9 +1,8 @@
 use crate::grammar::{WcData, Wcs};
 use formality_core::judgment_fn;
 
-use crate::prove::prove::{
-    decls::Program,
-    prove::{constraints::Constraints, env::Env, prove, prove_after::prove_after},
+use crate::prove::{
+    constraints::Constraints, decls::Program, env::Env, prove, prove_after::prove_after,
 };
 
 judgment_fn! {

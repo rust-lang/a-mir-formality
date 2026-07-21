@@ -1,13 +1,10 @@
 use crate::grammar::{Binder, Wcs};
-use crate::prove::prove::prove::Bias;
+use crate::prove::Bias;
 use formality_core::ProvenSet;
 use formality_macros::term;
 use std::sync::Arc;
 
-use crate::prove::prove::{
-    decls::Program,
-    prove::{prove, Constraints, Env},
-};
+use crate::prove::{decls::Program, prove, Constraints, Env};
 
 /// Useful assertions for use in tests.
 #[term]

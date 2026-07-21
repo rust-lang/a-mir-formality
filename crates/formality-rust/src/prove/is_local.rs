@@ -2,17 +2,13 @@ use crate::{
     grammar::{
         AliasTy, Lt, Parameter, PredicateTy, RigidName, RigidTy, TraitRef, TyData, Variable, Wcs,
     },
-    prove::prove::Constrained,
+    prove::Constrained,
 };
 use formality_core::judgment_fn;
 
-use crate::prove::prove::{
-    decls::Program,
-    prove::{
-        combinators::for_all, env::Bias, negation::may_not_be_provable,
-        prove_normalize::prove_normalize, Constraints,
-    },
-    Env,
+use crate::prove::{
+    combinators::for_all, decls::Program, env::Bias, negation::may_not_be_provable,
+    prove_normalize::prove_normalize, Constraints, Env,
 };
 
 // From https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html:

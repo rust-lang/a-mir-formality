@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::check::{prove_goal, where_clauses::prove_where_clauses_well_formed};
 use crate::grammar::Fallible;
 use crate::grammar::{Adt, AdtBoundData, Field, Relation, Variant};
-use crate::prove::prove::{Env, Program};
+use crate::prove::{Env, Program};
 use anyhow::bail;
 use formality_core::judgment::ProofTree;
 use formality_core::judgment_fn;

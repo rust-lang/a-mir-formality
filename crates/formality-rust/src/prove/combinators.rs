@@ -1,4 +1,4 @@
-use crate::prove::prove::decls::Program;
+use crate::prove::decls::Program;
 use crate::rust::Term;
 use formality_core::judgment::ProofTree;
 use formality_core::ProvenSet;

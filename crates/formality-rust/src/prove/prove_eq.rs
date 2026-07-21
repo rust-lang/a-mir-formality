@@ -2,17 +2,15 @@ use crate::grammar::{
     AliasTy, ExistentialVar, Parameter, Relation, RigidTy, Substitution, TyData, UniversalVar,
     Variable, Wcs,
 };
-use crate::prove::prove::Constrained;
+use crate::prove::Constrained;
 use formality_core::judgment::FailureLocation;
 use formality_core::visit::CoreVisit;
 use formality_core::Deduplicate;
 use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 
-use crate::prove::prove::{
-    decls::Program,
-    prove::{
-        constraints::occurs_in, prove, prove_after::prove_after, prove_normalize::prove_normalize,
-    },
+use crate::prove::{
+    constraints::occurs_in, decls::Program, prove, prove_after::prove_after,
+    prove_normalize::prove_normalize,
 };
 
 use super::{constraints::Constraints, env::Env};

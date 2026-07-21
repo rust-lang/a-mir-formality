@@ -363,7 +363,7 @@ impl Env {
     }
 }
 
-impl CoreVisit<crate::prove::prove::FormalityLang> for Env {
+impl CoreVisit<crate::prove::FormalityLang> for Env {
     fn free_variables(&self) -> Vec<Variable> {
         self.variables.clone()
     }

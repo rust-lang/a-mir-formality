@@ -5,7 +5,7 @@ use crate::grammar::{
     TraitId, TraitRef, Ty, Wc, Wcs,
 };
 use crate::grammar::{Fn, Relation};
-use crate::prove::prove::Safety;
+use crate::prove::Safety;
 use crate::rust::Term;
 use formality_core::{term, Upcast};
 
