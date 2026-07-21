@@ -1,6 +1,4 @@
-use std::cell::RefCell;
-
-use crate::{fixed_point::FixedPointStack, Fallible, Map};
+use crate::Fallible;
 
 mod assertion;
 pub use assertion::JudgmentAssertion;
@@ -18,14 +16,17 @@ mod scope;
 mod test_comprehension;
 pub use scope::Scope;
 
+mod runtime;
+#[doc(hidden)]
+pub use runtime::{execute_judgment, JudgmentCache};
+
 mod test_explicit_fail;
 mod test_fallible;
 mod test_filtered;
+mod test_fixed_point;
 mod test_for_all;
 mod test_reachable;
 mod test_scope;
-
-pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
 
 /// `judgment_fn!` allows construction of inference rules using a more logic-like notation.
 ///
@@ -344,9 +345,9 @@ macro_rules! judgment_fn {
 
             let mut failed_rules = $crate::set![];
             let input = __JudgmentStruct($($input_name),*);
-            let output = $crate::fixed_point::fixed_point::<
+            let output = $crate::judgment::execute_judgment::<
                 __JudgmentStruct,
-                $crate::Map<$output, $crate::judgment::ProofTree>,
+                $output,
             >(
                 // Tracing span:
                 |input| {
@@ -357,10 +358,10 @@ macro_rules! judgment_fn {
                     )
                 },
 
-                // Stack:
+                // Per-judgment cache:
                 {
                     thread_local! {
-                        static R: $crate::judgment::JudgmentStack<__JudgmentStruct, $output> = Default::default()
+                        static R: $crate::judgment::JudgmentCache<__JudgmentStruct, $output> = Default::default()
                     }
                     &R
                 },
@@ -368,10 +369,7 @@ macro_rules! judgment_fn {
                 // Input:
                 input.clone(),
 
-                // Default value:
-                |_| Default::default(),
-
-                // Next value:
+                // Execute rules:
                 |input: __JudgmentStruct| {
                     let mut output: $crate::Map<$output, $crate::judgment::ProofTree> = $crate::Map::new();
 
