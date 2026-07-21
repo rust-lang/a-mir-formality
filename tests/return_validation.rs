@@ -38,9 +38,9 @@ fn if_else_both_branches_return() {
     FormalityTest::new(crates![crate Foo {
         fn foo(b: bool) -> u32 {
             if b {
-                return 1 _ u32;
+                return 1_u32;
             } else {
-                return 2 _ u32;
+                return 2_u32;
             }
         }
     }])
@@ -57,7 +57,7 @@ fn if_else_one_branch_returns() {
     FormalityTest::new(crates![crate Foo {
         fn foo(b: bool) -> u32 {
             if b {
-                return 1 _ u32;
+                return 1_u32;
             } else {
             }
         }
@@ -104,7 +104,7 @@ fn loop_with_break_then_return() {
             'a: loop {
                 break 'a;
             }
-            return 0 _ u32;
+            return 0_u32;
         }
     }])
     .skip_execute()
@@ -117,7 +117,7 @@ fn loop_with_break_then_return() {
 fn simple_return() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
-            return 42 _ u32;
+            return 42_u32;
         }
     }])
     .skip_execute()

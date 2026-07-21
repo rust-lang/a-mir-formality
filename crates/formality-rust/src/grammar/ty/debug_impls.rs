@@ -23,7 +23,7 @@ impl Debug for RigidTy {
                 write!(f, "&{:?} {:?}", parameters[0], parameters[1])
             }
             RigidName::Ref(RefKind::Mut) if parameters.len() == 2 => {
-                write!(f, "&mut {:?} {:?}", parameters[0], parameters[1])
+                write!(f, "&{:?} mut {:?}", parameters[0], parameters[1])
             }
             RigidName::Raw(PtrKind::Const) if parameters.len() == 1 => {
                 write!(f, "*const {:?}", parameters[0])

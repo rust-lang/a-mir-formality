@@ -6,7 +6,7 @@ use crate::check::borrow_check::nll::{
 };
 use crate::check::borrow_check::typed_place_expression::TypedPlaceExpr;
 use crate::grammar::{
-    expr::{Block, Expr, PlaceExpr, Stmt},
+    expr::{Block, Expr, Literal, PlaceExpr, Stmt},
     Crates, Fallible, RigidName, RigidTy, Ty,
 };
 use formality_core::judgment_fn;
@@ -231,7 +231,7 @@ judgment_fn! {
         (
             (let code = cfn.fresh_code_block())
             ---- ("literal")
-            (codegen_expr_into(global, cfn, scope, target, Expr::Literal { value, ty }) => (
+            (codegen_expr_into(global, cfn, scope, target, Literal { value, ty }) => (
                 code.assign(target, constant(value, ty)),
                 global,
                 cfn,
