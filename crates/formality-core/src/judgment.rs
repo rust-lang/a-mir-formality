@@ -5,6 +5,8 @@ pub use assertion::JudgmentAssertion;
 
 pub mod coverage;
 
+mod memo;
+
 mod proven_set;
 pub use proven_set::{
     insert_smallest_proof, member_of, CheckProven, EachProof, FailedJudgment, FailedRule,
@@ -20,6 +22,8 @@ mod test_fallible;
 mod test_filtered;
 mod test_fixed_point;
 mod test_for_all;
+mod test_memo;
+mod test_panic;
 mod test_reachable;
 
 /// `judgment_fn!` allows construction of inference rules using a more logic-like notation.
@@ -328,6 +332,15 @@ macro_rules! push_rules {
             if let Some($pat0) = &$crate::Downcast::downcast::<$ty0>($in0) {
                 $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
             }
+        }
+    };
+
+    // Boolean literals also match an `ident` macro fragment. Handle all
+    // literals before the identity-pattern arm so `true` is treated as a
+    // refutable pattern instead of expanding to the invalid `let true = ...`.
+    (@match $conclusion_name:ident inputs($in0:ident $($inputs:tt)*) patterns($pat0:literal, $($pats:tt)*) args $args:tt) => {
+        if let Some($pat0) = &$crate::Downcast::downcast($in0) {
+            $crate::push_rules!(@match $conclusion_name inputs($($inputs)*) patterns($($pats)*) args $args);
         }
     };
 

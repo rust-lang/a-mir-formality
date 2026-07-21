@@ -29,20 +29,40 @@
 //! Proofs are metadata, and [`merge_proven_outputs`] retains the smallest proof
 //! observed for each value.
 //!
+//! ## Completed-result memoization
+//!
+//! The active execution stack is separate from [`memo`]. The stack stores
+//! incomplete approximations used to break recursive cycles; the memo layer
+//! stores only completed positive results. Each call therefore checks, in order:
+//!
+//! 1. the active stack for a recursive cycle;
+//! 2. completed results from a still-valid enclosing iteration.
+//!
+//! A call that misses both paths opens an active stack entry and a
+//! [`memo::IterationGuard`]. If its approximation grows, completed descendant
+//! memo entries from the obsolete pass are invalidated before rules execute
+//! again. At convergence, the final output and valid descendants move into the
+//! parent iteration. Completing the top-level judgment discards its table, so
+//! no memoized result survives between independent calls. See the [`memo`]
+//! module for that lifecycle in detail.
+//!
 //! ## Cleanup and failures
 //!
-//! [`ActiveJudgmentGuard`] removes active stack state during unwinding. This
-//! prevents a panic in a rule body from making later calls appear recursive.
+//! [`ActiveJudgmentGuard`] removes active stack state during unwinding, while
+//! [`memo::IterationGuard`] removes provisional memo state. This prevents a
+//! panic in a rule body from making later calls appear recursive or memoized.
 //!
 //! This module returns only proven values and proof trees. The generated
 //! judgment function separately accumulates failure diagnostics for a pass and
-//! uses them if the final [`ProofMap`] is empty.
+//! uses them if the final [`ProofMap`] is empty. Empty results are not memoized,
+//! because the proof map does not contain enough information to reconstruct
+//! those diagnostics.
 
 use std::{cell::RefCell, fmt::Debug, hash::Hash, thread::LocalKey};
 
 use crate::Map;
 
-use super::{insert_smallest_proof, ProofTree};
+use super::{insert_smallest_proof, memo, ProofTree};
 
 /// The current proven values and smallest known proof for each value.
 type ProofMap<Output> = Map<Output, ProofTree>;
@@ -106,12 +126,37 @@ where
             return output;
         }
 
+        // Completed in this fixed-point iteration: a nested call already proved a
+        // positive result for this input, and no enclosing approximation has grown
+        // since then. Reuse it until an iteration invalidation clears the table.
+        if let Some(output) = memo::lookup_iteration(&input) {
+            tracing::debug!(
+                "iteration-memoized call to {:?}, yielding {:?}",
+                input,
+                output
+            );
+            return output;
+        }
+
         // Execute the rules to compute the value. If executing the rules required recursively
         // reading the result of the current rule, then execute until a fixed-point is reached.
         // Otherwise (no recursion) just compute a single iteration.
+        //
+        // The result will be cached in the memo-table for this iteration and then added into
+        // the parent's table. Whenever this judgment (or a parent) must run a second iteration,
+        // it clears the intermediate cached results since they may change because recursive
+        // calls will yield a new value.
         cache.with(|cache| cache.active.borrow_mut().push(&input, Map::new()));
         let active_guard = ActiveJudgmentGuard::new(cache, &input);
+        let iteration_guard = memo::IterationGuard::begin();
         loop {
+            // The current judgment's provisional memo table is topmost here and
+            // contains no completed descendants yet. `begin` creates it empty for
+            // the first pass; `invalidate` clears it before every repeated pass.
+            // The current judgment's own approximation lives in `active_guard`'s
+            // execution-stack entry, not in this memo table.
+            iteration_guard.assert_is_top_and_empty();
+
             // Run the user's judgment rules and then trace the output.
             let span = tracing_span(&input);
             let _guard = span.enter();
@@ -128,10 +173,20 @@ where
             }
 
             tracing::debug!("proven values changed, re-executing until a fixed point is reached");
+
+            // Descendants completed in this round may have depended on the old
+            // approximation. Clear them before evaluating the rules again so
+            // they cannot be reused as though they were valid at the new point.
+            iteration_guard.invalidate();
         }
 
-        // Remove and return the final approximation.
-        active_guard.pop()
+        // Remove and return the final approximation, then transfer the positive
+        // entries completed in its last valid iteration into the parent memo
+        // scope. If this was the top-level judgment, completing its iteration
+        // instead discards the table so no cache survives the call.
+        let output = active_guard.pop();
+        iteration_guard.complete(&input, &output);
+        output
     })
 }
 
