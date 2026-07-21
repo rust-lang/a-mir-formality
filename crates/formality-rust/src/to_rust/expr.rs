@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use crate::{
     grammar::{
-        expr::{Block, Expr, FieldExpr, Init, Label, PlaceExpr, Stmt},
+        expr::{Block, Expr, FieldExpr, Init, Label, Literal, PlaceExpr, Stmt},
         Binder, Fallible, FieldName, Lt, Parameter, RefKind, Ty, ValueId, Variable,
     },
     to_rust::context::Wrapped,
@@ -96,7 +96,7 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
                 .map(|arg| lower_expr(ctx, arg))
                 .collect::<Result<Vec<_>, _>>()?,
         }),
-        Expr::Literal { value, ty } => Ok(syntax::Expr::Literal {
+        Expr::Literal(Literal { value, ty }) => Ok(syntax::Expr::Literal {
             value: value.to_string(),
             suffix: tys::scalar_to_string(ty),
         }),

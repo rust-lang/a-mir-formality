@@ -18,17 +18,17 @@ fn test_assign_statement_local_only() {
 fn test_assign_constant() {
     FormalityTest::new(crates![crate Foo {
         fn foo () -> u8 {
-            let v1: u16 = 5 _ u16;
-            let v2: u32 = 5 _ u32;
-            let v3: u64 = 5 _ u64;
-            let v4: usize = 5 _ usize;
-            let v5: i8 = 5 _ i8;
-            let v6: i16 = 5 _ i16;
-            let v7: i32 = 5 _ i32;
-            let v8: i64 = 5 _ i64;
-            let v9: isize = 5 _ isize;
+            let v1: u16 = 5_u16;
+            let v2: u32 = 5_u32;
+            let v3: u64 = 5_u64;
+            let v4: usize = 5_usize;
+            let v5: i8 = 5_i8;
+            let v6: i16 = 5_i16;
+            let v7: i32 = 5_i32;
+            let v8: i64 = 5_i64;
+            let v9: isize = 5_isize;
             let v10: bool = false;
-            return 5 _ u8;
+            return 5_u8;
         }
     }])
     .skip_execute()
@@ -95,7 +95,7 @@ fn test_goto_terminator() {
 fn test_cyclic_goto() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
-            let v0: u32 = 0 _ u32;
+            let v0: u32 = 0_u32;
             loop {
                 v0 = v0;
             }
@@ -123,9 +123,9 @@ fn if_else() {
     FormalityTest::new(crates![crate Foo {
         fn foo (b: bool) -> u32 {
             if b {
-                return 1 _ u32;
+                return 1_u32;
             } else {
-                return 2 _ u32;
+                return 2_u32;
             }
         }
     }])
@@ -139,7 +139,7 @@ fn if_else_different_return_types() {
     FormalityTest::new(crates![crate Foo {
                 fn foo (b: bool) -> u32 {
                     if b {
-                        return 1 _ u32;
+                        return 1_u32;
                     } else {
                         return false;
                     }
@@ -225,8 +225,8 @@ fn test_struct() {
         }
 
         fn foo (v1: u32) -> u32 {
-            let v2: Dummy = Dummy { value: 1 _ u32, is_true: false };
-            v2.value = 2 _ u32;
+            let v2: Dummy = Dummy { value: 1_u32, is_true: false };
+            v2.value = 2_u32;
             return v1;
         }
     }])
@@ -273,7 +273,7 @@ fn test_let_with_ill_formed_type() {
 fn test_call_invalid_fn() {
     FormalityTest::new(crates![crate Foo {
         fn bar() -> u32 {
-            let v1: u32 = foo(0 _ u32);
+            let v1: u32 = foo(0_u32);
             return v1;
         }
     }])
@@ -587,8 +587,8 @@ fn test_invalid_struct_field() {
         }
 
         fn foo (v1: u32) -> u32 {
-            let v2: Dummy = Dummy { value: 1 _ u32 };
-            v2.nonexistent = 2 _ u32;
+            let v2: Dummy = Dummy { value: 1_u32 };
+            v2.nonexistent = 2_u32;
             return v1;
         }
     }])
@@ -606,8 +606,8 @@ fn test_field_projection_root_non_adt() {
                 }
 
                 fn foo (v1: u32) -> u32 {
-                    let v2: Dummy = Dummy { value: 1 _ u32 };
-                    v1.value = 2 _ u32;
+                    let v2: Dummy = Dummy { value: 1_u32 };
+                    v1.value = 2_u32;
                     return v1;
                 }
             }]).err(expect_test::expect![[r#"
@@ -699,7 +699,7 @@ fn test_ref_deref() {
     FormalityTest::new(crates![crate Foo {
         fn foo () -> u32 {
             exists<'a> {
-                let v0: u32 = 0 _ u32;
+                let v0: u32 = 0_u32;
                 let v1: &'a u32 = &'a v0;
                 let v2: u32 = *v1;
                 return v2;
@@ -748,7 +748,7 @@ fn test_break_valid_loop_label() {
             'a: loop {
                 break 'a;
             }
-            return 0 _ u32;
+            return 0_u32;
         }
     }])
     .skip_execute()
@@ -771,12 +771,12 @@ fn test_break_nonexistent_label() {
                     loop {
                         break 'nonexistent;
                     }
-                    return 0 _ u32;
+                    return 0_u32;
                 }
             }]).err(expect_test::expect![[r#"
-                crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }
+                crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0_u32 ; } }], 222) } }
 
-                crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0 _ u32 ; } }], 222) } }"#]])
+                crates/formality-rust/src/check/borrow_check/nll.rs:176:1: no applicable rules for borrow_check_statement { state: flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(none, None, {}, Some({}), [], []), scope(none, None, {}, None, [], [])], point_flow_state({}, {}, {}), {}, {}), statement: break 'nonexistent ;, places_live_on_exit: {}, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(u32), program: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { fn foo () -> u32 { loop { break 'nonexistent ; } return 0_u32 ; } }], 222) } }"#]])
 }
 
 /// `continue` targeting a valid loop label should pass.
@@ -795,7 +795,7 @@ fn test_continue_valid_loop_label() {
             'a: loop {
                 continue 'a;
             }
-            return 0 _ u32;
+            return 0_u32;
         }
     }])
     .skip_execute()
@@ -819,7 +819,7 @@ fn test_continue_block_label() {
             'a: {
                 continue 'a;
             }
-            return 0 _ u32;
+            return 0_u32;
         }
     }])
     .err(expect_test::expect![[r#"
@@ -875,7 +875,7 @@ fn test_break_block_label() {
             'a: {
                 break 'a;
             }
-            return 0 _ u32;
+            return 0_u32;
         }
     }])
     .skip_execute()
