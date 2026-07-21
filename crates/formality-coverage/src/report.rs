@@ -291,12 +291,133 @@ fn negative_num(cov: &Coverage, j: &Judgment, r: &Rule, p: &Premise, link_ext: &
 
 /// A generated per-cell detail page. `slug` is the filename stem (cells link to
 /// `./{slug}.md`); `title` is a short heading for the mdbook sidebar; `content`
-/// is the markdown body.
+/// is the markdown body. `args_json` is the page's sidecar argument data (see
+/// [`ArgSink`]), written to `coverage-args/{slug}.args.json` and fetched lazily
+/// by the page's inline script; empty when the page has no arguments to show.
 pub struct DetailPage {
     pub slug: String,
     pub title: String,
     pub content: String,
+    pub args_json: String,
 }
+
+/// Subdirectory (relative to the pages) holding the sidecar `args` JSON files a
+/// page's inline script fetches. Both the standalone report and the mdbook
+/// preprocessor place the JSON here so the pages' `./coverage-args/…` fetch URL
+/// resolves the same way in each.
+pub const ARGS_SUBDIR: &str = "coverage-args";
+
+/// Write a detail page's sidecar `args` JSON to `dir/{slug}.args.json`, creating
+/// `dir` on first use. No-op when the page has no arguments (so no empty files
+/// are written). The JSON is byte-stable for a given page (see [`ArgSink`]).
+pub fn write_args_json(dir: &Path, page: &DetailPage) -> Result<()> {
+    if page.args_json.is_empty() {
+        return Ok(());
+    }
+    std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
+    std::fs::write(
+        dir.join(format!("{}.args.json", page.slug)),
+        &page.args_json,
+    )?;
+    Ok(())
+}
+
+/// Collects the per-node argument data for one detail page while it renders, so
+/// the (potentially large) `Debug` values can ship as a sidecar JSON file
+/// fetched on demand instead of inlined into the page HTML. Each node that shows
+/// arguments is assigned a stable id (`n0`, `n1`, …) emitted as its
+/// `data-arg-id`; the page's inline script ([`args_script`]) fetches
+/// `{slug}.args.json` and hydrates the matching disclosure only when it is
+/// opened. Keeping the values out of the HTML keeps the initial page load and
+/// the mdbook search index small.
+#[derive(Default)]
+struct ArgSink {
+    /// `(id, rows)` where each row is `[name, value]` (an empty name renders the
+    /// value alone, as a failed judgment's argument string does).
+    entries: Vec<(String, Vec<[String; 2]>)>,
+}
+
+impl ArgSink {
+    fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    /// Register a node's argument rows and return its `data-arg-id`.
+    fn push(&mut self, rows: Vec<[String; 2]>) -> String {
+        let id = format!("n{}", self.entries.len());
+        self.entries.push((id.clone(), rows));
+        id
+    }
+
+    /// Serialize to the sidecar object `{ "n0": [["name","value"], …], … }`, or
+    /// `""` when empty so callers can skip writing a file. Keys are sorted (via
+    /// `serde_json::Map`), so identical input yields byte-identical output — this
+    /// keeps `mdbook serve` from rebuilding in a loop when the preprocessor
+    /// rewrites the file each build.
+    fn to_json(&self) -> String {
+        if self.entries.is_empty() {
+            return String::new();
+        }
+        let map: serde_json::Map<String, serde_json::Value> = self
+            .entries
+            .iter()
+            .map(|(id, rows)| {
+                let arr = rows
+                    .iter()
+                    .map(|[n, v]| serde_json::json!([n, v]))
+                    .collect();
+                (id.clone(), serde_json::Value::Array(arr))
+            })
+            .collect();
+        serde_json::to_string(&serde_json::Value::Object(map)).unwrap_or_default()
+    }
+}
+
+/// Inline script injected once per detail page. On the first opening of an
+/// `args` disclosure it fetches the page's `{slug}.args.json` (cached for the
+/// page), renders that node's rows, and frees them again when the disclosure is
+/// closed — so the argument values are downloaded and materialized only while a
+/// reader is actually looking at them. `slug` is ASCII alphanumeric/`_` (see
+/// [`slug`]/[`anchor`]), so it needs no escaping in the URL. Emitted as one
+/// `<script>` block; its raw text is untrusted only in the JSON it fetches,
+/// which is inserted via `textContent`, never `innerHTML`.
+fn args_script(slug: &str) -> String {
+    ARGS_SCRIPT.replace("__ARGS_URL__", &format!("./coverage-args/{slug}.args.json"))
+}
+
+const ARGS_SCRIPT: &str = r#"<script>
+(function () {
+  var url = "__ARGS_URL__";
+  var cache;
+  function load() { return cache || (cache = fetch(url).then(function (r) { return r.json(); })); }
+  function fill(d) {
+    var ul = d.querySelector("ul");
+    load().then(function (m) {
+      var rows = m[d.getAttribute("data-arg-id")] || [];
+      ul.textContent = "";
+      rows.forEach(function (p) {
+        var li = document.createElement("li");
+        var c = document.createElement("code");
+        c.textContent = p[0] ? p[0] + " = " + p[1] : p[1];
+        li.appendChild(c);
+        ul.appendChild(li);
+      });
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    var list = document.querySelectorAll("details.cov-args[data-arg-id]");
+    for (var i = 0; i < list.length; i++) {
+      (function (d) {
+        d.addEventListener("toggle", function () {
+          var ul = d.querySelector("ul");
+          if (d.open) { fill(d); } else { ul.textContent = ""; }
+        });
+      })(list[i]);
+    }
+  });
+})();
+</script>
+"#;
 
 /// Build the detail pages for one judgment: one per covered rule (positive) and
 /// one per fallible premise that was negatively tested. Cells produced by
@@ -319,6 +440,7 @@ pub fn render_detail_pages_for(
         // Positive: every test that exercised this rule.
         if let Some(locs) = cov.positive_tests(&j.name, &r.name) {
             if !locs.is_empty() {
+                let slug = pos_detail_slug(&j.name, &r.name);
                 let mut content = format!("# Positive coverage: `{}` / `{}`\n\n", j.name, r.name);
                 content.push_str(&chart_section(j, r, cov, link_ext, Highlight::Conclusion));
                 content.push_str(&format!(
@@ -326,16 +448,22 @@ pub fn render_detail_pages_for(
                     locs.len(),
                     plural(locs.len()),
                 ));
+                let mut sink = ArgSink::default();
                 content.push_str(&test_list(
                     github_base,
                     source_root,
                     locs,
                     TreeSection::Positive(cov),
+                    &mut sink,
                 ));
+                if !sink.is_empty() {
+                    content.push_str(&args_script(&slug));
+                }
                 pages.push(DetailPage {
-                    slug: pos_detail_slug(&j.name, &r.name),
                     title: format!("{} / {} (positive)", j.name, r.name),
                     content,
+                    args_json: sink.to_json(),
+                    slug,
                 });
             }
         }
@@ -374,6 +502,8 @@ pub fn render_detail_pages_for(
                 tests.len(),
                 plural(tests.len()),
             ));
+            let slug = neg_detail_slug(&j.name, &r.name, p.line);
+            let mut sink = ArgSink::default();
             content.push_str(&test_list(
                 github_base,
                 source_root,
@@ -383,11 +513,16 @@ pub fn render_detail_pages_for(
                     judgment_file: &j.file,
                     premise_line: p.line,
                 },
+                &mut sink,
             ));
+            if !sink.is_empty() {
+                content.push_str(&args_script(&slug));
+            }
             pages.push(DetailPage {
-                slug: neg_detail_slug(&j.name, &r.name, p.line),
                 title: format!("{} / {} premise@{} (negative)", j.name, r.name, p.line),
                 content,
+                args_json: sink.to_json(),
+                slug,
             });
         }
     }
@@ -425,6 +560,7 @@ fn test_list<'a>(
     source_root: Option<&Path>,
     tests: impl IntoIterator<Item = &'a TestLoc>,
     trees: TreeSection<'_>,
+    sink: &mut ArgSink,
 ) -> String {
     let tests: Vec<&TestLoc> = tests.into_iter().collect();
     let mut s = String::new();
@@ -449,7 +585,7 @@ fn test_list<'a>(
             }
         }
         if i < MAX_TREES_PER_CELL {
-            s.push_str(&tree_details(&trees, loc, github_base, source_root));
+            s.push_str(&tree_details(&trees, loc, github_base, source_root, sink));
         } else if i == MAX_TREES_PER_CELL {
             s.push_str(&format!(
                 "_Proof trees omitted for the remaining {} tests._\n\n",
@@ -470,10 +606,11 @@ fn tree_details(
     loc: &TestLoc,
     github_base: Option<&str>,
     source_root: Option<&Path>,
+    sink: &mut ArgSink,
 ) -> String {
     match trees {
         TreeSection::Positive(cov) => {
-            proof_tree_details(cov.positive_trees_for(loc), github_base, source_root)
+            proof_tree_details(cov.positive_trees_for(loc), github_base, source_root, sink)
         }
         TreeSection::Negative {
             cov,
@@ -485,7 +622,7 @@ fn tree_details(
                 .iter()
                 .filter_map(|t| prune_failed(t, judgment_file, *premise_line))
                 .collect();
-            failed_tree_details(&pruned, github_base, source_root)
+            failed_tree_details(&pruned, github_base, source_root, sink)
         }
     }
 }
@@ -536,6 +673,7 @@ fn proof_tree_details(
     nodes: &[ProofTreeNode],
     github_base: Option<&str>,
     source_root: Option<&Path>,
+    sink: &mut ArgSink,
 ) -> String {
     if nodes.is_empty() {
         return String::new();
@@ -544,7 +682,16 @@ fn proof_tree_details(
     let mut body = String::from("<ul class=\"cov-tree\">\n");
     let mut budget = MAX_TREE_NODES;
     for n in nodes {
-        render_proof_node(n, github_base, source_root, 0, &mut body, &mut budget);
+        render_proof_node(
+            n,
+            github_base,
+            source_root,
+            0,
+            &[],
+            &mut body,
+            &mut budget,
+            sink,
+        );
     }
     body.push_str("</ul>\n");
     append_truncation_note(&mut body, total);
@@ -563,8 +710,10 @@ fn render_proof_node(
     github_base: Option<&str>,
     source_root: Option<&Path>,
     depth: usize,
+    parent_attrs: &[(String, String)],
     out: &mut String,
     budget: &mut usize,
+    sink: &mut ArgSink,
 ) {
     if *budget == 0 {
         return;
@@ -581,7 +730,17 @@ fn render_proof_node(
         rule = rule,
         loc = loc_link(&n.file, n.line, github_base, source_root),
     );
-    if n.children.is_empty() {
+    // Show only arguments that differ from the parent: ambient ones (e.g. the
+    // whole program) are constant down a path, so this shows them once near the
+    // top instead of on every node.
+    let fresh: Vec<(String, String)> = n
+        .attributes
+        .iter()
+        .filter(|(k, v)| !parent_attrs.iter().any(|(pk, pv)| pk == k && pv == v))
+        .cloned()
+        .collect();
+    let attrs = render_attrs(&fresh, sink);
+    if n.children.is_empty() && attrs.is_empty() {
         out.push_str(&format!("<li>{label}</li>\n"));
         return;
     }
@@ -589,10 +748,55 @@ fn render_proof_node(
         "<li>{details}<summary>{label}</summary>\n<ul class=\"cov-tree\">\n",
         details = details_tag(depth),
     ));
+    out.push_str(&attrs);
     for c in &n.children {
-        render_proof_node(c, github_base, source_root, depth + 1, out, budget);
+        render_proof_node(
+            c,
+            github_base,
+            source_root,
+            depth + 1,
+            &n.attributes,
+            out,
+            budget,
+            sink,
+        );
     }
     out.push_str("</ul>\n</details></li>\n");
+}
+
+/// A collapsed `args` disclosure whose body is filled in lazily by
+/// [`args_script`]: the node's `(name, value)` rows are registered in `sink`
+/// (shipped as sidecar JSON) and only the empty placeholder is emitted, keyed by
+/// the returned `data-arg-id`. Returns `""` when there are no attributes.
+fn render_attrs(attributes: &[(String, String)], sink: &mut ArgSink) -> String {
+    if attributes.is_empty() {
+        return String::new();
+    }
+    let rows: Vec<[String; 2]> = attributes
+        .iter()
+        .map(|(name, value)| [name.clone(), value.clone()])
+        .collect();
+    args_placeholder(sink.push(rows))
+}
+
+/// A collapsed `args` disclosure for a failed judgment node, showing the single
+/// argument-list string the judgment was applied to (emitted lazily like
+/// [`render_attrs`], as one row with an empty name so it renders alone), or `""`
+/// when it is empty.
+fn render_failed_args(args: &str, sink: &mut ArgSink) -> String {
+    if args.is_empty() {
+        return String::new();
+    }
+    args_placeholder(sink.push(vec![[String::new(), args.to_string()]]))
+}
+
+/// The empty `args` disclosure emitted in the HTML; [`args_script`] fetches the
+/// sidecar JSON and fills the inner `<ul>` for `id` when the reader opens it.
+fn args_placeholder(id: String) -> String {
+    format!(
+        "<li><details class=\"cov-args\" data-arg-id=\"{id}\"><summary><em>args</em></summary>\n\
+         <ul class=\"cov-tree\"></ul>\n</details></li>\n",
+    )
 }
 
 /// The failed proof tree(s) for one test, already pruned to the relevant
@@ -601,6 +805,7 @@ fn failed_tree_details(
     nodes: &[FailedTreeNode],
     github_base: Option<&str>,
     source_root: Option<&Path>,
+    sink: &mut ArgSink,
 ) -> String {
     if nodes.is_empty() {
         return String::new();
@@ -609,7 +814,16 @@ fn failed_tree_details(
     let mut body = String::from("<ul class=\"cov-tree\">\n");
     let mut budget = MAX_TREE_NODES;
     for n in nodes {
-        render_failed_node(n, github_base, source_root, 0, &mut body, &mut budget);
+        render_failed_node(
+            n,
+            github_base,
+            source_root,
+            0,
+            "",
+            &mut body,
+            &mut budget,
+            sink,
+        );
     }
     body.push_str("</ul>\n");
     append_truncation_note(&mut body, total);
@@ -629,8 +843,10 @@ fn render_failed_node(
     github_base: Option<&str>,
     source_root: Option<&Path>,
     depth: usize,
+    parent_args: &str,
     out: &mut String,
     budget: &mut usize,
+    sink: &mut ArgSink,
 ) {
     if *budget == 0 {
         return;
@@ -641,7 +857,13 @@ fn render_failed_node(
         judgment = html_escape(&j.judgment),
         loc = loc_link(&j.file, j.line, github_base, source_root),
     );
-    if j.rules.is_empty() {
+    // Suppress args identical to the parent judgment's (see `render_proof_node`).
+    let attrs = if j.args != parent_args {
+        render_failed_args(&j.args, sink)
+    } else {
+        String::new()
+    };
+    if j.rules.is_empty() && attrs.is_empty() {
         out.push_str(&format!("<li>{label}</li>\n"));
         return;
     }
@@ -649,8 +871,18 @@ fn render_failed_node(
         "<li>{details}<summary>{label}</summary>\n<ul class=\"cov-tree\">\n",
         details = details_tag(depth),
     ));
+    out.push_str(&attrs);
     for r in &j.rules {
-        render_failed_rule(r, github_base, source_root, depth + 1, out, budget);
+        render_failed_rule(
+            r,
+            github_base,
+            source_root,
+            depth + 1,
+            &j.args,
+            out,
+            budget,
+            sink,
+        );
     }
     out.push_str("</ul>\n</details></li>\n");
 }
@@ -660,8 +892,10 @@ fn render_failed_rule(
     github_base: Option<&str>,
     source_root: Option<&Path>,
     depth: usize,
+    parent_args: &str,
     out: &mut String,
     budget: &mut usize,
+    sink: &mut ArgSink,
 ) {
     if *budget == 0 {
         return;
@@ -679,7 +913,16 @@ fn render_failed_rule(
                 "<li>{details}<summary><code>{name}</code> {loc}</summary>\n<ul class=\"cov-tree\">\n",
                 details = details_tag(depth),
             ));
-            render_failed_node(child, github_base, source_root, depth + 1, out, budget);
+            render_failed_node(
+                child,
+                github_base,
+                source_root,
+                depth + 1,
+                parent_args,
+                out,
+                budget,
+                sink,
+            );
             out.push_str("</ul>\n</details></li>\n");
         }
         // A terminal failure: show the cause tag.
@@ -770,6 +1013,7 @@ fn prune_failed(
         .collect();
     (!rules.is_empty()).then(|| FailedTreeNode {
         judgment: j.judgment.clone(),
+        args: j.args.clone(),
         file: j.file.clone(),
         line: j.line,
         rules,
@@ -949,6 +1193,7 @@ pub fn write_all(
                     page.slug,
                 );
             }
+            write_args_json(&out_dir.join(ARGS_SUBDIR), &page)?;
             std::fs::write(out_dir.join(format!("{}.md", page.slug)), page.content)?;
         }
     }
