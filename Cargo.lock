@@ -336,6 +336,7 @@ dependencies = [
  "expect-test",
  "formality-core",
  "regex",
+ "serde",
  "serde_json",
  "walkdir",
 ]

@@ -1,0 +1,46 @@
+# Reports how a PR moves judgment coverage relative to the published baseline.
+# Purely informational: it writes a markdown report to the run's job summary and
+# is intentionally NOT a required check, so it can never block a merge.
+#
+# The baseline is `coverage-summary.json`, published alongside the book on the
+# last `main` build (see mdbook.yml). Until that has run once there is no
+# baseline and the job just says so.
+name: Coverage report
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  coverage-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate coverage data
+        run: cargo test --all
+
+      - name: Build this PR's coverage summary
+        run: |
+          cargo run -p formality-coverage --bin formality-coverage -- \
+            --jsonl target/test-coverage.jsonl \
+            --out-dir target/coverage-report \
+            --summary-json target/coverage-summary.json
+
+      - name: Fetch the published baseline
+        run: |
+          if curl -fsSL -o target/coverage-baseline.json \
+            https://rust-lang.github.io/a-mir-formality/coverage-summary.json; then
+            echo "fetched baseline"
+          else
+            echo "no baseline published yet; the report will note this"
+            rm -f target/coverage-baseline.json
+          fi
+
+      - name: Compare and write the job summary
+        run: |
+          cargo run -p formality-coverage --bin coverage-diff -- \
+            --base target/coverage-baseline.json \
+            --head target/coverage-summary.json \
+            >> "$GITHUB_STEP_SUMMARY"

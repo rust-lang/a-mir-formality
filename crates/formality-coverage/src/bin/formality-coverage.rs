@@ -5,7 +5,7 @@ use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
 
-use formality_coverage::{jsonl, report, scrape};
+use formality_coverage::{jsonl, report, scrape, summary};
 
 #[derive(Parser, Debug)]
 #[command(about = "Generate a markdown coverage report for a-mir-formality judgments")]
@@ -27,6 +27,11 @@ struct Args {
     /// ✓ marks render as plain text instead of links.
     #[arg(long)]
     github_base: Option<String>,
+
+    /// When set, also write a compact machine-readable coverage summary here.
+    /// This is the small JSON the published book carries as a CI baseline.
+    #[arg(long)]
+    summary_json: Option<PathBuf>,
 }
 
 fn main() -> Result<()> {
@@ -61,5 +66,12 @@ fn main() -> Result<()> {
         negative_premise_count,
         args.out_dir.display(),
     );
+
+    if let Some(path) = &args.summary_json {
+        let summary = summary::build(&judgments, &cov);
+        summary::write(path, &summary)?;
+        eprintln!("wrote coverage summary to {}", path.display());
+    }
+
     Ok(())
 }
