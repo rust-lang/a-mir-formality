@@ -1,6 +1,6 @@
 use crate::grammar::expr::Block;
 use crate::grammar::{Binder, Ty, ValueId, WhereClause};
-use crate::prove::prove::Safety;
+use crate::prove::Safety;
 use formality_core::term;
 
 #[term($?safety fn $id $binder)]

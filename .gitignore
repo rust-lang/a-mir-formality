@@ -5,5 +5,8 @@ target
 killme.*
 .agents
 
+# Generated coverage argument sidecar JSON (mdbook preprocessor output)
+book/src/coverage-args/
+
 # Generated coverage baseline summary (mdbook preprocessor output)
 book/src/coverage-summary.json

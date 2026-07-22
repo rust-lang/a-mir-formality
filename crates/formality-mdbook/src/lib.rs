@@ -137,6 +137,9 @@ fn append_coverage_chapters(
     // clobber each other's page; warn, mirroring `report::write_all`.
     let mut seen_slugs: HashSet<String> = HashSet::new();
     let mut subpages: Vec<BookItem> = Vec::new();
+    // Detail pages write their sidecar `args` JSON here, under the book source
+    // dir so mdbook copies it to the output alongside the rendered pages.
+    let args_dir = root.join(&ctx.config.book.src).join(report::ARGS_SUBDIR);
     for (i, j) in judgments.iter().enumerate() {
         let slug = report::slug(&j.name);
         if !seen_slugs.insert(slug.clone()) {
@@ -170,6 +173,10 @@ fn append_coverage_chapters(
                     page.slug,
                 );
             }
+            // Sidecar `args` JSON lives under the book source dir so mdbook copies
+            // it verbatim to the output next to the detail pages, where the page's
+            // inline script fetches `./coverage-args/{slug}.args.json`.
+            report::write_args_json(&args_dir, &page)?;
             let mut detail = Chapter::new(
                 &page.title,
                 page.content,

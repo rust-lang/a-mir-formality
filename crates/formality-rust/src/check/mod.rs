@@ -2,7 +2,7 @@
 
 use std::fmt::Debug;
 
-use crate::prove::prove::{is_definitely_not_proveable, Constraints, Env, Program};
+use crate::prove::{is_definitely_not_proveable, Constraints, Env, Program};
 use crate::rust::Visit;
 use crate::{
     grammar::{
@@ -230,7 +230,7 @@ fn prove_goal(
         env,
         assumptions,
         goal.to_wcs(),
-        crate::prove::prove::prove,
+        crate::prove::prove,
     )
 }
 
@@ -282,7 +282,7 @@ fn prove_not_goal(
     assert!(env.encloses((&assumptions, &goal)));
 
     let cs = is_definitely_not_proveable(env, &assumptions, &goal, |env, assumptions, goal| {
-        crate::prove::prove::prove(program, env, &assumptions, &goal)
+        crate::prove::prove(program, env, &assumptions, &goal)
     });
     let cs = cs.into_map()?;
     if let Some((_, proof_tree)) = cs.iter().find(|(c, _)| c.unconditionally_true()) {

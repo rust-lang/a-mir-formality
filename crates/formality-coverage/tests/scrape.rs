@@ -396,11 +396,13 @@ fn detail_pages_render_proof_trees() {
             rule: Some("positive".into()),
             file: "crates/sub/fixture.rs".into(),
             line: 11,
+            attributes: vec![("x".into(), "1".into()), ("result".into(), "()".into())],
             children: vec![ProofTreeNode {
                 judgment: "prove_sub".into(),
                 rule: Some("sub".into()),
                 file: "crates/sub/other.rs".into(),
                 line: 3,
+                attributes: vec![],
                 children: vec![],
             }],
         }],
@@ -416,6 +418,7 @@ fn detail_pages_render_proof_trees() {
         },
         vec![FailedTreeNode {
             judgment: "prove_thing".into(),
+            args: "(-1)".into(),
             file: "crates/sub/fixture.rs".into(),
             line: 4,
             rules: vec![
@@ -464,6 +467,28 @@ fn detail_pages_render_proof_trees() {
         "{}",
         pos.content
     );
+    // The `positive` node's arguments render behind a collapsed `args`
+    // disclosure that is filled in lazily: the HTML carries only an empty
+    // placeholder keyed by `data-arg-id`, the values live in the page's sidecar
+    // JSON, and an inline script fetches that JSON on demand.
+    assert!(
+        pos.content
+            .contains("<details class=\"cov-args\" data-arg-id=\"n0\">"),
+        "positive tree should show an args placeholder: {}",
+        pos.content
+    );
+    assert!(
+        !pos.content.contains("x = 1") && !pos.content.contains("result = ()"),
+        "argument values must not be inlined into the page HTML: {}",
+        pos.content
+    );
+    assert!(
+        pos.content
+            .contains("./coverage-args/prove_thing__positive__pos.args.json"),
+        "positive page should inject the lazy-load script: {}",
+        pos.content
+    );
+    assert_eq!(pos.args_json, r#"{"n0":[["x","1"],["result","()"]]}"#);
 
     // The negative page shows the failed tree pruned to the stack that blames
     // premise line 9; the unrelated `zero` stack (line 15) is dropped.
@@ -487,6 +512,21 @@ fn detail_pages_render_proof_trees() {
         "unrelated stack should be pruned: {}",
         neg.content
     );
+    // The failing judgment's arguments render behind a lazily-filled `args`
+    // placeholder on the negative page too, with the value carried in the
+    // sidecar JSON (an empty name so it renders alone).
+    assert!(
+        neg.content
+            .contains("<details class=\"cov-args\" data-arg-id=\"n0\">"),
+        "negative tree should show an args placeholder: {}",
+        neg.content
+    );
+    assert!(
+        !neg.content.contains("<code>(-1)</code>"),
+        "the failing args value must not be inlined into the page HTML: {}",
+        neg.content
+    );
+    assert_eq!(neg.args_json, r#"{"n0":[["","(-1)"]]}"#);
 }
 
 #[test]
@@ -559,6 +599,7 @@ fn proof_tree_node_shows_source_hover_from_root() {
             rule: Some("positive".into()),
             file: judgment_file.into(),
             line: 3,
+            attributes: vec![],
             children: vec![],
         }],
     );
@@ -591,6 +632,7 @@ fn huge_proof_tree_is_capped() {
         rule: Some("r".into()),
         file: "f.rs".into(),
         line: 1,
+        attributes: vec![],
         children: vec![],
     };
     for _ in 0..499 {
@@ -599,6 +641,7 @@ fn huge_proof_tree_is_capped() {
             rule: Some("r".into()),
             file: "f.rs".into(),
             line: 1,
+            attributes: vec![],
             children: vec![node],
         };
     }
@@ -643,6 +686,7 @@ fn proof_trees_are_capped_per_cell() {
                 rule: Some("positive".into()),
                 file: "f.rs".into(),
                 line: 1,
+                attributes: vec![],
                 children: vec![],
             }],
         );

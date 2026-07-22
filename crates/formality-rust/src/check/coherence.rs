@@ -1,5 +1,5 @@
 use crate::grammar::{Crate, Fallible, NegTraitImpl, Predicate, TraitImpl, Wc, Wcs};
-use crate::prove::prove::{Env, Program};
+use crate::prove::{Env, Program};
 use anyhow::bail;
 
 use super::{prove_goal, prove_not_goal};
