@@ -164,7 +164,13 @@ judgment_fn! {
             (codegen_block(global, cfn, scope, else_block) => (else_code, global, cfn))
             (let (code, cfn) = cfn.branch_on_bool_from(cond_code, ct, then_code, else_code))
             ---- ("if")
-            (codegen_stmt(global, cfn, scope, Stmt::If { condition, then_block, else_block }) => (code, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::If { condition, then_block, else_block: Some(else_block) }) => (code, scope, global, cfn))
+        )
+
+        (
+          (codegen_stmt(global, cfn, scope, Stmt::if_(condition, then_block, Some(Block::empty()))) => (code, scope, global, cfn))
+          ---- ("if-no-else")
+          (codegen_stmt(global, cfn, scope, Stmt::If {condition, then_block, else_block: None}) => (code, scope, global, cfn))
         )
 
         (

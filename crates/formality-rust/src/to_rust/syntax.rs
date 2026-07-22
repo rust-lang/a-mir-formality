@@ -875,7 +875,7 @@ pub enum Stmt {
     If {
         condition: Expr,
         then_block: Block,
-        else_block: Block,
+        else_block: Option<Block>,
     },
     Expr(Expr),
     Loop {
@@ -922,8 +922,11 @@ impl Pretty for Stmt {
             } => {
                 write!(f, "if {condition} ")?;
                 then_block.fmt_pretty(f, indent)?;
-                f.write_str(" else ")?;
-                else_block.fmt_pretty(f, indent)
+                if let Some(else_block) = else_block {
+                    f.write_str(" else ")?;
+                    else_block.fmt_pretty(f, indent)?;
+                }
+                Ok(())
             }
             Stmt::Expr(expr) => write!(f, "{expr};"),
             Stmt::Loop { label, body } => {
