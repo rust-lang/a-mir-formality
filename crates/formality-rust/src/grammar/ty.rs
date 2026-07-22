@@ -94,6 +94,13 @@ impl Ty {
     }
 }
 
+/// The default type is the unit type `()`.
+impl Default for Ty {
+    fn default() -> Self {
+        Ty::unit()
+    }
+}
+
 // ANCHOR: RigidTy_decl
 #[term((rigid $name $*parameters))]
 #[customize(parse, debug)]
