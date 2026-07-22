@@ -166,7 +166,7 @@ judgment_fn! {
                 ) => (env, state)))
             // Drop locals declared in this scope (reverse declaration order)
             (let locals_to_drop = state.locals_dropped_in_innermost_scope())
-            (drop_places(env, assumptions, state, &locals_to_drop, places_live_on_exit) => state)
+            (drop_places(env, assumptions, state, locals_to_drop, places_live_on_exit) => state)
             (let state = state.pop_scope(label))
             ------------------------------------------------------------ ("basic block")
             (borrow_check_block(env, assumptions, state, Block { label, stmts }, places_live_on_exit) => state)
