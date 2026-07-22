@@ -1,4 +1,4 @@
-use crate::grammar::{expr::PlaceExpr, FieldName, Ty, ValueId};
+use crate::grammar::{expr::PlaceExpr, AdtId, FieldName, Ty, ValueId, VariantId};
 use formality_core::{cast_impl, term, DowncastTo};
 use std::sync::Arc;
 
@@ -19,10 +19,12 @@ pub enum TypedPlaceExpressionData {
     Deref(TypedPlaceExpr),
 
     // Project to a field.
-    #[grammar($v0.$v1)]
-    Field(TypedPlaceExpr, FieldName),
+    #[grammar($v0.$v1 [$v2 , $v3])]
+    Field(TypedPlaceExpr, FieldName, AdtId, VariantId),
     // Index
     // Downcast
+    #[grammar($v0.$v1)]
+    TupleField(TypedPlaceExpr, usize),
 }
 
 impl DowncastTo<TypedPlaceExpressionData> for TypedPlaceExpr {
@@ -41,8 +43,11 @@ impl TypedPlaceExpr {
         match self.data() {
             TypedPlaceExpressionData::Local(id) => PlaceExpr::var(id),
             TypedPlaceExpressionData::Deref(inner) => PlaceExpr::deref(inner.to_place_expression()),
-            TypedPlaceExpressionData::Field(root, field) => {
+            TypedPlaceExpressionData::Field(root, field, _, _) => {
                 PlaceExpr::field(root.to_place_expression(), field)
+            }
+            TypedPlaceExpressionData::TupleField(root, field_index) => {
+                PlaceExpr::field(root.to_place_expression(), field_index)
             }
         }
     }
@@ -70,7 +75,8 @@ impl TypedPlaceExpr {
         match self.data() {
             TypedPlaceExpressionData::Local(_) => None,
             TypedPlaceExpressionData::Deref(prefix)
-            | TypedPlaceExpressionData::Field(prefix, _) => Some(prefix),
+            | TypedPlaceExpressionData::Field(prefix, _, _, _)
+            | TypedPlaceExpressionData::TupleField(prefix, _) => Some(prefix),
         }
     }
 }

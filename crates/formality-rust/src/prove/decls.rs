@@ -244,6 +244,26 @@ impl Program {
             max_size: Program::DEFAULT_MAX_SIZE,
         }
     }
+
+    pub fn find_drop_impl(&self, adt_id: &AdtId) -> Option<TraitImpl> {
+        for trait_impl in self.trait_impls() {
+            let bound = trait_impl.binder.peek();
+
+            if bound.trait_id.as_str() != "Drop" {
+                continue;
+            }
+            if bound
+                .self_ty
+                .get_adt_id()
+                .map(|t| t == *adt_id)
+                .unwrap_or(false)
+            {
+                return Some(trait_impl);
+            }
+        }
+
+        None
+    }
 }
 
 /// An "impl decl" indicates that a trait is implemented for a given set of types.

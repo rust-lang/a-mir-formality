@@ -172,25 +172,24 @@ pub(super) fn typed_place_to_minirust(
                 ty: minirust_ty(&cfn.crates, pointee_ty)?,
             })
         }
-        TypedPlaceExpressionData::Field(prefix, field_name) => {
+        TypedPlaceExpressionData::Field(prefix, field_name, adt_id, _) => {
             let pp = typed_place_to_minirust(cfn, s, prefix)?;
             let prefix_rigid = match &prefix.ty {
                 Ty::RigidTy(r) => r,
                 _ => anyhow::bail!("field on non-rigid type"),
             };
-            let idx = match &prefix_rigid.name {
-                RigidName::AdtId(id) => {
-                    struct_field_index(&cfn.crates, id, &prefix_rigid.parameters, field_name)?.0
-                }
-                RigidName::Tuple(_) => match field_name {
-                    grammar::FieldName::Index(i) => *i,
-                    _ => anyhow::bail!("non-index field on tuple"),
-                },
-                _ => anyhow::bail!("field on non-struct/tuple"),
-            };
+            let idx =
+                struct_field_index(&cfn.crates, adt_id, &prefix_rigid.parameters, field_name)?.0;
             Ok(lang::PlaceExpr::Field {
                 root: GcCow::new(pp),
                 field: Int::from(idx),
+            })
+        }
+        TypedPlaceExpressionData::TupleField(prefix, field_index) => {
+            let pp = typed_place_to_minirust(cfn, s, prefix)?;
+            Ok(lang::PlaceExpr::Field {
+                root: GcCow::new(pp),
+                field: Int::from(*field_index),
             })
         }
     }
