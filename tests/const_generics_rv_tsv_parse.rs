@@ -8,5 +8,6 @@ fn parse_minirust_22() {
         impl Trait<usize(22)> for u32 {}
     }])
     .skip_execute()
+    .rustc_ok()
     .ok()
 }
