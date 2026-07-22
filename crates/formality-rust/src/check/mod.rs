@@ -176,7 +176,7 @@ judgment_fn! {
 
         (
             (check_trait_impl(program, v, crate_id) => ())
-            (check_drop_impl_always_applicable(program, v) => ())
+            (check_drop_impl_always_applicable(program, v, crate_id) => ())
             ------------------------------------------------------------ ("trait impl")
             (check_crate_item(program, CrateItem::TraitImpl(v), crate_id) => ())
         )

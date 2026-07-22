@@ -281,25 +281,45 @@ fn drop_impl_adt_id(trait_impl: &TraitImpl) -> Fallible<AdtId> {
     Ok(adt_id.clone())
 }
 
+/// Check that a `Drop` impl declared in crate `crate_id` is for an ADT defined in that
+/// same crate.
+fn check_drop_impl_in_defining_crate(
+    program: &Program,
+    adt_id: &AdtId,
+    crate_id: &CrateId,
+) -> Fallible<ProofTree> {
+    let defining_crate = program.program().crate_defining_adt(adt_id)?;
+    if defining_crate != crate_id {
+        bail!(
+            "`Drop` may only be implemented for types defined in the current crate: \
+            `{adt_id:?}` is defined in crate `{defining_crate:?}` but the impl is in crate `{crate_id:?}`"
+        );
+    }
+    Ok(ProofTree::leaf("check_drop_impl_in_defining_crate"))
+}
+
 judgment_fn! {
     /// Check that a `Drop` impl is "always applicable": for any instance of the ADT
     /// (with its where-clauses satisfied), the Drop impl must apply.
     pub(super) fn check_drop_impl_always_applicable(
         program: Program,
         trait_impl: TraitImpl,
+        crate_id: CrateId,
     ) => () {
-        debug(program, trait_impl)
+        debug(program, trait_impl, crate_id)
 
         (
             (if **trait_impl.trait_id() != *"Drop")!
             ---- ("not a Drop impl")
-            (check_drop_impl_always_applicable(program, trait_impl) => ())
+            (check_drop_impl_always_applicable(program, trait_impl, crate_id) => ())
         )
 
         (
             (if **trait_impl.trait_id() == *"Drop")!
             // Extract the ADT id and look up its definition.
             (let adt_id = drop_impl_adt_id(&trait_impl)?)
+            // `Drop` may only be implemented in the crate that defines the ADT.
+            (check_drop_impl_in_defining_crate(program, adt_id, crate_id) => ())
             (let adt = program.program().adt_item_named(adt_id)?.to_adt())
             // Universally instantiate the ADT: forall<T...> { (T: Bounds) => ... }
             (let (env, adt_vars) = Env::default().universal_substitution(&adt.binder))
@@ -311,7 +331,7 @@ judgment_fn! {
             (super::prove_goal(&program, &env, &adt_bound.where_clauses,
                 Predicate::IsImplemented(drop_trait_ref.clone())) => ())
             ---- ("Drop impl is always applicable")
-            (check_drop_impl_always_applicable(program, trait_impl) => ())
+            (check_drop_impl_always_applicable(program, trait_impl, crate_id) => ())
         )
     }
 }
