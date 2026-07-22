@@ -3,7 +3,7 @@
 use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::FlowState;
 use crate::grammar::{expr::LabelId, Crates, Fallible, Parameter, Ty, ValueId, Wcs};
-use crate::prove::prove::{Env, Program};
+use crate::prove::{Env, Program};
 use formality_core::Upcast;
 use libspecr::prelude::Map;
 use minirust_rs::lang;

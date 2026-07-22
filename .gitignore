@@ -3,3 +3,7 @@ target
 .sparkle-space
 .claude
 killme.*
+.agents
+
+# Generated coverage argument sidecar JSON (mdbook preprocessor output)
+book/src/coverage-args/

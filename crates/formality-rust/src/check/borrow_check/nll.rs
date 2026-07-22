@@ -5,14 +5,14 @@ use crate::check::borrow_check::typed_place_expression::{
     TypedPlaceExpr, TypedPlaceExpressionData,
 };
 
-use crate::grammar::expr::{Block, Expr, Init, PlaceExpr, Stmt};
+use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
     AliasTy, AssociatedItemId, ExistentialVar, FieldName, Fn, Lt, Parameter, Predicate, RefKind,
     Relation, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId, TraitRef, Ty, TyData,
     Variable, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
-use crate::prove::prove::Safety;
+use crate::prove::Safety;
 use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 
@@ -417,7 +417,7 @@ judgment_fn! {
 
         (
             ------------------------------------------------------------ ("literal")
-            (borrow_check_expr(_env, _assumptions, state, Expr::Literal { value: _, ty }, _places_live_on_exit) => (ty, state))
+            (borrow_check_expr(_env, _assumptions, state, Literal { value: _, ty }, _places_live_on_exit) => (ty, state))
         )
 
         (

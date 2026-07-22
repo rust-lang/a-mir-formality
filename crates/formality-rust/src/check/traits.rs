@@ -2,7 +2,7 @@ use crate::grammar::{
     AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, Wcs,
 };
 use crate::grammar::{CrateId, Fallible};
-use crate::prove::prove::{Env, Program};
+use crate::prove::{Env, Program};
 use anyhow::bail;
 use formality_core::{judgment::ProofTree, judgment_fn, Set};
 

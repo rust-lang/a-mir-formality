@@ -1,11 +1,10 @@
 use crate::grammar::{Lt, Parameter, Relation, RigidTy, TyData, Wcs};
-use crate::prove::prove::Constrained;
+use crate::prove::Constrained;
 use formality_core::judgment_fn;
 
-use crate::prove::prove::prove::prove_outlives::prove_outlives;
-use crate::prove::prove::{
-    decls::Program,
-    prove::{prove, prove_after::prove_after, prove_normalize::prove_normalize},
+use crate::prove::prove_outlives::prove_outlives;
+use crate::prove::{
+    decls::Program, prove, prove_after::prove_after, prove_normalize::prove_normalize,
 };
 
 use super::{constraints::Constraints, env::Env};

@@ -9,7 +9,7 @@ use crate::grammar::{
     expr::{Block, Expr},
     Fallible, Lt, Parameter, ParameterKind, RigidName, Ty,
 };
-use crate::prove::prove::Env;
+use crate::prove::Env;
 use formality_core::Upcast;
 use libspecr::hidden::GcCow;
 use libspecr::list;

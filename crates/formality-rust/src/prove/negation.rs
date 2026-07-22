@@ -1,5 +1,5 @@
 use crate::grammar::{Substitution, Variable, Wcs};
-use crate::prove::prove::{Bias, Constraints, Env};
+use crate::prove::{Bias, Constraints, Env};
 use crate::rust::FormalityLang;
 use formality_core::judgment::FailureLocation;
 use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};

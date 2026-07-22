@@ -82,6 +82,10 @@ fn coverage_records_rules_from_positive_tests() {
         "missing test file in {contents}",
     );
     assert!(
+        contents.contains(r#""attributes":[["nums","[Num(2), Num(4)]"],["result","()"]]"#),
+        "missing argument/result attributes in {contents}",
+    );
+    assert!(
         contents.contains(&format!("\"test_line\":{all_even_line}")),
         "missing all_even call line {all_even_line} in {contents}",
     );
@@ -140,6 +144,10 @@ fn negative_coverage_records_failure_reasons() {
     assert!(
         contents.contains("\"kind\":\"negative\""),
         "missing negative kind in {contents}",
+    );
+    assert!(
+        contents.contains(r#""args":"{ n: Num(1) }""#),
+        "missing failing-judgment args in {contents}",
     );
     // Premise-failure reason for the `is_zero` rule.
     assert!(

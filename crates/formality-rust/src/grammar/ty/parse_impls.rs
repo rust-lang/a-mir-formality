@@ -52,8 +52,8 @@ impl CoreParse<Rust> for RigidTy {
 
             parser.parse_variant("RefMut", Precedence::default(), |p| {
                 p.expect_char('&')?;
-                p.expect_keyword("mut")?;
                 p.each_nonterminal(|lt: Lt, p| {
+                    p.expect_keyword("mut")?;
                     p.each_nonterminal(|ty: Ty, p| {
                         p.ok(RigidTy {
                             name: RigidName::Ref(RefKind::Mut),
