@@ -4507,7 +4507,7 @@ fn issue_70044_location_insensitive_constraints() {
         }
     }])
     .skip_execute()
-    .borrowck_err(BorrowCheckFailure::Nll, expect_test::expect![[""]]);
+    .borrowck_err(BorrowCheckFailure::All, expect_test::expect![[""]]);
 }
 
 /// Reading a `Copy` place does not move out of it, so it can be read twice.
@@ -4767,7 +4767,7 @@ fn loan_reaches_universal_via_earlier_edge() {
     }])
     .skip_execute()
     .borrowck_err(
-        BorrowCheckFailure::All,
+        BorrowCheckFailure::Nll,
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`

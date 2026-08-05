@@ -903,7 +903,8 @@ judgment_fn! {
             (if !place_disjoint_from_place(&loan.place, &access.place))! // just for convenience
             (let places_live = places_live_for_loan(env, access, places_live_after_access))
             (loan_not_required_by_live_places(env, assumptions, state, loan, places_live) => state)
-            (loan_cannot_outlive_universal_regions(env, assumptions, &state.current.outlives, &loan) => ())
+            (let outlives = outlives_visible_to_loan(env, state, loan))
+            (loan_cannot_outlive_universal_regions(env, assumptions, outlives, &loan) => ())
             ------------------------------------------------------------ ("loan is dead")
             (access_permitted_by_loan(env, assumptions, state, loan, access, places_live_after_access) => state)
         )
@@ -1248,19 +1249,47 @@ judgment_fn! {
 /// pushes every point of `'b` reachable from `P` into `'a`, whenever the
 /// constraint was born), so it keeps seeing the whole set.
 ///
-/// Note the "loan is dead" rule *also* checks
-/// `loan_cannot_outlive_universal_regions` directly, against the unfiltered
-/// `state.current.outlives`. That direct check decides the universal-region
-/// question: this filtered set is a subset of it, so the copy of that judgment
-/// reached through `loan_not_required_by_parameter`'s "universal-variable" rule
-/// can never fail when the direct one passes.
+/// # Where this diverges from rustc
 ///
-/// Whether the direct check *should* be unfiltered is an open question -- the
-/// same location-sensitivity argument seems to apply to it (an edge into a
-/// universal region that predates the loan did not carry the loan out of the
-/// function either), and no test in the suite currently distinguishes the two:
-/// filtering it as well leaves the whole suite green. It is left unfiltered as
-/// the conservative choice, not a load-bearing one.
+/// rustc does not subtract anything. Its localized constraint graph keys each
+/// typeck edge by the point it arises at (`LocalizedConstraintGraph::new` in
+/// `rustc_borrowck/src/polonius/constraints.rs`), and traverses per loan
+/// starting at the loan's own `(region, point)` node, so an earlier edge is
+/// simply not reachable. Subtraction reconstructs that from a flat, untimed
+/// set, and it is not the same thing in two known cases:
+///
+/// * **Invariance.** rustc's liveness edges run backward as well as forward for
+///   regions used invariantly, so loans can flow "back in time" and pick up an
+///   edge that predates them; `compute_backward_successor` returns `None` only
+///   for `ConstraintDirection::Forward`. Subtraction can never model that.
+///   Formality cannot express the case yet either -- `prove_sub` relates every
+///   parameter of a rigid type with `Wcs::all_sub`, so there is no variance
+///   (#220) and `Cell<&'l u32>` behaves like `&'l u32`. Verified against rustc:
+///   with a covariant `struct Tup1<'l>(&'l u32)`, `-Z polonius=next` accepts;
+///   with `struct Tup1<'l>(Cell<&'l u32>)` and otherwise identical statements,
+///   it rejects. When variance lands, this becomes unsound.
+///
+/// * **Sibling branches.** An edge created on a branch disjoint from the loan
+///   is not in the loan's `LoanOrigin`, so it is not subtracted and stays
+///   traversable -- too strict, where the invariance case is too permissive.
+///   `loan_and_edge_on_disjoint_branches` is the test, recorded as a deviation.
+///
+/// Both point the same way: propagate loans eagerly into regions
+/// (polonius's `origin_contains_loan`) instead of reconstructing the order
+/// afterwards. Then an edge applied before the loan existed, or on a path the
+/// loan never took, copies nothing, and backward edges become expressible as
+/// edges rather than as an absence of subtraction.
+///
+/// This feeds `loan_cannot_outlive_universal_regions` too, by both routes: the
+/// direct premise of the "loan is dead" rule, and the copy reached through
+/// `loan_not_required_by_parameter`'s "universal-variable" rule. Escaping into
+/// a universal region is the same question as reaching a live place's region,
+/// asked about the caller instead: an edge into `'a` that predates the loan did
+/// not carry the loan out of the function either. `loan_reaches_universal_via_earlier_edge`
+/// is the test -- rustc's `-Z polonius=next` accepts it, and this is what makes
+/// formality agree; `loan_reaches_universal_via_later_edge` is the same program
+/// with the two `if`s swapped, where the edge *is* reachable from the loan and
+/// every mode must reject.
 fn outlives_visible_to_loan(
     env: &TypeckEnv,
     state: &FlowState,
