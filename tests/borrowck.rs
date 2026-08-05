@@ -3182,7 +3182,7 @@ fn reborrow_nested_derefs_ok() {
 /// between ..." (a nondeterminism error, not a borrowck verdict). The same
 /// happens with a `&'r1 mut Wrapper<'r0>` struct wrapper.
 #[test]
-#[ignore = "nested reference `let` types hit ambiguous pending_outlives in prove_wf"]
+#[ignore = "unblocked from the prove_wf ambiguity, but nested-reference proof search is now pathologically slow (>500s)"]
 fn issue_46589_trigger_bug() {
     // rustc errors under [nll] and [polonius], passes under [legacy]
     FormalityTest::new(crates![crate Foo {
@@ -4018,7 +4018,7 @@ fn flow_sensitive_invariance_same_region() {
 /// pointing at `zero` when `&mut y` is stored is exactly what makes the
 /// datalog analysis accept this program.
 #[test]
-#[ignore = "nested reference `let` types hit ambiguous pending_outlives in prove_wf"]
+#[ignore = "unblocked from the prove_wf ambiguity; now reaches real borrowck, but nll and a more permissive mode disagree on the error"]
 fn issue_70044_location_insensitive_constraints() {
     // rustc errors under [nll] only
     FormalityTest::new(crates![crate Foo {
