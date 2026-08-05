@@ -224,8 +224,13 @@ impl TypeckEnv {
                 return ProvenSet::failed(
                     format!("prove_judgment({goal:?})"),
                     FailureLocation::caller(),
+                    // Only the constraint sets are the interesting part; the
+                    // tuples also carry the value and its proof tree, and
+                    // printing those buries the second set under a page of
+                    // program dump.
                     format!(
-                        "no relationship between `{pending_outlives:?}` and `{pending_outlives_minimal:?}`"
+                        "no relationship between `{:?}` and `{:?}`",
+                        pending_outlives.0, pending_outlives_minimal.0
                     ),
                 );
             }

@@ -84,7 +84,7 @@ judgment_fn! {
         // as a "pending obligation" and leave it to the caller to prove.
         // This is only allowed when `allow_pending_outlives` is set on the environment.
         (
-            (if env.allow_pending_outlives())!
+            (if env.allow_pending_outlives() && !is_rigid_ty(a))!
             ----------------------------- ("anything can be pending")
             (prove_outlives(_decls, env, _assumptions, a, b) => Constraints::none(
                 env.with_pending(Relation::outlives(a, b))
@@ -150,3 +150,16 @@ fn transitively_outlived_by(
 // (3) Goal:
 // - `Sub(&'a u32 <: &'b u32)`
 //   - `Outlives('a: 'b)``
+
+/// Whether `a` is a rigid type.
+///
+/// A rigid type's outlives obligation is decomposed by the "rigid types" rule
+/// into obligations on its parameters, so letting "anything can be pending"
+/// also defer it whole produces two incomparable constraint sets -- `{'q: 'm}`
+/// against `{Foo<'q>: 'm}` -- and the caller's minimality check has no way to
+/// prefer one, so it gives up. The decomposed form is strictly more
+/// informative (it implies the deferred one), so a rigid type is never
+/// deferred. Type variables and aliases, which cannot be decomposed, still are.
+fn is_rigid_ty(a: &Parameter) -> bool {
+    matches!(a, Parameter::Ty(ty) if matches!(ty.as_ref(), crate::grammar::Ty::RigidTy(_)))
+}
