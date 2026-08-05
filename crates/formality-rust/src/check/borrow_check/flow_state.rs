@@ -117,15 +117,20 @@ impl PointFlowState {
     /// created earlier, possibly on a path that never reaches the loan at all,
     /// so it cannot carry the loan forward.
     pub fn outlives_after_loan(&self, loan: &Loan) -> Set<PendingOutlives> {
+        self.outlives
+            .iter()
+            .filter(|o| !self.predates_loan(o, loan))
+            .cloned()
+            .collect()
+    }
+
+    /// Whether `edge` was already in force when `loan` was issued.
+    pub fn predates_loan(&self, edge: &PendingOutlives, loan: &Loan) -> bool {
         let Some(origin) = self.loan_origins.iter().find(|o| o.loan == *loan) else {
             panic!("Loan origin not recorded for loan: {:?}", loan);
         };
 
-        self.outlives
-            .iter()
-            .filter(|o| !origin.outlives_at_issue.contains(*o))
-            .cloned()
-            .collect()
+        origin.outlives_at_issue.contains(edge)
     }
 
     /// Mark a place as initialized: remove it and all sub-paths from uninit
@@ -344,6 +349,16 @@ impl FlowState {
             scopes: self.scopes.clone(),
             all_outlives: Union((&self.all_outlives, outlives)).upcast(),
         }
+    }
+
+    /// The types of every local currently in scope.
+    ///
+    /// Used to decide how a region is used (see `variance_of_lifetime_in_ty`),
+    /// the counterpart of rustc's `live_region_variances`.
+    pub fn local_types(&self) -> impl Iterator<Item = &Ty> {
+        self.scopes
+            .iter()
+            .flat_map(|scope| scope.locals.iter().map(|(_, ty)| ty))
     }
 
     pub fn with_initialized(&self, place: &PlaceExpr) -> Self {

@@ -4454,7 +4454,7 @@ fn loan_time_travels_to_earlier_edge_via_invariance() {
     }])
     .skip_execute()
     .borrowck_err(
-        BorrowCheckFailure::Nll,
+        BorrowCheckFailure::All,
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`

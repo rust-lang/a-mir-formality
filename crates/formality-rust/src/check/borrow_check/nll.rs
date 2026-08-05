@@ -13,6 +13,7 @@ use crate::grammar::{
     TraitId, TraitRef, Ty, Variable, VariantId, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
+use crate::prove::variance::{variance_of_lifetime_in_ty, Variance};
 use crate::prove::Safety;
 use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
@@ -1298,10 +1299,44 @@ fn outlives_visible_to_loan(
     if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusAlpha)
         || feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked)
     {
-        state.current.outlives_after_loan(loan)
+        state
+            .current
+            .outlives
+            .iter()
+            .filter(|edge| {
+                !state.current.predates_loan(edge, loan) || region_time_travels(env, state, &edge.a)
+            })
+            .cloned()
+            .collect()
     } else {
         state.current.outlives.clone()
     }
+}
+
+/// Whether a loan can reach an edge out of `region` even though the edge
+/// predates it -- rustc's "back in time" traversal.
+///
+/// rustc's liveness edges run backward as well as forward for a region that is
+/// not used covariantly (`compute_backward_successor` returns `None` only for
+/// `ConstraintDirection::Forward`), so a loan that lands in an invariant region
+/// can walk back to an earlier point and take an edge recorded there. A
+/// covariant region has forward edges only, and cannot.
+///
+/// We approximate rustc's `live_region_variances` with the variance of `region`
+/// across the types of all locals in scope, and we do not check that the region
+/// is live along the whole backward path -- both make this keep *more* edges
+/// than rustc would, which is the conservative direction.
+fn region_time_travels(env: &TypeckEnv, state: &FlowState, region: &Parameter) -> bool {
+    let Parameter::Lt(lt) = region else {
+        return true;
+    };
+
+    state.local_types().any(|ty| {
+        !matches!(
+            variance_of_lifetime_in_ty(&env.program, lt, ty),
+            Variance::Covariant | Variance::Bivariant
+        )
+    })
 }
 
 judgment_fn! {
