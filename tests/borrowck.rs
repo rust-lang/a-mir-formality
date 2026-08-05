@@ -5847,7 +5847,17 @@ fn refmut_referent_is_invariant() {
         }
     }])
     .skip_execute()
-    .borrowck_ok()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_2 : !lt_0, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1, !lt_0 : !lt_2, !lt_2 : !lt_1}, env: Env { variables: [!lt_1, !lt_0, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_2 : !lt_0, via: !lt_0 : !lt_2, assumptions: {!lt_0 : !lt_1, !lt_0 : !lt_2, !lt_2 : !lt_1}, env: Env { variables: [!lt_1, !lt_0, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_2 : !lt_0, via: !lt_2 : !lt_1, assumptions: {!lt_0 : !lt_1, !lt_0 : !lt_2, !lt_2 : !lt_1}, env: Env { variables: [!lt_1, !lt_0, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_2, b: !lt_0, assumptions: {!lt_0 : !lt_1, !lt_0 : !lt_2, !lt_2 : !lt_1}, env: Env { variables: [!lt_1, !lt_0, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]],
+    );
 }
 
 /// enough ... the type `Inv<'_, '_>`, which makes the generic argument `'_`
@@ -5873,7 +5883,17 @@ fn adt_lifetime_under_refmut_is_invariant() {
         }
     }])
     .skip_execute()
-    .borrowck_ok()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_2 : !lt_0, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1, !lt_0 : !lt_2, !lt_2 : !lt_1}, env: Env { variables: [!lt_1, !lt_0, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_2 : !lt_0, via: !lt_0 : !lt_2, assumptions: {!lt_0 : !lt_1, !lt_0 : !lt_2, !lt_2 : !lt_1}, env: Env { variables: [!lt_1, !lt_0, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_2 : !lt_0, via: !lt_2 : !lt_1, assumptions: {!lt_0 : !lt_1, !lt_0 : !lt_2, !lt_2 : !lt_1}, env: Env { variables: [!lt_1, !lt_0, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_2, b: !lt_0, assumptions: {!lt_0 : !lt_1, !lt_0 : !lt_2, !lt_2 : !lt_1}, env: Env { variables: [!lt_1, !lt_0, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]],
+    );
 }
 
 /// The covariant witness for the two tests above: a *shared* reference is

@@ -34,6 +34,7 @@ mod prove_wc;
 mod prove_wc_list;
 mod prove_wf;
 pub mod test_util;
+pub mod variance;
 
 #[cfg(test)]
 mod test;
@@ -43,6 +44,7 @@ pub use decls::*;
 pub use env::{Bias, Env, MaxUniverse, Universe};
 pub use negation::{is_definitely_not_proveable, may_not_be_provable, negation_via_failure};
 pub use prove_normalize::prove_normalize;
+pub use variance::{parameter_variances, Variance};
 
 use self::prove_wc_list::prove_wc_list;
 

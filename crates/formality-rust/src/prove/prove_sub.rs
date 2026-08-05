@@ -3,6 +3,7 @@ use crate::prove::Constrained;
 use formality_core::judgment_fn;
 
 use crate::prove::prove_outlives::prove_outlives;
+use crate::prove::variance::sub_goals_with_variance;
 use crate::prove::{
     decls::Program, prove, prove_after::prove_after, prove_normalize::prove_normalize,
 };
@@ -41,7 +42,8 @@ judgment_fn! {
             (let RigidTy { name: a_name, parameters: a_parameters } = a)
             (let RigidTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)!
-            (prove(decls, env, assumptions, Wcs::all_sub(a_parameters, b_parameters)) => c)
+            (let goals = sub_goals_with_variance(decls, a_name, a_parameters, b_parameters))
+            (prove(decls, env, assumptions, goals) => c)
             ----------------------------- ("rigid")
             (prove_sub(decls, env, assumptions, Ty::RigidTy(a), Ty::RigidTy(b)) => c)
         )
