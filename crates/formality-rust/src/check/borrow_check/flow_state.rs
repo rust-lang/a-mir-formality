@@ -70,11 +70,32 @@ pub struct PointFlowState {
     /// Places that are uninitialized or have been moved from
     /// Read or write or move from any place whose prefix is in this set is an error
     pub uninit: Set<PlaceExpr>,
+
+    /// For each live loan, the outlives edges that already existed when it was
+    /// issued. See [`LoanOrigin`] and [`PointFlowState::outlives_after_loan`].
+    pub loan_origins: Set<LoanOrigin>,
 }
 
 impl PointFlowState {
     pub fn with_loan(&self, loan: Loan) -> Self {
         let mut this = self.clone();
+        // A loop body re-issues the same loan on its second pass, against a
+        // larger outlives set. Keep one entry per loan, intersecting as a join
+        // would, so the entry stays deterministic and the loop rule's fixed
+        // point still converges.
+        let outlives_at_issue = match this.loan_origins.iter().find(|o| o.loan == loan) {
+            Some(previous) => previous
+                .outlives_at_issue
+                .intersection(&self.outlives)
+                .cloned()
+                .collect(),
+            None => self.outlives.clone(),
+        };
+        this.loan_origins.retain(|o| o.loan != loan);
+        this.loan_origins.insert(LoanOrigin {
+            loan: loan.clone(),
+            outlives_at_issue,
+        });
         this.loans_live.insert(loan);
         this
     }
@@ -84,7 +105,27 @@ impl PointFlowState {
             outlives: Union((&self.outlives, outlives)).upcast(),
             loans_live: self.loans_live.clone(),
             uninit: self.uninit.clone(),
+            loan_origins: self.loan_origins.clone(),
         }
+    }
+
+    /// The outlives edges that came into being *after* `loan` was issued.
+    ///
+    /// A loan enters `'b` only if it is already in `'a` at the point `'a: 'b`
+    /// is applied -- polonius's eager propagation, written here as a lazy
+    /// subtraction. An edge that already existed when the loan was issued was
+    /// created earlier, possibly on a path that never reaches the loan at all,
+    /// so it cannot carry the loan forward.
+    pub fn outlives_after_loan(&self, loan: &Loan) -> Set<PendingOutlives> {
+        let Some(origin) = self.loan_origins.iter().find(|o| o.loan == *loan) else {
+            panic!("Loan origin not recorded for loan: {:?}", loan);
+        };
+
+        self.outlives
+            .iter()
+            .filter(|o| !origin.outlives_at_issue.contains(*o))
+            .cloned()
+            .collect()
     }
 
     /// Mark a place as initialized: remove it and all sub-paths from uninit
@@ -121,6 +162,30 @@ impl PointFlowState {
             .retain(|v| !v.free_variables().iter().any(|v| variables.contains(v)));
         self.uninit
             .retain(|v| !v.free_variables().iter().any(|v| variables.contains(v)));
+
+        // A loan's recorded origin is pruned the same way, but edge-by-edge:
+        // dropping the whole entry because one edge mentions a popped variable
+        // would silently restore the full-set behaviour for that loan.
+        self.loan_origins = self
+            .loan_origins
+            .iter()
+            .filter(|o| self.loans_live.contains(&o.loan))
+            .filter(|o| {
+                !o.loan
+                    .free_variables()
+                    .iter()
+                    .any(|v| variables.contains(v))
+            })
+            .map(|o| LoanOrigin {
+                loan: o.loan.clone(),
+                outlives_at_issue: o
+                    .outlives_at_issue
+                    .iter()
+                    .filter(|e| !e.free_variables().iter().any(|v| variables.contains(v)))
+                    .cloned()
+                    .collect(),
+            })
+            .collect();
     }
 }
 
@@ -132,8 +197,47 @@ impl UpcastFrom<Union<(PointFlowState, PointFlowState)>> for PointFlowState {
             outlives: Union((a.outlives, b.outlives)).upcast(),
             loans_live: Union((a.loans_live, b.loans_live)).upcast(),
             uninit: Union((a.uninit, b.uninit)).upcast(),
+            loan_origins: join_loan_origins(a.loan_origins, b.loan_origins),
         }
     }
+}
+
+/// Join the recorded loan origins from two incoming paths.
+///
+/// A loan reaching the join on both paths keeps the *intersection* of the two
+/// origin sets: an edge is only "older than the loan" if it was older on every
+/// path that gets here, otherwise there is a path on which it can still carry
+/// the loan. A loan that only flows in along one path keeps that path's set,
+/// since the other path never issued it.
+///
+/// Intersection is also what makes the loop rule's fixed point converge: a
+/// second pass through a loop body re-issues the same loan against a larger
+/// outlives set, and intersecting pins the entry back to the first pass's.
+fn join_loan_origins(a: Set<LoanOrigin>, b: Set<LoanOrigin>) -> Set<LoanOrigin> {
+    let mut result = Set::new();
+
+    for origin_a in &a {
+        let outlives_at_issue = match b.iter().find(|o| o.loan == origin_a.loan) {
+            Some(origin_b) => origin_a
+                .outlives_at_issue
+                .intersection(&origin_b.outlives_at_issue)
+                .cloned()
+                .collect(),
+            None => origin_a.outlives_at_issue.clone(),
+        };
+        result.insert(LoanOrigin {
+            loan: origin_a.loan.clone(),
+            outlives_at_issue,
+        });
+    }
+
+    for origin_b in b {
+        if !a.iter().any(|o| o.loan == origin_b.loan) {
+            result.insert(origin_b.clone());
+        }
+    }
+
+    result
 }
 
 impl<A, B> UpcastFrom<Union<(A, B)>> for FlowState
@@ -624,6 +728,7 @@ impl FlowState {
             outlives: all_outlives.clone(),
             loans_live: self.current.loans_live.clone(),
             uninit: self.current.uninit.clone(),
+            loan_origins: self.current.loan_origins.clone(),
         };
         FlowState {
             scopes: self.scopes.clone(),
@@ -643,6 +748,20 @@ pub struct PendingOutlives {
 
     /// The `b` in `a: b`
     pub b: Parameter,
+}
+
+/// The outlives edges that were already in force when a loan was issued.
+///
+/// Recorded so that loan propagation can be location-sensitive: only edges
+/// created *after* a loan can carry it into further regions. See
+/// [`PointFlowState::outlives_after_loan`].
+#[term]
+pub struct LoanOrigin {
+    /// The loan this origin belongs to.
+    pub loan: Loan,
+
+    /// The outlives edges in force at the point `loan` was issued.
+    pub outlives_at_issue: Set<PendingOutlives>,
 }
 
 /// Represents a loan that resulted from executing a borrow expression like `&'0 place`.

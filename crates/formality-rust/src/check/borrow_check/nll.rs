@@ -762,6 +762,9 @@ fn kill_loans(overwritten_place: &TypedPlaceExpr, state: &FlowState) -> FlowStat
     current
         .loans_live
         .retain(|loan| !overwritten_place.is_prefix_of(&loan.place));
+    current
+        .loan_origins
+        .retain(|origin| !overwritten_place.is_prefix_of(&origin.loan.place));
 
     FlowState {
         scopes: state.scopes.clone(),
@@ -907,14 +910,21 @@ judgment_fn! {
     }
 }
 
-/// rustc's MIR liveness counts a write through a pointer as a use of the base path
+/// The places whose liveness can keep `loan` alive at this access.
+///
+/// rustc's MIR liveness counts a write through a pointer as a use of the base
+/// path, so nll and alpha add the accessed place's strict prefixes to the live
+/// set. `polonius_unlocked` keeps the plain live-after set: it is the most
+/// permissive mode, and counting the access's own base path is precisely the
+/// kind of conservatism it exists not to have. (This is what lets it accept
+/// `issue_63908_remove_last_node_iterative` and `issue_57165_conditional`,
+/// which nll and alpha reject -- as does rustc on the corresponding
+/// revisions.)
 fn places_live_for_loan(
     env: &TypeckEnv,
     access: &Access,
     places_live_after_access: &LivePlaces,
 ) -> LivePlaces {
-    // `-Z polonius=legacy` accepts some programs because its datalog error derivation keeps subsets per-point
-    // This allows formality to match legacy polonius' *outcome*.
     if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked) {
         places_live_after_access.clone()
     } else {
@@ -1224,6 +1234,47 @@ judgment_fn! {
     }
 }
 
+/// The outlives edges an already-issued loan is allowed to travel along when we
+/// ask whether it is still required by some live place.
+///
+/// Under `polonius_alpha` / `polonius_unlocked` this is only the edges created
+/// *after* the loan was issued: a loan enters `'b` only if it is already in
+/// `'a` at the point `'a: 'b` is applied. An edge that predates the loan --
+/// quite possibly on a path that never reaches it -- must not carry it, or a
+/// subset created on one branch keeps alive a loan created on a later,
+/// disjoint one.
+///
+/// Plain NLL propagates constraints without regard to location (`'a: 'b @ P`
+/// pushes every point of `'b` reachable from `P` into `'a`, whenever the
+/// constraint was born), so it keeps seeing the whole set.
+///
+/// Note the "loan is dead" rule *also* checks
+/// `loan_cannot_outlive_universal_regions` directly, against the unfiltered
+/// `state.current.outlives`. That direct check decides the universal-region
+/// question: this filtered set is a subset of it, so the copy of that judgment
+/// reached through `loan_not_required_by_parameter`'s "universal-variable" rule
+/// can never fail when the direct one passes.
+///
+/// Whether the direct check *should* be unfiltered is an open question -- the
+/// same location-sensitivity argument seems to apply to it (an edge into a
+/// universal region that predates the loan did not carry the loan out of the
+/// function either), and no test in the suite currently distinguishes the two:
+/// filtering it as well leaves the whole suite green. It is left unfiltered as
+/// the conservative choice, not a load-bearing one.
+fn outlives_visible_to_loan(
+    env: &TypeckEnv,
+    state: &FlowState,
+    loan: &Loan,
+) -> Set<PendingOutlives> {
+    if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusAlpha)
+        || feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked)
+    {
+        state.current.outlives_after_loan(loan)
+    } else {
+        state.current.outlives.clone()
+    }
+}
+
 judgment_fn! {
     /// Prove that the `loan` is not required to be live by
     /// an access to any of the places in `places_live_after_access`.
@@ -1247,9 +1298,10 @@ judgment_fn! {
         debug(loan, state, places_live_after_access, assumptions, env)
 
         (
+            (let outlives = outlives_visible_to_loan(env, state, loan))
             (for_all(live_place in places_live_after_access) with(state)
                 (borrow_check_place_expr(env, assumptions, state, live_place) => (live_place_typed, state))
-                (loan_not_required_by_live_place(env, assumptions, &state.current.outlives, loan, live_place_typed) => ()))
+                (loan_not_required_by_live_place(env, assumptions, outlives, loan, live_place_typed) => ()))
             ------------------------------------------------------------ ("loan_not_required_by_live_places")
             (loan_not_required_by_live_places(env, assumptions, state, loan, places_live_after_access) => state)
         )

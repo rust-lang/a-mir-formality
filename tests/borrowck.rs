@@ -9,6 +9,14 @@
 //!
 //! Test doc comments record how rustc handles the equivalent test under NLL,
 //! Polonus Alpha, and Polonius Legacy.
+//!
+//! Under nll and alpha we aim to match rustc exactly, so a difference there is
+//! a bug to fix. Unlocked is the ideal: it should accept everything we ever
+//! intend to accept, and is only compared against Polonius Legacy because that
+//! is the closest rustc has. The datalog implementation is a dead end, and part
+//! of what it rejects it rejects because of how its error derivation works
+//! rather than because the analysis requires it, so differences there are
+//! documented on the test rather than reproduced.
 
 use a_mir_formality::{crates, BorrowCheckFailure, FormalityTest};
 use formality_core::test;
@@ -3879,8 +3887,8 @@ fn issue_57165_conditional() {
         .borrowck_err(BorrowCheckFailure::Alpha, expect_test::expect![[r#"
             the rule "fixed-point" at (nll.rs) failed because
               condition evaluated to false: `state0 == state1`
-                state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &?lt_1 mut X)], [b : X, p : &?lt_1 mut X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}, {}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
-                state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &?lt_1 mut X)], [b : X, p : &?lt_1 mut X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &?lt_1 mut X) : <&?lt_1 mut X as Derefable>::Target, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &?lt_1 mut X) : <&?lt_1 mut X as Derefable>::Target, mut)}, {}))}, {}, {pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)})
+                state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &?lt_1 mut X)], [b : X, p : &?lt_1 mut X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}, {}, {loan_origin(loan(?lt_2, b : X, mut), {})}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
+                state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &?lt_1 mut X)], [b : X, p : &?lt_1 mut X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &?lt_1 mut X) : <&?lt_1 mut X as Derefable>::Target, mut)}, {}, {loan_origin(loan(?lt_2, b : X, mut), {}), loan_origin(loan(?lt_3, *(p : &?lt_1 mut X) : <&?lt_1 mut X as Derefable>::Target, mut), {pending_outlives(?lt_2, ?lt_1)})}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &?lt_1 mut X) : <&?lt_1 mut X as Derefable>::Target, mut)}, {}, {loan_origin(loan(?lt_2, b : X, mut), {}), loan_origin(loan(?lt_3, *(p : &?lt_1 mut X) : <&?lt_1 mut X as Derefable>::Target, mut), {pending_outlives(?lt_2, ?lt_1)})}))}, {}, {pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)})
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
@@ -4145,8 +4153,8 @@ fn issue_46859_decoder_next() {
         .borrowck_err(BorrowCheckFailure::Nll, expect_test::expect![[r#"
             the rule "fixed-point" at (nll.rs) failed because
               condition evaluated to false: `state0 == state1`
-                state0 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
-                state1 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {loan(?lt_2, *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32, mut)}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {loan(?lt_2, *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32, mut)}, {}, {loan_origin(loan(?lt_2, *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32, mut), {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
@@ -4268,8 +4276,8 @@ fn issue_92985_filtering_lending_iterator() {
         .borrowck_err(BorrowCheckFailure::Nll, expect_test::expect![[r#"
             the rule "fixed-point" at (nll.rs) failed because
               condition evaluated to false: `state0 == state1`
-                state0 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
-                state1 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut), loan(?lt_3, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . predicate[Filter , struct] : u32, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut)}, {}))}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut), loan(?lt_3, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . predicate[Filter , struct] : u32, mut)}, {}, {loan_origin(loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut), {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}), loan_origin(loan(?lt_3, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . predicate[Filter , struct] : u32, mut), {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})}), {labeled_flow_state('l, point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut)}, {}, {loan_origin(loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut), {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})}))}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
@@ -4636,7 +4644,7 @@ fn loan_added_after_subset_edge() {
     }])
     .skip_execute()
     .borrowck_err(
-        BorrowCheckFailure::All,
+        BorrowCheckFailure::Nll,
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
@@ -5712,7 +5720,7 @@ fn loan_region_live_across_earlier_edge() {
     }])
     .skip_execute()
     .borrowck_err(
-        BorrowCheckFailure::All,
+        BorrowCheckFailure::Nll,
         expect_test::expect![[r#"
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
