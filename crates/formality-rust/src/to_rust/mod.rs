@@ -94,7 +94,7 @@ pub fn create_workspace(crates: &Crates, root_directory: &std::path::Path) -> Fa
 
     std::process::Command::new("cargo")
         .args(["fmt", "--all", "--manifest-path", location])
-        .spawn()?;
+        .status()?;
 
     Ok(location.to_string())
 }
