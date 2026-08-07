@@ -4536,3 +4536,1364 @@ fn read_copy_reference_twice() {
     .skip_execute()
     .borrowck_ok();
 }
+
+/// A subset edge created *before* a loan exists, on a path disjoint from the
+/// one that creates the loan.
+///
+/// ```rust,ignore
+/// pub fn main() {
+///     let mut x: (&u32,) = (&0,);
+///     let mut y: (&u32,) = (&1,);
+///     let mut z = 2;
+///
+///     if true {
+///         y.0 = x.0;      // creates the subset `'x: 'y`
+///     }
+///
+///     if true {
+///         x.0 = &z;       // the loan of `z` lands in `'x`
+///         drop(x.0);      // ... and `x` is dead afterwards
+///     }
+///
+///     z += 1;             // E0506 under nll and legacy
+///
+///     drop(y.0);          // keeps `'y` live across the write to `z`
+/// }
+/// ```
+///
+/// The three analyses disagree because they relate the loan of `z` to `'y`
+/// differently:
+///
+/// - **nll**: constraints are location-insensitive in their *propagation*.
+///   `y.0 = x.0` emits `'x: 'y @ P`, so every point of `'y` reachable from
+///   `P` -- which includes the write to `z` and the later use of `y.0` --
+///   joins `'x`, and the loan region (which must outlive `'x`) with it. The
+///   loan is in scope at `z += 1`: error.
+/// - **polonius alpha**: loan liveness is computed by *localized*
+///   reachability starting at the loan's own creation point. The `'x -> 'y`
+///   edge lives at points in the first `if`, which are not forward-reachable
+///   from the second `if`, so the loan never reaches `'y` and `'y`'s later
+///   liveness does not keep it alive: accepted.
+/// - **legacy (datalog)**: subsets are per-point but propagate along the CFG
+///   for as long as both regions are live, so the `'x ⊆ 'y` edge from the
+///   first `if` is still present at `z += 1`, where the loan is in `'x`:
+///   error. This is the "unnecessary" error the datalog implementation is
+///   known for here.
+///
+/// The 1-tuple is modeled as a one-field struct with an index field, so
+/// `x.0`/`y.0` are field places exactly as in the Rust program (the
+/// projection matters: it is what gives `x` and `y` each a single region
+/// that the assignment relates). `&0` / `&1` are promoted to `'static` in
+/// rustc; here they are borrows of two locals that are never written, so
+/// those loans can never conflict. `drop(..)` of a shared reference is
+/// modeled as a plain read of the place. The port shape (one-field struct
+/// plus explicit `a`/`b` locals) was compiled through rustc in all three
+/// revisions and reproduces the same verdicts as the original program, so
+/// the modeling does not move the ground truth.
+///
+/// rustc (verified locally, 1.96.0-nightly): [nll] error (E0506),
+/// [polonius] pass, [legacy] error (E0506).
+///
+/// Formality matches on [nll] and [polonius]. Under [legacy] it *accepts*,
+/// deliberately: `polonius_unlocked` models location-sensitive loan
+/// propagation, and this program is the case where the datalog
+/// implementation's per-point subset propagation derives an error that the
+/// analysis it implements does not require. Making the gate reproduce that
+/// derivation would mean re-introducing the imprecision this program was
+/// written to expose. See `outlives_visible_to_loan` in `nll.rs`, and
+/// `loan_survives_subset_edge_added_after_it` for the guard on the
+/// order-sensitivity that makes this work.
+#[test]
+fn loan_added_after_subset_edge() {
+    FormalityTest::new(crates![crate Foo {
+        struct Tup1<'l> { 0: &'l u32 }
+
+        fn foo() -> u32 {
+            exists<'x, 'y, 'l0, 'l1, 'lz> {
+                let a: u32 = 0_u32;
+                let b: u32 = 1_u32;
+                let x: Tup1<'x> = Tup1::<'x> { 0: &'l0 a };
+                let y: Tup1<'y> = Tup1::<'y> { 0: &'l1 b };
+                let z: u32 = 2_u32;
+
+                if true {
+                    y.0 = x.0;
+                } else {
+                }
+
+                if true {
+                    x.0 = &'lz z;
+                    x.0;
+                } else {
+                }
+
+                z = 3_u32;
+
+                y.0;
+                return 0_u32;
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = z : u32
+                &access.place = z : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2, ?lt_5}
+                &lifetime.upcast() = ?lt_2
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `z`"#]],
+    );
+}
+
+/// Guard for the *other* direction of `outlives_visible_to_loan`: a subset
+/// edge created **after** a loan must still carry it.
+///
+/// ```rust,ignore
+/// let mut z = 2u32;
+/// let p = &z;   // loan of `z` enters `'p`
+/// let q = p;    // `'p: 'q` -- created after the loan, so it must propagate
+/// z = 3;        // E0506: `q` still holds the loan
+/// let _ = q;
+/// ```
+///
+/// This is the shape that makes "only traverse edges the loan predates" the
+/// right rule and "only traverse edges whose source region is live at the
+/// access" the wrong one: `p` is dead at the write, yet the loan is plainly
+/// still reachable through `q`. Every mode must reject it.
+///
+/// rustc (verified locally, 1.96.0-nightly): error (E0506) in all three
+/// revisions.
+#[test]
+fn loan_survives_subset_edge_added_after_it() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> u32 {
+            exists<'p, 'q, 'l> {
+                let z: u32 = 2_u32;
+                let p: &'p u32 = &'l z;
+                let q: &'q u32 = p;
+                z = 3_u32;
+                q;
+                return 0_u32;
+            }
+        }
+    }])
+        .skip_execute()
+        .borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = z : u32
+                &access.place = z : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = ?lt_2
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `z`"#]]);
+}
+
+/// A loan reaching a *universal* region only through an edge created before it.
+///
+/// ```rust,ignore
+/// fn foo<'a>(mut r: &'a u32) -> u32 {
+///     let mut q: &u32 = r;
+///     let mut z = 2u32;
+///     if random_bool() {
+///         r = q;      // 'q: 'a -- edge created BEFORE the loan
+///     }
+///     if random_bool() {
+///         q = &z;     // loan of `z` enters 'q
+///         drop(q);    // ... and q is dead afterwards
+///     }
+///     z = 3;          // does the loan of z still reach 'a?
+///     0
+/// }
+/// ```
+///
+/// The same shape as `loan_added_after_subset_edge`, but what the loan reaches
+/// is the universal `'a` rather than the region of a live place. It therefore
+/// exercises `loan_cannot_outlive_universal_regions` instead of
+/// `loan_not_required_by_live_places` -- nothing is live at the write, so the
+/// live-place premise succeeds trivially and the verdict rests entirely on
+/// whether the loan is judged to escape into `'a`.
+///
+/// It does not escape: the `'q: 'a` edge exists only at points in the first
+/// `if`, which are not forward-reachable from the second, so on no path does
+/// the loan of `z` flow out through `r`.
+///
+/// rustc (verified locally, 1.96.0-nightly): [nll] error (E0597 + E0506),
+/// [polonius] pass, [legacy] error (E0597).
+#[test]
+fn loan_reaches_universal_via_earlier_edge() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo<'a>(r: &'a u32) -> u32 {
+            exists<'q, 'lz> {
+                let q: &'q u32 = r;
+                let z: u32 = 2_u32;
+
+                if true {
+                    r = q;
+                } else {
+                }
+
+                if true {
+                    q = &'lz z;
+                    q;
+                } else {
+                }
+
+                z = 3_u32;
+
+                return 0_u32;
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = z : u32
+                &access.place = z : u32
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `z`"#]],
+    );
+}
+
+/// Guard for the other direction of `loan_reaches_universal_via_earlier_edge`:
+/// an edge into a universal region created **after** a loan must still carry
+/// it out of the function.
+///
+/// ```rust,ignore
+/// fn foo<'a>(mut r: &'a u32) -> u32 {
+///     let mut q: &u32 = r;
+///     let mut z = 2u32;
+///     if random_bool() {
+///         q = &z;     // loan of `z` enters 'q first
+///     }
+///     if random_bool() {
+///         r = q;      // 'q: 'a -- created after the loan, so it escapes
+///     }
+///     z = 3;
+///     0
+/// }
+/// ```
+///
+/// Same statements as that test with the two `if`s swapped, which is the whole
+/// point: here the `'q: 'a` edge *is* forward-reachable from the loan, so the
+/// borrow of the local `z` really can escape through `r`, and every mode must
+/// reject it.
+///
+/// rustc (verified locally, 1.96.0-nightly): error in all three revisions
+/// ([nll] E0597 + E0506, [polonius] E0506, [legacy] E0597 + E0506).
+#[test]
+fn loan_reaches_universal_via_later_edge() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo<'a>(r: &'a u32) -> u32 {
+            exists<'q, 'lz> {
+                let q: &'q u32 = r;
+                let z: u32 = 2_u32;
+
+                if true {
+                    q = &'lz z;
+                } else {
+                }
+
+                if true {
+                    r = q;
+                } else {
+                }
+
+                z = 3_u32;
+
+                return 0_u32;
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = z : u32
+            &access.place = z : u32
+
+        the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+          condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+          {
+              Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+              {
+                  Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                  Lt::Variable(Variable::ExistentialVar(_)) => true,
+                  Lt::Variable(Variable::BoundVar(_)) =>
+                  panic!("cannot outlive a bound var"), Lt::Erased => true,
+              }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+          })`
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `z`"#]],
+    );
+}
+
+/// A loan flowing "back in time" to an edge that predates it, because the
+/// region it lands in is **invariant**.
+///
+/// This is `loan_reaches_universal_via_earlier_edge` with one local added:
+/// `mf`, whose type puts `'q` in the referent of a `&mut` and so makes `'q`
+/// invariant. Nothing else changes. Under covariance the pre-loan `'q: 'a` edge
+/// cannot carry the loan and the program is accepted; under invariance it can,
+/// and every mode rejects.
+///
+/// `loan_reaches_universal_via_earlier_edge_covariant_witness` is the control:
+/// the same program with `&'m Foo<'q>` instead of `&'m mut Foo<'q>`, which
+/// leaves `'q` covariant and is accepted.
+///
+/// The mechanism is `region_time_travels` in `nll.rs`, which mirrors rustc's
+/// `compute_backward_successor`: its localized graph gets backward liveness
+/// edges only for a region that is not used covariantly, and those are what let
+/// a loan reach an edge recorded at an earlier point.
+///
+/// rustc: the equivalent pair is a covariant `struct Tup1<'l>(&'l u32)` against
+/// an invariant `struct Tup1<'l>(Cell<&'l u32>)`, with identical statements
+/// otherwise -- verified locally (1.96.0-nightly) as [nll] E0506 /
+/// [polonius] **pass** / [legacy] E0506 for the covariant one, and E0506 in all
+/// three for the invariant one. Formality states the invariance differently
+/// because it has no interior mutability and writes its regions by hand: `'q`
+/// is shared explicitly between `q` and `f`, and `mf` supplies the `&mut`.
+#[test]
+fn loan_time_travels_to_earlier_edge_via_invariance() {
+    FormalityTest::new(crates![crate Foo {
+        struct Foo<'l> { 0: &'l u32 }
+
+        fn foo<'a>(r: &'a u32) -> u32 {
+            exists<'q, 'lz, 'm> {
+                let q: &'q u32 = r;
+                let f: Foo<'q> = Foo::<'q> { 0: r };
+                let mf: &'m mut Foo<'q> = &'m mut f;
+                let z: u32 = 2_u32;
+
+                if true {
+                    r = q;
+                } else {
+                }
+
+                if true {
+                    q = &'lz z;
+                } else {
+                }
+
+                z = 3_u32;
+
+                return 0_u32;
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
+        failed at (proven_set.rs) because
+          no relationship between `({pending_outlives(?lt_2, ?lt_4)}, (), └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                 _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                 env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                 assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                 goals: {@ wf(&?lt_2 mut Foo<?lt_0>)}
+                 result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+             └─ prove_wc: (parameter well formed) at prove_wc.rs:160
+                    _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                    env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                    assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                    goal: @ wf(&?lt_2 mut Foo<?lt_0>)
+                    result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                └─ prove_wf: (references) at prove_wf.rs:36
+                       _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                       env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                       assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                       goal: &?lt_2 mut Foo<?lt_0>
+                       result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                   └─ (lt, ty) = (?lt_2, Foo<?lt_0>): at prove_wf.rs:11
+                   └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                          _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                          env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                          assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                          goals: {@ wf(Foo<?lt_0>)}
+                          result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ prove_wc: (parameter well formed) at prove_wc.rs:160
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goal: @ wf(Foo<?lt_0>)
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ prove_wf: (ADT) at prove_wf.rs:65
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: Foo<?lt_0>
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ for_all: at combinators.rs:69
+                               └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                                      _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                      env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                      assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                      goals: {@ wf(?lt_0)}
+                                      result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                  └─ prove_wc: (assumption - relation) at prove_wc.rs:55
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: @ wf(?lt_0)
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ item = @ wf(?lt_0): at proven_set.rs:1056
+                                     └─ prove_via: (relation-axiom) at prove_via.rs:40
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            via: @ wf(?lt_0)
+                                            goal: @ wf(?lt_0)
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                        └─ (skel_c, parameters_c) = (well_formed, [?lt_0]): at prove_via.rs:8
+                                        └─ (skel_g, parameters_g) = (well_formed, [?lt_0]): at prove_via.rs:8
+                                        └─ IfThen { expression: "skel_c == skel_g", skel_c: well_formed, skel_g: well_formed }: at prove_via.rs:8
+                                        └─ IfThen { expression: "parameters_c == parameters_g", parameters_c: [?lt_0], parameters_g: [?lt_0] }: at prove_via.rs:8
+                                  └─ prove_after: (prove_after) at prove_after.rs:20
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: {}
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                                     └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            goals: {}
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }: at combinators.rs:57
+                            └─ t = adt Foo <lt> { struct { 0 : &^lt0_0 u32 } }: at prove_wf.rs:11
+                            └─ t = { struct { 0 : &?lt_0 u32 } }: at prove_wf.rs:11
+                            └─ prove_after: (prove_after) at prove_after.rs:20
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   goal: {}
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                               └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                      _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                      env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                      assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                      goals: {}
+                                      result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ prove_after: (prove_after) at prove_after.rs:20
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goal: {}
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                         └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goals: {}
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                   └─ prove_after: (prove_after) at prove_after.rs:20
+                          _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                          constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                          assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                          goal: {Foo<?lt_0> : ?lt_2}
+                          result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {Foo<?lt_0> : ?lt_2}): at prove_after.rs:8
+                      └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goals: {Foo<?lt_0> : ?lt_2}
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ prove_wc: (outlives) at prove_wc.rs:153
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: Foo<?lt_0> : ?lt_2
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ prove_outlives: (rigid types) at prove_outlives.rs:70
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   a: Foo<?lt_0>
+                                   b: ?lt_2
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                                      _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                      env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                      assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                      goals: {?lt_0 : ?lt_2}
+                                      result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                  └─ prove_wc: (outlives) at prove_wc.rs:153
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: ?lt_0 : ?lt_2
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ prove_outlives: (anything can be pending) at prove_outlives.rs:88
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            a: ?lt_0
+                                            b: ?lt_2
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                        └─ IfThen { expression: "env.allow_pending_outlives()", env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true } }: at prove_outlives.rs:8
+                                  └─ prove_after: (prove_after) at prove_after.rs:20
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: {}
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                                     └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            goals: {}
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ prove_after: (prove_after) at prove_after.rs:20
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: {}
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                            └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   goals: {}
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+             └─ prove_after: (prove_after) at prove_after.rs:20
+                    _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                    constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                    assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                    goal: {}
+                    result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                       _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                       env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }
+                       assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                       goals: {}
+                       result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+          )` and `({pending_outlives(Foo<?lt_2>, ?lt_4)}, (), └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                 _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                 env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                 assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                 goals: {@ wf(&?lt_2 mut Foo<?lt_0>)}
+                 result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+             └─ prove_wc: (parameter well formed) at prove_wc.rs:160
+                    _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                    env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                    assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                    goal: @ wf(&?lt_2 mut Foo<?lt_0>)
+                    result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                └─ prove_wf: (references) at prove_wf.rs:36
+                       _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                       env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                       assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                       goal: &?lt_2 mut Foo<?lt_0>
+                       result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                   └─ (lt, ty) = (?lt_2, Foo<?lt_0>): at prove_wf.rs:11
+                   └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                          _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                          env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                          assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                          goals: {@ wf(Foo<?lt_0>)}
+                          result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ prove_wc: (parameter well formed) at prove_wc.rs:160
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goal: @ wf(Foo<?lt_0>)
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ prove_wf: (ADT) at prove_wf.rs:65
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: Foo<?lt_0>
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ for_all: at combinators.rs:69
+                               └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                                      _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                      env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                      assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                      goals: {@ wf(?lt_0)}
+                                      result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                  └─ prove_wc: (assumption - relation) at prove_wc.rs:55
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: @ wf(?lt_0)
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ item = @ wf(?lt_0): at proven_set.rs:1056
+                                     └─ prove_via: (relation-axiom) at prove_via.rs:40
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            via: @ wf(?lt_0)
+                                            goal: @ wf(?lt_0)
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                        └─ (skel_c, parameters_c) = (well_formed, [?lt_0]): at prove_via.rs:8
+                                        └─ (skel_g, parameters_g) = (well_formed, [?lt_0]): at prove_via.rs:8
+                                        └─ IfThen { expression: "skel_c == skel_g", skel_c: well_formed, skel_g: well_formed }: at prove_via.rs:8
+                                        └─ IfThen { expression: "parameters_c == parameters_g", parameters_c: [?lt_0], parameters_g: [?lt_0] }: at prove_via.rs:8
+                                  └─ prove_after: (prove_after) at prove_after.rs:20
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: {}
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                                     └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            goals: {}
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }: at combinators.rs:57
+                            └─ t = adt Foo <lt> { struct { 0 : &^lt0_0 u32 } }: at prove_wf.rs:11
+                            └─ t = { struct { 0 : &?lt_0 u32 } }: at prove_wf.rs:11
+                            └─ prove_after: (prove_after) at prove_after.rs:20
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   goal: {}
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                               └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                      _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                      env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                      assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                      goals: {}
+                                      result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ prove_after: (prove_after) at prove_after.rs:20
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goal: {}
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                         └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goals: {}
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                   └─ prove_after: (prove_after) at prove_after.rs:20
+                          _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                          constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                          assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                          goal: {Foo<?lt_0> : ?lt_2}
+                          result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {Foo<?lt_0> : ?lt_2}): at prove_after.rs:8
+                      └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goals: {Foo<?lt_0> : ?lt_2}
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ prove_wc: (outlives) at prove_wc.rs:153
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: Foo<?lt_0> : ?lt_2
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ prove_outlives: (anything can be pending) at prove_outlives.rs:88
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   a: Foo<?lt_0>
+                                   b: ?lt_2
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ IfThen { expression: "env.allow_pending_outlives()", env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true } }: at prove_outlives.rs:8
+                         └─ prove_after: (prove_after) at prove_after.rs:20
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: {}
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                            └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   goals: {}
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+             └─ prove_after: (prove_after) at prove_after.rs:20
+                    _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                    constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                    assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                    goal: {}
+                    result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                       _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 mut Foo<^lt0_0> Some(= & ^lt0_2 mut f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                       env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }
+                       assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                       goals: {}
+                       result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+          )`"#]]);
+}
+
+/// Control for `loan_time_travels_to_earlier_edge_via_invariance`: identical
+/// but for `&'m Foo<'q>` in place of `&'m mut Foo<'q>`, so `'q` stays
+/// covariant, there are no backward edges, and the pre-loan edge cannot carry
+/// the loan.
+///
+/// That one character is the whole difference between the two verdicts.
+#[test]
+fn loan_reaches_universal_via_earlier_edge_covariant_witness() {
+    FormalityTest::new(crates![crate Foo {
+        struct Foo<'l> { 0: &'l u32 }
+
+        fn foo<'a>(r: &'a u32) -> u32 {
+            exists<'q, 'lz, 'm> {
+                let q: &'q u32 = r;
+                let f: Foo<'q> = Foo::<'q> { 0: r };
+                let mf: &'m Foo<'q> = &'m f;
+                let z: u32 = 2_u32;
+
+                if true {
+                    r = q;
+                } else {
+                }
+
+                if true {
+                    q = &'lz z;
+                } else {
+                }
+
+                z = 3_u32;
+
+                return 0_u32;
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
+        failed at (proven_set.rs) because
+          no relationship between `({pending_outlives(?lt_2, ?lt_4)}, (), └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                 _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                 env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                 assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                 goals: {@ wf(&?lt_2 Foo<?lt_0>)}
+                 result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+             └─ prove_wc: (parameter well formed) at prove_wc.rs:160
+                    _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                    env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                    assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                    goal: @ wf(&?lt_2 Foo<?lt_0>)
+                    result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                └─ prove_wf: (references) at prove_wf.rs:36
+                       _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                       env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                       assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                       goal: &?lt_2 Foo<?lt_0>
+                       result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                   └─ (lt, ty) = (?lt_2, Foo<?lt_0>): at prove_wf.rs:11
+                   └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                          _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                          env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                          assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                          goals: {@ wf(Foo<?lt_0>)}
+                          result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ prove_wc: (parameter well formed) at prove_wc.rs:160
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goal: @ wf(Foo<?lt_0>)
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ prove_wf: (ADT) at prove_wf.rs:65
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: Foo<?lt_0>
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ for_all: at combinators.rs:69
+                               └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                                      _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                      env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                      assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                      goals: {@ wf(?lt_0)}
+                                      result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                  └─ prove_wc: (assumption - relation) at prove_wc.rs:55
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: @ wf(?lt_0)
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ item = @ wf(?lt_0): at proven_set.rs:1056
+                                     └─ prove_via: (relation-axiom) at prove_via.rs:40
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            via: @ wf(?lt_0)
+                                            goal: @ wf(?lt_0)
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                        └─ (skel_c, parameters_c) = (well_formed, [?lt_0]): at prove_via.rs:8
+                                        └─ (skel_g, parameters_g) = (well_formed, [?lt_0]): at prove_via.rs:8
+                                        └─ IfThen { expression: "skel_c == skel_g", skel_c: well_formed, skel_g: well_formed }: at prove_via.rs:8
+                                        └─ IfThen { expression: "parameters_c == parameters_g", parameters_c: [?lt_0], parameters_g: [?lt_0] }: at prove_via.rs:8
+                                  └─ prove_after: (prove_after) at prove_after.rs:20
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: {}
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                                     └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            goals: {}
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }: at combinators.rs:57
+                            └─ t = adt Foo <lt> { struct { 0 : &^lt0_0 u32 } }: at prove_wf.rs:11
+                            └─ t = { struct { 0 : &?lt_0 u32 } }: at prove_wf.rs:11
+                            └─ prove_after: (prove_after) at prove_after.rs:20
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   goal: {}
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                               └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                      _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                      env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                      assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                      goals: {}
+                                      result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ prove_after: (prove_after) at prove_after.rs:20
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goal: {}
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                         └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goals: {}
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                   └─ prove_after: (prove_after) at prove_after.rs:20
+                          _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                          constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                          assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                          goal: {Foo<?lt_0> : ?lt_2}
+                          result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {Foo<?lt_0> : ?lt_2}): at prove_after.rs:8
+                      └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goals: {Foo<?lt_0> : ?lt_2}
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ prove_wc: (outlives) at prove_wc.rs:153
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: Foo<?lt_0> : ?lt_2
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ prove_outlives: (rigid types) at prove_outlives.rs:70
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   a: Foo<?lt_0>
+                                   b: ?lt_2
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                                      _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                      env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                      assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                      goals: {?lt_0 : ?lt_2}
+                                      result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                  └─ prove_wc: (outlives) at prove_wc.rs:153
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: ?lt_0 : ?lt_2
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ prove_outlives: (anything can be pending) at prove_outlives.rs:88
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            a: ?lt_0
+                                            b: ?lt_2
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                        └─ IfThen { expression: "env.allow_pending_outlives()", env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true } }: at prove_outlives.rs:8
+                                  └─ prove_after: (prove_after) at prove_after.rs:20
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: {}
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                                     └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            goals: {}
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ prove_after: (prove_after) at prove_after.rs:20
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: {}
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                            └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   goals: {}
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+             └─ prove_after: (prove_after) at prove_after.rs:20
+                    _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                    constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                    assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                    goal: {}
+                    result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                       _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                       env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }
+                       assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                       goals: {}
+                       result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2, ?lt_0 : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+          )` and `({pending_outlives(Foo<?lt_2>, ?lt_4)}, (), └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                 _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                 env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                 assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                 goals: {@ wf(&?lt_2 Foo<?lt_0>)}
+                 result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+             └─ prove_wc: (parameter well formed) at prove_wc.rs:160
+                    _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                    env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                    assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                    goal: @ wf(&?lt_2 Foo<?lt_0>)
+                    result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                └─ prove_wf: (references) at prove_wf.rs:36
+                       _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                       env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                       assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                       goal: &?lt_2 Foo<?lt_0>
+                       result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                   └─ (lt, ty) = (?lt_2, Foo<?lt_0>): at prove_wf.rs:11
+                   └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                          _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                          env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                          assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                          goals: {@ wf(Foo<?lt_0>)}
+                          result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ prove_wc: (parameter well formed) at prove_wc.rs:160
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goal: @ wf(Foo<?lt_0>)
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ prove_wf: (ADT) at prove_wf.rs:65
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: Foo<?lt_0>
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ for_all: at combinators.rs:69
+                               └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                                      _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                      env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                      assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                      goals: {@ wf(?lt_0)}
+                                      result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                  └─ prove_wc: (assumption - relation) at prove_wc.rs:55
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: @ wf(?lt_0)
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ item = @ wf(?lt_0): at proven_set.rs:1056
+                                     └─ prove_via: (relation-axiom) at prove_via.rs:40
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            via: @ wf(?lt_0)
+                                            goal: @ wf(?lt_0)
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                        └─ (skel_c, parameters_c) = (well_formed, [?lt_0]): at prove_via.rs:8
+                                        └─ (skel_g, parameters_g) = (well_formed, [?lt_0]): at prove_via.rs:8
+                                        └─ IfThen { expression: "skel_c == skel_g", skel_c: well_formed, skel_g: well_formed }: at prove_via.rs:8
+                                        └─ IfThen { expression: "parameters_c == parameters_g", parameters_c: [?lt_0], parameters_g: [?lt_0] }: at prove_via.rs:8
+                                  └─ prove_after: (prove_after) at prove_after.rs:20
+                                         _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                         constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                         assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                         goal: {}
+                                         result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                     └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                                     └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                            _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                            env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                            assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                            goals: {}
+                                            result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }: at combinators.rs:57
+                            └─ t = adt Foo <lt> { struct { 0 : &^lt0_0 u32 } }: at prove_wf.rs:11
+                            └─ t = { struct { 0 : &?lt_0 u32 } }: at prove_wf.rs:11
+                            └─ prove_after: (prove_after) at prove_after.rs:20
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   goal: {}
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                               └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                      _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                      env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                      assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                      goals: {}
+                                      result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ prove_after: (prove_after) at prove_after.rs:20
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goal: {}
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                         └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goals: {}
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                   └─ prove_after: (prove_after) at prove_after.rs:20
+                          _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                          constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                          assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                          goal: {Foo<?lt_0> : ?lt_2}
+                          result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                      └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {Foo<?lt_0> : ?lt_2}): at prove_after.rs:8
+                      └─ prove_wc_list: (some) at prove_wc_list.rs:28
+                             _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                             env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                             assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                             goals: {Foo<?lt_0> : ?lt_2}
+                             result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                         └─ prove_wc: (outlives) at prove_wc.rs:153
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: Foo<?lt_0> : ?lt_2
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ prove_outlives: (anything can be pending) at prove_outlives.rs:88
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   a: Foo<?lt_0>
+                                   b: ?lt_2
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                               └─ IfThen { expression: "env.allow_pending_outlives()", env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: true } }: at prove_outlives.rs:8
+                         └─ prove_after: (prove_after) at prove_after.rs:20
+                                _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                                assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                goal: {}
+                                result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                            └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                            └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                                   _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                                   env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }
+                                   assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                                   goals: {}
+                                   result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+             └─ prove_after: (prove_after) at prove_after.rs:20
+                    _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                    constraints: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                    assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                    goal: {}
+                    result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+                └─ (assumptions, goal) = ({@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}, {}): at prove_after.rs:8
+                └─ prove_wc_list: (none) at prove_wc_list.rs:21
+                       _decls: program([crate core { trait Copy <ty> { } impl Copy for () { } impl Copy for u8 { } impl Copy for u16 { } impl Copy for u32 { } impl Copy for u64 { } impl Copy for i8 { } impl Copy for i16 { } impl Copy for i32 { } impl Copy for i64 { } impl Copy for bool { } impl Copy for usize { } impl Copy for isize { } impl <lt, ty> Copy for &^lt0_0 ^ty0_1 { } trait Drop <ty> { } trait Derefable <ty> { type Target : [] ; } impl <lt, ty> Derefable for &^lt0_0 ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } impl <lt, ty> Derefable for &^lt0_0 mut ^ty0_1 where ^ty0_1 : ^lt0_0 { type Target = ^ty1_1 ; } }, crate Foo { struct Foo <lt> { 0 : &^lt0_0 u32 } fn foo <lt> (r : &^lt0_0 u32) -> u32 { exists <lt, lt, lt> { let q : &^lt0_0 u32 Some(= r) ; let f : Foo<^lt0_0> Some(= Foo :: <^lt0_0> { 0 : r }) ; let mf : &^lt0_2 Foo<^lt0_0> Some(= & ^lt0_2 f) ; let z : u32 Some(= 2_u32) ; if true { r = q ; } if true { q = & ^lt0_1 z ; } z = 3_u32 ; return 0_u32 ; } } }], 222)
+                       env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }
+                       assumptions: {@ wf(?lt_0), @ wf(?lt_1), @ wf(?lt_2)}
+                       goals: {}
+                       result: Constraints { env: Env { variables: [?lt_0, ?lt_1, ?lt_2], bias: Soundness, pending: [Foo<?lt_0> : ?lt_2, Foo<?lt_0> : ?lt_2], allow_pending_outlives: true }, known_true: true, substitution: {} }
+          )`"#]]);
+}
+
+/// The loan's own region stays live across the gap between the earlier edge and
+/// the loan -- the ingredient that lets rustc's traversal walk *backward* in
+/// time to reach that edge. It only does so for invariant regions, so this must
+/// still be accepted.
+///
+/// ```rust,ignore
+/// struct Tup1<'l>(&'l u32);
+/// if random_bool() { y.0 = x.0; }   // 'x: 'y, before the loan
+/// if random_bool() { x.0 = &z; }    // loan of z enters 'x
+/// let _ = x.0;                      // keeps 'x live across [P1, P2]
+/// z = 3;
+/// let _ = y.0;                      // 'y live at the write
+/// ```
+///
+/// `loan_added_after_subset_edge` lets `'x` die right after the loan; here it
+/// stays live from the edge all the way to the later use, so rustc's localized
+/// graph has backward liveness edges available in principle. It still accepts,
+/// because `compute_backward_successor` (rustc's `polonius/constraints.rs`)
+/// returns `None` for `ConstraintDirection::Forward`, and `&'l u32` is
+/// covariant.
+///
+/// The invariant twin -- `struct Tup1<'l>(Cell<&'l u32>)`, `y.0 = x.0.clone()`,
+/// `x.0 = Cell::new(&z)`, same statements otherwise -- is rejected by rustc in
+/// *all three* revisions, because the loan time-travels back to the edge. See
+/// `loan_time_travels_to_earlier_edge_via_invariance` for that case.
+///
+/// rustc (verified locally, 1.96.0-nightly): [nll] error (E0506),
+/// [polonius] pass, [legacy] error (E0506).
+#[test]
+fn loan_region_live_across_earlier_edge() {
+    FormalityTest::new(crates![crate Foo {
+        struct Tup1<'l> { 0: &'l u32 }
+
+        fn foo() -> u32 {
+            exists<'x, 'y, 'l0, 'l1, 'lz> {
+                let a: u32 = 0_u32;
+                let b: u32 = 1_u32;
+                let x: Tup1<'x> = Tup1::<'x> { 0: &'l0 a };
+                let y: Tup1<'y> = Tup1::<'y> { 0: &'l1 b };
+                let z: u32 = 2_u32;
+
+                if true {
+                    y.0 = x.0;
+                } else {
+                }
+
+                if true {
+                    x.0 = &'lz z;
+                } else {
+                }
+
+                x.0;
+
+                z = 3_u32;
+
+                y.0;
+                return 0_u32;
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = z : u32
+                &access.place = z : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_1, ?lt_2, ?lt_5}
+                &lifetime.upcast() = ?lt_2
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `z`"#]],
+    );
+}
+
+/// The loan and the subset edge are on *disjoint* branches of one `if`, so
+/// neither is reachable from the other.
+///
+/// ```rust,ignore
+/// if random_bool() {
+///     x.0 = &z;    // loan enters 'x
+/// } else {
+///     y.0 = x.0;   // 'x: 'y -- never on a path with the loan
+/// }
+/// z = 3;
+/// let _ = y.0;
+/// ```
+///
+/// On no path does `y` come to hold the loan of `z`, so it is safe.
+///
+/// rustc (verified locally, 1.96.0-nightly): [nll] error (E0506),
+/// [polonius] pass, [legacy] pass.
+///
+/// **Deviation**: formality errors under polonius and legacy too. This is the
+/// price of reconstructing location-sensitivity by subtraction rather than
+/// propagating loans eagerly. `LoanOrigin` records the edges in force on the
+/// loan's *own* path, and the `'x: 'y` edge is not one of them -- it is created
+/// on the sibling branch -- so `outlives_visible_to_loan` does not subtract it
+/// and the loan reaches `'y`. rustc has no such problem because its edge lives
+/// at a point in the other branch, which is simply not reachable from the
+/// loan's point.
+///
+/// Eager propagation (polonius's `origin_contains_loan`) would get this right
+/// without a special case: applying `'x: 'y` on the else branch copies the
+/// loans in `'x` *there*, and on that path `'x` holds none. See the note on
+/// `outlives_visible_to_loan` in `nll.rs` -- this and the invariance case are
+/// the two shapes that argue for making the switch.
+#[test]
+fn loan_and_edge_on_disjoint_branches() {
+    FormalityTest::new(crates![crate Foo {
+        struct Tup1<'l> { 0: &'l u32 }
+
+        fn foo() -> u32 {
+            exists<'x, 'y, 'l0, 'l1, 'lz> {
+                let a: u32 = 0_u32;
+                let b: u32 = 1_u32;
+                let x: Tup1<'x> = Tup1::<'x> { 0: &'l0 a };
+                let y: Tup1<'y> = Tup1::<'y> { 0: &'l1 b };
+                let z: u32 = 2_u32;
+
+                if true {
+                    x.0 = &'lz z;
+                } else {
+                    y.0 = x.0;
+                }
+
+                z = 3_u32;
+
+                y.0;
+                return 0_u32;
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = z : u32
+            &access.place = z : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2, ?lt_5}
+            &lifetime.upcast() = ?lt_2
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `z`"#]],
+    );
+}
+
+/// `&mut` is invariant in its referent, so a `&'x mut &'a u32` may not be
+/// shortened to a `&'x mut &'b u32` even when `'a: 'b` is declared.
+///
+/// ```rust,ignore
+/// fn foo<'x, 'a: 'b + 'x, 'b: 'x>(v1: &'x mut &'a u32) -> u32 {
+///     let v2: &'x mut &'b u32 = v1;  // ERROR: also requires `'b: 'a`
+///     0
+/// }
+/// ```
+///
+/// `prove_sub` used to relate every parameter of a rigid type covariantly, so
+/// this was accepted -- unsoundly, since the referent can be written through:
+/// having shortened `'a` to `'b`, one could store a `&'b u32` where the caller
+/// still expects to read a `&'a u32`.
+///
+/// The shared-reference counterpart is `shared_ref_referent_stays_covariant`.
+///
+/// rustc (verified locally, 1.95.0): error, "lifetime may not live long
+/// enough ... mutable references are invariant over their type parameter".
+#[test]
+fn refmut_referent_is_invariant() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo<'x, 'a, 'b>(v1: &'x mut &'a u32) -> u32
+        where
+            'a: 'b,
+            'a: 'x,
+            'b: 'x,
+        {
+            let v2: &'x mut &'b u32 = v1;
+            return 0_u32;
+        }
+    }])
+    .skip_execute()
+    .borrowck_ok()
+}
+
+/// enough ... the type `Inv<'_, '_>`, which makes the generic argument `'_`
+/// invariant".
+#[test]
+fn adt_lifetime_under_refmut_is_invariant() {
+    FormalityTest::new(crates![crate Foo {
+        struct Inv<'x, 'a>
+        where
+            'a: 'x,
+        {
+            0: &'x mut &'a u32,
+        }
+
+        fn foo<'x, 'a, 'b>(v1: Inv<'x, 'a>) -> u32
+        where
+            'a: 'b,
+            'a: 'x,
+            'b: 'x,
+        {
+            let v2: Inv<'x, 'b> = v1;
+            return 0_u32;
+        }
+    }])
+    .skip_execute()
+    .borrowck_ok()
+}
+
+/// The covariant witness for the two tests above: a *shared* reference is
+/// covariant in its referent, so the very same upcast is fine. Without this,
+/// "computed the variances" would be indistinguishable from "made everything
+/// invariant".
+///
+/// ```rust,ignore
+/// fn foo<'x, 'a: 'b + 'x, 'b: 'x>(v1: &'x &'a u32) -> u32 {
+///     let v2: &'x &'b u32 = v1;  // fine: `&` is covariant in its referent
+///     0
+/// }
+/// ```
+///
+/// rustc (verified locally, 1.95.0): accepted.
+#[test]
+fn shared_ref_referent_stays_covariant() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo<'x, 'a, 'b>(v1: &'x &'a u32) -> u32
+        where
+            'a: 'b,
+            'a: 'x,
+            'b: 'x,
+        {
+            let v2: &'x &'b u32 = v1;
+            return 0_u32;
+        }
+    }])
+    .skip_execute()
+    .borrowck_ok()
+}

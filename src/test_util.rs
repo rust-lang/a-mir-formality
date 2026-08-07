@@ -199,9 +199,12 @@ impl FormalityTest {
                 }
                 Err(e) => {
                     formality_core::test_util::record_negative_coverage_from_anyhow(&e);
-                    let test_error = formality_core::test_util::normalize_paths(
+                    let mut test_error = formality_core::test_util::normalize_paths(
                         formality_core::test_util::format_error_leaves(&e),
                     );
+                    for gate in mode.feature_gates() {
+                        test_error = test_error.replace(&format!(" #![feature({gate:?})]"), "");
+                    }
                     match &error {
                         Ok(()) => {
                             error = Err((mode, test_error.clone()));
