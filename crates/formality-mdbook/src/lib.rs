@@ -135,6 +135,9 @@ fn append_coverage_chapters(
     // Subpage filenames come from `report::slug` so they match the `./{slug}.md`
     // links `render_index` emits. Two judgments collapsing to one slug would
     // clobber each other's page; warn, mirroring `report::write_all`.
+    // The how-to-read page takes the first of those top-level numbers, so the
+    // index and everything nested under it start one later.
+    let index_top = next_top + 1;
     let mut seen_slugs: HashSet<String> = HashSet::new();
     let mut subpages: Vec<BookItem> = Vec::new();
     // Detail pages write their sidecar `args` JSON here, under the book source
@@ -154,7 +157,7 @@ fn append_coverage_chapters(
             PathBuf::from(format!("{slug}.md")),
             vec!["Coverage report".to_string()],
         );
-        chapter.number = Some(SectionNumber::new(vec![next_top, (i + 1) as u32]));
+        chapter.number = Some(SectionNumber::new(vec![index_top, (i + 1) as u32]));
 
         // Per-cell detail pages (the test lists each coverage cell links to)
         // hang off this judgment's subpage with a third section-number
@@ -184,7 +187,7 @@ fn append_coverage_chapters(
                 vec!["Coverage report".to_string(), j.name.clone()],
             );
             detail.number = Some(SectionNumber::new(vec![
-                next_top,
+                index_top,
                 (i + 1) as u32,
                 (k + 1) as u32,
             ]));
@@ -194,13 +197,24 @@ fn append_coverage_chapters(
         subpages.push(BookItem::Chapter(chapter));
     }
 
+    // The standing explanation of the report's notation, which every generated
+    // page links to in its footer.
+    let mut how_to_read = Chapter::new(
+        "How to read the coverage report",
+        report::render_how_to_read(),
+        PathBuf::from(format!("{}.md", report::HOW_TO_READ_SLUG)),
+        vec![],
+    );
+    how_to_read.number = Some(SectionNumber::new(vec![next_top]));
+    book.push_item(how_to_read);
+
     let mut index_chapter = Chapter::new(
         "Coverage report",
         report::render_index(&judgments, &cov),
         PathBuf::from("coverage.md"),
         vec![],
     );
-    index_chapter.number = Some(SectionNumber::new(vec![next_top]));
+    index_chapter.number = Some(SectionNumber::new(vec![index_top]));
     index_chapter.sub_items = subpages;
     book.push_item(index_chapter);
 
@@ -210,7 +224,7 @@ fn append_coverage_chapters(
         github_base,
         root.parent(),
         &args_dir,
-        next_top + 1,
+        index_top + 1,
         &mut seen_slugs,
         book,
     )?;

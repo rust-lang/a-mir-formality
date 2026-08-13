@@ -346,6 +346,11 @@ fn markdown_index_snapshot() {
         | **[prove_thing](./prove_thing.md)** | - | - |
         | ↳ [positive](./prove_thing.md#positive) | [1 test](./prove_thing__positive__pos.md) | 1/1 |
         | ↳ [zero](./prove_thing.md#zero) | ✗ | 0/1 |
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&md);
 }
@@ -409,6 +414,11 @@ fn markdown_subpage_snapshot() {
         </table>
         </div>
 
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "##]].assert_eq(&md);
 }
 
@@ -872,6 +882,11 @@ fn infallible_premise_renders_as_na() {
         | --- | --- | --- |
         | **[easy](./easy.md)** | - | - |
         | ↳ [trivial](./easy.md#trivial) | ✗ | N/A |
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&index);
 
@@ -920,6 +935,11 @@ fn infallible_premise_renders_as_na() {
         </table>
         </div>
 
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "##]].assert_eq(&subpage);
 }
 
@@ -942,6 +962,11 @@ fn no_applicable_rule_renders_in_index_and_subpage() {
         | **[prove_thing](./prove_thing.md)** | - | no applicable rule observed |
         | ↳ [positive](./prove_thing.md#positive) | ✗ | 0/1 |
         | ↳ [zero](./prove_thing.md#zero) | ✗ | 0/1 |
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&index);
 
@@ -968,6 +993,11 @@ fn empty_rules_renders_no_rules_message() {
         Source: `fixture.rs:1`
 
         _No rules discovered._
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&md);
 }
@@ -1152,6 +1182,11 @@ fn by_test_index_groups_tests_by_file() {
         | --- | --- | --- |
         | [line 42](./test__tests_prove_thing_rs__42.md) | 1 | 0 |
         | [line 99](./test__tests_prove_thing_rs__99.md) | 0 | 1 |
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&md);
 }
@@ -1166,6 +1201,11 @@ fn by_test_index_says_so_when_nothing_was_recorded() {
         The same data as the [coverage report](./coverage.md), organized by test rather than by judgment: each test lists the rules it proves and the premises it is observed to fail on.
 
         _No coverage recorded._
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&md);
 }
@@ -1234,6 +1274,11 @@ fn test_pages_link_to_the_cells_they_cover() {
 
         _This test records no negative coverage._
 
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&pages[0].content);
 
@@ -1288,6 +1333,11 @@ fn test_pages_link_to_the_cells_they_cover() {
         | --- | --- | --- | --- |
         | [prove_thing](./prove_thing.md) | [positive](./prove_thing.md#positive) | `if true` (line 9) | [1 test](./prove_thing__positive__p9__neg.md) |
 
+
+
+        ---
+
+        [How to read this page](./coverage-how-to-read.md)
     "#]]
     .assert_eq(&pages[1].content);
 }
