@@ -3,6 +3,7 @@
 //! on the live `formality-rust` source layout.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 use expect_test::expect;
 use formality_core::judgment::coverage::{FailedRuleNode, FailedTreeNode, ProofTreeNode};
@@ -10,7 +11,9 @@ use formality_coverage::jsonl::{
     self, Coverage, CoveredRule, NoApplicableRuleLoc, PremiseLoc, TestLoc,
 };
 use formality_coverage::report;
-use formality_coverage::scrape::{scrape_text, Judgment, Premise, PremiseKind, Rule};
+use formality_coverage::scrape::{
+    is_test_source, scrape_text, Judgment, Premise, PremiseKind, Rule,
+};
 
 fn premise(raw: &str, kind: PremiseKind, fallible: bool, line: u32) -> Premise {
     Premise {
@@ -171,6 +174,59 @@ judgment_fn! {
 
     let all_inf = rules.iter().find(|r| r.name == "all infallible").unwrap();
     assert!(all_inf.premises.iter().all(|p| !p.fallible));
+}
+
+#[test]
+fn skips_judgments_in_cfg_test_mods() {
+    const SRC: &str = r#"
+judgment_fn! {
+    fn real(x: u32) => () {
+        (
+            (if x > 0)
+            --- ("real")
+            (real(x) => ())
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    judgment_fn! {
+        fn fixture(x: u32) => () {
+            (
+                (if x > 0)
+                --- ("fixture")
+                (fixture(x) => ())
+            )
+        }
+    }
+}
+"#;
+    let names: Vec<String> = scrape_text(SRC, "src.rs")
+        .into_iter()
+        .map(|j| j.name)
+        .collect();
+    assert_eq!(names, vec!["real"]);
+}
+
+#[test]
+fn recognizes_test_sources() {
+    assert!(is_test_source(
+        Path::new("formality-core/tests/coverage.rs"),
+        ""
+    ));
+    assert!(is_test_source(
+        Path::new("formality-core/src/judgment/test_for_all.rs"),
+        "#![cfg(test)]
+
+use crate::judgment_fn;
+",
+    ));
+    assert!(!is_test_source(
+        Path::new("formality-rust/src/prove/prove_wc.rs"),
+        "use crate::judgment_fn;
+",
+    ));
 }
 
 /// Two-rule `prove_thing` judgment: `positive` (premise on line 9, tested
