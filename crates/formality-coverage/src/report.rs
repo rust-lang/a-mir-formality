@@ -100,17 +100,31 @@ pub fn render_index(judgments: &[Judgment], cov: &Coverage) -> String {
 /// standalone CLI report (viewed as markdown) and `"html"` for the mdbook
 /// preprocessor (mdbook only rewrites `.md`→`.html` for markdown-syntax links,
 /// not for the raw-HTML `<a>` we emit here).
-pub fn render_subpage(j: &Judgment, cov: &Coverage, link_ext: &str) -> String {
+pub fn render_subpage(
+    j: &Judgment,
+    cov: &Coverage,
+    link_ext: &str,
+    github_base: Option<&str>,
+) -> String {
     let mut s = String::new();
-    s.push_str(&format!(
-        "# Judgment `{}` at {}:{}\n\n",
-        j.name, j.file, j.line,
-    ));
-    if !j.signature.is_empty() {
-        s.push_str("**Signature:**\n\n```rust,ignore\n");
-        s.push_str(&j.signature);
-        s.push_str("\n```\n\n");
+    s.push_str(&format!("# Judgment `{}`\n\n", j.name));
+    if !j.source_extract.is_empty() {
+        // A judgment's doc comment can itself contain a fenced code block, so
+        // the fence has to outrun the longest backtick run inside it.
+        let fence = "`".repeat(fence_len(&j.source_extract));
+        s.push_str(&format!(
+            "{fence}rust,ignore\n{}\n{fence}\n\n",
+            j.source_extract
+        ));
     }
+    s.push_str(&match github_base {
+        Some(base) => format!(
+            "[Source: `{file}:{line}`]({base}/{file}#L{line})\n\n",
+            file = j.file,
+            line = j.line,
+        ),
+        None => format!("Source: `{}:{}`\n\n", j.file, j.line),
+    });
     if cov.no_applicable_rule_observed(&j.file, &j.name) {
         s.push_str("_No applicable rule observed: at least one test exercised this judgment with no matching rule._\n\n");
     }
@@ -130,6 +144,17 @@ pub fn render_subpage(j: &Judgment, cov: &Coverage, link_ext: &str) -> String {
         s.push('\n');
     }
     s
+}
+
+/// Length of a code fence that safely encloses `code`: longer than the longest
+/// run of backticks in it, and never shorter than the usual three.
+fn fence_len(code: &str) -> usize {
+    let longest_run = code
+        .split(|c| c != '`')
+        .map(|run| run.len())
+        .max()
+        .unwrap_or(0);
+    (longest_run + 1).max(3)
 }
 
 /// Which row of a rule's coverage chart to highlight as the "current" cell when
@@ -1533,7 +1558,7 @@ pub fn write_all(
                 j.name, j.file, j.line,
             );
         }
-        let body = render_subpage(j, cov, "md");
+        let body = render_subpage(j, cov, "md", github_base);
         std::fs::write(out_dir.join(format!("{}.md", slug)), body)?;
 
         for page in render_detail_pages_for(j, cov, github_base, source_root, "md") {
