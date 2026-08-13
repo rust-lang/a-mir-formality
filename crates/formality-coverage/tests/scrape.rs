@@ -177,6 +177,52 @@ judgment_fn! {
 }
 
 #[test]
+fn source_extract_keeps_the_header_and_drops_the_rules() {
+    let got = scrape_text(FIXTURE, "fixture.rs");
+    expect![[r#"
+        judgment_fn! {
+            /// doc comment
+            pub fn prove_thing(x: u32) => () {
+                /* rules omitted */
+            }
+        }"#]]
+    .assert_eq(&got[0].source_extract);
+}
+
+/// A judgment whose doc comment contains a code example: the example must not
+/// be read as the judgment's own source (`prove_outlives` used to be scraped
+/// under the name `main` for exactly this reason).
+#[test]
+fn doc_comment_examples_are_not_scraped() {
+    const SRC: &str = r#"
+/// Documented with an example:
+///
+/// ```rust,ignore
+/// judgment_fn! {
+///     fn not_a_judgment(x: u32) => () { }
+/// }
+///
+/// fn main() {
+///     documented(1);
+/// }
+/// ```
+judgment_fn! {
+    pub fn documented(x: u32) => () {
+        (
+            (if x > 0)
+            --- ("positive")
+            (documented(x) => ())
+        )
+    }
+}
+"#;
+    let got = scrape_text(SRC, "src.rs");
+    let names: Vec<&str> = got.iter().map(|j| j.name.as_str()).collect();
+    assert_eq!(names, vec!["documented"]);
+    assert_eq!(got[0].signature, "documented(x: u32) => ()");
+}
+
+#[test]
 fn skips_judgments_in_cfg_test_mods() {
     const SRC: &str = r#"
 judgment_fn! {
@@ -236,6 +282,7 @@ fn prove_thing_judgment() -> Judgment {
         name: "prove_thing".into(),
         doc_comment: String::new(),
         signature: "prove_thing(x: u32) => ()".into(),
+        source_extract: String::new(),
         file: "fixture.rs".into(),
         line: 4,
         rules: vec![
@@ -307,15 +354,11 @@ fn markdown_index_snapshot() {
 fn markdown_subpage_snapshot() {
     let j = prove_thing_judgment();
     let cov = prove_thing_coverage();
-    let md = report::render_subpage(&j, &cov, "md");
+    let md = report::render_subpage(&j, &cov, "md", None);
     expect![[r##"
-        # Judgment `prove_thing` at fixture.rs:4
+        # Judgment `prove_thing`
 
-        **Signature:**
-
-        ```rust,ignore
-        prove_thing(x: u32) => ()
-        ```
+        Source: `fixture.rs:4`
 
         The number on each rule's conclusion is **positive** coverage; the number on each premise is **negative** coverage. Click a number to browse the tests.
 
@@ -773,6 +816,7 @@ fn detail_pages_embed_test_source_when_root_given() {
         name: "j".into(),
         doc_comment: String::new(),
         signature: String::new(),
+        source_extract: String::new(),
         file: "fixture.rs".into(),
         line: 1,
         rules: vec![rule_with_premise("r", 3, 2)],
@@ -808,6 +852,7 @@ fn infallible_premise_renders_as_na() {
         name: "easy".into(),
         doc_comment: String::new(),
         signature: String::new(),
+        source_extract: String::new(),
         file: "fixture.rs".into(),
         line: 1,
         rules: vec![Rule {
@@ -830,9 +875,11 @@ fn infallible_premise_renders_as_na() {
     "#]]
     .assert_eq(&index);
 
-    let subpage = report::render_subpage(&j, &cov, "md");
+    let subpage = report::render_subpage(&j, &cov, "md", None);
     expect![[r##"
-        # Judgment `easy` at fixture.rs:1
+        # Judgment `easy`
+
+        Source: `fixture.rs:1`
 
         The number on each rule's conclusion is **positive** coverage; the number on each premise is **negative** coverage. Click a number to browse the tests.
 
@@ -898,7 +945,7 @@ fn no_applicable_rule_renders_in_index_and_subpage() {
     "#]]
     .assert_eq(&index);
 
-    let subpage = report::render_subpage(&j, &cov, "md");
+    let subpage = report::render_subpage(&j, &cov, "md", None);
     assert!(subpage.contains("_No applicable rule observed:"));
 }
 
@@ -908,14 +955,17 @@ fn empty_rules_renders_no_rules_message() {
         name: "lonely".into(),
         doc_comment: String::new(),
         signature: String::new(),
+        source_extract: String::new(),
         file: "fixture.rs".into(),
         line: 1,
         rules: vec![],
     };
     let cov = Coverage::default();
-    let md = report::render_subpage(&j, &cov, "md");
+    let md = report::render_subpage(&j, &cov, "md", None);
     expect![[r#"
-        # Judgment `lonely` at fixture.rs:1
+        # Judgment `lonely`
+
+        Source: `fixture.rs:1`
 
         _No rules discovered._
     "#]]
