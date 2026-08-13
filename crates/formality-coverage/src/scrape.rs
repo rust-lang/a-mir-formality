@@ -5,6 +5,10 @@
 //! only scan for `judgment_fn!` and walk the body with brace/paren matching
 //! that ignores strings and `//` line comments. If the macro syntax changes,
 //! the logic here must follow.
+//!
+//! Judgments defined by tests are skipped (see [`is_test_source`] and the
+//! `#[cfg(test)]` handling in [`parse_judgment_fns`]): they are fixtures for
+//! the test suite, not part of the model the coverage report describes.
 
 use anyhow::Result;
 use regex::Regex;
@@ -77,11 +81,24 @@ pub fn scrape_dir(root: &Path) -> Result<Vec<Judgment>> {
             continue;
         }
         let contents = std::fs::read_to_string(path)?;
+        if is_test_source(path, &contents) {
+            continue;
+        }
         let rel = normalize_path(path, root);
         out.extend(parse_judgment_fns(&contents, &rel));
     }
     out.sort_by(|a, b| (a.file.as_str(), a.line).cmp(&(b.file.as_str(), b.line)));
     Ok(out)
+}
+
+/// Whether a file holds test-only code, and so should be skipped: either it
+/// lives under a `tests/` directory (an integration test) or it is a module
+/// gated by an inner `#![cfg(test)]` attribute. Judgments defined inside an
+/// inline `#[cfg(test)] mod` are skipped separately, in
+/// [`parse_judgment_fns`], since the rest of such a file is real source.
+pub fn is_test_source(path: &Path, contents: &str) -> bool {
+    path.components().any(|c| c.as_os_str() == "tests")
+        || contents.lines().any(|l| l.trim() == "#![cfg(test)]")
 }
 
 fn normalize_path(path: &Path, root: &Path) -> String {
@@ -96,13 +113,22 @@ pub fn scrape_text(text: &str, file: &str) -> Vec<Judgment> {
     parse_judgment_fns(text, file)
 }
 
-/// Find every `judgment_fn! { ... }` invocation in `content` and parse it.
+/// Find every `judgment_fn! { ... }` invocation in `content` and parse it,
+/// ignoring those inside a `#[cfg(test)] mod` (see [`cfg_test_mod_ranges`]).
 pub fn parse_judgment_fns(content: &str, file: &str) -> Vec<Judgment> {
     let mut judgments = Vec::new();
+    let cfg_test_mods = cfg_test_mod_ranges(content);
     let mut pos = 0;
 
     while let Some(start) = content[pos..].find("judgment_fn!") {
         let abs_start = pos + start;
+        if let Some(&(_, end)) = cfg_test_mods
+            .iter()
+            .find(|(s, e)| (*s..*e).contains(&abs_start))
+        {
+            pos = end;
+            continue;
+        }
         let jf_line = line_number(content, abs_start);
 
         let Some(brace_rel) = content[abs_start..].find('{') else {
@@ -133,6 +159,37 @@ pub fn parse_judgment_fns(content: &str, file: &str) -> Vec<Judgment> {
     }
 
     judgments
+}
+
+/// Byte ranges spanned by each `#[cfg(test)] mod ... { ... }` in `content`,
+/// from the attribute to the module's closing brace. A `#[cfg(test)]` on
+/// anything other than a module yields no range: only a module can contain a
+/// `judgment_fn!` invocation.
+fn cfg_test_mod_ranges(content: &str) -> Vec<(usize, usize)> {
+    const ATTR: &str = "#[cfg(test)]";
+    let mut ranges = Vec::new();
+    let mut pos = 0;
+
+    while let Some(rel) = content[pos..].find(ATTR) {
+        let attr_start = pos + rel;
+        let after_attr = attr_start + ATTR.len();
+        pos = after_attr;
+
+        let rest = content[after_attr..].trim_start();
+        if !rest.starts_with("mod ") && !rest.starts_with("pub mod ") {
+            continue;
+        }
+        let Some(brace_rel) = content[after_attr..].find('{') else {
+            continue;
+        };
+        let Some(close) = find_matching_brace(content, after_attr + brace_rel) else {
+            continue;
+        };
+        ranges.push((attr_start, close));
+        pos = close;
+    }
+
+    ranges
 }
 
 fn parse_single_judgment(

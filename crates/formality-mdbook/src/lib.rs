@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use formality_coverage::scrape::{Judgment, Rule, parse_judgment_fns, scrape_dir};
+use formality_coverage::scrape::{Judgment, Rule, is_test_source, parse_judgment_fns, scrape_dir};
 use formality_coverage::{jsonl, report, summary};
 use mdbook_preprocessor::book::{Book, BookItem, Chapter, SectionNumber};
 use mdbook_preprocessor::{Preprocessor, PreprocessorContext};
@@ -296,6 +296,12 @@ pub fn scan_source_files(src_dir: &Path, root: &Path) -> anyhow::Result<SourceIn
 
     for entry in walk_rs_files(src_dir)? {
         let content = std::fs::read_to_string(&entry)?;
+        // Judgments defined by tests are fixtures, not part of the model; skip
+        // them here as well as in `scrape_dir`, since this index is what the
+        // coverage chapters are rendered from.
+        if is_test_source(&entry, &content) {
+            continue;
+        }
         let canonical_entry = entry.canonicalize().unwrap_or_else(|_| entry.clone());
         let rel_path = canonical_entry
             .strip_prefix(root)
