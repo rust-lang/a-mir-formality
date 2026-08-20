@@ -26,12 +26,12 @@ mod negation;
 mod prove_after;
 mod prove_const_has_type;
 mod prove_eq;
+mod prove_goal;
+mod prove_goal_list;
 pub mod prove_normalize;
 mod prove_outlives;
 mod prove_sub;
 mod prove_via;
-mod prove_wc;
-mod prove_wc_list;
 mod prove_wf;
 pub mod test_util;
 
@@ -44,7 +44,7 @@ pub use env::{Bias, Env, MaxUniverse, Universe};
 pub use negation::{is_definitely_not_proveable, may_not_be_provable, negation_via_failure};
 pub use prove_normalize::prove_normalize;
 
-use self::prove_wc_list::prove_wc_list;
+use self::prove_goal_list::prove_goal_list;
 
 impl Crates {
     pub fn to_prove_decls(&self) -> Program {
@@ -98,7 +98,7 @@ pub fn prove(
     // Assert the term we are trying to prove should not have any variables that are not in the environment.
     assert!(env.encloses(term_in));
 
-    // Call `prove_wc_list` to do the real work.
+    // Call `prove_goal_list` to do the real work.
     struct ProveFailureLabel(String);
     let label = ProveFailureLabel(format!(
         "prove {{ goal: {goal:?}, assumptions: {assumptions:?}, env: {env:?}, decls: {decls:?} }}"
@@ -110,7 +110,7 @@ pub fn prove(
     }
     let mut results = map![];
     let result_set = if let Err(e) =
-        prove_wc_list(decls, &env, assumptions, goal).each_proof(|(result, proof_tree)| {
+        prove_goal_list(decls, &env, assumptions, goal).each_proof(|(result, proof_tree)| {
             results.insert(result, proof_tree);
         }) {
         ProvenSet::failed_rules(label, FailureLocation::caller(), set![FailedRule::new(e)])
