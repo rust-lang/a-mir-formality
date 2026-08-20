@@ -2,7 +2,7 @@
 
 use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::FlowState;
-use crate::grammar::{expr::LabelId, Crates, Fallible, Parameter, Ty, ValueId, Wcs};
+use crate::grammar::{expr::LabelId, Crates, Fallible, Goals, Parameter, Ty, ValueId};
 use crate::prove::{Env, Program};
 use formality_core::Upcast;
 use libspecr::prelude::Map;
@@ -49,7 +49,7 @@ pub(crate) struct CodegenFn {
     /// Used to resolve types, prove bounds, etc.
     pub(super) typeck_env: TypeckEnv,
     /// Where-clauses in scope for the current function being generated.
-    pub(super) assumptions: Wcs,
+    pub(super) assumptions: Goals,
     /// Monotonically increasing counter for generating unique local names.
     local_counter: u32,
     /// Monotonically increasing counter for generating unique basic-block names.
@@ -155,7 +155,7 @@ impl CodegenFn {
         CodegenFn {
             crates: crates.clone(),
             typeck_env,
-            assumptions: Wcs::t(),
+            assumptions: Goals::t(),
             local_counter: 0,
             bb_counter: 0,
             locals: Vec::new(),

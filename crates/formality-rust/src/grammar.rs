@@ -33,7 +33,7 @@ pub use kinded::*;
 mod ty;
 pub use ty::*;
 
-mod wc;
-pub use wc::*;
+mod goal;
+pub use goal::*;
 
 pub mod expr;

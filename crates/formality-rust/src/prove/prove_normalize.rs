@@ -1,5 +1,5 @@
 use crate::{
-    grammar::{AliasTy, ExistentialVar, Parameter, Predicate, RigidTy, Ty, Variable, Wc, Wcs},
+    grammar::{AliasTy, ExistentialVar, Goal, Goals, Parameter, Predicate, RigidTy, Ty, Variable},
     prove::Constrained,
 };
 use formality_core::{judgment_fn, Downcast};
@@ -22,7 +22,7 @@ judgment_fn! {
     pub fn prove_normalize(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         p: Parameter,
     ) => Constrained<Parameter> {
         debug(p, assumptions, env)
@@ -40,7 +40,7 @@ judgment_fn! {
             (let decl = decl.binder.instantiate_with(&subst).unwrap())
             (let AliasEqDeclBoundData { alias: AliasTy { name, parameters }, ty, where_clause } = decl)
             (assert a.name == *name)
-            (prove(decls, env, assumptions, Wcs::all_eq(&a.parameters, &parameters)) => c)
+            (prove(decls, env, assumptions, Goals::all_eq(&a.parameters, &parameters)) => c)
             (prove_after(decls, c, assumptions, &where_clause) => c)
             (let ty = c.substitution().apply(ty))
             (let c = c.pop_subst(&subst))
@@ -55,8 +55,8 @@ judgment_fn! {
     fn prove_normalize_via(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
-        via: Wc,
+        assumptions: Goals,
+        via: Goal,
         goal: Parameter,
     ) => Constrained<Parameter> {
         debug(goal, via, assumptions, env)
@@ -116,7 +116,7 @@ judgment_fn! {
             (let c = c.pop_subst(&subst))
             (assert c.env().encloses(&p))
             ----------------------------- ("forall")
-            (prove_normalize_via(decls, env, assumptions, Wc::ForAll(binder), goal) => Constrained(p, c))
+            (prove_normalize_via(decls, env, assumptions, Goal::ForAll(binder), goal) => Constrained(p, c))
         )
 
         (
@@ -124,7 +124,7 @@ judgment_fn! {
             (prove_after(decls, c, assumptions, wc_condition) => c)
             (let p = c.substitution().apply(p))
             ----------------------------- ("implies")
-            (prove_normalize_via(decls, env, assumptions, Wc::Implies(wc_condition, wc_consequence), goal) => Constrained(p, c))
+            (prove_normalize_via(decls, env, assumptions, Goal::Implies(wc_condition, wc_consequence), goal) => Constrained(p, c))
         )
     }
 }
@@ -133,7 +133,7 @@ judgment_fn! {
     fn prove_syntactically_eq(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         a: Parameter,
         b: Parameter,
     ) => Constraints {

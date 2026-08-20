@@ -1,7 +1,7 @@
 use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::PendingOutlives;
 
-use crate::grammar::{Parameter, Predicate, Variable, Wcs};
+use crate::grammar::{Goals, Parameter, Predicate, Variable};
 use crate::prove::prove;
 use formality_core::{judgment_fn, Set, Upcast};
 
@@ -10,7 +10,7 @@ judgment_fn! {
     /// can be proven from the function's where-clause assumptions.
     pub(crate) fn verify_universal_outlives(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         outlives: Set<PendingOutlives>,
     ) => () {
         debug(env, assumptions, outlives)
@@ -29,7 +29,7 @@ judgment_fn! {
     /// For universal lifetimes, checks all transitively outlived variables can be proven from assumptions.
     fn only_assumed_outlives(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         outlives: Set<PendingOutlives>,
         v: Variable,
     ) => () {
@@ -59,7 +59,7 @@ judgment_fn! {
     /// For universal lifetime targets, must prove from assumptions.
     fn can_outlive(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         outlives: Set<PendingOutlives>,
         param_a: Parameter,
         param_b: Parameter,

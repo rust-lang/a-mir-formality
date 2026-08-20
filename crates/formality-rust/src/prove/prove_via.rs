@@ -1,4 +1,4 @@
-use crate::grammar::{Wc, Wcs};
+use crate::grammar::{Goal, Goals};
 use formality_core::judgment_fn;
 
 use crate::prove::{
@@ -6,7 +6,7 @@ use crate::prove::{
 };
 
 judgment_fn! {
-    /// Check whether the where-clause `via` (which is one of the `assumptions` that are in in scope)
+    /// Check whether the assumption `via` (which is one of the `assumptions` that are in in scope)
     /// can be used to prove `goal` (the thing we are trying to prove).
     ///
     /// This is equivalent to the "elaboration" of the environment that takes place in rustc,
@@ -15,9 +15,9 @@ judgment_fn! {
     pub fn prove_via(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
-        via: Wc,
-        goal: Wc,
+        assumptions: Goals,
+        via: Goal,
+        goal: Goal,
     ) => Constraints {
         debug(goal, via, assumptions, env)
 
@@ -28,9 +28,9 @@ judgment_fn! {
             (let (skel_g, parameters_g) = pred_2.debone())
             (if !skel_c.is_relation())
             (if skel_c == skel_g)!
-            (prove(decls, env, assumptions, Wcs::all_eq(parameters_c, parameters_g)) => c)
+            (prove(decls, env, assumptions, Goals::all_eq(parameters_c, parameters_g)) => c)
             ----------------------------- ("predicate-congruence-axiom")
-            (prove_via(decls, env, assumptions, Wc::Predicate(pred_1), Wc::Predicate(pred_2)) => c)
+            (prove_via(decls, env, assumptions, Goal::Predicate(pred_1), Goal::Predicate(pred_2)) => c)
         )
 
         (
@@ -40,7 +40,7 @@ judgment_fn! {
             (if skel_c == skel_g)
             (if parameters_c == parameters_g)! // for relations, we require 100% match
             ----------------------------- ("relation-axiom")
-            (prove_via(_decls, env, _assumptions, Wc::Predicate(rel_1), Wc::Predicate(rel_2)) => Constraints::none(env))
+            (prove_via(_decls, env, _assumptions, Goal::Predicate(rel_1), Goal::Predicate(rel_2)) => Constraints::none(env))
         )
 
         // If you have `where for<'a> T: Trait<'a>` then you can prove `T: Trait<'b>` for any `'b`.
@@ -50,7 +50,7 @@ judgment_fn! {
             // Try to prove `T: Trait<?a> == goal`.
             (prove_via(decls, env, assumptions, via1, goal) => c)
             ----------------------------- ("forall")
-            (prove_via(decls, env, assumptions, Wc::ForAll(binder), goal) => c.pop_subst(&subst))
+            (prove_via(decls, env, assumptions, Goal::ForAll(binder), goal) => c.pop_subst(&subst))
         )
 
         // If you have `where if (T: Debug) T: Foo` (not in Rust but it should be...)...
@@ -60,7 +60,7 @@ judgment_fn! {
             // ...and we can prove `T: Debug`... then it holds.
             (prove_after(decls, c, assumptions, wc_condition) => c)
             ----------------------------- ("implies")
-            (prove_via(decls, env, assumptions, Wc::Implies(wc_condition, wc_consequence), goal) => c)
+            (prove_via(decls, env, assumptions, Goal::Implies(wc_condition, wc_consequence), goal) => c)
         )
     }
 }

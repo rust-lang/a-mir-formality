@@ -1,6 +1,6 @@
 use crate::grammar::{
-    AliasTy, ExistentialVar, Parameter, Predicate, RigidTy, Substitution, Ty, UniversalVar,
-    Variable, Wcs,
+    AliasTy, ExistentialVar, Goals, Parameter, Predicate, RigidTy, Substitution, Ty, UniversalVar,
+    Variable,
 };
 use crate::prove::Constrained;
 use formality_core::judgment::FailureLocation;
@@ -24,7 +24,7 @@ judgment_fn! {
     pub fn prove_eq(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         a: Parameter,
         b: Parameter,
     ) => Constraints {
@@ -44,7 +44,7 @@ judgment_fn! {
             (let RigidTy { name: a_name, parameters: a_parameters } = a)
             (let RigidTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)!
-            (prove(decls, env, assumptions, Wcs::all_eq(a_parameters, b_parameters)) => c)
+            (prove(decls, env, assumptions, Goals::all_eq(a_parameters, b_parameters)) => c)
             ----------------------------- ("rigid")
             (prove_eq(decls, env, assumptions, Ty::RigidTy(a), Ty::RigidTy(b)) => c)
         )
@@ -53,7 +53,7 @@ judgment_fn! {
             (let AliasTy { name: a_name, parameters: a_parameters } = a)
             (let AliasTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)!
-            (prove(decls, env, assumptions, Wcs::all_eq(a_parameters, b_parameters)) => env_c)
+            (prove(decls, env, assumptions, Goals::all_eq(a_parameters, b_parameters)) => env_c)
             ----------------------------- ("alias")
             (prove_eq(decls, env, assumptions, Ty::AliasTy(a), Ty::AliasTy(b)) => env_c)
         )
@@ -77,7 +77,7 @@ judgment_fn! {
     pub fn prove_existential_var_eq(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         v: ExistentialVar,
         b: Parameter,
     ) => Constraints {
@@ -148,13 +148,13 @@ judgment_fn! {
 fn equate_variable(
     decls: impl Upcast<Program>,
     env: impl Upcast<Env>,
-    assumptions: impl Upcast<Wcs>,
+    assumptions: impl Upcast<Goals>,
     x: impl Upcast<ExistentialVar>,
     p: impl Upcast<Parameter>,
 ) -> ProvenSet<Constraints> {
     let decls: Program = decls.upcast();
     let mut env: Env = env.upcast();
-    let assumptions: Wcs = assumptions.upcast();
+    let assumptions: Goals = assumptions.upcast();
     let x: ExistentialVar = x.upcast();
     let p: Parameter = p.upcast();
 
@@ -214,7 +214,7 @@ fn equate_variable(
     // above, we now have to prove that goal. e.g., if we had `X = Vec<!Y>`, we would replace `!Y` with `?Z`
     // (where `?Z` is in a lower universe than `X`), but now we must prove that `!Y = ?Z`
     // (this may be possible due to assumptions).
-    let goals: Wcs = universe_subst
+    let goals: Goals = universe_subst
         .iter()
         .filter(|(v, _)| v.is_a::<UniversalVar>())
         .map(|(v, p)| eq(v, p))

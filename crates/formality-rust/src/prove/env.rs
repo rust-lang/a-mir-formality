@@ -1,5 +1,5 @@
 use crate::grammar::{
-    Binder, ExistentialVar, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable, Wc,
+    Binder, ExistentialVar, Goal, ParameterKind, UniversalVar, VarIndex, VarSubstitution, Variable,
 };
 use crate::rust::{Fold, Visit};
 use formality_core::set;
@@ -54,7 +54,7 @@ pub struct Env {
     /// the pending constraints that are now unlocked.
     ///
     /// Whenever a "successful" proof results, the pending obligations
-    pending: Vec<Wc>,
+    pending: Vec<Goal>,
 
     /// When true, outlives constraints like `'a: 'b` can be deferred as pending
     /// obligations rather than being proven immediately. This is used during
@@ -92,8 +92,8 @@ impl Env {
         env
     }
 
-    /// Return a clone of the environment with `w` as a pending where-clause
-    pub fn with_pending(&self, w: impl Upcast<Wc>) -> Self {
+    /// Return a clone of the environment with `w` as a pending goal
+    pub fn with_pending(&self, w: impl Upcast<Goal>) -> Self {
         let mut env = self.clone();
         env.pending.push(w.upcast());
         env
@@ -213,7 +213,7 @@ impl Env {
     }
 
     /// Pending goals that must still be proven
-    pub fn pending(&self) -> &[Wc] {
+    pub fn pending(&self) -> &[Goal] {
         &self.pending
     }
 

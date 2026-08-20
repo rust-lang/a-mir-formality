@@ -2,9 +2,9 @@ use anyhow::bail;
 
 use crate::grammar::{
     AdtId, AssociatedTy, AssociatedTyBoundData, AssociatedTyValue, AssociatedTyValueBoundData,
-    Binder, CrateId, Fallible, Fn, FnBoundData, ImplItem, MaybeFnBody, NegTraitImpl,
+    Binder, CrateId, Fallible, Fn, FnBoundData, Goals, ImplItem, MaybeFnBody, NegTraitImpl,
     NegTraitImplBoundData, Predicate, RigidName, Substitution, Trait, TraitBoundData, TraitImpl,
-    TraitImplBoundData, TraitItem, Ty, Wcs,
+    TraitImplBoundData, TraitItem, Ty,
 };
 use crate::prove::{Env, Program, Safety};
 use crate::rust::Term;
@@ -131,7 +131,7 @@ judgment_fn! {
     fn check_trait_impl_item(
         program: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         trait_items: Vec<TraitItem>,
         impl_item: ImplItem,
         crate_id: CrateId,
@@ -156,7 +156,7 @@ judgment_fn! {
     fn check_fn_in_impl(
         program: Program,
         env: Env,
-        impl_assumptions: Wcs,
+        impl_assumptions: Goals,
         trait_items: Vec<TraitItem>,
         ii_fn: Fn,
         crate_id: CrateId,
@@ -201,7 +201,7 @@ judgment_fn! {
     fn check_associated_ty_value(
         program: Program,
         impl_env: Env,
-        impl_assumptions: Wcs,
+        impl_assumptions: Goals,
         trait_items: Vec<TraitItem>,
         impl_value: AssociatedTyValue,
     ) => () {
@@ -230,7 +230,7 @@ judgment_fn! {
             (super::prove_goal(program, env, (impl_assumptions, ii_where_clauses), Predicate::well_formed(ii_ty)) => ())
 
             // Prove the ensures clauses
-            (let ensures: Wcs = ti_ensures.iter().map(|e| e.to_wc(&ii_ty)).collect())
+            (let ensures: Goals = ti_ensures.iter().map(|e| e.to_goal(&ii_ty)).collect())
             (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), ensures) => ())
 
             ---- ("check_associated_ty_value")

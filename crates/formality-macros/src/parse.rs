@@ -752,12 +752,12 @@ fn field_ident_cloned(field: &syn::Field, index: usize) -> TokenStream {
 /// Wraps a sequence of struct/tuple bindings in nested `each_nonterminal` calls,
 /// separated by commas. Used for `#[cast]` variants and the default `name(a, b)` syntax.
 ///
-/// For example, given bindings `[v0: Wcs, v1: Wcs]` and tail `__p.ok(Prove(v0.clone(), v1.clone()))`:
+/// For example, given bindings `[v0: Goals, v1: Goals]` and tail `__p.ok(Prove(v0.clone(), v1.clone()))`:
 ///
 /// ```rust,ignore
-/// __p.each_nonterminal(|v0: Wcs, __p| {
+/// __p.each_nonterminal(|v0: Goals, __p| {
 ///     __p.expect_char(',')?;
-///     __p.each_nonterminal(|v1: Wcs, __p| {
+///     __p.each_nonterminal(|v1: Goals, __p| {
 ///         __p.ok(Prove(v0.clone(), v1.clone()))
 ///     })
 /// })

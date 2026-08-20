@@ -1,5 +1,5 @@
 use crate::grammar::{
-    AssociatedTy, AssociatedTyBoundData, Fn, Trait, TraitBoundData, TraitItem, Wcs,
+    AssociatedTy, AssociatedTyBoundData, Fn, Goals, Trait, TraitBoundData, TraitItem,
 };
 use crate::grammar::{CrateId, Fallible};
 use crate::prove::{Env, Program};
@@ -33,7 +33,7 @@ judgment_fn! {
     fn check_trait_item(
         program: Program,
         env: Env,
-        where_clauses: Wcs,
+        where_clauses: Goals,
         trait_item: TraitItem,
         crate_id: CrateId,
     ) => () {
@@ -57,7 +57,7 @@ judgment_fn! {
     fn check_fn_in_trait(
         program: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         f: Fn,
         crate_id: CrateId,
     ) => () {
@@ -75,7 +75,7 @@ judgment_fn! {
     fn check_associated_ty(
         program: Program,
         env: Env,
-        trait_where_clauses: Wcs,
+        trait_where_clauses: Goals,
         associated_ty: AssociatedTy,
     ) => () {
         debug(program, env, trait_where_clauses, associated_ty)

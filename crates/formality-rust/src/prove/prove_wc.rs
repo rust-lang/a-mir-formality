@@ -1,4 +1,4 @@
-use crate::grammar::{Predicate, Wc, Wcs};
+use crate::grammar::{Goal, Goals, Predicate};
 use formality_core::judgment_fn;
 
 use crate::prove::{
@@ -24,8 +24,8 @@ judgment_fn! {
     pub fn prove_wc(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
-        goal: Wc,
+        assumptions: Goals,
+        goal: Goal,
     ) => Constraints {
         debug(goal, assumptions, env)
 
@@ -34,20 +34,20 @@ judgment_fn! {
             (let p1 = binder.instantiate_with(&subst).unwrap())
             (prove_wc(decls, env, assumptions, p1) => c)
             --- ("forall")
-            (prove_wc(decls, env, assumptions, Wc::ForAll(binder)) => c.pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Goal::ForAll(binder)) => c.pop_subst(&subst))
         )
 
         (
             (prove_wc(decls, env, (assumptions, p1), p2) => c)
             --- ("implies")
-            (prove_wc(decls, env, assumptions, Wc::Implies(p1, p2)) => c)
+            (prove_wc(decls, env, assumptions, Goal::Implies(p1, p2)) => c)
         )
 
         (
             (a in assumptions)!
             (prove_via(decls, env, assumptions, a, goal) => c)
             ----------------------------- ("assumption")
-            (prove_wc(decls, env, assumptions, Wc::Predicate(goal)) => c)
+            (prove_wc(decls, env, assumptions, Goal::Predicate(goal)) => c)
         )
 
 
@@ -70,7 +70,7 @@ judgment_fn! {
             //
             // NB: This is actually not what Rust currently does, but it is what "we" (types team) want it to do.
             (let co_assumptions = (assumptions, trait_ref))
-            (prove(decls, env, co_assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
+            (prove(decls, env, co_assumptions, Goals::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
             (prove_after(decls, c, co_assumptions, &i.where_clause) => c)
 
             // Prove that the well-formedness requirements of the *trait* hold -- for this proof, we cannot
@@ -93,7 +93,7 @@ judgment_fn! {
             (i in decls.neg_impl_decls(&trait_ref.trait_id))
             (let (env, subst) = env.existential_substitution(&i.binder))
             (let i = i.binder.instantiate_with(&subst).unwrap())
-            (prove(decls, env, assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
+            (prove(decls, env, assumptions, Goals::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
             (prove_after(decls, c, assumptions, &i.where_clause) => c)
             ----------------------------- ("negative impl")
             (prove_wc(decls, env, assumptions, Predicate::NotImplemented(trait_ref)) => c.pop_subst(&subst))
