@@ -3,14 +3,14 @@ use std::collections::BTreeSet;
 use crate::check::borrow_check::flow_state::{FlowState, PendingOutlives};
 
 use crate::check::borrow_check::outlives::verify_universal_outlives;
-use crate::grammar::{Binder, ExistentialVar, Predicate, Ty, UniversalVar, Wcs};
+use crate::grammar::{Binder, ExistentialVar, Goals, Predicate, Ty, UniversalVar};
 use crate::grammar::{Crates, Parameter};
 use crate::prove::{prove_normalize, Constrained, Constraints, Env, Program};
 use crate::rust::Fold;
 use formality_core::judgment::{FailureLocation, ProofTree, Proven};
 use formality_core::{cast_impl, Downcast, DowncastTo, Set, Upcast};
 
-use crate::check::{Debug, ProvenSet, ToWcs, Visit};
+use crate::check::{Debug, ProvenSet, ToGoals, Visit};
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Hash)]
 pub struct TypeckEnv {
@@ -61,19 +61,19 @@ impl TypeckEnv {
     #[track_caller]
     pub(crate) fn prove_goal(
         &self,
-        assumptions: impl ToWcs,
+        assumptions: impl ToGoals,
         state: &FlowState,
-        goal: impl ToWcs + Debug,
+        goal: impl ToGoals + Debug,
     ) -> ProvenSet<FlowState> {
-        let goal: Wcs = goal.to_wcs();
-        self.prove_judgment(state, assumptions, goal.to_wcs(), crate::prove::prove)
+        let goal: Goals = goal.to_goals();
+        self.prove_judgment(state, assumptions, goal.to_goals(), crate::prove::prove)
             .map(|(((), state), proof_tree)| (state, proof_tree))
     }
 
     #[track_caller]
     pub(crate) fn prove_normalize<T>(
         &self,
-        assumptions: impl ToWcs,
+        assumptions: impl ToGoals,
         state: &FlowState,
         goal: &T,
     ) -> ProvenSet<(T, FlowState)>
@@ -109,16 +109,16 @@ impl TypeckEnv {
     fn prove_judgment<G, C, T>(
         &self,
         state: &FlowState,
-        assumptions: impl ToWcs,
+        assumptions: impl ToGoals,
         goal: G,
-        judgment_fn: impl FnOnce(Program, Env, Wcs, G) -> ProvenSet<C>,
+        judgment_fn: impl FnOnce(Program, Env, Goals, G) -> ProvenSet<C>,
     ) -> ProvenSet<(T, FlowState)>
     where
         G: Debug + Visit + Clone,
         C: Upcast<Constrained<T>> + Ord + Debug,
         T: Clone + Ord + Debug,
     {
-        let assumptions: Wcs = assumptions.to_wcs();
+        let assumptions: Goals = assumptions.to_goals();
 
         assert!(self.env.encloses((&assumptions, &goal)));
 
@@ -255,12 +255,12 @@ impl TypeckEnv {
 
     // Convert the pending goals into a series of `PendingOutlives`.
     //
-    // The `Constraints` struct contains a set of "pending where-clauses"
+    // The `Constraints` struct contains a set of "pending goals"
     // which must still be proven. In practice, the final result of the
     // top-level judgments we use in the type checker should only have
     // pending outlives requests. This function checks that this is true,
     // converting to a set of `PendingOutlives`, and returns `None` if
-    // any other sort of where-clause is found.
+    // any other sort of goal is found.
     fn convert_to_pending_outlives(&self, c: &Constraints) -> Option<BTreeSet<PendingOutlives>> {
         let mut c_outlives = BTreeSet::default();
 

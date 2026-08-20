@@ -1,4 +1,4 @@
-use crate::grammar::{Parameter, Predicate, Wcs};
+use crate::grammar::{Goals, Parameter, Predicate};
 use crate::rust::term;
 use expect_test::expect;
 use formality_core::test;
@@ -19,7 +19,7 @@ fn decls() -> Program {
 
 #[test]
 fn well_formed_adt() {
-    let assumptions: Wcs = Wcs::t();
+    let assumptions: Goals = Goals::t();
     let goal: Parameter = term("X<u32>");
     let constraints = prove(
         decls(),
@@ -33,7 +33,7 @@ fn well_formed_adt() {
 
 #[test]
 fn not_well_formed_adt() {
-    let assumptions: Wcs = Wcs::t();
+    let assumptions: Goals = Goals::t();
     let goal: Parameter = term("X<u64>");
     prove(
         decls(),
