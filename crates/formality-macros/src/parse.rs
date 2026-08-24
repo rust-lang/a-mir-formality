@@ -534,9 +534,10 @@ fn wrap_field_mode(
                     let first = chars
                         .next()
                         .expect("operator guard must have at least one character");
-                    let rest: Vec<TokenStream> =
-                        chars.map(|c| quote!(__p.expect_char(#c)?;)).collect();
-                    (quote!(__p.expect_char(#first).is_ok()), quote!(#(#rest)*))
+                    (
+                        quote!(__p.expect_char(#first).is_ok()),
+                        quote!(#(__p.expect_char(#chars)?;)*),
+                    )
                 }
             };
 

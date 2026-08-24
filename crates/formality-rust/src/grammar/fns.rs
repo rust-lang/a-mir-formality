@@ -1,5 +1,5 @@
 use crate::grammar::expr::Block;
-use crate::grammar::{Binder, Ty, ValueId, WhereClause};
+use crate::grammar::{Binder, OutputTy, Ty, ValueId, WhereClause};
 use crate::prove::Safety;
 use formality_core::term;
 
@@ -13,7 +13,7 @@ pub struct Fn {
 #[term($(input_args) $:-> $output_ty $:where $,where_clauses $body)]
 pub struct FnBoundData {
     pub input_args: Vec<InputArg>,
-    pub output_ty: Ty,
+    pub output_ty: OutputTy,
     pub where_clauses: Vec<WhereClause>,
     pub body: MaybeFnBody,
 }

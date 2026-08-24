@@ -91,10 +91,37 @@ impl Ty {
     }
 }
 
-/// The default type is the unit type `()`.
-impl Default for Ty {
+/// The return type of a function: a [`Ty`] that defaults to `()`, which
+/// is what lets `-> $output_ty` be omitted.
+#[term($ty)]
+#[customize(debug)]
+pub struct OutputTy {
+    pub ty: Ty,
+}
+
+impl Default for OutputTy {
     fn default() -> Self {
-        Ty::unit()
+        OutputTy { ty: Ty::unit() }
+    }
+}
+
+impl std::ops::Deref for OutputTy {
+    type Target = Ty;
+
+    fn deref(&self) -> &Ty {
+        &self.ty
+    }
+}
+
+impl UpcastFrom<OutputTy> for Ty {
+    fn upcast_from(output_ty: OutputTy) -> Self {
+        output_ty.ty
+    }
+}
+
+impl UpcastFrom<OutputTy> for Parameter {
+    fn upcast_from(output_ty: OutputTy) -> Self {
+        output_ty.ty.upcast()
     }
 }
 
