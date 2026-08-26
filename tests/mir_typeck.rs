@@ -156,8 +156,8 @@ fn if_else_different_return_types() {
             error[E0308]: mismatched types
              --> lib.rs
               |
-            1 | pub fn foo(mut b: bool) -> u32 {
-              |                            --- expected `u32` because of return type
+            1 | pub fn foo(b: bool) -> u32 {
+              |                        --- expected `u32` because of return type
             ...
             5 |         return false;
               |                ^^^^^ expected `u32`, found `bool`
@@ -293,8 +293,8 @@ fn test_let_with_ill_formed_type() {
         error[E0277]: the trait bound `S1: Trait1` is not satisfied
           --> lib.rs
            |
-        13 |     let mut s2: S2<S1>;
-           |                 ^^^^^^ unsatisfied trait bound
+        13 |     let s2: S2<S1>;
+           |             ^^^^^^ unsatisfied trait bound
            |
         help: the trait `Trait1` is not implemented for `S1`
           --> lib.rs
@@ -336,8 +336,8 @@ fn test_call_invalid_fn() {
         error[E0425]: cannot find function `foo` in this scope
          --> lib.rs
           |
-        2 |     let mut v1: u32 = foo(0_u32);
-          |                       ^^^ not found in this scope
+        2 |     let v1: u32 = foo(0_u32);
+          |                   ^^^ not found in this scope
 
         For more information about this error, try `rustc --explain E0425`.
         error: could not compile `Foo` (lib) due to 1 previous error
@@ -367,24 +367,24 @@ fn test_pass_non_subtype_arg() {
             error[E0308]: mismatched types
              --> lib.rs
               |
-            6 |     let mut v0: () = foo(v1);
-              |                      --- ^^ expected `u32`, found `()`
-              |                      |
-              |                      arguments to this function are incorrect
+            6 |     let v0: () = foo(v1);
+              |                  --- ^^ expected `u32`, found `()`
+              |                  |
+              |                  arguments to this function are incorrect
               |
             note: function defined here
              --> lib.rs
               |
-            1 | pub fn foo(mut v1: u32) -> u32 {
-              |        ^^^ -----------
+            1 | pub fn foo(v1: u32) -> u32 {
+              |        ^^^ -------
 
             error[E0308]: mismatched types
              --> lib.rs
               |
-            6 |     let mut v0: () = foo(v1);
-              |                 --   ^^^^^^^ expected `()`, found `u32`
-              |                 |
-              |                 expected due to this
+            6 |     let v0: () = foo(v1);
+              |             --   ^^^^^^^ expected `()`, found `u32`
+              |             |
+              |             expected due to this
 
             For more information about this error, try `rustc --explain E0308`.
             error: could not compile `Foo` (lib) due to 2 previous errors
@@ -456,31 +456,31 @@ fn test_call_generic_fn_wrong_type_with_turbofish() {
             error[E0308]: mismatched types
              --> lib.rs
               |
-            6 |     let mut v0: u32 = identity::<bool>(v1);
-              |                       ---------------- ^^ expected `bool`, found `u32`
-              |                       |
-              |                       arguments to this function are incorrect
+            6 |     let v0: u32 = identity::<bool>(v1);
+              |                   ---------------- ^^ expected `bool`, found `u32`
+              |                   |
+              |                   arguments to this function are incorrect
               |
             help: the return type of this call is `u32` due to the type of the argument passed
              --> lib.rs
               |
-            6 |     let mut v0: u32 = identity::<bool>(v1);
-              |                       ^^^^^^^^^^^^^^^^^--^
-              |                                        |
-              |                                        this argument influences the return type of `identity`
+            6 |     let v0: u32 = identity::<bool>(v1);
+              |                   ^^^^^^^^^^^^^^^^^--^
+              |                                    |
+              |                                    this argument influences the return type of `identity`
             note: function defined here
              --> lib.rs
               |
-            1 | pub fn identity<T00>(mut v1: T00) -> T00 {
-              |        ^^^^^^^^      -----------
+            1 | pub fn identity<T00>(v1: T00) -> T00 {
+              |        ^^^^^^^^      -------
 
             error[E0308]: mismatched types
              --> lib.rs
               |
-            6 |     let mut v0: u32 = identity::<bool>(v1);
-              |                 ---   ^^^^^^^^^^^^^^^^^^^^ expected `u32`, found `bool`
-              |                 |
-              |                 expected due to this
+            6 |     let v0: u32 = identity::<bool>(v1);
+              |             ---   ^^^^^^^^^^^^^^^^^^^^ expected `u32`, found `bool`
+              |             |
+              |             expected due to this
 
             For more information about this error, try `rustc --explain E0308`.
             error: could not compile `Foo` (lib) due to 2 previous errors
@@ -512,18 +512,18 @@ fn test_call_generic_fn_wrong_parameters_number_with_turbofish() {
         error[E0061]: this function takes 1 argument but 2 arguments were supplied
          --> lib.rs
           |
-        6 |     let mut v0: u32 = identity::<u32>(v1, v1);
-          |                       ^^^^^^^^^^^^^^^     -- unexpected argument #2 of type `u32`
+        6 |     let v0: u32 = identity::<u32>(v1, v1);
+          |                   ^^^^^^^^^^^^^^^     -- unexpected argument #2 of type `u32`
           |
         note: function defined here
          --> lib.rs
           |
-        1 | pub fn identity<T00>(mut v1: T00) -> T00 {
+        1 | pub fn identity<T00>(v1: T00) -> T00 {
           |        ^^^^^^^^
         help: remove the extra argument
           |
-        6 -     let mut v0: u32 = identity::<u32>(v1, v1);
-        6 +     let mut v0: u32 = identity::<u32>(v1);
+        6 -     let v0: u32 = identity::<u32>(v1, v1);
+        6 +     let v0: u32 = identity::<u32>(v1);
           |
 
         For more information about this error, try `rustc --explain E0061`.
@@ -551,15 +551,15 @@ fn test_call_generic_fn_wrong_arity() {
         error[E0107]: function takes 1 generic argument but 2 generic arguments were supplied
          --> lib.rs
           |
-        6 |     let mut v0: u32 = identity::<u32, u32>(v1);
-          |                       ^^^^^^^^      ----- help: remove the unnecessary generic argument
-          |                       |
-          |                       expected 1 generic argument
+        6 |     let v0: u32 = identity::<u32, u32>(v1);
+          |                   ^^^^^^^^      ----- help: remove the unnecessary generic argument
+          |                   |
+          |                   expected 1 generic argument
           |
         note: function defined here, with 1 generic parameter: `T00`
          --> lib.rs
           |
-        1 | pub fn identity<T00>(mut v1: T00) -> T00 {
+        1 | pub fn identity<T00>(v1: T00) -> T00 {
           |        ^^^^^^^^ ---
 
         For more information about this error, try `rustc --explain E0107`.
@@ -590,8 +590,8 @@ fn test_incompatible_return_type() {
             error[E0308]: mismatched types
              --> lib.rs
               |
-            1 | pub fn foo(mut v1: ()) -> u32 {
-              |                           --- expected `u32` because of return type
+            1 | pub fn foo(v1: ()) -> u32 {
+              |                       --- expected `u32` because of return type
             2 |     return v1;
               |            ^^ expected `u32`, found `()`
 
@@ -818,8 +818,8 @@ fn test_field_projection_root_non_adt() {
             error: could not compile `Foo` (lib) due to 1 previous error
         "#]])
         .err(expect_test::expect![[r#"
-                the rule "struct field" at (nll.rs) failed because
-                  pattern `(RigidTy { name: RigidName::AdtId(adt_id), parameters }, state)` did not match value `(u32, flow_state([scope(none, None, {}, None, [(v1, u32)], [v1 : u32]), scope(none, None, {}, None, [(v2, Dummy)], [v2 : Dummy])], point_flow_state({}, {}, {}), {}, {}, {}))`"#]])
+            the rule "struct field" at (nll.rs) failed because
+              pattern `(RigidTy { name: RigidName::AdtId(adt_id), parameters }, state)` did not match value `(u32, flow_state([scope(none, None, {}, None, [ v1 : u32], [v1 : u32]), scope(none, None, {}, None, [ v2 : Dummy], [v2 : Dummy])], point_flow_state({}, {}, {}), {}, {}, {}))`"#]])
 }
 
 /// Test the behaviour of initialising the struct with wrong type.
@@ -839,8 +839,8 @@ fn test_struct_wrong_type_in_initialisation() {
             error[E0308]: mismatched types
              --> lib.rs
               |
-            6 |     let mut v2: Dummy = Dummy { value: false };
-              |                                        ^^^^^ expected `u32`, found `bool`
+            6 |     let v2: Dummy = Dummy { value: false };
+              |                                    ^^^^^ expected `u32`, found `bool`
 
             For more information about this error, try `rustc --explain E0308`.
             error: could not compile `Foo` (lib) due to 1 previous error
@@ -867,8 +867,8 @@ fn test_non_adt_ty_for_struct() {
         error[E0422]: cannot find struct, variant or union type `Nonexistent` in this scope
          --> lib.rs
           |
-        2 |     let mut v2: u32 = Nonexistent { value: false };
-          |                       ^^^^^^^^^^^ not found in this scope
+        2 |     let v2: u32 = Nonexistent { value: false };
+          |                   ^^^^^^^^^^^ not found in this scope
 
         For more information about this error, try `rustc --explain E0422`.
         error: could not compile `Foo` (lib) due to 1 previous error
