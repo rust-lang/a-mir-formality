@@ -99,7 +99,7 @@ fn test_goto_terminator() {
 fn test_cyclic_goto() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
-            let v0: u32 = 0_u32;
+            let mut v0: u32 = 0_u32;
             loop {
                 v0 = v0;
             }
@@ -249,7 +249,7 @@ fn test_struct() {
         }
 
         fn foo (v1: u32) -> u32 {
-            let v2: Dummy = Dummy { value: 1_u32, is_true: false };
+            let mut v2: Dummy = Dummy { value: 1_u32, is_true: false };
             v2.value = 2_u32;
             return v1;
         }
