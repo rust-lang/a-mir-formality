@@ -351,8 +351,8 @@ mod tests {
             ],
             expect_test::expect![[r#"
                 pub trait Foo<T01> {
-                    fn blub<T10, T11>(mut k: T10, mut v: T11) -> T01;
-                    fn bar<T10, T11>(mut k: T10, mut v: T11) -> T01;
+                    fn blub<T10, T11>(k: T10, v: T11) -> T01;
+                    fn bar<T10, T11>(k: T10, v: T11) -> T01;
                 }"#]]
         );
     }

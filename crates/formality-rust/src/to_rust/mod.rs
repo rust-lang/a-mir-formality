@@ -299,7 +299,7 @@ mod test {
 
                 pub struct A<T00> where T00: Trait {}
 
-                pub fn valid<'a00, T01>(mut x: &'a00 A<T01>) -> () where T01: 'a00, T01: Trait {}"#]]
+                pub fn valid<'a00, T01>(x: &'a00 A<T01>) -> () where T01: 'a00, T01: Trait {}"#]]
         )
     }
 
@@ -316,8 +316,8 @@ mod test {
                 }
             ],
             expect_test::expect![[r#"
-                pub fn foo<'a00, 'a01>(mut a: &'a00 u32) -> &'a01 u32 where 'a00: 'a01 {
-                    let mut r: &'a01 u32 = identity::<&'a01 u32>(a);
+                pub fn foo<'a00, 'a01>(a: &'a00 u32) -> &'a01 u32 where 'a00: 'a01 {
+                    let r: &'a01 u32 = identity::<&'a01 u32>(a);
                     return r;
                 }"#]]
         )
