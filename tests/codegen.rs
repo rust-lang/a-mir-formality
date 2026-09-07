@@ -622,3 +622,19 @@ fn addition_in_call_arguments() {
     .expect_output("10\n")
     .ok()
 }
+
+#[test]
+fn parse_and_run_with_128_bit_integers() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let min: i128 = 170141183460469231731687303715884105727 _ i128;
+            let max: u128 = 340282366920938463463374607431768211455 _ u128;
+            println!(min);
+            println!(max);
+        }
+    }])
+    .expect_output(
+        "170141183460469231731687303715884105727\n340282366920938463463374607431768211455\n",
+    )
+    .ok()
+}

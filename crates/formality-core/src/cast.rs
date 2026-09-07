@@ -408,10 +408,12 @@ cast_impl!(u8);
 cast_impl!(u16);
 cast_impl!(u32);
 cast_impl!(u64);
+cast_impl!(u128);
 cast_impl!(i8);
 cast_impl!(i16);
 cast_impl!(i32);
 cast_impl!(i64);
+cast_impl!(i128);
 cast_impl!(isize);
 cast_impl!(String);
 

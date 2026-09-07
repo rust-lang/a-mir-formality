@@ -14,7 +14,7 @@ impl Debug for Literal {
 impl CoreParse<Rust> for Literal {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "Literal", |avt| {
-            let value: usize = avt.number()?;
+            let value: u128 = avt.number()?;
             avt.expect_char('_')?;
             avt.each_nonterminal(|ty: ScalarId, av| {
                 if let ScalarId::Bool = ty {
