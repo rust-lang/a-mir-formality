@@ -27,7 +27,7 @@ pub struct Block {
 #[term($value _ $ty)]
 #[customize(parse, debug)]
 pub struct Literal {
-    pub value: usize,
+    pub value: u128,
     pub ty: ScalarId,
 }
 

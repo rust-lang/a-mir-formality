@@ -168,6 +168,8 @@ pub enum ScalarId {
     U32,
     #[grammar(u64)]
     U64,
+    #[grammar(u128)]
+    U128,
     #[grammar(i8)]
     I8,
     #[grammar(i16)]
@@ -176,6 +178,8 @@ pub enum ScalarId {
     I32,
     #[grammar(i64)]
     I64,
+    #[grammar(i128)]
+    I128,
     #[grammar(bool)]
     Bool,
     #[grammar(usize)]
@@ -191,10 +195,12 @@ impl ScalarId {
             | ScalarId::U16
             | ScalarId::U32
             | ScalarId::U64
+            | ScalarId::U128
             | ScalarId::I8
             | ScalarId::I16
             | ScalarId::I32
             | ScalarId::I64
+            | ScalarId::I128
             | ScalarId::Usize
             | ScalarId::Isize => true,
             ScalarId::Bool => false,
