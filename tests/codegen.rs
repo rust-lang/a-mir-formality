@@ -476,3 +476,15 @@ fn break_from_labeled_block() {
     .expect_output("1\n3\n")
     .ok()
 }
+
+#[test]
+fn integer_addition() {
+    FormalityTest::new(crates![crate test {
+        fn main() -> () {
+            let x: i32 = 1_i32 + 2_i32;
+            println!(x);
+        }
+    }])
+    .expect_output("3\n")
+    .ok()
+}
