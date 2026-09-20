@@ -15,20 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check formatting of all crates in the workspace
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
       - name: Run cargo test --all
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all
+        run: cargo test --all
       - name: Run cargo test --all-targets
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-targets
+        run: cargo test --all-targets
   conclusion:
     needs:
       - rust-test
