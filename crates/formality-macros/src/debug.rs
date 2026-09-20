@@ -325,7 +325,12 @@ fn debug_field_with_mode(name: &Ident, mode: &FieldMode) -> TokenStream {
         }
 
         FieldMode::Guarded { guard, mode } => {
-            let guard = as_literal(guard);
+            // The guard can be a keyword (`where`) or an operator (`->`) print
+            // its text either way.
+            let guard = match guard {
+                spec::Guard::Keyword(ident) => Literal::string(&ident.to_string()),
+                spec::Guard::Operator(operator) => Literal::string(operator),
+            };
             let base = debug_field_with_mode(name, mode);
 
             quote_spanned! { name.span() =>
