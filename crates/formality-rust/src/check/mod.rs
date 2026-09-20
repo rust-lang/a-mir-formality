@@ -25,6 +25,7 @@ mod adts;
 mod coherence;
 mod core_crate;
 mod fns;
+mod implied_bounds;
 mod impls;
 mod traits;
 mod where_clauses;
