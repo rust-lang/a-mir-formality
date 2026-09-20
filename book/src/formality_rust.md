@@ -28,9 +28,9 @@ The different kinds of crate items are dispatched by `check_crate_item`:
 
 ## `prove/`
 
-The `prove` module answers Rust-specific goals such as where-clauses, equality, subtyping, and outlives. Checking code calls into `prove` whenever it needs to establish those facts. The main entry point is `prove_wc`:
+The `prove` module answers Rust-specific goals such as where-clauses, equality, subtyping, and outlives. Checking code calls into `prove` whenever it needs to establish those facts. The main entry point is `prove_goal`:
 
-{judgment}`prove_wc`
+{judgment}`prove_goal`
 
 ## Pipeline
 

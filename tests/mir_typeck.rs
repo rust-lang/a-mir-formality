@@ -319,7 +319,7 @@ fn test_let_with_ill_formed_type() {
         error: could not compile `Foo` (lib) due to 1 previous error
     "#]])
     .err(expect_test::expect![[r#"
-                the rule "trait implied bound" at (prove_wc.rs) failed because
+                the rule "trait implied bound" at (prove_goal.rs) failed because
                   expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
 }
 

@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::grammar::Fn;
 use crate::grammar::{
-    AliasTy, AssociatedItemId, Binder, Const, Fallible, Lt, Parameter, ParameterKind, Predicate,
-    TraitId, TraitRef, Ty, Wc, Wcs,
+    AliasTy, AssociatedItemId, Binder, Const, Fallible, Goal, Goals, Lt, Parameter, ParameterKind,
+    Predicate, TraitId, TraitRef, Ty,
 };
 use crate::prove::Safety;
 use crate::rust::Term;
@@ -143,7 +143,7 @@ pub enum WhereClause {
 }
 
 impl WhereClause {
-    pub fn invert(&self) -> Option<Wc> {
+    pub fn invert(&self) -> Option<Goal> {
         match self {
             WhereClause::IsImplemented(self_ty, trait_id, parameters) => Some(
                 Predicate::not_implemented(trait_id.with(self_ty, parameters)),
@@ -153,14 +153,14 @@ impl WhereClause {
             WhereClause::Outlives(_, _) => None,
             WhereClause::ForAll(binder) => {
                 let (vars, where_clause) = binder.open();
-                let wc = where_clause.invert()?;
-                Some(Wc::for_all(Binder::new(&vars, wc)))
+                let goal = where_clause.invert()?;
+                Some(Goal::for_all(Binder::new(&vars, goal)))
             }
             WhereClause::TypeOfConst(_, _) => None,
         }
     }
 
-    pub fn well_formed(&self) -> Wcs {
+    pub fn well_formed(&self) -> Goals {
         match self {
             WhereClause::IsImplemented(self_ty, trait_id, parameters) => {
                 Predicate::well_formed_trait_ref(trait_id.with(self_ty, parameters)).upcast()
@@ -177,7 +177,7 @@ impl WhereClause {
                 let (vars, body) = binder.open();
                 body.well_formed()
                     .into_iter()
-                    .map(|wc| Wc::for_all(Binder::new(&vars, wc)))
+                    .map(|goal| Goal::for_all(Binder::new(&vars, goal)))
                     .collect()
             }
             WhereClause::TypeOfConst(ct, ty) => {

@@ -1,6 +1,6 @@
 use crate::{
     check::borrow_check::{env::TypeckEnv, flow_state::FlowState, nll::borrow_check},
-    grammar::{Const, Ty, Wcs},
+    grammar::{Const, Goals, Ty},
 };
 use formality_core::judgment_fn;
 
@@ -14,7 +14,7 @@ judgment_fn! {
     pub fn prove_const_has_type(
         decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         constant: Const,
     ) => (Ty, Constraints) {
         debug(constant, assumptions, env, decls)

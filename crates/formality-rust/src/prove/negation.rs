@@ -1,4 +1,4 @@
-use crate::grammar::{Substitution, Variable, Wcs};
+use crate::grammar::{Goals, Substitution, Variable};
 use crate::prove::{Bias, Constraints, Env};
 use crate::rust::FormalityLang;
 use formality_core::judgment::FailureLocation;
@@ -17,9 +17,9 @@ use formality_core::{fold::CoreFold, judgment::ProofTree, ProvenSet, Upcast};
 #[tracing::instrument(level = "Debug", skip_all)]
 pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang, Output = T>>(
     env: &Env,
-    assumptions: impl Upcast<Wcs>,
+    assumptions: impl Upcast<Goals>,
     data: &T,
-    f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
+    f: impl FnOnce(Env, Goals, T) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints> {
     assert!(env.bias() == Bias::Soundness);
 
@@ -47,9 +47,9 @@ pub fn is_definitely_not_proveable<T: CoreFold<FormalityLang, Output = T>>(
 #[tracing::instrument(level = "Debug", skip_all)]
 pub fn may_not_be_provable<T: CoreFold<FormalityLang, Output = T>>(
     env: &Env,
-    assumptions: impl Upcast<Wcs>,
+    assumptions: impl Upcast<Goals>,
     data: &T,
-    f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
+    f: impl FnOnce(Env, Goals, T) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints> {
     assert!(env.bias() == Bias::Completeness);
     negation_via_failure(env, assumptions, data, f)
@@ -58,11 +58,11 @@ pub fn may_not_be_provable<T: CoreFold<FormalityLang, Output = T>>(
 #[track_caller]
 pub fn negation_via_failure<T: CoreFold<FormalityLang, Output = T>>(
     env: &Env,
-    assumptions: impl Upcast<Wcs>,
+    assumptions: impl Upcast<Goals>,
     data: &T,
-    f: impl FnOnce(Env, Wcs, T) -> ProvenSet<Constraints>,
+    f: impl FnOnce(Env, Goals, T) -> ProvenSet<Constraints>,
 ) -> ProvenSet<Constraints> {
-    let assumptions: Wcs = assumptions.upcast();
+    let assumptions: Goals = assumptions.upcast();
     tracing::debug!(?assumptions, ?data);
 
     let flipped_bias = match env.bias() {

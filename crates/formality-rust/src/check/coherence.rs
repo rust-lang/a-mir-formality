@@ -1,4 +1,4 @@
-use crate::grammar::{Crate, Fallible, NegTraitImpl, Predicate, TraitImpl, Wc, Wcs};
+use crate::grammar::{Crate, Fallible, Goal, Goals, NegTraitImpl, Predicate, TraitImpl};
 use crate::prove::{Env, Program};
 use anyhow::bail;
 
@@ -51,7 +51,7 @@ judgment_fn! {
         //
         // TODO: feels like we do want a general "not goal", flipping existentials
         // and universals and the coherence mode
-        // self.prove_not_goal(&env, &(Wcs::wf)) // ??
+        // self.prove_not_goal(&env, &(Goals::wf)) // ??
         (
             (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
             (let trait_ref = a.trait_ref())
@@ -112,13 +112,13 @@ fn overlap_check_impl(
     //
     // TODO: feels like we do want a general "not goal", flipping existentials
     // and universals and the coherence mode.
-    // self.prove_not_goal(&env, &(Wcs::wf))
+    // self.prove_not_goal(&env, &(Goals::wf))
     if let Ok(proof_tree) = prove_not_goal(
         program,
         &env,
         (),
         (
-            Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
+            Goals::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
             &a.where_clauses,
             &b.where_clauses,
         ),
@@ -126,7 +126,7 @@ fn overlap_check_impl(
         tracing::debug!(
             "proved not {:?}",
             (
-                Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
+                Goals::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
                 &a.where_clauses,
                 &b.where_clauses,
             )
@@ -141,31 +141,31 @@ fn overlap_check_impl(
 
     // try inverted where-clauses from Wc_a / Wc_b (e.g. T: Debug => T: !Debug).
     // If (equal params ∧ Wc_a ∧ Wc_b) => Wc_i is provable the two impls cannot both apply.
-    let inverted: Vec<Wc> = a
+    let inverted: Vec<Goal> = a
         .where_clauses
         .iter()
         .chain(&b.where_clauses)
         .flat_map(|wc| wc.invert())
         .collect();
 
-    if let Some(inverted_wc) = inverted.iter().find(|inverted_wc| {
+    if let Some(inverted_goal) = inverted.iter().find(|inverted_goal| {
         prove_goal(
             program,
             &env,
             (
-                Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
+                Goals::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
                 &a.where_clauses,
                 &b.where_clauses,
             ),
-            inverted_wc,
+            inverted_goal,
         )
         .is_ok()
     }) {
         tracing::debug!(
             "proved {:?} assuming {:?}",
-            inverted_wc,
+            inverted_goal,
             (
-                Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
+                Goals::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
                 &a.where_clauses,
                 &b.where_clauses,
             )
