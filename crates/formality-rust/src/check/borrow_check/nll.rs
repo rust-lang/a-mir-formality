@@ -947,8 +947,9 @@ judgment_fn! {
         )
 
         (
+            (if !prove_ty_is_copy(env, assumptions, state, &place.ty).is_proven())!
             ------------------------------------------------------------ ("move")
-            (access_kind_for_place_use(_env, _assumptions, state, _place) => (AccessKind::Move, state))
+            (access_kind_for_place_use(env, assumptions, state, place) => (AccessKind::Move, state))
         )
     }
 }
