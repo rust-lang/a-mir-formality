@@ -76,7 +76,7 @@ impl formality_core::UpcastFrom<MiniRustLocal> for MiniRustPlace {
 // Value and terminator constructors
 // ===========================================================================
 
-pub(super) fn constant(value: &usize, ty: &ScalarId) -> MiniRustValue {
+pub(super) fn constant(value: &u128, ty: &ScalarId) -> MiniRustValue {
     let mr_ty = scalar_minirust_ty(ty).expect("scalar type always valid");
     MiniRustValue(lang::ValueExpr::Constant(
         lang::Constant::Int(Int::from(*value)),
@@ -204,10 +204,12 @@ fn scalar_minirust_ty(s: &ScalarId) -> Fallible<lang::Type> {
         ScalarId::U16 => (Signedness::Unsigned, 2),
         ScalarId::U32 => (Signedness::Unsigned, 4),
         ScalarId::U64 => (Signedness::Unsigned, 8),
+        ScalarId::U128 => (Signedness::Unsigned, 16),
         ScalarId::I8 => (Signedness::Signed, 1),
         ScalarId::I16 => (Signedness::Signed, 2),
         ScalarId::I32 => (Signedness::Signed, 4),
         ScalarId::I64 => (Signedness::Signed, 8),
+        ScalarId::I128 => (Signedness::Signed, 16),
         ScalarId::Bool => return Ok(lang::Type::Bool),
         ScalarId::Usize => (Signedness::Unsigned, 8),
         ScalarId::Isize => (Signedness::Signed, 8),

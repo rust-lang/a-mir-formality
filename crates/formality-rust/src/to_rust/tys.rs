@@ -26,10 +26,12 @@ pub fn lower_const(ctx: &mut Context, konst: &Const) -> Fallible<syntax::ConstEx
                 ScalarValue::U16(v) => (v.to_string(), "u16"),
                 ScalarValue::U32(v) => (v.to_string(), "u32"),
                 ScalarValue::U64(v) => (v.to_string(), "u64"),
+                ScalarValue::U128(v) => (v.to_string(), "u128"),
                 ScalarValue::I8(v) => (v.to_string(), "i8"),
                 ScalarValue::I16(v) => (v.to_string(), "i16"),
                 ScalarValue::I32(v) => (v.to_string(), "i32"),
                 ScalarValue::I64(v) => (v.to_string(), "i64"),
+                ScalarValue::I128(v) => (v.to_string(), "i128"),
                 ScalarValue::Usize(v) => (v.to_string(), "usize"),
                 ScalarValue::Isize(v) => (v.to_string(), "isize"),
                 ScalarValue::Bool(v) => {
@@ -136,10 +138,12 @@ pub fn scalar_to_string(scalar_id: &ScalarId) -> String {
         ScalarId::U16 => "u16",
         ScalarId::U32 => "u32",
         ScalarId::U64 => "u64",
+        ScalarId::U128 => "u128",
         ScalarId::I8 => "i8",
         ScalarId::I16 => "i16",
         ScalarId::I32 => "i32",
         ScalarId::I64 => "i64",
+        ScalarId::I128 => "i128",
         ScalarId::Bool => "bool",
         ScalarId::Usize => "usize",
         ScalarId::Isize => "isize",
@@ -293,6 +297,26 @@ mod test {
         let t = lower_ty(&mut ctx, &ty).unwrap().to_string();
 
         assert_eq!("u8", t);
+    }
+
+    #[test]
+    fn pretty_print_128bit_integers() {
+        let mut ctx = Context::default();
+        let ty = Ty::RigidTy(RigidTy {
+            name: RigidName::ScalarId(ScalarId::U128),
+            parameters: Vec::new(),
+        });
+        let t = lower_ty(&mut ctx, &ty).unwrap().to_string();
+
+        assert_eq!("u128", t);
+
+        let ty = Ty::RigidTy(RigidTy {
+            name: RigidName::ScalarId(ScalarId::I128),
+            parameters: Vec::new(),
+        });
+        let t = lower_ty(&mut ctx, &ty).unwrap().to_string();
+
+        assert_eq!("i128", t);
     }
 
     #[test]
