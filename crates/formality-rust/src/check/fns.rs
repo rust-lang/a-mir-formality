@@ -2,6 +2,7 @@ use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::FlowState;
 use crate::check::borrow_check::nll::borrow_check;
 use crate::check::prove_goal;
+use crate::check::return_check::check_fn_returns;
 use crate::check::where_clauses::prove_where_clauses_well_formed;
 use crate::grammar::{CrateId, FnBody, MaybeFnBody, Predicate, Wcs};
 use crate::prove::{Env, Program};
@@ -84,6 +85,7 @@ judgment_fn! {
         )
 
         (
+            (check_fn_returns(output_ty, block) => ())
             // Type-check an expression body via the borrow checker.
             (let typeck_env = TypeckEnv::for_fn_body(env, program, output_ty))
             (let initial_state = FlowState::for_fn_body(env, input_args)?)
