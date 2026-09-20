@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use crate::grammar::expr::Mutability;
 use crate::grammar::{Fallible, Fn, FnBody, InputArg, MaybeFnBody};
 use crate::prove::Safety;
 
@@ -41,8 +42,7 @@ pub fn lower_fn(
 
 pub fn lower_fn_param(ctx: &mut Context, arg: &InputArg) -> Fallible<syntax::FnParam> {
     Ok(syntax::FnParam {
-        // TODO: Is there a way to know if a variable must be mutable?
-        mutable: true,
+        mutable: matches!(arg.mutability, Mutability::Mut),
         name: arg.id.deref().clone(),
         ty: tys::lower_ty(ctx, &arg.ty)?,
     })
@@ -87,7 +87,7 @@ mod test {
                 }
             ],
             expect_test::expect![[r#"
-                pub fn run(mut p1: i32, mut p2: i32) -> i32 {
+                pub fn run(p1: i32, p2: i32) -> i32 {
                     panic!("Trusted Fn Body")
                 }"#]]
         );
@@ -102,7 +102,7 @@ mod test {
                 }
             ],
             expect_test::expect![[r#"
-                pub fn run<T00>(mut p1: T00) -> T00 {
+                pub fn run<T00>(p1: T00) -> T00 {
                     panic!("Trusted Fn Body")
                 }"#]]
         );
@@ -120,7 +120,7 @@ mod test {
             expect_test::expect![[r#"
                 pub trait Bar { }
 
-                pub fn run<T00>(mut p1: T00) -> T00 where T00: Bar {
+                pub fn run<T00>(p1: T00) -> T00 where T00: Bar {
                     panic!("Trusted Fn Body")
                 }"#]]
         );

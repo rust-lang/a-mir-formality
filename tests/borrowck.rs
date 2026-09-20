@@ -222,7 +222,7 @@ fn conditional_init_both_branches() {
 fn if_without_else_ok() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
-            let x: u32 = 1_u32;
+            let mut x: u32 = 1_u32;
             if true {
                 x = 2_u32;
             }
@@ -1288,7 +1288,7 @@ fn move_out_of_mut_ref() {
 
         fn foo() -> Datum {
             exists<'r0, 'r1> {
-                let x: Datum = Datum { value: 0_u32 };
+                let mut x: Datum = Datum { value: 0_u32 };
                 let r: &'r0 mut Datum = &'r1 mut x;
                 let y: Datum = *r;
                 return y;
@@ -2062,7 +2062,7 @@ fn mutable_ref_prevents_mutation() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> i32 {
             exists<'r0, 'r1> {
-                let v1: i32 = 0_i32;
+                let mut v1: i32 = 0_i32;
                 let v2: &'r0 mut i32 = &'r1 mut v1;
                 // This should result in an error
                 v1 = 1_i32;
@@ -2101,7 +2101,7 @@ fn shared_ref_prevents_mutation() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> i32 {
             exists<'r0, 'r1> {
-                let v1: i32 = 0_i32;
+                let mut v1: i32 = 0_i32;
                 let v2: &'r0 i32 = &'r1 v1;
                 v1 = 1_i32;
                 return *v2;
@@ -2282,7 +2282,7 @@ fn drop_while_mutably_borrowed() {
             exists<'r0, 'r1> {
                 let v2: &'r0 mut i32;
                 {
-                    let v1: i32 = 0_i32;
+                    let mut v1: i32 = 0_i32;
                     v2 = &'r1 mut v1;
                 }
                 return *v2;
@@ -2486,7 +2486,7 @@ fn problem_case_4() {
             value: u32,
          }
 
-        fn min_problem_case_4<'a>(list: &'a mut Map, list2: &'a mut Map) -> u32 {
+        fn min_problem_case_4<'a>(mut list: &'a mut Map, list2: &'a mut Map) -> u32 {
             exists<'r0> {
                 let num: &'r0 mut u32 = &'r0 mut (*list).value;
                 list = &'a mut *list2;
@@ -2613,13 +2613,13 @@ fn cfg_union_approx_cause_false_error() {
     FormalityTest::new(crates![crate Foo {
         fn foo () -> u32 {
             exists<'l_p, 'l_q, 'loan_0, 'loan_1, 'loan_2, 'loan_3> {
-                let a: u32 = 0_u32;
-                let b: u32 = 0_u32;
+                let mut a: u32 = 0_u32;
+                let mut b: u32 = 0_u32;
                 // In Rustc, the 1-tuple is needed for some reason
                 // Niko does not 100% understand, else rustc is able to
                 // see that this program is safe.
-                let q: &'l_q mut u32 = &'loan_0 mut a;
-                let p: &'l_p mut u32 = &'loan_1 mut a;
+                let mut q: &'l_q mut u32 = &'loan_0 mut a;
+                let mut p: &'l_p mut u32 = &'loan_1 mut a;
                 if true {
                     p = &'loan_1 mut a;
                     q = &'loan_2 mut b;
@@ -2883,7 +2883,7 @@ fn write_to_borrowed_before_continue() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
             exists<'r0, 'r1> {
-                let a: u32 = 22_u32;
+                let mut a: u32 = 22_u32;
                 let p: &'r0 u32 = &'r1 a;
                 'l: loop {
                     if true {
@@ -3010,9 +3010,9 @@ fn write_to_borrowed_before_zero_iteration_loop() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
             exists<'r0, 'r1, 'r2> {
-                let a: u32 = 22_u32;
+                let mut a: u32 = 22_u32;
                 let b: u32 = 22_u32;
-                let p: &'r0 u32 = &'r1 a;
+                let mut p: &'r0 u32 = &'r1 a;
                 a = 23_u32;
                 'l: loop {
                     p = &'r2 b;
@@ -3199,7 +3199,7 @@ fn call_mut_under_shared_borrow() {
 
         fn bar() -> u32 {
             exists<'r0, 'r1, 'r2> {
-                let v: u32 = 0_u32;
+                let mut v: u32 = 0_u32;
                 let p: &'r0 u32 = &'r1 v;
                 let _: u32 = foo::<'r2>(&'r2 mut v);
                 return *p;
@@ -3227,7 +3227,7 @@ fn struct_disjoint_field_borrows() {
         struct Point { x: u32, y: u32 }
         fn foo() -> u32 {
             exists<'r0, 'r1, 'r2, 'r3> {
-                let p: Point = Point { x: 0_u32, y: 0_u32 };
+                let mut p: Point = Point { x: 0_u32, y: 0_u32 };
                 let b1: &'r0 mut u32 = &'r1 mut p.x;
                 let b2: &'r2 mut u32 = &'r3 mut p.y;
                 *b1 = 1_u32;
@@ -3247,7 +3247,7 @@ fn struct_conflicting_field_borrows() {
         struct Point { x: u32, y: u32 }
         fn foo() -> u32 {
             exists<'r0, 'r1> {
-                let p: Point = Point { x: 0_u32, y: 0_u32 };
+                let mut p: Point = Point { x: 0_u32, y: 0_u32 };
                 let b1: &'r0 mut u32 = &'r1 mut p.x;
                 p.x = 1_u32;
                 return *b1;
@@ -3280,7 +3280,7 @@ fn struct_construction_with_borrowed_local() {
         }
         fn foo() -> u32 {
             exists<'r0, 'r1> {
-                let v1: u32 = 22_u32;
+                let mut v1: u32 = 22_u32;
                 let v2: &'r0 mut u32 = &'r1 mut v1;
                 let w: Wrapper = Wrapper { value: v1 };
                 return *v2;
@@ -3321,7 +3321,7 @@ fn struct_with_mutable_reference_locks_local() {
         }
         fn foo() -> u32 {
             exists<'r0> {
-                let v1: u32 = 0_u32;
+                let mut v1: u32 = 0_u32;
                 let w: Wrapper<'r0> = Wrapper::<'r0> { value: &'r0 mut v1 };
                 v1 = 1_u32;
                 return *(w.value);
@@ -3473,7 +3473,7 @@ fn loan_cannot_outlive_lifetime_fail() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
             exists<'r0, 'r1, 'r2> {
-                let x: u32 = 22_u32;
+                let mut x: u32 = 22_u32;
                 let p: &'r1 u32 = &'r0 x;
                 let q: &'r2 u32 = p;
                 x = 1_u32;
@@ -3512,7 +3512,7 @@ fn loan_cannot_outlive_lifetime_pass() {
     FormalityTest::new(crates![crate Foo {
         fn foo() -> u32 {
             exists<'r0, 'r1, 'r2> {
-                let x: u32 = 22_u32;
+                let mut x: u32 = 22_u32;
                 let p: &'r1 u32 = &'r0 x;
                 let q: &'r2 u32 = p;
                 x = 1_u32;
@@ -3636,7 +3636,7 @@ fn local_shadowing_fn_name_stays_live() {
 
         fn foo() -> u32 {
             exists<'r0, 'r1> {
-                let x: u32 = 22_u32;
+                let mut x: u32 = 22_u32;
                 let helper: &'r1 u32 = &'r0 x;
                 x = 1_u32;
                 helper;
@@ -3837,7 +3837,7 @@ fn issue_63908_remove_last_node_iterative() {
 
         fn remove_last_node_iterative<'a>(node: &'a mut List) -> u32 {
             exists<'r0, 'r1> {
-                let cursor: &'r0 mut List = &'r0 mut *node;
+                let mut cursor: &'r0 mut List = &'r0 mut *node;
                 'l: loop {
                     let next: &'r1 mut List = &'r1 mut *cursor;
                     if true {
@@ -3898,8 +3898,8 @@ fn issue_57165_no_control_flow() {
 
         fn no_control_flow() -> u32 {
             exists<'r0, 'r1, 'r2, 'r3> {
-                let b: X = X { value: 0_u32 };
-                let p: &'r0 mut X = &'r1 mut b;
+                let mut b: X = X { value: 0_u32 };
+                let mut p: &'r0 mut X = &'r1 mut b;
                 'l: loop {
                     let now: &'r2 mut X = &'r2 mut *p;
                     if true {
@@ -3945,8 +3945,8 @@ fn issue_57165_conditional() {
 
         fn conditional() -> u32 {
             exists<'r0, 'r1, 'r2, 'r3> {
-                let b: X = X { value: 0_u32 };
-                let p: &'r0 mut X = &'r1 mut b;
+                let mut b: X = X { value: 0_u32 };
+                let mut p: &'r0 mut X = &'r1 mut b;
                 'l: loop {
                     let now: &'r2 mut X = &'r2 mut *p;
                     if true {
@@ -3967,8 +3967,8 @@ fn issue_57165_conditional() {
         .borrowck_err(BorrowCheckFailure::Alpha, expect_test::expect![[r#"
             the rule "fixed-point" at (nll.rs) failed because
               condition evaluated to false: `state0 == state1`
-                state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &?lt_1 mut X)], [b : X, p : &?lt_1 mut X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}, {}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
-                state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [(b, X), (p, &?lt_1 mut X)], [b : X, p : &?lt_1 mut X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &?lt_1 mut X) : <&?lt_1 mut X as Derefable>::Target, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &?lt_1 mut X) : <&?lt_1 mut X as Derefable>::Target, mut)}, {}))}, {}, {pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)})
+                state0 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [mut b : X, mut p : &?lt_1 mut X], [b : X, p : &?lt_1 mut X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut)}, {}), {}, {}, {pending_outlives(?lt_2, ?lt_1)})
+                state1 = flow_state([scope(none, None, {}, None, [], []), scope(none, None, {}, None, [], []), scope(some(U(4)), None, {}, None, [mut b : X, mut p : &?lt_1 mut X], [b : X, p : &?lt_1 mut X]), scope(some(U(4)), Some('l), {}, Some({* p}), [], [])], point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &?lt_1 mut X) : <&?lt_1 mut X as Derefable>::Target, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1)}, {loan(?lt_2, b : X, mut), loan(?lt_3, *(p : &?lt_1 mut X) : <&?lt_1 mut X as Derefable>::Target, mut)}, {}))}, {}, {pending_outlives(?lt_1, ?lt_3), pending_outlives(?lt_2, ?lt_1), pending_outlives(?lt_3, ?lt_4), pending_outlives(?lt_4, ?lt_1)})
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
@@ -4034,8 +4034,8 @@ fn issue_57165_conditional_with_indirection() {
 
         fn conditional_with_indirection() -> u32 {
             exists<'r0, 'r1, 'r2, 'r3> {
-                let b: X = X { value: 0_u32 };
-                let p: &'r0 mut X = &'r1 mut b;
+                let mut b: X = X { value: 0_u32 };
+                let mut p: &'r0 mut X = &'r1 mut b;
                 'l: loop {
                     let now: &'r2 mut X = &'r2 mut *p;
                     if true {
@@ -4089,9 +4089,9 @@ fn issue_46859_to_refs() {
 
         fn next_from_field<'x>(n: &'x mut u32) -> &'x mut List { trusted }
 
-        fn to_refs<'a>(list: &'a mut List) -> &'a mut u32 {
+        fn to_refs<'a>(mut list: &'a mut List) -> &'a mut u32 {
             exists<'r0, 'r1> {
-                let result: &'a mut u32;
+                let mut result: &'a mut u32;
                 'l: loop {
                     result = &'r0 mut (*list).value;
                     if true {
@@ -4123,9 +4123,9 @@ fn issue_46859_to_refs2() {
 
         fn next_from_field<'x>(n: &'x mut u32) -> &'x mut List { trusted }
 
-        fn to_refs2<'a>(list: &'a mut List) -> &'a mut u32 {
+        fn to_refs2<'a>(mut list: &'a mut List) -> &'a mut u32 {
             exists<'r0, 'r1> {
-                let result: &'a mut u32;
+                let mut result: &'a mut u32;
                 'l: loop {
                     result = &'r0 mut (*list).value;
                     if true {
@@ -4172,8 +4172,8 @@ fn issue_46859_to_refs3() {
 
         fn to_refs3<'a>(list: &'a mut List) -> &'a mut u32 {
             exists<'r0, 'r1> {
-                let result: &'a mut u32;
-                let cursor: &'a mut List = &'a mut *list;
+                let mut result: &'a mut u32;
+                let mut cursor: &'a mut List = &'a mut *list;
                 'l: loop {
                     result = &'r0 mut (*cursor).value;
                     if true {
@@ -4233,8 +4233,8 @@ fn issue_46859_decoder_next() {
         .borrowck_err(BorrowCheckFailure::Nll, expect_test::expect![[r#"
             the rule "fixed-point" at (nll.rs) failed because
               condition evaluated to false: `state0 == state1`
-                state0 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
-                state1 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {loan(?lt_2, *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32, mut)}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [ d : &!lt_1 mut Decoder], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [ d : &!lt_1 mut Decoder], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {loan(?lt_2, *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32, mut)}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
@@ -4356,8 +4356,8 @@ fn issue_92985_filtering_lending_iterator() {
         .borrowck_err(BorrowCheckFailure::Nll, expect_test::expect![[r#"
             the rule "fixed-point" at (nll.rs) failed because
               condition evaluated to false: `state0 == state1`
-                state0 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
-                state1 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut), loan(?lt_3, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . predicate[Filter , struct] : u32, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut)}, {}))}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [ f : &!lt_1 mut Filter], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [ f : &!lt_1 mut Filter], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut), loan(?lt_3, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . predicate[Filter , struct] : u32, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut)}, {}))}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
 
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`

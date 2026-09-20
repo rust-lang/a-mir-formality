@@ -8,6 +8,14 @@ use crate::grammar::{
 
 mod parse_expr;
 
+#[term]
+pub enum Mutability {
+    #[grammar(mut)]
+    Mut,
+    #[grammar()]
+    Not,
+}
+
 id!(LabelId, regex = "'[a-zA-Z_][a-zA-Z0-9_]*");
 
 #[term($id :)]
@@ -73,8 +81,9 @@ pub enum Stmt {
     /// in the named block and dropped when that block exits.
     /// If no initializer is given, the variable is uninitialized
     /// and must be assigned before use.
-    #[grammar(let $?label $id : $ty $?init ;)]
+    #[grammar(let $mutability $?label $id : $ty $?init ;)]
     Let {
+        mutability: Mutability,
         label: Option<Label>,
         id: ValueId,
         ty: Ty,

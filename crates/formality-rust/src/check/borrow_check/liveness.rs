@@ -116,7 +116,7 @@ impl IntoLivenessContext for FlowState {
             locals: self
                 .scopes
                 .iter()
-                .flat_map(|s| s.locals.iter().map(|(id, _)| id.clone()))
+                .flat_map(|s| s.locals.iter().map(|local| local.id.clone()))
                 .collect(),
         }
     }
@@ -265,6 +265,7 @@ impl LiveBefore for Stmt {
         match self {
             Stmt::Let {
                 label: _,
+                mutability: _,
                 id,
                 ty: _,
                 init,

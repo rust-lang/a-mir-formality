@@ -1,11 +1,18 @@
 use crate::check::borrow_check::liveness::LivePlaces;
 use crate::check::borrow_check::typed_place_expression::TypedPlaceExpr;
-use crate::grammar::expr::{Label, LabelId, PlaceExpr};
+use crate::grammar::expr::{Label, LabelId, Mutability, PlaceExpr};
 use crate::grammar::{InputArg, Lt, Parameter, Ty, ValueId};
 use crate::grammar::{RefKind, Variable};
 use crate::prove::{Env, MaxUniverse};
 use formality_core::visit::CoreVisit;
 use formality_core::{term, Fallible, Set, Union, Upcast, UpcastFrom};
+
+#[term($mutability $id : $ty)]
+pub struct LocalDecl {
+    pub mutability: Mutability,
+    pub id: ValueId,
+    pub ty: Ty,
+}
 
 /// A scope in the scope stack, tracking labeled blocks and loops.
 /// Scopes live in `PointFlowState` and track locals for drop purposes.
@@ -26,10 +33,11 @@ pub struct Scope {
     /// If `None`, this is a plain block scope (no `continue` allowed).
     pub continue_live_places: Option<LivePlaces>,
 
-    /// Local variables declared in this scope, with their types.
-    /// Used for type lookup (name resolution). Searched by `local_variable`, `has_local`.
+    /// Local variables declared in this scope, with their types and mutability.
+    /// Used for type lookup (name resolution). Searched by `local_variable`,
+    /// `local_mutability`, `has_local`.
     /// Always added to the innermost scope, regardless of label.
-    pub locals: Vec<(ValueId, Ty)>,
+    pub locals: Vec<LocalDecl>,
 
     /// Local variables to drop when this scope exits.
     /// For `let 'a: x = ...`, `x` goes into the named scope `'a`'s `drop_locals`.
@@ -216,7 +224,13 @@ impl FlowState {
         };
 
         for input_arg in input_args {
-            this = this.with_local_in_scope(env, &None, &input_arg.id, &input_arg.ty)?;
+            this = this.with_local_in_scope(
+                env,
+                &None,
+                &input_arg.mutability,
+                &input_arg.id,
+                &input_arg.ty,
+            )?;
         }
 
         Ok(this)
@@ -359,6 +373,7 @@ impl FlowState {
         &self,
         env: &Env,
         label: &Option<Label>,
+        mutability: &Mutability,
         id: &ValueId,
         ty: &Ty,
     ) -> Fallible<Self> {
@@ -401,28 +416,47 @@ impl FlowState {
             .scopes
             .last_mut()
             .ok_or_else(|| anyhow::anyhow!("no scope to add local `{id:?}` to"))?;
-        innermost.locals.push((id.clone(), ty.clone()));
+        innermost.locals.push(LocalDecl {
+            mutability: mutability.clone(),
+            id: id.clone(),
+            ty: ty.clone(),
+        });
 
         Ok(this)
     }
 
-    /// Look up a local variable's type by searching scopes from innermost to outermost.
-    pub fn local_variable(&self, id: &ValueId) -> Fallible<Ty> {
+    /// Look up a local variable's declaration by searching scopes from innermost to outermost.
+    fn local_decl(&self, id: &ValueId) -> Fallible<&LocalDecl> {
         for scope in self.scopes.iter().rev() {
-            for (local_id, ty) in scope.locals.iter().rev() {
-                if local_id == id {
-                    return Ok(ty.clone());
+            for local in scope.locals.iter().rev() {
+                if local.id == *id {
+                    return Ok(local);
                 }
             }
         }
         anyhow::bail!("unknown local variable `{id:?}`")
     }
 
+    /// Look up a local variable's type by searching scopes from innermost to outermost.
+    pub fn local_variable(&self, id: &ValueId) -> Fallible<Ty> {
+        Ok(self.local_decl(id)?.ty.clone())
+    }
+
+    pub fn local_is_mut(&self, id: &ValueId) -> bool {
+        matches!(
+            self.local_decl(id),
+            Ok(LocalDecl {
+                mutability: Mutability::Mut,
+                ..
+            })
+        )
+    }
+
     /// Check if any scope contains a local with this id.
     pub fn has_local(&self, id: &ValueId) -> bool {
         self.scopes
             .iter()
-            .any(|s| s.locals.iter().any(|(local_id, _)| local_id == id))
+            .any(|s| s.locals.iter().any(|local| local.id == *id))
     }
 
     /// Check if any scope has the given label.
@@ -506,8 +540,8 @@ impl FlowState {
         }
 
         // Remove locals going out of scope from the uninit set
-        for (id, _) in &locals {
-            successor.uninit.remove(&PlaceExpr::Var(id.clone()));
+        for local in &locals {
+            successor.uninit.remove(&PlaceExpr::Var(local.id.clone()));
         }
 
         FlowState {
@@ -591,8 +625,9 @@ impl FlowState {
         let mut all_drop_places: Set<PlaceExpr> = Default::default();
 
         for scope in &self.scopes {
-            for (id, _ty) in &scope.locals {
-                if !all_local_places.insert(id.upcast()) {
+            for local in &scope.locals {
+                if !all_local_places.insert((&local.id).upcast()) {
+                    let id = &local.id;
                     panic!("local `{id:?}` appears in multiple scopes' locals");
                 }
             }
