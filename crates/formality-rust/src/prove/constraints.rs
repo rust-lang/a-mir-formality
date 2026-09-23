@@ -1,7 +1,10 @@
 use super::env::Env;
-use crate::grammar::{ExistentialVar, Parameter, Substitution, Variable};
+use crate::grammar::{
+    Binder, ExistentialVar, Parameter, Substitution, UniversalVar, Variable, Wc, Wcs,
+};
 use crate::rust::Visit;
 use formality_core::{cast_impl, visit::CoreVisit, Downcast, Upcast, UpcastFrom};
+use std::sync::Arc;
 
 /// A wrapper around a value that is constrained by a set of conditions.
 ///
@@ -105,7 +108,7 @@ impl Constraints {
         assert!(env.encloses(substitution.range()));
         assert!(env.encloses(substitution.domain()));
         let c2 = Constraints {
-            env,
+            env: env.with_replaced_pending(env.pending().iter().map(|wc| substitution.apply(wc))),
             substitution,
             known_true: true,
         };
@@ -161,31 +164,78 @@ impl Constraints {
         // Apply c2's substitution to our substitution (since it may have bound
         // existential variables that we reference)
         let c1_substitution = c2.substitution.apply(&self.substitution);
+        let substitution: Substitution =
+            c1_substitution.into_iter().chain(c2.substitution).collect();
 
         Constraints {
-            env: c2.env,
+            env: c2
+                .env
+                .with_replaced_pending(c2.env.pending().iter().map(|wc| substitution.apply(wc))),
             known_true: self.known_true && c2.known_true,
-            substitution: c1_substitution.into_iter().chain(c2.substitution).collect(),
+            substitution,
         }
     }
 
-    /// Given a set of variables `v` created via [`Env::instantiate_universally`][]
-    /// or [`Env::instantiate_existentially`][], removes `v` and all variables created *since* `v`
-    /// from the environment and from the substitution.
-    pub fn pop_subst<V>(&self, v: &[V]) -> Self
+    pub fn pop_subst(&self, variables: &[ExistentialVar]) -> Self {
+        let (constraints, removed) = self.pop_scope(variables);
+        assert!(removed.iter().all(|v| v.is_a::<ExistentialVar>()));
+        let constraints = constraints.bind_pending_existentials(&removed);
+        constraints.assert_valid();
+        constraints
+    }
+
+    fn pop_scope<V>(&self, variables: &[V]) -> (Self, Vec<Variable>)
     where
         V: Upcast<Variable> + Copy,
     {
-        let mut env = self.clone();
+        let mut constraints = self.clone();
 
-        if v.is_empty() {
-            return env.clone();
+        if variables.is_empty() {
+            return (constraints, vec![]);
         }
 
-        let vars = env.env.pop_vars(v);
-        env.substitution -= vars;
+        let removed = constraints.env.pop_vars(variables);
+        constraints.substitution -= &removed;
 
-        env
+        (constraints, removed.into_iter().collect())
+    }
+
+    pub fn pop_forall(&self, variables: &[UniversalVar]) -> Self {
+        let (constraints, removed) = self.pop_scope(variables);
+        let existentials: Vec<Variable> = removed
+            .iter()
+            .copied()
+            .filter(|v| v.is_a::<ExistentialVar>())
+            .collect();
+        let mut constraints = constraints.bind_pending_existentials(&existentials);
+        constraints.env =
+            constraints
+                .env
+                .with_replaced_pending(constraints.env.pending().iter().map(|wc| {
+                    let binder = Binder::mentioned(variables, wc.clone());
+                    if binder.is_empty() {
+                        wc.clone()
+                    } else {
+                        Wc::ForAll(Arc::new(binder))
+                    }
+                }));
+        constraints.assert_valid();
+        constraints
+    }
+
+    fn bind_pending_existentials(mut self, variables: &[Variable]) -> Self {
+        let (bound, mut unbound): (Vec<Wc>, Vec<Wc>) = self
+            .env
+            .pending()
+            .iter()
+            .cloned()
+            .partition(|wc| wc.free_variables().iter().any(|v| variables.contains(v)));
+        if !bound.is_empty() {
+            let bound: Wcs = bound.into_iter().collect();
+            unbound.push(Wc::Exists(Arc::new(Binder::mentioned(variables, bound))));
+        }
+        self.env = self.env.with_replaced_pending(unbound);
+        self
     }
 
     pub fn is_valid_extension_of(&self, env0: &Env) -> bool {
@@ -231,6 +281,8 @@ impl CoreVisit<crate::prove::FormalityLang> for Constraints {
 
         assert!(env.encloses(&domain));
         assert!(env.encloses(&range));
+        assert!(env.encloses(env.pending()));
+        assert!(domain.iter().all(|v| !occurs_in(v, &env.pending())));
 
         // No variable in the domain appears in any part of the range;
         // this prevents the obvious occurs check violations like `X = Vec<X>`

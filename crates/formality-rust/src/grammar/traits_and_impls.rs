@@ -207,6 +207,15 @@ pub enum WhereBound {
     #[grammar($v0 $<?v1>)]
     IsImplemented(TraitId, Vec<Parameter>),
 
+    #[grammar($v0 $<?v1> :: $v2 $<?v3> => $v4)]
+    AliasEq(
+        TraitId,
+        Vec<Parameter>,
+        AssociatedItemId,
+        Vec<Parameter>,
+        Ty,
+    ),
+
     #[grammar($v0)]
     Outlives(Lt),
 

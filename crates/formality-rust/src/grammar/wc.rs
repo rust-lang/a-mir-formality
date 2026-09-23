@@ -19,6 +19,12 @@ impl Wcs {
         set![].upcast()
     }
 
+    pub fn without_coinductive(&self) -> Self {
+        self.iter()
+            .filter(|wc| !matches!(wc, Wc::Coinductive(_)))
+            .collect()
+    }
+
     /// Goal(s) to prove `a` and `b` are equal (they must have equal length)
     pub fn all_eq(a: impl Upcast<Vec<Parameter>>, b: impl Upcast<Vec<Parameter>>) -> Wcs {
         let a: Vec<Parameter> = a.upcast();
@@ -151,13 +157,30 @@ pub enum Wc {
     #[cast]
     Predicate(Predicate),
 
+    #[grammar(@coinductive($v0))]
+    Coinductive(TraitRef),
+
     // Equivalent to `for<'a>` except that it can also express `for<T>` and so forth:
     // means `$v0` is true for any value of the bound variables (e.g., `'a` or `T`).
     #[grammar(for $v0)]
     ForAll(Arc<Binder<Wc>>),
 
+    #[grammar(exists $v0)]
+    Exists(Arc<Binder<Wcs>>),
+
     #[grammar(if $v0 $v1)]
     Implies(Wcs, Arc<Wc>),
+}
+
+impl Wc {
+    pub fn is_coinductive(&self) -> bool {
+        match self {
+            Wc::Predicate(Predicate::IsImplemented(_)) => true,
+            Wc::ForAll(binder) => binder.peek().is_coinductive(),
+            Wc::Implies(_, consequence) => consequence.is_coinductive(),
+            Wc::Predicate(_) | Wc::Coinductive(_) | Wc::Exists(_) => false,
+        }
+    }
 }
 
 // ---

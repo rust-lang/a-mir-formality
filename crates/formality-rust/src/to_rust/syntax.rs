@@ -208,6 +208,11 @@ pub enum GenericArg {
     Type(Type),
     Lifetime(String),
     Const(ConstExpr),
+    AssociatedType {
+        name: String,
+        args: Vec<GenericArg>,
+        ty: Type,
+    },
 }
 
 impl Display for GenericArg {
@@ -216,6 +221,11 @@ impl Display for GenericArg {
             GenericArg::Type(ty) => write!(f, "{ty}"),
             GenericArg::Lifetime(lt) => f.write_str(lt),
             GenericArg::Const(konst) => write!(f, "{konst}"),
+            GenericArg::AssociatedType { name, args, ty } => {
+                f.write_str(name)?;
+                fmt_generic_args(f, args, false)?;
+                write!(f, " = {ty}")
+            }
         }
     }
 }

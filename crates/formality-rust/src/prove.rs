@@ -7,7 +7,7 @@
 //! * [`prove`][] -- prove a set of where-clauses to be true
 //! * [`prove_normalize`][] -- normalize a type one step (typically used in a recursive setup)
 
-use crate::grammar::{Binder, Crates, Predicate, Ty, Wc, Wcs, WhereBound, WhereClause};
+use crate::grammar::{AliasTy, Binder, Crates, Predicate, Ty, Wc, Wcs, WhereBound, WhereClause};
 use crate::rust::FormalityLang;
 use formality_core::judgment::{EachProof, FailedRule, FailureLocation, ProofTree};
 use formality_core::visit::CoreVisit;
@@ -90,7 +90,7 @@ pub fn prove(
             decls.max_size
         );
         return ProvenSet::singleton((
-            Constraints::none(env).ambiguous(),
+            min.reconstitute(Constraints::none(env).ambiguous()),
             ProofTree::leaf("max term size exceeded"),
         ));
     }
@@ -230,17 +230,36 @@ impl ToWcs for WhereClause {
 }
 
 impl WhereBound {
-    pub fn to_wc(&self, self_ty: impl Upcast<Ty>) -> Wc {
+    pub fn to_wcs(&self, self_ty: impl Upcast<Ty>) -> Wcs {
         let self_ty: Ty = self_ty.upcast();
 
         match self {
             WhereBound::IsImplemented(trait_id, parameters) => {
                 trait_id.with(self_ty, parameters).upcast()
             }
+            WhereBound::AliasEq(trait_id, parameters, item_id, item_parameters, ty) => {
+                let trait_ref = trait_id.with(self_ty, parameters);
+                let alias = AliasTy::associated_ty(
+                    trait_id,
+                    item_id,
+                    item_parameters.len(),
+                    trait_ref
+                        .parameters
+                        .iter()
+                        .chain(item_parameters)
+                        .cloned()
+                        .collect::<Vec<_>>(),
+                );
+                (trait_ref, Predicate::AliasEq(alias, ty.clone())).upcast()
+            }
             WhereBound::Outlives(lt) => Predicate::outlives(self_ty, lt).upcast(),
             WhereBound::ForAll(binder) => {
                 let (vars, bound) = binder.open();
-                Wc::for_all(Binder::new(&vars, bound.to_wc(self_ty)))
+                bound
+                    .to_wcs(self_ty)
+                    .into_iter()
+                    .map(|clause| Wc::for_all(Binder::new(&vars, clause)))
+                    .collect()
             }
         }
     }
