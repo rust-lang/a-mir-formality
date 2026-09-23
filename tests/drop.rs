@@ -130,7 +130,7 @@ fn drop_impl_extra_where_clause() {
         }
     ])
     .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Clone(!ty_0), via: Drop(MyStruct<!ty_0>), assumptions: {Drop(MyStruct<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Clone(!ty_0), via: @ coinductive(Drop(MyStruct<!ty_0>)), assumptions: {@ coinductive(Drop(MyStruct<!ty_0>))}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "trait implied bound" at (prove_wc.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`
@@ -152,23 +152,11 @@ fn drop_impl_concrete_type_param() {
         }
     ])
     .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: MyStruct<!ty_0> = MyStruct<u32>, via: Drop(MyStruct<!ty_0>), assumptions: {Drop(MyStruct<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        failed at (proven_set.rs) because
+          no matching normalized forms
 
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: MyStruct<!ty_0>, via: Drop(MyStruct<!ty_0>), assumptions: {Drop(MyStruct<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !ty_0 = u32, via: Drop(MyStruct<!ty_0>), assumptions: {Drop(MyStruct<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: !ty_0, via: Drop(MyStruct<!ty_0>), assumptions: {Drop(MyStruct<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: u32, via: Drop(MyStruct<!ty_0>), assumptions: {Drop(MyStruct<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: MyStruct<u32>, via: Drop(MyStruct<!ty_0>), assumptions: {Drop(MyStruct<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: u32 = !ty_0, via: Drop(MyStruct<!ty_0>), assumptions: {Drop(MyStruct<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: u32, via: Drop(MyStruct<!ty_0>), assumptions: {Drop(MyStruct<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: !ty_0, via: Drop(MyStruct<!ty_0>), assumptions: {Drop(MyStruct<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        failed at (proven_set.rs) because
+          no matching normalized forms
 
         the rule "trait implied bound" at (prove_wc.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
@@ -189,7 +177,7 @@ fn drop_impl_enum_extra_where_clause() {
         }
     ])
     .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Clone(!ty_0), via: Drop(MyEnum<!ty_0>), assumptions: {Drop(MyEnum<!ty_0>)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Clone(!ty_0), via: @ coinductive(Drop(MyEnum<!ty_0>)), assumptions: {@ coinductive(Drop(MyEnum<!ty_0>))}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "trait implied bound" at (prove_wc.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`

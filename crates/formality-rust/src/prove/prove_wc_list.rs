@@ -23,7 +23,12 @@ judgment_fn! {
         )
 
         (
-            (prove_wc(decls, env, assumptions, wc0) => c)
+            (let goal_assumptions = if wc0.is_coinductive() {
+                assumptions.clone()
+            } else {
+                assumptions.without_coinductive()
+            })
+            (prove_wc(decls, env, goal_assumptions, wc0) => c)
             (prove_after(decls, c, assumptions, wcs1) => c)
             --- ("some")
             (prove_wc_list(decls, env, assumptions, Cons(wc0, wcs1)) => c)

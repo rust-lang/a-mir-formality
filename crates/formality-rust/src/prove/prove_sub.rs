@@ -1,8 +1,7 @@
-use crate::grammar::{Lt, Parameter, Predicate, RigidTy, Ty, Wcs};
+use crate::grammar::{AliasTy, Lt, Parameter, Predicate, RigidTy, Ty, Wcs};
 use crate::prove::Constrained;
 use formality_core::judgment_fn;
 
-use crate::prove::prove_outlives::prove_outlives;
 use crate::prove::{
     decls::Program, prove, prove_after::prove_after, prove_normalize::prove_normalize,
 };
@@ -22,6 +21,12 @@ judgment_fn! {
         assert(a.kind() == b.kind())
 
         trivial(a == b => Constraints::none(env))
+
+        (
+            (prove(decls, env, assumptions, Predicate::equals(a, b)) => c)
+            ----------------------------- ("equal projections")
+            (prove_sub(decls, env, assumptions, a: AliasTy, b: AliasTy) => c)
+        )
 
         (
             (prove_normalize(decls, env, assumptions, x) => Constrained(y, c))
@@ -47,7 +52,7 @@ judgment_fn! {
         )
 
         (
-            (prove_outlives(decls, env, assumptions, a, b) => c)
+            (prove(decls, env, assumptions, Predicate::outlives(a, b)) => c)
             ----------------------------- ("lifetime => outlives")
             (prove_sub(decls, env, assumptions, a: Lt, b: Lt) => c)
         )

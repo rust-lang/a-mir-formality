@@ -1,8 +1,8 @@
 use crate::grammar::{
     AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData, Binder, Crate,
     CrateId, CrateItem, Crates, ImplItem, NegTraitImpl, NegTraitImplBoundData, Parameter,
-    Predicate, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty, Wc,
-    Wcs,
+    Predicate, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitItem, TraitRef,
+    Ty, Wc, Wcs,
 };
 use crate::prove::ToWcs;
 use formality_core::{seq, Downcasted, Set, To, Upcast, Upcasted};
@@ -228,6 +228,64 @@ impl Program {
             .collect()
     }
 
+    pub fn trait_bounds(&self, source: &TraitRef) -> Wcs {
+        let Ok(trait_decl) = self.crates.trait_named(&source.trait_id) else {
+            return Wcs::t();
+        };
+        let Ok(data) = trait_decl.binder.instantiate_with(&source.parameters) else {
+            return Wcs::t();
+        };
+        let mut result: Wcs = Self::grammar_trait_to_decl(trait_decl)
+            .trait_invariants()
+            .into_iter()
+            .map(|invariant| {
+                invariant
+                    .binder
+                    .instantiate_with(&source.parameters)
+                    .unwrap()
+                    .where_clause
+            })
+            .collect();
+
+        for item in data.trait_items {
+            let TraitItem::AssociatedTy(item) = item else {
+                continue;
+            };
+            let (vars, data) = item.binder.open();
+            let projection: Ty = AliasTy::associated_ty(
+                &source.trait_id,
+                &item.id,
+                vars.len(),
+                seq![
+                    ..source.parameters.iter().cloned(),
+                    ..vars.iter().upcasted()
+                ],
+            )
+            .upcast();
+            let premises = data.where_clauses.to_wcs();
+            let bounds: Wcs = data
+                .ensures
+                .iter()
+                .flat_map(|bound| bound.to_wcs(&projection))
+                .map(|clause| {
+                    // Associated item where-clauses guard its bounds; they are not guarantees.
+                    let clause = if premises.iter().next().is_none() {
+                        clause
+                    } else {
+                        Wc::Implies(premises.clone(), Arc::new(clause))
+                    };
+                    if vars.is_empty() {
+                        clause
+                    } else {
+                        Wc::for_all(Binder::new(&vars, clause))
+                    }
+                })
+                .collect();
+            result = (result, bounds).upcast();
+        }
+        result
+    }
+
     /// Create a `Program` wrapping the given items in a single crate named "test".
     pub fn program_from_items(items: Vec<CrateItem>) -> Crates {
         Crates {
@@ -343,7 +401,8 @@ impl TraitDecl {
                     trait_ref.parameters[0] == *self_var
                 }
                 Wc::Predicate(Predicate::Outlives(a, _)) => *a == *self_var,
-                Wc::Predicate(_) => false,
+                Wc::Predicate(Predicate::AliasEq(alias, _)) => alias.parameters[0] == *self_var,
+                Wc::Predicate(_) | Wc::Coinductive(_) | Wc::Exists(_) => false,
                 Wc::ForAll(binder) => is_supertrait(self_var, binder.peek()),
                 Wc::Implies(_, c) => is_supertrait(self_var, c),
             }

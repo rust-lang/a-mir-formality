@@ -1,8 +1,9 @@
-use crate::grammar::{Wc, Wcs};
-use formality_core::judgment_fn;
+use crate::grammar::{Lt, Predicate, RigidName, RigidTy, Ty, Wc, Wcs};
+use formality_core::{judgment_fn, visit::CoreVisit, Downcast};
 
 use crate::prove::{
     constraints::Constraints, decls::Program, env::Env, prove, prove_after::prove_after,
+    prove_outlives::prove_outlives_bound,
 };
 
 judgment_fn! {
@@ -20,6 +21,42 @@ judgment_fn! {
         goal: Wc,
     ) => Constraints {
         debug(goal, via, assumptions, env)
+
+        (
+            (if let Some(RigidTy { name: RigidName::Ref(_), parameters }) = source.downcast())
+            (let (region, ty) = parameters.downcast_err::<(Lt, Ty)>()?)
+            (prove_outlives_bound(decls, env, assumptions, ty, region, target, target_region) => c)
+            ----------------------------- ("well-formed reference input")
+            (prove_via(decls, env, assumptions, Predicate::WellFormed(source), Predicate::Outlives(target, target_region)) => c)
+        )
+
+        (
+            (prove_outlives_bound(decls, env, assumptions, source, source_region, target, target_region) => c)
+            ----------------------------- ("outlives bound")
+            (prove_via(decls, env, assumptions, Predicate::Outlives(source, source_region), Predicate::Outlives(target, target_region)) => c)
+        )
+
+        (
+            (if source.trait_id == target.trait_id)!
+            (prove(decls, env, assumptions, Wcs::all_eq(&source.parameters, &target.parameters)) => c)
+            ----------------------------- ("coinductive hypothesis")
+            (prove_via(decls, env, assumptions, Wc::Coinductive(source), Predicate::IsImplemented(target)) => c)
+        )
+
+        (
+            (bound in decls.trait_bounds(source))
+            (if (env, source).size() <= decls.max_size)!
+            (prove_via(decls, env, assumptions.without_coinductive(), bound, goal) => c)
+            ----------------------------- ("trait declaration")
+            (prove_via(decls, env, assumptions, Predicate::IsImplemented(source), goal) => c)
+        )
+
+        (
+            (_bound in decls.trait_bounds(source))
+            (if (env, source).size() > decls.max_size)!
+            ----------------------------- ("trait declaration overflow")
+            (prove_via(decls, env, assumptions, Predicate::IsImplemented(source), goal) => Constraints::none(env).ambiguous())
+        )
 
         (
             // `c` = "clause", the name for something that we are assuming is true.
