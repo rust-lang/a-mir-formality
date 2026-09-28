@@ -231,8 +231,8 @@ judgment_fn! {
         (
             (let code = cfn.fresh_code_block())
             ---- ("literal")
-            (codegen_expr_into(global, cfn, scope, target, Literal { value, ty }) => (
-                code.assign(target, constant(value, ty)),
+            (codegen_expr_into(global, cfn, scope, target, literal@Literal { value: _ , ty: _ }) => (
+                code.assign(target, constant(literal)),
                 global,
                 cfn,
             ))
