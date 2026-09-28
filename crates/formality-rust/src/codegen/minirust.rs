@@ -1,7 +1,7 @@
 //! Newtypes wrapping MiniRust types, plus value/terminator constructors
 //! and type translation from formality-rust types to MiniRust types.
 
-use crate::grammar::{expr::IntegerValue, Crates, Fallible, Parameter, RigidName, ScalarId, Ty};
+use crate::grammar::{expr::Literal, Crates, Fallible, Parameter, RigidName, ScalarId, Ty};
 use formality_core::Upcast;
 use libspecr::hidden::GcCow;
 use libspecr::list;
@@ -76,21 +76,10 @@ impl formality_core::UpcastFrom<MiniRustLocal> for MiniRustPlace {
 // Value and terminator constructors
 // ===========================================================================
 
-pub(super) fn constant(value: &IntegerValue, ty: &ScalarId) -> MiniRustValue {
-    let mr_ty = scalar_minirust_ty(ty).expect("scalar type always valid");
-    if ty.is_signed() {
-        let value: i128 = value.parse().expect("value can be parsed");
-        MiniRustValue(lang::ValueExpr::Constant(
-            lang::Constant::Int(Int::from(value)),
-            mr_ty,
-        ))
-    } else {
-        let value: u128 = value.parse().expect("value can be parsed");
-        MiniRustValue(lang::ValueExpr::Constant(
-            lang::Constant::Int(Int::from(value)),
-            mr_ty,
-        ))
-    }
+pub(super) fn constant(literal: &Literal) -> MiniRustValue {
+    let mr_constant = literal_minirust_constant(&literal).expect("integer literal always valid");
+    let mr_ty = scalar_minirust_ty(&literal.ty).expect("scalar type always valid");
+    MiniRustValue(lang::ValueExpr::Constant(mr_constant, mr_ty))
 }
 
 pub(super) fn bool_constant(val: bool) -> MiniRustValue {
@@ -226,6 +215,24 @@ fn scalar_minirust_ty(s: &ScalarId) -> Fallible<lang::Type> {
     Ok(lang::Type::Int(lang::IntType {
         signed,
         size: libspecr::Size::from_bytes_const(size),
+    }))
+}
+
+fn literal_minirust_constant(literal: &Literal) -> Fallible<lang::Constant> {
+    Ok(lang::Constant::Int(match literal.ty {
+        ScalarId::U8 => Int::from(literal.value.parse::<u8>()?),
+        ScalarId::U16 => Int::from(literal.value.parse::<u16>()?),
+        ScalarId::U32 => Int::from(literal.value.parse::<u32>()?),
+        ScalarId::U64 => Int::from(literal.value.parse::<u64>()?),
+        ScalarId::U128 => Int::from(literal.value.parse::<u128>()?),
+        ScalarId::I8 => Int::from(literal.value.parse::<i8>()?),
+        ScalarId::I16 => Int::from(literal.value.parse::<i16>()?),
+        ScalarId::I32 => Int::from(literal.value.parse::<i32>()?),
+        ScalarId::I64 => Int::from(literal.value.parse::<i64>()?),
+        ScalarId::I128 => Int::from(literal.value.parse::<i128>()?),
+        ScalarId::Bool => anyhow::bail!("bool is not an integer"),
+        ScalarId::Usize => Int::from(literal.value.parse::<usize>()?),
+        ScalarId::Isize => Int::from(literal.value.parse::<usize>()?),
     }))
 }
 
