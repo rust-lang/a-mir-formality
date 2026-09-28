@@ -9,6 +9,7 @@ use crate::grammar::{
 mod parse_expr;
 
 id!(LabelId, regex = "'[a-zA-Z_][a-zA-Z0-9_]*");
+id!(IntegerValue, regex = "-?[0-9]+");
 
 #[term($id :)]
 pub struct Label {
@@ -21,16 +22,6 @@ pub struct Block {
     pub stmts: Vec<Stmt>,
 }
 
-/// `42_u32`
-///
-/// A scalar literal.
-#[term($value _ $ty)]
-#[customize(parse, debug)]
-pub struct Literal {
-    pub value: u128,
-    pub ty: ScalarId,
-}
-
 impl Block {
     // Used as the default else branch.
     pub fn empty() -> Self {
@@ -39,6 +30,16 @@ impl Block {
             stmts: vec![],
         }
     }
+}
+
+/// `42_u32`
+///
+/// A scalar literal.
+#[term($value _ $ty)]
+#[customize(parse, debug)]
+pub struct Literal {
+    pub value: IntegerValue,
+    pub ty: ScalarId,
 }
 
 /// An optional initializer expression, parsed as `= $expr`.

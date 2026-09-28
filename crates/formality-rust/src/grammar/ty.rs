@@ -206,6 +206,24 @@ impl ScalarId {
             ScalarId::Bool => false,
         }
     }
+
+    pub fn is_signed(&self) -> bool {
+        match self {
+            ScalarId::I8
+            | ScalarId::I16
+            | ScalarId::I32
+            | ScalarId::I64
+            | ScalarId::I128
+            | ScalarId::Isize => true,
+            ScalarId::U8
+            | ScalarId::U16
+            | ScalarId::U32
+            | ScalarId::U64
+            | ScalarId::U128
+            | ScalarId::Usize
+            | ScalarId::Bool => false,
+        }
+    }
 }
 
 #[term((alias $name $*parameters))]

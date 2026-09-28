@@ -1,11 +1,14 @@
 use super::Literal;
-use crate::{grammar::ScalarId, rust::FormalityLang as Rust};
+use crate::{
+    grammar::{expr::IntegerValue, ScalarId},
+    rust::FormalityLang as Rust,
+};
 use formality_core::parse::{CoreParse, ParseError, ParseResult, Parser, Scope};
 use std::fmt::Debug;
 
 impl Debug for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}_{:?}", self.value, self.ty)
+        write!(f, "{:?}_{:?}", self.value, self.ty)
     }
 }
 
@@ -14,17 +17,21 @@ impl Debug for Literal {
 impl CoreParse<Rust> for Literal {
     fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
         Parser::single_variant(scope, text, "Literal", |avt| {
-            let value: u128 = avt.number()?;
-            avt.expect_char('_')?;
-            avt.each_nonterminal(|ty: ScalarId, av| {
-                if let ScalarId::Bool = ty {
-                    return Err(ParseError::at(
-                        av.text(),
-                        "bool literal suffix are not allowed".to_string(),
-                    ));
-                }
+            avt.each_nonterminal(|value: IntegerValue, av| {
+                av.expect_char('_')?;
+                av.each_nonterminal(|ty: ScalarId, av| {
+                    if let ScalarId::Bool = ty {
+                        return Err(ParseError::at(
+                            av.text(),
+                            "bool literal suffix are not allowed".to_string(),
+                        ));
+                    }
 
-                av.ok(Literal { value, ty })
+                    av.ok(Literal {
+                        value: value.clone(),
+                        ty,
+                    })
+                })
             })
         })
     }

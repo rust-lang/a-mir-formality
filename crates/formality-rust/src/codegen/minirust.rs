@@ -1,7 +1,7 @@
 //! Newtypes wrapping MiniRust types, plus value/terminator constructors
 //! and type translation from formality-rust types to MiniRust types.
 
-use crate::grammar::{Crates, Fallible, Parameter, RigidName, ScalarId, Ty};
+use crate::grammar::{expr::IntegerValue, Crates, Fallible, Parameter, RigidName, ScalarId, Ty};
 use formality_core::Upcast;
 use libspecr::hidden::GcCow;
 use libspecr::list;
@@ -76,12 +76,21 @@ impl formality_core::UpcastFrom<MiniRustLocal> for MiniRustPlace {
 // Value and terminator constructors
 // ===========================================================================
 
-pub(super) fn constant(value: &u128, ty: &ScalarId) -> MiniRustValue {
+pub(super) fn constant(value: &IntegerValue, ty: &ScalarId) -> MiniRustValue {
     let mr_ty = scalar_minirust_ty(ty).expect("scalar type always valid");
-    MiniRustValue(lang::ValueExpr::Constant(
-        lang::Constant::Int(Int::from(*value)),
-        mr_ty,
-    ))
+    if ty.is_signed() {
+        let value: i128 = value.parse().expect("value can be parsed");
+        MiniRustValue(lang::ValueExpr::Constant(
+            lang::Constant::Int(Int::from(value)),
+            mr_ty,
+        ))
+    } else {
+        let value: u128 = value.parse().expect("value can be parsed");
+        MiniRustValue(lang::ValueExpr::Constant(
+            lang::Constant::Int(Int::from(value)),
+            mr_ty,
+        ))
+    }
 }
 
 pub(super) fn bool_constant(val: bool) -> MiniRustValue {

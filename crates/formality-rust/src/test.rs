@@ -281,20 +281,28 @@ fn test_parse_literals() {
     assert!(matches!(
         expr_data,
         Expr::Literal(Literal {
-            value: 0,
+            value: _,
             ty: ScalarId::U8
         })
     ));
+    let Expr::Literal(Literal { value, ty: _ }) = expr_data else {
+        panic!("error");
+    };
+    assert_eq!(*value, "0");
 
     // The older syntax still accepts.
     let expr_data: Expr = try_term("0 _ u8").unwrap();
     assert!(matches!(
         expr_data,
         Expr::Literal(Literal {
-            value: 0,
+            value: _,
             ty: ScalarId::U8
         })
     ));
+    let Expr::Literal(Literal { value, ty: _ }) = expr_data else {
+        panic!("error");
+    };
+    assert_eq!(*value, "0");
 
     let expr_data: Expr = try_term("false").unwrap();
     assert!(matches!(expr_data, Expr::False));
