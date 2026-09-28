@@ -219,20 +219,10 @@ fn scalar_minirust_ty(s: &ScalarId) -> Fallible<lang::Type> {
 }
 
 fn literal_minirust_constant(literal: &Literal) -> Fallible<lang::Constant> {
-    Ok(lang::Constant::Int(match literal.ty {
-        ScalarId::U8 => Int::from(literal.value.parse::<u8>()?),
-        ScalarId::U16 => Int::from(literal.value.parse::<u16>()?),
-        ScalarId::U32 => Int::from(literal.value.parse::<u32>()?),
-        ScalarId::U64 => Int::from(literal.value.parse::<u64>()?),
-        ScalarId::U128 => Int::from(literal.value.parse::<u128>()?),
-        ScalarId::I8 => Int::from(literal.value.parse::<i8>()?),
-        ScalarId::I16 => Int::from(literal.value.parse::<i16>()?),
-        ScalarId::I32 => Int::from(literal.value.parse::<i32>()?),
-        ScalarId::I64 => Int::from(literal.value.parse::<i64>()?),
-        ScalarId::I128 => Int::from(literal.value.parse::<i128>()?),
-        ScalarId::Bool => anyhow::bail!("bool is not an integer"),
-        ScalarId::Usize => Int::from(literal.value.parse::<usize>()?),
-        ScalarId::Isize => Int::from(literal.value.parse::<usize>()?),
+    Ok(lang::Constant::Int(match literal.value {
+        crate::grammar::expr::IntegerValue::Signed(n) if literal.ty.is_signed() => Int::from(n),
+        crate::grammar::expr::IntegerValue::Unsigned(n) if !literal.ty.is_signed() => Int::from(n),
+        _ => anyhow::bail!("signess mismatch"),
     }))
 }
 

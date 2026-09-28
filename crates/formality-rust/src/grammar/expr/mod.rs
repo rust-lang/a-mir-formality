@@ -9,7 +9,6 @@ use crate::grammar::{
 mod parse_expr;
 
 id!(LabelId, regex = "'[a-zA-Z_][a-zA-Z0-9_]*");
-id!(IntegerValue, regex = "-?[0-9]+");
 
 #[term($id :)]
 pub struct Label {
@@ -40,6 +39,14 @@ impl Block {
 pub struct Literal {
     pub value: IntegerValue,
     pub ty: ScalarId,
+}
+
+#[term]
+pub enum IntegerValue {
+    #[grammar($v0)]
+    Signed(i128),
+    #[grammar($v0)]
+    Unsigned(u128),
 }
 
 /// An optional initializer expression, parsed as `= $expr`.
