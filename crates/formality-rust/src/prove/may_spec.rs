@@ -167,6 +167,14 @@ judgment_fn! {
     ) => Constraints {
         debug(goal, assumptions, env)
 
+        // Its impls do not depend on lifetimes, so codegen decides exactly after
+        // erasure (see `check_always_applicable_impl`).
+        (
+            (if decls.is_always_applicable_trait(&goal.trait_id))!
+            ----------------------------- ("always applicable trait")
+            (decide(decls, env, assumptions, goal) => Constraints::none(env))
+        )
+
         (
             (decide_by_bound(decls, env, assumptions, goal) => c)
             ----------------------------- ("by bound")
@@ -177,6 +185,7 @@ judgment_fn! {
         (
             (prove(decls, env, assumptions, goal) => c)
             (if allowed_by_mode(&decls, &env, &c))
+            (holds_for_all_lifetimes_if_required(decls, c.env(), assumptions, c.substitution().apply(goal)) => ())
             (assert !c.known_true || holds_after_erasure(&decls, c.env(), &assumptions, c.substitution().apply(goal)))
             ----------------------------- ("holds")
             (decide(decls, env, assumptions, goal) => c)
@@ -208,6 +217,34 @@ judgment_fn! {
             (assert !holds_after_erasure(&decls, &env, &assumptions, goal))
             ----------------------------- ("does not hold, by coherence")
             (decide(decls, env, assumptions, goal) => Constraints::none(env))
+        )
+    }
+}
+
+judgment_fn! {
+    /// Under `spec_always_applicable`, a bound decided as holding must hold
+    /// for every choice of the lifetimes in it. The where-clauses in scope
+    /// count: their callers proved them, region constraints included (as
+    /// rustc exempts the predicates of the base impl).
+    fn holds_for_all_lifetimes_if_required(
+        decls: Program,
+        env: Env,
+        assumptions: Predicates,
+        goal: Predicate,
+    ) => () {
+        debug(goal, assumptions, env)
+
+        (
+            (if !decls.feature_gate_enabled(&FeatureGateName::SpecAlwaysApplicable))!
+            ----------------------------- ("not required")
+            (holds_for_all_lifetimes_if_required(decls, _env, _assumptions, _goal) => ())
+        )
+
+        (
+            (if decls.feature_gate_enabled(&FeatureGateName::SpecAlwaysApplicable))!
+            (holds_for_all_lifetimes(decls, env, assumptions, goal) => _)
+            ----------------------------- ("always applicable")
+            (holds_for_all_lifetimes_if_required(decls, env, assumptions, goal) => ())
         )
     }
 }

@@ -14,6 +14,7 @@ pub fn lower_feature_gate(gate: &FeatureGate) -> Fallible<syntax::Attr> {
         FeatureGateName::BranchSpecialization => "branch_specialization",
         FeatureGateName::SpecCommitAndVerify => "spec_commit_and_verify",
         FeatureGateName::SpecBailOnRegions => "spec_bail_on_regions",
+        FeatureGateName::SpecAlwaysApplicable => "spec_always_applicable",
     };
     Ok(syntax::Attr::Feature(name.to_owned()))
 }

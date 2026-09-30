@@ -1,8 +1,8 @@
 use crate::grammar::{
-    AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData, AtomicPredicate,
-    Binder, Crate, CrateId, CrateItem, Crates, FeatureGateName, ImplItem, NegTraitImpl,
-    NegTraitImplBoundData, Parameter, Predicate, Predicates, Trait, TraitBoundData, TraitId,
-    TraitImpl, TraitImplBoundData, TraitRef, Ty,
+    AdtId, AliasName, AliasTy, Applicability, AssociatedTyValue, AssociatedTyValueBoundData,
+    AtomicPredicate, Binder, Crate, CrateId, CrateItem, Crates, FeatureGateName, ImplItem,
+    NegTraitImpl, NegTraitImplBoundData, Parameter, Predicate, Predicates, Trait, TraitBoundData,
+    TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty,
 };
 use crate::prove::ToPredicates;
 use formality_core::{seq, Downcasted, Set, To, Upcast, Upcasted};
@@ -91,6 +91,15 @@ impl Program {
             .filter(|nti| nti.binder.peek().trait_id == *trait_id)
             .map(Self::grammar_neg_trait_impl_to_decl)
             .collect()
+    }
+
+    /// Is `trait_id` declared `always_applicable`? (See
+    /// [`crate::grammar::Applicability`].)
+    pub fn is_always_applicable_trait(&self, trait_id: &TraitId) -> bool {
+        matches!(
+            self.crates.trait_named(trait_id),
+            Ok(t) if t.applicability == Applicability::Always
+        )
     }
 
     /// Look up a trait by id from the program grammar and convert to a `TraitDecl`.

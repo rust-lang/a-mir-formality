@@ -184,6 +184,7 @@ fn may_spec_accepted() {
         strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -201,6 +202,7 @@ fn may_spec_does_not_require_supertraits() {
         strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -223,6 +225,7 @@ fn may_spec_requires_well_formed_parameters() {
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -243,6 +246,7 @@ fn if_impls_requires_well_formed_parameters() {
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -268,6 +272,7 @@ fn may_spec_concrete_caller_decides() {
         strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -292,6 +297,7 @@ fn may_spec_generic_caller_without_bound() {
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -310,6 +316,7 @@ fn may_spec_generic_caller_with_positive_bound() {
         strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -328,6 +335,55 @@ fn may_spec_generic_caller_with_may_spec_bound() {
         strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// A where-clause in scope decides the bound, under `spec_always_applicable`
+/// too, although `T: Static` holds only for some lifetimes in `T`: the
+/// caller proved it, region constraints included. Bail-on-regions looks at
+/// the erased type alone.
+#[test]
+fn if_impls_where_clause_on_ordinary_trait() {
+    FormalityTest::new(crates![crate foo {
+        struct Tag<'a> {}
+        trait Static {}
+        impl Static for Tag<'static> {}
+        fn spec<T>() -> () where T: Static {
+            if impls T: Static { println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            spec::<Tag<'static>>();
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "1\n"
+        commit-and-verify: as strict
+        bail-on-regions: ok, prints "2\n"
+        always-applicable: as strict
+    "#]])
+}
+
+/// ...and likewise for a caller that would decide `may_spec` by it.
+#[test]
+fn may_spec_where_clause_on_ordinary_trait() {
+    FormalityTest::new(crates![crate foo {
+        struct Tag<'a> {}
+        trait Static {}
+        impl Static for Tag<'static> {}
+        fn spec<T>() -> () where may_spec(T: Static) {
+            if impls T: Static { println!(1_u32); } else { println!(2_u32); }
+        }
+        fn mid<T>() -> () where T: Static { spec::<T>(); }
+        fn main() -> () {
+            mid::<Tag<'static>>();
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "1\n"
+        commit-and-verify: as strict
+        bail-on-regions: ok, prints "2\n"
+        always-applicable: as strict
     "#]])
 }
 
@@ -357,6 +413,7 @@ fn may_spec_subtrait_bound_does_not_decide_supertrait() {
             crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Sub(!ty_0), via: Super(?ty_1), assumptions: {@ may_spec(Sub(!ty_0))}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -383,6 +440,7 @@ fn may_spec_supertrait_bound_does_not_decide_subtrait() {
             crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Sub(!ty_0), via: Super(?ty_1), assumptions: {@ may_spec(Super(!ty_0))}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -402,6 +460,7 @@ fn may_spec_two_bounds() {
         strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -427,6 +486,7 @@ fn may_spec_generic_wrapper_decided_by_coherence() {
         strict: ok, prints "2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -454,6 +514,7 @@ fn may_spec_generic_wrapper_decided_by_coherence_with_local_region() {
         strict: ok, prints "2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -484,6 +545,7 @@ fn may_spec_upstream_wrapper_is_undecided() {
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -508,6 +570,7 @@ fn may_spec_upstream_trait_local_wrapper_decided_by_coherence() {
         strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -535,6 +598,7 @@ fn may_spec_negative_impl_does_not_decide_generic() {
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -564,6 +628,7 @@ fn may_spec_non_lifetime_binder_is_undecided() {
               unknown local variable `spec`
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -590,6 +655,7 @@ fn may_spec_decided_downstream() {
         strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -610,6 +676,7 @@ fn if_impls_concrete_holds() {
         strict: ok, prints "1\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -626,6 +693,7 @@ fn if_impls_concrete_does_not_hold() {
         strict: ok, prints "2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -644,6 +712,7 @@ fn if_impls_local_type_does_not_hold() {
         strict: ok, prints "2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -682,6 +751,7 @@ fn if_impls_generic_without_may_spec() {
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
         bail-on-regions: ok, prints "1\n2\n"
+        always-applicable: as strict
     "#]])
 }
 
@@ -704,6 +774,7 @@ fn if_impls_generic_with_may_spec() {
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -724,6 +795,7 @@ fn if_impls_blanket_impl_holds() {
         strict: ok, prints "1\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -748,6 +820,7 @@ fn if_impls_decided_through_generic_caller() {
         strict: ok, prints "2\n1\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -775,6 +848,7 @@ fn if_impls_decided_downstream() {
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -798,6 +872,7 @@ fn if_impls_then_branch_assumes_bound() {
         strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -818,6 +893,7 @@ fn if_impls_else_branch_does_not_assume_bound() {
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -843,6 +919,7 @@ fn if_impls_else_branch_nested_call() {
         strict: ok, prints "3\n2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -869,6 +946,7 @@ fn if_impls_else_branch_without_may_spec() {
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -891,6 +969,48 @@ fn if_impls_static_argument_is_erased_at_codegen() {
         strict: ok, prints "1\n"
         commit-and-verify: as strict
         bail-on-regions: ok, prints "2\n"
+        always-applicable: err:
+            crates/formality-rust/src/prove/may_spec.rs:46:1: no applicable rules for decide_by_bound { goal: Static(Tag<' static>), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Tag<!lt_0> = Tag<' static>, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Tag<!lt_0>, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 = ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: !lt_0, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Tag<' static>, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ' static = !lt_0, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: !lt_0, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            the rule "trait implied bound" at (prove_predicate.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`
     "#]])
 }
 
@@ -910,6 +1030,21 @@ fn if_impls_higher_ranked_bound_holds_after_erasure() {
         strict: ok, prints "1\n"
         commit-and-verify: as strict
         bail-on-regions: ok, prints "2\n"
+        always-applicable: err:
+            crates/formality-rust/src/prove/may_spec.rs:46:1: no applicable rules for decide_by_bound { goal: Tr(Tag<' static>, !lt_1), assumptions: {}, env: Env { variables: [!lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: Tr(Tag<!lt_0>, !lt_1), assumptions: {Tr(Tag<!lt_0>, !lt_1)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {Tr(Tag<!lt_0>, !lt_1)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            the rule "trait implied bound" at (prove_predicate.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`
     "#]])
 }
 
@@ -943,6 +1078,7 @@ fn if_impls_lifetime_dependent() {
         commit-and-verify: err:
             crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
         bail-on-regions: ok, prints "2\n"
+        always-applicable: as strict
     "#]])
 }
 
@@ -964,6 +1100,79 @@ fn if_impls_lifetime_dependent_implied() {
         strict: ok, prints "1\n"
         commit-and-verify: as strict
         bail-on-regions: ok, prints "2\n"
+        always-applicable: err:
+            crates/formality-rust/src/prove/may_spec.rs:46:1: no applicable rules for decide_by_bound { goal: Static(Tag<!lt_0>), assumptions: {!lt_0 : ' static}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Static(Tag<!lt_1>), via: !lt_0 : ' static, assumptions: {!lt_0 : ' static}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Tag<!lt_1> = Tag<' static>, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Tag<!lt_1> = Tag<' static>, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Tag<!lt_1>, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Tag<!lt_1>, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 = ' static, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 = ' static, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : ' static, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : ' static, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: !lt_1, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: !lt_1, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : ' static, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : ' static, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ' static, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ' static, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Tag<' static>, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Tag<' static>, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ' static = !lt_1, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ' static = !lt_1, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : ' static, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : ' static, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ' static, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ' static, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : ' static, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : ' static, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: !lt_1, via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: !lt_1, via: Static(Tag<!lt_1>), assumptions: {!lt_0 : ' static, Static(Tag<!lt_1>)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            the rule "trait implied bound" at (prove_predicate.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`
     "#]])
 }
 
@@ -987,6 +1196,55 @@ fn if_impls_lifetime_independent() {
         strict: ok, prints "1\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// `impl<'b> Tr<'b> for Tag<'b>` applies only where the two lifetimes
+/// coincide, which erasure forgets: `Tag<'a>: Tr<'a>` is not decided under
+/// bail-on-regions or always-applicable (rustc rejects such an impl as
+/// always applicable, for its repeated parameter).
+#[test]
+fn if_impls_lifetime_named_twice() {
+    FormalityTest::new(crates![crate foo {
+        struct Tag<'a> {}
+        trait Tr<'a> {}
+        impl<'b> Tr<'b> for Tag<'b> {}
+        fn spec<'a>(t: Tag<'a>) -> () {
+            if impls Tag<'a>: Tr<'a> { println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            exists<'x> {
+                spec::<'x>(Tag::<'x> {});
+            }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "1\n"
+        commit-and-verify: as strict
+        bail-on-regions: ok, prints "2\n"
+        always-applicable: err:
+            crates/formality-rust/src/prove/may_spec.rs:46:1: no applicable rules for decide_by_bound { goal: Tr(Tag<!lt_0>, !lt_0), assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 = !lt_0, via: Tr(Tag<!lt_0>, !lt_1), assumptions: {Tr(Tag<!lt_0>, !lt_1)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: Tr(Tag<!lt_0>, !lt_1), assumptions: {Tr(Tag<!lt_0>, !lt_1)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {Tr(Tag<!lt_0>, !lt_1)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: !lt_1, via: Tr(Tag<!lt_0>, !lt_1), assumptions: {Tr(Tag<!lt_0>, !lt_1)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: Tr(Tag<!lt_0>, !lt_1), assumptions: {Tr(Tag<!lt_0>, !lt_1)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {Tr(Tag<!lt_0>, !lt_1)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: !lt_0, via: Tr(Tag<!lt_0>, !lt_1), assumptions: {Tr(Tag<!lt_0>, !lt_1)}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            the rule "trait implied bound" at (prove_predicate.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`
     "#]])
 }
 
@@ -1018,6 +1276,7 @@ fn may_spec_lifetime_dependent_local_caller() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok, prints "1\n"
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1050,6 +1309,7 @@ fn if_impls_local_region_residue_on_signature() {
 
             crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: ' static, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
         bail-on-regions: ok
+        always-applicable: as strict
     "#]])
 }
 
@@ -1078,6 +1338,7 @@ fn if_impls_local_region_signature_entails() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
         bail-on-regions: ok
+        always-applicable: as strict
     "#]])
 }
 
@@ -1107,6 +1368,7 @@ fn if_impls_local_region_borrowed_from_static() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
         bail-on-regions: ok
+        always-applicable: as strict
     "#]])
 }
 
@@ -1136,6 +1398,7 @@ fn if_impls_free_local_region() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok, prints "1\n"
         bail-on-regions: ok, prints "2\n"
+        always-applicable: as strict
     "#]])
 }
 
@@ -1167,6 +1430,7 @@ fn if_impls_local_region_already_static() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
         bail-on-regions: ok
+        always-applicable: as strict
     "#]])
 }
 
@@ -1195,6 +1459,7 @@ fn if_impls_local_region_static_required_later() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
         bail-on-regions: ok
+        always-applicable: as strict
     "#]])
 }
 
@@ -1228,6 +1493,7 @@ fn if_impls_local_region_below_a_static_one() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
         bail-on-regions: ok
+        always-applicable: as strict
     "#]])
 }
 
@@ -1259,6 +1525,7 @@ fn may_spec_local_region_borrowed_from_static() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1289,6 +1556,7 @@ fn may_spec_local_region_required_by_callee() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1327,6 +1595,7 @@ fn may_spec_on_impl_decided_inside_a_proof() {
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: ok
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1353,6 +1622,7 @@ fn if_impls_higher_ranked_with_may_spec() {
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1372,6 +1642,7 @@ fn if_impls_higher_ranked_concrete() {
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1397,6 +1668,7 @@ fn if_impls_higher_ranked_decided_through_generic_caller() {
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1422,6 +1694,7 @@ fn may_spec_higher_ranked_bound_decides_instance() {
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1445,6 +1718,7 @@ fn may_spec_higher_ranked_bound_decides_instance_over_local_region() {
         strict: ok, prints "1\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1480,6 +1754,7 @@ fn may_spec_higher_ranked_bound_lifetime_dependent_undecided() {
             failed at (proven_set.rs) because
               `!lt_1 : ' static` cannot be restated without `!lt_1`
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1504,6 +1779,7 @@ fn may_spec_higher_ranked_instance_blanket_impl() {
         strict: ok, prints "1\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1553,6 +1829,7 @@ fn may_spec_instance_bound_does_not_decide_higher_ranked() {
             failed at (proven_set.rs) because
               `!lt_2 : !lt_1` cannot be restated without `!lt_2`
         bail-on-regions: ok, prints "2\n"
+        always-applicable: as strict
     "#]])
 }
 
@@ -1590,6 +1867,7 @@ fn if_impls_local_region_via_bound() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
         bail-on-regions: ok
+        always-applicable: as strict
     "#]])
 }
 
@@ -1624,6 +1902,7 @@ fn if_impls_local_region_via_bound_already_equal() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
         bail-on-regions: ok
+        always-applicable: as strict
     "#]])
 }
 
@@ -1649,6 +1928,7 @@ fn if_impls_outright_with_bound_in_scope() {
         strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1683,6 +1963,7 @@ fn may_spec_subtrait_bound_does_not_decide_supertrait_regions() {
 
             crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {@ may_spec(Sub(&!lt_0 u32))}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
         bail-on-regions: ok
+        always-applicable: as strict
     "#]])
 }
 
@@ -1710,6 +1991,7 @@ fn may_spec_subtrait_bound_main_decides_no() {
         strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1748,6 +2030,7 @@ fn may_spec_local_region_bound_and_impl_incomparable() {
             failed at (proven_set.rs) because
               no relationship between `{pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, !lt_1)}` and `{pending_outlives(' static, ?lt_2), pending_outlives(?lt_2, ' static)}`
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1781,6 +2064,7 @@ fn may_spec_local_region_bound_accepted() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1802,6 +2086,7 @@ fn if_impls_no_impl_with_bound_in_scope() {
         strict: ok, prints "2\n"
         commit-and-verify: as strict
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }
 
@@ -1824,6 +2109,48 @@ fn if_impls_bound_unifies_given_signature() {
         strict: ok, prints "1\n"
         commit-and-verify: as strict
         bail-on-regions: ok, prints "2\n"
+        always-applicable: err:
+            crates/formality-rust/src/prove/may_spec.rs:46:1: no applicable rules for decide_by_bound { goal: Static(Tag<' static>), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Tag<!lt_0> = Tag<' static>, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Tag<!lt_0>, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 = ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: !lt_0, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: Tag<' static>, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ' static = !lt_0, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : ' static, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: !lt_0, via: Static(Tag<!lt_0>), assumptions: {Static(Tag<!lt_0>)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            the rule "trait implied bound" at (prove_predicate.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`
     "#]])
 }
 
@@ -1872,6 +2199,7 @@ fn exploit_local_borrow_promoted_to_static() {
         commit-and-verify: err:
             crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
         bail-on-regions: ok, prints "0\n"
+        always-applicable: as strict
     "#]])
 }
 
@@ -1930,5 +2258,6 @@ fn exploit_local_borrow_promoted_to_static_with_may_spec() {
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `local`
         bail-on-regions: as strict
+        always-applicable: as strict
     "#]])
 }

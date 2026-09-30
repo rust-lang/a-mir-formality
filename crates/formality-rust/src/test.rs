@@ -81,6 +81,7 @@ fn test_parse_rust_like_trait_syntax() {
                         Trait(
                             Trait {
                                 safety: Safe,
+                                applicability: Any,
                                 id: Foo,
                                 binder: <ty, ty> where ^ty0_1 : Bar <^ty0_0> { },
                             },

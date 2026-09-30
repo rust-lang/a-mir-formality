@@ -16,7 +16,7 @@ judgment_fn! {
         debug(program, t, crate_id)
 
         (
-            (let Trait { safety: _, id: _, binder } = t)
+            (let Trait { safety: _, applicability: _, id: _, binder } = t)
             (scope(enter_universally(env, &binder.explicit_binder) => (env, TraitBoundData { where_clauses, trait_items })) with()
                 (check_trait_items_have_unique_names(trait_items) => ())
                 (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
