@@ -243,7 +243,10 @@ fn may_spec_generic_caller_without_bound() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            failed at (proven_set.rs) because
+              found an unconditionally true solution Constraints { env: Env { variables: [?ty_1], bias: Completeness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
 
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
@@ -310,12 +313,15 @@ fn may_spec_subtrait_bound_does_not_decide_supertrait() {
             the rule "bound instance" at (may_spec.rs) failed because
               pattern `Wc::ForAll(binder)` did not match value `Sub(!ty_0)`
 
-            crates/formality-rust/src/prove/may_spec.rs:81:1: no applicable rules for unify_bounds { a: Sub(!ty_0), b: Super(!ty_0), assumptions: {@ may_spec(!ty_0 : Sub)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:83:1: no applicable rules for unify_bounds { a: Sub(!ty_0), b: Super(!ty_0), assumptions: {@ may_spec(!ty_0 : Sub)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "same bound" at (may_spec.rs) failed because
               condition evaluated to false: `bounds.contains(&goal)`
                 bounds = [Sub(!ty_0)]
                 &goal = Super(!ty_0)
+
+            failed at (proven_set.rs) because
+              found an unconditionally true solution Constraints { env: Env { variables: [?ty_1], bias: Completeness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
 
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Super(!ty_0), via: @ may_spec(!ty_0 : Sub), assumptions: {@ may_spec(!ty_0 : Sub)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
@@ -346,12 +352,15 @@ fn may_spec_supertrait_bound_does_not_decide_subtrait() {
             the rule "bound instance" at (may_spec.rs) failed because
               pattern `Wc::ForAll(binder)` did not match value `Super(!ty_0)`
 
-            crates/formality-rust/src/prove/may_spec.rs:81:1: no applicable rules for unify_bounds { a: Super(!ty_0), b: Sub(!ty_0), assumptions: {@ may_spec(!ty_0 : Super)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:83:1: no applicable rules for unify_bounds { a: Super(!ty_0), b: Sub(!ty_0), assumptions: {@ may_spec(!ty_0 : Super)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "same bound" at (may_spec.rs) failed because
               condition evaluated to false: `bounds.contains(&goal)`
                 bounds = [Super(!ty_0)]
                 &goal = Sub(!ty_0)
+
+            failed at (proven_set.rs) because
+              found an unconditionally true solution Constraints { env: Env { variables: [?ty_1], bias: Completeness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
 
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Sub(!ty_0), via: @ may_spec(!ty_0 : Super), assumptions: {@ may_spec(!ty_0 : Super)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
@@ -382,25 +391,82 @@ fn may_spec_two_bounds() {
     "#]])
 }
 
-/// A bound over a generic type is never decided by a failed search. We could,
-/// in theory, be certain here because this impl cannot be added downstream. But,
-/// for now we require that caller must declare `may_spec(Wrapper<T>: Bar)` itself.
+/// Coherence decides `Wrapper<T>: Bar` as "no": no impl applies, and none
+/// can be added downstream (`Wrapper<Local>` is covered) or upstream (both
+/// are local).
 #[test]
-fn may_spec_generic_wrapper_is_undecided() {
+fn may_spec_generic_wrapper_decided_by_coherence() {
     FormalityTest::new(crates![crate foo {
         trait Bar {}
         struct Wrapper<T> { value: T }
-        fn spec<T>() -> () where may_spec(T: Bar) { }
+        fn spec<T>() -> () where may_spec(T: Bar) {
+            if impls T: Bar { println!(1_u32); } else { println!(2_u32); }
+        }
         fn caller<T>() -> () {
             spec::<Wrapper<T>>();
         }
+        fn main() -> () {
+            caller::<u32>();
+        }
     }])
     .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "2\n"
+        commit-and-verify: as strict
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// With `Bar` and `Wrapper` upstream, a minor release may add the impl:
+/// undecided.
+#[test]
+fn may_spec_upstream_wrapper_is_undecided() {
+    FormalityTest::new(crates![
+        crate upstream {
+            trait Bar {}
+            struct Wrapper<T> { value: T }
+            fn spec<T>() -> () where may_spec(T: Bar) { }
+        },
+        crate downstream {
+            fn caller<T>() -> () {
+                spec::<Wrapper<T>>();
+            }
+        }
+    ])
+    .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Bar(Wrapper<!ty_0>), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Bar(Wrapper<!ty_0>), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            failed at (proven_set.rs) because
+              found an unconditionally true solution Constraints { env: Env { variables: [?ty_1], bias: Completeness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
 
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
+        commit-and-verify: as strict
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// With `Bar` upstream and `Wrapper` local, nobody can add the impl:
+/// decided.
+#[test]
+fn may_spec_upstream_trait_local_wrapper_decided_by_coherence() {
+    FormalityTest::new(crates![
+        crate upstream {
+            trait Bar {}
+            fn spec<T>() -> () where may_spec(T: Bar) { }
+        },
+        crate downstream {
+            struct Wrapper<T> { value: T }
+            fn caller<T>() -> () {
+                spec::<Wrapper<T>>();
+            }
+        }
+    ])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok
         commit-and-verify: as strict
         bail-on-regions: as strict
         always-applicable: as strict
@@ -422,7 +488,10 @@ fn may_spec_negative_impl_does_not_decide_generic() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            failed at (proven_set.rs) because
+              found an unconditionally true solution Constraints { env: Env { variables: [?ty_1], bias: Completeness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
 
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
@@ -536,7 +605,10 @@ fn if_impls_generic_without_may_spec() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            failed at (proven_set.rs) because
+              found an unconditionally true solution Constraints { env: Env { variables: [?ty_1], bias: Completeness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
 
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !ty_0 = u32, via: Bar(!ty_0), assumptions: {Bar(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
@@ -733,7 +805,10 @@ fn if_impls_else_branch_without_may_spec() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            failed at (proven_set.rs) because
+              found an unconditionally true solution Constraints { env: Env { variables: [?ty_1], bias: Completeness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
 
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
@@ -763,7 +838,7 @@ fn if_impls_static_argument_is_erased_at_codegen() {
         commit-and-verify: as strict
         bail-on-regions: ok, prints "2\n"
         always-applicable: err:
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Static(Tag<' static>), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(Tag<' static>), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -827,7 +902,7 @@ fn if_impls_lifetime_dependent() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Static(Tag<!lt_0>), assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(Tag<!lt_0>), assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -862,7 +937,7 @@ fn if_impls_lifetime_dependent_implied() {
         always-applicable: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(Tag<!lt_0> : Static), via: !lt_0 : ' static, assumptions: {!lt_0 : ' static}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Static(Tag<!lt_0>), assumptions: {!lt_0 : ' static}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(Tag<!lt_0>), assumptions: {!lt_0 : ' static}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -980,7 +1055,7 @@ fn may_spec_lifetime_dependent_delegated() {
         commit-and-verify: as strict
         bail-on-regions: ok, prints "2\n"
         always-applicable: err:
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Static(Tag<' static>), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(Tag<' static>), assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -1045,7 +1120,7 @@ fn may_spec_lifetime_dependent_local_caller() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(Tag<?lt_0> : Static), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Static(Tag<?lt_0>), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(Tag<?lt_0>), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -1077,7 +1152,7 @@ fn if_impls_local_region_residue_on_signature() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Static), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -1110,7 +1185,7 @@ fn if_impls_free_local_region() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(Tag<?lt_0> : Static), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Static(Tag<?lt_0>), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(Tag<?lt_0>), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -1270,7 +1345,7 @@ fn may_spec_higher_ranked_bound_lifetime_dependent_undecided() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(for <lt> u32 : Tr <^lt0_0>), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: for <lt> Tr(u32, ^lt0_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: for <lt> Tr(u32, ^lt0_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -1334,12 +1409,15 @@ fn may_spec_instance_bound_does_not_decide_higher_ranked() {
             the rule "bound instance" at (may_spec.rs) failed because
               pattern `Wc::ForAll(binder)` did not match value `Tr(!ty_0, !lt_1)`
 
-            crates/formality-rust/src/prove/may_spec.rs:81:1: no applicable rules for unify_bounds { a: Tr(!ty_0, !lt_1), b: for <lt> Tr(!ty_0, ^lt0_0), assumptions: {@ may_spec(!ty_0 : Tr <!lt_1>)}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:83:1: no applicable rules for unify_bounds { a: Tr(!ty_0, !lt_1), b: for <lt> Tr(!ty_0, ^lt0_0), assumptions: {@ may_spec(!ty_0 : Tr <!lt_1>)}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "same bound" at (may_spec.rs) failed because
               condition evaluated to false: `bounds.contains(&goal)`
                 bounds = [Tr(!ty_0, !lt_1)]
                 &goal = for <lt> Tr(!ty_0, ^lt0_0)
+
+            failed at (proven_set.rs) because
+              found an unconditionally true solution Constraints { env: Env { variables: [?lt_1, ?ty_2], bias: Completeness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
 
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Tr(!ty_0, !lt_2), via: @ may_spec(!ty_0 : Tr <!lt_1>), assumptions: {@ may_spec(!ty_0 : Tr <!lt_1>)}, env: Env { variables: [!lt_1, !ty_0, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
@@ -1463,7 +1541,7 @@ fn may_spec_subtrait_bound_does_not_decide_supertrait_regions() {
             the rule "bound instance" at (may_spec.rs) failed because
               pattern `Wc::ForAll(binder)` did not match value `Sub(&!lt_0 u32)`
 
-            crates/formality-rust/src/prove/may_spec.rs:81:1: no applicable rules for unify_bounds { a: Sub(&!lt_0 u32), b: Super(&!lt_0 u32), assumptions: {@ may_spec(&!lt_0 u32 : Sub)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:83:1: no applicable rules for unify_bounds { a: Sub(&!lt_0 u32), b: Super(&!lt_0 u32), assumptions: {@ may_spec(&!lt_0 u32 : Sub)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "same bound" at (may_spec.rs) failed because
               condition evaluated to false: `bounds.contains(&goal)`

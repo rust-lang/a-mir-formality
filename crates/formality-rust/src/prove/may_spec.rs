@@ -5,7 +5,9 @@
 
 use crate::grammar::{Binder, Fallible, FeatureGateName, Lt, ParameterKind, Predicate, Wc, Wcs};
 use crate::prove::lifetimes::map_lifetimes_in_trait_ref;
-use crate::prove::{decls::Program, env::Env, prove, Constraints};
+use crate::prove::{
+    decls::Program, env::Env, negation::is_definitely_not_proveable, prove, Constraints,
+};
 use anyhow::bail;
 use formality_core::visit::CoreVisit;
 use formality_core::{judgment_fn, term, Upcast};
@@ -193,6 +195,19 @@ judgment_fn! {
             (if is_closed(&goal))!
             (if !provable_with_regions_deferred(&decls, &env, &assumptions, &goal))
             ----------------------------- ("does not hold")
+            (decide(decls, env, assumptions, goal) => Constraints::none(env))
+        )
+
+        // Over a type parameter, but coherence rules out every impl, present or
+        // future (`is_definitely_not_proveable`; needs an env without inference
+        // variables).
+        (
+            (if !decided_by_bound(&decls, &env, &assumptions, &goal))
+            (if !is_closed(&goal))!
+            (if env.only_universal_variables())
+            (is_definitely_not_proveable(&env, &assumptions, goal, |env, assumptions, goal| prove(&decls, env.with_allow_pending_outlives(true), &assumptions, &goal)) => c)
+            (if c.unconditionally_true())
+            ----------------------------- ("does not hold, by coherence")
             (decide(decls, env, assumptions, goal) => Constraints::none(env))
         )
     }
