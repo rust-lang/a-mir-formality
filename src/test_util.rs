@@ -45,6 +45,29 @@ impl BorrowCheckFailure {
     }
 }
 
+/// A branch-specialization mode: how a lifetime-dependent bound may be
+/// decided (see "Lifetimes: the modes" in the specialization chapter).
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum SpecMode {
+    Strict,
+}
+
+impl SpecMode {
+    pub const ALL: &[SpecMode] = &[SpecMode::Strict];
+
+    fn name(self) -> &'static str {
+        match self {
+            SpecMode::Strict => "strict",
+        }
+    }
+
+    fn feature_gates(self) -> Vec<FeatureGateName> {
+        match self {
+            SpecMode::Strict => vec![FeatureGateName::BranchSpecialization],
+        }
+    }
+}
+
 /// Builder for a test program and its per-backend expectations.
 pub struct FormalityTest {
     input: String,
@@ -135,6 +158,48 @@ impl FormalityTest {
         }
     }
 
+    /// Run the program under every branch-specialization mode (each adds
+    /// `branch_specialization` and its own gate to every crate) and record
+    /// the outcomes side by side: per mode, `ok, prints ..` (the program has
+    /// a `main`), `ok`, or `err` with the error; a mode whose outcome equals
+    /// strict's prints `as strict`.
+    #[track_caller]
+    pub fn spec_modes(self, expect: Expect) {
+        let mut report = String::new();
+        let mut strict = None;
+        for &mode in SpecMode::ALL {
+            let outcome = self.spec_mode_outcome(mode);
+            let line = match &strict {
+                Some(s) if *s == outcome => "as strict".to_string(),
+                _ => outcome.clone(),
+            };
+            report.push_str(&format!("{}: {}\n", mode.name(), line));
+            strict.get_or_insert(outcome);
+        }
+        expect.assert_eq(&report);
+    }
+
+    fn spec_mode_outcome(&self, mode: SpecMode) -> String {
+        match test_program_ok_with_feature_gates(&self.input, mode.feature_gates()) {
+            Ok(proof_tree) => {
+                formality_core::judgment::coverage::record_coverage(std::iter::once(&proof_tree));
+                let crates = with_feature_gates(&self.input, mode.feature_gates());
+                if self.skip_execute || !has_main(&crates) {
+                    "ok".to_string()
+                } else {
+                    format!("ok, prints {:?}", execute_crates(&crates))
+                }
+            }
+            Err(e) => {
+                formality_core::test_util::record_negative_coverage_from_anyhow(&e);
+                let leaves = formality_core::test_util::normalize_paths(
+                    formality_core::test_util::format_error_leaves(&e),
+                );
+                format!("err:\n{}", indent(&leaves))
+            }
+        }
+    }
+
     /// Assert formality accepts the program under every borrowck mode. After
     /// type-checking passes, also runs codegen + execution unless
     /// `.skip_execute()` was called.
@@ -220,22 +285,60 @@ impl FormalityTest {
     }
 }
 
-#[track_caller]
-fn execute_program(input: &str) -> String {
-    let crates: formality_rust::grammar::Crates =
-        formality_rust::rust::try_term(input).expect("failed to parse program");
+fn indent(s: &str) -> String {
+    s.lines()
+        .map(|l| {
+            if l.is_empty() {
+                String::new()
+            } else {
+                format!("    {l}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
 
-    let has_main = crates.crates.iter().any(|c| {
+/// Parse `input` with `feature_gates` added to every crate.
+fn with_feature_gates(
+    input: &str,
+    feature_gates: Vec<FeatureGateName>,
+) -> formality_rust::grammar::Crates {
+    let mut crates: formality_rust::grammar::Crates =
+        formality_rust::rust::try_term(input).expect("failed to parse program");
+    for krate in crates.crates.iter_mut() {
+        krate.items = feature_gates
+            .iter()
+            .map(|fg| {
+                formality_rust::grammar::CrateItem::FeatureGate(
+                    formality_rust::grammar::FeatureGate { name: *fg },
+                )
+            })
+            .chain(krate.items.clone())
+            .collect();
+    }
+    crates
+}
+
+fn has_main(crates: &formality_rust::grammar::Crates) -> bool {
+    crates.crates.iter().any(|c| {
         c.items.iter().any(
             |item| matches!(item, formality_rust::grammar::CrateItem::Fn(f) if &**f.id == "main"),
         )
-    });
+    })
+}
 
-    if !has_main {
+#[track_caller]
+fn execute_program(input: &str) -> String {
+    let crates = with_feature_gates(input, vec![]);
+    if !has_main(&crates) {
         panic!("program has no `main` function — add one, or call `.skip_execute()` on the test");
     }
+    execute_crates(&crates)
+}
 
-    let program = formality_rust::codegen::codegen_program(&crates).expect("codegen failed");
+#[track_caller]
+fn execute_crates(crates: &formality_rust::grammar::Crates) -> String {
+    let program = formality_rust::codegen::codegen_program(crates).expect("codegen failed");
 
     let stdout_buf = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u8>::new()));
     let stderr_buf = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u8>::new()));
