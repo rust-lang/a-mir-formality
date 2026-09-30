@@ -216,6 +216,7 @@ impl ToWcs for WhereClause {
             WhereClause::AliasEq(alias_ty, ty) => {
                 Predicate::AliasEq(alias_ty.clone(), ty.clone()).upcast()
             }
+            WhereClause::MaySpec(bound) => Predicate::may_spec(bound).upcast(),
             WhereClause::Outlives(a, b) => Predicate::outlives(a, b).upcast(),
             WhereClause::ForAll(binder) => {
                 let (vars, wc) = binder.open();

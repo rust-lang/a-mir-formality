@@ -17,4 +17,8 @@ pub enum FeatureGateName {
     // #![feature(negative_impls)]
     #[grammar(negative_impls)]
     NegativeImpls,
+    /// `#![feature(branch_specialization)]`: enables `may_spec(..)`
+    /// where-clauses and `if impls .. { } else { }` statements.
+    #[grammar(branch_specialization)]
+    BranchSpecialization,
 }

@@ -37,7 +37,7 @@ to codegen; these obligations are what make codegen's re-evaluation agree.
 
 ## Deciding a bound
 
-`may_spec(WC)` holds by the first applicable rule:
+`may_spec(WC)` holds by any of these rules:
 
 | Rule | When | Answer |
 |---|---|---|

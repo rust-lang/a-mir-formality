@@ -140,6 +140,72 @@ pub enum WhereClause {
 
     #[grammar(type_of_const $v0 is $v1)]
     TypeOfConst(Const, Ty),
+
+    /// `may_spec(T: Trait)`: the function needs to know whether the bound
+    /// holds, and its callers must decide it (see [`Predicate::MaySpec`]).
+    /// Requires `#![feature(branch_specialization)]`.
+    #[grammar(may_spec($v0))]
+    MaySpec(MaySpecBound),
+}
+
+/// The bound a `may_spec` where-clause or an `if impls` names: a trait
+/// bound, possibly under `for<..>`.
+#[term]
+pub enum MaySpecBound {
+    #[grammar($v0 : $v1 $<?v2>)]
+    IsImplemented(Ty, TraitId, Vec<Parameter>),
+
+    #[grammar(for $v0)]
+    ForAll(Arc<Binder<MaySpecBound>>),
+}
+
+impl MaySpecBound {
+    /// The `Wc` this bound stands for.
+    pub fn to_wc(&self) -> Wc {
+        match self {
+            MaySpecBound::IsImplemented(self_ty, trait_id, parameters) => {
+                Predicate::is_implemented(trait_id.with(self_ty, parameters)).upcast()
+            }
+            MaySpecBound::ForAll(binder) => {
+                let (vars, bound) = binder.open();
+                Wc::for_all(Binder::new(&vars, bound.to_wc()))
+            }
+        }
+    }
+
+    /// `may_spec(WC)` asserts nothing about `WC` (it may hold or not), so only
+    /// the parameters of `WC` need be well-formed; in particular the trait's
+    /// where-clauses (its supertraits) are not required to hold.
+    pub fn well_formed(&self) -> Wcs {
+        match self {
+            MaySpecBound::IsImplemented(self_ty, _trait_id, parameters) => {
+                std::iter::once(Predicate::well_formed(self_ty))
+                    .chain(parameters.iter().map(Predicate::well_formed))
+                    .collect()
+            }
+            MaySpecBound::ForAll(binder) => {
+                let (vars, bound) = binder.open();
+                bound
+                    .well_formed()
+                    .into_iter()
+                    .map(|wc| Wc::for_all(Binder::new(&vars, wc)))
+                    .collect()
+            }
+        }
+    }
+
+    pub fn has_non_lifetime_binder(&self) -> bool {
+        match self {
+            MaySpecBound::ForAll(binder) => {
+                binder
+                    .kinds()
+                    .iter()
+                    .any(|kind| !matches!(kind, ParameterKind::Lt))
+                    || binder.peek().has_non_lifetime_binder()
+            }
+            MaySpecBound::IsImplemented(..) => false,
+        }
+    }
 }
 
 impl WhereClause {
@@ -157,6 +223,8 @@ impl WhereClause {
                 Some(Wc::for_all(Binder::new(&vars, wc)))
             }
             WhereClause::TypeOfConst(_, _) => None,
+            // Not a fact about the bound, so it has no inverse.
+            WhereClause::MaySpec(_) => None,
         }
     }
 
@@ -185,6 +253,7 @@ impl WhereClause {
                     .into_iter()
                     .collect()
             }
+            WhereClause::MaySpec(bound) => bound.well_formed(),
         }
     }
 
@@ -197,6 +266,7 @@ impl WhereClause {
                     .any(|kind| !matches!(kind, ParameterKind::Lt))
                     || binder.peek().has_non_lifetime_binder()
             }
+            WhereClause::MaySpec(bound) => bound.has_non_lifetime_binder(),
             _ => false,
         }
     }

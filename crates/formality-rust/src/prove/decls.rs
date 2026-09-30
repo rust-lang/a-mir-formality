@@ -1,8 +1,8 @@
 use crate::grammar::{
     AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData, Binder, Crate,
-    CrateId, CrateItem, Crates, ImplItem, NegTraitImpl, NegTraitImplBoundData, Parameter,
-    Predicate, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty, Wc,
-    Wcs,
+    CrateId, CrateItem, Crates, FeatureGateName, ImplItem, NegTraitImpl, NegTraitImplBoundData,
+    Parameter, Predicate, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef,
+    Ty, Wc, Wcs,
 };
 use crate::prove::ToWcs;
 use formality_core::{seq, Downcasted, Set, To, Upcast, Upcasted};
@@ -21,6 +21,16 @@ impl Program {
 
     pub fn program(&self) -> &Crates {
         &self.crates
+    }
+
+    /// True if *any* crate in the program enables the given feature gate.
+    // FIXME: ideally, feature gates would be per-crate.
+    pub fn feature_gate_enabled(&self, name: &FeatureGateName) -> bool {
+        self.crates.crates.iter().any(|c| {
+            c.items
+                .iter()
+                .any(|item| matches!(item, CrateItem::FeatureGate(fg) if fg.name == *name))
+        })
     }
 
     pub fn is_local_trait_id(&self, trait_id: &TraitId) -> bool {
