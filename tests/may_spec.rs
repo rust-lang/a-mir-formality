@@ -1,5 +1,9 @@
 //! Branch specialization (`#![feature(branch_specialization)]`): `if impls`
-//! and `may_spec` bounds. See the book chapter for the rules.
+//! and `may_spec` bounds. See the book chapter for the rules. Every behavior
+//! test runs its program under every mode (`FormalityTest::spec_modes`).
+//!
+//! (`Tag<'a>` structs carry a lifetime without a borrow because codegen
+//! cannot yet execute programs with live loans.)
 
 #![allow(non_snake_case)]
 
@@ -7,7 +11,7 @@ use a_mir_formality::{crates, FormalityTest};
 use formality_macros::test;
 
 // ---------------------------------------------------------------------------
-// The feature gate and the form of the bounds
+// The feature gate, and the form and well-formedness of the bounds
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -32,52 +36,6 @@ fn may_spec_requires_feature_gate() {
     .err(expect_test::expect![[r#"
         the rule "feature gate" at (specialization.rs) failed because
           condition evaluated to false: `*branch_specialization_enabled`"#]])
-}
-
-/// With the feature gate, `may_spec` bounds are accepted: on a trait bound;
-/// `for<..>` outside, as on any where-clause.
-#[test]
-fn may_spec_accepted_with_feature_gate() {
-    FormalityTest::new(crates![crate foo {
-        #![feature(branch_specialization)]
-        trait Bar<'a> {}
-        fn spec<T>() -> () where may_spec(T: Bar<'static>), for<'a> may_spec(T: Bar<'a>) { }
-    }])
-    .skip_execute()
-    .ok()
-}
-
-/// `may_spec(T: Sub)` does not assume `T: Sub`, so `T: Super` is not
-/// required...
-#[test]
-fn may_spec_does_not_require_supertraits() {
-    FormalityTest::new(crates![crate foo {
-        #![feature(branch_specialization)]
-        trait Super {}
-        trait Sub where Self: Super {}
-        fn spec<T>() -> () where may_spec(T: Sub) { }
-    }])
-    .skip_execute()
-    .ok()
-}
-
-/// ...but the parameters of the bound must still be well-formed.
-#[test]
-fn may_spec_requires_well_formed_parameters() {
-    FormalityTest::new(crates![crate foo {
-        #![feature(branch_specialization)]
-        trait Bar {}
-        trait Baz {}
-        struct S<T> where T: Bar {}
-        fn spec<T>() -> () where may_spec(S<T>: Baz) { }
-    }])
-    .err(expect_test::expect![[r#"
-        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ wf(S<!ty_0>), via: @ may_spec(Baz(S<!ty_0>)), assumptions: {@ may_spec(Baz(S<!ty_0>))}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Bar(!ty_0), via: @ may_spec(Baz(S<!ty_0>)), assumptions: {@ may_spec(Baz(S<!ty_0>))}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
-
-        the rule "trait implied bound" at (prove_predicate.rs) failed because
-          expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
 }
 
 /// The feature gate is required wherever `may_spec` appears: on impls...
@@ -211,4 +169,53 @@ fn if_impls_requires_trait_bound() {
            ·     ╰── while parsing MaybeFnBody
          5 │ }]
            ╰────"#]])
+}
+
+/// `may_spec` bounds: on a trait bound; `for<..>` outside, as on any
+/// where-clause.
+#[test]
+fn may_spec_accepted() {
+    FormalityTest::new(crates![crate foo {
+        trait Bar<'a> {}
+        fn spec<T>() -> () where may_spec(T: Bar<'static>), for<'a> may_spec(T: Bar<'a>) { }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok
+    "#]])
+}
+
+/// `may_spec(T: Sub)` does not assume `T: Sub`, so `T: Super` is not
+/// required...
+#[test]
+fn may_spec_does_not_require_supertraits() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        trait Sub where Self: Super {}
+        fn spec<T>() -> () where may_spec(T: Sub) { }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok
+    "#]])
+}
+
+/// ...but the parameters of the bound must still be well-formed.
+#[test]
+fn may_spec_requires_well_formed_parameters() {
+    FormalityTest::new(crates![crate foo {
+        trait Bar {}
+        trait Baz {}
+        struct S<T> where T: Bar {}
+        fn spec<T>() -> () where may_spec(S<T>: Baz) { }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ wf(S<!ty_0>), via: @ may_spec(Baz(S<!ty_0>)), assumptions: {@ may_spec(Baz(S<!ty_0>))}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Bar(!ty_0), via: @ may_spec(Baz(S<!ty_0>)), assumptions: {@ may_spec(Baz(S<!ty_0>))}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            the rule "trait implied bound" at (prove_predicate.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`
+    "#]])
 }
