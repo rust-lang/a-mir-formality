@@ -33,7 +33,8 @@ settled the answer.
 
 Every `if impls WC`, and every call to a function declaring `may_spec(WC)`,
 proves the obligation `may_spec(WC)`: "`WC` is decided". Nothing is passed
-to codegen; these obligations are what make codegen's re-evaluation agree.
+to codegen; these obligations are what make codegen's re-evaluation agree
+(see "Deciding at codegen").
 
 ## Deciding a bound
 
@@ -119,6 +120,23 @@ that a "no", codegen would evaluate `u32: Tr<'erased>`, which holds through
 the `'static` impl, and run the then-branch for a `'x` that is not
 `'static`. The reverse would take a "yes" for one `'x` as a "yes" for
 every lifetime.
+
+## Deciding at codegen
+
+Codegen erases every lifetime (of the generic arguments, in `MonoKey`; of
+the bound, in `decide_at_codegen`) and proves the bound on the concrete
+types, a region constraint on an erased lifetime counting as satisfied.
+Sound because of the obligations type checking proved:
+
+| Decided at type checking as | After erasure |
+|---|---|
+| holds | the region constraints were checked where it was decided: signature or borrow checker |
+| does not hold | unprovable even with constraints deferred, so unprovable after erasure |
+| lifetime-dependent | never "no": a caller that cannot show the constraint is rejected |
+| by bound | decided by a caller further up, for the same types |
+
+So in no monomorphization type checking admits does codegen say "yes" where
+the truth is "no".
 
 ## Lifetimes: the modes
 

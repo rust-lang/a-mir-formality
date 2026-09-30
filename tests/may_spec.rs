@@ -394,3 +394,220 @@ fn may_spec_decided_downstream() {
     .skip_execute()
     .ok()
 }
+
+// ---------------------------------------------------------------------------
+// `if impls` on closed types: decided locally
+// ---------------------------------------------------------------------------
+
+#[test]
+fn if_impls_concrete_holds() {
+    FormalityTest::new(crates![crate foo {
+        #![feature(branch_specialization)]
+        trait Bar {}
+        impl Bar for u32 {}
+        fn main() -> () {
+            if impls u32: Bar { println!(1_u32); } else { println!(2_u32); }
+        }
+    }])
+    .expect_output("1\n")
+    .ok()
+}
+
+#[test]
+fn if_impls_concrete_does_not_hold() {
+    FormalityTest::new(crates![crate foo {
+        #![feature(branch_specialization)]
+        trait Bar {}
+        impl Bar for u32 {}
+        fn main() -> () {
+            if impls i32: Bar { println!(1_u32); } else { println!(2_u32); }
+        }
+    }])
+    .expect_output("2\n")
+    .ok()
+}
+
+/// A local type with no impl: the bound is closed and not provable, so it
+/// does not hold and the else branch is taken.
+#[test]
+fn if_impls_local_type_does_not_hold() {
+    FormalityTest::new(crates![crate foo {
+        #![feature(branch_specialization)]
+        trait Bar {}
+        struct Local {}
+        fn main() -> () {
+            if impls Local: Bar { println!(1_u32); } else { println!(2_u32); }
+        }
+    }])
+    .expect_output("2\n")
+    .ok()
+}
+
+// ---------------------------------------------------------------------------
+// `if impls` on generics: decided by the callers, evaluated at codegen
+// ---------------------------------------------------------------------------
+
+/// Without `may_spec(T: Bar)`, `T: Bar` can be neither proven nor refuted
+/// inside the function, so this is an error.
+#[test]
+fn if_impls_generic_without_may_spec() {
+    FormalityTest::new(crates![crate foo {
+        #![feature(branch_specialization)]
+        trait Bar {}
+        fn spec<T>() -> () {
+            if impls T: Bar { println!(1_u32); } else { println!(2_u32); }
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/may_spec.rs:30:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        the rule "trait implied bound" at (prove_wc.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
+}
+
+/// With `may_spec(T: Bar)`, each caller decides, and each monomorphization
+/// takes its own branch.
+#[test]
+fn if_impls_generic_with_may_spec() {
+    FormalityTest::new(crates![crate foo {
+        #![feature(branch_specialization)]
+        trait Bar {}
+        impl Bar for u32 {}
+        fn spec<T>() -> () where may_spec(T: Bar) {
+            if impls T: Bar { println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            spec::<u32>();
+            spec::<i32>();
+        }
+    }])
+    .expect_output("1\n2\n")
+    .ok()
+}
+
+/// A chain of generic callers: `caller` defers `T: Bar` to its own callers.
+#[test]
+fn if_impls_decided_through_generic_caller() {
+    FormalityTest::new(crates![crate foo {
+        #![feature(branch_specialization)]
+        trait Bar {}
+        impl Bar for u32 {}
+        fn spec<T>() -> () where may_spec(T: Bar) {
+            if impls T: Bar { println!(1_u32); } else { println!(2_u32); }
+        }
+        fn caller<T>() -> () where may_spec(T: Bar) {
+            spec::<T>();
+        }
+        fn main() -> () {
+            caller::<i32>();
+            caller::<u32>();
+        }
+    }])
+    .expect_output("2\n1\n")
+    .ok()
+}
+
+/// A downstream crate decides using its own types and impls.
+#[test]
+fn if_impls_decided_downstream() {
+    FormalityTest::new(crates![
+        crate upstream {
+            #![feature(branch_specialization)]
+            trait Bar {}
+            fn spec<T>() -> () where may_spec(T: Bar) {
+                if impls T: Bar { println!(1_u32); } else { println!(2_u32); }
+            }
+        },
+        crate downstream {
+            struct Yes {}
+            struct No {}
+            impl Bar for Yes {}
+            fn main() -> () {
+                spec::<Yes>();
+                spec::<No>();
+            }
+        }
+    ])
+    .expect_output("1\n2\n")
+    .ok()
+}
+
+// ---------------------------------------------------------------------------
+// Assumptions inside the branches
+// ---------------------------------------------------------------------------
+
+/// Inside the then-branch, `T: Bar` is assumed, so a function requiring it
+/// may be called; in the else-branch it may not.
+#[test]
+fn if_impls_then_branch_assumes_bound() {
+    FormalityTest::new(crates![crate foo {
+        #![feature(branch_specialization)]
+        trait Bar {}
+        fn needs_bar<T>() -> () where T: Bar { }
+        fn spec<T>() -> () where may_spec(T: Bar) {
+            if impls T: Bar { needs_bar::<T>(); }
+        }
+    }])
+    .skip_execute()
+    .ok()
+}
+
+#[test]
+fn if_impls_else_branch_does_not_assume_bound() {
+    FormalityTest::new(crates![crate foo {
+        #![feature(branch_specialization)]
+        trait Bar {}
+        fn needs_bar<T>() -> () where T: Bar { }
+        fn spec<T>() -> () where may_spec(T: Bar) {
+            if impls T: Bar { } else { needs_bar::<T>(); }
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Bar(!ty_0), via: @ may_spec(!ty_0 : Bar), assumptions: {@ may_spec(!ty_0 : Bar)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        the rule "trait implied bound" at (prove_wc.rs) failed because
+          expression evaluated to an empty collection: `decls.trait_invariants()`"#]])
+}
+
+/// The else-branch assumes nothing new, but the `may_spec` bound still
+/// decides a nested use there.
+#[test]
+fn if_impls_else_branch_nested_call() {
+    FormalityTest::new(crates![crate foo {
+        #![feature(branch_specialization)]
+        trait Bar {}
+        impl Bar for u32 {}
+        fn inner<T>() -> () where may_spec(T: Bar) {
+            if impls T: Bar { println!(1_u32); } else { println!(2_u32); }
+        }
+        fn spec<T>() -> () where may_spec(T: Bar) {
+            if impls T: Bar { println!(3_u32); } else { inner::<T>(); }
+        }
+        fn main() -> () {
+            spec::<u32>();
+            spec::<i32>();
+        }
+    }])
+    .expect_output("3\n2\n")
+    .ok()
+}
+
+/// A `'static` in the generic arguments is erased at codegen like any
+/// lifetime; the then-branch is still taken, as `main` decided.
+#[test]
+fn if_impls_static_argument_is_erased_at_codegen() {
+    FormalityTest::new(crates![crate foo {
+        #![feature(branch_specialization)]
+        struct Tag<'a> {}
+        trait Static {}
+        impl Static for Tag<'static> {}
+        fn spec<'a>(t: Tag<'a>) -> () where may_spec(Tag<'a>: Static) {
+            if impls Tag<'a>: Static { println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            spec::<'static>(Tag::<'static> {});
+        }
+    }])
+    .expect_output("1\n")
+    .ok()
+}
