@@ -55,8 +55,8 @@ pub use binder_scope::{
 pub use constraints::{Constrained, Constraints};
 pub use decls::*;
 pub use env::{Bias, Env, MaxUniverse, Universe};
-pub use lifetimes::erase_lifetimes;
-pub use may_spec::decide;
+pub use lifetimes::{erase_lifetimes, erase_lifetimes_in_predicate};
+pub use may_spec::{decide, is_closed};
 pub use negation::{is_definitely_not_proveable, may_not_be_provable, negation_via_failure};
 pub use prove_normalize::prove_normalize;
 

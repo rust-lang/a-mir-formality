@@ -229,6 +229,22 @@ judgment_fn! {
         )
 
         (
+            // `if impls WC { .. } else { .. }` (branch specialization). As for a
+            // `may_spec` where-clause, the parameters of `WC` must be well-formed.
+            (env.prove_goal(assumptions, &state, condition.well_formed()) => state)
+            (env.prove_goal(assumptions, &state, condition.may_spec()) => state)
+
+            // The then-branch assumes the bound; the else-branch assumes nothing new.
+            (borrow_check_block(env, (assumptions, condition.to_predicate()), state, then_block, places_live_on_exit) => then_state)
+            (borrow_check_block(env, assumptions, state, &else_block.block, places_live_on_exit) => else_state)
+
+            // Join the flow states from both branches
+            (let state: FlowState = Union((then_state, else_state)).upcast())
+            ------------------------------------------------------------ ("if impls")
+            (borrow_check_statement(env, assumptions, state, Stmt::IfImpls { condition, then_block, else_block }, places_live_on_exit) => (env, state))
+        )
+
+        (
             (borrow_check_expr(
                 env,
                 assumptions,

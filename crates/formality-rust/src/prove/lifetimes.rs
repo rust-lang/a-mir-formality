@@ -1,7 +1,10 @@
 //! Rewriting the lifetimes of a term. Codegen erases them all, as rustc
 //! does: a lifetime never selects or distinguishes a monomorphization.
 
-use crate::grammar::{AliasTy, Lt, Parameter, PredicateTy, RigidTy, Ty, Variable};
+use crate::grammar::{
+    AliasTy, AtomicPredicate, Lt, Parameter, Predicate, PredicateTy, RigidTy, TraitRef, Ty,
+    Variable,
+};
 use formality_core::Upcast;
 use std::sync::Arc;
 
@@ -11,6 +14,29 @@ pub fn erase_lifetimes(p: &Parameter) -> Parameter {
     map_lifetimes(p, &mut erased)
 }
 
+/// Erase the lifetimes of a trait bound, possibly under `for<..>` (whose
+/// bound lifetimes are left alone).
+pub fn erase_lifetimes_in_predicate(wc: &Predicate) -> Predicate {
+    map_lifetimes_in_predicate(wc, &mut erased)
+}
+
+/// Rewrite the lifetimes of a trait bound, possibly under `for<..>`: each
+/// lifetime `lt` becomes `f(lt)`. Any other where-clause is left alone.
+pub(crate) fn map_lifetimes_in_predicate(
+    wc: &Predicate,
+    f: &mut impl FnMut(&Lt) -> Lt,
+) -> Predicate {
+    match wc {
+        Predicate::AtomicPredicate(AtomicPredicate::IsImplemented(tr)) => {
+            AtomicPredicate::is_implemented(map_lifetimes_in_trait_ref(tr, f)).upcast()
+        }
+        Predicate::ForAll(binder) => {
+            Predicate::for_all(binder.map(|wc| map_lifetimes_in_predicate(&wc, f)))
+        }
+        _ => wc.clone(),
+    }
+}
+
 fn erased(lt: &Lt) -> Lt {
     match lt {
         Lt::Variable(Variable::BoundVar(_)) => lt.clone(),
@@ -18,8 +44,17 @@ fn erased(lt: &Lt) -> Lt {
     }
 }
 
+/// Rewrite the lifetimes of a trait reference: each lifetime `lt` becomes
+/// `f(lt)`.
+pub(crate) fn map_lifetimes_in_trait_ref(tr: &TraitRef, f: &mut impl FnMut(&Lt) -> Lt) -> TraitRef {
+    TraitRef {
+        trait_id: tr.trait_id.clone(),
+        parameters: tr.parameters.iter().map(|p| map_lifetimes(p, f)).collect(),
+    }
+}
+
 /// Rewrite the lifetimes of `p`: each lifetime `lt` becomes `f(lt)`.
-fn map_lifetimes(p: &Parameter, f: &mut impl FnMut(&Lt) -> Lt) -> Parameter {
+pub(crate) fn map_lifetimes(p: &Parameter, f: &mut impl FnMut(&Lt) -> Lt) -> Parameter {
     match p {
         Parameter::Lt(lt) => f(lt).upcast(),
         Parameter::Ty(ty) => map_lifetimes_in_ty(ty, f).upcast(),
@@ -71,5 +106,12 @@ mod tests {
         let ty: Parameter = term("for_all(<'a> &'a &'static u32)");
         let erased: Parameter = erased_term("<'e> for_all(<'a> &'a &'e u32)");
         assert_eq!(erase_lifetimes(&ty), erased);
+    }
+
+    #[test]
+    fn bound_lifetimes_are_kept() {
+        let wc: Predicate = term("for<'a> Foo(&'a u32, &'static u32)");
+        let erased: Predicate = erased_term("<'e> for<'a> Foo(&'a u32, &'e u32)");
+        assert_eq!(erase_lifetimes_in_predicate(&wc), erased);
     }
 }

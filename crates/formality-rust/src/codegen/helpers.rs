@@ -9,8 +9,8 @@ use crate::grammar::{
     expr::{Block, Expr},
     Fallible, Lt, Parameter, ParameterKind, Ty,
 };
-use crate::prove::Env;
-use formality_core::Upcast;
+use crate::prove::{erase_lifetimes_in_predicate, is_closed, prove, Env};
+use formality_core::{judgment_fn, Upcast};
 use libspecr::hidden::GcCow;
 use libspecr::list;
 use libspecr::prelude::{Int, List, Map};
@@ -113,6 +113,57 @@ pub(super) fn resolve_fn_body(
         _ => anyhow::bail!("function {:?} must have expression body", key.id),
     };
     Ok((fn_data, body))
+}
+
+judgment_fn! {
+    /// Does the bound of an `if impls` hold for this monomorphization? It is
+    /// evaluated on the concrete types, every lifetime erased, a region
+    /// constraint on an erased lifetime counting as satisfied. Sound because
+    /// type checking proved `may_spec(bound)` (see the book, "Deciding at
+    /// codegen").
+    pub(super) fn decide_at_codegen(
+        cfn: CodegenFn,
+        bound: grammar::IfImplsBound,
+    ) => bool {
+        debug(bound)
+
+        (
+            (prove(&cfn.typeck_env.program, Env::default(), &cfn.assumptions, erased(&bound)) => c)
+            (if c.unconditionally_true())
+            ---- ("holds")
+            (decide_at_codegen(cfn, bound) => true)
+        )
+
+        (
+            (if !holds_at_codegen(&cfn, &bound))
+            ---- ("does not hold")
+            (decide_at_codegen(cfn, bound) => false)
+        )
+    }
+}
+
+/// The bound with its lifetimes erased (the generic arguments' were erased
+/// with the mono key). Closed by then: every type parameter is instantiated.
+fn erased(bound: &grammar::IfImplsBound) -> grammar::Predicate {
+    let wc = erase_lifetimes_in_predicate(&bound.to_predicate());
+    assert!(is_closed(&wc), "codegen: `{wc:?}` is not closed");
+    wc
+}
+
+/// Is the erased bound provable outright? The negation `decide_at_codegen`
+/// needs for its else-branch.
+fn holds_at_codegen(cfn: &CodegenFn, bound: &grammar::IfImplsBound) -> bool {
+    match prove(
+        &cfn.typeck_env.program,
+        Env::default(),
+        &cfn.assumptions,
+        erased(bound),
+    )
+    .into_map()
+    {
+        Ok(solutions) => solutions.keys().any(|c| c.unconditionally_true()),
+        Err(_) => false,
+    }
 }
 
 /// Extract the single result from a ProvenSet, or error.
