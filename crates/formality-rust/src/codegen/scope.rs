@@ -19,10 +19,13 @@ pub(crate) struct MonoKey {
 }
 
 impl MonoKey {
+    /// The key of `id` applied to `args`. Lifetimes are erased, as in rustc:
+    /// they neither select nor distinguish a monomorphization.
     pub fn new(id: impl Upcast<ValueId>, args: impl Upcast<Vec<Parameter>>) -> Self {
+        let args: Vec<Parameter> = args.upcast();
         Self {
             id: id.upcast(),
-            args: args.upcast(),
+            args: args.iter().map(crate::prove::erase_lifetimes).collect(),
         }
     }
 }
