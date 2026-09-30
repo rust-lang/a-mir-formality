@@ -179,6 +179,7 @@ constraint (`allowed_by_mode`):
 |---|---|---|
 | strict (default) | — | No. The bound must follow from the signature (`where 'a: 'static`). |
 | commit and verify | `spec_commit_and_verify` | Yes: registered with the borrow checker, like any goal's. |
+| bail on regions | `spec_bail_on_regions` | An `if impls` needs no `may_spec`: codegen decides per monomorphization, "yes" only if the bound holds for every lifetime (`holds_for_all_lifetimes`), else the else-branch, silently. Modeled on `try_as_dyn`, whose `TypingMode::Reflection` approximates this criterion syntactically. |
 
 ### Local regions
 

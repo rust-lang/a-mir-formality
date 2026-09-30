@@ -25,4 +25,9 @@ pub enum FeatureGateName {
     /// constraints to the borrow checker (strict, the default, may not).
     #[grammar(spec_commit_and_verify)]
     SpecCommitAndVerify,
+    /// `#![feature(spec_bail_on_regions)]` (`try_as_dyn`): no `may_spec`;
+    /// codegen decides per monomorphization, "yes" only if the bound holds for
+    /// every choice of its erased lifetimes.
+    #[grammar(spec_bail_on_regions)]
+    SpecBailOnRegions,
 }

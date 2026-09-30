@@ -183,6 +183,7 @@ fn may_spec_accepted() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -199,6 +200,7 @@ fn may_spec_does_not_require_supertraits() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -220,6 +222,7 @@ fn may_spec_requires_well_formed_parameters() {
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -239,6 +242,7 @@ fn if_impls_requires_well_formed_parameters() {
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -263,6 +267,7 @@ fn may_spec_concrete_caller_decides() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -286,6 +291,7 @@ fn may_spec_generic_caller_without_bound() {
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -303,6 +309,7 @@ fn may_spec_generic_caller_with_positive_bound() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -320,6 +327,7 @@ fn may_spec_generic_caller_with_may_spec_bound() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -348,6 +356,7 @@ fn may_spec_subtrait_bound_does_not_decide_supertrait() {
 
             crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Sub(!ty_0), via: Super(?ty_1), assumptions: {@ may_spec(Sub(!ty_0))}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -373,6 +382,7 @@ fn may_spec_supertrait_bound_does_not_decide_subtrait() {
 
             crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Sub(!ty_0), via: Super(?ty_1), assumptions: {@ may_spec(Super(!ty_0))}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -391,6 +401,7 @@ fn may_spec_two_bounds() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -415,6 +426,7 @@ fn may_spec_generic_wrapper_decided_by_coherence() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -441,6 +453,7 @@ fn may_spec_generic_wrapper_decided_by_coherence_with_local_region() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -470,6 +483,7 @@ fn may_spec_upstream_wrapper_is_undecided() {
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -493,6 +507,7 @@ fn may_spec_upstream_trait_local_wrapper_decided_by_coherence() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -519,6 +534,7 @@ fn may_spec_negative_impl_does_not_decide_generic() {
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -547,6 +563,7 @@ fn may_spec_non_lifetime_binder_is_undecided() {
             the rule "local" at (nll.rs) failed because
               unknown local variable `spec`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -572,6 +589,7 @@ fn may_spec_decided_downstream() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -591,6 +609,7 @@ fn if_impls_concrete_holds() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -606,6 +625,7 @@ fn if_impls_concrete_does_not_hold() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -623,6 +643,7 @@ fn if_impls_local_type_does_not_hold() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -660,6 +681,7 @@ fn if_impls_generic_without_may_spec() {
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: ok, prints "1\n2\n"
     "#]])
 }
 
@@ -681,6 +703,7 @@ fn if_impls_generic_with_may_spec() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -700,6 +723,7 @@ fn if_impls_blanket_impl_holds() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -723,6 +747,7 @@ fn if_impls_decided_through_generic_caller() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "2\n1\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -749,6 +774,7 @@ fn if_impls_decided_downstream() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -771,6 +797,7 @@ fn if_impls_then_branch_assumes_bound() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -790,6 +817,7 @@ fn if_impls_else_branch_does_not_assume_bound() {
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -814,6 +842,33 @@ fn if_impls_else_branch_nested_call() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "3\n2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
+    "#]])
+}
+
+/// Without `may_spec`, nothing decides the `if impls`. Nor, under
+/// bail-on-regions (where the `if impls` needs no decision), the nested use
+/// in its else-branch: the else-branch assumes nothing.
+#[test]
+fn if_impls_else_branch_without_may_spec() {
+    FormalityTest::new(crates![crate foo {
+        trait Bar {}
+        fn needs_may_spec<T>() -> () where may_spec(T: Bar) { }
+        fn spec<T>() -> () {
+            if impls T: Bar { } else { needs_may_spec::<T>(); }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            crates/formality-rust/src/prove/may_spec.rs:46:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            failed at (proven_set.rs) because
+              found an unconditionally true solution Constraints { env: Env { variables: [?ty_1], bias: Completeness, pending: [], allow_pending_outlives: true }, known_true: true, substitution: {} }
+
+            the rule "trait implied bound" at (prove_predicate.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`
+        commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -835,6 +890,7 @@ fn if_impls_static_argument_is_erased_at_codegen() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
 
@@ -853,6 +909,7 @@ fn if_impls_higher_ranked_bound_holds_after_erasure() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
 
@@ -885,6 +942,7 @@ fn if_impls_lifetime_dependent() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: err:
             crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
 
@@ -905,6 +963,7 @@ fn if_impls_lifetime_dependent_implied() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
 
@@ -927,6 +986,7 @@ fn if_impls_lifetime_independent() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -957,6 +1017,7 @@ fn may_spec_lifetime_dependent_local_caller() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok, prints "1\n"
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -988,6 +1049,7 @@ fn if_impls_local_region_residue_on_signature() {
             crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : ' static, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
             crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: ' static, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        bail-on-regions: ok
     "#]])
 }
 
@@ -1015,6 +1077,7 @@ fn if_impls_local_region_signature_entails() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
+        bail-on-regions: ok
     "#]])
 }
 
@@ -1043,6 +1106,7 @@ fn if_impls_local_region_borrowed_from_static() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
+        bail-on-regions: ok
     "#]])
 }
 
@@ -1071,6 +1135,7 @@ fn if_impls_free_local_region() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok, prints "1\n"
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
 
@@ -1101,6 +1166,7 @@ fn if_impls_local_region_already_static() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
+        bail-on-regions: ok
     "#]])
 }
 
@@ -1128,6 +1194,7 @@ fn if_impls_local_region_static_required_later() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
+        bail-on-regions: ok
     "#]])
 }
 
@@ -1160,6 +1227,7 @@ fn if_impls_local_region_below_a_static_one() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
+        bail-on-regions: ok
     "#]])
 }
 
@@ -1190,6 +1258,7 @@ fn may_spec_local_region_borrowed_from_static() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1219,6 +1288,7 @@ fn may_spec_local_region_required_by_callee() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1256,6 +1326,7 @@ fn may_spec_on_impl_decided_inside_a_proof() {
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: ok
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1281,6 +1352,7 @@ fn if_impls_higher_ranked_with_may_spec() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1299,6 +1371,7 @@ fn if_impls_higher_ranked_concrete() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1323,6 +1396,7 @@ fn if_impls_higher_ranked_decided_through_generic_caller() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1347,6 +1421,7 @@ fn may_spec_higher_ranked_bound_decides_instance() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1369,6 +1444,7 @@ fn may_spec_higher_ranked_bound_decides_instance_over_local_region() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1403,6 +1479,7 @@ fn may_spec_higher_ranked_bound_lifetime_dependent_undecided() {
         commit-and-verify: err:
             failed at (proven_set.rs) because
               `!lt_1 : ' static` cannot be restated without `!lt_1`
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1426,6 +1503,7 @@ fn may_spec_higher_ranked_instance_blanket_impl() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1474,6 +1552,7 @@ fn may_spec_instance_bound_does_not_decide_higher_ranked() {
         commit-and-verify: err:
             failed at (proven_set.rs) because
               `!lt_2 : !lt_1` cannot be restated without `!lt_2`
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
 
@@ -1510,6 +1589,7 @@ fn if_impls_local_region_via_bound() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
+        bail-on-regions: ok
     "#]])
 }
 
@@ -1543,6 +1623,7 @@ fn if_impls_local_region_via_bound_already_equal() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
+        bail-on-regions: ok
     "#]])
 }
 
@@ -1567,6 +1648,7 @@ fn if_impls_outright_with_bound_in_scope() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1600,6 +1682,7 @@ fn may_spec_subtrait_bound_does_not_decide_supertrait_regions() {
             crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : ' static, via: @ may_spec(Sub(&!lt_0 u32)), assumptions: {@ may_spec(Sub(&!lt_0 u32))}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
             crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {@ may_spec(Sub(&!lt_0 u32))}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        bail-on-regions: ok
     "#]])
 }
 
@@ -1626,6 +1709,7 @@ fn may_spec_subtrait_bound_main_decides_no() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1663,6 +1747,7 @@ fn may_spec_local_region_bound_and_impl_incomparable() {
         commit-and-verify: err:
             failed at (proven_set.rs) because
               no relationship between `{pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, !lt_1)}` and `{pending_outlives(' static, ?lt_2), pending_outlives(?lt_2, ' static)}`
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1695,6 +1780,7 @@ fn may_spec_local_region_bound_accepted() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1715,6 +1801,7 @@ fn if_impls_no_impl_with_bound_in_scope() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -1736,6 +1823,7 @@ fn if_impls_bound_unifies_given_signature() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
 
@@ -1746,9 +1834,9 @@ fn if_impls_bound_unifies_given_signature() {
 /// `promote` is sound for the one type that implements `Static`,
 /// `&'static u32`. After erasure `&'erased u32: Static` holds whatever the
 /// lifetime was, so codegen alone would run the then-branch for `main`'s
-/// borrow of `local` and hand out a `&'static u32` to it. That cannot
+/// borrow of `local` and hand out a `&'static u32` to it. No mode lets that
 /// happen: `launder` itself cannot decide the bound (`'a: 'static` is not
-/// known).
+/// known), and bail-on-regions takes the else-branch.
 #[test]
 fn exploit_local_borrow_promoted_to_static() {
     FormalityTest::new(crates![crate foo {
@@ -1783,6 +1871,7 @@ fn exploit_local_borrow_promoted_to_static() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: err:
             crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        bail-on-regions: ok, prints "0\n"
     "#]])
 }
 
@@ -1840,5 +1929,6 @@ fn exploit_local_borrow_promoted_to_static_with_may_spec() {
 
             the rule "write-indirect" at (nll.rs) failed because
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `local`
+        bail-on-regions: as strict
     "#]])
 }

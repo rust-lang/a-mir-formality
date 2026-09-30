@@ -11,7 +11,7 @@ use crate::grammar::{
     AtomicPredicate, FeatureGateName, ParameterKind, Predicate, Predicates, TraitRef,
     VarSubstitution,
 };
-use crate::prove::lifetimes::erase_lifetimes_in_predicate;
+use crate::prove::lifetimes::{erase_lifetimes_in_predicate, map_lifetimes_in_predicate};
 use crate::prove::{
     decls::Program, env::Env, negation::is_definitely_not_proveable, prove, prove_via::prove_via,
     Constraints,
@@ -210,4 +210,47 @@ judgment_fn! {
             (decide(decls, env, assumptions, goal) => Constraints::none(env))
         )
     }
+}
+
+/// `#![feature(spec_bail_on_regions)]`: no `may_spec` needed; codegen
+/// decides, and a lifetime-dependent bound counts as not holding.
+pub fn bail_on_regions(program: &Program) -> bool {
+    program.feature_gate_enabled(&FeatureGateName::SpecBailOnRegions)
+}
+
+judgment_fn! {
+    /// `goal` holds for *every* choice of its lifetimes: each occurrence of a
+    /// lifetime is replaced by a fresh universal lifetime, and the goal must
+    /// then be provable with no region constraint. Two occurrences of one
+    /// lifetime are two choices, as after erasure (where every lifetime is
+    /// `'erased`) they cannot be told apart; compare rustc's
+    /// `TypingMode::Reflection`, and its always-applicable rule against a
+    /// parameter named twice.
+    pub fn holds_for_all_lifetimes(
+        decls: Program,
+        env: Env,
+        assumptions: Predicates,
+        goal: Predicate,
+    ) => Constraints {
+        debug(goal, assumptions, env)
+
+        (
+            // No region constraint may be left, so none is deferred.
+            (let (env, goal) = quantify_lifetimes(&env.with_allow_pending_outlives(false), &goal))
+            (prove(decls, env, assumptions, goal) => c)
+            (if c.unconditionally_true())
+            ----------------------------- ("holds for all lifetimes")
+            (holds_for_all_lifetimes(decls, env, assumptions, goal) => c)
+        )
+    }
+}
+
+/// `goal` with each occurrence of a lifetime replaced by a fresh universal
+/// lifetime of `env`.
+fn quantify_lifetimes(env: &Env, goal: &Predicate) -> (Env, Predicate) {
+    let mut env = env.clone();
+    let goal = map_lifetimes_in_predicate(goal, &mut |_| {
+        env.fresh_universal(ParameterKind::Lt).upcast()
+    });
+    (env, goal)
 }

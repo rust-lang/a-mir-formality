@@ -8,12 +8,12 @@ use crate::check::feature_gate_enabled_in_program;
 
 use crate::grammar::expr::{BinOpKind, Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
-    AliasName, AliasTy, AssociatedItemId, AtomicPredicate, FeatureGateName, FieldName, Fn, Lt,
-    Parameter, Predicates, RefKind, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId,
-    TraitRef, Ty, ValueId, Variable, VariantId, WhereClause,
+    AliasName, AliasTy, AssociatedItemId, AtomicPredicate, FeatureGateName, FieldName, Fn,
+    IfImplsBound, Lt, Parameter, Predicates, RefKind, RigidName, RigidTy, ScalarId, Struct,
+    StructBoundData, TraitId, TraitRef, Ty, ValueId, Variable, VariantId, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
-use crate::prove::{with_variables, Safety};
+use crate::prove::{bail_on_regions, with_variables, Safety};
 use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 
@@ -232,7 +232,7 @@ judgment_fn! {
             // `if impls WC { .. } else { .. }` (branch specialization). As for a
             // `may_spec` where-clause, the parameters of `WC` must be well-formed.
             (env.prove_goal(assumptions, &state, condition.well_formed()) => state)
-            (env.prove_goal(assumptions, &state, condition.may_spec()) => state)
+            (if_impls_decided(env, assumptions, state, condition) => state)
 
             // The then-branch assumes the bound; the else-branch assumes nothing new.
             (borrow_check_block(env, (assumptions, condition.to_predicate()), state, then_block, places_live_on_exit) => then_state)
@@ -1555,4 +1555,30 @@ fn place_disjoint_from_place(place_a: &TypedPlaceExpr, place_b: &TypedPlaceExpr)
     let prefixes_a = place_a.all_prefixes();
     let prefixes_b = place_b.all_prefixes();
     !prefixes_a.contains(&place_b) && !prefixes_b.contains(&place_a)
+}
+
+judgment_fn! {
+    /// The bound of an `if impls` is decided where it appears (`decide`);
+    /// under `spec_bail_on_regions` codegen decides instead.
+    fn if_impls_decided(
+        env: TypeckEnv,
+        assumptions: Predicates,
+        state: FlowState,
+        condition: IfImplsBound,
+    ) => FlowState {
+        debug(condition, assumptions, state, env)
+
+        (
+            (if bail_on_regions(&env.program))!
+            ------------------------------------------------------------ ("bail on regions")
+            (if_impls_decided(env, _assumptions, state, _condition) => state)
+        )
+
+        (
+            (if !bail_on_regions(&env.program))!
+            (env.prove_goal(assumptions, &state, condition.may_spec()) => state)
+            ------------------------------------------------------------ ("decided")
+            (if_impls_decided(env, assumptions, state, condition) => state)
+        )
+    }
 }
