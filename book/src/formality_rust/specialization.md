@@ -40,7 +40,8 @@ to codegen; these obligations are what make codegen's re-evaluation agree
 
 {judgment}`decide`
 
-`may_spec(WC)` holds by any of these rules:
+`may_spec(WC)` holds by any of these rules (a `may_spec` bound in scope
+takes precedence over a local proof; see "Precedence"):
 
 | Rule | When | Answer |
 |---|---|---|
@@ -68,11 +69,13 @@ else-branch included.
 
 {judgment}`decide_by_bound`
 
-Only the bound it names, structurally:
+Only the bound it names, up to unification of the parameters
+(`unify_bounds`):
 
 | In scope | Goal | Decided? |
 |---|---|---|
 | `may_spec(T: Sub)` | `T: Sub` | yes |
+| `may_spec(&'a u32: Tr)` | `&'x u32: Tr` | yes, with `'x == 'a` (a region constraint; see the modes) |
 | `may_spec(T: Sub)` | `T: Super`, given `Sub: Super` | no |
 | `may_spec(T: Super)` | `T: Sub` | no |
 | `may_spec(for<'a> T: Tr<'a>)` | `T: Tr<'x>` | yes: `'a := 'x` |
@@ -121,6 +124,14 @@ that a "no", codegen would evaluate `u32: Tr<'erased>`, which holds through
 the `'static` impl, and run the then-branch for a `'x` that is not
 `'static`. The reverse would take a "yes" for one `'x` as a "yes" for
 every lifetime.
+
+### Precedence
+
+* A `may_spec` bound that decides `WC` takes precedence over a local proof
+  of it (`decided_by_bound` guards the other rules of `decide`). The proof's
+  own constraints (`'x: 'static`) would steer region inference past the
+  caller's decision, and two incomparable answers (`'x == 'a`,
+  `'x: 'static`) are an error.
 
 ## Deciding at codegen
 
@@ -179,6 +190,7 @@ fn spec<'a>(x: &'a u32) {
 | In scope | strict | commit and verify |
 |---|---|---|
 | nothing | rejected: `'x: 'static` left behind | `'x: 'static` registered; inference reduces it to `'a: 'static` on the signature; borrowck rejects |
+| `may_spec(&'a u32: Static)` | rejected: `'x == 'a` left behind | `'x == 'a` registered, discharged by `'a: 'x`; the caller's answer decides |
 | `where 'a: 'static` | holds outright | holds outright |
 
 The type checker hands an equation of a body region variable to the borrow

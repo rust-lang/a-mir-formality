@@ -307,6 +307,8 @@ fn may_spec_subtrait_bound_does_not_decide_supertrait() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(!ty_0 : Super), via: @ may_spec(!ty_0 : Sub), assumptions: {@ may_spec(!ty_0 : Sub)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
+            crates/formality-rust/src/prove/may_spec.rs:64:1: no applicable rules for unify_bounds { a: Sub(!ty_0), b: Super(!ty_0), assumptions: {@ may_spec(!ty_0 : Sub)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
             the rule "same bound" at (may_spec.rs) failed because
               condition evaluated to false: `bounds.contains(&goal)`
                 bounds = [Sub(!ty_0)]
@@ -337,6 +339,8 @@ fn may_spec_supertrait_bound_does_not_decide_subtrait() {
     .spec_modes(expect_test::expect![[r#"
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(!ty_0 : Sub), via: @ may_spec(!ty_0 : Super), assumptions: {@ may_spec(!ty_0 : Super)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/may_spec.rs:64:1: no applicable rules for unify_bounds { a: Super(!ty_0), b: Sub(!ty_0), assumptions: {@ may_spec(!ty_0 : Super)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "same bound" at (may_spec.rs) failed because
               condition evaluated to false: `bounds.contains(&goal)`
@@ -1109,6 +1113,227 @@ fn if_impls_free_local_region() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok, prints "1\n"
         bail-on-regions: ok, prints "2\n"
+        always-applicable: as strict
+    "#]])
+}
+
+// ---------------------------------------------------------------------------
+// Local regions: reduced to the signature by region inference
+// ---------------------------------------------------------------------------
+
+/// `may_spec(&'a u32: Static)` decides `&'x u32: Static` (`'a: 'x`) up to
+/// `'x == 'a`, a constraint left to region inference.
+#[test]
+fn if_impls_local_region_via_bound() {
+    FormalityTest::new(crates![crate foo {
+        trait Static {}
+        impl Static for &'static u32 {}
+        fn spec<'a>(x: &'a u32) -> () where may_spec(&'a u32: Static) {
+            exists<'x> {
+                let y: &'x u32 = x;
+                if impls &'x u32: Static { println!(1_u32); } else { println!(2_u32); }
+            }
+        }
+        fn caller(r: &'static u32) -> () {
+            spec::<'static>(r);
+        }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Static), via: @ may_spec(&!lt_1 u32 : Static), assumptions: {@ wf(?lt_0), @ may_spec(&!lt_1 u32 : Static)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Static), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ may_spec(&!lt_1 u32 : Static)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "bound unifies" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+
+            the rule "same bound" at (may_spec.rs) failed because
+              condition evaluated to false: `bounds.contains(&goal)`
+                bounds = [Static(&!lt_1 u32)]
+                &goal = Static(&?lt_0 u32)
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+        commit-and-verify: ok
+        bail-on-regions: ok
+        always-applicable: as strict
+    "#]])
+}
+
+/// The book's example: `&'a u32: Super` is not the `Sub` bound, holds only
+/// under `'a: 'static`, and is not "no". Were the `Sub` bound to decide it,
+/// nothing would register `'a: 'static`, and codegen would take the
+/// then-branch for the local that `main` passes (next test).
+#[test]
+fn may_spec_subtrait_bound_does_not_decide_supertrait_regions() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        trait Sub where Self: Super {}
+        impl Super for u32 {}
+        impl Sub for u32 {}
+        impl Super for &'static u32 {}
+        fn needs_super<T>(t: T) -> () where T: Super { }
+        fn caller<'a>(x: &'a u32) -> () where may_spec(&'a u32: Sub) {
+            if impls &'a u32: Super { needs_super::<&'a u32>(x); } else { }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&!lt_0 u32 : Super), via: @ may_spec(&!lt_0 u32 : Sub), assumptions: {@ may_spec(&!lt_0 u32 : Sub)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/may_spec.rs:64:1: no applicable rules for unify_bounds { a: Sub(&!lt_0 u32), b: Super(&!lt_0 u32), assumptions: {@ may_spec(&!lt_0 u32 : Sub)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "same bound" at (may_spec.rs) failed because
+              condition evaluated to false: `bounds.contains(&goal)`
+                bounds = [Sub(&!lt_0 u32)]
+                &goal = Super(&!lt_0 u32)
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+        commit-and-verify: err:
+            crates/formality-rust/src/check/borrow_check/outlives.rs:58:1: no applicable rules for can_outlive { param_a: !lt_1, param_b: ' static, assumptions: {@ may_spec(&!lt_1 u32 : Sub)}, env: TypeckEnv { env: Env { variables: [!lt_1], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(()) }, outlives: {pending_outlives(!lt_1, ' static)} }
+        bail-on-regions: ok
+        always-applicable: as strict
+    "#]])
+}
+
+/// That `main`: `&'x u32: Sub` is closed and does not hold, decided "no"
+/// even for a reference to a local. (`caller` has no `if impls` here.)
+#[test]
+fn may_spec_subtrait_bound_main_decides_no() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        trait Sub where Self: Super {}
+        impl Super for u32 {}
+        impl Sub for u32 {}
+        impl Super for &'static u32 {}
+        fn caller<'a>(x: &'a u32) -> () where may_spec(&'a u32: Sub) { }
+        fn main() -> () {
+            exists<'x> {
+                let local: u32 = 0_u32;
+                let x: &'x u32 = &'x local;
+                caller::<'x>(x);
+            }
+        }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok
+        commit-and-verify: as strict
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// `'x == 'a` from the bound match is left to the borrow checker and
+/// fails: `y` borrows a local...
+#[test]
+fn may_spec_local_region_bound_rejected_by_borrowck() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        impl Super for &'static u32 {}
+        fn needs_super<'b>(y: &'b u32) -> () where &'b u32: Super { }
+        fn spec<'x>(y: &'x u32) -> () where may_spec(&'x u32: Super) {
+            if impls &'x u32: Super { needs_super::<'x>(y); } else { }
+        }
+        fn caller<'a>(x: &'a u32) -> () where may_spec(&'a u32: Super) {
+            exists<'x> {
+                let local: u32 = 0_u32;
+                let y: &'x u32 = &'x local;
+                spec::<'x>(y);
+            }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Super), via: @ may_spec(&!lt_1 u32 : Super), assumptions: {@ wf(?lt_0), @ may_spec(&!lt_1 u32 : Super)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Super), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ may_spec(&!lt_1 u32 : Super)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "bound unifies" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+
+            the rule "same bound" at (may_spec.rs) failed because
+              condition evaluated to false: `bounds.contains(&goal)`
+                bounds = [Super(&!lt_1 u32)]
+                &goal = Super(&?lt_0 u32)
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+        commit-and-verify: err:
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = local : u32
+                &access.place = local : u32
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `local`
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// ...and holds with `y` derived from the argument.
+#[test]
+fn may_spec_local_region_bound_accepted() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        impl Super for &'static u32 {}
+        fn needs_super<'b>(y: &'b u32) -> () where &'b u32: Super { }
+        fn spec<'x>(y: &'x u32) -> () where may_spec(&'x u32: Super) {
+            if impls &'x u32: Super { needs_super::<'x>(y); } else { }
+        }
+        fn caller<'a>(x: &'a u32) -> () where may_spec(&'a u32: Super) {
+            exists<'x> {
+                let y: &'x u32 = x;
+                spec::<'x>(y);
+            }
+        }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Super), via: @ may_spec(&!lt_1 u32 : Super), assumptions: {@ wf(?lt_0), @ may_spec(&!lt_1 u32 : Super)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Super), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ may_spec(&!lt_1 u32 : Super)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "bound unifies" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+
+            the rule "same bound" at (may_spec.rs) failed because
+              condition evaluated to false: `bounds.contains(&goal)`
+                bounds = [Super(&!lt_1 u32)]
+                &goal = Super(&?lt_0 u32)
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+        commit-and-verify: ok
+        bail-on-regions: as strict
         always-applicable: as strict
     "#]])
 }

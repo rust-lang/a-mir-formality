@@ -30,9 +30,11 @@ pub fn is_closed(wc: &Wc) -> bool {
 }
 
 judgment_fn! {
-    /// `goal` is a `may_spec` bound in scope.
+    /// `goal` is a `may_spec` bound in scope, up to unification of the
+    /// parameters (`unify_bounds`). The constraints that leaves are subject to
+    /// the mode, like a proof's.
     pub fn decide_by_bound(
-        _decls: Program,
+        decls: Program,
         env: Env,
         assumptions: Wcs,
         goal: Wc,
@@ -45,6 +47,37 @@ judgment_fn! {
             (if bounds.contains(&goal))
             ----------------------------- ("same bound")
             (decide_by_bound(_decls, env, assumptions, goal) => Constraints::none(env))
+        )
+
+        (
+            (let bounds = may_spec_bounds(&assumptions))
+            (if !bounds.is_empty())!
+            (bound in bounds)
+            (unify_bounds(decls, env, assumptions, bound, goal) => c)
+            (if allowed_by_mode(&decls, &env, &c))
+            ----------------------------- ("bound unifies")
+            (decide_by_bound(decls, env, assumptions, goal) => c)
+        )
+    }
+}
+
+judgment_fn! {
+    /// `a` and `b` are the same trait bound up to unification of their
+    /// parameters.
+    pub fn unify_bounds(
+        decls: Program,
+        env: Env,
+        assumptions: Wcs,
+        a: Wc,
+        b: Wc,
+    ) => Constraints {
+        debug(a, b, assumptions, env)
+
+        (
+            (if a.trait_id == b.trait_id)!
+            (prove(decls, env, assumptions, Wcs::all_eq(&a.parameters, &b.parameters)) => c)
+            ----------------------------- ("same trait, parameters unify")
+            (unify_bounds(decls, env, assumptions, Predicate::IsImplemented(a), Predicate::IsImplemented(b)) => c)
         )
     }
 }
@@ -60,6 +93,14 @@ fn allowed_by_mode(decls: &Program, env: &Env, c: &Constraints) -> bool {
 /// variable in `c`?
 fn leaves_no_region_constraint(env: &Env, c: &Constraints) -> bool {
     c.env().pending().len() == env.pending().len() && c.substitution().is_empty()
+}
+
+/// Precedence: a `may_spec` bound that decides `goal` excludes a local proof
+/// of it (the later rules of `decide`). The proof's own constraints would
+/// steer region inference past the caller's decision, and two incomparable
+/// answers are an error.
+fn decided_by_bound(decls: &Program, env: &Env, assumptions: &Wcs, goal: &Wc) -> bool {
+    decide_by_bound(decls, env, assumptions, goal).is_proven()
 }
 
 /// Is `goal` provable with every region constraint deferred to the borrow
@@ -80,8 +121,8 @@ fn provable_with_regions_deferred(
 }
 
 judgment_fn! {
-    /// `goal` is decided: by a `may_spec` bound in scope, or it holds, or it
-    /// is closed and does not hold.
+    /// `goal` is decided. A `may_spec` bound that decides it takes precedence
+    /// over a local proof (`decided_by_bound`).
     pub fn decide(
         decls: Program,
         env: Env,
@@ -106,6 +147,7 @@ judgment_fn! {
 
         // Holds, with region constraints as the mode allows.
         (
+            (if !decided_by_bound(&decls, &env, &assumptions, &goal))
             (prove(decls, env, assumptions, goal) => c)
             (if allowed_by_mode(&decls, &env, &c))
             (holds_for_all_lifetimes_if_required(decls, c.env(), assumptions, c.substitution().apply(goal)) => ())
@@ -117,6 +159,7 @@ judgment_fn! {
         // constraints deferred: no instantiation or downstream impl can change
         // that. Unprovable over a type parameter is not "no".
         (
+            (if !decided_by_bound(&decls, &env, &assumptions, &goal))
             (if is_closed(&goal))!
             (if !provable_with_regions_deferred(&decls, &env, &assumptions, &goal))
             ----------------------------- ("does not hold")
