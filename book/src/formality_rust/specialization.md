@@ -149,12 +149,36 @@ those answers (`holds_after_erasure`, the evaluation codegen uses).
 
 `&'a u32: Static` (with `impl Static for &'static u32`) holds only under
 `'a: 'static`. The modes differ in what a decision may do with that
-constraint:
+constraint (`allowed_by_mode`):
 
 | Mode | Feature gate | A decision may leave a region constraint? |
 |---|---|---|
 | strict (default) | — | No. The bound must follow from the signature (`where 'a: 'static`). |
 | commit and verify | `spec_commit_and_verify` | Yes: registered with the borrow checker, like any goal's. |
+
+### Local regions
+
+Strict and commit-and-verify agree on constraints between universal
+regions (the borrow checker proves them from the same assumptions). They
+differ on regions local to the body, which region inference solves for:
+
+```rust
+fn spec<'a>(x: &'a u32) {
+    let y: &'x u32 = x;                 // 'x local, 'a: 'x
+    if impls &'x u32: Static { .. }     // needs 'x: 'static
+}
+```
+
+| In scope | strict | commit and verify |
+|---|---|---|
+| nothing | rejected: `'x: 'static` left behind | `'x: 'static` registered; inference reduces it to `'a: 'static` on the signature; borrowck rejects |
+| `where 'a: 'static` | rejected: `'x == 'static` left behind | `'x == 'static` registered; inference reduces it to `'a: 'static`, which the signature gives |
+
+The type checker hands an equation of a body region variable to the borrow
+checker as two outlives constraints rather than substituting: regions are
+inference's to solve. Strict cannot be stated in rustc, where every body
+lifetime is an inference variable and even `'x == 'a` is a constraint;
+commit-and-verify is the natural mode there.
 
 ## Out of scope
 

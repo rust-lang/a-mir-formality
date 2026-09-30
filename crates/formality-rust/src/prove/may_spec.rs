@@ -7,7 +7,7 @@
 //! A higher-ranked bound, `for<'a> may_spec(T: Trait<'a>)`, is decided like
 //! any `for<..>` goal: for a fresh universal `'a`.
 
-use crate::grammar::{ParameterKind, Predicate, Predicates, TraitRef};
+use crate::grammar::{FeatureGateName, ParameterKind, Predicate, Predicates, TraitRef};
 use crate::prove::lifetimes::erase_lifetimes_in_predicate;
 use crate::prove::{decls::Program, env::Env, prove, Constraints};
 use formality_core::visit::CoreVisit;
@@ -19,6 +19,13 @@ pub fn is_closed(term: &impl CoreVisit<crate::FormalityLang>) -> bool {
     term.free_variables()
         .iter()
         .all(|v| v.kind() == ParameterKind::Lt)
+}
+
+/// May a decision leave the region constraints `c` (from `env`) to the
+/// borrow checker? Strict: no. `spec_commit_and_verify`: yes.
+fn allowed_by_mode(decls: &Program, env: &Env, c: &Constraints) -> bool {
+    decls.feature_gate_enabled(&FeatureGateName::SpecCommitAndVerify)
+        || leaves_no_region_constraint(env, c)
 }
 
 /// No new pending outlives obligation and no equation of a body region
@@ -90,10 +97,10 @@ judgment_fn! {
     ) => Constraints {
         debug(goal, assumptions, env)
 
-        // Holds, with no region constraint left behind (strict).
+        // Holds, with region constraints as the mode allows.
         (
             (prove(decls, env, assumptions, goal) => c)
-            (if leaves_no_region_constraint(&env, &c))
+            (if allowed_by_mode(&decls, &env, &c))
             (assert !c.known_true || holds_after_erasure(&decls, c.env(), &assumptions, c.substitution().apply(goal)))
             ----------------------------- ("holds")
             (decide(decls, env, assumptions, goal) => c)

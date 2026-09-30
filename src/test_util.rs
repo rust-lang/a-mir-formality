@@ -54,20 +54,26 @@ const DEFAULT_EXECUTION_STEP_LIMIT: usize = 10_000;
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SpecMode {
     Strict,
+    CommitAndVerify,
 }
 
 impl SpecMode {
-    pub const ALL: &[SpecMode] = &[SpecMode::Strict];
+    pub const ALL: &[SpecMode] = &[SpecMode::Strict, SpecMode::CommitAndVerify];
 
     fn name(self) -> &'static str {
         match self {
             SpecMode::Strict => "strict",
+            SpecMode::CommitAndVerify => "commit-and-verify",
         }
     }
 
     fn feature_gates(self) -> Vec<FeatureGateName> {
         match self {
             SpecMode::Strict => vec![FeatureGateName::BranchSpecialization],
+            SpecMode::CommitAndVerify => vec![
+                FeatureGateName::BranchSpecialization,
+                FeatureGateName::SpecCommitAndVerify,
+            ],
         }
     }
 }
