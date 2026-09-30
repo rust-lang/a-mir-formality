@@ -40,6 +40,8 @@ to codegen; these obligations are what make codegen's re-evaluation agree.
 
 ## Deciding a bound
 
+{judgment}`decide`
+
 `may_spec(WC)` holds by any of these rules:
 
 | Rule | When | Answer |

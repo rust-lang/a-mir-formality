@@ -7,6 +7,7 @@ use crate::prove::{
     decls::Program,
     env::{Bias, Env},
     is_local::{is_local_trait_ref, may_be_remote},
+    may_spec::decide,
     prove,
     prove_after::prove_after,
     prove_const_has_type::prove_const_has_type,
@@ -94,6 +95,14 @@ judgment_fn! {
                 (prove_after(decls, c, assumptions, &i.where_clause) => c))
             ----------------------------- ("negative impl")
             (prove_predicate(decls, env, assumptions, AtomicPredicate::NotImplemented(trait_ref)) => c)
+        )
+
+        // `may_spec(T: Trait)`: the bound is decided, by a `may_spec` bound in
+        // scope or outright; see `decide`.
+        (
+            (decide(decls, env, assumptions, trait_ref) => c)
+            ----------------------------- ("may_spec")
+            (prove_predicate(decls, env, assumptions, AtomicPredicate::MaySpec(trait_ref)) => c)
         )
 
         (
