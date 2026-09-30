@@ -22,6 +22,7 @@ mod decls;
 mod env;
 mod is_local;
 mod lifetimes;
+mod may_spec;
 mod minimize;
 mod negation;
 mod prove_after;
@@ -43,6 +44,7 @@ pub use constraints::{Constrained, Constraints};
 pub use decls::*;
 pub use env::{Bias, Env, MaxUniverse, Universe};
 pub use lifetimes::{erase_lifetimes, erase_lifetimes_in_wc};
+pub use may_spec::{decide, decide_by_bound};
 pub use negation::{is_definitely_not_proveable, may_not_be_provable, negation_via_failure};
 pub use prove_normalize::prove_normalize;
 

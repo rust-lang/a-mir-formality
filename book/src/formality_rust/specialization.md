@@ -37,6 +37,8 @@ to codegen; these obligations are what make codegen's re-evaluation agree.
 
 ## Deciding a bound
 
+{judgment}`decide`
+
 `may_spec(WC)` holds by any of these rules:
 
 | Rule | When | Answer |
@@ -61,6 +63,8 @@ impls are never consulted, and nothing negative is ever assumed, in the
 else-branch included.
 
 ### What a `may_spec` bound decides
+
+{judgment}`decide_by_bound`
 
 Only the bound it names, structurally:
 
