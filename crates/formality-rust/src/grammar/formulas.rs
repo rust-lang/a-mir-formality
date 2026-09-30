@@ -91,7 +91,7 @@ impl std::ops::BitAnd for Coinductive {
 pub enum Skeleton {
     IsImplemented(TraitId),
     NotImplemented(TraitId),
-    MaySpec(TraitRef),
+    MaySpec(TraitId),
     AliasEq(AliasName),
     WellFormed,
     WellFormedTraitRef(TraitId),
@@ -145,8 +145,10 @@ impl AtomicPredicate {
                 Skeleton::NotImplemented(trait_id.clone()),
                 parameters.clone(),
             ),
-            // A `may_spec` matches an assumption only if the bound is the same.
-            AtomicPredicate::MaySpec(trait_ref) => (Skeleton::MaySpec(trait_ref.clone()), vec![]),
+            AtomicPredicate::MaySpec(TraitRef {
+                trait_id,
+                parameters,
+            }) => (Skeleton::MaySpec(trait_id.clone()), parameters.clone()),
             AtomicPredicate::AliasEq(AliasTy { name, parameters }, ty) => {
                 let mut params = parameters.clone();
                 params.push(ty.clone().upcast());

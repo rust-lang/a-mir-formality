@@ -44,7 +44,10 @@ judgment_fn! {
             (prove_predicate(decls, env, assumptions, Predicate::Implies(p1, p2)) => c)
         )
 
+        // A `may_spec` goal is decided by `decide`, whose "by bound" rule uses
+        // the `may_spec` assumptions subject to the mode.
         (
+            (if !matches!(goal, AtomicPredicate::MaySpec(_)))
             (a in assumptions)!
             (prove_via(decls, env, assumptions, a, goal) => c)
             ----------------------------- ("assumption")

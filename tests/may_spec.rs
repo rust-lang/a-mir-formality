@@ -278,6 +278,8 @@ fn may_spec_generic_caller_without_bound() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
@@ -398,6 +400,8 @@ fn may_spec_generic_wrapper_is_undecided() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Bar(Wrapper<!ty_0>), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
@@ -419,6 +423,8 @@ fn may_spec_negative_impl_does_not_decide_generic() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
@@ -439,6 +445,8 @@ fn may_spec_non_lifetime_binder_is_undecided() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(!ty_1), assumptions: {}, env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
 
@@ -544,6 +552,8 @@ fn if_impls_generic_without_may_spec() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
             crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !ty_0 = u32, via: Bar(!ty_0), assumptions: {Bar(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             crates/formality-rust/src/prove/prove_normalize.rs:55:1: no applicable rules for prove_normalize_via { goal: !ty_0, via: Bar(!ty_0), assumptions: {Bar(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
@@ -769,6 +779,8 @@ fn if_impls_lifetime_dependent() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(Tag<!lt_0>), assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
 
@@ -840,7 +852,7 @@ fn may_spec_lifetime_dependent_local_caller() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(Tag<?lt_0>)), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(Tag<?lt_0>), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
@@ -868,7 +880,7 @@ fn if_impls_local_region_residue_on_signature() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_0 u32)), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
@@ -898,9 +910,7 @@ fn if_impls_local_region_signature_entails() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_1 u32)), via: !lt_0 : ' static, assumptions: {!lt_0 : ' static, @ wf(?lt_1)}, env: Env { variables: [!lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_1 u32)), via: @ wf(?lt_1), assumptions: {!lt_0 : ' static, @ wf(?lt_1)}, env: Env { variables: [!lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&?lt_1 u32), assumptions: {!lt_0 : ' static, @ wf(?lt_1)}, env: Env { variables: [!lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
@@ -928,7 +938,7 @@ fn if_impls_local_region_borrowed_from_static() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_0 u32)), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
@@ -956,7 +966,7 @@ fn if_impls_free_local_region() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(Tag<?lt_0>)), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(Tag<?lt_0>), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
@@ -986,7 +996,7 @@ fn if_impls_local_region_already_static() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_0 u32)), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
@@ -1013,7 +1023,7 @@ fn if_impls_local_region_static_required_later() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_0 u32)), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
@@ -1045,9 +1055,7 @@ fn if_impls_local_region_below_a_static_one() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_1 u32)), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_1 u32)), via: @ wf(?lt_1), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&?lt_1 u32), assumptions: {@ wf(?lt_0), @ wf(?lt_1)}, env: Env { variables: [?lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
@@ -1077,7 +1085,7 @@ fn may_spec_local_region_borrowed_from_static() {
     .skip_execute()
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_0 u32)), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
@@ -1106,7 +1114,7 @@ fn may_spec_local_region_required_by_callee() {
     .skip_execute()
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_0 u32)), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [?lt_0 : ' static], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [?lt_0 : ' static], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
@@ -1140,9 +1148,7 @@ fn may_spec_on_impl_decided_inside_a_proof() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: Baz(&?lt_0 u32), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_0 u32)), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), Baz(&?lt_0 u32)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
-
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_0 u32)), via: Baz(&?lt_0 u32), assumptions: {@ wf(?lt_0), Baz(&?lt_0 u32)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0), Baz(&?lt_0 u32)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
@@ -1153,6 +1159,268 @@ fn may_spec_on_impl_decided_inside_a_proof() {
             the rule "trait implied bound" at (prove_predicate.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: ok
+    "#]])
+}
+
+// ---------------------------------------------------------------------------
+// Local regions: reduced to the signature by region inference
+// ---------------------------------------------------------------------------
+
+/// `may_spec(&'a u32: Static)` decides `&'x u32: Static` (`'a: 'x`) up to
+/// `'x == 'a`, a constraint left to region inference.
+#[test]
+fn if_impls_local_region_via_bound() {
+    FormalityTest::new(crates![crate foo {
+        trait Static {}
+        impl Static for &'static u32 {}
+        fn spec<'a>(x: &'a u32) -> () where may_spec(&'a u32: Static) {
+            exists<'x> {
+                let y: &'x u32 = x;
+                if impls &'x u32: Static { println!(1_u32); } else { println!(2_u32); }
+            }
+        }
+        fn caller(r: &'static u32) -> () {
+            spec::<'static>(r);
+        }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            the rule "bound unifies" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+        commit-and-verify: ok
+    "#]])
+}
+
+/// ...and strict rejects even when the body already requires both halves of
+/// `'x == 'a` (`'a: 'x` for `y`, `'x: 'a` for `z`).
+#[test]
+fn if_impls_local_region_via_bound_already_equal() {
+    FormalityTest::new(crates![crate foo {
+        trait Static {}
+        impl Static for &'static u32 {}
+        fn spec<'a>(x: &'a u32) -> () where may_spec(&'a u32: Static) {
+            exists<'x> {
+                let y: &'x u32 = x;
+                let z: &'a u32 = y;
+                if impls &'x u32: Static { println!(1_u32); } else { println!(2_u32); }
+            }
+        }
+        fn caller(r: &'static u32) -> () {
+            spec::<'static>(r);
+        }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            the rule "bound unifies" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+        commit-and-verify: ok
+    "#]])
+}
+
+/// `&'x u32: Always` holds outright, so the bound `may_spec(&'a u32:
+/// Always)`, which would match only up to `'x == 'a` (rejected by the
+/// borrow checker: `y` borrows a local), is not consulted.
+#[test]
+fn if_impls_outright_with_bound_in_scope() {
+    FormalityTest::new(crates![crate foo {
+        trait Always {}
+        impl<'a> Always for &'a u32 {}
+        fn needs<'b>(y: &'b u32) -> () where &'b u32: Always { }
+        fn spec<'a>(x: &'a u32) -> () where may_spec(&'a u32: Always) {
+            exists<'x> {
+                let local: u32 = 0_u32;
+                let y: &'x u32 = &'x local;
+                if impls &'x u32: Always { needs::<'x>(y); } else { }
+            }
+        }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok
+        commit-and-verify: as strict
+    "#]])
+}
+
+/// The book's example: `&'a u32: Super` is not the `Sub` bound, holds only
+/// under `'a: 'static`, and is not "no". Were the `Sub` bound to decide it,
+/// nothing would register `'a: 'static`, and codegen would take the
+/// then-branch for the local that `main` passes (next test).
+#[test]
+fn may_spec_subtrait_bound_does_not_decide_supertrait_regions() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        trait Sub where Self: Super {}
+        impl Super for u32 {}
+        impl Sub for u32 {}
+        impl Super for &'static u32 {}
+        fn needs_super<T>(t: T) -> () where T: Super { }
+        fn caller<'a>(x: &'a u32) -> () where may_spec(&'a u32: Sub) {
+            if impls &'a u32: Super { needs_super::<&'a u32>(x); } else { }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Super(&!lt_0 u32)), via: @ may_spec(Sub(&!lt_0 u32)), assumptions: {@ may_spec(Sub(&!lt_0 u32))}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+        commit-and-verify: err:
+            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_0 : ' static, via: @ may_spec(Sub(&!lt_0 u32)), assumptions: {@ may_spec(Sub(&!lt_0 u32))}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+            crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {@ may_spec(Sub(&!lt_0 u32))}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+    "#]])
+}
+
+/// That `main`: `&'x u32: Sub` is closed and does not hold, decided "no"
+/// even for a reference to a local. (`caller` has no `if impls` here.)
+#[test]
+fn may_spec_subtrait_bound_main_decides_no() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        trait Sub where Self: Super {}
+        impl Super for u32 {}
+        impl Sub for u32 {}
+        impl Super for &'static u32 {}
+        fn caller<'a>(x: &'a u32) -> () where may_spec(&'a u32: Sub) { }
+        fn main() -> () {
+            exists<'x> {
+                let local: u32 = 0_u32;
+                let x: &'x u32 = &'x local;
+                caller::<'x>(x);
+            }
+        }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok
+        commit-and-verify: as strict
+    "#]])
+}
+
+/// With `y` borrowing a local instead, `'x` is unrelated to `'a`: the
+/// bound's answer (`'x == 'a`) and the impl's (`'x: 'static`) cannot be
+/// compared, and the borrow checker would accept neither.
+#[test]
+fn may_spec_local_region_bound_and_impl_incomparable() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        impl Super for &'static u32 {}
+        fn needs_super<'b>(y: &'b u32) -> () where &'b u32: Super { }
+        fn spec<'x>(y: &'x u32) -> () where may_spec(&'x u32: Super) {
+            if impls &'x u32: Super { needs_super::<'x>(y); } else { }
+        }
+        fn caller<'a>(x: &'a u32) -> () where may_spec(&'a u32: Super) {
+            exists<'x> {
+                let local: u32 = 0_u32;
+                let y: &'x u32 = &'x local;
+                spec::<'x>(y);
+            }
+        }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            the rule "bound unifies" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+        commit-and-verify: err:
+            failed at (proven_set.rs) because
+              no relationship between `{pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, !lt_1)}` and `{pending_outlives(' static, ?lt_2), pending_outlives(?lt_2, ' static)}`
+    "#]])
+}
+
+/// ...and holds with `y` derived from the argument.
+#[test]
+fn may_spec_local_region_bound_accepted() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        impl Super for &'static u32 {}
+        fn needs_super<'b>(y: &'b u32) -> () where &'b u32: Super { }
+        fn spec<'x>(y: &'x u32) -> () where may_spec(&'x u32: Super) {
+            if impls &'x u32: Super { needs_super::<'x>(y); } else { }
+        }
+        fn caller<'a>(x: &'a u32) -> () where may_spec(&'a u32: Super) {
+            exists<'x> {
+                let y: &'x u32 = x;
+                spec::<'x>(y);
+            }
+        }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            the rule "bound unifies" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+        commit-and-verify: ok
+    "#]])
+}
+
+/// With no impl at all, the bound does not hold, whatever a `may_spec` bound
+/// in scope would add (`'a == 'b`).
+#[test]
+fn if_impls_no_impl_with_bound_in_scope() {
+    FormalityTest::new(crates![crate foo {
+        struct Tag<'a> {}
+        trait Tr {}
+        fn spec<'a, 'b>() -> () where may_spec(Tag<'a>: Tr) {
+            if impls Tag<'b>: Tr { println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            spec::<'static, 'static>();
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "2\n"
+        commit-and-verify: as strict
+    "#]])
+}
+
+/// Strict lets the `may_spec` bound decide `Tag<'b>: Static` when the
+/// signature gives `'a == 'b`: unifying then leaves no constraint.
+#[test]
+fn if_impls_bound_unifies_given_signature() {
+    FormalityTest::new(crates![crate foo {
+        struct Tag<'a> {}
+        trait Static {}
+        impl Static for Tag<'static> {}
+        fn spec<'a, 'b>() -> () where may_spec(Tag<'a>: Static), 'a: 'b, 'b: 'a {
+            if impls Tag<'b>: Static { println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            spec::<'static, 'static>();
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "1\n"
+        commit-and-verify: as strict
     "#]])
 }
 
@@ -1191,6 +1459,8 @@ fn exploit_local_borrow_promoted_to_static() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&!lt_0 u32), assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`
 
@@ -1228,7 +1498,7 @@ fn exploit_local_borrow_promoted_to_static_with_may_spec() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: @ may_spec(Static(&?lt_0 u32)), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:34:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven()`

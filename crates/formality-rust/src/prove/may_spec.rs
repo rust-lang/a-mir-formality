@@ -1,17 +1,27 @@
 //! Deciding `may_spec(T: Trait)`: the obligation at an `if impls T: Trait`
-//! and at a call to a fn declaring `where may_spec(T: Trait)`. It holds if it
-//! is a `may_spec` bound in scope (an assumption, like any where-clause), or
-//! if the bound is decided (`decide`). See the "Branch specialization"
-//! chapter of the book.
+//! and at a call to a fn declaring `where may_spec(T: Trait)`. It holds if
+//! the bound is decided: by a `may_spec` bound in scope (`decide_by_bound`),
+//! or outright (`decide`). See the "Branch specialization" chapter of the
+//! book.
 //!
 //! A higher-ranked bound, `for<'a> may_spec(T: Trait<'a>)`, is decided like
 //! any `for<..>` goal: for a fresh universal `'a`.
 
-use crate::grammar::{FeatureGateName, ParameterKind, Predicate, Predicates, TraitRef};
+use crate::grammar::{
+    AtomicPredicate, FeatureGateName, ParameterKind, Predicate, Predicates, TraitRef,
+};
 use crate::prove::lifetimes::erase_lifetimes_in_predicate;
-use crate::prove::{decls::Program, env::Env, prove, Constraints};
+use crate::prove::{decls::Program, env::Env, prove, prove_via::prove_via, Constraints};
 use formality_core::visit::CoreVisit;
 use formality_core::{judgment_fn, ProvenSet, Upcast};
+
+/// The `may_spec` bounds among `assumptions`.
+pub fn may_spec_bounds(assumptions: &Predicates) -> Vec<Predicate> {
+    assumptions
+        .iter()
+        .filter(|wc| matches!(wc, Predicate::AtomicPredicate(AtomicPredicate::MaySpec(_))))
+        .collect()
+}
 
 /// Does `term` mention no type or const parameter? (Lifetimes never select
 /// an impl.)
@@ -19,6 +29,30 @@ pub fn is_closed(term: &impl CoreVisit<crate::FormalityLang>) -> bool {
     term.free_variables()
         .iter()
         .all(|v| v.kind() == ParameterKind::Lt)
+}
+
+judgment_fn! {
+    /// `goal` is a `may_spec` bound in scope, up to unification of the
+    /// parameters (`prove_via`, as for any where-clause in scope). The
+    /// constraints that leaves are subject to the mode, like a proof's.
+    pub fn decide_by_bound(
+        decls: Program,
+        env: Env,
+        assumptions: Predicates,
+        goal: TraitRef,
+    ) => Constraints {
+        debug(goal, assumptions, env)
+
+        (
+            (let bounds = may_spec_bounds(&assumptions))
+            (if !bounds.is_empty())!
+            (bound in bounds)
+            (prove_via(decls, env, assumptions, bound, AtomicPredicate::may_spec(goal)) => c)
+            (if allowed_by_mode(&decls, &env, &c))
+            ----------------------------- ("bound unifies")
+            (decide_by_bound(decls, env, assumptions, goal) => c)
+        )
+    }
 }
 
 /// May a decision leave the region constraints `c` (from `env`) to the
@@ -88,7 +122,9 @@ fn prove_for_some_lifetimes(
 }
 
 judgment_fn! {
-    /// `goal` is decided: it holds, or it is closed and does not hold.
+    /// `goal` is decided. Each rule is one way to decide it; of several
+    /// answers, the type checker takes the one with the weakest region
+    /// constraints (`TypeckEnv::prove_judgment`).
     pub fn decide(
         decls: Program,
         env: Env,
@@ -96,6 +132,12 @@ judgment_fn! {
         goal: TraitRef,
     ) => Constraints {
         debug(goal, assumptions, env)
+
+        (
+            (decide_by_bound(decls, env, assumptions, goal) => c)
+            ----------------------------- ("by bound")
+            (decide(decls, env, assumptions, goal) => c)
+        )
 
         // Holds, with region constraints as the mode allows.
         (

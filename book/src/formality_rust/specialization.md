@@ -43,7 +43,8 @@ to codegen; these obligations are what make codegen's re-evaluation agree
 
 {judgment}`decide`
 
-`may_spec(WC)` holds by any of these rules:
+`may_spec(WC)` holds by any of these rules (of several answers, the one
+with the weakest region constraints is taken; see "Several answers"):
 
 | Rule | When | Answer |
 |---|---|---|
@@ -73,11 +74,15 @@ else-branch included.
 
 ### What a `may_spec` bound decides
 
-Only the bound it names, structurally:
+{judgment}`decide_by_bound`
+
+Only the bound it names, up to unification of the parameters (`prove_via`,
+as for any where-clause in scope; the mode gates the constraints):
 
 | In scope | Goal | Decided? |
 |---|---|---|
 | `may_spec(T: Sub)` | `T: Sub` | yes |
+| `may_spec(&'a u32: Tr)` | `&'x u32: Tr` | yes, with `'x == 'a` (a region constraint; see the modes) |
 | `may_spec(T: Sub)` | `T: Super`, given `Sub: Super` | no |
 | `may_spec(T: Super)` | `T: Sub` | no |
 | `for<'a> may_spec(T: Tr<'a>)` | `T: Tr<'x>` | yes: `'a := 'x` |
@@ -127,6 +132,24 @@ it is not a "no" either. Were it a "no", codegen would evaluate
 then-branch for a `'x` that is not `'static`. The reverse would take a "yes"
 for one `'x` as a "yes" for every lifetime.
 
+### Several answers
+
+A bound can be decided in more than one way: `&'x u32: Static` by a
+`may_spec(&'a u32: Static)` in scope, with `'x == 'a`, and by the impl for
+`&'static u32`, with `'x: 'static`. The type checker takes the answer whose
+region constraints are the weakest: those that each of the others entails,
+given what is already known (`TypeckEnv::prove_judgment`).
+
+* An answer that leaves no region constraint is always the weakest,
+  wherever it comes from. This keeps commit-and-verify a superset of
+  strict.
+* `'x: 'static` entails `'x: 'a`, so with `'a: 'x` known (`'x` reborrows
+  `'a`) the bound's `'x == 'a` is the weaker, and the caller's answer
+  decides.
+* Answers that cannot be compared are an error: two bounds giving
+  `'x == 'a` and `'x == 'b`, or the two above when `'x` is unrelated to
+  `'a`.
+
 ## Deciding at codegen
 
 Codegen erases every lifetime (of the generic arguments, in `MonoKey`; of
@@ -172,6 +195,7 @@ fn spec<'a>(x: &'a u32) {
 | In scope | strict | commit and verify |
 |---|---|---|
 | nothing | rejected: `'x: 'static` left behind | `'x: 'static` registered; inference reduces it to `'a: 'static` on the signature; borrowck rejects |
+| `may_spec(&'a u32: Static)` | rejected: `'x == 'a` left behind | `'x == 'a` registered, discharged by `'a: 'x`; the caller's answer decides |
 | `where 'a: 'static` | rejected: `'x == 'static` left behind | `'x == 'static` registered; inference reduces it to `'a: 'static`, which the signature gives |
 
 The type checker hands an equation of a body region variable to the borrow
