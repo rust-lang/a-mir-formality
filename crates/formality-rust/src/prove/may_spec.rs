@@ -122,7 +122,8 @@ fn provable_with_regions_deferred(
 
 judgment_fn! {
     /// `goal` is decided. A `may_spec` bound that decides it takes precedence
-    /// over a local proof (`decided_by_bound`).
+    /// over a local proof (`decided_by_bound`), unless the proof leaves no
+    /// region constraint.
     pub fn decide(
         decls: Program,
         env: Env,
@@ -142,6 +143,18 @@ judgment_fn! {
         (
             (decide_by_bound(decls, env, assumptions, goal) => c)
             ----------------------------- ("by bound")
+            (decide(decls, env, assumptions, goal) => c)
+        )
+
+        // A bound that decides the goal takes precedence over a local proof
+        // (the rules below), except one leaving no region constraint: that
+        // answer needs nothing from region inference, whatever the bound adds.
+        (
+            (if decided_by_bound(&decls, &env, &assumptions, &goal))!
+            (prove(decls, env, assumptions, goal) => c)
+            (if leaves_no_region_constraint(&env, &c))
+            (holds_for_all_lifetimes_if_required(decls, env, assumptions, goal) => ())
+            ----------------------------- ("holds outright, despite a bound")
             (decide(decls, env, assumptions, goal) => c)
         )
 

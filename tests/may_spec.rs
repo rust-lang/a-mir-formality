@@ -1164,6 +1164,32 @@ fn if_impls_local_region_via_bound() {
     "#]])
 }
 
+/// `&'x u32: Always` holds outright, so the bound `may_spec(&'a u32:
+/// Always)`, which would match only up to `'x == 'a` (rejected by the
+/// borrow checker: `y` borrows a local), is not consulted.
+#[test]
+fn if_impls_outright_with_bound_in_scope() {
+    FormalityTest::new(crates![crate foo {
+        trait Always {}
+        impl<'a> Always for &'a u32 {}
+        fn needs<'b>(y: &'b u32) -> () where &'b u32: Always { }
+        fn spec<'a>(x: &'a u32) -> () where may_spec(&'a u32: Always) {
+            exists<'x> {
+                let local: u32 = 0_u32;
+                let y: &'x u32 = &'x local;
+                if impls &'x u32: Always { needs::<'x>(y); } else { }
+            }
+        }
+    }])
+    .skip_execute()
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok
+        commit-and-verify: as strict
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
 /// The book's example: `&'a u32: Super` is not the `Sub` bound, holds only
 /// under `'a: 'static`, and is not "no". Were the `Sub` bound to decide it,
 /// nothing would register `'a: 'static`, and codegen would take the

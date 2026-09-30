@@ -47,6 +47,7 @@ takes precedence over a local proof; see "Precedence"):
 |---|---|---|
 | always applicable trait | `WC` is a bound on an `always_applicable` trait (see below) | codegen's, exactly |
 | by bound | a `may_spec` bound in scope names `WC` (see below) | the caller's |
+| holds outright | `WC` provable with no region constraint, whatever a `may_spec` bound would add | yes |
 | holds | `WC` provable, with region constraints as the mode allows | yes |
 | does not hold | `WC` mentions no type or const parameter and is unprovable even with every region constraint deferred | no |
 
@@ -132,6 +133,9 @@ every lifetime.
   own constraints (`'x: 'static`) would steer region inference past the
   caller's decision, and two incomparable answers (`'x == 'a`,
   `'x: 'static`) are an error.
+* Except a proof that leaves no region constraint: that answer needs
+  nothing from region inference, so it counts whatever the bound would add
+  (`'x == 'a`). This keeps commit-and-verify a superset of strict.
 
 ## Deciding at codegen
 
