@@ -15,12 +15,20 @@ use crate::prove::{decls::Program, env::Env, prove, prove_via::prove_via, Constr
 use formality_core::visit::CoreVisit;
 use formality_core::{judgment_fn, ProvenSet, Upcast};
 
-/// The `may_spec` bounds among `assumptions`.
+/// The `may_spec` bounds among `assumptions`, under their `for<..>` if any.
 pub fn may_spec_bounds(assumptions: &Predicates) -> Vec<Predicate> {
     assumptions
         .iter()
-        .filter(|wc| matches!(wc, Predicate::AtomicPredicate(AtomicPredicate::MaySpec(_))))
+        .filter(|wc| is_may_spec_bound(wc))
         .collect()
+}
+
+fn is_may_spec_bound(wc: &Predicate) -> bool {
+    match wc {
+        Predicate::AtomicPredicate(AtomicPredicate::MaySpec(_)) => true,
+        Predicate::ForAll(binder) => is_may_spec_bound(binder.peek()),
+        _ => false,
+    }
 }
 
 /// Does `term` mention no type or const parameter? (Lifetimes never select
@@ -32,9 +40,12 @@ pub fn is_closed(term: &impl CoreVisit<crate::FormalityLang>) -> bool {
 }
 
 judgment_fn! {
-    /// `goal` is a `may_spec` bound in scope, up to unification of the
-    /// parameters (`prove_via`, as for any where-clause in scope). The
-    /// constraints that leaves are subject to the mode, like a proof's.
+    /// `goal` is an instance of a `may_spec` bound in scope, up to unification
+    /// of the parameters (`prove_via`, as for any where-clause in scope). A
+    /// `for<..>` bound decides each instance: the caller's "yes" covers every
+    /// instantiation, and its "no" means no impl matches at any (a bound that
+    /// fails only for some lifetimes is never decided "no"). The constraints
+    /// that leaves are subject to the mode, like a proof's.
     pub fn decide_by_bound(
         decls: Program,
         env: Env,
