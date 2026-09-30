@@ -1825,3 +1825,23 @@ fn for_all_bound_holds_for_every_lifetime() {
     }])
     .ok()
 }
+
+/// A where-clause on `&'a u32` used for `&'x u32` equates the body's `'x`
+/// with `'a`. The borrow checker gets the equation as two outlives
+/// constraints: `'a: 'x`, which the reborrow gives, and `'x: 'a`.
+#[test]
+fn body_region_equated_with_a_universal() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        fn needs_super<'b>(y: &'b u32) -> () where &'b u32: Super { }
+        fn caller<'a>(x: &'a u32) -> () where &'a u32: Super {
+            exists<'x> {
+                let y: &'x u32 = x;
+                needs_super::<'x>(y);
+            }
+        }
+    }])
+    .skip_execute()
+    .rustc_ok()
+    .ok()
+}
