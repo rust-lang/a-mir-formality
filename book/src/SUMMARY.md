@@ -15,3 +15,4 @@
   - [Borrow checking](./formality_rust/borrow_check.md)
   - [Coherence checking](./formality_rust/coherence.md)
   - [Code generation](./formality_rust/codegen.md)
+  - [Branch specialization](./formality_rust/specialization.md)
