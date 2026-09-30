@@ -9,11 +9,26 @@ use crate::prove::Safety;
 use crate::rust::Term;
 use formality_core::{term, Upcast};
 
-#[term($?safety trait $id $binder)]
+#[term($?safety $?applicability trait $id $binder)]
 pub struct Trait {
     pub safety: Safety,
+    pub applicability: Applicability,
     pub id: TraitId,
     pub binder: TraitBinder<TraitBoundData>,
+}
+
+/// `always_applicable trait Foo`: every impl of `Foo` must be *always
+/// applicable* (rustc's `#[rustc_specialization_trait]`): whether it applies
+/// to a type does not depend on the type's lifetimes. A bound on such a
+/// trait can then be decided after lifetime erasure, so `if impls T: Foo`
+/// needs no `may_spec`. Requires `#![feature(spec_always_applicable)]`.
+#[term]
+#[derive(Default)]
+pub enum Applicability {
+    #[default]
+    Any,
+    #[grammar(always_applicable)]
+    Always,
 }
 
 // NB: TraitBinder is a manually implemented Term

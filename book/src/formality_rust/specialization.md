@@ -44,6 +44,7 @@ to codegen; these obligations are what make codegen's re-evaluation agree
 
 | Rule | When | Answer |
 |---|---|---|
+| always applicable trait | `WC` is a bound on an `always_applicable` trait (see below) | codegen's, exactly |
 | by bound | a `may_spec` bound in scope names `WC` (see below) | the caller's |
 | holds | `WC` provable, with region constraints as the mode allows | yes |
 | does not hold | `WC` mentions no type or const parameter and is unprovable even with every region constraint deferred | no |
@@ -148,8 +149,19 @@ constraint (`allowed_by_mode`):
 |---|---|---|
 | strict (default) | — | No. The bound must follow from the signature (`where 'a: 'static`). |
 | commit and verify | `spec_commit_and_verify` | Yes: registered with the borrow checker, like any goal's. |
-| always applicable | `spec_always_applicable` | No, and the bound must hold for every choice of its lifetimes. |
+| always applicable | `spec_always_applicable` | No, and the bound must hold for every choice of its lifetimes (`holds_for_all_lifetimes`). Plus `always_applicable` traits, below. |
 | bail on regions | `spec_bail_on_regions` | No `may_spec` at all: codegen decides per monomorphization, "yes" only if the bound holds for every lifetime (`holds_for_all_lifetimes`), else the else-branch, silently. Modeled on `try_as_dyn`. |
+
+`tests/may_spec.rs` runs every program under every mode; for instance:
+
+| Program | strict | commit and verify | bail on regions | always applicable |
+|---|---|---|---|---|
+| `if impls Tag<'a>: Static`, nothing in scope | error | error (borrowck) | else-branch | error |
+| ... with `where 'a: 'static` | then | then | else-branch | error |
+| ... with `may_spec`, caller passes `'static` | then | then | else-branch | error |
+| ... with `may_spec`, caller passes a free local region | error | then (inference picks `'static`) | error | error |
+| `impl<'a> AnyLt for Tag<'a>`, `if impls Tag<'a>: AnyLt` | then | then | then | then |
+| `if impls T: Bar`, no `may_spec` | error | error | per monomorphization | error |
 
 ### Local regions
 
@@ -174,6 +186,23 @@ checker as two outlives constraints rather than substituting: regions are
 inference's to solve. Strict cannot be stated in rustc, where every body
 lifetime is an inference variable and even `'x == 'a` is a constraint;
 commit-and-verify is the natural mode there.
+
+### Always applicable
+
+rustc's `min_specialization` criterion, in two forms:
+
+* At the use site: a bound is decided as holding only if it holds for
+  every choice of its lifetimes. Neither `where 'a: 'static` nor a caller
+  passing `'static` helps.
+* `always_applicable trait Foo` (`#[rustc_specialization_trait]`): every
+  impl of `Foo` must apply regardless of lifetimes, so `T: Foo` can be
+  decided after erasure exactly. It needs no `may_spec`; codegen decides
+  per monomorphization. An impl is checked to have:
+  * no `'static` in its header (`impl Foo for Tag<'static>`);
+  * no parameter twice in its header (`impl<'a> Foo for Pair<'a, 'a>`,
+    and `impl<T> Foo for Pair<T, T>`: type equality depends on lifetimes);
+  * only where-clauses that are bounds on `always_applicable` traits, or
+    mention no parameter.
 
 ## Out of scope
 

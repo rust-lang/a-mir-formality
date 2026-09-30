@@ -21,7 +21,7 @@ mod db;
 mod decls;
 mod env;
 mod is_local;
-mod lifetimes;
+pub(crate) mod lifetimes;
 mod may_spec;
 mod minimize;
 mod negation;

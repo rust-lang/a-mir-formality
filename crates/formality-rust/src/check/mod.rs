@@ -73,6 +73,8 @@ judgment_fn! {
             (for_all(item in &c.items)
                 (specialization::check_branch_specialization(program, item) => ()))
             (for_all(item in &c.items)
+                (specialization::check_always_applicable(program, item) => ()))
+            (for_all(item in &c.items)
                 (check_crate_item(program, item, &c.id) => ()))
             (check_coherence(program, c) => ())
             ------------------------------------------------------------ ("check crate")

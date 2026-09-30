@@ -90,6 +90,14 @@ judgment_fn! {
     ) => Constraints {
         debug(goal, assumptions, env)
 
+        // Its impls do not depend on lifetimes, so codegen decides exactly after
+        // erasure (see `check_always_applicable_impl`).
+        (
+            (if decls.is_always_applicable_trait(&tr.trait_id))!
+            ----------------------------- ("always applicable trait")
+            (decide(decls, env, assumptions, Predicate::IsImplemented(tr)) => Constraints::none(env))
+        )
+
         (
             (decide_by_bound(decls, env, assumptions, goal) => c)
             ----------------------------- ("by bound")
@@ -100,6 +108,7 @@ judgment_fn! {
         (
             (prove(decls, env, assumptions, goal) => c)
             (if allowed_by_mode(&decls, &env, &c))
+            (holds_for_all_lifetimes_if_required(decls, c.env(), assumptions, c.substitution().apply(goal)) => ())
             ----------------------------- ("holds")
             (decide(decls, env, assumptions, goal) => c)
         )
@@ -112,6 +121,32 @@ judgment_fn! {
             (if !provable_with_regions_deferred(&decls, &env, &assumptions, &goal))
             ----------------------------- ("does not hold")
             (decide(decls, env, assumptions, goal) => Constraints::none(env))
+        )
+    }
+}
+
+judgment_fn! {
+    /// Under `spec_always_applicable`, a bound decided as holding must hold
+    /// for every choice of the lifetimes in it.
+    fn holds_for_all_lifetimes_if_required(
+        decls: Program,
+        env: Env,
+        assumptions: Wcs,
+        goal: Wc,
+    ) => () {
+        debug(goal, assumptions, env)
+
+        (
+            (if !decls.feature_gate_enabled(&FeatureGateName::SpecAlwaysApplicable))!
+            ----------------------------- ("not required")
+            (holds_for_all_lifetimes_if_required(decls, _env, _assumptions, _goal) => ())
+        )
+
+        (
+            (if decls.feature_gate_enabled(&FeatureGateName::SpecAlwaysApplicable))!
+            (holds_for_all_lifetimes(decls, env, assumptions, goal, LifetimeSelection::All) => _)
+            ----------------------------- ("always applicable")
+            (holds_for_all_lifetimes_if_required(decls, env, assumptions, goal) => ())
         )
     }
 }
@@ -129,6 +164,9 @@ pub enum LifetimeSelection {
     /// `TypingMode::Reflection`).
     #[grammar(erased)]
     Erased,
+    /// All of them (`spec_always_applicable`).
+    #[grammar(all)]
+    All,
 }
 
 judgment_fn! {
@@ -162,6 +200,7 @@ fn quantify_lifetimes(env: &Env, goal: &Wc, selection: &LifetimeSelection) -> Fa
     let mut fresh = |lt: &Lt| -> Lt {
         let selected = match selection {
             LifetimeSelection::Erased => matches!(lt, Lt::Erased),
+            LifetimeSelection::All => true,
         };
         if selected {
             env.fresh_universal(ParameterKind::Lt).upcast()

@@ -30,4 +30,9 @@ pub enum FeatureGateName {
     /// every choice of its erased lifetimes.
     #[grammar(spec_bail_on_regions)]
     SpecBailOnRegions,
+    /// `#![feature(spec_always_applicable)]`: a bound is decided as holding
+    /// only if it holds for every choice of its lifetimes; and
+    /// `always_applicable` traits.
+    #[grammar(spec_always_applicable)]
+    SpecAlwaysApplicable,
 }

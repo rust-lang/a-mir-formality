@@ -52,6 +52,7 @@ pub enum SpecMode {
     Strict,
     CommitAndVerify,
     BailOnRegions,
+    AlwaysApplicable,
 }
 
 impl SpecMode {
@@ -59,6 +60,7 @@ impl SpecMode {
         SpecMode::Strict,
         SpecMode::CommitAndVerify,
         SpecMode::BailOnRegions,
+        SpecMode::AlwaysApplicable,
     ];
 
     fn name(self) -> &'static str {
@@ -66,6 +68,7 @@ impl SpecMode {
             SpecMode::Strict => "strict",
             SpecMode::CommitAndVerify => "commit-and-verify",
             SpecMode::BailOnRegions => "bail-on-regions",
+            SpecMode::AlwaysApplicable => "always-applicable",
         }
     }
 
@@ -79,6 +82,10 @@ impl SpecMode {
             SpecMode::BailOnRegions => vec![
                 FeatureGateName::BranchSpecialization,
                 FeatureGateName::SpecBailOnRegions,
+            ],
+            SpecMode::AlwaysApplicable => vec![
+                FeatureGateName::BranchSpecialization,
+                FeatureGateName::SpecAlwaysApplicable,
             ],
         }
     }
