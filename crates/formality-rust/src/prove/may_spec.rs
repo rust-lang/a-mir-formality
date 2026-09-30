@@ -3,7 +3,7 @@
 //! `may_spec` bound in scope (`decide_by_bound`), or outright (`decide`). See
 //! the "Branch specialization" chapter of the book.
 
-use crate::grammar::{ParameterKind, Predicate, Wc, Wcs};
+use crate::grammar::{FeatureGateName, ParameterKind, Predicate, Wc, Wcs};
 use crate::prove::{decls::Program, env::Env, prove, Constraints};
 use formality_core::judgment_fn;
 use formality_core::visit::CoreVisit;
@@ -47,6 +47,13 @@ judgment_fn! {
     }
 }
 
+/// May a decision leave the region constraints `c` (from `env`) to the
+/// borrow checker? Strict: no. `spec_commit_and_verify`: yes.
+fn allowed_by_mode(decls: &Program, env: &Env, c: &Constraints) -> bool {
+    decls.feature_gate_enabled(&FeatureGateName::SpecCommitAndVerify)
+        || leaves_no_region_constraint(env, c)
+}
+
 /// No new pending outlives obligation and no equation of a body region
 /// variable in `c`?
 fn leaves_no_region_constraint(env: &Env, c: &Constraints) -> bool {
@@ -87,10 +94,10 @@ judgment_fn! {
             (decide(decls, env, assumptions, goal) => c)
         )
 
-        // Holds, with no region constraint left behind (strict).
+        // Holds, with region constraints as the mode allows.
         (
             (prove(decls, env, assumptions, goal) => c)
-            (if leaves_no_region_constraint(&env, &c))
+            (if allowed_by_mode(&decls, &env, &c))
             ----------------------------- ("holds")
             (decide(decls, env, assumptions, goal) => c)
         )

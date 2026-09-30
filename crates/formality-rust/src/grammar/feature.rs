@@ -21,4 +21,8 @@ pub enum FeatureGateName {
     /// where-clauses and `if impls .. { } else { }` statements.
     #[grammar(branch_specialization)]
     BranchSpecialization,
+    /// `#![feature(spec_commit_and_verify)]`: a decision may leave region
+    /// constraints to the borrow checker (strict, the default, may not).
+    #[grammar(spec_commit_and_verify)]
+    SpecCommitAndVerify,
 }

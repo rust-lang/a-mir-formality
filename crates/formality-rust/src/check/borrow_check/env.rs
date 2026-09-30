@@ -192,9 +192,6 @@ impl TypeckEnv {
             // We already filtered this above
             assert!(c.known_true);
 
-            // We don't have any existential variables, so there can't be a substitution
-            assert!(c.substitution().is_empty());
-
             match self.convert_to_pending_outlives(c) {
                 Some(p_o) => pending_outlives_sets.push((p_o, v, proof_tree)),
                 None => {
@@ -263,6 +260,26 @@ impl TypeckEnv {
     // any other sort of where-clause is found.
     fn convert_to_pending_outlives(&self, c: &Constraints) -> Option<BTreeSet<PendingOutlives>> {
         let mut c_outlives = BTreeSet::default();
+
+        // The type checker has no existential *type* variables, so a
+        // substitution can only bind one of the body's region variables: the
+        // prover equated it with another lifetime (e.g. an impl for
+        // `&'static u32` matched against `&'x u32`). Regions are the borrow
+        // checker's to infer, so hand it the equality as a pair of outlives
+        // constraints rather than substituting.
+        for (v, p) in c.substitution().clone() {
+            let v: Parameter = v.upcast();
+            match (&v, &p) {
+                (Parameter::Lt(_), Parameter::Lt(_)) => {
+                    c_outlives.insert(PendingOutlives {
+                        a: v.clone(),
+                        b: p.clone(),
+                    });
+                    c_outlives.insert(PendingOutlives { a: p, b: v });
+                }
+                _ => panic!("type checker has no existential type variables, but `{v:?}` was substituted with `{p:?}`"),
+            }
+        }
 
         for pending in c.env.pending() {
             match pending.downcast::<Predicate>() {
