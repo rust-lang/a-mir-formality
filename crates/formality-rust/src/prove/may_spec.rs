@@ -58,6 +58,23 @@ judgment_fn! {
             ----------------------------- ("bound unifies")
             (decide_by_bound(decls, env, assumptions, goal) => c)
         )
+
+        // A `for<..>` bound decides its instances: the caller's "yes" covers
+        // every instantiation, and its "no" means no impl matches at any
+        // (a bound that fails only for some lifetimes is never decided "no").
+        (
+            (let bounds = may_spec_bounds(&assumptions))
+            (if !bounds.is_empty())!
+            (bound in bounds)
+            (if let Wc::ForAll(binder) = &bound)
+            (let (env, subst) = env.existential_substitution(binder))
+            (let instance = binder.instantiate_with(&subst).unwrap())
+            (unify_bounds(decls, &env, assumptions, instance, goal) => c)
+            (let c = c.pop_subst(&subst))
+            (if allowed_by_mode(&decls, &env, &c))
+            ----------------------------- ("bound instance")
+            (decide_by_bound(decls, env, assumptions, goal) => c)
+        )
     }
 }
 

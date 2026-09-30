@@ -190,3 +190,31 @@ fn always_applicable_trait_rejects_bound_on_ordinary_trait() {
               condition evaluated to false: `wc.free_variables().is_empty()`
     "#]])
 }
+
+/// With `Tr` always applicable, `if impls T: Tr<'x>` needs no `may_spec` at
+/// all (compare `may_spec_higher_ranked_bound_does_not_decide_instance`).
+#[test]
+fn always_applicable_trait_higher_ranked_instance() {
+    FormalityTest::new(crates![crate foo {
+        always_applicable trait Tr<'a> {}
+        impl<'a> Tr<'a> for u32 {}
+        fn needs<'x, T>() -> () where T: Tr<'x> { }
+        fn spec<'x, T>() -> () {
+            if impls T: Tr<'x> { needs::<'x, T>(); println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            exists<'x> {
+                spec::<'x, u32>();
+                spec::<'x, i32>();
+            }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            the rule "always applicable trait" at (specialization.rs) failed because
+              condition evaluated to false: `*enabled`
+        commit-and-verify: as strict
+        bail-on-regions: as strict
+        always-applicable: ok, prints "1\n2\n"
+    "#]])
+}

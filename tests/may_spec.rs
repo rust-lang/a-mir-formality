@@ -307,7 +307,10 @@ fn may_spec_subtrait_bound_does_not_decide_supertrait() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(!ty_0 : Super), via: @ may_spec(!ty_0 : Sub), assumptions: {@ may_spec(!ty_0 : Sub)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/may_spec.rs:64:1: no applicable rules for unify_bounds { a: Sub(!ty_0), b: Super(!ty_0), assumptions: {@ may_spec(!ty_0 : Sub)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            the rule "bound instance" at (may_spec.rs) failed because
+              pattern `Wc::ForAll(binder)` did not match value `Sub(!ty_0)`
+
+            crates/formality-rust/src/prove/may_spec.rs:81:1: no applicable rules for unify_bounds { a: Sub(!ty_0), b: Super(!ty_0), assumptions: {@ may_spec(!ty_0 : Sub)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "same bound" at (may_spec.rs) failed because
               condition evaluated to false: `bounds.contains(&goal)`
@@ -340,7 +343,10 @@ fn may_spec_supertrait_bound_does_not_decide_subtrait() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(!ty_0 : Sub), via: @ may_spec(!ty_0 : Super), assumptions: {@ may_spec(!ty_0 : Super)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/may_spec.rs:64:1: no applicable rules for unify_bounds { a: Super(!ty_0), b: Sub(!ty_0), assumptions: {@ may_spec(!ty_0 : Super)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            the rule "bound instance" at (may_spec.rs) failed because
+              pattern `Wc::ForAll(binder)` did not match value `Super(!ty_0)`
+
+            crates/formality-rust/src/prove/may_spec.rs:81:1: no applicable rules for unify_bounds { a: Super(!ty_0), b: Sub(!ty_0), assumptions: {@ may_spec(!ty_0 : Super)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "same bound" at (may_spec.rs) failed because
               condition evaluated to false: `bounds.contains(&goal)`
@@ -1118,6 +1124,246 @@ fn if_impls_free_local_region() {
 }
 
 // ---------------------------------------------------------------------------
+// Higher-ranked bounds
+// ---------------------------------------------------------------------------
+
+/// `may_spec(for<'a> T: Bar<'a>)` decides `if impls for<'b> T: Bar<'b>` (the
+/// same bound). For `i32`, the bound is closed and unprovable at the call.
+#[test]
+fn if_impls_higher_ranked_with_may_spec() {
+    FormalityTest::new(crates![crate foo {
+        trait Bar<'a> {}
+        impl<'a> Bar<'a> for u32 {}
+        fn spec<T>() -> () where may_spec(for<'a> T: Bar<'a>) {
+            if impls for<'b> T: Bar<'b> { println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            spec::<u32>();
+            spec::<i32>();
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "1\n2\n"
+        commit-and-verify: as strict
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// A higher-ranked bound on a concrete type is decided on the spot, like any
+/// other: `u32` implements `Bar<'a>` for every `'a`, `i32` for none.
+#[test]
+fn if_impls_higher_ranked_concrete() {
+    FormalityTest::new(crates![crate foo {
+        trait Bar<'a> {}
+        impl<'a> Bar<'a> for u32 {}
+        fn main() -> () {
+            if impls for<'a> u32: Bar<'a> { println!(1_u32); } else { println!(2_u32); }
+            if impls for<'a> i32: Bar<'a> { println!(1_u32); } else { println!(2_u32); }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "1\n2\n"
+        commit-and-verify: as strict
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// A higher-ranked bound is deferred through a generic caller like any
+/// other.
+#[test]
+fn if_impls_higher_ranked_decided_through_generic_caller() {
+    FormalityTest::new(crates![crate foo {
+        trait Bar<'a> {}
+        impl<'a> Bar<'a> for u32 {}
+        fn spec<T>() -> () where may_spec(for<'a> T: Bar<'a>) {
+            if impls for<'b> T: Bar<'b> { println!(1_u32); } else { println!(2_u32); }
+        }
+        fn caller<T>() -> () where may_spec(for<'a> T: Bar<'a>) {
+            spec::<T>();
+        }
+        fn main() -> () {
+            caller::<u32>();
+            caller::<i32>();
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "1\n2\n"
+        commit-and-verify: as strict
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// `may_spec(for<'a> T: Tr<'a>)` decides `T: Tr<'x>`: the caller's "yes" covers
+/// every `'x`.
+#[test]
+fn may_spec_higher_ranked_bound_decides_instance() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a> Tr<'a> for u32 {}
+        fn needs<'x, T>() -> () where T: Tr<'x> { }
+        fn spec<'x, T>() -> () where may_spec(for<'a> T: Tr<'a>) {
+            if impls T: Tr<'x> { needs::<'x, T>(); println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            exists<'x> {
+                spec::<'x, u32>();
+                spec::<'x, i32>();
+            }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "1\n2\n"
+        commit-and-verify: as strict
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// ...also for a body-local `'x`: `'a := 'x` binds only the bound's own `'a`.
+#[test]
+fn may_spec_higher_ranked_bound_decides_instance_over_local_region() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a> Tr<'a> for u32 {}
+        fn needs<'x, T>() -> () where T: Tr<'x> { }
+        fn spec<T>() -> () where may_spec(for<'a> T: Tr<'a>) {
+            exists<'x> {
+                if impls T: Tr<'x> { needs::<'x, T>(); println!(1_u32); } else { println!(2_u32); }
+            }
+        }
+        fn main() -> () {
+            spec::<u32>();
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "1\n"
+        commit-and-verify: as strict
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// A family that fails only for some lifetimes (`impl Tr<'static> for u32`)
+/// is never decided "no": `main` cannot decide it (the constraint on `'a` is
+/// left to the borrow checker, which cannot discharge it), so no "no" that
+/// the erased instance would contradict (`u32: Tr<'erased>` holds) is ever
+/// passed along.
+#[test]
+fn may_spec_higher_ranked_bound_lifetime_dependent_undecided() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl Tr<'static> for u32 {}
+        fn needs<'x, T>() -> () where T: Tr<'x> { }
+        fn spec<'x, T>() -> () where may_spec(for<'a> T: Tr<'a>) {
+            if impls T: Tr<'x> { needs::<'x, T>(); println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            exists<'x> {
+                spec::<'x, u32>();
+            }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(for <lt> u32 : Tr <^lt0_0>), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: for <lt> Tr(u32, ^lt0_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "does not hold" at (may_spec.rs) failed because
+              condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
+
+            the rule "holds" at (may_spec.rs) failed because
+              condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
+        commit-and-verify: err:
+            crates/formality-rust/src/check/borrow_check/outlives.rs:58:1: no applicable rules for can_outlive { param_a: !lt_1, param_b: ' static, assumptions: {@ wf(?lt_1)}, env: TypeckEnv { env: Env { variables: [?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(()) }, outlives: {pending_outlives(!lt_1, ' static)} }
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// With a blanket impl generic over `'a`, `T: Tr<'x>` holds outright and the
+/// family bound is not consulted.
+#[test]
+fn may_spec_higher_ranked_instance_blanket_impl() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a, T> Tr<'a> for T {}
+        fn needs<'x, T>() -> () where T: Tr<'x> { }
+        fn spec<'x, T>() -> () where may_spec(for<'a> T: Tr<'a>) {
+            if impls T: Tr<'x> { needs::<'x, T>(); println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            exists<'x> {
+                spec::<'x, u32>();
+            }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: ok, prints "1\n"
+        commit-and-verify: as strict
+        bail-on-regions: as strict
+        always-applicable: as strict
+    "#]])
+}
+
+/// The reverse is not decided: `main`'s "yes" for `Tag<'x>: Tr<'x>` says
+/// nothing about the other lifetimes.
+#[test]
+fn may_spec_instance_bound_does_not_decide_higher_ranked() {
+    FormalityTest::new(crates![crate foo {
+        struct Tag<'a> {}
+        trait Tr<'a> {}
+        impl<'a> Tr<'a> for Tag<'a> {}
+        fn needs_all<T>() -> () where for<'a> T: Tr<'a> { }
+        fn spec<'x, T>() -> () where may_spec(T: Tr<'x>) {
+            if impls for<'a> T: Tr<'a> { needs_all::<T>(); println!(1_u32); } else { println!(2_u32); }
+        }
+        fn main() -> () {
+            exists<'x> {
+                spec::<'x, Tag<'x>>();
+            }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(for <lt> !ty_0 : Tr <^lt0_0>), via: @ may_spec(!ty_0 : Tr <!lt_1>), assumptions: {@ may_spec(!ty_0 : Tr <!lt_1>)}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "bound instance" at (may_spec.rs) failed because
+              pattern `Wc::ForAll(binder)` did not match value `Tr(!ty_0, !lt_1)`
+
+            crates/formality-rust/src/prove/may_spec.rs:81:1: no applicable rules for unify_bounds { a: Tr(!ty_0, !lt_1), b: for <lt> Tr(!ty_0, ^lt0_0), assumptions: {@ may_spec(!ty_0 : Tr <!lt_1>)}, env: Env { variables: [!lt_1, !ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "same bound" at (may_spec.rs) failed because
+              condition evaluated to false: `bounds.contains(&goal)`
+                bounds = [Tr(!ty_0, !lt_1)]
+                &goal = for <lt> Tr(!ty_0, ^lt0_0)
+
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Tr(!ty_0, !lt_2), via: @ may_spec(!ty_0 : Tr <!lt_1>), assumptions: {@ may_spec(!ty_0 : Tr <!lt_1>)}, env: Env { variables: [!lt_1, !ty_0, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !ty_0 = Tag<?lt_3>, via: @ may_spec(!ty_0 : Tr <!lt_2>), assumptions: {Tr(!ty_0, !lt_1), @ may_spec(!ty_0 : Tr <!lt_2>)}, env: Env { variables: [!lt_2, !ty_0, !lt_1, ?lt_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !ty_0 = Tag<?lt_3>, via: Tr(!ty_0, !lt_1), assumptions: {Tr(!ty_0, !lt_1), @ may_spec(!ty_0 : Tr <!lt_2>)}, env: Env { variables: [!lt_2, !ty_0, !lt_1, ?lt_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: !ty_0, via: @ may_spec(!ty_0 : Tr <!lt_2>), assumptions: {Tr(!ty_0, !lt_1), @ may_spec(!ty_0 : Tr <!lt_2>)}, env: Env { variables: [!lt_2, !ty_0, !lt_1, ?lt_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: !ty_0, via: Tr(!ty_0, !lt_1), assumptions: {Tr(!ty_0, !lt_1), @ may_spec(!ty_0 : Tr <!lt_2>)}, env: Env { variables: [!lt_2, !ty_0, !lt_1, ?lt_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: Tag<?lt_3>, via: @ may_spec(!ty_0 : Tr <!lt_2>), assumptions: {Tr(!ty_0, !lt_1), @ may_spec(!ty_0 : Tr <!lt_2>)}, env: Env { variables: [!lt_2, !ty_0, !lt_1, ?lt_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: Tag<?lt_3>, via: Tr(!ty_0, !lt_1), assumptions: {Tr(!ty_0, !lt_1), @ may_spec(!ty_0 : Tr <!lt_2>)}, env: Env { variables: [!lt_2, !ty_0, !lt_1, ?lt_3], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "trait implied bound" at (prove_wc.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`
+        commit-and-verify: as strict
+        bail-on-regions: ok, prints "2\n"
+        always-applicable: as strict
+    "#]])
+}
+
+// ---------------------------------------------------------------------------
 // Local regions: reduced to the signature by region inference
 // ---------------------------------------------------------------------------
 
@@ -1144,6 +1390,9 @@ fn if_impls_local_region_via_bound() {
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Static), via: @ may_spec(&!lt_1 u32 : Static), assumptions: {@ wf(?lt_0), @ may_spec(&!lt_1 u32 : Static)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Static), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ may_spec(&!lt_1 u32 : Static)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "bound instance" at (may_spec.rs) failed because
+              pattern `Wc::ForAll(binder)` did not match value `Static(&!lt_1 u32)`
 
             the rule "bound unifies" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
@@ -1211,7 +1460,10 @@ fn may_spec_subtrait_bound_does_not_decide_supertrait_regions() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&!lt_0 u32 : Super), via: @ may_spec(&!lt_0 u32 : Sub), assumptions: {@ may_spec(&!lt_0 u32 : Sub)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/may_spec.rs:64:1: no applicable rules for unify_bounds { a: Sub(&!lt_0 u32), b: Super(&!lt_0 u32), assumptions: {@ may_spec(&!lt_0 u32 : Sub)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            the rule "bound instance" at (may_spec.rs) failed because
+              pattern `Wc::ForAll(binder)` did not match value `Sub(&!lt_0 u32)`
+
+            crates/formality-rust/src/prove/may_spec.rs:81:1: no applicable rules for unify_bounds { a: Sub(&!lt_0 u32), b: Super(&!lt_0 u32), assumptions: {@ may_spec(&!lt_0 u32 : Sub)}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "same bound" at (may_spec.rs) failed because
               condition evaluated to false: `bounds.contains(&goal)`
@@ -1283,6 +1535,9 @@ fn may_spec_local_region_bound_rejected_by_borrowck() {
 
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Super), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ may_spec(&!lt_1 u32 : Super)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
+            the rule "bound instance" at (may_spec.rs) failed because
+              pattern `Wc::ForAll(binder)` did not match value `Super(&!lt_1 u32)`
+
             the rule "bound unifies" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
 
@@ -1344,6 +1599,9 @@ fn may_spec_local_region_bound_accepted() {
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Super), via: @ may_spec(&!lt_1 u32 : Super), assumptions: {@ wf(?lt_0), @ may_spec(&!lt_1 u32 : Super)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Super), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0), @ may_spec(&!lt_1 u32 : Super)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "bound instance" at (may_spec.rs) failed because
+              pattern `Wc::ForAll(binder)` did not match value `Super(&!lt_1 u32)`
 
             the rule "bound unifies" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
