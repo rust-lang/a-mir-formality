@@ -3,10 +3,12 @@
 //! `may_spec` bound in scope (`decide_by_bound`), or outright (`decide`). See
 //! the "Branch specialization" chapter of the book.
 
-use crate::grammar::{FeatureGateName, ParameterKind, Predicate, Wc, Wcs};
+use crate::grammar::{Binder, Fallible, FeatureGateName, Lt, ParameterKind, Predicate, Wc, Wcs};
+use crate::prove::lifetimes::map_lifetimes_in_trait_ref;
 use crate::prove::{decls::Program, env::Env, prove, Constraints};
-use formality_core::judgment_fn;
+use anyhow::bail;
 use formality_core::visit::CoreVisit;
+use formality_core::{judgment_fn, term, Upcast};
 
 /// The `may_spec` bounds among `assumptions`.
 pub fn may_spec_bounds(assumptions: &Wcs) -> Vec<Wc> {
@@ -112,4 +114,77 @@ judgment_fn! {
             (decide(decls, env, assumptions, goal) => Constraints::none(env))
         )
     }
+}
+
+/// `#![feature(spec_bail_on_regions)]`: no `may_spec` needed; codegen
+/// decides, and a lifetime-dependent bound counts as not holding.
+pub fn bail_on_regions(program: &Program) -> bool {
+    program.feature_gate_enabled(&FeatureGateName::SpecBailOnRegions)
+}
+
+/// The lifetimes of a bound `holds_for_all_lifetimes` quantifies over.
+#[term]
+pub enum LifetimeSelection {
+    /// Those erased at codegen (`spec_bail_on_regions`; compare rustc's
+    /// `TypingMode::Reflection`).
+    #[grammar(erased)]
+    Erased,
+}
+
+judgment_fn! {
+    /// `goal` holds for *every* choice of the selected lifetimes: each is
+    /// replaced by a fresh universal lifetime, and the goal must then be
+    /// provable with no region constraint.
+    pub fn holds_for_all_lifetimes(
+        decls: Program,
+        env: Env,
+        assumptions: Wcs,
+        goal: Wc,
+        selection: LifetimeSelection,
+    ) => Constraints {
+        debug(goal, selection, assumptions, env)
+
+        (
+            // No region constraint may be left, so none is deferred.
+            (let (env, goal) = quantify_lifetimes(&env.with_allow_pending_outlives(false), &goal, &selection)?)
+            (prove(decls, env, assumptions, goal) => c)
+            (if c.unconditionally_true())
+            ----------------------------- ("holds for all lifetimes")
+            (holds_for_all_lifetimes(decls, env, assumptions, goal, selection) => c)
+        )
+    }
+}
+
+/// `goal` with each selected lifetime replaced by a fresh universal lifetime
+/// of `env` (under a `for<..>`, the bound lifetimes are left alone).
+fn quantify_lifetimes(env: &Env, goal: &Wc, selection: &LifetimeSelection) -> Fallible<(Env, Wc)> {
+    let mut env = env.clone();
+    let mut fresh = |lt: &Lt| -> Lt {
+        let selected = match selection {
+            LifetimeSelection::Erased => matches!(lt, Lt::Erased),
+        };
+        if selected {
+            env.fresh_universal(ParameterKind::Lt).upcast()
+        } else {
+            lt.clone()
+        }
+    };
+    let goal = replace_lifetimes_in_wc(goal, &mut fresh)?;
+    Ok((env, goal))
+}
+
+fn replace_lifetimes_in_wc(wc: &Wc, f: &mut impl FnMut(&Lt) -> Lt) -> Fallible<Wc> {
+    Ok(match wc {
+        Wc::Predicate(Predicate::IsImplemented(tr)) => {
+            Predicate::is_implemented(map_lifetimes_in_trait_ref(tr, f)).upcast()
+        }
+        Wc::Predicate(Predicate::NotImplemented(tr)) => {
+            Predicate::not_implemented(map_lifetimes_in_trait_ref(tr, f)).upcast()
+        }
+        Wc::ForAll(binder) => {
+            let (vars, wc) = binder.open();
+            Wc::for_all(Binder::new(&vars, replace_lifetimes_in_wc(&wc, f)?))
+        }
+        other => bail!("cannot decide `{other:?}` for all lifetimes"),
+    })
 }

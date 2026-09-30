@@ -51,15 +51,21 @@ impl BorrowCheckFailure {
 pub enum SpecMode {
     Strict,
     CommitAndVerify,
+    BailOnRegions,
 }
 
 impl SpecMode {
-    pub const ALL: &[SpecMode] = &[SpecMode::Strict, SpecMode::CommitAndVerify];
+    pub const ALL: &[SpecMode] = &[
+        SpecMode::Strict,
+        SpecMode::CommitAndVerify,
+        SpecMode::BailOnRegions,
+    ];
 
     fn name(self) -> &'static str {
         match self {
             SpecMode::Strict => "strict",
             SpecMode::CommitAndVerify => "commit-and-verify",
+            SpecMode::BailOnRegions => "bail-on-regions",
         }
     }
 
@@ -69,6 +75,10 @@ impl SpecMode {
             SpecMode::CommitAndVerify => vec![
                 FeatureGateName::BranchSpecialization,
                 FeatureGateName::SpecCommitAndVerify,
+            ],
+            SpecMode::BailOnRegions => vec![
+                FeatureGateName::BranchSpecialization,
+                FeatureGateName::SpecBailOnRegions,
             ],
         }
     }

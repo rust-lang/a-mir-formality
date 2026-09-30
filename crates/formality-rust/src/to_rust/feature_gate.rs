@@ -13,6 +13,7 @@ pub fn lower_feature_gate(gate: &FeatureGate) -> Fallible<syntax::Attr> {
         FeatureGateName::NegativeImpls => "negative_impls",
         FeatureGateName::BranchSpecialization => "branch_specialization",
         FeatureGateName::SpecCommitAndVerify => "spec_commit_and_verify",
+        FeatureGateName::SpecBailOnRegions => "spec_bail_on_regions",
     };
     Ok(syntax::Attr::Feature(name.to_owned()))
 }

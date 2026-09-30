@@ -9,7 +9,10 @@ use crate::grammar::{
     expr::{Block, Expr},
     Fallible, Lt, Parameter, ParameterKind, Ty,
 };
-use crate::prove::{erase_lifetimes_in_wc, is_closed, prove, Env};
+use crate::prove::{
+    bail_on_regions, erase_lifetimes_in_wc, holds_for_all_lifetimes, is_closed, prove, Env,
+    LifetimeSelection,
+};
 use formality_core::{judgment_fn, Upcast};
 use libspecr::hidden::GcCow;
 use libspecr::list;
@@ -120,7 +123,8 @@ judgment_fn! {
     /// evaluated on the concrete types, every lifetime erased, a region
     /// constraint on an erased lifetime counting as satisfied. Sound because
     /// type checking proved `may_spec(bound)` (see the book, "Deciding at
-    /// codegen").
+    /// codegen"). Under `spec_bail_on_regions`, "yes" only if it holds for
+    /// every choice of the erased lifetimes.
     pub(super) fn decide_at_codegen(
         cfn: CodegenFn,
         bound: grammar::MaySpecBound,
@@ -128,6 +132,7 @@ judgment_fn! {
         debug(bound)
 
         (
+            (if !bail_on_regions(&cfn.typeck_env.program))!
             (prove(&cfn.typeck_env.program, Env::default(), &cfn.assumptions, erased(&bound)) => c)
             (if c.unconditionally_true())
             ---- ("holds")
@@ -135,8 +140,23 @@ judgment_fn! {
         )
 
         (
+            (if !bail_on_regions(&cfn.typeck_env.program))!
             (if !holds_at_codegen(&cfn, &bound))
             ---- ("does not hold")
+            (decide_at_codegen(cfn, bound) => false)
+        )
+
+        (
+            (if bail_on_regions(&cfn.typeck_env.program))!
+            (holds_for_all_lifetimes(&cfn.typeck_env.program, Env::default(), &cfn.assumptions, erased(&bound), LifetimeSelection::Erased) => _)
+            ---- ("bail on regions: holds for every lifetime")
+            (decide_at_codegen(cfn, bound) => true)
+        )
+
+        (
+            (if bail_on_regions(&cfn.typeck_env.program))!
+            (if !holds_for_all_lifetimes(&cfn.typeck_env.program, Env::default(), &cfn.assumptions, erased(&bound), LifetimeSelection::Erased).is_proven())
+            ---- ("bail on regions: does not hold for every lifetime")
             (decide_at_codegen(cfn, bound) => false)
         )
     }

@@ -159,6 +159,7 @@ fn may_spec_accepted() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -175,6 +176,7 @@ fn may_spec_does_not_require_supertraits() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -196,6 +198,7 @@ fn may_spec_requires_well_formed_parameters() {
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -220,6 +223,7 @@ fn may_spec_concrete_caller_decides() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -235,11 +239,12 @@ fn may_spec_generic_caller_without_bound() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/may_spec.rs:30:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -257,6 +262,7 @@ fn may_spec_generic_caller_with_positive_bound() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -274,6 +280,7 @@ fn may_spec_generic_caller_with_may_spec_bound() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -304,6 +311,7 @@ fn may_spec_subtrait_bound_does_not_decide_supertrait() {
 
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Sub(!ty_0), via: Super(?ty_1), assumptions: {@ may_spec(!ty_0 : Sub)}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -331,6 +339,7 @@ fn may_spec_supertrait_bound_does_not_decide_subtrait() {
 
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: Sub(!ty_0), via: Super(?ty_1), assumptions: {@ may_spec(!ty_0 : Super)}, env: Env { variables: [!ty_0, ?ty_1], bias: Soundness, pending: [], allow_pending_outlives: true } }
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -349,6 +358,7 @@ fn may_spec_two_bounds() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -367,11 +377,12 @@ fn may_spec_generic_wrapper_is_undecided() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/may_spec.rs:30:1: no applicable rules for decide_by_bound { goal: Bar(Wrapper<!ty_0>), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Bar(Wrapper<!ty_0>), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -390,11 +401,12 @@ fn may_spec_negative_impl_does_not_decide_generic() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/may_spec.rs:30:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -420,6 +432,7 @@ fn may_spec_decided_downstream() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -439,6 +452,7 @@ fn if_impls_concrete_holds() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -454,6 +468,7 @@ fn if_impls_concrete_does_not_hold() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -471,6 +486,7 @@ fn if_impls_local_type_does_not_hold() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -494,7 +510,7 @@ fn if_impls_generic_without_may_spec() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/may_spec.rs:30:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !ty_0 = u32, via: Bar(!ty_0), assumptions: {Bar(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
@@ -505,6 +521,7 @@ fn if_impls_generic_without_may_spec() {
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: ok, prints "1\n2\n"
     "#]])
 }
 
@@ -526,6 +543,7 @@ fn if_impls_generic_with_may_spec() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -545,6 +563,7 @@ fn if_impls_blanket_impl_holds() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -568,6 +587,7 @@ fn if_impls_decided_through_generic_caller() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "2\n1\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -594,6 +614,7 @@ fn if_impls_decided_downstream() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -616,6 +637,7 @@ fn if_impls_then_branch_assumes_bound() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -635,6 +657,7 @@ fn if_impls_else_branch_does_not_assume_bound() {
             the rule "trait implied bound" at (prove_wc.rs) failed because
               expression evaluated to an empty collection: `decls.trait_invariants()`
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -659,6 +682,29 @@ fn if_impls_else_branch_nested_call() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "3\n2\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
+    "#]])
+}
+
+/// Without `may_spec`, nothing decides a nested use in the else-branch
+/// either: the else-branch assumes nothing, in every mode.
+#[test]
+fn if_impls_else_branch_without_may_spec() {
+    FormalityTest::new(crates![crate foo {
+        trait Bar {}
+        fn needs_may_spec<T>() -> () where may_spec(T: Bar) { }
+        fn spec<T>() -> () {
+            if impls T: Bar { } else { needs_may_spec::<T>(); }
+        }
+    }])
+    .spec_modes(expect_test::expect![[r#"
+        strict: err:
+            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Bar(!ty_0), assumptions: {}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+            the rule "trait implied bound" at (prove_wc.rs) failed because
+              expression evaluated to an empty collection: `decls.trait_invariants()`
+        commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -680,6 +726,7 @@ fn if_impls_static_argument_is_erased_at_codegen() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
 
@@ -703,7 +750,7 @@ fn if_impls_lifetime_dependent() {
     }])
     .spec_modes(expect_test::expect![[r#"
         strict: err:
-            crates/formality-rust/src/prove/may_spec.rs:30:1: no applicable rules for decide_by_bound { goal: Static(Tag<!lt_0>), assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Static(Tag<!lt_0>), assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -712,6 +759,7 @@ fn if_impls_lifetime_dependent() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: err:
             crates/formality-rust/src/check/borrow_check/outlives.rs:58:1: no applicable rules for can_outlive { param_a: !lt_1, param_b: ' static, assumptions: {}, env: TypeckEnv { env: Env { variables: [!lt_1], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(()) }, outlives: {pending_outlives(!lt_1, ' static)} }
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
 
@@ -732,6 +780,7 @@ fn if_impls_lifetime_dependent_implied() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
 
@@ -754,6 +803,7 @@ fn if_impls_lifetime_independent() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -774,6 +824,7 @@ fn may_spec_lifetime_dependent_delegated() {
     .spec_modes(expect_test::expect![[r#"
         strict: ok, prints "1\n"
         commit-and-verify: as strict
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
 
@@ -798,7 +849,7 @@ fn may_spec_lifetime_dependent_local_caller() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(Tag<?lt_0> : Static), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/may_spec.rs:30:1: no applicable rules for decide_by_bound { goal: Static(Tag<?lt_0>), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Static(Tag<?lt_0>), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -806,6 +857,7 @@ fn may_spec_lifetime_dependent_local_caller() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok, prints "1\n"
+        bail-on-regions: as strict
     "#]])
 }
 
@@ -828,7 +880,7 @@ fn if_impls_local_region_residue_on_signature() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(&?lt_0 u32 : Static), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/may_spec.rs:30:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Static(&?lt_0 u32), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -837,6 +889,7 @@ fn if_impls_local_region_residue_on_signature() {
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: err:
             crates/formality-rust/src/check/borrow_check/outlives.rs:58:1: no applicable rules for can_outlive { param_a: !lt_1, param_b: ' static, assumptions: {@ wf(?lt_2)}, env: TypeckEnv { env: Env { variables: [!lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(()) }, outlives: {pending_outlives(' static, ?lt_2), pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ' static)} }
+        bail-on-regions: ok
     "#]])
 }
 
@@ -859,7 +912,7 @@ fn if_impls_free_local_region() {
         strict: err:
             crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: @ may_spec(Tag<?lt_0> : Static), via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
-            crates/formality-rust/src/prove/may_spec.rs:30:1: no applicable rules for decide_by_bound { goal: Static(Tag<?lt_0>), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
+            crates/formality-rust/src/prove/may_spec.rs:32:1: no applicable rules for decide_by_bound { goal: Static(Tag<?lt_0>), assumptions: {@ wf(?lt_0)}, env: Env { variables: [?lt_0], bias: Soundness, pending: [], allow_pending_outlives: true } }
 
             the rule "does not hold" at (may_spec.rs) failed because
               condition evaluated to false: `!provable_with_regions_deferred(&decls, &env, &assumptions, &goal)`
@@ -867,5 +920,6 @@ fn if_impls_free_local_region() {
             the rule "holds" at (may_spec.rs) failed because
               condition evaluated to false: `allowed_by_mode(&decls, &env, &c)`
         commit-and-verify: ok, prints "1\n"
+        bail-on-regions: ok, prints "2\n"
     "#]])
 }
