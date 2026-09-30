@@ -40,6 +40,12 @@ pub enum AtomicPredicate {
     #[grammar(!$v0)]
     NotImplemented(TraitRef),
 
+    /// `may_spec(T: Trait)`: it is decided whether the bound holds
+    /// (`prove::may_spec`). As a where-clause on a fn, it obliges each caller
+    /// to decide it.
+    #[grammar(@may_spec($v0))]
+    MaySpec(TraitRef),
+
     #[cast]
     AliasEq(AliasTy, Ty),
 
@@ -85,6 +91,7 @@ impl std::ops::BitAnd for Coinductive {
 pub enum Skeleton {
     IsImplemented(TraitId),
     NotImplemented(TraitId),
+    MaySpec(TraitRef),
     AliasEq(AliasName),
     WellFormed,
     WellFormedTraitRef(TraitId),
@@ -105,6 +112,7 @@ impl Skeleton {
             Skeleton::Equals | Skeleton::Sub | Skeleton::Outlives | Skeleton::WellFormed => true,
             Skeleton::IsImplemented(_)
             | Skeleton::NotImplemented(_)
+            | Skeleton::MaySpec(_)
             | Skeleton::AliasEq(_)
             | Skeleton::WellFormedTraitRef(_)
             | Skeleton::IsLocal(_)
@@ -137,6 +145,8 @@ impl AtomicPredicate {
                 Skeleton::NotImplemented(trait_id.clone()),
                 parameters.clone(),
             ),
+            // A `may_spec` matches an assumption only if the bound is the same.
+            AtomicPredicate::MaySpec(trait_ref) => (Skeleton::MaySpec(trait_ref.clone()), vec![]),
             AtomicPredicate::AliasEq(AliasTy { name, parameters }, ty) => {
                 let mut params = parameters.clone();
                 params.push(ty.clone().upcast());

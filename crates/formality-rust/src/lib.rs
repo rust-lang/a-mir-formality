@@ -26,6 +26,9 @@ formality_core::declare_language! {
             "exists",
             "call",
             "print",
+
+            "impls",
+            "may_spec",
         ];
     }
 }

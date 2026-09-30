@@ -228,6 +228,9 @@ impl ToPredicates for WhereClause {
             WhereClause::AliasEq(alias_ty, ty) => {
                 AtomicPredicate::AliasEq(alias_ty.clone(), ty.clone()).upcast()
             }
+            WhereClause::MaySpec(self_ty, trait_id, parameters) => {
+                AtomicPredicate::may_spec(trait_id.with(self_ty, parameters)).upcast()
+            }
             WhereClause::Outlives(a, b) => AtomicPredicate::outlives(a, b).upcast(),
             WhereClause::ForAll(binder) => {
                 let (vars, wc) = binder.open();

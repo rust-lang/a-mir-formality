@@ -37,6 +37,9 @@ pub fn lower_stmt(ctx: &mut Context, stmt: &Stmt) -> Fallible<syntax::Stmt> {
             then_block: lower_block(ctx, then_block)?,
             else_block: lower_block(ctx, &else_block.block)?,
         }),
+        Stmt::IfImpls { .. } => {
+            anyhow::bail!("`if impls` has no Rust equivalent and cannot be lowered")
+        }
         Stmt::Expr { expr } => Ok(syntax::Stmt::Expr(lower_expr(ctx, expr)?)),
         Stmt::Loop { label, body } => Ok(syntax::Stmt::Loop {
             label: label.as_ref().map(|l| l.id.deref().clone()),
