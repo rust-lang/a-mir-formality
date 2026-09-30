@@ -1762,3 +1762,66 @@ fn for_all_placeholder_outlives_local() {
         failed at (proven_set.rs) because
           `!lt_1 : ?lt_0` cannot be restated without `!lt_1`"#]])
 }
+
+/// `&'a u32: Super` given `&'a u32: Sub` and `impl Super for &'static u32`
+/// tries `'a = 'static` via mutual outlives, deferring both directions.
+/// Re-deferring an obligation already pending must not grow the
+/// environment, or the search never reaches a fixed point.
+#[test]
+fn lifetime_eq_via_mutual_outlives_terminates() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        trait Sub where Self: Super {}
+        impl Super for &'static u32 {}
+        impl Sub for &'static u32 {}
+        fn spec<'x>(y: &'x u32) -> () where &'x u32: Super { }
+        fn caller<'a>(x: &'a u32) -> () where &'a u32: Sub {
+            spec::<'a>(x);
+        }
+    }])
+    .skip_execute()
+    .ok()
+}
+
+/// Matching `impl Tr<'static> for u32` against `for<'a> u32: Tr<'a>` needs
+/// `'a: 'static` (lifetime equality via mutual outlives).
+#[test]
+fn for_all_bound_with_impl_for_static() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl Tr<'static> for u32 {}
+        fn needs_all<T>() -> () where for<'a> T: Tr<'a> { }
+        fn main() -> () {
+            needs_all::<u32>();
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error: implementation of `Tr` is not general enough
+          --> lib.rs
+           |
+        12 |     needs_all::<u32>();
+           |     ^^^^^^^^^^^^^^^^^^ implementation of `Tr` is not general enough
+           |
+           = note: `u32` must implement `Tr<'0>`, for any lifetime `'0`...
+           = note: ...but it actually implements `Tr<'static>`
+
+        error: could not compile `foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        failed at (proven_set.rs) because
+          `!lt_1 : ' static` cannot be restated without `!lt_1`"#]])
+}
+
+/// ...whereas an impl for every lifetime satisfies it.
+#[test]
+fn for_all_bound_holds_for_every_lifetime() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a> Tr<'a> for u32 {}
+        fn needs_all<T>() -> () where for<'a> T: Tr<'a> { }
+        fn main() -> () {
+            needs_all::<u32>();
+        }
+    }])
+    .ok()
+}
