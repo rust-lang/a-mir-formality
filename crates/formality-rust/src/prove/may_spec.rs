@@ -9,9 +9,13 @@
 
 use crate::grammar::{
     AtomicPredicate, FeatureGateName, ParameterKind, Predicate, Predicates, TraitRef,
+    VarSubstitution,
 };
 use crate::prove::lifetimes::erase_lifetimes_in_predicate;
-use crate::prove::{decls::Program, env::Env, prove, prove_via::prove_via, Constraints};
+use crate::prove::{
+    decls::Program, env::Env, negation::is_definitely_not_proveable, prove, prove_via::prove_via,
+    Constraints,
+};
 use formality_core::visit::CoreVisit;
 use formality_core::{judgment_fn, ProvenSet, Upcast};
 
@@ -77,6 +81,25 @@ fn allowed_by_mode(decls: &Program, env: &Env, c: &Constraints) -> bool {
 /// variable in `c`?
 fn leaves_no_region_constraint(env: &Env, c: &Constraints) -> bool {
     c.env().pending().len() == env.pending().len() && c.substitution().is_empty()
+}
+
+/// `env`, `assumptions` and `goal` with each region variable of the body (an
+/// existential lifetime) replaced by a fresh universal one. Lifetimes never
+/// select an impl, and `prove_for_some_lifetimes` defers every region
+/// constraint, so the search is unchanged.
+fn universal_lifetimes(
+    env: &Env,
+    assumptions: &Predicates,
+    goal: &TraitRef,
+) -> (Env, Predicates, TraitRef) {
+    let mut fresh = env.clone();
+    let vs: VarSubstitution = env
+        .variables()
+        .iter()
+        .filter(|v| v.is_existential() && v.kind() == ParameterKind::Lt)
+        .map(|&v| (v, fresh.fresh_universal(ParameterKind::Lt)))
+        .collect();
+    (env.substitute(&vs), vs.apply(assumptions), vs.apply(goal))
 }
 
 /// Does `goal` hold once every lifetime is erased? This is how codegen
@@ -167,6 +190,23 @@ judgment_fn! {
             (if !prove_for_some_lifetimes(&decls, &env, &assumptions, &goal).is_proven())
             (assert !holds_after_erasure(&decls, &env, &assumptions, goal))
             ----------------------------- ("does not hold")
+            (decide(decls, env, assumptions, goal) => Constraints::none(env))
+        )
+
+        // Over a type parameter, but coherence rules out every impl, present or
+        // future (`is_definitely_not_proveable`; needs an env without inference
+        // variables, so the body's region variables are first made universal).
+        // FIXME: formality's coherence does not know fundamental types, so
+        // `&'a T: Bar` is decided "no" although a downstream crate may
+        // `impl Bar for &'static Local`.
+        (
+            (if !is_closed(&goal))!
+            (let (coherence_env, coherence_assumptions, coherence_goal) = universal_lifetimes(&env, &assumptions, &goal))
+            (if coherence_env.only_universal_variables())
+            (is_definitely_not_proveable(&coherence_env, &coherence_assumptions, coherence_goal, |env, assumptions, goal| prove_for_some_lifetimes(&decls, &env, &assumptions, &goal)) => c)
+            (if c.unconditionally_true())
+            (assert !holds_after_erasure(&decls, &env, &assumptions, goal))
+            ----------------------------- ("does not hold, by coherence")
             (decide(decls, env, assumptions, goal) => Constraints::none(env))
         )
     }

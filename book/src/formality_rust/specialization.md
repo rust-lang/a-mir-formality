@@ -51,6 +51,7 @@ with the weakest region constraints is taken; see "Several answers"):
 | by bound | a `may_spec` bound in scope names `WC` (see below) | the caller's |
 | holds | `WC` provable, with region constraints as the mode allows | yes |
 | does not hold | `WC` mentions no type or const parameter and is unprovable, even with every region constraint deferred | no |
+| does not hold, by coherence | `WC` mentions a type parameter; no impl applies to any instantiation and none can be added, neither downstream (orphan rules) nor upstream in a minor release | no |
 
 A higher-ranked goal (`for<'a> may_spec(T: Tr<'a>)` at a call, or
 `if impls for<'a> T: Tr<'a>`) is decided for a fresh universal `'a`, like
@@ -68,7 +69,7 @@ fn spec<T>() where may_spec(T: Bar) { if impls T: Bar { .. } }
 fn main() { spec::<u32>(); spec::<i32>() }          // closed bounds: decided by search
 ```
 
-The "does not hold" rule is the only negative reasoning: explicit negative
+The "does not hold" rules are the only negative reasoning: explicit negative
 impls are never consulted, and nothing negative is ever assumed, in the
 else-branch included.
 
