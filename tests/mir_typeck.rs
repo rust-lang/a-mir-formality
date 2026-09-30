@@ -1141,3 +1141,53 @@ fn test_break_block_label() {
     .rustc_ok()
     .ok()
 }
+
+/// `&'a u32: Super` given `&'a u32: Sub` and `impl Super for &'static u32`
+/// tries `'a = 'static` via mutual outlives, deferring both directions.
+/// Re-deferring an obligation already pending must not grow the
+/// environment, or the search never reaches a fixed point.
+#[test]
+fn lifetime_eq_via_mutual_outlives_terminates() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        trait Sub where Self: Super {}
+        impl Super for &'static u32 {}
+        impl Sub for &'static u32 {}
+        fn spec<'x>(y: &'x u32) -> () where &'x u32: Super { }
+        fn caller<'a>(x: &'a u32) -> () where &'a u32: Sub {
+            spec::<'a>(x);
+        }
+    }])
+    .skip_execute()
+    .ok()
+}
+
+/// Matching `impl Tr<'static> for u32` against `for<'a> u32: Tr<'a>` defers
+/// `'a: 'static` to the borrow checker, which verifies it like a constraint
+/// on any universal: nothing entails it, so the call is rejected.
+#[test]
+fn for_all_placeholder_constraint_is_verified() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl Tr<'static> for u32 {}
+        fn needs_all<T>() -> () where for<'a> T: Tr<'a> { }
+        fn main() -> () {
+            needs_all::<u32>();
+        }
+    }])
+    .err(expect_test::expect!["crates/formality-rust/src/check/borrow_check/outlives.rs:58:1: no applicable rules for can_outlive { param_a: !lt_1, param_b: ' static, assumptions: {}, env: TypeckEnv { env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(()) }, outlives: {pending_outlives(!lt_1, ' static)} }"])
+}
+
+/// ...whereas an impl for every lifetime satisfies it.
+#[test]
+fn for_all_bound_holds_for_every_lifetime() {
+    FormalityTest::new(crates![crate foo {
+        trait Tr<'a> {}
+        impl<'a> Tr<'a> for u32 {}
+        fn needs_all<T>() -> () where for<'a> T: Tr<'a> { }
+        fn main() -> () {
+            needs_all::<u32>();
+        }
+    }])
+    .ok()
+}
