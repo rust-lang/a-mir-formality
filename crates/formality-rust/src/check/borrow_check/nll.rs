@@ -8,9 +8,9 @@ use crate::check::feature_gate_enabled_in_program;
 
 use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
-    AliasName, AliasTy, AssociatedItemId, ExistentialVar, FeatureGateName, FieldName, Fn, Lt,
-    Parameter, Predicate, RefKind, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId,
-    TraitRef, Ty, Variable, VariantId, Wcs, WhereClause,
+    AliasName, AliasTy, AssociatedItemId, ExistentialVar, FeatureGateName, FieldName, Fn, Goals,
+    Lt, Parameter, Predicate, RefKind, RigidName, RigidTy, ScalarId, Struct, StructBoundData,
+    TraitId, TraitRef, Ty, Variable, VariantId, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
 use crate::prove::Safety;
@@ -20,7 +20,7 @@ use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 use crate::check::borrow_check::liveness::{Assignment, Either, LiveBefore, LivePlaces};
 
 // Treats each name brought in by exists as OK to use when checking the code inside.
-fn wf_assumptions_for_existential_subst(subst: &[ExistentialVar]) -> Wcs {
+fn wf_assumptions_for_existential_subst(subst: &[ExistentialVar]) -> Goals {
     subst
         .iter()
         .map(|v| Predicate::well_formed(v.clone()))
@@ -128,7 +128,7 @@ judgment_fn! {
     /// Prove that any loans issued in this basic block are respected.
     pub fn borrow_check(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         block: Block,
     ) => () {
@@ -146,7 +146,7 @@ judgment_fn! {
     /// Prove that any loans issued in this basic block are respected.
     fn borrow_check_block(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         block: Block,
         places_live_on_exit: LivePlaces,
@@ -178,7 +178,7 @@ judgment_fn! {
     /// Prove that any loans issued in this statement are respected.
     fn borrow_check_statement(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         statement: Stmt,
         places_live_on_exit: LivePlaces,
@@ -352,7 +352,7 @@ judgment_fn! {
     /// Prove that any loans issued in this value expression are respected, and return its type.
     fn borrow_check_expr_has_ty(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         expr: Expr,
         ty: Ty,
@@ -373,7 +373,7 @@ judgment_fn! {
     /// Prove that any loans issued in this value expression are respected, and return its type.
     pub fn borrow_check_expr(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         expr: Expr,
         places_live_on_exit: LivePlaces,
@@ -576,7 +576,7 @@ judgment_fn! {
     /// Borrow-check a place expression, returning its type.
     fn borrow_check_loop(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         body: Block,
         places_live_on_exit: LivePlaces,
@@ -604,7 +604,7 @@ judgment_fn! {
     /// Borrow-check a place expression, returning its type.
     pub fn borrow_check_place_expr(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         place: PlaceExpr,
     ) => (TypedPlaceExpr, FlowState) {
@@ -777,7 +777,7 @@ judgment_fn! {
     /// Locals should be provided in reverse declaration order (LIFO drop order).
     fn drop_places(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         places: Vec<TypedPlaceExpr>,
         places_live_after_drop: LivePlaces,
@@ -798,7 +798,7 @@ judgment_fn! {
     /// Check that the given access is permitted.
     fn access_permitted(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         access: Access,
         places_live_after_access: LivePlaces,
@@ -821,7 +821,7 @@ judgment_fn! {
     /// Prove that none of the borrows in `borrowed` does not affect `place`.
     fn access_permitted_by_loans(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         access: Access,
         places_live_after_access: LivePlaces,
@@ -841,7 +841,7 @@ judgment_fn! {
     /// Prove that the borrow `borrow` does not affect `place`.
     fn access_permitted_by_loan(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         loan: Loan,
         access: Access,
@@ -934,7 +934,7 @@ judgment_fn! {
     /// is treated as a move so overlapping live loans can reject it.
     fn access_kind_for_place_use(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         place: TypedPlaceExpr,
     ) => (AccessKind, FlowState) {
@@ -957,7 +957,7 @@ judgment_fn! {
     /// Prove that a type implements Copy.
     fn prove_ty_is_copy(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         ty: Ty,
     ) => FlowState {
@@ -981,7 +981,7 @@ judgment_fn! {
     /// references (`&T` / `&mut T`) will cause this judgment to fail.
     fn prove_place_is_movable(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         place: TypedPlaceExpr,
     ) => FlowState {
@@ -1026,7 +1026,7 @@ judgment_fn! {
     /// Prove that any loans issued in thes value expressions (evaluated in this order) are respected.
     fn prove_ty_is_ref(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         ty: Ty,
     ) => FlowState {
@@ -1044,7 +1044,7 @@ judgment_fn! {
     /// Prove that any loans issued in thes value expressions (evaluated in this order) are respected.
     pub fn prove_ty_is_rigid(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         ty: Ty,
     ) => (RigidTy, FlowState) {
@@ -1068,7 +1068,7 @@ judgment_fn! {
     /// Prove that `a` is assignable to `b`.
     fn prove_assignable(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         a: Ty,
         b: Ty,
@@ -1091,7 +1091,7 @@ judgment_fn! {
 
 fn prove_sub_type(
     env: &TypeckEnv,
-    assumptions: &Wcs,
+    assumptions: &Goals,
     state: &FlowState,
     a: impl Upcast<Parameter>,
     b: impl Upcast<Parameter>,
@@ -1101,7 +1101,7 @@ fn prove_sub_type(
 
 fn prove_where_clauses(
     env: &TypeckEnv,
-    assumptions: &Wcs,
+    assumptions: &Goals,
     state: &FlowState,
     where_clauses: &[WhereClause],
 ) -> ProvenSet<FlowState> {
@@ -1110,7 +1110,7 @@ fn prove_where_clauses(
 
 fn prove_ty_is_wf(
     env: &TypeckEnv,
-    assumptions: &Wcs,
+    assumptions: &Goals,
     state: &FlowState,
     ty: &Ty,
 ) -> ProvenSet<FlowState> {
@@ -1119,7 +1119,7 @@ fn prove_ty_is_wf(
 
 fn prove_normalize_ty(
     env: &TypeckEnv,
-    assumptions: &Wcs,
+    assumptions: &Goals,
     state: &FlowState,
     ty: &Ty,
 ) -> ProvenSet<(Ty, FlowState)> {
@@ -1128,7 +1128,7 @@ fn prove_normalize_ty(
 
 fn prove_is_implemented(
     env: &TypeckEnv,
-    assumptions: &Wcs,
+    assumptions: &Goals,
     state: &FlowState,
     trait_ref: TraitRef,
 ) -> ProvenSet<FlowState> {
@@ -1171,7 +1171,7 @@ judgment_fn! {
     /// Prove that the loan does not outlive any universal regions.
     fn loan_cannot_outlive_universal_regions(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         outlives: Set<PendingOutlives>,
         loan: Loan,
     ) => () {
@@ -1238,7 +1238,7 @@ judgment_fn! {
     /// ...show that `place_live` does not require data derived from `x`.
     fn loan_not_required_by_live_places(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         state: FlowState,
         loan: Loan,
         places_live_after_access: LivePlaces,
@@ -1267,7 +1267,7 @@ judgment_fn! {
     /// ...show that `place_live` does not require data derived from `x`.
     fn loan_not_required_by_live_place(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         outlives: Set<PendingOutlives>,
         loan: Loan,
         live_place: TypedPlaceExpr,
@@ -1301,7 +1301,7 @@ judgment_fn! {
     /// ...show that `place_live` does not require data derived from `x`.
     fn loan_not_required_by_live_place_prefix(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         outlives: Set<PendingOutlives>,
         loan: Loan,
         live_place: TypedPlaceExpr,
@@ -1335,7 +1335,7 @@ judgment_fn! {
     /// ...show that `place_live_ty` does not require data derived from `x`.
     fn loan_not_required_by_parameter(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         outlives: Set<PendingOutlives>,
         loan: Loan,
         live_parameter: Parameter,
@@ -1444,7 +1444,7 @@ judgment_fn! {
     /// Prove that the loan does not outlive any universal regions.
     fn loan_cannot_outlive(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         outlives: Set<PendingOutlives>,
         loan: Loan,
         lifetime: Lt,
@@ -1472,7 +1472,7 @@ judgment_fn! {
     /// ...show that `place_live_ty` does not require data derived from `x`.
     fn loan_not_required_by_parameters(
         env: TypeckEnv,
-        assumptions: Wcs,
+        assumptions: Goals,
         outlives: Set<PendingOutlives>,
         loan: Loan,
         live_parameters: Vec<Parameter>,

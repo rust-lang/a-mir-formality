@@ -1,4 +1,4 @@
-use crate::grammar::{Lt, Parameter, Predicate, RigidTy, Ty, Wcs};
+use crate::grammar::{Goals, Lt, Parameter, Predicate, RigidTy, Ty};
 use crate::prove::Constrained;
 use formality_core::judgment_fn;
 
@@ -13,7 +13,7 @@ judgment_fn! {
     pub fn prove_sub(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         a: Parameter,
         b: Parameter,
     ) => Constraints {
@@ -41,7 +41,7 @@ judgment_fn! {
             (let RigidTy { name: a_name, parameters: a_parameters } = a)
             (let RigidTy { name: b_name, parameters: b_parameters } = b)
             (if a_name == b_name)!
-            (prove(decls, env, assumptions, Wcs::all_sub(a_parameters, b_parameters)) => c)
+            (prove(decls, env, assumptions, Goals::all_sub(a_parameters, b_parameters)) => c)
             ----------------------------- ("rigid")
             (prove_sub(decls, env, assumptions, Ty::RigidTy(a), Ty::RigidTy(b)) => c)
         )

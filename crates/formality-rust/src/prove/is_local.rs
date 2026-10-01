@@ -1,6 +1,6 @@
 use crate::{
     grammar::{
-        AliasTy, Lt, Parameter, PredicateTy, RigidName, RigidTy, TraitRef, Ty, Variable, Wcs,
+        AliasTy, Goals, Lt, Parameter, PredicateTy, RigidName, RigidTy, TraitRef, Ty, Variable,
     },
     prove::Constrained,
 };
@@ -49,7 +49,7 @@ judgment_fn! {
     pub fn may_be_remote(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         goal: TraitRef,
     ) => Constraints {
         debug(assumptions, goal, env)
@@ -76,7 +76,7 @@ judgment_fn! {
     fn may_be_downstream_trait_ref(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         goal: TraitRef,
     ) => Constraints {
         debug(goal, assumptions, env)
@@ -95,7 +95,7 @@ judgment_fn! {
     fn may_be_downstream_parameter(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         parameter: Parameter,
     ) => Constraints {
         debug(parameter, assumptions, env)
@@ -133,7 +133,7 @@ judgment_fn! {
     fn may_contain_downstream_type(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         parameter: Parameter,
     ) => () {
         debug(parameter, assumptions, env)
@@ -179,7 +179,7 @@ judgment_fn! {
     fn normalizes_to_not_downstream(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         parameter: Parameter,
     ) => Constraints {
         debug(parameter, assumptions, env)
@@ -198,7 +198,7 @@ judgment_fn! {
     pub fn is_local_trait_ref(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         goal: TraitRef,
     ) => Constraints {
         debug(goal, assumptions, env)
@@ -235,7 +235,7 @@ judgment_fn! {
     fn is_not_downstream(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         parameter: Parameter,
     ) => Constraints {
         debug(parameter, assumptions, env)
@@ -276,7 +276,7 @@ judgment_fn! {
     fn is_local_parameter(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         goal: Parameter,
     ) => Constraints {
         debug(goal, assumptions, env)

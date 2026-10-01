@@ -3,11 +3,11 @@ use crate::check::borrow_check::flow_state::FlowState;
 use crate::check::borrow_check::nll::borrow_check;
 use crate::check::prove_goal;
 use crate::check::where_clauses::prove_where_clauses_well_formed;
-use crate::grammar::{CrateId, FnBody, MaybeFnBody, Predicate, Wcs};
+use crate::grammar::{CrateId, FnBody, Goals, MaybeFnBody, Predicate};
 use crate::prove::{Env, Program};
 use crate::{
     grammar::{Fn, FnBoundData},
-    prove::ToWcs,
+    prove::ToGoals,
 };
 use formality_core::judgment_fn;
 
@@ -21,7 +21,7 @@ judgment_fn! {
         debug(f, crate_id, program)
 
         (
-            (check_fn(program, Env::default(), Wcs::t(), f, crate_id) => ())
+            (check_fn(program, Env::default(), Goals::t(), f, crate_id) => ())
             ------------------------------------------------------------ ("check free fn")
             (check_free_fn(program, f, crate_id) => ())
         )
@@ -37,7 +37,7 @@ judgment_fn! {
     pub(crate) fn check_fn(
         program: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         f: Fn,
         crate_id: CrateId,
     ) => () {
@@ -47,7 +47,7 @@ judgment_fn! {
         (
             (let (env, bound_data) = env.instantiate_universally(&f.binder))
             (let FnBoundData { input_args, output_ty, where_clauses, body } = bound_data)
-            (let assumptions: Wcs = (assumptions, where_clauses).to_wcs())
+            (let assumptions: Goals = (assumptions, where_clauses).to_goals())
             (prove_where_clauses_well_formed(program, env, assumptions, where_clauses) => ())
             (for_all(input_arg in input_args)
                 (prove_goal(program, env, assumptions, Predicate::well_formed(&input_arg.ty)) => ()))
@@ -64,7 +64,7 @@ judgment_fn! {
     fn check_fn_body(
         program: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         body: MaybeFnBody,
         input_args: Vec<crate::grammar::InputArg>,
         output_ty: crate::grammar::Ty,

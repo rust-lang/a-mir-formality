@@ -1,4 +1,4 @@
-use crate::grammar::{Parameter, Predicate, Wcs};
+use crate::grammar::{Goals, Parameter, Predicate};
 use crate::rust::term;
 use expect_test::expect;
 use formality_core::test;
@@ -19,7 +19,7 @@ fn decls() -> Program {
 
 #[test]
 fn well_formed_adt() {
-    let assumptions: Wcs = Wcs::t();
+    let assumptions: Goals = Goals::t();
     let goal: Parameter = term("X<u32>");
     let constraints = prove(
         decls(),
@@ -33,7 +33,7 @@ fn well_formed_adt() {
 
 #[test]
 fn not_well_formed_adt() {
-    let assumptions: Wcs = Wcs::t();
+    let assumptions: Goals = Goals::t();
     let goal: Parameter = term("X<u64>");
     prove(
         decls(),
@@ -48,6 +48,6 @@ fn not_well_formed_adt() {
 
         crates/formality-rust/src/prove/prove_normalize.rs:54:1: no applicable rules for prove_normalize_via { goal: u32, via: Foo(u64), assumptions: {Foo(u64)}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        the rule "trait implied bound" at (prove_wc.rs) failed because
+        the rule "trait implied bound" at (prove_goal.rs) failed because
           expression evaluated to an empty collection: `decls.trait_invariants()`"#]]);
 }

@@ -1,6 +1,6 @@
 use crate::grammar::{
-    AliasName, AliasTy, Const, Lt, Parameter, Parameters, Predicate, RigidName, RigidTy, Ty,
-    UniversalVar, Wcs,
+    AliasName, AliasTy, Const, Goals, Lt, Parameter, Parameters, Predicate, RigidName, RigidTy, Ty,
+    UniversalVar,
 };
 use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
 
@@ -12,7 +12,7 @@ judgment_fn! {
     pub fn prove_wf(
         _decls: Program,
         env: Env,
-        assumptions: Wcs,
+        assumptions: Goals,
         goal: Parameter,
     ) => Constraints {
         debug(goal, assumptions, env)
@@ -87,7 +87,7 @@ judgment_fn! {
 pub fn prove_alias_wf(
     decls: &Program,
     env: &Env,
-    assumptions: &Wcs,
+    assumptions: &Goals,
     _name: &AliasName,
     parameters: &Parameters,
 ) -> ProvenSet<Constraints> {
@@ -98,7 +98,7 @@ pub fn prove_alias_wf(
 pub fn prove_wf_recursive(
     program: impl Upcast<Program>,
     env: impl Upcast<Env>,
-    assumptions: impl Upcast<Wcs>,
+    assumptions: impl Upcast<Goals>,
     param: impl Upcast<Parameter>,
 ) -> ProvenSet<Constraints> {
     prove(program, env, assumptions, Predicate::well_formed(param))
