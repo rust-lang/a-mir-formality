@@ -1373,8 +1373,8 @@ judgment_fn! {
         // )
 
         (
-            (let (env1, _, parameter) = env.instantiate_universally(&binder))
-            (loan_not_required_by_parameter(env1, assumptions, outlives, loan, parameter) => ())
+            (scope(env.enter_universally(binder) => (env, parameter)) with()
+                (loan_not_required_by_parameter(env, assumptions, outlives, loan, parameter) => ()))
             ------------------------------------------------------------ ("for-all-type")
             (loan_not_required_by_parameter(env, assumptions, outlives, loan, PredicateTy::ForAll(binder)) => ())
         )
