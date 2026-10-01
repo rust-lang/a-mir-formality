@@ -1,4 +1,5 @@
 mod adt_wf;
+mod binder_scope;
 mod eq_assumptions;
 mod eq_partial_eq;
 mod exists_constraints;

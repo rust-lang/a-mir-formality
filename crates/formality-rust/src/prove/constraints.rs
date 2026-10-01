@@ -207,6 +207,8 @@ impl CoreVisit<crate::prove::FormalityLang> for Constraints {
             substitution,
         } = self;
 
+        env.assert_valid();
+
         let domain = substitution.domain();
         let range = substitution.range();
 

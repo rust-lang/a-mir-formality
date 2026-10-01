@@ -46,7 +46,7 @@ judgment_fn! {
 
         // If you have `where for<'a> T: Trait<'a>` then you can prove `T: Trait<'b>` for any `'b`.
         (
-            (scope(enter_existentially_with_constraints(env, binder) => (env, via1)) with(c)
+            (scope(enter_existentially_with_constraints(decls, env, assumptions, binder) => (env, via1)) with(c)
                 // Try to prove `T: Trait<?a> == goal`.
                 (prove_via(decls, env, assumptions, via1, goal) => c))
             ----------------------------- ("forall")
