@@ -2,7 +2,7 @@
 
 use std::fmt::Debug;
 
-use crate::prove::{is_definitely_not_proveable, Constraints, Env, Program};
+use crate::prove::{enter_universally, is_definitely_not_proveable, Constraints, Env, Program};
 use crate::rust::Visit;
 use crate::{
     grammar::{
@@ -228,8 +228,9 @@ judgment_fn! {
 }
 
 fn check_test(program: &Program, test: &Test) -> Fallible<ProofTree> {
-    let (env, TestBoundData { assumptions, goals }) =
-        Env::default().instantiate_universally(&test.binder);
+    // Nothing proven here is taken out of the binder, so it is never left.
+    let (_, (env, TestBoundData { assumptions, goals })) =
+        enter_universally(program, Env::default(), (), &test.binder);
     prove_goal(program, &env, assumptions, goals)
 }
 

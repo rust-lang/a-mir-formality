@@ -2,7 +2,8 @@ use crate::grammar::{Wc, Wcs};
 use formality_core::judgment_fn;
 
 use crate::prove::{
-    constraints::Constraints, decls::Program, env::Env, prove, prove_after::prove_after,
+    binder_scope::enter_existentially, constraints::Constraints, decls::Program, env::Env, prove,
+    prove_after::prove_after,
 };
 
 judgment_fn! {
@@ -45,12 +46,11 @@ judgment_fn! {
 
         // If you have `where for<'a> T: Trait<'a>` then you can prove `T: Trait<'b>` for any `'b`.
         (
-            (let (env, subst) = env.existential_substitution(binder))
-            (let via1 = binder.instantiate_with(&subst).unwrap())
-            // Try to prove `T: Trait<?a> == goal`.
-            (prove_via(decls, env, assumptions, via1, goal) => c)
+            (scope(enter_existentially(decls, env, assumptions, binder) => (env, via1)) with(c)
+                // Try to prove `T: Trait<?a> == goal`.
+                (prove_via(decls, env, assumptions, via1, goal) => c))
             ----------------------------- ("forall")
-            (prove_via(decls, env, assumptions, Wc::ForAll(binder), goal) => c.pop_subst(&subst))
+            (prove_via(decls, env, assumptions, Wc::ForAll(binder), goal) => c)
         )
 
         // If you have `where if (T: Debug) T: Foo` (not in Rust but it should be...)...

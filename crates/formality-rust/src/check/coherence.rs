@@ -1,5 +1,5 @@
 use crate::grammar::{Crate, Fallible, NegTraitImpl, Predicate, TraitImpl, Wc, Wcs};
-use crate::prove::{Env, Program};
+use crate::prove::{enter_universally, Env, Program};
 use anyhow::bail;
 
 use super::{prove_goal, prove_not_goal};
@@ -33,9 +33,9 @@ judgment_fn! {
         debug(program, impl_a)
 
         (
-            (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
-            (let trait_ref = a.trait_ref())
-            (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ())
+            (scope(enter_universally(program, Env::default(), (), &impl_a.binder) => (env, a)) with()
+                (let trait_ref = a.trait_ref())
+                (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ()))
             --- ("orphan_check")
             (orphan_check(program, impl_a) => ())
         )
@@ -53,9 +53,9 @@ judgment_fn! {
         // and universals and the coherence mode
         // self.prove_not_goal(&env, &(Wcs::wf)) // ??
         (
-            (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
-            (let trait_ref = a.trait_ref())
-            (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ())
+            (scope(enter_universally(program, Env::default(), (), &impl_a.binder) => (env, a)) with()
+                (let trait_ref = a.trait_ref())
+                (prove_goal(program, env, &a.where_clauses, Predicate::is_local(trait_ref)) => ()))
             --- ("orphan_check_neg")
             (orphan_check_neg(program, impl_a) => ())
         )
@@ -96,8 +96,10 @@ fn overlap_check_impl(
     //   impl<P_b..> SomeTrait<T_b...> for T_b0 where Wc_b { }
     //
     // We want to prove that ∀P_a, ∀P_b ...
-    let (env, a) = Env::default().instantiate_universally(&impl_a.binder);
-    let (env, b) = env.instantiate_universally(&impl_b.binder);
+    //
+    // (Nothing proven here is taken out of the binders, so they are never left.)
+    let (_, (env, a)) = enter_universally(program, Env::default(), (), &impl_a.binder);
+    let (_, (env, b)) = enter_universally(program, env, (), &impl_b.binder);
 
     let trait_ref_a = a.trait_ref();
     let trait_ref_b = b.trait_ref();

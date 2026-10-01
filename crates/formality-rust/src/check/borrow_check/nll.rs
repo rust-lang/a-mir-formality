@@ -8,23 +8,20 @@ use crate::check::feature_gate_enabled_in_program;
 
 use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
-    AliasName, AliasTy, AssociatedItemId, ExistentialVar, FeatureGateName, FieldName, Fn, Lt,
-    Parameter, Predicate, RefKind, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId,
-    TraitRef, Ty, Variable, VariantId, Wcs, WhereClause,
+    AliasName, AliasTy, AssociatedItemId, FeatureGateName, FieldName, Fn, Lt, Parameter, Predicate,
+    RefKind, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId, TraitRef, Ty,
+    Variable, VariantId, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
-use crate::prove::Safety;
+use crate::prove::{with_variables, Safety};
 use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 
 use crate::check::borrow_check::liveness::{Assignment, Either, LiveBefore, LivePlaces};
 
 // Treats each name brought in by exists as OK to use when checking the code inside.
-fn wf_assumptions_for_existential_subst(subst: &[ExistentialVar]) -> Wcs {
-    subst
-        .iter()
-        .map(|v| Predicate::well_formed(v.clone()))
-        .collect()
+fn wf_assumptions_for_existential_vars(vars: &[Parameter]) -> Wcs {
+    vars.iter().map(Predicate::well_formed).collect()
 }
 
 // Given this, the goal of the borrow checker (in some sense) is to find a minimal `LifetimeValue`
@@ -294,41 +291,38 @@ judgment_fn! {
 
         (
             (if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked))!
-            // Existential variables: open the binder and check the inner block
-            (let (env, subst, block) = env.instantiate_existentially(binder))
-            (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
-            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
-            (let state = state.pop_subst(&env.env, subst))
+            // Existential variables: enter the binder and check the inner block
+            (scope(env.enter_existentially(&with_variables(binder)) => (env, (vars, block))) with(state)
+                (let assumptions_body = (assumptions, wf_assumptions_for_existential_vars(vars)))
+                (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state))
             ------------------------------------------------------------ ("exists")
             (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
         )
 
         (
             (if feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusAlpha))!
-            // Existential variables: open the binder and check the inner block
-            (let (env, subst, block) = env.instantiate_existentially(binder))
-            (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
-            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
-            // Although we do not rerun borrowck with all outlives, Polonius Alpha
-            // does not change universal region constraints being checked on the
-            // full outlives set.
-            (verify_universal_outlives(env, assumptions_body, &state.all_outlives) => ())
-            (let state = state.pop_subst(&env.env, subst))
+            // Existential variables: enter the binder and check the inner block
+            (scope(env.enter_existentially(&with_variables(binder)) => (env, (vars, block))) with(state)
+                (let assumptions_body = (assumptions, wf_assumptions_for_existential_vars(vars)))
+                (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+                // Although we do not rerun borrowck with all outlives, Polonius Alpha
+                // does not change universal region constraints being checked on the
+                // full outlives set.
+                (verify_universal_outlives(env, assumptions_body, &state.all_outlives) => ()))
             ------------------------------------------------------------ ("exists")
             (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
         )
 
         (
             (if !feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusUnlocked) && !feature_gate_enabled_in_program(&env.program, &FeatureGateName::PoloniusAlpha))!
-            // Existential variables: open the binder and check the inner block
-            (let (env, subst, block) = env.instantiate_existentially(binder))
-            (let assumptions_body = (assumptions, wf_assumptions_for_existential_subst(&subst)))
-            (let entry_state = state.clone())
-            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
-            // Rerun borrowck again, with the *entry* state combined with the entire outlives set.
-            (let state = entry_state.with_global_outlives_from(&state))
-            (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
-            (let state = state.pop_subst(&env.env, subst))
+            // Existential variables: enter the binder and check the inner block
+            (scope(env.enter_existentially(&with_variables(binder)) => (env, (vars, block))) with(state)
+                (let assumptions_body = (assumptions, wf_assumptions_for_existential_vars(vars)))
+                (let entry_state = state.clone())
+                (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state)
+                // Rerun borrowck again, with the *entry* state combined with the entire outlives set.
+                (let state = entry_state.with_global_outlives_from(&state))
+                (borrow_check_block(env, assumptions_body, state, block, places_live_on_exit) => state))
             ------------------------------------------------------------ ("exists")
             (borrow_check_statement(env, assumptions, state, Stmt::Exists { binder }, places_live_on_exit) => (env, state))
         )
@@ -1373,8 +1367,8 @@ judgment_fn! {
         // )
 
         (
-            (let (env1, _, parameter) = env.instantiate_universally(&binder))
-            (loan_not_required_by_parameter(env1, assumptions, outlives, loan, parameter) => ())
+            (scope(env.enter_universally(binder) => (env, parameter)) with()
+                (loan_not_required_by_parameter(env, assumptions, outlives, loan, parameter) => ()))
             ------------------------------------------------------------ ("for-all-type")
             (loan_not_required_by_parameter(env, assumptions, outlives, loan, PredicateTy::ForAll(binder)) => ())
         )

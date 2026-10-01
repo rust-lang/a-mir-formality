@@ -15,6 +15,7 @@ use formality_core::{map, set, ProvenSet, Upcast};
 use std::sync::Arc;
 use tracing::Level;
 
+mod binder_scope;
 pub mod combinators;
 mod constraints;
 mod db;
@@ -38,6 +39,9 @@ pub mod test_util;
 #[cfg(test)]
 mod test;
 
+pub use binder_scope::{
+    enter_existentially, enter_universally, with_variables, without_var, BinderScope,
+};
 pub use constraints::{Constrained, Constraints};
 pub use decls::*;
 pub use env::{Bias, Env, MaxUniverse, Universe};

@@ -13,11 +13,15 @@ pub use proven_set::{
     FailureLocation, FailureReason, LeafFailure, ProofTree, Proven, ProvenSet, RuleFailureCause,
 };
 
+mod scope;
+pub use scope::Scope;
+
 mod test_explicit_fail;
 mod test_fallible;
 mod test_filtered;
 mod test_for_all;
 mod test_reachable;
+mod test_scope;
 
 pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
 
@@ -41,6 +45,28 @@ pub type JudgmentStack<J, O> = RefCell<FixedPointStack<J, Map<O, ProofTree>>>;
 /// * `(if <expr>)`
 /// * `(if let <pat> = <expr>)`
 /// * `(let <binding> = <expr>)`
+/// * `(scope(<expr> => <pat>) with(<vars>) <conditions>)` -- proves the nested conditions inside a [`Scope`][], see below.
+///
+/// ## Scopes
+///
+/// `<expr>` enters a scope: it evaluates to a pair of the [`Scope`][] and
+/// what is inside it, which `<pat>` binds for the nested conditions. Those
+/// bindings, and any the nested conditions make, end with the `scope`
+/// condition. Only `<vars>` come out: each proof of the nested conditions
+/// leaves the scope with its values for them ([`Scope::leave`][]), and the
+/// rest of the rule sees what that yields.
+///
+/// ```ignore
+/// (
+///     (scope(enter_forall(env, binder) => (env, body)) with(c)
+///         (prove(env, body) => c))
+///     --------------------
+///     (prove(env, Goal::ForAll(binder)) => c)
+/// )
+/// ```
+///
+/// So the rule cannot forget to leave the scope, nor use what was inside it
+/// afterwards. (A match commit point `!` cannot be nested in a `scope`.)
 ///
 /// The conclusions can be the following
 ///
@@ -515,6 +541,59 @@ macro_rules! push_rules {
         }
     };
 
+    // `(scope(<expr> => <pat>) with(<vars>) <conditions>)`: prove the nested
+    // conditions inside a scope. Each of their proofs leaves the scope with
+    // its values for `<vars>`, and the rest of the rule continues with the
+    // result.
+    (
+        @body $args:tt; $inputs:tt; $child_proof_trees:ident;
+        (scope($scope:expr => $inside:pat) with($($with_var:ident),*) $($inner_step:tt)*) $($m:tt)*
+    ) => {
+        {
+            let (scope, inside) = $scope;
+
+            // Prove the nested conditions. They see what is inside the scope
+            // (and, being in a block, what they bind ends with it). Collect
+            // each proof's values for the `with` variables.
+            let mut scope_proofs = vec![];
+            {
+                #[allow(unused_variables)]
+                let $inside = &inside;
+                #[allow(unused_mut)]
+                let mut inner_proof_trees: Vec<$crate::judgment::ProofTree> = Vec::new();
+                $crate::push_rules!(@body (scope(scope_proofs, ($($with_var,)*))); $inputs; inner_proof_trees; $($inner_step)*);
+            }
+
+            // Leave the scope with each, and continue with what comes out.
+            for (values, inner_proof_trees) in scope_proofs {
+                if let Err(e) = $crate::judgment::EachProof::each_proof(
+                    $crate::judgment::Scope::leave(&scope, values),
+                    |(values, leave_proof_tree)| {
+                        #[allow(unused_variables)]
+                        let ($($with_var,)*) = &values;
+
+                        let len = $child_proof_trees.len();
+
+                        let mut scope_proof_trees = inner_proof_trees.clone();
+                        scope_proof_trees.push(leave_proof_tree);
+                        $child_proof_trees.push($crate::judgment::ProofTree::new(
+                            "scope",
+                            None,
+                            scope_proof_trees,
+                        ));
+
+                        $crate::push_rules!(@body $args; $inputs; $child_proof_trees; $($m)*);
+
+                        assert!($child_proof_trees.len() > len);
+                        $child_proof_trees.truncate(len);
+                    },
+                ) {
+                    $crate::push_rules!(@record_failure $inputs; $scope; e);
+                }
+            }
+        }
+    };
+
     // for_all with accumulator: forward to @body_for_all
     (
         @body $args:tt; $inputs:tt; $child_proof_trees:ident;
@@ -781,6 +860,13 @@ macro_rules! push_rules {
             tracing::debug!("produced {:?} from rule {:?} in judgment {:?}", result, $rule_name, stringify!($judgment_name));
             $crate::judgment::insert_smallest_proof(&mut $output, result, proof_tree);
         }
+    };
+
+    (
+        @body (scope($scope_proofs:ident, ($($with_var:ident,)*))); $_inputs:tt; $child_proof_trees:ident;
+    ) => {
+        // one proof of the conditions nested in a `scope`: capture the values to leave it with.
+        $scope_proofs.push((($($with_var.clone(),)*), $child_proof_trees.clone()));
     };
 
     (
