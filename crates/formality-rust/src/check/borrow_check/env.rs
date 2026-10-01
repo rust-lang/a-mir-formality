@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use crate::check::borrow_check::flow_state::{FlowState, PendingOutlives};
 
-use crate::check::borrow_check::outlives::verify_universal_outlives;
-use crate::grammar::{Binder, ExistentialVar, Predicate, Ty, UniversalVar, Wcs};
+use crate::check::borrow_check::outlives::{transitively_outlived_by, verify_universal_outlives};
+use crate::grammar::{Binder, ExistentialVar, ParameterKind, Predicate, Ty, UniversalVar, Wc, Wcs};
 use crate::grammar::{Crates, Parameter};
 use crate::prove::{prove_normalize, Constrained, Constraints, Env, Program};
 use crate::rust::Fold;
@@ -192,9 +192,6 @@ impl TypeckEnv {
             // We already filtered this above
             assert!(c.known_true);
 
-            // We don't have any existential variables, so there can't be a substitution
-            assert!(c.substitution().is_empty());
-
             match self.convert_to_pending_outlives(c) {
                 Some(p_o) => pending_outlives_sets.push((p_o, v, proof_tree)),
                 None => {
@@ -208,37 +205,23 @@ impl TypeckEnv {
         }
 
         // Find the minimal set of the remaining solutions.
-        let mut pending_outlives_iter = pending_outlives_sets.into_iter();
-        let Some(mut pending_outlives_minimal) = pending_outlives_iter.next() else {
+        pending_outlives_sets.sort_by_key(|(outlives, _, _)| outlives.len());
+        let Some(pending_outlives_minimal) = pending_outlives_sets.iter().find(|candidate| {
+            pending_outlives_sets.iter().all(|other| {
+                candidate.1 == other.1
+                    && self.outlives_requirements_imply(&assumptions, &other.0, &candidate.0)
+            })
+        }) else {
             return ProvenSet::failed(
                 format!("prove_judgment({goal:?})"),
                 FailureLocation::caller(),
-                format!("final constraint set had only ambiguous elements: {cs:#?}"),
+                format!("no least outlives requirements: {pending_outlives_sets:?}"),
             );
         };
-        for pending_outlives in pending_outlives_iter {
-            // If these outlives constraints are not ordered with respect to `pending_outlives_minimal`, then bail.
-            if !pending_outlives.0.is_subset(&pending_outlives_minimal.0)
-                && !pending_outlives_minimal.0.is_subset(&pending_outlives.0)
-            {
-                return ProvenSet::failed(
-                    format!("prove_judgment({goal:?})"),
-                    FailureLocation::caller(),
-                    format!(
-                        "no relationship between `{pending_outlives:?}` and `{pending_outlives_minimal:?}`"
-                    ),
-                );
-            }
-
-            // If this set of outlives is a subset of the previous minimal, then use it instead.
-            if pending_outlives.0.is_subset(&pending_outlives_minimal.0) {
-                pending_outlives_minimal = pending_outlives;
-            }
-        }
 
         // Accumulate the new constraints onto the input set
         let (new_outlives, value, proof_tree) = pending_outlives_minimal;
-        let state = state.with_outlives(&new_outlives);
+        let state = state.with_outlives(new_outlives);
 
         // Verify that the accumulated outlives constraints between universal lifetime
         // variables are justified by the function's where-clause assumptions. This check
@@ -250,7 +233,45 @@ impl TypeckEnv {
             return ProvenSet::from(*e);
         }
 
-        ProvenSet::singleton(((value.clone(), state), proof_tree.clone()))
+        ProvenSet::singleton((((**value).clone(), state), (**proof_tree).clone()))
+    }
+
+    fn outlives_requirements_imply(
+        &self,
+        assumptions: &Wcs,
+        stronger: &Set<PendingOutlives>,
+        weaker: &Set<PendingOutlives>,
+    ) -> bool {
+        if weaker.is_subset(stronger) {
+            return true;
+        }
+        let mut edges = stronger.clone();
+        edges.extend(assumptions.iter().filter_map(|clause| match clause {
+            Wc::Predicate(Predicate::Outlives(a, b)) => Some(PendingOutlives { a, b }),
+            _ => None,
+        }));
+        if weaker
+            .iter()
+            .all(|p| transitively_outlived_by(self, &edges, &p.a).contains(&p.b))
+        {
+            return true;
+        }
+        let facts: Wcs = stronger
+            .iter()
+            .map(|p| Predicate::outlives(&p.a, &p.b))
+            .collect();
+        let goals: Wcs = weaker
+            .iter()
+            .map(|p| Predicate::outlives(&p.a, &p.b))
+            .collect();
+        crate::prove::prove(
+            &self.program,
+            self.env.with_allow_pending_outlives(false),
+            (assumptions, facts),
+            goals,
+        )
+        .iter()
+        .any(|(c, _)| c.unconditionally_true())
     }
 
     // Convert the pending goals into a series of `PendingOutlives`.
@@ -263,6 +284,20 @@ impl TypeckEnv {
     // any other sort of where-clause is found.
     fn convert_to_pending_outlives(&self, c: &Constraints) -> Option<BTreeSet<PendingOutlives>> {
         let mut c_outlives = BTreeSet::default();
+
+        for (variable, value) in c.substitution().iter() {
+            if variable.kind() != ParameterKind::Lt || value.kind() != ParameterKind::Lt {
+                return None;
+            }
+            c_outlives.insert(PendingOutlives {
+                a: variable.upcast(),
+                b: value.clone(),
+            });
+            c_outlives.insert(PendingOutlives {
+                a: value,
+                b: variable.upcast(),
+            });
+        }
 
         for pending in c.env.pending() {
             match pending.downcast::<Predicate>() {

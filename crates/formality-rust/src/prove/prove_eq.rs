@@ -3,14 +3,18 @@ use crate::grammar::{
     Variable, Wcs,
 };
 use crate::prove::Constrained;
-use formality_core::judgment::FailureLocation;
+use formality_core::judgment::{FailureLocation, ProofTree};
 use formality_core::visit::CoreVisit;
 use formality_core::Deduplicate;
-use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
+use formality_core::{judgment_fn, Downcast, Map, ProvenSet, Set, Upcast};
+use std::collections::VecDeque;
 
 use crate::prove::{
-    constraints::occurs_in, decls::Program, prove, prove_after::prove_after,
-    prove_normalize::prove_normalize,
+    constraints::occurs_in,
+    decls::Program,
+    prove,
+    prove_after::prove_after,
+    prove_normalize::{prove_normalize, prove_syntactically_eq},
 };
 
 use super::{constraints::Constraints, env::Env};
@@ -33,12 +37,6 @@ judgment_fn! {
         assert(a.kind() == b.kind())
 
         trivial(a == b => Constraints::none(env))
-
-        (
-            (prove_eq(decls, env, assumptions, r, l) => env_c)
-            ----------------------------- ("symmetric")
-            (prove_eq(decls, env, assumptions, l, r) => env_c)
-        )
 
         (
             (let RigidTy { name: a_name, parameters: a_parameters } = a)
@@ -65,11 +63,103 @@ judgment_fn! {
         )
 
         (
-            (prove_normalize(decls, env, assumptions, x) => Constrained(y, c))
-            (prove_after(decls, c, assumptions, eq(y, z)) => c)
-            ----------------------------- ("normalize-l")
+            (prove_existential_var_eq(decls, env, assumptions, v, l) => c)
+            ----------------------------- ("existential-r")
+            (prove_eq(decls, env, assumptions, l, Variable::ExistentialVar(v)) => c)
+        )
+
+        (
+            (prove_eq_normalized(decls, env, assumptions, x, z) => c)
+            ----------------------------- ("normalize")
             (prove_eq(decls, env, assumptions, x, z) => c)
         )
+    }
+}
+
+#[track_caller]
+fn prove_eq_normalized(
+    decls: impl Upcast<Program>,
+    env: impl Upcast<Env>,
+    assumptions: impl Upcast<Wcs>,
+    left: impl Upcast<Parameter>,
+    right: impl Upcast<Parameter>,
+) -> ProvenSet<Constraints> {
+    let decls: Program = decls.upcast();
+    let assumptions: Wcs = assumptions.upcast();
+    let initial = Constrained::none(env, (left.upcast(), right.upcast()));
+    let mut pending = VecDeque::from([(initial, ProofTree::leaf("normalized equality"), false)]);
+    let mut visited = Set::new();
+    let mut results = Map::new();
+
+    while let Some((Constrained((left, right), mut c), tree, normalized)) = pending.pop_front() {
+        let (assumptions, mut left, mut right) =
+            c.substitution().apply((&assumptions, left, right));
+        if right < left {
+            std::mem::swap(&mut left, &mut right);
+        }
+        if (&assumptions, &left).size() > decls.max_size
+            || (&assumptions, &right).size() > decls.max_size
+        {
+            c = c.ambiguous();
+        }
+        if !visited.insert(Constrained((left.clone(), right.clone()), c.clone())) {
+            continue;
+        }
+        if !c.known_true {
+            results.insert(
+                c,
+                ProofTree::new("normalized equality", Some("ambiguous"), vec![tree]),
+            );
+            continue;
+        }
+        if normalized {
+            for (next, matched) in
+                prove_syntactically_eq(&decls, c.env(), &assumptions, &left, &right).iter()
+            {
+                let result = c.seq(next);
+                let proof = ProofTree::new(
+                    "normalized equality",
+                    Some("match"),
+                    vec![tree.clone(), matched],
+                );
+                if result.unconditionally_true() {
+                    return ProvenSet::singleton((result, proof));
+                }
+                results.insert(result, proof);
+            }
+        }
+        for (index, parameter) in [&left, &right].into_iter().enumerate() {
+            for (Constrained(q, next), step) in
+                prove_normalize(&decls, c.env(), &assumptions, parameter).iter()
+            {
+                let c = c.seq(next);
+                let pair = if index == 0 {
+                    (q, right.clone())
+                } else {
+                    (left.clone(), q)
+                };
+                let pair = c.substitution().apply(pair);
+                pending.push_back((
+                    Constrained(pair, c),
+                    ProofTree::new(
+                        "normalized equality",
+                        Some("step"),
+                        vec![tree.clone(), step],
+                    ),
+                    true,
+                ));
+            }
+        }
+    }
+
+    if results.is_empty() {
+        ProvenSet::failed(
+            "normalized equality",
+            FailureLocation::caller(),
+            "no matching normalized forms",
+        )
+    } else {
+        ProvenSet::proven(results)
     }
 }
 

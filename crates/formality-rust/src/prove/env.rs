@@ -95,7 +95,18 @@ impl Env {
     /// Return a clone of the environment with `w` as a pending where-clause
     pub fn with_pending(&self, w: impl Upcast<Wc>) -> Self {
         let mut env = self.clone();
-        env.pending.push(w.upcast());
+        let w = w.upcast();
+        if let Err(index) = env.pending.binary_search(&w) {
+            env.pending.insert(index, w);
+        }
+        env
+    }
+
+    pub(crate) fn with_replaced_pending(&self, pending: impl IntoIterator<Item = Wc>) -> Self {
+        let mut env = self.clone();
+        env.pending = pending.into_iter().collect();
+        env.pending.sort();
+        env.pending.dedup();
         env
     }
 }
@@ -346,16 +357,17 @@ impl Env {
     }
 
     pub fn substitute(&self, vs: &VarSubstitution) -> Self {
-        Self {
+        let env = Self {
             variables: self
                 .variables
                 .iter()
                 .map(|&v| vs.map_var(v).unwrap_or(v))
                 .collect(),
             bias: self.bias,
-            pending: vs.apply(&self.pending),
+            pending: vec![],
             allow_pending_outlives: self.allow_pending_outlives,
-        }
+        };
+        env.with_replaced_pending(vs.apply(&self.pending))
     }
 
     pub fn defines(&self, v: Variable) -> bool {

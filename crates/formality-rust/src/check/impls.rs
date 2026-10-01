@@ -253,7 +253,7 @@ judgment_fn! {
             (super::prove_goal(program, env, (impl_assumptions, ii_where_clauses), Predicate::well_formed(ii_ty)) => ())
 
             // Prove the ensures clauses
-            (let ensures: Wcs = ti_ensures.iter().map(|e| e.to_wc(&ii_ty)).collect())
+            (let ensures: Wcs = ti_ensures.iter().flat_map(|e| e.to_wcs(&ii_ty)).collect())
             (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), ensures) => ())
 
             ---- ("check_associated_ty_value")

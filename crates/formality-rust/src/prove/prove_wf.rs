@@ -1,8 +1,8 @@
 use crate::grammar::{
-    AliasName, AliasTy, Const, Lt, Parameter, Parameters, Predicate, RigidName, RigidTy, Ty,
-    UniversalVar, Wcs,
+    AliasName, AliasTy, AssociatedTy, AssociatedTyName, Const, Lt, Parameter, Parameters,
+    Predicate, RigidName, RigidTy, TraitRef, Ty, UniversalVar, Wcs,
 };
-use formality_core::{judgment_fn, Downcast, ProvenSet, Upcast};
+use formality_core::{judgment_fn, Downcast, Downcasted, ProvenSet, Upcast};
 
 use crate::prove::{combinators::for_all, decls::Program, prove, prove_after::prove_after};
 
@@ -84,15 +84,33 @@ judgment_fn! {
     }
 }
 
-pub fn prove_alias_wf(
-    decls: &Program,
-    env: &Env,
-    assumptions: &Wcs,
-    _name: &AliasName,
-    parameters: &Parameters,
-) -> ProvenSet<Constraints> {
-    // FIXME(#217): verify self type implements trait
-    for_all(decls, env, assumptions, parameters, &prove_wf_recursive)
+judgment_fn! {
+    pub fn prove_alias_wf(
+        decls: Program,
+        env: Env,
+        assumptions: Wcs,
+        name: AliasName,
+        parameters: Parameters,
+    ) => Constraints {
+        debug(name, parameters, assumptions, env)
+
+        (
+            (let trait_arity = parameters.len().checked_sub(*item_arity))
+            (if let Some(trait_arity) = trait_arity)
+            (let (trait_parameters, item_parameters) = parameters.split_at(*trait_arity))
+            (let trait_decl = decls.program().trait_named(trait_id)?)
+            (let trait_data = trait_decl.binder.instantiate_with(trait_parameters)?)
+            (if let Some(item) = trait_data.trait_items.iter().downcasted::<AssociatedTy>().find(|item| item.id == *item_id))
+            (let item_data = item.binder.instantiate_with(item_parameters)?)
+            (for_all(decls, env, assumptions, parameters, &prove_wf_recursive) => c)
+            (let trait_ref = TraitRef::new(trait_id, trait_parameters))
+            (prove_after(decls, c, assumptions, (
+                trait_ref, (&trait_data.where_clauses, &item_data.where_clauses),
+            )) => c)
+            --- ("associated type")
+            (prove_alias_wf(decls, env, assumptions, AssociatedTyName { trait_id, item_id, item_arity }, parameters) => c)
+        )
+    }
 }
 
 pub fn prove_wf_recursive(
