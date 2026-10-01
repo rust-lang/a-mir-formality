@@ -15,6 +15,7 @@ use formality_core::{map, set, ProvenSet, Upcast};
 use std::sync::Arc;
 use tracing::Level;
 
+mod binder_scope;
 pub mod combinators;
 mod constraints;
 mod db;

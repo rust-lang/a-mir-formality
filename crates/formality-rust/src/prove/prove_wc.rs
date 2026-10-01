@@ -2,6 +2,7 @@ use crate::grammar::{Predicate, Wc, Wcs};
 use formality_core::judgment_fn;
 
 use crate::prove::{
+    binder_scope::{enter_existentially, enter_universally},
     combinators::for_all,
     decls::Program,
     env::{Bias, Env},
@@ -30,11 +31,10 @@ judgment_fn! {
         debug(goal, assumptions, env)
 
         (
-            (let (env, subst) = env.universal_substitution(binder))
-            (let p1 = binder.instantiate_with(&subst).unwrap())
-            (prove_wc(decls, env, assumptions, p1) => c)
+            (scope(enter_universally(env, binder) => (env, p1)) with(c)
+                (prove_wc(decls, env, assumptions, p1) => c))
             --- ("forall")
-            (prove_wc(decls, env, assumptions, Wc::ForAll(binder)) => c.pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Wc::ForAll(binder)) => c)
         )
 
         (
@@ -57,29 +57,27 @@ judgment_fn! {
             (i in decls.impl_decls(&trait_ref.trait_id))!
 
             // Instantiate impl generics with inference variables (in our example, `A => ?A, B => ?B`).
-            (let (env, subst) = env.existential_substitution(&i.binder))
-            (let i = i.binder.instantiate_with(&subst).unwrap())
+            (scope(enter_existentially(env, &i.binder) => (env, i)) with(c)
+                // Instantiate trait where-clauses from `Foo<?B>`. If we had `trait Foo<X: Debug>`, for example,
+                // this would yield `?B: Debug`.
+                (let t = decls.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
 
-            // Instantiate trait where-clauses from `Foo<?B>`. If we had `trait Foo<X: Debug>`, for example,
-            // this would yield `?B: Debug`.
-            (let t = decls.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
+                // Create a set of assumptions `co_assumptions` that include the predicate the impl itself
+                // is asserting (i.e., `A: Foo<B>`). When proving the impl's where-clauses, we are allowed
+                // to assume this is true (in a coinductive fashion).
+                //
+                // NB: This is actually not what Rust currently does, but it is what "we" (types team) want it to do.
+                (let co_assumptions = (assumptions, trait_ref))
+                (prove(decls, env, co_assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
+                (prove_after(decls, c, co_assumptions, &i.where_clause) => c)
 
-            // Create a set of assumptions `co_assumptions` that include the predicate the impl itself
-            // is asserting (i.e., `A: Foo<B>`). When proving the impl's where-clauses, we are allowed
-            // to assume this is true (in a coinductive fashion).
-            //
-            // NB: This is actually not what Rust currently does, but it is what "we" (types team) want it to do.
-            (let co_assumptions = (assumptions, trait_ref))
-            (prove(decls, env, co_assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
-            (prove_after(decls, c, co_assumptions, &i.where_clause) => c)
-
-            // Prove that the well-formedness requirements of the *trait* hold -- for this proof, we cannot
-            // assume that the trait is implemented, because that would allow specious implied bounds
-            // (i.e., we could assume that `B: Debug` based on the trait definition + the existence of an impl,
-            // but actually the impl is responsible for proving that `B: Debug`).
-            (prove_after(decls, c, assumptions, &t.where_clause) => c)
+                // Prove that the well-formedness requirements of the *trait* hold -- for this proof, we cannot
+                // assume that the trait is implemented, because that would allow specious implied bounds
+                // (i.e., we could assume that `B: Debug` based on the trait definition + the existence of an impl,
+                // but actually the impl is responsible for proving that `B: Debug`).
+                (prove_after(decls, c, assumptions, &t.where_clause) => c))
             ----------------------------- ("positive impl")
-            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c)
         )
 
         (
@@ -91,12 +89,11 @@ judgment_fn! {
 
         (
             (i in decls.neg_impl_decls(&trait_ref.trait_id))
-            (let (env, subst) = env.existential_substitution(&i.binder))
-            (let i = i.binder.instantiate_with(&subst).unwrap())
-            (prove(decls, env, assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
-            (prove_after(decls, c, assumptions, &i.where_clause) => c)
+            (scope(enter_existentially(env, &i.binder) => (env, i)) with(c)
+                (prove(decls, env, assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
+                (prove_after(decls, c, assumptions, &i.where_clause) => c))
             ----------------------------- ("negative impl")
-            (prove_wc(decls, env, assumptions, Predicate::NotImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Predicate::NotImplemented(trait_ref)) => c)
         )
 
         (
@@ -107,12 +104,11 @@ judgment_fn! {
 
         (
             (ti in decls.trait_invariants())
-            (let (env, subst) = env.existential_substitution(&ti.binder))
-            (let ti = ti.binder.instantiate_with(&subst).unwrap())
-            (prove_via(decls, env, assumptions, &ti.where_clause, trait_ref) => c)
-            (prove_after(decls, c, assumptions, &ti.trait_ref) => c)
+            (scope(enter_existentially(env, &ti.binder) => (env, ti)) with(c)
+                (prove_via(decls, env, assumptions, &ti.where_clause, trait_ref) => c)
+                (prove_after(decls, c, assumptions, &ti.trait_ref) => c))
             ----------------------------- ("trait implied bound")
-            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c.pop_subst(&subst))
+            (prove_wc(decls, env, assumptions, Predicate::IsImplemented(trait_ref)) => c)
         )
 
         (
