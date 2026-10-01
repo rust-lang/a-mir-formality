@@ -592,12 +592,24 @@ where
     }
 }
 
+impl<L> CoreParse<L> for u128
+where
+    L: Language,
+{
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::single_variant(scope, text, "u128", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
+    }
+}
+
 impl<L> CoreParse<L> for i8
 where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u16", |p| {
+        Parser::single_variant(scope, text, "i8", |p| {
             let v = p.number()?;
             p.ok(v)
         })
@@ -609,7 +621,7 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u16", |p| {
+        Parser::single_variant(scope, text, "i16", |p| {
             let v = p.number()?;
             p.ok(v)
         })
@@ -621,7 +633,7 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u16", |p| {
+        Parser::single_variant(scope, text, "i32", |p| {
             let v = p.number()?;
             p.ok(v)
         })
@@ -633,7 +645,19 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u16", |p| {
+        Parser::single_variant(scope, text, "i64", |p| {
+            let v = p.number()?;
+            p.ok(v)
+        })
+    }
+}
+
+impl<L> CoreParse<L> for i128
+where
+    L: Language,
+{
+    fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::single_variant(scope, text, "i128", |p| {
             let v = p.number()?;
             p.ok(v)
         })
@@ -645,7 +669,7 @@ where
     L: Language,
 {
     fn parse<'t>(scope: &Scope<L>, text: &'t str) -> ParseResult<'t, Self> {
-        Parser::single_variant(scope, text, "u16", |p| {
+        Parser::single_variant(scope, text, "isize", |p| {
             let v = p.number()?;
             p.ok(v)
         })

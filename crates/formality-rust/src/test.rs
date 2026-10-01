@@ -3,7 +3,7 @@
 use crate::rust::{term, try_term};
 use formality_macros::test;
 
-use crate::grammar::expr::{Expr, Literal, PlaceExpr};
+use crate::grammar::expr::{Expr, IntegerValue, Literal, PlaceExpr, Stmt};
 use crate::grammar::{Crates, Fallible, ScalarId};
 
 #[test]
@@ -277,11 +277,14 @@ fn test_parse_literals() {
     let expr_data: Fallible<Expr> = try_term("0_bool");
     assert!(expr_data.is_err());
 
+    let expr_data: Fallible<Expr> = try_term("-2_u8");
+    assert!(expr_data.is_err());
+
     let expr_data: Expr = try_term("0_u8").unwrap();
     assert!(matches!(
         expr_data,
         Expr::Literal(Literal {
-            value: 0,
+            value: IntegerValue::Unsigned(0),
             ty: ScalarId::U8
         })
     ));
@@ -291,8 +294,17 @@ fn test_parse_literals() {
     assert!(matches!(
         expr_data,
         Expr::Literal(Literal {
-            value: 0,
+            value: IntegerValue::Unsigned(0),
             ty: ScalarId::U8
+        })
+    ));
+
+    let expr_data: Expr = try_term("-2_i8").unwrap();
+    assert!(matches!(
+        expr_data,
+        Expr::Literal(Literal {
+            value: IntegerValue::Signed(-2),
+            ty: ScalarId::I8
         })
     ));
 
