@@ -1,0 +1,27 @@
+{
+  "skill_name": "a-mir-formality-idiomatic-judgment-fn",
+  "evals": [
+    {
+      "id": 1,
+      "starter": "formality-core",
+      "prompt": "Complete the prepared Rust crate so that it implements a simply typed lambda calculus using formality-core and judgment_fn!. Keep the preconfigured local formality-core path dependency; do not vendor or copy its sources into the crate. Support variables, explicitly typed lambda parameters, application, booleans, and conditionals. Implement both type checking and an interpreter. A parser is not required; the example programs may be constructed directly as AST values.\n\nInclude automated tests for these programs that should type-check and evaluate successfully:\n\n1. true : Bool, evaluating to true.\n2. (lambda x: Bool. x) false : Bool, evaluating to false.\n3. (lambda f: Bool -> Bool. f true) (lambda x: Bool. x) : Bool, evaluating to true.\n4. if false then true else false : Bool, evaluating to false.\n5. (lambda x: Bool. (lambda x: Bool. x) false) true : Bool, evaluating to false; the inner x shadows the outer x.\n6. (lambda x: Bool. (lambda f: Bool -> Bool. (lambda x: Bool. f false) false) (lambda y: Bool. x)) true : Bool, evaluating to true; the function must capture its defining environment.\n\nAlso include automated tests showing that the type checker rejects:\n\n1. x, because the variable is unbound.\n2. true false, because a non-function is applied.\n3. (lambda x: Bool. x) (lambda y: Bool. y), because the argument type does not match.\n4. if (lambda x: Bool. x) then true else false, because the condition is not Bool.\n5. if true then false else (lambda x: Bool. x), because the branch types differ.\n\nFailed type checks should retain useful explanations of the unmet obligations. Choose AST and environment representations that fit formality-core, document any non-obvious design choices briefly, and run the tests before finishing.",
+      "expected_output": "A compiling Rust crate built on formality-core whose judgment_fn! rules implement type checking and closure-based evaluation for the requested simply typed lambda calculus. Automated tests cover every successful and rejected example, including lexical shadowing and closure capture. The implementation should read naturally as inference rules and failed type checks should preserve useful proof diagnostics.",
+      "assertions": [
+        "The produced crate compiles and its automated tests pass.",
+        "The type checker and interpreter are implemented with formality-core judgment_fn! judgments rather than only ordinary Rust functions.",
+        "Tests cover all six successful programs and verify both their expected types and evaluated values.",
+        "Tests cover all five rejected programs and verify that type checking fails for each one.",
+        "Evaluation uses lexical closures or an equivalent representation that passes both the shadowing and captured-environment examples.",
+        "Expression cases are normally selected by patterns in rule conclusions rather than by matching the judgment input in premises.",
+        "Values are destructured directly at the DSL construct that matches them, including conclusions and judgment-result premises, rather than assigned to generic intermediate variables and immediately destructured by following if let premises.",
+        "Conclusion patterns use the most directly relevant variants supported by the project's casts, without unnecessary outer wrapper patterns or typed downcasts where a variant pattern suffices.",
+        "Judgment premises avoid unnecessary clone and explicit upcast calls; ownership and conversions do not obscure the inference rules.",
+        "Calls to judgments are expressed as proof premises that bind their results; the implementation does not reduce ordinary proof obligations to is_proven-style boolean checks.",
+        "Helpers accept references or impl Upcast arguments where that keeps conversion bookkeeping out of judgment call sites, and they do not mutate caller-owned state.",
+        "Assertions, if present, protect states that ought to be impossible rather than representing expected type errors.",
+        "Any confirmation markers are placed only after premises that establish an obviously relevant rule, and do not hide failures of substantive type-checking obligations.",
+        "Failure output for ill-typed programs retains evidence about the relevant unmet obligation without being dominated by obviously inapplicable rules."
+      ]
+    }
+  ]
+}
