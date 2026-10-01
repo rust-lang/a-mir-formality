@@ -10,6 +10,7 @@
   - [Variables](./formality_core/variables.md)
   - [Collections](./formality_core/collections.md)
   - [Judgment functions and inference rules](./formality_core/judgment_fn.md)
+    - [Idiomatic judgment functions](./formality_core/idiomatic_judgment_fn.md)
   - [FAQ and troubleshooting](./formality_core/faq.md)
 - [`formality_rust`: the Rust model](./formality_rust.md)
   - [Borrow checking](./formality_rust/borrow_check.md)
