@@ -7,7 +7,7 @@ use crate::grammar::{
     NegTraitImplBoundData, Predicate, RigidName, Substitution, Trait, TraitBoundData, TraitImpl,
     TraitImplBoundData, TraitItem, Ty, Wcs,
 };
-use crate::prove::{Env, Program, Safety};
+use crate::prove::{enter_universally, with_variables, Env, Program, Safety};
 use crate::rust::Term;
 use formality_core::{judgment::ProofTree, judgment_fn, Downcasted};
 
@@ -20,23 +20,22 @@ judgment_fn! {
         debug(program, trait_impl, crate_id)
         (
             (let TraitImpl { binder, safety: _ } = &trait_impl)
-            (let (env, bound_data) = Env::default().instantiate_universally(binder))
-            (let TraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses, impl_items } = bound_data)
-            (let trait_ref = trait_id.with(self_ty, trait_parameters))
+            (scope(enter_universally(program, Env::default(), (), binder) => (env, TraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses, impl_items })) with()
+                (let trait_ref = trait_id.with(self_ty, trait_parameters))
 
-            (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
-            (super::prove_goal(program, env, where_clauses, Predicate::is_implemented(trait_ref)) => ())
-            (super::prove_not_goal(program, env, where_clauses, Predicate::not_implemented(trait_ref)) => ())
+                (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
+                (super::prove_goal(program, env, where_clauses, Predicate::is_implemented(trait_ref)) => ())
+                (super::prove_not_goal(program, env, where_clauses, Predicate::not_implemented(trait_ref)) => ())
 
-            (let trait_decl = program.program().trait_named(&trait_ref.trait_id)?)
-            (let TraitBoundData { where_clauses: _, trait_items } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?)
-            (check_safety_matches(&trait_decl, &trait_impl) => ())
+                (let trait_decl = program.program().trait_named(&trait_ref.trait_id)?)
+                (let TraitBoundData { where_clauses: _, trait_items } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?)
+                (check_safety_matches(&trait_decl, &trait_impl) => ())
 
-            (check_duplicate_impl_items(impl_items) => ())
-            (for_all(impl_item in impl_items)
-                (check_trait_impl_item(program, env, where_clauses, trait_items, impl_item, crate_id) => ()))
+                (check_duplicate_impl_items(impl_items) => ())
+                (for_all(impl_item in impl_items)
+                    (check_trait_impl_item(program, env, where_clauses, trait_items, impl_item, crate_id) => ()))
 
-            (check_all_required_items_present(trait_items, impl_items) => ())
+                (check_all_required_items_present(trait_items, impl_items) => ()))
 
             ---- ("check_trait_impl")
             (check_trait_impl(program, trait_impl, crate_id) => ())
@@ -58,14 +57,13 @@ judgment_fn! {
         )
 
         (
-            (let (env, bound_data) = Env::default().instantiate_universally(binder))
-            (let NegTraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses } = bound_data)
-            (let trait_ref = trait_id.with(self_ty, trait_parameters))
-            (super::where_clauses::prove_where_clauses_well_formed(program, &env, &where_clauses, &where_clauses) => ())
-            (super::prove_goal(program, &env, &where_clauses, Predicate::not_implemented(&trait_ref)) => ())
+            (scope(enter_universally(program, Env::default(), (), binder) => (env, NegTraitImplBoundData { trait_id, self_ty, trait_parameters, where_clauses })) with()
+                (let trait_ref = trait_id.with(self_ty, trait_parameters))
+                (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
+                (super::prove_goal(program, env, where_clauses, Predicate::not_implemented(&trait_ref)) => ())
 
-            (let trait_decl = program.program().trait_named(&trait_ref.trait_id)?)
-            (let TraitBoundData { where_clauses: _, trait_items: _ } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?)
+                (let trait_decl = program.program().trait_named(&trait_ref.trait_id)?)
+                (let TraitBoundData { where_clauses: _, trait_items: _ } = trait_decl.binder.instantiate_with(&trait_ref.parameters)?))
 
             ---- ("check_neg_trait_impl")
             (check_neg_trait_impl(program, NegTraitImpl { binder, safety: Safety::Safe }) => ())
@@ -196,23 +194,24 @@ judgment_fn! {
             (super::fns::check_fn(program, env, impl_assumptions, ii_fn, crate_id) => ())
 
             // Merge binders and instantiate universally
-            (let (env, (ii_bound, ti_bound)) = env.instantiate_universally(&merge_binders(&ii_fn.binder, &ti_fn.binder)?))
-            (let FnBoundData { input_args: ii_input_args, output_ty: ii_output_ty, where_clauses: ii_where_clauses, body: _ } = ii_bound)
-            (let FnBoundData { input_args: ti_input_args, output_ty: ti_output_ty, where_clauses: ti_where_clauses, body: _ } = ti_bound)
+            (let binder = merge_binders(&ii_fn.binder, &ti_fn.binder)?)
+            (scope(enter_universally(program, env, impl_assumptions, binder) => (env, (ii_bound, ti_bound))) with()
+                (let FnBoundData { input_args: ii_input_args, output_ty: ii_output_ty, where_clauses: ii_where_clauses, body: _ } = ii_bound)
+                (let FnBoundData { input_args: ti_input_args, output_ty: ti_output_ty, where_clauses: ti_where_clauses, body: _ } = ti_bound)
 
-            // Prove impl where-clauses follow from trait where-clauses
-            (super::prove_goal(program, &env, (&impl_assumptions, &ti_where_clauses), &ii_where_clauses) => ())
+                // Prove impl where-clauses follow from trait where-clauses
+                (super::prove_goal(program, env, (impl_assumptions, ti_where_clauses), ii_where_clauses) => ())
 
-            // Check argument count matches
-            (if ii_input_args.len() == ti_input_args.len())
+                // Check argument count matches
+                (if ii_input_args.len() == ti_input_args.len())
 
-            // Check each argument: trait arg is subtype of impl arg (contravariance)
-            (for_all(pair in ii_input_args.iter().zip(ti_input_args.iter()))
-                (let (ii_input_arg, ti_input_arg) = pair)
-                (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), Predicate::sub(&ti_input_arg.ty, &ii_input_arg.ty)) => ()))
+                // Check each argument: trait arg is subtype of impl arg (contravariance)
+                (for_all(pair in ii_input_args.iter().zip(ti_input_args.iter()))
+                    (let (ii_input_arg, ti_input_arg) = pair)
+                    (super::prove_goal(program, env, (impl_assumptions, ii_where_clauses), Predicate::sub(&ti_input_arg.ty, &ii_input_arg.ty)) => ()))
 
-            // Check return type: impl return is subtype of trait return (covariance)
-            (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), Predicate::sub(ii_output_ty, ti_output_ty)) => ())
+                // Check return type: impl return is subtype of trait return (covariance)
+                (super::prove_goal(program, env, (impl_assumptions, ii_where_clauses), Predicate::sub(ii_output_ty, ti_output_ty)) => ()))
 
             ---- ("check_fn_in_impl")
             (check_fn_in_impl(program, env, impl_assumptions, trait_items, ii_fn, crate_id) => ())
@@ -239,22 +238,23 @@ judgment_fn! {
                 .find(|trait_associated_ty| trait_associated_ty.id == *id))
 
             // Merge binders and instantiate universally
-            (let (env, (ii_bound, ti_bound)) = impl_env.instantiate_universally(&merge_binders(binder, &trait_associated_ty.binder)?))
-            (let AssociatedTyValueBoundData { where_clauses: ii_where_clauses, ty: ii_ty } = ii_bound)
-            (let AssociatedTyBoundData { ensures: ti_ensures, where_clauses: ti_where_clauses } = ti_bound)
+            (let binder = merge_binders(binder, &trait_associated_ty.binder)?)
+            (scope(enter_universally(program, impl_env, impl_assumptions, binder) => (env, (ii_bound, ti_bound))) with()
+                (let AssociatedTyValueBoundData { where_clauses: ii_where_clauses, ty: ii_ty } = ii_bound)
+                (let AssociatedTyBoundData { ensures: ti_ensures, where_clauses: ti_where_clauses } = ti_bound)
 
-            // Prove impl where-clauses are well-formed
-            (super::where_clauses::prove_where_clauses_well_formed(program, &env, (&impl_assumptions, &ii_where_clauses), &ii_where_clauses) => ())
+                // Prove impl where-clauses are well-formed
+                (super::where_clauses::prove_where_clauses_well_formed(program, env, (impl_assumptions, ii_where_clauses), ii_where_clauses) => ())
 
-            // Prove impl where-clauses follow from trait where-clauses
-            (super::prove_goal(program, &env, (&impl_assumptions, &ti_where_clauses), &ii_where_clauses) => ())
+                // Prove impl where-clauses follow from trait where-clauses
+                (super::prove_goal(program, env, (impl_assumptions, ti_where_clauses), ii_where_clauses) => ())
 
-            // Prove the impl type is well-formed
-            (super::prove_goal(program, env, (impl_assumptions, ii_where_clauses), Predicate::well_formed(ii_ty)) => ())
+                // Prove the impl type is well-formed
+                (super::prove_goal(program, env, (impl_assumptions, ii_where_clauses), Predicate::well_formed(ii_ty)) => ())
 
-            // Prove the ensures clauses
-            (let ensures: Wcs = ti_ensures.iter().map(|e| e.to_wc(&ii_ty)).collect())
-            (super::prove_goal(program, &env, (&impl_assumptions, &ii_where_clauses), ensures) => ())
+                // Prove the ensures clauses
+                (let ensures: Wcs = ti_ensures.iter().map(|e| e.to_wc(ii_ty)).collect())
+                (super::prove_goal(program, env, (impl_assumptions, ii_where_clauses), ensures) => ()))
 
             ---- ("check_associated_ty_value")
             (check_associated_ty_value(program, impl_env, impl_assumptions, trait_items, impl_value) => ())
@@ -349,14 +349,13 @@ judgment_fn! {
             (check_drop_impl_in_defining_crate(program, adt_id, crate_id) => ())
             (let adt = program.program().adt_item_named(adt_id)?.to_adt())
             // Universally instantiate the ADT: forall<T...> { (T: Bounds) => ... }
-            (let (env, adt_vars) = Env::default().universal_substitution(&adt.binder))
-            (let adt_bound = adt.binder.instantiate_with(adt_vars)?)
-            (let adt_self_ty = Ty::rigid(adt_id, adt_vars))
-            // Prove: under the ADT's where-clauses, Drop is implemented for the ADT.
-            // This will find the impl, unify its self type, and verify its where-clauses.
-            (let drop_trait_ref = crate::grammar::TraitId::new("Drop").with(adt_self_ty, ()))
-            (super::prove_goal(&program, &env, &adt_bound.where_clauses,
-                Predicate::IsImplemented(drop_trait_ref.clone())) => ())
+            (scope(enter_universally(program, Env::default(), (), &with_variables(&adt.binder)) => (env, (adt_parameters, adt_bound))) with()
+                (let adt_self_ty = Ty::rigid(adt_id, adt_parameters))
+                // Prove: under the ADT's where-clauses, Drop is implemented for the ADT.
+                // This will find the impl, unify its self type, and verify its where-clauses.
+                (let drop_trait_ref = crate::grammar::TraitId::new("Drop").with(adt_self_ty, ()))
+                (super::prove_goal(program, env, &adt_bound.where_clauses,
+                    Predicate::IsImplemented(drop_trait_ref.clone())) => ()))
             ---- ("Drop impl is always applicable")
             (check_drop_impl_always_applicable(program, trait_impl, crate_id) => ())
         )

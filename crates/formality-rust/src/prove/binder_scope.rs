@@ -7,7 +7,8 @@
 //!
 //! Inside are the body of the binder, with a fresh variable for each of its
 //! variables, and the environment with those in scope. The constraints `c`
-//! come out without them: see [`BinderScope::pop`].
+//! come out without them: see [`BinderScope::pop`]. A rule that proves
+//! nothing to take out leaves with `with()`.
 
 use crate::grammar::{Binder, Lt, Parameter, Predicate, Variable, Wc, Wcs};
 use crate::prove::{constraints::Constraints, decls::Program, env::Env, prove_after::prove_after};
@@ -27,16 +28,16 @@ pub struct BinderScope {
 /// Enter `binder` with fresh universal variables: what is proven inside
 /// holds for every value of the binder's variables.
 pub fn enter_universally<T: Term>(
-    decls: &Program,
-    env: &Env,
-    assumptions: &Wcs,
+    decls: impl Upcast<Program>,
+    env: impl Upcast<Env>,
+    assumptions: impl Upcast<Wcs>,
     binder: &Binder<T>,
 ) -> (BinderScope, (Env, T)) {
-    let (env, vars) = env.universal_substitution(binder);
+    let (env, vars) = env.upcast().universal_substitution(binder);
     let body = binder.instantiate_with(&vars).unwrap();
     let scope = BinderScope {
-        decls: decls.clone(),
-        assumptions: assumptions.clone(),
+        decls: decls.upcast(),
+        assumptions: assumptions.upcast(),
         vars: vars.upcast(),
     };
     (scope, (env, body))
@@ -45,19 +46,34 @@ pub fn enter_universally<T: Term>(
 /// Enter `binder` with fresh existential variables: what is proven inside
 /// holds for some value of the binder's variables.
 pub fn enter_existentially<T: Term>(
-    decls: &Program,
-    env: &Env,
-    assumptions: &Wcs,
+    decls: impl Upcast<Program>,
+    env: impl Upcast<Env>,
+    assumptions: impl Upcast<Wcs>,
     binder: &Binder<T>,
 ) -> (BinderScope, (Env, T)) {
-    let (env, vars) = env.existential_substitution(binder);
+    let (env, vars) = env.upcast().existential_substitution(binder);
     let body = binder.instantiate_with(&vars).unwrap();
     let scope = BinderScope {
-        decls: decls.clone(),
-        assumptions: assumptions.clone(),
+        decls: decls.upcast(),
+        assumptions: assumptions.upcast(),
         vars: vars.upcast(),
     };
     (scope, (env, body))
+}
+
+/// `binder` with its variables alongside its body, for a rule that needs
+/// the fresh variables themselves.
+pub fn with_variables<T: Term>(binder: &Binder<T>) -> Binder<(Vec<Parameter>, T)> {
+    let (vars, body) = binder.open();
+    let parameters = vars.iter().map(|v| v.upcast()).collect();
+    Binder::new(&vars, (parameters, body))
+}
+
+/// Nothing proven inside is taken out.
+impl Scope<()> for BinderScope {
+    fn leave(&self, (): ()) -> ProvenSet<()> {
+        ProvenSet::singleton(((), ProofTree::leaf("leave binder")))
+    }
 }
 
 impl Scope<(Constraints,)> for BinderScope {

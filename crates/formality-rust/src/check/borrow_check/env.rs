@@ -3,10 +3,12 @@ use std::collections::BTreeSet;
 use crate::check::borrow_check::flow_state::{FlowState, PendingOutlives};
 
 use crate::check::borrow_check::outlives::verify_universal_outlives;
-use crate::grammar::{Binder, ExistentialVar, Predicate, Ty, UniversalVar, Wcs};
+use crate::grammar::{Binder, ExistentialVar, Predicate, Ty, Wcs};
 use crate::grammar::{Crates, Parameter};
-use crate::prove::{prove_normalize, Constrained, Constraints, Env, Program};
-use crate::rust::Fold;
+use crate::prove::{
+    enter_universally, prove_normalize, BinderScope, Constrained, Constraints, Env, Program,
+};
+use crate::rust::{Fold, Term};
 use formality_core::judgment::{FailureLocation, ProofTree, Proven};
 use formality_core::{cast_impl, Downcast, DowncastTo, Set, Upcast};
 
@@ -301,26 +303,14 @@ impl TypeckEnv {
         )
     }
 
-    /// Instantiate the given binder universally in this environment,
-    pub fn instantiate_universally<T>(
-        &self,
-        binder: &Binder<T>,
-    ) -> (TypeckEnv, Vec<UniversalVar>, T)
-    where
-        T: Fold + Clone,
-    {
-        let (env, subst) = self.env.universal_substitution(binder);
-        let value = binder
-            .instantiate_with(&subst)
-            .expect("suitable substitution");
-
-        (
-            TypeckEnv {
-                env,
-                ..self.clone()
-            },
-            subst,
-            value,
-        )
+    /// Enter `binder` with fresh universal variables, for the `scope`
+    /// condition of a rule (see [`enter_universally`][]).
+    pub fn enter_universally<T: Term>(&self, binder: &Binder<T>) -> (BinderScope, (TypeckEnv, T)) {
+        let (scope, (env, body)) = enter_universally(&self.program, &self.env, (), binder);
+        let env = TypeckEnv {
+            env,
+            ..self.clone()
+        };
+        (scope, (env, body))
     }
 }

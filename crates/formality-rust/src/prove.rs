@@ -39,6 +39,7 @@ pub mod test_util;
 #[cfg(test)]
 mod test;
 
+pub use binder_scope::{enter_existentially, enter_universally, with_variables, BinderScope};
 pub use constraints::{Constrained, Constraints};
 pub use decls::*;
 pub use env::{Bias, Env, MaxUniverse, Universe};
