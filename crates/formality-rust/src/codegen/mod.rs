@@ -127,18 +127,18 @@ judgment_fn! {
 
         (
             (let (local, cfn) = cfn.alloc_temp(ty)?)
-            (let scope = scope.push_var(id, local, ty)?)
+            (let scope = scope.push_var(id, local, ty, mutability)?)
             (codegen_expr_into(global, cfn, scope, local, &init.expr) => (code, global, cfn))
             ---- ("let-init")
-            (codegen_stmt(global, cfn, scope, Stmt::Let { label: _, id, ty, init: Some(init) }) => (code, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Let { mutability, label: _, id, ty, init: Some(init) }) => (code, scope, global, cfn))
         )
 
         (
             (let (local, cfn) = cfn.alloc_temp(ty)?)
-            (let scope = scope.push_var(id, local, ty)?)
+            (let scope = scope.push_var(id, local, ty, mutability)?)
             (let code = cfn.fresh_code_block())
             ---- ("let-no-init")
-            (codegen_stmt(global, cfn, scope, Stmt::Let { label: _, id, ty, init: None }) => (code, scope, global, cfn))
+            (codegen_stmt(global, cfn, scope, Stmt::Let { mutability, label: _, id, ty, init: None }) => (code, scope, global, cfn))
         )
 
         (

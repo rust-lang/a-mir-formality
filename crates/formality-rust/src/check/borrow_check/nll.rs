@@ -199,10 +199,10 @@ judgment_fn! {
                     LiveBefore::live_before(&Assignment(id), env, &state, &places_live_on_exit),
                 ) => state))
 
-            (let state = state.with_local_in_scope(&env.env, label, id, ty)?)
+            (let state = state.with_local_in_scope(&env.env, label, mutability, id, ty)?)
             (let state = if init.is_none() { state.with_uninit(&PlaceExpr::Var(id.clone())) } else { state.with_initialized(&PlaceExpr::Var(id.clone())) })
             ------------------------------------------------------------ ("let")
-            (borrow_check_statement(env, assumptions, state, Stmt::Let { label, id, ty, init }, places_live_on_exit) => (env, state))
+            (borrow_check_statement(env, assumptions, state, Stmt::Let { mutability, label, id, ty, init }, places_live_on_exit) => (env, state))
         )
 
         (
@@ -401,6 +401,8 @@ judgment_fn! {
             // Prove subtyping: value_ty <: place_ty
             (prove_assignable(env, assumptions, state, value_ty, &place.ty) => state)
 
+            (prove_place_is_assignable(env, assumptions, state, place) => ())
+
             (access_permitted(
                 env,
                 assumptions,
@@ -469,6 +471,8 @@ judgment_fn! {
                 state,
                 place,
             ) => (place, state))
+
+            (prove_borrow_mutability_ok(env, assumptions, state, kind, place) => ())
 
             // Check that the access required by the borrow is permitted
             (let access_kind = match kind {
@@ -1019,6 +1023,88 @@ judgment_fn! {
         // is an "owned deref" (e.g., Box). Since no owned deref types exist yet,
         // this rule has no matching cases and derefs through references naturally
         // fail.
+    }
+}
+
+judgment_fn! {
+    fn prove_place_is_mut(
+        env: TypeckEnv,
+        assumptions: Wcs,
+        state: FlowState,
+        place: TypedPlaceExpr,
+    ) => () {
+        debug(place, state, assumptions, env)
+
+        (
+            (if state.local_is_mut(&local_id))
+            ------------------------------------------------------------ ("mut local")
+            (prove_place_is_mut(_env, _assumptions, state, TypedPlaceExpressionData::Local(local_id)) => ())
+        )
+
+        (
+            (prove_ty_is_rigid(env, assumptions, state, &prefix.ty) => (RigidTy { name: RigidName::Ref(kind), .. }, _state))
+            (if let RefKind::Mut = kind)
+            ------------------------------------------------------------ ("deref of &mut")
+            (prove_place_is_mut(env, assumptions, state, TypedPlaceExpressionData::Deref(prefix)) => ())
+        )
+
+        (
+            (prove_place_is_mut(env, assumptions, state, prefix) => ())
+            ------------------------------------------------------------ ("field")
+            (prove_place_is_mut(env, assumptions, state, TypedPlaceExpressionData::Field(prefix, _, _, _)) => ())
+        )
+
+        (
+            (prove_place_is_mut(env, assumptions, state, prefix) => ())
+            ------------------------------------------------------------ ("tuple field")
+            (prove_place_is_mut(env, assumptions, state, TypedPlaceExpressionData::TupleField(prefix, _)) => ())
+        )
+    }
+}
+
+judgment_fn! {
+    fn prove_borrow_mutability_ok(
+        env: TypeckEnv,
+        assumptions: Wcs,
+        state: FlowState,
+        kind: RefKind,
+        place: TypedPlaceExpr,
+    ) => () {
+        debug(kind, place, state, assumptions, env)
+
+        (
+            ------------------------------------------------------------ ("shared borrow")
+            (prove_borrow_mutability_ok(_env, _assumptions, _state, RefKind::Shared, _place) => ())
+        )
+
+        (
+            (prove_place_is_mut(env, assumptions, state, place) => ())
+            ------------------------------------------------------------ ("mutable borrow")
+            (prove_borrow_mutability_ok(env, assumptions, state, RefKind::Mut, place) => ())
+        )
+    }
+}
+
+judgment_fn! {
+    fn prove_place_is_assignable(
+        env: TypeckEnv,
+        assumptions: Wcs,
+        state: FlowState,
+        place: TypedPlaceExpr,
+    ) => () {
+        debug(place, state, assumptions, env)
+
+        (
+            (if !check_place_initialized(&state, &place.to_place_expression()))
+            ------------------------------------------------------------ ("deferred initialization")
+            (prove_place_is_assignable(_env, _assumptions, state, place) => ())
+        )
+
+        (
+            (prove_place_is_mut(env, assumptions, state, place) => ())
+            ------------------------------------------------------------ ("mutable place")
+            (prove_place_is_assignable(env, assumptions, state, place) => ())
+        )
     }
 }
 

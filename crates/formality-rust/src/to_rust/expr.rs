@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use crate::{
     grammar::{
-        expr::{Block, Expr, FieldExpr, Init, Label, Literal, PlaceExpr, Stmt},
+        expr::{Block, Expr, FieldExpr, Init, Label, Literal, Mutability, PlaceExpr, Stmt},
         Binder, Fallible, FieldName, Lt, Parameter, RefKind, Ty, ValueId, Variable,
     },
     to_rust::context::Wrapped,
@@ -23,11 +23,12 @@ pub fn lower_block(ctx: &mut Context, block: &Block) -> Fallible<syntax::Block> 
 pub fn lower_stmt(ctx: &mut Context, stmt: &Stmt) -> Fallible<syntax::Stmt> {
     match stmt {
         Stmt::Let {
+            mutability,
             label,
             id,
             ty,
             init,
-        } => lower_let(ctx, label.as_ref(), id, ty, init.as_ref()),
+        } => lower_let(ctx, mutability, label.as_ref(), id, ty, init.as_ref()),
         Stmt::If {
             condition,
             then_block,
@@ -59,14 +60,14 @@ pub fn lower_stmt(ctx: &mut Context, stmt: &Stmt) -> Fallible<syntax::Stmt> {
 
 pub fn lower_let(
     ctx: &mut Context,
+    mutable: &Mutability,
     _label: Option<&Label>,
     id: &ValueId,
     ty: &Ty,
     init: Option<&Init>,
 ) -> Fallible<syntax::Stmt> {
     Ok(syntax::Stmt::Let {
-        // TODO: is there a way to know, if the variable must be mutable or not?
-        mutable: true,
+        mutable: matches!(mutable, Mutability::Mut),
         name: id.deref().clone(),
         ty: tys::lower_ty(ctx, ty)?,
         init: init.map(|init| lower_expr(ctx, &init.expr)).transpose()?,
@@ -213,7 +214,7 @@ mod test {
             ],
             expect_test::expect![[r#"
 pub fn foo() -> u32 {
-    let mut x: u32;
+    let x: u32;
     return x;
 }"#
                                   ]]
@@ -259,8 +260,8 @@ pub fn foo() -> () {
             expect_test::expect![[r#"
                 pub fn foo() -> u32 {
                     {
-                        let mut v1: u32 = 0_u32;
-                        let mut v2: &'_ mut u32 = &mut v1;
+                        let v1: u32 = 0_u32;
+                        let v2: &'_ mut u32 = &mut v1;
                         return *v2;
                     }
                 }"#]]
