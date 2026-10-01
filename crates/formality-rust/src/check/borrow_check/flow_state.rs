@@ -3,9 +3,10 @@ use crate::check::borrow_check::typed_place_expression::TypedPlaceExpr;
 use crate::grammar::expr::{Label, LabelId, PlaceExpr};
 use crate::grammar::{InputArg, Lt, Parameter, Ty, ValueId};
 use crate::grammar::{RefKind, Variable};
-use crate::prove::{Env, MaxUniverse};
+use crate::prove::{BinderScope, Env, MaxUniverse};
+use formality_core::judgment::{ProofTree, Scope as JudgmentScope};
 use formality_core::visit::CoreVisit;
-use formality_core::{term, Fallible, Set, Union, Upcast, UpcastFrom};
+use formality_core::{term, Fallible, ProvenSet, Set, Union, Upcast, UpcastFrom};
 
 /// A scope in the scope stack, tracking labeled blocks and loops.
 /// Scopes live in `PointFlowState` and track locals for drop purposes.
@@ -548,17 +549,12 @@ impl FlowState {
         }
     }
 
-    /// Given a set of variables `v` created via [`Env::instantiate_universally`][]
-    /// or [`Env::instantiate_existentially`][], removes `v` and all variables created *since* `v`
-    /// from the environment and from the substitution.
-    pub fn pop_subst<V>(&self, env: &Env, v: &[V]) -> Self
-    where
-        V: Upcast<Variable> + Copy,
-    {
-        let mut env = env.clone();
+    /// `self` without whatever mentions one of `vars`, the variables of an
+    /// `exists<..> { .. }` block that ends.
+    fn pop_vars(&self, vars: &[Variable]) -> Self {
         let mut this = self.clone();
 
-        let removed = env.pop_vars(v);
+        let removed: Set<Variable> = vars.iter().copied().collect();
         this.current.pop_vars(&removed);
         this.breaks = this
             .breaks
@@ -632,6 +628,15 @@ impl FlowState {
             continues: self.continues.clone(),
             all_outlives,
         }
+    }
+}
+
+/// The flow state at the end of an `exists<..> { .. }` block leaves the
+/// scope of its variables.
+impl JudgmentScope<(FlowState,)> for BinderScope {
+    fn leave(&self, (state,): (FlowState,)) -> ProvenSet<(FlowState,)> {
+        let state = state.pop_vars(self.vars());
+        ProvenSet::singleton(((state,), ProofTree::leaf("leave exists")))
     }
 }
 

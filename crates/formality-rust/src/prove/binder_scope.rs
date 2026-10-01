@@ -93,6 +93,11 @@ impl<V: Term> Scope<(V, Constraints)> for BinderScope {
 }
 
 impl BinderScope {
+    /// The fresh variables, in scope inside.
+    pub fn vars(&self) -> &[Variable] {
+        &self.vars
+    }
+
     /// `c` without the scope's variables, and any created since, in its
     /// environment and substitution.
     ///
