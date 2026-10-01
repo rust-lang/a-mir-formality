@@ -446,6 +446,14 @@ judgment_fn! {
             ------------------------------------------------------------ ("call")
             (borrow_check_expr(env, assumptions, state, Expr::Call { callee, args }, places_live) => (output_ty, state))
         )
+        (
+            (borrow_check_expr(env, assumptions, state, lhs, rhs.live_before(env, &state, places_live_on_exit)) => (lhs_ty, state))
+            (prove_ty_is_rigid(env, assumptions, state, &lhs_ty) => (RigidTy {name: RigidName::ScalarId(scalar), parameters: _}, state))
+            (if scalar.is_int())
+            (borrow_check_expr_has_ty(env, assumptions, state, rhs, &lhs_ty, places_live_on_exit) => state)
+            ------------("binop")
+            (borrow_check_expr(env, assumptions, state, Expr::BinOp{lhs, op: _, rhs}, places_live_on_exit) => (lhs_ty, state))
+        )
 
         (
             ------------------------------------------------------------ ("literal")

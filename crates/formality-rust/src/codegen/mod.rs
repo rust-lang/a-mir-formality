@@ -361,6 +361,21 @@ judgment_fn! {
                 cfn,
             ))
         )
+        (
+            (type_expr(cfn, scope, lhs) => lhs_ty)
+            (let (lhs_temp, cfn) = cfn.alloc_temp(&lhs_ty)?)
+            (codegen_expr_into(global, cfn, scope, lhs_temp, lhs) => (code, global, cfn))
+            (type_expr(cfn, scope, rhs) => rhs_ty)
+            (let (rhs_temp, cfn) = cfn.alloc_temp(&rhs_ty)?)
+            (codegen_expr_into(global, cfn, scope, rhs_temp, rhs) => (rhs_code, global, cfn))
+            (let (code, cfn) = cfn.append_from(code, rhs_code))
+            ----- ("binop")
+            (codegen_expr_into(global, cfn, scope, target, Expr::BinOp { lhs, op, rhs }) => (
+                code.assign(target, binop(op, load(lhs_temp), load(rhs_temp))),
+                global,
+                cfn,
+            ))
+        )
     }
 }
 

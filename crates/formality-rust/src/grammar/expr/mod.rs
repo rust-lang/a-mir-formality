@@ -195,6 +195,14 @@ pub enum Expr {
         adt_id: AdtId,
         turbofish: Turbofish,
     },
+
+    #[grammar($lhs $op $rhs)]
+    #[precedence(1)]
+    BinOp {
+        lhs: Arc<Expr>,
+        op: BinOpKind,
+        rhs: Arc<Expr>,
+    },
 }
 
 // ANCHOR: PlaceExpr
@@ -285,4 +293,18 @@ pub enum FnName {
         trait_id: TraitId,
         id: ValueId,
     },
+}
+
+#[term]
+pub enum BinOpKind {
+    #[grammar(+)]
+    Add,
+}
+
+impl BinOpKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            BinOpKind::Add => "+",
+        }
+    }
 }

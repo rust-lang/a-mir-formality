@@ -1,6 +1,7 @@
 //! Newtypes wrapping MiniRust types, plus value/terminator constructors
 //! and type translation from formality-rust types to MiniRust types.
 
+use crate::grammar::expr::BinOpKind;
 use crate::grammar::{Crates, Fallible, Parameter, RigidName, ScalarId, Ty};
 use formality_core::Upcast;
 use libspecr::hidden::GcCow;
@@ -344,4 +345,15 @@ pub(super) fn struct_field_index(
         }
     }
     anyhow::bail!("no field {:?} in {:?}", field, id)
+}
+
+pub(super) fn binop(op: &BinOpKind, left: MiniRustValue, right: MiniRustValue) -> MiniRustValue {
+    let operator = match op {
+        BinOpKind::Add => lang::BinOp::Int(lang::IntBinOp::Add),
+    };
+    MiniRustValue(lang::ValueExpr::BinOp {
+        operator,
+        left: GcCow::new(left.into()),
+        right: GcCow::new(right.into()),
+    })
 }
