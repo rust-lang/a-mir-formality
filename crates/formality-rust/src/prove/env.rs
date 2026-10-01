@@ -323,6 +323,28 @@ impl Env {
         (env, result)
     }
 
+    /// The variables that [`Env::pop_vars`][] removes for `v`: `v` and
+    /// anything created afterwards, in order of creation.
+    pub(super) fn variables_since<V>(&self, v: &[V]) -> Vec<Variable>
+    where
+        V: Upcast<Variable> + Copy,
+    {
+        match v.first() {
+            Some(&v0) => self.variables[self.universe(v0).index..].to_vec(),
+            None => vec![],
+        }
+    }
+
+    /// Removes the pending where-clauses that mention one of `vars`, and
+    /// returns them.
+    pub(super) fn take_pending_on(&mut self, vars: &[Variable]) -> Vec<Wc> {
+        let (on_vars, rest) = std::mem::take(&mut self.pending)
+            .into_iter()
+            .partition(|wc| wc.free_variables().iter().any(|v| vars.contains(v)));
+        self.pending = rest;
+        on_vars
+    }
+
     /// Given a set of variables that was returned by
     /// `existential_substitution` or `universal_substitution`,
     /// removes those variables from `self` along with anything created afterwards.
@@ -386,6 +408,12 @@ impl CoreVisit<crate::prove::FormalityLang> for Env {
         // no duplicates in `self.variables`
         let s: Set<Variable> = self.variables.iter().copied().collect();
         assert_eq!(s.len(), self.variables.len());
+
+        // a pending where-clause mentions only variables in scope
+        assert!(
+            self.encloses(&self.pending),
+            "pending where-clause mentions a variable out of scope: {self:?}"
+        );
     }
 }
 

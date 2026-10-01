@@ -37,7 +37,7 @@ judgment_fn! {
 
         (
             (decl in decls.alias_eq_decls(&a.name))
-            (scope(enter_existentially(env, &decl.binder)
+            (scope(enter_existentially(decls, env, assumptions, &decl.binder)
                 => (env, AliasEqDeclBoundData { alias: AliasTy { name, parameters }, ty, where_clause })) with(ty, c)
                 (assert a.name == *name)
                 (prove(decls, env, assumptions, Wcs::all_eq(&a.parameters, &parameters)) => c)
@@ -108,7 +108,7 @@ judgment_fn! {
         // These rules handle the the ∀ and ⇒ cases.
 
         (
-            (scope(enter_existentially(env, binder) => (env, via1)) with(p, c)
+            (scope(enter_existentially(decls, env, assumptions, binder) => (env, via1)) with(p, c)
                 (prove_normalize_via(decls, env, assumptions, via1, goal) => Constrained(p, c)))
             ----------------------------- ("forall")
             (prove_normalize_via(decls, env, assumptions, Wc::ForAll(binder), goal) => Constrained(p, c))
