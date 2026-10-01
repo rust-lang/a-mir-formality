@@ -65,9 +65,9 @@ fn test_overlap_normalize_alias_to_LocalType() {
                                   the rule "some" at (prove_wc_list.rs) failed because
                                     judgment `prove_wc { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
                                       the rule "assumption" at (prove_wc.rs) failed because
-                                        crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <LocalType as Mirror>::T, assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                        crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <LocalType as Mirror>::T, assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                       the rule "assumption" at (prove_wc.rs) failed because
-                                        crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                        crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                       the rule "negative impl" at (prove_wc.rs) failed because
                                         expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
                           the rule "not goal" at (coherence.rs) failed because
@@ -133,11 +133,11 @@ fn test_overlap_alias_not_normalizable() {
                               the rule "some" at (prove_wc_list.rs) failed because
                                 judgment `prove_wc { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "negative impl" at (prove_wc.rs) failed because
                                     expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
                       the rule "inverted" at (coherence.rs) failed because
@@ -147,11 +147,11 @@ fn test_overlap_alias_not_normalizable() {
                               the rule "some" at (prove_wc_list.rs) failed because
                                 judgment `prove_wc { goal: ! Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "negative impl" at (prove_wc.rs) failed because
                                     expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
                       the rule "not goal" at (coherence.rs) failed because
@@ -180,11 +180,11 @@ fn test_overlap_alias_not_normalizable() {
                               the rule "some" at (prove_wc_list.rs) failed because
                                 judgment `prove_wc { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "negative impl" at (prove_wc.rs) failed because
                                     expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
                       the rule "inverted" at (coherence.rs) failed because
@@ -194,11 +194,11 @@ fn test_overlap_alias_not_normalizable() {
                               the rule "some" at (prove_wc_list.rs) failed because
                                 judgment `prove_wc { goal: ! Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "assumption" at (prove_wc.rs) failed because
-                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                    crates/formality-rust/src/prove/prove_via.rs:9:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
                                   the rule "negative impl" at (prove_wc.rs) failed because
                                     expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
                       the rule "not goal" at (coherence.rs) failed because
@@ -252,9 +252,9 @@ fn foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait() {
         the rule "different trait" at (coherence.rs) failed because
           condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! CoreTrait(!ty_0), via: !ty_0 = CoreStruct, assumptions: {!ty_0 = CoreStruct, CoreTrait(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ! CoreTrait(!ty_0), via: !ty_0 = CoreStruct, assumptions: {!ty_0 = CoreStruct, CoreTrait(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! CoreTrait(!ty_0), via: CoreTrait(!ty_0), assumptions: {!ty_0 = CoreStruct, CoreTrait(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ! CoreTrait(!ty_0), via: CoreTrait(!ty_0), assumptions: {!ty_0 = CoreStruct, CoreTrait(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "negative impl" at (prove_wc.rs) failed because
           expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
@@ -293,9 +293,9 @@ fn u32_T_where_T_Is_impls() {
         the rule "different trait" at (coherence.rs) failed because
           condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Is(!ty_0), via: Is(!ty_0), assumptions: {u32 = !ty_0, Is(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ! Is(!ty_0), via: Is(!ty_0), assumptions: {u32 = !ty_0, Is(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Is(!ty_0), via: u32 = !ty_0, assumptions: {u32 = !ty_0, Is(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ! Is(!ty_0), via: u32 = !ty_0, assumptions: {u32 = !ty_0, Is(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "negative impl" at (prove_wc.rs) failed because
           expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
@@ -383,9 +383,9 @@ fn T_and_T_bar() {
         the rule "different trait" at (coherence.rs) failed because
           condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(!ty_1), via: !ty_0 = !ty_1, assumptions: {!ty_0 = !ty_1, Bar(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ! Bar(!ty_1), via: !ty_0 = !ty_1, assumptions: {!ty_0 = !ty_1, Bar(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(!ty_1), via: Bar(!ty_1), assumptions: {!ty_0 = !ty_1, Bar(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ! Bar(!ty_1), via: Bar(!ty_1), assumptions: {!ty_0 = !ty_1, Bar(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "negative impl" at (prove_wc.rs) failed because
           expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
@@ -416,9 +416,9 @@ fn T_and_Local_Bar_T() {
         the rule "different trait" at (coherence.rs) failed because
           condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(LocalType, !ty_1), via: !ty_0 = !ty_1, assumptions: {!ty_0 = !ty_1, Bar(LocalType, !ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ! Bar(LocalType, !ty_1), via: !ty_0 = !ty_1, assumptions: {!ty_0 = !ty_1, Bar(LocalType, !ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(LocalType, !ty_1), via: Bar(LocalType, !ty_1), assumptions: {!ty_0 = !ty_1, Bar(LocalType, !ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ! Bar(LocalType, !ty_1), via: Bar(LocalType, !ty_1), assumptions: {!ty_0 = !ty_1, Bar(LocalType, !ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
         the rule "negative impl" at (prove_wc.rs) failed because
           expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
@@ -485,11 +485,11 @@ fn is_local_with_unconstrained_self_ty_blanket_impl() {
                 the rule "different trait" at (coherence.rs) failed because
                   condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
 
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Foo(<!ty_0 as Project>::Assoc, !ty_2), via: !ty_0 = !ty_1, assumptions: {!ty_0 = !ty_1, !ty_2 = LocalType, Foo(<!ty_0 as Project>::Assoc, !ty_2)}, env: Env { variables: [!ty_0, !ty_2, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+                crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ! Foo(<!ty_0 as Project>::Assoc, !ty_2), via: !ty_0 = !ty_1, assumptions: {!ty_0 = !ty_1, !ty_2 = LocalType, Foo(<!ty_0 as Project>::Assoc, !ty_2)}, env: Env { variables: [!ty_0, !ty_2, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Foo(<!ty_0 as Project>::Assoc, !ty_2), via: !ty_2 = LocalType, assumptions: {!ty_0 = !ty_1, !ty_2 = LocalType, Foo(<!ty_0 as Project>::Assoc, !ty_2)}, env: Env { variables: [!ty_0, !ty_2, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+                crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ! Foo(<!ty_0 as Project>::Assoc, !ty_2), via: !ty_2 = LocalType, assumptions: {!ty_0 = !ty_1, !ty_2 = LocalType, Foo(<!ty_0 as Project>::Assoc, !ty_2)}, env: Env { variables: [!ty_0, !ty_2, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Foo(<!ty_0 as Project>::Assoc, !ty_2), via: Foo(<!ty_0 as Project>::Assoc, !ty_2), assumptions: {!ty_0 = !ty_1, !ty_2 = LocalType, Foo(<!ty_0 as Project>::Assoc, !ty_2)}, env: Env { variables: [!ty_0, !ty_2, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+                crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: ! Foo(<!ty_0 as Project>::Assoc, !ty_2), via: Foo(<!ty_0 as Project>::Assoc, !ty_2), assumptions: {!ty_0 = !ty_1, !ty_2 = LocalType, Foo(<!ty_0 as Project>::Assoc, !ty_2)}, env: Env { variables: [!ty_0, !ty_2, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
                 the rule "negative impl" at (prove_wc.rs) failed because
                   expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
