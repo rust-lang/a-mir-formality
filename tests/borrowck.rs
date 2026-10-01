@@ -2397,10 +2397,9 @@ fn shared_ref_prevents_mutation() {
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v1`"#]])
 }
 
-/// The variables of an `exists` block do not leave the scope with it: the
-/// block after one keeps numbering where the previous block's variables left
-/// off, so `'r0` and `'r1` below are `?lt_2` and `?lt_3` rather than `?lt_1`
-/// and `?lt_2`.
+/// The variables of an `exists` block leave the scope with it, so the block
+/// after one starts numbering where it did: `'r0` and `'r1` below are
+/// `?lt_1` and `?lt_2`, not `?lt_2` and `?lt_3`.
 #[test]
 fn exists_block_variables_leave_the_env() {
     FormalityTest::new(crates![crate Foo {
@@ -2427,8 +2426,8 @@ fn exists_block_variables_leave_the_env() {
 
         the rule "loan_cannot_outlive" at (nll.rs) failed because
           condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
-            outlived_by_loan = {?lt_2, ?lt_3}
-            &lifetime.upcast() = ?lt_2
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_1
 
         the rule "write-indirect" at (nll.rs) failed because
           pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v1`"#]],

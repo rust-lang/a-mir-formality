@@ -99,6 +99,11 @@ impl Scope<()> for BinderScope {
 }
 
 impl BinderScope {
+    /// The fresh variables, in scope inside.
+    pub fn vars(&self) -> &[Variable] {
+        &self.vars
+    }
+
     /// This scope, for a rule that takes constraints out of the binder.
     fn with_constraints(self) -> BinderScopeWithConstraints {
         BinderScopeWithConstraints { scope: self }
