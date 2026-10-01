@@ -1,6 +1,6 @@
 [package]
 name = "formality-core"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Language-independent formality system used by a-mir-formality"
@@ -16,7 +16,7 @@ stacker = "0.1.15"
 tracing = "0.1"
 tracing-subscriber = {version = "0.3", default-features = false, features = ["env-filter", "fmt"]}
 tracing-tree = { version = "0.2" }
-formality-macros = { version = "0.1.0", path = "../formality-macros" }
+formality-macros = { version = "0.2.0", path = "../formality-macros" }
 anyhow = "1.0.75"
 contracts = "0.6.3"
 final_fn = "0.1.0"
