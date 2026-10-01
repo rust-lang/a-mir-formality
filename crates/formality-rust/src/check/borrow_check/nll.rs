@@ -9,11 +9,11 @@ use crate::check::feature_gate_enabled_in_program;
 use crate::grammar::expr::{Block, Expr, Init, Literal, PlaceExpr, Stmt};
 use crate::grammar::{
     AliasName, AliasTy, AssociatedItemId, ExistentialVar, FeatureGateName, FieldName, Fn, Lt,
-    Parameter, Predicate, RefKind, RigidName, RigidTy, ScalarId, Struct, StructBoundData, TraitId,
-    TraitRef, Ty, Variable, VariantId, Wcs, WhereClause,
+    MaySpecBound, Parameter, Predicate, RefKind, RigidName, RigidTy, ScalarId, Struct,
+    StructBoundData, TraitId, TraitRef, Ty, Variable, VariantId, Wcs, WhereClause,
 };
 use crate::grammar::{FnBoundData, PredicateTy};
-use crate::prove::Safety;
+use crate::prove::{bail_on_regions, Safety};
 use formality_core::judgment::ProofTree;
 use formality_core::{judgment_fn, term, ProvenSet, Set, Union, Upcast};
 
@@ -224,6 +224,20 @@ judgment_fn! {
             (let state: FlowState = Union((then_state, else_state)).upcast())
             ------------------------------------------------------------ ("if")
             (borrow_check_statement(env, assumptions, state, Stmt::If { condition, then_block, else_block }, places_live_on_exit) => (env, state))
+        )
+
+        (
+            // `if impls WC { .. } else { .. }` (branch specialization).
+            (if_impls_decided(env, assumptions, state, condition) => state)
+
+            // The then-branch assumes the bound; the else-branch assumes nothing new.
+            (borrow_check_block(env, (assumptions, condition.to_wc()), state, then_block, places_live_on_exit) => then_state)
+            (borrow_check_block(env, assumptions, state, &else_block.block, places_live_on_exit) => else_state)
+
+            // Join the flow states from both branches
+            (let state: FlowState = Union((then_state, else_state)).upcast())
+            ------------------------------------------------------------ ("if impls")
+            (borrow_check_statement(env, assumptions, state, Stmt::IfImpls { condition, then_block, else_block }, places_live_on_exit) => (env, state))
         )
 
         (
@@ -1492,4 +1506,30 @@ fn place_disjoint_from_place(place_a: &TypedPlaceExpr, place_b: &TypedPlaceExpr)
     let prefixes_a = place_a.all_prefixes();
     let prefixes_b = place_b.all_prefixes();
     !prefixes_a.contains(&place_b) && !prefixes_b.contains(&place_a)
+}
+
+judgment_fn! {
+    /// The bound of an `if impls` is decided where it appears (`decide`);
+    /// under `spec_bail_on_regions` codegen decides instead.
+    fn if_impls_decided(
+        env: TypeckEnv,
+        assumptions: Wcs,
+        state: FlowState,
+        condition: MaySpecBound,
+    ) => FlowState {
+        debug(condition, assumptions, state, env)
+
+        (
+            (if bail_on_regions(&env.program))!
+            ------------------------------------------------------------ ("bail on regions")
+            (if_impls_decided(env, _assumptions, state, _condition) => state)
+        )
+
+        (
+            (if !bail_on_regions(&env.program))!
+            (env.prove_goal(assumptions, &state, Predicate::may_spec(condition)) => state)
+            ------------------------------------------------------------ ("decided")
+            (if_impls_decided(env, assumptions, state, condition) => state)
+        )
+    }
 }

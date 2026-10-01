@@ -167,6 +167,21 @@ judgment_fn! {
             (codegen_stmt(global, cfn, scope, Stmt::If { condition, then_block, else_block }) => (code, scope, global, cfn))
         )
 
+        // `if impls`: only the branch taken is compiled (`decide_at_codegen`).
+        (
+            (decide_at_codegen(cfn, condition) => true)
+            (codegen_block(global, cfn, scope, then_block) => (code, global, cfn))
+            ---- ("if impls: then")
+            (codegen_stmt(global, cfn, scope, Stmt::IfImpls { condition, then_block, else_block: _ }) => (code, scope, global, cfn))
+        )
+
+        (
+            (decide_at_codegen(cfn, condition) => false)
+            (codegen_block(global, cfn, scope, &else_block.block) => (code, global, cfn))
+            ---- ("if impls: else")
+            (codegen_stmt(global, cfn, scope, Stmt::IfImpls { condition, then_block: _, else_block }) => (code, scope, global, cfn))
+        )
+
         (
             (type_expr(cfn, scope, expr) => expr_ty)
             (let (temp, cfn) = cfn.alloc_temp(&expr_ty)?)

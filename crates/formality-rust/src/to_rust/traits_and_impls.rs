@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
 use crate::grammar::{
-    AssociatedTy, AssociatedTyValue, Fallible, ImplItem, NegTraitImpl, Trait, TraitImpl, TraitItem,
-    WhereBound,
+    Applicability, AssociatedTy, AssociatedTyValue, Fallible, ImplItem, NegTraitImpl, Trait,
+    TraitImpl, TraitItem, WhereBound,
 };
 use crate::prove::Safety;
 
@@ -14,6 +14,9 @@ use crate::to_rust::{
 };
 
 pub fn lower_trait(ctx: &mut Context, t: &Trait) -> Fallible<syntax::TraitItem> {
+    if let Applicability::Always = t.applicability {
+        anyhow::bail!("`always_applicable` traits have no Rust equivalent and cannot be lowered")
+    }
     let (
         Wrapped {
             ref mut ctx,

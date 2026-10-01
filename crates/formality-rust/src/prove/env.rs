@@ -92,10 +92,16 @@ impl Env {
         env
     }
 
-    /// Return a clone of the environment with `w` as a pending where-clause
+    /// Return a clone of the environment with `w` as a pending where-clause.
+    /// A where-clause already pending is not added again: `pending` is part
+    /// of the proof state, and a proof that keeps re-deferring the same
+    /// obligation must reach a fixed point rather than grow without bound.
     pub fn with_pending(&self, w: impl Upcast<Wc>) -> Self {
+        let w: Wc = w.upcast();
         let mut env = self.clone();
-        env.pending.push(w.upcast());
+        if !env.pending.contains(&w) {
+            env.pending.push(w);
+        }
         env
     }
 }

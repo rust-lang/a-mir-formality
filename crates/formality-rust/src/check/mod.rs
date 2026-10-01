@@ -26,6 +26,7 @@ mod coherence;
 mod core_crate;
 mod fns;
 mod impls;
+pub(crate) mod specialization;
 mod traits;
 mod where_clauses;
 
@@ -69,6 +70,10 @@ judgment_fn! {
         (
             (check_for_duplicate_items(program) => ())
             (check_for_non_lifetime_binders(c) => ())
+            (for_all(item in &c.items)
+                (specialization::check_branch_specialization(program, item) => ()))
+            (for_all(item in &c.items)
+                (specialization::check_always_applicable(program, item) => ()))
             (for_all(item in &c.items)
                 (check_crate_item(program, item, &c.id) => ()))
             (check_coherence(program, c) => ())
@@ -168,11 +173,7 @@ pub(crate) fn feature_gate_enabled_in_program(
     program: &Program,
     feature_gate_name: &FeatureGateName,
 ) -> bool {
-    program.crates.crates.iter().any(|c| {
-        c.items
-            .iter()
-            .any(|item| matches!(item, CrateItem::FeatureGate(fg) if fg.name == *feature_gate_name))
-    })
+    program.feature_gate_enabled(feature_gate_name)
 }
 
 judgment_fn! {
