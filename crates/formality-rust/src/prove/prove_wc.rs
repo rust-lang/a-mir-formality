@@ -31,7 +31,7 @@ judgment_fn! {
         debug(goal, assumptions, env)
 
         (
-            (scope(enter_universally(env, binder) => (env, p1)) with(c)
+            (scope(enter_universally(decls, env, assumptions, binder) => (env, p1)) with(c)
                 (prove_wc(decls, env, assumptions, p1) => c))
             --- ("forall")
             (prove_wc(decls, env, assumptions, Wc::ForAll(binder)) => c)
@@ -57,7 +57,7 @@ judgment_fn! {
             (i in decls.impl_decls(&trait_ref.trait_id))!
 
             // Instantiate impl generics with inference variables (in our example, `A => ?A, B => ?B`).
-            (scope(enter_existentially(env, &i.binder) => (env, i)) with(c)
+            (scope(enter_existentially(decls, env, assumptions, &i.binder) => (env, i)) with(c)
                 // Instantiate trait where-clauses from `Foo<?B>`. If we had `trait Foo<X: Debug>`, for example,
                 // this would yield `?B: Debug`.
                 (let t = decls.trait_decl(&i.trait_ref.trait_id).binder.instantiate_with(&i.trait_ref.parameters).unwrap())
@@ -89,7 +89,7 @@ judgment_fn! {
 
         (
             (i in decls.neg_impl_decls(&trait_ref.trait_id))
-            (scope(enter_existentially(env, &i.binder) => (env, i)) with(c)
+            (scope(enter_existentially(decls, env, assumptions, &i.binder) => (env, i)) with(c)
                 (prove(decls, env, assumptions, Wcs::all_eq(&trait_ref.parameters, &i.trait_ref.parameters)) => c)
                 (prove_after(decls, c, assumptions, &i.where_clause) => c))
             ----------------------------- ("negative impl")
@@ -104,7 +104,7 @@ judgment_fn! {
 
         (
             (ti in decls.trait_invariants())
-            (scope(enter_existentially(env, &ti.binder) => (env, ti)) with(c)
+            (scope(enter_existentially(decls, env, assumptions, &ti.binder) => (env, ti)) with(c)
                 (prove_via(decls, env, assumptions, &ti.where_clause, trait_ref) => c)
                 (prove_after(decls, c, assumptions, &ti.trait_ref) => c))
             ----------------------------- ("trait implied bound")

@@ -1,7 +1,7 @@
 //! The scope of a binder's variables, for the `scope` condition of a rule:
 //!
 //! ```ignore
-//! (scope(enter_universally(env, binder) => (env, body)) with(c)
+//! (scope(enter_universally(decls, env, assumptions, binder) => (env, body)) with(c)
 //!     (prove_wc(decls, env, assumptions, body) => c))
 //! ```
 //!
@@ -9,23 +9,34 @@
 //! variables, and the environment with those in scope. The constraints `c`
 //! come out without them: see [`BinderScope::pop`].
 
-use crate::grammar::{Binder, Variable};
-use crate::prove::{constraints::Constraints, env::Env};
+use crate::grammar::{Binder, Lt, Parameter, Predicate, Variable, Wc, Wcs};
+use crate::prove::{constraints::Constraints, decls::Program, env::Env, prove_after::prove_after};
 use crate::rust::Term;
-use formality_core::judgment::{ProofTree, Scope};
-use formality_core::{ProvenSet, Upcast};
+use formality_core::judgment::{FailureLocation, ProofTree, Scope};
+use formality_core::visit::CoreVisit;
+use formality_core::{Downcast, ProvenSet, Upcast};
 
 pub struct BinderScope {
+    decls: Program,
+    assumptions: Wcs,
+
     /// The fresh variables, in scope inside.
     vars: Vec<Variable>,
 }
 
 /// Enter `binder` with fresh universal variables: what is proven inside
 /// holds for every value of the binder's variables.
-pub fn enter_universally<T: Term>(env: &Env, binder: &Binder<T>) -> (BinderScope, (Env, T)) {
+pub fn enter_universally<T: Term>(
+    decls: &Program,
+    env: &Env,
+    assumptions: &Wcs,
+    binder: &Binder<T>,
+) -> (BinderScope, (Env, T)) {
     let (env, vars) = env.universal_substitution(binder);
     let body = binder.instantiate_with(&vars).unwrap();
     let scope = BinderScope {
+        decls: decls.clone(),
+        assumptions: assumptions.clone(),
         vars: vars.upcast(),
     };
     (scope, (env, body))
@@ -33,10 +44,17 @@ pub fn enter_universally<T: Term>(env: &Env, binder: &Binder<T>) -> (BinderScope
 
 /// Enter `binder` with fresh existential variables: what is proven inside
 /// holds for some value of the binder's variables.
-pub fn enter_existentially<T: Term>(env: &Env, binder: &Binder<T>) -> (BinderScope, (Env, T)) {
+pub fn enter_existentially<T: Term>(
+    decls: &Program,
+    env: &Env,
+    assumptions: &Wcs,
+    binder: &Binder<T>,
+) -> (BinderScope, (Env, T)) {
     let (env, vars) = env.existential_substitution(binder);
     let body = binder.instantiate_with(&vars).unwrap();
     let scope = BinderScope {
+        decls: decls.clone(),
+        assumptions: assumptions.clone(),
         vars: vars.upcast(),
     };
     (scope, (env, body))
@@ -44,24 +62,97 @@ pub fn enter_existentially<T: Term>(env: &Env, binder: &Binder<T>) -> (BinderSco
 
 impl Scope<(Constraints,)> for BinderScope {
     fn leave(&self, (c,): (Constraints,)) -> ProvenSet<(Constraints,)> {
-        ProvenSet::singleton(((self.pop(c),), ProofTree::leaf("leave binder")))
+        self.pop(c).map(|(c, proof_tree)| ((c,), proof_tree))
     }
 }
 
 /// A value proven along with the constraints must not mention the variables.
 impl<V: Term> Scope<(V, Constraints)> for BinderScope {
     fn leave(&self, (value, c): (V, Constraints)) -> ProvenSet<(V, Constraints)> {
-        let c = self.pop(c);
-        assert!(c.env().encloses(&value));
-        ProvenSet::singleton(((value, c), ProofTree::leaf("leave binder")))
+        self.pop(c).map(|(c, proof_tree)| {
+            assert!(c.env().encloses(&value));
+            ((value.clone(), c), proof_tree)
+        })
     }
 }
 
 impl BinderScope {
     /// `c` without the scope's variables, and any created since, in its
     /// environment and substitution.
-    fn pop(&self, mut c: Constraints) -> Constraints {
+    ///
+    /// A where-clause still pending may mention one of them. It cannot stay
+    /// pending as is: whoever discharges it later has no such variable in
+    /// scope. So it is restated without the variable (`without_var`), then
+    /// proven, or deferred again, outside.
+    fn pop(&self, mut c: Constraints) -> ProvenSet<Constraints> {
+        let popped = c.env.variables_since(&self.vars);
+
+        // The substitution may bind a variable the where-clauses mention.
+        let pending = c.substitution.apply(&c.env.take_pending_on(&popped));
         c.substitution -= c.env.pop_vars(&self.vars);
-        c
+        c.assert_valid();
+
+        if pending.is_empty() {
+            return ProvenSet::singleton((c, ProofTree::leaf("nothing pending on the variables")));
+        }
+
+        // Innermost first: a variable may depend on those created before it.
+        let mut pending: Wcs = pending.into_iter().collect();
+        for &v in popped.iter().rev() {
+            pending = match without_var(&pending, v) {
+                Ok(pending) => pending,
+                Err(wc) => {
+                    return ProvenSet::failed(
+                        "leave binder",
+                        FailureLocation::caller(),
+                        format!("`{wc:?}` cannot be restated without `{v:?}`"),
+                    )
+                }
+            };
+        }
+        prove_after(&self.decls, c, &self.assumptions, pending)
     }
+}
+
+/// `pending` restated without the variable `v`, or the where-clause that
+/// cannot be.
+///
+/// | `v`              | pending        | restated     |                                    |
+/// |------------------|----------------|--------------|------------------------------------|
+/// | universal `!a`   | `X: !a`        | `X: 'static` | `!a` may be `'static`              |
+/// | universal `!a`   | `!a: Y`        | cannot be    | `!a` may be shorter than `Y`       |
+/// | existential `?a` | `X: ?a, ?a: Y` | `X: Y`       | some `?a` lies between iff `X: Y`  |
+fn without_var(pending: &Wcs, v: Variable) -> Result<Wcs, Wc> {
+    let mut restated: Vec<Wc> = vec![];
+    let mut outlive_v: Vec<Parameter> = vec![];
+    let mut outlived_by_v: Vec<Parameter> = vec![];
+
+    for wc in pending {
+        match &wc {
+            _ if !wc.free_variables().contains(&v) => restated.push(wc),
+            Wc::Predicate(Predicate::Outlives(x, b))
+                if b.downcast() == Some(v) && !x.free_variables().contains(&v) =>
+            {
+                outlive_v.push(x.clone())
+            }
+            Wc::Predicate(Predicate::Outlives(a, y))
+                if v.is_existential()
+                    && a.downcast() == Some(v)
+                    && !y.free_variables().contains(&v) =>
+            {
+                outlived_by_v.push(y.clone())
+            }
+            _ => return Err(wc),
+        }
+    }
+
+    if v.is_universal() {
+        outlived_by_v.push(Lt::Static.upcast());
+    }
+    for x in &outlive_v {
+        for y in &outlived_by_v {
+            restated.push(Predicate::outlives(x, y).upcast());
+        }
+    }
+    Ok(restated.into_iter().collect())
 }
