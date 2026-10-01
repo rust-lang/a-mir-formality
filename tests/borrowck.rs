@@ -2122,6 +2122,43 @@ fn shared_ref_prevents_mutation() {
               pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v1`"#]])
 }
 
+/// The variables of an `exists` block leave the scope with it, so the block
+/// after one starts numbering where it did: `'r0` and `'r1` below are
+/// `?lt_1` and `?lt_2`, not `?lt_2` and `?lt_3`.
+#[test]
+fn exists_block_variables_leave_the_env() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> i32 {
+            exists<'r> {
+                let v3: i32 = 0_i32;
+                let v4: &'r i32 = &'r v3;
+            }
+            exists<'r0, 'r1> {
+                let v1: i32 = 0_i32;
+                let v2: &'r0 i32 = &'r1 v1;
+                v1 = 1_i32;
+                return *v2;
+            }
+        }
+    }])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = v1 : i32
+            &access.place = v1 : i32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v1`"#]],
+    )
+}
+
 /// Test the holding a shared reference to a local
 /// integer variable prevents it from being incremented.
 ///
