@@ -773,8 +773,7 @@ fn kill_loans(overwritten_place: &TypedPlaceExpr, state: &FlowState) -> FlowStat
 }
 
 judgment_fn! {
-    /// Check that dropping the given locals (in the order provided) is permitted.
-    /// Locals should be provided in reverse declaration order (LIFO drop order).
+    /// Drop `places` (in LIFO order): run drop glue, then invalidate loans of each.
     fn drop_places(
         env: TypeckEnv,
         assumptions: Wcs,
@@ -785,13 +784,74 @@ judgment_fn! {
         debug(state, places, places_live_after_drop, assumptions, env)
 
         (
-            (for_all(place in places) with(state)
-                (access_permitted_by_loans(env, assumptions, state, Access::new(AccessKind::Write, place), places_live_after_drop) => state)
-                (let state = kill_loans(place, &state)))
+            (for_all(i in 0..places.len()) with(state)
+                (let live = live_at_drop(env, &places[i], &places[i+1..], places_live_after_drop))
+                (run_drop_glue(env, assumptions, state, &places[i], live) => state)
+                (access_permitted_by_loans(env, assumptions, state,
+                    Access::new(AccessKind::Write, &places[i]), live) => state)
+                (let state = kill_loans(&places[i], &state)))
             ------------------------------------------------------------ ("drop_places")
             (drop_places(env, assumptions, state, places, places_live_after_drop) => state)
         )
     }
+}
+
+judgment_fn! {
+    /// Running `Drop::drop` at scope exit is a use of the local.
+    fn run_drop_glue(
+        env: TypeckEnv,
+        assumptions: Wcs,
+        state: FlowState,
+        place: TypedPlaceExpr,
+        places_live_at_drop: LivePlaces,
+    ) => FlowState {
+        debug(place, state, places_live_at_drop, assumptions, env)
+
+        (
+            // No glue, no drop.
+            (if !ty_needs_drop(&env.program, &place.ty))!
+            ------------------------------------------------------------ ("no drop glue")
+            (run_drop_glue(env, _assumptions, state, place, _places_live_at_drop) => state)
+        )
+
+        (
+            // Moved out or never initialized: nothing to drop.
+            (if ty_needs_drop(&env.program, &place.ty))
+            (if !maybe_initialized(&state, &place.to_place_expression()))!
+            ------------------------------------------------------------ ("already moved")
+            (run_drop_glue(env, _assumptions, state, place, _places_live_at_drop) => state)
+        )
+
+        (
+            (if ty_needs_drop(&env.program, &place.ty))
+            (if maybe_initialized(&state, &place.to_place_expression()))
+            (access_permitted_by_loans(env, assumptions, state,
+                Access::new(AccessKind::Move, place), places_live_at_drop) => state)
+            ------------------------------------------------------------ ("drop glue")
+            (run_drop_glue(env, assumptions, state, place, places_live_at_drop) => state)
+        )
+    }
+}
+
+/// Live at `place`'s drop: itself plus locals dropped after it, if they have glue.
+fn live_at_drop(
+    env: &TypeckEnv,
+    place: &TypedPlaceExpr,
+    dropped_later: &[TypedPlaceExpr],
+    places_live_after_drop: &LivePlaces,
+) -> LivePlaces {
+    let mut live = places_live_after_drop.clone();
+    for p in dropped_later.iter().chain(Some(place)) {
+        if ty_needs_drop(&env.program, &p.ty) {
+            live.insert(p.to_place_expression());
+        }
+    }
+    live
+}
+
+/// True unless a prefix of `place` is uninit; weaker than `check_place_initialized`.
+fn maybe_initialized(state: &FlowState, place: &PlaceExpr) -> bool {
+    !state.current.uninit.iter().any(|u| u.is_prefix_of(place))
 }
 
 judgment_fn! {

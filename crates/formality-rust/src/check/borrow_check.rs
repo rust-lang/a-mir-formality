@@ -1,3 +1,4 @@
+pub mod drop_glue;
 pub mod env;
 pub mod flow_state;
 pub mod liveness;
