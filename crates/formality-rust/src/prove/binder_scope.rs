@@ -148,7 +148,7 @@ impl BinderScope {
 /// The last row is why a clause that merely *mentions* `v` is an error
 /// rather than a dropped obligation: restating it would need the outlives
 /// relation of the type that contains `v`, which this does not compute.
-fn without_var(pending: &Wcs, v: Variable) -> Result<Wcs, Wc> {
+pub fn without_var(pending: &Wcs, v: Variable) -> Result<Wcs, Wc> {
     let mut restated: Vec<Wc> = vec![];
     let mut outlive_v: Vec<Parameter> = vec![];
     let mut outlived_by_v: Vec<Parameter> = vec![];
