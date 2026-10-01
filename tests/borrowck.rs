@@ -2186,6 +2186,36 @@ fn min_problem_case_3() {
             the rule "write-indirect" at (nll.rs) failed because
               condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
                 place_accessed = *(m : &!lt_1 mut Map) : <&!lt_1 mut Map as Derefable>::Target
+                place_loaned_ref = m : &!lt_1 mut Map
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(m : &!lt_1 mut Map) : <&!lt_1 mut Map as Derefable>::Target
+                &access.place = *(m : &!lt_1 mut Map) : <&!lt_1 mut Map as Derefable>::Target
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `m`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(m : &!lt_1 mut Map) : <&!lt_1 mut Map as Derefable>::Target
                 place_loaned_ref = m : &!lt_1 mut Map"#]],
     );
 }
@@ -2390,13 +2420,53 @@ fn undeclared_universal_region_relationship() {
             }
         }
     }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: @ wf(?lt_2), assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: @ wf(?lt_2), assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, @ wf(?lt_2)}, env: Env { variables: [!lt_0, !lt_1, ?lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: @ wf(?lt_1), assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_0, !lt_2, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: u32 : !lt_0, assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_0, !lt_2, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_0, !lt_2, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: @ wf(?lt_1), assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_0, !lt_2, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: u32 : !lt_0, assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_0, !lt_2, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_0, !lt_2, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_2 : !lt_0, via: @ wf(?lt_1), assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_2, !lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_2 : !lt_0, via: u32 : !lt_0, assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_2, !lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_2, b: !lt_0, assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_2, !lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_2 : !lt_0, via: @ wf(?lt_1), assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_2, !lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_2 : !lt_0, via: u32 : !lt_0, assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_2, !lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_2, b: !lt_0, assumptions: {u32 : !lt_0, @ wf(?lt_1)}, env: Env { variables: [!lt_2, !lt_0, ?lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_2, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_2, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, !lt_2, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 /// Same as `undeclared_universal_region_relationship`, but the function
@@ -2412,13 +2482,69 @@ fn undeclared_universal_region_relationship_no_return() {
             }
         }
     }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_0, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_0, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_0, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_0, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 /// Upcasting from `'a` to `'b` is allowed because
@@ -2475,7 +2601,47 @@ fn undeclared_transitive_universal_region_relationship() {
 
                 crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {!lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {u32 : !lt_0, !lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: u32 : !lt_0, assumptions: {u32 : !lt_0, !lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {u32 : !lt_0, !lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: !lt_0 : !lt_1, assumptions: {u32 : !lt_0, !lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_2, via: u32 : !lt_0, assumptions: {u32 : !lt_0, !lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_2, assumptions: {u32 : !lt_0, !lt_0 : !lt_1}, env: Env { variables: [!lt_0, !lt_1, !lt_2], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: !lt_0 : !lt_2, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: !lt_0 : !lt_2, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1, !lt_0 : !lt_2}, env: Env { variables: [!lt_0, !lt_2, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_0, via: !lt_1 : !lt_2, assumptions: {u32 : !lt_0, !lt_1 : !lt_2}, env: Env { variables: [!lt_1, !lt_2, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_0, via: u32 : !lt_0, assumptions: {u32 : !lt_0, !lt_1 : !lt_2}, env: Env { variables: [!lt_1, !lt_2, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_0, assumptions: {u32 : !lt_0, !lt_1 : !lt_2}, env: Env { variables: [!lt_1, !lt_2, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_0, via: !lt_1 : !lt_2, assumptions: {u32 : !lt_0, !lt_1 : !lt_2}, env: Env { variables: [!lt_1, !lt_2, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_0, via: u32 : !lt_0, assumptions: {u32 : !lt_0, !lt_1 : !lt_2}, env: Env { variables: [!lt_1, !lt_2, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_0, assumptions: {u32 : !lt_0, !lt_1 : !lt_2}, env: Env { variables: [!lt_1, !lt_2, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 // For `list: &mut Map`, borrow `&mut (*list).value` then assign to `list`.
@@ -2988,6 +3154,36 @@ fn if_false_borrowck() {
             the rule "write-indirect" at (nll.rs) failed because
               condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
                 place_accessed = *(m : &!lt_1 mut Map) : <&!lt_1 mut Map as Derefable>::Target
+                place_loaned_ref = m : &!lt_1 mut Map
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(m : &!lt_1 mut Map) : <&!lt_1 mut Map as Derefable>::Target
+                &access.place = *(m : &!lt_1 mut Map) : <&!lt_1 mut Map as Derefable>::Target
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `m`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(m : &!lt_1 mut Map) : <&!lt_1 mut Map as Derefable>::Target
                 place_loaned_ref = m : &!lt_1 mut Map"#]],
     );
 }
@@ -3140,9 +3336,37 @@ fn call_generic_fn_with_turbofish_missing_relation_upcast() {
             return r;
         }
     }]).borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
 
-                crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0, u32 : !lt_1}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_0, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_1 : !lt_0, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_1, !lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
 }
 
 /// Test call to a generic function using turbofish syntax with lifetime and type.
@@ -3387,6 +3611,36 @@ fn outlive_before_return_does_not_affect_merged_paths() {
     .borrowck_err(
         BorrowCheckFailure::Nll,
         expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(a : &!lt_1 mut u8) : <&!lt_1 mut u8 as Derefable>::Target
+                &access.place = *(a : &!lt_1 mut u8) : <&!lt_1 mut u8 as Derefable>::Target
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3, ?lt_4, ?lt_5}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `a`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(a : &!lt_1 mut u8) : <&!lt_1 mut u8 as Derefable>::Target
+                place_loaned_ref = a : &!lt_1 mut u8
+
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = *(a : &!lt_1 mut u8) : <&!lt_1 mut u8 as Derefable>::Target
@@ -3673,7 +3927,12 @@ fn reborrow_requires_ref_outlives_loan() {
         }
     }])
     .skip_execute()
-    .borrowck_err(BorrowCheckFailure::All, expect_test::expect!["crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"]);
+    .borrowck_err(BorrowCheckFailure::All, expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: !lt_0 : !lt_1, via: u32 : !lt_0, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {u32 : !lt_0}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]]);
 }
 
 #[test]
@@ -3853,6 +4112,24 @@ fn issue_63908_remove_last_node_iterative() {
     }])
         .skip_execute()
         .borrowck_err(BorrowCheckFailure::Alpha, expect_test::expect![[r#"
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(cursor : &?lt_2 mut List) : <&?lt_2 mut List as Derefable>::Target
+                &access.place = *(cursor : &?lt_2 mut List) : <&?lt_2 mut List as Derefable>::Target
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {?lt_2, ?lt_3}
+                &lifetime.upcast() = ?lt_2
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `cursor`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(cursor : &?lt_2 mut List) : <&?lt_2 mut List as Derefable>::Target
+                place_loaned_ref = cursor : &?lt_2 mut List
+
             the rule "borrow of disjoint places" at (nll.rs) failed because
               condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
                 &loan.place = *(cursor : &?lt_2 mut List) : <&?lt_2 mut List as Derefable>::Target
@@ -4300,6 +4577,219 @@ fn issue_46859_decoder_next() {
             the rule "write-indirect" at (nll.rs) failed because
               condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
                 place_accessed = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                place_loaned_ref = d : &!lt_1 mut Decoder
+
+            the rule "fixed-point" at (nll.rs) failed because
+              condition evaluated to false: `state0 == state1`
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {loan(?lt_2, *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32, mut)}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                &access.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `d`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                place_loaned_ref = d : &!lt_1 mut Decoder
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                &access.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `d`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                place_loaned_ref = d : &!lt_1 mut Decoder
+
+            the rule "fixed-point" at (nll.rs) failed because
+              condition evaluated to false: `state0 == state1`
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {loan(?lt_2, *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32, mut)}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                &access.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `d`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                place_loaned_ref = d : &!lt_1 mut Decoder
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                &access.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `d`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                place_loaned_ref = d : &!lt_1 mut Decoder
+
+            the rule "fixed-point" at (nll.rs) failed because
+              condition evaluated to false: `state0 == state1`
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [(d, &!lt_1 mut Decoder)], [d : &!lt_1 mut Decoder]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(3)), None, {}, None, [], []), scope(some(U(3)), Some('l), {}, Some({(* d) . buf_read}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)}, {loan(?lt_2, *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32, mut)}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(?lt_2, ?lt_3), pending_outlives(?lt_3, !lt_1)})
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                &access.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `d`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                place_loaned_ref = d : &!lt_1 mut Decoder
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+                &access.place = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `d`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(d : &!lt_1 mut Decoder) : <&!lt_1 mut Decoder as Derefable>::Target . buf_read[Decoder , struct] : u32
                 place_loaned_ref = d : &!lt_1 mut Decoder"#]]);
 }
 
@@ -4354,6 +4844,219 @@ fn issue_92985_filtering_lending_iterator() {
     }])
         .skip_execute()
         .borrowck_err(BorrowCheckFailure::Nll, expect_test::expect![[r#"
+            the rule "fixed-point" at (nll.rs) failed because
+              condition evaluated to false: `state0 == state1`
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut), loan(?lt_3, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . predicate[Filter , struct] : u32, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut)}, {}))}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                &access.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3, ?lt_4}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `f`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                place_loaned_ref = f : &!lt_1 mut Filter
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                &access.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3, ?lt_4}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `f`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                place_loaned_ref = f : &!lt_1 mut Filter
+
+            the rule "fixed-point" at (nll.rs) failed because
+              condition evaluated to false: `state0 == state1`
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut), loan(?lt_3, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . predicate[Filter , struct] : u32, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut)}, {}))}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                &access.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3, ?lt_4}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `f`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                place_loaned_ref = f : &!lt_1 mut Filter
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                &access.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3, ?lt_4}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `f`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                place_loaned_ref = f : &!lt_1 mut Filter
+
+            the rule "fixed-point" at (nll.rs) failed because
+              condition evaluated to false: `state0 == state1`
+                state0 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
+                state1 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut), loan(?lt_3, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . predicate[Filter , struct] : u32, mut)}, {}), {labeled_flow_state('l, point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {loan(?lt_2, *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32, mut)}, {}))}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                &access.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3, ?lt_4}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `f`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                place_loaned_ref = f : &!lt_1 mut Filter
+
+            the rule "borrow of disjoint places" at (nll.rs) failed because
+              condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+                &loan.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                &access.place = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+
+            the rule "loan_cannot_outlive" at (nll.rs) failed because
+              condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+                outlived_by_loan = {!lt_1, ?lt_2, ?lt_3, ?lt_4}
+                &lifetime.upcast() = !lt_1
+
+            the rule "loan_not_required_by_universal_regions" at (nll.rs) failed because
+              condition evaluated to false: `outlived_by_loan.iter().all(|p| match p
+              {
+                  Parameter::Ty(_) => false, Parameter::Lt(lt) => match lt.as_ref()
+                  {
+                      Lt::Static => false, Lt::Variable(Variable::UniversalVar(_)) => false,
+                      Lt::Variable(Variable::ExistentialVar(_)) => true,
+                      Lt::Variable(Variable::BoundVar(_)) =>
+                      panic!("cannot outlive a bound var"), Lt::Erased => true,
+                  }, Parameter::Const(_) => panic!("cannot outlive a constant"),
+              })`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `*(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct]`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `f`
+
+            the rule "write-indirect" at (nll.rs) failed because
+              condition evaluated to false: `place_accessed.is_prefix_of(place_loaned_ref)`
+                place_accessed = *(f : &!lt_1 mut Filter) : <&!lt_1 mut Filter as Derefable>::Target . iter[Filter , struct] : u32
+                place_loaned_ref = f : &!lt_1 mut Filter
+
             the rule "fixed-point" at (nll.rs) failed because
               condition evaluated to false: `state0 == state1`
                 state0 = flow_state([scope(some(U(1)), None, {}, None, [(f, &!lt_1 mut Filter)], [f : &!lt_1 mut Filter]), scope(some(U(1)), None, {}, None, [], []), scope(some(U(4)), None, {}, None, [], []), scope(some(U(4)), Some('l), {}, Some({(* f) . iter, (* f) . predicate}), [], [])], point_flow_state({pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)}, {}, {}), {}, {}, {pending_outlives(!lt_1, ?lt_2), pending_outlives(!lt_1, ?lt_3), pending_outlives(?lt_2, !lt_1), pending_outlives(?lt_2, ?lt_4)})
