@@ -265,9 +265,9 @@ impl Env {
     /// * `s` is a list of fresh universal variables for each variable bound in `b`; and,
     /// * `e` is an extended environment with these universal variables in scope.
     ///
-    /// A rule of the prover enters a binder with the scope
-    /// `enter_universally` instead, which also leaves it.
-    pub fn universal_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<UniversalVar>)
+    /// Only for `enter_universally`: a binder is entered through that scope,
+    /// which is also left.
+    pub(super) fn universal_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<UniversalVar>)
     where
         T: Fold,
     {
@@ -279,28 +279,14 @@ impl Env {
         (env, subst)
     }
 
-    /// Given a bound value `<X..> v`, returns `v` with `X...` replaced with fresh universal variables.
-    /// Modifies `self` to bring those variables into scope.
-    pub fn instantiate_universally<T>(&self, b: &Binder<T>) -> (Env, T)
-    where
-        T: Fold,
-    {
-        let mut env = self.clone();
-        let subst = env.fresh_substitution(b.kinds(), |kind, var_index| UniversalVar {
-            kind,
-            var_index,
-        });
-        let value = b.instantiate_with(&subst).unwrap();
-        (env, value)
-    }
     /// Returns `(e,s)` where
     ///
     /// * `s` is a list of fresh inference variables for each variable bound in `b`; and,
     /// * `e` is an extended environment with these inference variables in scope.
     ///
-    /// A rule of the prover enters a binder with the scope
-    /// `enter_existentially` instead, which also leaves it.
-    pub fn existential_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<ExistentialVar>)
+    /// Only for `enter_existentially`: a binder is entered through that
+    /// scope, which is also left.
+    pub(super) fn existential_substitution<T>(&self, b: &Binder<T>) -> (Env, Vec<ExistentialVar>)
     where
         T: Fold,
     {
@@ -310,17 +296,6 @@ impl Env {
             var_index,
         });
         (env, subst)
-    }
-
-    /// Given a bound value `<X..> v`, returns `(env, v)` where `v` has `X...` replaced
-    /// with fresh inference variables and `env` brings those variables into scope.
-    pub fn instantiate_existentially<T>(&self, b: &Binder<T>) -> (Env, T)
-    where
-        T: Fold,
-    {
-        let (env, subst) = self.existential_substitution(b);
-        let result = b.instantiate_with(&subst).unwrap();
-        (env, result)
     }
 
     /// The variables that [`Env::pop_vars`][] removes for `v`: `v` and
@@ -349,7 +324,7 @@ impl Env {
     /// `existential_substitution` or `universal_substitution`,
     /// removes those variables from `self` along with anything created afterwards.
     /// Returns the list of variables created since the universal subst.
-    pub(crate) fn pop_vars<V>(&mut self, v: &[V]) -> Set<Variable>
+    pub(super) fn pop_vars<V>(&mut self, v: &[V]) -> Set<Variable>
     where
         V: Upcast<Variable> + Copy,
     {
