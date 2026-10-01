@@ -1514,6 +1514,55 @@ fn test_fn_value_with_unsatisfied_lifetime_bound() {
     .err(expect_test::expect!["crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: !lt_1, assumptions: {}, env: Env { variables: [!lt_0, !lt_1], bias: Soundness, pending: [], allow_pending_outlives: false } }"]);
 }
 
+/// `'a: 'x` and `'x: 'static` need `'a: 'static`, which the where-clause gives.
+#[test]
+fn universal_outlives_static_through_local_region() {
+    FormalityTest::new(crates![crate foo {
+        fn f<'a>(x: &'a u32) -> &'static u32 where 'a: 'static {
+            exists<'x> {
+                let y: &'x u32 = x;
+                return y;
+            }
+        }
+    }])
+    .skip_execute()
+    .rustc_ok()
+    .ok()
+}
+
+/// ...and without the where-clause, nothing does.
+#[test]
+fn universal_does_not_outlive_static_through_local_region() {
+    FormalityTest::new(crates![crate foo {
+        fn f<'a>(x: &'a u32) -> &'static u32 {
+            exists<'x> {
+                let y: &'x u32 = x;
+                return y;
+            }
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error: lifetime may not live long enough
+         --> lib.rs
+          |
+        1 | pub fn f<'a00>(mut x: &'a00 u32) -> &'static u32 {
+          |          ---- lifetime `'a00` defined here
+        ...
+        4 |         return y;
+          |                ^ returning this value requires that `'a00` must outlive `'static`
+
+        error: could not compile `foo` (lib) due to 1 previous error
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : ' static, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: ' static, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:9:1: no applicable rules for prove_via { goal: !lt_1 : ' static, via: @ wf(?lt_0), assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_1, b: ' static, assumptions: {@ wf(?lt_0)}, env: Env { variables: [!lt_1, ?lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"#]])
+}
+
 // A proof of a `for<'a>` bound may defer a region constraint on the
 // placeholder `'a`. Leaving the binder, the constraint must hold for every
 // `'a` (see `BinderScope::pop`).
@@ -1679,7 +1728,7 @@ fn for_all_universal_outlives_placeholder() {
 
         error: could not compile `foo` (lib) due to 1 previous error
     "#]])
-    .err(expect_test::expect!["crates/formality-rust/src/check/borrow_check/outlives.rs:56:1: no applicable rules for can_outlive { param_a: !lt_1, param_b: ' static, assumptions: {}, env: TypeckEnv { env: Env { variables: [!lt_1], bias: Soundness, pending: [], allow_pending_outlives: false }, output_ty: Some(()) }, outlives: {pending_outlives(!lt_1, ' static)} }"])
+    .err(expect_test::expect!["crates/formality-rust/src/prove/prove_outlives.rs:8:1: no applicable rules for prove_outlives { a: !lt_0, b: ' static, assumptions: {}, env: Env { variables: [!lt_0], bias: Soundness, pending: [], allow_pending_outlives: false } }"])
 }
 
 /// The impl needs `'a: 'r`, which fails for an `'a` shorter than `'r`.

@@ -1,7 +1,7 @@
 use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::PendingOutlives;
 
-use crate::grammar::{AtomicPredicate, Parameter, Predicates, Variable};
+use crate::grammar::{AtomicPredicate, Lt, Parameter, Predicates, Variable};
 use crate::prove::prove;
 use formality_core::{judgment_fn, Set, Upcast};
 
@@ -56,7 +56,7 @@ judgment_fn! {
 judgment_fn! {
     /// Check if lt_a can outlive param_b.
     /// For non-universal targets, trivially succeeds.
-    /// For universal lifetime targets, must prove from assumptions.
+    /// For universal lifetime targets and `'static`, must prove from assumptions.
     fn can_outlive(
         env: TypeckEnv,
         assumptions: Predicates,
@@ -82,6 +82,14 @@ judgment_fn! {
             (if c.unconditionally_true())
             --- ("universal target")
             (can_outlive(env, assumptions, _outlives, param_a, var_b: Variable) => ())
+        )
+
+        // Prove that T: 'static -- must prove from assumptions
+        (
+            (prove(&env.program, &env.env, assumptions, AtomicPredicate::outlives(param_a, Lt::Static)) => c)
+            (if c.unconditionally_true())
+            --- ("static target")
+            (can_outlive(env, assumptions, _outlives, param_a, Lt::Static) => ())
         )
     }
 }
