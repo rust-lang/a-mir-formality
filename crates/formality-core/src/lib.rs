@@ -17,7 +17,7 @@ pub use tracing::instrument;
 pub use tracing::trace;
 
 // Re-export things from formality-macros.
-pub use formality_macros::{fixed_point, respan, term, test, Visit};
+pub use formality_macros::{respan, term, test, Visit};
 
 pub type Fallible<T> = anyhow::Result<T>;
 
@@ -27,7 +27,6 @@ pub type Fallible<T> = anyhow::Result<T>;
 pub mod binder;
 mod cast;
 mod collections;
-pub mod fixed_point;
 pub mod fold;
 pub mod judgment;
 pub mod language;
