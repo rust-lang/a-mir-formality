@@ -365,10 +365,13 @@ pub enum Variance {
 }
 
 #[term]
+#[customize(parse)]
 pub enum Lt {
     #[grammar('static)]
     Static,
 
+    /// Every lifetime, once codegen has erased it. Not a lifetime of the
+    /// source language: the parser does not accept `'erased`.
     #[grammar('erased)]
     Erased,
 

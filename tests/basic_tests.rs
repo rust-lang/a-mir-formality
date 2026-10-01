@@ -467,3 +467,57 @@ fn nonexistant_trait() {
         the rule "check_neg_trait_impl" at (impls.rs) failed because
           no trait named `Nonexistent`"#]]);
 }
+
+/// `'erased` is codegen's lifetime, not the program's: it would stand in
+/// for any lifetime, `'static` included.
+#[test]
+fn erased_lifetime_is_not_source_syntax() {
+    FormalityTest::new(crates![crate foo {
+        trait Static {}
+        impl Static for &'static u32 {}
+        fn needs_static<'b>(y: &'b u32) -> () where &'b u32: Static { }
+        fn main() -> () {
+            exists<'x> {
+                let local: u32 = 0_u32;
+                let y: &'x u32 = &'x local;
+                needs_static::<'erased>(y);
+            }
+        }
+    }])
+    .err(expect_test::expect![[r#"
+        × expected `;`
+            ╭─[1:1]
+          1 │ [crate foo
+            · ▲▲▲
+            · ││╰── while parsing Crate
+            · │╰── while parsing Vec
+            · ╰── while parsing Crates
+          2 │ {
+          3 │     trait Static {} impl Static for &'static u32 {} fn
+          4 │     needs_static<'b>(y: &'b u32) -> () where &'b u32: Static {} fn main() ->
+            ·                                                                 ▲▲     ▲▲
+            ·                                                                 ││     │╰── while parsing FnBoundData
+            ·                                                                 ││     ╰── while parsing Binder
+            ·                                                                 │╰── while parsing Fn
+            ·                                                                 ╰── while parsing CrateItem
+          5 │     ()
+          6 │     {
+            ·     ▲▲▲
+            ·     ││╰── while parsing Block
+            ·     │╰── while parsing FnBody
+            ·     ╰── while parsing MaybeFnBody
+          7 │         exists<'x>
+            ·         ▲     ▲
+            ·         │     ╰── while parsing Binder
+            ·         ╰── while parsing Stmt
+          8 │         {
+            ·         ▲
+            ·         ╰── while parsing Block
+          9 │             let local: u32 = 0_u32; let y: &'x u32 = &'x local;
+         10 │             needs_static::<'erased>(y);
+            ·             ▲           ▲
+            ·             │           ╰── expected `;`
+            ·             ╰── while parsing Stmt
+         11 │         }
+            ╰────"#]])
+}

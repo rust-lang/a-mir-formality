@@ -6,7 +6,9 @@ use formality_core::parse::{
 use formality_core::seq;
 use formality_core::Upcast;
 
-use crate::grammar::{AdtId, AssociatedItemId, PtrKind, RefKind, RigidName, TraitId};
+use crate::grammar::{
+    AdtId, AssociatedItemId, ParameterKind, PtrKind, RefKind, RigidName, TraitId,
+};
 
 use super::{AliasTy, AssociatedTyName, Lt, Parameter, RigidTy, ScalarId, Ty};
 
@@ -154,4 +156,26 @@ fn each_parse_parameters<'s, 't, R: ParseSuccessType>(
         p.expect_char('>')?;
         op(parameters, p)
     })
+}
+
+/// `'static`, or a lifetime variable in scope. `'erased` (`Lt::Erased`) is
+/// what codegen makes of every lifetime, not something a program writes:
+/// it would stand in for any lifetime, `'static` included.
+impl CoreParse<Rust> for Lt {
+    fn parse<'t>(scope: &Scope<Rust>, text: &'t str) -> ParseResult<'t, Self> {
+        Parser::multi_variant(scope, text, "Lt", |parser| {
+            parser.try_claim_as_var();
+
+            parser.parse_variant("Lt::Static", Precedence::default(), |p| {
+                p.expect_char('\'')?;
+                p.expect_keyword("static")?;
+                p.ok(Lt::Static)
+            });
+
+            parser.parse_variant("Lt::Variable", Precedence::default(), |p| {
+                let v = p.variable_of_kind(ParameterKind::Lt)?;
+                p.ok(Lt::Variable(v))
+            });
+        })
+    }
 }
