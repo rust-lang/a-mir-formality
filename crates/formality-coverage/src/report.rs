@@ -60,6 +60,90 @@ ul.cov-tree summary{cursor:pointer}\n\
 ul.cov-tree li,ul.cov-tree summary{white-space:nowrap}\n\
 </style>\n";
 
+/// Filename stem of the page explaining how to read the report. Every generated
+/// page links to it (see [`how_to_read_footer`]).
+pub const HOW_TO_READ_SLUG: &str = "coverage-how-to-read";
+
+/// The footer every coverage page ends with. Written as a markdown link so
+/// mdbook rewrites the `.md` to `.html` itself. The leading blank line matters:
+/// without it the `---` would turn the last line of the page into a heading.
+fn how_to_read_footer() -> String {
+    format!("\n\n---\n\n[How to read this page](./{HOW_TO_READ_SLUG}.md)\n")
+}
+
+/// Render the standing explanation of the report's notation, which every page
+/// links to in its footer.
+pub fn render_how_to_read() -> String {
+    let mut s = String::new();
+    s.push_str("# How to read the coverage report\n\n");
+    s.push_str(
+        "The [coverage report](./coverage.md) lists every `judgment_fn!` in the model and every \
+         inference rule inside it. The numbers come from the test suite: they are recorded while \
+         `cargo test` runs, so they say what the tests actually exercised, not what the model can \
+         in principle prove.\n\n",
+    );
+
+    s.push_str("## The index table\n\n");
+    s.push_str(
+        "The report's front page has one row per judgment and one row per rule inside it. The \
+         positive column says how many tests proved something with that rule. The negative \
+         column is a fraction: how many of the rule's premises that *can* fail have been seen \
+         to fail, out of how many there are.\n\n",
+    );
+
+    s.push_str("## Positive and negative coverage\n\n");
+    s.push_str(
+        "A judgment's own page shows each rule as its source, one line per premise with the \
+         conclusion below the `---` separator, and puts a number on each line:\n\n",
+    );
+    s.push_str(
+        "- The **green** number on a rule's conclusion is *positive* coverage: how many tests \
+         proved something using that rule. It says the rule can fire.\n",
+    );
+    s.push_str(
+        "- The **orange** number on a premise is *negative* coverage: how many tests failed \
+         while trying to prove that premise. It says the premise is load-bearing, because some \
+         program was rejected by it.\n\n",
+    );
+    s.push_str(
+        "A rule with positive coverage but no negative coverage on any premise is only tested \
+         in one direction: the tests show it accepting programs, but never show a premise doing \
+         the work of rejecting one.\n\n",
+    );
+
+    s.push_str("## The other cells\n\n");
+    s.push_str(
+        "- **✗** means nothing was observed. For a conclusion, no test proved anything with the \
+         rule; for a premise, no test failed on it. This is a gap in the test suite, not \
+         necessarily a bug in the model.\n",
+    );
+    s.push_str(
+        "- **N/A** marks a premise that cannot fail once the rule's conclusion matches (a `let` \
+         without a `?`), so there is nothing to cover negatively. On the index it marks a rule \
+         with no fallible premise at all.\n",
+    );
+    s.push_str(
+        "- **no applicable rule observed** on a judgment means some test called the judgment and \
+         none of its rules matched at all.\n\n",
+    );
+
+    s.push_str("## Following a number\n\n");
+    s.push_str(
+        "Clicking a number opens that cell's page: the tests behind the number, each with its \
+         source and the proof tree it produced (successful trees for positive coverage, the \
+         failed tree pruned to the stacks involving the premise for negative coverage). The \
+         chart at the top of that page is the same rule, with the cell you came from \
+         highlighted, so you can move to a neighbouring cell without going back.\n\n",
+    );
+    s.push_str(
+        "The [by-test view](./coverage-by-test.md) is the same data organized the other way \
+         round: one page per test, listing the rules it proves and the premises it fails on. \
+         Every row links back, so \"what else does this test cover\" and \"what else covers this \
+         premise\" are both one click away.\n",
+    );
+    s
+}
+
 /// Render the top-level coverage table. Each covered cell links to a per-cell
 /// detail page (see [`render_detail_pages_for`]) listing the tests involved.
 pub fn render_index(judgments: &[Judgment], cov: &Coverage) -> String {
@@ -92,6 +176,7 @@ pub fn render_index(judgments: &[Judgment], cov: &Coverage) -> String {
             ));
         }
     }
+    s.push_str(&how_to_read_footer());
     s
 }
 
@@ -100,22 +185,37 @@ pub fn render_index(judgments: &[Judgment], cov: &Coverage) -> String {
 /// standalone CLI report (viewed as markdown) and `"html"` for the mdbook
 /// preprocessor (mdbook only rewrites `.md`→`.html` for markdown-syntax links,
 /// not for the raw-HTML `<a>` we emit here).
-pub fn render_subpage(j: &Judgment, cov: &Coverage, link_ext: &str) -> String {
+pub fn render_subpage(
+    j: &Judgment,
+    cov: &Coverage,
+    link_ext: &str,
+    github_base: Option<&str>,
+) -> String {
     let mut s = String::new();
-    s.push_str(&format!(
-        "# Judgment `{}` at {}:{}\n\n",
-        j.name, j.file, j.line,
-    ));
-    if !j.signature.is_empty() {
-        s.push_str("**Signature:**\n\n```rust,ignore\n");
-        s.push_str(&j.signature);
-        s.push_str("\n```\n\n");
+    s.push_str(&format!("# Judgment `{}`\n\n", j.name));
+    if !j.source_extract.is_empty() {
+        // A judgment's doc comment can itself contain a fenced code block, so
+        // the fence has to outrun the longest backtick run inside it.
+        let fence = "`".repeat(fence_len(&j.source_extract));
+        s.push_str(&format!(
+            "{fence}rust,ignore\n{}\n{fence}\n\n",
+            j.source_extract
+        ));
     }
+    s.push_str(&match github_base {
+        Some(base) => format!(
+            "[Source: `{file}:{line}`]({base}/{file}#L{line})\n\n",
+            file = j.file,
+            line = j.line,
+        ),
+        None => format!("Source: `{}:{}`\n\n", j.file, j.line),
+    });
     if cov.no_applicable_rule_observed(&j.file, &j.name) {
         s.push_str("_No applicable rule observed: at least one test exercised this judgment with no matching rule._\n\n");
     }
     if j.rules.is_empty() {
         s.push_str("_No rules discovered._\n");
+        s.push_str(&how_to_read_footer());
         return s;
     }
 
@@ -129,7 +229,19 @@ pub fn render_subpage(j: &Judgment, cov: &Coverage, link_ext: &str) -> String {
         s.push_str(&render_rule_block(j, r, cov, link_ext, Highlight::None));
         s.push('\n');
     }
+    s.push_str(&how_to_read_footer());
     s
+}
+
+/// Length of a code fence that safely encloses `code`: longer than the longest
+/// run of backticks in it, and never shorter than the usual three.
+fn fence_len(code: &str) -> usize {
+    let longest_run = code
+        .split(|c| c != '`')
+        .map(|run| run.len())
+        .max()
+        .unwrap_or(0);
+    (longest_run + 1).max(3)
 }
 
 /// Which row of a rule's coverage chart to highlight as the "current" cell when
@@ -465,6 +577,7 @@ pub fn render_detail_pages_for(
                 if !sink.is_empty() {
                     content.push_str(&args_script(&slug));
                 }
+                content.push_str(&how_to_read_footer());
                 pages.push(DetailPage {
                     title: format!("{} / {} (positive)", j.name, r.name),
                     content,
@@ -524,6 +637,7 @@ pub fn render_detail_pages_for(
             if !sink.is_empty() {
                 content.push_str(&args_script(&slug));
             }
+            content.push_str(&how_to_read_footer());
             pages.push(DetailPage {
                 title: format!("{} / {} premise@{} (negative)", j.name, r.name, p.line),
                 content,
@@ -561,6 +675,7 @@ pub fn render_by_test_index(cov: &Coverage, source_root: Option<&Path>) -> Strin
         // Blank line first, or this joins the paragraph above into one run of
         // text. This is the branch a book built without running the tests takes.
         s.push_str("\n_No coverage recorded._\n");
+        s.push_str(&how_to_read_footer());
         return s;
     }
     let mut current_file = "";
@@ -578,6 +693,7 @@ pub fn render_by_test_index(cov: &Coverage, source_root: Option<&Path>) -> Strin
             premises = tc.premises.len(),
         ));
     }
+    s.push_str(&how_to_read_footer());
     s
 }
 
@@ -759,6 +875,7 @@ fn render_test_page(
     if !sink.is_empty() {
         content.push_str(&args_script(&slug));
     }
+    content.push_str(&how_to_read_footer());
 
     DetailPage {
         title: match name {
@@ -1520,6 +1637,10 @@ pub fn write_all(
     std::fs::create_dir_all(out_dir).with_context(|| format!("creating {}", out_dir.display()))?;
     let index = render_index(judgments, cov);
     std::fs::write(out_dir.join("coverage.md"), index)?;
+    std::fs::write(
+        out_dir.join(format!("{HOW_TO_READ_SLUG}.md")),
+        render_how_to_read(),
+    )?;
 
     // Two judgments with the same name (or names that differ only by characters
     // we collapse into `_`) would clobber each other's subpage. Warn so the
@@ -1533,7 +1654,7 @@ pub fn write_all(
                 j.name, j.file, j.line,
             );
         }
-        let body = render_subpage(j, cov, "md");
+        let body = render_subpage(j, cov, "md", github_base);
         std::fs::write(out_dir.join(format!("{}.md", slug)), body)?;
 
         for page in render_detail_pages_for(j, cov, github_base, source_root, "md") {
