@@ -143,7 +143,7 @@ impl BinderScope {
 /// | universal `!a`   | `X: !a`        | `X: 'static` | `!a` may be `'static`              |
 /// | universal `!a`   | `!a: Y`        | cannot be    | `!a` may be shorter than `Y`       |
 /// | existential `?a` | `X: ?a, ?a: Y` | `X: Y`       | some `?a` lies between iff `X: Y`  |
-fn without_var(pending: &Wcs, v: Variable) -> Result<Wcs, Wc> {
+pub fn without_var(pending: &Wcs, v: Variable) -> Result<Wcs, Wc> {
     let mut restated: Vec<Wc> = vec![];
     let mut outlive_v: Vec<Parameter> = vec![];
     let mut outlived_by_v: Vec<Parameter> = vec![];

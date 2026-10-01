@@ -1,12 +1,12 @@
 use crate::check::borrow_check::liveness::LivePlaces;
 use crate::check::borrow_check::typed_place_expression::TypedPlaceExpr;
 use crate::grammar::expr::{Label, LabelId, PlaceExpr};
-use crate::grammar::{InputArg, Lt, Parameter, Ty, ValueId};
+use crate::grammar::{InputArg, Lt, Parameter, Predicate, Ty, ValueId, Wc, Wcs};
 use crate::grammar::{RefKind, Variable};
-use crate::prove::{BinderScope, Env, MaxUniverse};
-use formality_core::judgment::{ProofTree, Scope as JudgmentScope};
+use crate::prove::{without_var, BinderScope, Env, MaxUniverse};
+use formality_core::judgment::{FailureLocation, ProofTree, Scope as JudgmentScope};
 use formality_core::visit::CoreVisit;
-use formality_core::{term, Fallible, ProvenSet, Set, Union, Upcast, UpcastFrom};
+use formality_core::{term, Downcast, Fallible, ProvenSet, Set, To, Union, Upcast, UpcastFrom};
 
 /// A scope in the scope stack, tracking labeled blocks and loops.
 /// Scopes live in `PointFlowState` and track locals for drop purposes.
@@ -115,14 +115,57 @@ impl PointFlowState {
     }
 
     /// Modifies `self` by removing all variables in `variables` from the environment and from the substitution.
-    fn pop_vars(&mut self, variables: &Set<Variable>) {
-        self.outlives
-            .retain(|v| !v.free_variables().iter().any(|v| variables.contains(v)));
+    /// What a variable `v` related stays related:
+    ///
+    /// * `X: v` and `v: Y` become `X: Y` (see [`without_var`][]);
+    /// * a loan with the region `v` becomes one with each region that `v`
+    ///   outlives: it is live for as long as one of them is.
+    fn pop_vars(&mut self, variables: &Set<Variable>) -> Result<(), Wc> {
+        for &v in variables {
+            let v_lt = Lt::Variable(v);
+            let outlived_by_v = self
+                .outlives
+                .iter()
+                .filter(|o| o.a == v_lt.to::<Parameter>());
+            let loans_with_v = self.loans_live.iter().filter(|loan| loan.lt == v_lt);
+            let loans: Vec<Loan> = outlived_by_v
+                .filter_map(|o| o.b.downcast::<Lt>())
+                .flat_map(|lt| {
+                    loans_with_v.clone().map(move |loan| Loan {
+                        lt: lt.clone(),
+                        ..loan.clone()
+                    })
+                })
+                .collect();
+            self.loans_live.extend(loans);
+            self.outlives = outlives_without_var(&self.outlives, v)?;
+        }
         self.loans_live
             .retain(|v| !v.free_variables().iter().any(|v| variables.contains(v)));
         self.uninit
             .retain(|v| !v.free_variables().iter().any(|v| variables.contains(v)));
+        Ok(())
     }
+}
+
+/// `outlives` without the variable `v` (see [`without_var`][]).
+fn outlives_without_var(
+    outlives: &Set<PendingOutlives>,
+    v: Variable,
+) -> Result<Set<PendingOutlives>, Wc> {
+    let pending: Wcs = outlives
+        .iter()
+        .map(|PendingOutlives { a, b }| Predicate::outlives(a, b))
+        .collect();
+    let restated = without_var(&pending, v)?;
+    Ok(restated
+        .iter()
+        .map(|wc| match wc {
+            Wc::Predicate(Predicate::Outlives(a, b)) => PendingOutlives { a, b },
+            _ => unreachable!("an outlives is restated as an outlives"),
+        })
+        .filter(|PendingOutlives { a, b }| a != b)
+        .collect())
 }
 
 impl UpcastFrom<Union<(PointFlowState, PointFlowState)>> for PointFlowState {
@@ -549,33 +592,34 @@ impl FlowState {
         }
     }
 
-    /// `self` without whatever mentions one of `vars`, the variables of an
-    /// `exists<..> { .. }` block that ends.
-    fn pop_vars(&self, vars: &[Variable]) -> Self {
+    /// `self` without `vars`, the variables of an `exists<..> { .. }` block
+    /// that ends (see [`PointFlowState::pop_vars`][]).
+    fn pop_vars(&self, vars: &[Variable]) -> Result<Self, Wc> {
         let mut this = self.clone();
 
         let removed: Set<Variable> = vars.iter().copied().collect();
-        this.current.pop_vars(&removed);
+        this.current.pop_vars(&removed)?;
         this.breaks = this
             .breaks
             .into_iter()
             .map(|mut lfs| {
-                lfs.state.pop_vars(&removed);
-                lfs
+                lfs.state.pop_vars(&removed)?;
+                Ok(lfs)
             })
-            .collect();
+            .collect::<Result<_, Wc>>()?;
         this.continues = this
             .continues
             .into_iter()
             .map(|mut lfs| {
-                lfs.state.pop_vars(&removed);
-                lfs
+                lfs.state.pop_vars(&removed)?;
+                Ok(lfs)
             })
-            .collect();
-        this.all_outlives
-            .retain(|v| !v.free_variables().iter().any(|v| removed.contains(v)));
+            .collect::<Result<_, Wc>>()?;
+        for &v in &removed {
+            this.all_outlives = outlives_without_var(&this.all_outlives, v)?;
+        }
 
-        this
+        Ok(this)
     }
 
     /// Check structural invariants on the scope stack:
@@ -635,8 +679,14 @@ impl FlowState {
 /// scope of its variables.
 impl JudgmentScope<(FlowState,)> for BinderScope {
     fn leave(&self, (state,): (FlowState,)) -> ProvenSet<(FlowState,)> {
-        let state = state.pop_vars(self.vars());
-        ProvenSet::singleton(((state,), ProofTree::leaf("leave exists")))
+        match state.pop_vars(self.vars()) {
+            Ok(state) => ProvenSet::singleton(((state,), ProofTree::leaf("leave exists"))),
+            Err(wc) => ProvenSet::failed(
+                "leave exists",
+                FailureLocation::caller(),
+                format!("`{wc:?}` cannot be restated without the variables of the block"),
+            ),
+        }
     }
 }
 

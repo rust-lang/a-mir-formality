@@ -4589,3 +4589,98 @@ fn issue_70044_location_insensitive_constraints() {
     .skip_execute()
     .borrowck_err(BorrowCheckFailure::Nll, expect_test::expect![[""]]);
 }
+
+// The variables of an `exists<..> { .. }` block go out of scope at its end.
+// What they related stays related.
+
+/// `'a: 'r` and `'r: 'b` leave `'a: 'b`: the loan of `v0` is live while `q` is.
+#[test]
+fn exists_block_keeps_outlives_through_its_variable() {
+    FormalityTest::new(crates![crate foo {
+        fn main() -> () {
+            let v0: u32 = 0_u32;
+            exists<'a, 'b> {
+                let p: &'a u32 = &'a v0;
+                let q: &'b u32;
+                exists<'r> {
+                    let m: &'r u32 = p;
+                    q = m;
+                }
+                v0 = 1_u32;
+                let z: u32 = *q;
+            }
+        }
+    }])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = v0 : u32
+            &access.place = v0 : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1, ?lt_2}
+            &lifetime.upcast() = ?lt_2
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v0`"#]],
+    )
+}
+
+/// A loan with the region `'r`, which outlives `'b`, is live while `q` is.
+#[test]
+fn exists_block_keeps_loan_with_its_variable() {
+    FormalityTest::new(crates![crate foo {
+        fn main() -> () {
+            let v0: u32 = 0_u32;
+            exists<'b> {
+                let q: &'b u32;
+                exists<'r> {
+                    let m: &'r u32 = &'r v0;
+                    q = m;
+                }
+                v0 = 1_u32;
+                let z: u32 = *q;
+            }
+        }
+    }])
+    .borrowck_err(
+        BorrowCheckFailure::All,
+        expect_test::expect![[r#"
+        the rule "borrow of disjoint places" at (nll.rs) failed because
+          condition evaluated to false: `place_disjoint_from_place(&loan.place, &access.place)`
+            &loan.place = v0 : u32
+            &access.place = v0 : u32
+
+        the rule "loan_cannot_outlive" at (nll.rs) failed because
+          condition evaluated to false: `!outlived_by_loan.contains(&lifetime.upcast())`
+            outlived_by_loan = {?lt_1}
+            &lifetime.upcast() = ?lt_1
+
+        the rule "write-indirect" at (nll.rs) failed because
+          pattern `TypedPlaceExpressionData::Deref(place_loaned_ref)` did not match value `v0`"#]],
+    )
+}
+
+/// ...and no longer.
+#[test]
+fn exists_block_loan_ends_with_its_uses() {
+    FormalityTest::new(crates![crate foo {
+        fn main() -> () {
+            let v0: u32 = 0_u32;
+            exists<'b> {
+                let q: &'b u32;
+                exists<'r> {
+                    let m: &'r u32 = &'r v0;
+                    q = m;
+                }
+                let z: u32 = *q;
+                v0 = 1_u32;
+            }
+        }
+    }])
+    .skip_execute()
+    .borrowck_ok()
+}
