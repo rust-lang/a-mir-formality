@@ -9,7 +9,7 @@ use crate::grammar::{
     expr::{Block, Expr},
     Fallible, Lt, Parameter, ParameterKind, Ty,
 };
-use crate::prove::{erase_lifetimes_in_predicate, is_closed, prove, Env};
+use crate::prove::{erase_lifetimes_in_predicate, holds_after_erasure, is_closed, prove, Env};
 use formality_core::{judgment_fn, Upcast};
 use libspecr::hidden::GcCow;
 use libspecr::list;
@@ -153,17 +153,12 @@ fn erased(bound: &grammar::IfImplsBound) -> grammar::Predicate {
 /// Is the erased bound provable outright? The negation `decide_at_codegen`
 /// needs for its else-branch.
 fn holds_at_codegen(cfn: &CodegenFn, bound: &grammar::IfImplsBound) -> bool {
-    match prove(
+    holds_after_erasure(
         &cfn.typeck_env.program,
-        Env::default(),
+        &Env::default(),
         &cfn.assumptions,
         erased(bound),
     )
-    .into_map()
-    {
-        Ok(solutions) => solutions.keys().any(|c| c.unconditionally_true()),
-        Err(_) => false,
-    }
 }
 
 /// Extract the single result from a ProvenSet, or error.

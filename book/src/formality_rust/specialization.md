@@ -142,7 +142,8 @@ Sound because of the obligations type checking proved:
 | by bound | decided by a caller further up, for the same types |
 
 So in no monomorphization type checking admits does codegen say "yes" where
-the truth is "no".
+the truth is "no". The first two rows are asserted wherever `decide` gives
+those answers (`holds_after_erasure`, the evaluation codegen uses).
 
 ## Lifetimes: the modes
 
