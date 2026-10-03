@@ -1845,3 +1845,25 @@ fn body_region_equated_with_a_universal() {
     .rustc_ok()
     .ok()
 }
+
+/// Two proofs of `&'x u32: Super`, each leaving region constraints: the
+/// where-clause needs `'x == 'a`, the impl `'x: 'static`. With `'a: 'x` known,
+/// the impl's constraint entails the where-clause's, which are therefore the
+/// weakest, and the ones taken.
+#[test]
+fn weakest_region_constraints_are_taken() {
+    FormalityTest::new(crates![crate foo {
+        trait Super {}
+        impl Super for &'static u32 {}
+        fn needs_super<'b>(y: &'b u32) -> () where &'b u32: Super { }
+        fn caller<'a>(x: &'a u32) -> () where &'a u32: Super {
+            exists<'x> {
+                let y: &'x u32 = x;
+                needs_super::<'x>(y);
+            }
+        }
+    }])
+    .skip_execute()
+    .rustc_ok()
+    .ok()
+}

@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use crate::check::borrow_check::flow_state::{FlowState, PendingOutlives};
 
-use crate::check::borrow_check::outlives::verify_universal_outlives;
-use crate::grammar::{AtomicPredicate, Binder, Predicates, Ty};
+use crate::check::borrow_check::outlives::{transitively_outlived_by, verify_universal_outlives};
+use crate::grammar::{AtomicPredicate, Binder, Lt, Predicates, Ty};
 use crate::grammar::{Crates, Parameter};
 use crate::prove::{
     enter_existentially, enter_universally, prove_normalize, BinderScope, Constrained, Constraints,
@@ -185,8 +185,9 @@ impl TypeckEnv {
         // If we pick the second one, and `'a: 'b` does not hold, we get an error
         // in the borrow checker later on. But it wasn't necessary.\
         //
-        // So what we do is we look for a *minimal result* -- if there isn't one,
-        // for now, we fail with ambiguity.
+        // So what we do is we look for a *minimal result*, one whose constraints
+        // each of the others entails -- if there isn't one, for now, we fail
+        // with ambiguity.
 
         // Convert these to pending-outlives; if conversion fails, bail because we don't know
         // whether it would be more minimal than the others or not.
@@ -221,22 +222,27 @@ impl TypeckEnv {
                 format!("final constraint set had only ambiguous elements: {cs:#?}"),
             );
         };
+        let known = &state.current.outlives;
         for pending_outlives in pending_outlives_iter {
+            // One set is at most as strong as another if the other (with what
+            // is already known) entails it; a subset is the simplest case.
+            let weaker = self.entails(known, &pending_outlives_minimal.0, &pending_outlives.0);
+            let stronger = self.entails(known, &pending_outlives.0, &pending_outlives_minimal.0);
+
             // If these outlives constraints are not ordered with respect to `pending_outlives_minimal`, then bail.
-            if !pending_outlives.0.is_subset(&pending_outlives_minimal.0)
-                && !pending_outlives_minimal.0.is_subset(&pending_outlives.0)
-            {
+            if !weaker && !stronger {
                 return ProvenSet::failed(
                     format!("prove_judgment({goal:?})"),
                     FailureLocation::caller(),
                     format!(
-                        "no relationship between `{pending_outlives:?}` and `{pending_outlives_minimal:?}`"
+                        "no relationship between `{:?}` and `{:?}`",
+                        pending_outlives.0, pending_outlives_minimal.0
                     ),
                 );
             }
 
-            // If this set of outlives is a subset of the previous minimal, then use it instead.
-            if pending_outlives.0.is_subset(&pending_outlives_minimal.0) {
+            // If this set of outlives is weaker than the previous minimal, then use it instead.
+            if pending_outlives.0.is_subset(&pending_outlives_minimal.0) || (weaker && !stronger) {
                 pending_outlives_minimal = pending_outlives;
             }
         }
@@ -256,6 +262,23 @@ impl TypeckEnv {
         }
 
         ProvenSet::singleton(((value.clone(), state), proof_tree.clone()))
+    }
+
+    /// Do the constraints in `known` and `stronger` together entail every
+    /// constraint of `weaker`? By transitivity, and because `'static` outlives
+    /// every lifetime.
+    fn entails(
+        &self,
+        known: &Set<PendingOutlives>,
+        stronger: &Set<PendingOutlives>,
+        weaker: &Set<PendingOutlives>,
+    ) -> bool {
+        let given: Set<PendingOutlives> = known.iter().chain(stronger).cloned().collect();
+        let static_lt: Parameter = Lt::Static.upcast();
+        weaker.iter().all(|PendingOutlives { a, b }| {
+            let outlived = transitively_outlived_by(self, &given, a);
+            outlived.contains(b) || outlived.contains(&static_lt)
+        })
     }
 
     // Convert the pending goals into a series of `PendingOutlives`.
