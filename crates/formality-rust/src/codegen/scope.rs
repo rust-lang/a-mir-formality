@@ -2,6 +2,7 @@
 
 use crate::check::borrow_check::env::TypeckEnv;
 use crate::check::borrow_check::flow_state::FlowState;
+use crate::grammar::FnBoundData;
 use crate::grammar::{expr::LabelId, Crates, Fallible, Parameter, Predicates, Ty, ValueId};
 use crate::prove::{Env, Program};
 use formality_core::Upcast;
@@ -148,17 +149,19 @@ impl CodegenGlobal {
 }
 
 impl CodegenFn {
-    /// Create per-function state for compiling a function with the given return type.
-    pub(super) fn new(crates: &Crates, output_ty: &Ty) -> Self {
+    /// Create per-function state for compiling the function `fn_data` (its
+    /// binder instantiated): the body is typed against its return type and
+    /// under its where-clauses, as in type checking.
+    pub(super) fn new(crates: &Crates, fn_data: &FnBoundData) -> Self {
         let program = Program {
             crates: Arc::new(crates.clone()),
             max_size: Program::DEFAULT_MAX_SIZE,
         };
-        let typeck_env = TypeckEnv::for_fn_body(Env::default(), &program, output_ty);
+        let typeck_env = TypeckEnv::for_fn_body(Env::default(), &program, &fn_data.output_ty);
         CodegenFn {
             crates: crates.clone(),
             typeck_env,
-            assumptions: Predicates::t(),
+            assumptions: fn_data.where_clauses.clone().upcast(),
             local_counter: 0,
             bb_counter: 0,
             locals: Vec::new(),

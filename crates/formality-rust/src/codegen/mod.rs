@@ -72,7 +72,7 @@ judgment_fn! {
 
         (
             (let (fn_data, body) = resolve_fn_body(global, key)?)
-            (let cfn = CodegenFn::new(&global.crates, &fn_data.output_ty))
+            (let cfn = CodegenFn::new(&global.crates, &fn_data))
             (let (ret_local, arg_locals, scope, cfn) = setup_fn_args(cfn, fn_data)?)
             (codegen_block(global, cfn, scope, body) => (code, global, cfn))
             (let function = build_function(cfn, code, ret_local, arg_locals))
