@@ -143,6 +143,50 @@ fn uncovered_T() {
 }
 
 #[test]
+fn ref_FooStruct_is_local() {
+    FormalityTest::new(crates![crate core {
+        trait CoreTrait {}
+    },
+    crate foo {
+        struct FooStruct {}
+        impl CoreTrait for &'static FooStruct {}
+        impl CoreTrait for &'static mut FooStruct {}
+    }])
+    .skip_execute()
+    .ok()
+}
+
+#[test]
+fn ref_CoreStruct_is_not_local() {
+    FormalityTest::new(crates![crate core {
+        trait CoreTrait {}
+        struct CoreStruct {}
+    },
+    crate foo {
+        impl CoreTrait for &'static CoreStruct {}
+    }])
+    .err(expect_test::expect![[r#"
+        the rule "fundamental rigid type" at (is_local.rs) failed because
+          condition evaluated to false: `is_fundamental(decls, name)`
+            decls = program([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl CoreTrait for &' static CoreStruct { } }], 222)
+            name = (adt CoreStruct)
+
+        crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: CoreStruct, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "local rigid type" at (is_local.rs) failed because
+          condition evaluated to false: `decls.is_local_adt_id(a)`
+            decls = program([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl CoreTrait for &' static CoreStruct { } }], 222)
+            a = CoreStruct
+
+        crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: &' static CoreStruct, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "local trait" at (is_local.rs) failed because
+          condition evaluated to false: `decls.is_local_trait_id(&goal.trait_id)`
+            decls = program([crate core { trait CoreTrait <ty> { } struct CoreStruct { } }, crate foo { impl CoreTrait for &' static CoreStruct { } }], 222)
+            &goal.trait_id = CoreTrait"#]])
+}
+
+#[test]
 fn alias_to_unit() {
     FormalityTest::new(crates![crate core {
                 trait CoreTrait {}
