@@ -126,6 +126,15 @@ judgment_fn! {
             --- ("via normalize")
             (may_be_downstream_parameter(decls, env, assumptions, AliasTy { name, parameters }) => c)
         )
+
+
+        (
+            (if is_fundamental(decls, name))
+            (p in parameters.iter())
+            (may_be_downstream_parameter(decls, env, assumptions, p) => c)
+            --- ("fundamental rigid type")
+            (may_be_downstream_parameter(decls, env, assumptions, RigidTy { name, parameters }) => c)
+        )
     }
 }
 
