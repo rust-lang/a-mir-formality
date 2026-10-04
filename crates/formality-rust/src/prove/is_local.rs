@@ -250,8 +250,17 @@ judgment_fn! {
         (
             // Since https://rust-lang.github.io/rfcs/2451-re-rebalancing-coherence.html,
             // any rigid type is adequate.
+            (if !is_fundamental(decls, name))
             --- ("rigid")
-            (is_not_downstream(_decls, env, _assumptions, RigidTy { .. }) => Constraints::none(env))
+            (is_not_downstream(decls, env, _assumptions, RigidTy { name, parameters: _ }) => Constraints::none(env))
+        )
+
+        (
+            // Fundamental types do not cover their parameters
+            (if is_fundamental(decls, name))
+            (for_all(decls, env, assumptions, parameters, &is_not_downstream) => c)
+            --- ("fundamental type")
+            (is_not_downstream(decls, env, assumptions, RigidTy { name, parameters }) => c)
         )
 
         (
