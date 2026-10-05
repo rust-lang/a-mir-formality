@@ -8,7 +8,7 @@ use formality_rust::prove::{test_util::TestAssertion, Constraints};
 use formality_rust::rust::try_term;
 
 pub mod test_util;
-pub use test_util::{BorrowCheckFailure, FormalityTest};
+pub use test_util::{BorrowCheckFailure, FormalityTest, SpecMode};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

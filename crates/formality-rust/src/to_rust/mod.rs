@@ -168,6 +168,9 @@ pub fn lower_generics_for_binder(
             WhereClause::ForAll(_) => {
                 continue;
             }
+            WhereClause::MaySpec(_) => {
+                continue;
+            }
         }
     }
 
@@ -209,6 +212,9 @@ fn lower_where_clause(
                 .collect::<Result<Vec<_>, _>>()?,
         })),
         WhereClause::TypeOfConst(_, _) => Ok(None),
+        WhereClause::MaySpec(_) => {
+            anyhow::bail!("`may_spec` bounds have no Rust equivalent and cannot be lowered")
+        }
         WhereClause::AliasEq(_, _) => {
             anyhow::bail!("lowering `AliasEq` where-clauses is not implemented yet")
         }
@@ -338,5 +344,19 @@ mod test {
 
                 pub trait B where for<'a10> &'a10 u32: A { }"#]]
         )
+    }
+
+    /// `branch_specialization` is a feature of the model, not of rustc; like
+    /// `polonius_alpha`, it lowers to a pseudo-feature.
+    #[test]
+    fn branch_specialization_feature_gate_lowered() {
+        crate::assert_rust!(
+            [
+                crate Foo {
+                    #![feature(branch_specialization)]
+                }
+            ],
+            expect_test::expect![["#![feature(branch_specialization)]"]]
+        );
     }
 }

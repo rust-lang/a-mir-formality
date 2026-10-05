@@ -1,8 +1,8 @@
 use crate::grammar::{
-    AdtId, AliasName, AliasTy, AssociatedTyValue, AssociatedTyValueBoundData, Binder, Crate,
-    CrateId, CrateItem, Crates, ImplItem, NegTraitImpl, NegTraitImplBoundData, Parameter,
-    Predicate, Trait, TraitBoundData, TraitId, TraitImpl, TraitImplBoundData, TraitRef, Ty, Wc,
-    Wcs,
+    AdtId, AliasName, AliasTy, Applicability, AssociatedTyValue, AssociatedTyValueBoundData,
+    Binder, Crate, CrateId, CrateItem, Crates, FeatureGateName, ImplItem, NegTraitImpl,
+    NegTraitImplBoundData, Parameter, Predicate, Trait, TraitBoundData, TraitId, TraitImpl,
+    TraitImplBoundData, TraitRef, Ty, Wc, Wcs,
 };
 use crate::prove::ToWcs;
 use formality_core::{seq, Downcasted, Set, To, Upcast, Upcasted};
@@ -21,6 +21,16 @@ impl Program {
 
     pub fn program(&self) -> &Crates {
         &self.crates
+    }
+
+    /// True if *any* crate in the program enables the given feature gate.
+    // FIXME: ideally, feature gates would be per-crate.
+    pub fn feature_gate_enabled(&self, name: &FeatureGateName) -> bool {
+        self.crates.crates.iter().any(|c| {
+            c.items
+                .iter()
+                .any(|item| matches!(item, CrateItem::FeatureGate(fg) if fg.name == *name))
+        })
     }
 
     pub fn is_local_trait_id(&self, trait_id: &TraitId) -> bool {
@@ -81,6 +91,15 @@ impl Program {
             .filter(|nti| nti.binder.peek().trait_id == *trait_id)
             .map(Self::grammar_neg_trait_impl_to_decl)
             .collect()
+    }
+
+    /// Is `trait_id` declared `always_applicable`? (See
+    /// [`crate::grammar::Applicability`].)
+    pub fn is_always_applicable_trait(&self, trait_id: &TraitId) -> bool {
+        matches!(
+            self.crates.trait_named(trait_id),
+            Ok(t) if t.applicability == Applicability::Always
+        )
     }
 
     /// Look up a trait by id from the program grammar and convert to a `TraitDecl`.
