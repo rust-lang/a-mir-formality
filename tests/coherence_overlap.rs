@@ -369,6 +369,21 @@ fn u32_T_impls() {
 }
 
 #[test]
+fn T_where_Bar_and_ref_T() {
+    FormalityTest::new(crates![crate core {
+        trait Foo {}
+        trait Bar {}
+        impl<T> Foo for T where T: Bar {}
+        impl<T> Foo for &'static T {}
+    }])
+    .err(expect_test::expect![[r#"
+        the rule "check_coherence" at (coherence.rs) failed because
+          impls may overlap:
+          impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }
+          impl <ty> Foo for &' static ^ty0_0 { }"#]])
+}
+
+#[test]
 fn T_and_T_bar() {
     FormalityTest::new(crates![crate core {
         trait Foo { }
