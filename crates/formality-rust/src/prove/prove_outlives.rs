@@ -1,6 +1,6 @@
 use crate::grammar::Wc;
-use crate::grammar::{Lt, Parameter, Predicate, RigidTy, Wcs};
-use crate::prove::{decls::Program, prove};
+use crate::grammar::{Lt, Parameter, Predicate, RigidName, RigidTy, Wcs};
+use crate::prove::{decls::Program, prove, prove_after::prove_after, prove_normalize, Constrained};
 use formality_core::{judgment_fn, Set, Upcast};
 
 use super::{constraints::Constraints, env::Env};
@@ -71,6 +71,20 @@ judgment_fn! {
             (prove_outlives(decls, env, assumptions, RigidTy { name: _, parameters }, b) => c)
         )
 
+        (
+            (prove_normalize(decls, env, assumptions, a) => Constrained(a1, c))
+            (prove_after(decls, c, assumptions, Predicate::outlives(a1, b)) => c)
+            ----------------------------- ("normalize-l")
+            (prove_outlives(decls, env, assumptions, a, b) => c)
+        )
+
+        (
+            (prove_normalize(decls, env, assumptions, b) => Constrained(b1, c))
+            (prove_after(decls, c, assumptions, Predicate::outlives(a, b1)) => c)
+            ----------------------------- ("normalize-r")
+            (prove_outlives(decls, env, assumptions, a, b) => c)
+        )
+
         // 'a : 'b if  we can find `'a : 'b` in assumptions, or if there is transtive
         // outlive relationship (if we have 'a : 'c and 'c : 'b, then we'd know 'a : 'b).
         (
@@ -89,6 +103,70 @@ judgment_fn! {
             (prove_outlives(_decls, env, _assumptions, a, b) => Constraints::none(
                 env.with_pending(Predicate::outlives(a, b))
             ))
+        )
+    }
+}
+
+judgment_fn! {
+    pub(crate) fn prove_outlives_bound(
+        decls: Program,
+        env: Env,
+        assumptions: Wcs,
+        source: Parameter,
+        source_region: Parameter,
+        target: Parameter,
+        target_region: Parameter,
+    ) => Constraints {
+        debug(source, source_region, target, target_region, assumptions, env)
+
+        (
+            (prove(decls, env, assumptions, Predicate::equals(source_region, target_region)) => c)
+            (let (assumptions, source, target) = c.substitution().apply((assumptions, source, target)))
+            (prove_outlives_component(decls, c.env(), assumptions, source, target) => c2)
+            ----------------------------- ("same region")
+            (prove_outlives_bound(decls, env, assumptions, source, source_region, target, target_region) => c.seq(c2))
+        )
+
+        (
+            (prove(decls, env, assumptions, Predicate::outlives(source_region, target_region)) => c)
+            (let (assumptions, source, target) = c.substitution().apply((assumptions, source, target)))
+            (prove_outlives_component(decls, c.env(), assumptions, source, target) => c2)
+            ----------------------------- ("shorter region")
+            (prove_outlives_bound(decls, env, assumptions, source, source_region, target, target_region) => c.seq(c2))
+        )
+    }
+}
+
+judgment_fn! {
+    fn prove_outlives_component(
+        decls: Program,
+        env: Env,
+        assumptions: Wcs,
+        source: Parameter,
+        target: Parameter,
+    ) => Constraints {
+        debug(source, target, assumptions, env)
+
+        (
+            (if source.kind() == target.kind())!
+            (prove(decls, env, assumptions, Predicate::equals(source, target)) => c)
+            ----------------------------- ("equal component")
+            (prove_outlives_component(decls, env, assumptions, source, target) => c)
+        )
+
+        (
+            (parameter in parameters)
+            (prove_outlives_component(decls, env, assumptions, parameter, target) => c)
+            ----------------------------- ("reference components")
+            (prove_outlives_component(decls, env, assumptions, RigidTy { name: RigidName::Ref(_), parameters }, target) => c)
+        )
+
+        (
+            (prove_normalize(decls, env, assumptions, source) => Constrained(normalized, c1))
+            (let (assumptions, normalized, target) = c1.substitution().apply((assumptions, normalized, target)))
+            (prove_outlives_component(decls, c1.env(), assumptions, normalized, target) => c2)
+            ----------------------------- ("normalized bound")
+            (prove_outlives_component(decls, env, assumptions, source, target) => c1.seq(c2))
         )
     }
 }
