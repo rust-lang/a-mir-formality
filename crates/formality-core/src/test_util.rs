@@ -52,8 +52,8 @@ pub fn normalize_paths(s: impl Display) -> String {
     let s = re.replace_all(&s, "($1)").to_string();
 
     // Matches paths in the rustc output
-    let re = regex::Regex::new(r"--> (?:[^\r\n()]+[/\\])?([^()/\\]+\.rs):\d+:\d+").unwrap();
-    re.replace_all(&s, "--> $1").to_string()
+    let re = regex::Regex::new(r"(-->|:::) (?:[^\r\n()]+[/\\])?([^()/\\]+\.rs):\d+:\d+").unwrap();
+    re.replace_all(&s, "$1 $2").to_string()
 }
 
 /// Format an error, extracting just the leaf failures if it contains a FailedJudgment.

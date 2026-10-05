@@ -1141,3 +1141,56 @@ fn test_break_block_label() {
     .rustc_ok()
     .ok()
 }
+
+/// Adding integers of different types should fail.
+#[test]
+fn test_add_mismatched_int_types() {
+    FormalityTest::new(crates![crate Foo {
+        fn foo() -> () {
+            let x: i32 = 1_i32 + 2_u32;
+        }
+    }])
+    .rustc_err(expect_test::expect![[r#"
+        error[E0308]: mismatched types
+         --> lib.rs
+          |
+        2 |     let mut x: i32 = 1_i32 + 2_u32;
+          |                              ^^^^^ expected `i32`, found `u32`
+
+        error[E0277]: cannot add `u32` to `i32`
+           --> lib.rs
+            |
+          2 |     let mut x: i32 = 1_i32 + 2_u32;
+            |                            ^ no implementation for `i32 + u32`
+            |
+            = help: the trait `Add<u32>` is not implemented for `i32`
+        help: the following other types implement trait `Add<Rhs>`
+           --> arith.rs
+            |
+         99 |         impl const Add for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Add`
+        ...
+        114 | add_impl! { usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128 }
+            | ---------------------------------------------------------------------------------- in this macro invocation
+            |
+           ::: internal_macros.rs
+            |
+         22 |         impl const $imp<$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Add<i32>`
+        ...
+         33 |         impl const $imp<&$u> for $t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `Add<&i32>`
+        ...
+         44 |         impl const $imp<&$u> for &$t {
+            |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&i32` implements `Add`
+            = note: this error originates in the macro `add_impl` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+        Some errors have detailed explanations: E0277, E0308.
+        For more information about an error, try `rustc --explain E0277`.
+        error: could not compile `Foo` (lib) due to 2 previous errors
+    "#]])
+    .err(expect_test::expect![[r#"
+        crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: u32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }
+
+        crates/formality-rust/src/prove/prove_normalize.rs:18:1: no applicable rules for prove_normalize { p: i32, assumptions: {}, env: Env { variables: [], bias: Soundness, pending: [], allow_pending_outlives: true } }"#]])
+}

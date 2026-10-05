@@ -302,3 +302,32 @@ fn test_parse_literals() {
     let expr_data: Expr = try_term("true").unwrap();
     assert!(matches!(expr_data, Expr::True));
 }
+
+#[test]
+fn test_parse_binop_left_associative() {
+    let expr: Expr = term("a + b + c");
+    expect_test::expect![[r#"
+        BinOp {
+            lhs: BinOp {
+                lhs: Place(
+                    Var(
+                        a,
+                    ),
+                ),
+                op: Add,
+                rhs: Place(
+                    Var(
+                        b,
+                    ),
+                ),
+            },
+            op: Add,
+            rhs: Place(
+                Var(
+                    c,
+                ),
+            ),
+        }
+    "#]]
+    .assert_debug_eq(&expr);
+}

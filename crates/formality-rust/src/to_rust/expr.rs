@@ -158,6 +158,15 @@ pub fn lower_expr(ctx: &mut Context, expr: &Expr) -> Fallible<syntax::Expr> {
                 fields: syntax::StructExprFields::Tuple(tuple_fields),
             })
         }
+        Expr::BinOp { lhs, op, rhs } => {
+            let lhs = Box::new(lower_expr(ctx, lhs)?);
+            let rhs = Box::new(lower_expr(ctx, rhs)?);
+            Ok(syntax::Expr::BinOp {
+                lhs,
+                op: op.as_str().to_string(),
+                rhs,
+            })
+        }
     }
 }
 
