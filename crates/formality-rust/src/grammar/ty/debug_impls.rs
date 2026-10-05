@@ -1,7 +1,16 @@
 use crate::grammar::PtrKind;
 
-use super::{AliasName, AliasTy, AssociatedTyName, Parameter, RefKind, RigidName, RigidTy};
+use super::{
+    AliasName, AliasTy, AssociatedTyName, OutputTy, Parameter, RefKind, RigidName, RigidTy,
+};
 use std::fmt::Debug;
+
+/// `OutputTy` is a transparent wrapper around `Ty`, so print it as the type it wraps.
+impl Debug for OutputTy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.ty, f)
+    }
+}
 
 // ANCHOR: RigidTy_impl
 impl Debug for RigidTy {
