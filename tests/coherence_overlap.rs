@@ -48,15 +48,34 @@ fn test_overlap_normalize_alias_to_LocalType() {
     // requires normalizing).
 
     test_program_ok(&gen_program("impl Iterator for LocalType {}")).assert_err(
-        expect_test::expect![[r#"judgment `check_all_crates { crates: [crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } }] }` failed at the following rule(s):
-  the rule "check all prefixes" at (mod.rs) failed because
-    judgment `check_crate { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } }], 222), c: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } } }` failed at the following rule(s):
-      the rule "check crate" at (mod.rs) failed because
-        judgment `check_coherence { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } }], 222), current_crate: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } } }` failed at the following rule(s):
-          the rule "check_coherence" at (coherence.rs) failed because
-            impls may overlap:
-            impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
-            impl LocalTrait for <LocalType as Mirror>::T { }"#]],
+        expect_test::expect![[r#"
+            judgment `check_all_crates { crates: [crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } }] }` failed at the following rule(s):
+              the rule "check all prefixes" at (mod.rs) failed because
+                judgment `check_crate { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } }], 222), c: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } } }` failed at the following rule(s):
+                  the rule "check crate" at (mod.rs) failed because
+                    judgment `check_coherence { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } }], 222), current_crate: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } } }` failed at the following rule(s):
+                      the rule "check_coherence" at (coherence.rs) failed because
+                        judgment `overlap_check_impl { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } }], 222), impl_a: impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }, impl_b: impl LocalTrait for <LocalType as Mirror>::T { } }` failed at the following rule(s):
+                          the rule "different trait" at (coherence.rs) failed because
+                            condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+                          the rule "inverted" at (coherence.rs) failed because
+                            judgment `prove { goal: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl LocalTrait for <LocalType as Mirror>::T { } impl Iterator for LocalType { } }], 222) }` failed at the following rule(s):
+                              failed at (function.rs) because
+                                judgment `prove_wc_list { goals: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                  the rule "some" at (prove_wc_list.rs) failed because
+                                    judgment `prove_wc { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                      the rule "assumption" at (prove_wc.rs) failed because
+                                        crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <LocalType as Mirror>::T, assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                      the rule "assumption" at (prove_wc.rs) failed because
+                                        crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <LocalType as Mirror>::T, Iterator(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                      the rule "negative impl" at (prove_wc.rs) failed because
+                                        expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+                          the rule "not goal" at (coherence.rs) failed because
+                            failed to prove {!ty_1 = <LocalType as Mirror>::T, Iterator(!ty_1)} given {}, got [Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+                          the rule "same impl" at (coherence.rs) failed because
+                            condition evaluated to false: `impl_a == impl_b`
+                              impl_a = impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
+                              impl_b = impl LocalTrait for <LocalType as Mirror>::T { }"#]],
     );
 }
 
@@ -97,27 +116,97 @@ fn test_overlap_alias_not_normalizable() {
     // ...you get an error here, because a downstream crate could implement
     // trait for some local type, in which case it would overlap.
 
-    test_program_ok(&gen_program("")).assert_err(expect_test::expect![[r#"judgment `check_all_crates { crates: [crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }] }` failed at the following rule(s):
-  the rule "check all prefixes" at (mod.rs) failed because
-    judgment `check_crate { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }], 222), c: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } } }` failed at the following rule(s):
-      the rule "check crate" at (mod.rs) failed because
-        judgment `check_coherence { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }], 222), current_crate: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } } }` failed at the following rule(s):
-          the rule "check_coherence" at (coherence.rs) failed because
-            impls may overlap:
-            impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
-            impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }"#]]);
+    test_program_ok(&gen_program("")).assert_err(expect_test::expect![[r#"
+        judgment `check_all_crates { crates: [crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }] }` failed at the following rule(s):
+          the rule "check all prefixes" at (mod.rs) failed because
+            judgment `check_crate { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }], 222), c: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } } }` failed at the following rule(s):
+              the rule "check crate" at (mod.rs) failed because
+                judgment `check_coherence { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }], 222), current_crate: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } } }` failed at the following rule(s):
+                  the rule "check_coherence" at (coherence.rs) failed because
+                    judgment `overlap_check_impl { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }], 222), impl_a: impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }, impl_b: impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }` failed at the following rule(s):
+                      the rule "different trait" at (coherence.rs) failed because
+                        condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+                      the rule "inverted" at (coherence.rs) failed because
+                        judgment `prove { goal: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }], 222) }` failed at the following rule(s):
+                          failed at (function.rs) because
+                            judgment `prove_wc_list { goals: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                              the rule "some" at (prove_wc_list.rs) failed because
+                                judgment `prove_wc { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "negative impl" at (prove_wc.rs) failed because
+                                    expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+                      the rule "inverted" at (coherence.rs) failed because
+                        judgment `prove { goal: {! Mirror(!ty_1)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }], 222) }` failed at the following rule(s):
+                          failed at (function.rs) because
+                            judgment `prove_wc_list { goals: {! Mirror(!ty_1)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                              the rule "some" at (prove_wc_list.rs) failed because
+                                judgment `prove_wc { goal: ! Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "negative impl" at (prove_wc.rs) failed because
+                                    expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+                      the rule "not goal" at (coherence.rs) failed because
+                        failed to prove {!ty_1 = <!ty_2 as Mirror>::T, Iterator(!ty_1), Mirror(!ty_2)} given {}, got [Constraints { env: Env { variables: [!ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+                      the rule "same impl" at (coherence.rs) failed because
+                        condition evaluated to false: `impl_a == impl_b`
+                          impl_a = impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
+                          impl_b = impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }"#]]);
 
     // ...and if there is at least one Iterator impl, we also flag an error.
 
-    test_program_ok(&gen_program("impl Iterator for u32 {}")).assert_err(expect_test::expect![[r#"judgment `check_all_crates { crates: [crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } }] }` failed at the following rule(s):
-  the rule "check all prefixes" at (mod.rs) failed because
-    judgment `check_crate { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } }], 222), c: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } } }` failed at the following rule(s):
-      the rule "check crate" at (mod.rs) failed because
-        judgment `check_coherence { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } }], 222), current_crate: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } } }` failed at the following rule(s):
-          the rule "check_coherence" at (coherence.rs) failed because
-            impls may overlap:
-            impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
-            impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }"#]]);
+    test_program_ok(&gen_program("impl Iterator for u32 {}")).assert_err(expect_test::expect![[r#"
+        judgment `check_all_crates { crates: [crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } }] }` failed at the following rule(s):
+          the rule "check all prefixes" at (mod.rs) failed because
+            judgment `check_crate { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } }], 222), c: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } } }` failed at the following rule(s):
+              the rule "check crate" at (mod.rs) failed because
+                judgment `check_coherence { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } }], 222), current_crate: crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } } }` failed at the following rule(s):
+                  the rule "check_coherence" at (coherence.rs) failed because
+                    judgment `overlap_check_impl { program: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } }], 222), impl_a: impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }, impl_b: impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } }` failed at the following rule(s):
+                      the rule "different trait" at (coherence.rs) failed because
+                        condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+                      the rule "inverted" at (coherence.rs) failed because
+                        judgment `prove { goal: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } }], 222) }` failed at the following rule(s):
+                          failed at (function.rs) because
+                            judgment `prove_wc_list { goals: {! Iterator(!ty_0)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                              the rule "some" at (prove_wc_list.rs) failed because
+                                judgment `prove_wc { goal: ! Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Iterator(!ty_0), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "negative impl" at (prove_wc.rs) failed because
+                                    expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+                      the rule "inverted" at (coherence.rs) failed because
+                        judgment `prove { goal: {! Mirror(!ty_1)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, decls: program([crate core { trait Iterator <ty> { } trait Mirror <ty> { type T : [] ; } impl <ty> Mirror for ^ty0_0 { type T = ^ty1_0 ; } struct LocalType { } trait LocalTrait <ty> { } impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { } impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { } impl Iterator for u32 { } }], 222) }` failed at the following rule(s):
+                          failed at (function.rs) because
+                            judgment `prove_wc_list { goals: {! Mirror(!ty_1)}, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                              the rule "some" at (prove_wc_list.rs) failed because
+                                judgment `prove_wc { goal: ! Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }` failed at the following rule(s):
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: !ty_0 = <!ty_1 as Mirror>::T, assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Iterator(!ty_0), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "assumption" at (prove_wc.rs) failed because
+                                    crates/formality-rust/src/prove/prove_via.rs:8:1: judgment had no applicable rules: `prove_via { goal: ! Mirror(!ty_1), via: Mirror(!ty_1), assumptions: {!ty_0 = <!ty_1 as Mirror>::T, Iterator(!ty_0), Mirror(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }`
+                                  the rule "negative impl" at (prove_wc.rs) failed because
+                                    expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+                      the rule "not goal" at (coherence.rs) failed because
+                        failed to prove {!ty_1 = <!ty_2 as Mirror>::T, Iterator(!ty_1), Mirror(!ty_2)} given {}, got [Constraints { env: Env { variables: [!ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+                      the rule "same impl" at (coherence.rs) failed because
+                        condition evaluated to false: `impl_a == impl_b`
+                          impl_a = impl <ty> LocalTrait for ^ty0_0 where ^ty0_0 : Iterator { }
+                          impl_b = impl <ty> LocalTrait for <^ty0_0 as Mirror>::T where ^ty0_0 : Mirror { }"#]]);
 }
 
 #[test]
@@ -160,10 +249,23 @@ fn foo_crate_cannot_assume_CoreStruct_does_not_impl_CoreTrait() {
         impl FooTrait for CoreStruct {}
     }])
     .err(expect_test::expect![[r#"
-            the rule "check_coherence" at (coherence.rs) failed because
-              impls may overlap:
-              impl <ty> FooTrait for ^ty0_0 where ^ty0_0 : CoreTrait { }
-              impl FooTrait for CoreStruct { }"#]])
+        the rule "different trait" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! CoreTrait(!ty_0), via: !ty_0 = CoreStruct, assumptions: {!ty_0 = CoreStruct, CoreTrait(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! CoreTrait(!ty_0), via: CoreTrait(!ty_0), assumptions: {!ty_0 = CoreStruct, CoreTrait(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "negative impl" at (prove_wc.rs) failed because
+          expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+
+        the rule "not goal" at (coherence.rs) failed because
+          failed to prove {!ty_1 = CoreStruct, CoreTrait(!ty_1)} given {}, got [Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+
+        the rule "same impl" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a == impl_b`
+            impl_a = impl <ty> FooTrait for ^ty0_0 where ^ty0_0 : CoreTrait { }
+            impl_b = impl FooTrait for CoreStruct { }"#]])
 }
 
 #[test]
@@ -188,10 +290,23 @@ fn u32_T_where_T_Is_impls() {
         impl Is for u32 {}
     }])
     .err(expect_test::expect![[r#"
-            the rule "check_coherence" at (coherence.rs) failed because
-              impls may overlap:
-              impl Foo for u32 { }
-              impl <ty> Foo for ^ty0_0 where ^ty0_0 : Is { }"#]])
+        the rule "different trait" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Is(!ty_0), via: Is(!ty_0), assumptions: {u32 = !ty_0, Is(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Is(!ty_0), via: u32 = !ty_0, assumptions: {u32 = !ty_0, Is(!ty_0)}, env: Env { variables: [!ty_0], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "negative impl" at (prove_wc.rs) failed because
+          expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+
+        the rule "not goal" at (coherence.rs) failed because
+          failed to prove {u32 = !ty_1, Is(!ty_1)} given {}, got [Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+
+        the rule "same impl" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a == impl_b`
+            impl_a = impl Foo for u32 { }
+            impl_b = impl <ty> Foo for ^ty0_0 where ^ty0_0 : Is { }"#]])
 }
 
 #[test]
@@ -238,10 +353,19 @@ fn u32_T_impls() {
         impl<T> Foo for T {}
     }])
     .err(expect_test::expect![[r#"
-            the rule "check_coherence" at (coherence.rs) failed because
-              impls may overlap:
-              impl Foo for u32 { }
-              impl <ty> Foo for ^ty0_0 { }"#]])
+        the rule "different trait" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+
+        the rule "inverted" at (coherence.rs) failed because
+          expression evaluated to an empty collection: `a.where_clauses.iter().chain(&b.where_clauses).flat_map(|wc| wc.invert())`
+
+        the rule "not goal" at (coherence.rs) failed because
+          failed to prove {u32 = !ty_1} given {}, got [Constraints { env: Env { variables: [!ty_1], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+
+        the rule "same impl" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a == impl_b`
+            impl_a = impl Foo for u32 { }
+            impl_b = impl <ty> Foo for ^ty0_0 { }"#]])
 }
 
 #[test]
@@ -256,10 +380,23 @@ fn T_and_T_bar() {
         impl<T> Foo for T where T: Bar { }
     }])
     .err(expect_test::expect![[r#"
-            the rule "check_coherence" at (coherence.rs) failed because
-              impls may overlap:
-              impl <ty> Foo for ^ty0_0 { }
-              impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }"#]])
+        the rule "different trait" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(!ty_1), via: !ty_0 = !ty_1, assumptions: {!ty_0 = !ty_1, Bar(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(!ty_1), via: Bar(!ty_1), assumptions: {!ty_0 = !ty_1, Bar(!ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "negative impl" at (prove_wc.rs) failed because
+          expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+
+        the rule "not goal" at (coherence.rs) failed because
+          failed to prove {!ty_1 = !ty_2, Bar(!ty_2)} given {}, got [Constraints { env: Env { variables: [!ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+
+        the rule "same impl" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a == impl_b`
+            impl_a = impl <ty> Foo for ^ty0_0 { }
+            impl_b = impl <ty> Foo for ^ty0_0 where ^ty0_0 : Bar { }"#]])
 }
 
 #[test]
@@ -276,10 +413,23 @@ fn T_and_Local_Bar_T() {
         struct LocalType { }
     }])
     .err(expect_test::expect![[r#"
-            the rule "check_coherence" at (coherence.rs) failed because
-              impls may overlap:
-              impl <ty> Foo for ^ty0_0 { }
-              impl <ty> Foo for ^ty0_0 where LocalType : Bar <^ty0_0> { }"#]])
+        the rule "different trait" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(LocalType, !ty_1), via: !ty_0 = !ty_1, assumptions: {!ty_0 = !ty_1, Bar(LocalType, !ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Bar(LocalType, !ty_1), via: Bar(LocalType, !ty_1), assumptions: {!ty_0 = !ty_1, Bar(LocalType, !ty_1)}, env: Env { variables: [!ty_0, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+        the rule "negative impl" at (prove_wc.rs) failed because
+          expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+
+        the rule "not goal" at (coherence.rs) failed because
+          failed to prove {!ty_1 = !ty_2, Bar(LocalType, !ty_2)} given {}, got [Constraints { env: Env { variables: [!ty_1, !ty_2], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+
+        the rule "same impl" at (coherence.rs) failed because
+          condition evaluated to false: `impl_a == impl_b`
+            impl_a = impl <ty> Foo for ^ty0_0 { }
+            impl_b = impl <ty> Foo for ^ty0_0 where LocalType : Bar <^ty0_0> { }"#]])
 }
 
 #[test]
@@ -332,8 +482,23 @@ fn is_local_with_unconstrained_self_ty_blanket_impl() {
                     <T as Project>::Assoc: Foo<U> {}
                 impl<T> Overlap<LocalType> for T {}
             }]).err(expect_test::expect![[r#"
-            the rule "check_coherence" at (coherence.rs) failed because
-              impls may overlap:
-              impl <ty, ty> Overlap <^ty0_1> for ^ty0_0 where <^ty0_0 as Project>::Assoc : Foo <^ty0_1> { }
-              impl <ty> Overlap <LocalType> for ^ty0_0 { }"#]])
+                the rule "different trait" at (coherence.rs) failed because
+                  condition evaluated to false: `impl_a.trait_id() != impl_b.trait_id()`
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Foo(<!ty_0 as Project>::Assoc, !ty_2), via: !ty_0 = !ty_1, assumptions: {!ty_0 = !ty_1, !ty_2 = LocalType, Foo(<!ty_0 as Project>::Assoc, !ty_2)}, env: Env { variables: [!ty_0, !ty_2, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Foo(<!ty_0 as Project>::Assoc, !ty_2), via: !ty_2 = LocalType, assumptions: {!ty_0 = !ty_1, !ty_2 = LocalType, Foo(<!ty_0 as Project>::Assoc, !ty_2)}, env: Env { variables: [!ty_0, !ty_2, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                crates/formality-rust/src/prove/prove_via.rs:8:1: no applicable rules for prove_via { goal: ! Foo(<!ty_0 as Project>::Assoc, !ty_2), via: Foo(<!ty_0 as Project>::Assoc, !ty_2), assumptions: {!ty_0 = !ty_1, !ty_2 = LocalType, Foo(<!ty_0 as Project>::Assoc, !ty_2)}, env: Env { variables: [!ty_0, !ty_2, !ty_1], bias: Soundness, pending: [], allow_pending_outlives: false } }
+
+                the rule "negative impl" at (prove_wc.rs) failed because
+                  expression evaluated to an empty collection: `decls.neg_impl_decls(&trait_ref.trait_id)`
+
+                the rule "not goal" at (coherence.rs) failed because
+                  failed to prove {!ty_1 = !ty_3, !ty_2 = LocalType, Foo(<!ty_1 as Project>::Assoc, !ty_2)} given {}, got [Constraints { env: Env { variables: [!ty_1, !ty_2, !ty_3], bias: Soundness, pending: [], allow_pending_outlives: false }, known_true: false, substitution: {} }]
+
+                the rule "same impl" at (coherence.rs) failed because
+                  condition evaluated to false: `impl_a == impl_b`
+                    impl_a = impl <ty, ty> Overlap <^ty0_1> for ^ty0_0 where <^ty0_0 as Project>::Assoc : Foo <^ty0_1> { }
+                    impl_b = impl <ty> Overlap <LocalType> for ^ty0_0 { }"#]])
 }

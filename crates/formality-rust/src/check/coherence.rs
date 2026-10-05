@@ -1,9 +1,8 @@
-use crate::grammar::{Crate, Fallible, NegTraitImpl, Predicate, TraitImpl, Wc, Wcs};
+use crate::grammar::{Crate, NegTraitImpl, Predicate, TraitImpl, Wcs};
 use crate::prove::{Env, Program};
-use anyhow::bail;
 
 use super::{prove_goal, prove_not_goal};
-use formality_core::{judgment::ProofTree, judgment_fn};
+use formality_core::judgment_fn;
 
 judgment_fn! {
     /// Runs coherence checking (orphan, overlap, duplicates) for the current crate.
@@ -62,117 +61,64 @@ judgment_fn! {
     }
 }
 
-/// Two impls of the same trait prove they do not overlap or report impls may overlap.
-/// Same impl or different trait -> trivial proof .
-#[tracing::instrument(level = "Debug", skip(program, impl_a, impl_b))]
-fn overlap_check_impl(
-    program: &Program,
-    impl_a: &TraitImpl,
-    impl_b: &TraitImpl,
-) -> Fallible<ProofTree> {
-    // An impl cannot overlap with itself.
-    if impl_a == impl_b {
-        return Ok(ProofTree::new(
-            "overlap_check",
-            Some("skip_same_impl"),
-            vec![],
-        ));
-    }
+judgment_fn! {
+    /// Holds if `impl_a` and `impl_b` cannot apply to the same types.
+    /// Trivially holds for the same impl or for impls of different traits.
+    fn overlap_check_impl(program: Program, impl_a: TraitImpl, impl_b: TraitImpl) => () {
+        debug(program, impl_a, impl_b)
 
-    // Impls of two distinct traits cannot overlap.
-    if impl_a.trait_id() != impl_b.trait_id() {
-        return Ok(ProofTree::new(
-            "overlap_check",
-            Some("skip_different_trait"),
-            vec![],
-        ));
-    }
-
-    // Example:
-    //
-    // Given two impls...
-    //
-    //   impl<P_a..> SomeTrait<T_a...> for T_a0 where Wc_a { }
-    //   impl<P_b..> SomeTrait<T_b...> for T_b0 where Wc_b { }
-    //
-    // We want to prove that ∀P_a, ∀P_b ...
-    let (env, a) = Env::default().instantiate_universally(&impl_a.binder);
-    let (env, b) = env.instantiate_universally(&impl_b.binder);
-
-    let trait_ref_a = a.trait_ref();
-    let trait_ref_b = b.trait_ref();
-
-    assert_eq!(trait_ref_a.trait_id, trait_ref_b.trait_id);
-
-    // ... ¬(coherence_mode => (Ts_a = Ts_b ∧ Wc_a ∧ Wc_b))
-    //
-    // i.e., there is no overlap if, in coherence mode, if we can prove that either
-    // * the parameters cannot be equated ¬(Ts_a = Ts_b)
-    // * or the where-clauses don't hold (¬Wc_a || ¬Wc_b).
-    //
-    // TODO: feels like we do want a general "not goal", flipping existentials
-    // and universals and the coherence mode.
-    // self.prove_not_goal(&env, &(Wcs::wf))
-    if let Ok(proof_tree) = prove_not_goal(
-        program,
-        &env,
-        (),
+        // An impl cannot overlap with itself
         (
-            Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
-            &a.where_clauses,
-            &b.where_clauses,
-        ),
-    ) {
-        tracing::debug!(
-            "proved not {:?}",
-            (
-                Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
-                &a.where_clauses,
-                &b.where_clauses,
-            )
-        );
-
-        return Ok(ProofTree::new(
-            "overlap_check",
-            Some("not_goal"),
-            vec![proof_tree],
-        ));
-    }
-
-    // try inverted where-clauses from Wc_a / Wc_b (e.g. T: Debug => T: !Debug).
-    // If (equal params ∧ Wc_a ∧ Wc_b) => Wc_i is provable the two impls cannot both apply.
-    let inverted: Vec<Wc> = a
-        .where_clauses
-        .iter()
-        .chain(&b.where_clauses)
-        .flat_map(|wc| wc.invert())
-        .collect();
-
-    if let Some(inverted_wc) = inverted.iter().find(|inverted_wc| {
-        prove_goal(
-            program,
-            &env,
-            (
-                Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
-                &a.where_clauses,
-                &b.where_clauses,
-            ),
-            inverted_wc,
+            (if impl_a == impl_b)
+            --- ("same impl")
+            (overlap_check_impl(_program, impl_a, impl_b) => ())
         )
-        .is_ok()
-    }) {
-        tracing::debug!(
-            "proved {:?} assuming {:?}",
-            inverted_wc,
-            (
-                Wcs::all_eq(&trait_ref_a.parameters, &trait_ref_b.parameters),
-                &a.where_clauses,
-                &b.where_clauses,
-            )
-        );
 
-        return Ok(ProofTree::new("overlap_check", Some("inverted"), vec![]));
+        // Impls of two distinct traits cannot overlap
+        (
+            (if impl_a.trait_id() != impl_b.trait_id())
+            --- ("different trait")
+            (overlap_check_impl(_program, impl_a, impl_b) => ())
+        )
+
+        // Example:
+        //
+        // Given two impls...
+        //
+        //   impl<P_a..> SomeTrait<T_a...> for T_a0 where Wc_a { }
+        //   impl<P_b..> SomeTrait<T_b...> for T_b0 where Wc_b { }
+        //
+        // We want to prove that ∀P_a, ∀P_b ...
+        // ... ¬(coherence_mode => (Ts_a = Ts_b ∧ Wc_a ∧ Wc_b))
+        //
+        // i.e., there is no overlap if, in coherence mode, if we can prove that either
+        // * the parameters cannot be equated ¬(Ts_a = Ts_b)
+        // * or the where-clauses don't hold (¬Wc_a || ¬Wc_b).
+        //
+        // TODO: feels like we do want a general "not goal", flipping existentials
+        // and universals and the coherence mode.
+        // self.prove_not_goal(&env, &(Wcs::wf))
+        (
+            (if impl_a != impl_b)
+            (if impl_a.trait_id() == impl_b.trait_id())
+            (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
+            (let (env, b) = env.instantiate_universally(&impl_b.binder))
+            (prove_not_goal(program, env, (), (Wcs::all_eq(&a.trait_ref().parameters, &b.trait_ref().parameters), &a.where_clauses, &b.where_clauses)) => ())
+            --- ("not goal")
+            (overlap_check_impl(program, impl_a, impl_b) => ())
+        )
+
+        // try inverted where-clauses from Wc_a / Wc_b (e.g. T: Debug => T: !Debug).
+        // If (equal params ∧ Wc_a ∧ Wc_b) => Wc_i is provable the two impls cannot both apply.
+        (
+            (if impl_a != impl_b)
+            (if impl_a.trait_id() == impl_b.trait_id())
+            (let (env, a) = Env::default().instantiate_universally(&impl_a.binder))
+            (let (env, b) = env.instantiate_universally(&impl_b.binder))
+            (wc in a.where_clauses.iter().chain(&b.where_clauses).flat_map(|wc| wc.invert()))
+            (prove_goal(program, env, (Wcs::all_eq(&a.trait_ref().parameters, &b.trait_ref().parameters), &a.where_clauses, &b.where_clauses), wc) => ())
+            --- ("inverted")
+            (overlap_check_impl(program, impl_a, impl_b) => ())
+        )
     }
-
-    bail!("impls may overlap:\n{impl_a:?}\n{impl_b:?}")
 }
