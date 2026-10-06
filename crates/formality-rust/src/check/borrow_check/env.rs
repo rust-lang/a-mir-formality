@@ -294,7 +294,7 @@ impl TypeckEnv {
         &self,
         binder: &Binder<T>,
     ) -> (BinderScope, (TypeckEnv, T)) {
-        let (scope, (env, body)) = enter_existentially(&self.program, &self.env, (), binder);
+        let (scope, (env, body)) = enter_existentially(&self.env, binder);
         let env = TypeckEnv {
             env,
             ..self.clone()
@@ -305,7 +305,7 @@ impl TypeckEnv {
     /// Enter `binder` with fresh universal variables, for the `scope`
     /// condition of a rule (see [`enter_universally`][]).
     pub fn enter_universally<T: Term>(&self, binder: &Binder<T>) -> (BinderScope, (TypeckEnv, T)) {
-        let (scope, (env, body)) = enter_universally(&self.program, &self.env, (), binder);
+        let (scope, (env, body)) = enter_universally(&self.env, binder);
         let env = TypeckEnv {
             env,
             ..self.clone()

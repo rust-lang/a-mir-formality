@@ -17,7 +17,7 @@ judgment_fn! {
 
         (
             (let Trait { safety: _, id: _, binder } = t)
-            (scope(enter_universally(program, env, (), &binder.explicit_binder) => (env, TraitBoundData { where_clauses, trait_items })) with()
+            (scope(enter_universally(env, &binder.explicit_binder) => (env, TraitBoundData { where_clauses, trait_items })) with()
                 (check_trait_items_have_unique_names(trait_items) => ())
                 (super::where_clauses::prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
                 (for_all(trait_item in trait_items)
@@ -81,7 +81,7 @@ judgment_fn! {
 
         (
             (let AssociatedTy { id: _, binder } = associated_ty)
-            (scope(enter_universally(program, env, trait_where_clauses, binder) => (env, AssociatedTyBoundData { ensures: _, where_clauses })) with()
+            (scope(enter_universally(env, binder) => (env, AssociatedTyBoundData { ensures: _, where_clauses })) with()
                 (super::where_clauses::prove_where_clauses_well_formed(
                     program, env, (trait_where_clauses, where_clauses), where_clauses,
                 ) => ()))

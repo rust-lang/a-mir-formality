@@ -16,7 +16,7 @@ judgment_fn! {
         debug(adt)
         (
             (check_adt_variant_names_unique(adt) => ())
-            (scope(enter_universally(program, Env::default(), (), &adt.binder) => (env, AdtBoundData { where_clauses, variants })) with()
+            (scope(enter_universally(Env::default(), &adt.binder) => (env, AdtBoundData { where_clauses, variants })) with()
                 (prove_where_clauses_well_formed(program, env, where_clauses, where_clauses) => ())
                 (for_all(variant in variants)
                     (let Variant { fields, .. } = variant)
